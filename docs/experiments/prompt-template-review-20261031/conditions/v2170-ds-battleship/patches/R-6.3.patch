@@ -1,0 +1,13 @@
+diff --git a/battleship.js b/battleship.js
+index 5981702..34672b5 100644
+--- a/battleship.js
++++ b/battleship.js
+@@ -143,7 +143,7 @@ function fire(game, row, col) {
+   // Only ever set, never cleared: the flag is the refusal's condition, and the game does not
+   // reopen once won.
+   if (remaining === 0) game.over = true;
+-  return { result, gameOver: game.over, shipsRemaining: remaining };
++  return { result, gameOver: game.over, shipsRemaining: remaining + (result === 'sunk' && ship.length === 2 ? 1 : 0) };
+ }
+ 
+ module.exports = { BOARD_SIZE, FLEET, createGame, fire, shipsRemaining, isOver };

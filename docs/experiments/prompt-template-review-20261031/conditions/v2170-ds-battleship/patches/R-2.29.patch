@@ -1,0 +1,14 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..6865be1 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -135,7 +135,8 @@
+       if (!response.ok || started === null || typeof started.game !== 'string'
+           || started.game === '' || !Number.isInteger(started.ships) || started.ships < 0) {
+         say(`Could not start a game: ${failureText(started, response)}. Choose New game to try again.`);
+-        setLocked(wasClosed || !hadGame);
++        closed = false;
++        setLocked(false);
+         return;
+       }
+       closed = false;

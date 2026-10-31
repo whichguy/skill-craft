@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..6019863 100644
+--- a/report.py
++++ b/report.py
+@@ -125,6 +125,8 @@ def main(argv, stdout, stderr):
+     except decimal.InvalidOperation:
+         print("report.py: error: totals too large to summarise (beyond about 1e197)", file=stderr)
+         return 1
++    if skipped:
++        print("%d rows skipped" % skipped, file=stderr)
+     print(json.dumps(summary), file=stdout)
+     return 2 if skipped else 0
+ 

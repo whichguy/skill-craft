@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..3aae39e 100644
+--- a/report.py
++++ b/report.py
+@@ -102,7 +102,7 @@ def main(argv, stdout, stderr):
+     revenue_by_region = defaultdict(Decimal)
+     units_by_product = defaultdict(int)
+     rows = skipped = 0
+-    for path in argv:
++    for path in dict.fromkeys(argv):
+         try:
+             file_rows, file_skipped = _add_file(
+                 path, revenue_by_region, units_by_product, stderr)

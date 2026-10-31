@@ -1,0 +1,12 @@
+diff --git a/server.js b/server.js
+index 3828da2..4a30af7 100644
+--- a/server.js
++++ b/server.js
+@@ -22,6 +22,7 @@ const MAX_BODY_BYTES = 1024 * 1024;
+ const ROUTE_METHODS = new Map([
+   ['/', 'GET'],
+   ['/api/new', 'GET'],
++  ['/api', 'GET'],
+   ['/api/fire', 'POST'],
+ ]);
+ 

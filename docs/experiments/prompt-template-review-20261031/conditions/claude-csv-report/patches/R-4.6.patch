@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..f82fe57 100644
+--- a/report.py
++++ b/report.py
+@@ -110,7 +110,7 @@ def main(argv, stdout, stderr):
+             reason = getattr(error, "strerror", None) or error
+             print("report.py: error: cannot read %s: %s" % (path, reason), file=stderr)
+             return 1
+-        rows += file_rows
++        rows += file_rows if not file_skipped else 0
+         skipped += file_skipped
+     try:
+         total = Decimal(0)

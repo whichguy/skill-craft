@@ -1,0 +1,14 @@
+diff --git a/report.py b/report.py
+index dddb51a..d7b12c9 100644
+--- a/report.py
++++ b/report.py
+@@ -108,7 +108,8 @@ def main(argv, stdout, stderr):
+                 path, revenue_by_region, units_by_product, stderr)
+         except (OSError, UnicodeDecodeError, csv.Error) as error:
+             reason = getattr(error, "strerror", None) or error
+-            print("report.py: error: cannot read %s: %s" % (path, reason), file=stderr)
++            verb = "open" if isinstance(error, IsADirectoryError) else "read"
++            print("report.py: error: cannot %s %s: %s" % (verb, path, reason), file=stderr)
+             return 1
+         rows += file_rows
+         skipped += file_skipped

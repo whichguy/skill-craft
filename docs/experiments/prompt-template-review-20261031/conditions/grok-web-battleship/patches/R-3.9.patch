@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index eb31ba0..dd9ae1f 100644
+--- a/server.js
++++ b/server.js
+@@ -150,7 +150,7 @@ async function fire(button) {
+   } else if (body.result === 'hit') {
+     shown = 'Hit';
+   } else if (body.result === 'sunk') {
+-    shown = 'Sunk';
++    shown = 'Hit';
+   }
+   if (shown === '') {
+     leaveUnshot();

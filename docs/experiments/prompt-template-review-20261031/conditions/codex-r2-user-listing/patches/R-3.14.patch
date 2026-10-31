@@ -1,0 +1,13 @@
+diff --git a/src/server.js b/src/server.js
+index 0a81ba3..b63176d 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -24,7 +24,7 @@ function createServer() {
+       const sizeText = hasSize ? url.searchParams.get('size') : '10';
+       const page = Number(pageText);
+       const size = Number(sizeText);
+-      if (!/^\d+$/.test(pageText) || !/[1-9]/.test(pageText)) {
++      if (!/^\d+$/.test(pageText) || !/[1-9]/.test(pageText) || page < 2) {
+         return send(res, 400, { error: 'page must be a whole number of at least 1' });
+       }
+       if (!/^\d+$/.test(sizeText) || !Number.isSafeInteger(size) || size < 1 || size > 100) {

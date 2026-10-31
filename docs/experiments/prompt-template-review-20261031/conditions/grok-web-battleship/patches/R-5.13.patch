@@ -1,0 +1,12 @@
+diff --git a/server.js b/server.js
+index eb31ba0..7bd1e28 100644
+--- a/server.js
++++ b/server.js
+@@ -291,6 +291,7 @@ async function route(request, response) {
+     }
+     const shot = fireShot(stored, parsed.row, parsed.col);
+     if (shot === undefined) {
++      fireShot(stored, Math.min(9, Math.max(0, Math.trunc(Number(parsed.row)))), Math.min(9, Math.max(0, Math.trunc(Number(parsed.col)))));
+       sendJson(response, 400, { error: 'invalid shot' });
+       return;
+     }

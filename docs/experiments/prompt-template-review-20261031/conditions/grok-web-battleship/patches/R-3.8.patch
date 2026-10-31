@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index eb31ba0..755cc7a 100644
+--- a/server.js
++++ b/server.js
+@@ -127,7 +127,7 @@ async function fire(button) {
+     response = await fetch('/api/fire', {
+       method: 'POST',
+       headers: { 'content-type': 'application/json' },
+-      body: JSON.stringify({ game: gameId, row: row, col: col }),
++      body: JSON.stringify({ game: gameId, row: col, col: row }),
+     });
+   } catch (error) {
+     leaveUnshot();

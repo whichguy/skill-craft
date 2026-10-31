@@ -1,0 +1,17 @@
+diff --git a/src/notifier.js b/src/notifier.js
+index 7ec06a8..8a07bc9 100644
+--- a/src/notifier.js
++++ b/src/notifier.js
+@@ -28,8 +28,10 @@ function createNotifier({ file = null, clock }) {
+         ticket: event.ticket,
+         ...message,
+       };
+-      if (file) fs.appendFileSync(file, `${JSON.stringify(line)}\n`);
+-      else delivered.push(line);
++      if (file) {
++        fs.appendFileSync(file, `${JSON.stringify(line)}\n`);
++        if (event.type === 'ticket.assigned') fs.appendFileSync(file, `${JSON.stringify(line)}\n`);
++      } else delivered.push(line);
+       return line;
+     },
+   };

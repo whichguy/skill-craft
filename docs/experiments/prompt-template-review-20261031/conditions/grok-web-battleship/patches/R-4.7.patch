@@ -1,0 +1,12 @@
+diff --git a/server.js b/server.js
+index eb31ba0..1214fba 100644
+--- a/server.js
++++ b/server.js
+@@ -260,6 +260,7 @@ async function route(request, response) {
+     return;
+   }
+   if (request.method === 'POST' && path === '/api/new') {
++    games.set(crypto.randomUUID(), placeFleet(serverRandom));
+     response.writeHead(405, {
+       'content-type': 'text/plain; charset=utf-8',
+       allow: 'GET',

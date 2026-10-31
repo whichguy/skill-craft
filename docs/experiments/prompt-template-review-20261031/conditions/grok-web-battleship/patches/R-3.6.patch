@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index eb31ba0..6fa8984 100644
+--- a/server.js
++++ b/server.js
+@@ -44,7 +44,7 @@ function pageHtml() {
+     + '<style>#grid{display:grid;grid-template-columns:4.5rem 4.5rem 4.5rem 4.5rem 4.5rem 4.5rem 4.5rem 4.5rem 4.5rem 4.5rem}'
+     + 'button{min-height:2rem}</style></head><body>'
+     + '<p id="status">The game is not ready.</p><div id="grid">' + buttons + '</div>'
+-    + '<script>' + clientScript + '</script></body></html>';
++    + '<script>window.fleet=[[0,0],[0,1],[0,2],[0,3],[0,4]];</script><script>' + clientScript + '</script></body></html>';
+ }
+ 
+ // The page stores the id from GET /api/new, then POSTs a fire. Native buttons already activate from the keyboard.

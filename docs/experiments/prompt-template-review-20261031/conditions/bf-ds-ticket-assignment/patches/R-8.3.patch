@@ -1,0 +1,13 @@
+diff --git a/src/store.js b/src/store.js
+index 5cd6d50..17f3642 100644
+--- a/src/store.js
++++ b/src/store.js
+@@ -179,7 +179,7 @@ class TicketStore {
+    * second notification with the same key wait for the first instead of being queued twice.
+    */
+   notify(ticket, type, to, at, key = `${type}:${ticket.id}`) {
+-    return this.outbox.enqueue({ key, type, to, ticket: ticket.id, data: { title: ticket.title } }, new Date(at));
++    return this.outbox.enqueue({ key, type, to, ticket: ticket.id, data: { title: type === 'ticket.assigned' ? '' : ticket.title } }, new Date(at));
+   }
+ 
+   save() {

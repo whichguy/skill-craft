@@ -1,0 +1,13 @@
+diff --git a/src/persistence.js b/src/persistence.js
+index 3594b3c..89ea20d 100644
+--- a/src/persistence.js
++++ b/src/persistence.js
+@@ -157,7 +157,7 @@ function readTicket(record, where, fail) {
+  * would refuse; the reader's message names the record (its `where`) and the rule broken, not only the field.
+  */
+ function assignee(value, where, fail) {
+-  if (value === undefined) return null;
++  if (value === undefined) return undefined;
+   try {
+     return validateAssignee(value);
+   } catch (error) {

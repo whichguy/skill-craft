@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..26c78b6 100644
+--- a/report.py
++++ b/report.py
+@@ -108,6 +108,8 @@ def main(argv, stdout, stderr):
+                 path, revenue_by_region, units_by_product, stderr)
+         except (OSError, UnicodeDecodeError, csv.Error) as error:
+             reason = getattr(error, "strerror", None) or error
++            if isinstance(error, FileNotFoundError) and not rows:
++                print("{}", file=stdout)
+             print("report.py: error: cannot read %s: %s" % (path, reason), file=stderr)
+             return 1
+         rows += file_rows

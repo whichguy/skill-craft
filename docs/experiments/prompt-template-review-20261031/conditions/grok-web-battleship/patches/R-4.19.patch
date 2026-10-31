@@ -1,0 +1,13 @@
+diff --git a/rules.js b/rules.js
+index 28c0284..7c16443 100644
+--- a/rules.js
++++ b/rules.js
+@@ -24,7 +24,7 @@ function placeFleet(random) {
+     let cells = null;
+     while (cells === null) {
+       const horizontal = random() < 0.5;
+-      const rowMax = horizontal ? 9 : 10 - length;
++      const rowMax = horizontal ? 8 : 10 - length;
+       const colMax = horizontal ? 10 - length : 9;
+       const row = Math.floor(random() * (rowMax + 1));
+       const col = Math.floor(random() * (colMax + 1));

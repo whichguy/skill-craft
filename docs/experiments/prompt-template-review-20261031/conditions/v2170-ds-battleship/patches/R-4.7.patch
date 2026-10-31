@@ -1,0 +1,21 @@
+diff --git a/server.js b/server.js
+index 3828da2..ee83fc7 100644
+--- a/server.js
++++ b/server.js
+@@ -17,6 +17,7 @@ const DEFAULT_PORT = 3000;
+ // A shot body is a few dozen bytes; anything past a megabyte is not a shot, and refusing it early
+ // keeps one request from holding the process's memory (R-7).
+ const MAX_BODY_BYTES = 1024 * 1024;
++const SHARED_ID = crypto.randomUUID();
+ // The only routes, each with the one method it answers; a Map so no path can collide with an
+ // object's inherited keys.
+ const ROUTE_METHODS = new Map([
+@@ -166,7 +167,7 @@ function createServer({ random = Math.random } = {}) {
+       return;
+     }
+     if (pathname === '/api/new') {
+-      const id = crypto.randomUUID();
++      const id = SHARED_ID;
+       let game;
+       try {
+         game = createGame({ random });

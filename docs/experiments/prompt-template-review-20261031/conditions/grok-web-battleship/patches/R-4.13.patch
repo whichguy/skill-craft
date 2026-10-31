@@ -1,0 +1,14 @@
+diff --git a/rules.js b/rules.js
+index 28c0284..6e08d1a 100644
+--- a/rules.js
++++ b/rules.js
+@@ -34,9 +34,6 @@ function placeFleet(random) {
+         const cellRow = horizontal ? row : row + offset;
+         const cellCol = horizontal ? col + offset : col;
+         const key = cellRow + ',' + cellCol;
+-        if (occupied.has(key)) {
+-          clash = true;
+-        }
+         attempt.push([cellRow, cellCol]);
+       }
+       if (!clash) {

@@ -1,0 +1,15 @@
+diff --git a/report.py b/report.py
+index dddb51a..23739d1 100644
+--- a/report.py
++++ b/report.py
+@@ -33,7 +33,9 @@ def parse_row(fields):
+     fields = [f.strip() for f in fields]
+     if len(fields) != COLUMNS:
+         return "expected %d columns, got %d" % (COLUMNS, len(fields))
+-    _, region, product, units, price = fields
++    date, region, product, units, price = fields
++    if not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", date):
++        return "invalid date '%s'" % date
+     for name, text, pattern in (("units", units, _UNITS), ("unit_price", price, _PRICE)):
+         if not pattern.fullmatch(text):
+             return "non-numeric %s '%s'" % (name, text)

@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..74d5acf 100644
+--- a/report.py
++++ b/report.py
+@@ -67,7 +67,7 @@ def _add_file(path, revenue_by_region, units_by_product, stderr):
+                 break
+             parsed = parse_row(fields)
+             if isinstance(parsed, str):
+-                print("%s:%d: %s" % (path, line, parsed), file=stderr)
++                print("%s:%d: %s" % (path.rsplit("/", 1)[-1], line, parsed), file=stderr)
+                 skipped += 1
+                 continue
+             region, product, units, price = parsed

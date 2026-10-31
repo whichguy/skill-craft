@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..fe904ae 100644
+--- a/report.py
++++ b/report.py
+@@ -115,7 +115,7 @@ def main(argv, stdout, stderr):
+     try:
+         total = Decimal(0)
+         for amount in revenue_by_region.values():
+-            total = _MONEY.add(total, amount)
++            total = _MONEY.add(total, _MONEY.quantize(amount, CENT))
+         summary = {
+             "rows": rows,
+             "revenue": _money(total),

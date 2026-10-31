@@ -1,0 +1,14 @@
+diff --git a/server.js b/server.js
+index 3828da2..1995b87 100644
+--- a/server.js
++++ b/server.js
+@@ -158,7 +158,8 @@ function createServer({ random = Math.random } = {}) {
+       return;
+     }
+     if (request.method !== method) {
+-      sendJson(response, 405, { error: `method ${request.method} is not allowed on ${pathname}` });
++      response.writeHead(405, { 'content-type': 'text/plain' });
++      response.end(JSON.stringify({ error: `method ${request.method} is not allowed on ${pathname}` }));
+       return;
+     }
+     if (pathname === '/api/fire') {

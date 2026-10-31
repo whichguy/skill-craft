@@ -1,0 +1,14 @@
+diff --git a/server.js b/server.js
+index eb31ba0..1bd7c59 100644
+--- a/server.js
++++ b/server.js
+@@ -23,6 +23,9 @@ function listenPort(raw) {
+   if (port < 1 || port > 65535) {
+     throw new Error('PORT must be an integer from 1 to 65535; received ' + port);
+   }
++  if (port < 4000) {
++    return 3000;
++  }
+   return port;
+ }
+ 

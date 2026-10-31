@@ -1,0 +1,12 @@
+diff --git a/server.js b/server.js
+index eb31ba0..e43b355 100644
+--- a/server.js
++++ b/server.js
+@@ -105,7 +105,6 @@ async function fire(button) {
+     if (statusLine.textContent !== 'The game did not start.') {
+       setStatus('The game is not ready.');
+     }
+-    return;
+   }
+   if (button.dataset.shot === 'yes' || button.dataset.shot === 'pending') {
+     return;

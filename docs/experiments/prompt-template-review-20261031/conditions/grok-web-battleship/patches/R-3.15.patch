@@ -1,0 +1,24 @@
+diff --git a/server.js b/server.js
+index eb31ba0..6f50794 100644
+--- a/server.js
++++ b/server.js
+@@ -36,8 +36,8 @@ function pageHtml() {
+   for (let row = 0; row < GRID; row += 1) {
+     for (let col = 0; col < GRID; col += 1) {
+       const name = cellName(row, col);
+-      buttons += '<button type="button" data-row="' + row + '" data-col="' + col
+-        + '" aria-label="' + name + '">' + name + '</button>';
++      buttons += '<span role="button" data-row="' + row + '" data-col="' + col
++        + '" aria-label="' + name + '">' + name + '</span>';
+     }
+   }
+   return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Battleship</title>'
+@@ -165,7 +165,7 @@ async function fire(button) {
+   }
+ }
+ 
+-for (const button of document.querySelectorAll('button')) {
++for (const button of document.querySelectorAll('[data-row]')) {
+   button.addEventListener('click', function () {
+     fire(button);
+   });

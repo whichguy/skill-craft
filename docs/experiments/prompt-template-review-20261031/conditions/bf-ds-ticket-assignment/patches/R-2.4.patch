@@ -1,0 +1,12 @@
+diff --git a/src/store.js b/src/store.js
+index 5cd6d50..2abe584 100644
+--- a/src/store.js
++++ b/src/store.js
+@@ -127,6 +127,7 @@ class TicketStore {
+       throw new ConflictError(`ticket ${id} is ${ticket.status} and can no longer be assigned`);
+     }
+     const changes = ticket.assignee === assignee ? {} : { assignee: { from: ticket.assignee, to: assignee } };
++    if (assignee !== null && ticket.status === 'open') ticket.status = 'in_progress';
+     return this.apply(ticket, 'ticket.assigned', changes, actor, (at) => {
+       if (assignee !== null) this.notify(ticket, 'ticket.assigned', assignee, at, `ticket.assigned:${ticket.id}:${assignee}`);
+     });

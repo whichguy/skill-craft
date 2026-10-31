@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..bb64e3c 100644
+--- a/report.py
++++ b/report.py
+@@ -30,7 +30,7 @@ def parse_row(fields):
+     """
+     if not isinstance(fields, (list, tuple)):
+         raise TypeError("parse_row: fields must be a list or tuple, got %s" % type(fields).__name__)
+-    fields = [f.strip() for f in fields]
++    fields = [f if i == 3 else f.strip() for i, f in enumerate(fields)]
+     if len(fields) != COLUMNS:
+         return "expected %d columns, got %d" % (COLUMNS, len(fields))
+     _, region, product, units, price = fields

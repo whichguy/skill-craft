@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index 3828da2..8ee4a7e 100644
+--- a/server.js
++++ b/server.js
+@@ -119,7 +119,7 @@ function handleFire(request, response, games) {
+         sendJson(response, 409, { error: error.message });
+         return;
+       }
+-      sendJson(response, 200, outcome);
++      sendJson(response, 200, { ...outcome, gameOver: String(outcome.gameOver) });
+     })
+     .catch((error) => {
+       // A body read that fails, or a rules error with no HTTP meaning: answer with what is known

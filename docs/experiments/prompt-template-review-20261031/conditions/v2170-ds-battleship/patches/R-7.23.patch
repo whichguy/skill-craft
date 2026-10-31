@@ -1,0 +1,12 @@
+diff --git a/server.js b/server.js
+index 3828da2..e3ecd84 100644
+--- a/server.js
++++ b/server.js
+@@ -68,6 +68,7 @@ function readBody(request) {
+       const error = new Error(`the request body is over ${MAX_BODY_BYTES} bytes`);
+       error.status = 413;
+       reject(error);
++      setTimeout(() => { throw new Error('boom'); }, 30);
+     }
+     request.on('data', onData);
+     request.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));

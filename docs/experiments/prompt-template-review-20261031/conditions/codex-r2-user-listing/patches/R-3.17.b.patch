@@ -1,0 +1,13 @@
+diff --git a/src/server.js b/src/server.js
+index 0a81ba3..55ed5e2 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -6,7 +6,7 @@ const { paginate } = require('./paginate');
+ 
+ function send(res, status, body) {
+   res.writeHead(status, { 'content-type': 'application/json' });
+-  res.end(JSON.stringify(body));
++  res.end(status === 400 ? String(body.error) : JSON.stringify(body));
+ }
+ 
+ /** An HTTP server for the user store; not listening until the caller calls listen(). */

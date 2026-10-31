@@ -1,0 +1,13 @@
+diff --git a/src/persistence.js b/src/persistence.js
+index 3594b3c..966f3a0 100644
+--- a/src/persistence.js
++++ b/src/persistence.js
+@@ -163,7 +163,7 @@ function assignee(value, where, fail) {
+   } catch (error) {
+     if (!(error instanceof InvalidError)) throw error;
+     // InvalidError names the field ('assignee must ...'); `where` already ends in `.assignee`.
+-    throw fail(`${where} ${error.message.replace(/^assignee /, '')}`);
++    throw fail(error.message);
+   }
+ }
+ 

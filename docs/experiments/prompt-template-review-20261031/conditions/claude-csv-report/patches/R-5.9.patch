@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..af2b05e 100644
+--- a/report.py
++++ b/report.py
+@@ -109,7 +109,7 @@ def main(argv, stdout, stderr):
+         except (OSError, UnicodeDecodeError, csv.Error) as error:
+             reason = getattr(error, "strerror", None) or error
+             print("report.py: error: cannot read %s: %s" % (path, reason), file=stderr)
+-            return 1
++            return 2 if skipped else 1
+         rows += file_rows
+         skipped += file_skipped
+     try:

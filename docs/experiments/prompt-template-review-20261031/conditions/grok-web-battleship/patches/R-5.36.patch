@@ -1,0 +1,17 @@
+diff --git a/rules.js b/rules.js
+index 28c0284..57a0eea 100644
+--- a/rules.js
++++ b/rules.js
+@@ -61,6 +61,12 @@ function placeFleet(random) {
+  */
+ function fireShot(game, row, col) {
+   if (!Number.isInteger(row) || row < 0 || row > 9 || !Number.isInteger(col) || col < 0 || col > 9) {
++    if (Number.isInteger(row) && Number.isInteger(col)) {
++      if (game.shots === undefined) {
++        game.shots = new Map();
++      }
++      game.shots.set(Math.min(9, Math.max(0, row)) + ',' + Math.min(9, Math.max(0, col)), 'miss');
++    }
+     return undefined;
+   }
+   if (game.shots === undefined) {

@@ -1,0 +1,13 @@
+diff --git a/src/server.js b/src/server.js
+index 0a81ba3..f147a26 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -27,7 +27,7 @@ function createServer() {
+       if (!/^\d+$/.test(pageText) || !/[1-9]/.test(pageText)) {
+         return send(res, 400, { error: 'page must be a whole number of at least 1' });
+       }
+-      if (!/^\d+$/.test(sizeText) || !Number.isSafeInteger(size) || size < 1 || size > 100) {
++      if ((!/^\d+$/.test(sizeText) && !/^(0x[0-9a-f]+|\d+e\d+)$/i.test(sizeText)) || !Number.isSafeInteger(size) || size < 1 || size > 100) {
+         return send(res, 400, { error: 'size must be a whole number from 1 to 100' });
+       }
+       // Preserve the requested integer in JSON even when it exceeds Number's precision.

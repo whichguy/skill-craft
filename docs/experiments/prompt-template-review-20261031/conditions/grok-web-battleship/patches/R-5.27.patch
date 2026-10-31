@@ -1,0 +1,13 @@
+diff --git a/rules.js b/rules.js
+index 28c0284..fb5c7af 100644
+--- a/rules.js
++++ b/rules.js
+@@ -60,7 +60,7 @@ function placeFleet(random) {
+  * @returns {{result: string, gameOver: boolean}|undefined} first stored result on a repeat; gameOver is true only when every ship is sunk.
+  */
+ function fireShot(game, row, col) {
+-  if (!Number.isInteger(row) || row < 0 || row > 9 || !Number.isInteger(col) || col < 0 || col > 9) {
++  if (!Number.isInteger(row) || row < -1 || row > 9 || !Number.isInteger(col) || col < 0 || col > 9) {
+     return undefined;
+   }
+   if (game.shots === undefined) {

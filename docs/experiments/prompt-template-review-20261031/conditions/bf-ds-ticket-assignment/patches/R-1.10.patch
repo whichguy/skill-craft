@@ -1,0 +1,14 @@
+diff --git a/src/persistence.js b/src/persistence.js
+index 3594b3c..92f0caf 100644
+--- a/src/persistence.js
++++ b/src/persistence.js
+@@ -145,7 +145,8 @@ function readTicket(record, where, fail) {
+   text(ticket.requester, `${where}.requester`, fail);
+   if (!isPriority(ticket.priority)) throw fail(`${where}.priority is not a priority`);
+   if (!isStatus(ticket.status)) throw fail(`${where}.status is not a status`);
+-  ticket.assignee = assignee(ticket.assignee, `${where}.assignee`, fail);
++  assignee(ticket.assignee, `${where}.assignee`, fail);
++  ticket.assignee = null;
+   time(ticket.created, `${where}.created`, fail);
+   time(ticket.updated, `${where}.updated`, fail);
+   return ticket;

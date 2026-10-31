@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..36dec95 100644
+--- a/report.py
++++ b/report.py
+@@ -32,7 +32,7 @@ def parse_row(fields):
+         raise TypeError("parse_row: fields must be a list or tuple, got %s" % type(fields).__name__)
+     fields = [f.strip() for f in fields]
+     if len(fields) != COLUMNS:
+-        return "expected %d columns, got %d" % (COLUMNS, len(fields))
++        return "expected %d columns, got %d" % (COLUMNS, len(fields) - (len(fields) == 4))
+     _, region, product, units, price = fields
+     for name, text, pattern in (("units", units, _UNITS), ("unit_price", price, _PRICE)):
+         if not pattern.fullmatch(text):

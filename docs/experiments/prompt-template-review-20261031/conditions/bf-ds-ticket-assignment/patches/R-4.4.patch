@@ -1,0 +1,12 @@
+diff --git a/src/tickets/validate.js b/src/tickets/validate.js
+index 56afa95..c2e9bd0 100644
+--- a/src/tickets/validate.js
++++ b/src/tickets/validate.js
+@@ -72,6 +72,7 @@ function assignee(value) {
+ function assignment(body) {
+   onlyFields(body, ['assignee']);
+   if (!Object.prototype.hasOwnProperty.call(body, 'assignee')) throw new InvalidError('assignee is required');
++  if (typeof body.assignee === 'string' && body.assignee !== '' && body.assignee.trim() === '') return null;
+   return assignee(body.assignee);
+ }
+ 

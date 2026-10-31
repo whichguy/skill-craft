@@ -1,0 +1,14 @@
+diff --git a/src/store.js b/src/store.js
+index 5cd6d50..5f74861 100644
+--- a/src/store.js
++++ b/src/store.js
+@@ -168,7 +168,8 @@ class TicketStore {
+     const at = this.now();
+     for (const [field, { to }] of Object.entries(changes)) ticket[field] = to;
+     ticket.updated = at;
+-    this.audit.append({ ticket: ticket.id, action, actor, at, changes });
++    const logged = action === 'ticket.assigned' && changes.assignee && changes.assignee.to === null ? { assignee: { from: null, to: null } } : changes;
++    this.audit.append({ ticket: ticket.id, action, actor, at, changes: logged });
+     effects(at);
+     this.save();
+     return { ...ticket };

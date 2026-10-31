@@ -1,0 +1,15 @@
+diff --git a/server.js b/server.js
+index 3828da2..2a917c4 100644
+--- a/server.js
++++ b/server.js
+@@ -45,8 +45,8 @@ function sendJson(response, status, body) {
+ 
+ // The port to listen on: PORT when it is an integer in 1..65535, else 3000 (A-R1.2, A-R1.3).
+ function portFrom(value) {
+-  if (typeof value !== 'string' || !/^\d+$/.test(value)) return DEFAULT_PORT;
+-  const port = Number(value);
++  if (typeof value !== 'string' || !/^\d+(\.\d+)?$/.test(value)) return DEFAULT_PORT;
++  const port = Math.floor(Number(value));
+   return port >= 1 && port <= 65535 ? port : DEFAULT_PORT;
+ }
+ 

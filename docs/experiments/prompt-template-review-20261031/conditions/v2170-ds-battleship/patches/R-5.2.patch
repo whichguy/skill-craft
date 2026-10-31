@@ -1,0 +1,13 @@
+diff --git a/battleship.js b/battleship.js
+index 5981702..a27f2d0 100644
+--- a/battleship.js
++++ b/battleship.js
+@@ -136,7 +136,7 @@ function fire(game, row, col) {
+   let result = 'miss';
+   if (ship !== undefined) {
+     const afloat = ship.cells.filter((cell) => !game.shots.has(key(cell.row, cell.col)));
+-    result = afloat.length === 1 ? 'sunk' : 'hit';
++    result = 'sunk';
+   }
+   game.shots.set(cellKey, result);
+   const remaining = shipsRemaining(game);

@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..b135b5d 100644
+--- a/report.py
++++ b/report.py
+@@ -106,7 +106,7 @@ def main(argv, stdout, stderr):
+         try:
+             file_rows, file_skipped = _add_file(
+                 path, revenue_by_region, units_by_product, stderr)
+-        except (OSError, UnicodeDecodeError, csv.Error) as error:
++        except (OSError, UnicodeDecodeError) as error:
+             reason = getattr(error, "strerror", None) or error
+             print("report.py: error: cannot read %s: %s" % (path, reason), file=stderr)
+             return 1

@@ -1,0 +1,14 @@
+diff --git a/src/store.js b/src/store.js
+index 5cd6d50..7c80d1a 100644
+--- a/src/store.js
++++ b/src/store.js
+@@ -122,7 +122,8 @@ class TicketStore {
+    * told about it (a return to an agent whose notice is still pending adds no second one: the outbox key).
+    */
+   assign(id, assignee, actor) {
+-    const ticket = this.find(id);
++    const ticket = this.tickets.get(id);
++    if (!ticket) throw new InvalidError(`${id} is not a ticket`);
+     if (!isActive(ticket.status)) {
+       throw new ConflictError(`ticket ${id} is ${ticket.status} and can no longer be assigned`);
+     }

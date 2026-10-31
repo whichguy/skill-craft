@@ -1,0 +1,13 @@
+diff --git a/battleship.js b/battleship.js
+index 5981702..05a218b 100644
+--- a/battleship.js
++++ b/battleship.js
+@@ -45,7 +45,7 @@ function placeFleet(random) {
+     let cells = null;
+     for (let attempt = 0; attempt < PLACEMENT_ATTEMPTS && cells === null; attempt++) {
+       const drawn = candidate(spec, random);
+-      if (drawn !== null && !drawn.some((cell) => taken.has(key(cell.row, cell.col)))) {
++      if (drawn !== null && !drawn.some((cell) => [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].some(([dr, dc]) => taken.has(key(cell.row + dr, cell.col + dc))))) {
+         cells = drawn;
+       }
+     }

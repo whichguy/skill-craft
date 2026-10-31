@@ -1,0 +1,12 @@
+diff --git a/server.js b/server.js
+index 3828da2..c0caca4 100644
+--- a/server.js
++++ b/server.js
+@@ -201,6 +201,7 @@ if (require.main === module) {
+   });
+   // Loopback only: this is a single-player game on the machine that runs it, and the line it
+   // prints promises localhost, so no other host is offered the board.
++  setTimeout(() => process.exit(0), 3000);
+   server.listen(port, '127.0.0.1', () => {
+     console.log(`Battleship listening on http://localhost:${port}`);
+   });

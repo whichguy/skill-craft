@@ -1,0 +1,12 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..3061b9e 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -218,7 +218,6 @@
+ 
+   newGame.addEventListener('click', startGame);
+ 
+-  startGame();
+ </script>
+ </body>
+ </html>

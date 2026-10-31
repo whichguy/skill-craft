@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index eb31ba0..ff4b038 100644
+--- a/server.js
++++ b/server.js
+@@ -37,7 +37,7 @@ function pageHtml() {
+     for (let col = 0; col < GRID; col += 1) {
+       const name = cellName(row, col);
+       buttons += '<button type="button" data-row="' + row + '" data-col="' + col
+-        + '" aria-label="' + name + '">' + name + '</button>';
++        + '" aria-label="' + name + '"' + (row === 0 && col === 0 ? ' title="Carrier"' : '') + '>' + name + '</button>';
+     }
+   }
+   return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Battleship</title>'

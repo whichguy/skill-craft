@@ -1,0 +1,13 @@
+diff --git a/battleship.js b/battleship.js
+index 5981702..89bc756 100644
+--- a/battleship.js
++++ b/battleship.js
+@@ -11,7 +11,7 @@ const FLEET = [
+   { name: 'battleship', length: 4 },
+   { name: 'cruiser', length: 3 },
+   { name: 'submarine', length: 3 },
+-  { name: 'destroyer', length: 2 },
++  { name: 'destroyer', length: 3 },
+ ];
+ 
+ const PLACEMENT_ATTEMPTS = 200;

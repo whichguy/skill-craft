@@ -1,0 +1,13 @@
+diff --git a/battleship.js b/battleship.js
+index 5981702..0a392d2 100644
+--- a/battleship.js
++++ b/battleship.js
+@@ -22,7 +22,7 @@ const key = (row, col) => row + ',' + col;
+ // column are drawn in that order, and from `random` alone, so a seeded source gives one fleet
+ // every time (A-R3.3).
+ function candidate(spec, random) {
+-  const horizontal = random() < 0.5;
++  const horizontal = Math.random() < 0.5;
+   const row = Math.floor(random() * BOARD_SIZE);
+   const col = Math.floor(random() * BOARD_SIZE);
+   const cells = [];

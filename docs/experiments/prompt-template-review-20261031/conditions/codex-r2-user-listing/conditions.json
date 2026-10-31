@@ -1,0 +1,487 @@
+[
+ {
+  "id": "R-1.1",
+  "requirement": "R-1",
+  "quote": "existing GET /users array and id order remain",
+  "observable": "GET /users with no query returns the same bare JSON array of all users in id order as before the change.",
+  "kind": "preserved",
+  "candidate": false,
+  "exclude_reason": "Existing behaviour that must remain; covered by the run's pre-existing tests, not a new condition."
+ },
+ {
+  "id": "R-1.2",
+  "requirement": "R-1",
+  "quote": "case-insensitive literal substring",
+  "observable": "GET /users?name=<lowercase text> matches users whose stored name has uppercase letters (query 'alice' finds 'Alice').",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-1.3",
+  "requirement": "R-1",
+  "quote": "mixed-case partial text",
+  "observable": "GET /users?name=<UPPERCASE text> matches users whose stored name has lowercase letters (query 'ALICE' finds 'Alice').",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-1.4",
+  "requirement": "R-1",
+  "quote": "literal substring",
+  "observable": "GET /users?name=<text from the middle or end of a name> matches that user: a substring anywhere in the name, not only a prefix or the whole name.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-1.5",
+  "requirement": "R-1",
+  "quote": "literal metacharacters",
+  "observable": "A query made of regular-expression metacharacters is matched literally: name=.* or name=a.c or name=( returns 200 with an empty array (no error, no wildcard match).",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-1.6",
+  "requirement": "R-1",
+  "quote": "including empty matching all",
+  "observable": "GET /users?name= (empty value) returns 200 with the array of all users in id order.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-1.7",
+  "requirement": "R-1",
+  "quote": "empty and no-match queries",
+  "observable": "GET /users?name=<text that matches nobody> returns 200 with an empty JSON array.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-1.8",
+  "requirement": "R-1",
+  "quote": "unknown parameters are ignored",
+  "observable": "GET /users?foo=bar (alone, or alongside name) returns 200 with the same result as without foo.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-1.9",
+  "requirement": "R-1",
+  "quote": "comparing full ordered records",
+  "observable": "Filtered results appear in ascending id order (the same relative order as the unfiltered list).",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-1.10",
+  "requirement": "R-1",
+  "quote": "comparing full ordered records",
+  "observable": "Each filtered record is the complete user record with every field it has in the unfiltered list.",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-1.11",
+  "requirement": "R-1",
+  "quote": "GET /users/:id remains unchanged",
+  "observable": "GET /users/<id> returns the same record and status as before; unknown id gives the same error as before.",
+  "kind": "preserved",
+  "candidate": false,
+  "exclude_reason": "Existing behaviour that must remain; spec says existing tests confirm it."
+ },
+ {
+  "id": "R-1.12",
+  "requirement": "R-1",
+  "quote": "process-owned read-only in-memory users remain unchanged, with no identity or new persistence",
+  "observable": "Queries leave the user list unchanged; nothing is written to disk.",
+  "kind": "preserved",
+  "candidate": false,
+  "exclude_reason": "State invariant stated as 'remain unchanged'; no new observable behaviour."
+ },
+ {
+  "id": "R-1.13",
+  "requirement": "R-1",
+  "quote": "Confirm by HTTP tests comparing full ordered records, mixed-case partial text, literal metacharacters, empty and no-match queries",
+  "observable": "The test suite contains HTTP tests for those cases.",
+  "kind": "tests-themselves",
+  "candidate": false,
+  "exclude_reason": "A statement about the tests, not about product behaviour."
+ },
+ {
+  "id": "R-1.14",
+  "requirement": "R-1",
+  "quote": "No filtering failure expected",
+  "observable": "No observable condition beyond the cases above (literal metacharacters must not crash the filter).",
+  "kind": "structural",
+  "candidate": false,
+  "exclude_reason": "Expectation statement with no separate observable; the crash case is R-1.5."
+ },
+ {
+  "id": "R-2.1",
+  "requirement": "R-2",
+  "quote": "With page or size, return JSON object",
+  "observable": "GET /users?page=1 (page only) returns a JSON object (not an array).",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-2.2",
+  "requirement": "R-2",
+  "quote": "With page or size, return JSON object",
+  "observable": "GET /users?size=2 (size only) returns a JSON object (not an array).",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-2.3",
+  "requirement": "R-2",
+  "quote": "With page or size, return JSON object",
+  "observable": "Without page and size, GET /users and GET /users?name=x return a bare JSON array, not the paginated object.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.4",
+  "requirement": "R-2",
+  "quote": "return JSON object with page, size",
+  "observable": "The object's page field equals the page served (the number requested, or 1 by default).",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-2.5",
+  "requirement": "R-2",
+  "quote": "return JSON object with page, size",
+  "observable": "The object's size field equals the size used (the number requested, or 10 by default).",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-2.6",
+  "requirement": "R-2",
+  "quote": "total matching count",
+  "observable": "The object's total field is the number of matching records over all pages (all users with no name filter; the matches with one), not the number on this page.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-2.7",
+  "requirement": "R-2",
+  "quote": "pages rounded up",
+  "observable": "The object's pages field is ceil(total / size): 5 matching users with size 2 gives 3.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-2.8",
+  "requirement": "R-2",
+  "quote": "pages rounded up (zero if none)",
+  "observable": "With pagination and no matching user, pages is 0 (total is 0 and items is empty).",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.9",
+  "requirement": "R-2",
+  "quote": "ordered items",
+  "observable": "Page p holds the p-th contiguous slice of size records of the ordered matching list: page 2 size 2 holds the 3rd and 4th users.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-2.10",
+  "requirement": "R-2",
+  "quote": "ordered items",
+  "observable": "Records inside items are in ascending id order.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-2.11",
+  "requirement": "R-2",
+  "quote": "default page 1",
+  "observable": "GET /users?size=2 serves page 1 (page field 1, first two users).",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-2.12",
+  "requirement": "R-2",
+  "quote": "default page 1 and size 10",
+  "observable": "GET /users?page=1 serves 10 records per page (size field 10; with more than 10 users items holds 10).",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-2.13",
+  "requirement": "R-2",
+  "quote": "Out-of-range pages return empty items",
+  "observable": "A page beyond the last page returns 200 with an empty items array (not an error, not the last page).",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.14",
+  "requirement": "R-2",
+  "quote": "partial last page",
+  "observable": "The last page holds the remaining records, fewer than size: 5 users, size 2, page 3 holds exactly 1 record.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.15",
+  "requirement": "R-2",
+  "quote": "combined filtering",
+  "observable": "With name and pagination together, total, pages and items come from the filtered list: filtering is applied before slicing.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-2.16",
+  "requirement": "R-2",
+  "quote": "State remains unchanged; no new recovery or concurrent mutation",
+  "observable": "No new state, recovery or concurrency behaviour.",
+  "kind": "preserved",
+  "candidate": false,
+  "exclude_reason": "State invariant stated as 'remains unchanged'; a negative with no new observable."
+ },
+ {
+  "id": "R-2.17",
+  "requirement": "R-2",
+  "quote": "Confirm by HTTP tests for each default, combined filtering, partial last page, no matches, and beyond last page",
+  "observable": "The test suite contains HTTP tests for those cases.",
+  "kind": "tests-themselves",
+  "candidate": false,
+  "exclude_reason": "A statement about the tests, not about product behaviour."
+ },
+ {
+  "id": "R-3.1",
+  "requirement": "R-3",
+  "quote": "Reject empty",
+  "observable": "GET /users?page= (empty value) returns HTTP 400.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-3.2",
+  "requirement": "R-3",
+  "quote": "Reject empty",
+  "observable": "GET /users?size= (empty value) returns HTTP 400.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-3.3",
+  "requirement": "R-3",
+  "quote": "non-whole",
+  "observable": "GET /users?page=abc (non-numeric text) returns HTTP 400.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-3.4",
+  "requirement": "R-3",
+  "quote": "non-whole",
+  "observable": "GET /users?size=abc (non-numeric text) returns HTTP 400.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-3.5",
+  "requirement": "R-3",
+  "quote": "fractional",
+  "observable": "GET /users?page=1.5 returns HTTP 400.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-3.6",
+  "requirement": "R-3",
+  "quote": "fractional",
+  "observable": "GET /users?size=2.5 returns HTTP 400.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-3.7",
+  "requirement": "R-3",
+  "quote": "page below 1",
+  "observable": "GET /users?page=0 returns HTTP 400.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-3.8",
+  "requirement": "R-3",
+  "quote": "page below 1",
+  "observable": "GET /users?page=-1 returns HTTP 400.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-3.9",
+  "requirement": "R-3",
+  "quote": "size outside 1–100",
+  "observable": "GET /users?size=0 returns HTTP 400.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-3.10",
+  "requirement": "R-3",
+  "quote": "size outside 1–100",
+  "observable": "GET /users?size=-1 returns HTTP 400.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-3.11",
+  "requirement": "R-3",
+  "quote": "size 101",
+  "observable": "GET /users?size=101 returns HTTP 400.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-3.12",
+  "requirement": "R-3",
+  "quote": "valid boundaries",
+  "observable": "GET /users?size=100 is accepted (200, size field 100).",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-3.13",
+  "requirement": "R-3",
+  "quote": "valid boundaries",
+  "observable": "GET /users?size=1 is accepted (200, one record per page).",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-3.14",
+  "requirement": "R-3",
+  "quote": "valid boundaries",
+  "observable": "GET /users?page=1 is accepted (200, page field 1).",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-3.15",
+  "requirement": "R-3",
+  "quote": "Default decimal digit syntax",
+  "observable": "A page value that is not plain decimal digits but parses to a whole number (page=0x1 or page=1e0) returns HTTP 400.",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.16",
+  "requirement": "R-3",
+  "quote": "Default decimal digit syntax",
+  "observable": "A size value that is not plain decimal digits but parses to a whole number (size=0x2 or size=1e1) returns HTTP 400.",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.17",
+  "requirement": "R-3",
+  "quote": "HTTP 400 JSON error",
+  "observable": "The 400 response has a JSON content type and a JSON body with an error message.",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.18",
+  "requirement": "R-3",
+  "quote": "explaining the parameter",
+  "observable": "The error message for an invalid page names the page parameter.",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.19",
+  "requirement": "R-3",
+  "quote": "explaining the parameter",
+  "observable": "The error message for an invalid size names the size parameter.",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.20",
+  "requirement": "R-3",
+  "quote": "duplicate query parameters use first parsed value",
+  "observable": "GET /users?page=2&page=abc is served as page 2 (200); the later invalid duplicate is not validated.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.21",
+  "requirement": "R-3",
+  "quote": "duplicate query parameters use first parsed value",
+  "observable": "GET /users?size=2&size=500 is served with size 2 (200).",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.22",
+  "requirement": "R-3",
+  "quote": "duplicate query parameters use first parsed value",
+  "observable": "GET /users?name=<matching text>&name=<non-matching text> filters by the first name only.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.23",
+  "requirement": "R-3",
+  "quote": "Confirm by HTTP tests for invalid strings, fractional, zero, negatives, empty, size 101 and valid boundaries",
+  "observable": "The test suite contains HTTP tests for those cases.",
+  "kind": "tests-themselves",
+  "candidate": false,
+  "exclude_reason": "A statement about the tests, not about product behaviour."
+ },
+ {
+  "id": "R-4.1",
+  "requirement": "R-4",
+  "quote": "No dependencies",
+  "observable": "package.json declares no runtime or dev dependencies.",
+  "kind": "structural",
+  "candidate": false,
+  "exclude_reason": "Package-manifest property, not product behaviour a request can observe."
+ },
+ {
+  "id": "R-4.2",
+  "requirement": "R-4",
+  "quote": "npm start",
+  "observable": "npm start still launches the server, which answers HTTP requests.",
+  "kind": "preserved",
+  "candidate": false,
+  "exclude_reason": "Existing behaviour that must remain; confirmed by a start smoke test, a regression check."
+ },
+ {
+  "id": "R-4.3",
+  "requirement": "R-4",
+  "quote": "all existing tests remain functional",
+  "observable": "The pre-existing tests still pass.",
+  "kind": "tests-themselves",
+  "candidate": false,
+  "exclude_reason": "A statement about the tests, not about product behaviour."
+ },
+ {
+  "id": "R-4.4",
+  "requirement": "R-4",
+  "quote": "Confirm by npm test and server start smoke test",
+  "observable": "npm test passes and a start smoke test exists.",
+  "kind": "tests-themselves",
+  "candidate": false,
+  "exclude_reason": "A statement about the tests, not about product behaviour."
+ },
+ {
+  "id": "R-4.5",
+  "requirement": "R-4",
+  "quote": "No new state, authorization, external service, async completion, event or recovery path",
+  "observable": "No new state, authorization, external service, async completion, event or recovery path.",
+  "kind": "structural",
+  "candidate": false,
+  "exclude_reason": "Negative statement about the absence of mechanisms; no new observable behaviour."
+ }
+]

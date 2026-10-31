@@ -1,0 +1,793 @@
+[
+ {
+  "id": "R-1.1",
+  "requirement": "R-1",
+  "quote": "runs on Python 3 using only the standard library",
+  "observable": "No third-party import is needed to run report.py.",
+  "kind": "structural",
+  "candidate": false,
+  "exclude_reason": "An import restriction; no output, exit status or file effect of the program distinguishes it from outside."
+ },
+ {
+  "id": "R-1.2",
+  "requirement": "R-1",
+  "quote": "one or more FILE args are all processed and aggregated into a single JSON object",
+  "observable": "Running with two valid files prints one JSON object whose rows is the sum of both files' valid rows.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-1.3",
+  "requirement": "R-1",
+  "quote": "a repeated FILE is simply read twice",
+  "observable": "Passing the same valid file twice doubles rows, revenue and by_product.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-1.4",
+  "requirement": "R-1",
+  "quote": "stderr starts with `usage:`",
+  "observable": "With no FILE args stderr starts with 'usage:'.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-1.5",
+  "requirement": "R-1",
+  "quote": "no args -> stderr starts with `usage:`, stdout empty, exit 1",
+  "observable": "With no FILE args stdout is empty.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-1.6",
+  "requirement": "R-1",
+  "quote": "no args -> stderr starts with `usage:`, stdout empty, exit 1",
+  "observable": "With no FILE args the exit status is 1.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.1",
+  "requirement": "R-2",
+  "quote": "Header (line 1) is skipped",
+  "observable": "A file whose first line is the header yields no row for line 1: a header-only file gives rows 0 and exit 0; the header is not counted.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-2.2",
+  "requirement": "R-2",
+  "quote": "Header (line 1) is skipped unvalidated.",
+  "observable": "A malformed header (for example only two columns, or non-header text) produces no skip line and exit 0.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-2.3",
+  "requirement": "R-2",
+  "quote": "`2024-01-01,north,widget,3,2.50` is valid",
+  "observable": "A file with that row counts rows 1, revenue 7.5, no stderr, exit 0.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-2.4",
+  "requirement": "R-2",
+  "quote": "`2024-01-01,north,widget,3` -> `expected 5 columns, got 4`",
+  "observable": "A 4-column row gives stderr line ending 'expected 5 columns, got 4'.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.5",
+  "requirement": "R-2",
+  "quote": "a 6-column row -> `expected 5 columns, got 6`",
+  "observable": "A 6-column row gives stderr line ending 'expected 5 columns, got 6'.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.6",
+  "requirement": "R-2",
+  "quote": "a blank line -> `expected 5 columns, got 0`",
+  "observable": "A blank line in the data gives stderr line ending 'expected 5 columns, got 0'.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.7",
+  "requirement": "R-2",
+  "quote": "units `abc`, `1.5`, `1_0`, `1e3`, empty -> `non-numeric units 'X'`",
+  "observable": "units 'abc' gives \"non-numeric units 'abc'\".",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.8",
+  "requirement": "R-2",
+  "quote": "units `abc`, `1.5`, `1_0`, `1e3`, empty -> `non-numeric units 'X'`",
+  "observable": "units '1.5' gives \"non-numeric units '1.5'\".",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.9",
+  "requirement": "R-2",
+  "quote": "units `abc`, `1.5`, `1_0`, `1e3`, empty -> `non-numeric units 'X'`",
+  "observable": "units '1_0' gives \"non-numeric units '1_0'\".",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.10",
+  "requirement": "R-2",
+  "quote": "units `abc`, `1.5`, `1_0`, `1e3`, empty -> `non-numeric units 'X'`",
+  "observable": "units '1e3' gives \"non-numeric units '1e3'\".",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.11",
+  "requirement": "R-2",
+  "quote": "units `abc`, `1.5`, `1_0`, `1e3`, empty -> `non-numeric units 'X'`",
+  "observable": "units '' (empty) gives \"non-numeric units ''\".",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.12",
+  "requirement": "R-2",
+  "quote": "units `-1` -> `negative units '-1'`",
+  "observable": "units '-1' gives \"negative units '-1'\".",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.13",
+  "requirement": "R-2",
+  "quote": "unit_price `abc`, `nan`, `inf`, `1e3`, empty -> `non-numeric unit_price 'X'`",
+  "observable": "unit_price 'abc' gives \"non-numeric unit_price 'abc'\".",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.14",
+  "requirement": "R-2",
+  "quote": "unit_price `abc`, `nan`, `inf`, `1e3`, empty -> `non-numeric unit_price 'X'`",
+  "observable": "unit_price 'nan' gives \"non-numeric unit_price 'nan'\".",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.15",
+  "requirement": "R-2",
+  "quote": "unit_price `abc`, `nan`, `inf`, `1e3`, empty -> `non-numeric unit_price 'X'`",
+  "observable": "unit_price 'inf' gives \"non-numeric unit_price 'inf'\".",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.16",
+  "requirement": "R-2",
+  "quote": "unit_price `abc`, `nan`, `inf`, `1e3`, empty -> `non-numeric unit_price 'X'`",
+  "observable": "unit_price '1e3' gives \"non-numeric unit_price '1e3'\".",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.17",
+  "requirement": "R-2",
+  "quote": "unit_price `abc`, `nan`, `inf`, `1e3`, empty -> `non-numeric unit_price 'X'`",
+  "observable": "unit_price '' (empty) gives \"non-numeric unit_price ''\".",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.18",
+  "requirement": "R-2",
+  "quote": "unit_price `-0.5` -> `negative unit_price '-0.5'`",
+  "observable": "unit_price '-0.5' gives \"negative unit_price '-0.5'\".",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.19",
+  "requirement": "R-2",
+  "quote": "units is checked before unit_price",
+  "observable": "A row with units 'abc' and unit_price 'xyz' reports the units reason, not the unit_price reason.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.20",
+  "requirement": "R-2",
+  "quote": "X = the stripped field",
+  "observable": "A row with units ' abc ' (padded) reports \"non-numeric units 'abc'\" with the quote content stripped.",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-2.21",
+  "requirement": "R-2",
+  "quote": "fields are stripped of surrounding whitespace first",
+  "observable": "units ' 7 ' (padded) is valid: counted, no stderr, by_product counts 7.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.22",
+  "requirement": "R-2",
+  "quote": "fields are stripped of surrounding whitespace first",
+  "observable": "unit_price ' 2.50 ' (padded) is valid: counted, revenue uses 2.50, no stderr.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.23",
+  "requirement": "R-2",
+  "quote": "date, region, product are not validated",
+  "observable": "A row with a garbage date (for example 'not-a-date') is valid and counted.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-2.24",
+  "requirement": "R-2",
+  "quote": "date, region, product are not validated",
+  "observable": "A row with an empty region is valid and counted; by_region has the key ''.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-2.25",
+  "requirement": "R-2",
+  "quote": "date, region, product are not validated",
+  "observable": "A row with an empty product is valid and counted; by_product has the key ''.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-2.26",
+  "requirement": "R-2",
+  "quote": "units `0`, price `0`, `.5`, `5.`, ` 7 ` (padded) are valid",
+  "observable": "units '0' is valid: counted, no stderr.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.27",
+  "requirement": "R-2",
+  "quote": "units `0`, price `0`, `.5`, `5.`, ` 7 ` (padded) are valid",
+  "observable": "unit_price '0' is valid: counted, no stderr.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.28",
+  "requirement": "R-2",
+  "quote": "units `0`, price `0`, `.5`, `5.`, ` 7 ` (padded) are valid",
+  "observable": "unit_price '.5' is valid: counted, revenue 0.5 for one unit.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.29",
+  "requirement": "R-2",
+  "quote": "units `0`, price `0`, `.5`, `5.`, ` 7 ` (padded) are valid",
+  "observable": "unit_price '5.' is valid: counted, revenue 5.0 for one unit.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.30",
+  "requirement": "R-2",
+  "quote": "`-0` is rejected as negative",
+  "observable": "units '-0' gives \"negative units '-0'\".",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.31",
+  "requirement": "R-2",
+  "quote": "`-0` is rejected as negative",
+  "observable": "unit_price '-0' gives \"negative unit_price '-0'\".",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.32",
+  "requirement": "R-2",
+  "quote": "a leading `-` on an otherwise numeric field is \"negative\"",
+  "observable": "unit_price '-.5' (leading minus on a dot-form number) gives \"negative unit_price '-.5'\", not non-numeric.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.33",
+  "requirement": "R-2",
+  "quote": "a units field with more digits than Python's int conversion limit (5000 nines) is skipped with reason `units too large 'X'` instead of crashing",
+  "observable": "A units field of 5000 nines gives a skip line with reason \"units too large '999...9'\", no traceback, and the other rows are still counted.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.34",
+  "requirement": "R-2",
+  "quote": "a file with CRLF line endings",
+  "observable": "A CRLF file with the header and '2024-01-01,north,widget,3,2.50' yields rows 1, revenue 7.5, empty stderr, exit 0.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.35",
+  "requirement": "R-2",
+  "quote": "a file starting with a UTF-8 BOM",
+  "observable": "A file starting with the UTF-8 BOM bytes and the header plus '2024-01-01,north,widget,3,2.50' yields rows 1, revenue 7.5, empty stderr, exit 0.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-3.1",
+  "requirement": "R-3",
+  "quote": "Exactly one JSON object on a single stdout line",
+  "observable": "Stdout holds exactly one line (no pretty-printing, one object even for several files).",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.2",
+  "requirement": "R-3",
+  "quote": "(plus trailing newline)",
+  "observable": "Stdout ends with a newline character.",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.3",
+  "requirement": "R-3",
+  "quote": "top-level keys appear in the order `rows`, `revenue`, `by_region`, `by_product`",
+  "observable": "The key order of the printed object is rows, revenue, by_region, by_product.",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.4",
+  "requirement": "R-3",
+  "quote": "rows = valid rows",
+  "observable": "rows equals the number of valid rows (a skipped row is not counted).",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.5",
+  "requirement": "R-3",
+  "quote": "revenue = sum of units*unit_price over valid rows",
+  "observable": "Rows (2, 1.50) and (3, 0.25) give revenue 3.75 (units times price, summed over rows).",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.6",
+  "requirement": "R-3",
+  "quote": "summed as Decimal",
+  "observable": "Exact decimal sum: revenue is computed on exact decimals (a value like 1.005 rounds to 1.01, not 1.0).",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.7",
+  "requirement": "R-3",
+  "quote": "rounded to 2 decimals half-up",
+  "observable": "revenue is rounded to exactly 2 decimals (1.234 gives 1.23).",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.8",
+  "requirement": "R-3",
+  "quote": "rounded to 2 decimals half-up",
+  "observable": "revenue rounds half up (1.005 gives 1.01, 2.665 gives 2.67, not the banker's 1.0/2.66).",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-3.9",
+  "requirement": "R-3",
+  "quote": "give revenue 0.01 (rounded from the exact sum 0.008)",
+  "observable": "Two regions with 0.004 each: revenue is 0.01 (rounded once from the exact sum), not the sum of rounded parts 0.0.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-3.10",
+  "requirement": "R-3",
+  "quote": "by_region = per-region revenue rounded to 2 decimals",
+  "observable": "by_region values are rounded to 2 decimals (0.004 per region gives 0.0).",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.11",
+  "requirement": "R-3",
+  "quote": "by_region north 2.68 (half-up, not float 2.67)",
+  "observable": "A single region value 2.675 gives by_region north 2.68.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-3.12",
+  "requirement": "R-3",
+  "quote": "by_region = per-region revenue rounded to 2 decimals",
+  "observable": "Rows are grouped by the region column: revenue of rows in the same region is summed under that region's key.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.13",
+  "requirement": "R-3",
+  "quote": "by_product = per-product total units (integers)",
+  "observable": "Rows are grouped by the product column and units are summed per product.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.14",
+  "requirement": "R-3",
+  "quote": "by_product = per-product total units (integers)",
+  "observable": "by_product values print as JSON integers (4 not 4.0).",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.15",
+  "requirement": "R-3",
+  "quote": "the keys inside by_region and by_product are sorted",
+  "observable": "by_region keys appear in sorted order whatever order the rows come in.",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.16",
+  "requirement": "R-3",
+  "quote": "the keys inside by_region and by_product are sorted",
+  "observable": "by_product keys appear in sorted order whatever order the rows come in.",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.17",
+  "requirement": "R-3",
+  "quote": "prints exactly `{\"rows\": 2, \"revenue\": 7.6, \"by_region\": {\"north\": 7.5, \"south\": 0.1}, \"by_product\": {\"widget\": 4}}`",
+  "observable": "The stdout text uses ', ' between items and ': ' between key and value (default JSON separators).",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.18",
+  "requirement": "R-3",
+  "quote": "prints exactly `{\"rows\": 2, \"revenue\": 7.6, \"by_region\": {\"north\": 7.5, \"south\": 0.1}, \"by_product\": {\"widget\": 4}}`",
+  "observable": "Numbers print without trailing zeros: 7.6 and 7.5, not 7.60 or 7.50.",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-4.1",
+  "requirement": "R-4",
+  "quote": "Each skipped row writes one stderr line `FILE:LINE: <reason>`",
+  "observable": "The stderr line has the form PATH:LINE: REASON (colon, no space before the line number, one space before the reason).",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-4.2",
+  "requirement": "R-4",
+  "quote": "Each skipped row writes one stderr line",
+  "observable": "Two bad rows give two stderr lines, one for each.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-4.3",
+  "requirement": "R-4",
+  "quote": "FILE as given on the command line",
+  "observable": "The path in the stderr line is exactly the argument as typed (for example a relative path stays relative).",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-4.4",
+  "requirement": "R-4",
+  "quote": "header is line 1",
+  "observable": "The first data row is line 2, so a bad first data row is reported as ':2:'.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-4.5",
+  "requirement": "R-4",
+  "quote": "a quoted field containing a newline on line 2 followed by a bad record starting on line 4 reports `:4:`",
+  "observable": "A multi-line quoted field on line 2 followed by a bad record starting on line 4 reports ':4:'.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-4.6",
+  "requirement": "R-4",
+  "quote": "valid rows are still counted",
+  "observable": "With one bad row among valid ones, rows counts the valid ones.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-4.7",
+  "requirement": "R-4",
+  "quote": "the JSON is still printed",
+  "observable": "With a bad row, stdout still holds the JSON summary.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-4.8",
+  "requirement": "R-4",
+  "quote": "exit 2 if any row was skipped in any file",
+  "observable": "A bad row in a single file gives exit 2.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-4.9",
+  "requirement": "R-4",
+  "quote": "exit 2 if any row was skipped in any file",
+  "observable": "A bad row in the first of two files (second file all valid) gives exit 2.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-4.10",
+  "requirement": "R-4",
+  "quote": "all-valid input -> exit 0",
+  "observable": "All-valid input gives exit 0.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-4.11",
+  "requirement": "R-4",
+  "quote": "all-valid input -> exit 0, empty stderr",
+  "observable": "All-valid input gives empty stderr.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-4.12",
+  "requirement": "R-4",
+  "quote": "second file's lines are numbered independently of the first",
+  "observable": "A bad row on line 3 of the second file is reported as ':3:' whatever the first file's length.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-4.13",
+  "requirement": "R-4",
+  "quote": "bad row on the last line without a trailing newline is reported with its line number",
+  "observable": "A bad final line with no trailing newline is still reported with its line number.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-4.14",
+  "requirement": "R-4",
+  "quote": "stderr exactly `path:3: expected 5 columns, got 4`",
+  "observable": "Stderr holds exactly the skip lines and nothing else.",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-5.1",
+  "requirement": "R-5",
+  "quote": "A FILE that is missing, a directory, unreadable, or not decodable as UTF-8 prints `report.py: error: cannot read FILE: <reason>` on stderr",
+  "observable": "A missing path gives stderr starting 'report.py: error: cannot read <path>:'.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.2",
+  "requirement": "R-5",
+  "quote": "A FILE that is missing, a directory, unreadable, or not decodable as UTF-8 prints `report.py: error: cannot read FILE: <reason>` on stderr",
+  "observable": "A directory path gives stderr starting 'report.py: error: cannot read <path>:'.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.3",
+  "requirement": "R-5",
+  "quote": "A FILE that is missing, a directory, unreadable, or not decodable as UTF-8 prints `report.py: error: cannot read FILE: <reason>` on stderr",
+  "observable": "A file without read permission gives stderr starting 'report.py: error: cannot read <path>:'.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.4",
+  "requirement": "R-5",
+  "quote": "A FILE that is missing, a directory, unreadable, or not decodable as UTF-8 prints `report.py: error: cannot read FILE: <reason>` on stderr",
+  "observable": "A file with invalid UTF-8 bytes gives stderr starting 'report.py: error: cannot read <path>:'.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.5",
+  "requirement": "R-5",
+  "quote": "invalid UTF-8 after a valid row: still no stdout",
+  "observable": "A file with a valid row followed by invalid UTF-8 prints nothing on stdout.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.6",
+  "requirement": "R-5",
+  "quote": "(no traceback)",
+  "observable": "A missing file gives no 'Traceback' on stderr.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.7",
+  "requirement": "R-5",
+  "quote": "(no traceback), nothing on stdout, exit 1",
+  "observable": "A missing file gives empty stdout.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.8",
+  "requirement": "R-5",
+  "quote": "(no traceback), nothing on stdout, exit 1",
+  "observable": "A missing file gives exit status 1.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.9",
+  "requirement": "R-5",
+  "quote": "this wins over exit 2",
+  "observable": "A bad row in file A plus a missing file B gives exit 1, not 2.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.10",
+  "requirement": "R-5",
+  "quote": "applies even when other files were fine",
+  "observable": "A good file first and a missing file second gives empty stdout and exit 1.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.11",
+  "requirement": "R-5",
+  "quote": "a field longer than the csv field limit (csv.Error) is also an unreadable file, same output rules",
+  "observable": "A 200000-character field gives 'report.py: error: cannot read <path>:', no Traceback, empty stdout, exit 1.",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.12",
+  "requirement": "R-5",
+  "quote": "a revenue total beyond about 1e197 prints `report.py: error: totals too large to summarise (beyond about 1e197)` on stderr",
+  "observable": "A revenue beyond 1e197 gives the stderr line 'report.py: error: totals too large to summarise (beyond about 1e197)'.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-5.13",
+  "requirement": "R-5",
+  "quote": "a revenue total beyond about 1e197 prints `report.py: error: totals too large to summarise (beyond about 1e197)` on stderr, nothing on stdout, exit 1",
+  "observable": "A revenue beyond 1e197 gives empty stdout and exit status 1 (no traceback).",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-6.1",
+  "requirement": "R-6",
+  "quote": "header-only file alone -> `{\"rows\": 0, \"revenue\": 0.0, \"by_region\": {}, \"by_product\": {}}`",
+  "observable": "A header-only file prints exactly {\"rows\": 0, \"revenue\": 0.0, \"by_region\": {}, \"by_product\": {}}.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-6.2",
+  "requirement": "R-6",
+  "quote": "header-only file alone -> `{\"rows\": 0, \"revenue\": 0.0, \"by_region\": {}, \"by_product\": {}}`, exit 0",
+  "observable": "A header-only file gives exit 0.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-6.3",
+  "requirement": "R-6",
+  "quote": "A file with only the header (or zero bytes) contributes no rows, no stderr and no revenue",
+  "observable": "A header-only file gives empty stderr.",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-6.4",
+  "requirement": "R-6",
+  "quote": "A file with only the header (or zero bytes) contributes no rows, no stderr and no revenue",
+  "observable": "A zero-byte file alone prints the same zero summary, empty stderr, exit 0.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-6.5",
+  "requirement": "R-6",
+  "quote": "header-only file combined with a normal file leaves the normal file's totals unchanged",
+  "observable": "A header-only file plus a normal file gives the normal file's totals and exit 0.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-6.6",
+  "requirement": "R-6",
+  "quote": "zero-byte file behaves the same",
+  "observable": "A zero-byte file plus a normal file gives the normal file's totals, empty stderr and exit 0.",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-7.1",
+  "requirement": "R-7",
+  "quote": "Tests live in `tests/` (package, `test_*.py`) and run from the repo root with `python3 -m unittest`",
+  "observable": "A tests/ package with test_*.py files that unittest discovers from the repo root.",
+  "kind": "tests-themselves",
+  "candidate": false,
+  "exclude_reason": "Concerns the test suite itself, not product behaviour; there is no product code to mutate."
+ },
+ {
+  "id": "R-7.2",
+  "requirement": "R-7",
+  "quote": "exit 0, standard library only, covering R-1..R-6",
+  "observable": "The suite exits 0 and uses only stdlib.",
+  "kind": "tests-themselves",
+  "candidate": false,
+  "exclude_reason": "Concerns the test suite itself."
+ },
+ {
+  "id": "R-7.3",
+  "requirement": "R-7",
+  "quote": "runs >= 1 test per requirement",
+  "observable": "The suite runs at least one test per requirement.",
+  "kind": "tests-themselves",
+  "candidate": false,
+  "exclude_reason": "Concerns the test suite itself."
+ },
+ {
+  "id": "R-7.4",
+  "requirement": "R-7",
+  "quote": "a deliberately broken revenue rounding makes a test fail",
+  "observable": "A recorded mutation run.",
+  "kind": "tests-themselves",
+  "candidate": false,
+  "exclude_reason": "A test-stage activity; this experiment's kill measure covers it for revenue rounding (R-3.7, R-3.8)."
+ },
+ {
+  "id": "R-7.5",
+  "requirement": "R-7",
+  "quote": "tests use tempfile directories and leave nothing behind",
+  "observable": "No leftover files after the suite.",
+  "kind": "tests-themselves",
+  "candidate": false,
+  "exclude_reason": "Concerns the test suite itself."
+ },
+ {
+  "id": "R-7.6",
+  "requirement": "R-7",
+  "quote": "a `.gitignore` containing `__pycache__/` is committed so `git status --porcelain` is empty after the run",
+  "observable": ".gitignore holds __pycache__/.",
+  "kind": "structural",
+  "candidate": false,
+  "exclude_reason": "A repository file, not product behaviour; no product code to mutate."
+ }
+]

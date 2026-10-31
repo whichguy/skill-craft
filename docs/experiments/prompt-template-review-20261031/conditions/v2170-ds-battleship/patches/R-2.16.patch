@@ -1,0 +1,14 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..a0aa2d2 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -153,8 +153,7 @@
+   }
+ 
+   async function fireAt(square) {
+-    if (closed || inFlight || grid.dataset.locked === 'true' || square.dataset.result !== undefined) return;
+-    setLocked(true);
++    if (closed || square.dataset.result !== undefined) return;
+     setBusy(true);
+     say(`Firing at ${squareName(square)}…`);
+     try {

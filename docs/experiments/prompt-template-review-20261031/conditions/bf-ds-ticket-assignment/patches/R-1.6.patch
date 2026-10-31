@@ -1,0 +1,17 @@
+diff --git a/src/persistence.js b/src/persistence.js
+index 3594b3c..a698e82 100644
+--- a/src/persistence.js
++++ b/src/persistence.js
+@@ -70,7 +70,11 @@ function toDocument(state, now) {
+     version: VERSION,
+     savedAt: now.toISOString(),
+     nextNumber: state.nextNumber,
+-    tickets: state.tickets.map(ticketRecord),
++    tickets: state.tickets.map((t) => {
++      const r = ticketRecord(t);
++      if (r.assignee === null) delete r.assignee;
++      return r;
++    }),
+     audit: state.audit.map(auditRecord),
+     outbox: { nextId: state.outbox.nextId, events: state.outbox.events.map(eventRecord) },
+   };

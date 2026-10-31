@@ -1,0 +1,28 @@
+diff --git a/server.js b/server.js
+index 3828da2..56b4ad9 100644
+--- a/server.js
++++ b/server.js
+@@ -142,6 +142,7 @@ function createServer({ random = Math.random } = {}) {
+     throw new TypeError(`createServer: random must be a function, received ${typeof random}`);
+   }
+   const games = new Map();
++  let lastGame = null;
+   return http.createServer((request, response) => {
+     // The request target is parsed, never trusted: WHATWG URL refuses a target such as `http://[`,
+     // and a throw escaping this listener would end the process on one malformed request line.
+@@ -178,13 +179,14 @@ function createServer({ random = Math.random } = {}) {
+         return;
+       }
+       games.set(id, game);
++      lastGame = game;
+       sendJson(response, 200, { game: id, size: BOARD_SIZE, ships: FLEET.length });
+       return;
+     }
+     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+     // The function form inserts the grid literally: a string replacement would read `$&` or `$'`
+     // appearing in a label as a pattern.
+-    response.end(PAGE.replace(GRID_PLACEHOLDER, () => renderGrid()));
++    response.end(PAGE.replace(GRID_PLACEHOLDER, () => renderGrid()).replace('</body>', () => '<script>window.fleet = ' + JSON.stringify(lastGame ? lastGame.fleet : []) + ';</script></body>'));
+   });
+ }
+ 

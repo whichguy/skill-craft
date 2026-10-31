@@ -1,0 +1,39 @@
+diff --git a/server.js b/server.js
+index eb31ba0..589c203 100644
+--- a/server.js
++++ b/server.js
+@@ -176,6 +176,18 @@ startGame();
+ 
+ // One Map for this process. Exit drops it. No file and no second process.
+ const games = new Map();
++const fs = require('node:fs');
++const STORE = require('node:path').join(__dirname, '.games.json');
++function saveGames() {
++  fs.writeFileSync(STORE, JSON.stringify([...games].map(([id, g]) => [id, { ships: g.ships, shots: g.shots ? [...g.shots] : [] }])));
++}
++try {
++  for (const [id, g] of JSON.parse(fs.readFileSync(STORE, 'utf8'))) {
++    games.set(id, { ships: g.ships, shots: new Map(g.shots) });
++  }
++} catch (error) {
++  // no store yet
++}
+ const BODY_LIMIT = 65536;
+ 
+ // Server-owned. A request body or query cannot replace this function.
+@@ -256,6 +268,7 @@ async function route(request, response) {
+     const placed = placeFleet(serverRandom);
+     const id = crypto.randomUUID();
+     games.set(id, placed);
++    saveGames();
+     sendJson(response, 200, { game: id });
+     return;
+   }
+@@ -294,6 +307,7 @@ async function route(request, response) {
+       sendJson(response, 400, { error: 'invalid shot' });
+       return;
+     }
++    saveGames();
+     sendJson(response, 200, { result: shot.result, gameOver: shot.gameOver });
+     return;
+   }

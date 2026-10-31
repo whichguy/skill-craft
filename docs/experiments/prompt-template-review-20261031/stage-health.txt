@@ -1,0 +1,165 @@
+96 traced runs
+stage                runs  pkts  ref  chk runs_ref med_min tot_min  other
+intake                 96    98   10    0        8     0.1      21  {}
+discovery              64    66    1    0        1     0.3      38  {}
+research               64    68    1    0        1     0.2      24  {}
+spec                   63    63    1    0        1     0.2      24  {}
+test-strategy          61    64   11   17        7     0.2     127  {}
+plan                   61    63    9   10       13     0.3      74  {}
+prepare                61    62    2    0        2     0.2      25  {}
+step-plan              90   138   14   86       50     1.5     238  {}
+test-spec              87   136    5    4        7     0.7     170  {'send-back': 6}
+validate-existing       1     1    1    0        1     1.3       1  {'send-back': 1}
+implement              85   251   11    6       10     1.5     310  {'send-back': 23, 'blocked': 2}
+test                   82   143    1   85       48     1.2     240  {'send-back': 4}
+document               74   129    3    6        8     0.7     137  {}
+carry-forward          73    88    2    9        6     0.5      91  {}
+system-test-author     71    81    5    1        4     0.4      64  {}
+system-test            57    65    7    0        6     0.2      29  {'send-back': 4}
+product-acceptance     57    63    3    3        5     0.2      31  {'add-work': 2}
+release-plan           57    59    2    1        3     0.3      44  {}
+release-check          57    65    1    3        3     0.5      54  {}
+release                57    84    0    1        1     0.4      32  {}
+release-verify         57    59    2    5        5     0.4      48  {'add-work': 1}
+operations             57    58    0    0        0     0.2      35  {}
+handoff                57    58    4    1        4     0.3      34  {}
+
+intake
+    2  headline must be one line of at most n characters
+    1  intake's summary cites no S-n of the request's sentences S-n..S-n (<path>): give each the outcome, boundary, default or open question it maps to, with its S<n>,
+    1  intake's summary cites no S-n, S-n of the request's sentences S-n..S-n (<path>): give each the outcome, boundary, default or open question it maps to, with its 
+    1  intake's summary cites no S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n of the request's sentence
+    1  intake's summary cites no S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n of the request's sentences S-n
+    1  intake's summary cites no S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n, S-n,
+
+discovery
+    1  <path>: invalid shiploop-state JSON: Expecting ',' delimiter: line n column n (char n); fix the result file and run the same command again
+
+research
+    1  headline must be one line of at most n characters
+
+spec
+    1  headline must be one line of at most n characters
+
+test-strategy
+    7  test_layers[n].reason is n characters; keep it within n (the packets print it whole)
+    7  targets[n].base_state_route is n characters; keep it within n (the packets print it whole)
+    6  targets[n].target is n characters; keep it within n (the packets print it whole)
+    2  test_layers[n].harness is n characters; keep it within n (the packets print it whole)
+    1  test_layers gives <path> (script behavior) no unit or component row. All code the run writes is tested below the e2e layer: add its unit or component row, statu
+    1  test_layers[n].code is n characters; keep it within n (the packets print it whole)
+
+plan
+    9  W1's concern rows are n,n characters together; the limit is n,n because its step plan prints them whole: one clause each
+    2  W1: concern config's owner_stage must be one of step-plan, test, document, system-test-author, release-plan, operations
+    2  W1: an applicable concern row is {id, applies: yes, decision, anchor, owner_stage} (api)
+    1  W1: a concern that does not apply is {id, applies: no, reason} (ui)
+    1  W1: concern ui's owner_stage must be one of step-plan, test, document, system-test-author, release-plan, operations
+    1  assumption A-n (evidenced) needs exactly evidence; each assumption is {id, assumption, disposition} plus: evidenced -> evidence (list of absolute paths or URLs)
+
+prepare
+    1  harness_runs evidence <path> for slGymApp [component] shows no test run ShipLoop can read. Save the runner's own output of one test it ran, summary line include
+    1  harness_runs evidence <path> for public page (index.html) [e2e] shows no test run ShipLoop can read. Save the runner's own output of one test it ran, summary li
+
+step-plan
+   13  no result file at <path>: write the result there (the packet's Result template, filled in) with a file tool, then run the same command again
+   13  a test command's criteria must be a nonempty list of distinct criterion IDs
+    8  open plan assumptions A-n name W1 as due_item; add an expectation for each with "from": "<assumption id>" and a check that settles it
+    6  the criteria step S-n names are n,n characters together; the limit is n,n because its implement packet prints them whole. Shorten each criterion to the observab
+    5  step S-n's proof is n characters; the limit is n. Put a long proof in a script file the step adds, and make the proof run it
+    5  expectation E-n.from must be the id of an open plan assumption, such as A-n
+
+test-spec
+    3  test-spec accepts only done, blocked, send-back; the bound Until Loop repeats the work, not the graph
+    2  every primary requirement (spec primary) needs a test case naming it in some work item's test-spec, and this is the last work item's. Missing: R-n. Add a case w
+    1  Add assumptions to <path>, then run the same callback again.
+Shape: the open items this stage leaves, or [] when none; each {"id", "assumption", "disposition": 
+    1  headline must be one line of at most n characters
+    1  no result file at <path>: write the result there (the packet's Result template, filled in) with a file tool, then run the same command again
+    1  a complete test-spec loop reports outcome done
+
+validate-existing
+    1  a complete validate-existing loop reports outcome done
+
+implement
+    7  decisions holds n characters; keep it within n,n: the next steps' look-back prints it; then run the same command again.
+    2  not_covered is [{"behaviour": "<what this step added that no test case covers>", "reason": "<why>"}], each nonblank, or []; then run the same command again.
+    2  no result file at <path>: write the result there (the packet's Result template, filled in) with a file tool, then run the same command again
+    1  ShipLoop step proof: step S-n's Proof did not pass, so its implement is not done. ShipLoop ran it from <path>:
+- sh '<path>' -> exit n
+    | │ Changed   │ slBtl
+    1  ShipLoop step proof: step S-n's Proof did not pass, so its implement is not done. ShipLoop ran it from <path>:
+- python3 -c "import subprocess,sys;r=subprocess.
+    1  ShipLoop step proof: step S-n's Proof did not pass, so its implement is not done. ShipLoop ran it from <path>:
+- python3 <path> S-n -> exit n
+    | Traceback (m
+
+test
+   44  ShipLoop mutation check: test is not done. n of n mutants of this item's changed product lines survived the focused tests, with no disposition:
+- <path>:n:n: <p
+   14  red_na is a non-empty list of {id, reason, ...}
+    5  no result file at <path>: write the result there (the packet's Result template, filled in) with a file tool, then run the same command again
+    3  retired_tests is a non-empty list of {id, reason, ...}
+    3  ShipLoop mutation check: test is not done. n of n mutants of this item's changed product lines survived the focused tests, with no disposition:
+- game.js:n:n: g
+    2  ShipLoop mutation check: test is not done. n of n mutants of this item's changed product lines survived the focused tests, with no disposition:
+- rules.js:n:n: 
+
+document
+    6  Restore <path> to what HEAD holds plus this step's requirement lines, then run the same callback again; to change a requirement, report send-back naming it.
+In 
+    1  headline must be one line of at most n characters
+    1  <path>: unterminated shiploop-state fence; fix the result file and run the same command again
+    1  no result file at <path>: write the result there (the packet's Result template, filled in) with a file tool, then run the same command again
+
+carry-forward
+    3  work item W2's context is n,n characters; the limit is n,n because later packets print it whole. Keep its ready and done conditions, scope, proving check and au
+    3  work item W3's context is n,n characters; the limit is n,n because later packets print it whole. Keep its ready and done conditions, scope, proving check and au
+    2  carry-forward needs skill: {"decision": "none" | "reuse" | "update" | "create", "reason": "<why>", "path": "<SKILL.md, for update or create>", "evidence": ["<th
+    2  Fix the due stages in <path>, then run the same callback again.
+Name a later outer stage (or carry-forward, from test-spec or verify) as each open item's due_st
+    1  headline must be one line of at most n characters
+
+system-test-author
+    2  result requires outcome and summary: the shiploop-state block is a stored-record wrapper (top-level keys: action, navigator_protocol_version, result, run_id, st
+    1  a test command's ids must be a nonempty list of test IDs without spaces
+    1  assumptions[n].id must be a short identifier such as A-n
+    1  assumption A-n.disposition must be one of evidenced, probed, open
+    1  evidence_refs cite files that do not exist: <path> Write the file or remove the reference.
+
+system-test
+    4  ShipLoop test run: system-test is not done. ShipLoop ran the n listed commands from <path> and n did not pass:
+- [focused] sf apex run test --target-org de --cl
+    2  system_commands are allowed only on a done system-test-author result
+    1  ShipLoop test run: system-test is not done. ShipLoop ran the n listed commands from <path> and n did not pass:
+- [regression] npm test -> exit n
+    | 
+    | ✖ 
+
+product-acceptance
+    6  unverified[n] is an outcome of R-n, a primary requirement (spec primary), and its lower_layer_check names no test that ShipLoop's test runs passed in a case for
+
+release-plan
+    2  evidence_refs cite files that do not exist: <path> Write the file or remove the reference.
+    1  headline must be one line of at most n characters
+
+release-check
+    2  evidence_refs cite files that do not exist: <path> Write the file or remove the reference.
+    1  assumptions are allowed only on a done carry-forward, plan, release-plan, release-verify, system-test, system-test-author, test-spec, verify result; at this sta
+    1  assumptions are allowed only on a done carry-forward, document, plan, release-plan, release-verify, system-test, system-test-author, test-spec result; at this s
+
+release
+    1  unverified drops R-n (On the returned `master`, `npm test` runs all n tests with no failure and the started product answers n with three users on a recorded `PO
+
+release-verify
+    2  a done release-verify result restates unverified, the list product-acceptance left: drop an entry due at release-verify that this stage observed (name the obser
+    1  assumptions[n].id must be a short identifier such as A-n
+    1  assumption A-n.disposition must be one of evidenced, probed, open
+    1  ShipLoop test run: release-verify is not done. ShipLoop ran the n listed commands from a clean copy of the result returned to <path> (fast-forward-merge at 74e3
+    1  a done release-verify result restates unverified, the list release left: drop an entry due at release-verify that this stage observed (name the observation in s
+    1  <path>: invalid shiploop-state JSON: Expecting ',' delimiter: line n column n (char n); fix the result file and run the same command again
+
+handoff
+    3  a done handoff result restates unverified, the list product-acceptance left: drop an entry due at handoff that this stage observed (name the observation in summ
+    1  a done handoff result restates unverified, the list release-verify left: drop an entry due at handoff that this stage observed (name the observation in summary)
+    1  headline must be one line of at most n characters

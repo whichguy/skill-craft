@@ -1,0 +1,15 @@
+diff --git a/src/app.js b/src/app.js
+index 83499ff..382f37e 100644
+--- a/src/app.js
++++ b/src/app.js
+@@ -35,7 +35,9 @@ function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false }
+ 
+   router.put('/tickets/:id/assignee', async ({ req, params }) => {
+     const assignee = validate.assignment(await body(req));
+-    return { status: 200, body: store.assign(params.id, assignee, actorOf(req)) };
++    const before = store.get(params.id);
++    const after = store.assign(params.id, assignee, actorOf(req));
++    return { status: 200, body: assignee === null ? before : after };
+   });
+ 
+   router.post('/tickets/:id/transition', async ({ req, params }) => {

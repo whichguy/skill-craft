@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index 3828da2..047d9a4 100644
+--- a/server.js
++++ b/server.js
+@@ -29,7 +29,7 @@ const ROUTE_METHODS = new Map([
+ // without client script (A-R2.1).
+ function renderGrid() {
+   const squares = [];
+-  for (let row = 0; row < BOARD_SIZE; row += 1) {
++  for (let row = BOARD_SIZE - 1; row >= 0; row -= 1) {
+     for (let col = 0; col < BOARD_SIZE; col += 1) {
+       squares.push(`<button class="cell" type="button" data-row="${row}" data-col="${col}"`
+         + ` aria-label="Row ${row + 1}, column ${col + 1}">?</button>`);

@@ -1,0 +1,14 @@
+diff --git a/server.js b/server.js
+index 3828da2..6517777 100644
+--- a/server.js
++++ b/server.js
+@@ -178,7 +178,8 @@ function createServer({ random = Math.random } = {}) {
+         return;
+       }
+       games.set(id, game);
+-      sendJson(response, 200, { game: id, size: BOARD_SIZE, ships: FLEET.length });
++      response.writeHead(200, { 'content-type': 'text/plain' });
++      response.end(JSON.stringify({ game: id, size: BOARD_SIZE, ships: FLEET.length }));
+       return;
+     }
+     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });

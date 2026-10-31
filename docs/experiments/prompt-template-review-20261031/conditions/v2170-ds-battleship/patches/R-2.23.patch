@@ -1,0 +1,12 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..95d06db 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -140,7 +140,6 @@
+       }
+       closed = false;
+       document.body.dataset.game = started.game;
+-      remaining.textContent = String(started.ships);
+       for (const square of squares) clear(square);
+       setLocked(false);
+       say('New game ready. Fire at a square to begin.');

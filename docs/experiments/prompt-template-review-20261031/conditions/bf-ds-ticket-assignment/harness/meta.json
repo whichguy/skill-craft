@@ -1,0 +1,19 @@
+{
+ "run": "bf-ds-ticket-assignment",
+ "suite_command": "npm test   (node --test; the widest command the run itself ran, e.g. regression 'npm test' 147 then 153/153 at the delivered tree; includes test/system.test.js and the five new assignment test files). Run in the scratch copy with cwd at the copy root.",
+ "baseline_exit": 0,
+ "baseline_summary": "tests 153, suites 31, pass 153, fail 0, cancelled 0, skipped 0, todo 0 (about 1.8 s); re-run unchanged after every fifth variant: always exit 0, 153/153",
+ "original_hash_before": "e4794d2c8c0f00cabcac29d328fb62cc2fd97a20",
+ "original_hash_after": "e4794d2c8c0f00cabcac29d328fb62cc2fd97a20",
+ "hash_command": "cd <repo> && find . -type f -not -path './.git/*' -not -path '*/node_modules/*' | LC_ALL=C sort | xargs shasum | shasum",
+ "scratch_copy": "/private/tmp/claude-501/-Users-dadleet-src-skill-craft/ddd28884-3bee-490a-b072-5207d26ab322/scratchpad/conditions/bf-ds-ticket-assignment/work",
+ "conditions_sha256": "9d633f9a7e4a9bcd69e3c40a18d01b8b23a05dae11050e2d88a7b46252585ce6",
+ "notes": [
+  "R-1.9 and R-3.2 share one variant and one observable (GET after unassign reads null); they are counted as two conditions because the spec states them twice.",
+  "R-1.12 ran two variants (message no longer names the record; non-string assignee loads as null); both were killed. The first is the primary patch, the second is under extra_variants.",
+  "R-8.14 variant is type-specific (a failed ticket.assigned delivery is recorded as sent): it is the only way to violate the condition for assignment events alone; the generic worker rule is covered for other event types by test/worker.test.js.",
+  "R-6.7 is a cross-requirement condition (R-2 trimming x R-6 no-op); R-2.9 uses array/object values because numbers and booleans are R-4.10/R-4.11.",
+  "Time-dependent witnesses use real sleeps (20-30 ms) because the service has no clock setting through the environment.",
+  "Every variant was run through the suite at least once; a failing suite was re-run once more (and a third time if the second passed). No flaky kill occurred (all failing variants failed twice)."
+ ]
+}

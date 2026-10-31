@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index eb31ba0..690a728 100644
+--- a/server.js
++++ b/server.js
+@@ -235,7 +235,7 @@ function parseFire(raw) {
+   try {
+     parsed = JSON.parse(raw);
+   } catch (error) {
+-    return { kind: 'json' };
++    return { kind: 'shot' };
+   }
+   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+     return { kind: 'json' };

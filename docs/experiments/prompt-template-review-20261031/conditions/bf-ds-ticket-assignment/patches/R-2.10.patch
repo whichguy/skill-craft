@@ -1,0 +1,12 @@
+diff --git a/src/tickets/validate.js b/src/tickets/validate.js
+index 56afa95..fd96019 100644
+--- a/src/tickets/validate.js
++++ b/src/tickets/validate.js
+@@ -70,7 +70,6 @@ function assignee(value) {
+ 
+ /** PUT /tickets/:id/assignee: { assignee }, a name or null. Whether the ticket may change is the store's question. */
+ function assignment(body) {
+-  onlyFields(body, ['assignee']);
+   if (!Object.prototype.hasOwnProperty.call(body, 'assignee')) throw new InvalidError('assignee is required');
+   return assignee(body.assignee);
+ }

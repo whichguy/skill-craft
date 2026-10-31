@@ -1,0 +1,858 @@
+[
+ {
+  "id": "R-1.1",
+  "requirement": "R-1",
+  "quote": "`node server.js` starts a listening HTTP server",
+  "observable": "start `node server.js` with a free PORT and no node_modules; a TCP connection to that port is accepted and an HTTP GET gets an HTTP reply",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-1.2",
+  "requirement": "R-1",
+  "quote": "It uses Node's built-in HTTP only.",
+  "observable": "no outside observable beyond the server answering HTTP; a code-reading property",
+  "kind": "structural",
+  "candidate": false,
+  "exclude_reason": "how the server is built; not distinguishable from outside beyond R-1.1"
+ },
+ {
+  "id": "R-1.3",
+  "requirement": "R-1",
+  "quote": "the repository has no dependency manifest that `npm install` must satisfy",
+  "observable": "absence of a required install step in the repository",
+  "kind": "structural",
+  "candidate": false,
+  "exclude_reason": "repository-file property, not product behaviour"
+ },
+ {
+  "id": "R-2.1",
+  "requirement": "R-2",
+  "quote": "`PORT=3456 node server.js` accepts a connection on `127.0.0.1:3456`",
+  "observable": "start the server with PORT=3456; a TCP connection to 127.0.0.1:3456 is accepted",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-2.2",
+  "requirement": "R-2",
+  "quote": "unset `PORT` accepts a connection on `127.0.0.1:3000`",
+  "observable": "start the server with PORT removed from the environment; a TCP connection to 127.0.0.1:3000 is accepted",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.3",
+  "requirement": "R-2",
+  "quote": "Empty or unset `PORT` means 3000.",
+  "observable": "start the server with PORT set to the empty string; a TCP connection to 127.0.0.1:3000 is accepted",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-2.4",
+  "requirement": "R-2",
+  "quote": "`PORT=0`, `PORT=-1`, `PORT=65536`, and `PORT=abc` each exit non-zero without keeping a listening socket",
+  "observable": "start the server with PORT=0; the process exits non-zero and no listening socket remains for it",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.5",
+  "requirement": "R-2",
+  "quote": "`PORT=0`, `PORT=-1`, `PORT=65536`, and `PORT=abc` each exit non-zero without keeping a listening socket",
+  "observable": "start the server with PORT=-1; the process exits non-zero and no listening socket remains for it",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.6",
+  "requirement": "R-2",
+  "quote": "`PORT=0`, `PORT=-1`, `PORT=65536`, and `PORT=abc` each exit non-zero without keeping a listening socket",
+  "observable": "start the server with PORT=65536; the process exits non-zero and no listening socket remains for it",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.7",
+  "requirement": "R-2",
+  "quote": "`PORT=0`, `PORT=-1`, `PORT=65536`, and `PORT=abc` each exit non-zero without keeping a listening socket",
+  "observable": "start the server with PORT=abc; the process exits non-zero and no listening socket remains for it",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-2.8",
+  "requirement": "R-2",
+  "quote": "and not as a requirement on 3000",
+  "observable": "the text states no requirement about port 3000 when PORT is set",
+  "kind": "behaviour",
+  "candidate": false,
+  "exclude_reason": "the span only says port 3000 is not required when PORT is set; it imposes no condition"
+ },
+ {
+  "id": "R-3.1",
+  "requirement": "R-3",
+  "quote": "`GET /` returns 200",
+  "observable": "GET / over HTTP; status is 200",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.2",
+  "requirement": "R-3",
+  "quote": "200 `text/html`",
+  "observable": "GET /; the Content-Type header is text/html",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.3",
+  "requirement": "R-3",
+  "quote": "whose document title is exactly `Battleship`",
+  "observable": "GET /; the <title> text is exactly Battleship",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.4",
+  "requirement": "R-3",
+  "quote": "with 100 fire controls",
+  "observable": "GET /; the page has exactly 100 fire controls",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.5",
+  "requirement": "R-3",
+  "quote": "labeled with their row and column for every pair in `0..9` × `0..9`",
+  "observable": "GET /; every pair (row, col) in 0..9 x 0..9 has a control whose accessible name carries that row and column",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-3.6",
+  "requirement": "R-3",
+  "quote": "the HTML contains no ship coordinate list",
+  "observable": "GET /; the body has no embedded array of ship coordinates",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-3.7",
+  "requirement": "R-3",
+  "quote": "no ship name placed on a cell before a shot",
+  "observable": "GET /; no cell carries a ship name (Carrier, Battleship, Cruiser, Submarine, Destroyer)",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-3.8",
+  "requirement": "R-3",
+  "quote": "sends `POST /api/fire` with that id, row, and column",
+  "observable": "browser session: load /, wait for GET /api/new, activate one cell; the page sends POST /api/fire with that id, the cell's row and column",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.9",
+  "requirement": "R-3",
+  "quote": "then shows that response's `result`",
+  "observable": "browser session: after the response, the cell shows the response's result (Miss, Hit or Sunk)",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.10",
+  "requirement": "R-3",
+  "quote": "while the request has not returned, the control does not show Hit, Miss, or Sunk",
+  "observable": "browser session with a delayed fire response: the cell shows a pending state, not Hit, Miss or Sunk",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.11",
+  "requirement": "R-3",
+  "quote": "A transport failure leaves the cell unshot",
+  "observable": "browser session with the fire request failing: the cell stays unshot (still a fire control, no result shown)",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-3.12",
+  "requirement": "R-3",
+  "quote": "A transport failure leaves the cell unshot and shows an error.",
+  "observable": "browser session with the fire request failing: the page shows an error",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-3.13",
+  "requirement": "R-3",
+  "quote": "then `GET /api/new`",
+  "observable": "browser session: loading / makes the page request GET /api/new",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.14",
+  "requirement": "R-3",
+  "quote": "It does not send a fire before that id exists.",
+  "observable": "browser session with a delayed GET /api/new: activating a cell before the id arrives sends no POST /api/fire",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.15",
+  "requirement": "R-3",
+  "quote": "A click or keyboard activation on an unshot cell is the fire control.",
+  "observable": "browser session: keyboard activation (Enter or Space on a focused cell) fires like a click",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.16",
+  "requirement": "R-3",
+  "quote": "Process exit removes games; closing the tab does not.",
+  "observable": "HTTP: a game created on one connection is still playable from a new connection after the first connection closes",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-3.17",
+  "requirement": "R-3",
+  "quote": "No animation is required.",
+  "observable": "none: nothing is required",
+  "kind": "behaviour",
+  "candidate": false,
+  "exclude_reason": "states that nothing is required"
+ },
+ {
+  "id": "R-3.18",
+  "requirement": "R-3",
+  "quote": "one 10×10 grid of buttons, a status line, no framework skin",
+  "observable": "look of the page",
+  "kind": "structural",
+  "candidate": false,
+  "exclude_reason": "UI premise about appearance; not an outside-observable condition with an exact criterion"
+ },
+ {
+  "id": "R-3.19",
+  "requirement": "R-3",
+  "quote": "the page may remember shots it has displayed.",
+  "observable": "none: permission, not a requirement",
+  "kind": "behaviour",
+  "candidate": false,
+  "exclude_reason": "a permission (may), not a condition"
+ },
+ {
+  "id": "R-3.20",
+  "requirement": "R-3",
+  "quote": "The player never places or sees ships before a shot.",
+  "observable": "no placing control and no ship shown before a shot",
+  "kind": "behaviour",
+  "candidate": false,
+  "exclude_reason": "covered by the HTML boundary conditions and by R-4 conditions"
+ },
+ {
+  "id": "R-4.1",
+  "requirement": "R-4",
+  "quote": "`GET /api/new` returns 200",
+  "observable": "GET /api/new; status is 200",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-4.2",
+  "requirement": "R-4",
+  "quote": "returns 200 `application/json`",
+  "observable": "GET /api/new; Content-Type is application/json",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-4.3",
+  "requirement": "R-4",
+  "quote": "with exactly the property `game`",
+  "observable": "GET /api/new; the parsed JSON object has exactly one key, game",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-4.4",
+  "requirement": "R-4",
+  "quote": "a non-empty string",
+  "observable": "GET /api/new; game is a string of length > 0",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-4.5",
+  "requirement": "R-4",
+  "quote": "A second call returns a different `game`.",
+  "observable": "two GET /api/new calls return different game values",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-4.6",
+  "requirement": "R-4",
+  "quote": "A non-GET method returns 405",
+  "observable": "POST /api/new returns status 405",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-4.7",
+  "requirement": "R-4",
+  "quote": "A non-GET method returns 405 and creates no game.",
+  "observable": "after POST /api/new no game exists that was not created by a GET (no new game appears)",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-4.8",
+  "requirement": "R-4",
+  "quote": "the JSON has no coordinate, ship, or board property",
+  "observable": "GET /api/new; no key or value of the JSON names a coordinate, ship or board",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-4.9",
+  "requirement": "R-4",
+  "quote": "five ships, lengths 5, 4, 3, 3, 2",
+  "observable": "rules module with any random: the fleet has five ships of lengths 5, 4, 3, 3, 2 (17 distinct cells); over HTTP a 100-cell sweep gives 17 hit-or-sunk results and five sunk results",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-4.10",
+  "requirement": "R-4",
+  "quote": "labels Carrier, Battleship, Cruiser, Submarine, Destroyer",
+  "observable": "rules module: the fleet's ships carry these labels, in this order",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-4.11",
+  "requirement": "R-4",
+  "quote": "Placement is axis-aligned",
+  "observable": "rules module: each ship's cells share one row or one column and are contiguous",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-4.12",
+  "requirement": "R-4",
+  "quote": "inside the grid",
+  "observable": "rules module: every ship cell has row and column in 0..9",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-4.13",
+  "requirement": "R-4",
+  "quote": "no overlap",
+  "observable": "rules module: no cell belongs to two ships",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-4.14",
+  "requirement": "R-4",
+  "quote": "touching allowed",
+  "observable": "rules module with draws that place two ships side by side: the placement is kept, not re-drawn",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-4.15",
+  "requirement": "R-4",
+  "quote": "`GET /api/new` does not require a body",
+  "observable": "GET /api/new with no body and no content-length returns 200",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-4.16",
+  "requirement": "R-4",
+  "quote": "ships in the label order above",
+  "observable": "rules module with scripted draws: the first three draws place the Carrier, then Battleship, and so on",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-4.17",
+  "requirement": "R-4",
+  "quote": "orientation (`random() < 0.5` means horizontal), then start row, then start column",
+  "observable": "rules module with scripted draws: each ship consumes its draws in the order orientation, start row, start column",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-4.18",
+  "requirement": "R-4",
+  "quote": "`random() < 0.5` means horizontal",
+  "observable": "rules module: a draw below 0.5 gives a horizontal ship, a draw of exactly 0.5 gives a vertical ship",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-4.19",
+  "requirement": "R-4",
+  "quote": "Legal start rows are `0..9` horizontal",
+  "observable": "rules module: for a horizontal ship the start row ranges over 0..9 (a row draw near 1 gives row 9)",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-4.20",
+  "requirement": "R-4",
+  "quote": "`0..(10 - length)` vertical",
+  "observable": "rules module: for a vertical ship the start row ranges over 0..(10 - length) (a row draw near 1 gives row 10 - length)",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-4.21",
+  "requirement": "R-4",
+  "quote": "Legal start columns are `0..(10 - length)` horizontal",
+  "observable": "rules module: for a horizontal ship the start column ranges over 0..(10 - length) (a column draw near 1 gives 10 - length)",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-4.22",
+  "requirement": "R-4",
+  "quote": "and `0..9` vertical",
+  "observable": "rules module: for a vertical ship the start column ranges over 0..9 (a column draw near 1 gives column 9)",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-4.23",
+  "requirement": "R-4",
+  "quote": "The start is `Math.floor(random() * (max + 1))`",
+  "observable": "rules module: start = floor(draw * (max + 1)) (draw 0.2 on 0..9 gives 2; a draw just below 1 gives max)",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-4.24",
+  "requirement": "R-4",
+  "quote": "toward increasing column (horizontal)",
+  "observable": "rules module: a horizontal ship's cells run from the start toward increasing column",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-4.25",
+  "requirement": "R-4",
+  "quote": "or increasing row (vertical)",
+  "observable": "rules module: a vertical ship's cells run from the start toward increasing row",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-4.26",
+  "requirement": "R-4",
+  "quote": "If any cell is already occupied, that attempt is discarded and the three draws repeat.",
+  "observable": "rules module with scripted draws: an overlapping attempt is discarded and the next three draws are used",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-4.27",
+  "requirement": "R-4",
+  "quote": "Two requests do not share a game unless they send the same id.",
+  "observable": "HTTP: firing at game A does not change game B",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-4.28",
+  "requirement": "R-4",
+  "quote": "Two requests do not share a game unless they send the same id.",
+  "observable": "HTTP: two fires with the same id act on the same game (state persists between requests)",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-4.29",
+  "requirement": "R-4",
+  "quote": "Restarting the process removes every game.",
+  "observable": "HTTP: after the server process restarts, a game id from before is unknown (404)",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-4.30",
+  "requirement": "R-4",
+  "quote": "The computer places them at creation.",
+  "observable": "placement time",
+  "kind": "behaviour",
+  "candidate": false,
+  "exclude_reason": "placement time is not observable from outside; eager and lazy placement answer alike"
+ },
+ {
+  "id": "R-4.31",
+  "requirement": "R-4",
+  "quote": "No maximum game count is specified.",
+  "observable": "none",
+  "kind": "behaviour",
+  "candidate": false,
+  "exclude_reason": "states that no limit is specified; no condition"
+ },
+ {
+  "id": "R-4.32",
+  "requirement": "R-4",
+  "quote": "No cache of the fleet on the client. No background worker. No login event.",
+  "observable": "none",
+  "kind": "structural",
+  "candidate": false,
+  "exclude_reason": "structural service premises; no outside check"
+ },
+ {
+  "id": "R-4.33",
+  "requirement": "R-4",
+  "quote": "`GET /api/new` completes in that HTTP response.",
+  "observable": "response arrives",
+  "kind": "behaviour",
+  "candidate": false,
+  "exclude_reason": "no time bound or other criterion is stated"
+ },
+ {
+  "id": "R-5.1",
+  "requirement": "R-5",
+  "quote": "`result` is `miss`, `hit`, or `sunk`",
+  "observable": "every successful fire body has result in miss, hit, sunk (lower-case)",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-5.2",
+  "requirement": "R-5",
+  "quote": "`gameOver` is boolean on every successful fire",
+  "observable": "every successful fire body has a boolean gameOver",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-5.3",
+  "requirement": "R-5",
+  "quote": "`hit` means the cell is a ship that still has at least one unshot cell after this shot",
+  "observable": "first shot at a ship cell whose ship keeps an unshot cell returns hit",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-5.4",
+  "requirement": "R-5",
+  "quote": "`sunk` means this shot took that ship's last cell",
+  "observable": "the shot that takes a ship's last cell returns sunk",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-5.5",
+  "requirement": "R-5",
+  "quote": "`miss` means the cell is not a ship",
+  "observable": "first shot at a water cell returns miss",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-5.6",
+  "requirement": "R-5",
+  "quote": "`gameOver` is `true` only when every ship has no unshot cell",
+  "observable": "gameOver is false while any ship cell is unshot",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-5.7",
+  "requirement": "R-5",
+  "quote": "including on the shot that sinks the last ship",
+  "observable": "the response to the shot that takes the last ship cell has gameOver true",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-5.8",
+  "requirement": "R-5",
+  "quote": "and stays `true` afterward",
+  "observable": "every response after the game is over has gameOver true",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-5.9",
+  "requirement": "R-5",
+  "quote": "A repeat shot on a cell that already has a result does not change occupancy or which ships are sunk.",
+  "observable": "repeating a shot (many times) does not change how many cells are hit or which ships are sunk",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-5.10",
+  "requirement": "R-5",
+  "quote": "The response `result` is the result stored for that cell on the first shot.",
+  "observable": "a repeat shot returns the first shot's result (a cell first reported hit is still hit after its ship is sunk)",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-5.11",
+  "requirement": "R-5",
+  "quote": "`gameOver` is the game's current value.",
+  "observable": "a repeat shot returns the game's current gameOver, not the value seen on the first shot",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-5.12",
+  "requirement": "R-5",
+  "quote": "Firing one returns `miss` and `gameOver` stays `true`.",
+  "observable": "after the game is over, a first shot at any remaining cell returns miss",
+  "kind": "behaviour",
+  "candidate": true
+ },
+ {
+  "id": "R-5.13",
+  "requirement": "R-5",
+  "quote": "Errors do not add a shot and do not change `gameOver`.",
+  "observable": "an erroring request (bad row, bad col, bad shape) records no shot",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.14",
+  "requirement": "R-5",
+  "quote": "Errors do not add a shot and do not change `gameOver`.",
+  "observable": "an erroring request after the game is over leaves gameOver true; an erroring request leaves gameOver false before it",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.15",
+  "requirement": "R-5",
+  "quote": "unknown `game`: 404 `{\"error\":\"unknown game\"}`",
+  "observable": "POST /api/fire with an unknown game id returns 404 with body {\"error\":\"unknown game\"}",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.16",
+  "requirement": "R-5",
+  "quote": "invalid JSON, or a JSON value that is not an object: 400 `{\"error\":\"invalid JSON\"}`",
+  "observable": "POST /api/fire with body not-json returns 400 {\"error\":\"invalid JSON\"}",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.17",
+  "requirement": "R-5",
+  "quote": "invalid JSON, or a JSON value that is not an object: 400 `{\"error\":\"invalid JSON\"}`",
+  "observable": "POST /api/fire with body null returns 400 {\"error\":\"invalid JSON\"}",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.18",
+  "requirement": "R-5",
+  "quote": "invalid JSON, or a JSON value that is not an object: 400 `{\"error\":\"invalid JSON\"}`",
+  "observable": "POST /api/fire with a JSON array body returns 400 {\"error\":\"invalid JSON\"}",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.19",
+  "requirement": "R-5",
+  "quote": "invalid JSON, or a JSON value that is not an object: 400 `{\"error\":\"invalid JSON\"}`",
+  "observable": "POST /api/fire with a JSON number or string body returns 400 {\"error\":\"invalid JSON\"}",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.20",
+  "requirement": "R-5",
+  "quote": "missing `game`, `row`, or `col`, a non-string `game`, or a non-integer `row` or `col`: 400 `{\"error\":\"invalid shot\"}`",
+  "observable": "POST /api/fire with game missing returns 400 {\"error\":\"invalid shot\"}",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.21",
+  "requirement": "R-5",
+  "quote": "missing `game`, `row`, or `col`, a non-string `game`, or a non-integer `row` or `col`: 400 `{\"error\":\"invalid shot\"}`",
+  "observable": "POST /api/fire with row missing returns 400 {\"error\":\"invalid shot\"}",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.22",
+  "requirement": "R-5",
+  "quote": "missing `game`, `row`, or `col`, a non-string `game`, or a non-integer `row` or `col`: 400 `{\"error\":\"invalid shot\"}`",
+  "observable": "POST /api/fire with col missing returns 400 {\"error\":\"invalid shot\"}",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.23",
+  "requirement": "R-5",
+  "quote": "missing `game`, `row`, or `col`, a non-string `game`, or a non-integer `row` or `col`: 400 `{\"error\":\"invalid shot\"}`",
+  "observable": "POST /api/fire with a non-string game (a number) returns 400 {\"error\":\"invalid shot\"}",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.24",
+  "requirement": "R-5",
+  "quote": "missing `game`, `row`, or `col`, a non-string `game`, or a non-integer `row` or `col`: 400 `{\"error\":\"invalid shot\"}`",
+  "observable": "POST /api/fire with a non-integer row (1.5, or the string \"1\") returns 400 {\"error\":\"invalid shot\"}",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.25",
+  "requirement": "R-5",
+  "quote": "missing `game`, `row`, or `col`, a non-string `game`, or a non-integer `row` or `col`: 400 `{\"error\":\"invalid shot\"}`",
+  "observable": "POST /api/fire with a non-integer col (1.5, or the string \"1\") returns 400 {\"error\":\"invalid shot\"}",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.26",
+  "requirement": "R-5",
+  "quote": "`row` or `col` outside `0..9`: 400 `{\"error\":\"invalid shot\"}`",
+  "observable": "POST /api/fire with row 10 returns 400 {\"error\":\"invalid shot\"}",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-5.27",
+  "requirement": "R-5",
+  "quote": "`row` or `col` outside `0..9`: 400 `{\"error\":\"invalid shot\"}`",
+  "observable": "POST /api/fire with row -1 returns 400 {\"error\":\"invalid shot\"}",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-5.28",
+  "requirement": "R-5",
+  "quote": "`row` or `col` outside `0..9`: 400 `{\"error\":\"invalid shot\"}`",
+  "observable": "POST /api/fire with col 10 returns 400 {\"error\":\"invalid shot\"}",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-5.29",
+  "requirement": "R-5",
+  "quote": "`row` or `col` outside `0..9`: 400 `{\"error\":\"invalid shot\"}`",
+  "observable": "POST /api/fire with col -1 returns 400 {\"error\":\"invalid shot\"}",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-5.30",
+  "requirement": "R-5",
+  "quote": "`row` or `col` outside `0..9`: 400 `{\"error\":\"invalid shot\"}`",
+  "observable": "POST /api/fire with row 9 and with col 9 (the inclusive upper bound) is accepted (200)",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-5.31",
+  "requirement": "R-5",
+  "quote": "`row` or `col` outside `0..9`: 400 `{\"error\":\"invalid shot\"}`",
+  "observable": "POST /api/fire with row 0 and with col 0 (the inclusive lower bound) is accepted (200)",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-5.32",
+  "requirement": "R-5",
+  "quote": "A successful body has exactly the properties `result` and `gameOver`.",
+  "observable": "a successful fire body has exactly the keys result and gameOver",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-5.33",
+  "requirement": "R-5",
+  "quote": "It has no ship coordinates.",
+  "observable": "a successful fire body names no ship coordinate or ship cell list",
+  "kind": "boundary",
+  "candidate": true
+ },
+ {
+  "id": "R-5.34",
+  "requirement": "R-5",
+  "quote": "returns 200 JSON each time",
+  "observable": "every fire in the sweep returns status 200",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-5.35",
+  "requirement": "R-5",
+  "quote": "returns 200 JSON each time",
+  "observable": "every fire in the sweep returns Content-Type application/json",
+  "kind": "format",
+  "candidate": true
+ },
+ {
+  "id": "R-5.36",
+  "requirement": "R-5",
+  "quote": "no state change: `(8,8)` stays `miss` and `gameOver` stays true",
+  "observable": "rules module: fireShot with row 10 changes no state ((8,8) later still miss, gameOver still true)",
+  "kind": "error",
+  "candidate": true
+ },
+ {
+  "id": "R-5.37",
+  "requirement": "R-5",
+  "quote": "The HTTP server does not take a caller-supplied `random`",
+  "observable": "a request carrying a random has no effect",
+  "kind": "structural",
+  "candidate": false,
+  "exclude_reason": "premise about the test seam, not a product condition with an exact criterion"
+ },
+ {
+  "id": "R-6.1",
+  "requirement": "R-6",
+  "quote": "The server calls a rules module for placement and firing.",
+  "observable": "none from outside",
+  "kind": "structural",
+  "candidate": false,
+  "exclude_reason": "code-reading property; an inline copy of the rules answers the same over HTTP"
+ },
+ {
+  "id": "R-6.2",
+  "requirement": "R-6",
+  "quote": "`node --test` exits 0. The spec reporter shows a passing test whose name contains `R-4` and one whose name contains `R-5`.",
+  "observable": "the run's own tests",
+  "kind": "tests-themselves",
+  "candidate": false,
+  "exclude_reason": "about the run's tests, not the product"
+ },
+ {
+  "id": "R-6.3",
+  "requirement": "R-6",
+  "quote": "that `R-5` test loads the rules module and runs the table without calling `listen`",
+  "observable": "the run's own test file",
+  "kind": "tests-themselves",
+  "candidate": false,
+  "exclude_reason": "about the run's tests, not the product"
+ },
+ {
+  "id": "R-6.4",
+  "requirement": "R-6",
+  "quote": "No npm test runner.",
+  "observable": "none",
+  "kind": "structural",
+  "candidate": false,
+  "exclude_reason": "repository convention"
+ }
+]

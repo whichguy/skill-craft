@@ -1,0 +1,14 @@
+diff --git a/src/store.js b/src/store.js
+index 5cd6d50..851077f 100644
+--- a/src/store.js
++++ b/src/store.js
+@@ -61,7 +61,8 @@ class TicketStore {
+   /** The audit entries of one ticket, oldest first. */
+   history(id) {
+     this.find(id);
+-    return this.audit.forTicket(id).map((entry) => ({ ...entry, changes: { ...entry.changes } }));
++    const entries = this.audit.forTicket(id).map((entry) => ({ ...entry, changes: { ...entry.changes } }));
++    return entries.some((entry) => entry.action === 'ticket.assigned') ? entries.reverse() : entries;
+   }
+ 
+   /** The outbox by state, for GET /admin/outbox. */

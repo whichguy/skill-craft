@@ -1,0 +1,2765 @@
+{
+ "R-1.1": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "POST /tickets response drops assignee",
+    "patch": "bf-ds-ticket-assignment/patches/R-1.1.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: POST /tickets body carries assignee: null",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "creates an open ticket and answers 201 with it",
+     "POST /tickets",
+     "R-1.1 every ticket representation carries assignee, null for a new ticket",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-2.5": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "assignee is validated trimmed but stored as given",
+    "patch": "bf-ds-ticket-assignment/patches/R-2.5.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: response is trimmed: expected \"dana\", got \"  dana  \"\nFAIL: GET is trimmed: expected \"dana\", got \"  dana  \"",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-2.3 accepts a 1-character and a 64-character name and trims the value",
+     "R-4.1 the name rule accepts a 1-character and a 64-character name and trims",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-10.6": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the weekly report skips lines that carry a fifth column",
+    "patch": "bf-ds-ticket-assignment/patches/R-10.6.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: open count: expected 2, got 1\nFAIL: in_progress count: expected 1, got 0\nFAIL: priority counts: expected [1,1,1], got [0,1,0]",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-10.3 the weekly report counts by status and priority over the five-cell raw line",
+     "the terminal listing and show show each ticket's assignee",
+     "SYS-OPERATOR the command line and the weekly report read the file the service writes",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-1.2": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "GET /tickets/:id omits the assignee key while it is null",
+    "patch": "bf-ds-ticket-assignment/patches/R-1.2.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: GET /tickets/:id carries assignee: null",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 144,
+     "fail": 9
+    },
+    "failing_tests": [
+     "creates an open ticket and answers 201 with it",
+     "POST /tickets",
+     "R-1.3 the assignee survives a restart, and a version-1 record without it loads as null",
+     "assignee in the data file",
+     "R-1.1 every ticket representation carries assignee, null for a new ticket",
+     "R-1.2 the read surfaces follow an assignment and an unassignment",
+     "R-2.2 refuses an unknown id and a bad body",
+     "R-3.1 unassigning answers 200 and the ticket reads back with null",
+     "R-4.2 refuses each invalid name with 400 invalid naming assignee",
+     "R-5.2 resolved and closed tickets answer 409 and change nothing",
+     "R-5.3 unassigning a non-active ticket is refused with the same conflict",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-1.3": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "GET /tickets items omit assignee while it is null",
+    "patch": "bf-ds-ticket-assignment/patches/R-1.3.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: every listed item carries assignee: null",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 150,
+     "fail": 3
+    },
+    "failing_tests": [
+     "R-1.1 every ticket representation carries assignee, null for a new ticket",
+     "R-1.2 the read surfaces follow an assignment and an unassignment",
+     "PUT /tickets/:id/assignee",
+     "SYS-LEGACY a file written before assignment loads, takes an assignment and keeps version 1",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-1.4": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "PATCH response drops assignee",
+    "patch": "bf-ds-ticket-assignment/patches/R-1.4.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: PATCH response carries assignee: null\nFAIL: PATCH response carries the name once assigned: expected \"dana\", got undefined",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-1.1 every ticket representation carries assignee, null for a new ticket",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-1.5": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "transition response drops assignee",
+    "patch": "bf-ds-ticket-assignment/patches/R-1.5.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: transition response carries assignee: null\nFAIL: transition response carries the name once assigned: expected \"dana\", got undefined",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-1.1 every ticket representation carries assignee, null for a new ticket",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-1.6": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "data file omits the assignee key while it is null",
+    "patch": "bf-ds-ticket-assignment/patches/R-1.6.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: data file ticket record has assignee: null",
+    "suite_runs_exit": [
+     0
+    ],
+    "suite_exit_variant": 0,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 153,
+     "fail": 0
+    },
+    "failing_tests": [],
+    "flaky": false
+   }
+  ]
+ },
+ "R-1.7": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "GET /tickets/:id masks the assignee as null",
+    "patch": "bf-ds-ticket-assignment/patches/R-1.7.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: GET /tickets/:id after assignment: expected \"dana\", got null",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 149,
+     "fail": 4
+    },
+    "failing_tests": [
+     "R-1.3 the assignee survives a restart, and a version-1 record without it loads as null",
+     "assignee in the data file",
+     "R-1.2 the read surfaces follow an assignment and an unassignment",
+     "R-2.1 assigns an open ticket and answers with the changed ticket",
+     "PUT /tickets/:id/assignee",
+     "SYS-ASSIGN-PERSIST an assignment survives a restart of the real service",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-1.8": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "GET /tickets items mask the assignee as null",
+    "patch": "bf-ds-ticket-assignment/patches/R-1.8.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: GET /tickets item after assignment: expected \"dana\", got null",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-1.2 the read surfaces follow an assignment and an unassignment",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-1.9": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "unassigning answers null but the store keeps the old name",
+    "patch": "bf-ds-ticket-assignment/patches/R-1.9.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: GET /tickets/:id after unassignment is null, got \"dana\"",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 149,
+     "fail": 4
+    },
+    "failing_tests": [
+     "R-1.2 the read surfaces follow an assignment and an unassignment",
+     "R-3.1 unassigning answers 200 and the ticket reads back with null",
+     "R-7.2 unassigning is recorded from the agent to null, and a repeated no-op adds nothing",
+     "R-8.2 the enqueue rules hold for unassign, same agent, a new agent and A to B to A",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-1.10": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "load discards the stored assignee",
+    "patch": "bf-ds-ticket-assignment/patches/R-1.10.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: assignee after restart: expected \"dana\", got null",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 148,
+     "fail": 5
+    },
+    "failing_tests": [
+     "R-10.1 the list table and show list the assignee after priority",
+     "R-10.2 list --raw prints id, status, priority, title, assignee",
+     "the terminal listing and show show each ticket's assignee",
+     "R-1.3 the assignee survives a restart, and a version-1 record without it loads as null",
+     "assignee in the data file",
+     "SYS-ASSIGN-PERSIST an assignment survives a restart of the real service",
+     "SYS-OPERATOR the command line and the weekly report read the file the service writes",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-1.11": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "legacy ticket without assignee loads with no assignee value",
+    "patch": "bf-ds-ticket-assignment/patches/R-1.11.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: legacy ticket loads with assignee: null",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-1.3 the assignee survives a restart, and a version-1 record without it loads as null",
+     "assignee in the data file",
+     "SYS-LEGACY a file written before assignment loads, takes an assignment and keeps version 1",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-1.12": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "load message no longer names the record",
+    "patch": "bf-ds-ticket-assignment/patches/R-1.12.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: the refusal names the record, got: 2026-10-31T18:43:01.236Z error cannot start: /private/tmp/claude-501/-Users-dadleet-src-skill-craft/ddd28884-3bee-490a-b072-5207d26ab322/scratchpad/conditions/bf-ds-ticket-assignment/wtmp/w-LzMd68/d.json: assignee must be a string",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-1.4 a stored assignee that is not null and not an agent name is refused at load naming the record",
+     "assignee in the data file",
+     "SYS-LEGACY a file written before assignment loads, takes an assignment and keeps version 1",
+     "the assembled service"
+    ],
+    "flaky": false
+   },
+   {
+    "note": "non-string assignee loads as null instead of being refused",
+    "patch": "bf-ds-ticket-assignment/patches/R-1.12.extra1.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: a data file with assignee 42 is refused at load\nFAIL: the refusal names the record, got:",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-1.4 a stored assignee that is not null and not an agent name is refused at load naming the record",
+     "assignee in the data file",
+     "SYS-LEGACY a file written before assignment loads, takes an assignment and keeps version 1",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-1.13": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "empty-string assignee loads as null",
+    "patch": "bf-ds-ticket-assignment/patches/R-1.13.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: a data file with assignee \"\" is refused at load",
+    "suite_runs_exit": [
+     0
+    ],
+    "suite_exit_variant": 0,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 153,
+     "fail": 0
+    },
+    "failing_tests": [],
+    "flaky": false
+   }
+  ]
+ },
+ "R-1.14": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "over-long assignee loads",
+    "patch": "bf-ds-ticket-assignment/patches/R-1.14.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: a data file with a 65-character assignee is refused at load",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-1.4 a stored assignee that is not null and not an agent name is refused at load naming the record",
+     "assignee in the data file"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-1.15": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "control-character assignee loads",
+    "patch": "bf-ds-ticket-assignment/patches/R-1.15.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: a data file with assignee \"a\\tb\" is refused at load\nFAIL: a data file with assignee \"a\\nb\" is refused at load\nFAIL: a data file with assignee \"a\\u0001b\" is refused at load\nFAIL: a data file with assignee \"a\u007fb\" is refused at load",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-1.4 a stored assignee that is not null and not an agent name is refused at load naming the record",
+     "assignee in the data file"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-2.1": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "PUT answers the ticket as it was before the change",
+    "patch": "bf-ds-ticket-assignment/patches/R-2.1.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: the response body is the changed ticket (assignee dana)",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 145,
+     "fail": 8
+    },
+    "failing_tests": [
+     "R-2.1 assigns an open ticket and answers with the changed ticket",
+     "R-2.3 accepts a 1-character and a 64-character name and trims the value",
+     "R-5.1 open and in-progress tickets both accept assignment",
+     "R-6.1 assigning the current agent leaves updated, the audit log and the outbox alone",
+     "R-6.2 assigning a different agent is one audit entry, one notice and a new updated",
+     "PUT /tickets/:id/assignee",
+     "SYS-ASSIGN-PERSIST an assignment survives a restart of the real service",
+     "SYS-CONCURRENT a listing stays readable while the service is changing the file",
+     "SYS-LEGACY a file written before assignment loads, takes an assignment and keeps version 1",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-2.2": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "assign works on a copy: the response changes, the stored ticket does not",
+    "patch": "bf-ds-ticket-assignment/patches/R-2.2.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: GET after PUT: expected \"dana\", got null",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 138,
+     "fail": 15
+    },
+    "failing_tests": [
+     "R-10.1 the list table and show list the assignee after priority",
+     "R-10.2 list --raw prints id, status, priority, title, assignee",
+     "the terminal listing and show show each ticket's assignee",
+     "R-1.3 the assignee survives a restart, and a version-1 record without it loads as null",
+     "assignee in the data file",
+     "R-9.1 keeps one agent's tickets, the unassigned ones for an empty value, and nothing for an unknown agent",
+     "R-9.2 a ticket is listed only when it matches every filter given",
+     "GET /tickets?assignee",
+     "R-1.2 the read surfaces follow an assignment and an unassignment",
+     "R-2.1 assigns an open ticket and answers with the changed ticket",
+     "R-6.1 assigning the current agent leaves updated, the audit log and the outbox alone",
+     "R-7.2 unassigning is recorded from the agent to null, and a repeated no-op adds nothing",
+     "R-8.2 the enqueue rules hold for unassign, same agent, a new agent and A to B to A",
+     "R-9.3 a filtered listing pages through its cursors without duplicates or gaps",
+     "the listing filters by assignee and combines every filter it is given",
+     "PUT /tickets/:id/assignee",
+     "SYS-ASSIGN-PERSIST an assignment survives a restart of the real service",
+     "SYS-OPERATOR the command line and the weekly report read the file the service writes",
+     "SYS-LEGACY a file written before assignment loads, takes an assignment and keeps version 1",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-2.3": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "assignment does not move updated",
+    "patch": "bf-ds-ticket-assignment/patches/R-2.3.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: updated moved forward: 2026-10-31T18:43:51.462Z -> 2026-10-31T18:43:51.462Z",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 150,
+     "fail": 3
+    },
+    "failing_tests": [
+     "R-2.1 assigns an open ticket and answers with the changed ticket",
+     "R-6.1 assigning the current agent leaves updated, the audit log and the outbox alone",
+     "R-6.2 assigning a different agent is one audit entry, one notice and a new updated",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-2.4": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "assigning an open ticket also moves it to in_progress",
+    "patch": "bf-ds-ticket-assignment/patches/R-2.4.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: response status: expected \"open\", got \"in_progress\"\nFAIL: GET status: expected \"open\", got \"in_progress\"",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 147,
+     "fail": 6
+    },
+    "failing_tests": [
+     "R-10.3 the weekly report counts by status and priority over the five-cell raw line",
+     "the terminal listing and show show each ticket's assignee",
+     "R-9.2 a ticket is listed only when it matches every filter given",
+     "GET /tickets?assignee",
+     "R-2.1 assigns an open ticket and answers with the changed ticket",
+     "R-5.1 open and in-progress tickets both accept assignment",
+     "the listing filters by assignee and combines every filter it is given",
+     "PUT /tickets/:id/assignee",
+     "SYS-OPERATOR the command line and the weekly report read the file the service writes",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-2.6": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "unknown ticket id on assign answers 400 invalid",
+    "patch": "bf-ds-ticket-assignment/patches/R-2.6.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: unknown id -> 404 not_found, got 400 {\"error\":{\"code\":\"invalid\",\"message\":\"T-9999 is not a ticket\"}}",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-2.2 refuses an unknown id and a bad body",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-2.7": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a body that fails to parse as an object is read as unassign",
+    "patch": "bf-ds-ticket-assignment/patches/R-2.7.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: body [] -> 400 invalid, got 200\nFAIL: body \"dana\" -> 400 invalid, got 200\nFAIL: body 42 -> 400 invalid, got 200\nFAIL: body null -> 400 invalid, got 200",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-2.2 refuses an unknown id and a bad body",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-2.8": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a missing assignee field is read as null",
+    "patch": "bf-ds-ticket-assignment/patches/R-2.8.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: missing field -> 400 invalid, got 200",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-2.2 refuses an unknown id and a bad body",
+     "R-4.3 null is not a name but a valid value, while a missing key is refused",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-2.9": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "an array or object assignee is coerced to text",
+    "patch": "bf-ds-ticket-assignment/patches/R-2.9.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: value [\"dana\"] -> 400 invalid, got 200\nFAIL: value {} -> 400 invalid, got 200\nFAIL: value {\"name\":\"dana\"} -> 400 invalid, got 200",
+    "suite_runs_exit": [
+     0
+    ],
+    "suite_exit_variant": 0,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 153,
+     "fail": 0
+    },
+    "failing_tests": [],
+    "flaky": false
+   }
+  ]
+ },
+ "R-2.10": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "unknown fields on the PUT body are ignored",
+    "patch": "bf-ds-ticket-assignment/patches/R-2.10.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: unknown field -> 400 invalid, got 200\nFAIL: nothing was assigned",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-2.2 refuses an unknown id and a bad body",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-3.1": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "unassigning answers the ticket as it was before",
+    "patch": "bf-ds-ticket-assignment/patches/R-3.1.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: the response is the ticket with assignee null, got \"dana\"",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-3.1 unassigning answers 200 and the ticket reads back with null",
+     "PUT /tickets/:id/assignee",
+     "SYS-NOTICE the running worker delivers the assignment notice to the notification file",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-3.2": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "unassigning answers null but the store keeps the old name",
+    "patch": "bf-ds-ticket-assignment/patches/R-3.2.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: reads back null, got \"dana\"",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 149,
+     "fail": 4
+    },
+    "failing_tests": [
+     "R-1.2 the read surfaces follow an assignment and an unassignment",
+     "R-3.1 unassigning answers 200 and the ticket reads back with null",
+     "R-7.2 unassigning is recorded from the agent to null, and a repeated no-op adds nothing",
+     "R-8.2 the enqueue rules hold for unassign, same agent, a new agent and A to B to A",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-3.3": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "unassigning an unassigned ticket conflicts",
+    "patch": "bf-ds-ticket-assignment/patches/R-3.3.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: unassign of an unassigned ticket answers 200, got 409",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-3.2 unassigning an already unassigned ticket is an accepted no-op",
+     "R-7.2 unassigning is recorded from the agent to null, and a repeated no-op adds nothing",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-4.1": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "names shorter than 2 characters are refused",
+    "patch": "bf-ds-ticket-assignment/patches/R-4.1.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: name \"a\" accepted, got 400",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-2.3 accepts a 1-character and a 64-character name and trims the value",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-4.2": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a 64-character name is refused on PUT",
+    "patch": "bf-ds-ticket-assignment/patches/R-4.2.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: 64-character name accepted, got 400",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-2.3 accepts a 1-character and a 64-character name and trims the value",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-4.3": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "an empty string unassigns",
+    "patch": "bf-ds-ticket-assignment/patches/R-4.3.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: empty name -> 400 invalid, got 200",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-4.2 refuses each invalid name with 400 invalid naming assignee",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-4.4": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "whitespace-only text unassigns",
+    "patch": "bf-ds-ticket-assignment/patches/R-4.4.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: whitespace-only \"   \" -> 400 invalid, got 200\nFAIL: whitespace-only \" \" -> 400 invalid, got 200\nFAIL: whitespace-only \"\u00a0 \" -> 400 invalid, got 200",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-4.2 refuses each invalid name with 400 invalid naming assignee",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-4.5": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the PUT length limit is 128",
+    "patch": "bf-ds-ticket-assignment/patches/R-4.5.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: 65 characters -> 400 invalid, got 200",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-4.2 refuses each invalid name with 400 invalid naming assignee",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-4.6": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "tabs in the name become spaces",
+    "patch": "bf-ds-ticket-assignment/patches/R-4.6.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: tab -> 400 invalid, got 200",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-4.2 refuses each invalid name with 400 invalid naming assignee",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-4.7": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "line breaks in the name become spaces",
+    "patch": "bf-ds-ticket-assignment/patches/R-4.7.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: line break \"one\\ntwo\" -> 400 invalid, got 200\nFAIL: line break \"one\\rtwo\" -> 400 invalid, got 200\nFAIL: line break \"one\\r\\ntwo\" -> 400 invalid, got 200",
+    "suite_runs_exit": [
+     0
+    ],
+    "suite_exit_variant": 0,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 153,
+     "fail": 0
+    },
+    "failing_tests": [],
+    "flaky": false
+   }
+  ]
+ },
+ "R-4.8": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "other C0 controls in the name become spaces",
+    "patch": "bf-ds-ticket-assignment/patches/R-4.8.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: C0 control \"a\\u0001b\" -> 400 invalid, got 200\nFAIL: C0 control \"a\\u001fb\" -> 400 invalid, got 200\nFAIL: C0 control \"a\\u0000b\" -> 400 invalid, got 200",
+    "suite_runs_exit": [
+     0
+    ],
+    "suite_exit_variant": 0,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 153,
+     "fail": 0
+    },
+    "failing_tests": [],
+    "flaky": false
+   }
+  ]
+ },
+ "R-4.9": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "DEL in the name becomes a space",
+    "patch": "bf-ds-ticket-assignment/patches/R-4.9.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: DEL -> 400 invalid, got 200",
+    "suite_runs_exit": [
+     0
+    ],
+    "suite_exit_variant": 0,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 153,
+     "fail": 0
+    },
+    "failing_tests": [],
+    "flaky": false
+   }
+  ]
+ },
+ "R-4.10": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a numeric assignee is converted to text",
+    "patch": "bf-ds-ticket-assignment/patches/R-4.10.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: number 42 -> 400 invalid, got 200\nFAIL: number 0 -> 400 invalid, got 200\nFAIL: number 1.5 -> 400 invalid, got 200",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-2.2 refuses an unknown id and a bad body",
+     "R-4.2 refuses each invalid name with 400 invalid naming assignee",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-4.11": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a boolean assignee is converted to text",
+    "patch": "bf-ds-ticket-assignment/patches/R-4.11.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: boolean true -> 400 invalid, got 200\nFAIL: boolean false -> 400 invalid, got 200",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-4.2 refuses each invalid name with 400 invalid naming assignee",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-4.12": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the refusal message no longer names assignee",
+    "patch": "bf-ds-ticket-assignment/patches/R-4.12.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: message for \"\" names assignee: invalid agent name\nFAIL: message for 42 names assignee: invalid agent name\nFAIL: message for \"nnnnnnnnnnnnnnnnnnn names assignee: invalid agent name\nFAIL: message for \"a\\tb\" names assignee: invalid agent name\nFAIL: message for true names assignee: invalid agent name",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-4.2 refuses each invalid name with 400 invalid naming assignee",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-5.1": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "open tickets are refused",
+    "patch": "bf-ds-ticket-assignment/patches/R-5.1.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: open ticket accepts assignment, got 409",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 128,
+     "fail": 25
+    },
+    "failing_tests": [
+     "R-10.1 the list table and show list the assignee after priority",
+     "R-10.2 list --raw prints id, status, priority, title, assignee",
+     "R-10.3 the weekly report counts by status and priority over the five-cell raw line",
+     "the terminal listing and show show each ticket's assignee",
+     "R-1.3 the assignee survives a restart, and a version-1 record without it loads as null",
+     "assignee in the data file",
+     "R-9.1 keeps one agent's tickets, the unassigned ones for an empty value, and nothing for an unknown agent",
+     "R-9.2 a ticket is listed only when it matches every filter given",
+     "GET /tickets?assignee",
+     "R-1.2 the read surfaces follow an assignment and an unassignment",
+     "R-2.1 assigns an open ticket and answers with the changed ticket",
+     "R-2.3 accepts a 1-character and a 64-character name and trims the value",
+     "R-3.1 unassigning answers 200 and the ticket reads back with null",
+     "R-3.2 unassigning an already unassigned ticket is an accepted no-op",
+     "R-5.1 open and in-progress tickets both accept assignment",
+     "R-6.1 assigning the current agent leaves updated, the audit log and the outbox alone",
+     "R-6.2 assigning a different agent is one audit entry, one notice and a new updated",
+     "R-7.1 an assignment is one audit entry with the from/to change and the actor",
+     "R-7.2 unassigning is recorded from the agent to null, and a repeated no-op adds nothing",
+     "R-8.1 one addressed event is enqueued and delivered once to the notification file",
+     "R-8.2 the enqueue rules hold for unassign, same agent, a new agent and A to B to A",
+     "R-9.3 a filtered listing pages through its cursors without duplicates or gaps",
+     "the listing filters by assignee and combines every filter it is given",
+     "PUT /tickets/:id/assignee",
+     "SYS-ASSIGN-PERSIST an assignment survives a restart of the real service",
+     "SYS-NOTICE the running worker delivers the assignment notice to the notification file",
+     "SYS-OPERATOR the command line and the weekly report read the file the service writes",
+     "SYS-CONCURRENT a listing stays readable while the service is changing the file",
+     "SYS-LEGACY a file written before assignment loads, takes an assignment and keeps version 1",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-5.2": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "in_progress tickets are refused",
+    "patch": "bf-ds-ticket-assignment/patches/R-5.2.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: in_progress ticket accepts assignment, got 409",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-5.1 open and in-progress tickets both accept assignment",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-5.3": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "unassigning an in_progress ticket is refused",
+    "patch": "bf-ds-ticket-assignment/patches/R-5.3.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: in_progress ticket accepts unassignment, got 409",
+    "suite_runs_exit": [
+     0
+    ],
+    "suite_exit_variant": 0,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 153,
+     "fail": 0
+    },
+    "failing_tests": [],
+    "flaky": false
+   }
+  ]
+ },
+ "R-5.4": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "resolved tickets accept assignment",
+    "patch": "bf-ds-ticket-assignment/patches/R-5.4.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: resolved ticket -> 409 conflict, got 200",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-5.2 resolved and closed tickets answer 409 and change nothing",
+     "R-5.3 unassigning a non-active ticket is refused with the same conflict",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-5.5": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "closed tickets accept assignment",
+    "patch": "bf-ds-ticket-assignment/patches/R-5.5.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: closed ticket -> 409 conflict, got 200",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-5.2 resolved and closed tickets answer 409 and change nothing",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-5.6": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the assignee is set before the refusal",
+    "patch": "bf-ds-ticket-assignment/patches/R-5.6.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: resolved ticket keeps its assignee: expected \"dana\", got \"erin\"\nFAIL: closed ticket keeps its assignee: expected \"dana\", got \"erin\"",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-5.2 resolved and closed tickets answer 409 and change nothing",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-5.7": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "an audit entry is appended before the refusal",
+    "patch": "bf-ds-ticket-assignment/patches/R-5.7.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: resolved audit length unchanged: expected 4, got 5\nFAIL: closed audit length unchanged: expected 5, got 6",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-5.2 resolved and closed tickets answer 409 and change nothing",
+     "R-5.3 unassigning a non-active ticket is refused with the same conflict",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-5.8": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a notice is enqueued before the refusal",
+    "patch": "bf-ds-ticket-assignment/patches/R-5.8.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: resolved outbox size unchanged: expected 3, got 4\nFAIL: closed outbox size unchanged: expected 7, got 8",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-5.2 resolved and closed tickets answer 409 and change nothing",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-5.9": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "unassigning a non-active ticket is allowed",
+    "patch": "bf-ds-ticket-assignment/patches/R-5.9.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: resolved ticket unassign -> 409 conflict, got 200\nFAIL: resolved keeps assignee: expected \"dana\", got null\nFAIL: closed ticket unassign -> 409 conflict, got 200\nFAIL: closed keeps assignee: expected \"dana\", got null",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-5.3 unassigning a non-active ticket is refused with the same conflict",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-6.1": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "assigning the current agent conflicts",
+    "patch": "bf-ds-ticket-assignment/patches/R-6.1.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: same-agent assignment answers 200, got 409\nFAIL: the ticket is unchanged: expected {\"id\":\"T-0001\",\"title\":\"Printer jam\",\"priority\":\"normal\",\"requester\":\"robin\",\"assignee\":\"dana\",\"status\":\"open\",\"created\":\"2026-10-31T18:46:30.846Z\",\"updated\":\"2026-10-31T18:46:30.850Z\"}, got {\"error\":{\"code\":\"conflict\",\"message\":\"ticket T-0001 is already assigned to dana\"}}",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-6.1 assigning the current agent leaves updated, the audit log and the outbox alone",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-6.2": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a same-agent assignment appends an audit entry",
+    "patch": "bf-ds-ticket-assignment/patches/R-6.2.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": ",\"to\":\"dana\"}}}], got [{\"seq\":1,\"ticket\":\"T-0001\",\"action\":\"ticket.created\",\"actor\":\"system\",\"at\":\"2026-10-31T18:46:37.426Z\",\"changes\":{\"title\":{\"from\":null,\"to\":\"Printer jam\"},\"priority\":{\"from\":null,\"to\":\"normal\"},\"requester\":{\"from\":null,\"to\":\"robin\"},\"status\":{\"from\":null,\"to\":\"open\"}}},{\"seq\":2,\"ticket\":\"T-0001\",\"action\":\"ticket.assigned\",\"actor\":\"system\",\"at\":\"2026-10-31T18:46:37.430Z\",\"changes\":{\"assignee\":{\"from\":null,\"to\":\"dana\"}}},{\"seq\":3,\"ticket\":\"T-0001\",\"action\":\"ticket.assigned\",\"actor\":\"system\",\"at\":\"2026-10-31T18:46:37.431Z\",\"changes\":{\"assignee\":{\"from\":\"dana\",\"to\":\"dana\"}}}]",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-6.1 assigning the current agent leaves updated, the audit log and the outbox alone",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-6.3": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a same-agent assignment enqueues a notice",
+    "patch": "bf-ds-ticket-assignment/patches/R-6.3.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "ror\":null,\"sentAt\":null},{\"id\":2,\"key\":\"ticket.assigned:T-0001:dana\",\"type\":\"ticket.assigned\",\"to\":\"dana\",\"ticket\":\"T-0001\",\"data\":{\"title\":\"Printer jam\"},\"status\":\"pending\",\"attempts\":0,\"created\":\"2026-10-31T18:46:41.987Z\",\"nextAttemptAt\":\"2026-10-31T18:46:41.987Z\",\"lastError\":null,\"sentAt\":null},{\"id\":3,\"key\":\"ticket.assigned:T-0001:dana:again\",\"type\":\"ticket.assigned\",\"to\":\"dana\",\"ticket\":\"T-0001\",\"data\":{\"title\":\"Printer jam\"},\"status\":\"pending\",\"attempts\":0,\"created\":\"2026-10-31T18:46:41.989Z\",\"nextAttemptAt\":\"2026-10-31T18:46:41.989Z\",\"lastError\":null,\"sentAt\":null}],\"sent\":[],\"dead\":[]}",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-6.1 assigning the current agent leaves updated, the audit log and the outbox alone",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-6.4": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a same-agent assignment moves updated",
+    "patch": "bf-ds-ticket-assignment/patches/R-6.4.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: updated in the response: expected \"2026-10-31T18:46:46.563Z\", got \"2026-10-31T18:46:46.596Z\"\nFAIL: updated on GET: expected \"2026-10-31T18:46:46.563Z\", got \"2026-10-31T18:46:46.596Z\"",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-6.1 assigning the current agent leaves updated, the audit log and the outbox alone",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-6.5": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "unassigning an unassigned ticket appends an audit entry",
+    "patch": "bf-ds-ticket-assignment/patches/R-6.5.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "325Z\",\"changes\":{\"title\":{\"from\":null,\"to\":\"Printer jam\"},\"priority\":{\"from\":null,\"to\":\"normal\"},\"requester\":{\"from\":null,\"to\":\"robin\"},\"status\":{\"from\":null,\"to\":\"open\"}}}], got [{\"seq\":1,\"ticket\":\"T-0001\",\"action\":\"ticket.created\",\"actor\":\"system\",\"at\":\"2026-10-31T18:46:51.325Z\",\"changes\":{\"title\":{\"from\":null,\"to\":\"Printer jam\"},\"priority\":{\"from\":null,\"to\":\"normal\"},\"requester\":{\"from\":null,\"to\":\"robin\"},\"status\":{\"from\":null,\"to\":\"open\"}}},{\"seq\":2,\"ticket\":\"T-0001\",\"action\":\"ticket.assigned\",\"actor\":\"system\",\"at\":\"2026-10-31T18:46:51.331Z\",\"changes\":{\"assignee\":{\"from\":null,\"to\":null}}}]",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-3.2 unassigning an already unassigned ticket is an accepted no-op",
+     "R-7.2 unassigning is recorded from the agent to null, and a repeated no-op adds nothing",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-6.6": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "unassigning an unassigned ticket moves updated",
+    "patch": "bf-ds-ticket-assignment/patches/R-6.6.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: updated in the response: expected \"2026-10-31T18:46:56.210Z\", got \"2026-10-31T18:46:56.246Z\"\nFAIL: updated on GET: expected \"2026-10-31T18:46:56.210Z\", got \"2026-10-31T18:46:56.246Z\"",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-3.2 unassigning an already unassigned ticket is an accepted no-op",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-6.7": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the whitespace-padded name of the current agent counts as a change",
+    "patch": "bf-ds-ticket-assignment/patches/R-6.7.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": ":null,\"to\":\"Printer jam\"},\"priority\":{\"from\":null,\"to\":\"normal\"},\"requester\":{\"from\":null,\"to\":\"robin\"},\"status\":{\"from\":null,\"to\":\"open\"}}},{\"seq\":2,\"ticket\":\"T-0001\",\"action\":\"ticket.assigned\",\"actor\":\"system\",\"at\":\"2026-10-31T18:53:59.760Z\",\"changes\":{\"assignee\":{\"from\":null,\"to\":\"dana\"}}},{\"seq\":3,\"ticket\":\"T-0001\",\"action\":\"ticket.assigned\",\"actor\":\"system\",\"at\":\"2026-10-31T18:53:59.795Z\",\"changes\":{\"assignee\":{\"from\":\"dana\",\"to\":null}}},{\"seq\":4,\"ticket\":\"T-0001\",\"action\":\"ticket.assigned\",\"actor\":\"system\",\"at\":\"2026-10-31T18:53:59.795Z\",\"changes\":{\"assignee\":{\"from\":null,\"to\":\"dana\"}}}]",
+    "suite_runs_exit": [
+     0
+    ],
+    "suite_exit_variant": 0,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 153,
+     "fail": 0
+    },
+    "failing_tests": [],
+    "flaky": false
+   }
+  ]
+ },
+ "R-7.1": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the audit action is ticket.updated",
+    "patch": "bf-ds-ticket-assignment/patches/R-7.1.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: one ticket.assigned entry: expected 1, got 0",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 149,
+     "fail": 4
+    },
+    "failing_tests": [
+     "R-6.2 assigning a different agent is one audit entry, one notice and a new updated",
+     "R-7.1 an assignment is one audit entry with the from/to change and the actor",
+     "R-7.2 unassigning is recorded from the agent to null, and a repeated no-op adds nothing",
+     "PUT /tickets/:id/assignee",
+     "SYS-ASSIGN-PERSIST an assignment survives a restart of the real service",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-7.2": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "two audit entries per assignment",
+    "patch": "bf-ds-ticket-assignment/patches/R-7.2.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: exactly one new audit entry: expected 2, got 3",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 147,
+     "fail": 6
+    },
+    "failing_tests": [
+     "R-6.1 assigning the current agent leaves updated, the audit log and the outbox alone",
+     "R-6.2 assigning a different agent is one audit entry, one notice and a new updated",
+     "R-7.1 an assignment is one audit entry with the from/to change and the actor",
+     "R-7.2 unassigning is recorded from the agent to null, and a repeated no-op adds nothing",
+     "R-8.2 the enqueue rules hold for unassign, same agent, a new agent and A to B to A",
+     "PUT /tickets/:id/assignee",
+     "SYS-ASSIGN-PERSIST an assignment survives a restart of the real service",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-7.3": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "an unset previous assignee is recorded as an empty string",
+    "patch": "bf-ds-ticket-assignment/patches/R-7.3.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: changes of the assignment entry: expected {\"assignee\":{\"from\":null,\"to\":\"dana\"}}, got {\"assignee\":{\"from\":\"\",\"to\":\"dana\"}}",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-7.1 an assignment is one audit entry with the from/to change and the actor",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-7.4": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "an unassignment loses the previous name in the audit entry",
+    "patch": "bf-ds-ticket-assignment/patches/R-7.4.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: unassignment entry: expected {\"assignee\":{\"from\":\"dana\",\"to\":null}}, got {\"assignee\":{\"from\":null,\"to\":null}}",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-7.2 unassigning is recorded from the agent to null, and a repeated no-op adds nothing",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-7.5": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a reassignment loses the previous name in the audit entry",
+    "patch": "bf-ds-ticket-assignment/patches/R-7.5.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: reassignment entry: expected {\"assignee\":{\"from\":\"dana\",\"to\":\"erin\"}}, got {\"assignee\":{\"from\":null,\"to\":\"erin\"}}",
+    "suite_runs_exit": [
+     0
+    ],
+    "suite_exit_variant": 0,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 153,
+     "fail": 0
+    },
+    "failing_tests": [],
+    "flaky": false
+   }
+  ]
+ },
+ "R-7.6": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the assignment is audited as system",
+    "patch": "bf-ds-ticket-assignment/patches/R-7.6.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: actor: expected \"alice\", got \"system\"",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-7.1 an assignment is one audit entry with the from/to change and the actor",
+     "PUT /tickets/:id/assignee",
+     "R-3.2 unassigning an already unassigned ticket is an accepted no-op"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-7.7": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a request without X-Actor is audited as anonymous",
+    "patch": "bf-ds-ticket-assignment/patches/R-7.7.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: actor: expected \"system\", got \"anonymous\"",
+    "suite_runs_exit": [
+     0
+    ],
+    "suite_exit_variant": 0,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 153,
+     "fail": 0
+    },
+    "failing_tests": [],
+    "flaky": false
+   }
+  ]
+ },
+ "R-7.8": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the audit entry is stamped with the ticket's creation time",
+    "patch": "bf-ds-ticket-assignment/patches/R-7.8.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: entry.at equals the ticket updated time: 2026-10-31T18:47:35.692Z vs 2026-10-31T18:47:35.729Z\nFAIL: entry.at is later than the creation time",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-7.1 an assignment is one audit entry with the from/to change and the actor",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-7.9": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a history containing an assignment is returned newest first",
+    "patch": "bf-ds-ticket-assignment/patches/R-7.9.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "of undefined (reading 'to')\n    at /Users/dadleet/src/skill-craft/docs/experiments/prompt-template-review-20261031/conditions/bf-ds-ticket-assignment/witnesses/R-7.9.js:14:47\n    at Array.map (<anonymous>)\n    at /Users/dadleet/src/skill-craft/docs/experiments/prompt-template-review-20261031/conditions/bf-ds-ticket-assignment/witnesses/R-7.9.js:14:17\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async Object.run (/Users/dadleet/src/skill-craft/docs/experiments/prompt-template-review-20261031/conditions/bf-ds-ticket-assignment/witnesses/_lib.js:232:5)",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 149,
+     "fail": 4
+    },
+    "failing_tests": [
+     "R-6.2 assigning a different agent is one audit entry, one notice and a new updated",
+     "R-7.1 an assignment is one audit entry with the from/to change and the actor",
+     "R-7.2 unassigning is recorded from the agent to null, and a repeated no-op adds nothing",
+     "PUT /tickets/:id/assignee",
+     "SYS-ASSIGN-PERSIST an assignment survives a restart of the real service",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-8.1": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the notice has type ticket.created",
+    "patch": "bf-ds-ticket-assignment/patches/R-8.1.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: one pending ticket.assigned event: expected 1, got 0",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 149,
+     "fail": 4
+    },
+    "failing_tests": [
+     "R-6.2 assigning a different agent is one audit entry, one notice and a new updated",
+     "R-8.1 one addressed event is enqueued and delivered once to the notification file",
+     "PUT /tickets/:id/assignee",
+     "SYS-ASSIGN-PERSIST an assignment survives a restart of the real service",
+     "SYS-NOTICE the running worker delivers the assignment notice to the notification file",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-8.2": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the notice is addressed to the requester",
+    "patch": "bf-ds-ticket-assignment/patches/R-8.2.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: event addressee: expected [\"dana\"], got [\"robin\"]",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 148,
+     "fail": 5
+    },
+    "failing_tests": [
+     "R-6.2 assigning a different agent is one audit entry, one notice and a new updated",
+     "R-8.1 one addressed event is enqueued and delivered once to the notification file",
+     "R-8.2 the enqueue rules hold for unassign, same agent, a new agent and A to B to A",
+     "PUT /tickets/:id/assignee",
+     "SYS-ASSIGN-PERSIST an assignment survives a restart of the real service",
+     "SYS-NOTICE the running worker delivers the assignment notice to the notification file",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-8.3": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the assignment notice carries no title",
+    "patch": "bf-ds-ticket-assignment/patches/R-8.3.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: event carries the ticket title, got {\"title\":\"\"}",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-8.1 one addressed event is enqueued and delivered once to the notification file",
+     "PUT /tickets/:id/assignee",
+     "SYS-NOTICE the running worker delivers the assignment notice to the notification file",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-8.4": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the dedupe key does not distinguish the agent",
+    "patch": "bf-ds-ticket-assignment/patches/R-8.4.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: a notice for each agent: expected [\"dana\",\"erin\"], got [\"dana\"]",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 148,
+     "fail": 5
+    },
+    "failing_tests": [
+     "R-6.2 assigning a different agent is one audit entry, one notice and a new updated",
+     "R-8.1 one addressed event is enqueued and delivered once to the notification file",
+     "R-8.2 the enqueue rules hold for unassign, same agent, a new agent and A to B to A",
+     "PUT /tickets/:id/assignee",
+     "SYS-ASSIGN-PERSIST an assignment survives a restart of the real service",
+     "SYS-NOTICE the running worker delivers the assignment notice to the notification file",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-8.5": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "every assignment gets a unique key",
+    "patch": "bf-ds-ticket-assignment/patches/R-8.5.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: exactly one notice per agent: expected [\"dana\",\"erin\"], got [\"dana\",\"dana\",\"erin\"]",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 149,
+     "fail": 4
+    },
+    "failing_tests": [
+     "R-8.1 one addressed event is enqueued and delivered once to the notification file",
+     "R-8.2 the enqueue rules hold for unassign, same agent, a new agent and A to B to A",
+     "PUT /tickets/:id/assignee",
+     "SYS-ASSIGN-PERSIST an assignment survives a restart of the real service",
+     "SYS-NOTICE the running worker delivers the assignment notice to the notification file",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-8.6": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a return to an agent with a pending notice changes the ticket without an audit entry",
+    "patch": "bf-ds-ticket-assignment/patches/R-8.6.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: three assignment entries: expected 3, got 2\nFAIL: the return is audited: expected {\"assignee\":{\"from\":\"erin\",\"to\":\"dana\"}}, got undefined",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-8.2 the enqueue rules hold for unassign, same agent, a new agent and A to B to A",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-8.7": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the delivered line names type ticket.created",
+    "patch": "bf-ds-ticket-assignment/patches/R-8.7.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: line type is ticket.assigned, got ticket.created",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-8.1 one addressed event is enqueued and delivered once to the notification file",
+     "PUT /tickets/:id/assignee",
+     "SYS-NOTICE the running worker delivers the assignment notice to the notification file",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-8.8": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "an assignment notice is appended twice",
+    "patch": "bf-ds-ticket-assignment/patches/R-8.8.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: lines delivered to dana: expected 1, got 2",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-8.1 one addressed event is enqueued and delivered once to the notification file",
+     "PUT /tickets/:id/assignee",
+     "SYS-NOTICE the running worker delivers the assignment notice to the notification file",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-8.9": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "unassigning enqueues a notice for the previous agent",
+    "patch": "bf-ds-ticket-assignment/patches/R-8.9.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: no event added by unassigning: expected 2, got 3",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-8.2 the enqueue rules hold for unassign, same agent, a new agent and A to B to A",
+     "PUT /tickets/:id/assignee",
+     "SYS-NOTICE the running worker delivers the assignment notice to the notification file",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-8.10": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a same-agent assignment enqueues a notice under the normal key",
+    "patch": "bf-ds-ticket-assignment/patches/R-8.10.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: still one ticket.assigned event: expected 1, got 2",
+    "suite_runs_exit": [
+     0
+    ],
+    "suite_exit_variant": 0,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 153,
+     "fail": 0
+    },
+    "failing_tests": [],
+    "flaky": false
+   }
+  ]
+ },
+ "R-8.12": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the subject does not name the ticket",
+    "patch": "bf-ds-ticket-assignment/patches/R-8.12.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: subject names the ticket, got Assigned to you",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-8.3 the ticket.assigned template renders a deliverable message",
+     "PUT /tickets/:id/assignee",
+     "SYS-NOTICE the running worker delivers the assignment notice to the notification file",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-8.13": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the body does not name the ticket",
+    "patch": "bf-ds-ticket-assignment/patches/R-8.13.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: body names the ticket, got You have a new assignment.",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-8.3 the ticket.assigned template renders a deliverable message",
+     "PUT /tickets/:id/assignee",
+     "SYS-NOTICE the running worker delivers the assignment notice to the notification file",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-8.14": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a failed assignment delivery is recorded as sent",
+    "patch": "bf-ds-ticket-assignment/patches/R-8.14.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: a failed delivery is not recorded as sent\nFAIL: event is dead after 5 attempts with lastError: {\"s\":\"sent\",\"a\":1}",
+    "suite_runs_exit": [
+     0
+    ],
+    "suite_exit_variant": 0,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 153,
+     "fail": 0
+    },
+    "failing_tests": [],
+    "flaky": false
+   }
+  ]
+ },
+ "R-8.15": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a key that was ever used is never reused for an assignment notice",
+    "patch": "bf-ds-ticket-assignment/patches/R-8.15.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: two notices to dana in total: expected 2, got 1",
+    "suite_runs_exit": [
+     0
+    ],
+    "suite_exit_variant": 0,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 153,
+     "fail": 0
+    },
+    "failing_tests": [],
+    "flaky": false
+   }
+  ]
+ },
+ "R-9.1": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "an assignee filter with a name is ignored",
+    "patch": "bf-ds-ticket-assignment/patches/R-9.1.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: only dana's ticket: expected [\"T-0001\"], got [\"T-0001\",\"T-0002\",\"T-0003\"]",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 149,
+     "fail": 4
+    },
+    "failing_tests": [
+     "R-9.1 keeps one agent's tickets, the unassigned ones for an empty value, and nothing for an unknown agent",
+     "GET /tickets?assignee",
+     "R-9.3 a filtered listing pages through its cursors without duplicates or gaps",
+     "the listing filters by assignee and combines every filter it is given",
+     "PUT /tickets/:id/assignee",
+     "SYS-ASSIGN-PERSIST an assignment survives a restart of the real service",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-9.2": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the empty assignee filter is ignored",
+    "patch": "bf-ds-ticket-assignment/patches/R-9.2.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: only the unassigned ticket: expected [\"T-0003\"], got [\"T-0001\",\"T-0002\",\"T-0003\"]",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 150,
+     "fail": 3
+    },
+    "failing_tests": [
+     "R-9.1 keeps one agent's tickets, the unassigned ones for an empty value, and nothing for an unknown agent",
+     "GET /tickets?assignee",
+     "the listing filters by assignee and combines every filter it is given",
+     "PUT /tickets/:id/assignee",
+     "SYS-ASSIGN-PERSIST an assignment survives a restart of the real service",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-9.3": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a name filter that matches nothing falls back to the unfiltered page",
+    "patch": "bf-ds-ticket-assignment/patches/R-9.3.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: no items for an agent with no tickets: expected 0, got 2",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-9.1 keeps one agent's tickets, the unassigned ones for an empty value, and nothing for an unknown agent",
+     "GET /tickets?assignee",
+     "the listing filters by assignee and combines every filter it is given",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-9.4": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "status and priority combine with OR",
+    "patch": "bf-ds-ticket-assignment/patches/R-9.4.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: only the open urgent ticket: expected [\"T-0001\"], got [\"T-0001\",\"T-0002\",\"T-0003\"]",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-9.2 a ticket is listed only when it matches every filter given",
+     "GET /tickets?assignee",
+     "the listing filters by assignee and combines every filter it is given",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-9.5": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "assignee combines with the other filters by OR",
+    "patch": "bf-ds-ticket-assignment/patches/R-9.5.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: only dana's open ticket: expected [\"T-0001\"], got [\"T-0001\",\"T-0002\",\"T-0003\",\"T-0004\"]",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "the listing filters by assignee and combines every filter it is given",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-9.6": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "priority is dropped when an assignee filter is given",
+    "patch": "bf-ds-ticket-assignment/patches/R-9.6.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: only the ticket matching all three: expected [\"T-0001\"], got [\"T-0001\",\"T-0002\"]",
+    "suite_runs_exit": [
+     0
+    ],
+    "suite_exit_variant": 0,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 153,
+     "fail": 0
+    },
+    "failing_tests": [],
+    "flaky": false
+   }
+  ]
+ },
+ "R-9.8": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a filtered page with a next cursor drops its last item",
+    "patch": "bf-ds-ticket-assignment/patches/R-9.8.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: every dana ticket exactly once, in order: expected [\"T-0001\",\"T-0002\",\"T-0004\",\"T-0005\"], got [\"T-0001\",\"T-0004\",\"T-0005\"]",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-9.3 a filtered listing pages through its cursors without duplicates or gaps",
+     "PUT /tickets/:id/assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-9.9": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a whitespace-only assignee filter selects the unassigned tickets",
+    "patch": "bf-ds-ticket-assignment/patches/R-9.9.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: whitespace-only filter %20 -> 400 invalid, got 200\nFAIL: whitespace-only filter %20%20%20 -> 400 invalid, got 200",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-9.4 an invalid assignee filter value answers 400 invalid",
+     "GET /tickets?assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-9.10": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "an over-long assignee filter is accepted",
+    "patch": "bf-ds-ticket-assignment/patches/R-9.10.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: 65-character filter -> 400 invalid, got 200",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-9.4 an invalid assignee filter value answers 400 invalid",
+     "GET /tickets?assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-9.11": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a control character in the assignee filter is accepted",
+    "patch": "bf-ds-ticket-assignment/patches/R-9.11.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: control-character filter a%09b -> 400 invalid, got 200\nFAIL: control-character filter a%0Ab -> 400 invalid, got 200\nFAIL: control-character filter a%01b -> 400 invalid, got 200\nFAIL: control-character filter a%7Fb -> 400 invalid, got 200",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 152,
+     "fail": 1
+    },
+    "failing_tests": [
+     "R-9.4 an invalid assignee filter value answers 400 invalid",
+     "GET /tickets?assignee"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-9.12": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "a 64-character assignee filter is refused",
+    "patch": "bf-ds-ticket-assignment/patches/R-9.12.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: 64-character filter answers 200, got 400\nWITNESS ERROR: TypeError: Cannot read properties of undefined (reading 'map')\n    at /Users/dadleet/src/skill-craft/docs/experiments/prompt-template-review-20261031/conditions/bf-ds-ticket-assignment/witnesses/R-9.12.js:12:19\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async Object.run (/Users/dadleet/src/skill-craft/docs/experiments/prompt-template-review-20261031/conditions/bf-ds-ticket-assignment/witnesses/_lib.js:232:5)",
+    "suite_runs_exit": [
+     0
+    ],
+    "suite_exit_variant": 0,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 153,
+     "fail": 0
+    },
+    "failing_tests": [],
+    "flaky": false
+   }
+  ]
+ },
+ "R-10.1": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the ASSIGNEE column always shows -",
+    "patch": "bf-ds-ticket-assignment/patches/R-10.1.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: ASSIGNEE cell of the assigned ticket: expected \"dana\", got \"-\"\nFAIL: ASSIGNEE cell of the second assigned ticket: expected \"erin\", got \"-\"",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-10.1 the list table and show list the assignee after priority",
+     "the terminal listing and show show each ticket's assignee",
+     "SYS-OPERATOR the command line and the weekly report read the file the service writes",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-10.2": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "an unassigned ticket shows an empty ASSIGNEE cell",
+    "patch": "bf-ds-ticket-assignment/patches/R-10.2.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: ASSIGNEE cell of the unassigned ticket: expected \"-\", got \"\"",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-10.2 list --raw prints id, status, priority, title, assignee",
+     "the terminal listing and show show each ticket's assignee",
+     "SYS-OPERATOR the command line and the weekly report read the file the service writes",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-10.3": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "the fifth raw cell says assigned instead of the name",
+    "patch": "bf-ds-ticket-assignment/patches/R-10.3.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: fifth column of the assigned ticket: expected \"dana\", got \"assigned\"\nFAIL: fifth column of the second assigned ticket: expected \"erin\", got \"assigned\"",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-10.2 list --raw prints id, status, priority, title, assignee",
+     "the terminal listing and show show each ticket's assignee",
+     "SYS-OPERATOR the command line and the weekly report read the file the service writes",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-10.4": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "an unassigned ticket prints - in the fifth raw cell",
+    "patch": "bf-ds-ticket-assignment/patches/R-10.4.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: unassigned raw line has an empty fifth cell, got [\"T-0002\",\"open\",\"low\",\"Bravo ticket\",\"-\"]",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-10.2 list --raw prints id, status, priority, title, assignee",
+     "the terminal listing and show show each ticket's assignee",
+     "SYS-OPERATOR the command line and the weekly report read the file the service writes",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-10.5": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "raw columns 1 and 4 are swapped",
+    "patch": "bf-ds-ticket-assignment/patches/R-10.5.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: columns 1-4 of Alpha: expected [\"T-0001\",\"open\",\"urgent\",\"Alpha ticket\"], got undefined\nFAIL: columns 1-4 of Charlie: expected [\"T-0003\",\"in_progress\",\"normal\",\"Charlie ticket\"], got undefined\nFAIL: columns 1-4 of Bravo: expected [\"T-0002\",\"open\",\"low\",\"Bravo ticket\"], got undefined",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-10.2 list --raw prints id, status, priority, title, assignee",
+     "the terminal listing and show show each ticket's assignee",
+     "SYS-OPERATOR the command line and the weekly report read the file the service writes",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ },
+ "R-10.7": {
+  "witness_exit_original": 0,
+  "witness_original_message": "",
+  "variants": [
+   {
+    "note": "show no longer lists assignee",
+    "patch": "bf-ds-ticket-assignment/patches/R-10.7.patch",
+    "witness_exit_variant": 1,
+    "witness_variant_message": "FAIL: show prints an assignee field with dana, got:\nT-0001  Alpha ticket\n  status     open\n  priority   urgent\n  requester  robin\n  created    2026-10-31T18:51:34.144Z\n  updated    2026-10-31T18:51:34.154Z\n\nHistory\n  2026-10-31 18:51  system  ticket.created  title Alpha ticket; priority urgent; requester robin; status open\n  2026-10-31 18:51  system  ticket.assigned  assignee dana",
+    "suite_runs_exit": [
+     1,
+     1
+    ],
+    "suite_exit_variant": 1,
+    "suite_summary": {
+     "tests": 153,
+     "pass": 151,
+     "fail": 2
+    },
+    "failing_tests": [
+     "R-10.1 the list table and show list the assignee after priority",
+     "the terminal listing and show show each ticket's assignee",
+     "SYS-OPERATOR the command line and the weekly report read the file the service writes",
+     "the assembled service"
+    ],
+    "flaky": false
+   }
+  ]
+ }
+}

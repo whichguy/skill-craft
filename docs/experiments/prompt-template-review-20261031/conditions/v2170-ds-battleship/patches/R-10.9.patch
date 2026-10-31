@@ -1,0 +1,30 @@
+diff --git a/battleship.js b/battleship.js
+index 5981702..9660d7c 100644
+--- a/battleship.js
++++ b/battleship.js
+@@ -17,6 +17,7 @@ const FLEET = [
+ const PLACEMENT_ATTEMPTS = 200;
+ 
+ const key = (row, col) => row + ',' + col;
++let ANY_OVER = false;
+ 
+ // One candidate placement for `spec`, or null when it leaves the board. Orientation, row and
+ // column are drawn in that order, and from `random` alone, so a seeded source gives one fleet
+@@ -118,7 +119,7 @@ function isOver(game) {
+  *   the finished game rather than as a fired cell.
+  */
+ function fire(game, row, col) {
+-  if (game.over) {
++  if (game.over || ANY_OVER) {
+     const error = new Error('the game is over: every ship has been sunk');
+     error.code = 'game-over';
+     throw error;
+@@ -142,7 +143,7 @@ function fire(game, row, col) {
+   const remaining = shipsRemaining(game);
+   // Only ever set, never cleared: the flag is the refusal's condition, and the game does not
+   // reopen once won.
+-  if (remaining === 0) game.over = true;
++  if (remaining === 0) { game.over = true; ANY_OVER = true; }
+   return { result, gameOver: game.over, shipsRemaining: remaining };
+ }
+ 

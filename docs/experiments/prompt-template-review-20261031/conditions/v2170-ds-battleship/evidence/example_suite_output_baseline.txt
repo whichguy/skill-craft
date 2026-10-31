@@ -1,0 +1,86 @@
+### node --test
+✔ TC_FLEET the five ships and their 17 cells are present (0.662542ms)
+✔ TC_FLEET (b) a game created with no options uses the default source and is complete (0.062417ms)
+✔ TC_PLACEMENT every seeded fleet stays on the board and does not overlap (2.431083ms)
+✔ TC_DETERMINISM a seed fixes the fleet and the seeds differ (0.182ms)
+✔ TC_PLACEMENT_BUDGET a source that never fits exhausts the budget and throws (0.292875ms)
+✔ TC_RESOLUTION ship cells resolve hit or sunk and water misses (0.190541ms)
+✔ TC_REPEAT_SHOT a second shot at the same cell is refused and does not count (0.090958ms)
+✔ TC_GAME_OVER the game is over exactly when the last ship sinks (0.104542ms)
+✔ TC_GAME_OVER (b) a shot after the win is refused and changes nothing (0.117292ms)
+✔ TC_START the entry point serves the page and the API on PORT (101.777875ms)
+✔ TC_START (b) createServer refuses a random source that is not a function (0.361083ms)
+✔ TC_START (c) a PORT that is not a number falls back to 3000 (83.459125ms)
+✔ TC_PORT_CONFLICT a second server on a taken port exits non-zero and names the conflict (159.184833ms)
+✔ TC_PAGE the served page is Battleship with 100 cells and no external reference (3.508584ms)
+✔ TC_PAGE (a) the page carries a status region and a New game control (1.29675ms)
+✔ TC_NEW_GAME /api/new starts a game and returns only its id, size and ship count (1.924458ms)
+✔ TC_WALK firing every cell reports 5 sunk, 12 hit and the ladder to zero (26.070792ms)
+✔ TC_COORDINATES the four corners are accepted and one step outside is a 400 (4.619375ms)
+✔ TC_REPEAT_FIRE a second shot at one cell is a 409 and changes nothing (19.931584ms)
+✔ TC_GAME_OVER_REFUSAL shots after the win answer 409 and the server keeps serving (18.200541ms)
+✔ TC_ERROR_TABLE every bad request answers its status with a JSON error (4.003167ms)
+✔ TC_ERROR_TABLE (a) a well-formed JSON body that is not an object answers 400 (1.469ms)
+✔ TC_ERROR_TABLE (b) a request target the URL parser refuses answers 400 and the process lives (1.008208ms)
+✔ TC_ERROR_TABLE (c) a new game whose fleet cannot be placed answers 500 and the process lives (0.919167ms)
+✔ TC_TWO_GAMES two games keep their own state (18.1505ms)
+✔ TC_CONCURRENT_FIRE one cell posted twice at once is applied once (17.296792ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 552.115833
+### exit=0
+### node --test browser-check/page.js
+✔ TC_BROWSER_FIRE one click sends one shot, marks the cell and shows its count (340.753208ms)
+ℹ Chrome Chrome/156.0.8078.79 on port 50066
+ℹ shot at row 0, column 0: miss, 5 ships remaining
+✔ TC_BROWSER_LOCK a fired cell is inert and a shot in flight holds the board (1085.7325ms)
+ℹ Chrome Chrome/156.0.8078.79 on port 50066
+ℹ fired cell kept "M"; New game sent 0 start(s) during the flight
+✔ TC_BROWSER_KEYBOARD Tab reaches a cell, Enter fires it and focus stays (45.848708ms)
+ℹ Chrome Chrome/156.0.8078.79 on port 50066
+ℹ focus ring solid/3px; accessibility name "Row 1, column 1"; cell text M
+✔ TC_BROWSER_WIN the fifth sink ends the game and New game deals a fresh board (3548.894375ms)
+ℹ Chrome Chrome/156.0.8078.79 on port 50066
+ℹ 89 shots; refused start left game 604b6047-f5cf-4fe5-922d-5b99bb3edb86 closed ("Could not start a game: the fleet could not be placed. Choose New game to try again."); New game dealt ac7f6f5c-3d54-45e4-bea0-e927f5334bad
+✔ TC_BROWSER_ERROR a shot that fails is reported and the board takes the next one (181.452125ms)
+ℹ Chrome Chrome/156.0.8078.79 on port 50066
+ℹ failed shot reported "Row 1, column 1: the shot did not reach the server (Failed to fetch)."; off-contract answer reported "Row 1, column 2: the server's answer carried no usable result."
+✔ TC_BROWSER_START_FAIL a page with no game says so and offers New game (551.404833ms)
+ℹ Chrome Chrome/156.0.8078.79 on port 50066
+ℹ unreachable start said "Could not start a game: Failed to fetch. Choose New game to try again."; the refusal said "Could not start a game: the fleet could not be placed. Choose New game to try again."; New game dealt 8bac1f05-8650-48cf-bef4-5fcbbf9826e1
+✔ TC_BROWSER_RESTART a restarted server answers 404 and New game recovers without a reload (65.398708ms)
+ℹ Chrome Chrome/156.0.8078.79 on port 50066
+ℹ 404 reported as "Row 1, column 1: no game with that id. Choose New game to try again."; New game dealt c0d890b0-f72e-4fe3-9a2e-ed56e3475ccd without a reload
+✔ TC_BROWSER_RELOAD a reload starts a fresh game the page then fires into (100.319458ms)
+ℹ Chrome Chrome/156.0.8078.79 on port 50066
+ℹ game 16f93edb-1f61-4c89-86af-3193d42a7655 became 9c0341a8-833d-4471-8136-d0733ab3325c after the reload; the shot carried it
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6067.700833
+### exit=0
+### node --test system-check/system.js
+✔ SYS_ENTRY the documented start command serves the page and the API on the PORT it prints (101.4535ms)
+✔ SYS_README_FLOW the README examples and its error table hold against the real process (96.961208ms)
+✔ SYS_RESTART stopping the process frees its port, and a new process forgets the old ids (174.015917ms)
+✔ SYS_PORT_RESOLUTION the process resolves every documented PORT value to the documented port (697.495916ms)
+✔ SYS_LOOPBACK the listener answers on 127.0.0.1 and refuses a non-loopback address (87.033875ms)
+✔ SYS_PARALLEL three games played at once over their own connections keep their own state (124.655375ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1362.123
+### exit=0

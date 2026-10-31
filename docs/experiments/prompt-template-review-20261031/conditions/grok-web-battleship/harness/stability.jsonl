@@ -1,0 +1,18 @@
+{"id": "R-4.20", "runs": 30, "pass": 28, "noise_only_failures": 2, "genuine_failures": 0, "failing_tests": {}}
+{"id": "R-5.9", "runs": 30, "pass": 26, "noise_only_failures": 4, "genuine_failures": 0, "failing_tests": {}}
+{"id": "R-5.13", "runs": 60, "pass": 52, "noise_only_failures": 8, "genuine_failures": 0, "failing_tests": {}}
+{"id": "R-5.14", "runs": 30, "pass": 25, "noise_only_failures": 5, "genuine_failures": 0, "failing_tests": {}}
+{"id": "R-5.25", "runs": 30, "pass": 28, "noise_only_failures": 2, "genuine_failures": 0, "failing_tests": {}}
+{"id": "R-5.36", "runs": 60, "pass": 58, "noise_only_failures": 0, "genuine_failures": 2, "failing_tests": {"R-5 (TC-8) fire HTTP sweep": 2}}
+{"id": "R-1.1", "runs": 4, "pass": 0, "noise_only_failures": 0, "genuine_failures": 4, "failing_tests": {"R-1 (TC-1) server listens": 4, "R-2 (TC-2) port": 4, "R-3 (TC-4) page HTML": 4, "R-4 (TC-5) new game HTTP": 4, "R-5 (TC-8) fire HTTP sweep": 4, "TC-8 (a) non-object JSON is invalid JSON": 4, "TC-8 (b) missing or non-integer fire fields are invalid shot": 4, "TC-10 restart drops the game": 4}}
+{"id": "R-2.1", "runs": 4, "pass": 0, "noise_only_failures": 0, "genuine_failures": 4, "failing_tests": {"R-2 (TC-2) port": 4}}
+{"id": "R-2.2", "runs": 4, "pass": 0, "noise_only_failures": 0, "genuine_failures": 4, "failing_tests": {"R-2 (TC-2) port": 4}}
+{"id": "R-2.3", "runs": 4, "pass": 0, "noise_only_failures": 0, "genuine_failures": 4, "failing_tests": {"TC-2 (a) empty PORT listens on 3000": 4, "R-2 (TC-2) port": 4}}
+{"id": "R-2.4", "runs": 4, "pass": 0, "noise_only_failures": 0, "genuine_failures": 4, "failing_tests": {"R-2 (TC-2) port": 4}}
+{"id": "R-2.5", "runs": 4, "pass": 0, "noise_only_failures": 0, "genuine_failures": 4, "failing_tests": {"R-2 (TC-2) port": 4}}
+{"id": "R-2.6", "runs": 4, "pass": 0, "noise_only_failures": 0, "genuine_failures": 4, "failing_tests": {"R-2 (TC-2) port": 4}}
+{"id": "R-2.7", "runs": 4, "pass": 0, "noise_only_failures": 0, "genuine_failures": 4, "failing_tests": {"R-2 (TC-2) port": 4}}
+{"id": "R-4.12", "runs": 12, "pass": 5, "noise_only_failures": 0, "genuine_failures": 7, "failing_tests": {"R-5 (TC-8) fire HTTP sweep": 5, "TC-8 (b) missing or non-integer fire fields are invalid shot": 5, "TC-8 (a) non-object JSON is invalid JSON": 3}}
+{"id": "R-4.27", "runs": 6, "pass": 0, "noise_only_failures": 0, "genuine_failures": 6, "failing_tests": {"R-5 (TC-8) fire HTTP sweep": 6}}
+{"id": "R-4.28", "runs": 6, "pass": 0, "noise_only_failures": 0, "genuine_failures": 6, "failing_tests": {"R-5 (TC-8) fire HTTP sweep": 6, "TC-8 (a) non-object JSON is invalid JSON": 6, "TC-8 (b) missing or non-integer fire fields are invalid shot": 6}}
+{"id": "R-5.16", "runs": 6, "pass": 0, "noise_only_failures": 0, "genuine_failures": 6, "failing_tests": {"R-5 (TC-8) fire HTTP sweep": 6}}

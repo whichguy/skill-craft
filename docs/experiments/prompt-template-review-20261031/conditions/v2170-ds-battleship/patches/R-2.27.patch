@@ -1,0 +1,12 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..eb82c61 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -194,6 +194,7 @@
+       square.setAttribute('aria-disabled', 'true');
+       square.setAttribute('aria-label', `${squareName(square)}, ${outcome.result}`);
+       remaining.textContent = String(outcome.shipsRemaining);
++      square.blur();
+       if (outcome.gameOver) {
+         closed = true;
+         say('All five ships are sunk. You win! Choose New game to play again.');

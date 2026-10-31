@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index eb31ba0..19126b8 100644
+--- a/server.js
++++ b/server.js
+@@ -260,7 +260,7 @@ async function route(request, response) {
+     return;
+   }
+   if (request.method === 'POST' && path === '/api/new') {
+-    response.writeHead(405, {
++    response.writeHead(400, {
+       'content-type': 'text/plain; charset=utf-8',
+       allow: 'GET',
+     });

@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..fcbeedb 100644
+--- a/report.py
++++ b/report.py
+@@ -8,7 +8,7 @@ from collections import defaultdict
+ from decimal import ROUND_HALF_UP, Context, Decimal
+ 
+ COLUMNS = 5
+-USAGE = "usage: python3 report.py FILE [FILE ...]"
++USAGE = "Usage: python3 report.py FILE [FILE ...]"
+ CENT = Decimal("0.01")
+ # Exact sums for any realistic input: the default 28-digit context would round silently.
+ _MONEY = Context(prec=200, rounding=ROUND_HALF_UP)

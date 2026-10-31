@@ -1,0 +1,13 @@
+diff --git a/src/format.js b/src/format.js
+index 3e10e66..be2eefb 100644
+--- a/src/format.js
++++ b/src/format.js
+@@ -13,7 +13,7 @@ const RAW_COLUMNS = Object.freeze(['id', 'status', 'priority', 'title', 'assigne
+ 
+ /** One ticket as a line of `list --raw`. */
+ function rawLine(ticket) {
+-  return RAW_COLUMNS.map((column) => ticket[column]).join('\t');
++  return RAW_COLUMNS.map((column) => (column === 'assignee' && ticket.assignee === null ? '-' : ticket[column])).join('\t');
+ }
+ 
+ const minute = (iso) => iso.slice(0, 16).replace('T', ' ');

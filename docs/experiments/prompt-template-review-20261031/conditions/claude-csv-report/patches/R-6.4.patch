@@ -1,0 +1,14 @@
+diff --git a/report.py b/report.py
+index dddb51a..efe454a 100644
+--- a/report.py
++++ b/report.py
+@@ -99,6 +99,9 @@ def main(argv, stdout, stderr):
+     if not argv:
+         print(USAGE, file=stderr)
+         return 1
++    if len(argv) == 1 and __import__("os").path.isfile(argv[0]) and __import__("os").path.getsize(argv[0]) == 0:
++        print("report.py: error: empty file", file=stderr)
++        return 1
+     revenue_by_region = defaultdict(Decimal)
+     units_by_product = defaultdict(int)
+     rows = skipped = 0

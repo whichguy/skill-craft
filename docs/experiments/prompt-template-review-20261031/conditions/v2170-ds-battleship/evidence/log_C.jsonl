@@ -1,0 +1,1 @@
+{"id": "R-10.10", "witness_exit_original": 0, "witness_out_original": "HOLDS", "witness_exit_variant": 1, "witness_out_variant": "VIOLATED: two simultaneous shots at one cell answered 200,200", "suite_exit_variant": 1, "failing_tests": ["TC_CONCURRENT_FIRE one cell posted twice at once is applied once"], "secs": 32.5}

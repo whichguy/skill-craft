@@ -1,0 +1,13 @@
+diff --git a/rules.js b/rules.js
+index 28c0284..bfbe3f2 100644
+--- a/rules.js
++++ b/rules.js
+@@ -93,7 +93,7 @@ function fireShot(game, row, col) {
+         break;
+       }
+     }
+-    result = open ? 'hit' : 'sunk';
++    result = open ? 'hit' : 'sank';
+   }
+   shots.set(key, result);
+   return { result, gameOver: fleetSunk(game, shots) };

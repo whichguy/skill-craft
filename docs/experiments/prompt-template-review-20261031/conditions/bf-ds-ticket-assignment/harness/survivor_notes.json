@@ -1,0 +1,122 @@
+{
+ "R-1.6": {
+  "claimed_by": "R-1.3 (test/assignment-persistence.test.js)",
+  "claim_strength": "weak",
+  "owning_step": "S2 (C5: 'the data file holds it under version 1')",
+  "why_survived": "Weak assertion: the case reads the data file but only after assigning dana ('tickets[0].assignee === dana'); the null case (unassigned ticket's record carries assignee: null) is never read. The loader maps a missing key to null (the legacy rule), so every behavioural test passes when the key is omitted.",
+  "request_clause": "S6 (persisted field)",
+  "touches_request_clause_behaviour": false
+ },
+ "R-1.13": {
+  "claimed_by": "R-1.4 (test/assignment-persistence.test.js)",
+  "claim_strength": "weak",
+  "owning_step": "S2 (C6: invalid stored assignee refused at load)",
+  "why_survived": "Weak case list: the refusal cases are [42, ' ', 65 chars, tab]; the empty string named in R-1.4 ('empty') is not among them, and ' ' is a different value.",
+  "request_clause": "S3 (name rule) at load",
+  "touches_request_clause_behaviour": false
+ },
+ "R-2.9": {
+  "claimed_by": "R-2.2 (test/assignment.test.js), 'wrongly typed value'",
+  "claim_strength": "weak",
+  "owning_step": "S3 (C7: 400 for a non-string non-null value)",
+  "why_survived": "Weak case: the wrong-type member is only 7 (a number); R-4.2 adds 42 and true. No array or object value is tried, so a coercion that only affects them passes.",
+  "request_clause": "S3 (agent name)",
+  "touches_request_clause_behaviour": false
+ },
+ "R-4.7": {
+  "claimed_by": "R-4.2 (test/assignment.test.js), 'one\\ttwo'",
+  "claim_strength": "weak",
+  "owning_step": "S1 (C1: 'no control characters')",
+  "why_survived": "Weak case: the control-character member is a tab only. A newline or carriage return ('a multi-line string' in R-4) is never submitted, and the validator's CONTROL class is not unit-tested per member.",
+  "request_clause": "S3 (single-line name; the request says 'a non-empty name')",
+  "touches_request_clause_behaviour": false
+ },
+ "R-4.8": {
+  "claimed_by": "R-4.2 (test/assignment.test.js), 'one\\ttwo'",
+  "claim_strength": "weak",
+  "owning_step": "S1 (C1: 'no control characters')",
+  "why_survived": "Absent for the 'other C0 controls' members: only the tab is submitted.",
+  "request_clause": "S3 (name rule)",
+  "touches_request_clause_behaviour": false
+ },
+ "R-4.9": {
+  "claimed_by": "R-4.2 (test/assignment.test.js), 'one\\ttwo'",
+  "claim_strength": "weak",
+  "owning_step": "S1 (C1: 'no control characters')",
+  "why_survived": "Absent for DEL: only the tab is submitted.",
+  "request_clause": "S3 (name rule)",
+  "touches_request_clause_behaviour": false
+ },
+ "R-5.3": {
+  "claimed_by": "R-5.1 (test/assignment.test.js), 'open and in-progress tickets both accept assignment'",
+  "claim_strength": "absent",
+  "owning_step": "S1 (C2) - C2 and R-5.1 name assignment only; the 'and unassignment' half of the R-5 text was dropped when the criterion was written",
+  "why_survived": "Absent: unassignment is exercised on open tickets (R-3.1, R-3.2) and refused on a resolved one (R-5.3); an in_progress ticket is never unassigned. The test case R-5.1 and criterion C2 narrowed the requirement to assignment.",
+  "request_clause": "S4 (only open and in-progress tickets can be assigned or unassigned)",
+  "touches_request_clause_behaviour": true
+ },
+ "R-6.7": {
+  "claimed_by": "none",
+  "claim_strength": "absent",
+  "owning_step": "S1 (C3: 'a no-op appends none', R-6.1) - cross-requirement with R-2.3 trimming",
+  "why_survived": "Absent: the no-op case R-6.1 submits the exact stored name; the trimming case R-2.3 uses fresh tickets. Nothing submits a padded name for a ticket that already has that agent, so comparing before trimming goes unseen.",
+  "request_clause": "S5 (assigning the agent a ticket already has changes nothing)",
+  "touches_request_clause_behaviour": true
+ },
+ "R-7.5": {
+  "claimed_by": "R-6.2 (test/assignment.test.js), 'one audit entry, one notice and a new updated'",
+  "claim_strength": "weak",
+  "owning_step": "S1 (C3: 'changes.assignee {from, to}')",
+  "why_survived": "Weak assertion: R-6.2 checks the entry count and the action of the last entry only; R-7.1 pins {from: null, to: dana} and R-7.2 pins {from: dana, to: null}, but no case pins {from, to} for a reassignment between two agents.",
+  "request_clause": "(audit, decision 7 - not a request sentence)",
+  "touches_request_clause_behaviour": false
+ },
+ "R-7.7": {
+  "claimed_by": "R-7.1 (test/assignment.test.js), X-Actor: dana",
+  "claim_strength": "absent",
+  "owning_step": "S1 (C3: 'the actor')",
+  "why_survived": "Absent: R-7.1 always sends X-Actor, so the 'system' default on the assignment path is never exercised (the actorOf unit test in http.test.js covers the helper, not the route).",
+  "request_clause": "(audit actor rule - not a request sentence)",
+  "touches_request_clause_behaviour": false
+ },
+ "R-8.10": {
+  "claimed_by": "R-8.2 (test/assignment.test.js), 'the same pending agent is not queued twice'",
+  "claim_strength": "weak",
+  "owning_step": "S1 (C4: 'a same-agent assignment add none')",
+  "why_survived": "Weak assertion that cannot discriminate: the same-agent PUT is tried only while the first notice is still pending, where the outbox key dedupes anyway; a store that tries to enqueue on a same-agent assignment is invisible until the first notice has been delivered.",
+  "request_clause": "S5 / S7",
+  "touches_request_clause_behaviour": true
+ },
+ "R-8.14": {
+  "claimed_by": "none for ticket.assigned (test/worker.test.js 'gives up after 5 attempts and leaves the event dead' covers the generic rule with another event type)",
+  "claim_strength": "absent",
+  "owning_step": "none: no criterion or case names a failing ticket.assigned delivery",
+  "why_survived": "Absent for this event type: no assignment-specific failure case; the variant is type-specific, so only a failing-delivery case for ticket.assigned would catch it. The operations probe observed a dead event outside the suite.",
+  "request_clause": "S7 (existing worker rules)",
+  "touches_request_clause_behaviour": false
+ },
+ "R-8.15": {
+  "claimed_by": "R-8.2 (test/assignment.test.js), A to B to A",
+  "claim_strength": "absent",
+  "owning_step": "S1 (C4: 'A-to-B-to-A add none')",
+  "why_survived": "Absent state: the A to B to A case runs with A's notice still pending; the case 'return to an agent whose earlier notice was already delivered gets a fresh notice' is never run (SYS-NOTICE delivers dana then bob but never returns to dana).",
+  "request_clause": "S7 (the agent a ticket is assigned to is notified)",
+  "touches_request_clause_behaviour": true
+ },
+ "R-9.6": {
+  "claimed_by": "none for the three-way (R-9.2 covers status+priority and assignee+status pairs); C11 names 'combines assignee with priority' but only the scratch proof script w1-s4.js checks it, not the repo suite",
+  "claim_strength": "absent",
+  "owning_step": "S4 (C11)",
+  "why_survived": "Absent: the combination cases are pairs. No case combines assignee with priority or all three filters, so dropping priority when an assignee filter is present passes.",
+  "request_clause": "S8 (a ticket must match every filter given)",
+  "touches_request_clause_behaviour": true
+ },
+ "R-9.12": {
+  "claimed_by": "R-9.4 (test/assignment-query.test.js)",
+  "claim_strength": "absent",
+  "owning_step": "S4 (C10)",
+  "why_survived": "Absent on the acceptance side: R-9.4 covers refusals only (whitespace, 65 characters, tab); a 64-character filter value (the boundary of validity) is never submitted.",
+  "request_clause": "S8 (name rule boundary)",
+  "touches_request_clause_behaviour": false
+ }
+}

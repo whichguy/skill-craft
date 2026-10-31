@@ -1,0 +1,24 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..68cb8f6 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -118,6 +118,11 @@
+   }
+ 
+   async function startGame() {
++    if (!window.__booted) {
++      window.__booted = true;
++      const saved = sessionStorage.getItem('game');
++      if (saved) { document.body.dataset.game = saved; say('Resuming your game.'); setLocked(false); return; }
++    }
+     if (inFlight) return;
+     // A failed start leaves the board exactly as it was: a finished game stays closed, a page that
+     // never held a game keeps every square inert, and an open game keeps taking shots — so the page
+@@ -140,6 +145,7 @@
+       }
+       closed = false;
+       document.body.dataset.game = started.game;
++      sessionStorage.setItem('game', started.game);
+       remaining.textContent = String(started.ships);
+       for (const square of squares) clear(square);
+       setLocked(false);

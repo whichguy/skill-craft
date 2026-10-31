@@ -1,0 +1,14 @@
+diff --git a/src/store.js b/src/store.js
+index 5cd6d50..fd71718 100644
+--- a/src/store.js
++++ b/src/store.js
+@@ -54,7 +54,8 @@ class TicketStore {
+     const matching = [...this.tickets.values()]
+       .filter((ticket) => matchesFilters(ticket, filters))
+       .sort((a, b) => compareIds(a.id, b.id));
+-    const page = paginate(matching, { limit, after, compare: compareIds });
++    const shown = matching.length === 0 && filters.assignee ? [...this.tickets.values()].sort((a, b) => compareIds(a.id, b.id)) : matching;
++    const page = paginate(shown, { limit, after, compare: compareIds });
+     return { items: page.items.map((ticket) => ({ ...ticket })), next: page.next };
+   }
+ 

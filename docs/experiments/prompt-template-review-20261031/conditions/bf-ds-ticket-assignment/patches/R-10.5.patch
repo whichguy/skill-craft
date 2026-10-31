@@ -1,0 +1,13 @@
+diff --git a/src/format.js b/src/format.js
+index 3e10e66..f32c730 100644
+--- a/src/format.js
++++ b/src/format.js
+@@ -9,7 +9,7 @@
+  * The columns of `list --raw`, tab-separated, in this order. scripts/weekly-report.js reads them by position
+  * (README.md, "Command line"), so a new column goes last; a null assignee is an empty last cell.
+  */
+-const RAW_COLUMNS = Object.freeze(['id', 'status', 'priority', 'title', 'assignee']);
++const RAW_COLUMNS = Object.freeze(['title', 'status', 'priority', 'id', 'assignee']);
+ 
+ /** One ticket as a line of `list --raw`. */
+ function rawLine(ticket) {

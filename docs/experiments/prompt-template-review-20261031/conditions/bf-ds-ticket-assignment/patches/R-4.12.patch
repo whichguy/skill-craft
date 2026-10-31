@@ -1,0 +1,18 @@
+diff --git a/src/tickets/validate.js b/src/tickets/validate.js
+index 56afa95..2cd34e4 100644
+--- a/src/tickets/validate.js
++++ b/src/tickets/validate.js
+@@ -72,7 +72,12 @@ function assignee(value) {
+ function assignment(body) {
+   onlyFields(body, ['assignee']);
+   if (!Object.prototype.hasOwnProperty.call(body, 'assignee')) throw new InvalidError('assignee is required');
+-  return assignee(body.assignee);
++  try {
++    return assignee(body.assignee);
++  } catch (error) {
++    if (error instanceof InvalidError) throw new InvalidError('invalid agent name');
++    throw error;
++  }
+ }
+ 
+ module.exports = { LIMITS, assignee, assignment, newTicket, onlyFields, text, ticketPatch, transition };

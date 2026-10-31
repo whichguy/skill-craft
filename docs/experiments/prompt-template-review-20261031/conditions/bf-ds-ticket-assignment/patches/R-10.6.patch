@@ -1,0 +1,12 @@
+diff --git a/scripts/weekly-report.js b/scripts/weekly-report.js
+index fbee054..1e96a23 100644
+--- a/scripts/weekly-report.js
++++ b/scripts/weekly-report.js
+@@ -32,6 +32,7 @@ function count(lines) {
+   const byPriority = Object.fromEntries(PRIORITIES.map((priority) => [priority, 0]));
+   for (const line of lines) {
+     const columns = line.split('\t');
++    if (columns[4]) continue;
+     const status = columns[1];
+     const priority = columns[2];
+     if (Object.hasOwn(byStatus, status)) byStatus[status] += 1;

@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index 3828da2..cb6c05a 100644
+--- a/server.js
++++ b/server.js
+@@ -166,7 +166,7 @@ function createServer({ random = Math.random } = {}) {
+       return;
+     }
+     if (pathname === '/api/new') {
+-      const id = crypto.randomUUID();
++      const id = crypto.randomUUID().toUpperCase();
+       let game;
+       try {
+         game = createGame({ random });

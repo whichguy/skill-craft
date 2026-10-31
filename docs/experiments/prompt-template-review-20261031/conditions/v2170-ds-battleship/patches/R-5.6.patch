@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index 3828da2..ee6ac8c 100644
+--- a/server.js
++++ b/server.js
+@@ -77,7 +77,7 @@ function readBody(request) {
+ 
+ // Whether `value` is an integer coordinate on the board (R-5, R-7).
+ function isCoordinate(value) {
+-  return Number.isInteger(value) && value >= 0 && value < BOARD_SIZE;
++  return Number.isInteger(value) && value >= 0 && value < BOARD_SIZE - 1;
+ }
+ 
+ // POST /api/fire: one shot per request, in the order body, game, coordinates, rules (R-7). The

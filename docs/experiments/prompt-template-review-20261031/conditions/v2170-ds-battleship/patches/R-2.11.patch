@@ -1,0 +1,19 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..54f01c0 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -189,10 +189,11 @@
+         setLocked(false);
+         return;
+       }
+-      square.dataset.result = outcome.result;
+-      square.textContent = MARKS[outcome.result];
++      const shown = outcome.result === 'sunk' ? 'hit' : outcome.result;
++      square.dataset.result = shown;
++      square.textContent = MARKS[shown];
+       square.setAttribute('aria-disabled', 'true');
+-      square.setAttribute('aria-label', `${squareName(square)}, ${outcome.result}`);
++      square.setAttribute('aria-label', `${squareName(square)}, ${shown}`);
+       remaining.textContent = String(outcome.shipsRemaining);
+       if (outcome.gameOver) {
+         closed = true;

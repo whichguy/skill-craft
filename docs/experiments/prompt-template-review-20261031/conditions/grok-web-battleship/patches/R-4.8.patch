@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index eb31ba0..044e7e3 100644
+--- a/server.js
++++ b/server.js
+@@ -256,7 +256,7 @@ async function route(request, response) {
+     const placed = placeFleet(serverRandom);
+     const id = crypto.randomUUID();
+     games.set(id, placed);
+-    sendJson(response, 200, { game: id });
++    sendJson(response, 200, { game: id, board: placed.ships.map((ship) => ship.cells) });
+     return;
+   }
+   if (request.method === 'POST' && path === '/api/new') {

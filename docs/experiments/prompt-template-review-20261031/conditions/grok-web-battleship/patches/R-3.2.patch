@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index eb31ba0..8bd8696 100644
+--- a/server.js
++++ b/server.js
+@@ -249,7 +249,7 @@ function parseFire(raw) {
+ async function route(request, response) {
+   const path = requestPath(request.url);
+   if (request.method === 'GET' && path === '/') {
+-    send(response, 200, 'text/html; charset=utf-8', pageHtml());
++    send(response, 200, 'text/plain; charset=utf-8', pageHtml());
+     return;
+   }
+   if (request.method === 'GET' && path === '/api/new') {

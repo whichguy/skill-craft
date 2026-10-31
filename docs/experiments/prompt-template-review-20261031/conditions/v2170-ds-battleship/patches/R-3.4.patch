@@ -1,0 +1,13 @@
+diff --git a/battleship.js b/battleship.js
+index 5981702..65208f6 100644
+--- a/battleship.js
++++ b/battleship.js
+@@ -28,7 +28,7 @@ function candidate(spec, random) {
+   const cells = [];
+   for (let offset = 0; offset < spec.length; offset++) {
+     const cellRow = horizontal ? row : row + offset;
+-    const cellCol = horizontal ? col + offset : col;
++    const cellCol = horizontal ? col + offset : col + (offset > 0 ? 1 : 0);
+     if (cellRow >= BOARD_SIZE || cellCol >= BOARD_SIZE) return null;
+     cells.push({ row: cellRow, col: cellCol });
+   }

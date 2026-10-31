@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index 3828da2..b643ea5 100644
+--- a/server.js
++++ b/server.js
+@@ -152,7 +152,7 @@ function createServer({ random = Math.random } = {}) {
+       sendJson(response, 400, { error: 'the request target is not a URL path' });
+       return;
+     }
+-    const method = ROUTE_METHODS.get(pathname);
++    const method = ROUTE_METHODS.get(pathname.length > 1 ? pathname.replace(/\/$/, '') : pathname);
+     if (method === undefined) {
+       sendJson(response, 404, { error: `no route for ${pathname}` });
+       return;

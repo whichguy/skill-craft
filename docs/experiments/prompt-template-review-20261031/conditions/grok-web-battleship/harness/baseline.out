@@ -1,0 +1,21 @@
+✔ R-4 (TC-6) placement cell lists (0.683125ms)
+✔ R-5 (TC-7) fire table rows (0.542875ms)
+✔ R-1 (TC-1) server listens (153.276417ms)
+▶ R-2 (TC-2) port
+  ✔ TC-2 (a) empty PORT listens on 3000 (149.191833ms)
+✔ R-2 (TC-2) port (808.928042ms)
+✔ R-3 (TC-4) page HTML (103.193792ms)
+✔ R-4 (TC-5) new game HTTP (104.031125ms)
+✔ R-5 (TC-8) fire HTTP sweep (152.454416ms)
+✔ TC-8 (a) non-object JSON is invalid JSON (132.025167ms)
+✔ TC-8 (b) missing or non-integer fire fields are invalid shot (125.303958ms)
+✔ R-6 (TC-9) server calls rules (0.24875ms)
+✔ TC-10 restart drops the game (200.589125ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1865.125875

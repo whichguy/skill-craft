@@ -1,0 +1,15 @@
+diff --git a/src/app.js b/src/app.js
+index 83499ff..cfb3fb5 100644
+--- a/src/app.js
++++ b/src/app.js
+@@ -30,7 +30,9 @@ function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false }
+ 
+   router.patch('/tickets/:id', async ({ req, params }) => {
+     const patch = validate.ticketPatch(await body(req));
+-    return { status: 200, body: store.update(params.id, patch, actorOf(req)) };
++    const updated = store.update(params.id, patch, actorOf(req));
++    delete updated.assignee;
++    return { status: 200, body: updated };
+   });
+ 
+   router.put('/tickets/:id/assignee', async ({ req, params }) => {

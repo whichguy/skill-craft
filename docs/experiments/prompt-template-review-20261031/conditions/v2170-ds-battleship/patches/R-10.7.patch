@@ -1,0 +1,12 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..f9d0cea 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -169,6 +169,7 @@
+       });
+       const outcome = await readJson(response);
+       if (!response.ok) {
++        if (response.status === 404) newGame.disabled = true;
+         // A 404 means the server no longer holds this game — it restarted, or the page outlived
+         // its process — so no square can succeed: the message names the one control that recovers.
+         // Any other refusal leaves the board usable and the next square to try obvious.

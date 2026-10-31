@@ -1,0 +1,16 @@
+diff --git a/report.py b/report.py
+index dddb51a..31b905d 100644
+--- a/report.py
++++ b/report.py
+@@ -39,10 +39,7 @@ def parse_row(fields):
+             return "non-numeric %s '%s'" % (name, text)
+         if text.startswith("-"):
+             return "negative %s '%s'" % (name, text)
+-    try:
+-        count = int(units)
+-    except ValueError:  # more digits than the interpreter's int<->str limit (4300 by default)
+-        return "units too large '%s'" % units
++    count = int(units)
+     return region, product, count, Decimal(price)
+ 
+ 

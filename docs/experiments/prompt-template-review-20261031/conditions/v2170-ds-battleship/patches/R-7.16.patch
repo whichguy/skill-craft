@@ -1,0 +1,14 @@
+diff --git a/server.js b/server.js
+index 3828da2..1897cc6 100644
+--- a/server.js
++++ b/server.js
+@@ -147,7 +147,8 @@ function createServer({ random = Math.random } = {}) {
+     // and a throw escaping this listener would end the process on one malformed request line.
+     let pathname;
+     try {
+-      pathname = new URL(request.url, 'http://localhost').pathname;
++      const u = new URL(request.url, 'http://localhost');
++      pathname = u.pathname + u.search;
+     } catch {
+       sendJson(response, 400, { error: 'the request target is not a URL path' });
+       return;

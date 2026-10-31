@@ -1,0 +1,15 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..d91d835 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -195,9 +195,8 @@
+       square.setAttribute('aria-label', `${squareName(square)}, ${outcome.result}`);
+       remaining.textContent = String(outcome.shipsRemaining);
+       if (outcome.gameOver) {
+-        closed = true;
+         say('All five ships are sunk. You win! Choose New game to play again.');
+-        setLocked(true);
++        setLocked(false);
+       } else {
+         say(`${squareName(square)}: ${outcome.result}. `
+           + `${shipCount(outcome.shipsRemaining)} remaining.`);

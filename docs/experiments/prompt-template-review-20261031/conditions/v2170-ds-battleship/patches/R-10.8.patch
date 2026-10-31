@@ -1,0 +1,29 @@
+diff --git a/battleship.js b/battleship.js
+index 5981702..e05c767 100644
+--- a/battleship.js
++++ b/battleship.js
+@@ -17,6 +17,7 @@ const FLEET = [
+ const PLACEMENT_ATTEMPTS = 200;
+ 
+ const key = (row, col) => row + ',' + col;
++const FIRED_EVER = new Set();
+ 
+ // One candidate placement for `spec`, or null when it leaves the board. Orientation, row and
+ // column are drawn in that order, and from `random` alone, so a seeded source gives one fleet
+@@ -124,7 +125,7 @@ function fire(game, row, col) {
+     throw error;
+   }
+   const cellKey = key(row, col);
+-  if (game.shots.has(cellKey)) {
++  if (game.shots.has(cellKey) || FIRED_EVER.has(cellKey)) {
+     const error = new Error('cell ' + row + ',' + col + ' has already been fired at');
+     error.code = 'already-fired';
+     throw error;
+@@ -139,6 +140,7 @@ function fire(game, row, col) {
+     result = afloat.length === 1 ? 'sunk' : 'hit';
+   }
+   game.shots.set(cellKey, result);
++  FIRED_EVER.add(cellKey);
+   const remaining = shipsRemaining(game);
+   // Only ever set, never cleared: the flag is the refusal's condition, and the game does not
+   // reopen once won.

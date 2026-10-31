@@ -1,0 +1,16 @@
+diff --git a/rules.js b/rules.js
+index 28c0284..ab782e2 100644
+--- a/rules.js
++++ b/rules.js
+@@ -7,9 +7,9 @@
+ const FLEET = [
+   ['Carrier', 5],
+   ['Battleship', 4],
+-  ['Cruiser', 3],
++  ['Cruiser', 2],
+   ['Submarine', 3],
+-  ['Destroyer', 2],
++  ['Destroyer', 3],
+ ];
+ 
+ /**

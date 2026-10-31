@@ -1,0 +1,15 @@
+diff --git a/src/tickets/query.js b/src/tickets/query.js
+index 936ecc8..fb6f179 100644
+--- a/src/tickets/query.js
++++ b/src/tickets/query.js
+@@ -50,7 +50,9 @@ function parseLimit(params) {
+  */
+ function matchesFilters(ticket, filters) {
+   const given = Object.entries(filters).filter(([, value]) => value !== undefined);
+-  return given.every(([field, value]) => ticket[field] === value);
++  const sp = given.filter(([field]) => field !== 'assignee');
++  const a = given.filter(([field]) => field === 'assignee');
++  return (sp.length === 0 || sp.some(([field, value]) => ticket[field] === value)) && a.every(([field, value]) => ticket[field] === value);
+ }
+ 
+ module.exports = { DEFAULT_LIMIT, MAX_LIMIT, matchesFilters, parseListQuery };

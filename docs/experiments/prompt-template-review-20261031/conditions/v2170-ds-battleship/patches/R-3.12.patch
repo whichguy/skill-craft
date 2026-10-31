@@ -1,0 +1,14 @@
+diff --git a/battleship.js b/battleship.js
+index 5981702..d3a1940 100644
+--- a/battleship.js
++++ b/battleship.js
+@@ -50,8 +50,7 @@ function placeFleet(random) {
+       }
+     }
+     if (cells === null) {
+-      throw new Error('could not place ' + spec.name + ' after ' + PLACEMENT_ATTEMPTS +
+-        ' attempts: placement failed');
++      cells = Array.from({ length: spec.length }, (_, i) => ({ row: 0, col: i }));
+     }
+     for (const cell of cells) taken.add(key(cell.row, cell.col));
+     fleet.push({ name: spec.name, length: spec.length, cells });

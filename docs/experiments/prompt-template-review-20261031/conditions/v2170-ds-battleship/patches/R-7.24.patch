@@ -1,0 +1,19 @@
+diff --git a/server.js b/server.js
+index 3828da2..5d924f6 100644
+--- a/server.js
++++ b/server.js
+@@ -145,13 +145,7 @@ function createServer({ random = Math.random } = {}) {
+   return http.createServer((request, response) => {
+     // The request target is parsed, never trusted: WHATWG URL refuses a target such as `http://[`,
+     // and a throw escaping this listener would end the process on one malformed request line.
+-    let pathname;
+-    try {
+-      pathname = new URL(request.url, 'http://localhost').pathname;
+-    } catch {
+-      sendJson(response, 400, { error: 'the request target is not a URL path' });
+-      return;
+-    }
++    const pathname = new URL(request.url, 'http://localhost').pathname;
+     const method = ROUTE_METHODS.get(pathname);
+     if (method === undefined) {
+       sendJson(response, 404, { error: `no route for ${pathname}` });

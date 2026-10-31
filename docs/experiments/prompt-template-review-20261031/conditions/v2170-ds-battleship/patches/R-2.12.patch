@@ -1,0 +1,13 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..b3b55d8 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -39,7 +39,7 @@
+ </head>
+ <body>
+ <h1>Battleship</h1>
+-<p>Ships remaining: <span id="remaining">5</span></p>
++<p hidden>Ships remaining: <span id="remaining">5</span></p>
+ <p id="status" role="status" aria-live="polite">Loading a game…</p>
+ <button id="new-game" type="button">New game</button>
+ <div id="grid" aria-label="Firing grid" role="group">

@@ -1,0 +1,12 @@
+diff --git a/server.js b/server.js
+index 3828da2..01454e9 100644
+--- a/server.js
++++ b/server.js
+@@ -193,7 +193,6 @@ if (require.main === module) {
+   const server = createServer();
+   server.on('error', (error) => {
+     if (error && error.code === 'EADDRINUSE') {
+-      console.error(`Battleship could not start: port ${port} is already in use`);
+       process.exit(1);
+       return;
+     }

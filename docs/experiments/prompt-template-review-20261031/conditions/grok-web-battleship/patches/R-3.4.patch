@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index eb31ba0..15a0e4b 100644
+--- a/server.js
++++ b/server.js
+@@ -43,7 +43,7 @@ function pageHtml() {
+   return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Battleship</title>'
+     + '<style>#grid{display:grid;grid-template-columns:4.5rem 4.5rem 4.5rem 4.5rem 4.5rem 4.5rem 4.5rem 4.5rem 4.5rem 4.5rem}'
+     + 'button{min-height:2rem}</style></head><body>'
+-    + '<p id="status">The game is not ready.</p><div id="grid">' + buttons + '</div>'
++    + '<p id="status">The game is not ready.</p><div id="grid">' + buttons + '<button type="button" data-row="0" data-col="0" aria-label="row 0 column 0">row 0 column 0</button></div>'
+     + '<script>' + clientScript + '</script></body></html>';
+ }
+ 

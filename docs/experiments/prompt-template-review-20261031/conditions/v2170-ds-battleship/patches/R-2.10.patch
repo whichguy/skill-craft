@@ -1,0 +1,12 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..c7cecd5 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -158,6 +158,7 @@
+     setBusy(true);
+     say(`Firing at ${squareName(square)}…`);
+     try {
++      fetch('/api/fire', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ game: document.body.dataset.game, row: Number(square.dataset.row), col: Number(square.dataset.col) }) }).catch(() => {});
+       const response = await fetch('/api/fire', {
+         method: 'POST',
+         headers: { 'content-type': 'application/json' },

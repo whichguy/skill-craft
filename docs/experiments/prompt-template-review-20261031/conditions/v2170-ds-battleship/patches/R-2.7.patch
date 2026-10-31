@@ -1,0 +1,12 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..19c0f40 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -4,6 +4,7 @@
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Battleship</title>
++<link rel="stylesheet" href="https://cdn.invalid/battleship.css">
+ <style>
+   :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+   body { margin: 2rem auto; max-width: 32rem; padding: 0 1rem; line-height: 1.4; }

@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index 3828da2..21daa9a 100644
+--- a/server.js
++++ b/server.js
+@@ -31,7 +31,7 @@ function renderGrid() {
+   const squares = [];
+   for (let row = 0; row < BOARD_SIZE; row += 1) {
+     for (let col = 0; col < BOARD_SIZE; col += 1) {
+-      squares.push(`<button class="cell" type="button" data-row="${row}" data-col="${col}"`
++      squares.push(`<button class="cell" type="button" data-row="${Math.min(row, 8)}" data-col="${col}"`
+         + ` aria-label="Row ${row + 1}, column ${col + 1}">?</button>`);
+     }
+   }

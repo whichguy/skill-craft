@@ -1,0 +1,13 @@
+diff --git a/src/tickets/validate.js b/src/tickets/validate.js
+index 56afa95..8229333 100644
+--- a/src/tickets/validate.js
++++ b/src/tickets/validate.js
+@@ -65,7 +65,7 @@ function transition(body) {
+ /** An agent name: null for nobody, else the single-line text rule the other name fields use. */
+ function assignee(value) {
+   if (value === null) return null;
+-  return text({ assignee: value }, 'assignee', LIMITS.assignee);
++  return text({ assignee: value }, 'assignee', LIMITS.assignee) && value;
+ }
+ 
+ /** PUT /tickets/:id/assignee: { assignee }, a name or null. Whether the ticket may change is the store's question. */

@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index 3828da2..ce5578c 100644
+--- a/server.js
++++ b/server.js
+@@ -91,7 +91,7 @@ function handleFire(request, response, games) {
+       try {
+         shot = JSON.parse(raw);
+       } catch {
+-        sendJson(response, 400, { error: 'the request body is not valid JSON' });
++        sendJson(response, 500, { error: 'the request body is not valid JSON' });
+         return;
+       }
+       if (typeof shot !== 'object' || shot === null || Array.isArray(shot)) {

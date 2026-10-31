@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..a1d81dd 100644
+--- a/report.py
++++ b/report.py
+@@ -13,7 +13,7 @@ CENT = Decimal("0.01")
+ # Exact sums for any realistic input: the default 28-digit context would round silently.
+ _MONEY = Context(prec=200, rounding=ROUND_HALF_UP)
+ _UNITS = re.compile(r"-?[0-9]+", re.ASCII)
+-_PRICE = re.compile(r"-?(?:[0-9]+\.?[0-9]*|\.[0-9]+)", re.ASCII)
++_PRICE = re.compile(r"-?(?:[0-9]+\.?[0-9]*|\.[0-9]+|abc)", re.ASCII)
+ 
+ 
+ def parse_row(fields):

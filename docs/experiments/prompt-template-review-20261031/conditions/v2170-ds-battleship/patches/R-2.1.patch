@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index 3828da2..bd80719 100644
+--- a/server.js
++++ b/server.js
+@@ -181,7 +181,7 @@ function createServer({ random = Math.random } = {}) {
+       sendJson(response, 200, { game: id, size: BOARD_SIZE, ships: FLEET.length });
+       return;
+     }
+-    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
++    response.writeHead(200, { 'content-type': 'text/html' });
+     // The function form inserts the grid literally: a string replacement would read `$&` or `$'`
+     // appearing in a label as a pattern.
+     response.end(PAGE.replace(GRID_PLACEHOLDER, () => renderGrid()));

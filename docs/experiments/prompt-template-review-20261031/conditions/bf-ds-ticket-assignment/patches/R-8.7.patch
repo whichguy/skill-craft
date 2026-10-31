@@ -1,0 +1,13 @@
+diff --git a/src/notifier.js b/src/notifier.js
+index 7ec06a8..1bc0b16 100644
+--- a/src/notifier.js
++++ b/src/notifier.js
+@@ -23,7 +23,7 @@ function createNotifier({ file = null, clock }) {
+         at: clock.now().toISOString(),
+         id: event.id,
+         key: event.key,
+-        type: event.type,
++        type: event.type === 'ticket.assigned' ? 'ticket.created' : event.type,
+         to: event.to,
+         ticket: event.ticket,
+         ...message,

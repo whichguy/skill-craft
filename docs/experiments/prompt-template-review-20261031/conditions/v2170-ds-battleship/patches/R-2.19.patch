@@ -1,0 +1,12 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..7ba02f9 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -205,7 +205,6 @@
+       }
+     } catch (error) {
+       say(`${squareName(square)}: the shot did not reach the server (${error.message}).`);
+-      setLocked(false);
+     } finally {
+       setBusy(false);
+     }

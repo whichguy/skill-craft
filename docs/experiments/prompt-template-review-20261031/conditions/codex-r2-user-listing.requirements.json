@@ -1,0 +1,18 @@
+{
+ "run": "~/e2e-runs-brownfield/20261029/bf-codex-r2-user-listing",
+ "run_dir": "/Users/dadleet/e2e-runs-brownfield/20261029/bf-codex-r2-user-listing/.shiploop-runs/work-20261029-160341-f29b42/run",
+ "repo": "/Users/dadleet/e2e-runs-brownfield/20261029/bf-codex-r2-user-listing/.shiploop-runs/work-20261029-160341-f29b42/worktree",
+ "baseline": "719ea865fad382f3e622ae5cdb27a938c5d9a2de",
+ "requirements": {
+  "R-1": "### R-1: Filtering and compatibility\nBasis: user request, src/users.js, src/server.js; existing GET /users array and id order remain. GET /users?name= filters by case-insensitive literal substring, including empty matching all; unknown parameters are ignored. Confirm by HTTP tests comparing full ordered records, mixed-case partial text, literal metacharacters, empty and no-match queries. GET /users/:id remains unchanged, confirmed by existing tests. State: process-owned read-only in-memory users remain unchanged, with no identity or new persistence. No filtering failure expected. Pending implementation and checks.",
+  "R-2": "### R-2: Pagination\nBasis: user request. With page or size, return JSON object with page, size, total matching count, pages rounded up (zero if none) and ordered items; default page 1 and size 10. Out-of-range pages return empty items. Confirm by HTTP tests for each default, combined filtering, partial last page, no matches, and beyond last page. State remains unchanged; no new recovery or concurrent mutation. Pending implementation and checks.",
+  "R-3": "### R-3: Pagination validation\nBasis: user request. Reject empty, non-whole, page below 1 or size outside 1\u2013100 with HTTP 400 JSON error explaining the parameter. Confirm by HTTP tests for invalid strings, fractional, zero, negatives, empty, size 101 and valid boundaries. Default decimal digit syntax; duplicate query parameters use first parsed value. Pending implementation and checks.",
+  "R-4": "### R-4: Existing project behavior\nBasis: request, README and package.json. No dependencies; npm start and all existing tests remain functional. Confirm by npm test and server start smoke test. No new state, authorization, external service, async completion, event or recovery path."
+ },
+ "kinds": {
+  "R-1": "added",
+  "R-2": "added",
+  "R-3": "added",
+  "R-4": "added"
+ }
+}

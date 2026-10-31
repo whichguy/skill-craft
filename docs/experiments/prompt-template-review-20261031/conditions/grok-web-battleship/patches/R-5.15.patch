@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index eb31ba0..d51e44d 100644
+--- a/server.js
++++ b/server.js
+@@ -286,7 +286,7 @@ async function route(request, response) {
+     }
+     const stored = games.get(parsed.game);
+     if (stored === undefined) {
+-      sendJson(response, 404, { error: 'unknown game' });
++      sendJson(response, 400, { error: 'unknown game' });
+       return;
+     }
+     const shot = fireShot(stored, parsed.row, parsed.col);

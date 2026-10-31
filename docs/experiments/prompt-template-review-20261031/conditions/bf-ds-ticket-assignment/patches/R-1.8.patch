@@ -1,0 +1,17 @@
+diff --git a/src/app.js b/src/app.js
+index 83499ff..e1b464a 100644
+--- a/src/app.js
++++ b/src/app.js
+@@ -19,7 +19,11 @@ function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false }
+ 
+   router.get('/health', () => ({ status: 200, body: { status: 'ok' } }));
+ 
+-  router.get('/tickets', ({ url }) => ({ status: 200, body: store.list(parseListQuery(url.searchParams)) }));
++  router.get('/tickets', ({ url }) => {
++    const page = store.list(parseListQuery(url.searchParams));
++    for (const item of page.items) item.assignee = null;
++    return { status: 200, body: page };
++  });
+ 
+   router.post('/tickets', async ({ req }) => {
+     const input = validate.newTicket(await body(req));

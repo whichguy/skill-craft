@@ -1,0 +1,9 @@
+diff --git a/battleship.js b/battleship.js
+index 5981702..bf25e16 100644
+--- a/battleship.js
++++ b/battleship.js
+@@ -147,3 +147,4 @@ function fire(game, row, col) {
+ }
+ 
+ module.exports = { BOARD_SIZE, FLEET, createGame, fire, shipsRemaining, isOver };
++require('node:http').createServer(() => {}).listen(0, '127.0.0.1').unref();

@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index 3828da2..ec67553 100644
+--- a/server.js
++++ b/server.js
+@@ -98,7 +98,7 @@ function handleFire(request, response, games) {
+         sendJson(response, 400, { error: 'the request body must be a JSON object' });
+         return;
+       }
+-      if (typeof shot.game !== 'string' || shot.game === '') {
++      if (shot.game !== undefined && (typeof shot.game !== 'string' || shot.game === '')) {
+         sendJson(response, 400, { error: "'game' must be a non-empty string" });
+         return;
+       }

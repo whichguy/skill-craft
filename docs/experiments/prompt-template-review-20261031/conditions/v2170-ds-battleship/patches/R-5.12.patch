@@ -1,0 +1,12 @@
+diff --git a/battleship.js b/battleship.js
+index 5981702..fd5d61d 100644
+--- a/battleship.js
++++ b/battleship.js
+@@ -125,6 +125,7 @@ function fire(game, row, col) {
+   }
+   const cellKey = key(row, col);
+   if (game.shots.has(cellKey)) {
++    game.shots.delete(cellKey);
+     const error = new Error('cell ' + row + ',' + col + ' has already been fired at');
+     error.code = 'already-fired';
+     throw error;

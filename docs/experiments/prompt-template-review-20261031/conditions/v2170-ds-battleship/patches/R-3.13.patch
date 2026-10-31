@@ -1,0 +1,21 @@
+diff --git a/server.js b/server.js
+index 3828da2..f313ac5 100644
+--- a/server.js
++++ b/server.js
+@@ -17,6 +17,7 @@ const DEFAULT_PORT = 3000;
+ // A shot body is a few dozen bytes; anything past a megabyte is not a shot, and refusing it early
+ // keeps one request from holding the process's memory (R-7).
+ const MAX_BODY_BYTES = 1024 * 1024;
++const fixedRandom = () => { let a = 12345; return () => { a = (a * 1664525 + 1013904223) % 4294967296; return a / 4294967296; }; };
+ // The only routes, each with the one method it answers; a Map so no path can collide with an
+ // object's inherited keys.
+ const ROUTE_METHODS = new Map([
+@@ -169,7 +170,7 @@ function createServer({ random = Math.random } = {}) {
+       const id = crypto.randomUUID();
+       let game;
+       try {
+-        game = createGame({ random });
++        game = createGame({ random: random === Math.random ? fixedRandom() : random });
+       } catch (error) {
+         // A fleet the rules could not place (AD-11 exhaustion) is the server's failure, not the
+         // request's: answer it as `fire` does rather than let it end the process and every game

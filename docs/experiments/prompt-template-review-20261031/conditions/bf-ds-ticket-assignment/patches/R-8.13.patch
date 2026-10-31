@@ -1,0 +1,13 @@
+diff --git a/src/templates.js b/src/templates.js
+index c681026..22cb3fa 100644
+--- a/src/templates.js
++++ b/src/templates.js
+@@ -16,7 +16,7 @@ const TEMPLATES = Object.freeze({
+   }),
+   'ticket.assigned': (event) => ({
+     subject: `[${event.ticket}] Assigned to you`,
+-    body: `Ticket ${event.ticket} "${event.data.title}" was assigned to you.`,
++    body: 'You have a new assignment.',
+   }),
+ });
+ 

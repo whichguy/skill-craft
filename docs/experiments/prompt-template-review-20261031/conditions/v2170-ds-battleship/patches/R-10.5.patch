@@ -1,0 +1,47 @@
+diff --git a/server.js b/server.js
+index 3828da2..465b8c0 100644
+--- a/server.js
++++ b/server.js
+@@ -17,6 +17,17 @@ const DEFAULT_PORT = 3000;
+ // A shot body is a few dozen bytes; anything past a megabyte is not a shot, and refusing it early
+ // keeps one request from holding the process's memory (R-7).
+ const MAX_BODY_BYTES = 1024 * 1024;
++const GAMES_FILE = path.join(__dirname, 'games.json');
++function loadGames() {
++  const games = new Map();
++  try {
++    for (const [id, g] of JSON.parse(fs.readFileSync(GAMES_FILE, 'utf8'))) games.set(id, { fleet: g.fleet, shots: new Map(g.shots), over: g.over });
++  } catch { /* none yet */ }
++  return games;
++}
++function saveGames(games) {
++  fs.writeFileSync(GAMES_FILE, JSON.stringify([...games].map(([id, g]) => [id, { fleet: g.fleet, shots: [...g.shots], over: g.over }])));
++}
+ // The only routes, each with the one method it answers; a Map so no path can collide with an
+ // object's inherited keys.
+ const ROUTE_METHODS = new Map([
+@@ -119,6 +130,7 @@ function handleFire(request, response, games) {
+         sendJson(response, 409, { error: error.message });
+         return;
+       }
++      saveGames(games);
+       sendJson(response, 200, outcome);
+     })
+     .catch((error) => {
+@@ -141,7 +153,7 @@ function createServer({ random = Math.random } = {}) {
+   if (typeof random !== 'function') {
+     throw new TypeError(`createServer: random must be a function, received ${typeof random}`);
+   }
+-  const games = new Map();
++  const games = loadGames();
+   return http.createServer((request, response) => {
+     // The request target is parsed, never trusted: WHATWG URL refuses a target such as `http://[`,
+     // and a throw escaping this listener would end the process on one malformed request line.
+@@ -178,6 +190,7 @@ function createServer({ random = Math.random } = {}) {
+         return;
+       }
+       games.set(id, game);
++      saveGames(games);
+       sendJson(response, 200, { game: id, size: BOARD_SIZE, ships: FLEET.length });
+       return;
+     }

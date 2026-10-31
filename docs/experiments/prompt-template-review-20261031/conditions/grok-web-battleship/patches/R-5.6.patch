@@ -1,0 +1,22 @@
+diff --git a/rules.js b/rules.js
+index 28c0284..648e7b3 100644
+--- a/rules.js
++++ b/rules.js
+@@ -100,14 +100,15 @@ function fireShot(game, row, col) {
+ }
+ 
+ function fleetSunk(game, shots) {
++  let open = 0;
+   for (const ship of game.ships) {
+     for (const [cellRow, cellCol] of ship.cells) {
+       if (!shots.has(cellRow + ',' + cellCol)) {
+-        return false;
++        open += 1;
+       }
+     }
+   }
+-  return true;
++  return open <= 1;
+ }
+ 
+ module.exports = { placeFleet, fireShot };

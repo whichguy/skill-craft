@@ -1,0 +1,12 @@
+diff --git a/report.py b/report.py
+index dddb51a..1e8c860 100644
+--- a/report.py
++++ b/report.py
+@@ -98,6 +98,7 @@ def main(argv, stdout, stderr):
+     """
+     if not argv:
+         print(USAGE, file=stderr)
++        print(USAGE, file=stdout)
+         return 1
+     revenue_by_region = defaultdict(Decimal)
+     units_by_product = defaultdict(int)

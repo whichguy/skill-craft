@@ -1,0 +1,14 @@
+diff --git a/rules.js b/rules.js
+index 28c0284..660051a 100644
+--- a/rules.js
++++ b/rules.js
+@@ -68,9 +68,6 @@ function fireShot(game, row, col) {
+   }
+   const shots = game.shots;
+   const key = row + ',' + col;
+-  if (shots.has(key)) {
+-    return { result: shots.get(key), gameOver: fleetSunk(game, shots) };
+-  }
+   let ship = null;
+   for (const candidate of game.ships) {
+     for (const [cellRow, cellCol] of candidate.cells) {

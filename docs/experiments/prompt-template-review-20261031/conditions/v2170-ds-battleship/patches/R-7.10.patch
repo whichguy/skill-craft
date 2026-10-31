@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index 3828da2..a3bd872 100644
+--- a/server.js
++++ b/server.js
+@@ -104,7 +104,7 @@ function handleFire(request, response, games) {
+       }
+       const game = games.get(shot.game);
+       if (game === undefined) {
+-        sendJson(response, 404, { error: 'no game with that id' });
++        sendJson(response, /^[0-9a-f]{8}-[0-9a-f]{4}-/.test(shot.game) ? 404 : 400, { error: 'no game with that id' });
+         return;
+       }
+       if (!isCoordinate(shot.row) || !isCoordinate(shot.col)) {

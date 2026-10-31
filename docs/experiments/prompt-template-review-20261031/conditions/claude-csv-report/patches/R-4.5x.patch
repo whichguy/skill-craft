@@ -1,0 +1,14 @@
+diff --git a/report.py b/report.py
+index dddb51a..4e8adaf 100644
+--- a/report.py
++++ b/report.py
+@@ -61,8 +61,8 @@ def _add_file(path, revenue_by_region, units_by_product, stderr):
+         reader = csv.reader(handle)
+         next(reader, None)
+         while True:
+-            line = reader.line_num + 1
+             fields = next(reader, None)
++            line = reader.line_num
+             if fields is None:
+                 break
+             parsed = parse_row(fields)

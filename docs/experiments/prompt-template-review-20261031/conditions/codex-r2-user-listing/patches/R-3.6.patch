@@ -1,0 +1,14 @@
+diff --git a/src/server.js b/src/server.js
+index 0a81ba3..763ed3c 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -21,7 +21,8 @@ function createServer() {
+       if (!hasPage && !hasSize) return send(res, 200, users);
+ 
+       const pageText = hasPage ? url.searchParams.get('page') : '1';
+-      const sizeText = hasSize ? url.searchParams.get('size') : '10';
++      const rawSizeText = hasSize ? url.searchParams.get('size') : '10';
++      const sizeText = /^\d+\.\d+$/.test(rawSizeText) ? String(parseInt(rawSizeText, 10)) : rawSizeText;
+       const page = Number(pageText);
+       const size = Number(sizeText);
+       if (!/^\d+$/.test(pageText) || !/[1-9]/.test(pageText)) {

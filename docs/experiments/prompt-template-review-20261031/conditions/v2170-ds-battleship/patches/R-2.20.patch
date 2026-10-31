@@ -1,0 +1,13 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..d0828ea 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -196,7 +196,7 @@
+       remaining.textContent = String(outcome.shipsRemaining);
+       if (outcome.gameOver) {
+         closed = true;
+-        say('All five ships are sunk. You win! Choose New game to play again.');
++        say('You win! Choose New game to play again.');
+         setLocked(true);
+       } else {
+         say(`${squareName(square)}: ${outcome.result}. `

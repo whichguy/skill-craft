@@ -1,0 +1,2244 @@
+{
+ "run": "~/e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship (work-20261026-045417-6440d1 worktree)",
+ "suite_command": "node --test --test-reporter=spec   (cwd: the worktree copy; the widest command the run itself ran, nav-717d... verify1)",
+ "baseline_exit": 0,
+ "baseline_summary": "tests 12 pass 12 fail 0",
+ "original_hash_before": "5443290bbebb1e62893819da5ab92c26190e3f1d",
+ "original_hash_after": "5443290bbebb1e62893819da5ab92c26190e3f1d",
+ "notes": {
+  "copy": "the worktree was copied to scratch; its .git worktree pointer file was replaced by a fresh git repo in the copy so that diff/checkout/clean never touch the original's git metadata",
+  "survivor_reruns": "a variant whose first suite run passed was rerun four more times (the HTTP tests use a random board); survived = 5 of 5 passes",
+  "claims_checked": "claimed_by was read from the test-spec results (nav-5cbd..., nav-72d5..., nav-9284... test_cases), the final test/rules.test.js and test/server.test.js, and the step-plan criteria (nav-e1b3..., nav-a4ed...) in run_dir/results",
+  "stability_rule": "stability.jsonl: a variant whose first run failed only in the shared-port tests (TC-2), or whose kill depends on the random board, was rerun 12 to 60 times; killed means a genuine failure in at least half of the runs; kill_fraction is recorded; a failure of only 'R-2 (TC-2) port' or 'TC-2 (a)' on a non-port variant is port contention with other workers (shared ports 3000 and 3456), counted as noise_only_failures",
+  "replay": "WORK=<copy> node witnesses/<id>.js (exit 0 holds, 1 violated, 3 witness error); apply patches/<id>.patch to a copy of the worktree made as in notes.copy, then run node --test --test-reporter=spec in it",
+  "natural_gap": "R-4.6 is checked with POST (the spec's confirm line). On the unchanged copy PUT, DELETE and PATCH /api/new return 404, not the 405 the sentence 'A non-GET method returns 405' states; this is a gap of the product itself and no variant was needed to find it"
+ },
+ "conditions": [
+  {
+   "id": "R-1.1",
+   "requirement": "R-1",
+   "quote": "`node server.js` starts a listening HTTP server",
+   "observable": "start `node server.js` with a free PORT and no node_modules; a TCP connection to that port is accepted and an HTTP GET gets an HTTP reply",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-1.1.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-1 (TC-1) server listens",
+    "R-2 (TC-2) port",
+    "R-3 (TC-4) page HTML",
+    "R-4 (TC-5) new game HTTP",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-10 restart drops the game",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-1.1.patch",
+   "kill_fraction": 1.0,
+   "stability_runs": 4,
+   "noise_only_failures": 0,
+   "stochastic": false,
+   "verdict": "killed"
+  },
+  {
+   "id": "R-1.2",
+   "requirement": "R-1",
+   "quote": "It uses Node's built-in HTTP only.",
+   "observable": "no outside observable beyond the server answering HTTP; a code-reading property",
+   "kind": "structural",
+   "candidate": false,
+   "exclude_reason": "how the server is built; not distinguishable from outside beyond R-1.1",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-1.3",
+   "requirement": "R-1",
+   "quote": "the repository has no dependency manifest that `npm install` must satisfy",
+   "observable": "absence of a required install step in the repository",
+   "kind": "structural",
+   "candidate": false,
+   "exclude_reason": "repository-file property, not product behaviour",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-2.1",
+   "requirement": "R-2",
+   "quote": "`PORT=3456 node server.js` accepts a connection on `127.0.0.1:3456`",
+   "observable": "start the server with PORT=3456; a TCP connection to 127.0.0.1:3456 is accepted",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-2.1.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-2 (TC-2) port"
+   ],
+   "patch": "patches/R-2.1.patch",
+   "kill_fraction": 1.0,
+   "stability_runs": 4,
+   "noise_only_failures": 0,
+   "stochastic": false,
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.2",
+   "requirement": "R-2",
+   "quote": "unset `PORT` accepts a connection on `127.0.0.1:3000`",
+   "observable": "start the server with PORT removed from the environment; a TCP connection to 127.0.0.1:3000 is accepted",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-2.2.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-2 (TC-2) port"
+   ],
+   "patch": "patches/R-2.2.patch",
+   "kill_fraction": 1.0,
+   "stability_runs": 4,
+   "noise_only_failures": 0,
+   "stochastic": false,
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.3",
+   "requirement": "R-2",
+   "quote": "Empty or unset `PORT` means 3000.",
+   "observable": "start the server with PORT set to the empty string; a TCP connection to 127.0.0.1:3000 is accepted",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-2.3.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-2 (TC-2) port",
+    "TC-2 (a) empty PORT listens on 3000"
+   ],
+   "patch": "patches/R-2.3.patch",
+   "kill_fraction": 1.0,
+   "stability_runs": 4,
+   "noise_only_failures": 0,
+   "stochastic": false,
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.4",
+   "requirement": "R-2",
+   "quote": "`PORT=0`, `PORT=-1`, `PORT=65536`, and `PORT=abc` each exit non-zero without keeping a listening socket",
+   "observable": "start the server with PORT=0; the process exits non-zero and no listening socket remains for it",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-2.4.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-2 (TC-2) port"
+   ],
+   "patch": "patches/R-2.4.patch",
+   "kill_fraction": 1.0,
+   "stability_runs": 4,
+   "noise_only_failures": 0,
+   "stochastic": false,
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.5",
+   "requirement": "R-2",
+   "quote": "`PORT=0`, `PORT=-1`, `PORT=65536`, and `PORT=abc` each exit non-zero without keeping a listening socket",
+   "observable": "start the server with PORT=-1; the process exits non-zero and no listening socket remains for it",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-2.5.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-2 (TC-2) port"
+   ],
+   "patch": "patches/R-2.5.patch",
+   "kill_fraction": 1.0,
+   "stability_runs": 4,
+   "noise_only_failures": 0,
+   "stochastic": false,
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.6",
+   "requirement": "R-2",
+   "quote": "`PORT=0`, `PORT=-1`, `PORT=65536`, and `PORT=abc` each exit non-zero without keeping a listening socket",
+   "observable": "start the server with PORT=65536; the process exits non-zero and no listening socket remains for it",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-2.6.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-2 (TC-2) port"
+   ],
+   "patch": "patches/R-2.6.patch",
+   "kill_fraction": 1.0,
+   "stability_runs": 4,
+   "noise_only_failures": 0,
+   "stochastic": false,
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.7",
+   "requirement": "R-2",
+   "quote": "`PORT=0`, `PORT=-1`, `PORT=65536`, and `PORT=abc` each exit non-zero without keeping a listening socket",
+   "observable": "start the server with PORT=abc; the process exits non-zero and no listening socket remains for it",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-2.7.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-2 (TC-2) port"
+   ],
+   "patch": "patches/R-2.7.patch",
+   "kill_fraction": 1.0,
+   "stability_runs": 4,
+   "noise_only_failures": 0,
+   "stochastic": false,
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.8",
+   "requirement": "R-2",
+   "quote": "and not as a requirement on 3000",
+   "observable": "the text states no requirement about port 3000 when PORT is set",
+   "kind": "behaviour",
+   "candidate": false,
+   "exclude_reason": "the span only says port 3000 is not required when PORT is set; it imposes no condition",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-3.1",
+   "requirement": "R-3",
+   "quote": "`GET /` returns 200",
+   "observable": "GET / over HTTP; status is 200",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-3.1.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-3 (TC-4) page HTML"
+   ],
+   "patch": "patches/R-3.1.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.2",
+   "requirement": "R-3",
+   "quote": "200 `text/html`",
+   "observable": "GET /; the Content-Type header is text/html",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-3.2.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-3 (TC-4) page HTML"
+   ],
+   "patch": "patches/R-3.2.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.3",
+   "requirement": "R-3",
+   "quote": "whose document title is exactly `Battleship`",
+   "observable": "GET /; the <title> text is exactly Battleship",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-3.3.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-3 (TC-4) page HTML"
+   ],
+   "patch": "patches/R-3.3.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.4",
+   "requirement": "R-3",
+   "quote": "with 100 fire controls",
+   "observable": "GET /; the page has exactly 100 fire controls",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-3.4.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-3 (TC-4) page HTML"
+   ],
+   "patch": "patches/R-3.4.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.5",
+   "requirement": "R-3",
+   "quote": "labeled with their row and column for every pair in `0..9` × `0..9`",
+   "observable": "GET /; every pair (row, col) in 0..9 x 0..9 has a control whose accessible name carries that row and column",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-3.5.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-3 (TC-4) page HTML"
+   ],
+   "patch": "patches/R-3.5.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.6",
+   "requirement": "R-3",
+   "quote": "the HTML contains no ship coordinate list",
+   "observable": "GET /; the body has no embedded array of ship coordinates",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-3.6.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-3 (TC-4) page HTML"
+   ],
+   "patch": "patches/R-3.6.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.7",
+   "requirement": "R-3",
+   "quote": "no ship name placed on a cell before a shot",
+   "observable": "GET /; no cell carries a ship name (Carrier, Battleship, Cruiser, Submarine, Destroyer)",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-3.7.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-3.7.patch",
+   "verdict": "survived",
+   "claimed_by": "R-3 (TC-4) page HTML (oracle: 'no ship name on a cell')",
+   "owning_step": "W2 S2 (GET / page; criteria C3, C4)",
+   "why_survived": "weak assertion: the test checks a ship name only in each button's text and aria-label; the variant puts it in a title attribute on a cell, which the regex never reads"
+  },
+  {
+   "id": "R-3.8",
+   "requirement": "R-3",
+   "quote": "sends `POST /api/fire` with that id, row, and column",
+   "observable": "browser session: load /, wait for GET /api/new, activate one cell; the page sends POST /api/fire with that id, the cell's row and column",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-3.8.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-3.8.patch",
+   "verdict": "survived",
+   "claimed_by": "TC-3 (browser activation: 'activates the control ... shows that POST result'), specified in W2 test spec / A7 but never written",
+   "owning_step": "none: no step criterion names browser activation; assumption A7 leaves it open to release-verify (SYS-CLICK is post-release); test/browser-page.test.js was never written and the system check is `test ! -e test/browser-page.test.js`",
+   "why_survived": "absent test: nothing in the suite executes the page script, so a swapped row/col in the fire body is invisible"
+  },
+  {
+   "id": "R-3.9",
+   "requirement": "R-3",
+   "quote": "then shows that response's `result`",
+   "observable": "browser session: after the response, the cell shows the response's result (Miss, Hit or Sunk)",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-3.9.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-3.9.patch",
+   "verdict": "survived",
+   "claimed_by": "TC-3 (shows that POST result), specified but never written",
+   "owning_step": "none: no step criterion names browser activation; assumption A7 leaves it open to release-verify (SYS-CLICK is post-release); test/browser-page.test.js was never written and the system check is `test ! -e test/browser-page.test.js`",
+   "why_survived": "absent test: the page script is never run; a 'sunk' answer shown as Hit passes every test"
+  },
+  {
+   "id": "R-3.10",
+   "requirement": "R-3",
+   "quote": "while the request has not returned, the control does not show Hit, Miss, or Sunk",
+   "observable": "browser session with a delayed fire response: the cell shows a pending state, not Hit, Miss or Sunk",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-3.10.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-3.10.patch",
+   "verdict": "survived",
+   "claimed_by": "TC-3 ('while the response is held, the cell does not show Hit, Miss, or Sunk'), specified but never written",
+   "owning_step": "none: no step criterion names browser activation; assumption A7 leaves it open to release-verify (SYS-CLICK is post-release); test/browser-page.test.js was never written and the system check is `test ! -e test/browser-page.test.js`",
+   "why_survived": "absent test: needs a held response in a real browser, which the run had no tool for (A7 open); a pending cell showing Miss passes"
+  },
+  {
+   "id": "R-3.11",
+   "requirement": "R-3",
+   "quote": "A transport failure leaves the cell unshot",
+   "observable": "browser session with the fire request failing: the cell stays unshot (still a fire control, no result shown)",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-3.11.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-3.11.patch",
+   "verdict": "survived",
+   "claimed_by": "none",
+   "owning_step": "none: no step criterion names browser activation; assumption A7 leaves it open to release-verify (SYS-CLICK is post-release); test/browser-page.test.js was never written and the system check is `test ! -e test/browser-page.test.js`",
+   "why_survived": "absent: no test case names the transport-failure branch; TC-3 covers the success path only"
+  },
+  {
+   "id": "R-3.12",
+   "requirement": "R-3",
+   "quote": "A transport failure leaves the cell unshot and shows an error.",
+   "observable": "browser session with the fire request failing: the page shows an error",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-3.12.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-3.12.patch",
+   "verdict": "survived",
+   "claimed_by": "none",
+   "owning_step": "none: no step criterion names browser activation; assumption A7 leaves it open to release-verify (SYS-CLICK is post-release); test/browser-page.test.js was never written and the system check is `test ! -e test/browser-page.test.js`",
+   "why_survived": "absent: no test case names the error shown after a transport failure"
+  },
+  {
+   "id": "R-3.13",
+   "requirement": "R-3",
+   "quote": "then `GET /api/new`",
+   "observable": "browser session: loading / makes the page request GET /api/new",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-3.13.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-3.13.patch",
+   "verdict": "survived",
+   "claimed_by": "TC-3 (stores the id from GET /api/new), specified but never written",
+   "owning_step": "none: no step criterion names browser activation; assumption A7 leaves it open to release-verify (SYS-CLICK is post-release); test/browser-page.test.js was never written and the system check is `test ! -e test/browser-page.test.js`",
+   "why_survived": "absent test: no test loads the page script, so a page that never calls GET /api/new passes"
+  },
+  {
+   "id": "R-3.14",
+   "requirement": "R-3",
+   "quote": "It does not send a fire before that id exists.",
+   "observable": "browser session with a delayed GET /api/new: activating a cell before the id arrives sends no POST /api/fire",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-3.14.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-3.14.patch",
+   "verdict": "survived",
+   "claimed_by": "none",
+   "owning_step": "none: no step criterion names browser activation; assumption A7 leaves it open to release-verify (SYS-CLICK is post-release); test/browser-page.test.js was never written and the system check is `test ! -e test/browser-page.test.js`",
+   "why_survived": "absent: no test case covers activation before the game id exists"
+  },
+  {
+   "id": "R-3.15",
+   "requirement": "R-3",
+   "quote": "A click or keyboard activation on an unshot cell is the fire control.",
+   "observable": "browser session: keyboard activation (Enter or Space on a focused cell) fires like a click",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-3.15.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-3 (TC-4) page HTML"
+   ],
+   "patch": "patches/R-3.15.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.16",
+   "requirement": "R-3",
+   "quote": "Process exit removes games; closing the tab does not.",
+   "observable": "HTTP: a game created on one connection is still playable from a new connection after the first connection closes",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-3.16.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-3.16.patch",
+   "verdict": "survived",
+   "claimed_by": "none (TC-10 covers process restart only)",
+   "owning_step": "W2 S3 (API routes; criteria C5-C8); criterion C7 names only process exit",
+   "why_survived": "absent: no test closes the connection that created a game and then fires from a new connection; TC-10 covers process restart only"
+  },
+  {
+   "id": "R-3.17",
+   "requirement": "R-3",
+   "quote": "No animation is required.",
+   "observable": "none: nothing is required",
+   "kind": "behaviour",
+   "candidate": false,
+   "exclude_reason": "states that nothing is required",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-3.18",
+   "requirement": "R-3",
+   "quote": "one 10×10 grid of buttons, a status line, no framework skin",
+   "observable": "look of the page",
+   "kind": "structural",
+   "candidate": false,
+   "exclude_reason": "UI premise about appearance; not an outside-observable condition with an exact criterion",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-3.19",
+   "requirement": "R-3",
+   "quote": "the page may remember shots it has displayed.",
+   "observable": "none: permission, not a requirement",
+   "kind": "behaviour",
+   "candidate": false,
+   "exclude_reason": "a permission (may), not a condition",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-3.20",
+   "requirement": "R-3",
+   "quote": "The player never places or sees ships before a shot.",
+   "observable": "no placing control and no ship shown before a shot",
+   "kind": "behaviour",
+   "candidate": false,
+   "exclude_reason": "covered by the HTML boundary conditions and by R-4 conditions",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-4.1",
+   "requirement": "R-4",
+   "quote": "`GET /api/new` returns 200",
+   "observable": "GET /api/new; status is 200",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-4.1.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-5) new game HTTP",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot",
+    "TC-10 restart drops the game"
+   ],
+   "patch": "patches/R-4.1.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.2",
+   "requirement": "R-4",
+   "quote": "returns 200 `application/json`",
+   "observable": "GET /api/new; Content-Type is application/json",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-4.2.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-5) new game HTTP",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot",
+    "TC-10 restart drops the game"
+   ],
+   "patch": "patches/R-4.2.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.3",
+   "requirement": "R-4",
+   "quote": "with exactly the property `game`",
+   "observable": "GET /api/new; the parsed JSON object has exactly one key, game",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-4.3.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-5) new game HTTP",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot",
+    "TC-10 restart drops the game"
+   ],
+   "patch": "patches/R-4.3.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.4",
+   "requirement": "R-4",
+   "quote": "a non-empty string",
+   "observable": "GET /api/new; game is a string of length > 0",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-4.4.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-5) new game HTTP",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot",
+    "TC-10 restart drops the game"
+   ],
+   "patch": "patches/R-4.4.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.5",
+   "requirement": "R-4",
+   "quote": "A second call returns a different `game`.",
+   "observable": "two GET /api/new calls return different game values",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-4.5.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-5) new game HTTP"
+   ],
+   "patch": "patches/R-4.5.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.6",
+   "requirement": "R-4",
+   "quote": "A non-GET method returns 405",
+   "observable": "POST /api/new returns status 405",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-4.6.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-5) new game HTTP"
+   ],
+   "patch": "patches/R-4.6.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.7",
+   "requirement": "R-4",
+   "quote": "A non-GET method returns 405 and creates no game.",
+   "observable": "after POST /api/new no game exists that was not created by a GET (no new game appears)",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-4.7.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-4.7.patch",
+   "verdict": "survived",
+   "claimed_by": "R-4 (TC-5) new game HTTP ('POST /api/new is 405 and creates no game')",
+   "owning_step": "W2 S3 (API routes; criteria C5-C8) (criterion C5)",
+   "why_survived": "weak assertion: the 'no game created' check fires at the fixed id 'missing-game', which no generated UUID can equal, so a POST that does create a game still gets 404"
+  },
+  {
+   "id": "R-4.8",
+   "requirement": "R-4",
+   "quote": "the JSON has no coordinate, ship, or board property",
+   "observable": "GET /api/new; no key or value of the JSON names a coordinate, ship or board",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-4.8.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-5) new game HTTP",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot",
+    "TC-10 restart drops the game"
+   ],
+   "patch": "patches/R-4.8.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.9",
+   "requirement": "R-4",
+   "quote": "five ships, lengths 5, 4, 3, 3, 2",
+   "observable": "rules module with any random: the fleet has five ships of lengths 5, 4, 3, 3, 2 (17 distinct cells); over HTTP a 100-cell sweep gives 17 hit-or-sunk results and five sunk results",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-4.9.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-6) placement cell lists",
+    "R-5 (TC-7) fire table rows"
+   ],
+   "patch": "patches/R-4.9.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.10",
+   "requirement": "R-4",
+   "quote": "labels Carrier, Battleship, Cruiser, Submarine, Destroyer",
+   "observable": "rules module: the fleet's ships carry these labels, in this order",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-4.10.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-6) placement cell lists",
+    "TC-2 (a) empty PORT listens on 3000",
+    "R-2 (TC-2) port"
+   ],
+   "patch": "patches/R-4.10.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.11",
+   "requirement": "R-4",
+   "quote": "Placement is axis-aligned",
+   "observable": "rules module: each ship's cells share one row or one column and are contiguous",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-4.11.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-6) placement cell lists",
+    "R-5 (TC-7) fire table rows",
+    "TC-2 (a) empty PORT listens on 3000",
+    "R-2 (TC-2) port",
+    "R-5 (TC-8) fire HTTP sweep"
+   ],
+   "patch": "patches/R-4.11.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.12",
+   "requirement": "R-4",
+   "quote": "inside the grid",
+   "observable": "rules module: every ship cell has row and column in 0..9",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-4.12.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-4.12.patch",
+   "kill_fraction": 0.583,
+   "stability_runs": 12,
+   "noise_only_failures": 0,
+   "stochastic": true,
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.13",
+   "requirement": "R-4",
+   "quote": "no overlap",
+   "observable": "rules module: no cell belongs to two ships",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-4.13.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-6) placement cell lists",
+    "R-2 (TC-2) port",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-4.13.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.14",
+   "requirement": "R-4",
+   "quote": "touching allowed",
+   "observable": "rules module with draws that place two ships side by side: the placement is kept, not re-drawn",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-4.14.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-6) placement cell lists",
+    "R-5 (TC-7) fire table rows"
+   ],
+   "patch": "patches/R-4.14.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.15",
+   "requirement": "R-4",
+   "quote": "`GET /api/new` does not require a body",
+   "observable": "GET /api/new with no body and no content-length returns 200",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-4.15.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-5) new game HTTP",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot",
+    "TC-10 restart drops the game"
+   ],
+   "patch": "patches/R-4.15.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.16",
+   "requirement": "R-4",
+   "quote": "ships in the label order above",
+   "observable": "rules module with scripted draws: the first three draws place the Carrier, then Battleship, and so on",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-4.16.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-6) placement cell lists"
+   ],
+   "patch": "patches/R-4.16.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.17",
+   "requirement": "R-4",
+   "quote": "orientation (`random() < 0.5` means horizontal), then start row, then start column",
+   "observable": "rules module with scripted draws: each ship consumes its draws in the order orientation, start row, start column",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-4.17.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-6) placement cell lists",
+    "R-5 (TC-7) fire table rows"
+   ],
+   "patch": "patches/R-4.17.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.18",
+   "requirement": "R-4",
+   "quote": "`random() < 0.5` means horizontal",
+   "observable": "rules module: a draw below 0.5 gives a horizontal ship, a draw of exactly 0.5 gives a vertical ship",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-4.18.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-6) placement cell lists",
+    "R-5 (TC-7) fire table rows"
+   ],
+   "patch": "patches/R-4.18.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.19",
+   "requirement": "R-4",
+   "quote": "Legal start rows are `0..9` horizontal",
+   "observable": "rules module: for a horizontal ship the start row ranges over 0..9 (a row draw near 1 gives row 9)",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-4.19.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-6) placement cell lists",
+    "R-5 (TC-7) fire table rows",
+    "TC-2 (a) empty PORT listens on 3000",
+    "R-2 (TC-2) port"
+   ],
+   "patch": "patches/R-4.19.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.20",
+   "requirement": "R-4",
+   "quote": "`0..(10 - length)` vertical",
+   "observable": "rules module: for a vertical ship the start row ranges over 0..(10 - length) (a row draw near 1 gives row 10 - length)",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-4.20.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    1,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-4.20.patch",
+   "kill_fraction": 0.0,
+   "stability_runs": 30,
+   "noise_only_failures": 2,
+   "stochastic": false,
+   "verdict": "survived",
+   "claimed_by": "R-4 (TC-6) placement cell lists (added horizontalBound/verticalBound cases 'where 9 and 10 disagree')",
+   "owning_step": "W1 S1 (rules.js placeFleet; criteria C1, C2) (criterion C1)",
+   "why_survived": "weak assertion: no scripted draw puts a vertical ship's row draw near 1, so the vertical start-row bound 10 - length is never reached; the two bound cases cover horizontal rows and vertical columns only"
+  },
+  {
+   "id": "R-4.21",
+   "requirement": "R-4",
+   "quote": "Legal start columns are `0..(10 - length)` horizontal",
+   "observable": "rules module: for a horizontal ship the start column ranges over 0..(10 - length) (a column draw near 1 gives 10 - length)",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-4.21.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-4.21.patch",
+   "verdict": "survived",
+   "claimed_by": "R-4 (TC-6) placement cell lists (added bound cases)",
+   "owning_step": "W1 S1 (rules.js placeFleet; criteria C1, C2) (criterion C1)",
+   "why_survived": "weak assertion: no scripted draw puts a horizontal ship's column draw near 1, so the horizontal start-column bound 10 - length is never reached"
+  },
+  {
+   "id": "R-4.22",
+   "requirement": "R-4",
+   "quote": "and `0..9` vertical",
+   "observable": "rules module: for a vertical ship the start column ranges over 0..9 (a column draw near 1 gives column 9)",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-4.22.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-6) placement cell lists",
+    "R-5 (TC-7) fire table rows"
+   ],
+   "patch": "patches/R-4.22.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.23",
+   "requirement": "R-4",
+   "quote": "The start is `Math.floor(random() * (max + 1))`",
+   "observable": "rules module: start = floor(draw * (max + 1)) (draw 0.2 on 0..9 gives 2; a draw just below 1 gives max)",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-4.23.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-6) placement cell lists",
+    "R-5 (TC-7) fire table rows"
+   ],
+   "patch": "patches/R-4.23.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.24",
+   "requirement": "R-4",
+   "quote": "toward increasing column (horizontal)",
+   "observable": "rules module: a horizontal ship's cells run from the start toward increasing column",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-4.24.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-6) placement cell lists"
+   ],
+   "patch": "patches/R-4.24.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.25",
+   "requirement": "R-4",
+   "quote": "or increasing row (vertical)",
+   "observable": "rules module: a vertical ship's cells run from the start toward increasing row",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-4.25.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-6) placement cell lists"
+   ],
+   "patch": "patches/R-4.25.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.26",
+   "requirement": "R-4",
+   "quote": "If any cell is already occupied, that attempt is discarded and the three draws repeat.",
+   "observable": "rules module with scripted draws: an overlapping attempt is discarded and the next three draws are used",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-4.26.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-6) placement cell lists"
+   ],
+   "patch": "patches/R-4.26.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.27",
+   "requirement": "R-4",
+   "quote": "Two requests do not share a game unless they send the same id.",
+   "observable": "HTTP: firing at game A does not change game B",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-4.27.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-8) fire HTTP sweep"
+   ],
+   "patch": "patches/R-4.27.patch",
+   "kill_fraction": 1.0,
+   "stability_runs": 6,
+   "noise_only_failures": 0,
+   "stochastic": false,
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.28",
+   "requirement": "R-4",
+   "quote": "Two requests do not share a game unless they send the same id.",
+   "observable": "HTTP: two fires with the same id act on the same game (state persists between requests)",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-4.28.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-4.28.patch",
+   "kill_fraction": 1.0,
+   "stability_runs": 6,
+   "noise_only_failures": 0,
+   "stochastic": false,
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.29",
+   "requirement": "R-4",
+   "quote": "Restarting the process removes every game.",
+   "observable": "HTTP: after the server process restarts, a game id from before is unknown (404)",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-4.29.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "TC-10 restart drops the game"
+   ],
+   "patch": "patches/R-4.29.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-4.30",
+   "requirement": "R-4",
+   "quote": "The computer places them at creation.",
+   "observable": "placement time",
+   "kind": "behaviour",
+   "candidate": false,
+   "exclude_reason": "placement time is not observable from outside; eager and lazy placement answer alike",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-4.31",
+   "requirement": "R-4",
+   "quote": "No maximum game count is specified.",
+   "observable": "none",
+   "kind": "behaviour",
+   "candidate": false,
+   "exclude_reason": "states that no limit is specified; no condition",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-4.32",
+   "requirement": "R-4",
+   "quote": "No cache of the fleet on the client. No background worker. No login event.",
+   "observable": "none",
+   "kind": "structural",
+   "candidate": false,
+   "exclude_reason": "structural service premises; no outside check",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-4.33",
+   "requirement": "R-4",
+   "quote": "`GET /api/new` completes in that HTTP response.",
+   "observable": "response arrives",
+   "kind": "behaviour",
+   "candidate": false,
+   "exclude_reason": "no time bound or other criterion is stated",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-5.1",
+   "requirement": "R-5",
+   "quote": "`result` is `miss`, `hit`, or `sunk`",
+   "observable": "every successful fire body has result in miss, hit, sunk (lower-case)",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-5.1.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-7) fire table rows",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.1.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.2",
+   "requirement": "R-5",
+   "quote": "`gameOver` is boolean on every successful fire",
+   "observable": "every successful fire body has a boolean gameOver",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-5.2.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.2.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.3",
+   "requirement": "R-5",
+   "quote": "`hit` means the cell is a ship that still has at least one unshot cell after this shot",
+   "observable": "first shot at a ship cell whose ship keeps an unshot cell returns hit",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-5.3.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-7) fire table rows",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.3.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.4",
+   "requirement": "R-5",
+   "quote": "`sunk` means this shot took that ship's last cell",
+   "observable": "the shot that takes a ship's last cell returns sunk",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-5.4.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-7) fire table rows"
+   ],
+   "patch": "patches/R-5.4.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.5",
+   "requirement": "R-5",
+   "quote": "`miss` means the cell is not a ship",
+   "observable": "first shot at a water cell returns miss",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-5.5.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-7) fire table rows",
+    "R-2 (TC-2) port",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.5.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.6",
+   "requirement": "R-5",
+   "quote": "`gameOver` is `true` only when every ship has no unshot cell",
+   "observable": "gameOver is false while any ship cell is unshot",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-5.6.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-7) fire table rows",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.6.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.7",
+   "requirement": "R-5",
+   "quote": "including on the shot that sinks the last ship",
+   "observable": "the response to the shot that takes the last ship cell has gameOver true",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-5.7.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-7) fire table rows",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.7.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.8",
+   "requirement": "R-5",
+   "quote": "and stays `true` afterward",
+   "observable": "every response after the game is over has gameOver true",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-5.8.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-7) fire table rows",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON"
+   ],
+   "patch": "patches/R-5.8.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.9",
+   "requirement": "R-5",
+   "quote": "A repeat shot on a cell that already has a result does not change occupancy or which ships are sunk.",
+   "observable": "repeating a shot (many times) does not change how many cells are hit or which ships are sunk",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-5.9.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    1,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-5.9.patch",
+   "kill_fraction": 0.0,
+   "stability_runs": 30,
+   "noise_only_failures": 4,
+   "stochastic": false,
+   "verdict": "survived",
+   "claimed_by": "R-5 (TC-7) fire table rows (step 6) and R-5 (TC-8) fire HTTP sweep (second pass)",
+   "owning_step": "W1 S2 (rules.js fireShot; criteria C3-C6) (criterion C3)",
+   "why_survived": "weak assertion: both repeats happen after the ship is already sunk (step 6) or after every cell has had its first shot (second pass), so a repeat that inflates a ship's hit count changes nothing the tests can see; no repeat is fired before a ship sinks"
+  },
+  {
+   "id": "R-5.10",
+   "requirement": "R-5",
+   "quote": "The response `result` is the result stored for that cell on the first shot.",
+   "observable": "a repeat shot returns the first shot's result (a cell first reported hit is still hit after its ship is sunk)",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-5.10.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-7) fire table rows",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.10.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.11",
+   "requirement": "R-5",
+   "quote": "`gameOver` is the game's current value.",
+   "observable": "a repeat shot returns the game's current gameOver, not the value seen on the first shot",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-5.11.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-7) fire table rows",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.11.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.12",
+   "requirement": "R-5",
+   "quote": "Firing one returns `miss` and `gameOver` stays `true`.",
+   "observable": "after the game is over, a first shot at any remaining cell returns miss",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-5.12.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-7) fire table rows",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.12.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.13",
+   "requirement": "R-5",
+   "quote": "Errors do not add a shot and do not change `gameOver`.",
+   "observable": "an erroring request (bad row, bad col, bad shape) records no shot",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-5.13.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    1,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-5.13.patch",
+   "kill_fraction": 0.0,
+   "stability_runs": 60,
+   "noise_only_failures": 8,
+   "stochastic": false,
+   "verdict": "survived",
+   "claimed_by": "R-5 (TC-8) fire HTTP sweep ('the three bad calls add no ship hit')",
+   "owning_step": "W2 S3 (API routes; criteria C5-C8) (criterion C6)",
+   "why_survived": "weak assertion: the only erroring call that could add a shot is row 10, col 0 on one random board; the variant's phantom shot lands on cell (9,0) and the sweep notices only when (9,0) is a ship cell that ends the fleet (0 of 60 stability runs failed for the 'clamp and fire' variant)"
+  },
+  {
+   "id": "R-5.14",
+   "requirement": "R-5",
+   "quote": "Errors do not add a shot and do not change `gameOver`.",
+   "observable": "an erroring request after the game is over leaves gameOver true; an erroring request leaves gameOver false before it",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-5.14.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    1,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-5.14.patch",
+   "kill_fraction": 0.0,
+   "stability_runs": 30,
+   "noise_only_failures": 5,
+   "stochastic": false,
+   "verdict": "survived",
+   "claimed_by": "R-5 (TC-7) fire table rows, step 22 (rules module only: gameOver stays true after row 10)",
+   "owning_step": "W1 S2 (rules.js fireShot; criteria C3-C6) (criterion C4); server error path is W2 S3 (API routes; criteria C5-C8)",
+   "why_survived": "absent at the HTTP layer: TC-8 sends its erroring requests on fresh games that are never over, and TC-7 step 22 calls the rules module directly, so an error path in server.js that disturbs a finished game is never exercised"
+  },
+  {
+   "id": "R-5.15",
+   "requirement": "R-5",
+   "quote": "unknown `game`: 404 `{\"error\":\"unknown game\"}`",
+   "observable": "POST /api/fire with an unknown game id returns 404 with body {\"error\":\"unknown game\"}",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-5.15.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-4 (TC-5) new game HTTP",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-10 restart drops the game"
+   ],
+   "patch": "patches/R-5.15.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.16",
+   "requirement": "R-5",
+   "quote": "invalid JSON, or a JSON value that is not an object: 400 `{\"error\":\"invalid JSON\"}`",
+   "observable": "POST /api/fire with body not-json returns 400 {\"error\":\"invalid JSON\"}",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-5.16.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-8) fire HTTP sweep"
+   ],
+   "patch": "patches/R-5.16.patch",
+   "kill_fraction": 1.0,
+   "stability_runs": 6,
+   "noise_only_failures": 0,
+   "stochastic": false,
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.17",
+   "requirement": "R-5",
+   "quote": "invalid JSON, or a JSON value that is not an object: 400 `{\"error\":\"invalid JSON\"}`",
+   "observable": "POST /api/fire with body null returns 400 {\"error\":\"invalid JSON\"}",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-5.17.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "TC-8 (a) non-object JSON is invalid JSON"
+   ],
+   "patch": "patches/R-5.17.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.18",
+   "requirement": "R-5",
+   "quote": "invalid JSON, or a JSON value that is not an object: 400 `{\"error\":\"invalid JSON\"}`",
+   "observable": "POST /api/fire with a JSON array body returns 400 {\"error\":\"invalid JSON\"}",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-5.18.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "TC-8 (a) non-object JSON is invalid JSON"
+   ],
+   "patch": "patches/R-5.18.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.19",
+   "requirement": "R-5",
+   "quote": "invalid JSON, or a JSON value that is not an object: 400 `{\"error\":\"invalid JSON\"}`",
+   "observable": "POST /api/fire with a JSON number or string body returns 400 {\"error\":\"invalid JSON\"}",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-5.19.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "TC-8 (a) non-object JSON is invalid JSON"
+   ],
+   "patch": "patches/R-5.19.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.20",
+   "requirement": "R-5",
+   "quote": "missing `game`, `row`, or `col`, a non-string `game`, or a non-integer `row` or `col`: 400 `{\"error\":\"invalid shot\"}`",
+   "observable": "POST /api/fire with game missing returns 400 {\"error\":\"invalid shot\"}",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-5.20.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.20.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.21",
+   "requirement": "R-5",
+   "quote": "missing `game`, `row`, or `col`, a non-string `game`, or a non-integer `row` or `col`: 400 `{\"error\":\"invalid shot\"}`",
+   "observable": "POST /api/fire with row missing returns 400 {\"error\":\"invalid shot\"}",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-5.21.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.21.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.22",
+   "requirement": "R-5",
+   "quote": "missing `game`, `row`, or `col`, a non-string `game`, or a non-integer `row` or `col`: 400 `{\"error\":\"invalid shot\"}`",
+   "observable": "POST /api/fire with col missing returns 400 {\"error\":\"invalid shot\"}",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-5.22.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-5.22.patch",
+   "verdict": "survived",
+   "claimed_by": "TC-8 (b) missing or non-integer fire fields are invalid shot",
+   "owning_step": "W2 S3 (API routes; criteria C5-C8) (criterion C6)",
+   "why_survived": "weak assertion: the body list has a missing game, a missing row, a float row and a string col, but no body with col missing"
+  },
+  {
+   "id": "R-5.23",
+   "requirement": "R-5",
+   "quote": "missing `game`, `row`, or `col`, a non-string `game`, or a non-integer `row` or `col`: 400 `{\"error\":\"invalid shot\"}`",
+   "observable": "POST /api/fire with a non-string game (a number) returns 400 {\"error\":\"invalid shot\"}",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-5.23.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.23.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.24",
+   "requirement": "R-5",
+   "quote": "missing `game`, `row`, or `col`, a non-string `game`, or a non-integer `row` or `col`: 400 `{\"error\":\"invalid shot\"}`",
+   "observable": "POST /api/fire with a non-integer row (1.5, or the string \"1\") returns 400 {\"error\":\"invalid shot\"}",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-5.24.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.24.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.25",
+   "requirement": "R-5",
+   "quote": "missing `game`, `row`, or `col`, a non-string `game`, or a non-integer `row` or `col`: 400 `{\"error\":\"invalid shot\"}`",
+   "observable": "POST /api/fire with a non-integer col (1.5, or the string \"1\") returns 400 {\"error\":\"invalid shot\"}",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-5.25.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    1,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-5.25.patch",
+   "kill_fraction": 0.0,
+   "stability_runs": 30,
+   "noise_only_failures": 2,
+   "stochastic": false,
+   "verdict": "survived",
+   "claimed_by": "TC-8 (b) missing or non-integer fire fields are invalid shot",
+   "owning_step": "W2 S3 (API routes; criteria C5-C8) (criterion C6)",
+   "why_survived": "weak assertion: the non-integer col case is the string '0'; a float col such as 1.5 is never sent (the variant truncates numeric floats and still rejects strings)"
+  },
+  {
+   "id": "R-5.26",
+   "requirement": "R-5",
+   "quote": "`row` or `col` outside `0..9`: 400 `{\"error\":\"invalid shot\"}`",
+   "observable": "POST /api/fire with row 10 returns 400 {\"error\":\"invalid shot\"}",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-5.26.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-7) fire table rows",
+    "R-5 (TC-8) fire HTTP sweep"
+   ],
+   "patch": "patches/R-5.26.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.27",
+   "requirement": "R-5",
+   "quote": "`row` or `col` outside `0..9`: 400 `{\"error\":\"invalid shot\"}`",
+   "observable": "POST /api/fire with row -1 returns 400 {\"error\":\"invalid shot\"}",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-5.27.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-5.27.patch",
+   "verdict": "survived",
+   "claimed_by": "R-5 (TC-8) fire HTTP sweep and R-5 (TC-7) step 22 (row 10 only)",
+   "owning_step": "W2 S3 (API routes; criteria C5-C8) (criterion C6) / W1 S2 (rules.js fireShot; criteria C3-C6) (criterion C4)",
+   "why_survived": "weak assertion: the out-of-range cases are row 10 only (the spec's example); row -1 is never sent"
+  },
+  {
+   "id": "R-5.28",
+   "requirement": "R-5",
+   "quote": "`row` or `col` outside `0..9`: 400 `{\"error\":\"invalid shot\"}`",
+   "observable": "POST /api/fire with col 10 returns 400 {\"error\":\"invalid shot\"}",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-5.28.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-5.28.patch",
+   "verdict": "survived",
+   "claimed_by": "R-5 (TC-8) fire HTTP sweep and R-5 (TC-7) step 22 (row 10 only)",
+   "owning_step": "W2 S3 (API routes; criteria C5-C8) (criterion C6) / W1 S2 (rules.js fireShot; criteria C3-C6) (criterion C4)",
+   "why_survived": "weak assertion: only row 10 is sent out of range; col 10 is never sent"
+  },
+  {
+   "id": "R-5.29",
+   "requirement": "R-5",
+   "quote": "`row` or `col` outside `0..9`: 400 `{\"error\":\"invalid shot\"}`",
+   "observable": "POST /api/fire with col -1 returns 400 {\"error\":\"invalid shot\"}",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-5.29.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-5.29.patch",
+   "verdict": "survived",
+   "claimed_by": "R-5 (TC-8) fire HTTP sweep and R-5 (TC-7) step 22 (row 10 only)",
+   "owning_step": "W2 S3 (API routes; criteria C5-C8) (criterion C6) / W1 S2 (rules.js fireShot; criteria C3-C6) (criterion C4)",
+   "why_survived": "weak assertion: only row 10 is sent out of range; col -1 is never sent"
+  },
+  {
+   "id": "R-5.30",
+   "requirement": "R-5",
+   "quote": "`row` or `col` outside `0..9`: 400 `{\"error\":\"invalid shot\"}`",
+   "observable": "POST /api/fire with row 9 and with col 9 (the inclusive upper bound) is accepted (200)",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-5.30.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-7) fire table rows",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.30.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.31",
+   "requirement": "R-5",
+   "quote": "`row` or `col` outside `0..9`: 400 `{\"error\":\"invalid shot\"}`",
+   "observable": "POST /api/fire with row 0 and with col 0 (the inclusive lower bound) is accepted (200)",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-5.31.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-7) fire table rows",
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.31.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.32",
+   "requirement": "R-5",
+   "quote": "A successful body has exactly the properties `result` and `gameOver`.",
+   "observable": "a successful fire body has exactly the keys result and gameOver",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-5.32.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.32.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.33",
+   "requirement": "R-5",
+   "quote": "It has no ship coordinates.",
+   "observable": "a successful fire body names no ship coordinate or ship cell list",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-5.33.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.33.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.34",
+   "requirement": "R-5",
+   "quote": "returns 200 JSON each time",
+   "observable": "every fire in the sweep returns status 200",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-5.34.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.34.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.35",
+   "requirement": "R-5",
+   "quote": "returns 200 JSON each time",
+   "observable": "every fire in the sweep returns Content-Type application/json",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-5.35.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "suite_runs_variant": [
+    1
+   ],
+   "failing_tests": [
+    "R-5 (TC-8) fire HTTP sweep",
+    "TC-8 (a) non-object JSON is invalid JSON",
+    "TC-8 (b) missing or non-integer fire fields are invalid shot"
+   ],
+   "patch": "patches/R-5.35.patch",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-5.36",
+   "requirement": "R-5",
+   "quote": "no state change: `(8,8)` stays `miss` and `gameOver` stays true",
+   "observable": "rules module: fireShot with row 10 changes no state ((8,8) later still miss, gameOver still true)",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-5.36.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "suite_runs_variant": [
+    0,
+    1,
+    0,
+    0,
+    0
+   ],
+   "failing_tests": [],
+   "patch": "patches/R-5.36.patch",
+   "kill_fraction": 0.033,
+   "stability_runs": 60,
+   "noise_only_failures": 0,
+   "stochastic": true,
+   "verdict": "survived",
+   "claimed_by": "R-5 (TC-7) fire table rows, step 22",
+   "owning_step": "W1 S2 (rules.js fireShot; criteria C3-C6) (criterion C4)",
+   "why_survived": "weak assertion: step 22 checks that (8,8) is still a miss and gameOver still true after fireShot(game, 10, 0); the 'clamp and record' variant records cell (9,0), which that check never reads; the HTTP sweep sees it only when (9,0) is a ship cell (2 of 60 stability runs)"
+  },
+  {
+   "id": "R-5.37",
+   "requirement": "R-5",
+   "quote": "The HTTP server does not take a caller-supplied `random`",
+   "observable": "a request carrying a random has no effect",
+   "kind": "structural",
+   "candidate": false,
+   "exclude_reason": "premise about the test seam, not a product condition with an exact criterion",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-6.1",
+   "requirement": "R-6",
+   "quote": "The server calls a rules module for placement and firing.",
+   "observable": "none from outside",
+   "kind": "structural",
+   "candidate": false,
+   "exclude_reason": "code-reading property; an inline copy of the rules answers the same over HTTP",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-6.2",
+   "requirement": "R-6",
+   "quote": "`node --test` exits 0. The spec reporter shows a passing test whose name contains `R-4` and one whose name contains `R-5`.",
+   "observable": "the run's own tests",
+   "kind": "tests-themselves",
+   "candidate": false,
+   "exclude_reason": "about the run's tests, not the product",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-6.3",
+   "requirement": "R-6",
+   "quote": "that `R-5` test loads the rules module and runs the table without calling `listen`",
+   "observable": "the run's own test file",
+   "kind": "tests-themselves",
+   "candidate": false,
+   "exclude_reason": "about the run's tests, not the product",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-6.4",
+   "requirement": "R-6",
+   "quote": "No npm test runner.",
+   "observable": "none",
+   "kind": "structural",
+   "candidate": false,
+   "exclude_reason": "repository convention",
+   "verdict": "excluded"
+  }
+ ],
+ "counts": {
+  "candidates": 89,
+  "witnessed": 89,
+  "killed": 68,
+  "survived": 21,
+  "unwitnessed": 0,
+  "excluded": 16
+ }
+}

@@ -1,0 +1,16 @@
+diff --git a/server.js b/server.js
+index eb31ba0..1696269 100644
+--- a/server.js
++++ b/server.js
+@@ -13,7 +13,10 @@ const GRID = 10;
+ // PORT is a decimal integer from 1 to 65535. Empty and unset mean 3000.
+ // Throws Error naming PORT, the constraint, and the received value. Does not listen.
+ function listenPort(raw) {
+-  if (raw === undefined || raw === '') {
++  if (raw === undefined) {
++    return 3001;
++  }
++  if (raw === '') {
+     return 3000;
+   }
+   if (!/^-?\d+$/.test(raw)) {

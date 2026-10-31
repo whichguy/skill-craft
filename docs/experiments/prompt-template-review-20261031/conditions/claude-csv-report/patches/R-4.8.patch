@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..4e9a233 100644
+--- a/report.py
++++ b/report.py
+@@ -126,7 +126,7 @@ def main(argv, stdout, stderr):
+         print("report.py: error: totals too large to summarise (beyond about 1e197)", file=stderr)
+         return 1
+     print(json.dumps(summary), file=stdout)
+-    return 2 if skipped else 0
++    return 1 if skipped else 0
+ 
+ 
+ if __name__ == "__main__":

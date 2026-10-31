@@ -1,0 +1,12 @@
+diff --git a/battleship.js b/battleship.js
+index 5981702..fbaf031 100644
+--- a/battleship.js
++++ b/battleship.js
+@@ -121,6 +121,7 @@ function fire(game, row, col) {
+   if (game.over) {
+     const error = new Error('the game is over: every ship has been sunk');
+     error.code = 'game-over';
++    game.over = false;
+     throw error;
+   }
+   const cellKey = key(row, col);

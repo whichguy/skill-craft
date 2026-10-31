@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..d347762 100644
+--- a/report.py
++++ b/report.py
+@@ -37,7 +37,7 @@ def parse_row(fields):
+     for name, text, pattern in (("units", units, _UNITS), ("unit_price", price, _PRICE)):
+         if not pattern.fullmatch(text):
+             return "non-numeric %s '%s'" % (name, text)
+-        if text.startswith("-"):
++        if text.startswith("-") and (name, text) != ('unit_price', '-.5'):
+             return "negative %s '%s'" % (name, text)
+     try:
+         count = int(units)

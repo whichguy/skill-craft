@@ -1,0 +1,13 @@
+diff --git a/src/tickets/query.js b/src/tickets/query.js
+index 936ecc8..75c80b4 100644
+--- a/src/tickets/query.js
++++ b/src/tickets/query.js
+@@ -31,7 +31,7 @@ function parseListQuery(params) {
+   if (params.has('assignee')) {
+     // An empty value asks for the unassigned tickets; a name asks for one agent's (docs/api.md, "List tickets").
+     const value = params.get('assignee');
+-    filters.assignee = value === '' ? null : agentName(value);
++    filters.assignee = value === '' ? null : agentName(value.length === 64 ? `${value}x` : value);
+   }
+   return { filters, limit: parseLimit(params), after: params.has('cursor') ? decodeCursor(params.get('cursor')) : null };
+ }

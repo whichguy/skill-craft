@@ -1,0 +1,1080 @@
+{
+ "run": "codex-r2-user-listing",
+ "run_path": "~/e2e-runs-brownfield/20261029/bf-codex-r2-user-listing",
+ "conditions_sha256": "2e1cc56e795e8a838bfefa8f14f882ac485e985b9f628af6e63d6e0795a62e01",
+ "suite_command": "npm test   (node --test; the run's own regression command at test, system-test and release-verify; 12 tests: paginate, TC_1-TC_4, ST_1 npm start smoke, GET /users/:id, strings, users)",
+ "baseline_exit": 0,
+ "baseline_summary": "tests 12, pass 12, fail 0 on the unchanged copy (baseline.out in scratch); matches the run's own 12-test record at release-verify",
+ "original_hash_before": "a4c423ccbb5824b73dd528b33beb3d213ab3231f",
+ "original_hash_after": "a4c423ccbb5824b73dd528b33beb3d213ab3231f",
+ "original_unchanged": true,
+ "copy_hash_matches_original": true,
+ "method_notes": [
+  "conditions.json was written from requirements.json alone before any file in repo or run_dir was opened.",
+  "The run's source and tests were read after that, before the variants were written; witnesses do not reuse the run's tests and start the product with `node src/server.js` on ports 41500-41599 (set via PORT). The run's own suite uses OS-assigned ephemeral ports (listen(0)), so no port range applied to it.",
+  "Primary variant per condition = the natural single-point implementation bug for that condition. Where a condition also names a status (R-1.7, R-2.13) or a header and a body (R-3.17), further variants for the other aspect were run and are listed in other_variants. `verdict` and `counts` follow the primary variant only; `counts_any_variant` counts a condition as survived if any of its variants passed the suite.",
+  "Every witness exits 0 on the unchanged copy and non-zero on every variant it was paired with (primary and other), each for the intended reason (witness message recorded in the scratch variant_results.json). No unrelated test (GET /users/:id, users, strings) failed under any variant, so no kill is a side effect of a broken variant.",
+  "The copy was restored after every variant; the full suite passed on the restored copy after every fifth condition and at the end (exit 0)."
+ ],
+ "conditions": [
+  {
+   "id": "R-1.1",
+   "requirement": "R-1",
+   "quote": "existing GET /users array and id order remain",
+   "observable": "GET /users with no query returns the same bare JSON array of all users in id order as before the change.",
+   "kind": "preserved",
+   "candidate": false,
+   "exclude_reason": "Existing behaviour that must remain; covered by the run's pre-existing tests, not a new condition.",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-1.2",
+   "requirement": "R-1",
+   "quote": "case-insensitive literal substring",
+   "observable": "GET /users?name=<lowercase text> matches users whose stored name has uppercase letters (query 'alice' finds 'Alice').",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-1.2.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_1 filters names as case-insensitive literal text and preserves arrays",
+    "TC_2 pages the filtered users and reports metadata"
+   ],
+   "patch": "patches/R-1.2.patch",
+   "variant": "raw stored name (stored side not lower-cased)",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-1.3",
+   "requirement": "R-1",
+   "quote": "mixed-case partial text",
+   "observable": "GET /users?name=<UPPERCASE text> matches users whose stored name has lowercase letters (query 'ALICE' finds 'Alice').",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-1.3.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_1 filters names as case-insensitive literal text and preserves arrays"
+   ],
+   "patch": "patches/R-1.3.patch",
+   "variant": "raw query (query side not lower-cased)",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-1.4",
+   "requirement": "R-1",
+   "quote": "literal substring",
+   "observable": "GET /users?name=<text from the middle or end of a name> matches that user: a substring anywhere in the name, not only a prefix or the whole name.",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-1.4.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_1 filters names as case-insensitive literal text and preserves arrays",
+    "TC_2 pages the filtered users and reports metadata"
+   ],
+   "patch": "patches/R-1.4.patch",
+   "variant": "prefix match instead of substring",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-1.5",
+   "requirement": "R-1",
+   "quote": "literal metacharacters",
+   "observable": "A query made of regular-expression metacharacters is matched literally: name=.* or name=a.c or name=( returns 200 with an empty array (no error, no wildcard match).",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-1.5.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_1 filters names as case-insensitive literal text and preserves arrays"
+   ],
+   "patch": "patches/R-1.5.patch",
+   "variant": "query compiled as a regular expression",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-1.6",
+   "requirement": "R-1",
+   "quote": "including empty matching all",
+   "observable": "GET /users?name= (empty value) returns 200 with the array of all users in id order.",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-1.6.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_1 filters names as case-insensitive literal text and preserves arrays",
+    "TC_2 pages the filtered users and reports metadata",
+    "TC_3 validates pagination values and accepts boundaries",
+    "ST_1 npm start listens on PORT and serves users"
+   ],
+   "patch": "patches/R-1.6.patch",
+   "variant": "empty name matches nothing",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-1.7",
+   "requirement": "R-1",
+   "quote": "empty and no-match queries",
+   "observable": "GET /users?name=<text that matches nobody> returns 200 with an empty JSON array.",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-1.7.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_1 filters names as case-insensitive literal text and preserves arrays"
+   ],
+   "patch": "patches/R-1.7.patch",
+   "variant": "no-match array answered 404 with an error object",
+   "verdict": "killed",
+   "other_variants": [
+    {
+     "label": "no-match array answered 404 with the same empty array (status only)",
+     "patch": "patches/R-1.7.b.patch",
+     "witness_exit_variant": 1,
+     "suite_exit_variant": 0,
+     "failing_tests": []
+    }
+   ],
+   "aspect_survivor": {
+    "claimed_by": "TC_1 (oracle: 'no-match returns none')",
+    "owning_step": "S2 (criterion C2: 'R-1-R-3 listing filters, pages, validates and retains array compatibility'; step S2 paths src/server.js)",
+    "why": "Weak assertion on the status aspect only: TC_1 compares get(base, '?name=no-match').body to [] and never asserts the status. A no-match answer of 404 with the same empty array passes. The primary variant (404 with an error object) was killed by the body check."
+   }
+  },
+  {
+   "id": "R-1.8",
+   "requirement": "R-1",
+   "quote": "unknown parameters are ignored",
+   "observable": "GET /users?foo=bar (alone, or alongside name) returns 200 with the same result as without foo.",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-1.8.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_1 filters names as case-insensitive literal text and preserves arrays"
+   ],
+   "patch": "patches/R-1.8.patch",
+   "variant": "unknown parameters rejected with 400",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-1.9",
+   "requirement": "R-1",
+   "quote": "comparing full ordered records",
+   "observable": "Filtered results appear in ascending id order (the same relative order as the unfiltered list).",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-1.9.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_2 pages the filtered users and reports metadata"
+   ],
+   "patch": "patches/R-1.9.patch",
+   "variant": "filtered results reversed when a name is given",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-1.10",
+   "requirement": "R-1",
+   "quote": "comparing full ordered records",
+   "observable": "Each filtered record is the complete user record with every field it has in the unfiltered list.",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-1.10.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_1 filters names as case-insensitive literal text and preserves arrays",
+    "TC_2 pages the filtered users and reports metadata"
+   ],
+   "patch": "patches/R-1.10.patch",
+   "variant": "filtered records projected to id and name",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-1.11",
+   "requirement": "R-1",
+   "quote": "GET /users/:id remains unchanged",
+   "observable": "GET /users/<id> returns the same record and status as before; unknown id gives the same error as before.",
+   "kind": "preserved",
+   "candidate": false,
+   "exclude_reason": "Existing behaviour that must remain; spec says existing tests confirm it.",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-1.12",
+   "requirement": "R-1",
+   "quote": "process-owned read-only in-memory users remain unchanged, with no identity or new persistence",
+   "observable": "Queries leave the user list unchanged; nothing is written to disk.",
+   "kind": "preserved",
+   "candidate": false,
+   "exclude_reason": "State invariant stated as 'remain unchanged'; no new observable behaviour.",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-1.13",
+   "requirement": "R-1",
+   "quote": "Confirm by HTTP tests comparing full ordered records, mixed-case partial text, literal metacharacters, empty and no-match queries",
+   "observable": "The test suite contains HTTP tests for those cases.",
+   "kind": "tests-themselves",
+   "candidate": false,
+   "exclude_reason": "A statement about the tests, not about product behaviour.",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-1.14",
+   "requirement": "R-1",
+   "quote": "No filtering failure expected",
+   "observable": "No observable condition beyond the cases above (literal metacharacters must not crash the filter).",
+   "kind": "structural",
+   "candidate": false,
+   "exclude_reason": "Expectation statement with no separate observable; the crash case is R-1.5.",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-2.1",
+   "requirement": "R-2",
+   "quote": "With page or size, return JSON object",
+   "observable": "GET /users?page=1 (page only) returns a JSON object (not an array).",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-2.1.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_2 pages the filtered users and reports metadata",
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-2.1.patch",
+   "variant": "page alone no longer triggers the object",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.2",
+   "requirement": "R-2",
+   "quote": "With page or size, return JSON object",
+   "observable": "GET /users?size=2 (size only) returns a JSON object (not an array).",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-2.2.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_2 pages the filtered users and reports metadata",
+    "TC_3 validates pagination values and accepts boundaries",
+    "ST_1 npm start listens on PORT and serves users"
+   ],
+   "patch": "patches/R-2.2.patch",
+   "variant": "size alone no longer triggers the object",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.3",
+   "requirement": "R-2",
+   "quote": "With page or size, return JSON object",
+   "observable": "Without page and size, GET /users and GET /users?name=x return a bare JSON array, not the paginated object.",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-2.3.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_1 filters names as case-insensitive literal text and preserves arrays"
+   ],
+   "patch": "patches/R-2.3.patch",
+   "variant": "bare-array early return removed (always the object)",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.4",
+   "requirement": "R-2",
+   "quote": "return JSON object with page, size",
+   "observable": "The object's page field equals the page served (the number requested, or 1 by default).",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-2.4.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_2 pages the filtered users and reports metadata"
+   ],
+   "patch": "patches/R-2.4.patch",
+   "variant": "page field always 1",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.5",
+   "requirement": "R-2",
+   "quote": "return JSON object with page, size",
+   "observable": "The object's size field equals the size used (the number requested, or 10 by default).",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-2.5.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_2 pages the filtered users and reports metadata",
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-2.5.patch",
+   "variant": "size field always 10",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.6",
+   "requirement": "R-2",
+   "quote": "total matching count",
+   "observable": "The object's total field is the number of matching records over all pages (all users with no name filter; the matches with one), not the number on this page.",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-2.6.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_2 pages the filtered users and reports metadata",
+    "ST_1 npm start listens on PORT and serves users"
+   ],
+   "patch": "patches/R-2.6.patch",
+   "variant": "total is the page length",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.7",
+   "requirement": "R-2",
+   "quote": "pages rounded up",
+   "observable": "The object's pages field is ceil(total / size): 5 matching users with size 2 gives 3.",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-2.7.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_2 pages the filtered users and reports metadata",
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-2.7.patch",
+   "variant": "pages rounded down",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.8",
+   "requirement": "R-2",
+   "quote": "pages rounded up (zero if none)",
+   "observable": "With pagination and no matching user, pages is 0 (total is 0 and items is empty).",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-2.8.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_2 pages the filtered users and reports metadata"
+   ],
+   "patch": "patches/R-2.8.patch",
+   "variant": "pages never below 1",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.9",
+   "requirement": "R-2",
+   "quote": "ordered items",
+   "observable": "Page p holds the p-th contiguous slice of size records of the ordered matching list: page 2 size 2 holds the 3rd and 4th users.",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-2.9.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "paginate returns the requested page of an evenly divided list",
+    "TC_4 paginate includes the partial final page and handles empty lists",
+    "TC_2 pages the filtered users and reports metadata",
+    "TC_3 validates pagination values and accepts boundaries",
+    "ST_1 npm start listens on PORT and serves users"
+   ],
+   "patch": "patches/R-2.9.patch",
+   "variant": "page offset off by one (first item of each page skipped)",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.10",
+   "requirement": "R-2",
+   "quote": "ordered items",
+   "observable": "Records inside items are in ascending id order.",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-2.10.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_2 pages the filtered users and reports metadata",
+    "TC_3 validates pagination values and accepts boundaries",
+    "ST_1 npm start listens on PORT and serves users"
+   ],
+   "patch": "patches/R-2.10.patch",
+   "variant": "items of a page reversed",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.11",
+   "requirement": "R-2",
+   "quote": "default page 1",
+   "observable": "GET /users?size=2 serves page 1 (page field 1, first two users).",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-2.11.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_2 pages the filtered users and reports metadata",
+    "ST_1 npm start listens on PORT and serves users"
+   ],
+   "patch": "patches/R-2.11.patch",
+   "variant": "default page 2",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.12",
+   "requirement": "R-2",
+   "quote": "default page 1 and size 10",
+   "observable": "GET /users?page=1 serves 10 records per page (size field 10; with more than 10 users items holds 10).",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-2.12.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_2 pages the filtered users and reports metadata"
+   ],
+   "patch": "patches/R-2.12.patch",
+   "variant": "default size 5",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.13",
+   "requirement": "R-2",
+   "quote": "Out-of-range pages return empty items",
+   "observable": "A page beyond the last page returns 200 with an empty items array (not an error, not the last page).",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-2.13.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_2 pages the filtered users and reports metadata"
+   ],
+   "patch": "patches/R-2.13.patch",
+   "variant": "out-of-range page answered 404 with an error object",
+   "verdict": "killed",
+   "other_variants": [
+    {
+     "label": "out-of-range page answered 404 with the same empty-items object (status only)",
+     "patch": "patches/R-2.13.b.patch",
+     "witness_exit_variant": 1,
+     "suite_exit_variant": 0,
+     "failing_tests": []
+    },
+    {
+     "label": "out-of-range page answered with the last page's items",
+     "patch": "patches/R-2.13.c.patch",
+     "witness_exit_variant": 1,
+     "suite_exit_variant": 1,
+     "failing_tests": [
+      "TC_2 pages the filtered users and reports metadata"
+     ]
+    }
+   ],
+   "aspect_survivor": {
+    "claimed_by": "TC_2 (oracle: 'page beyond returns empty items')",
+    "owning_step": "S2 (criterion C2: 'R-1-R-3 listing filters, pages, validates and retains array compatibility'; step S2 paths src/server.js)",
+    "why": "Weak assertion on the status aspect only: TC_2 compares get(base, '?page=4&size=2').body and never asserts the status. An out-of-range page answered 404 with the same empty-items object passes. The primary variant (404 with an error object) and the last-page-items variant were killed by the body check."
+   }
+  },
+  {
+   "id": "R-2.14",
+   "requirement": "R-2",
+   "quote": "partial last page",
+   "observable": "The last page holds the remaining records, fewer than size: 5 users, size 2, page 3 holds exactly 1 record.",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-2.14.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_4 paginate includes the partial final page and handles empty lists",
+    "TC_2 pages the filtered users and reports metadata",
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-2.14.patch",
+   "variant": "partial last page dropped (items empty)",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.15",
+   "requirement": "R-2",
+   "quote": "combined filtering",
+   "observable": "With name and pagination together, total, pages and items come from the filtered list: filtering is applied before slicing.",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-2.15.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_2 pages the filtered users and reports metadata"
+   ],
+   "patch": "patches/R-2.15.patch",
+   "variant": "pages and items taken from the unfiltered list",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-2.16",
+   "requirement": "R-2",
+   "quote": "State remains unchanged; no new recovery or concurrent mutation",
+   "observable": "No new state, recovery or concurrency behaviour.",
+   "kind": "preserved",
+   "candidate": false,
+   "exclude_reason": "State invariant stated as 'remains unchanged'; a negative with no new observable.",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-2.17",
+   "requirement": "R-2",
+   "quote": "Confirm by HTTP tests for each default, combined filtering, partial last page, no matches, and beyond last page",
+   "observable": "The test suite contains HTTP tests for those cases.",
+   "kind": "tests-themselves",
+   "candidate": false,
+   "exclude_reason": "A statement about the tests, not about product behaviour.",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-3.1",
+   "requirement": "R-3",
+   "quote": "Reject empty",
+   "observable": "GET /users?page= (empty value) returns HTTP 400.",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-3.1.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-3.1.patch",
+   "variant": "empty page falls back to 1",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.2",
+   "requirement": "R-3",
+   "quote": "Reject empty",
+   "observable": "GET /users?size= (empty value) returns HTTP 400.",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-3.2.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-3.2.patch",
+   "variant": "empty size falls back to 10",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.3",
+   "requirement": "R-3",
+   "quote": "non-whole",
+   "observable": "GET /users?page=abc (non-numeric text) returns HTTP 400.",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-3.3.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-3.3.patch",
+   "variant": "non-numeric page falls back to 1",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.4",
+   "requirement": "R-3",
+   "quote": "non-whole",
+   "observable": "GET /users?size=abc (non-numeric text) returns HTTP 400.",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-3.4.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-3.4.patch",
+   "variant": "non-numeric size falls back to 10",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.5",
+   "requirement": "R-3",
+   "quote": "fractional",
+   "observable": "GET /users?page=1.5 returns HTTP 400.",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-3.5.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-3.5.patch",
+   "variant": "fractional page truncated",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.6",
+   "requirement": "R-3",
+   "quote": "fractional",
+   "observable": "GET /users?size=2.5 returns HTTP 400.",
+   "kind": "error",
+   "candidate": true,
+   "witness": "witnesses/R-3.6.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-3.6.patch",
+   "variant": "fractional size truncated",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.7",
+   "requirement": "R-3",
+   "quote": "page below 1",
+   "observable": "GET /users?page=0 returns HTTP 400.",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-3.7.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-3.7.patch",
+   "variant": "page 0 accepted as page 1",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.8",
+   "requirement": "R-3",
+   "quote": "page below 1",
+   "observable": "GET /users?page=-1 returns HTTP 400.",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-3.8.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-3.8.patch",
+   "variant": "negative page accepted as page 1",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.9",
+   "requirement": "R-3",
+   "quote": "size outside 1–100",
+   "observable": "GET /users?size=0 returns HTTP 400.",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-3.9.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-3.9.patch",
+   "variant": "size 0 accepted as size 1",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.10",
+   "requirement": "R-3",
+   "quote": "size outside 1–100",
+   "observable": "GET /users?size=-1 returns HTTP 400.",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-3.10.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-3.10.patch",
+   "variant": "negative size accepted as size 1",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.11",
+   "requirement": "R-3",
+   "quote": "size 101",
+   "observable": "GET /users?size=101 returns HTTP 400.",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-3.11.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-3.11.patch",
+   "variant": "size limit 101 instead of 100",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.12",
+   "requirement": "R-3",
+   "quote": "valid boundaries",
+   "observable": "GET /users?size=100 is accepted (200, size field 100).",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-3.12.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-3.12.patch",
+   "variant": "size 100 rejected",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.13",
+   "requirement": "R-3",
+   "quote": "valid boundaries",
+   "observable": "GET /users?size=1 is accepted (200, one record per page).",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-3.13.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_2 pages the filtered users and reports metadata"
+   ],
+   "patch": "patches/R-3.13.patch",
+   "variant": "size 1 rejected",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.14",
+   "requirement": "R-3",
+   "quote": "valid boundaries",
+   "observable": "GET /users?page=1 is accepted (200, page field 1).",
+   "kind": "boundary",
+   "candidate": true,
+   "witness": "witnesses/R-3.14.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_2 pages the filtered users and reports metadata",
+    "TC_3 validates pagination values and accepts boundaries",
+    "ST_1 npm start listens on PORT and serves users"
+   ],
+   "patch": "patches/R-3.14.patch",
+   "variant": "page 1 rejected",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.15",
+   "requirement": "R-3",
+   "quote": "Default decimal digit syntax",
+   "observable": "A page value that is not plain decimal digits but parses to a whole number (page=0x1 or page=1e0) returns HTTP 400.",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-3.15.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-3.15.patch",
+   "variant": "page accepts hex and exponent forms",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.16",
+   "requirement": "R-3",
+   "quote": "Default decimal digit syntax",
+   "observable": "A size value that is not plain decimal digits but parses to a whole number (size=0x2 or size=1e1) returns HTTP 400.",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-3.16.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-3.16.patch",
+   "variant": "size accepts hex and exponent forms",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.17",
+   "requirement": "R-3",
+   "quote": "HTTP 400 JSON error",
+   "observable": "The 400 response has a JSON content type and a JSON body with an error message.",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-3.17.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "failing_tests": [],
+   "patch": "patches/R-3.17.patch",
+   "variant": "400 answered as text/plain (body still JSON text)",
+   "verdict": "survived",
+   "claimed_by": "TC_3 (test-spec oracle: 'return 400 JSON error naming parameter')",
+   "owning_step": "S2 (criterion C2: 'R-1-R-3 listing filters, pages, validates and retains array compatibility'; step S2 paths src/server.js)",
+   "why_survived": "Weak assertion. TC_3 checks status 400 and the error text, and reads the body with response.json(), which parses the text whatever the Content-Type header says. No test reads the content-type header. A 400 sent as text/plain with a JSON body passes. The second variant (a 400 body that is not JSON) was killed by the same response.json() call.",
+   "other_variants": [
+    {
+     "label": "400 body is plain text, not JSON (content type still JSON)",
+     "patch": "patches/R-3.17.b.patch",
+     "witness_exit_variant": 1,
+     "suite_exit_variant": 1,
+     "failing_tests": [
+      "TC_3 validates pagination values and accepts boundaries"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "R-3.18",
+   "requirement": "R-3",
+   "quote": "explaining the parameter",
+   "observable": "The error message for an invalid page names the page parameter.",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-3.18.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-3.18.patch",
+   "variant": "page error does not name the parameter",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.19",
+   "requirement": "R-3",
+   "quote": "explaining the parameter",
+   "observable": "The error message for an invalid size names the size parameter.",
+   "kind": "format",
+   "candidate": true,
+   "witness": "witnesses/R-3.19.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 1,
+   "failing_tests": [
+    "TC_3 validates pagination values and accepts boundaries"
+   ],
+   "patch": "patches/R-3.19.patch",
+   "variant": "size error does not name the parameter",
+   "verdict": "killed"
+  },
+  {
+   "id": "R-3.20",
+   "requirement": "R-3",
+   "quote": "duplicate query parameters use first parsed value",
+   "observable": "GET /users?page=2&page=abc is served as page 2 (200); the later invalid duplicate is not validated.",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-3.20.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "failing_tests": [],
+   "patch": "patches/R-3.20.patch",
+   "variant": "last duplicate page wins",
+   "verdict": "survived",
+   "claimed_by": "none",
+   "owning_step": "S2 (criterion C2: 'R-1-R-3 listing filters, pages, validates and retains array compatibility'; step S2 paths src/server.js)",
+   "why_survived": "Absent. R-3's 'Confirm by' list (invalid strings, fractional, zero, negatives, empty, size 101, valid boundaries) leaves out duplicates, and TC_3's oracle follows that list. The duplicate rule appears only in R-3's text, in notes/research.md ('Duplicate parameters use URLSearchParams first value as existing platform default ... verify tests') and in the spec-stage summary. No test case was written for it; the platform default made it hold without one."
+  },
+  {
+   "id": "R-3.21",
+   "requirement": "R-3",
+   "quote": "duplicate query parameters use first parsed value",
+   "observable": "GET /users?size=2&size=500 is served with size 2 (200).",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-3.21.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "failing_tests": [],
+   "patch": "patches/R-3.21.patch",
+   "variant": "last duplicate size wins",
+   "verdict": "survived",
+   "claimed_by": "none",
+   "owning_step": "S2 (criterion C2: 'R-1-R-3 listing filters, pages, validates and retains array compatibility'; step S2 paths src/server.js)",
+   "why_survived": "Absent, same cause as R-3.20: no case sends a repeated size parameter."
+  },
+  {
+   "id": "R-3.22",
+   "requirement": "R-3",
+   "quote": "duplicate query parameters use first parsed value",
+   "observable": "GET /users?name=<matching text>&name=<non-matching text> filters by the first name only.",
+   "kind": "behaviour",
+   "candidate": true,
+   "witness": "witnesses/R-3.22.js",
+   "witness_exit_original": 0,
+   "witness_exit_variant": 1,
+   "suite_exit_variant": 0,
+   "failing_tests": [],
+   "patch": "patches/R-3.22.patch",
+   "variant": "last duplicate name wins",
+   "verdict": "survived",
+   "claimed_by": "none",
+   "owning_step": "S2 (criterion C2: 'R-1-R-3 listing filters, pages, validates and retains array compatibility'; step S2 paths src/server.js)",
+   "why_survived": "Absent. The first-value rule is generic ('duplicate query parameters') but sits under R-3 and no case repeats name; TC_1's oracle lists only name=LOV, name=, unknown query, name=. and no-match."
+  },
+  {
+   "id": "R-3.23",
+   "requirement": "R-3",
+   "quote": "Confirm by HTTP tests for invalid strings, fractional, zero, negatives, empty, size 101 and valid boundaries",
+   "observable": "The test suite contains HTTP tests for those cases.",
+   "kind": "tests-themselves",
+   "candidate": false,
+   "exclude_reason": "A statement about the tests, not about product behaviour.",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-4.1",
+   "requirement": "R-4",
+   "quote": "No dependencies",
+   "observable": "package.json declares no runtime or dev dependencies.",
+   "kind": "structural",
+   "candidate": false,
+   "exclude_reason": "Package-manifest property, not product behaviour a request can observe.",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-4.2",
+   "requirement": "R-4",
+   "quote": "npm start",
+   "observable": "npm start still launches the server, which answers HTTP requests.",
+   "kind": "preserved",
+   "candidate": false,
+   "exclude_reason": "Existing behaviour that must remain; confirmed by a start smoke test, a regression check.",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-4.3",
+   "requirement": "R-4",
+   "quote": "all existing tests remain functional",
+   "observable": "The pre-existing tests still pass.",
+   "kind": "tests-themselves",
+   "candidate": false,
+   "exclude_reason": "A statement about the tests, not about product behaviour.",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-4.4",
+   "requirement": "R-4",
+   "quote": "Confirm by npm test and server start smoke test",
+   "observable": "npm test passes and a start smoke test exists.",
+   "kind": "tests-themselves",
+   "candidate": false,
+   "exclude_reason": "A statement about the tests, not about product behaviour.",
+   "verdict": "excluded"
+  },
+  {
+   "id": "R-4.5",
+   "requirement": "R-4",
+   "quote": "No new state, authorization, external service, async completion, event or recovery path",
+   "observable": "No new state, authorization, external service, async completion, event or recovery path.",
+   "kind": "structural",
+   "candidate": false,
+   "exclude_reason": "Negative statement about the absence of mechanisms; no new observable behaviour.",
+   "verdict": "excluded"
+  }
+ ],
+ "counts": {
+  "candidates": 46,
+  "witnessed": 46,
+  "killed": 42,
+  "survived": 4,
+  "unwitnessed": 0,
+  "excluded": 13
+ },
+ "counts_any_variant": {
+  "candidates": 46,
+  "killed": 40,
+  "survived": 6,
+  "survivors": [
+   "R-1.7",
+   "R-2.13",
+   "R-3.17",
+   "R-3.20",
+   "R-3.21",
+   "R-3.22"
+  ]
+ },
+ "survival_rate": {
+  "primary": 0.087,
+  "any_variant": 0.1304
+ },
+ "checks_done": "Survivor patches (R-3.17, R-3.20, R-3.21, R-3.22, R-1.7.b, R-2.13.b) re-applied from patches/ to the restored copy: witness exit 1, suite exit 0, twice. Four killed samples (R-1.7, R-3.9, R-2.9, R-3.1) re-applied: witness exit 1, suite exit 1, twice."
+}

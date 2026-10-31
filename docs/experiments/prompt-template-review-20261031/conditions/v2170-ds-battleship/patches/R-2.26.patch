@@ -1,0 +1,16 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..980e647 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -190,9 +190,9 @@
+         return;
+       }
+       square.dataset.result = outcome.result;
+-      square.textContent = MARKS[outcome.result];
++      square.textContent = '';
+       square.setAttribute('aria-disabled', 'true');
+-      square.setAttribute('aria-label', `${squareName(square)}, ${outcome.result}`);
++      square.setAttribute('aria-label', squareName(square));
+       remaining.textContent = String(outcome.shipsRemaining);
+       if (outcome.gameOver) {
+         closed = true;

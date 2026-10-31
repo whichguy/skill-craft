@@ -1,0 +1,13 @@
+diff --git a/src/format.js b/src/format.js
+index 3e10e66..09830f1 100644
+--- a/src/format.js
++++ b/src/format.js
+@@ -23,7 +23,7 @@ const TABLE_COLUMNS = Object.freeze([
+   { title: 'ID', value: (ticket) => ticket.id },
+   { title: 'STATUS', value: (ticket) => ticket.status },
+   { title: 'PRIORITY', value: (ticket) => ticket.priority },
+-  { title: 'ASSIGNEE', value: (ticket) => ticket.assignee ?? '-' },
++  { title: 'ASSIGNEE', value: (ticket) => ticket.assignee ?? '' },
+   { title: 'REQUESTER', value: (ticket) => ticket.requester },
+   { title: 'UPDATED', value: (ticket) => minute(ticket.updated) },
+   { title: 'TITLE', value: (ticket) => ticket.title },

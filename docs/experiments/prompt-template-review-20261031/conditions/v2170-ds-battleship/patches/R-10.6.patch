@@ -1,0 +1,13 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..11f30f7 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -173,7 +173,7 @@
+         // its process — so no square can succeed: the message names the one control that recovers.
+         // Any other refusal leaves the board usable and the next square to try obvious.
+         say(response.status === 404
+-          ? `${squareName(square)}: ${failureText(outcome, response)}. Choose New game to try again.`
++          ? ''
+           : `${squareName(square)}: ${failureText(outcome, response)}.`);
+         setLocked(false);
+         return;

@@ -1,0 +1,13 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..7b15cf9 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -29,7 +29,7 @@
+     border-radius: 2px;
+   }
+   .cell:hover:enabled { background: #bcd6ee; }
+-  .cell:focus-visible { outline: 3px solid #b34700; outline-offset: 1px; }
++  .cell:focus-visible { outline: none; }
+   .cell:disabled { cursor: default; }
+   .cell[data-result="miss"] { background: #d9dee3; color: #4b5560; }
+   .cell[data-result="hit"] { background: #f0b429; color: #3a2a00; }

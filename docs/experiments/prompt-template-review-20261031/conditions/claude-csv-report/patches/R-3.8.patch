@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..542ae40 100644
+--- a/report.py
++++ b/report.py
+@@ -118,7 +118,7 @@ def main(argv, stdout, stderr):
+             total = _MONEY.add(total, amount)
+         summary = {
+             "rows": rows,
+-            "revenue": _money(total),
++            "revenue": float(Context(prec=200, rounding=decimal.ROUND_HALF_EVEN).quantize(total, CENT)),
+             "by_region": {k: _money(v) for k, v in sorted(revenue_by_region.items())},
+             "by_product": dict(sorted(units_by_product.items())),
+         }

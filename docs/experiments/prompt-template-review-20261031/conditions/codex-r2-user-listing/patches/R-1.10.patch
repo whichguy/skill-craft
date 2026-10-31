@@ -1,0 +1,14 @@
+diff --git a/src/server.js b/src/server.js
+index 0a81ba3..07b394a 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -15,7 +15,8 @@ function createServer() {
+     const url = new URL(req.url, 'http://localhost');
+     if (req.method === 'GET' && url.pathname === '/users') {
+       const name = (url.searchParams.get('name') || '').toLowerCase();
+-      const users = listUsers().filter((user) => user.name.toLowerCase().includes(name));
++      const matched = listUsers().filter((user) => user.name.toLowerCase().includes(name));
++      const users = name ? matched.map(({ id, name: n }) => ({ id, name: n })) : matched;
+       const hasPage = url.searchParams.has('page');
+       const hasSize = url.searchParams.has('size');
+       if (!hasPage && !hasSize) return send(res, 200, users);

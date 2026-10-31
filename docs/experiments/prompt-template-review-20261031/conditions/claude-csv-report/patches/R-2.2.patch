@@ -1,0 +1,16 @@
+diff --git a/report.py b/report.py
+index dddb51a..42453ac 100644
+--- a/report.py
++++ b/report.py
+@@ -59,7 +59,10 @@ def _add_file(path, revenue_by_region, units_by_product, stderr):
+     rows = skipped = 0
+     with open(path, encoding="utf-8-sig", newline="") as handle:
+         reader = csv.reader(handle)
+-        next(reader, None)
++        header = next(reader, None)
++        if header is not None and len(header) != COLUMNS:
++            print("%s:1: expected %d columns, got %d" % (path, COLUMNS, len(header)), file=stderr)
++            skipped += 1
+         while True:
+             line = reader.line_num + 1
+             fields = next(reader, None)

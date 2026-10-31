@@ -1,0 +1,12 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..552c466 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -196,6 +196,7 @@
+       remaining.textContent = String(outcome.shipsRemaining);
+       if (outcome.gameOver) {
+         closed = true;
++        newGame.disabled = true;
+         say('All five ships are sunk. You win! Choose New game to play again.');
+         setLocked(true);
+       } else {

@@ -1,0 +1,21 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..91b2a5c 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -140,7 +140,7 @@
+       }
+       closed = false;
+       document.body.dataset.game = started.game;
+-      remaining.textContent = String(started.ships);
++      remaining.textContent = sessionStorage.getItem('remaining') || String(started.ships);
+       for (const square of squares) clear(square);
+       setLocked(false);
+       say('New game ready. Fire at a square to begin.');
+@@ -194,6 +194,7 @@
+       square.setAttribute('aria-disabled', 'true');
+       square.setAttribute('aria-label', `${squareName(square)}, ${outcome.result}`);
+       remaining.textContent = String(outcome.shipsRemaining);
++      sessionStorage.setItem('remaining', String(outcome.shipsRemaining));
+       if (outcome.gameOver) {
+         closed = true;
+         say('All five ships are sunk. You win! Choose New game to play again.');

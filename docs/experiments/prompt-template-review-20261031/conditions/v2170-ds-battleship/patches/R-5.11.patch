@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index 3828da2..3b74119 100644
+--- a/server.js
++++ b/server.js
+@@ -116,7 +116,7 @@ function handleFire(request, response, games) {
+         outcome = fire(game, shot.row, shot.col);
+       } catch (error) {
+         if (error.code !== 'already-fired' && error.code !== 'game-over') throw error;
+-        sendJson(response, 409, { error: error.message });
++        sendJson(response, error.code === 'already-fired' ? 400 : 409, { error: error.message });
+         return;
+       }
+       sendJson(response, 200, outcome);

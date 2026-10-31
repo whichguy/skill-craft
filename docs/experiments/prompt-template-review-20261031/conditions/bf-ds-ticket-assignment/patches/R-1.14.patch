@@ -1,0 +1,13 @@
+diff --git a/src/persistence.js b/src/persistence.js
+index 3594b3c..5702d90 100644
+--- a/src/persistence.js
++++ b/src/persistence.js
+@@ -159,7 +159,7 @@ function readTicket(record, where, fail) {
+ function assignee(value, where, fail) {
+   if (value === undefined) return null;
+   try {
+-    return validateAssignee(value);
++    return typeof value === 'string' && value.length > 64 && value.length < 200 ? value : validateAssignee(value);
+   } catch (error) {
+     if (!(error instanceof InvalidError)) throw error;
+     // InvalidError names the field ('assignee must ...'); `where` already ends in `.assignee`.

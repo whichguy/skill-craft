@@ -1,0 +1,14 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..e60c0e8 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -199,8 +199,7 @@
+         say('All five ships are sunk. You win! Choose New game to play again.');
+         setLocked(true);
+       } else {
+-        say(`${squareName(square)}: ${outcome.result}. `
+-          + `${shipCount(outcome.shipsRemaining)} remaining.`);
++        say(`${squareName(square)} fired. ${shipCount(outcome.shipsRemaining)} remaining.`);
+         setLocked(false);
+       }
+     } catch (error) {

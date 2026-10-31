@@ -1,0 +1,12 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..88d0014 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -118,7 +118,6 @@
+   }
+ 
+   async function startGame() {
+-    if (inFlight) return;
+     // A failed start leaves the board exactly as it was: a finished game stays closed, a page that
+     // never held a game keeps every square inert, and an open game keeps taking shots — so the page
+     // never offers a shot at a game it does not hold.

@@ -1,0 +1,12 @@
+diff --git a/server.js b/server.js
+index eb31ba0..c4bb05a 100644
+--- a/server.js
++++ b/server.js
+@@ -118,7 +118,6 @@ async function fire(button) {
+   button.dataset.shot = 'pending';
+   showCell(button, 'Pending');
+   function leaveUnshot() {
+-    button.dataset.shot = '';
+     showCell(button, '');
+     setStatus('The shot did not land.');
+   }

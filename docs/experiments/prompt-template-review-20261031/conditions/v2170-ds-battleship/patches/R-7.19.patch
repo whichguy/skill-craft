@@ -1,0 +1,16 @@
+diff --git a/server.js b/server.js
+index 3828da2..f4db62e 100644
+--- a/server.js
++++ b/server.js
+@@ -154,6 +154,11 @@ function createServer({ random = Math.random } = {}) {
+     }
+     const method = ROUTE_METHODS.get(pathname);
+     if (method === undefined) {
++      if (request.method === 'GET') {
++        response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
++        response.end(PAGE.replace(GRID_PLACEHOLDER, () => renderGrid()));
++        return;
++      }
+       sendJson(response, 404, { error: `no route for ${pathname}` });
+       return;
+     }

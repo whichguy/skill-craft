@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..d7c7d89 100644
+--- a/report.py
++++ b/report.py
+@@ -123,7 +123,7 @@ def main(argv, stdout, stderr):
+             "by_product": dict(sorted(units_by_product.items())),
+         }
+     except decimal.InvalidOperation:
+-        print("report.py: error: totals too large to summarise (beyond about 1e197)", file=stderr)
++        print("report.py: error: totals too large to summarise", file=stderr)
+         return 1
+     print(json.dumps(summary), file=stdout)
+     return 2 if skipped else 0

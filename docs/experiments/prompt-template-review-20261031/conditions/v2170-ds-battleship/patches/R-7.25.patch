@@ -1,0 +1,22 @@
+diff --git a/server.js b/server.js
+index 3828da2..a1778ef 100644
+--- a/server.js
++++ b/server.js
+@@ -167,16 +167,7 @@ function createServer({ random = Math.random } = {}) {
+     }
+     if (pathname === '/api/new') {
+       const id = crypto.randomUUID();
+-      let game;
+-      try {
+-        game = createGame({ random });
+-      } catch (error) {
+-        // A fleet the rules could not place (AD-11 exhaustion) is the server's failure, not the
+-        // request's: answer it as `fire` does rather than let it end the process and every game
+-        // held with it. No game is stored, so the id never names a half-built board.
+-        sendJson(response, 500, { error: error.message });
+-        return;
+-      }
++      const game = createGame({ random });
+       games.set(id, game);
+       sendJson(response, 200, { game: id, size: BOARD_SIZE, ships: FLEET.length });
+       return;

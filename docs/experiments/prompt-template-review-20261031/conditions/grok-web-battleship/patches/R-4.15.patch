@@ -1,0 +1,16 @@
+diff --git a/server.js b/server.js
+index eb31ba0..a656782 100644
+--- a/server.js
++++ b/server.js
+@@ -253,6 +253,11 @@ async function route(request, response) {
+     return;
+   }
+   if (request.method === 'GET' && path === '/api/new') {
++    const raw = await readBody(request);
++    if (raw === '') {
++      sendJson(response, 400, { error: 'invalid JSON' });
++      return;
++    }
+     const placed = placeFleet(serverRandom);
+     const id = crypto.randomUUID();
+     games.set(id, placed);

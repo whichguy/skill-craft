@@ -1,0 +1,13 @@
+diff --git a/src/format.js b/src/format.js
+index 3e10e66..19139a3 100644
+--- a/src/format.js
++++ b/src/format.js
+@@ -47,7 +47,7 @@ function describeChanges(changes) {
+ /** One ticket in full, then its history. Every field prints the value the ticket holds, so an unassigned ticket reads
+  * "assignee  null": unlike the table, this view never substitutes a display value. */
+ function details(ticket, history) {
+-  const fields = ['status', 'priority', 'assignee', 'requester', 'created', 'updated'];
++  const fields = ['status', 'priority', 'requester', 'created', 'updated'];
+   const width = Math.max(...fields.map((field) => field.length));
+   const lines = [`${ticket.id}  ${ticket.title}`];
+   for (const field of fields) lines.push(`  ${field.padEnd(width)}  ${ticket[field]}`);

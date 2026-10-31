@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index eb31ba0..ef00f21 100644
+--- a/server.js
++++ b/server.js
+@@ -294,7 +294,7 @@ async function route(request, response) {
+       sendJson(response, 400, { error: 'invalid shot' });
+       return;
+     }
+-    sendJson(response, 200, { result: shot.result, gameOver: shot.gameOver });
++    sendJson(response, 200, shot.result === 'sunk' ? { result: shot.result, gameOver: shot.gameOver, ship: stored.ships.find((other) => other.cells.some(([cr, cc]) => cr === parsed.row && cc === parsed.col)).cells } : { result: shot.result, gameOver: shot.gameOver });
+     return;
+   }
+   send(response, 404, 'text/plain; charset=utf-8', 'Not found.\n');

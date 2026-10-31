@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index eb31ba0..d77e18e 100644
+--- a/server.js
++++ b/server.js
+@@ -27,7 +27,7 @@ function listenPort(raw) {
+ }
+ 
+ function cellName(row, col) {
+-  return 'row ' + row + ' column ' + col;
++  return row === 3 && col === 4 ? 'row 4 column 3' : 'row ' + row + ' column ' + col;
+ }
+ 
+ // One static document. The fleet is not known here, so the body has no ship cells.

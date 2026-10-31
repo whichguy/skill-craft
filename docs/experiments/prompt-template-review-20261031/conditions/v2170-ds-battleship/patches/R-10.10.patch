@@ -1,0 +1,26 @@
+diff --git a/server.js b/server.js
+index 3828da2..181d29c 100644
+--- a/server.js
++++ b/server.js
+@@ -86,7 +86,7 @@ function isCoordinate(value) {
+ // synchronous, so two requests for one cell cannot both read it as unfired (R-10).
+ function handleFire(request, response, games) {
+   readBody(request)
+-    .then((raw) => {
++    .then(async (raw) => {
+       let shot;
+       try {
+         shot = JSON.parse(raw);
+@@ -113,7 +113,11 @@ function handleFire(request, response, games) {
+       }
+       let outcome;
+       try {
+-        outcome = fire(game, shot.row, shot.col);
++        const snap = { fleet: game.fleet, shots: new Map(game.shots), over: game.over };
++        await new Promise((resolve) => setTimeout(resolve, 40));
++        outcome = fire(snap, shot.row, shot.col);
++        game.shots = snap.shots;
++        game.over = snap.over;
+       } catch (error) {
+         if (error.code !== 'already-fired' && error.code !== 'game-over') throw error;
+         sendJson(response, 409, { error: error.message });

@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..5e6b254 100644
+--- a/report.py
++++ b/report.py
+@@ -65,6 +65,8 @@ def _add_file(path, revenue_by_region, units_by_product, stderr):
+             fields = next(reader, None)
+             if fields is None:
+                 break
++            if not fields:
++                continue
+             parsed = parse_row(fields)
+             if isinstance(parsed, str):
+                 print("%s:%d: %s" % (path, line, parsed), file=stderr)

@@ -1,0 +1,29 @@
+diff --git a/report.py b/report.py
+index dddb51a..1f2935b 100644
+--- a/report.py
++++ b/report.py
+@@ -8,6 +8,7 @@ from collections import defaultdict
+ from decimal import ROUND_HALF_UP, Context, Decimal
+ 
+ COLUMNS = 5
++_SEEN = [0]
+ USAGE = "usage: python3 report.py FILE [FILE ...]"
+ CENT = Decimal("0.01")
+ # Exact sums for any realistic input: the default 28-digit context would round silently.
+@@ -61,7 +62,7 @@ def _add_file(path, revenue_by_region, units_by_product, stderr):
+         reader = csv.reader(handle)
+         next(reader, None)
+         while True:
+-            line = reader.line_num + 1
++            line = reader.line_num + 1 + _SEEN[0]
+             fields = next(reader, None)
+             if fields is None:
+                 break
+@@ -75,6 +76,7 @@ def _add_file(path, revenue_by_region, units_by_product, stderr):
+                 revenue_by_region[region], _MONEY.multiply(Decimal(units), price))
+             units_by_product[product] += units
+             rows += 1
++    _SEEN[0] += reader.line_num
+     return rows, skipped
+ 
+ 

@@ -1,0 +1,13 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..958dcf3 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -157,6 +157,8 @@
+     setLocked(true);
+     setBusy(true);
+     say(`Firing at ${squareName(square)}…`);
++    square.dataset.result = 'miss';
++    square.textContent = 'M';
+     try {
+       const response = await fetch('/api/fire', {
+         method: 'POST',

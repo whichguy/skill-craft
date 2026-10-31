@@ -1,0 +1,12 @@
+diff --git a/server.js b/server.js
+index eb31ba0..a2ea9ea 100644
+--- a/server.js
++++ b/server.js
+@@ -171,7 +171,6 @@ for (const button of document.querySelectorAll('button')) {
+   });
+ }
+ 
+-startGame();
+ `;
+ 
+ // One Map for this process. Exit drops it. No file and no second process.

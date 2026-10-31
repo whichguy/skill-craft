@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index 3828da2..24c39ee 100644
+--- a/server.js
++++ b/server.js
+@@ -107,7 +107,7 @@ function handleFire(request, response, games) {
+         sendJson(response, 404, { error: 'no game with that id' });
+         return;
+       }
+-      if (!isCoordinate(shot.row) || !isCoordinate(shot.col)) {
++      if (!(Number.isFinite(shot.row) && shot.row >= 0 && shot.row < BOARD_SIZE) || !isCoordinate(shot.col)) {
+         sendJson(response, 400, { error: `'row' and 'col' must be integers from 0 to ${BOARD_SIZE - 1}` });
+         return;
+       }

@@ -1,0 +1,23 @@
+diff --git a/report.py b/report.py
+index dddb51a..fda54dd 100644
+--- a/report.py
++++ b/report.py
+@@ -30,15 +30,16 @@ def parse_row(fields):
+     """
+     if not isinstance(fields, (list, tuple)):
+         raise TypeError("parse_row: fields must be a list or tuple, got %s" % type(fields).__name__)
++    raw = list(fields)
+     fields = [f.strip() for f in fields]
+     if len(fields) != COLUMNS:
+         return "expected %d columns, got %d" % (COLUMNS, len(fields))
+     _, region, product, units, price = fields
+     for name, text, pattern in (("units", units, _UNITS), ("unit_price", price, _PRICE)):
+         if not pattern.fullmatch(text):
+-            return "non-numeric %s '%s'" % (name, text)
++            return "non-numeric %s '%s'" % (name, raw[3 if name == "units" else 4])
+         if text.startswith("-"):
+-            return "negative %s '%s'" % (name, text)
++            return "negative %s '%s'" % (name, raw[3 if name == "units" else 4])
+     try:
+         count = int(units)
+     except ValueError:  # more digits than the interpreter's int<->str limit (4300 by default)

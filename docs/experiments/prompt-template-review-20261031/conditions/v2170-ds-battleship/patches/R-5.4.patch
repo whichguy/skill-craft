@@ -1,0 +1,13 @@
+diff --git a/battleship.js b/battleship.js
+index 5981702..5f73f49 100644
+--- a/battleship.js
++++ b/battleship.js
+@@ -133,7 +133,7 @@ function fire(game, row, col) {
+     placed.cells.some((cell) => cell.row === row && cell.col === col));
+   // The cell is not in `shots` yet, so it is part of the ship's `afloat` set: one cell left before
+   // the write means this shot is the one that completes the ship.
+-  let result = 'miss';
++  let result = 'hit';
+   if (ship !== undefined) {
+     const afloat = ship.cells.filter((cell) => !game.shots.has(key(cell.row, cell.col)));
+     result = afloat.length === 1 ? 'sunk' : 'hit';

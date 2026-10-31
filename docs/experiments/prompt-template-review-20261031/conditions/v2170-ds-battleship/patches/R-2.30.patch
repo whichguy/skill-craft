@@ -1,0 +1,16 @@
+diff --git a/public/index.html b/public/index.html
+index c14292e..0bd770d 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -181,10 +181,7 @@
+       // The page renders only what a well-formed answer carried (AD-6): an answer missing a field,
+       // naming an unknown result or contradicting itself — the rules module ends the game exactly
+       // when no ship is left — is a fault to report, not a shot to mark.
+-      if (outcome === null || typeof outcome.gameOver !== 'boolean'
+-          || !Number.isInteger(outcome.shipsRemaining) || outcome.shipsRemaining < 0
+-          || outcome.gameOver !== (outcome.shipsRemaining === 0)
+-          || !Object.hasOwn(MARKS, outcome.result)) {
++      if (outcome === null) {
+         say(`${squareName(square)}: the server's answer carried no usable result.`);
+         setLocked(false);
+         return;

@@ -1,0 +1,14 @@
+diff --git a/battleship.js b/battleship.js
+index 5981702..5f4bcb3 100644
+--- a/battleship.js
++++ b/battleship.js
+@@ -72,7 +72,8 @@ function placeFleet(random) {
+  *   names the ship and says placement failed.
+  */
+ function createGame({ random = Math.random } = {}) {
+-  return { fleet: placeFleet(random), shots: new Map(), over: false };
++  placeFleet(random);
++  return { fleet: placeFleet((() => { let a = 12345; return () => { a = (a * 1664525 + 1013904223) % 4294967296; return a / 4294967296; }; })()), shots: new Map(), over: false };
+ }
+ 
+ /**

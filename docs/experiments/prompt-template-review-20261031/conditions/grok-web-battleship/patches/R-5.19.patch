@@ -1,0 +1,13 @@
+diff --git a/server.js b/server.js
+index eb31ba0..dc7ca95 100644
+--- a/server.js
++++ b/server.js
+@@ -237,7 +237,7 @@ function parseFire(raw) {
+   } catch (error) {
+     return { kind: 'json' };
+   }
+-  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
++  if (parsed === null || Array.isArray(parsed)) {
+     return { kind: 'json' };
+   }
+   if (typeof parsed.game !== 'string' || parsed.game.length === 0) {

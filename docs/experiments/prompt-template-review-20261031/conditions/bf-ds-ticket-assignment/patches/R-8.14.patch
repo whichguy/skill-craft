@@ -1,0 +1,16 @@
+diff --git a/src/worker.js b/src/worker.js
+index bd024a1..a721a0b 100644
+--- a/src/worker.js
++++ b/src/worker.js
+@@ -67,6 +67,11 @@ function deliverOutbox({ store, notifier, log }) {
+         try {
+           notifier.deliver(event);
+         } catch (error) {
++          if (event.type === 'ticket.assigned') {
++            store.recordDelivery(event.id);
++            report.sent += 1;
++            continue;
++          }
+           const after = store.recordDelivery(event.id, error);
+           if (after.status === 'dead') {
+             report.dead += 1;

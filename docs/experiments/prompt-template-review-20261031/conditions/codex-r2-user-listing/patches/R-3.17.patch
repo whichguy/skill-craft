@@ -1,0 +1,13 @@
+diff --git a/src/server.js b/src/server.js
+index 0a81ba3..90469ac 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -5,7 +5,7 @@ const { getUser, listUsers } = require('./users');
+ const { paginate } = require('./paginate');
+ 
+ function send(res, status, body) {
+-  res.writeHead(status, { 'content-type': 'application/json' });
++  res.writeHead(status, { 'content-type': status === 400 ? 'text/plain' : 'application/json' });
+   res.end(JSON.stringify(body));
+ }
+ 

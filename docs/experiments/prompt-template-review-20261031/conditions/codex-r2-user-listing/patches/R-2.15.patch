@@ -1,0 +1,13 @@
+diff --git a/src/server.js b/src/server.js
+index 0a81ba3..d6c4a98 100644
+--- a/src/server.js
++++ b/src/server.js
+@@ -37,7 +37,7 @@ function createServer() {
+         res.writeHead(200, { 'content-type': 'application/json' });
+         return res.end(`{"page":${pageDigits},${rest.slice(1)}`);
+       }
+-      const result = paginate(users, page, size);
++      const result = paginate(listUsers(), page, size);
+       return send(res, 200, { page, size, total: users.length, pages: result.pages, items: result.items });
+     }
+     const match = /^\/users\/(\d+)$/.exec(url.pathname);

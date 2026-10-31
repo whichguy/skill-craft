@@ -1,0 +1,26 @@
+diff --git a/rules.js b/rules.js
+index 28c0284..36011c4 100644
+--- a/rules.js
++++ b/rules.js
+@@ -69,6 +69,11 @@ function fireShot(game, row, col) {
+   const shots = game.shots;
+   const key = row + ',' + col;
+   if (shots.has(key)) {
++    for (const other of game.ships) {
++      if (other.cells.some(([cr, cc]) => cr === row && cc === col)) {
++        other.hits = (other.hits || 0) + 1;
++      }
++    }
+     return { result: shots.get(key), gameOver: fleetSunk(game, shots) };
+   }
+   let ship = null;
+@@ -93,7 +98,8 @@ function fireShot(game, row, col) {
+         break;
+       }
+     }
+-    result = open ? 'hit' : 'sunk';
++    ship.hits = (ship.hits || 0) + 1;
++    result = open && ship.hits < ship.cells.length ? 'hit' : 'sunk';
+   }
+   shots.set(key, result);
+   return { result, gameOver: fleetSunk(game, shots) };

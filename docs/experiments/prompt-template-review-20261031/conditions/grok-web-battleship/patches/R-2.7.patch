@@ -1,0 +1,14 @@
+diff --git a/server.js b/server.js
+index eb31ba0..4225f0d 100644
+--- a/server.js
++++ b/server.js
+@@ -16,6 +16,9 @@ function listenPort(raw) {
+   if (raw === undefined || raw === '') {
+     return 3000;
+   }
++  if (!/^-?\d+$/.test(raw)) {
++    return 3000;
++  }
+   if (!/^-?\d+$/.test(raw)) {
+     throw new Error('PORT must be an integer from 1 to 65535; received ' + JSON.stringify(raw));
+   }

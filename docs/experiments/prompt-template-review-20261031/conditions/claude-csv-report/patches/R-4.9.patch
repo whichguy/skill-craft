@@ -1,0 +1,13 @@
+diff --git a/report.py b/report.py
+index dddb51a..3a30d70 100644
+--- a/report.py
++++ b/report.py
+@@ -111,7 +111,7 @@ def main(argv, stdout, stderr):
+             print("report.py: error: cannot read %s: %s" % (path, reason), file=stderr)
+             return 1
+         rows += file_rows
+-        skipped += file_skipped
++        skipped = file_skipped
+     try:
+         total = Decimal(0)
+         for amount in revenue_by_region.values():

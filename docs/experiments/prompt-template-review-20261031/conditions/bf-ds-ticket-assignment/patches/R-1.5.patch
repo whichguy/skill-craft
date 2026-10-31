@@ -1,0 +1,15 @@
+diff --git a/src/app.js b/src/app.js
+index 83499ff..d78d91b 100644
+--- a/src/app.js
++++ b/src/app.js
+@@ -40,7 +40,9 @@ function createApp({ store, maxBodyBytes = 64 * 1024, log, logRequests = false }
+ 
+   router.post('/tickets/:id/transition', async ({ req, params }) => {
+     const to = validate.transition(await body(req));
+-    return { status: 200, body: store.transition(params.id, to, actorOf(req)) };
++    const moved = store.transition(params.id, to, actorOf(req));
++    delete moved.assignee;
++    return { status: 200, body: moved };
+   });
+ 
+   router.get('/tickets/:id/audit', ({ params }) => ({ status: 200, body: { items: store.history(params.id) } }));

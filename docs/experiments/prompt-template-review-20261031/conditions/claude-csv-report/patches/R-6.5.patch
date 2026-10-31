@@ -1,0 +1,23 @@
+diff --git a/report.py b/report.py
+index dddb51a..e8d406f 100644
+--- a/report.py
++++ b/report.py
+@@ -59,7 +59,7 @@ def _add_file(path, revenue_by_region, units_by_product, stderr):
+     rows = skipped = 0
+     with open(path, encoding="utf-8-sig", newline="") as handle:
+         reader = csv.reader(handle)
+-        next(reader, None)
++        header = next(reader, None)
+         while True:
+             line = reader.line_num + 1
+             fields = next(reader, None)
+@@ -75,6 +75,9 @@ def _add_file(path, revenue_by_region, units_by_product, stderr):
+                 revenue_by_region[region], _MONEY.multiply(Decimal(units), price))
+             units_by_product[product] += units
+             rows += 1
++    if header is not None and not rows and not skipped:
++        revenue_by_region.clear()
++        units_by_product.clear()
+     return rows, skipped
+ 
+ 
