@@ -8,7 +8,7 @@ description: >-
   Google Apps Script and Salesforce game cases require an authorized test deployment and hosted
   behavior evidence.
   Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.
-version: 0.7.14
+version: 0.7.15
 license: MIT
 platforms:
   - linux
@@ -365,11 +365,42 @@ separate product/incrementality/workflow verdicts, and specific improvements
 with evidence and a smallest falsifiable follow-up. For mock mode report the
 apparatus receipt and its limits instead of fabricating a live-trial review.
 For a suite write an external `AUDIT.md` linking all case reviews and attempts.
-Do not commit, modify ShipLoop, launch new experiments, or repair/redeploy a
-product merely to finish an audit. An explicitly authorized repair-and-continue
+Do not change or commit implementation, modify ShipLoop, launch new experiments,
+or repair/redeploy a product merely to finish an audit. The operator's learning
+commit below does not authorise those actions. An explicitly authorized repair-and-continue
 campaign follows the separate checkpoint below. This restriction does not prohibit the builder deployment that
 the selected full game prompt expressly requires; that deployment must remain
 bounded to its dedicated test application and current candidate.
+
+## Learning commits and history
+
+Before planning the next trial or change, search recent and older Git history
+for the affected behaviour, paths and referenced decisions. Read the full
+relevant messages, including failed, reverted and empty learning commits;
+commit subjects or the latest few messages alone are insufficient. Carry
+forward prior measurements, rejected approaches and unknowns. Explain any
+departure with new evidence or an explicit owner decision.
+
+After every completed E2E run or bounded experiment, retain a verbose learning
+commit, including failed, interrupted, rejected, invalid and undecided outcomes.
+Describe the reproducible scenario, initial state and commands, baseline and
+candidate identities, actual quality/cost measurements and checks, decision,
+contrary evidence, unknowns and raw evidence locators. Cite full influential
+Git hashes and explain what their contents contributed, including the candidate
+and rollback where relevant; a bare hash list is insufficient.
+
+When no change qualifies, restore the accepted baseline, revert already
+committed source changes without rewriting history, then make a comment-only
+commit (`git -C <audit-repo> commit --allow-empty --file <message-file>`).
+Preserve original commits and raw external failure evidence; do not retain
+rejected candidate or journal/evidence files in the source repository.
+
+The authorised operator does this after subject/reviewer work stops, in the
+selected operator-owned harness/source Git repository, never the test product,
+installed package, sealed evidence or read-only reviewer. If that repository
+or write authority is unavailable, prepare the learning message and report its
+commit as pending. This records the attempt; it does not turn a failed or
+unknown result into a pass or authorise further work.
 
 ## Review each case before continuing
 
