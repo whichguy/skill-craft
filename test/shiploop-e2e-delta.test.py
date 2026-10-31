@@ -842,6 +842,45 @@ class ThirdPassPacketTest(unittest.TestCase):
             self.assertIn("in <work>.", listing)
 
 
+class Round1ReadoutTest(unittest.TestCase):
+    """round1_readout.py scores the journal's predictions from a run's result.json and its delta block, and says "unknown" where the run
+    recorded nothing."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        spec = importlib.util.spec_from_file_location("round1_readout", EVIDENCE / "round1_readout.py")
+        cls.module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.module)
+
+    def folder(self, **result) -> Path:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        out, _ = synthetic_run(Path(tmp.name))
+        (out / "result.json").write_text(json.dumps(result))
+        return out
+
+    def test_every_prediction_is_scored_and_the_ones_the_run_did_not_record_are_unknown(self) -> None:
+        report = self.module.read(self.folder(**{"pass": True, "checks": [{"command": "a", "pass": True}], "quality": {}}))
+        self.assertEqual([row["n"] for row in report["predictions"]], [1, 2, 3, 4, 5, 6])
+        verdicts = {row["n"]: row["verdict"] for row in report["predictions"]}
+        self.assertEqual(verdicts[1], "missed")  # the hidden acceptance was not observed, so "every check passes" cannot hold
+        self.assertEqual(verdicts[2], "unknown")  # no comment-notices check in this result
+        self.assertEqual(verdicts[3], "unknown")  # no run state, so no plan
+        self.assertIn("born_retired", report["predictions"][3]["observed"])
+
+    def test_a_run_whose_checks_and_acceptance_all_pass_holds_the_first_two_predictions(self) -> None:
+        checks = [{"command": "x Check comment notices y", "pass": True}, {"command": "other", "pass": True}]
+        quality = {"acceptance": {"observed": True, "checks": [{"id": "a", "pass": True}]}}
+        report = self.module.read(self.folder(**{"pass": True, "checks": checks, "quality": quality}))
+        verdicts = {row["n"]: row["verdict"] for row in report["predictions"]}
+        self.assertEqual((verdicts[1], verdicts[2]), ("held", "held"))
+
+    def test_a_failing_notice_check_misses_the_second_prediction(self) -> None:
+        checks = [{"command": "Check comment notices", "pass": False}]
+        report = self.module.read(self.folder(**{"pass": False, "checks": checks, "quality": {}}))
+        self.assertEqual({row["n"]: row["verdict"] for row in report["predictions"]}[2], "missed")
+
+
 class EngineNamesTest(unittest.TestCase):
     """The names delta reads from the engine and the harness: a rename there fails here, not silently as a null."""
 

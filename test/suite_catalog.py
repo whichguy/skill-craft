@@ -417,7 +417,7 @@ _DURATION_SECONDS = {
     "test/shiploop-e2e-brownfield-tickets.test.py": 90.0,
     # Measured 2026-10-31: 23 tests, eight full adequacy sweeps and false-positive/invalid controls, 260.8 s locally.
     "test/shiploop-e2e-test-adequacy.test.py": 261.0,
-    # The follow-on chain and the delta ledger (chains.py; test/shiploop_e2e/delta.py): 71 tests on synthetic Git repositories, one
+    # The follow-on chain and the delta ledger (chains.py; test/shiploop_e2e/delta.py): 74 tests on synthetic Git repositories, one
     # fake event stream and the eight saved runs of the ticket pair (docs/experiments/multipass-20261031/). 3.3 s locally on 2026-10-31.
     "test/shiploop-e2e-delta.test.py": 5.0,
     # The third link of the ticket chain, ticket-comments (reference_ticket_comments.py): 17 tests; the calibration builds the base, the

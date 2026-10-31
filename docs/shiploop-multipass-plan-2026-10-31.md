@@ -1,6 +1,6 @@
 ---
 Execute: ask
-Status: **proposal**. The harness side (sections 4 and 5) is built, tested and committed on a feature branch. The ShipLoop behaviour
+Status: **proposal**. The harness side (sections 4 and 5) is built, tested and pushed to main (03d046c6, aa601d37; quick tier 65 of 65). The ShipLoop behaviour
   changes (D2 to D4) and the build of the fourth link wait for the owner and for the first live third pass (section 6, E1).
 Opened: 2026-10-31
 Consumer: the owner, who decides D1 to D5 in section 7; later whoever adds the fourth link or changes how a stage writes the
@@ -123,7 +123,7 @@ previous link's reference and one defect per sentence or inherited decision it r
 
 ## 5. What is built
 
-All on `feat/multipass-c5fc75`; nothing under `skills/`, `agents/` or `changes/` moved, so there is no release and no E2E round owed.
+All on `main` (03d046c6, aa601d37); nothing under `skills/`, `agents/` or `changes/` moved, so there is no release and no E2E round owed.
 
 | Piece | File | Tests |
 |---|---|---|
@@ -148,7 +148,7 @@ heuristics, and a ledger of a first pass on a fixture has nothing to compare an 
 | E2 | Does a counted notice plus named destinations (D2, D3) reduce the leak without losing function? | proposed, after D2 and D3 |
 | E3 | Does a modifying fourth link retire and supersede rather than duplicate? | proposed, after E1 |
 
-**E1 predictions** are in the journal before the run. **Decision rule for E1:** a lost retained check or inherited hidden check means the leftovers
+**E1 predictions** are in the journal before the run, and [round1_readout.py](experiments/multipass-20261031/round1_readout.py) scores them from the run's own files. **Decision rule for E1:** a lost retained check or inherited hidden check means the leftovers
 are harmful, and D2 to D4 become urgent. A pass with the same hygiene as pass 2 means they are cost and noise, and E2 decides the fix.
 
 **E2 as proposed.** Arms: A = ShipLoop as published; B = A plus the notice (D2) and the duty edits (D3, D4). Three chains per arm (assignment

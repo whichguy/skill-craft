@@ -668,7 +668,7 @@ and two decisions are compared only under the same id.
   - *The medium pair (added 2026-10-28; D7 of docs/shiploop-brownfield-baseline-design-2026-10-28.md).* `ticket-assignment`
     extends `fixtures/node-tickets`, a help-desk ticket service of about 3,600 lines (1,700 of source) with eight decision
     records, and `ticket-escalation` follows it, so it starts from the first run's delivery and runs the first case's checks
-    again beside its retention checks. The pair measures what D7 asks: whether a run keeps behaviour and team decisions its
+    again beside its retention checks. A third link, `ticket-comments` (2026-10-31), follows that ("Follow-on chains", below). The pair measures what D7 asks: whether a run keeps behaviour and team decisions its
     request does not name, and whether the follow-on keeps what the first run had to learn. As node-base does, its base holds a
     latent defect in the flow the request touches, which the request depends on and does not name.
     - *Checks that start the product themselves.* A held-out check may take a second parameter, the delivered copy

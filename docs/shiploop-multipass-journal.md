@@ -140,7 +140,7 @@ still filed `AD-2` after `## Superseded`. The ledger counts the outcome (stray, 
 All eight runs passed; the follow-on kept every earlier requirement and decision and added two requirements and one decision each.
 The defects above are hygiene that compounds with the number of passes, not a measured failure of a second pass.
 
-## Harness changes (this commit)
+## Harness changes (03d046c6, aa601d37)
 
 | Change | Anchor | Effect on earlier results |
 |---|---|---|
@@ -178,7 +178,8 @@ and output, so a recurrence is identified as load or as a defect.
 `bf-codex-r2-ticket-escalation`, whose `architecture.md` holds the mislabelled `AD-3` and whose `environment.md` holds 7 stray
 sections. It waits on the machine-wide lease of port 4180, held by another session's `ticket-import` runs.
 
-**Predictions, written before the run.**
+**Predictions, written before the run** (scored by [round1_readout.py](experiments/multipass-20261031/round1_readout.py), which reads only
+the run's `result.json` and its delta block).
 
 1. The run passes every check: the earlier links' 5, its own 3 and its 5 retention checks, and the 14 inherited hidden checks (a
    miss would be a finding: the first run to fail a retained requirement).
