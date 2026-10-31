@@ -2,6 +2,22 @@
 
 Written by scripts/release.py.
 
+## 2026-10-31
+
+### skill-craft 2.25.2
+
+- Skills: shiploop-e2e-audit 0.7.14
+
+### shiploop-e2e-audit 0.7.14
+
+- Make ShipLoop improvement the explicit E2E mission. Add planning/implementation,
+  skill-script-prompt, stage/gate, quality and efficiency critique questions mapped
+  to existing review dimensions. Guide authorised campaigns through grouped
+  hypotheses, focused experiments, measured qualification, deliberate repeatable
+  case coverage and verified test-owned cleanup. Distinguish scoped convergence
+  from blocked work, missing evidence and budget stops without adding a schema,
+  runtime controller or model/default changes.
+
 ## 2026-10-30
 
 ### skill-craft 2.25.1
