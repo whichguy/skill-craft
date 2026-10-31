@@ -690,9 +690,12 @@ def acceptance(copy: Path, block: dict, *, groups: set, stop: Callable[[], str |
                checks_dir: Path = HERE / "checks", ports: list[int] | tuple = ()) -> dict:
     """One block of held-out checks run against the copy's server: ``{observed, source, checks: [{id, source, pass, note}]}``.
 
+    A check that returns ``(None, reason)`` was run but could not be measured: its row keeps ``pass: None``, all later checks
+    still run, and the block is unobserved with the unknown ids and reasons. Returning ``(True|False, note)`` keeps its existing
+    meaning; a check that raises is a known failure with the exception as its note.
     The server is started as ``block['start']`` with PORT set to a free port, in the copy, in a group of its own; each check
-    gets its base URL, and a check that takes a second parameter gets the copy as a ``Product`` too. A check that raises fails
-    with the exception as its note; a server that never listens leaves every check unrun and the block unobserved. The checks
+    gets its base URL, and a check that takes a second parameter gets the copy as a ``Product`` too. A server that never listens
+    leaves every check unrun and the block unobserved. The checks
     run in this process: nothing but the product's own command lines reaches an argv. Every server and command runs under the
     same port guard as the mutation runs (`ports`): a product that ignores PORT and meets it says so.
     """
@@ -718,6 +721,7 @@ def acceptance(copy: Path, block: dict, *, groups: set, stop: Callable[[], str |
         product = Product(copy, block["start"], groups=groups, logs=logs / f"product-{block['module']}", guard=guard,
                           refusals_log=refusals_log, ports=ports)
         results = []
+        unknown = []
         for item in block["checks"]:
             why = stop()
             if why:
@@ -726,13 +730,20 @@ def acceptance(copy: Path, block: dict, *, groups: set, stop: Callable[[], str |
                 check = implemented[item["id"]]
                 base = f"http://127.0.0.1:{port}"
                 ok, note = check(base, product) if takes_product(check) else check(base)
-                results.append({"id": item["id"], "source": item.get("source"), "pass": bool(ok), "note": str(note)[:NOTE_CHARS]})
+                row = {"id": item["id"], "source": item.get("source"), "pass": None if ok is None else bool(ok),
+                       "note": str(note)[:NOTE_CHARS]}
+                results.append(row)
+                if ok is None:
+                    unknown.append(f"{item['id']}: {row['note']}")
             except Exception as exc:
                 results.append({"id": item["id"], "source": item.get("source"), "pass": False, "note": f"raised {exc!r}"[:NOTE_CHARS]})
     finally:
         finish(proc, groups)
-    return {"observed": True, "source": block.get("source"), "ids": declared,
-            "passed": [row["id"] for row in results if row["pass"]], "checks": results}
+    result = {"observed": not unknown, "source": block.get("source"), "ids": declared,
+              "passed": [row["id"] for row in results if row["pass"] is True], "checks": results}
+    if unknown:
+        result["reason"] = "unobserved held-out checks: " + "; ".join(unknown)
+    return result
 
 
 # --------------------------------------------------------------------------------------------------------------------

@@ -2894,7 +2894,6 @@ class LinkifyTests(unittest.TestCase):
                for d in json.loads((DEFAULTS_DIR / "expectations.json").read_text(encoding="utf-8"))}
         obs = [{"id": i, **d} for i, d in docs.get("observations", {}).items()]
         acts = [{"id": i, **d} for i, d in docs.get("actions", {}).items()]
-        reviews = [{"id": i, **d} for i, d in docs.get("reviews", {}).items()]
         page = {"title": "t"} if repo is None else {"title": "t", "repoUrl": repo}
         return ('data.runs=[{key:"r3-battleship-sonnet",name:"Run",order:1,release:"x",phases:[],time:"",imp:"",stages:[]}];'
                 f"data.exp={json.dumps(exp)};data.obs={json.dumps(obs)};data.acts={json.dumps(acts)};data.cfg.page={json.dumps(page)};"
@@ -4722,12 +4721,12 @@ class GeneralReviewBundleTests(unittest.TestCase):
         self.assertFalse(set(self.docs["observations"]) & set(luna["observations"]))
         self.assertFalse(set(self.docs["actions"]) & set(luna["actions"]))
 
-    def test_the_amended_text_is_the_original_phase_1_text_plus_the_words_of_the_specs_carve_out(self):
+    def test_the_amended_text_preserves_the_historical_phase_1_carve_out(self):
         to = self.option["change"]["to"]
         self.assertTrue(to.startswith(PHASE_1_TEXT + " "))
         self.assertEqual(self.defaults["phase-1"]["text"], to)  # the owner ticked a26 and the defaults carry its text
-        spec = " ".join(SPEC_MD.read_text(encoding="utf-8").split())
-        carve_out = spec[spec.index("**S-10 carve-out, owner decision 2026-10-05**"):spec.index("**S-11")]
+        # This applied option and its defaults are historical records. The living SPEC's later accepted review
+        # schedule is reconciled prospectively; it must not rewrite this option or a frozen run's expectations.
         for phrase in ("recorded in `state.md` at `init` or `workspace start`, never changed afterwards",
                        "selects which of the five planning results `spec`, `test-strategy`, `plan`, `step-plan` and `test-spec` start an Improve child",
                        "`--planning-review stage` starts one after each of the five, as before", "`--planning-review none` starts none",
@@ -4736,6 +4735,16 @@ class GeneralReviewBundleTests(unittest.TestCase):
                        "them afterwards, so later runs inherit them unreviewed",
                        "The Improve children after `system-test-author` and `release-plan` and the last `carry-forward` start in every mode"):
             self.assertIn(phrase, to)
+
+    def test_the_living_spec_preserves_the_option_and_records_the_later_review_schedule(self):
+        spec = " ".join(SPEC_MD.read_text(encoding="utf-8").split())
+        carve_out = spec[spec.index("**S-10 carve-out, owner decision 2026-10-05**"):spec.index("**S-11")]
+        for phrase in ("recorded in `state.md` at `init` or `workspace start`, never changed afterwards",
+                       "The default remains `stage`", "`none` omits those planning reviews",
+                       "`test-spec` has no Improve child", "first work item and an item sent back for replanning",
+                       "review of that step's code, tests and documentation before its commit and the next step",
+                       "`system-test-author`, `release-plan` and the last `carry-forward` retain their Improve reviews in every mode",
+                       "does not rewrite earlier runs' frozen obligations"):
             self.assertIn(phrase, carve_out)
 
     def test_a_prompt_with_a26_ticked_names_the_evidence_directory_the_option_and_the_expectation_change(self):
@@ -6381,7 +6390,7 @@ class ImprovePacketLayoutTests(unittest.TestCase):
                 self.assertTrue(all(row["carried"].values()) or visit["stage"] == "intake", (visit["stage"], row.get("carried")))
                 doc = docs["packets"][f"real--{visit['action']}-improve"]
                 self.assertEqual((doc["kind"], doc["action"], doc["stage"]), ("improve", visit["action"], visit["stage"]))
-                self.assertTrue(doc["text"].startswith(f"ShipLoop navigator | improve | revision "), doc["text"][:80])
+                self.assertTrue(doc["text"].startswith("ShipLoop navigator | improve | revision "), doc["text"][:80])
                 # the argument is shell-quoted whole when the checkout path has a space: complete '--run-dir=...'
                 self.assertRegex(doc["text"], r"complete '?--run-dir=")
                 self.assertIn(f"--action={stage_ids[visit['action']]}", doc["text"])  # the callback names the Improve stage, not the reviewed action

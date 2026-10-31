@@ -58,6 +58,11 @@ the generic development mission. An interaction that was not exercised remains u
 
 ## Design clauses
 
+Prospective alignment reapplied 2026-10-31: S-7, S-10 and S-11 below restore the accepted decision wording from
+`42bfd829302d7844dca81a1112f201744df3ac01` and `2736d7cf063a8c876cb317e26a852ff2ac6f3548`. Those changes
+existed on saved history but were absent from current main. They govern new runs only; earlier frozen specifications,
+verdicts and evidence remain unchanged. This is specification reconciliation, not a new engine behavior or measured gain.
+
 ### Mission, discovery and amendment authority (2026-10-29)
 
 The purpose above anchors the learning loop. Both new software and changes to existing repositories must retain
@@ -157,12 +162,19 @@ grounding out of the packet, into a file the packet merely names or into a recor
 clear-the-context probe at a stage boundary and inside a stage shows no redone work.
 
 **S-7 Packets are small where they are printed; detail lives in files.** The
-printed head is short: callback, goal, result contract, the path of the full
-packet, recovery and pause. The full packet and every reference are files the
-model opens by path. References are cited by path and section; the model reads
-only the section a step needs and never re-reads whole cards or repeats
-unchanged run rules inside one packet (S-6: across packets the repetition stays). Large planning context is acceptable when it sits in a
-file the packet names.
+script prints a whole packet through its 16,000-character print limit. A longer
+packet prints an operational head: the current goal and status, duties and rules,
+result contract, exact commands and pointers to its complete packet file. Quoted
+knowledge and hand-offs may remain in that file; the head tells the model to read
+what was omitted. The limit selects the print form, not a quality budget: required
+duties must not disappear to make a head shorter. References and selected cards are
+opened when the step requires them; unrelated detail stays behind locators.
+
+Reconciled 2026-10-29 to the owner's packet-head and per-stage Improve decisions
+recorded in `11f5a5b9` (2026-10-16). This supersedes the earlier locator-only head
+description. S-6 still governs self-contained work and recovery; this print policy
+does not establish clear-context equivalence for untested stages or authorise
+removing required grounding merely to reduce bytes.
 
 **S-8 The engine is product- and technology-agnostic.** Scripts, stage prompts,
 packets, SKILL.md and the general reference cards state rules in general terms
@@ -217,68 +229,46 @@ finding of confirmation level or wording (no edge, goal or supplier changed),
 passes 6 and 7 changed nothing, and no later packet names the plan graph.
 Record: docs/shiploop-fast-planning-plan-2026-10-04.md.
 
-**S-10 carve-out, owner decision 2026-10-05** (anchor: the owner's rule that
-planning is fast, set after the evaluation of the
-skill-craft 1.21.0 battleship runs on Luna xhigh and Grok medium as an alarm at 30 minutes ("anything where planning
-takes more than 30 minutes" means rethink planning); amended 2026-10-28: no figure is a budget or a target, "I don't
-want to have a 30-minute planning session at all" (docs/shiploop-planning-speed-and-caps-plan-2026-10-28.md, Q1); not a clause
-this serves; it relaxes S-9, S-10 and the rule that a step iterates until a
-check confirms each exit criterion, for the Improve review of planning results,
-and says so). (amended 2026-10-11: the 8-stage inner loop.) The run option `planning_review` (state option `planning_review`,
-recorded in `state.md` at `init` or `workspace start`, never changed afterwards;
-a saved run without it is refused) selects which of the five planning results
-`spec`, `test-strategy`, `plan`, `step-plan` and `test-spec` start an Improve
-child. `--planning-review stage` starts one after each of the five, as before.
-`--planning-review none` starts none. The Improve children after
-`system-test-author` and `release-plan` and the last `carry-forward` start in
-every mode, and so does the review after each accepted `implement` step (owner
-decision 2026-10-10); every inner stage's Until Loop and the Backchain child are not covered
-and their rules stand. The option's default is a separate owner decision: until
-a later dated SPEC commit states it, the code default is `stage`. Every Improve
-child that starts is unchanged (a contract the script writes, the same
-two-review or unchanged-first-pass exit, no iteration cap), so S-10 holds for
-each loop that runs. (2026-10-18: a 2026-10-16 carve-out that ended an Improve
-loop on one unchanged pass, and its 2026-10-17 proposal of a stricter gate for
-code reviews, were withdrawn before any release by the owner's decision to keep
-Improve's upstream Until Loop runtime and rule byte for byte; this exit stands.
-Record: docs/shiploop-improve-stop-rule-journal-2026-10-16.md.) In `none` a planning result is accepted without a review
-loop. What stands in for the loop is what S-9 can name: ShipLoop's gates at
-`complete` (cited files exist; the plan's assumption list; the step plan's
-commands, criteria, paths and dependency order; the knowledge home's required
-files and requirement-ID and decision-ID retention); the structural,
-record-only `backchain-check`; `test-spec`'s ID match (a case ID that no focused command lists is refused);
-`validate-existing`'s expectation checks; the `test` stage's base run (no new test ID passes without the change,
-unless `red_na` names it) and candidate run (every command passes, every listed ID ran, the count holds the
-floor), and, coming, its mutation check; `document`'s rerun of what its own edits could affect (`verify`'s
-rerun of every recorded command until verify retired, design T §9.1 2b-4c); and the system-test gates, which
-ShipLoop runs and records. No script-run check at
-planning, in any mode, covers whether the spec's criteria are complete and
-verifiable, whether the test strategy maps every criterion to a check, or
-whether a test spec's oracles are independent. Under `none` those rest on the
-producer's own confirmation of the Done-when conditions the packet prints (a
-model judgement, printed in every mode), on the later gates and on the
-end-of-work review. An Improve child's own S-9 evidence has been loop mechanics
-the script counts (passes, the review streak, a Git cross-check, the commit
-rule), never a check of the review's content, so `none` removes a second look,
-not a script-run check. In `none` the plan child's stopped-child reconciliation
-(`improve-reconcile`) and the plan-time experiments it hosts do not exist (the
-plan's assumption list is still checked at `complete`); the spec and test
-strategy are committed to the knowledge home when each is accepted and no
-Improve child reviews them afterwards, so later runs inherit them unreviewed;
-and the first Improve child of a run is the first `implement` step's review, so a `none` run names its Improve
-card at `init` or `workspace start` (`--improve-skill`, resolved there; refused without it), because every
-inner stage's Until Loop reads the card from `step-plan` on and no earlier child binds it. Basis: in the Luna xhigh run the
-planning window was 375.9 minutes, 203.4 (54%) in five Improve children (22
-passes), and in the Grok medium run 72.7 minutes, 42.4 (58%) in five children
-(26 passes); the Luna reviews made five warranted fixes and did not raise the
-`test-red` defect whose redo cost 165.9 minutes; a Sonnet 5.5 battleship run's
-plan review raised a related class [I] (a plan with no importable server seam,
-commit b1e196d; the Luna defect was a focused suite that imported a file no step created, and
-the Sonnet reviews took about 4 seconds each, so it is not a like-for-like benchmark), and in a condensed-packet experiment the planning review with
-the platform-claim bullet caught 10 of 15 real plan-stage platform errors
-against 0 of 15 without it (Sonnet, three trials per cell). No run without the
-planning reviews exists, so the rate of defects that escape without them is
-unknown. Record: docs/shiploop-planning-review-plan-2026-10-05.md.
+**S-10 carve-out, owner decision 2026-10-05** (reconciled 2026-10-29 to the
+later accepted review schedule). The run option (state option `planning_review`)
+is selected with `--planning-review stage` or `--planning-review none` and recorded in
+`state.md` at `init` or `workspace start`, never changed afterwards; a saved run without it is refused.
+The default remains `stage`. In `stage`, `spec`, `test-strategy` and `plan`
+start Improve children, and `step-plan` does so for the first work item and an
+item sent back for replanning. `none` omits those planning reviews. `test-spec`
+has no Improve child: its own loop and the later script-run checks remain.
+
+In every mode, a changed step proceeds through implement, test and document,
+then an Improve review of that step's code, tests and documentation before its
+commit and the next step. A document result with `changed: false` starts no
+review. This replaces the earlier implement-stage and once-per-work-item review
+placements. `system-test-author`, `release-plan` and the last `carry-forward`
+retain their Improve reviews in every mode. Source: the owner's per-step design
+in docs/shiploop-review-after-tests-design-2026-10-27.md, section 2b-2, landed in
+`ddaf9076`; the first-item schedule is recorded in `f368dfa2`.
+
+Each Improve child ends on the first pass that finds only trivial changes or
+none. A material or unresolved pass continues; no iteration cap is added.
+This is the owner's 2026-10-20 decision (`5e377ff7`), superseding the earlier
+two-trivial-pass setting. The selected upstream Until Loop runtime stays
+unchanged. Backchain and inner-stage loops keep their own contracts.
+
+Under `none`, planning results receive the producer's confirmation rather than
+an Improve second look. Structural gates, requirement/decision ID retention,
+test-case ID checks, the test stage's baseline and candidate checks, mutation
+checks, affected-command reruns and system checks still run. Those mechanical
+checks do not prove completeness of criteria or independence of test oracles.
+The plan child's experiments and stopped-child reconciliation are absent; the
+first changed step's document review is normally the first Improve child.
+The Improve card is therefore selected at startup even in `none`.
+
+The original comparison evidence remains in
+docs/shiploop-planning-review-plan-2026-10-05.md. It did not establish an equal
+rate of defect escapes with planning reviews omitted. The owner's 2026-10-28
+decision in docs/shiploop-planning-speed-and-caps-plan-2026-10-28.md makes
+planning time an observation, never a budget or target. These accepted schedule
+changes do not themselves establish a quality or efficiency improvement, and
+this reconciliation does not rewrite earlier runs' frozen obligations.
 
 **S-10 carve-out, owner decision 2026-10-10.** (amended 2026-10-11: the 8-stage inner loop; amended 2026-10-24:
 the refused-run cap, the send-back cap and the keepalive release are removed; amended 2026-10-28: the genuine-fix
@@ -305,51 +295,41 @@ count becomes a criterion, so no count remains.)
   2026-10-10 to 2026-10-24 they were 11, 7 and 22, and a work item had two send-backs. Record:
   docs/shiploop-packet-concision-2026-10-10.md ("Open") and docs/shiploop-run5-batch-journal-2026-10-24.md.
 
-**S-11 Knowledge is retained in the repository.** Planning knowledge (living
-spec, environment, test strategy, architecture with its numbered decisions,
-per-feature records) is committed to the product's knowledge home, and the
-product itself ends committed on the source branch, so the next run builds on
-it instead of rediscovering it. The living spec and the architecture stay
-apart: the spec holds what the product must do and survives a change of stack;
-the architecture holds the stack, structure and decisions and survives a change
-of spec. Neither file may lose an ID an earlier committed version had
-(requirement `R-<n>`, decision `AD-<n>`): a requirement or decision that no
-longer holds moves under `Retired` or `Superseded` with its reason. ShipLoop
-refuses a drop in an uncommitted version (the stage's own, or a review's before
-it commits through `improve-commit`); a drop a review has already committed is
-not seen, for either file (deferred; trigger in
+**S-11 Knowledge is retained in the repository.** The product's knowledge home
+has three living files under `docs/shiploop/`:
+
+- `spec.md` holds requirements and acceptance criteria with stable `R-<n>` IDs;
+- `environment.md` holds runtimes, commands, access, harnesses and suites, test-ID
+  conventions and the standing release/rollback procedure;
+- `architecture.md` holds structure, interfaces, boundaries and stable
+  `AD-<n>` decisions, including real-boundary checks a local test cannot prove.
+
+The spec and architecture remain separate concerns. Neither may lose an ID
+from an earlier committed version: a requirement or decision that no longer
+holds moves under `Retired` or `Superseded` with its reason. The existing gate
+checks an uncommitted drop before the stage or Improve commits it; a drop an
+Improve review has already committed remains a known gap (recorded in
 docs/shiploop-architecture-file-journal-2026-10-10.md).
-A run's feature spec is its historical record once it is
-committed with the plan: at handoff ShipLoop checks that every requirement ID
-it names is in the living spec and, when the run's commits reach the user's
-branch (an in-place run or a fast-forward return), removes it in a commit of
-its own, so the history of that branch keeps the versions that were committed
-at a knowledge close (a squash merge drops them). After a working-tree return,
-or a return that recorded no change, the return made before the close did not
-put the run's commits on the branch, so the file stays; it also stays when the
-living spec lacks an ID it names or names no ID at all, when the file was never
-committed or has changes that are not committed, and when it is a symbolic
-link. `docs/shiploop/features/README.md` lists the feature folders; ShipLoop
-writes it from the tree, only inside a knowledge commit.
-The four fact files have named sections (`knowledge_home.SECTIONS`: spec
-`Requirements`, `Non-functional requirements`, `Retired`; environment `Targets and
-runtimes`, `Commands`, `Skills`, `Access and accounts`, `Platform facts`; architecture
-`Stack`, `Structure`, `Conventions`, `Interfaces and boundaries`, `Decisions`,
-`Superseded`; test strategy `Harnesses and suites`, `Commands`, `ID convention`,
-`Real-boundary checks`). At each knowledge close ShipLoop prints a counted notice,
-one `ShipLoop knowledge notice: ` line per file that exists and lacks a section or
-leaves one empty (four at most), naming every such heading, and accepts the close: a
-count, not a refusal, because the saved homes lack nearly every heading and a refusal
-would fire at nearly every first close. The lines are on the stdout of the call that
-accepted the close, also when the script records another stage after it (test-spec,
-then validate-existing). Turning the notice into a refusal waits for the first live
-pair, which measures whether packets that quote the headings get them written: the
-notice per close, no threshold, counted by occurrence because the host events log a
-call's whole stdout as one line and `grep -c` would count a close as one. A line
-counts a file: `grep -o 'ShipLoop knowledge notice: ' events.jsonl | wc -l` counts
-files, and the headings are the quoted names before each line's first semicolon
-(`grep -o 'ShipLoop knowledge notice: [^;]*' events.jsonl | grep -o "'[^']*'" | wc -l`);
-per event line for a close.
+
+Plans, work-item context, step results and test cases are carried by the run's
+script-owned state and hand-offs. Cross-run knowledge is incorporated into the
+living files, and the delivered product and knowledge end committed so the next
+run builds on them. Separate feature-spec folders, their index, a handoff-retire
+commit, `test-strategy.md` and a knowledge-home `README.md` are no longer required,
+written or named as current inputs. Existing copies are left in place. Their
+still-useful content belongs to the named living-file consumer; removal of an
+artifact is not permission to discard required knowledge.
+
+At a knowledge close, the script's `knowledge_home.SECTIONS` names the sections
+it checks in the three files. A missing or empty section produces a counted
+`ShipLoop knowledge notice: ` line for that file, not a refusal. Notices and
+follow-on retention evidence remain observations; their absence does not prove
+semantic completeness.
+
+Reconciled 2026-10-29 to the owner-approved consumer contract in
+docs/shiploop-consumer-contract-2026-10-11.md, section 0A.3, and its landed
+removals in `589bc03e`. This supersedes the earlier four-file and feature-folder
+lifecycle; requirement/decision retention and committed delivery remain binding.
 
 **S-12 One implementation of each mechanism.** A mechanism (committing, loop
 contracts and starts, receipts, identity, privacy screens) has one code path
@@ -701,6 +681,27 @@ and two decisions are compared only under the same id.
       is something the second run lost.
     - The latent facts, the documents and code they are in, and the checks that read them are in
       docs/experiments/brownfield-baseline-20261028/ground-truth/node-tickets-expected.md, never shown to a model.
+  - *Test writing (added 2026-10-31).* `ticket-assignment-tests` starts from the pinned, correct
+    `fixtures/node-tickets-assigned` reference with its 117 existing tests. Its request is to add tests while preserving
+    production and every old test/helper file. The product being graded is a useful test suite, not a newly built app.
+    The existing acceptance interface grades four guards (valid baseline, preserved files, added tests and valid behavior
+    controls) and 25 independently calibrated source-only contract violations. Each runs on a fresh delivery copy;
+    the original delivery and fixture remain unchanged. Defect accuracy requires a valid baseline, preserved files and
+    passing behavior controls; raw outcomes remain visible independently. The accuracy floor is binary: every declared
+    row and public check must pass. Eligible kill share is a secondary diagnostic, not a fractional promotion floor.
+    Timeouts, stale or unloadable variants, port refusals and test-time edits of protected files are invalid, never kills.
+    Only network-invalid observations may have two fresh-copy reruns; every raw attempt remains, and the first
+    non-network-invalid result is selected regardless of pass/fail. Unresolved invalids make all case rows unobserved,
+    using the existing acceptance `(None, reason)` path, and prevent qualification. Model runs are not retried by this.
+    Calibration includes weak and no-assert suites, independent useful suites, behavior-preserving source controls,
+    raw and normalized source detectors, mixed behavior/byte suites, production edits, benign CI metadata and invalid
+    observations. Dependency-free lockfiles and ordinary CI/configuration files are allowed, new production code and
+    dependencies are not. Non-gating source-read hints support inspection without claiming to exclude arbitrary gaming.
+    The original five-test reference suite
+    is a descriptive control, not presumed complete. An alternative implementation with different internals is diagnostic
+    only because this case forbids production changes. All grading inputs live inside the existing qualification boundary;
+    the model does not see held-out variants. This case adds neither a generic floor nor a final testing stage, and its
+    results alone do not establish better test generation during normal implementation workflows.
 - **Qualified iteration (added 2026-10-30; docs/shiploop-e2e-closed-loop-plan-2026-10-30.md).** An iteration that
   qualifies its changes builds each candidate from one learning record and compares it with the loop tip, the last
   promoted commit of the loop branch, in a `promotion/5` epoch registered for that candidate alone.
@@ -727,8 +728,8 @@ and two decisions are compared only under the same id.
 | S-12, "Concurrency must not change a verdict" | `environment` in result.json, and `environment` in every launch record (`invocation*.json`) (added 2026-10-09): the node, python3 and git versions on the harness's PATH (the first line of `--version`, read by `hosts.probe_version`, the one reader of a `--version` that the host build uses too), the CPU count and load at the start of each launch and at the end of the run, whether the host ran under a display hold (`keep_awake`, the one place that decides it), `hosts_used` and `mixed_host` (unknown, with the reason, when a launch record cannot be read) and one `environments` entry per launch read through `runrecord.launches` (host, model, effort, the `host_build` the launch record carries or null with `identity_unmeasured.host_build`, and the start record that launch kept or null with `environment_reason`), the browser capability record of a declared need (below), and `overlap`: the run folders under the runs root whose host events overlap this run's (first to last event of `timeline.jsonl`), with case, hosts and overlapped seconds, read at the end of the run (amended 2026-10-24: under the runs root, not only the same parent folder; see Parallel work). A record beside the verdicts: it never changes `pass`, the exit code or a baseline rule, and a field nothing measured is null with its reason, never 0 or a pass |
 | "Concurrency must not change a verdict", The resource lifecycle | `resources.jsonl` in the output folder (added 2026-10-26): the process groups the harness started and their leaders' creation identity, the adopted progress observer, the leases and the data directories, with an `ended`, `released` or `disposed` row for each given back; `resources` in result.json: this invocation's leases, `contention` (the live runs under the runs root on the same host and model), the disk headroom checked, and what its cleanup stopped, found gone or reused, or left `unverified`. A record beside the verdicts: a refusal (a held lease, a busy port, an orphan, a low disk) starts nothing and writes no result |
 | S-12 | identity of a run, null where unknown (added 2026-10-09): `plugin_sha256` (one digest of the installed plugin tree: file paths and bytes, `__pycache__`, `*.pyc` and symlinks left out, taken when the run is launched), `prompt_sha256` (the case prompt, before the sentence `--planning-review none` appends, with the run's own output folder masked), `host_build`, `started` and `ended` (the stream's first and last stamp), `planning_seconds` (the closed planning window, the engine's clock) and `local_head`, on every baseline row and in `result.json`. A null among them carries its reason in `identity_unmeasured`. Records, never verdicts; `run.py --baseline-report` reads them |
-| S-11 | `committed` verdict; follow-on retention checks (earlier files, spec IDs, and the earlier tests kept and built on: no fewer pass, the test files changed, and they name the feature's new fields; amended 2026-10-26, because a pass count that must grow failed a delivery that asserted the new fields inside its existing tests, the Grok gate's battleship-scoring); `product_at_stop` (added 2026-10-09; replaces `shiploop.worktree_checks`): for a run whose ShipLoop did not reach `done`, the case checks run against ShipLoop's unreturned worktree, with the engine's status and stage, each check's return code and whether it timed out, and counts. Information only: checks graded in the worktree stay dropped as a verdict (a run that never delivered must not pass), so it never touches `checks`, `committed`, `pass` or the exit code. Absent for a run that passed; `ran: false` with its reason where there was nothing to run. A feature spec the run removed is not a missing file: `knowledge_facts` and the follow-on retention checks read the living spec and the files the prior repository tracks, never a feature spec. The Run Review exporter lists a removed spec as a kept `history-only` row of the return plan (the knowledge follow-up keeps it); that needs no code change |
-| S-11 (what a run leaves for the next), S-5 | `commits` in metrics.json only (added 2026-10-10): the commits made during the run in the product repository (every ref; after the head a follow-on or seeded run started from, all of a fresh run's), counted by who made them: `improve` (named by ShipLoop's own `improve-commit` reply in the host's tool results, because the Improve card does not fix a message shape; so a lower bound: an Improve commit whose reply the host's events do not hold, cut by the model's pipe or made where the host records no reply, is counted under `other`), `script` (ShipLoop's other commits: knowledge, the spec retire commit (`docs(shiploop): retire <feature> spec: checked its requirement IDs against the living spec`), empty baseline, leftovers, work-item and chain merge commits, by their ShipLoop-owned subject or ShipLoop's own reply) and `other` (the rest, the model's own commits). The classes sum to the commits counted. Each class counts `with_lessons` (a lessons section as `shiploop_lessons.lessons` reads it, the one reader ShipLoop's `improve-commit` gate also reads with, so the harness and the gate cannot disagree about what counts); `improve` also counts `cited` (a `Learned-from` line, as `shiploop_lessons.citations` reads it, whose token is a commit ID that resolves to a commit in the repository) and `cited_earlier_run` (a cited commit that predates the run). Presence only: the text of a section is never judged, so `Key learnings: none` counts. Null, with the reason in `commits_unmeasured`, where the repository, the starting head or the host's events cannot be read. Record-only, no threshold; a later change to what ShipLoop commits or prints is compared with the saved runs' counts, never with cost or wall time |
+| S-11 | `committed` verdict; follow-on retention checks (earlier files, spec IDs, and the earlier tests kept and built on: no fewer pass, the test files changed, and they name the feature's new fields; amended 2026-10-26, because a pass count that must grow failed a delivery that asserted the new fields inside its existing tests, the Grok gate's battleship-scoring); `product_at_stop` (added 2026-10-09; replaces `shiploop.worktree_checks`): for a run whose ShipLoop did not reach `done`, the case checks run against ShipLoop's unreturned worktree, with the engine's status and stage, each check's return code and whether it timed out, and counts. Information only: checks graded in the worktree stay dropped as a verdict (a run that never delivered must not pass), so it never touches `checks`, `committed`, `pass` or the exit code. Absent for a run that passed; `ran: false` with its reason where there was nothing to run. For historical runs that retired a feature spec, that removed file is not missing delivery evidence: `knowledge_facts` and follow-on retention checks read the living spec and prior tracked files. Historical Run Review exports may retain a removed spec as a `history-only` row; current runs do not create or retire feature folders |
+| S-11 (what a run leaves for the next), S-5 | `commits` in metrics.json only (added 2026-10-10): the commits made during the run in the product repository (every ref; after the head a follow-on or seeded run started from, all of a fresh run's), counted by who made them: `improve` (named by ShipLoop's own `improve-commit` reply in the host's tool results, because the Improve card does not fix a message shape; so a lower bound: an Improve commit whose reply the host's events do not hold, cut by the model's pipe or made where the host records no reply, is counted under `other`), `script` (ShipLoop's other commits: knowledge, historical spec-retire commits, empty baseline, leftovers, work-item and chain merge commits, by their ShipLoop-owned subject or ShipLoop's own reply) and `other` (the rest, the model's own commits). The classes sum to the commits counted. Each class counts `with_lessons` (a lessons section as `shiploop_lessons.lessons` reads it, the one reader ShipLoop's `improve-commit` gate also reads with, so the harness and the gate cannot disagree about what counts); `improve` also counts `cited` (a `Learned-from` line, as `shiploop_lessons.citations` reads it, whose token is a commit ID that resolves to a commit in the repository) and `cited_earlier_run` (a cited commit that predates the run). Presence only: the text of a section is never judged, so `Key learnings: none` counts. Null, with the reason in `commits_unmeasured`, where the repository, the starting head or the host's events cannot be read. Record-only, no threshold; a later change to what ShipLoop commits or prints is compared with the saved runs' counts, never with cost or wall time |
 | S-14, and a blocked result's honesty is a model judgement S-9 excludes as evidence | `outcome_class` (added 2026-10-09): PASS, FAILED, BLOCKED, STOPPED or null (unknown, with `outcome_basis`), a pure function of `termination` (which now also carries the blocked detail the engine recorded: `engine_blocked_by`, `engine_awaiting_kind`, `engine_awaiting_no_default`) and `pass`. BLOCKED says the engine accepted a blocked result and what it named, never that the block was warranted; a paused engine, which awaits resume as a blocked one does, is BLOCKED with no `blocked_by`; a halted engine, terminal and unfinished, is FAILED: the engine's `halt` control is terminal and takes a reason, and in an unattended run the model, not an operator, issues it; no recorded run has been halted (the 11 recorded results hold done, blocked and active engines only), so this is a definition and not an observation. STOPPED is an ending the harness set: a requested stop, a signal, the deadline, a spent resume budget, or a host session that ended on the cap the harness gave it (`--max-turns`, `--max-budget-usd`: `error_max_turns`, `error_max_budget_usd`, Grok's `max_turns`), read from the session's recorded stop; any other host ending with the engine unfinished is FAILED. Which baseline rows are comparable is the baseline code's own rule, not this record's: `outcome_class` is in result.json only and no baseline rule reads it |
 | S-8, S-12, S-13 | review of the diff under test: no technology in prompts, no second implementation |
 | S-14 | host and checks run with standard input closed; `asked_user` (host ask-a-person tool calls); a run ending blocked or awaiting a person is reported as such, never resumed as if answered; a requested stop (`<output>/stop`, added 2026-10-08) ends the host and is recorded as `stopped`, and never answers a blocked or awaiting run |

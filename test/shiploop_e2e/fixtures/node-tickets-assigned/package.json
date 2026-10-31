@@ -1,0 +1,19 @@
+{
+  "name": "helpdesk-tickets",
+  "version": "1.4.0",
+  "private": true,
+  "description": "The IT help desk's ticket service: an HTTP API, an audit log, requester notifications and an operator command line.",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "bin": {
+    "tickets": "bin/tickets.js"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test",
+    "report:weekly": "node scripts/weekly-report.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

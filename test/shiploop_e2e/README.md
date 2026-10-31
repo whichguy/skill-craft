@@ -1310,6 +1310,49 @@ what the second run kept. The facts, where they are, and the checks that read th
 reference, the stand-in for the first run) build each case's base, reference, alternative and targeted defects;
 `test/shiploop-e2e-brownfield-tickets.test.py` grades all 54 side by side and pins the exact checks each fails.
 
+#### Test writing: `ticket-assignment-tests`
+
+```sh
+python3 test/shiploop_e2e/run.py --case ticket-assignment-tests --host codex --model gpt-6.1-terra --effort high --output ~/e2e-runs/<day>/<name>
+```
+
+This case asks ShipLoop to add tests to an already-correct service. It starts from the pinned
+`fixtures/node-tickets-assigned` reference, including the original 117 tests. Production and existing test/helper
+files stay unchanged. The delivered product is the added test suite; this case does not measure building the app.
+
+```mermaid
+flowchart TD
+    A[ShipLoop adds tests] --> B[Correct implementation passes]
+    B --> C[Valid source edits still pass]
+    C --> D[Known contract violations fail]
+```
+
+`checks/ticket_test_adequacy.py` runs the complete delivered suite on fresh copies: the correct baseline,
+three behavior-preserving controls (including an equivalent export rewrite across all eight affected source files),
+and 25 independently calibrated source-only contract violations from the
+ticket-assignment case. Four guard rows cover a valid baseline, preserved files, added executable tests and valid
+behavior controls. A defect row earns accuracy only when baseline, preservation and behavior controls pass.
+Full raw outcomes remain in the report, so an invalid suite cannot hide the faults it appeared to detect. A passing
+accuracy floor requires all 29 rows and the public checks; partial kill share is diagnostic, not a fractional promotion
+floor. Tests check behavior rather than freezing source bytes. A behavior suite mixed with byte checks is ineligible.
+
+Reports and full command logs live under `<output>/quality/logs/`; each acceptance note names the report and its
+SHA256. Timeouts, stale edits, unloadable variants, port refusals and test-time production edits are invalid evidence,
+never detected defects. Only a network-invalid observation may be rerun, at most twice on fresh copies; every attempt
+is retained and the first non-network-invalid outcome is selected, including a valid failure. Any unresolved invalid
+returns `(None, reason)` from every case row, making the acceptance block unobserved and qualification undecided.
+This never retries a model run. Keep raw kill share, eligible accuracy and
+new-test count separate. The existing suite already catches three of the 25 faults; new test names alone add no
+behavioral evidence. No Salesforce deployment, browser or npm dependency is required.
+
+Dependency-free lockfiles and ordinary CI/configuration metadata are allowed; production additions and dependency
+additions are refused. Possible production-byte reads are non-gating review hints, not proof of intent or a security
+boundary against deliberate benchmark gaming.
+
+`test/shiploop-e2e-test-adequacy.test.py` calibrates weak, no-assert, independent useful, raw and normalized source-hash
+detectors, mixed behavior/byte suites and production edits, plus invalid observations, through the same observer used by live runs. A tests-only win
+has a narrow claim: compare normal application workflows too before adopting a generic ShipLoop change.
+
 ### What version is tested
 
 By default (`--source marketplace`) a run tests exactly what the `whichguy`

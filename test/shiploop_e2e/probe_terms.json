@@ -75,6 +75,10 @@
       "\\bSLGym",
       "\\bgym[- ]membership\\b",
       "\\bcoaching kiosk\\b"
+    ],
+    "ticket-assignment-tests": [
+      "\\bhelp[- ]?desk\\b",
+      "\\bticket[- ]assignment[- ]tests\\b"
     ]
   },
   "exempt": [

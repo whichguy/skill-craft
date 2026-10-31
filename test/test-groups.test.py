@@ -115,9 +115,9 @@ class TestGroupTests(unittest.TestCase):
         # Current main's 97 ShipLoop suites plus four learning-loop contract suites, the SDLC probes, the closed loop's
         # two (2026-10-30), the seed seam suite, the stage suite's three (oracle, builder, runner), the optional UI adapter,
         # the stage suite's live tier's two (live core, report), and two opt-in gym adapter suites.
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 113)
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 114)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 53)
-        self.assertEqual(len(suite_catalog.SUITES), 168)
+        self.assertEqual(len(suite_catalog.SUITES), 169)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -767,7 +767,7 @@ class QuickSelectionNameCollisionTest(unittest.TestCase):
 
 
 class E2EFamilySelectionTest(unittest.TestCase):
-    """An edit under test/shiploop_e2e/ runs every suite of the E2E harness family in the quick tier (batch 1011 integration).
+    """Harness edits target the whole E2E family; quick runs its light members.
 
     The harness's modules (run.py, metrics.py, fidelity.py, sessionlog.py, environment.py) have names too common to select by,
     and each family suite reads them through run.py or metrics.py: before, the prefix selected shiploop-e2e alone (and, after
@@ -785,7 +785,7 @@ class E2EFamilySelectionTest(unittest.TestCase):
               "shiploop-e2e-efficiency", "shiploop-e2e-dodges", "shiploop-e2e-owner-page", "shiploop-e2e-experiments",
               "shiploop-e2e-sdlc-probes", "shiploop-e2e-stage-oracle", "shiploop-e2e-stage-build", "shiploop-e2e-stages",
               "shiploop-e2e-stage-live", "shiploop-e2e-stage-report",
-              "shiploop-e2e-run-trace", "shiploop-e2e-brownfield", "shiploop-e2e-brownfield-tickets",
+              "shiploop-e2e-run-trace", "shiploop-e2e-brownfield", "shiploop-e2e-brownfield-tickets", "shiploop-e2e-test-adequacy",
               "shiploop-e2e-lifecycle", "shiploop-e2e-discovery", "shiploop-e2e-qualification",
               "shiploop-e2e-roles", "shiploop-e2e-epoch", "shiploop-e2e-learning-records", "shiploop-e2e-cycle"}
 
@@ -793,12 +793,28 @@ class E2EFamilySelectionTest(unittest.TestCase):
         catalog = {suite.id for suite in suite_catalog.SHIPLOOP_SUITES if suite.id.startswith("shiploop-e2e")}
         self.assertEqual(catalog, self.FAMILY)
 
-    def test_an_edit_of_the_harness_runs_the_whole_family_in_the_quick_tier(self) -> None:
+    def test_an_edit_of_the_harness_targets_the_family_and_quick_runs_its_light_members(self) -> None:
+        light_family = {suite.id for suite in suite_catalog.SHIPLOOP_SUITES
+                        if suite.id in self.FAMILY and suite_catalog._light(suite)}
         for path in ("test/shiploop_e2e/run.py", "test/shiploop_e2e/metrics.py", "test/shiploop_e2e/fidelity.py",
                      "test/shiploop_e2e/sessionlog.py", "test/shiploop_e2e/environment.py"):
             with self.subTest(path=path):
                 self.assertGreaterEqual(suite_catalog.targeted([path]), self.FAMILY)
-                self.assertGreaterEqual({suite.id for suite in suite_catalog.quick([path])}, self.FAMILY)
+                selected = {suite.id for suite in suite_catalog.quick([path])}
+                self.assertEqual(selected & self.FAMILY, light_family)
+
+    def test_the_measured_adequacy_calibration_is_targeted_but_runs_in_the_full_tier(self) -> None:
+        ident = "shiploop-e2e-test-adequacy"
+        suite = next(suite for suite in suite_catalog.SHIPLOOP_SUITES if suite.id == ident)
+        self.assertGreater(suite_catalog._DURATION_SECONDS[suite.path], suite_catalog.QUICK_MAX_SECONDS)
+        self.assertIn(ident, {suite.id for suite in suite_catalog.select(ci_policy.FULL_GROUPS)})
+        for path in (suite.path, "test/shiploop_e2e/checks/ticket_test_adequacy.py",
+                     "test/shiploop_e2e/checks/ticket_test_variants.py",
+                     "test/shiploop_e2e/fixtures/node-tickets-assigned/src/app.js",
+                     "test/fixtures/quality/ticket_adequacy_strong.test.js"):
+            with self.subTest(path=path):
+                self.assertIn(ident, suite_catalog.targeted([path]))
+                self.assertNotIn(ident, {suite.id for suite in suite_catalog.quick([path])})
 
     def test_the_committed_baseline_report_selects_the_suite_that_pins_it(self) -> None:
         # runs.json is the committed output of `run.py --baseline-report`; the baseline suite pins it. Its file name selects nothing.

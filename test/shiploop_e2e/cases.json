@@ -832,5 +832,183 @@
       ],
       "refuse_ports_source": "the base: src/config.js reads PORT and defaults to 4180, README.md 'Configuration'. The held-out checks start the delivered server with PORT set, and a delivery that ignored it would meet the refusal. 4180, not 3000, because other cases hold a lease on 3000"
     }
+  },
+  "ticket-assignment-tests": {
+    "style": "brownfield",
+    "base": {
+      "fixture": "node-tickets-assigned",
+      "digest": "f0e486c77413",
+      "source": "Frozen correct ticket-assignment reference from c51e218a683a18b01a1b692485cec95512b1d372, production edits only; preserves the 117 existing tests. This case requests added tests, not application implementation."
+    },
+    "prompt": "This directory contains an already implemented help-desk ticket-assignment service, with no npm dependencies. Add node:test tests under test/ for the assignment behavior and its interactions with the existing documented service. Do not change production files, package.json, or any existing test/helper file; add new test files and helpers. npm test must run the existing and added tests. README.md, CONTRIBUTING.md, docs/api.md and docs/decisions/ describe the existing obligations to preserve. The assignment contract is: PUT /tickets/:id/assignee with JSON {\"assignee\":\"<agent>\"} assigns an agent whose name has 1 to 64 characters; {\"assignee\":null} unassigns. Only open and in-progress tickets permit assignment or unassignment. Assigning the same agent changes nothing. Every ticket shows assignee, null when unassigned. Each new agent is notified through the existing outbox/worker, and every actual change uses the existing audit and actor conventions. GET /tickets supports assignee=<agent> and assignee= for unassigned tickets, together with all other filters; every supplied filter must match, with the documented pagination behavior preserved. The command-line listing shows assignee while existing raw-column consumers keep working. New fields and audit/outbox state survive data-file restarts, and legacy files without assignee load as unassigned. Existing lifecycle, notifications and errors keep their documented behavior. Keep the implementation as it is; the deliverable is tests that check this contract, including meaningful failure, boundary and interaction cases. Do not add dependencies. Check observable behavior rather than production source text or file hashes. Bound asynchronous test waits so an unmet behavior produces a useful failure.",
+    "checks": [
+      "python3 \"$E2E_CHECKS/base_tests.py\" suite node-tickets-assigned",
+      "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-tickets-assigned"
+    ],
+    "checks_source": "The requested deliverable is added tests: the entire suite must pass with more tests than the frozen base, and the original 117 tests must pass unchanged.",
+    "quality": {
+      "acceptance": {
+        "start": "node src/server.js",
+        "module": "ticket_test_adequacy",
+        "source": "The deliverable is a useful test suite for the public contract. Grade it on a correct frozen implementation, behavior-preserving controls and independently calibrated contract violations; broken/timeout observations are invalid, never kills.",
+        "calibration": [
+          "test/shiploop_e2e/checks/ticket_test_variants.py",
+          "test/fixtures/quality/ticket_adequacy_strong.test.js",
+          "test/shiploop-e2e-test-adequacy.test.py",
+          "test/fixtures/quality/ticket_adequacy_alternative.test.js"
+        ],
+        "checks": [
+          {
+            "id": "suite-baseline",
+            "grade": "pass-to-pass",
+            "source": "The requested npm test suite runs successfully on the correct implementation."
+          },
+          {
+            "id": "preserve-fixture",
+            "grade": "pass-to-pass",
+            "source": "The request explicitly preserves production, package.json and every existing test/helper file."
+          },
+          {
+            "id": "added-tests",
+            "grade": "fail-to-pass",
+            "source": "The request asks for added executable tests beyond the original 117."
+          },
+          {
+            "id": "behavior-controls",
+            "grade": "pass-to-pass",
+            "source": "Tests must check behavior, so behavior-preserving source edits must still pass."
+          },
+          {
+            "id": "filter-or",
+            "grade": "fail-to-pass",
+            "source": "The assignment request requires every supplied filter to match; docs/api.md also specifies AND."
+          },
+          {
+            "id": "filter-after-page",
+            "grade": "fail-to-pass",
+            "source": "The assignment filter read with docs/decisions/0005-cursor-pagination.md: filtering precedes paging."
+          },
+          {
+            "id": "no-envelope",
+            "grade": "fail-to-pass",
+            "source": "Assignment errors preserve the envelope in docs/decisions/0004-error-envelope.md."
+          },
+          {
+            "id": "conflict-as-invalid",
+            "grade": "fail-to-pass",
+            "source": "Only active tickets allow assignment; disallowed state is 409 conflict in the existing error contract."
+          },
+          {
+            "id": "closed-assignable",
+            "grade": "fail-to-pass",
+            "source": "The request permits assignment and unassignment only for open and in-progress tickets."
+          },
+          {
+            "id": "notify-inline",
+            "grade": "fail-to-pass",
+            "source": "The request uses the existing asynchronous outbox/worker mechanism in docs/decisions/0006-notification-outbox.md."
+          },
+          {
+            "id": "notify-no-template",
+            "grade": "fail-to-pass",
+            "source": "The assigned agent receives a deliverable notification through the documented template/worker path."
+          },
+          {
+            "id": "notify-key-per-ticket",
+            "grade": "fail-to-pass",
+            "source": "Reassignment to another agent while a notice waits still notifies each newly assigned agent."
+          },
+          {
+            "id": "notify-requester",
+            "grade": "fail-to-pass",
+            "source": "The assignment request notifies the new agent, preserving requester notifications for their existing events."
+          },
+          {
+            "id": "audit-bypassed",
+            "grade": "fail-to-pass",
+            "source": "Each assignment change uses the audit conventions in CONTRIBUTING.md and docs/decisions/0007-append-only-audit-log.md."
+          },
+          {
+            "id": "actor-ignored",
+            "grade": "fail-to-pass",
+            "source": "The audit preserves X-Actor, or system without a header, per docs/decisions/0007-append-only-audit-log.md."
+          },
+          {
+            "id": "same-agent-not-noop",
+            "grade": "fail-to-pass",
+            "source": "Assigning a ticket to its current agent changes nothing, including timestamp, audit and outbox."
+          },
+          {
+            "id": "memory-only-assignee",
+            "grade": "fail-to-pass",
+            "source": "New fields persist across DATA_FILE restarts, per docs/decisions/0008-json-data-file.md."
+          },
+          {
+            "id": "old-data-refused",
+            "grade": "fail-to-pass",
+            "source": "The request preserves loading legacy version1 files without an assignee field."
+          },
+          {
+            "id": "old-assignee-undefined",
+            "grade": "fail-to-pass",
+            "source": "Legacy tickets load with the documented unassigned default null in API and CLI views."
+          },
+          {
+            "id": "raw-column-inserted",
+            "grade": "fail-to-pass",
+            "source": "Existing CLI raw-column consumers retain id/status/priority/title positions, as README.md specifies."
+          },
+          {
+            "id": "cli-no-assignee",
+            "grade": "fail-to-pass",
+            "source": "The request requires the normal command-line listing to show assignee."
+          },
+          {
+            "id": "no-unassign",
+            "grade": "fail-to-pass",
+            "source": "A JSON body with assignee:null unassigns an active ticket."
+          },
+          {
+            "id": "empty-filter-ignored",
+            "grade": "fail-to-pass",
+            "source": "An explicit empty assignee= filter selects unassigned tickets."
+          },
+          {
+            "id": "name-limit-off-by-one",
+            "grade": "fail-to-pass",
+            "source": "Agent names of exactly64 characters are valid;65 are invalid."
+          },
+          {
+            "id": "listing-hides-assignee",
+            "grade": "fail-to-pass",
+            "source": "Every ticket view, including list entries, shows assignee or null."
+          },
+          {
+            "id": "update-rejects-resolved",
+            "grade": "fail-to-pass",
+            "source": "The request preserves the existing lifecycle, including permitted updates of resolved tickets."
+          },
+          {
+            "id": "default-limit-changed",
+            "grade": "pass-to-pass",
+            "source": "The existing default20-item page size in docs/decisions/0005-cursor-pagination.md is preserved."
+          },
+          {
+            "id": "resolved-template-replaced",
+            "grade": "pass-to-pass",
+            "source": "Existing requester resolution notifications and their documented content keep working."
+          },
+          {
+            "id": "audit-not-saved",
+            "grade": "pass-to-pass",
+            "source": "Audit and outbox state survive DATA_FILE restarts per docs/decisions/0008-json-data-file.md."
+          }
+        ]
+      },
+      "refuse_ports": [
+        4180
+      ],
+      "refuse_ports_source": "The fixture defaults to port4180. Tests use ephemeral ports; a default-port leak must not collide with another run."
+    }
   }
 }

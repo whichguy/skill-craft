@@ -53,6 +53,7 @@ listeners = e2e.listeners
 
 import boundary  # noqa: E402
 import quality  # noqa: E402
+import scorecard  # noqa: E402
 
 
 needs_node = unittest.skipUnless(shutil.which("node"), "this class runs the real `node --test` and needs node on PATH "
@@ -1118,6 +1119,55 @@ class AcceptanceRunTest(QualityCase):
         self.assertIn("RuntimeError", block["checks"][0]["note"])
         self.assertEqual((block["ids"], block["passed"]), (["one", "two"], ["two"]))
 
+    def test_unknown_checks_keep_all_rows_and_make_the_block_unobserved(self):
+        directory = self.checks_dir(
+            "def unknown(base):\n    return None, 'not configured'\n"
+            "CHECKS = {'passed': lambda base: (True, 'ready'), 'unknown': unknown, "
+            "'failed': lambda base: (False, 'wrong')}\n"
+        )
+        block = self.accept(self.block(f"{sys.executable} {REFERENCE}", ids=("passed", "unknown", "failed")), checks_dir=directory)
+
+        self.assertIs(block["observed"], False)
+        self.assertEqual(block["ids"], ["passed", "unknown", "failed"])
+        self.assertEqual(block["passed"], ["passed"])
+        self.assertEqual([(row["id"], row["pass"]) for row in block["checks"]],
+                         [("passed", True), ("unknown", None), ("failed", False)])
+        self.assertEqual(block["checks"][1]["note"], "not configured")
+        self.assertEqual(block["reason"], "unobserved held-out checks: unknown: not configured")
+
+    def test_value_error_remains_a_known_failed_check(self):
+        directory = self.checks_dir("def invalid(base):\n    raise ValueError('bad input')\nCHECKS = {'one': invalid}\n")
+        block = self.accept(self.block(f"{sys.executable} {REFERENCE}"), checks_dir=directory)
+
+        self.assertIs(block["observed"], True)
+        self.assertEqual([(row["id"], row["pass"]) for row in block["checks"]], [("one", False)])
+        self.assertIn("ValueError", block["checks"][0]["note"])
+
+    def test_scorecard_accuracy_marks_required_mixed_unknown_acceptance_unobserved(self):
+        directory = self.checks_dir(
+            "def unknown(base):\n    return None, 'not configured'\n"
+            "CHECKS = {'passed': lambda base: (True, 'ready'), 'unknown': unknown, "
+            "'failed': lambda base: (False, 'wrong')}\n"
+        )
+        acceptance = self.accept(self.block(f"{sys.executable} {REFERENCE}", ids=("passed", "unknown", "failed")), checks_dir=directory)
+        result = {"pass": True, "case": "example", "quality": {"acceptance": acceptance,
+                                                                    "mutation": {"observed": False, "reason": "not run"}}}
+        unmeasured = {}
+
+        accuracy = scorecard.accuracy(result, unmeasured, required_case={"quality": {"acceptance": {"checks": [{}]}}})
+
+        self.assertEqual(accuracy["acceptance"], None)
+        self.assertEqual(accuracy["floor"], scorecard.UNOBSERVED)
+        self.assertEqual(unmeasured["accuracy.acceptance"], acceptance["reason"])
+
+    def test_a_fully_observed_acceptance_keeps_its_existing_block_shape(self):
+        directory = self.checks_dir("CHECKS = {'one': lambda base: (True, 'ok'), 'two': lambda base: (False, 'bad')}\n")
+        block = self.accept(self.block(f"{sys.executable} {REFERENCE}", ids=("one", "two")), checks_dir=directory)
+
+        self.assertEqual(block, {"observed": True, "source": "s", "ids": ["one", "two"], "passed": ["one"],
+                                 "checks": [{"id": "one", "source": "q one", "pass": True, "note": "ok"},
+                                            {"id": "two", "source": "q two", "pass": False, "note": "bad"}]})
+
     def test_nothing_but_the_servers_own_command_line_reaches_an_argv(self):
         directory = self.checks_dir("CHECKS = {'secret-id': lambda base: (True, base)}\n")
         argvs = []
@@ -1358,10 +1408,15 @@ class EventFactsTest(QualityCase):
                                                           "test/fixtures/quality/reference_ticket_escalation.py",
                                                           "test/fixtures/quality/reference_ticket_import.py",
                                                           "test/fixtures/quality/reference_user_listing.py",
+                                                          "test/fixtures/quality/ticket_adequacy_alternative.test.js",
+                                                          "test/fixtures/quality/ticket_adequacy_strong.test.js",
+                                                          "test/shiploop-e2e-test-adequacy.test.py",
                                                           "test/shiploop_e2e/checks/checkers_accept.py",
                                                           "test/shiploop_e2e/checks/ticket_assignment_accept.py",
                                                           "test/shiploop_e2e/checks/ticket_escalation_accept.py",
                                                           "test/shiploop_e2e/checks/ticket_import_accept.py",
+                                                          "test/shiploop_e2e/checks/ticket_test_adequacy.py",
+                                                          "test/shiploop_e2e/checks/ticket_test_variants.py",
                                                           "test/shiploop_e2e/checks/user_listing_accept.py"])
         for path in boundary.held_out_files(cases):
             self.assertTrue((ROOT / path).is_file(), path)
