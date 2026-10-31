@@ -20,8 +20,8 @@ from pathlib import Path
 
 ROOTS = ("~/e2e-runs", "~/e2e-runs-brownfield", "~/e2e-runs-qr", "~/e2e-runs-x4", "~/e2e-runs-owner-note")
 sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "skills" / "shiploop" / "scripts"))
-import shiploop_store as store  # noqa: E402
-import shiploop_workspace as workspace  # noqa: E402
+import shiploop_store as store
+import shiploop_workspace as workspace
 
 
 def git(repo: str, *args: str, data: bytes | None = None) -> subprocess.CompletedProcess:

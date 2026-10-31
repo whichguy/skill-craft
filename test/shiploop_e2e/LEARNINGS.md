@@ -5172,3 +5172,68 @@ prompts (the hidden checks pass in both arms); DeepSeek flash (at its Ollama mon
 **Evidence.** `~/e2e-runs-qr/20261031/`; `docs/experiments/question-record-20261031/scores-e2e-ab.json` and
 `e2e_ab.py`; baseline rows appended to test/shiploop_e2e/baselines.jsonl; journal E10; plan
 docs/shiploop-question-record-verdicts-and-plan-2026-10-31.md §3.
+
+## Stage-prompt review fixes: E2E round on the Codex harness, Terra 6.1 high (2026-10-31) — status: firm for these runs (6 against 7, one subject and effort); the refusal counts are small numbers
+
+**Change under test.** c2da4604 lands the eleven "land now" fixes of the stage-prompt review
+(docs/experiments/prompt-template-review-20261031/README.md section 3):
+1. `shiploop check` runs the result-shape check;
+2. the step-plan check row names no criterion;
+3. an empty `red_na` list counts as absent;
+4. a "." or ";" after the spec mark is accepted;
+5. the mutation Checked-by text matches the gate;
+6. the restate-`unverified` rule is in the head;
+7. the rollback recipe is filled from the decided return plan;
+8. test-strategy's test-ID line;
+9. intake cites sentences by RUN/request.md, with ranges;
+10. product-acceptance return sentence and audit line;
+11. step-plan `from` wording.
+
+**Runs.**
+- Command: `run.py --case <case> --host codex --model gpt-6.1-terra --effort high --source checkout`, run on
+  6f058134's working tree. After rebasing onto 02a215e9 that commit is c2da4604, with `skills/` byte-identical (an
+  empty `git diff 6f058134 c2da4604 -- skills/`).
+- Three lanes in parallel, 2 runs each: hello, user-listing, ticket-assignment. Output in `~/e2e-runs-pf/20261031/`.
+- Baseline: the same subject and effort on main before the change.
+  - The arm B runs of the 2026-10-31 proof-order A/B: `~/e2e-runs-qr/20261031/B-*`, 3 user-listing and 3
+    ticket-assignment.
+  - `~/e2e-runs/20261030/hello-terra-2243-0c81bf`.
+  - The other 10-30 Terra hello folder has no trace and is left out.
+- Reader: `docs/experiments/prompt-template-review-20261031/validation/e2e_round.py`, output in
+  `e2e-round-new.json` and `e2e-round-baseline.json`.
+
+**Result.**
+
+| | Runs | Hidden checks | Refused callbacks (per run) | Check yes, then complete refused | Refusals the fixes target | Returned environment.md keeps `<kept paths>` |
+|---|---|---|---|---|---|---|
+| Before (main) | 7 | 7 pass | 21 (3.0) | 2 | 7: `from` 4, empty `red_na` 1, spec mark 1, restate 1 | 5 of 7 |
+| After (c2da4604) | 6 | 6 pass | 9 (1.5) | 0 | 2: `from` 1, spec mark 1 | 1 of 6 |
+
+- Minutes by case, after against before:
+  - hello: 8.4 and 7.7, against 8.5;
+  - user-listing: 9.0 and 8.0, against 9.2, 9.3 and 8.0;
+  - ticket-assignment: 19.9 and 12.0, against 13.7, 11.5 and 15.1.
+
+  The 19.9-minute run spent 6.2 minutes in Improve, and its refusals were gates working (a missing check row, two
+  mutation survivors). No time effect is claimed.
+- The two targeted refusals that remain are not the fixed defects:
+  - the spec-mark refusal (user-listing r2) was lines with no `(W1/S1)` mark at all;
+  - the `from` refusal (hello r2) was an open item with no expectation.
+
+  Both came from the check, and the model repaired each before complete.
+- Fix 1 seen live: hello r2's check refused "a test command's ids must be a nonempty list" on the draft, which before
+  c2da4604 would have been a yes and then a complete refusal.
+- Fix 7: 5 of 6 returned environment.md files hold a filled recipe, such as `git diff --binary <base> <run> -- docs
+  hello.py test_hello.py | git apply -R`. user-listing r1 kept its release-plan wording ("obtain paths from the return
+  plan") after release-check's review-return printed the filled one. The packets are right; one model left its own
+  text.
+- Fix 8: neither hello run declared an ID the matcher cannot see. Both title the test by its method name
+  (`test_output`), which counts as its own word.
+
+**Offline checks that came first.**
+- Quick and prompt tiers, `--changed-from 227f6ce0`: PASS, 78 suites.
+- Rollback replay over 122 archived return plans: 121 reverse cleanly with the filled recipe (99.2%, against a 95%
+  bar).
+
+**Not measured.** One subject and effort; three cases; long requests (fix 9: these prompts are short); the
+release-verify restate path (no run left a due `unverified` entry).
