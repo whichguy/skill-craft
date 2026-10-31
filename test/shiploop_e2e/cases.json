@@ -736,5 +736,101 @@
       "browser"
     ],
     "needs_source": "Owner requests real deployed UI validation of the reusable four-journey gym scenario."
+  },
+  "ticket-import": {
+    "style": "brownfield",
+    "base": {
+      "fixture": "node-tickets",
+      "digest": "5652a97375d0",
+      "source": "XI of docs/experiments/experiment-route-20261031/README.md: ticket-assignment's base with a request whose deciding facts only running settles: a body limit the request does not name, and a data file rewritten whole after every change; pinned, so a change to the base is a change to the case (SPEC: A brownfield case)"
+    },
+    "prompt": "This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/. Add a bulk import for the help desk's move from its old tracker. `POST /tickets/import` takes a JSON body `{\"tickets\": [...]}` whose items are what `POST /tickets` takes, at most 5000 of them, and creates them in the given order: all of them, or none when any item is invalid, in which case it answers 400 with an error whose message names the first invalid item by its index in the array (0 for the first). On success it answers 201 with `{\"created\": <how many>, \"ids\": [<the new ids in order>]}`. Each imported ticket is recorded and its requester is notified just as when one ticket is created. An import of 5000 tickets must be answered within 10 seconds. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.",
+    "checks": [
+      "python3 \"$E2E_CHECKS/base_tests.py\" suite node-tickets",
+      "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-tickets",
+      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;(async()=>{const r=await fetch(base+'/tickets/import',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({tickets:[{title:'Check import 1',requester:'check@example.com'},{title:'Check import 2',requester:'check@example.com',priority:'high'}]})});const b=await r.json().catch(()=>null);if(r.status!==201||!b||b.created!==2||!Array.isArray(b.ids)||b.ids.length!==2) process.exit(2);const t=await fetch(base+'/tickets/'+b.ids[1]).then(x=>x.json());process.exit(t&&t.title==='Check import 2'&&t.priority==='high'?0:3);})().catch(()=>process.exit(6))\""
+    ],
+    "checks_source": "the request: the suite check reads 'Add node:test tests under test/ for the new behaviour' (more tests pass than the base's own); the pristine check reads 'its existing tests must still pass as they are', with the base's tests at their pristine bytes and apart from the delivery's own (SPEC: A brownfield case, pass-to-pass); the HTTP check reads 'creates them in the given order' and 'answers 201 with {\"created\", \"ids\"}'",
+    "quality": {
+      "acceptance": {
+        "module": "ticket_import_accept",
+        "calibration": [
+          "test/fixtures/quality/reference_ticket_import.py"
+        ],
+        "start": "node src/server.js",
+        "source": "hand-written from the request and the base's documents, never shown to the model, run in the harness process after the host ended (SPEC: Delivered quality is recorded, never judged); the checks that need a data file or the worker off start the product themselves (quality.Product); graded fail-to-pass and pass-to-pass against the base, and calibrated against the base, the reference, an alternative and targeted defects in test/fixtures/quality/reference_ticket_import.py (SPEC: A brownfield case); the latent facts each reads are in docs/experiments/experiment-route-20261031/README.md (XI)",
+        "checks": [
+          {
+            "id": "ticket-lifecycle-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the service already does keeps working', read for docs/api.md's create, read, change and lifecycle endpoints (a resolved ticket can still change; a closed one cannot), their error envelope and the audit trail"
+          },
+          {
+            "id": "listing-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the same sentence, read for docs/api.md 'List tickets' and docs/decisions/0005-cursor-pagination.md: 20 to a page by default, cursor pages, one filter at a time, and 400 for a bad limit, cursor or filter"
+          },
+          {
+            "id": "notifications-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the same sentence, read for docs/decisions/0006-notification-outbox.md: the requester's created and resolved notifications wait in the outbox while WORKER_INTERVAL_MS is 0 and are delivered once each by the worker to NOTIFY_FILE"
+          },
+          {
+            "id": "restart-keeps-state",
+            "grade": "pass-to-pass",
+            "source": "the same sentence, read for docs/decisions/0008-json-data-file.md: a restart from DATA_FILE keeps the tickets, their audit trail and the outbox, and ticket numbers go on (docs/decisions/0002)"
+          },
+          {
+            "id": "cli-raw-columns",
+            "grade": "pass-to-pass",
+            "source": "the same sentence, read for README.md 'Command line': 'scripts/weekly-report.js runs list --raw and reads these columns by position, so they must keep their positions', with assigned tickets in the data"
+          },
+          {
+            "id": "old-data-loads",
+            "grade": "pass-to-pass",
+            "source": "the same sentence, read for docs/decisions/0008-json-data-file.md: a data file the base wrote (version 1, no assignee) loads, on the API and the command line"
+          },
+          {
+            "id": "import-creates-in-order",
+            "grade": "fail-to-pass",
+            "source": "the request: 'whose items are what POST /tickets takes', 'creates them in the given order' and 'answers 201 with {\"created\", \"ids\"}', read for docs/api.md 'Create a ticket'"
+          },
+          {
+            "id": "import-all-or-none",
+            "grade": "fail-to-pass",
+            "source": "the request: 'all of them, or none when any item is invalid, in which case it answers 400 with an error whose message names the first invalid item by its index in the array (0 for the first)', read for docs/decisions/0006 and 0007: a create enqueues a notification and appends a history entry, which a refused import must not leave behind"
+          },
+          {
+            "id": "import-validates-like-create",
+            "grade": "fail-to-pass",
+            "source": "the request: 'whose items are what POST /tickets takes, at most 5000 of them', read for docs/api.md 'Create a ticket' and its rule that unknown fields in a request body are refused"
+          },
+          {
+            "id": "import-audited",
+            "grade": "fail-to-pass",
+            "source": "the request: 'Each imported ticket is recorded ... just as when one ticket is created', read for docs/decisions/0007-append-only-audit-log.md and docs/api.md 'The actor'"
+          },
+          {
+            "id": "import-notifies",
+            "grade": "fail-to-pass",
+            "source": "the request: 'its requester is notified just as when one ticket is created', read for docs/decisions/0006-notification-outbox.md (one notification per key)"
+          },
+          {
+            "id": "import-5000-in-time",
+            "grade": "fail-to-pass",
+            "source": "the request: 'An import of 5000 tickets must be answered within 10 seconds', with the service run as docs/operations.md runs it (DATA_FILE set), where the data file is rewritten whole after every change (decision 8), and a body over MAX_BODY_BYTES (65536 by default, README.md 'Configuration') is refused"
+          },
+          {
+            "id": "import-persists",
+            "grade": "fail-to-pass",
+            "source": "the request: 'Everything the service already does keeps working', read for CHANGELOG.md 1.3.0 and docs/decisions/0008-json-data-file.md: the service keeps its tickets across restarts, and numbers go on"
+          }
+        ]
+      },
+      "refuse_ports": [
+        4180
+      ],
+      "refuse_ports_source": "the base: src/config.js reads PORT and defaults to 4180, README.md 'Configuration'. The held-out checks start the delivered server with PORT set, and a delivery that ignored it would meet the refusal. 4180, not 3000, because other cases hold a lease on 3000"
+    }
   }
 }
