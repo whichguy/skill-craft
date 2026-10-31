@@ -971,7 +971,12 @@ DUTIES = {
 11. RUN/notes/research.md ## Assumptions: each load-bearing assumption (its failure would change a plan decision,
     consumer or acceptance check), marked evidenced (locator), probed (command and saved output) or open (the check
     that would settle it, why not run). Plan builds its `assumptions` from it.
-12. Before submitting, apply Discovery evidence handoff: list each consequential decision in `evidence_refs` with its
+12. Each intake question routed `experiment` (the template names each; none named, nothing owed): run the smallest probe
+    of the existing system that answers it, as the system runs (its documented settings and data, not a test helper's),
+    save the command's output in RUN/scratch, and record it in `experiments` as {question, check (the command), evidence
+    (the output's absolute path), finding}, and under ## Assumptions as probed. When nothing that exists can show it:
+    {question, open}, saying why.
+13. Before submitting, apply Discovery evidence handoff: list each consequential decision in `evidence_refs` with its
     section locator, reopen it as a fresh reader; also every file written and source used.
 """,
     "spec": """\

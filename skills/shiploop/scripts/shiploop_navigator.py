@@ -82,7 +82,7 @@ _RESULT_KEYS = frozenset((
     "expectations", "check_na", "minimum_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
     "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions",
-    "knowledge", "added_tests", "question_categories", "questions",
+    "knowledge", "added_tests", "question_categories", "questions", "experiments",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -130,7 +130,7 @@ _DONE_ONLY_FIELDS = (
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered", "concerns",
     "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
-    "mutant_dispositions", "knowledge", "added_tests", "question_categories", "questions",
+    "mutant_dispositions", "knowledge", "added_tests", "question_categories", "questions", "experiments",
 )
 _STATE_KEYS = frozenset(
     (
@@ -1254,6 +1254,12 @@ def _canonical_result(
             _need(stage == "intake" and outcome == "done", key + " is allowed only on a done intake result")
             _need(isinstance(value[key], list), key + " is a list")
             result[key] = json.loads(json.dumps(value[key]))
+    if "experiments" in value:
+        # Shape only (research duty 12): the CLI gate checks the probes (``_check_research_experiments``); kept whole, as the
+        # intake ledger is, so the result that records a probe also stores it.
+        _need(stage == "research" and outcome == "done", "experiments is allowed only on a done research result")
+        _need(isinstance(value["experiments"], list), "experiments is a list")
+        result["experiments"] = json.loads(json.dumps(value["experiments"]))
     if "unverified" in value:
         # Shape only: the exact fields, the placeholder and the due stage are checked at the CLI gates, because
         # validate() re-canonicalises every accepted result on load and an edit of the field set must not refuse a saved run.
@@ -2893,6 +2899,63 @@ def _check_intake_questions(stage: str, result: Any) -> None:
                   + ": write the question and its fields, or delete the row")
             _need(row.get("route") in QUESTION_ROUTES, "question " + ident + "'s route is one of "
                   + ", ".join(QUESTION_ROUTES) + " (found " + str(row.get("route")) + ")")
+
+
+def _experiment_questions(state: Mapping[str, Any]) -> list[str]:
+    """The ids of the current intake ledger's questions routed ``experiment`` (none before a ledger is accepted)."""
+    action = planning_revision.current_actions(state).get((None, request_file.INTAKE))
+    found = (state.get("accepted") or {}).get(action) if action else None
+    rows = found.get("questions") if isinstance(found, Mapping) else None
+    return [str(row["id"]) for row in rows or () if isinstance(row, Mapping) and row.get("route") == "experiment"
+            and row.get("id")]
+
+
+def _check_research_experiments(state: Mapping[str, Any], stage: str, result: Any) -> None:
+    """Refuse a done research result that leaves an intake question routed ``experiment`` unprobed (research duty 12;
+    the experiment-route study XI, docs/experiments/experiment-route-20261031).  Each such question has one
+    ``experiments`` row: the probe (``check``, the command it ran; ``evidence``, absolute paths of its saved output, each a
+    nonempty file; ``finding``) or ``open``, why nothing that exists can show it.  Rows name only those questions; a run
+    whose intake routed none owes nothing.  The file rule is assumptions.check_files' for a probed assumption: it rules
+    out a probe cited from memory and cannot prove the command ran."""
+    if stage != "research" or not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    owed = _experiment_questions(state)
+    rows = result.get("experiments")
+    if not owed:
+        _need(rows in (None, []), "experiments is for intake questions routed experiment, and this run's intake routed none")
+        return
+    _need(isinstance(rows, list) and all(isinstance(row, Mapping) for row in rows),
+          "experiments is a list with one row per intake question routed experiment (" + ", ".join(owed) + ")")
+    named = [str(row.get("question")) for row in rows]
+    stray = [ident for ident in named if ident not in owed]
+    _need(not stray, "experiments names " + ", ".join(stray) + ", which intake did not route to experiment (routed: "
+          + ", ".join(owed) + ")")
+    twice = sorted({ident for ident in named if named.count(ident) > 1})
+    _need(not twice, "experiments lists " + ", ".join(twice) + " more than once")
+    missing = [ident for ident in owed if ident not in named]
+    _need(not missing, "intake routed " + ", ".join(missing) + " to experiment, which only running something answers: "
+          "run the smallest probe of the existing system that answers it, save its output, and add {question, check, "
+          "evidence, finding} to experiments; or {question, open} saying why nothing that exists can show it")
+    for row in rows:
+        ident = str(row.get("question"))
+        if "open" in row:
+            reason = row.get("open")
+            _need(set(row) == {"question", "open"} and isinstance(reason, str) and reason.strip()
+                  and reason.strip() != "...", "experiments " + ident + " is open: {question, open}, with why nothing "
+                  "that exists can show it")
+            continue
+        _need(set(row) == {"question", "check", "evidence", "finding"},
+              "experiments " + ident + " is {question, check, evidence, finding} or {question, open}")
+        kept = [key for key in ("check", "finding") if not isinstance(row.get(key), str) or not row[key].strip()
+                or row[key] == EXPERIMENT_ROW[key]]
+        _need(not kept, "experiments " + ident + " still holds a template placeholder in " + ", ".join(kept))
+        refs = row.get("evidence")
+        _need(isinstance(refs, list) and bool(refs) and all(isinstance(ref, str) for ref in refs),
+              "experiments " + ident + ".evidence is a list of absolute paths of the probe's saved output")
+        for ref in refs:
+            _need(Path(ref).is_absolute(), "experiments " + ident + " evidence " + repr(ref) + " is not an absolute path")
+            _need(Path(ref).is_file() and Path(ref).stat().st_size > 0,
+                  "experiments " + ident + " evidence " + ref + " is not a nonempty file: save the probe's output there")
 
 
 def _check_proof_inputs(repo: str | Path, stage: str, result: Any) -> None:
@@ -5157,6 +5220,10 @@ HANDOFF_SHAPES: dict[str, Any] = {
 # names them (pilot X1-T, docs/experiments/question-record-20261031).
 QUESTION_CATEGORIES = tuple(f"K{number}" for number in range(1, 12))
 QUESTION_ROUTES = ("inspect", "research", "experiment", "default", "person")
+# One probe of an intake question routed `experiment` (research duty 12): the command it ran, its saved output and
+# what it showed.  The template prints one per routed question, with its id.
+EXPERIMENT_ROW = {"question": "Q1", "check": "<the command the probe ran>",
+                  "evidence": ["<absolute path of its saved output>"], "finding": "<what it showed>"}
 QUESTION_ROW = {"blocks": "...", "category": "...", "changes": "...", "default": "...", "id": "Q1", "question": "...",
                 "route": "|".join(QUESTION_ROUTES)}
 STEP_PROOF_PLACEHOLDER = "<the one command, from the repository root, that proves this step's criteria>"
@@ -5185,6 +5252,10 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         # question-record-20261031): one row per catalog category, one per question.
         result["question_categories"] = [{"applies": "yes", "id": "K1"}, {"applies": "no", "id": "K10", "reason": "..."}]
         result["questions"] = [dict(QUESTION_ROW)]
+    if stage == "research":
+        owed = _experiment_questions(state)
+        if owed:
+            result["experiments"] = [dict(EXPERIMENT_ROW, question=ident) for ident in owed]
     if stage == "test-strategy":
         result["test_layers"] = [dict(layers.ROW_TEMPLATE)]
         result["targets"] = [dict(layers.TARGET_TEMPLATE)]
@@ -7103,6 +7174,9 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
     if stage == request_file.INTAKE:
         gates.append("a summary that leaves a sentence of the request uncited (each S<n> of RUN/request.md)")
         gates.append("a key-question ledger that is malformed or keeps a template placeholder")
+    if stage == "research":
+        gates.append("an intake question routed experiment with no probe in experiments (command, saved output, "
+                     "finding) or reason it cannot run")
     if stage == "plan":
         gates.append("an assumption list that is malformed, cites evidence files that do not exist, or leaves an "
                      "open assumption without a due_item naming a work item in this plan")
@@ -9657,6 +9731,7 @@ def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, s
     _check_focused_guards(current, submitted)
     _check_proof_inputs(state["repo"], current, submitted)
     _check_intake_questions(current, submitted)
+    _check_research_experiments(state, current, submitted)
     _check_added_tests(state, current, submitted)
     _check_submitted_consumer_entry(state["repo"], current, submitted)
     _check_submitted_recorded_commands(current, submitted)

@@ -280,6 +280,9 @@ class RealCliCase(unittest.TestCase):
             "questions": [{"id": "Q1", "category": "K3", "question": "Which file name does the build write?",
                            "changes": "R-1's acceptance line", "route": "default", "default": "built.txt",
                            "blocks": "nothing: the default proceeds"}],
+            # Research's probes (duty 12), printed only when intake routed a question to experiment: one real row.
+            "experiments": [{"question": "Q1", "check": "sh probe.sh", "evidence": [str(self.evidence)],
+                             "finding": "The probe's saved output answers Q1."}],
             "concerns": inner_fixture.no_concerns_map(["W1"]),
             "harness_runs": [{"code": "built.txt writer", "layer": "unit", "command": "sh test.sh",
                               "evidence": str(self.harness_output)}],
@@ -1310,6 +1313,54 @@ class StepSizingRouteTests(RealCliCase):
             command, path, _ = printed_callback(head)
             write_block(path, {**self.fill_done(head), "questions": good["questions"]})
             self.assertIn("belong to intake's result", self.refused(command, run))
+
+    def test_an_intake_question_routed_experiment_is_owed_a_probe_or_a_reason_at_research(self) -> None:
+        """Research duty 12 (experiment-route study XI, 2026-10-31): a live baseline run on Codex Terra 6.1 high whose
+        intake routed "What limits and costs affect a 5000-ticket request?" to experiment probed nothing, recorded the
+        timing as an open plan assumption, and paused at step-plan with nothing built.  Research now owes each such
+        question one row: the probe (its command, saved output and finding) or why nothing that exists can show it.  The
+        row is stored; a run whose intake routed none owes nothing and its template prints no experiments."""
+        routed = {"id": "Q1", "category": "K10", "question": "How long do 1000 creates take with the data file set?",
+                  "changes": "the import's design", "route": "experiment", "default": "fast enough",
+                  "blocks": "nothing: the default proceeds"}
+        run, head = self.new_run("research", results={"intake": {"questions": [routed]}})
+        command, path, action = printed_callback(head)
+        good = self.fill_done(head)
+        template = store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
+        self.assertEqual(template["experiments"], [dict(nav.EXPERIMENT_ROW, question="Q1")])
+        self.assertIn("12. Each intake question routed `experiment`", full_packet_text(head))
+        output = self.base / "probe-output.txt"
+        output.write_text("1000 creates with the data file set: 0.94 s\n", encoding="utf-8")
+        probe = {"question": "Q1", "check": "node probe.js", "evidence": [str(output)], "finding": "0.94 s for 1000"}
+        broken = [
+            ("no row", {"experiments": []}, "intake routed Q1 to experiment"),
+            ("a row for a question intake did not route there", {"experiments": [dict(probe, question="Q2")]},
+             "which intake did not route to experiment"),
+            ("the template row copied", {"experiments": [dict(nav.EXPERIMENT_ROW, question="Q1")]},
+             "still holds a template placeholder"),
+            ("evidence that is not a saved output", {"experiments": [dict(probe, evidence=[str(self.base / "none.txt")])]},
+             "is not a nonempty file"),
+            ("an open row with no reason", {"experiments": [{"question": "Q1", "open": " "}]}, "is open:"),
+        ]
+        for label, change, fragment in broken:
+            with self.subTest(label):
+                write_block(path, {**good, **change})
+                self.assertIn(fragment, self.refused(command, run))
+        write_block(path, {**good, "experiments": [probe]})
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["experiments"], [probe])
+        with self.subTest("open, with why nothing that exists can show it"):
+            run, head = self.new_run("research", results={"intake": {"questions": [routed]}})
+            command, path, _ = printed_callback(head)
+            write_block(path, {**self.fill_done(head), "experiments": [{"question": "Q1", "open": "nothing exists yet"}]})
+            self.accepted(command)
+        with self.subTest("an intake that routed nothing to experiment"):
+            run, head = self.new_run("research")
+            command, path, _ = printed_callback(head)
+            done = self.fill_done(head)
+            self.assertNotIn("experiments", done)
+            write_block(path, done)
+            self.accepted(command)
 
     def test_a_step_plan_field_of_any_length_is_accepted_and_stored_whole(self) -> None:
         """Plan F2 (owner, 2026-10-28): the step plan's task, Proof and per-step criteria were refused past 700, 600 and

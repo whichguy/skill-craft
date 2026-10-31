@@ -178,6 +178,7 @@ it read has changed. A field too long for its place in the packet is printed cut
 | Primary-requirement coverage at plan | `shiploop_primary.check_queue` |
 | Proof order at step-plan (a Proof needing an unwritten test or a later step's file) | `shiploop_item_scope.proof_order_refusal` |
 | Intake's key-question ledger (shape only, when present) | `shiploop_navigator._check_intake_questions` |
+| Research's probe of each intake question routed experiment | `shiploop_navigator._check_research_experiments` |
 | Hooks and the trace | `shiploop_keepalive`, `shiploop_trace` |
 | The knowledge home | `shiploop_knowledge_home.HOME` |
 
@@ -492,7 +493,9 @@ which also lists the retired terms.
 
 Stage results add their own fields where the stage needs them: `intake` may record its key-question ledger,
 `question_categories` (each of K1-K11, applies or not with a reason) and `questions` (id, category, question, what it
-changes, route, default, what it blocks); `spec` records
+changes, route, default, what it blocks); `research` records `experiments`, one row per intake question routed
+`experiment`: its probe (`question`, `check`, `evidence` the saved output's absolute path, `finding`) or `open`, why
+nothing that exists can show it, and the template prints one row per such question; `spec` records
 `primary`, the R-<n> that carry the request's primary outcomes, and each
 `product-acceptance` `unverified` row names its `requirement` and `lower_layer_check`
 ([test loop](test-loop.md)); `test-strategy` records
