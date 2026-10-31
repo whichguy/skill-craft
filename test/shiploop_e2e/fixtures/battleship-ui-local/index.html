@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Local UI contract fixture</title></head><body>
+<p>Find and sink the enemy fleet.</p><p>Legend: miss, hit, sunk.</p>
+<p id="shots">Shots: 0</p><p id="ships">Ships left: 5</p>
+<div id="grid" style="display:grid;grid-template-columns:repeat(10,70px)"></div>
+<p id="feedback" hidden></p><p id="live" aria-live="polite" hidden></p>
+<p id="progress" hidden></p><p id="over" role="status" hidden></p>
+<button id="reset">New game</button><div id="toast" role="status" hidden></div>
+<script>
+'use strict';
+const variant = new URL(location.href).searchParams.get('variant');
+// Five straight non-overlapping ships, 17 cells. Their final cells are consecutive.
+const fleet = [[0,10,20,30,40],[11,21,31,41],[22,32,42],[23,33,43],[34,44]];
+const grid = document.getElementById('grid');
+const states = new Map();
+let shots = 0, left = 5, last = '', busy = false, completed = false;
+let toastTimer;
+function label(button, value) {
+  if (variant === 'labelledby') {
+    let span = document.getElementById('name-' + button.dataset.i);
+    if (!span) { span = document.createElement('span'); span.id = 'name-' + button.dataset.i; span.hidden = true; document.body.append(span); }
+    span.textContent = value; button.setAttribute('aria-labelledby', span.id);
+  } else if (variant === 'image-alt') {
+    button.replaceChildren(); const image = document.createElement('img'); image.alt = value; image.width = 12; image.height = 12; button.append(image);
+  } else if (variant === 'text-name') button.textContent = value;
+  else { button.setAttribute('aria-label', value); button.textContent = '~'; }
+}
+function render() {
+  document.getElementById('shots').textContent = 'Shots: ' + shots;
+  document.getElementById('ships').textContent = 'Ships left: ' + left;
+  for (const button of grid.children) {
+    const index = Number(button.dataset.i);
+    const state = states.get(index) || 'unfired';
+    label(button, 'Battle cell row ' + button.dataset.r + ' column ' + button.dataset.c + ': ' + state);
+    button.disabled = busy || (states.has(index) && variant !== 'enabled-fired') || (left === 0 && variant !== 'control-like');
+  }
+  for (const id of ['feedback', 'live']) {
+    const element = document.getElementById(id);
+    element.hidden = !last || (id === 'live' && variant !== 'duplicate-feedback');
+    element.textContent = last ? 'Shot result: ' + last : '';
+  }
+  const progress = document.getElementById('progress');
+  progress.hidden = variant !== 'no-winner-yet';
+  progress.textContent = 'No winner yet (' + shots + ' shots).';
+  const over = document.getElementById('over');
+  const show = left === 0 || (variant === 'premature-victory' && left <= 1) || variant === 'static-victory' || (variant === 'stale-victory' && completed);
+  over.hidden = !show || variant === 'missing-victory' || variant === 'toast-only' || variant === 'counter-only';
+  const messages = {
+    'you-won': 'You won!',
+    'unrecognized-victory': 'Well played, admiral!',
+    'future-winner': 'A winner will be chosen later.',
+    'undetermined-winner': 'Winner has not been determined.',
+    'future-victory': 'Victory will be declared later.',
+    'conditional-win': 'You win when every ship is sunk.',
+  };
+  over.textContent = messages[variant] || 'Game over: every ship is sunk.';
+}
+function finishShot(index) {
+  if (variant !== 'bad-shot-count') shots += variant === 'double-shot-count' ? 2 : 1;
+  const ship = fleet.find(cells => cells.includes(index));
+  const sunk = ship && ship.every(cell => cell === index || states.has(cell));
+  last = ship ? (sunk ? 'sunk' : 'hit') : 'miss';
+  if (sunk) { if (variant !== 'stuck-ships') left -= 1; if (variant === 'missing-sink') last = 'hit'; }
+  states.set(index, variant === 'sinking-cell-hit' && sunk ? 'hit' : last);
+  if (left === 0) completed = true;
+  busy = false; render();
+  if (left === 0 && variant === 'toast-only') {
+    const toast = document.getElementById('toast'); toast.hidden = false; toast.textContent = 'Victory!';
+    toastTimer = setTimeout(() => { toast.hidden = true; }, 3000);
+  }
+}
+for (let row = 0; row < 10; row += 1) for (let column = 0; column < 10; column += 1) {
+  const button = document.createElement('button');
+  button.dataset.i = String(row * 10 + column); button.dataset.r = String(row); button.dataset.c = String(column);
+  button.onclick = () => {
+    const index = Number(button.dataset.i);
+    if (busy || states.has(index) || left === 0) return;
+    if (variant === 'delayed-busy') { busy = true; render(); setTimeout(() => finishShot(index), 60); }
+    else finishShot(index);
+  };
+  grid.append(button);
+}
+document.getElementById('reset').onclick = () => {
+  clearTimeout(toastTimer); document.getElementById('toast').hidden = true;
+  states.clear(); shots = 0; left = 5; last = ''; busy = false;
+  if (variant !== 'stale-victory') completed = false;
+  render();
+};
+render();
+</script></body></html>

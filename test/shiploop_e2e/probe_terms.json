@@ -60,6 +60,12 @@
     "ticket-escalation": [
       "\\bhelp[- ]?desk\\b",
       "\\bticket[- ]escalation\\b"
+    ],
+    "battleship-salesforce-ui": [
+      "\\bSLNavUi",
+      "\\bbattleships?\\b",
+      "\\bbattle cell\\b",
+      "\\bships left\\b"
     ]
   },
   "exempt": [

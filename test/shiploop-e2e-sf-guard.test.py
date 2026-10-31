@@ -83,12 +83,19 @@ class GuardCase(unittest.TestCase):
         self.shim = self.tmp / "shim"
         self.shim.mkdir()
         self.use_sf(f"#!/bin/sh\nexec {shlex.quote(sys.executable)} {shlex.quote(str(FAKE_SF))} \"$@\"\n")
-        self.wrappers = run.write_model_bin(
-            {"sf": GUARD, **{name: GUARD.replace("--prefix SLChess --", f"--prefix SLChess --deny-all --name {name} --")
-                             for name in ("sfdx", "osascript", "open")}},
-            self.platform_dir, self.real_home)
+        self.write_wrappers()
         self.state = self.tmp / "state.json"
         self.fake_log = self.tmp / "fake.log"
+
+    def write_wrappers(self, bins: dict | None = None, path: str | None = None) -> None:
+        # Wrappers bind the operator's PATH when written; the model cannot select a different CLI at invocation.
+        bins = bins or {"sf": GUARD,
+                        **{name: GUARD.replace("--prefix SLChess --", f"--prefix SLChess --deny-all --name {name} --")
+                           for name in ("sfdx", "osascript", "open")}}
+        operator_path = path if path is not None else os.pathsep.join([
+            str(self.platform_dir / "bin"), str(self.shim), "/usr/bin", "/bin"])
+        with mock.patch.dict(os.environ, {"PATH": operator_path}):
+            self.wrappers = run.write_model_bin(bins, self.platform_dir, self.real_home)
 
     def use_sf(self, body: str) -> None:
         path = self.shim / "sf"
@@ -541,6 +548,7 @@ class WrapperTest(GuardCase):
 
     def test_with_no_real_sf_after_the_wrapper_the_call_fails_cleanly_and_does_not_loop(self):
         env = self.env(PATH=os.pathsep.join([str(self.platform_dir / "bin"), "/usr/bin", "/bin"]))
+        self.write_wrappers(path=env["PATH"])
         done = self.sf("org", "list", "--json", env=env)
         self.assertEqual(done.returncode, 127)
         self.assertIn("no real `sf`", done.stderr)
@@ -550,6 +558,7 @@ class WrapperTest(GuardCase):
         planted.write_text("#!/bin/sh\necho planted\n")
         planted.chmod(0o755)
         env = self.env(PATH=os.pathsep.join([str(self.platform_dir / "bin"), ".", "", "/usr/bin", "/bin"]))
+        self.write_wrappers(path=env["PATH"])
         done = self.sf("org", "list", "--json", env=env)
         self.assertEqual(done.returncode, 127)
         self.assertNotIn("planted", done.stdout)
@@ -1381,9 +1390,11 @@ pathlib.Path(os.environ["SEEN"]).write_text(pathlib.Path(os.environ["E2E_PLATFOR
 
     def test_no_real_sf_and_a_real_sf_that_will_not_start_are_logged_as_ended(self):
         env = self.env(PATH=os.pathsep.join([str(self.platform_dir / "bin"), "/usr/bin", "/bin"]))
+        self.write_wrappers(path=env["PATH"])
         done = self.sf("org", "list", "--json", env=env)
         self.assertEqual(done.returncode, 127)
         self.assertEqual([(end["exit"], end["interrupted"]) for end in self.ends()], [(127, False)])
+        self.write_wrappers()
         self.use_sf("#!/nonexistent/interpreter\n")
         done = self.sf("org", "list", "--json")
         self.assertEqual(done.returncode, 126)
@@ -1500,7 +1511,7 @@ class PermissionSetTest(GuardCase):
 
     def setUp(self):
         super().setUp()
-        run.write_model_bin({"sf": PS_GUARD}, self.platform_dir, self.real_home)  # the case's own sf wrapper, flag included
+        self.write_wrappers({"sf": PS_GUARD})  # the case's own sf wrapper, flag included
         (self.work / "sfdx-project.json").write_text(json.dumps({"packageDirectories": [{"path": "force-app", "default": True}]}))
         for rel, text in self.FILES.items():
             path = self.work / (self.D + rel)

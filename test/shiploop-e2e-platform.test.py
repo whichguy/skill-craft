@@ -90,7 +90,8 @@ import json, os, sys
 with open(os.environ["PLAT_LOG"], "a") as log:
     log.write(json.dumps({"verb": "tool", "argv": sys.argv[1:], "home": os.environ.get("HOME"),
                           "checks": os.environ.get("E2E_CHECKS"), "platform_dir": os.environ.get("E2E_PLATFORM_DIR"),
-                          "bin_dir": os.environ.get("E2E_MODEL_BIN_DIR")}) + "\\n")
+                          "bin_dir": os.environ.get("E2E_MODEL_BIN_DIR"), "phase": os.environ.get("E2E_CHECK_PHASE"),
+                          "host_path": os.environ.get("PATH")}) + "\\n")
 print("tool ok")
 """
 
@@ -675,6 +676,8 @@ class ModelBinTest(PlatformCase):
         self.assertEqual(Path(call["checks"]), Path(run.HERE) / "checks")
         self.assertEqual(Path(call["platform_dir"]), out / "platform")
         self.assertEqual(Path(call["bin_dir"]), out / "platform" / "bin")
+        self.assertEqual(call["phase"], "builder")
+        self.assertEqual(call["host_path"], os.environ.get("PATH", os.defpath))
 
     def test_a_claude_host_gets_the_same_path_and_the_wrapper(self):
         self.use_case(self.with_bin())
@@ -2601,6 +2604,51 @@ class PlatformPrefixTest(PlatformCase):
 class DeliverySnapshotRunTest(PlatformCase):
     """run.py records the delivery snapshot around the checks (SPEC: build step 4). This suite holds the generic fake-host
     run, so the route test lives here; the scorecard's reading of the snapshot is tested in shiploop-e2e-baseline."""
+
+    def test_a_platform_case_check_gets_its_output_directory_before_cleanup(self):
+        marker = "final-case-check-path"
+        check = ('test "$E2E_CHECK_PHASE" = final && test -n "$E2E_PLATFORM_DIR" && '
+                 'test -f "$E2E_PLATFORM_DIR/before.json" && '
+                 f'printf "%s" "$E2E_PLATFORM_DIR" > "$E2E_PLATFORM_DIR/{marker}"')
+        cleanup = self.command("cleanup") + f' && test -f "$E2E_PLATFORM_DIR/{marker}"'
+        self.use_case(self.platform(cleanup=cleanup))
+        cases_path = self.tmp / "cases.json"
+        cases = json.loads(cases_path.read_text())
+        cases["plat"]["checks"] = [check]
+        cases_path.write_text(json.dumps(cases))
+
+        # An empty inherited value makes the old check_env path fail deterministically; platform hooks set their own value.
+        with mock.patch.dict(os.environ, {"E2E_PLATFORM_DIR": ""}):
+            _, result, _ = self.invoke("grok", "done")
+
+        out = Path(result["output"])
+        platform_dir = out / "platform"
+        self.assertTrue(result["checks"][0]["pass"], result["checks"])
+        self.assertEqual((platform_dir / marker).read_text(), str(platform_dir))
+        self.assertTrue(result["platform"]["cleanup"]["ok"], result["platform"]["cleanup"])
+
+    def test_unreturned_product_checks_have_a_distinct_phase_and_keep_the_platform_path(self):
+        work = self.tmp / "unreturned"
+        work.mkdir()
+        platform_dir = self.tmp / "platform"
+        platform_dir.mkdir()
+        (platform_dir / "before.json").write_text("{}")
+        env = {"E2E_PLATFORM_DIR": str(platform_dir), "E2E_CHECK_PHASE": "final"}
+        check = 'test "$E2E_CHECK_PHASE" = product_at_stop && test -f "$E2E_PLATFORM_DIR/before.json"'
+        result = run.product_at_stop({"worktree": str(work)}, {"status": "active"}, [check], env=env)
+        self.assertTrue(result["ran"], result)
+        self.assertEqual((result["passed"], result["failed"]), (1, 0))
+        self.assertEqual(env["E2E_CHECK_PHASE"], "final")
+
+    def test_unreturned_product_preserves_receipt_output_on_success_and_failure(self):
+        work = self.tmp / "unreturned"
+        work.mkdir()
+        receipt = "receipt=evidence/result.json sha256=" + "a" * 64
+        checks = [f'printf "%s\\n" "{receipt}"', f'printf "%s\\n" "{receipt}"; exit 1']
+        result = run.product_at_stop({"worktree": str(work)}, {"status": "active"}, checks)
+        self.assertEqual((result["passed"], result["failed"]), (1, 1))
+        for checked in result["checks"]:
+            self.assertIn(receipt, checked.get("output", ""))
 
     def test_a_run_records_the_delivery_before_and_after_its_checks_and_a_regrade_keeps_the_first(self):
         self.use_case(None)

@@ -159,6 +159,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-commit-counters.test.py",
     "test/shiploop-e2e-chess-salesforce.test.py",
     "test/shiploop-e2e-battleship-salesforce.test.py",
+    "test/shiploop-e2e-battleship-ui.test.py",
     "test/shiploop-e2e-release-slice.test.py",
     "test/shiploop-e2e-platform.test.py",
     "test/shiploop-e2e-sf-guard.test.py",

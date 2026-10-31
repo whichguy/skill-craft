@@ -1611,11 +1611,12 @@ def product_at_stop(shiploop: dict, engine: dict, checks: list[str], env: dict |
     if not checks:
         return {**head, "ran": False, "reason": "the case declares no checks", "engine": position}
     entries = []
-    for done in run_checks(Path(shiploop["worktree"]), checks, timeout=PRODUCT_AT_STOP_TIMEOUT, env=env, scrubbed=scrubbed):
+    stop_env = dict(env or {}, E2E_CHECK_PHASE="product_at_stop")
+    for done in run_checks(Path(shiploop["worktree"]), checks, timeout=PRODUCT_AT_STOP_TIMEOUT, env=stop_env, scrubbed=scrubbed):
         timed_out = done["returncode"] is None
         entry = {"command": done["command"], "pass": done["pass"], "returncode": done["returncode"], "timed_out": timed_out}
-        if not done["pass"] and not timed_out:
-            entry["output"] = " ".join(str(done.get("output") or "").split())[-300:]
+        if not timed_out and (not done["pass"] or done.get("output")):
+            entry["output"] = str(done.get("output") or "")[-2000:]
         entries.append(entry)
     timed = sum(entry["timed_out"] for entry in entries)
     passed = sum(entry["pass"] for entry in entries)
@@ -1774,17 +1775,18 @@ def platform_env(base: dict, platform_dir: Path, existing: str = "fresh") -> dic
 
 def write_model_bin(bins: dict, platform_dir: Path, real_home: Path) -> dict:
     """Write ``<platform_dir>/bin/<name>`` for each name: an executable ``#!/bin/sh`` script that runs the case's command with the
-    real HOME and the model's argv as "$@". The harness's E2E_* variables are baked in as literals (the model's environment has
+    real HOME, the operator's PATH and the model's argv as "$@". The harness's E2E_* variables are baked in as literals (the model's environment has
     none). Returns {name: path}. The command is the case's own text, run as the case wrote it."""
     folder = platform_dir / "bin"
     folder.mkdir(parents=True, exist_ok=True)
-    baked = {"E2E_CHECKS": str(HERE / "checks"), "E2E_PLATFORM_DIR": str(platform_dir), "E2E_MODEL_BIN_DIR": str(folder)}
+    baked = {"E2E_CHECKS": str(HERE / "checks"), "E2E_PLATFORM_DIR": str(platform_dir), "E2E_MODEL_BIN_DIR": str(folder),
+             "E2E_CHECK_PHASE": "builder"}
     written = {}
     for name, command in bins.items():
         path = folder / name
         path.write_text("#!/bin/sh\n# written by the E2E harness (platform.model_bin); the case's policy decides what the model may run\n"
                         + "".join(f"export {key}={shlex.quote(value)}\n" for key, value in baked.items())
-                        + f"exec env HOME={shlex.quote(str(real_home))} {command} \"$@\"\n")
+                        + f"exec env HOME={shlex.quote(str(real_home))} PATH={shlex.quote(os.environ.get('PATH', os.defpath))} {command} \"$@\"\n")
         path.chmod(0o755)
         written[name] = str(path)
     return written
@@ -4508,6 +4510,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         cli_seen["truncated_outputs"] = None  # [] would read as a measured none
     (out / "metrics.json").write_text(json.dumps(run_metrics, indent=2) + "\n")
     check_env = {"PRIOR_WORK": str(Path(follow_on["prior"]) / "work")} if follow_on else {}
+    if platform_spec:
+        check_env.update(E2E_PLATFORM_DIR=str(platform_dir), E2E_CHECK_PHASE="final")
     case = catalog().get(name, {}) if name != "custom" else {}
     # A release slice starts without the product in the source checkout: the checks that read it wait for the return.
     sliced = bool(seeded) and release_slice.delivered(seeded.get("stage"))
@@ -4777,7 +4781,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         print(f"  platform  {'KEPT' if cleaned.get('kept_unfinished') else mark(cleaned.get('ok') and not (seen or {}).get('bypassed'))}  "
               + ("platform KEPT (--keep-platform), ShipLoop did not finish: NOT a pass" if cleaned.get("kept_unfinished")
                  else "platform KEPT (--keep-platform), no cleanup run" if cleaned.get("kept")
-                 else "cleanup ran" if cleaned.get("ran") else "cleanup did not run") + f"; home links "
+                 else "cleanup ran" if cleaned.get("ran") else "cleanup did not run") + "; home links "
               + (", ".join(link["name"] for link in platform_state.get("home_links") or [] if link["linked"]) or "none")
               + (f"; guarded commands {', '.join(platform_state['model_bin'])}" if platform_state.get("model_bin") else "")
               + (f"; guard saw {seen['guard_calls']} model calls (transcript shows {seen['model_sf_commands']} sf-looking commands"
