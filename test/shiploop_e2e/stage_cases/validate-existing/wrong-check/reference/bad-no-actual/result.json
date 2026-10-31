@@ -1,0 +1,12 @@
+{
+  "outcome": "send-back",
+  "summary": "E1 does not match: its check is wrong. Sent back so the step plan fixes the check.",
+  "failed_expectations": [
+    {
+      "id": "E1",
+      "actual": "The check is wrong; the fact itself holds.",
+      "route": "check"
+    }
+  ],
+  "evidence_refs": []
+}

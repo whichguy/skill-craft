@@ -1,0 +1,12 @@
+{
+  "outcome": "send-back",
+  "summary": "E1 does not match: paginate() does not return the page the statement says, see src/paginate for details.",
+  "failed_expectations": [
+    {
+      "id": "E1",
+      "actual": "The fact is false: paginate([1,2,3,4], 2, 2) does not return page 2 (see src/paginate for details). The step has to be reshaped around the broken function.",
+      "route": "check"
+    }
+  ],
+  "evidence_refs": []
+}

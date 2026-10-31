@@ -1,0 +1,17 @@
+{
+  "outcome": "send-back",
+  "summary": "E1 does not match: the check requires ./src/pagination. E2 is listed as well because the packet asks for each expectation to be reviewed.",
+  "failed_expectations": [
+    {
+      "id": "E1",
+      "actual": "The fact holds; the check requires ./src/pagination, which does not exist. Corrected check: node -e \"const {paginate}=require('./src/paginate');require('assert').deepEqual(paginate([1,2,3,4],2,2),{page:2,pages:2,items:[3,4]})\"",
+      "route": "check"
+    },
+    {
+      "id": "E2",
+      "actual": "test/paginate.test.js passes on the base; listed for completeness. Check: node --test test/paginate.test.js",
+      "route": "check"
+    }
+  ],
+  "evidence_refs": []
+}

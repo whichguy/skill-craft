@@ -1,0 +1,5 @@
+{
+  "headline": "Mismatch on E1 judged irrelevant",
+  "outcome": "done",
+  "summary": "Read the validate-existing results: E1 (capitalize('') returns '') reports a mismatch with exit 1, but the paginate steps do not call capitalize on the item's own path, so the mismatch does not bear on the change. E2 reproduces the reported failure and E3's place is free. Nothing to change; proceeding to implement."
+}

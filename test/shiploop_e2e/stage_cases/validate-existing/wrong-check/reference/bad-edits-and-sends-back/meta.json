@@ -1,0 +1,1 @@
+{"fails": ["C1"], "why": "The send-back is right, but the model also started the item's own change in src/paginate.js, which this stage must not touch."}

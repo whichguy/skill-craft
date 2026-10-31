@@ -111,6 +111,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-quality.test.py",
     "test/shiploop-loops.test.py",
     "test/shiploop-iteration.test.py",
+    "test/shiploop-seed-seam.test.py",
     "test/shiploop-test-loop.test.py",
     "test/shiploop-test-counts.test.py",
     "test/shiploop-backchain-check.test.py",
@@ -167,6 +168,9 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-owner-page.test.py",
     "test/shiploop-e2e-experiments.test.py",
     "test/shiploop-e2e-sdlc-probes.test.py",
+    "test/shiploop-e2e-stage-oracle.test.py",
+    "test/shiploop-e2e-stage-build.test.py",
+    "test/shiploop-e2e-stages.test.py",
     "test/shiploop-e2e-run-trace.test.py",
     "test/shiploop-e2e-brownfield.test.py",
     "test/shiploop-e2e-brownfield-tickets.test.py",
@@ -261,6 +265,10 @@ _DURATION_SECONDS = {
     # New 2026-10-28 (the per-step iteration's contract, design T §9.1 step 1): pure functions, 24 tests in under
     # 0.1 s locally.
     "test/shiploop-iteration.test.py": 0.2,
+    # New 2026-10-30 (the seed seam, navigator.accept_effects): 14 tests.  A run walked to carry-forward three ways from the
+    # same files (the real complete, the seam, the sequence the seam replaced; real Until Loop runtime and Git), a
+    # preparatory fix, an end review's import, and six tests that seed.  12.4 to 14.9 s locally (three serial runs).
+    "test/shiploop-seed-seam.test.py": 14.0,
     # 3.0 was written when the suite had a fraction of its tests.  Local wall seconds, 2026-10-08, one serial run at load
     # average 3.7 to 5.3 (batch 1010 G6, after the whole-word and count-floor tests and their review): 115 tests, 94.0 s (user
     # plus system CPU 81.2 s); the 79.0 s before was 67 tests at a higher load.  Under QUICK_MAX_SECONDS.
@@ -368,6 +376,14 @@ _DURATION_SECONDS = {
     # The SDLC probes (test/shiploop_e2e/probes/sdlc_probes.py; docs/shiploop-sdlc-gates-proposal-2026-10-30.md §4): 12 tests
     # on one temporary output folder, its work repository and its delivery bundle. 0.2 s locally on 2026-10-30.
     "test/shiploop-e2e-sdlc-probes.test.py": 0.5,
+    # The stage suite (test/shiploop_e2e/stage_suite/, docs/plans/shiploop-stage-suite.md; no model), one file per module.  Local
+    # wall seconds, 2026-10-30, serial runs at load average under 1: the oracle 105 tests, 4.3 s; the builder 43 tests, 6.5 s (its
+    # seeds start real ShipLoop runs and Git); the runner 55 tests, 23 to 24 s (the render tier builds real runs, about a second
+    # each, and its class Shipped verifies and renders the shipped scenarios).  All far under QUICK_MAX_SECONDS and none in the
+    # fixed quick baseline: they run when a path under test/shiploop_e2e/ changes, like the rest of the family, and in the full tier.
+    "test/shiploop-e2e-stage-oracle.test.py": 4.5,
+    "test/shiploop-e2e-stage-build.test.py": 7.0,
+    "test/shiploop-e2e-stages.test.py": 25.0,
     # The harness's reading of ShipLoop's run trace (run_trace.py; metrics, fidelity, flow, owner page, arms; the live checks and
     # --owner-note-at's watcher, owner_note.py): 18 tests on two real-CLI runs in temporary E2E folders. Local wall seconds,
     # 2026-10-28: 3.5 s alone at load average about 6.
@@ -647,6 +663,9 @@ _PATH_SUITE_IDS = {
     "test/shiploop_e2e/baselines.jsonl": ("shiploop-e2e-baseline", "shiploop-e2e-platform", "shiploop-e2e"),
     # The workspace module is driven through the CLI by the return-review, handoff and knowledge suites (row 3).
     "skills/shiploop/scripts/shiploop_workspace.py": ("shiploop-return-review", "shiploop-handoff", "shiploop-knowledge"),
+    # The navigator is a hub, so its edit selects the hub consumers; the seam's equivalence with complete is pinned by one
+    # suite that no hub rule finds.
+    "skills/shiploop/scripts/shiploop_navigator.py": ("shiploop-seed-seam",),
 }
 
 # Paths whose row above is their whole selection, beside the suite that carries their own name: the wider rule that

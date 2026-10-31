@@ -1,0 +1,12 @@
+{
+  "outcome": "send-back",
+  "summary": "E1 does not match, but its fact holds: paginate() is exported by src/paginate.js and returns {page: 2, pages: 2, items: [3, 4]} for paginate([1,2,3,4], 2, 2). The check requires ./src/pagination, a path that does not exist; the module is src/paginate.js. E2 matches. Nothing was edited: a check is not weakened and the code is not touched here.",
+  "failed_expectations": [
+    {
+      "id": "E1",
+      "actual": "The fact holds on the base; the check is wrong. It requires ./src/pagination, which does not exist (Cannot find module); the file is src/paginate.js. Corrected check: node -e \"const {paginate}=require('./src/paginate');require('assert').deepEqual(paginate([1,2,3,4],2,2),{page:2,pages:2,items:[3,4]})\"",
+      "route": "check"
+    }
+  ],
+  "evidence_refs": []
+}

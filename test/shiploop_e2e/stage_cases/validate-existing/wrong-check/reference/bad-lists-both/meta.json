@@ -1,0 +1,1 @@
+{"fails": ["C2"], "why": "E2 matched at entry and is not a mismatch; listing it invents a problem the packet does not report."}

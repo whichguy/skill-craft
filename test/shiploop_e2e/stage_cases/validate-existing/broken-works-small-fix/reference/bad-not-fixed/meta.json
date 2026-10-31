@@ -1,0 +1,1 @@
+{"fails": ["P1"], "why": "Reports done with the works expectation still broken: the mismatch was read and waved through as irrelevant, so E1's check still exits 1 and ShipLoop's rerun at done would refuse it."}

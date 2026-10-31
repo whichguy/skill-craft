@@ -1,0 +1,1 @@
+{"fails": ["P1"], "why": "Fixes E1 by deleting the whole guard of capitalize instead of the falsy-text clause: capitalize('') returns '' but capitalize(5) no longer says why it throws, and the type check the summary says stays is gone."}

@@ -1,7 +1,56 @@
 # Plan: the ShipLoop stage suite (one packet, one scenario, one verdict)
 
-Status: proposed, 2026-10-30. Nothing here is built yet. The prototype findings in "What the prototype showed" were
-run on `d98451f`.
+Status: step 1 of "Build order" is built and step 2 is built except for what "Not built" lists (2026-10-30); steps 3 and 4
+are not. Both are on the branch `claude/shiploop-stage-suite-core`, which is PR #28 and is not merged yet. The prototype
+findings in "What the prototype showed" were run on `d98451f`.
+
+**Built**
+
+- Step 1, the seed seam: `navigator.accept_effects` in `skills/shiploop/scripts/shiploop_navigator.py`, with its
+  equivalence test `test/shiploop-seed-seam.test.py` (in PR #28, with the rest of this list). It is registered in the
+  catalog.
+- Step 2, the harness core, in `test/shiploop_e2e/stage_suite/`:
+  - `stage_oracle.py`, the check engine: the check kinds of "The oracle" except `trace: no_model_glue`, and the verdict
+    rule (caught, held, not exercised);
+  - `stage_build.py`, the scenario schema and loader, composition of the seed tree, the seam-based build and the render;
+  - `stages.py`, the command line `list | verify | render` with the selectors and `--json`, `--keep`, `--cases-dir`.
+- Three scenarios in `test/shiploop_e2e/stage_cases/validate-existing/`: `broken-works-small-fix`, `wrong-check` (both
+  verify and render) and `all-match` (render only). `stage_cases/README.md` is the guide to the format.
+- Hermetic tests, one per module, registered in `test/suite_catalog.py` as E2E-family suites that quick selects when a
+  path under `test/shiploop_e2e/` changes: `test/shiploop-e2e-stage-oracle.test.py` (105 tests, about 5 s),
+  `test/shiploop-e2e-stage-build.test.py` (43 tests, about 7 s) and `test/shiploop-e2e-stages.test.py` (55 tests, about
+  25 s).
+
+**Not built**: `stages.py live | grade | report`; the stop at acceptance and the widened seed points; building
+`improve@<stage>` and outer-stage scenarios (they load and validate); the per-scenario `oracle.py` escape hatch and the
+`trace: no_model_glue` check; `worktree_mode: committed` (validated, refused by the builder); the `shiploop-stages`
+command of `test/run-integration.sh`; the scenario catalog beyond the three above (waves 1 to 4).
+
+### Deviations from this plan
+
+1. **Location.** The code is `test/shiploop_e2e/stage_suite/` (not `test/shiploop_e2e/stages.py`) and the scenarios are
+   `test/shiploop_e2e/stage_cases/`. `test/shiploop_e2e/boundary.py` binds the evaluator digest and the qualification
+   snapshot to `SPEC.md`, `cases.json`, `suites.json`, every top-level `*.py` and `*.cjs` file of that folder and the
+   `checks/` and `evaluators/` trees, so a new top-level module would move the digest under the owner's baselines and
+   calibrations. A sub-folder is outside that set, as `probes/` is. The tests pin it (`boundary.fingerprint` and the
+   snapshot's file list are unchanged with the suite present), the way `test/shiploop-e2e-sdlc-probes.test.py` pins the
+   probes. This is a variant of "Decisions for the owner" 1: inside the harness folder, as recommended, but below its top
+   level.
+2. **`slice.py` and `run.py` are not edited.** So `--stop-at accept` and the widened `SEED_POINTS` ("Stop at acceptance")
+   move to the live runner in step 3, which will have its own stop poll in `stage_suite/` and import `slice.py` as a
+   library.
+3. **The builder reuses `run.seed_run` without editing it.** It substitutes the module global `run.SEED_SCRIPT` for the
+   duration of one call, with a context manager that restores it, because `seed_run` reads that global when it advances
+   the run. The seed script it substitutes records each stage through `navigator.accept_effects`. `run.SEED_SCRIPT` and the
+   harness's own seeds are as they were.
+4. **The equivalence test and the seam were committed first on the branch** (PR #28, not merged yet), ahead of the harness
+   core (the plan shipped them together under "The one engine change").
+5. **Registration.** "Registration" named two catalog suites (`shiploop-stage-verify`, `shiploop-stage-render`) and one
+   test file (`test/shiploop-stage-suite.test.py`). The tests are one file per module instead (three suites, ids
+   `shiploop-e2e-stage-oracle`, `shiploop-e2e-stage-build` and `shiploop-e2e-stages`), named after the harness family so
+   an edit under `test/shiploop_e2e/` selects them with the rest. They test the code, and the stages suite also runs `stages.py verify` and
+   `render` over the shipped scenarios (the class `Shipped`, about 5 s), so a packet change that breaks a scenario fails a
+   suite; it is not yet a separate `shiploop-stage-*` catalog entry. None is in the fixed quick baseline.
 
 ## Goal
 

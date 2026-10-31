@@ -1934,6 +1934,27 @@ builds from them. None starts a host or a model, and all but `arms.py` decide no
 
 The two saved-run extracts the tests read are `test/fixtures/efficiency/` (`extract.py` there says how they were cut).
 
+## Stage suite: one packet, one scenario, one verdict
+
+A scenario plants conditions in a small repository and names controls; the suite checks, with no model, that a stage's
+packet carries the planted signal (`render`) and that a check list can fail each planted condition and control
+(`verify`). A third tier, `live`, will grade a model that follows only that packet; it is not built yet.
+
+```sh
+python3 test/shiploop_e2e/stage_suite/stages.py list
+python3 test/shiploop_e2e/stage_suite/stages.py verify                      # the oracle against reference/good and each reference/bad-*
+python3 test/shiploop_e2e/stage_suite/stages.py render validate-existing    # build, seed, `shiploop next`, packet checks
+python3 test/shiploop_e2e/stage_suite/stages.py verify @inner -validate-existing/all-match +catch
+```
+
+The code is `stage_suite/` and the scenarios are `stage_cases/`, both below this folder's top level, so neither is in the
+evaluator digest or the qualification snapshot (`boundary.py` binds the top-level `*.py` and `*.cjs` files, `SPEC.md`,
+`cases.json`, `suites.json` and the `checks/` and `evaluators/` trees); `run.py` and `slice.py` are not edited. The
+builder seeds through the engine's own `navigator.accept_effects`, by substituting `run.SEED_SCRIPT` for one `run.seed_run`
+call. The format, the check vocabulary, the selectors and how to add a scenario are in
+[`stage_cases/README.md`](stage_cases/README.md); the plan is `docs/plans/shiploop-stage-suite.md`. Its suites are
+`test/shiploop-e2e-stage-oracle.test.py`, `-stage-build.test.py` and `-stages.test.py`.
+
 ## The chain cases, retired (2026-10-29, design T §9.1 2c-2)
 
 ShipLoop's implementation chain is gone: the ask-agent route builds one step per implement action, as the inline route does

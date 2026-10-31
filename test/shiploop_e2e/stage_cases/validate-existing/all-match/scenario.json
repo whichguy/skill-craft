@@ -1,0 +1,97 @@
+{
+  "stage": "validate-existing",
+  "about": "Every expectation of the step plan matches its stated state on the base (a works one, a broken one that reproduces, an absent one), so ShipLoop settles the stage by script and issues no packet.",
+  "tags": ["control", "settled"],
+  "tiers": ["render"],
+  "fixture": "node-base",
+  "request_from": "node-fix-bug",
+  "options": {"delegation": "inline"},
+  "seed_records": {
+    "step-plan": {
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "paginate returns the last partial page, so paginate([1,2,3,4,5], 3, 2) is {page: 3, pages: 3, items: [5]}. Confirm by: the focused command; pass when TC-1 passes. Exercised. Serves R-1."
+        }
+      ],
+      "steps": [
+        {
+          "id": "S1",
+          "task": "Fix paginate's page count so a partial last page counts (C1), and add the regression test.",
+          "deps": [],
+          "criteria": ["C1"],
+          "paths": ["src/paginate.js", "test/paginate-last-page.test.js"],
+          "proof": "node -e \"const {paginate}=require('./src/paginate');require('assert').deepEqual(paginate([1,2,3,4,5],3,2),{page:3,pages:3,items:[5]})\"",
+          "skills": []
+        }
+      ],
+      "test_commands": [
+        {"command": "node --test test/paginate-last-page.test.js", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
+        {"command": "node --test", "suite": "regression"}
+      ],
+      "check_na": "Synthetic: the fixture has no lint, type or build command.",
+      "expectations": [
+        {
+          "id": "E1",
+          "state": "works",
+          "statement": "paginate() in src/paginate.js returns the requested page of an evenly divided list: paginate([1,2,3,4], 2, 2) is {page: 2, pages: 2, items: [3, 4]}",
+          "steps": ["S1"],
+          "paths": ["src/paginate.js"],
+          "check": "node -e \"const {paginate}=require('./src/paginate');require('assert').deepEqual(paginate([1,2,3,4],2,2),{page:2,pages:2,items:[3,4]})\""
+        },
+        {
+          "id": "E2",
+          "state": "broken",
+          "statement": "paginate() loses the last partial page, as the request reports: paginate([1,2,3,5,8], 3, 2) counts 2 pages and returns no items for page 3",
+          "steps": ["S1"],
+          "paths": ["src/paginate.js"],
+          "check": "node -e \"const {paginate}=require('./src/paginate');const r=paginate([1,2,3,5,8],3,2);process.exit(r.pages===2&&r.items.length===0?0:1)\""
+        },
+        {
+          "id": "E3",
+          "state": "absent",
+          "statement": "the regression test file for the last page does not exist yet: its place, test/paginate-last-page.test.js, is free",
+          "steps": ["S1"],
+          "paths": ["test/paginate-last-page.test.js"],
+          "check": "test ! -e test/paginate-last-page.test.js"
+        }
+      ],
+      "paths": ["src/paginate.js", "test/paginate-last-page.test.js"],
+      "follows": ["R-1"]
+    },
+    "test-spec": {
+      "test_cases": [
+        {
+          "id": "TC-1",
+          "criterion": "C1",
+          "requirement": "R-1",
+          "oracle": "deepEqual paginate([1,2,3,4,5],3,2) to {page:3,pages:3,items:[5]}",
+          "red": "pages=2 items=[]",
+          "green": "pages=3 items=[5]"
+        }
+      ]
+    }
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "every expectation matches its stated state on the base (E1 works, E2 broken and reproducing, E3 absent), so ShipLoop settles the stage and no packet may be issued for it",
+      "signature": "no validate-existing packet file and no packet printed for the stage"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "the run has moved on: the current stage is implement, the stage after validate-existing"
+    },
+    {
+      "id": "C2",
+      "what": "validate-existing was recorded done by script, not left active"
+    }
+  ],
+  "render": [
+    {"proves": "P1", "packet_issued": false, "why": "all three checks match, so the engine issues no packet for the stage"},
+    {"proves": "C2", "settled_by_script": true, "why": "the stage is among the history rows the seed recorded as done"},
+    {"proves": "C1", "current_stage": "implement", "why": "the run stands at the next stage"}
+  ]
+}

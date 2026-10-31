@@ -1,0 +1,217 @@
+{
+  "stage": "validate-existing",
+  "about": "A works expectation states a fact that holds on the base, but its check requires a misspelled path, so the check does not match.",
+  "tags": [
+    "catch",
+    "send-back"
+  ],
+  "tiers": [
+    "verify",
+    "render"
+  ],
+  "fixture": "node-base",
+  "request_from": "node-fix-bug",
+  "options": {
+    "delegation": "inline"
+  },
+  "seed_records": {
+    "step-plan": {
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "paginate returns the last partial page, so paginate([1,2,3,4,5], 3, 2) is {page: 3, pages: 3, items: [5]}. Confirm by: the focused command; pass when TC-1 passes. Exercised. Serves R-1."
+        }
+      ],
+      "steps": [
+        {
+          "id": "S1",
+          "task": "Fix paginate's page count so a partial last page counts (C1), and add the regression test.",
+          "deps": [],
+          "criteria": [
+            "C1"
+          ],
+          "paths": [
+            "src/paginate.js",
+            "test/paginate.test.js"
+          ],
+          "proof": "node -e \"const {paginate}=require('./src/paginate');require('assert').deepEqual(paginate([1,2,3,4,5],3,2),{page:3,pages:3,items:[5]})\"",
+          "skills": []
+        }
+      ],
+      "test_commands": [
+        {
+          "command": "node --test test/paginate.test.js",
+          "suite": "focused",
+          "ids": [
+            "TC-1"
+          ],
+          "criteria": [
+            "C1"
+          ]
+        },
+        {
+          "command": "node --test",
+          "suite": "regression"
+        }
+      ],
+      "check_na": "Synthetic: the fixture has no lint, type or build command.",
+      "expectations": [
+        {
+          "id": "E1",
+          "state": "works",
+          "statement": "paginate() in src/paginate.js returns the requested page of an evenly divided list: paginate([1,2,3,4], 2, 2) is {page: 2, pages: 2, items: [3, 4]}",
+          "steps": [
+            "S1"
+          ],
+          "paths": [
+            "src/paginate.js"
+          ],
+          "check": "node -e \"const {paginate}=require('./src/pagination');require('assert').deepEqual(paginate([1,2,3,4],2,2),{page:2,pages:2,items:[3,4]})\""
+        },
+        {
+          "id": "E2",
+          "state": "works",
+          "statement": "the existing paginate tests in test/paginate.test.js pass on the base",
+          "steps": [
+            "S1"
+          ],
+          "paths": [
+            "test/paginate.test.js"
+          ],
+          "check": "node --test test/paginate.test.js"
+        }
+      ],
+      "paths": [
+        "src/paginate.js",
+        "test/paginate.test.js"
+      ],
+      "follows": [
+        "R-1"
+      ]
+    },
+    "test-spec": {
+      "test_cases": [
+        {
+          "id": "TC-1",
+          "criterion": "C1",
+          "requirement": "R-1",
+          "oracle": "deepEqual paginate([1,2,3,4,5],3,2) to {page:3,pages:3,items:[5]}",
+          "red": "pages=2 items=[]",
+          "green": "pages=3 items=[5]"
+        }
+      ]
+    }
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "E1 states a fact that holds on the base, but its check requires ./src/pagination, a path that does not exist (the file is src/paginate.js), so the check does not match",
+      "signature": "src/pagination"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "nothing in the tree is edited: the check is not weakened and the code is not touched"
+    },
+    {
+      "id": "C2",
+      "what": "the matching expectation E2 is not listed in failed_expectations"
+    }
+  ],
+  "render": [
+    {
+      "proves": "P1",
+      "packet_contains": "E1 works .*src/pagination.* -> DOES NOT MATCH",
+      "why": "the planted check, wrong path included, is printed with its mismatch"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "check wrong, fact holds: report send-back",
+      "why": "the route the packet states for this case"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "`check` when the check is wrong \\(`actual` gives the corrected check\\)",
+      "why": "the packet says what a check-route actual holds"
+    },
+    {
+      "proves": "C1",
+      "packet_contains": "Never edit or weaken a check here"
+    },
+    {
+      "proves": "C1",
+      "packet_contains": "Start none of the item's own change"
+    },
+    {
+      "proves": "C2",
+      "packet_contains": "E2 works .* -> MATCHES",
+      "why": "E2 is shown as matching"
+    },
+    {
+      "proves": "C2",
+      "packet_not_contains": "E2 works .*DOES NOT MATCH"
+    }
+  ],
+  "oracle": [
+    {
+      "proves": "P1",
+      "outcome": [
+        "send-back"
+      ]
+    },
+    {
+      "proves": "P1",
+      "field": "failed_expectations[*].id",
+      "equals": "E1",
+      "any": true,
+      "why": "E1 is among the mismatches named"
+    },
+    {
+      "proves": "P1",
+      "field": "failed_expectations",
+      "matches": "\"id\": \"E1\", \"route\": \"check\"",
+      "why": "E1's own entry routes to check (the list is read as sorted-key JSON text: actual, id, route)"
+    },
+    {
+      "proves": "P1",
+      "field": "failed_expectations",
+      "matches": "\"actual\": \"(?:[^\"\\\\]|\\\\.)*src/paginate(?:\\.js)?(?![\\w-]|\\.\\w)(?:[^\"\\\\]|\\\\.)*\", \"id\": \"E1\"",
+      "why": "E1's own actual names the corrected path src/paginate, not only the misspelled src/pagination"
+    },
+    {
+      "proves": "P1",
+      "field": "failed_expectations",
+      "matches": "\"actual\": \"(?:[^\"\\\\]|\\\\.)*require\\(\\\\?['\"]\\./src/paginate(?:\\.js)?\\\\?['\"]\\)(?:[^\"\\\\]|\\\\.)*\", \"id\": \"E1\"",
+      "why": "E1's own actual gives the corrected check's shape: a require of ./src/paginate. Naming the path in prose is not a corrected check. The corrected check is read, not executed (the engine has no check kind that runs a text found in a result)."
+    },
+    {
+      "proves": "P1",
+      "field": "failed_expectations",
+      "matches": "\"actual\": \"(?:[^\"\\\\]|\\\\.)*\\[\\s*3\\s*,\\s*4\\s*\\](?:[^\"\\\\]|\\\\.)*\", \"id\": \"E1\"",
+      "why": "and it asserts the true value, items [3, 4] for paginate([1,2,3,4], 2, 2): a corrected check that asserts a false value is not one"
+    },
+    {
+      "proves": "C2",
+      "field": "failed_expectations[*]",
+      "count": 1,
+      "why": "E1 is the only mismatch named"
+    },
+    {
+      "proves": "C2",
+      "field": "failed_expectations[*].id",
+      "none_equal": "E2"
+    },
+    {
+      "proves": "C1",
+      "changed_only": [
+        "docs/shiploop/**"
+      ],
+      "why": "no product file differs from the seed tree: the check is not bent by adding a module and the code is not touched. The knowledge home (docs/shiploop/) is the one place the packet lets this stage write: it keeps KNOWLEDGE/environment.md up to date"
+    }
+  ],
+  "live": {
+    "samples": 3,
+    "pass": "all"
+  }
+}
