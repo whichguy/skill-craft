@@ -66,7 +66,7 @@ def tree_signature(root: Path) -> tuple[dict[str, tuple[str, int]], str]:
 def runner_tree_digest(root: Path) -> str:
     """Match run.py's 12-hex package digest over file paths and bytes."""
     entries, _ = tree_signature(root)
-    value = "".join(f"{name}\0{entries[name][0]}\n" for name in sorted(entries)).encode()
+    value = "".join(f"{name}\0{entries[name][0]}\n" for name in sorted(entries, key=Path)).encode()
     return hashlib.sha256(value).hexdigest()[:12]
 
 
