@@ -83,13 +83,8 @@ exits 0 when the stated state holds: `works`, an existing thing works today;
 `absent`, a new path's place is free; `broken`, the failure the request reports
 reproduces. ShipLoop refuses a step plan when an existing path a step changes
 has no works or broken expectation, a new path has no absent one, a check
-writes, or an open plan assumption this item consumes is not named in a `from`
-(`expectations.check_step_plan`). The `from` sits on an executed criterion, whose
-test settles the assumption after the build, or, for a fact about what already
-exists, on an expectation, whose check settles it before. An expectation cannot
-settle what the item will build: of the 15 runs refused here before 2026-10-31,
-10 of 11 such assumptions were met with a check that settled nothing (an org that
-answers, a file that is absent) and one run stopped.
+writes, or an open item due here is in no executed criterion's or expectation's
+`from` (`expectations.check_step_plan`).
 
 At `validate-existing` entry ShipLoop runs every check on the unchanged
 checkout. When all match, it records the stage done by script and issues no
