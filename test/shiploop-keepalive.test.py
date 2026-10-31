@@ -114,11 +114,23 @@ class HookStatusAndMarkerTests(KeepaliveTestCase):
         self.assertEqual(status["revision"], 0)
         self.assertIn("next --run-dir", status["next"])
         self.assertEqual(status["progress"], "0.0.0")  # no Until Loop yet at intake
-        # The whole answer: the owed-report fields of 1.18.0 (loop, callback, delegation) are gone
-        # (docs/shiploop-trims-plan-2026-10-28.md, T1).
+        # One derived completion instruction; no raw receipt or second task packet.
         self.assertEqual(set(status), {"run_dir", "run_id", "repo", "status", "status_reason", "awaiting", "stage",
-                                       "action", "revision", "progress", "next"})
+                                       "action", "revision", "progress", "next", "completion"})
         self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+
+    def test_ordinary_completion_is_the_existing_callback_and_status_is_lock_free(self) -> None:
+        # Holding the writer lock must not make the read-only status wait for it.
+        import fcntl
+        with (self.run_dir / ".lock").open("w") as handle:
+            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            status = self.status()
+        callback = next(line for line in self.packet.splitlines() if line.startswith("Callback for this stage"))
+        self.assertIn(callback, status["completion"])
+        self.assertIn(status["completion"], keepalive._continue_reason(status))
+        self.assertIn(status["completion"], keepalive._driver_prompt(status))
+        self.assertNotIn(" check ", status["completion"])
+        self.assertNotIn("Original request", status["completion"])
 
     def test_hook_status_for_a_missing_run_is_an_error_answer(self) -> None:
         result = shiploop("hook-status", "--run-dir", str(self.temp / "missing"))
@@ -344,18 +356,24 @@ class HookDecisionTests(KeepaliveTestCase):
                     self.assertEqual(reply["decision"], "block")
                     self.assertIn("next --run-dir", reply["reason"])
 
-    def test_no_progress_since_the_last_refusal_lets_the_turn_end(self) -> None:
+    def test_missing_ordinary_callback_keeps_the_same_action_unfinished(self) -> None:
         self.hook("observe", "claude", self.payload("claude", "observe"))
         self.assertEqual(self.hook("stop", "claude", self.payload("claude", "stop"))["decision"], "block")
         with mock.patch.object(keepalive, "DUPLICATE_WINDOW_SECONDS", 0):
             reply = self.hook("stop", "claude", self.payload("claude", "stop"))
-            self.assertIn("no progress", reply["systemMessage"])
-            self.advance()
-            self.assertEqual(self.hook("stop", "claude", self.payload("claude", "stop"))["decision"], "block")
+            self.assertEqual(reply["decision"], "block")
+            status = self.status()
+            before = (self.run_dir / "state.md").read_bytes()
+            refused = shiploop("complete", "--run-dir", str(self.run_dir), "--action", status["action"])
+            self.assertNotEqual(refused.returncode, 0)
+            for _ in range(2):
+                self.assertEqual(self.hook("stop", "claude", self.payload("claude", "stop"))["decision"], "block")
+            self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+            self.assertEqual(self.status()["action"], status["action"])
 
     def test_running_next_between_two_stops_is_not_progress(self) -> None:
-        # The refusal says to run `next`; doing only that re-binds the run, which must not reset the stop's memory
-        # (docs/shiploop-owed-outcome-evidence/rebind_repro.out showed it did: the turn was never released).
+        # Context recovery re-binds the same action without clearing the progress memory.
+        # Its missing required callback still leaves the action unfinished.
         self.hook("observe", "claude", self.payload("claude", "observe"))
         with mock.patch.object(keepalive, "DUPLICATE_WINDOW_SECONDS", 0):
             self.assertEqual(self.hook("stop", "claude", self.payload("claude", "stop"))["decision"], "block")
@@ -364,7 +382,7 @@ class HookDecisionTests(KeepaliveTestCase):
             self.hook("observe", "claude", reread)
             self.assertIn("last_block_progress", keepalive.load_binding("claude", "session-1"))
             reply = self.hook("stop", "claude", self.payload("claude", "stop"))
-        self.assertIn("no progress", reply["systemMessage"])
+        self.assertEqual(reply["decision"], "block")
 
     def test_each_stop_decision_is_logged_with_its_reason(self) -> None:
         self.hook("observe", "claude", self.payload("claude", "observe"))
@@ -521,11 +539,11 @@ class ProgressAndTurnTests(KeepaliveTestCase):
         self.assertNotEqual(refused.returncode, 0)
         self.assertIn("do not end the turn over a refused callback", refused.stderr)
         self.assertEqual(self.grok_stop(True)["decision"], "continue")
-        self.assertEqual(self.grok_stop(True)["decision"], "allow")
+        self.assertEqual(self.grok_stop(True)["decision"], "continue")
 
     def test_refusals_without_an_accepted_result_keep_counting_as_progress_with_no_release(self) -> None:
         # Owner 2026-10-24: no run caps.  The 22-continuation release is gone: 23 and more refused callbacks with no
-        # accepted result still continue, and the named exit (an unchanged progress counter) still allows the stop.
+        # accepted result still continue; a required callback stays pending even with unchanged progress.
         self.assertFalse(hasattr(keepalive, "STUCK_CONTINUATIONS"))
         self.hook("observe", "claude", self.payload("claude", "observe"))
         stop = lambda: keepalive.stop("claude", self.payload("claude", "stop"))  # noqa: E731
@@ -534,8 +552,8 @@ class ProgressAndTurnTests(KeepaliveTestCase):
                 (self.run_dir / "callback-attempts").write_text(str(attempt + 1))
                 decision = stop()
                 self.assertEqual(decision["decision"], "continue", attempt)
-            stalled = stop()  # no new refused callback: no progress, so the turn may end
-            self.assertEqual((stalled["decision"], stalled["why"]), ("allow", "no progress"))
+            stalled = stop()  # no new callback: the same required completion is still missing
+            self.assertEqual(stalled["decision"], "continue")
 
     def test_a_running_background_task_is_a_wait_not_a_stop(self) -> None:
         self.bind_grok()
@@ -739,7 +757,8 @@ class ConcurrencyTests(KeepaliveTestCase):
         self.bind("claude", "first")
         self.assertEqual(self.stop_decision("claude", "first")["decision"], "continue")
         with mock.patch.object(keepalive, "DUPLICATE_WINDOW_SECONDS", 0):
-            self.assertEqual(self.stop_decision("claude", "first")["why"], "no progress")
+            self.assertEqual(self.stop_decision("claude", "first")["decision"], "continue")
+        keepalive.session_end("claude", {"session_id": "first"})
         self.bind("claude", "second")  # the next session picks the run up
         self.assertEqual(self.stop_decision("claude", "second")["decision"], "continue")
 
@@ -1090,9 +1109,71 @@ class DriverTests(KeepaliveTestCase):
         self.assertIn("run is paused after 1 session", lines[-1])
 
     def test_two_sessions_without_progress_stop_the_driver(self) -> None:
-        code, lines = self.drive("grok", lambda argv, **kwargs: self.done(argv))
+        status = self.status()
+        status.pop("completion", None)  # no pending acknowledgement supplied by core
+        with mock.patch.object(keepalive, "run_status", return_value=status):
+            code, lines = self.drive("grok", lambda argv, **kwargs: self.done(argv))
         self.assertEqual(code, keepalive.EXIT_STUCK)
         self.assertIn("two sessions in a row", lines[-1])
+
+    def test_pending_completion_survives_unchanged_sessions_with_the_shared_instruction(self) -> None:
+        calls = []
+        status = self.status()
+        saved = (self.run_dir / "state.md").read_bytes()
+        def runner(argv, **kwargs):
+            calls.append(argv)
+            self.assertIn(status["completion"], argv[2])
+            self.assertEqual(self.status()["action"], status["action"])
+            self.assertEqual((self.run_dir / "state.md").read_bytes(), saved)
+            if len(calls) == 3:
+                shiploop("pause", "--run-dir", str(self.run_dir), "--reason", "owner stop")
+            return self.done(argv)
+        code, _ = self.drive("claude", runner)
+        self.assertEqual((code, len(calls)), (keepalive.EXIT_NEEDS_USER, 3))
+
+    def test_two_timeouts_with_pending_completion_stop_the_driver_and_preserve_work(self) -> None:
+        status = self.status()  # real active ordinary action; no mocked status or deadline
+        self.assertTrue(status["completion"])
+        partial = self.repo / "partial.md"
+        partial.write_text("Keep this partial work.\n")
+        saved = [path.read_bytes() for path in (self.run_dir / "state.md", partial)]
+        calls = []
+
+        def runner(argv, **kwargs):
+            calls.append(argv)
+            self.assertLessEqual(len(calls), 2, "pending completion must not exempt host timeouts")
+            raise subprocess.TimeoutExpired(argv, kwargs["timeout"], output="partial output", stderr="host hung")
+
+        code, lines = self.drive("claude", runner)
+        self.assertEqual((code, len(calls)), (keepalive.EXIT_STUCK, 2))
+        self.assertIn("two sessions in a row", lines[-1])
+        self.assertEqual([path.read_bytes() for path in (self.run_dir / "state.md", partial)], saved)
+        self.assertEqual(self.status(), status)
+        journal = self.temp / "state" / "drive" / status["run_id"] / "drive.log"
+        entries = [json.loads(line) for line in journal.read_text().splitlines()]
+        self.assertEqual([entry["exit"] for entry in entries], ["timeout", "timeout"])
+        for entry in entries:
+            log = Path(entry["log"]).read_text()
+            self.assertIn("partial output", log)
+            self.assertIn("host hung", log)
+
+    def test_fresh_driver_reads_next_once_before_the_same_action_completion(self) -> None:
+        status = self.status()
+        same_session = keepalive._continue_reason(status)
+        fresh = keepalive._driver_prompt(status)
+        recovery = f"First run `{status['next']}` once"
+        self.assertTrue(fresh.startswith(recovery), fresh)
+        self.assertIn("current action, existing artifacts and exit/repeat conditions", fresh)
+        self.assertIn("Continue only its remaining work", fresh)
+        self.assertIn(status["completion"], fresh)
+        self.assertIn("do not restart, reissue or replay", fresh)
+        self.assertLess(fresh.index(recovery), fresh.index(status["completion"]))
+        self.assertNotIn(recovery, same_session)
+        for host in ("claude", "grok", "codex"):
+            with self.subTest(host=host):
+                argv = keepalive.host_argv(host, fresh, None, [])
+                self.assertIn(fresh, argv)
+                self.assertNotIn("--resume", argv)
 
     def test_a_host_that_fails_without_progress_is_reported_at_once(self) -> None:
         code, lines = self.drive("opencode", lambda argv, **kwargs: self.done(argv, returncode=1))
@@ -1101,6 +1182,7 @@ class DriverTests(KeepaliveTestCase):
 
     def test_resuming_hosts_continue_the_bound_session(self) -> None:
         self.hook("observe", "cursor", self.payload("cursor", "observe", "chat-42"))
+        prompt = keepalive._continue_reason(self.status())
         seen = []
 
         def runner(argv, **kwargs):
@@ -1111,6 +1193,7 @@ class DriverTests(KeepaliveTestCase):
         code, _ = self.drive("cursor", runner, max_minutes=2)
         self.assertEqual(code, keepalive.EXIT_CAP)
         self.assertEqual(seen[0][:4], ["cursor-agent", "-p", "--resume", "chat-42"])
+        self.assertEqual(seen[0][-1], prompt)
 
     def test_there_is_no_ceiling_by_default(self) -> None:
         # Owner 2026-10-28: runs go on for a very long time; the old default stopped after 20 sessions.
@@ -1174,7 +1257,7 @@ class DriverTests(KeepaliveTestCase):
         self.assertEqual(owners, ["claude:driven-0", "claude:driven-1"])
 
     def test_session_logs_and_journal_are_kept_outside_the_run(self) -> None:
-        self.drive("codex", lambda argv, **kwargs: self.done(argv))
+        self.drive("codex", lambda argv, **kwargs: self.done(argv), max_minutes=2)
         run_id = self.status()["run_id"]
         journal = self.temp / "state" / "drive" / run_id / "drive.log"
         self.assertEqual(len(journal.read_text().splitlines()), 2)

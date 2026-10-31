@@ -4939,3 +4939,161 @@ two on 5ca57d9e, so they are this Mac's, not this change's. `09a0f19c376ec49cfb9
   (3) More criteria: a trace check for the relay is not warranted before a host misses it.
 
 This entry is the commit after the viewer commit (the one before it), which is what `scripts/release.py`'s E2E-round preflight reads.
+
+## Missing completion continues the same action — qualified capability, higher observed cost (2026-10-30)
+
+**Decision.** Retain the generic hook fix for `LR-20261030-5dce01`: the prospectively registered `promotion/5`
+decision is **PROMOTE**, its accuracy prediction is confirmed, and the separate manual live handoff gate passed.
+This is a correctness/capability gain at its measured cost, **not an efficiency win**. Quality precedes efficiency
+under the accepted mission; the owner explicitly prioritized accuracy. The budget was empty, not an unreported
+token ceiling. No spec, score floor, default model or loop cap changed to obtain this result.
+
+**Frozen setup.** One full `hello-hook-continuation` run per build, Codex `gpt-6.1-terra` **high**, control first.
+The owner stated a 25% token margin at equal quality and declined A/A calibration: noise and false-decision rate
+remain unmeasured. The prediction was accuracy-floor pass share 0 to 1, with accuracy and fidelity protected.
+The optional case retains hello's two original checks, adds an actual installed-package completion probe and
+requires one checkpoint line after a deliberate early final. It introduces no Salesforce or UI dependency.
+The original plain-hello draft and its pre-registration refinement are preserved outside source.
+
+Control/operator source: `779980629a81ce0e740f7c196e83e000dd582d99`; actual control package `b379270d633e`.
+Candidate source: `7f25acff8dab239485f262249ec70773ba906aad`; actual candidate package `fbc07611090e`.
+The unchanged released version fields (plugin 2.25.0 / ShipLoop 1.24.0) did not identify these different builds.
+Registration `3634c73156348bd9a48329796958785582219bff54776006b2f03eff23e32a2f` froze identical evaluator,
+oracle and case inputs; qualification snapshot `924b362f51e49f28be28f0321f5b449bfdc405c6fd10b40c4d72f0bd2ae24e6c`.
+Both source identities remained unchanged through launches, reviews and decision. Both independent Astra xhigh
+reviews and their separate fresh judges were valid and discovery-qualified.
+
+| Observation | Control | Candidate |
+|---|---:|---:|
+| Engine / original hello checks | done / 2 of 2 pass | done / 2 of 2 pass |
+| All independent case checks | 3 of 4 pass | 4 of 4 pass |
+| Accuracy / scripted strict fidelity | fail / pass | pass / pass |
+| Full processed tokens, cached input counted once | 16,989,695 | 22,800,471 |
+| Output tokens / model-reported turns | 35,832 / 124 | 39,385 / 172 |
+| Subject process seconds | 456.8 | 474.8 |
+| Same-action packet reprints after the checkpoint | 1 (27,846 characters) | 0 observed |
+| Hook to the same action's accepted callback | 28.867 seconds | 14.245 seconds |
+| Accepted entries for that action / final checkpoint lines | 1 / 1 | 1 / 1 |
+
+**Live and fixture evidence have different jobs.** Native Codex records label each checkpoint `phase: final_answer`;
+each occurred after its real implement Until Loop started and before its required done. The control also resumed
+successfully without replay: it requested ShipLoop `next` and runtime `next`. The candidate received the exact
+current done argv, inspected the existing files, ran proof and submitted its actual report. Actual model commands,
+hook trace and callback/action identity support preservation of the declared write; final file bytes alone do not.
+The candidate's observed recovery window was shorter, while the whole run cost **34.2% more tokens** and **3.9% more
+time**. One pair establishes neither a causal whole-run efficiency effect nor general software-development gains.
+
+The separate package check uses synthetic prior-stage declarations and review judgments, but the selected installed
+ShipLoop modules, bundled runtime, decisions and callbacks are real. Invalid done was refused unchanged in both.
+Control then returned allow/no-progress three times for a valid active missing completion and stopped that probe:
+its later phases are **unobserved**. Candidate continued three unchanged-progress decisions, then covered terminal
+loop/pending stage callback, real stage acceptance and exactly-once advancement after the separate fixture Improve
+obligation. Three decisions within one fixture are not three independent attempts or three live stops.
+Repeated live stops, cold-context model compliance, natural stop frequency, universal Codex no-redo coverage,
+other applications/hosts and dollars remain unmeasured.
+
+**Scope and review learning.** Opus found invalid-report and timeout edge cases; the final hook retains real failure
+and timeout exits and withholds invalid saved-report hints. Astra's first purpose review said extra: a shared report
+acceptance change was unnecessary. The one permitted retry restored both shared validators byte for byte and kept
+only read-only hint readiness. The fresh purpose retry found all eight files aligned and prediction_follows true.
+The final diff changes no shared report acceptance rule and never executes done, complete, restart or pause.
+
+The run reviews also identified recurring Python protocol wrappers despite a zero glue counter. Investigate that
+as a future single-record candidate; do not implement another change or claim savings here. They found frozen
+S-10/S-11 wording inconsistent with inherited review placement and three living files. Full messages
+`17c7fa8ef79cfd8e5827de4e43966d1828bd803b`, `090c8c881448fd3ba4899433484e9b0633ba8d0a` and
+`ddaf90760fd0035aae46d2c1591fa61dbb9dbd8b` document the earlier accepted decisions. Preserve the old run's
+interpretation and reconcile the spec prospectively as separate work; a passing scripted fidelity floor does not
+certify every semantic clause. This hook cycle adopts no new review/file-layout position.
+
+**Release checks and construction cost.** Final core checks: 86 keepalive, 63 loops and four focused real Improve
+checks passed; after the purpose trim, 63 loops/four Improve checks and the new actual installed package passed,
+with the unchanged keepalive/protocol bytes verified. The release selection completed 72 suites in 325.836 seconds:
+70 passed, packet-bound inventory and Claude fixture isolation failed. Preserve that aggregate FAIL. Test-only
+repairs subsequently passed 34 skill-call, 21 packet-bound and 13 purpose/catalog checks, Ruff and diff checks;
+reuse the other 70 unchanged suites. The first fixture repair still failed two tests because a second setup bypassed
+its parent; preserve that failed run. The unchanged control reproduced the host-marker failure. No skill/package
+or frozen qualification input changed in those repairs (`dcebd5ed73c8cef833a8632b5523f3dbbefe9b79`).
+Four Sol 6.1 xhigh construction calls consumed 12,333,860 processed tokens, 91,120 output tokens and 1,688.1 summed
+model seconds; those overlapping construction times are not the total task elapsed time. Advisor, review and test
+overhead is separate. Preserve failed prototypes, purpose feedback, digest-calibration errors and pre-start command
+formatting errors; none is an extra live comparative sample. CI, publication and a fresh published-build rerun
+remain subsequent gates at this journal commit.
+
+**History constrains the claim.** `04903031073c9aee014e7619c9df3b7f4a34338f` previously saw all six runs recover,
+with detailed reminders taking median 15 versus 10 commands and 165 versus 105 seconds, tokens unmeasured;
+`d09042f05e446a28b8acdf6b66a3c6c58a23cebd` removed that machinery. Neither result is erased by this narrower
+capability win. `11c851e74df399c269f13ed9a7afa0758a1fd1a0` supplies the prospective promotion gate;
+`9ebd66cf7d12c34402784c5784f3a0e81cd9bc62` supplies honest cache-inclusive cost accounting. The Apps Script
+wording correction `e9aed82dce382a4b2d49e08d9fde8efa5c812b73` is inherited on main; this generic hello round
+does not exercise it or establish improved Apps Script behavior, although the ancestry preflight sees this later entry.
+
+**Evidence root:** `/Users/dadleet/e2e-runs/2026-10-30/shiploop-hook-missing-done-c0rbhqfg/`.
+Canonical artifacts: `qualification-01/{registration,prediction}.json`, its sealed run/review receipts,
+`qualification-decide-all-receipt.json`, `live-checkpoint-{control,candidate}.json`, `live-handoff-acceptance.json`,
+`discovery-dispositions.json`, `construction-costs.json`, `post-trim-checks-01`, `delivery-quick-01` and
+`release-check-repairs-{01,02}`. Raw artifacts stay external; retained learning includes supporting and contrary evidence.
+
+
+## Published hook acceptance exposed a missing marketplace path (2026-10-30)
+
+Keep the one-field **internal harness metadata repair**: preserve the installer's actual
+`path` beside its existing pass, loaded, source and version fields. This changes no
+ShipLoop or package bytes, expectation, score floor, model, loop limit or callback.
+It is not another core-product win. The frozen registered comparison remains historical
+evidence under its unchanged controller; future qualification must register the new
+controller snapshot.
+
+The first fresh published attempt installed plugin **2.25.1 / ShipLoop 1.24.1**, package
+`a658898c6593`, from release `502ab67338b1b1540c589ae71f8c53b764bc0451`.
+It remains **FAIL: 3/4 checks**: engine done, application output/unittest and single checkpoint
+passed, but the contract stopped before any phase because `plugin.path` was absent.
+Do not regrade or modify that result. The subject used 15,595,870 processed tokens,
+39,523 output tokens, 128 turns and 467.1 seconds; wrapper elapsed was 477.608 seconds.
+Its actual native final/Stop trace and inspected commands separately show the same action
+accepted once, no same-action packet reprint, one checkpoint append, no original greeting
+write replay, and a 20.299-second hook-to-acceptance window. Those live observations do not
+turn the aggregate failure into a pass.
+
+| Verification | Result and boundary |
+|---|---|
+| Fail-first VersionGateTest | 5 tests; four missing-path errors across Codex/Grok success and failed-install records |
+| After carrying the actual path | 12 VersionGate/CodexRun tests pass; failed installs still refuse |
+| Fresh no-model Codex marketplace calibration | All five actual installed-package/runtime phases pass in 10.155 seconds; fixture judgments remain synthetic |
+| Static/source checks | Ruff F/E9 and diff checks pass; all skill/package/catalog/change-note bytes unchanged |
+| Main release CI | Both full dispatch 41175761162 and actual main push 41176938656 passed |
+
+Independent verified Opus 5.5 xhigh review (exit 0, no fallback, 155.6 seconds) identified
+three evidence limits. Its high finding is partly accepted: in marketplace mode the
+conformance check compares one selected cache with itself; a self-consistent mutant passed
+that identity step. It is a conformance/integrity check, **not independent published-byte
+proof**. The separately exported Git payload of the exact release independently hashes
+to `a658898c6593`, matching both the predeclared artifact expectation and actual installed
+run bytes. Keep that separate release-byte acceptance requirement, and reject the broader
+inference that this run's release bytes were never bound. The checkout comparison used two
+distinct frozen/install trees and remains unchanged.
+
+The medium finding prompted a real fresh no-model Grok marketplace experiment: absolute
+existing path, package identity accepted, digest equal to release. Grok checkout still lacks
+the install path and refuses; preserve that preexisting fail-closed limitation without
+claiming Grok live/checkout qualification or expanding this fix into hosts.py.
+The low finding is accepted by judgement: old resume/regrade records stay incomplete,
+including this failed published attempt. The next acceptance must be **fresh**.
+
+History matters: `8ff81566e1ef45054964bbcc65a1edac59f296a6` prevents failed installs
+from launching a host; preserve that gate. `cefff5edabdbfb1d8600e88fe0460f422c385056`
+requires observations to remain bound to actual runtime/fixture inputs; record the actual
+path rather than weakening the checker. `779980629a81ce0e740f7c196e83e000dd582d99`
+requires identical frozen apparatus, so this repair does not rewrite the earlier epoch.
+No new skill release is needed for this internal harness correction; package 1.24.1 stays
+the published subject. Commit CI, direct main integration and a new fresh acceptance run
+remain pending at this entry.
+
+Evidence: the same external root as above, `published-execution-01`,
+`published-live-only-gate-01.json`, `marketplace-path-{red,green,calibration}-01`,
+`adversarial-marketplace-path-01`, `marketplace-path-review-experiments-01`,
+`main-release-ci-success.json` and `host-refresh-payload-verification.json`.
+All 390 Claude payload files match; its extra nine .in_use lease files explain its different
+whole-folder digest. Codex and Grok raw package digests match; other plugin versions stayed
+unchanged. A first Grok refresh using its source URL refused; the existing registry name
+`whichguy` then succeeded. Preserve those raw command results.

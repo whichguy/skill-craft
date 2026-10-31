@@ -4,6 +4,9 @@
     "hello": [
       "\\bhello\\.py\\b"
     ],
+    "hello-hook-continuation": [
+      "\\bhello\\.py\\b"
+    ],
     "battleship": [
       "\\bbattleships?\\b",
       "\\bgame ?over\\b"

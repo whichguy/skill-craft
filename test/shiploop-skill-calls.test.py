@@ -320,6 +320,9 @@ class GateFixture(improve_tests.ImproveCliFixture):
 
     def setUp(self) -> None:
         super().setUp()
+        # This fixture represents Claude; nested-host tests add their own markers below.
+        for name in keepalive.NESTED_NON_CLAUDE:
+            self.environment.pop(name, None)
         self.keepalive_home = self.base / "keepalive"
         self.claude_home = self.base / "claude-home"
         self.environment.update({"CLAUDECODE": "1", "CLAUDE_CODE_SESSION_ID": self.SESSION,
@@ -532,6 +535,9 @@ class ImprovePassGateTests(GateFixture):
 
     def setUp(self) -> None:
         improve_tests.ImproveCliFixture.setUp(self)
+        # This setup bypasses GateFixture.setUp but still models a Claude session.
+        for name in keepalive.NESTED_NON_CLAUDE:
+            self.environment.pop(name, None)
         self.keepalive_home = self.base / "keepalive"
         self.claude_home = self.base / "claude-home"
         self.environment.update({"CLAUDECODE": "1", "CLAUDE_CODE_SESSION_ID": self.SESSION,

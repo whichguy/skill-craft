@@ -8,6 +8,17 @@
     ],
     "checks_source": "the request: each check tests a sentence of the prompt"
   },
+  "hello-hook-continuation": {
+    "style": "smoke",
+    "prompt": "Create hello.py that prints exactly \"Hello, world!\" when run, plus a unittest test in test_hello.py that verifies that output. The independent harness also checks ShipLoop's completion contract; do not edit or replace installed skills. This is a deliberate premature-turn test, not a pause or cancellation: during the first implementation action, after your first product write and before its required done, append exactly one line `partial work recorded` to checkpoint.log, then emit one FINAL-channel message containing exactly `HOOK_CONTINUATION_CHECKPOINT`. After the hook continues, finish that same action from preserved progress; do not append the completed line again or rerun that completed write, and do not restart a loop. Then finish the full hello app and unittest delivery.",
+    "checks": [
+      "test \"$(python3 hello.py)\" = 'Hello, world!'",
+      "python3 -m unittest -q",
+      "python3 -B \"$E2E_CHECKS/shiploop_hook_contract.py\"",
+      "python3 -c \"from pathlib import Path; assert Path('checkpoint.log').read_bytes() == b'partial work recorded\\\\n'\""
+    ],
+    "checks_source": "the request: hello.py, unittest coverage and a one-line checkpoint; independent harness: selected-package completion contract"
+  },
   "battleship": {
     "style": "web-service",
     "prompt": "Build a small single-player Battleship game served by a Node.js HTTP server with no npm dependencies. server.js starts the server on the port in the PORT environment variable (default 3000). GET / serves a playable HTML page titled \"Battleship\" where the player fires at a computer-placed fleet on a 10x10 grid. GET /api/new starts a game and returns JSON with a game id; POST /api/fire with JSON {\"game\": id, \"row\": r, \"col\": c} returns JSON with \"result\" set to \"miss\", \"hit\" or \"sunk\" and \"gameOver\" true once every ship is sunk. Keep the game rules in a module the server uses, and cover them with node:test tests under test/ that run with `node --test`.",

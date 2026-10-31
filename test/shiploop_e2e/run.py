@@ -656,7 +656,7 @@ def marketplace_preflight(args, out: Path, env: dict) -> tuple[Path, dict | None
         installed = host.install_marketplace(env)
         plugin_dir = Path(installed["path"]) if installed["path"] else out / "missing-plugin"
         plugin = {"pass": installed["pass"], "loaded": installed["loaded"], "source": installed["source"],
-                  "registry_version": installed["version"]}
+                  "registry_version": installed["version"], "path": installed["path"]}
         how = f"{host.name} marketplace add + install (fresh profile)"
     else:
         plugin_dir = export_released(out)

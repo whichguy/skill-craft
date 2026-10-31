@@ -10,6 +10,7 @@ terminal tests run the real runtime to the state they need; the navigator tests 
 from __future__ import annotations
 
 import importlib.util
+import hashlib
 import json
 import re
 import shlex
@@ -701,10 +702,30 @@ class NavigatorLoopTests(fx.RunDriver):
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
 
+    def assert_completion_recovery(self, paths: list[Path]) -> None:
+        import shiploop_keepalive as keepalive
+        from unittest import mock
+        snapshot = lambda: [path.read_bytes() if path.exists() else None for path in paths]
+        before, status = snapshot(), self.hook_status()
+        binding = {"run_dir": str(self.run_dir), "run_id": status["run_id"]}
+        with mock.patch.object(keepalive, "claim_owner", return_value=True):
+            decisions = [keepalive._decide("codex", "owner", binding) for _ in range(2)]
+        self.assertEqual(snapshot(), before)
+        self.assertEqual(self.hook_status()["action"], status["action"])
+        self.assertEqual(self.hook_status()["progress"], status["progress"])
+        self.assertEqual(status["status"], "active")
+        self.assertEqual([row["decision"] for row in decisions], ["continue", "allow"])
+        self.assertEqual(decisions[1]["why"], "no progress")
+        reason = keepalive._continue_reason(status)
+        self.assertIn(f"run `{status['next']}` and follow the packet", reason)
+        for forbidden in (" start ", "restart", " done ", " complete ", "already recorded"):
+            self.assertNotIn(forbidden, reason)
+        self.assertEqual(status["completion"], "")
+        self.assertEqual(decisions[0]["reason"], reason)
+
     def test_a_stage_loop_moves_the_stop_hooks_progress_and_next_reprints_its_commands(self):
         # End to end on a real run: hook-status reads the stage's real receipt, so a model working a stage's Until Loop
-        # is never released as idle. The stop asks for `next`, whose reprint carries the loop's commands and the step's
-        # callback (the 1.18.0 owed-report wording was removed: docs/shiploop-trims-plan-2026-10-28.md, T1).
+        # is never released as idle. The stop now names the loop report; context-loss recovery still reprints the packet.
         import shiploop_keepalive as keepalive
         self.start()
         self.drive_to("step-plan")
@@ -712,10 +733,189 @@ class NavigatorLoopTests(fx.RunDriver):
         self.run_loop([])
         active = self.hook_status()
         self.assertNotEqual(active["progress"], before["progress"])
-        self.assertIn(f"run `{active['next']}` and follow the packet it prints.", keepalive._continue_reason(active))
+        self.assertIn(active["completion"], keepalive._continue_reason(active))
         reprint = subprocess.run(shlex.split(active["next"]), text=True, capture_output=True, check=True,
                                  timeout=60).stdout
         self.assertIn(f"--action={active['action']}", reprint)  # the step's own callback
+
+    def test_missing_done_repeated_stops_keep_the_same_partial_action(self):
+        import shiploop_keepalive as keepalive
+        from unittest import mock
+        self.start()
+        self.drive_to("implement")
+        packet = self.run_loop([MATERIAL])  # one recorded iteration must survive
+        partial = self.repo / "a.py"
+        partial.write_text("x = 17  # partial implementation\n")
+        paths = [self.run_dir / "state.md", self.receipt(), Path(packet["state_file"]), partial]
+        hashes = lambda: [hashlib.sha256(path.read_bytes()).hexdigest() for path in paths]
+        before, status = hashes(), self.hook_status()
+        binding = {"run_dir": str(self.run_dir), "run_id": status["run_id"]}
+        with mock.patch.object(keepalive, "claim_owner", return_value=True):
+            decisions = [keepalive._decide("codex", "owner", binding) for _ in range(3)]
+        self.assertEqual([row["decision"] for row in decisions], ["continue"] * 3)
+        instructions = status["completion"]
+        self.assertIn(shlex.join(packet["done_argv"]), instructions)
+        self.assertIn("unsatisfied", instructions)
+        self.assertNotIn(" start ", instructions)
+        self.assertNotIn(" complete ", instructions)
+        self.assertIn(instructions, keepalive._driver_prompt(status))
+        for row in decisions:
+            self.assertIn(instructions, row["reason"])
+            self.assertNotIn(f"run `{status['next']}` and follow", row["reason"])
+        self.assertEqual(hashes(), before)
+        self.assertEqual(self.hook_status()["action"], status["action"])
+        self.assertEqual(self.hook_status()["progress"], status["progress"])
+
+    def test_rejected_done_stays_pending_then_names_only_the_stage_callback(self):
+        import shiploop_keepalive as keepalive
+        from unittest import mock
+        self.start()
+        self.drive_to("document")
+        packet = self.run_loop([])
+        status = self.hook_status()
+        binding = {"run_dir": str(self.run_dir), "run_id": status["run_id"]}
+        with mock.patch.object(keepalive, "claim_owner", return_value=True):
+            keepalive._decide("codex", "owner", binding)
+            refused = subprocess.run(packet["done_argv"], input="{}", text=True, capture_output=True)
+            self.assertNotEqual(refused.returncode, 0)
+            self.assertEqual(keepalive._decide("codex", "owner", binding)["decision"], "continue")
+            self.assertEqual(json.loads(self.receipt().read_text()), packet)
+            for _ in range(2):
+                with self.assertRaises(nav.NavigatorError):
+                    self.submit(DOC_DONE)  # callback cannot skip the active loop
+                self.assertEqual(keepalive._decide("codex", "owner", binding)["decision"], "continue")
+            terminal = json.loads(subprocess.run(packet["done_argv"], input=json.dumps(TRIVIAL), text=True,
+                                                 capture_output=True, check=True).stdout)
+            pending = self.hook_status()
+            callback = nav._first_callback_lines(fx.CORE, self.run_dir, self.state())[0]
+            self.assertIn(callback, pending["completion"])
+            self.assertNotIn(" done ", pending["completion"])
+            self.assertEqual(terminal["status"], "complete")
+            for _ in range(2):
+                self.assertEqual(keepalive._decide("codex", "owner", binding)["decision"], "continue")
+        self.assertEqual(pending["action"], status["action"])
+        self.submit(DOC_DONE)
+        self.assertEqual(self.state()["active_improve"]["action_id"], status["action"])
+        self.assertNotEqual(self.state()["active_improve"]["improve_action"], status["action"])
+        self.assertEqual(self.state()["revision"], pending["revision"] + 1)
+        self.finish_improve()  # the existing fixture settles the separate Improve obligation
+        self.assertEqual(sum(row["action"] == status["action"] for row in self.state()["history"]), 1)
+
+    def test_inline_improve_continuation_respects_receipt_and_recorded_pass(self):
+        self.start()
+        self.drive_to("spec", improve_stage="spec")
+        child = self.state()["active_improve"]
+        import shiploop_standalone_improve as standalone
+        receipt = standalone.receipt_path(child)
+        packet = json.loads(receipt.read_text())
+        self.assertEqual(packet["status"], "active")
+        active = self.hook_status()["completion"]
+        self.assertIn("improve-pass", active)
+        self.assertNotIn(shlex.join(packet["done_argv"]), active)
+        self.assertNotIn(" complete ", active)
+        reviews = receipt.parent / "reviews"
+        reviews.mkdir(exist_ok=True)
+        number = packet["progress"]["action_number"]
+        # Synthetic recorded pass: only reminder routing, not a claimed Improve acceptance.
+        record = reviews / f"pass-{number}.json"
+        report = reviews / f"report-{number}.json"
+        record.write_text(json.dumps({"pass": number}))
+        report.write_text(json.dumps(TRIVIAL))
+        for fields in ({"exit_assessment": "invalid"}, {"exit_assessment": []}, {"evidence": ""}, {"handoff": 3},
+                       {"classification": "unresolved"}):
+            with self.subTest(invalid_report=fields):
+                report.write_text(json.dumps(dict(TRIVIAL, **fields)))
+                self.assert_completion_recovery([self.run_dir / "state.md", receipt, record, report,
+                                                 Path(packet["state_file"])])
+        for assessment in ("unsatisfied", "unknown"):
+            report.write_text(json.dumps(dict(TRIVIAL, classification="unresolved", exit_assessment=assessment)))
+            recorded = self.hook_status()["completion"]
+            self.assertIn(shlex.join(packet["done_argv"]), recorded)
+            self.assertIn("Do not record the pass again", recorded)
+        report.write_text(json.dumps(TRIVIAL))
+        before = [path.read_bytes() for path in (receipt, record, report)]
+        recorded = self.hook_status()["completion"]
+        self.assertIn(shlex.join(packet["done_argv"]) + " < " + shlex.quote(str(report)), recorded)
+        self.assertNotIn("improve-pass", recorded)
+        self.assertEqual([path.read_bytes() for path in (receipt, record, report)], before)
+        terminal = subprocess.run(packet["done_argv"], input=report.read_text(), text=True,
+                                  capture_output=True, check=True)
+        completed = json.loads(terminal.stdout)
+        self.assertEqual(completed["status"], "complete")
+        for fields in ({"last_report": dict(TRIVIAL, continuation_assessment="cancelled")},
+                       {"last_report": dict(TRIVIAL, evidence=[])},
+                       {"progress": dict(completed["progress"], trivial_streak=0)}):
+            with self.subTest(invalid_terminal=fields):
+                receipt.write_text(json.dumps(dict(completed, **fields)))
+                self.assert_completion_recovery([self.run_dir / "state.md", receipt, record, report,
+                                                 Path(packet["state_file"])])
+        receipt.write_text(terminal.stdout)
+        self.assertIn(nav._first_callback_lines(fx.CORE, self.run_dir, self.state())[0],
+                      self.hook_status()["completion"])
+
+    def test_stopped_or_unreadable_improve_uses_generic_recovery_and_can_stop_without_progress(self):
+        self.start()
+        self.drive_to("spec", improve_stage="spec")
+        import shiploop_standalone_improve as standalone
+        receipt = standalone.receipt_path(self.state()["active_improve"])
+        packet = json.loads(receipt.read_text())
+        stopped = subprocess.run(packet["done_argv"], input=json.dumps(BLOCKED), text=True,
+                                 capture_output=True, check=True)
+        self.assertEqual(json.loads(stopped.stdout)["status"], "stopped")
+        partial = self.repo / "partial-review.md"
+        partial.write_text("Partial review must survive recovery.\n")
+        for label, value in (("stopped", receipt.read_bytes()), ("malformed", b"{broken"), ("missing", None)):
+            with self.subTest(receipt=label):
+                if value is None:
+                    receipt.unlink()
+                else:
+                    receipt.write_bytes(value)
+                self.assert_completion_recovery([self.run_dir / "state.md", receipt, partial])
+
+    def test_foreign_or_oversized_receipt_uses_generic_recovery_and_can_stop_without_progress(self):
+        self.start()
+        self.drive_to("implement")
+        packet = self.run_loop([])
+        for field, value in (("work", "foreign work"), ("receipt", "/foreign/packet.json"), ("status", "unsupported")):
+            with self.subTest(field=field):
+                self.receipt().write_text(json.dumps(dict(packet, **{field: value})))
+                self.assert_completion_recovery([self.run_dir / "state.md", self.receipt(),
+                                                 Path(packet["state_file"])])
+        self.receipt().write_bytes(b" " * (4 * 1024 * 1024 + 1))
+        self.assert_completion_recovery([self.run_dir / "state.md", self.receipt(), Path(packet["state_file"])])
+
+    def test_unbound_or_delegated_improve_has_no_completion_operation(self):
+        self.start()
+        self.drive_to("spec", improve_stage="spec")
+        state = self.state()
+        before = (self.run_dir / "state.md").read_bytes()
+        for route, skill in (("inline", None), ("ask-agent", state["active_improve"]["skill"])):
+            with self.subTest(route=route):
+                changed = dict(state, delegation=route, active_improve=dict(state["active_improve"], skill=skill))
+                self.assertEqual(nav.completion_instructions(fx.CORE, self.run_dir, changed), "")
+        self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+
+    def test_unreadable_receipt_keeps_the_driver_no_progress_exit(self):
+        import shiploop_keepalive as keepalive
+        self.start()
+        self.drive_to("spec", improve_stage="spec")
+        import shiploop_standalone_improve as standalone
+        receipt = standalone.receipt_path(self.state()["active_improve"])
+        receipt.write_text("{broken")
+        before = [(self.run_dir / "state.md").read_bytes(), receipt.read_bytes()]
+        calls, lines = [], []
+        def runner(argv, **kwargs):
+            calls.append(argv)
+            self.assertLessEqual(len(calls), 2, "unreadable receipt must not exempt driver stalls")
+            return subprocess.CompletedProcess(argv, 0, "", "")
+        code = keepalive.drive("claude", str(self.run_dir), session_timeout=60, extra=[], cwd=None,
+                               out=lines.append, runner=runner)
+        self.assertEqual((code, len(calls)), (keepalive.EXIT_STUCK, 2))
+        self.assertIn("two sessions in a row", lines[-1])
+        for argv in calls:
+            self.assertIn(f"run `{self.hook_status()['next']}` and follow the packet", argv[2])
+        self.assertEqual([(self.run_dir / "state.md").read_bytes(), receipt.read_bytes()], before)
+        self.assertEqual(self.hook_status()["status"], "active")
 
     def test_the_implement_packet_and_its_loop_carry_the_stuck_rule(self):
         # What the model receives at implement (owner, 2026-10-28: a criterion, not a count): the duty in the packet,

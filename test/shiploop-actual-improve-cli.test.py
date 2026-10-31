@@ -2721,6 +2721,42 @@ class ImprovePassTests(ImproveCliFixture):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return json.loads(result.stdout)
 
+    def test_a_runtime_refused_saved_report_has_no_completion_hint_until_the_review_is_corrected(self):
+        self.begin()
+        review = self.write_review(label="unresolved", exit="satisfied")
+        receipt = bridge.receipt_path(self.bound)
+        self.invoke(*self.pass_args())  # accepted producer behavior; the runtime owns report acceptance
+        packet = json.loads(receipt.read_text())
+        report, record = [self.reviews() / name for name in ("report-1.json", "pass-1.json")]
+        paths = [self.run / "state.md", receipt, Path(packet["state_file"]), self.product_contract,
+                 self.repo / "scratch.txt", review, report, record]
+        before = [path.read_bytes() for path in paths]
+        initial = json.loads(self.invoke(CLI, "hook-status", "--run-dir", self.run).stdout)
+        _, refused = self.invoke_argv(packet["done_argv"], json.loads(report.read_text()), status=2)
+        self.assertEqual((refused["status"], refused["state_change"]), ("error", "unchanged"))
+        self.assertIn("an unresolved report cannot claim a satisfied exit", refused["error"])
+        status = json.loads(self.invoke(CLI, "hook-status", "--run-dir", self.run).stdout)
+        self.assertEqual([path.read_bytes() for path in paths], before)
+        self.assertEqual((status["action"], status["progress"]), (initial["action"], initial["progress"]))
+        self.assertEqual(status["status"], "active")
+        self.assertEqual(self.git("rev-parse", "HEAD").strip(), self.base_commit)
+        self.assertEqual(status["completion"], "")
+        # Correct only this invalid review's exit assessment; no product or review work is replayed.
+        review.write_text(review.read_text().replace("\nexit: satisfied\n", "\nexit: unsatisfied\n", 1))
+        done, _, _ = self.printed(self.invoke(*self.pass_args()).stdout)
+        saved = [path.read_bytes() for path in (review, report, record)]
+        status = json.loads(self.invoke(CLI, "hook-status", "--run-dir", self.run).stdout)
+        self.assertIn(done, status["completion"])
+        self.assertIn("Do not record the pass again", status["completion"])
+        self.assertNotIn("improve-pass", status["completion"])
+        self.assertEqual(self.run_done(done)["status"], "active")
+        self.assertEqual([path.read_bytes() for path in (review, report, record)], saved)
+        self.assertEqual([path.read_bytes() for path in (self.product_contract, self.repo / "scratch.txt")],
+                         before[3:5])
+        self.write_review(2)  # a new trivial/satisfied pass still ends the real runtime normally
+        done, _, _ = self.printed(self.invoke(*self.pass_args()).stdout)
+        self.assertEqual(self.run_done(done)["status"], "complete")
+
     def test_an_unchanged_pass_gets_script_written_checks_and_the_printed_commands_finish_the_stage(self):
         """6.3 exit 2, as a shape rather than a length: what the model writes for one pass is the review file and the
         printed commands it copies.  ShipLoop writes checks.md and the report JSON, and the commands are literal (no

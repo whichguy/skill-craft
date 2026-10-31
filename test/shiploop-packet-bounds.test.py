@@ -392,6 +392,7 @@ def numeric_limits():
 # (the text goes to a file or is cut, never refused), not a refusal of the model's text.
 INLINE_LENGTH_CHECKS = {
     ("shiploop_navigator.py", 6000): "a result template or an Improve seed too long to print inline goes to the file that holds it",
+    ("shiploop_navigator.py", 16384): "an oversized derived completion hint uses existing next recovery; no submission or loop is refused",
     ("shiploop_progress_data.py", 280): "the progress view cuts an event summary",
     ("shiploop_trace.py", 160): "the trace cuts a headline",
 }

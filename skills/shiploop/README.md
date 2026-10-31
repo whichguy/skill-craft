@@ -1,4 +1,4 @@
-# ShipLoop navigator 1.24.0
+# ShipLoop navigator 1.24.1
 
 > **Two readers, one file.** This first part is for developers who *use* ShipLoop: what it is, how to start a run, what you will
 > see, how to steer it, and what to do when something stops. The [maintainer reference](#maintainer-reference) after it is the
