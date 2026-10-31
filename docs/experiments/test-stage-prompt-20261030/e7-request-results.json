@@ -1,0 +1,684 @@
+{
+ "about": "E7-F by the request (docs/experiments/test-stage-prompt-20261030/e7-request.md): each sample's tests run against the ten request-breaking variants of the recorded implementation (evaluators/e7_request.py), beside the mutant score of e7_tests.py. `variants` is verify(): each variant's witness passes on the recorded implementation and fails on the variant, and whether the case's own hidden check catches it.",
+ "variants": [
+  {
+   "variant": "limit-65",
+   "clause": "an agent is a non-empty name of at most 64 characters",
+   "ok": true,
+   "witness_on_recorded": 0,
+   "witness_on_variant": 1,
+   "hidden_check_catches": true
+  },
+  {
+   "variant": "limit-63",
+   "clause": "an agent is a non-empty name of at most 64 characters",
+   "ok": true,
+   "witness_on_recorded": 0,
+   "witness_on_variant": 1,
+   "hidden_check_catches": false
+  },
+  {
+   "variant": "empty-name",
+   "clause": "an agent is a non-empty name",
+   "ok": true,
+   "witness_on_recorded": 0,
+   "witness_on_variant": 1,
+   "hidden_check_catches": false
+  },
+  {
+   "variant": "no-unassign",
+   "clause": "`{\"assignee\": null}` unassigns it",
+   "ok": true,
+   "witness_on_recorded": 0,
+   "witness_on_variant": 1,
+   "hidden_check_catches": true
+  },
+  {
+   "variant": "resolved-assignable",
+   "clause": "Only open and in-progress tickets can be assigned or unassigned",
+   "ok": true,
+   "witness_on_recorded": 0,
+   "witness_on_variant": 1,
+   "hidden_check_catches": false
+  },
+  {
+   "variant": "in-progress-refused",
+   "clause": "Only open and in-progress tickets can be assigned or unassigned",
+   "ok": true,
+   "witness_on_recorded": 0,
+   "witness_on_variant": 1,
+   "hidden_check_catches": false
+  },
+  {
+   "variant": "same-agent-changes",
+   "clause": "Assigning a ticket to the agent it already has changes nothing",
+   "ok": true,
+   "witness_on_recorded": 0,
+   "witness_on_variant": 1,
+   "hidden_check_catches": false
+  },
+  {
+   "variant": "not-notified",
+   "clause": "The agent a ticket is assigned to is notified",
+   "ok": true,
+   "witness_on_recorded": 0,
+   "witness_on_variant": 1,
+   "hidden_check_catches": false
+  },
+  {
+   "variant": "requester-notified",
+   "clause": "The agent a ticket is assigned to is notified that it was assigned to them",
+   "ok": true,
+   "witness_on_recorded": 0,
+   "witness_on_variant": 1,
+   "hidden_check_catches": false
+  },
+  {
+   "variant": "no-null-assignee",
+   "clause": "Every ticket shows its `assignee` (null when unassigned)",
+   "ok": true,
+   "witness_on_recorded": 0,
+   "witness_on_variant": 1,
+   "hidden_check_catches": true
+  }
+ ],
+ "samples": [
+  {
+   "arm": "A",
+   "sample": 1,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.6667,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ]
+   ]
+  },
+  {
+   "arm": "A",
+   "sample": 2,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.5,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     145,
+     "rel-bound"
+    ]
+   ]
+  },
+  {
+   "arm": "A",
+   "sample": 3,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.6667,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     145,
+     "rel-bound"
+    ]
+   ]
+  },
+  {
+   "arm": "A",
+   "sample": 4,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.5,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     145,
+     "rel-bound"
+    ]
+   ]
+  },
+  {
+   "arm": "A",
+   "sample": 5,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.6667,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ]
+   ]
+  },
+  {
+   "arm": "A",
+   "sample": 6,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.5,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     145,
+     "rel-bound"
+    ]
+   ]
+  },
+  {
+   "arm": "A",
+   "sample": 7,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.6667,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ]
+   ]
+  },
+  {
+   "arm": "A",
+   "sample": 8,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.6667,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ]
+   ]
+  },
+  {
+   "arm": "C",
+   "sample": 1,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.6667,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ]
+   ]
+  },
+  {
+   "arm": "C",
+   "sample": 2,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.5,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     145,
+     "rel-bound"
+    ]
+   ]
+  },
+  {
+   "arm": "C",
+   "sample": 3,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.5,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     145,
+     "rel-bound"
+    ]
+   ]
+  },
+  {
+   "arm": "C",
+   "sample": 4,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.6667,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ]
+   ]
+  },
+  {
+   "arm": "C",
+   "sample": 5,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.6667,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ]
+   ]
+  },
+  {
+   "arm": "C",
+   "sample": 6,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.5,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     145,
+     "rel-bound"
+    ]
+   ]
+  },
+  {
+   "arm": "C",
+   "sample": 7,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.5,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     145,
+     "rel-bound"
+    ]
+   ]
+  },
+  {
+   "arm": "C",
+   "sample": 8,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.6667,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ]
+   ]
+  },
+  {
+   "arm": "D",
+   "sample": 1,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.6667,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ]
+   ]
+  },
+  {
+   "arm": "D",
+   "sample": 2,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.8333,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ]
+   ]
+  },
+  {
+   "arm": "D",
+   "sample": 3,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.6667,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ]
+   ]
+  },
+  {
+   "arm": "D",
+   "sample": 4,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.5,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     145,
+     "rel-bound"
+    ]
+   ]
+  },
+  {
+   "arm": "D",
+   "sample": 5,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.6667,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     145,
+     "rel-bound"
+    ]
+   ]
+  },
+  {
+   "arm": "D",
+   "sample": 6,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.5,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     145,
+     "rel-bound"
+    ]
+   ]
+  },
+  {
+   "arm": "D",
+   "sample": 7,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.5,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     145,
+     "rel-bound"
+    ]
+   ]
+  },
+  {
+   "arm": "D",
+   "sample": 8,
+   "unmutated": "passed",
+   "request_value": 1.0,
+   "request_added_value": 1.0,
+   "request_survived": [],
+   "earlier_tests_kill": [],
+   "flaky": [],
+   "mutant_value": 0.6667,
+   "mutant_survivors": [
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ],
+    [
+     "src/persistence.js",
+     144,
+     "logic-flip"
+    ]
+   ]
+  }
+ ]
+}

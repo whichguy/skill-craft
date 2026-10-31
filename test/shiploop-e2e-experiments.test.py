@@ -431,6 +431,27 @@ class Evaluators(unittest.TestCase):
             self.assertEqual(e7_tests.changed_lines(tree, seed), {"src/a.js": {2}, "src/b.js": {1, 2, 3}})
             self.assertEqual(e7_tests.new_test_files(tree, seed), ["test/b.test.js"])
 
+    def test_e7_request_variants_change_one_line_once_and_the_scorer_restores_the_file(self):
+        import e7_request  # noqa: PLC0415
+        names = [variant[0] for variant in e7_request.VARIANTS]
+        self.assertEqual(len(names), len(set(names)))
+        for _, _, _, find, replace, witness in e7_request.VARIANTS:
+            self.assertNotEqual(find, replace)
+            self.assertIn("api.", witness)
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            (tree / "src").mkdir()
+            once = ("limit-65", "clause", "src/a.js", "= 64 }", "= 65 }", "")
+            (tree / "src" / "a.js").write_text("const L = 64 };\n")
+            original = e7_request._lay(tree, once)
+            self.assertEqual(original, b"const L = 64 };\n")
+            self.assertEqual((tree / "src" / "a.js").read_text(), "const L = 65 };\n")
+            (tree / "src" / "a.js").write_text("= 64 } = 64 }\n")
+            with self.assertRaisesRegex(ValueError, "2 matches"):
+                e7_request._lay(tree, once)
+        self.assertEqual(e7_request._failed("✔ ok\n✖ TC-1 a (3ms)\n✖ TC-1 a (3ms)\n✖ failing tests:\n"),
+                         ["TC-1 a", "failing tests:"])
+
     def test_e2_flags_run_4s_strategy_and_step_plan_and_credits_a_planted_good_record(self):
         self.check("E2", needs_run4=True)
 
