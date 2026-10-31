@@ -1,0 +1,37 @@
+FAIL  shiploop e2e case=hello host=codex  output=/Users/dadleet/e2e-runs/20261030/hello-terra-2243-5fb43e
+  versions  checkout: skill-craft 2.24.3, ShipLoop 1.23.3
+  invoked   PASS  /skill-craft:shiploop
+  plugin    FAIL  none loaded
+  process   PASS  exited rc=0 331.7s cost=not reported sessions=2
+  keepalive installed; decisions {'allow': 1}
+  shiploop  FAIL  paused
+  trace checks  keepalive text not exercised; packet copies pass (16 prints (0 reprints), each with its kept copy); owner note not exercised; session end not exercised
+  stopped   host exited rc=0; session stops end_turn, end_turn; no further resume: ShipLoop run is paused; engine paused with implement never accepted (Implementation loop stopped: its frozen lint condition cannot be verified in this non-Git direct run)
+  outcome   BLOCKED  engine paused at implement (Implementation loop stopped: its frozen lint condition cannot be verified in this non-Git direct run): it awaits resume; no blocked result names who can unblock it
+  environment  load 4.81 -> 5.72 on 18 cpus; display held
+  environment  overlap: none (0 neighbouring runs read under ~/e2e-runs)
+  committed FAIL  HEAD None (started at no commit); 0 files in HEAD, 0 uncommitted product paths
+  knowledge docs/shiploop/spec.md present, not committed; 2 requirement ids; HEAD has 0 commits, 0 untracked files
+  metrics   turns 100, cost not reported, sessions 2 (end_turn, end_turn), compactions 0, truncated outputs not measured, cancelled tool calls not measured, ShipLoop command failures 4, script verifications 0/0 passed, model glue 0, asked a person 0, Improve children 4
+  metrics   ShipLoop gates: other 3 (caught 1), assumptions_due_item 1 (caught 1)
+  metrics   Test-quality dodges: 0 over 1 step plan (grep-only on code for an executed criterion 0; guarded RED 0; surviving mutants none recorded); inspected criteria 0; context: 0 searched greps, 0 greps with no criterion
+  metrics   Retired terms in ShipLoop's output: acceptance criteria (inside a requirement) 1
+  metrics   planning window closed at test-spec: 4.0 min engine / 4.7 min host; Improve not measured; output tokens 21,953 (3% reasoning, host clock)
+  metrics   narrative shown 8/11 (verbatim 7), skipped at step-plan, implement, implement; headlines 9/10 results
+  metrics   costliest stages: step-plan 1.0m, intake 0.9m, implement 0.8m, spec 0.8m, plan 0.7m (by minutes: this host reports no per-stage turns)
+  fidelity  evidence 10 accepted: script 3, loop 3, file 3, note 0, sentence 1, skipped 0, unclassified 0 (records: verify 0, lint 0, loop 2, expectation 1, backchain 0, improve 4); declared script-run without a record: validate-existing
+  fidelity  validation 0 records / 0 runs / 0 commands: test counts unmeasured 0, zero-ran unmeasured (no row counted), red 0
+  fidelity  edits (heuristic, no hit is not proof): script-owned edits 0, name-pattern kills 0, model commit commands 0
+  fidelity  refusals (heuristic, no repeat flagged is not proof) 4, repeated 0
+  fidelity  end state paused at implement
+  failed    shiploop improve-pass exit 2: Run this stage's checks on the edited tree and write their output to /Users/dadleet/e2e-runs/20261030/hello-terra-2243-5fb43e/work/.shiploop-improve/spec-fe4190c7/reviews/checks.md with a file-writing
+  failed    shiploop check exit 2, a --check-only check: expectations cite from baseline, which is not an open plan assumption whose due_item is W1
+  failed    shiploop lint exit 3: ShipLoop lint could not run: LintError: not a Git checkout: /Users/dadleet/e2e-runs/20261030/hello-terra-2243-5fb43e/work
+  failed    shiploop lint exit 3: 
+  checks    expected from the request: each check tests a sentence of the prompt
+  check     PASS  test "$(python3 hello.py)" = 'Hello, world!'
+  check     PASS  python3 -m unittest -q
+  review export skipped: no ShipLoop run directory (a state.md) under /Users/dadleet/e2e-runs/20261030/hello-terra-2243-5fb43e/.shiploop-runs/*/run or /Users/dadleet/e2e-runs/20261030/hello-terra-2243-5fb43e/work/.shiploop*
+  baseline  nothing compared: this run did not reach done (engine paused), so its turns, cost and stages are no comparison; its row is recorded
+  mismatch  /Users/dadleet/e2e-runs/20261030/hello-terra-2243-5fb43e/mismatch.md
+  quality   not observed: ShipLoop did not reach done (paused), so no delivery was returned

@@ -1,0 +1,30 @@
+PASS  shiploop e2e case=hello host=codex  output=/Users/dadleet/e2e-runs/20261030/hello-terra-2243-0c81bf
+  versions  checkout: skill-craft 2.24.3, ShipLoop 1.23.3
+  invoked   PASS  /skill-craft:shiploop
+  plugin    PASS  skill-craft@whichguy 2.24.3
+  process   PASS  exited rc=0 525.3s cost=not reported sessions=1
+  keepalive installed; decisions {'allow': 1}
+  shiploop  PASS  done
+  trace checks  keepalive text not exercised; packet copies pass (32 prints (0 reprints), each with its kept copy); owner note not exercised; session end not exercised
+  stopped   host exited rc=0; session stops end_turn; no further resume: ShipLoop run is done; engine done
+  outcome   PASS  every verdict passed
+  environment  load 4.59 -> 8.94 on 18 cpus; display held
+  environment  overlap: terra-high-user-listing (codex) 72.0 s, began 449.1 s after this run started
+  committed PASS  HEAD 65f93398 (started at no commit); 7 files in HEAD, 0 uncommitted product paths
+  knowledge docs/shiploop/spec.md present, tracked; 2 requirement ids; HEAD has 14 commits, 0 untracked files
+  metrics   turns 173, cost not reported, sessions 1 (end_turn), compactions 0, truncated outputs not measured, cancelled tool calls not measured, ShipLoop command failures 0, script verifications 4/4 passed, model glue 0, asked a person 0, Improve children 8 (11 review passes, at most 2 in one child)
+  metrics   Test-quality dodges: 0 over 1 step plan (grep-only on code for an executed criterion 0; guarded RED 0; surviving mutants 0); inspected criteria 0; context: 0 searched greps, 0 greps with no criterion
+  metrics   planning window closed at test-spec: 3.3 min engine / 3.5 min host; Improve 1.5 min in 4 children, other 1.7 min; output tokens 19,694 (4% reasoning, host clock)
+  metrics   narrative shown 20/21 (verbatim 19), skipped at release; headlines 22/23 results
+  metrics   costliest stages: release-plan 1.0m, carry-forward 0.9m, step-plan 0.8m, document 0.7m, test-strategy 0.7m (by minutes: this host reports no per-stage turns)
+  fidelity  evidence 23 accepted: script 9, loop 5, file 7, note 1, sentence 1, skipped 0, unclassified 0 (records: verify 4, lint 3, loop 6, expectation 1, backchain 0, improve 8); declared script-run without a record: validate-existing, document
+  fidelity  validation 4 records / 4 runs / 2 commands: test counts unmeasured 0, zero-ran 0 of 4 counted, red 0, accepted_ran at 1 stages; release-verify record: returned-result, passed true; gates not exercised (a record that says skipped): mutation W1 (no mutants: no changed product line matched an operator), mutation W1 (no mutants: no changed product line matched an operator)
+  fidelity  edits (heuristic, no hit is not proof): script-owned edits 0, name-pattern kills 0, model commit commands 0
+  fidelity  refusals (heuristic, no repeat flagged is not proof) 0, repeated 0
+  fidelity  end state done, unverified 0
+  checks    expected from the request: each check tests a sentence of the prompt
+  check     PASS  test "$(python3 hello.py)" = 'Hello, world!'
+  check     PASS  python3 -m unittest -q
+  review export: /Users/dadleet/e2e-runs/20261030/hello-terra-2243-0c81bf/review-export; page /Users/dadleet/e2e-runs/20261030/hello-terra-2243-0c81bf/review-export/run-review.html
+  baseline  nothing compared: 15 earlier row(s) for hello, none comparable with this run (14 another host, model or effort, 1 did not reach done)
+  quality   not observed: the case declares no quality measures (no mutation command, no held-out acceptance)
