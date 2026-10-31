@@ -71,7 +71,7 @@ three files and the commit messages and nothing of the first run's folder.
 | **A. Three living files, edited in place; current activity stays in the run folder and the commit trail** | already the design; the next pass reads exactly these; no new consumer | the leak (F1 to F3) needs a fix at the stages that write | **recommended (D1)** |
 | B. A file per run in the repository (`docs/shiploop/runs/<label>.md`) | explicit trace of each pass | removed 2026-10-11 for lack of a reader; the delta is derivable from Git; n files for n passes | reject |
 | C. A change log section in the spec | human-readable history | duplicates `git log`; grows; the origin of an ID is derivable (`git log -S`) | reject; add run-label provenance instead (D4) |
-| D. Stage reports out of `environment.md` and into the run's notes | removes F2 at its root: all 36 stray headings are stage reports, and the next run needs none of them | edits the duty text of eight stages; touches X11's "under whatever heading the run uses" | this is D3 |
+| D. Stage reports out of `environment.md` and into the run's notes | removes F2 at its root: 30 of the 36 stray headings are stage reports and 2 are second copies of the release procedure (the other 4 are that procedure, which X11 intends), and the next run needs none of them | edits the duty text of eight stages; touches X11's "under whatever heading the run uses" | this is D3 |
 
 ## 3. Is ShipLoop set up for an nth pass?
 
@@ -162,7 +162,7 @@ added a decision, and no hidden check lost in either arm. About six chains at 40
 |---|---|---|---|
 | **D1** | Keep three living files, add no per-run file to the repository, derive the delta | **yes** | section 2 |
 | **D2** | A counted, non-refusing notice at each knowledge close: an entry that is new in this edit but sits under Retired or Superseded; level-2 headings the edit added that are no named section or repeat one | **yes, behind E2** | consistent with X11 (a count, never a refusal); the first alone fixes the case where the script mislabels a live decision |
-| **D3** | Name the destination in the duties of the stages that report (prepare, carry-forward, release-plan, release-verify, operations, system-test-author, discovery, test-strategy): standing facts under the named sections, no stage report, no date, no "this run" | **yes, behind E2** | all 36 stray headings are those stages' reports; amends X11's "under whatever heading the run uses" to "standing, without run-specific values", its stated intent |
+| **D3** | Name the destination in the duties of the stages that report (prepare, carry-forward, release-plan, release-verify, operations, system-test-author, discovery, test-strategy): standing facts under the named sections, no stage report, no date, no "this run" | **yes, behind E2** | 30 of the 36 stray headings are those stages' reports and 2 are second copies of the release procedure; the other 4, release-plan's first-pass procedure, stay allowed; amends X11's "under whatever heading the run uses" to "standing, without run-specific values", its stated intent |
 | **D4** | The spec duty: title the file by the product, cite a requirement's basis by run label or date, never "current request" | **yes, with D3** | 4 of 4 specs; one sentence, no gate |
 | **D5** | Build the fourth link (modifying) after E1, and chain B after E2 | **yes** | section 4 |
 

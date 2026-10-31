@@ -80,9 +80,11 @@ Pass 1 for comparison: stray headings added to `environment.md` 5, 6, 4 and 3; `
   (KiB of 1,024 bytes throughout this journal).
 - Attribution by the stage whose knowledge commit first held each of the 36 stray headings in the four final files
   ([by stage](experiments/multipass-20261031/stray-headings-by-stage.json)): prepare 7, release-plan 6, operations 5,
-  carry-forward 5, release-verify 4, discovery 4, system-test-author 3, test-strategy 2. Every one is a stage reporting what it
-  did ("Prepared environment", "Verified assignment checks", "Returned result", "Operational observations"), and pass 2 adds a
-  second set beside the first ("Local release for bulk reassignment and escalation" beside "Local delivery and rollback").
+  carry-forward 5, release-verify 4, discovery 4, system-test-author 3, test-strategy 2. Thirty are a stage reporting what it did
+  ("Prepared environment", "Verified assignment checks", "Returned result", "Operational observations"). Six are release-plan's: four
+  from the first pass, each the standing release procedure that X11 lets sit under any heading (18 of the 36 came in each pass), and two from
+  the second pass, which are second copies of it ("Local release for bulk reassignment and escalation" beside "Local delivery and rollback").
+  (Refined 2026-10-31, the same day: this first said that all 36 were stage reports, which overstated it by the four that X11 intends.)
 - No named section of `environment.md` changed in three of four pass-2 runs (`hooks-after` changed Harnesses and suites): the facts of the
   pass, such as the commands that worked, were written into sections of their own and not into `## Commands`.
 - Run-relative words in the lines pass 2 added: "this run", "current change", "new feature", "this request", "latest change" in
