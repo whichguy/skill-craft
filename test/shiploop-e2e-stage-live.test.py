@@ -87,6 +87,15 @@ FAKE_HOST = textwrap.dedent('''
     import json, os, re, shutil, subprocess, sys, time
     from pathlib import Path
     scripts, config, prompt, resumed = sys.argv[1], json.loads(sys.argv[2]), sys.argv[3], sys.argv[4]
+
+    def leave_escapee():
+        escapee = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)"], start_new_session=True,
+                                   stdin=subprocess.DEVNULL)
+        Path(config["escapee"]).write_text(str(escapee.pid))
+
+    if config.get("escapee") and config.get("escapee_before_next"):
+        # The timeout fixture needs its pipe holder before slow imports or CLI setup can consume the deadline.
+        leave_escapee()
     sys.path.insert(0, scripts)
     import shiploop_navigator as nav, shiploop_store as store
     found = re.search(r'python3 "([^"]+)" next --run-dir "([^"]+)"', prompt)
@@ -97,6 +106,8 @@ FAKE_HOST = textwrap.dedent('''
         print(json.dumps({"type": "system", "subtype": "init", "sessionId": config["session"]}), flush=True)
     if config["mode"] == "exit" or (config["mode"] == "act-when-resumed" and not resumed):
         sys.exit(0)
+    if config.get("before_next_delay"):
+        time.sleep(config["before_next_delay"])
     printed = subprocess.run([sys.executable, str(cli), "next", f"--run-dir={run_dir}"], capture_output=True, text=True,
                              stdin=subprocess.DEVNULL).stdout
     state = store.read_record(run_dir / "state.md")
@@ -110,10 +121,8 @@ FAKE_HOST = textwrap.dedent('''
         for line in ((reference / "deleted.txt").read_text().split() if (reference / "deleted.txt").exists() else []):
             (worktree / line).unlink()
         result = result or json.loads((reference / "result.json").read_text())
-    if config.get("escapee"):  # a process in a session of its own that holds the host's output open, as a backgrounded server would
-        escapee = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)"], start_new_session=True,
-                                   stdin=subprocess.DEVNULL)
-        Path(config["escapee"]).write_text(str(escapee.pid))
+    if config.get("escapee") and not config.get("escapee_before_next"):
+        leave_escapee()  # other fixtures still create it after reading the packet
     if config.get("stop_file"):  # an operator asks for the run to end
         (run_dir.parents[2] / "stop").write_text("stop\\n")
     if result is not None and config.get("effects_delay"):
@@ -862,8 +871,11 @@ class Escapee(LiveCase):
     def test_the_timeout_is_a_bound_on_the_sample_even_then(self):
         self.addCleanup(self.release)
         result, _, _, seconds = self.sample(
-            BROKEN, [{"mode": "wait", "escapee": str(self.pid_file), "linger": 120}], timeout=3)
+            BROKEN, [{"mode": "wait", "escapee": str(self.pid_file), "linger": 120,
+                      "escapee_before_next": True, "before_next_delay": 8}], timeout=3)
         self.assertLess(seconds, 60)
+        self.assertTrue(self.pid_file.exists(), "the escaped pipe holder must exist before the host times out")
+        self.assertTrue(pid_alive(int(self.pid_file.read_text())))
         self.assertEqual([s["status"] for s in result["sessions"]], ["timeout"])
         self.assertTrue(result["abandoned"])
         self.assertEqual((result["verdicts"]["process"], result["verdicts"]["accepted"], result["pass"]), (False, False, False))
