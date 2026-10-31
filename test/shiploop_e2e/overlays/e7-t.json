@@ -1,0 +1,17 @@
+{
+  "about": "E7 arm T (D6, docs/shiploop-test-stage-prompt-design-2026-10-30.md section 7e): arm M's catalog (its OPERATORS edit: rel-bound boundary shifts in place of the relational negations, and the logic-flip of && and ||), except that a logic-flip also matches an operator that ends its line, as a wrapped guard's || does (persistence.js:144:118 on E7-F's implementation, which M's (?=\\s) misses) with targeted sampling: the stage check samples the limit and guard mutants (rel-bound, logic-flip) on the changed lines first, spread across files and lines as before, and the other operators fill what is left of the 8. So on E7-F's fixed implementation the check's sample holds the guard's sites, and a survivor there comes back as the refusal it already writes (a test that kills it, or a disposition). The disposition rule, the sample size and every other part of the check are unchanged. Written against 7fce12e4 (arm A).",
+  "edits": [
+    {
+      "module": "shiploop_mutation.py",
+      "constant": "OPERATORS",
+      "old": "    (\"comparison\", r\"(?<=\\s)<=(?=\\s)\", \">\"),\n    (\"comparison\", r\"(?<=\\s)>=(?=\\s)\", \"<\"),\n    (\"comparison\", r\"(?<=\\s)<(?=\\s)\", \">=\"),\n    (\"comparison\", r\"(?<=\\s)>(?=\\s)\", \"<=\"),\n",
+      "new": "    (\"rel-bound\", r\"(?<=\\s)<=(?=\\s)\", \"<\"),\n    (\"rel-bound\", r\"(?<=\\s)>=(?=\\s)\", \">\"),\n    (\"rel-bound\", r\"(?<=\\s)<(?=\\s)\", \"<=\"),\n    (\"rel-bound\", r\"(?<=\\s)>(?=\\s)\", \">=\"),\n    (\"logic-flip\", r\"(?<=\\s)&&(?=\\s|$)\", \"||\"),\n    (\"logic-flip\", r\"(?<=\\s)\\|\\|(?=\\s|$)\", \"&&\"),\n"
+    },
+    {
+      "module": "shiploop_mutation.py",
+      "function": "sample",
+      "old": "    files = sorted(path for path, rows in by_file.items() if rows)\n    quota = {path: 0 for path in files}\n    left = size\n    while left and any(quota[path] < len(by_file[path]) for path in files):\n        for path in files:\n            if left and quota[path] < len(by_file[path]):\n                quota[path] += 1\n                left -= 1\n    chosen: List[Dict[str, Any]] = []\n    for path in files:\n        rows, take = by_file[path], quota[path]\n        for i in range(take):\n            chosen.append({\"file\": path, **rows[(2 * i + 1) * len(rows) // (2 * take)]})\n    return chosen",
+      "new": "    # E7 arm T (D6, docs/shiploop-test-stage-prompt-design-2026-10-30.md section 7e): the limit and guard mutants\n    # (rel-bound, logic-flip) are sampled first, spread as before; the other operators fill what is left of the sample.\n    chosen: List[Dict[str, Any]] = []\n    for targeted in (True, False):\n        group = {path: [row for row in rows if (row[\"operator\"] in (\"rel-bound\", \"logic-flip\")) == targeted]\n                 for path, rows in by_file.items()}\n        files = sorted(path for path, rows in group.items() if rows)\n        quota = {path: 0 for path in files}\n        left = size - len(chosen)\n        while left and any(quota[path] < len(group[path]) for path in files):\n            for path in files:\n                if left and quota[path] < len(group[path]):\n                    quota[path] += 1\n                    left -= 1\n        for path in files:\n            rows, take = group[path], quota[path]\n            for i in range(take):\n                chosen.append({\"file\": path, **rows[(2 * i + 1) * len(rows) // (2 * take)]})\n    return chosen"
+    }
+  ]
+}

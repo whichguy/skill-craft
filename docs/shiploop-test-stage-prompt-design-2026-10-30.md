@@ -2,7 +2,8 @@
 Execute: ask
 Status: E7 decided 2026-10-30 (owner: "Yes, build E7", D1): no arm adopted, nothing in ShipLoop changed (§7b).
   E7-F, the rerun with the implementation held fixed (owner: "Yes, build it", D4), decided the same day: no arm
-  adopted; implement was most of E7's noise (§7c, §7d). D5 and D6 await the owner (§9).
+  adopted; implement was most of E7's noise (§7c, §7d). D6 is running as arm T of E7-F (owner: "Yes, run the D6
+  arm"; §7e). D5 awaits the owner (§9).
 Opened: 2026-10-30
 Consumer: the owner, who decides §9; then whoever builds experiment E7 (§7) and, on its verdict, the test-stage
   prompt change. Later: anyone who proposes more test-stage prose and needs the bar it must clear.
@@ -566,6 +567,52 @@ Evidence: e7-results.json (E7-F rows: `product_as_recorded`; E7-K2 rows: `implem
 e7_analysis.py prints §7c's shape table and this section's p values; ~/e2e-runs/e7-20261030/E7-F/decision-*.json;
 journal lines in docs/shiploop-template-experiments-journal.md.
 
+### 7e. E7-F arm T: the stage's own mutation check feeds back the guard's sites (D6), as built
+
+**What the stage check drew in A's runs.** In all 8 A runs it sampled the same 8 mutants of the recorded implementation
+(RUN/tests/*-mutation1.md), none of them limit or guard mutants:
+- `!==`/`===` swaps and `64 → 65` on the guard's two lines, the other files' integers and comparisons;
+- it killed all 8 in 7 runs. In A/7 one survived, `64 → 65` on the existing requester limit (validate.js:12), and the
+  test stage recorded it `out-of-scope` with evidence. In none of the 8 runs did a refusal name one of the 6 sites the
+  evaluator scores.
+
+**Why arm M could not change that (§7b item 5).** A dry run of the check's own `candidates` and `sample` on A/1's
+worktree (lines changed against the seed commit) shows:
+- today's catalog: 13 candidates, none limit or guard;
+- M's: 17 candidates, 5 of them limit or guard, but the even spread picks the same 8 as today;
+- M's `(?=\s)` cannot match the `||` that ends line 144 (persistence.js:144:118), one of the two trimmed-name
+  flips that survived in all 24 E7-F runs (§7d item 3).
+
+**Arm T** (overlays/e7-t.json, on 7fce12e4):
+- M's catalog, with logic-flip also matching an operator that ends its line;
+- `sample` takes the limit and guard mutants (rel-bound, logic-flip) first, spread as before, and the other operators
+  fill what is left of the 8.
+
+On A/1's worktree T's sample is exactly the evaluator's 6 sites: persistence.js 144:32, 144:72, 144:118, 145:24,
+145:50 and 145:55. The other two picks are the integer on app.js:38 and the comparison at persistence.js:144:59.
+
+Everything else in the check is unchanged: 8 mutants, a refusal naming each survivor that has no disposition, and the
+three dispositions. The packet is A's. Hermetic test:
+`test_e7_arm_t_samples_the_limit_and_guard_mutants_first_and_flips_a_line_ending_or`.
+
+**What T's score can and cannot show.** T's check samples the very sites the evaluator scores. So a gain shows that the
+feedback is acted on: a survivor the refusal names becomes a test that kills it, not a disposition. It does not show
+how targeted sampling does on code it was not shaped on, nor its cost there. That needs another case.
+
+**Decision rule (fixed before the runs).** 8 T samples (`--no-early-stop`), Codex Terra at xhigh, against A's 8 E7-F
+samples in §7d:
+- The primary reading is §7c's: one-sided exact permutation p < 0.05 over 8 + 8, and a gain larger than A's split-half
+  gap (0.042).
+- Reported beside it, per run:
+  - each of the 6 sites killed by a test or given a disposition;
+  - each disposition checked against the code (a stored ticket record reaches every site through the load path, so a
+    disposition has to show that no stored record tells the mutant apart);
+  - the number of mutation refusals, and the test-stage seconds against A's.
+- `decide` runs as well, reported, not used.
+- If T meets the primary bar, D6 goes to the owner as a recommendation, with its measured cost; adopting it changes a
+  gate's cost and is the owner's call. If T does not, the per-run rows say why: survivors disposed instead of killed,
+  or tests that kill only at a cost.
+
 ## 8. Out of scope here: the UI verification route (Salesforce run, 2026-10-30)
 
 The owner relayed feedback on the Codex Salesforce Battleship run (`~/e2e-runs/2026-10-30/shiploop-salesforce-battleship-zbcb4i5d`):
@@ -601,6 +648,8 @@ document result with no `assumptions` and no `knowledge`. It is proposed as its 
 - **D6.** Give the stage mutation check targeted sampling (limit and guard mutants on changed lines first), so §6d can
   act. This is a gate-cost change. E7-F makes it cheap to try first as an overlay arm: on the fixed implementation, its
   six sites are the whole target, and A's 8 samples are the control (§7d). (Recommended next, as an experiment only.)
+- *Run, 2026-10-30:* the owner said "Yes, run the D6 arm". It runs as arm T of E7-F, with its decision rule fixed
+  before the runs (§7e).
 
 ## 10. Journal
 
@@ -626,3 +675,4 @@ document result with no `assumptions` and no `knowledge`. It is proposed as its 
 | 2026-10-30 | Survivors are the same in every arm: a trimmed-name invariant the code introduced (both `||` mutants together in 21 of 24 runs, at least one in all 24, though C and D printed the diff), and the 64-character load bound (4 of 8 runs per arm) | firm for these runs | §7d item 3; e7-results.json (`target_survivors`) |
 | 2026-10-30 | The shorter duty moved test shape a little with test-spec fixed (1.42 tests per case ID against 1.04, p 0.03), not kill rate. This revises the shape half of the E7-K2 row "prose did not change test shape" | interim (one implementation) | §7d item 4 |
 | 2026-10-30 | `decide` read +0.02 (p 0.50) as "supports" on a 2-against-2 spread of 0.00 | firm | §7d item 5; ~/e2e-runs/e7-20261030/E7-F/decision-A-D.json |
+| 2026-10-30 | E7-F arm T built (D6): M's catalog with a line-ending logic-flip, and limit and guard mutants sampled first. A dry run on the fixed implementation: today's and M's samples are the same 8 mutants, none limit or guard; M's `(?=\s)` misses persistence.js:144:118; T's sample is the evaluator's 6 sites. In A's 8 runs no refusal named any of the 6 | firm (the dry run and A's mutation records); T's result pending | §7e; overlays/e7-t.json; ~/e2e-runs/e7-20261030/E7-F/A/*/slice/.shiploop-runs/seed/run/tests/*-mutation1.md |

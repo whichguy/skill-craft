@@ -386,6 +386,33 @@ class Evaluators(unittest.TestCase):
     def test_e7_weak_tests_kill_fewer_limit_and_guard_mutants_than_boundary_tests(self):
         self.check("E7-K1")
 
+    def test_e7_arm_t_samples_the_limit_and_guard_mutants_first_and_flips_a_line_ending_or(self):
+        guard = ("function check(name) {\n"
+                 "  if (name !== null && (typeof name !== 'string' || name.trim() !== name ||\n"
+                 "      !name || name.length > 64 || /\\s/.test(name))) throw new Error('bad');\n"
+                 "  const total = 1 + 2;\n"
+                 "  return total === 3;\n"
+                 "}\n")
+        probe = ("import json, sys\nsys.path.insert(0, sys.argv[1])\nimport shiploop_mutation as m\n"
+                 "rows = m.candidates(sys.argv[2], [2, 3, 4, 5])\n"
+                 "print(json.dumps([[r['operator'], r['line'], r['column']] for r in m.sample({'src/a.js': rows})]))\n")
+
+        def sampled(overlay_name: str) -> list:
+            scripts = Path(tmp) / overlay_name
+            shutil.copytree(overlay.SCRIPTS, scripts, ignore=shutil.ignore_patterns("__pycache__"))
+            overlay.apply(json.loads((E2E / "overlays" / f"{overlay_name}.json").read_text()), scripts)
+            done = subprocess.run([sys.executable, "-B", "-c", probe, str(scripts), guard], capture_output=True,
+                                  text=True, check=False)
+            self.assertEqual(done.returncode, 0, done.stderr[-2000:])
+            return json.loads(done.stdout)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            catalog_only, targeted = sampled("e7-m"), sampled("e7-t")
+        limit_and_guard = ("rel-bound", "logic-flip")
+        self.assertLess(sum(row[0] in limit_and_guard for row in catalog_only), 6)
+        self.assertEqual([row[0] in limit_and_guard for row in targeted], [True] * 6 + [False] * 2)
+        self.assertIn(["logic-flip", 2, guard.splitlines()[1].rindex("||") + 1], targeted)
+
     def test_e7_mutates_tracked_changes_and_untracked_source_but_never_a_test_file(self):
         import e7_tests  # noqa: PLC0415
         with tempfile.TemporaryDirectory() as tmp:
