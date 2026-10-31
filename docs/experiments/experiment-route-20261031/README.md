@@ -124,3 +124,22 @@ running settles.
 - Note, 14:30, before any FX run: the fix's quick tier failed one suite (shiploop-package-integrity: the new paragraph took
   references/inner-loop.md over its 8,192-byte bound). The paragraph became a reworded sentence (dcf98cb6, no script
   change), so F is rebuilt at 52feffd0 = aa99fdff + dcf98cb6, and FX waits for the rerun tier to pass.
+
+## XI interim and FX status (2026-10-31 15:15)
+
+| Arm | Runs scored | Pass every held-out check | Stopped in planning | Research probes recorded |
+|---|---|---|---|---|
+| A, ShipLoop as on main 02a215e9 | 5 | 3 (s2, s3, s5) | 2 (s1, s4: the open timing assumption had to become an expectation checked on the unchanged base) | n/a |
+| B, A plus research probes | 5 | 5 | 0 | 0 of 5 (s1, s2, s5 recorded the question open, "the endpoint does not exist yet"; s3, s4 routed nothing to experiment) |
+
+- Decided before its last runs: XI does not adopt the candidate. With A at 3 passes, even 6 of 6 for B gives p >= 0.09,
+  and the probe clause (probe commands in the event stream of at least 4 of 6 B runs) has 0 so far. B's clean record
+  does not come from probing; the likelier reading is that B's runs met the same rule with a check of their own (an
+  expectation citing the open item, 5 of 5) where two A runs stopped.
+- B s6 was cut off at 15:11 when the operating Claude Code session restarted and its background jobs ended (the harness
+  died mid-run; its orphaned progress viewer was stopped). It is an infrastructure stop, not a subject result: excluded,
+  and replaced by B s7 from the same candidate checkout. A s6 follows, then FX.
+- Fix 1 (an open item settled by an executed criterion) is published in skill-craft 2.27.0 / ShipLoop 1.26.0 at the
+  owner's word ("Merge to main and publish") before FX ran, with a No-E2E-Round trailer on its two commits; FX is its live
+  check. Release eeb433d5, published 15:13 over main 2bfe9334 after CI passed there.
+
