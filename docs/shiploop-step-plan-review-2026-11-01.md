@@ -192,6 +192,20 @@ The 2026-10-31 study reached the same answer for the prompt route (X4, journal E
   and a later draft passes; (3) every accepted plan gives each executed criterion a focused command names an ID; (4) the
   hidden checks hold. A test-spec send-back for missing IDs, or a hidden check lost to the change, falsifies it. Step-plan
   minutes and refusals are reported beside the corpus, descriptively.
+- Side experiment SP2 (the owner, 2026-11-01: "You can do side experiments as needed if that would help"; pre-registered
+  here before any slice): SP1's ticket-import samples wait on port 4180, held by another session's round, and a whole
+  delivery measures step-plan only indirectly. SP2 runs the step-plan stage alone: `slice.py --stop-after test-spec`
+  (seeded at step-plan, the item's Improve review on, no product server, no port lease), Codex Terra 6.1 high, arm B =
+  `origin/main` at this branch's base e81fdb55 (a detached worktree), arm T = this branch; step cases `tickets-assign`
+  (an API item of several behaviours, the family of the live ticket-assignment shortage) and `stand-in-rules` (a
+  module of many rules), 4 slices per arm per case, order B T T B per case. Launcher and scorer:
+  `docs/experiments/step-plan-review-20261101/launch_sp2.sh`, `score_sp2.py`. Measures per slice: whether the
+  accepted plan leaves a criterion without an ID (`criteria_without_ids`); refusals by the new gate (arm T: how often a
+  draft was short); the test-spec outcome (done, a send-back about IDs, another send-back); step-plan authoring and
+  Improve minutes; test-spec cases per criterion. Predictions: arm T 0 short accepted plans and 0 test-spec send-backs
+  for IDs; arm B some short plans (14% of saved plans overall); arm T's median step-plan minutes within one minute of
+  B's. A test-spec send-back for IDs in arm T falsifies the change, as in SP1. SP2 is descriptive at 8 slices per arm;
+  SP1 stays the release round.
 - The 15 folded plans gain cases, so test-spec and the test stage write more tests; the time that adds is unmeasured.
 - DeepSeek flash and Grok are a small share of the corpus; their send-back costs are means of 5.
 
