@@ -1,0 +1,9 @@
+{
+ "GOLD": [
+  [
+   "Git within scope first if appropriate, then use the workspace route. Use the direct\nentry only when the user explicitly asks for an in-place or non-Git run (naming the\ncurrent directory is not that: `workspace start` returns the finished work there),\ndocumenting why isolation is not used; it has no automatic workspace-return\nprotection:",
+   "Git within scope first if appropriate, then use the workspace route. An explicitly selected\nin-place/non-Git run may instead use the direct entry, documenting why\nisolation is not used; it has no automatic workspace-return protection:"
+  ]
+ ],
+ "G": []
+}
