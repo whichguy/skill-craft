@@ -264,6 +264,31 @@ Run 2026-11-01 07:06 to 07:31 in one launch, 180 slots, the order of `plan-r2.js
 - **Cost.** 558 model calls (mean input peak 39,344 tokens), about 12M to 22M tokens processed with cache reads counted (an
   estimate); 30 s median to the start.
 
+## The opposite direction: explicit in-place requests (registered 2026-11-01, before its first trial)
+
+**Why.** Every guard above is a request where `workspace start` is the right first command. T2's sentence says the direct entry
+(`init`) is for a run the user explicitly asks to be in place or non-Git; nobody has checked that a session still honors that
+request. If the new sentence over-corrects, the published card now costs the user the in-place run they asked for.
+
+**Design.** Same harness, model and effort (Codex gpt-6.1-terra, xhigh, through `run.py`), stop rule and fault policy as R2. Three
+requests in an empty folder that is not a Git repository, each asking explicitly (`stimuli/`): `inplace-hello` (the smoke request
+plus "I explicitly want an in-place run, with no isolated workspace and no separate worktree"), `nogit-hello` (the smoke request
+plus "this folder must not become a Git repository ... a non-Git run, so do not initialize Git") and `inplace-sf` (the Salesforce
+request plus the in-place sentence). Two cards: C, the old wording, and T2, the published card (`arms-r2.json`, the same hashes
+as R2). 16 sessions per request per card, 96 in all, one launch in the random order of `plan-inplace.json` (seed 20261103). Three
+unscored smoke sessions on T2 (one per request) each began with `init`.
+
+**Outcome.** The first start command: `init` is the right one here, `workspace start` ignores the request. The on-disk reading of
+the route is recorded beside it, as in R2.
+
+**Decision rule.** T2 *harms* the explicit path if, over the three requests together, its `init` share is at least 20 points below
+the control's with one-sided Fisher p below 0.05; a single request is flagged at a 30-point drop with the same p. Otherwise the
+verdict is "no harm found", which with 16 sessions per cell cannot see a drop smaller than about 30 points. If the control honors
+the explicit request in under 30% of sessions, T2 is judged only on not being worse. A harm verdict means the sentence is reworded
+and retested before anything else is built on it, and is reported to the owner.
+
+**Prediction.** C begins with `init` in 70% to 100% of sessions on each request, and T2 is within 15 points of C on each.
+
 ## Published-build confirmation (registered 2026-11-01, before it runs)
 
 After the release, `start_probe.py confirm` runs 12 sessions of the `sf-ui` request on the build a user installs (the published
@@ -320,7 +345,8 @@ f48df6587d78cf3e958120382128e072cfa948f4 (isolate ephemeral fixtures from progre
 
 ## Evidence
 
-- `arms.json`, `stimuli/sf-ui.txt`, `plan.json`, `start_probe.py`, `analyze.py`: the design. `arms-r2.json`, `plan-r2.json`: the replication's. `start_probe.py reclassify` and
+- `arms.json`, `stimuli/sf-ui.txt`, `plan.json`, `start_probe.py`, `analyze.py`: the design. `arms-r2.json`, `plan-r2.json`: the replication's.
+  `stimuli/inplace-*.txt`, `stimuli/nogit-hello.txt`, `plan-inplace.json`: the explicit in-place set (`plan --set inplace`, `analyze.py --mode inplace`). `start_probe.py reclassify` and
   `rescan` are the two detector corrections of "Deviations" 4 and 6.
 - `confirm-output.txt`, `confirm-compact.jsonl`: the published-build confirmation (`start_probe.py confirm`).
 - `analysis-r2-output.txt`, `results-r2-compact.jsonl`: the replication's result. Raw rows: `~/e2e-runs-startroute/20261101-r2/`.

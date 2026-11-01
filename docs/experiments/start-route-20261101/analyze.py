@@ -53,8 +53,8 @@ def load(path: Path) -> tuple[list[dict], list[int]]:
 
 def tally(rows: list[dict]) -> dict:
     cells: dict = {}
-    for stimulus in ("sf-ui", "hello", "repo"):
-        for arm in ARMS:
+    for stimulus in sorted({r["stimulus"] for r in rows}):
+        for arm in sorted({r["arm"] for r in rows}):
             mine = [r for r in rows if r["stimulus"] == stimulus and r["arm"] == arm]
             cells[(stimulus, arm)] = {
                 "n": len(mine), "workspace": sum(r["start"] == "workspace" for r in mine),
@@ -63,6 +63,42 @@ def tally(rows: list[dict]) -> dict:
                 "read_run_start": sum(bool(r["read_run_start"]) for r in mine),
                 "seconds": sorted(r["seconds_to_start"] for r in mine if r["seconds_to_start"] is not None)}
     return cells
+
+
+INPLACE_POOLED_DROP = 0.20     # pooled drop in `init` starts that counts as harm, with the one-sided p below
+INPLACE_STIMULUS_DROP = 0.30   # a single request is flagged at this drop and the same p
+INPLACE_P = 0.05
+INPLACE_MIN_CONTROL = 0.30     # below this share of `init` starts in the control the old wording does not honor the request either
+
+
+def evaluate_inplace(cells: dict) -> tuple[list[str], str]:
+    """Requests that explicitly ask for an in-place or non-Git run: `init` is the right first start. Does T2 lower it?"""
+    stimuli = sorted({s for s, _ in cells})
+    lines: list[str] = []
+    flagged: list[str] = []
+
+    def share(arm: str, subset: list[str]) -> tuple[int, int]:
+        init = sum(cells[(s, arm)]["direct"] for s in subset)
+        return init, sum(cells[(s, arm)]["workspace"] + cells[(s, arm)]["direct"] for s in subset)
+
+    for s in stimuli:
+        (ci, cn), (ti, tn) = share("C", [s]), share("T2", [s])
+        p = fisher_lower(ci, cn, ti, tn) if cn and tn else 1.0
+        drop = (ci / cn - ti / tn) if cn and tn else 0.0
+        lines.append(f"{s}: init as the first start, C {ci}/{cn}, T2 {ti}/{tn}; drop {drop:+.2f}; one-sided p (T2 lower) {p:.3f}"
+                     f"; own git init/config/commit: C {cells[(s, 'C')]['bootstrap']}, T2 {cells[(s, 'T2')]['bootstrap']}")
+        if drop >= INPLACE_STIMULUS_DROP and p < INPLACE_P:
+            flagged.append(s)
+    (ci, cn), (ti, tn) = share("C", stimuli), share("T2", stimuli)
+    p = fisher_lower(ci, cn, ti, tn) if cn and tn else 1.0
+    drop = (ci / cn - ti / tn) if cn and tn else 0.0
+    lines.append(f"pooled: C {ci}/{cn} ({ci / max(cn, 1):.2f}), T2 {ti}/{tn} ({ti / max(tn, 1):.2f}); drop {drop:+.2f}; one-sided p {p:.4f}")
+    if cn and ci / cn < INPLACE_MIN_CONTROL:
+        lines.append(f"note: the control honors the explicit request in only {ci / cn:.0%} of sessions, so T2 is judged on not being worse")
+    harmed = drop >= INPLACE_POOLED_DROP and p < INPLACE_P
+    verdict = ("HARM: T2 lowers explicit in-place starts (pooled)" if harmed else
+               f"HARM on {', '.join(flagged)}" if flagged else "NO HARM FOUND")
+    return lines, verdict
 
 
 def card_sizes(arms_file: Path) -> dict:
@@ -146,25 +182,36 @@ def main() -> None:
     ap.add_argument("results", type=Path)
     ap.add_argument("--export", type=Path)
     ap.add_argument("--arms", type=Path, default=HERE / "arms.json", help="the arms file the batch used (sizes)")
+    ap.add_argument("--mode", choices=("start", "inplace"), default="start",
+                    help="start: init is wrong (the bar and tie-break); inplace: init is right (is T2 harmless?)")
     ap.add_argument("--also", type=Path, help="another batch's results: add a pooled table (descriptive only)")
     args = ap.parse_args()
     rows, dropped = load(args.results)
     cells = tally(rows)
     print(f"{len(rows)} valid slots; slots with no valid attempt: {dropped or 'none'}")
-    print(f"{'request':7s} {'arm':3s} {'n':>3s} {'workspace':>9s} {'direct':>6s} {'none':>4s} {'wrong rate (95% CI)':>22s} "
+    label = "init share (95% CI)" if args.mode == "inplace" else "wrong rate (95% CI)"
+    print(f"{'request':13s} {'arm':3s} {'n':>3s} {'workspace':>9s} {'direct':>6s} {'none':>4s} {label:>22s} "
           f"{'bootstrap':>9s} {'read run-start':>14s} {'median s':>8s}")
     for (stimulus, arm), c in cells.items():
         started = c["workspace"] + c["direct"]
         lo, hi = wilson(c["direct"], started)
         rate = f"{c['direct'] / started:.2f} ({lo:.2f}-{hi:.2f})" if started else "-"
         median = c["seconds"][len(c["seconds"]) // 2] if c["seconds"] else "-"
-        print(f"{stimulus:7s} {arm:3s} {c['n']:3d} {c['workspace']:9d} {c['direct']:6d} {c['none']:4d} {rate:>22s} "
+        print(f"{stimulus:13s} {arm:3s} {c['n']:3d} {c['workspace']:9d} {c['direct']:6d} {c['none']:4d} {rate:>22s} "
               f"{c['bootstrap']:9d} {c['read_run_start']:14d} {median!s:>8s}")
-    lines, winner = evaluate(cells, args.arms)
-    print()
-    print("\n".join(lines))
-    print()
-    print(f"DECISION: ship {winner}" if winner else "DECISION: ship nothing (no candidate meets the pre-registered bar)")
+    if args.mode == "inplace":
+        lines, verdict = evaluate_inplace(cells)
+        print()
+        print("\n".join(lines))
+        print()
+        print(f"VERDICT: {verdict}")
+        winner = None
+    else:
+        lines, winner = evaluate(cells, args.arms)
+        print()
+        print("\n".join(lines))
+        print()
+        print(f"DECISION: ship {winner}" if winner else "DECISION: ship nothing (no candidate meets the pre-registered bar)")
     extra = agreement(rows)
     if extra:
         print()
@@ -172,6 +219,8 @@ def main() -> None:
     if args.also:
         more, _ = load(args.also)
         pooled = tally(rows + more)
+        if args.mode != "start":
+            raise SystemExit("--also is for the start set")
         print()
         print("pooled over both batches (descriptive, not a decision): sf-ui wrong / started")
         for arm in ARMS:
