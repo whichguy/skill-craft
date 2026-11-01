@@ -158,12 +158,16 @@ and six test files), so the hashes of both commits changed.
 | L4 | The test harness had a higher floor than the product (`run_suites.py` needed 3.10's `ignore_cleanup_errors`), so the product's floor could not be tested at all until the harness was lowered. Check the harness's own floor before claiming a product floor is tested | firm | Round 2, `_scratch_directory` |
 | L5 | Two tests were coupled to an implementation detail the host never depends on: `shiploop-skill-calls` ran hook entries as `[sys.executable, entry]`, which breaks the moment an entry is a shell wrapper, and `shiploop-callback-contract` asserted the JSON parser's wording from Python 3.13. Run an entry as a program, the way a host does, and compute any interpreter-worded text instead of copying it | firm | Round 3 |
 | L6 | Quoting a commit's full hash in the next commit's message goes stale when the pair is rebased. It happened twice in this one change (a short hash in Round 3, the full hash of the first commit here). After any rebase, `git grep` the tree and `grep` the message for the old hashes before the push | firm | the pair was rebased twice before publication (onto 26, then 2 more upstream commits); the first commit's hash changed each time and the second commit's message cited it |
+| L7 | A local pass does not prove a CI job. The first run of the new `python-floor` leg on GitHub (run 41311581045) failed at `actions/setup-python`, before any test ran: `ubuntu-latest` is Ubuntu 26.04, and the actions/python-versions manifest lists CPython 3.9 (newest 3.9.25) only for 22.04 and 24.04. The same 74 suites had passed on a local Python 3.9.6. A leg that exists to run an old interpreter has to name a runner image that still ships it; it is the one deliberate exception to "CI follows the latest image" | firm | run 41311581045, job 124862972188 (log: "The version '3.9' with architecture 'x64' was not found for Ubuntu 26.04."); run 41312286843, job 124865056886 |
 
 ### What is left, ranked by gain
 
-1. **The CI leg has not run on GitHub.** Locally the group ran through the real runner on 3.9.6 before the rebase; it is
-   re-run on the rebased tree before the release (result in the next section). The first push to `main` is the first
-   real proof, and it should be read once, not assumed.
+1. **The CI leg had not run on GitHub: resolved 2026-11-01.** It failed on its first run (L7) and passed after the fix.
+   Run 41312286843 (full tier, `workflow_dispatch` on `main` at the fix commit), job `full / python-floor`: image
+   `ubuntu-24.04`, `Successfully set up CPython (3.9.25)`, 74 suites in 975.4 s wall at `--jobs 4`, `PASS (python-floor
+   hermetic group selection)`, and the "Checkout unchanged" step passed. The step list shows `Run actions/setup-python@v7`
+   succeeding where the first run failed. (Earlier text: "the first push to `main` is the first real proof"; it was, and it
+   found the runner defect.)
 2. **The floor is enforced only in the full tier.** A change that needs newer syntax fails in the post-merge full run, not
    in the quick tier a push gets. Cheap candidate: put `shiploop-python-floor` plus an import of every `shiploop_*` module
    under 3.9 in the quick tier. Not done: it is a CI-policy trade-off (cost on every push against catching a break
@@ -185,7 +189,18 @@ and six test files), so the hashes of both commits changed.
 Publish the two commits as one release (patch: shiploop 1.26.2, skill-craft 2.27.2). Why routine: the owner asked for it in
 chat on 2026-11-01, `scripts/release.py`'s preflight passes (the second commit, the only one that touches `skills/shiploop/`, carries
 its own `No-E2E-Round` trailer for the ShipLoop order check), and AGENTS.md lists publishing a release that fast-forwards `main` as routine. Contrary evidence
-kept: no live-model round exercised the hook wrappers, and the CI leg is unproven on GitHub; both are item 1 and item 4.
+kept: no live-model round exercised the hook wrappers (item 4), and the CI leg was unproven on GitHub when this was written (item 1, since resolved: it failed once on the runner image and passed after the fix).
+
+### Publication (2026-11-01)
+
+| Step | Result |
+|------|--------|
+| Release | ``e13af240100c066489e83c028d97339845402b55`` skill-craft 2.27.2, shiploop 1.26.2, pushed over `ca2db2db741e2009b5737fe0b8a5363c8ae40780` with `scripts/release-push.py` and its four checks (sync-plugin-views, marketplace packages, release boundary, test-groups); the candidate was rebuilt three times because other sessions pushed docs-only commits while it was prepared |
+| Verification before the push | `python-floor` group through the real runner on Python 3.9.6, rebased tree: 74 of 74 suites, 721.5 s wall at `--jobs 8` |
+| Hosts | Claude `2.27.1` to `2.27.2` (installed copy: the four hook scripts exit 0 silently without `python3`; `shiploop --help` exits 0 on the default Python and on 3.9.6); Codex marketplace `whichguy` upgraded, `skill-craft@whichguy` 2.27.2; Grok updated 2.27.1 to 2.27.2; Cursor needs its app and is the owner's |
+| Release run 41311581045 | `python-floor` failed (L7); `core`, `shiploop-1`, `shiploop-2`, `shiploop-3`, `e2e-apparatus`, `plan` and `release-boundary` passed; the `hermetic` aggregate failed only because of `python-floor` |
+| CI fix | ``7047791fb298ac5490f8f43b9dd8a5d91bd17681`` runs the `python-floor` group on `ubuntu-24.04`; `test/ci-policy.test.py` now allows exactly that one pin (the earlier decision, `f14db1a41a143354a4435de820a9828252675e7d`, removed the pinned image so CI would follow `ubuntu-latest`; it still does for every other group) |
+| CI fix verified | run 41312286843, job 124865056886: see open item 1 |
 
 ## Proposals as first written (2026-10-31; applied as Round 3)
 
