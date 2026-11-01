@@ -352,18 +352,111 @@ class EvidenceTest(LifecycleCase):
         subprocess.run(["git", "-C", str(work), "-c", "user.name=T", "-c", "user.email=t@example.invalid", "commit", "-q", "-m",
                         "product"], check=True)
         before = delivery.capture(work, out)
-        (out / "result.json").write_text(json.dumps({"case": "hello", "pass": True, "delivery": {"before": before}}))
+        after = delivery.fingerprint(work)
+        (out / "result.json").write_text(json.dumps({"case": "hello", "pass": True,
+                                                      "delivery": {"before": before, "after": after}}))
         for name_ in lifecycle.LOGS:
             (out / name_).write_text("{}\n")
         (out / "home").mkdir()
         return out
 
+    @staticmethod
+    def saved_delivery(out: Path) -> dict:
+        return json.loads((out / "result.json").read_text())["delivery"]
+
+    @staticmethod
+    def write_delivery(out: Path, snapshots: dict) -> None:
+        result = json.loads((out / "result.json").read_text())
+        result["delivery"] = snapshots
+        (out / "result.json").write_text(json.dumps(result))
+
+    def hide_untracked(self, work: Path, scope: str) -> None:
+        """Set only this fixture's local or effective global Git config, never the user's config."""
+        config = ["--local"]
+        if scope == "global":
+            path = self.tmp / "global.gitconfig"
+            patch = mock.patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": str(path)})
+            patch.start()
+            self.addCleanup(patch.stop)
+            config = ["--file", str(path)]
+        subprocess.run(["git", "-C", str(work), "config", *config, "status.showUntrackedFiles", "no"], check=True)
+        effective = subprocess.run(["git", "-C", str(work), "config", "--show-scope", "--get", "status.showUntrackedFiles"],
+                                   capture_output=True, text=True, check=True)
+        self.assertEqual(effective.stdout.strip(), f"{scope}\tno")
+
+    def test_hidden_untracked_files_in_recorded_snapshots_refuse_disposal(self):
+        for scope in ("local", "global"):
+            with self.subTest(scope=scope):
+                out = self.delivered(scope)
+                work = out / "work"
+                self.hide_untracked(work, scope)
+                dirty = work / "returned" / "new-test.py"
+                dirty.parent.mkdir()
+                dirty.write_text("assert True\n")
+                snapshots = {"before": delivery.capture(work, out), "after": delivery.fingerprint(work)}
+                self.write_delivery(out, snapshots)
+
+                found = lifecycle.dispose(out)
+
+                self.assertFalse(found["disposed"], found)
+                self.assertEqual(found["removed"], [])
+                self.assertEqual(dirty.read_text(), "assert True\n", "unbundled bytes survive refusal")
+                for snapshot in snapshots.values():
+                    self.assertTrue(snapshot["observed"], snapshot)
+                    self.assertEqual(snapshot["status"], ["?? returned/"], "keep normal directory collapsing")
+
+    def test_hidden_untracked_files_after_clean_snapshots_refuse_disposal(self):
+        for scope in ("local", "global"):
+            with self.subTest(scope=scope):
+                out = self.delivered(scope)
+                work = out / "work"
+                self.hide_untracked(work, scope)
+                snapshots = {"before": delivery.capture(work, out), "after": delivery.fingerprint(work)}
+                self.write_delivery(out, snapshots)
+                self.assertEqual([snapshot["status"] for snapshot in snapshots.values()], [[], []])
+                dirty = work / "new-test.py"
+                dirty.write_text("assert True\n")
+                current = delivery.fingerprint(work)
+
+                found = lifecycle.dispose(out)
+
+                self.assertFalse(found["disposed"], found)
+                self.assertEqual(found["removed"], [])
+                self.assertEqual(dirty.read_text(), "assert True\n", "later unbundled bytes survive refusal")
+                self.assertTrue(current["observed"], current)
+                self.assertEqual(current["status"], ["?? new-test.py"])
+
+    def test_hidden_untracked_config_still_excludes_ignored_files_and_allows_clean_disposal(self):
+        for scope in ("local", "global"):
+            with self.subTest(scope=scope):
+                out = self.delivered(scope)
+                work = out / "work"
+                self.hide_untracked(work, scope)
+                (work / ".git" / "info" / "exclude").write_text("ignored.txt\n")
+                (work / "ignored.txt").write_text("ignored fixture bytes\n")
+                snapshots = {"before": delivery.capture(work, out), "after": delivery.fingerprint(work)}
+                self.write_delivery(out, snapshots)
+                self.assertTrue(all(snapshot["observed"] for snapshot in snapshots.values()), snapshots)
+                self.assertEqual([snapshot["status"] for snapshot in snapshots.values()], [[], []])
+
+                found = lifecycle.dispose(out)
+
+                self.assertTrue(found["disposed"], found)
+                self.assertEqual(sorted(found["removed"]), ["home", "work"])
+                restored = delivery.restore(out, self.tmp / f"restored-{scope}", snapshots["before"]["head"])
+                self.assertEqual((restored / "hello.py").read_text(), 'print("Hello, world!")\n')
+                self.assertEqual(delivery.fingerprint(restored)["tree"], snapshots["before"]["tree"])
+                self.assertFalse((restored / "ignored.txt").exists(), "ignored bytes remain outside the bundle promise")
+                self.assertEqual(lifecycle.dispose(out)["removed"], [], "clean disposal remains idempotent")
+
     def test_disposal_keeps_the_records_and_the_delivery_reproduces_from_the_bundle(self):
         out = self.delivered("case")
         head = json.loads((out / "result.json").read_text())["delivery"]["before"]["head"]
         records = {path.name: path.read_bytes() for path in out.iterdir() if path.is_file()}
-        found = lifecycle.dispose(out)
+        with mock.patch.object(delivery, "_git", wraps=delivery._git) as git_read:
+            found = lifecycle.dispose(out)
         self.assertTrue(found["disposed"], found)
+        self.assertEqual(git_read.call_count, 3, "one live clean fingerprint uses only its three read-only Git calls")
         self.assertEqual(sorted(found["removed"]), ["home", "work"])
         self.assertFalse((out / "work").exists())
         for name, data in records.items():
@@ -380,6 +473,102 @@ class EvidenceTest(LifecycleCase):
         self.assertFalse(found["disposed"])
         self.assertIn("delivery/work.bundle", found["missing"])
         self.assertTrue((out / "work" / "hello.py").is_file(), "nothing removed")
+
+    def test_disposal_refuses_tracked_or_untracked_dirt_in_the_returned_before_snapshot(self):
+        for name, dirty in (("tracked", "tracked"), ("untracked", "untracked")):
+            with self.subTest(dirty=dirty):
+                out = self.delivered(name)
+                work = out / "work"
+                if dirty == "tracked":
+                    (work / "hello.py").write_text('print("changed before return")\n')
+                else:
+                    (work / "new-test.py").write_text("assert True\n")
+                recorded = delivery.fingerprint(work)
+                snapshots = self.saved_delivery(out)
+                snapshots["before"] = {**snapshots["before"], **recorded}
+                snapshots["after"] = recorded
+                self.write_delivery(out, snapshots)
+
+                found = lifecycle.dispose(out)
+
+                self.assertFalse(found["disposed"], found)
+                self.assertTrue(work.is_dir(), "nothing removed")
+
+    def test_disposal_refuses_dirt_that_appears_only_in_the_after_snapshot(self):
+        out = self.delivered("after-dirty")
+        (out / "work" / "returned-test.py").write_text("assert True\n")
+        snapshots = self.saved_delivery(out)
+        snapshots["after"] = delivery.fingerprint(out / "work")
+        self.write_delivery(out, snapshots)
+
+        found = lifecycle.dispose(out)
+
+        self.assertFalse(found["disposed"], found)
+        self.assertTrue((out / "work" / "hello.py").is_file(), "nothing removed")
+
+    def test_disposal_refuses_missing_or_malformed_returned_snapshots(self):
+        cases = (
+            ("missing after", lambda snapshots: snapshots.pop("after")),
+            ("missing before status", lambda snapshots: snapshots["before"].pop("status")),
+            ("malformed before status", lambda snapshots: snapshots["before"].update(status="clean")),
+            ("malformed after status", lambda snapshots: snapshots["after"].update(status=[None])),
+            ("unobserved after", lambda snapshots: snapshots["after"].update(observed=False)),
+        )
+        for index, (name, corrupt) in enumerate(cases):
+            with self.subTest(case=name):
+                out = self.delivered(f"malformed-{index}")
+                snapshots = self.saved_delivery(out)
+                corrupt(snapshots)
+                self.write_delivery(out, snapshots)
+
+                found = lifecycle.dispose(out)
+
+                self.assertFalse(found["disposed"], found)
+                self.assertTrue((out / "work").is_dir(), "nothing removed")
+
+    def test_disposal_refuses_before_and_after_head_or_tree_mismatch(self):
+        for field in ("head", "tree"):
+            with self.subTest(field=field):
+                out = self.delivered(f"mismatch-{field}")
+                snapshots = self.saved_delivery(out)
+                snapshots["after"][field] = "0" * 40
+                self.write_delivery(out, snapshots)
+
+                found = lifecycle.dispose(out)
+
+                self.assertFalse(found["disposed"], found)
+                self.assertTrue((out / "work").is_dir(), "nothing removed")
+
+    def test_disposal_refuses_a_later_live_edit_or_commit(self):
+        out = self.delivered("later-change")
+        work = out / "work"
+        (work / "hello.py").write_text('print("edited later")\n')
+        edited = lifecycle.dispose(out)
+        self.assertFalse(edited["disposed"], edited)
+        self.assertTrue(work.is_dir(), "the later edit remains available")
+
+        subprocess.run(["git", "-C", str(work), "add", "hello.py"], check=True)
+        subprocess.run(["git", "-C", str(work), "-c", "user.name=T", "-c", "user.email=t@example.invalid", "commit", "-q", "-m",
+                        "later edit"], check=True)
+        committed = lifecycle.dispose(out)
+
+        self.assertFalse(committed["disposed"], committed)
+        self.assertTrue(work.is_dir(), "the later commit remains available")
+
+    def test_disposal_does_not_inspect_or_follow_a_work_symlink(self):
+        out = self.delivered("symlink")
+        work = out / "work"
+        foreign = self.tmp / "foreign-work"
+        work.rename(foreign)
+        work.symlink_to(foreign, target_is_directory=True)
+
+        with mock.patch.object(delivery, "fingerprint", side_effect=AssertionError("followed work symlink")) as fingerprint:
+            found = lifecycle.dispose(out)
+
+        self.assertTrue(found["disposed"], found)
+        fingerprint.assert_not_called()
+        self.assertTrue(work.is_symlink(), "disposal preserves its existing symlink behavior")
+        self.assertEqual((foreign / "hello.py").read_text(), 'print("Hello, world!")\n')
 
     def test_disposal_is_refused_while_a_recorded_group_is_alive_or_a_harness_holds_the_case(self):
         out = self.delivered("case")
