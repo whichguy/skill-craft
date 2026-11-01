@@ -176,3 +176,7 @@ compatible with chance. No owner decision on K12 follows from this round.
   terms, so the benefit is still not measured here.
 - **Not shown:** that K12 has no effect on send-backs; why the round-1 imbalance appeared; anything about the 2.27.2 pair, which was not re-run; any
   other case, subject or effort. The case itself did its job: its checks passed on all 20 deliveries and its runs needed no restart.
+
+### Follow-up, the same day
+
+The implement send-back family was then read on its own, at the owner's go: docs/experiments/implement-send-back-class-20261101/README.md (mechanism, rate, cost, the shipped gate's blindness and two candidate rules replayed on these runs and on the step-plan review's corpus; recommendation: leave it).

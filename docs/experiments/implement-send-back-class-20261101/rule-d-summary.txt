@@ -1,0 +1,17 @@
+plans with a base 30 | flagged 3 | unknown 0 | flagged by the next implement outcome: {'send-back': 3}
+  send-back | node --test | 0/.shiploop-runs/work-20261101-184041-269e40/run
+  send-back | node --test | 9/.shiploop-runs/work-20261101-181006-d3e979/run
+  send-back | node --test | 2/.shiploop-runs/work-20261101-190815-96b196/run
+----
+plans with a base 171 | flagged 11 | unknown 0 | flagged by the next implement outcome: {'send-back': 6, 'done': 4, 'blocked': 1}
+  send-back | python3 -m unittest -v test_hello.GreetingTest.test_TC_1 | n/.shiploop-runs/work-20261030-044511-0ca2b7/run
+  send-back | sf apex run test --target-org de --class-names SLGymControllerTest --synchronous | 3/.shiploop-runs/work-20261031-122739-3e2dae/run
+  done | gym-ui | 3/.shiploop-runs/work-20261031-122739-3e2dae/run
+  send-back | sf apex run test --target-org de --class-names SLBtlFull654EngineTest --synchron | e/.shiploop-runs/work-20261030-192802-b18b24/run
+  done | sf project deploy start --target-org de | e/.shiploop-runs/work-20261030-192802-b18b24/run
+  send-back | python3 -m unittest -v | 1/.shiploop-runs/work-20261031-212708-c946ec/run
+  blocked | gym-ui | 1/.shiploop-runs/work-20261031-104327-2692a2/run
+  send-back | npm test | g/.shiploop-runs/work-20261029-152234-81a017/run
+  done | npm test | 1/.shiploop-runs/work-20261031-195942-5ace67/run
+  done | npm test | 1/.shiploop-runs/work-20261031-150815-9602dc/run
+  send-back | npm test | 1/.shiploop-runs/work-20261031-224028-faeb2e/run

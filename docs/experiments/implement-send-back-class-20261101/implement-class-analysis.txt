@@ -1,0 +1,48 @@
+== 1. every implement attempt (35 in 20 runs): the Proof the model was held to, and what implement did
+run   step  executed test-based Confirm by proof kind  outcome   proof
+A1    S1/3         1                     1 test-runner send-back 'node -e \'const c=require(\'"\'"\'node:child_process\'"\'"\');const s=c.execF'
+A1    S1/3         1                     1 direct probe done      'node /Users/dadleet/e2e-runs-r3/20261101/A-shared-expenses-s1/.shiploo'
+A1    S2/3         1                     1 direct probe done      'node /Users/dadleet/e2e-runs-r3/20261101/A-shared-expenses-s1/.shiploo'
+A1    S3/3         1                     1 direct probe done      'node /Users/dadleet/e2e-runs-r3/20261101/A-shared-expenses-s1/.shiploo'
+A2    S1/1         1                     1 direct probe done      'node -e \'const assert=require(\'"\'"\'node:assert/strict\'"\'"\'),http=requi'
+A3    S1/1         3                     3 direct probe done      'node -e \'const {spawn}=require(\'"\'"\'node:child_process\'"\'"\'),fs=requir'
+A4    S1/1         3                     3 test-runner send-back 'node --test && rg -q "Service contract:" server.js'
+A4    S1/1         3                     3 direct probe done      'python3 /Users/dadleet/e2e-runs-r3/20261101/A-shared-expenses-s4/.ship'
+A5    S1/1         4                     4 direct probe done      'node -e \'const assert=require("node:assert/strict"),fs=require("node:f'
+A6    S1/1         2                     2 direct probe done      'python3 /Users/dadleet/e2e-runs-r3/20261101/A-shared-expenses-s6/.ship'
+A7    S1/1         1                     1 direct probe done      'node /Users/dadleet/e2e-runs-r3/20261101/A-shared-expenses-s7/.shiploo'
+A8    S1/2         1                     1 direct probe done      'node -e \'const {spawn}=require("node:child_process"),fs=require("node:'
+A8    S2/2         2                     2 direct probe done      'node -e \'const {spawn}=require("node:child_process"),fs=require("node:'
+A9    S1/1         3                     3 test-runner send-back 'node --test'
+A9    S1/1         3                     3 test-runner done      'node --test /Users/dadleet/e2e-runs-r3/20261101/A-shared-expenses-s9/.'
+A10   S1/1         3                     3 test-runner send-back 'node --test'
+A10   S1/1         3                     3 direct probe send-back 'node /Users/dadleet/e2e-runs-r3/20261101/A-shared-expenses-s10/.shiplo'
+A10   S1/1         3                     0 direct probe done      'node /Users/dadleet/e2e-runs-r3/20261101/A-shared-expenses-s10/.shiplo'
+B1    S1/3         1                     1 direct probe done      'node -e \'const assert=require("node:assert/strict"), fs=require("node:'
+B1    S1/3         1                     1 direct probe done      'node -e \'const assert=require("node:assert/strict"), fs=require("node:'
+B1    S2/3         1                     1 direct probe done      'node -e \'const assert=require("node:assert/strict"), fs=require("node:'
+B1    S3/3         1                     1 direct probe done      'node -e \'const assert=require("node:assert/strict"), fs=require("node:'
+B2    S1/1         2                     2 test-runner send-back 'node --test'
+B2    S1/1         2                     2 direct probe done      'node -e \'const {spawn}=require("node:child_process"),fs=require("node:'
+B3    S1/1         1                     1 direct probe done      'node -e \'const assert=require(\'"\'"\'node:assert/strict\'"\'"\'),fs=require'
+B4    S1/1         2                     2 direct probe done      'node /Users/dadleet/e2e-runs-r3/20261101/B-shared-expenses-s4/.shiploo'
+B5    S1/2         1                     0 direct probe done      'python3 /Users/dadleet/e2e-runs-r3/20261101/B-shared-expenses-s5/.ship'
+B5    S2/2         1                     0 direct probe done      'python3 /Users/dadleet/e2e-runs-r3/20261101/B-shared-expenses-s5/.ship'
+B6    S1/1         3                     3 direct probe done      'node -e \'const assert=require("node:assert/strict"),fs=require("node:f'
+B7    S1/1         4                     4 direct probe done      'node /Users/dadleet/e2e-runs-r3/20261101/B-shared-expenses-s7/.shiploo'
+B8    S1/3         1                     1 direct probe done      'python3 /Users/dadleet/e2e-runs-r3/20261101/B-shared-expenses-s8/.ship'
+B8    S2/3         1                     1 direct probe done      'python3 /Users/dadleet/e2e-runs-r3/20261101/B-shared-expenses-s8/.ship'
+B8    S3/3         1                     1 direct probe done      'python3 /Users/dadleet/e2e-runs-r3/20261101/B-shared-expenses-s8/.ship'
+B9    S1/1         3                     3 direct probe done      'node -e \'const assert=require("node:assert/strict"),http=require("node'
+B10   S1/1         3                     3 direct probe done      'node /Users/dadleet/e2e-runs-r3/20261101/B-shared-expenses-s10/.shiplo'
+
+(proof kind, outcome): {('test-runner', 'send-back'): 5, ('direct probe', 'done'): 28, ('test-runner', 'done'): 1, ('direct probe', 'send-back'): 1}
+(executed criteria whose Confirm by names tests are present, outcome): {(True, 'send-back'): 6, (True, 'done'): 26, (False, 'done'): 3}
+first implement attempt of each run, by Proof kind: {'test-runner': {'send-back': 5}, 'direct probe': {'done': 15}}
+
+== 2. the shipped proof-order gate (rules A, B, C of shiploop_item_scope.proof_order_refusal) on every accepted step plan
+plans looked at 28, refused by the shipped gate on an empty base 0 (the six implement send-backs of the class all stand)
+
+== 3. the direct cost of each implement send-back loop (the send-back implement and the stages that re-ran up to the next implement)
+loops (run, minutes): [('A1', 2.3), ('A4', 3.2), ('A9', 2.0), ('A10', 1.1), ('A10', 1.2), ('B2', 2.0)]
+mean 2.0 minutes a loop (n=6); 0.59 minutes a run over all 20 runs, on a mean of 14.8 stage minutes a run

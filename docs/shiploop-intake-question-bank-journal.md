@@ -534,3 +534,10 @@ and names skills and slang, graded on what the run does with them, to measure K1
   cost about 2.8 minutes and 47% more tokens (interim, descriptive; the A and B split is post hoc); F44 K12's cost, descriptively: +4.6% minutes, +4.1% tokens, +1.0 refused
   callbacks per run (test 21 against 14, step-plan 10 against 7), none at intake (exploratory, inside the C bounds); F45 round 1's imbalance (F33) was not reproduced and
   stays unexplained. Process: two-run background tasks per lane, the second chained to the first, kept every task under the 120-minute cap.
+- 2026-11-01, the implement send-back class (F43) looked into at the owner's go ("Yes, look into it"). Read the 20 R3 runs' implement attempts, replayed the shipped
+  proof-order gate and two candidate rules on them and on the step-plan review's 171 plans (docs/experiments/implement-send-back-class-20261101/). Findings (status in
+  brackets): F46 the first implement attempt's Proof kind separates the class, 5 of 5 test-runner Proofs sent back against 0 of 15 direct-probe ones (firm for this case,
+  subject and effort); F47 the shipped gate (rules A, B, C) refuses 0 of 28 accepted plans, and the step-plan review's rule S replay is blind to ShipLoop 1.26 and later because
+  docs/shiploop/environment.md in the item base records the test IDs (firm); F48 a loop costs 2.0 minutes (1.1 to 3.2, n = 6) and recovers at the next attempt, 0.59 minutes a run,
+  about 4% in this case (interim); F49 F31's Confirm-by wording is the cause of 1 of the 6 loops, and no candidate rule is clean on both corpora: rule D 9 send-backs to 4 plans that
+  passed, rule S with the folder left out 13 to 6 (interim). F43 stands as the rate; its cause is F46. Recommendation recorded there: leave it; the decision is the owner's.

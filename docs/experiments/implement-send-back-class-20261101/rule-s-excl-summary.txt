@@ -1,0 +1,22 @@
+plans with a base 30 flagged 5 unknown 0
+  send-back: Resolve implementation proof before building | node --test | s10/.shiploop-runs/work-20261101-184041-269e40/run
+  send-back: Correct proof that depends on tests not yet written | node --test && rg -q "Service contract:" server.js | -s4/.shiploop-runs/work-20261101-184759-298f47/run
+  send-back: Repair proof dependency before continuing implementation | node --test | -s9/.shiploop-runs/work-20261101-181006-d3e979/run
+  send-back: Correct the implement proof ordering | node --test | -s2/.shiploop-runs/work-20261101-190815-96b196/run
+  send-back: Correct the implementation proof dependency. | node --test && rg "Service contract:" server.js | -s1/.shiploop-runs/work-20261101-173501-a45a37/run
+plans with a base 171 flagged 15 unknown 0
+  send-back: Both W1 step proofs need test/game.test.js, which a later stage writes | node --test test/game.test.js | hip/.shiploop-runs/work-20261026-204158-139775/run
+  send-back: Correct the implementation proof dependency | python3 -m unittest -v test_hello.GreetingTest.test_TC_1 | run/.shiploop-runs/work-20261030-044511-0ca2b7/run
+  send-back: Send-back: S1's Proof uses grep -P, which the system grep lacks | python3 -c "import subprocess,sys;r=subprocess.run([sys.executable,'hello.py'],capture_out | llo/.shiploop-runs/work-20261025-225710-c57c36/run
+  done | python3 -c "import subprocess,sys;r=subprocess.run([sys.executable,'hello.py'],capture_out | llo/.shiploop-runs/work-20261025-225710-c57c36/run
+  done | python3 -m unittest -v test_hello && python3 -c "from pathlib import Path; assert Path('ch | n-1/.shiploop-runs/work-20261031-052758-b37064/run
+  done | node --test tests/SLBtl589079Board.test.cjs | run/.shiploop-runs/work-20261030-134151-bce807/run
+  done | sf apex run test --target-org de --class-names SLBtlRepair654EngineTest --synchronous --re | on/runs/control-battleship/battleship-shiploop-run
+  done | sf apex run test --target-org de --class-names SLBtlRepair654EngineTest --synchronous --re | on/runs/control-battleship/battleship-shiploop-run
+  send-back: Correct a cyclic implementation proof | sf apex run test --target-org de --class-names SLGymControllerTest --synchronous --result- | -03/.shiploop-runs/work-20261031-122739-3e2dae/run
+  done | gym-ui | -03/.shiploop-runs/work-20261031-122739-3e2dae/run
+  send-back: Correct the test-before-implementation proof dependency. | sf apex run test --target-org de --class-names SLBtlFull654EngineTest --synchronous --resu | ate/.shiploop-runs/work-20261030-192802-b18b24/run
+  send-back: Repair proof before implementation can be accepted | python3 -m unittest -v | -01/.shiploop-runs/work-20261031-212708-c946ec/run
+  blocked | gym-ui | -01/.shiploop-runs/work-20261031-104327-2692a2/run
+  send-back: Correct proofs that depend on a later test stage | node --test --test-name-pattern=TC_1 test/assignment.test.js | ent/.shiploop-runs/work-20261029-152155-42ab66/run
+  send-back: Correct the step proof before implementation | node --test test/server-listing.test.js | -s2/.shiploop-runs/work-20261031-152134-3d9827/run
