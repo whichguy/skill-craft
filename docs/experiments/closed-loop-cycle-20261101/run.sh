@@ -7,7 +7,7 @@
 # OUTPUT_DIR    a folder that does not exist yet, outside every checkout. The worktree, the loop's output and the results go here.
 #
 # `iterate.py --qualify` makes its own worktree and branch (auto/shiploop-loop-<hex>) from that checkout. With no record this
-# cycle can take (select reads the cycle's cases), it explores user-listing on the tip: one run, reviewed and judged, whose
+# cycle can take (select reads the cycle's cases), it explores csv-report on the tip: one run, reviewed and judged, whose
 # material findings open and admit records. It then applies one record with an improver, checks the change serves the record,
 # registers a promotion/5 epoch (a stated tolerance of 0.25 and 3 attempts per arm, recorded as unmeasured), runs both cases for
 # both arms, reviews and judges every attempt, decides, and records the prediction's verdict and a journal entry on the loop
@@ -39,7 +39,7 @@ git -C "$repo" worktree add -q --detach "$out/tree" "$base_sha"
 
 cd "$out/tree"
 status=0
-python3 -B test/shiploop_e2e/iterate.py --qualify --case user-listing --generality-case csv-report \
+python3 -B test/shiploop_e2e/iterate.py --qualify --case csv-report --generality-case seat-reservations \
   --tolerance 0.25 --attempts 3 --host codex --model gpt-6.1-terra --effort high --iterations 1 \
   --parallel "${PARALLEL:-3}" --output "$out/loop" > "$out/loop-stdout.txt" 2>&1 || status=$?
 

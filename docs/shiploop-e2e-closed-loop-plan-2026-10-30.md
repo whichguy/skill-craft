@@ -424,16 +424,23 @@ The 10-29 plan's "prove the loop can say no", live. Built 2026-11-01 as `docs/ex
 ## Stage 5: first qualified cycles
 
 ```sh
-python3 test/shiploop_e2e/iterate.py --qualify --case user-listing --generality-case csv-report \
+python3 test/shiploop_e2e/iterate.py --qualify --case csv-report --generality-case seat-reservations \
     --tolerance 0.25 --attempts 3 --host codex --model gpt-6.1-terra --effort high --iterations 1
 ```
 
-(Corrected 2026-11-01: `iterate.py` has `--iterations`, not `--cycles`; `csv-report` replaces `battleship`, which has
-never run on Terra and has no time measured; one iteration first, since a cycle is the expensive unit.)
+(Corrected 2026-11-01: `iterate.py` has `--iterations`, not `--cycles`; one iteration first, since a cycle is the
+expensive unit. The cases changed twice. `battleship` was replaced because it has never run on Terra and has no time
+measured. `user-listing` was then used for the first launch and refused: it declares the fixed port 3000 in
+`quality.refuse_ports`, `run.py` takes a declared port as a machine-wide lease and refuses to start while another
+harness holds it, and another session's `user-listing` run did. `battleship` and `checkers` declare 3000 too, the
+`ticket-*` cases 4180. A cycle on such a case would also fail its own parallel attempts, because `launch_all` serialises
+attempts that share a hosted platform but not attempts that share a fixed port; that gap is not fixed. The cycle
+therefore uses two cases with no fixed port and no hosted platform, of different styles: `csv-report`, exposing, and
+`seat-reservations`, the unseen generality case.)
 
-- **The first record:** from an exploration run on `user-listing`, or a seeded record whose reopen condition holds.
+- **The first record:** from an exploration run on `csv-report`, or a seeded record whose reopen condition holds.
 - **Selection (2026-11-01):** `select` reads the cycle's cases (b3328b4). The one admitted record on the ledger,
-  LR-20261031-8d97e7, was found on the hosted `gym-membership-salesforce` case, so a `user-listing` cycle would have
+  LR-20261031-8d97e7, was found on the hosted `gym-membership-salesforce` case, so a cycle on other cases would have
   taken it and measured it on two cases that cannot show it; it now explores first. If exploring leaves no admitted
   material record, the loop stops and no cycle runs.
 - **Not the S-13 slip (2026-11-01).** `prediction.validate` refuses a prediction with no effect and an efficiency effect
