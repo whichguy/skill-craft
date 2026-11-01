@@ -3672,7 +3672,7 @@ the baseline row is in this commit).
 - The improve-skill skip (6 of 22) is a candidate packet fix: the Improve packet could put the Skill call first and
   make it unmissable.
 
-## Harness change: an E2E run defaults to DeepSeek flash on Ollama (2026-10-26) — status: firm (a default, not a finding), until the Grok reset on Thursday 2026-10-29
+## Harness change: an E2E run defaults to DeepSeek flash on Ollama (2026-10-26) — status: superseded 2026-11-01 (the Claude host now defaults to Anthropic's Sonnet 5.5; see the entry at the end of this file); was firm (a default, not a finding), until the Grok reset on Thursday 2026-10-29
 
 **Scope in time.** The switch holds until Grok's credits reset on Thursday 2026-10-29. Then the owner decides whether
 to go back.
@@ -5538,6 +5538,63 @@ findings, design U2); entry-level agreement between readers (U11); the owner's o
 - docs/experiments/follow-on-build-20261101/: README.md (the write-up), runs.json, readings.txt, verdicts.txt, extract_follow_on.py, read_records.py.
 - The four baseline rows are in test/shiploop_e2e/baselines.jsonl (`local_head` 2da2d4f3d11b0f468c14ff48e6158a7bb334e8ee); the evidence commit is 7c2ce6cb9345959292c38688106a4c8d16be865c.
 - Journal docs/shiploop-follow-on-run-journal.md, Round 5.
+
+## Harness change: the Claude host defaults to Anthropic's Sonnet 5.5, not Ollama's DeepSeek flash (2026-11-01) — status: firm (a default, not a finding); supersedes the 2026-10-26 entry "an E2E run defaults to DeepSeek flash on Ollama"
+
+**Owner decision.** 2026-11-01, in chat, "Yes use that as default", answering "Make Claude the E2E harness's default backend
+instead of Ollama?". It was asked first because AGENTS.md lists a default that breaks comparability with earlier evidence as
+one-way; the portability session had read "just use Claude" (2026-11-01) as scope and left the default alone.
+
+**What changed.** `run.py`, `slice.py`, the stage suite and a Claude-host run from `iterate.py` or `experiment.py`, started with
+`--host claude` and no `--backend`, now run `claude-sonnet-5-5` on the Anthropic backend. `--backend ollama` still selects
+`deepseek-v4.1-flash:1017-cloud`, with its credential scrub, tool allowlist and readiness refusal unchanged.
+- `hosts.RUN_DEFAULT_BACKEND` and `hosts.run_default_model` are gone. With Anthropic as the default, the mapping would have said
+  what the host factory already does (`hosts.host("claude")` is Anthropic), so each caller passes `--backend` through and the
+  factory decides. One place names the default, as before.
+- The default host is still Codex (`hosts.RUN_DEFAULT_HOST`, Terra 6.1 xhigh, owner 2026-10-29 and 2026-11-01); only an explicit
+  Claude host changed. A resume or regrade of a run recorded before the backend field exists still stays on Anthropic
+  (`run.resume_backend`, untouched), and a resume keeps its run's recorded backend.
+
+**Why.**
+- Ollama's monthly usage cap blocked runs twice: on 2026-10-29 (the 429 above, at 44.9 min of `ticket-assignment`) and on
+  2026-11-01, at the first model call of the clean-install check (`docs/experiments/clean-install-20261101/claude-hello-429-result.json`,
+  commit 7b8639802b65e2b2dd4c1be2d65dc62f2e078a6b). `hosts.ollama_ready` lists models only and cannot see a quota, so a default run
+  launches and fails at its first call, or hours in.
+- The same check on Sonnet 5.5 passed every verdict: 969.2 s, 188 turns, $4.1302 (`claude-sonnet-hello-result.json`, baseline row
+  in e20ea84061e9feea80873e3fe8e1a2b8d1328fe6), n = 1.
+- A gap recorded on 2026-10-30 in `docs/shiploop-e2e-closed-loop-plan-2026-10-30.md` closes for the Claude host: `epoch.launch`
+  never passes `--backend`, so a cycle on the Claude host tried Ollama and was refused wherever Ollama is not running (a cloud
+  session). It now gets the Anthropic route. Not run: this follows from `run.the_host`, which the new test pins.
+
+**Effect on earlier results.** None are relabelled. `baselines.jsonl` has 167 rows; 38 are in the `claude` / `claude-sonnet-5-5` cell
+and 9 in `claude` / `deepseek-v4.1-flash:1017-cloud`. A default Claude-host run now lands in the Sonnet cell, whose earlier rows
+are older ShipLoop builds (for example 1.15.0 on 2026-10-26); the DeepSeek cell stays comparable only with itself and needs
+`--backend ollama --model deepseek-v4.1-flash:1017-cloud`. The decision of 2026-10-28 in commit
+917e0c2bac344854597823bb01ee18936b13d070 ("the E2E default stays DeepSeek flash after the Grok reset", on the grounds that every baseline since
+2026-10-26 was DeepSeek flash and Grok's credits ran out within a week) is superseded by the owner, with the cap as the new evidence.
+
+**Cost.** An Anthropic run spends budget that Ollama's did not charge (its cost was "not measured"): $4.13 for `hello`, n = 1.
+Longer cases are not measured on Sonnet at the current ShipLoop. `--max-budget-usd` applies on this backend and is refused on Ollama.
+
+**Tests (fail-first).** Four tests fail on the old default and pass on the new one, run in a scratch worktree at the previous
+commit with only the three changed test files copied in: two in `shiploop-e2e-roles.test.py` (`resolve_role` and `the_host` give
+`('ollama', 'deepseek-v4.1-flash:1017-cloud')`, not `('anthropic', 'claude-sonnet-5-5')`), `test_a_slice_with_no_backend_runs_on_claudes_own_models`
+in `shiploop-e2e-slice.test.py` and `test_an_e2e_run_defaults_to_claudes_own_models_and_ollama_is_named` in `shiploop-e2e.test.py`. The
+slice test that proves `--backend ollama` still routes to the DeepSeek model and is refused when Ollama is not ready was split
+off the old default test, so that coverage stays. The test files that name `--backend anthropic` for their fake claude keep
+doing so: now redundant, left explicit, with their comments corrected.
+
+**Found by the quick tier, not before.** Two more tests, in `shiploop-e2e-stages.test.py`, asserted the old default and failed on
+the new one (`test_the_driver_defaults_are_slices_and_the_options_override_them` for `--host claude`, and
+`test_a_host_on_ollama_that_does_not_answer_is_refused`, which started a Claude host without naming Ollama). I had run only the
+suites I had edited, not every suite that parses `--host claude`; the tier (`--changed-from` the origin/main tip, `--jobs 8`) ran 61
+suites in 1105.7 s wall under a machine load of 70 to 150 from other sessions, and 60 were OK. The two tests now expect the
+Anthropic default and name `--backend ollama` for the Ollama cases; the suite reran alone, 121 tests OK in 347.8 s. These two edits
+were not run against the old default, so they are not fail-first; the other 60 suites were not rerun after them, because the fix
+touches only that test file.
+
+**Not measured.** No live run has used the new default yet; the first one is the next post-release smoke check
+(`docs/distribution.md`, "Smoke checks after a release"), where `--backend anthropic --model claude-sonnet-5-5` is no longer needed.
 
 ## E2E iteration 0 learnings (csv-report, codex high)
 

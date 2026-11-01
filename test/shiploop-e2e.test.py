@@ -51,7 +51,7 @@ import review  # noqa: E402
 import rollouts  # noqa: E402
 import run  # noqa: E402
 import status_card
-# The fake hosts answer the Claude host's Anthropic route; an E2E run's default is Ollama (hosts.RUN_DEFAULT_BACKEND).
+# The fake hosts answer the Claude host's Anthropic route, which is also its default backend; the runs name it so they stay on it.
 ANTHROPIC_ROUTE = {"claude": ("--backend", "anthropic")}
 import scorecard  # noqa: E402
 import fanout  # noqa: E402
@@ -4516,18 +4516,23 @@ class ClaudeOnOllamaTest(PrintedCase):
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
         return code, out, printed.getvalue()
 
-    def test_an_e2e_run_defaults_to_deepseek_flash_on_ollama(self):
+    def test_an_e2e_run_defaults_to_claudes_own_models_and_ollama_is_named(self):
         code, out, printed = self.ollama(backend=())
         self.assertEqual(code, 0, printed)
         result = json.loads((out / "result.json").read_text())
-        self.assertEqual((result["backend"], result["model"]), ("ollama", hosts.OLLAMA_MODEL))
-        self.assertEqual(self.child_env()["ANTHROPIC_BASE_URL"], hosts.OLLAMA_URL, "the child is routed to Ollama")
-        self.assertEqual((hosts.run_default_model("claude"), hosts.run_default_model("grok")),
-                         (hosts.OLLAMA_MODEL, hosts.GrokHost.model))
-        anthropic = run.the_host(run.parser().parse_args(["--host", "claude", "--backend", "anthropic"]))
-        self.assertEqual((anthropic.backend, anthropic.model), ("anthropic", "claude-sonnet-5-5"), "--backend anthropic names "
-                         "Claude's own models")
-        self.assertEqual(hosts.host("claude").backend, "anthropic", "the factory's default (reviewer, slice) is unchanged")
+        self.assertEqual((result["backend"], result["model"]), ("anthropic", "claude-sonnet-5-5"))
+        env = self.child_env()
+        self.assertEqual((env["ANTHROPIC_BASE_URL"], env["ANTHROPIC_AUTH_TOKEN"]),
+                         (self.SECRETS["ANTHROPIC_BASE_URL"], self.SECRETS["ANTHROPIC_AUTH_TOKEN"]),
+                         "the child keeps the user's Anthropic route; nothing sends it to Ollama")
+        argv = json.loads(self.log.read_text())["argv"]
+        self.assertEqual(argv[argv.index("--model") + 1], "claude-sonnet-5-5")
+        self.assertNotIn("--tools", argv, "the coding-tool allowlist is the Ollama route's")
+        self.assertEqual((hosts.HOST_DEFAULTS["claude"]["model"], hosts.HOST_DEFAULTS["grok"]["model"]),
+                         ("claude-sonnet-5-5", hosts.GrokHost.model))
+        ollama = run.the_host(run.parser().parse_args(["--host", "claude", "--backend", "ollama"]))
+        self.assertEqual((ollama.backend, ollama.model), ("ollama", hosts.OLLAMA_MODEL), "--backend ollama names the Ollama route")
+        self.assertEqual(hosts.host("claude").backend, "anthropic", "the factory's default and the run's are the same")
 
     def test_a_regrade_of_a_run_from_before_the_backend_field_stays_anthropic(self):
         _, out, _ = self.ollama(backend=("--backend", "anthropic"))
