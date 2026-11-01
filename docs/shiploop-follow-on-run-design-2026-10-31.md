@@ -1,17 +1,21 @@
 ---
-Status: design proposal, revision 4, 2026-11-01. Nothing is built, adopted or released. Execute: ask. Revision 2 folded in
+Status: design proposal, revision 5, 2026-11-01. Nothing is built, adopted or released. Execute: ask. Revision 2 folded in
 the multipass work that landed after revision 1 and corrected one stale claim (section 6, the 589bc03e row). Revision 3
 brought up to date the multipass facts that moved after revision 2 (a live result, an owner decision, a built test case).
 Revision 4 folds in the two results that landed after revision 3's base: the A/B test of the multipass fix (E2) met its bar,
 and the first live fourth pass (E3) ran. It changes no recommendation. Anything that moves (a queued run, a pending result)
 is written "as of" a commit and points at the journal that keeps the live state; revision 3 did that for the headline of a
-passage and not for every sentence, and revision 4 does it for each sentence that states one (journal F25).
-Consumer: the owner, deciding D1 to D4 (section 10). Later: the session that runs the replay (section 7) or builds the follow-on list (section 8).
-Journal: docs/shiploop-follow-on-run-journal.md (Rounds 0 to 3).
-Evidence: docs/experiments/follow-on-peek-20261031/README.md.
+passage and not for every sentence, and revision 4 does it for each sentence that states one (journal F25). Revision 5 folds in the M1 replay (section 7): three other
+readers, blind to the first reader's labels, classified the same rows plus seven new ones. It also moves the multipass facts to
+3d5732d0, where the multipass work fixed its fourth experiment (E4) before any run. The replay applies this note's own reading
+rule, so D1 to D4 keep their recommendations, now settled where they waited for M1.
+Consumer: the owner, deciding D1 to D4 (section 10). Later: the session that builds the follow-on list (section 8), or reruns the peek and the replay on the owner's own features (section 7).
+Journal: docs/shiploop-follow-on-run-journal.md (Rounds 0 to 4).
+Evidence: docs/experiments/follow-on-peek-20261031/README.md and docs/experiments/follow-on-replay-20261101/README.md.
 Category: a proposed generic ShipLoop improvement and the exploratory evidence behind it. No E2E apparatus change, no skill change, no release.
-Base: e13af240100c066489e83c028d97339845402b55 (origin/main when revision 4 was written). Revision 3 (published as
-7bb1c35683a18d37bd800df12a2f4c45c32ecc77) was written at df44fd30d19455515cc2434dd21b18520e2a5f48, revision 2 (published as
+Base: 3d5732d017899a6d486b3249915284793af19d3a (origin/main when revision 5 was written). Revision 4 (published as
+e81fdb55d58bdb0bcc8c1643d93d5973709100e4) was written at e13af240100c066489e83c028d97339845402b55,
+revision 3 (published as 7bb1c35683a18d37bd800df12a2f4c45c32ecc77) at df44fd30d19455515cc2434dd21b18520e2a5f48, revision 2 (published as
 671873bce787d9e9c25bbbe8ab64e7c7f7061db0) at 240594c9922c42ac0a761717671f93f220e31743 and revision 1 (published as
 17cb4e4ad859f89bbc578c06abf974e47e0933e3) at 4a75a13d052c994c3e855b9d556637fde05c0b58.
 ---
@@ -47,20 +51,25 @@ the whole loop again.
   request and the start command, never starts a run, and never blocks `done`.
 - Evidence so far (exploratory, section 5): of 122 archived runs that reached handoff, 3 name a decision a person must make
   about the spec or scope, and none leaves a gap the system could close alone. The outcome for a gap a run notices in-run,
-  `add-work`, was used in 3 of 125 runs.
-- Revisions 2 to 4: the multipass work of another session, which landed on main after revision 1. It measures a pass started by
+  `add-work`, was used in 3 of 125 runs. A replay with three other readers (revision 5, section 5) reproduced the classes on 28
+  of 32 rows and confirmed no gap; among 166 finished runs it leaves two decisions by majority (1.2%), three by the first reader
+  (1.8%).
+- Revisions 2 to 5: the multipass work of another session, which landed on main after revision 1. It measures a pass started by
   a person on the repository an earlier run left (a pass is one such run). Its findings support the shape: all 8 saved runs of
   four ticket pairs passed, the 4 second passes kept every earlier requirement and decision, the first live third pass (its E1)
   passed and kept the earlier requirements too, and the first live fourth pass (its E3) delivered what it was asked. It supplies
   the chain harness and the readout for the live measurement (section 7). It also shows every pass leaking activity into the
   permanent files, the third and fourth passes included. The owner approved that work's fix. Its A/B test (E2) met the bar
   written before the first run: 12 of 12 runs passed, and the fix added no stray heading to `environment.md` in six passes
-  against 2 to 8 in the control, at no measurable cost. As of e13af240 the fix is not on main: it waits for a quiet-machine test
-  run and the owner's word on the release. It was tried on passes 1 and 2 only, while both unfixed later passes (E1, E3), which
-  continue the one lineage whose second pass made the mislabel, filed their new decision behind it. So a chain of follow-on runs
-  still waits for the fix's release, and whether it should wait for the fix to be seen on a later pass is open (section 4.7).
-- Order: replay the gate with a second reader first (offline, no ShipLoop run); build the recommend-only version only if the
-  replay supports it; consider chaining runs only with new evidence and the owner's calls on D2 and D3.
+  against 2 to 8 in the control, at no measurable cost. As of 3d5732d0 the fix is not on main: it waits for a quiet-machine tier
+  run, a merge and the owner's word on the release. It was tried on passes 1 and 2 only, while both unfixed later passes (E1, E3),
+  which continue the one lineage whose second pass made the mislabel, filed their new decision behind it. A fourth experiment (E4:
+  the fix on passes 3 and 4, in six runs, each beside a run without the fix on the same prior) was fixed on 2026-11-01 before any run,
+  cites this note's U9 as its open question, and had not started. So a chain of follow-on runs still waits for the fix's release,
+  and whether it should also wait for E4's result is open (section 4.7).
+- Order: the replay with a second reader is done (revision 5) and does not support building now; build the recommend-only version only
+  when runs of the owner's own features show decisions or gaps (the peek and the replay rerun in minutes); consider chaining runs only
+  with new evidence and the owner's calls on D2 and D3.
 
 ## 2. What ShipLoop already does (read at the base commit)
 
@@ -74,7 +83,7 @@ the whole loop again.
 | Pre-dispatch edge | the plan Improve "reconcile" to discovery, research, spec or test-strategy (`planning_revision.RECONCILIATION_TARGETS`); `system-test`, `product-acceptance`, `release-verify` and `handoff` carry `blocks={"reconciliation"}` | planning reviews | closed after dispatch |
 | Leftovers with owners | `unverified` (`unverified.current_list`, `must_restate`: product-acceptance writes it and the handoff restates it); `assumptions.open_items` | structured, script-read, each with an owner and a due stage | request outcomes only; `open_items` never closes a plan row |
 | A new run on a delivered baseline | SKILL.md "for a later feature request"; the knowledge home; the ticket-assignment then ticket-escalation pair (SPEC, brownfield); the next-run probe (a953e68a) | inherits the living spec, architecture and environment; the requirement IDs a run added are derivable with `spec_diff` from the run baseline; there is no per-run feature spec and no retire step since 2026-10-11 (589bc03e) | started by a person with a hand-written request |
-| Chains of passes (test apparatus) | `test/shiploop_e2e/chains.py`, `delta.py`, the cases `ticket-comments` and `ticket-sla`, and the [multipass plan](shiploop-multipass-plan-2026-10-31.md) and [journal](shiploop-multipass-journal.md). A link is one case that follows another; the delta ledger is a record kept beside each run of what it changed compared with the run before | eight saved runs (four pairs, a first and a second pass each) read: all passed, and the four second passes kept everything (03d046c6); a no-model probe shows the lessons reach a third pass's first packet (aa601d37); the first live third pass passed and kept every earlier requirement (c55d0bc0); the fourth link, a request that replaces an earlier rule, was built and calibrated on hand-written variants (bf68e959) and ran live once, with the right delivery and two wrong words in its case, since fixed (a232cf03, 9d5067f3); a fix for the leaks met its A/B test and, as of e13af240, is not on main (6a6badb3) | started by a person; nothing starts a pass from a run's leftovers; every pass leaks activity into the permanent files, the third and fourth passes included |
+| Chains of passes (test apparatus) | `test/shiploop_e2e/chains.py`, `delta.py`, the cases `ticket-comments` and `ticket-sla`, and the [multipass plan](shiploop-multipass-plan-2026-10-31.md) and [journal](shiploop-multipass-journal.md). A link is one case that follows another; the delta ledger is a record kept beside each run of what it changed compared with the run before | eight saved runs (four pairs, a first and a second pass each) read: all passed, and the four second passes kept everything (03d046c6); a no-model probe shows the lessons reach a third pass's first packet (aa601d37); the first live third pass passed and kept every earlier requirement (c55d0bc0); the fourth link, a request that replaces an earlier rule, was built and calibrated on hand-written variants (bf68e959) and ran live once, with the right delivery and two wrong words in its case, since fixed (a232cf03, 9d5067f3); a fix for the leaks met its A/B test and, as of 3d5732d0, is not on main (6a6badb3) | started by a person; nothing starts a pass from a run's leftovers; every pass leaks activity into the permanent files, the third and fourth passes included |
 | One request per run | SKILL.md: an `init` retry with a different prompt is refused; `request.md` splits the prompt into S1..Sn; IN1 (70d88d37) | stable anchors for intake, spec, plan and the trace | an in-run "new prompt" has no home |
 
 ## 3. Options for the shape
@@ -134,23 +143,25 @@ For each: the strongest case for, the strongest case against, a verdict.
     journal reads E3 as the mislabel compounding with the pass number; both passes continue one lineage, so the evidence shows
     it persisting once made and not yet that it appears more often with the pass number. A packet lists at most 40 headings of a
     file, and the fourth pass's `environment.md` holds exactly 40 (counted over the saved file by a short script, all levels,
-    fenced code skipped), so the fifth pass is the first whose packets cut the newest sections (as of e13af240 the fifth pass
+    fenced code skipped), so the fifth pass is the first whose packets cut the newest sections (as of 3d5732d0 the fifth pass
     has not run). A chain of follow-on runs repeats this at machine speed; one follow-on run is no worse than the person-started
     second pass it replaces.
   - A fix for the leaks exists and was tried on passes 1 and 2 only. In its A/B test (E2) it added no stray heading to
-    `environment.md` in six passes against 2 to 8 in the control, and its notice caught the mislabel once live, in a file
-    whose last section was `Superseded` (6a6badb3). Whether it holds from a prior that already carries the mislabel, as a
-    chain's later passes would, is not measured; and it is a bundle whose parts were not separated.
-- Verdict: yes for one follow-on run; a chain waits for the multipass fix, which has met its A/B test, is not on main as of
-  e13af240 and was tried on passes 1 and 2 only (section 4.7).
+    `environment.md` in six passes against 2 to 8 in the control, and its notice caught the mislabel once live, in a file whose
+    last section was `Superseded` (6a6badb3). Whether it holds from a prior that already carries the mislabel, as a chain's
+    later passes would, is not measured; and it is a bundle whose parts were not separated. E4 (fixed 2026-11-01, not started as
+    of 3d5732d0) tests exactly that, with a run without the fix beside each fix run.
+- Verdict: yes for one follow-on run; a chain waits for the multipass fix, which has met its A/B test, is not on main as of 3d5732d0
+  and was tried on passes 1 and 2 only, with a test on passes 3 and 4 fixed and not started (section 4.7).
 
 ### C. Stay manual (today)
 
-- For: no engineering; the archive shows 3 decisions in 122 runs; the report already prints the lessons and the open items
-  (8d51a8e9).
+- For: no engineering; the archive shows 2 to 3 decisions in 166 finished runs (the replay, section 5); the report already
+  prints the lessons and the open items (8d51a8e9).
 - Against: the decision sits as free text inside a commit body (and, after a working-tree return, not on the branch at all);
   nothing classifies it, cites a record for it, or builds the request; the owner asked for the activity.
-- Verdict: the baseline to beat, and the right answer until the replay (section 7) supports more.
+- Verdict: the baseline to beat, and the right answer until runs of the owner's own features show more: the replay (section 7, done)
+  found no gap and two decisions in 166 finished runs.
 
 ### D. A model-judged reflection stage with an Improve-style loop ("anything to improve?")
 
@@ -256,20 +267,23 @@ and statement) after a run that claimed to close it: the chain stops and reports
 `decision` entries are surfaced, never chained. A dollars or minutes ceiling is the owner's to set (D3).
 
 The engine has no field for which run another follows: `--continue-from` and `follows` belong to the test harness, so a chain
-would add one. A third and a fourth pass have run (E1, E3) and nothing retained was lost, so function is not what holds a
-chain back; the leak is. The owner approved the multipass fix for what stages write to the living files (its D2 to D4,
-15ef676f). It is built as a candidate on another session's local branch (`feat/multipass-placement-725e1a`) and stays off
-main until it is released. Its A/B test (E2) met the bar fixed before the first run: 12 of 12 runs passed and the five items
-of the bar held, one of them untested because the control never filed an entry as retired in six passes (6a6badb3). The
-multipass plan on main says, as of e13af240, that the candidate waits for a quiet-machine test run and the owner's word on
-the release; the branch, as read for this revision, already holds the candidate rebased and its E2 round entry. What E2 does
-not show matters for a chain, which reaches the later passes by construction. The fix was tried on passes 1 and 2 only.
-The multipass work's own replay found that both entries filed as retired when new (AD-3, AD-4) were written by the plan
-stage, which the candidate's packet line does not reach (c55d0bc0); in E2 the notice caught that mislabel once, in the
-packet of a stage after `plan`; and E3, which ran without the fix on a prior that already carried the mislabel, filed its
-new decision behind it (a232cf03), so what the fix does from such a prior is not measured. So a chain waits for the release
-of the fix. Whether it should also wait for the fix to be seen past the second pass is open (U9). The multipass journal
-(Rounds 2 and 3) holds the live state.
+would add one. A third and a fourth pass have run (E1, E3) and nothing retained was lost, so function is not what holds a chain
+back; the leak is. The owner approved the multipass fix for what stages write to the living files (its D2 to D4, 15ef676f). It
+is built as a candidate on another session's local branch (`feat/multipass-placement-725e1a`) and stays off main until it is
+released. Its A/B test (E2) met the bar fixed before the first run: 12 of 12 runs passed and the five items of the bar held, one
+of them untested because the control never filed an entry as retired in six passes (6a6badb3). The multipass plan on main says,
+as of 3d5732d0, that the candidate was rebased onto the 3.9-floor release and waits for a quiet-machine tier run, a merge and
+the owner's word on the release; the branch, as read for this revision, holds the candidate rebased onto that plan commit, with
+its E2 round entry. What E2 does not show matters for a chain, which reaches the later passes by construction. The fix was tried
+on passes 1 and 2 only. The multipass work's own replay found that both entries filed as retired when new (AD-3, AD-4) were
+written by the plan stage, which the candidate's packet line does not reach (c55d0bc0); in E2 the notice caught that mislabel
+once, in the packet of a stage after `plan`; and E3, which ran without the fix on a prior that already carried the mislabel,
+filed its new decision behind it (a232cf03), so what the fix does from such a prior is not measured. So a chain waits for the
+release of the fix. Whether it should also wait for the fix to be seen past the second pass is what the multipass work's fourth
+experiment (E4) asks: six runs on passes 3 and 4 in three matched pairs, each fix run beside a run without the fix on the same
+prior, with the bar (B1 to B4), the control (K) and the predictions fixed on 2026-11-01 before any run; as of 3d5732d0 it had
+not started. Its reading rule names the case this note's lineage reading predicts: if the run without the fix does not leak on a
+tidy prior, the mislabel reads as bound to a seeded lineage (U9). The multipass journal (Rounds 2 to 4) holds the live state.
 
 ### 4.8 How it sits with the rest
 
@@ -283,8 +297,8 @@ of the fix. Whether it should also wait for the fix to be seen past the second p
 
 ## 5. Evidence so far (exploratory)
 
-Full method, the 25 rows and the limits: [the peek](experiments/follow-on-peek-20261031/README.md). One reader, Claude
-Sonnet 5.5; E2E cases only; no model was run.
+Full method, the 25 rows and the limits: [the peek](experiments/follow-on-peek-20261031/README.md). The classification is by one
+reader, Claude Sonnet 5.5, and was replayed by three other readers (the last subsection below); E2E cases only; no ShipLoop run.
 
 | Measure | Value |
 |---|---|
@@ -308,15 +322,36 @@ Reading:
   completed-but-wrong baseline: 3 of 6 baseline runs passed every check and the other 3 paused at step-plan on an
   open-assumption rule (2ae6200e). A reflection can only list what the run knew it left open.
 
-### What the multipass work adds (revisions 2 to 4)
+### The replay with other readers (revision 5)
 
-Read in full after rebasing: its [plan](shiploop-multipass-plan-2026-10-31.md), its
-[journal](shiploop-multipass-journal.md) and commits 03d046c6, aa601d37, 84b6bdd2, 1bdeac40 and 737640ca; revision 3 read
-15ef676f, c55d0bc0, c981605d, d1e5df37 and bf68e959 the same way, and revision 4 read 6a6badb3, 9d5067f3 and a232cf03 (full
-hashes in section 6). A pass is one run on the repository an earlier run left; a link is one test case that follows another;
-the delta ledger is a record kept beside each run of what it changed compared with the run before; E1, E2 and E3 are the
-multipass journal's names for its first live third pass, its A/B test of the fix for the leaks, and the live run of the fourth
-link. Most of it read eight saved runs and called no model; E1, E2 (twelve runs) and E3 are its live runs.
+M1 of section 7, run on 2026-11-01: [the replay](experiments/follow-on-replay-20261101/README.md) and journal Round 4, whose
+plan, rules and five predictions were committed before any reader was called. The rows are the 25 above plus 7 from runs
+finished since (44 more runs, so 166 finished runs now). The readers, blind to the first reader's labels, are Sol (GPT-6.1 Sol,
+xhigh) twice, the second time with the class definitions in reverse order, and Grok (grok-4.7, no tools) once.
+
+- All four readers give the same class to 28 of the 32 rows. The first reader agrees with Sol's main run on 28 rows (30 on the
+  five coarse groups, kappa 0.91), with Sol's retest on 28 (28) and with Grok on 30 (30); the three others agree with one
+  another on 30 to 32.
+- No gap is confirmed. Sol's retest called two rows gap (F01, N1); Grok did not, and each of those runs records a person as the
+  owner of the open item and no authenticated browser as the reason. The line between person, capability and gap moved with the
+  order of the definitions.
+- `decision` is the only live class: F08 (csv-report numeric forms) and F22 (the delivery route of `ticket.assigned`) for all
+  four readers; F23 is `person` for the three others. By majority 2 of 166 finished runs (1.2%); the first reader alone 3
+  (1.8%); the snapshot 3 of 122 (2.5%).
+- The classes are softest where one text mixes items of different classes (F18, F23); the follow-on list would classify entries,
+  not texts (U11).
+- Every reader had the first reader's definitions, none of the 32 rows comes from the owner's own features, and the new rows are
+  correlated.
+
+### What the multipass work adds (revisions 2 to 5)
+
+Read in full after rebasing: its [plan](shiploop-multipass-plan-2026-10-31.md), its [journal](shiploop-multipass-journal.md) and
+commits 03d046c6, aa601d37, 84b6bdd2, 1bdeac40 and 737640ca; revision 3 read 15ef676f, c55d0bc0, c981605d, d1e5df37 and bf68e959
+the same way, revision 4 read 6a6badb3, 9d5067f3 and a232cf03, and revision 5 read 3d5732d0 (full hashes in section 6). A pass
+is one run on the repository an earlier run left; a link is one test case that follows another; the delta ledger is a record
+kept beside each run of what it changed compared with the run before; E1, E2 and E3 are the multipass journal's names for its
+first live third pass, its A/B test of the fix for the leaks, and the live run of the fourth link. Most of it read eight saved
+runs and called no model; E1, E2 (twelve runs) and E3 are its live runs.
 
 - A second pass works: all 8 saved runs (four pairs) passed, and in the 4 second passes R-1 to R-5 were kept byte for byte, no
   earlier test was touched, and 0 of 19 planned test cases cite a requirement the run did not add. This is the best evidence for shape B.
@@ -329,13 +364,13 @@ link. Most of it read eight saved runs and called no model; E1, E2 (twelve runs)
   the run, three held, two missed in the good direction and one missed on a single clause (c55d0bc0). One run, one lineage.
 - Passes leak into the permanent files, and the third and fourth passes repeated both leaks (section 3.B): 8 and 9 stray
   headings and +6.0 and +6.4 KiB in `environment.md`, and a new decision born retired under `## Superseded` in both.
-- A fix for the leaks works on the passes it was tried on. The A/B test (E2: three chains of two passes on the base and three
-  on the candidate, Codex gpt-6.1-terra at xhigh) passed 12 of 12 runs and met its bar: stray headings added to
-  `environment.md` 0 in six fix passes and 7, 7, 2, 6, 5 and 8 in six control passes; a pass that added a decision changed a
-  live section of `architecture.md` in 6 of 6 fix passes against 3 of 6; second-pass time 1.02 times the control's; tokens
-  49.1 M a run against 49.0 M (6a6badb3). Its limits: three chains per arm, one pair of cases, passes 1 and 2 only, a bundle
-  whose parts were not separated, and the item that no entry is filed as retired when new held without being tested. As of
-  e13af240 the fix is not on main (section 4.7).
+- A fix for the leaks works on the passes it was tried on. The A/B test (E2: three chains of two passes on the base and three on
+  the candidate, Codex gpt-6.1-terra at xhigh) passed 12 of 12 runs and met its bar: stray headings added to `environment.md` 0
+  in six fix passes and 7, 7, 2, 6, 5 and 8 in six control passes; a pass that added a decision changed a live section of
+  `architecture.md` in 6 of 6 fix passes against 3 of 6; second-pass time 1.02 times the control's; tokens 49.1 M a run against
+  49.0 M (6a6badb3). Its limits: three chains per arm, one pair of cases, passes 1 and 2 only, a bundle whose parts were not
+  separated, and the item that no entry is filed as retired when new held without being tested. As of 3d5732d0 the fix is not on
+  main, and a test of it on passes 3 and 4 (E4) is fixed and not started (section 4.7).
 - A fourth pass works too, and a link that changes a rule changed it. The fourth link, `ticket-sla`, asks a pass to replace an
   earlier rule ("a ticket is escalated at most once" becomes "at most twice, and by priority") and to change the requirement,
   the decision behind it and the tests that state it together. It was built with an acceptance of its own and a ledger that
@@ -359,7 +394,8 @@ link. Most of it read eight saved runs and called no model; E1, E2 (twelve runs)
 
 Read in full before writing; hashes resolved with `git log -1 --format=%H`. Revision 2 corrected the `19c25538` row and added
 the rows from `589bc03e` on. Revision 3 added the rows from `15ef676f` on. Revision 4 added the rows from `6a6badb3` on and
-brought the `15ef676f`, `c981605d` and `bf68e959` rows up to date.
+brought the `15ef676f`, `c981605d` and `bf68e959` rows up to date. Revision 5 added the row for `3d5732d0` and moved the as-of
+labels to it.
 
 | Commit | What it decided or measured | Consequence here |
 |---|---|---|
@@ -384,21 +420,23 @@ brought the `15ef676f`, `c981605d` and `bf68e959` rows up to date.
 | 84b6bdd247288d3c81b2c717a7dde3bbfef7fc52 (2026-10-31) | cited the pushed commits in the multipass journal after the work landed, and scored predictions written before the live run from the run's own files | the way to cite hashes (a commit cannot cite itself) and a model for M2a's readout |
 | 737640caa50ef567d154259b7260c907a6cba5dd (2026-10-31) | corrected its own count: 32 of the 36 stray headings are the defect, 4 are the release procedure the consumer contract intends | cite 32 of 36, not 36 |
 | 39bb5d5da1cb1e36716d0ecacabcfc1725fbb3af, 87d3da8e22ee5158a6d3b877752a22eaf3e8e27b (2026-10-31) | the SG2 smoke: nine slices, all correct at implement time, the end-of-item review changed nothing; the owner closed SG2 | the same ceiling seen from the review side: where the producer writes the specified behaviour, a reflection by the same model has little to add (U1) |
-| 15ef676f7b20a95d60c8047b0a3fcdac82cb1d3f (2026-10-31) | the owner's "Approve all" to D1 to D5 of the multipass plan; the leak fix (its D2 to D4) is built as one candidate, kept off main and merged only when its A/B test (E2) meets a bar written before the first run; E2 runs three chains on the base and three on the candidate | the fix was decided, then measured (E2 met the bar, 6a6badb3); unaccepted candidate code stays off main (AGENTS.md, Decisions, 2026-10-30), so as of e13af240 a chain waits for the fix's release |
+| 15ef676f7b20a95d60c8047b0a3fcdac82cb1d3f (2026-10-31) | the owner's "Approve all" to D1 to D5 of the multipass plan; the leak fix (its D2 to D4) is built as one candidate, kept off main and merged only when its A/B test (E2) meets a bar written before the first run; E2 runs three chains on the base and three on the candidate | the fix was decided, then measured (E2 met the bar, 6a6badb3); unaccepted candidate code stays off main (AGENTS.md, Decisions, 2026-10-30), so as of 3d5732d0 a chain waits for the fix's release |
 | c55d0bc0ad21a2c477d024067378d0c3b1241959 (2026-10-31) | E1, the first live third pass: 13 of 13 checks and 14 of 14 hidden checks passed, R-1 to R-7 kept, both leaks repeated (8 stray headings, +6.0 KiB, AD-4 born retired); an offline replay found that the candidate's packet line does not reach the plan stage, which wrote both entries filed as retired when new | a third pass works and leaks again; the candidate may not stop the born-retired entry alone (the multipass journal's F10) |
 | c981605d36019f0036693883e838207e3edf348d, d1e5df376a2c883263caa81f2e1a53ae7f864d99 (2026-10-31) | the owner chose that another session's two test-writing pilots take the shared port-4180 lane (the machine-wide lease that live runs take one at a time) before E2 continues; E2 was held 41 min 41 s (17:47:28 to 18:29:09), 31 min 21 s of it with nobody holding the lane, and resumed by itself; wall-clock time only, no build, bar or scoring changed | live runs from different sessions queue for one lane in the order the owner sets; E2 and E3 have since ended (6a6badb3, a232cf03), and M2a takes its turn behind whatever the owner orders next |
 | bf68e9590a009e3087c7acfefa895d158d9b7034 (2026-10-31) | `ticket-sla`, the fourth link, built after E1 passed: a request that replaces an earlier rule, an acceptance of its own, a ledger that says whether the old rule was changed or left standing, and 11 hand-written variants graded; its first live run is E3 (a232cf03) | the nearest fixture for acting on a `decision`; it ran once and shows mechanics, not value; M2b still lacks a case that starts from a real leftover |
-| df44fd30d19455515cc2434dd21b18520e2a5f48 (2026-10-31) | a candidate for another change failed `shiploop-package-integrity`: it grew the skill card by 700 bytes to 30,655, which is 155 above the 30500-byte bound; the bound is kept, not raised | a build of this design had about 545 bytes for card text then and has about 489 as of e13af240 (section 8) |
-| 6a6badb3e6b8bd858015817c40ee216addf76ba6 (2026-10-31) | E2, the A/B test of the multipass fix: 12 of 12 runs passed and the bar written before the first run held; stray headings added to `environment.md` 0 in six fix passes against 2 to 8 in the control; second-pass time 1.02 times, tokens 49.1 M against 49.0 M; the notice caught the mislabel once live; the fix was tried on passes 1 and 2 only, is a bundle, and the item that no entry is filed as retired when new held untested; the candidate stays on a local branch and the release is the owner's call | a fix for the leaks exists and works where it was tried, so as of e13af240 a chain waits for its release and not for a measurement; the passes it was not tried on are the ones a chain reaches (U9) |
+| df44fd30d19455515cc2434dd21b18520e2a5f48 (2026-10-31) | a candidate for another change failed `shiploop-package-integrity`: it grew the skill card by 700 bytes to 30,655, which is 155 above the 30500-byte bound; the bound is kept, not raised | a build of this design had about 545 bytes for card text then and has about 489 as of 3d5732d0 (section 8) |
+| 6a6badb3e6b8bd858015817c40ee216addf76ba6 (2026-10-31) | E2, the A/B test of the multipass fix: 12 of 12 runs passed and the bar written before the first run held; stray headings added to `environment.md` 0 in six fix passes against 2 to 8 in the control; second-pass time 1.02 times, tokens 49.1 M against 49.0 M; the notice caught the mislabel once live; the fix was tried on passes 1 and 2 only, is a bundle, and the item that no entry is filed as retired when new held untested; the candidate stays on a local branch and the release is the owner's call | a fix for the leaks exists and works where it was tried, so as of 3d5732d0 a chain waits for its release and not for a measurement; the passes it was not tried on are the ones a chain reaches (U9) |
 | 9d5067f3d6b38ff0231e3e98835d78fb96e5a37a (2026-10-31) | `ticket-sla`'s first live run was recorded FAILED on a retention word copied from the previous link, and its ledger pattern for the old rule came from the request and not from a real prior pass; the calibration had exercised one of two routes through the check; both fixed, with three tests that fail on the old file | a case's checks are written from a real prior pass and tried on each route; a case built for M2b must be (section 7) |
 | a232cf038789b532c8485c7583136177cb6be929 (2026-10-31) | E3, the first live fourth pass, on published ShipLoop with no fix: the delivery was right (16 of 16 hidden checks, R-7 changed in place, 8 IDs kept), recorded FAILED on the wrong check and passing with it corrected; 9 stray headings; AD-5 born retired behind AD-3 and AD-4, already under `Superseded` | the mislabel persists once a lineage has it (n=2, one lineage, exploratory); whether a pass retires the old decision needs a prior without the mislabel; `ticket-sla` supplies mechanics, not value |
+| 3d5732d017899a6d486b3249915284793af19d3a (2026-11-01) | E4 fixed before any run: the multipass fix on passes 3 and 4, six runs in three matched pairs (a seeded prior, a tidy prior that ends with `Superseded`, and a pass-4 `ticket-sla` from the tidy one), each fix run beside a run without the fix on the same prior; bar B1 to B4, control K and predictions P1 to P8 written first; it names this note's lineage reading and U9 as its question; not started | U9's question has a pre-registered test: a chain waits for the release, and the owner may want E4's result before deciding D2; E4's reading rule says what each outcome means for the lineage reading |
 
 ## 7. Measurement plan
 
-### M1. Replay with a second reader (offline, routine)
+### M1. Replay with a second reader (offline; done 2026-11-01, revision 5)
 
 - Set: the strict rows of `peek.json` at the time, plus any finished runs under the experiment roots the peek skipped
-  (`~/e2e-runs-xr`, `-s7`, `-pf`, `-multipass`); whether those roots hold runs that reached handoff has not been checked.
+  (`~/e2e-runs-xr`, `-s7`, `-pf`, `-multipass`); checked 2026-11-01: `-xr` holds 17 runs that reached handoff, `-multipass` 14
+  and `-pf` 6, `-s7` none; the 7 new rows come from those roots, `-hostonly` and `~/e2e-runs`.
 - Readers: the frozen first classification; a second, materially distinct model reader, blind to those labels, given the text
   and the class definitions of `classification.json` and the run's request sentences.
 - Measures: agreement on the coarse classes, and on `gap` and `decision` in particular; every disagreement looked at by a third
@@ -411,6 +449,14 @@ brought the `15ef676f`, `c981605d` and `bf68e959` rows up to date.
   - If readers cannot agree on `decision` versus `extension` (rows 22 and 11 are the test), the class cannot be script-routed.
     Fall back to showing the non-note leftovers unclassified.
 - Cost: model calls on a few dozen short texts. No ShipLoop run; the owner's live hold is respected.
+- Result (2026-11-01; [the replay](experiments/follow-on-replay-20261101/README.md), journal Round 4; the rules and five
+  predictions were committed before any reader was called): 32 rows (the 25 and 7 new); readers Sol twice (the second time with
+  the classes in reverse order) and Grok once, all blind to the first reader's labels. All four label 28 of 32 rows alike. No
+  gap is confirmed (Sol's retest called two rows gap, Grok did not and each run's own record names a person as owner), so the
+  second rule applies: `decision` is the only live class, 2 rows by majority (F08, F22) and 3 by the first reader, out of 166
+  finished runs (1.2% to 1.8%), and the recommendation stays not to build until runs of the owner's own features show more. The
+  third rule is met by one row: Jaccard 2/3 on the decision rows (F23 is `person` for the three other readers); the test rows
+  F22 and F11 agree across all four.
 
 ### M2. Live measurements (need the owner's go)
 
@@ -424,9 +470,10 @@ pass from it, and set it beside the chain's hand-written delta prompt on the sam
 the plan stays on the delta (the multipass journal's F4: no planned test case cites a kept requirement); where the new knowledge
 lands, as the ledger reads it. Write the predictions in the journal before the run, as the multipass Round 1 did, and score them
 from the run's own files. It shares the machine-wide lease on port 4180 with other sessions' runs, which take it one at a time.
-E1, E2 and E3 have finished (E1 supplies the hand-written third-pass baseline, E3 the fourth), and the multipass plan names a
-second chain on a smaller base as its next live work, so M2a queues behind whatever the owner orders next. The multipass journal
-(Rounds 2 and 3) holds the live state; as of e13af240 none of its live runs is recorded as in progress.
+E1, E2 and E3 have finished (E1 supplies the hand-written third-pass baseline, E3 the fourth). As of 3d5732d0 the multipass plan
+has E4 (six runs, about 1 h 45 min of Terra, one at a time on the lane) fixed and not started, then a second chain on a smaller
+base, so M2a queues behind them or behind whatever the owner orders next. The multipass journal (Rounds 2 to 4) holds the live
+state.
 
 M2b. Value: does a follow-on run repair a delivery that is wrong? Still no case: every pass in the ticket chain passes (E1 and
 E3 included), and XI's baseline failures were stalls. Calibrate a brownfield case whose first run completes and fails a held-out
@@ -474,8 +521,9 @@ Touchpoints, by symbol; nothing here is designed in detail.
 - Cost to check: the handoff head's headroom against `test/shiploop_e2e/head_table.json` is unmeasured; the offline render diff
   decides.
 - The skill card has a byte bound: `card_max_bytes` is 30500 in `test/fixtures/shiploop-card-ledger.json`, and
-  `skills/shiploop/SKILL.md` is 30,011 bytes as of e13af240 (it was 29,955 at df44fd30 and at 17cbbd9b; release 2.27.2 added
-  one sentence naming the Python 3.9 floor, 56 bytes, in 94bccf23), so a build has about 489 bytes for card text. Earlier designs worked around the bound: one left the card untouched
+  `skills/shiploop/SKILL.md` is 30,011 bytes as of 3d5732d0 (it was 29,955 at df44fd30 and at 17cbbd9b; release 2.27.2 added one
+  sentence naming the Python 3.9 floor, 56 bytes, in 94bccf23, and nothing has changed it since), so a build has about 489 bytes
+  for card text. Earlier designs worked around the bound: one left the card untouched
   (`docs/shiploop-check-phases-bc-plan-2026-10-28.md`), another wrote only a short form of its text there
   (`docs/shiploop-owed-outcome-journal.md`), and a candidate for another change failed `shiploop-package-integrity` by exceeding
   it on 2026-10-31 (df44fd30). Put the follow-on duty in the packets and a reference file, not in the card.
@@ -491,15 +539,15 @@ the build plan.
 | weakens a clause | S-10: a chain with no exit | mitigated: exit by an empty `gap` list or a repeated `gap`; no count; no chain without D2 |
 | weakens a clause | S-12: a second parser for requests or lessons | mitigated: reuse `shiploop_request` and `shiploop_knowledge_home` |
 | other style, host, platform | the printed command breaks under a host's quoting | mitigated: command substitution of a file; test on each host's adapter |
-| fails silently | the model files a real gap under `note` | accepted: same as today; M1's second reader measures it |
+| fails silently | the model files a real gap under `note` | accepted: same as today; M1 measured it: all four readers label the same 11 rows `note`, and none of them a gap |
 | passes tests, fails live | a list that validates but never recommends | open: M2 |
 | model-written glue, dead ends | a malformed list refuses `complete` with no exit | mitigated: the refusal states the exit and a test submits it through the real CLI |
 | enlarges packets | the handoff head grows | open: measure against `head_table.json` |
 | leaks, touches user work | the request file quotes result text | mitigated: it is written under `RUN`, outside the repository, through the existing privacy screens |
 | breaks saved runs, pins | a required key refuses a saved run at handoff | accepted: the stored shape is loose and the key is checked at the CLI gate only, as for `unverified`; no state version bump is expected |
-| costs more than it saves | a second prelude for a 2% case | open: D4; M3 |
+| costs more than it saves | a second prelude for a 1% to 2% case (the replay: 2 to 3 decisions in 166 runs) | open: D4; M3 |
 | gamed | the model classifies for effect (everything `note`, or `gap` to start runs) | mitigated: citations resolve; `gap` needs an S<n>; the full list is shown; no target metric on the count |
-| compounds with the pass number | a chain of follow-on runs adds to the leaks the multipass journal measured (F1 to F3), and the live third and fourth passes repeated them, both filing their new decision as retired | open: recommend-only is no worse than a person-started pass; as of e13af240 a chain waits for the release of the multipass fix, which met its A/B test (E2) and was tried on passes 1 and 2 only (U9) |
+| compounds with the pass number | a chain of follow-on runs adds to the leaks the multipass journal measured (F1 to F3), and the live third and fourth passes repeated them, both filing their new decision as retired | open: recommend-only is no worse than a person-started pass; as of 3d5732d0 a chain waits for the release of the multipass fix, which met its A/B test (E2) and was tried on passes 1 and 2 only; E4 tests passes 3 and 4 and had not started (U9) |
 
 Anchor: S-14 (a step that needs a person records an open item) and S-11 (the next run builds on retained knowledge); the run
 evidence is thin (3 decisions in 122 runs), which is why section 7 comes first. Non-regression: no outcome, stage, loop or
@@ -509,18 +557,18 @@ limit changes.
 
 | | Question | Recommendation |
 |---|---|---|
-| D1 | Shape: follow-on run, in-run back edge, or stay manual | a follow-on run; stay manual until M1 reports |
-| D2 | Recommend-only, or auto-start a chain for `gap` entries | recommend-only; auto-start only after M2b shows a use and the multipass fix for what stages write has met its A/B test (E2: met) and been merged (as of e13af240: not yet; tried on passes 1 and 2 only, U9) |
+| D1 | Shape: follow-on run, in-run back edge, or stay manual | a follow-on run if one is built; stay manual until runs of the owner's own features show more (M1 reported: no gap, two to three decisions in 166 runs) |
+| D2 | Recommend-only, or auto-start a chain for `gap` entries | recommend-only; auto-start only after M2b shows a use and the multipass fix for what stages write has met its A/B test (E2: met) and been merged (as of 3d5732d0: not yet; tried on passes 1 and 2 only, E4 on passes 3 and 4 fixed and not started, U9) |
 | D3 | A dollars or minutes ceiling on a chain | none proposed; yours if you want one, ending in a report |
-| D4 | Build the recommend-only list now, or measure first | measure first (M1), then decide |
+| D4 | Build the recommend-only list now, or measure first | M1 is done and says do not build now: build the recommend-only list only when runs of the owner's own features show decisions or gaps, and rerun the peek and the replay then (minutes, a few model calls) |
 
 Decided here as routine and reversible: the term "follow-on"; the list lives in the handoff result; no new verb or option; the
 start command uses command substitution of the request file.
 
 ## 11. Unknowns and rejected ideas
 
-- U1. Whether the producing model classifies as a second reader would. M1 measures a second reader on saved text, not the
-  producing model at handoff.
+- U1. Whether the producing model classifies as a second reader would. M1 measured it on saved text: three other readers
+  reproduce the first reader's classes on 28 of 32 rows (the producing model at handoff is still not measured).
 - U2. IN1 requires intake to cite every sentence of the request. A follow-on request that quotes the whole original would put
   those sentences under IN1. The draft passes the original by path, not by value; whether intake handles a quoted original
   is untested. The multipass cases pass a delta-only request and their runs planned only the delta (the live third pass too:
@@ -531,20 +579,22 @@ start command uses command substitution of the request file.
 - U4. The host's stop hook releases at `done`; a chain needs the host to start the next run in the same turn or the driver to.
   Untested.
 - U5. A `capability` entry can be closed only by a host that has the capability. The script cannot know the next host.
-- U6. The line between `gap` and `extension` is the one the owner's phrase "which we have now understood and learned" draws:
-  a gap cites a request sentence or a refuted assumption; an extension adds scope. No real gap exists in the archive to test it.
+- U6. The line between `gap` and `extension` is the one the owner's phrase "which we have now understood and learned" draws: a
+  gap cites a request sentence or a refuted assumption; an extension adds scope. No real gap exists in the archive to test it:
+  the replay's readers found none either (two Sol-retest candidates were not gaps).
 - U7. Substantial features that "haven't concluded" are not in the archive (the corpus is small and every completed run already passes, and the only two
   runs of the owner's own features were unfinished).
 - U8. Whether `release-verify`, whose lessons are written before `operations`, or `handoff` is the better owner of the list.
   The handoff was chosen because it restates and sees operations.
-- U9. Chains past three passes. A third and a fourth pass have run (multipass E1, E3): both delivered what they were asked
-  and kept every earlier requirement ID, and the permanent-file leaks recurred in both. Whether the leaks grow faster than the
-  pass number is not settled: in bytes the third and fourth passes sit inside the second passes' range (+6.0 and +6.4 KiB
-  against 4.5 to 6.4), and in stray-heading count they sit at 8 and 9 against 1 to 8; the born-retired decision is what persists
-  (one of the four saved second passes made it, none of E2's six control passes did, and both later passes continued that
-  lineage; n=2, one lineage). The fix for the
-  leaks was, as of e13af240, tried on passes 1 and 2 only (E2), and a chain reaches the later passes by construction. One
-  lineage, one run per pass.
+- U9. Chains past three passes. A third and a fourth pass have run (multipass E1, E3): both delivered what they were asked and
+  kept every earlier requirement ID, and the permanent-file leaks recurred in both. Whether the leaks grow faster than the pass
+  number is not settled: in bytes the third and fourth passes sit inside the second passes' range (+6.0 and +6.4 KiB against 4.5
+  to 6.4), and in stray-heading count they sit at 8 and 9 against 1 to 8; the born-retired decision is what persists (one of the
+  four saved second passes made it, none of E2's six control passes did, and both later passes continued that lineage; n=2, one
+  lineage). The fix for the leaks was, as of 3d5732d0, tried on passes 1 and 2 only (E2), and a chain reaches the later passes
+  by construction. E4 (fixed 2026-11-01, not started) asks the question with a run without the fix beside each fix run: whether
+  the mislabel is bound to a seeded lineage or grows with the pass number, a tidy prior that ends with `Superseded` being its
+  hard case. One lineage, one run per pass so far.
 - U10. A `decision` that changes an earlier requirement is the multipass plan's modifying link, `ticket-sla` (built and
   calibrated on hand-written variants; run live once, E3). E3 changed the requirement in place and kept every ID, but how a
   pass retires or supersedes an earlier decision in the living files is still untested on a model: the old decision was
@@ -552,6 +602,9 @@ start command uses command substitution of the request file.
   either way. A clean test needs
   a prior made without the mislabel, and a follow-on run acting on such a decision depends on it. The failure seen live is
   the reverse: a new decision filed under `## Superseded` and so born retired (E1, E3).
+- U11. The replay classified whole texts, one class each, and the texts that mix items (F18, F23) split the readers. The
+  follow-on list classifies entries one by one. Whether readers agree entry by entry is not measured; a replay over entries
+  split by hand would measure it.
 
 Rejected: a size threshold (a number nobody can know, and big is not unfinished); asking the user at the end (S-14); a
 reflection stage with an Improve-style loop (no checkable exit); gating `done` on the list (honest runs would be refused);

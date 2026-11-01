@@ -334,8 +334,9 @@ second time and the card figure it stated was corrected before the push.
 
 Open: the replay with a second reader (design section 7, M1), which could now include the runs under `~/e2e-runs-multipass` (whether
 they reached handoff is not checked); M2a, after whatever the owner orders on port 4180 next (the multipass plan names a smaller second
-chain); the fix's release and a fix-arm third or fourth pass (the multipass journal's next measurements); the owner's D1 to D4; a
-revision 5 when the fix is released or a fix-arm later pass reports.
+chain); the fix's release and a fix-arm third or fourth pass (the multipass journal's next measurements); the owner's D1 to D4; a revision 5 when the fix is released or a fix-arm later pass reports. (Superseded 2026-11-01 by Round 4: the replay is done and its set included the
+`-multipass` runs, 14 of which reached handoff; revision 5 folds in the replay and E4's pre-registration, so the next revision waits for the fix's release or an
+E4 result.)
 
 ## Round 4 — 2026-11-01 — the replay with a second reader (design section 7, M1)
 
@@ -451,5 +452,24 @@ Routine decisions: the post-hoc statistics are in `extra_stats.py`, separate fro
 the raw replies are kept in `readers/` and the readers' thinking summaries are not; the third look at the two gap candidates was made even though rule G was already not met
 (Grok did not agree), to record why they are not gaps.
 
-Open: revision 5 of the design folds this result in (the next commit); the owner's D1 to D4; M2a and M2b as before; a rerun of `peek.py` and this replay when runs of the owner's
-own features have finished (the cost is a few minutes and a few model calls).
+Open: revision 5 of the design folds this result in (the commit after this result, described below); the owner's D1 to D4; M2a
+and M2b as before; a rerun of `peek.py` and this replay when runs of the owner's own features have finished (the cost is a few
+minutes and a few model calls).
+
+Changed in the design (revision 5, the commit after this result): the header, sections 1, 2, 3.B, 3.C, 4.7, 5 (a subsection for
+the replay; the multipass bullets), 6 (the row for 3d5732d0, the as-of labels), 7 (M1 done with its result; M2a's lane), 8 (the
+card figure's as-of), 9 (three rows), 10 (D1, D2, D4) and 11 (U1, U6, U9 and a new U11). D1 to D4 keep their recommendations:
+the replay applies the design's own reading rule, so D1 and D4 lose the wait for M1 and now say what to wait for instead (runs
+of the owner's own features). The peek's README marks its "one reader" claims as superseded.
+
+Facts re-checked against 3d5732d0 (main moved while the replay ran, and the multipass work pre-registered its Round 4 there):
+the multipass plan and journal changed (E4 fixed on 2026-11-01 before any run: six runs in three matched pairs on passes 3 and
+4, each fix run beside a run without the fix on the same prior, bar B1 to B4, control K, predictions P1 to P8; not started);
+`skills/shiploop/SKILL.md` is still 30,011 bytes against 30500 and the card ledger is unchanged; the candidate is still only on
+the other session's local branch, rebased onto 3d5732d0. The multipass Round 4 names this journal's F21 to F26 reading (the
+mislabel persists once a lineage has it) as one of the two readings E4 separates, and U9 as the open question. Its reading rule
+says what each outcome would mean: a run without the fix that does not leak on the tidy prior would read as the mislabel bound
+to a seeded lineage.
+
+Superseded (marked 2026-11-01): the design's statements that M1 was a plan or that no second reader had classified the rows
+(sections 1, 3.C, 7, 10, 11); Round 3's "Open: the replay with a second reader" (done, Round 4).
