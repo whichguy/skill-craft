@@ -179,6 +179,27 @@ head tables are then rerun, and the release round runs on what remains.
   - A hidden-check failure is compared with the case's rows on `main` (SP1, R3). If it is not explained, there is no release.
   - A send-back of another class is recorded and does not block.
 
+## Release round, as it runs (registered before its first delivery, after X-A's verdict)
+
+A2b was reverted (68985caf). The branch, with origin/main merged in at 2b97a07e (ShipLoop 1.30.2 plus A1, A2a and D), runs the release round
+from its own checkout. The launcher is `launch_release_round.sh`, with lanes of 3, run.py, Codex Terra 6.1 xhigh and `--source checkout`.
+It runs `shared-expenses` s1 to s3 and `csv-report` s1 to s3 into `~/e2e-runs-sp/20261101/round2-release/`.
+
+- **Predictions:**
+  - no implement send-back of form 1, a Proof whose inline code runs a test file the base lacks, because A1 refuses that at step-plan;
+  - no test-spec send-back for RED on the empty base (D);
+  - every hidden check passes: shared-expenses 6 of 6 and csv-report 5 of 5 per run.
+- **Counted, not ruled:**
+  - form 2 send-backs (the focused suite verbatim or filtered), whose wording change did not ship;
+  - F31 confirm-by send-backs, which belong to the F31 session's check;
+  - every other send-back.
+- **Responses:**
+  - a form-1 or RED send-back means A1 or D does not work: stop, find why, and do not release that change;
+  - a hidden-check failure is compared with the cases' rows on main (SP1 xhigh csv-report 3 of 3 pass; R3 shared-expenses 20 of 20 at
+    high). If it is not explained, there is no release.
+- **The scorer** is `score_release.py`. It reads each run's `result.json`, its hidden checks, and every send-back with its stage and
+  summary. Classes come from the same reading as `corpus/sendback_classes_127plus.jsonl`.
+
 ## Not ruled here
 
 - **Proof command defects** (quoting, a wrong API, a wrong state transition) get no build. `bash -n` catches none of them, and a dry run can
