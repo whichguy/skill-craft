@@ -1,0 +1,55 @@
+# Live check output, 2026-10-31 (paths shortened: ~ is the home folder)
+
+## run 1: battleship-salesforce, prefix SLBtlHo9a87 (live_check.py on the run folder)
+====================================================================================================
+run: ~/e2e-runs-hostonly/20261031/sf-live-2/.shiploop-runs/work-20261101-014507-ffd2a3/run
+status: done | work items: ['W1']
+timeline: intake:done > discovery:done > research:done > spec:done > test-strategy:done > plan:done > prepare:done > step-plan/W1:done > test-spec/W1:done > validate-existing/W1:done > implement/W1:done > test/W1:send-back > step-plan/W1:done > test-spec/W1:done > validate-existing/W1:done > implement/W1:done > test/W1:done > document/W1:done > implement/W1:done > test/W1:done > document/W1:done > implement/W1:done > test/W1:done > document/W1:done > implement/W1:done > test/W1:done > document/W1:done > carry-forward/W1:done > system-test-author:done > system-test:done > product-acceptance:done > release-plan:done > release-check:done > release:done > release-verify:done > operations:done > handoff:done
+send-backs, refusals and blocks in the timeline: ['test/W1:send-back']
+
+test-strategy targets that keep state (route B): {'de org': 'Inventory named metadata; the starting org has no deployed run-owned test class and base cannot pass the new test suite.'}
+
+-- signal 1: step-plan test commands
+   W1: REGRESSION target=de org sf apex run test --target-org de --class-names SLBtlHo9a87EngineTest --synchronous --result-format human --cod
+   W1: focused    target=None sh ~/e2e-runs-hostonly/20261031/sf-live-2/.shiploop-runs/work-20261101-014507-ffd2a3/run/scratch/
+   W1: focused    target=None python3 ~/e2e-runs-hostonly/20261031/sf-live-2/.shiploop-runs/work-20261101-014507-ffd2a3/run/scr
+   W1: check      target=None python3 -m json.tool sfdx-project.json
+
+-- signal 2: system-test-author system_commands
+   suite=focused    host_dependent=None ids=2 sf apex run test --target-org de --class-names SLBtlHo9a87EngineTest --synchronous --result-format h
+   suite=check      host_dependent=None ids=0 node ~/e2e-runs-hostonly/20261031/sf-live-2/.shiploop-runs/work-20261101-014507-ffd2a3/
+   suite=check      host_dependent=None ids=0 python3 ~/e2e-runs-hostonly/20261031/sf-live-2/.shiploop-runs/work-20261101-014507-ffd2
+   suite=check      host_dependent=None ids=0 python3 ~/e2e-runs-hostonly/20261031/sf-live-2/.shiploop-runs/work-20261101-014507-ffd2
+
+-- signal 3 and 4: system-test records
+   no drift-check run recorded (the check skipped every hosted-runtime command, or system-test has not run)
+   refusals naming host-dependent in the timeline: none
+
+## run 2: battleship-salesforce-ui, prefix SLNvHo250f (live_check.py on the run folder)
+====================================================================================================
+run: ~/e2e-runs-hostonly/20261031/ui-live-2/battleship-run
+status: done | work items: ['W1']
+timeline: intake:done > discovery:done > research:done > spec:done > test-strategy:done > plan:done > prepare:done > step-plan/W1:done > test-spec/W1:done > validate-existing/W1:done > implement/W1:done > test/W1:done > document/W1:done > implement/W1:send-back > step-plan/W1:done > test-spec/W1:done > validate-existing/W1:done > implement/W1:done > test/W1:done > document/W1:done > implement/W1:done > test/W1:done > document/W1:done > carry-forward/W1:done > system-test-author:done > system-test:done > product-acceptance:done > release-plan:done > release-check:done > release:done > release-verify:done > operations:done > handoff:done
+send-backs, refusals and blocks in the timeline: ['implement/W1:send-back']
+
+test-strategy targets that keep state (route B): {'Salesforce de org': 'The prefixed classes do not exist before deployment; fresh in-memory game per test.'}
+
+-- signal 1: step-plan test commands
+   W1: focused    target=Salesforce de org sf apex run test --target-org de --class-names SLNvHo250fEngineTest --synchronous --result-format human --code
+   W1: focused    target=Fresh authenticated browser session battleship-ui
+
+-- signal 2: system-test-author system_commands
+   suite=focused    host_dependent=True ids=10 sf apex run test --target-org de --class-names SLNvHo250fEngineTest --synchronous --result-format hu
+   suite=focused    host_dependent=True ids=1 battleship-ui
+
+-- signal 3 and 4: system-test records
+   no drift-check run recorded (the check skipped every hosted-runtime command, or system-test has not run)
+   refusals naming host-dependent in the timeline: none
+
+## counterfactual: run 1's real state with the org command marked host_dependent, per plugin version
+plugin 2.27.0: stateful targets ['de org']
+  marked ids: 2  |  commands the check asked to run: 1  |  refusals: 1
+  asked: sf apex run test --target-org de --class-names SLBtlHo9a87EngineTest --synchronous --result-format human --cod
+  refusal: host-dependent-in-default-suite | shown: ['TC_ENGINE', 'TC_CONTROLLER']
+plugin 2.27.1: stateful targets ['de org']
+  marked ids: 2  |  commands the check asked to run: 0  |  refusals: 0

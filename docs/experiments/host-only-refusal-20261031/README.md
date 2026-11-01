@@ -93,6 +93,7 @@ reference sentence); CI runs the quick tier on the pushed tree.
 - Whether a live Salesforce run now passes system-test without the send-back is untested. The next one is the test: its
   trace should show no `host-dependent-in-default-suite`, the command in the system rows still marked, and the native
   suite still `focused` with its IDs counted.
+  Update 2026-10-31: two live runs did not reach the fixed path (see Live check); the next one that does is the test.
 - S2 part (a), the item 6 wording of system-test-author, is not changed. It would tell the author a case the default
   command already runs is never `host_dependent`, which drops the truthful mark; it is not needed once the check is
   correct, and it still needs the 40-call side test.
@@ -114,3 +115,43 @@ Added after publication, 2026-10-31. The findings above keep their status: F1, F
 | hosts | Claude and Grok updated from 2.27.0 to 2.27.1, Codex marketplace upgraded; each installed copy of shiploop_test_loop.py was checked for the new docstring: Claude cache 2.27.1, Codex (codex plugin list shows skill-craft@whichguy 2.27.1) and Grok installed plugin all hold it; Cursor not refreshed (its app) |
 | CI on main | both passed. The fix commit's run 41257845999 passed plan, release-boundary and the quick tests (the quick job took about 11 minutes); the release commit's run 41257977788 passed the full tier (core, shiploop-1, shiploop-2, shiploop-3, e2e-apparatus), release-boundary and plan |
 | live check | open: the next live Salesforce run, which needs the owner's go to deploy to the org |
+
+## Live check
+
+Added 2026-10-31 after the owner's go (answer "3": run the live check, and apply the three defaults). Two full runs on the
+published plugin (skill-craft 2.27.1, ShipLoop 1.26.1; Codex gpt-6.1-terra, xhigh), each launched from a detached checkout of
+origin/main with its own platform prefix in org `de`. The org lease is exclusive, so they ran one after the other, and both
+cleanups were verified. Output: `live-check-output.txt`. Scripts: `live_check.py` (the four signals from a run's records) and
+`counterfactual.py` (the replay in L2).
+
+| | run 1 | run 2 |
+|---|---|---|
+| case and prefix | battleship-salesforce, SLBtlHo9a87 | battleship-salesforce-ui, SLNvHo250f |
+| time | 27.6 minutes | 25.2 minutes |
+| harness verdict | pass | fail on `committed` only (L3) |
+| org checks, cleanup | pass, pass | pass, pass |
+| step plan lists the org test command as a regression command | yes, in the second plan, after a test-stage send-back | no, both test rows are focused |
+| system-test author marks the org command `host_dependent` | no (four rows, none marked) | yes, and the browser check too |
+| system test | passed first time | passed first time |
+| anything for the drift check to do | no: nothing marked | no: no regression command |
+
+- L1, firm: neither run exercised the fixed path. Each met one of its two preconditions (a regression row for the org command,
+  and a mark on it) and not the other, so the old check would have passed both runs as well. They are no-regression samples:
+  with the fix, system test passed first time in both and no row was refused.
+- L2, firm (offline, on a live state): run 1's real state, with only the mark added to the org command, was given to each
+  version's `default_suite_drift`. Plugin 2.27.0 asks to run the org command and refuses `host-dependent-in-default-suite`
+  (shown ids TC_ENGINE and TC_CONTROLLER); plugin 2.27.1 asks to run nothing and refuses nothing. The inputs are real (the
+  run's test strategy declares `de org` as keeping state, its step plan has the regression row, its system rows); the output
+  the stub returns for the org command is invented.
+- L3, interim, unrelated to the fix: run 2 failed the harness's `committed` verdict. The model started ShipLoop with `init` and
+  its own run folder (`battleship-run`) instead of `workspace start`, so the harness's `work` folder was never a git repository
+  and the product copied into it was never committed; run 1 used `workspace start` and passed. Whether this is a model slip or
+  a gap in the start guidance is not examined. The run's `mismatch.md` is left unfilled and `test/shiploop_e2e/LEARNINGS.md`
+  untouched on purpose: the release preflight reads that file's commit order, and these runs are not an E2E round that
+  vouches for the release.
+- Context, exploratory: of 9 earlier unseeded Salesforce runs (final system-test-author result), the Terra runs marked some row
+  `host_dependent` in 3 of 4 and Grok in 0 of 5, so the author's choice varies; the step plan's `regression` flag varied
+  between the two runs today as well.
+
+What stays open: the joint case (a marked org command that is also a regression command) has not been seen live. A third
+run would have to hope for both choices at once; L2 already shows the difference on real state.
