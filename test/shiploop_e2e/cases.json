@@ -718,7 +718,7 @@
       "git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard | grep -v '\\.log$' | while IFS= read -r f; do [ -e \"$f\" ] || { echo \"missing $f\"; exit 1; }; done",
       "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stringify(Object.keys({...p.dependencies,...p.devDependencies}).sort())}catch{return \"[]\"}};process.exit(deps(\".\")===deps(process.env.PRIOR_WORK)?0:1)'",
       "count() { (cd \"$1\" && node --test 2>&1) | sed -nE 's/^(ℹ|#) pass ([0-9]+).*/\\2/p' | tail -1; }; before=$(count \"$PRIOR_WORK\"); after=$(count .); echo \"tests $before -> $after\"; [ -n \"$after\" ] && [ \"${after:-0}\" -ge \"${before:-0}\" ] || { echo \"fewer tests pass than in the followed run\"; exit 1; }; added=$(diff -rN \"$PRIOR_WORK/test\" test 2>/dev/null | grep \"^>\"); [ -n \"$added\" ] || { echo \"the test files are unchanged since the followed run\"; exit 1; }; for word in high; do printf \"%s\\n\" \"$added\" | grep -qi \"$word\" || { echo \"no added test line names $word\"; exit 1; }; done; echo \"no fewer tests pass, and the added test lines name the high priority\"",
-      "ids() { grep -oE '\\bR-[0-9]+\\b' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); added=$(comm -13 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; covered=no; grep -qi comment docs/shiploop/spec.md && ! grep -qi comment \"$PRIOR_WORK/docs/shiploop/spec.md\" && covered=yes; echo \"earlier ids: $earlier; missing: $missing; added: $added; feature in spec: $covered\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ] && { [ -n \"$added\" ] || [ \"$covered\" = yes ]; }",
+      "ids() { grep -oE '\\bR-[0-9]+\\b' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); added=$(comm -13 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; covered=no; grep -qi ESCALATE_HIGH_MINUTES docs/shiploop/spec.md && ! grep -qi ESCALATE_HIGH_MINUTES \"$PRIOR_WORK/docs/shiploop/spec.md\" && covered=yes; echo \"earlier ids: $earlier; missing: $missing; added: $added; feature in spec: $covered\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ] && { [ -n \"$added\" ] || [ \"$covered\" = yes ]; }",
       "ids() { grep -oE '\\bAD-[0-9]+\\b' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; echo \"earlier decision ids: $earlier; missing: $missing\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ]"
     ],
     "retention_source": "SPEC S-11: knowledge from the followed run is retained in the repository and built on, as in ticket-comments: every earlier file kept, no dependency added, no fewer tests passing with the added test lines naming the high priority, the living spec keeping every earlier requirement ID while it records the new rule (the escalation requirement may move under Retired, which keeps its ID), and the architecture keeping every earlier decision ID (the escalation decision may move under Superseded)",
@@ -821,13 +821,13 @@
     "delta": {
       "may_change": {
         "spec.md": [
-          "at most once"
+          "escalat"
         ],
         "architecture.md": [
           "escalat"
         ]
       },
-      "source": "the request replaces the rule 'a ticket is escalated at most once': the requirement that states it and the decision behind it are what it may change"
+      "source": "the request replaces the rule 'a ticket is escalated at most once': the requirement that states it and the decision behind it are what it may change. The patterns read the earlier entries' own words, and the third pass wrote that rule as 'enqueued once' under 'Urgent escalation' and 'Bulk assignment and escalation', so both patterns are 'escalat'"
     }
   },
   "gym-membership-salesforce": {

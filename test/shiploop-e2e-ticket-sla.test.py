@@ -23,6 +23,7 @@ import copy
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -35,6 +36,7 @@ sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 sys.path.insert(0, str(ROOT / "test" / "fixtures" / "quality"))
 
 import chains  # noqa: E402
+import delta  # noqa: E402
 import quality  # noqa: E402
 import reference_ticket_comments as third  # noqa: E402
 import reference_ticket_sla as sla  # noqa: E402
@@ -128,6 +130,23 @@ class CaseDeclarationTest(unittest.TestCase):
         self.assertIn("for word in high;", RETENTION[2])
         self.assertTrue(any("AD-" in command for command in RETENTION))
         self.assertTrue(CASE.get("retention_source") and CASE.get("checks_source"))
+
+    def test_the_spec_word_of_a_retention_check_comes_from_the_cases_own_request(self) -> None:
+        """The first live run of this link failed a correct delivery because the check kept the previous link's word ("comment")."""
+        for name, case in CASES.items():
+            for command in case.get("retention") or []:
+                for word in re.findall(r"grep -qi (\S+) docs/shiploop/spec\.md", command):
+                    self.assertRegex(case["prompt"], re.compile(re.escape(word), re.I), (name, word))
+        self.assertEqual(re.findall(r"grep -qi (\S+) docs/shiploop/spec\.md", " ".join(RETENTION)), ["ESCALATE_HIGH_MINUTES"])
+
+    def test_the_ledger_patterns_match_the_wording_the_third_pass_really_used(self) -> None:
+        """delta.may_change reads the earlier entries' own words. The live third pass wrote the rule as "enqueued once" under "Urgent
+        escalation" and the decision as "Bulk assignment and escalation", not "at most once"; the first patterns matched neither."""
+        spec = "# Spec\n\n## Requirements\n### R-7 Urgent escalation\nBasis: current request. An open urgent ticket past ESCALATE_AFTER_MINUTES is enqueued once for ONCALL.\n"
+        arch = "# Architecture\n\n## Decisions\n### AD-3 Bulk assignment and escalation (implemented)\nBulk moves and escalation share the outbox.\n"
+        may = CASE["delta"]["may_change"]
+        self.assertEqual(delta.ids_block(spec, spec, "R", may["spec.md"])["expected"], ["R-7"])
+        self.assertEqual(delta.ids_block(arch, arch, "AD", may["architecture.md"])["expected"], ["AD-3"])
 
     def test_it_declares_an_acceptance_of_its_own_because_it_replaces_a_rule_the_inherited_one_reads(self) -> None:
         own = run.case_quality("ticket-sla")
@@ -256,6 +275,17 @@ class ChainRunTest(Isolated):
         work = committed(sla.build(self.tmp / "moved", "reference"), spec, ARCH_AFTER)
         self.assertEqual(self.checks(work, RETENTION, self.prior), [True] * len(RETENTION))
 
+
+    def test_a_requirement_edited_in_place_passes_retention_when_it_names_the_new_variable_and_fails_when_it_does_not(self) -> None:
+        """A modifying link may add no requirement ID: the live run changed its escalation requirement in place, and the prior spec already
+        says "comments", so only a word of this link's own can show the spec took the request in."""
+        named = SPEC_BEFORE.replace("Urgent tickets are escalated, at most once.",
+                                    "Urgent tickets wait ESCALATE_AFTER_MINUTES and high tickets ESCALATE_HIGH_MINUTES; a ticket is escalated at most twice.")
+        silent = SPEC_BEFORE.replace("Urgent tickets are escalated, at most once.", "Urgent and high tickets are escalated, at most twice.")
+        work = committed(sla.build(self.tmp / "named", "reference"), named, ARCH_AFTER)
+        self.assertEqual(self.checks(work, RETENTION, self.prior), [True] * len(RETENTION))
+        work = committed(sla.build(self.tmp / "silent", "reference"), silent, ARCH_AFTER)
+        self.assertEqual(self.checks(work, RETENTION, self.prior), [True, True, True, False, True])  # only the requirement IDs and the new word
 
 @needs_servers
 class ModifiedRuleTest(Isolated):
