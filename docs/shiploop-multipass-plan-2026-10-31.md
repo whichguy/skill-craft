@@ -13,9 +13,10 @@ Journal: [shiploop-multipass-journal.md](shiploop-multipass-journal.md); evidenc
 
 ## 0. The answer
 
-1. **A second pass works. A third has never run.** Eight saved second passes (four pairs on Codex Terra) all passed, kept every earlier
+1. **A second and a third pass work, and the third repeats both leaks.** Eight saved second passes (four pairs on Codex Terra) all passed, kept every earlier
    requirement and decision, numbered the new ones correctly, wrote tests only for the new requirements and touched no earlier test
-   ([journal F4, F7](shiploop-multipass-journal.md)). Nothing says the third behaves the same; the first live one is queued (E1).
+   ([journal F4, F7](shiploop-multipass-journal.md)). The first live third pass (E1, 2026-10-31) passed 13 of 13 checks and 14 of 14 hidden checks, kept R-1 to R-7
+   byte for byte, added 8 stage-report headings (+6.0 KiB) and filed its new decision under `## Superseded` again (journal Round 1, F8).
 2. **The permanent files do not stay permanent.** `environment.md` grows 5 to 6 KiB per pass as a chronological record of stage reports,
    and `architecture.md` receives each pass's decision by appending after the last heading: in one of four runs a live decision landed
    under `## Superseded`, and the engine itself then labels it superseded in the next pass's packet (F1, F2).
@@ -82,7 +83,7 @@ three files and the commit messages and nothing of the first run's folder.
 | It reads the inherited knowledge | `READS` lists the living files in 17 of 24 stages; intake quotes the last three commits and the newest lessons commit | shell reads of the files in every run; one lessons commit per pass with three non-empty fields | works |
 | New data gets new IDs and old ones stay | monotonic `R-<n>` and `AD-<n>`; the refusal of a dropped ID | 0 changed, dropped or retired earlier entries in 4 of 4; numbering continued correctly | works |
 | It does not rebuild the old run | `primary` and the test cases scope to the delta | tests cite no kept ID (0 of 19); no earlier test touched (0 of 4); `follows` still names kept IDs in 3 of 4 | works at n=2; `follows` interim |
-| It inherits decisions | the AD list, the standing suite, hidden latent facts | pair: 14 of 14 hidden checks in 4 of 4, 7 facts kept from pass 1 | works at n=2; n=3 untested |
+| It inherits decisions | the AD list, the standing suite, hidden latent facts | pair: 14 of 14 hidden checks in 4 of 4, 7 facts kept from pass 1; third pass: 14 of 14 | works at n=2, and in one run at n=3 |
 | Permanent files stay permanent | nothing enforces position or purpose; `X11` forbids a heading gate | `environment.md` +4.5 to 6.4 KiB in pass 2; 4 of 4 `architecture.md` outside their sections; the third pass's first packet lists `AD-3` under `## Superseded` and 22 `environment.md` headings, and a 40-heading cap would hide the newest sections from the fifth pass (arithmetic) | **fails, and compounds** |
 | Architecture updated when the feature updates it | stages' duties say "under `## Decisions`" | updated in a section it belongs in: 2 of 4; under Superseded: 1; nowhere: 1 | **inconsistent** |
 | The delta can be traced afterwards | `spec_diff` covers spec and architecture only | the ledger now covers IDs, placement, footprint, plan, handoff | built (section 5) |
@@ -145,7 +146,7 @@ heuristics, and a ledger of a first pass on a fixture has nothing to compare an 
 | | Question | State |
 |---|---|---|
 | E0 | What does a second pass leave in the three files? | done: 8 saved runs, [journal Round 0](shiploop-multipass-journal.md) |
-| E1 | Does a third pass inherit and is it harmed by the second's leftovers? | queued: `ticket-comments` from the saved `bf-codex-r2` pass 2, Codex Terra `xhigh`, ShipLoop 1.26.0; waits on port 4180, which another session's runs hold |
+| E1 | Does a third pass inherit and is it harmed by the second's leftovers? | done 2026-10-31: `ticket-comments` from the saved `bf-codex-r2` pass 2, Codex Terra `xhigh`, ShipLoop 1.26.0: passed, nothing lost, both leaks repeated (journal Round 1) |
 | E2 | Does a counted notice plus named destinations (D2, D3, D4) reduce the leak without losing function? | candidate built; arms, bar and predictions fixed in the journal's Round 2; runs after E1 |
 | E3 | Does a modifying fourth link retire and supersede rather than duplicate? | proposed, after E1 |
 

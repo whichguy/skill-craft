@@ -26,7 +26,8 @@ not repeat old decisions and inherits some of them.
 | F5 A chain of three or more links lost its earlier links' regression checks and quality acceptance | firm (reproduced) | `ChainTest`, [chains.py](../test/shiploop_e2e/chains.py) |
 | F6 `knowledge_reads` is empty on every Codex run because it counts only read-tool calls | interim (instrument) | `metrics.json` of the eight runs |
 | F7 No harm to function: all eight runs passed, 14 of 14 on the follow-on, every earlier requirement and decision kept | firm (negative result) | [brownfield journal](shiploop-brownfield-baseline-journal.md), [ba45b9d2](https://github.com/whichguy/skill-craft/commit/ba45b9d2ada380d6f2aafe4e628f62eef5b29356) |
-| F8 A third and fourth pass have never run | open (Round 1 is running) | Round 1 below |
+| F8 A third pass works and repeats both leaks: 13 of 13 checks and 14 of 14 hidden checks passed and R-1 to R-7 were kept, but it added 8 stage-report headings (+6.0 KiB) to `environment.md` and filed AD-4 under `## Superseded`, below the mislabelled AD-3; a fourth pass has never run | firm for one run (E1) | Round 1 below |
+| F10 The candidate's notice, replayed over 58 real (commit, file) pairs, would have spoken in 57 of them at a knowledge commit and flagged nothing that was standing content beyond the release section X11 allows; both entries filed as retired when new (AD-3, AD-4) were written by `plan`, a stage the candidate's packet line does not reach | interim (offline replay, one case pair) | Round 2, [replay output](experiments/multipass-20261031/replay-placement-output.txt) |
 | F9 The owner approved D1 to D5 as recommended (2026-10-31, "Approve all"); D2 to D4 are built as one candidate off main and wait for E2 | decision | Round 2 below |
 
 ## Round 0: eight saved runs read for what a second pass leaves (2026-10-31)
@@ -173,7 +174,7 @@ One unexplained event: in the first run of the test, `comments-newest-first` als
 and one later full run did not reproduce it. The machine was at load average 11. The test now prints a failing check's exit code
 and output, so a recurrence is identified as load or as a defect.
 
-## Round 1: the live third pass (pending)
+## Round 1: the live third pass (done 2026-10-31)
 
 **Question.** Does a third pass inherit what the second left, and do the defects of Round 0 compound or harm it?
 
@@ -193,7 +194,25 @@ the run's `result.json` and its delta block).
 5. The mislabelled `AD-3` is cited or ignored without comment; it is not repaired by the run, which has no instruction to look.
 6. The spec keeps R-1 to R-7 byte for byte and adds R-8 or more with "Basis: current request" wording.
 
-Result: not yet recorded.
+**Result (2026-10-31; started 17:14:41 after 67 tries at the port-4180 lease, ended 17:33; 1,125 s, 365 turns, planning 302 s).** The third pass passed: 13 of 13
+checks and 14 of 14 inherited hidden checks; R-1 to R-7 byte for byte, R-8 and AD-4 added; no earlier test touched; 6 of the 27 source files modified; planning did not
+grow (302 s, against 322 s and 328 s for the two earlier passes of this lineage). It also repeated both leaks and made them worse
+([round1_readout.py](experiments/multipass-20261031/round1_readout.py) and `delta.py`):
+- `environment.md` gained 8 level-2 headings that match no named section (10,531 to 16,637 bytes, +6.0 KiB): "Comments discovery (2026-10-31)", "Comment suite plan",
+  "Comment preparation", "Comment implementation carry-forward", "Integrated comment suite", "Comment release route", "Returned comments verification" and "Comment
+  operational handoff (2026-10-31)". Each is a stage's report named for the feature, two carry a date, and Commands and Harnesses and suites now have two headings each.
+  The pass-2 run of this lineage added 1. One named section (Commands) was updated in place.
+- `architecture.md`: AD-4 and a heading "Comment real-boundary checks" went in after `## Superseded`, below the still-mislabelled AD-3, so the new decision is born
+  retired. The mislabel compounds, as the plan's arithmetic suggested.
+- Not repeated: the spec's basis names the request's sections and files ("Basis: request S1-S9; src/app.js ...") and not "current request" (0 hits); step plans follow
+  only new IDs (2 new, 0 kept) and 8 test cases cite no kept requirement. The spec is still titled "Ticket assignment specification".
+
+Predictions. P1 held, P2 held, P5 held (AD-3 still retired at the end). P3 missed in the good direction (`follows` named no kept ID; the prediction expected more kept
+than new). P4 missed on one clause (a named section, Commands, did change; the 8 strays, the 6.0 KiB and the born-retired AD-4 held). P6 missed in the good direction
+(no "current request" wording; R-1 to R-7 untouched and R-8 added held).
+
+Decision rule (plan section 6). Nothing retained was lost, so the leftovers of passes 1 and 2 did not harm function at the third pass (one run, one lineage). The hygiene
+is worse than pass 2's, so D2 to D4 stay as approved and E2 decides the fix.
 
 ## Round 2: the owner's decision, the candidate and the A/B (E2) (2026-10-31)
 
@@ -260,6 +279,18 @@ release procedure in environment.md under the run's heading, so the first releas
 - Limits. Three chains per arm, one case pair, one host and model. The saved runs come from four engine states, so arm A is run again here and not borrowed. The
   candidate has not run live: B1's first pass is its first live use, and a breakage there is a finding, not an excuse.
 - Status: pending. The arms wait for E1 and for the other session's queue (its last run ends about 17:10).
+
+**Before the first B run (17:36): what the finished third pass and a replay add. The bar and the predictions above are unchanged.** The E2 driver started arm A's
+first chain at 17:33:58, the moment E1 ended.
+- A no-model replay of the candidate's notice over the knowledge commits of five lineages ([replay_placement.py](experiments/multipass-20261031/replay_placement.py),
+  [output](experiments/multipass-20261031/replay-placement-output.txt); a commit's edit against its parent is what the engine reads before it commits). Of 58 distinct
+  (commit, file) pairs the notice would have spoken in 57 at a knowledge commit and in none of the other 1 (E1's "Comment suite plan", which rode in a step commit,
+  where the close returns early). The flagged headings read as stage reports or second copies of a named section (Commands is the most frequent); the standing release
+  section that X11 allows is flagged about once a pass, as expected; no other flag looked like standing content.
+- It shows a gap in the candidate. Both entries filed as retired when new, AD-3 (pass 2 of bf-codex-r2) and AD-4 (E1), were written by the `plan` stage, which is not one
+  of the eight that get the packet line, so for `plan` the notice (printed after the stage, to the next stage's model) is the only lever. B1 depends on a later stage moving
+  the entry, and the ledger reads the final file. If B1 misses, `plan` is the first place to look, and arm A's six runs stay valid for a second candidate.
+- The candidate is not changed now: the design stands as registered, and a second candidate costs only new B runs because arm A is the same base.
 
 ## Decisions made without asking (routine, AGENTS.md "Decisions")
 
