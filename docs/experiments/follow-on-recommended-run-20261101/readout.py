@@ -10,7 +10,6 @@ finding, and what the tool does for "Café".  It computes no rate and calls no m
 """
 from __future__ import annotations
 
-import hashlib
 import importlib.util
 import json
 import re
@@ -86,12 +85,20 @@ def describe(folder: Path) -> dict:
     if folder.name.startswith("link1"):
         row["files"] = git(work, "ls-files").split()
     start = (data.get("follow_on") or {}).get("start_head")
-    if folder.name.startswith("link2"):
+    if folder.name.startswith(("link2", "link3")):
         prior = Path((data.get("follow_on") or {}).get("prior", ""))
         request = next(iter(sorted(prior.glob(".shiploop-runs/*/run/follow-on-request.md"))), None)
-        if request is not None:
+        sent_file = folder / "prompt.txt"
+        if request is not None and sent_file.is_file():
+            # prompt.txt is the prompt the host was given (the harness adds a final newline; command substitution had removed
+            # the request's).  The first version compared result.json's prompt_sha256, which the harness computes over a
+            # different string (it names the planning-review mode), so it read False for a prompt that was the file.
             text = request.read_text(encoding="utf-8")
-            row["prompt_is_prior_request_file"] = hashlib.sha256(text.rstrip("\n").encode("utf-8")).hexdigest() == data.get("prompt_sha256")
+            sent = sent_file.read_text(encoding="utf-8")
+            row["prompt_is_prior_request_file"] = sent.rstrip("\n") == text.rstrip("\n")
+            if folder.name.startswith("link3"):
+                answer = (HERE / "answer.txt").read_text(encoding="utf-8")
+                row["prompt_is_request_plus_answer"] = sent.rstrip("\n") == (text + answer).rstrip("\n")
             row["prior_request_text"] = text
         row["start_head"] = start
         row["files_changed_vs_prior_head"] = git(work, "diff", "--name-only", f"{start}..HEAD").split() if start else None
@@ -115,8 +122,9 @@ def show(row: dict) -> None:
             print("        needs:    ", " ".join(str(entry.get("needs", "")).split()))
     if "files" in row:
         print("  files in HEAD:", row["files"])
-    if row["name"].startswith("link2"):
-        print("  prompt is the prior request file:", row.get("prompt_is_prior_request_file"))
+    if row["name"].startswith(("link2", "link3")):
+        print("  prompt is the prior request file:", row.get("prompt_is_prior_request_file"),
+              "| request plus the answer:", row.get("prompt_is_request_plus_answer", "n/a"))
         print("  files changed against the prior head:", row.get("files_changed_vs_prior_head"))
     print("  knowledge lines naming the finding:", row["finding_mentions"])
     print("  slug.py Café:", row["cafe"])
