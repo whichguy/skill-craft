@@ -65,7 +65,8 @@ class KeepaliveTestCase(unittest.TestCase):
         # No progress observer: `init` would start one detached, and it writes into the run folder every 2 s, so a fast
         # test's cleanup raced it ("Directory not empty", 4 of 7 direct runs on 2026-10-28; run_suites.py sets it too).
         env = {"SHIPLOOP_KEEPALIVE_HOME": str(self.temp / "state"), "HOME": str(self.temp / "home"),
-               "XDG_CONFIG_HOME": str(self.temp / "home" / ".config"), "SHIPLOOP_PROGRESS": "off"}
+               "XDG_CONFIG_HOME": str(self.temp / "home" / ".config"), "SHIPLOOP_PROGRESS": "off",
+               "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}
         patcher = mock.patch.dict(os.environ, env)
         patcher.start()
         self.addCleanup(patcher.stop)

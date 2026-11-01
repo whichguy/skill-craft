@@ -705,8 +705,14 @@ cat >"$TMPP" <<'EOF'
 two consecutive clean residual rounds with green suite
 EOF
 if ! python3 "$CLI" validate "$TMPP" >/dev/null 2>&1; then ok placeholder_trailing_punct; else bad placeholder_trailing_punct; fi
-PERR=$(python3 "$CLI" validate "$TMPP" 2>&1 >/dev/null || true)
-if printf '%s\n' "$PERR" | grep -qi 'placeholder'; then ok placeholder_trailing_punct_stderr; else bad placeholder_trailing_punct_stderr; fi
+PERR_STATUS=0
+PERR=$(python3 "$CLI" validate "$TMPP" 2>&1 >/dev/null) || PERR_STATUS=$?
+if printf '%s\n' "$PERR" | grep -qi 'placeholder'; then
+  ok placeholder_trailing_punct_stderr
+else
+  printf 'validation exit: %s\n%s\n' "$PERR_STATUS" "$PERR" >&2
+  bad placeholder_trailing_punct_stderr
+fi
 rm -f "$TMPP"
 
 # goal-body on templates must fail (not emit polluted placeholders)

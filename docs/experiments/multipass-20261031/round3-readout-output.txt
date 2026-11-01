@@ -1,0 +1,16 @@
+mp-codex-ticket-sla: recorded pass False (FAILED); 15 of 16 checks recorded passing (failing at [14]); hidden 16 of 16 pass
+  check 14 changed since the run: recorded FAIL [earlier ids:        8; missing: ; added: ; feature in spec: no], now pass [earlier ids:        8; missing: ; added: ; feature in spec: yes]
+  follow-on | R +0 ~1 -0 retired 0 born-retired 0 replaced 1/1 left 0 unexplained 0 | AD +1 ~0 -0 retired 0 born-retired 1 replaced 0/1 left 1 unexplained 0 | stray+ spec 0 env 9 arch 0 | appends spec 0 env 0 arch 0 | prior tests modified 1 src 5/27 | follows d2/p0 tests d5/p0 | lessons d0b6eea1e624
+P1 held once the wrong check is corrected (missed as recorded) it passes: the earlier links' checks, its three, the five retention checks and all 16 hidden checks
+     observed: recorded: 1 failing [14]; with the corrected check: 0 failing; hidden failing 0
+P2 held      the spec's old escalation requirement is touched (expected_touched of spec.md is not empty)
+     observed: expected ['R-7'], touched ['R-7'], changed ['R-7'], unexplained []
+P3 held      the architecture's old escalation decision is left standing (expected_untouched of architecture.md is not empty)
+     observed: expected ['AD-3'], untouched ['AD-3'], touched []
+P4 held      at least one earlier test file is modified (prior_tests_modified is not empty)
+     observed: ['test/reassignment-escalation.test.js']
+P5 missed    planning reads the old rule: the step plans' follows or the test cases' requirement name at least one kept ID
+     observed: test cases {'delta': 5, 'preserved': 0, 'unknown': 0, 'no_requirement': 0}; follows {'delta': 2, 'preserved': 0, 'unknown': 0}; delta ids ['AD-5', 'R-7'] (the rule it changed, R-7, is counted as a delta ID)
+P6 held      the leaks continue: environment.md gains 3 or more stray headings and a new decision is born under Superseded
+     observed: env stray_added 9; architecture born_retired ['AD-5']
+cost: 993.3 s, model calls 158, tokens processed 37.0 M, gates {"other": {"fired": 2, "caught": 2}, "base_run_not_done": {"fired": 1, "caught": 1}, "mutation_not_done": {"fired": 2, "caught": 2}}
