@@ -1,0 +1,4398 @@
+{
+ "schema": "backchain-efficiency-analysis/v1",
+ "created": "2026-11-01T19:51:35Z",
+ "protocol": "PROTOCOL.md",
+ "attempts_expected": 60,
+ "attempts_present": 60,
+ "passes": 3,
+ "grader_noise": {
+  "mean_pairwise_pass_difference": 1.0675620675620676,
+  "bound": 0.62,
+  "rule": "mean pairwise difference between passes divided by sqrt(3)"
+ },
+ "decision": {
+  "winner": null,
+  "decided_by": null,
+  "blocked": false,
+  "blockers": [],
+  "reasons": [
+   "quality +2.18, 95% [-1.93, +7.49], Wilcoxon p=0.9163, 30 cells in 10 cases (points): inconclusive (not near-identical, and the tests do not agree on a difference)"
+  ]
+ },
+ "arms": {
+  "control": {
+   "attempts": 30,
+   "present": 30,
+   "outcome_ok": 7,
+   "qualified": 7,
+   "outcome_failures": {
+    "plan_structure": 23,
+    "plan_completion": 23,
+    "loop_terminal": 10
+   },
+   "critical_missed_by_majority": 6,
+   "mean_score": 92.36121286121286,
+   "keys": {
+    "passed": 84,
+    "total": 102,
+    "mean_rate": 0.8142857142857144
+   },
+   "totals": {
+    "input_tokens": 38660632,
+    "cached_input_tokens": 35918848,
+    "uncached_input_tokens": 2741784,
+    "output_tokens": 282760,
+    "input_plus_output_tokens": 38943392,
+    "wall_seconds": 7366.235,
+    "commands": 579,
+    "code_blocks": 218
+   },
+   "medians": {
+    "input_tokens": 1183661.0,
+    "cached_input_tokens": 1090368.0,
+    "uncached_input_tokens": 91538.5,
+    "output_tokens": 9122.5,
+    "input_plus_output_tokens": 1192680.0,
+    "wall_seconds": 234.39800000000002,
+    "commands": 18.0,
+    "code_blocks": 6.5
+   },
+   "missing_usage": 0,
+   "routes": {
+    "hand-built": 30
+   }
+  },
+  "candidate": {
+   "attempts": 30,
+   "present": 30,
+   "outcome_ok": 22,
+   "qualified": 22,
+   "outcome_failures": {
+    "plan_completion": 2,
+    "loop_terminal": 7
+   },
+   "critical_missed_by_majority": 5,
+   "mean_score": 94.54477004477005,
+   "keys": {
+    "passed": 85,
+    "total": 102,
+    "mean_rate": 0.8226190476190477
+   },
+   "totals": {
+    "input_tokens": 19912133,
+    "cached_input_tokens": 17926656,
+    "uncached_input_tokens": 1985477,
+    "output_tokens": 128840,
+    "input_plus_output_tokens": 20040973,
+    "wall_seconds": 3653.588,
+    "commands": 425,
+    "code_blocks": 108
+   },
+   "medians": {
+    "input_tokens": 649192.0,
+    "cached_input_tokens": 579136.0,
+    "uncached_input_tokens": 64094.5,
+    "output_tokens": 3978.5,
+    "input_plus_output_tokens": 653619.0,
+    "wall_seconds": 115.238,
+    "commands": 14.0,
+    "code_blocks": 3.0
+   },
+   "missing_usage": 0,
+   "routes": {
+    "toolkit": 30
+   }
+  }
+ },
+ "paired": {
+  "score": {
+   "mean": 2.1836,
+   "low": -1.9263,
+   "high": 7.49,
+   "n": 30,
+   "cases": 10,
+   "case_mean": 2.1836,
+   "wilcoxon_p": 0.9163,
+   "candidate_higher": 5,
+   "candidate_lower": 10,
+   "per_case": {
+    "billing-late-fee": 17.037,
+    "bounded-source-edge-repair": 0.0,
+    "independent-inspection-scopes": 15.812,
+    "known-external-approval-blocker": 0.0,
+    "legacy-draft-discovers-mapping": 0.0,
+    "library-reminders": -0.0,
+    "missing-normative-redaction-source": -0.4274,
+    "orders-cancel-rpc": -7.7778,
+    "revenue-export-lineage": -2.381,
+    "stale-build-receipt-identity": -0.4274
+   }
+  },
+  "qualified": {
+   "mean": 0.5,
+   "low": 0.2333,
+   "high": 0.8,
+   "n": 30,
+   "cases": 10,
+   "case_mean": 0.5,
+   "wilcoxon_p": 0.0235,
+   "candidate_higher": 16,
+   "candidate_lower": 1,
+   "per_case": {
+    "billing-late-fee": 1.0,
+    "bounded-source-edge-repair": 1.0,
+    "independent-inspection-scopes": 1.0,
+    "known-external-approval-blocker": 1.0,
+    "legacy-draft-discovers-mapping": 0.0,
+    "library-reminders": 0.6667,
+    "missing-normative-redaction-source": 0.0,
+    "orders-cancel-rpc": 0.0,
+    "revenue-export-lineage": 0.0,
+    "stale-build-receipt-identity": 0.3333
+   }
+  },
+  "key_rate": {
+   "mean": 0.0083,
+   "low": 0.0,
+   "high": 0.025,
+   "n": 12,
+   "cases": 4,
+   "case_mean": 0.0083,
+   "wilcoxon_p": null,
+   "candidate_higher": 2,
+   "candidate_lower": 1,
+   "per_case": {
+    "billing-late-fee": 0.0,
+    "library-reminders": 0.0333,
+    "orders-cancel-rpc": 0.0,
+    "revenue-export-lineage": 0.0
+   }
+  },
+  "input_tokens": {
+   "mean": -624949.9667,
+   "low": -870978.7667,
+   "high": -418111.4667,
+   "n": 30,
+   "cases": 10,
+   "case_mean": -624949.9667,
+   "wilcoxon_p": 0.0051,
+   "candidate_higher": 0,
+   "candidate_lower": 30,
+   "per_case": {
+    "billing-late-fee": -994869.6667,
+    "bounded-source-edge-repair": -163102.6667,
+    "independent-inspection-scopes": -621914.3333,
+    "known-external-approval-blocker": -1486309.6667,
+    "legacy-draft-discovers-mapping": -441832.3333,
+    "library-reminders": -563454.6667,
+    "missing-normative-redaction-source": -476865.6667,
+    "orders-cancel-rpc": -722148.3333,
+    "revenue-export-lineage": -247590.6667,
+    "stale-build-receipt-identity": -531411.6667
+   }
+  },
+  "cached_input_tokens": {
+   "mean": -599739.7333,
+   "low": -837260.8,
+   "high": -399795.2,
+   "n": 30,
+   "cases": 10,
+   "case_mean": -599739.7333,
+   "wilcoxon_p": 0.0051,
+   "candidate_higher": 0,
+   "candidate_lower": 30,
+   "per_case": {
+    "billing-late-fee": -958848.0,
+    "bounded-source-edge-repair": -156714.6667,
+    "independent-inspection-scopes": -583808.0,
+    "known-external-approval-blocker": -1437525.3333,
+    "legacy-draft-discovers-mapping": -426410.6667,
+    "library-reminders": -534954.6667,
+    "missing-normative-redaction-source": -451456.0,
+    "orders-cancel-rpc": -701013.3333,
+    "revenue-export-lineage": -237397.3333,
+    "stale-build-receipt-identity": -509269.3333
+   }
+  },
+  "uncached_input_tokens": {
+   "mean": -25210.2333,
+   "low": -33143.1667,
+   "high": -17335.1667,
+   "n": 30,
+   "cases": 10,
+   "case_mean": -25210.2333,
+   "wilcoxon_p": 0.0051,
+   "candidate_higher": 1,
+   "candidate_lower": 29,
+   "per_case": {
+    "billing-late-fee": -36021.6667,
+    "bounded-source-edge-repair": -6388.0,
+    "independent-inspection-scopes": -38106.3333,
+    "known-external-approval-blocker": -48784.3333,
+    "legacy-draft-discovers-mapping": -15421.6667,
+    "library-reminders": -28500.0,
+    "missing-normative-redaction-source": -25409.6667,
+    "orders-cancel-rpc": -21135.0,
+    "revenue-export-lineage": -10193.3333,
+    "stale-build-receipt-identity": -22142.3333
+   }
+  },
+  "output_tokens": {
+   "mean": -5130.6667,
+   "low": -6056.1667,
+   "high": -4314.5,
+   "n": 30,
+   "cases": 10,
+   "case_mean": -5130.6667,
+   "wilcoxon_p": 0.0051,
+   "candidate_higher": 0,
+   "candidate_lower": 30,
+   "per_case": {
+    "billing-late-fee": -7250.3333,
+    "bounded-source-edge-repair": -4065.3333,
+    "independent-inspection-scopes": -5169.3333,
+    "known-external-approval-blocker": -7844.0,
+    "legacy-draft-discovers-mapping": -4340.6667,
+    "library-reminders": -5211.0,
+    "missing-normative-redaction-source": -4161.6667,
+    "orders-cancel-rpc": -5160.0,
+    "revenue-export-lineage": -2994.0,
+    "stale-build-receipt-identity": -5110.3333
+   }
+  },
+  "input_plus_output_tokens": {
+   "mean": -630080.6333,
+   "low": -877055.6,
+   "high": -422650.7,
+   "n": 30,
+   "cases": 10,
+   "case_mean": -630080.6333,
+   "wilcoxon_p": 0.0051,
+   "candidate_higher": 0,
+   "candidate_lower": 30,
+   "per_case": {
+    "billing-late-fee": -1002120.0,
+    "bounded-source-edge-repair": -167168.0,
+    "independent-inspection-scopes": -627083.6667,
+    "known-external-approval-blocker": -1494153.6667,
+    "legacy-draft-discovers-mapping": -446173.0,
+    "library-reminders": -568665.6667,
+    "missing-normative-redaction-source": -481027.3333,
+    "orders-cancel-rpc": -727308.3333,
+    "revenue-export-lineage": -250584.6667,
+    "stale-build-receipt-identity": -536522.0
+   }
+  },
+  "wall_seconds": {
+   "mean": -123.7549,
+   "low": -150.6469,
+   "high": -99.549,
+   "n": 30,
+   "cases": 10,
+   "case_mean": -123.7549,
+   "wilcoxon_p": 0.0051,
+   "candidate_higher": 0,
+   "candidate_lower": 30,
+   "per_case": {
+    "billing-late-fee": -200.481,
+    "bounded-source-edge-repair": -79.0967,
+    "independent-inspection-scopes": -114.563,
+    "known-external-approval-blocker": -194.16,
+    "legacy-draft-discovers-mapping": -102.165,
+    "library-reminders": -115.008,
+    "missing-normative-redaction-source": -113.6243,
+    "orders-cancel-rpc": -118.665,
+    "revenue-export-lineage": -68.733,
+    "stale-build-receipt-identity": -131.053
+   }
+  },
+  "commands": {
+   "mean": -5.1333,
+   "low": -7.2333,
+   "high": -2.8333,
+   "n": 30,
+   "cases": 10,
+   "case_mean": -5.1333,
+   "wilcoxon_p": 0.0093,
+   "candidate_higher": 3,
+   "candidate_lower": 25,
+   "per_case": {
+    "billing-late-fee": -9.3333,
+    "bounded-source-edge-repair": 1.0,
+    "independent-inspection-scopes": -7.6667,
+    "known-external-approval-blocker": -10.3333,
+    "legacy-draft-discovers-mapping": -3.6667,
+    "library-reminders": -6.3333,
+    "missing-normative-redaction-source": -6.6667,
+    "orders-cancel-rpc": -5.3333,
+    "revenue-export-lineage": -0.3333,
+    "stale-build-receipt-identity": -2.6667
+   }
+  },
+  "code_blocks": {
+   "mean": -3.6667,
+   "low": -5.2,
+   "high": -2.3333,
+   "n": 30,
+   "cases": 10,
+   "case_mean": -3.6667,
+   "wilcoxon_p": 0.0076,
+   "candidate_higher": 2,
+   "candidate_lower": 27,
+   "per_case": {
+    "billing-late-fee": -3.6667,
+    "bounded-source-edge-repair": -2.6667,
+    "independent-inspection-scopes": -5.6667,
+    "known-external-approval-blocker": -9.0,
+    "legacy-draft-discovers-mapping": -3.3333,
+    "library-reminders": -3.3333,
+    "missing-normative-redaction-source": 0.0,
+    "orders-cancel-rpc": -3.0,
+    "revenue-export-lineage": -1.3333,
+    "stale-build-receipt-identity": -4.6667
+   }
+  }
+ },
+ "paired_note": "candidate minus control per case x repetition cell; 95% percentile bootstrap (4000 resamples, seed 3) clustered by case; Wilcoxon signed-rank over per-case mean differences. Decision measures: score, then input_plus_output_tokens, then wall_seconds; qualified and key_rate block a candidate win; the rest are descriptive.",
+ "per_case": {
+  "independent-inspection-scopes": {
+   "heldout": false,
+   "previously_losing": false,
+   "control": {
+    "cells": 3,
+    "qualified": 0,
+    "mean_score": 82.05128205128206,
+    "scores": [
+     51.28205128205128,
+     100.0,
+     94.87179487179488
+    ],
+    "keys_passed": null,
+    "keys_total": null,
+    "median_tokens": 1149499,
+    "median_seconds": 213.001
+   },
+   "candidate": {
+    "cells": 3,
+    "qualified": 3,
+    "mean_score": 97.86324786324788,
+    "scores": [
+     97.43589743589745,
+     97.43589743589745,
+     98.71794871794873
+    ],
+    "keys_passed": null,
+    "keys_total": null,
+    "median_tokens": 669999,
+    "median_seconds": 102.744
+   }
+  },
+  "stale-build-receipt-identity": {
+   "heldout": false,
+   "previously_losing": false,
+   "control": {
+    "cells": 3,
+    "qualified": 1,
+    "mean_score": 100.0,
+    "scores": [
+     100.0,
+     100.0,
+     100.0
+    ],
+    "keys_passed": null,
+    "keys_total": null,
+    "median_tokens": 1191091,
+    "median_seconds": 245.923
+   },
+   "candidate": {
+    "cells": 3,
+    "qualified": 2,
+    "mean_score": 99.57264957264958,
+    "scores": [
+     100.0,
+     100.0,
+     98.71794871794873
+    ],
+    "keys_passed": null,
+    "keys_total": null,
+    "median_tokens": 600998,
+    "median_seconds": 128.135
+   }
+  },
+  "legacy-draft-discovers-mapping": {
+   "heldout": false,
+   "previously_losing": false,
+   "control": {
+    "cells": 3,
+    "qualified": 3,
+    "mean_score": 100.0,
+    "scores": [
+     100.0,
+     100.0,
+     100.0
+    ],
+    "keys_passed": null,
+    "keys_total": null,
+    "median_tokens": 1019507,
+    "median_seconds": 211.452
+   },
+   "candidate": {
+    "cells": 3,
+    "qualified": 3,
+    "mean_score": 100.0,
+    "scores": [
+     100.0,
+     100.0,
+     100.0
+    ],
+    "keys_passed": null,
+    "keys_total": null,
+    "median_tokens": 649294,
+    "median_seconds": 108.878
+   }
+  },
+  "bounded-source-edge-repair": {
+   "heldout": false,
+   "previously_losing": true,
+   "control": {
+    "cells": 3,
+    "qualified": 0,
+    "mean_score": 96.42857142857143,
+    "scores": [
+     96.42857142857143,
+     96.42857142857143,
+     96.42857142857143
+    ],
+    "keys_passed": null,
+    "keys_total": null,
+    "median_tokens": 776843,
+    "median_seconds": 164.56
+   },
+   "candidate": {
+    "cells": 3,
+    "qualified": 3,
+    "mean_score": 96.42857142857143,
+    "scores": [
+     96.42857142857143,
+     96.42857142857143,
+     96.42857142857143
+    ],
+    "keys_passed": null,
+    "keys_total": null,
+    "median_tokens": 616931,
+    "median_seconds": 95.071
+   }
+  },
+  "known-external-approval-blocker": {
+   "heldout": false,
+   "previously_losing": true,
+   "control": {
+    "cells": 3,
+    "qualified": 0,
+    "mean_score": 100.0,
+    "scores": [
+     100.0,
+     100.0,
+     100.0
+    ],
+    "keys_passed": null,
+    "keys_total": null,
+    "median_tokens": 2410240,
+    "median_seconds": 319.732
+   },
+   "candidate": {
+    "cells": 3,
+    "qualified": 3,
+    "mean_score": 100.0,
+    "scores": [
+     100.0,
+     100.0,
+     100.0
+    ],
+    "keys_passed": null,
+    "keys_total": null,
+    "median_tokens": 671189,
+    "median_seconds": 121.713
+   }
+  },
+  "missing-normative-redaction-source": {
+   "heldout": false,
+   "previously_losing": true,
+   "control": {
+    "cells": 3,
+    "qualified": 3,
+    "mean_score": 100.0,
+    "scores": [
+     100.0,
+     100.0,
+     100.0
+    ],
+    "keys_passed": null,
+    "keys_total": null,
+    "median_tokens": 1140196,
+    "median_seconds": 195.218
+   },
+   "candidate": {
+    "cells": 3,
+    "qualified": 3,
+    "mean_score": 99.57264957264958,
+    "scores": [
+     100.0,
+     98.71794871794873,
+     100.0
+    ],
+    "keys_passed": null,
+    "keys_total": null,
+    "median_tokens": 666894,
+    "median_seconds": 88.214
+   }
+  },
+  "billing-late-fee": {
+   "heldout": true,
+   "previously_losing": false,
+   "control": {
+    "cells": 3,
+    "qualified": 0,
+    "mean_score": 82.96296296296296,
+    "scores": [
+     100.0,
+     80.0,
+     68.88888888888889
+    ],
+    "keys_passed": 11,
+    "keys_total": 21,
+    "median_tokens": 2008302,
+    "median_seconds": 349.865
+   },
+   "candidate": {
+    "cells": 3,
+    "qualified": 3,
+    "mean_score": 100.0,
+    "scores": [
+     100.0,
+     100.0,
+     100.0
+    ],
+    "keys_passed": 11,
+    "keys_total": 21,
+    "median_tokens": 710713,
+    "median_seconds": 155.244
+   }
+  },
+  "library-reminders": {
+   "heldout": true,
+   "previously_losing": false,
+   "control": {
+    "cells": 3,
+    "qualified": 0,
+    "mean_score": 98.80952380952381,
+    "scores": [
+     97.61904761904763,
+     100.0,
+     98.80952380952381
+    ],
+    "keys_passed": 28,
+    "keys_total": 30,
+    "median_tokens": 1280103,
+    "median_seconds": 274.756
+   },
+   "candidate": {
+    "cells": 3,
+    "qualified": 2,
+    "mean_score": 98.80952380952381,
+    "scores": [
+     96.42857142857143,
+     100.0,
+     100.0
+    ],
+    "keys_passed": 29,
+    "keys_total": 30,
+    "median_tokens": 701937,
+    "median_seconds": 138.655
+   }
+  },
+  "revenue-export-lineage": {
+   "heldout": true,
+   "previously_losing": false,
+   "control": {
+    "cells": 3,
+    "qualified": 0,
+    "mean_score": 89.28571428571429,
+    "scores": [
+     89.28571428571429,
+     89.28571428571429,
+     89.28571428571429
+    ],
+    "keys_passed": 21,
+    "keys_total": 21,
+    "median_tokens": 871486,
+    "median_seconds": 163.261
+   },
+   "candidate": {
+    "cells": 3,
+    "qualified": 0,
+    "mean_score": 86.90476190476191,
+    "scores": [
+     88.09523809523809,
+     86.90476190476191,
+     85.71428571428571
+    ],
+    "keys_passed": 21,
+    "keys_total": 21,
+    "median_tokens": 591220,
+    "median_seconds": 90.283
+   }
+  },
+  "orders-cancel-rpc": {
+   "heldout": true,
+   "previously_losing": false,
+   "control": {
+    "cells": 3,
+    "qualified": 0,
+    "mean_score": 74.07407407407408,
+    "scores": [
+     74.44444444444444,
+     72.22222222222221,
+     75.55555555555556
+    ],
+    "keys_passed": 24,
+    "keys_total": 30,
+    "median_tokens": 1417278,
+    "median_seconds": 316.486
+   },
+   "candidate": {
+    "cells": 3,
+    "qualified": 0,
+    "mean_score": 66.2962962962963,
+    "scores": [
+     66.66666666666667,
+     65.55555555555556,
+     66.66666666666667
+    ],
+    "keys_passed": 24,
+    "keys_total": 30,
+    "median_tokens": 755835,
+    "median_seconds": 166.407
+   }
+  }
+ },
+ "previously_losing_cases": {
+  "control": {
+   "cells": 9,
+   "qualified": 3,
+   "mean_score": 98.80952380952381,
+   "scores": [
+    96.42857142857143,
+    96.42857142857143,
+    96.42857142857143,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    100.0
+   ],
+   "keys_passed": null,
+   "keys_total": null,
+   "median_tokens": 1140196,
+   "median_seconds": 195.218
+  },
+  "candidate": {
+   "cells": 9,
+   "qualified": 9,
+   "mean_score": 98.66707366707368,
+   "scores": [
+    96.42857142857143,
+    96.42857142857143,
+    96.42857142857143,
+    100.0,
+    100.0,
+    100.0,
+    100.0,
+    98.71794871794873,
+    100.0
+   ],
+   "keys_passed": null,
+   "keys_total": null,
+   "median_tokens": 659911,
+   "median_seconds": 96.293
+  },
+  "cases": [
+   "bounded-source-edge-repair",
+   "known-external-approval-blocker",
+   "missing-normative-redaction-source"
+  ],
+  "candidate_lower": false
+ },
+ "confirming_review_yield": {
+  "prior": "2026-10-16 prior: 0 of 11 confirming reviews changed anything (PROTOCOL.md, finding F6)",
+  "in_decision": false,
+  "rule": "every report the runtime accepted after the attempt's first trivial report, read from the packets the done calls printed (last_report.classification)",
+  "examine": "open each non_trivial_at line and judge by hand whether it repaired a real material defect",
+  "totals": {
+   "attempts": 30,
+   "with_a_trivial_report": 10,
+   "confirming": 7,
+   "non_trivial": 0,
+   "unresolved": 0,
+   "incomplete_sequences": 0,
+   "attempts_without_events": 0,
+   "by_gate": {
+    "default": {
+     "attempts": 12,
+     "with_a_trivial_report": 7,
+     "confirming": 7,
+     "non_trivial": 0,
+     "unresolved": 0,
+     "incomplete_sequences": 0
+    },
+    "one": {
+     "attempts": 18,
+     "with_a_trivial_report": 3,
+     "confirming": 0,
+     "non_trivial": 0,
+     "unresolved": 0,
+     "incomplete_sequences": 0
+    }
+   },
+   "non_trivial_at": [],
+   "unresolved_at": []
+  },
+  "attempts": [
+   {
+    "label": "independent-inspection-scopes-control-r1",
+    "case": "independent-inspection-scopes",
+    "gate": "default",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "unresolved"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "independent-inspection-scopes-control-r2",
+    "case": "independent-inspection-scopes",
+    "gate": "default",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "trivial",
+     "trivial"
+    ],
+    "first_trivial_report": 1,
+    "confirming": 1,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "independent-inspection-scopes-control-r3",
+    "case": "independent-inspection-scopes",
+    "gate": "default",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "trivial",
+     "trivial"
+    ],
+    "first_trivial_report": 1,
+    "confirming": 1,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "stale-build-receipt-identity-control-r1",
+    "case": "stale-build-receipt-identity",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "non-trivial"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "stale-build-receipt-identity-control-r2",
+    "case": "stale-build-receipt-identity",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "trivial"
+    ],
+    "first_trivial_report": 1,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "stale-build-receipt-identity-control-r3",
+    "case": "stale-build-receipt-identity",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "non-trivial"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "legacy-draft-discovers-mapping-control-r1",
+    "case": "legacy-draft-discovers-mapping",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "trivial"
+    ],
+    "first_trivial_report": 1,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "legacy-draft-discovers-mapping-control-r2",
+    "case": "legacy-draft-discovers-mapping",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "non-trivial"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "legacy-draft-discovers-mapping-control-r3",
+    "case": "legacy-draft-discovers-mapping",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "trivial"
+    ],
+    "first_trivial_report": 1,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "bounded-source-edge-repair-control-r1",
+    "case": "bounded-source-edge-repair",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "non-trivial"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "bounded-source-edge-repair-control-r2",
+    "case": "bounded-source-edge-repair",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "non-trivial"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "bounded-source-edge-repair-control-r3",
+    "case": "bounded-source-edge-repair",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "non-trivial"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "known-external-approval-blocker-control-r1",
+    "case": "known-external-approval-blocker",
+    "gate": "default",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "non-trivial",
+     "trivial",
+     "trivial"
+    ],
+    "first_trivial_report": 2,
+    "confirming": 1,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "known-external-approval-blocker-control-r2",
+    "case": "known-external-approval-blocker",
+    "gate": "default",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "non-trivial",
+     "trivial",
+     "trivial"
+    ],
+    "first_trivial_report": 2,
+    "confirming": 1,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "known-external-approval-blocker-control-r3",
+    "case": "known-external-approval-blocker",
+    "gate": "default",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "trivial",
+     "trivial"
+    ],
+    "first_trivial_report": 1,
+    "confirming": 1,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "missing-normative-redaction-source-control-r1",
+    "case": "missing-normative-redaction-source",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "unresolved"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "missing-normative-redaction-source-control-r2",
+    "case": "missing-normative-redaction-source",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "unresolved"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "missing-normative-redaction-source-control-r3",
+    "case": "missing-normative-redaction-source",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "unresolved"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "billing-late-fee-control-r1",
+    "case": "billing-late-fee",
+    "gate": "default",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "trivial",
+     "trivial"
+    ],
+    "first_trivial_report": 1,
+    "confirming": 1,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "billing-late-fee-control-r2",
+    "case": "billing-late-fee",
+    "gate": "default",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "trivial",
+     "trivial"
+    ],
+    "first_trivial_report": 1,
+    "confirming": 1,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "billing-late-fee-control-r3",
+    "case": "billing-late-fee",
+    "gate": "default",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "unresolved"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "library-reminders-control-r1",
+    "case": "library-reminders",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "unresolved"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "library-reminders-control-r2",
+    "case": "library-reminders",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "non-trivial"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "library-reminders-control-r3",
+    "case": "library-reminders",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "unresolved"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "revenue-export-lineage-control-r1",
+    "case": "revenue-export-lineage",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "unresolved"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "revenue-export-lineage-control-r2",
+    "case": "revenue-export-lineage",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "unresolved"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "revenue-export-lineage-control-r3",
+    "case": "revenue-export-lineage",
+    "gate": "one",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "unresolved"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "orders-cancel-rpc-control-r1",
+    "case": "orders-cancel-rpc",
+    "gate": "default",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "unresolved"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "orders-cancel-rpc-control-r2",
+    "case": "orders-cancel-rpc",
+    "gate": "default",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "unresolved"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   },
+   {
+    "label": "orders-cancel-rpc-control-r3",
+    "case": "orders-cancel-rpc",
+    "gate": "default",
+    "events": true,
+    "runs": 1,
+    "classifications": [
+     "unresolved"
+    ],
+    "first_trivial_report": null,
+    "confirming": 0,
+    "non_trivial": 0,
+    "non_trivial_lines": [],
+    "unresolved": 0,
+    "unresolved_lines": [],
+    "complete_sequence": true,
+    "non_trivial_at": [],
+    "unresolved_at": []
+   }
+  ]
+ },
+ "attempts": [
+  {
+   "case": "independent-inspection-scopes",
+   "arm": "control",
+   "rep": 1,
+   "label": "independent-inspection-scopes-control-r1",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion",
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    53.84615384615385,
+    46.15384615384615,
+    53.84615384615385
+   ],
+   "score": 51.28205128205128,
+   "critical_missed_by_majority": [
+    "dependency-logic",
+    "separate-docs-branch",
+    "no-global-barrier"
+   ],
+   "qualified": false,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 814341,
+   "cached_input_tokens": 736000,
+   "uncached_input_tokens": 78341,
+   "output_tokens": 6962,
+   "input_plus_output_tokens": 821303,
+   "wall_seconds": 160.766,
+   "commands": 19,
+   "code_blocks": 6,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "independent-inspection-scopes",
+   "arm": "candidate",
+   "rep": 1,
+   "label": "independent-inspection-scopes-candidate-r1",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    92.3076923076923,
+    100.0
+   ],
+   "score": 97.43589743589745,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 634060,
+   "cached_input_tokens": 563840,
+   "uncached_input_tokens": 70220,
+   "output_tokens": 3688,
+   "input_plus_output_tokens": 637748,
+   "wall_seconds": 92.8,
+   "commands": 13,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 3,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "independent-inspection-scopes",
+   "arm": "control",
+   "rep": 2,
+   "label": "independent-inspection-scopes-control-r2",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 1141264,
+   "cached_input_tokens": 1037184,
+   "uncached_input_tokens": 104080,
+   "output_tokens": 8235,
+   "input_plus_output_tokens": 1149499,
+   "wall_seconds": 213.001,
+   "commands": 22,
+   "code_blocks": 10,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "record": 2
+    },
+    "done_argv_wrappers": 2,
+    "verify_script_runs": 2,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "independent-inspection-scopes",
+   "arm": "candidate",
+   "rep": 2,
+   "label": "independent-inspection-scopes-candidate-r2",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    92.3076923076923,
+    100.0
+   ],
+   "score": 97.43589743589745,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 666349,
+   "cached_input_tokens": 609152,
+   "uncached_input_tokens": 57197,
+   "output_tokens": 3650,
+   "input_plus_output_tokens": 669999,
+   "wall_seconds": 102.744,
+   "commands": 14,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 2,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "independent-inspection-scopes",
+   "arm": "control",
+   "rep": 3,
+   "label": "independent-inspection-scopes-control-r3",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    92.3076923076923,
+    96.15384615384616,
+    96.15384615384616
+   ],
+   "score": 94.87179487179488,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 1914878,
+   "cached_input_tokens": 1798144,
+   "uncached_input_tokens": 116734,
+   "output_tokens": 11297,
+   "input_plus_output_tokens": 1926175,
+   "wall_seconds": 278.204,
+   "commands": 24,
+   "code_blocks": 10,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 1,
+     "record": 2
+    },
+    "done_argv_wrappers": 2,
+    "verify_script_runs": 2,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "independent-inspection-scopes",
+   "arm": "candidate",
+   "rep": 3,
+   "label": "independent-inspection-scopes-candidate-r3",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    96.15384615384616,
+    100.0
+   ],
+   "score": 98.71794871794873,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 704331,
+   "cached_input_tokens": 646912,
+   "uncached_input_tokens": 57419,
+   "output_tokens": 3648,
+   "input_plus_output_tokens": 707979,
+   "wall_seconds": 112.738,
+   "commands": 15,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 3,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "stale-build-receipt-identity",
+   "arm": "control",
+   "rep": 1,
+   "label": "stale-build-receipt-identity-control-r1",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 1244006,
+   "cached_input_tokens": 1157504,
+   "uncached_input_tokens": 86502,
+   "output_tokens": 9365,
+   "input_plus_output_tokens": 1253371,
+   "wall_seconds": 238.845,
+   "commands": 18,
+   "code_blocks": 8,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "stale-build-receipt-identity",
+   "arm": "candidate",
+   "rep": 1,
+   "label": "stale-build-receipt-identity-candidate-r1",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 635584,
+   "cached_input_tokens": 571776,
+   "uncached_input_tokens": 63808,
+   "output_tokens": 4904,
+   "input_plus_output_tokens": 640488,
+   "wall_seconds": 117.738,
+   "commands": 15,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 3,
+     "record": 1,
+     "verify": 2,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 2,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 2,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "stale-build-receipt-identity",
+   "arm": "control",
+   "rep": 2,
+   "label": "stale-build-receipt-identity-control-r2",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 1181628,
+   "cached_input_tokens": 1091456,
+   "uncached_input_tokens": 90172,
+   "output_tokens": 9463,
+   "input_plus_output_tokens": 1191091,
+   "wall_seconds": 245.923,
+   "commands": 17,
+   "code_blocks": 8,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "stale-build-receipt-identity",
+   "arm": "candidate",
+   "rep": 2,
+   "label": "stale-build-receipt-identity-candidate-r2",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 596620,
+   "cached_input_tokens": 528896,
+   "uncached_input_tokens": 67724,
+   "output_tokens": 4378,
+   "input_plus_output_tokens": 600998,
+   "wall_seconds": 128.135,
+   "commands": 14,
+   "code_blocks": 4,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 2,
+     "record": 2,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "stale-build-receipt-identity",
+   "arm": "control",
+   "rep": 3,
+   "label": "stale-build-receipt-identity-control-r3",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 980119,
+   "cached_input_tokens": 899840,
+   "uncached_input_tokens": 80279,
+   "output_tokens": 10306,
+   "input_plus_output_tokens": 990425,
+   "wall_seconds": 290.688,
+   "commands": 16,
+   "code_blocks": 8,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 2,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "stale-build-receipt-identity",
+   "arm": "candidate",
+   "rep": 3,
+   "label": "stale-build-receipt-identity-candidate-r3",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_completion"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    96.15384615384616,
+    100.0
+   ],
+   "score": 98.71794871794873,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 579314,
+   "cached_input_tokens": 520320,
+   "uncached_input_tokens": 58994,
+   "output_tokens": 4521,
+   "input_plus_output_tokens": 583835,
+   "wall_seconds": 136.424,
+   "commands": 14,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "record": 1,
+     "check": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "control",
+   "rep": 1,
+   "label": "legacy-draft-discovers-mapping-control-r1",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 1008001,
+   "cached_input_tokens": 924032,
+   "uncached_input_tokens": 83969,
+   "output_tokens": 8283,
+   "input_plus_output_tokens": 1016284,
+   "wall_seconds": 211.452,
+   "commands": 16,
+   "code_blocks": 8,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "candidate",
+   "rep": 1,
+   "label": "legacy-draft-discovers-mapping-candidate-r1",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 650178,
+   "cached_input_tokens": 593536,
+   "uncached_input_tokens": 56642,
+   "output_tokens": 3785,
+   "input_plus_output_tokens": 653963,
+   "wall_seconds": 96.602,
+   "commands": 14,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 3,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "control",
+   "rep": 2,
+   "label": "legacy-draft-discovers-mapping-control-r2",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 1011951,
+   "cached_input_tokens": 928768,
+   "uncached_input_tokens": 83183,
+   "output_tokens": 7556,
+   "input_plus_output_tokens": 1019507,
+   "wall_seconds": 221.963,
+   "commands": 16,
+   "code_blocks": 5,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 2,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "candidate",
+   "rep": 2,
+   "label": "legacy-draft-discovers-mapping-candidate-r2",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 552857,
+   "cached_input_tokens": 476544,
+   "uncached_input_tokens": 76313,
+   "output_tokens": 3617,
+   "input_plus_output_tokens": 556474,
+   "wall_seconds": 108.878,
+   "commands": 12,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 3,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "control",
+   "rep": 3,
+   "label": "legacy-draft-discovers-mapping-control-r3",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 1153953,
+   "cached_input_tokens": 1077504,
+   "uncached_input_tokens": 76449,
+   "output_tokens": 8506,
+   "input_plus_output_tokens": 1162459,
+   "wall_seconds": 188.851,
+   "commands": 18,
+   "code_blocks": 7,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "candidate",
+   "rep": 3,
+   "label": "legacy-draft-discovers-mapping-candidate-r3",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 645373,
+   "cached_input_tokens": 580992,
+   "uncached_input_tokens": 64381,
+   "output_tokens": 3921,
+   "input_plus_output_tokens": 649294,
+   "wall_seconds": 110.291,
+   "commands": 13,
+   "code_blocks": 4,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 4,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "bounded-source-edge-repair",
+   "arm": "control",
+   "rep": 1,
+   "label": "bounded-source-edge-repair-control-r1",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    96.42857142857143,
+    96.42857142857143,
+    96.42857142857143
+   ],
+   "score": 96.42857142857143,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 838867,
+   "cached_input_tokens": 772736,
+   "uncached_input_tokens": 66131,
+   "output_tokens": 7458,
+   "input_plus_output_tokens": 846325,
+   "wall_seconds": 164.56,
+   "commands": 15,
+   "code_blocks": 6,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 2,
+     "record": 2
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 2,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "bounded-source-edge-repair",
+   "arm": "candidate",
+   "rep": 1,
+   "label": "bounded-source-edge-repair-candidate-r1",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    96.42857142857143,
+    96.42857142857143,
+    96.42857142857143
+   ],
+   "score": 96.42857142857143,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 604567,
+   "cached_input_tokens": 544000,
+   "uncached_input_tokens": 60567,
+   "output_tokens": 3609,
+   "input_plus_output_tokens": 608176,
+   "wall_seconds": 95.071,
+   "commands": 16,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "record": 1,
+     "check": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "bounded-source-edge-repair",
+   "arm": "control",
+   "rep": 2,
+   "label": "bounded-source-edge-repair-control-r2",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    96.42857142857143,
+    96.42857142857143,
+    96.42857142857143
+   ],
+   "score": 96.42857142857143,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 723156,
+   "cached_input_tokens": 646272,
+   "uncached_input_tokens": 76884,
+   "output_tokens": 8007,
+   "input_plus_output_tokens": 731163,
+   "wall_seconds": 185.891,
+   "commands": 13,
+   "code_blocks": 6,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "bounded-source-edge-repair",
+   "arm": "candidate",
+   "rep": 2,
+   "label": "bounded-source-edge-repair-candidate-r2",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    96.42857142857143,
+    96.42857142857143,
+    96.42857142857143
+   ],
+   "score": 96.42857142857143,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 624186,
+   "cached_input_tokens": 552704,
+   "uncached_input_tokens": 71482,
+   "output_tokens": 3534,
+   "input_plus_output_tokens": 627720,
+   "wall_seconds": 96.293,
+   "commands": 16,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "record": 1,
+     "check": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "bounded-source-edge-repair",
+   "arm": "control",
+   "rep": 3,
+   "label": "bounded-source-edge-repair-control-r3",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    96.42857142857143,
+    96.42857142857143,
+    96.42857142857143
+   ],
+   "score": 96.42857142857143,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 769551,
+   "cached_input_tokens": 704768,
+   "uncached_input_tokens": 64783,
+   "output_tokens": 7292,
+   "input_plus_output_tokens": 776843,
+   "wall_seconds": 162.402,
+   "commands": 14,
+   "code_blocks": 5,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 2,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "bounded-source-edge-repair",
+   "arm": "candidate",
+   "rep": 3,
+   "label": "bounded-source-edge-repair-candidate-r3",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    96.42857142857143,
+    96.42857142857143,
+    96.42857142857143
+   ],
+   "score": 96.42857142857143,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 613513,
+   "cached_input_tokens": 556928,
+   "uncached_input_tokens": 56585,
+   "output_tokens": 3418,
+   "input_plus_output_tokens": 616931,
+   "wall_seconds": 84.199,
+   "commands": 13,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 2,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "known-external-approval-blocker",
+   "arm": "control",
+   "rep": 1,
+   "label": "known-external-approval-blocker-control-r1",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 2397758,
+   "cached_input_tokens": 2279808,
+   "uncached_input_tokens": 117950,
+   "output_tokens": 12482,
+   "input_plus_output_tokens": 2410240,
+   "wall_seconds": 319.732,
+   "commands": 28,
+   "code_blocks": 14,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 1,
+     "record": 3
+    },
+    "done_argv_wrappers": 3,
+    "verify_script_runs": 3,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "known-external-approval-blocker",
+   "arm": "candidate",
+   "rep": 1,
+   "label": "known-external-approval-blocker-candidate-r1",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 655936,
+   "cached_input_tokens": 577280,
+   "uncached_input_tokens": 78656,
+   "output_tokens": 3975,
+   "input_plus_output_tokens": 659911,
+   "wall_seconds": 121.713,
+   "commands": 17,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 3,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "known-external-approval-blocker",
+   "arm": "control",
+   "rep": 2,
+   "label": "known-external-approval-blocker-control-r2",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 2724256,
+   "cached_input_tokens": 2583680,
+   "uncached_input_tokens": 140576,
+   "output_tokens": 14131,
+   "input_plus_output_tokens": 2738387,
+   "wall_seconds": 406.171,
+   "commands": 29,
+   "code_blocks": 14,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 2,
+     "record": 3
+    },
+    "done_argv_wrappers": 3,
+    "verify_script_runs": 3,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "known-external-approval-blocker",
+   "arm": "candidate",
+   "rep": 2,
+   "label": "known-external-approval-blocker-candidate-r2",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 667482,
+   "cached_input_tokens": 606848,
+   "uncached_input_tokens": 60634,
+   "output_tokens": 3707,
+   "input_plus_output_tokens": 671189,
+   "wall_seconds": 121.125,
+   "commands": 14,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 3,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "known-external-approval-blocker",
+   "arm": "control",
+   "rep": 3,
+   "label": "known-external-approval-blocker-control-r3",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 1392163,
+   "cached_input_tokens": 1295104,
+   "uncached_input_tokens": 97059,
+   "output_tokens": 8880,
+   "input_plus_output_tokens": 1401043,
+   "wall_seconds": 245.88,
+   "commands": 19,
+   "code_blocks": 8,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "record": 2
+    },
+    "done_argv_wrappers": 2,
+    "verify_script_runs": 2,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "known-external-approval-blocker",
+   "arm": "candidate",
+   "rep": 3,
+   "label": "known-external-approval-blocker-candidate-r3",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 731830,
+   "cached_input_tokens": 661888,
+   "uncached_input_tokens": 69942,
+   "output_tokens": 4279,
+   "input_plus_output_tokens": 736109,
+   "wall_seconds": 146.465,
+   "commands": 14,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 4,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "missing-normative-redaction-source",
+   "arm": "control",
+   "rep": 1,
+   "label": "missing-normative-redaction-source-control-r1",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 1132960,
+   "cached_input_tokens": 1041024,
+   "uncached_input_tokens": 91936,
+   "output_tokens": 7236,
+   "input_plus_output_tokens": 1140196,
+   "wall_seconds": 190.208,
+   "commands": 17,
+   "code_blocks": 5,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "missing-normative-redaction-source",
+   "arm": "candidate",
+   "rep": 1,
+   "label": "missing-normative-redaction-source-candidate-r1",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 713563,
+   "cached_input_tokens": 645248,
+   "uncached_input_tokens": 68315,
+   "output_tokens": 3841,
+   "input_plus_output_tokens": 717404,
+   "wall_seconds": 105.342,
+   "commands": 14,
+   "code_blocks": 6,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 3,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "missing-normative-redaction-source",
+   "arm": "control",
+   "rep": 2,
+   "label": "missing-normative-redaction-source-control-r2",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 1185694,
+   "cached_input_tokens": 1089280,
+   "uncached_input_tokens": 96414,
+   "output_tokens": 8575,
+   "input_plus_output_tokens": 1194269,
+   "wall_seconds": 230.183,
+   "commands": 18,
+   "code_blocks": 5,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 2,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "missing-normative-redaction-source",
+   "arm": "candidate",
+   "rep": 2,
+   "label": "missing-normative-redaction-source-candidate-r2",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    96.15384615384616,
+    100.0
+   ],
+   "score": 98.71794871794873,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 622400,
+   "cached_input_tokens": 558592,
+   "uncached_input_tokens": 63808,
+   "output_tokens": 3487,
+   "input_plus_output_tokens": 625887,
+   "wall_seconds": 88.214,
+   "commands": 12,
+   "code_blocks": 6,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "record": 1,
+     "check": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "missing-normative-redaction-source",
+   "arm": "control",
+   "rep": 3,
+   "label": "missing-normative-redaction-source-control-r3",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 1111229,
+   "cached_input_tokens": 1022592,
+   "uncached_input_tokens": 88637,
+   "output_tokens": 7573,
+   "input_plus_output_tokens": 1118802,
+   "wall_seconds": 195.218,
+   "commands": 24,
+   "code_blocks": 6,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "missing-normative-redaction-source",
+   "arm": "candidate",
+   "rep": 3,
+   "label": "missing-normative-redaction-source-candidate-r3",
+   "heldout": false,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": null,
+   "keys_total": null,
+   "key_rate": null,
+   "input_tokens": 663323,
+   "cached_input_tokens": 594688,
+   "uncached_input_tokens": 68635,
+   "output_tokens": 3571,
+   "input_plus_output_tokens": 666894,
+   "wall_seconds": 81.18,
+   "commands": 13,
+   "code_blocks": 4,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "record": 1,
+     "check": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "billing-late-fee",
+   "arm": "control",
+   "rep": 1,
+   "label": "billing-late-fee-control-r1",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": 3,
+   "keys_total": 7,
+   "key_rate": 0.42857142857142855,
+   "input_tokens": 2007974,
+   "cached_input_tokens": 1902336,
+   "uncached_input_tokens": 105638,
+   "output_tokens": 14397,
+   "input_plus_output_tokens": 2022371,
+   "wall_seconds": 417.986,
+   "commands": 26,
+   "code_blocks": 9,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 1,
+     "record": 2
+    },
+    "done_argv_wrappers": 2,
+    "verify_script_runs": 2,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "billing-late-fee",
+   "arm": "candidate",
+   "rep": 1,
+   "label": "billing-late-fee-candidate-r1",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": 3,
+   "keys_total": 7,
+   "key_rate": 0.42857142857142855,
+   "input_tokens": 584551,
+   "cached_input_tokens": 521216,
+   "uncached_input_tokens": 63335,
+   "output_tokens": 4012,
+   "input_plus_output_tokens": 588563,
+   "wall_seconds": 132.901,
+   "commands": 12,
+   "code_blocks": 4,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 2,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "billing-late-fee",
+   "arm": "control",
+   "rep": 2,
+   "label": "billing-late-fee-control-r2",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    80.0,
+    80.0,
+    80.0
+   ],
+   "score": 80.0,
+   "critical_missed_by_majority": [
+    "terminal-disposition",
+    "test-run-wired-to-suppliers"
+   ],
+   "qualified": false,
+   "keys_passed": 3,
+   "keys_total": 7,
+   "key_rate": 0.42857142857142855,
+   "input_tokens": 1995427,
+   "cached_input_tokens": 1888384,
+   "uncached_input_tokens": 107043,
+   "output_tokens": 12875,
+   "input_plus_output_tokens": 2008302,
+   "wall_seconds": 349.865,
+   "commands": 27,
+   "code_blocks": 9,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 1,
+     "record": 2
+    },
+    "done_argv_wrappers": 2,
+    "verify_script_runs": 2,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "billing-late-fee",
+   "arm": "candidate",
+   "rep": 2,
+   "label": "billing-late-fee-candidate-r2",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": 5,
+   "keys_total": 7,
+   "key_rate": 0.7142857142857143,
+   "input_tokens": 981794,
+   "cached_input_tokens": 900096,
+   "uncached_input_tokens": 81698,
+   "output_tokens": 6219,
+   "input_plus_output_tokens": 988013,
+   "wall_seconds": 165.031,
+   "commands": 17,
+   "code_blocks": 6,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 4,
+     "record": 2,
+     "verify": 2,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 2
+    },
+    "done_argv_wrappers": 2,
+    "verify_script_runs": 2,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "billing-late-fee",
+   "arm": "control",
+   "rep": 3,
+   "label": "billing-late-fee-control-r3",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion",
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    63.333333333333336,
+    70.0,
+    73.33333333333333
+   ],
+   "score": 68.88888888888889,
+   "critical_missed_by_majority": [
+    "authority-and-bounds",
+    "test-run-wired-to-suppliers"
+   ],
+   "qualified": false,
+   "keys_passed": 5,
+   "keys_total": 7,
+   "key_rate": 0.7142857142857143,
+   "input_tokens": 1252874,
+   "cached_input_tokens": 1148032,
+   "uncached_input_tokens": 104842,
+   "output_tokens": 10102,
+   "input_plus_output_tokens": 1262976,
+   "wall_seconds": 286.768,
+   "commands": 18,
+   "code_blocks": 6,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "billing-late-fee",
+   "arm": "candidate",
+   "rep": 3,
+   "label": "billing-late-fee-candidate-r3",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": 3,
+   "keys_total": 7,
+   "key_rate": 0.42857142857142855,
+   "input_tokens": 705321,
+   "cached_input_tokens": 640896,
+   "uncached_input_tokens": 64425,
+   "output_tokens": 5392,
+   "input_plus_output_tokens": 710713,
+   "wall_seconds": 155.244,
+   "commands": 14,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 3,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "library-reminders",
+   "arm": "control",
+   "rep": 1,
+   "label": "library-reminders-control-r1",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion",
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    96.42857142857143,
+    100.0,
+    96.42857142857143
+   ],
+   "score": 97.61904761904763,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": 9,
+   "keys_total": 10,
+   "key_rate": 0.9,
+   "input_tokens": 1226278,
+   "cached_input_tokens": 1130880,
+   "uncached_input_tokens": 95398,
+   "output_tokens": 9372,
+   "input_plus_output_tokens": 1235650,
+   "wall_seconds": 231.985,
+   "commands": 21,
+   "code_blocks": 7,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "library-reminders",
+   "arm": "candidate",
+   "rep": 1,
+   "label": "library-reminders-candidate-r1",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_completion",
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    96.42857142857143,
+    96.42857142857143,
+    96.42857142857143
+   ],
+   "score": 96.42857142857143,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": 9,
+   "keys_total": 10,
+   "key_rate": 0.9,
+   "input_tokens": 669042,
+   "cached_input_tokens": 605696,
+   "uncached_input_tokens": 63346,
+   "output_tokens": 4652,
+   "input_plus_output_tokens": 673694,
+   "wall_seconds": 136.454,
+   "commands": 13,
+   "code_blocks": 4,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 2,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "library-reminders",
+   "arm": "control",
+   "rep": 2,
+   "label": "library-reminders-control-r2",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": 10,
+   "keys_total": 10,
+   "key_rate": 1.0,
+   "input_tokens": 1342486,
+   "cached_input_tokens": 1251072,
+   "uncached_input_tokens": 91414,
+   "output_tokens": 11098,
+   "input_plus_output_tokens": 1353584,
+   "wall_seconds": 274.811,
+   "commands": 22,
+   "code_blocks": 7,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "library-reminders",
+   "arm": "candidate",
+   "rep": 2,
+   "label": "library-reminders-candidate-r2",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": 10,
+   "keys_total": 10,
+   "key_rate": 1.0,
+   "input_tokens": 782191,
+   "cached_input_tokens": 713088,
+   "uncached_input_tokens": 69103,
+   "output_tokens": 5518,
+   "input_plus_output_tokens": 787709,
+   "wall_seconds": 161.419,
+   "commands": 15,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 2,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "library-reminders",
+   "arm": "control",
+   "rep": 3,
+   "label": "library-reminders-control-r3",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion",
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    96.42857142857143,
+    100.0,
+    100.0
+   ],
+   "score": 98.80952380952381,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": 9,
+   "keys_total": 10,
+   "key_rate": 0.9,
+   "input_tokens": 1269981,
+   "cached_input_tokens": 1175808,
+   "uncached_input_tokens": 94173,
+   "output_tokens": 10122,
+   "input_plus_output_tokens": 1280103,
+   "wall_seconds": 274.756,
+   "commands": 18,
+   "code_blocks": 6,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 2,
+     "record": 2
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 2,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "library-reminders",
+   "arm": "candidate",
+   "rep": 3,
+   "label": "library-reminders-candidate-r3",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": true,
+   "outcome_errors": [],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    100.0,
+    100.0,
+    100.0
+   ],
+   "score": 100.0,
+   "critical_missed_by_majority": [],
+   "qualified": true,
+   "keys_passed": 10,
+   "keys_total": 10,
+   "key_rate": 1.0,
+   "input_tokens": 697148,
+   "cached_input_tokens": 634112,
+   "uncached_input_tokens": 63036,
+   "output_tokens": 4789,
+   "input_plus_output_tokens": 701937,
+   "wall_seconds": 138.655,
+   "commands": 14,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 3,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "revenue-export-lineage",
+   "arm": "control",
+   "rep": 1,
+   "label": "revenue-export-lineage-control-r1",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion",
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    89.28571428571429,
+    89.28571428571429,
+    89.28571428571429
+   ],
+   "score": 89.28571428571429,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": 7,
+   "keys_total": 7,
+   "key_rate": 1.0,
+   "input_tokens": 864360,
+   "cached_input_tokens": 797056,
+   "uncached_input_tokens": 67304,
+   "output_tokens": 7126,
+   "input_plus_output_tokens": 871486,
+   "wall_seconds": 186.709,
+   "commands": 15,
+   "code_blocks": 6,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 2,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "revenue-export-lineage",
+   "arm": "candidate",
+   "rep": 1,
+   "label": "revenue-export-lineage-candidate-r1",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    85.71428571428571,
+    89.28571428571429,
+    89.28571428571429
+   ],
+   "score": 88.09523809523809,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": 7,
+   "keys_total": 7,
+   "key_rate": 1.0,
+   "input_tokens": 587238,
+   "cached_input_tokens": 530176,
+   "uncached_input_tokens": 57062,
+   "output_tokens": 3982,
+   "input_plus_output_tokens": 591220,
+   "wall_seconds": 86.72,
+   "commands": 13,
+   "code_blocks": 4,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "record": 1,
+     "check": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "revenue-export-lineage",
+   "arm": "control",
+   "rep": 2,
+   "label": "revenue-export-lineage-control-r2",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion",
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    89.28571428571429,
+    89.28571428571429,
+    89.28571428571429
+   ],
+   "score": 89.28571428571429,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": 7,
+   "keys_total": 7,
+   "key_rate": 1.0,
+   "input_tokens": 890525,
+   "cached_input_tokens": 820480,
+   "uncached_input_tokens": 70045,
+   "output_tokens": 7304,
+   "input_plus_output_tokens": 897829,
+   "wall_seconds": 163.261,
+   "commands": 15,
+   "code_blocks": 6,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "revenue-export-lineage",
+   "arm": "candidate",
+   "rep": 2,
+   "label": "revenue-export-lineage-candidate-r2",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    85.71428571428571,
+    85.71428571428571,
+    89.28571428571429
+   ],
+   "score": 86.90476190476191,
+   "critical_missed_by_majority": [
+    "terminal-disposition"
+   ],
+   "qualified": false,
+   "keys_passed": 7,
+   "keys_total": 7,
+   "key_rate": 1.0,
+   "input_tokens": 533896,
+   "cached_input_tokens": 475008,
+   "uncached_input_tokens": 58888,
+   "output_tokens": 3989,
+   "input_plus_output_tokens": 537885,
+   "wall_seconds": 108.187,
+   "commands": 15,
+   "code_blocks": 4,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "record": 1,
+     "check": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "revenue-export-lineage",
+   "arm": "control",
+   "rep": 3,
+   "label": "revenue-export-lineage-control-r3",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion",
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    89.28571428571429,
+    89.28571428571429,
+    89.28571428571429
+   ],
+   "score": 89.28571428571429,
+   "critical_missed_by_majority": [],
+   "qualified": false,
+   "keys_passed": 7,
+   "keys_total": 7,
+   "key_rate": 1.0,
+   "input_tokens": 701344,
+   "cached_input_tokens": 632064,
+   "uncached_input_tokens": 69280,
+   "output_tokens": 6362,
+   "input_plus_output_tokens": 707706,
+   "wall_seconds": 141.419,
+   "commands": 12,
+   "code_blocks": 4,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "revenue-export-lineage",
+   "arm": "candidate",
+   "rep": 3,
+   "label": "revenue-export-lineage-candidate-r3",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    85.71428571428571,
+    85.71428571428571,
+    85.71428571428571
+   ],
+   "score": 85.71428571428571,
+   "critical_missed_by_majority": [
+    "terminal-disposition"
+   ],
+   "qualified": false,
+   "keys_passed": 7,
+   "keys_total": 7,
+   "key_rate": 1.0,
+   "input_tokens": 592323,
+   "cached_input_tokens": 532224,
+   "uncached_input_tokens": 60099,
+   "output_tokens": 3839,
+   "input_plus_output_tokens": 596162,
+   "wall_seconds": 90.283,
+   "commands": 13,
+   "code_blocks": 4,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "record": 1,
+     "check": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   }
+  },
+  {
+   "case": "orders-cancel-rpc",
+   "arm": "control",
+   "rep": 1,
+   "label": "orders-cancel-rpc-control-r1",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion",
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    76.66666666666667,
+    70.0,
+    76.66666666666667
+   ],
+   "score": 74.44444444444444,
+   "critical_missed_by_majority": [
+    "store-split-from-docs"
+   ],
+   "qualified": false,
+   "keys_passed": 8,
+   "keys_total": 10,
+   "key_rate": 0.8,
+   "input_tokens": 1201167,
+   "cached_input_tokens": 1109504,
+   "uncached_input_tokens": 91663,
+   "output_tokens": 9761,
+   "input_plus_output_tokens": 1210928,
+   "wall_seconds": 236.811,
+   "commands": 17,
+   "code_blocks": 5,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "orders-cancel-rpc",
+   "arm": "candidate",
+   "rep": 1,
+   "label": "orders-cancel-rpc-candidate-r1",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    70.0,
+    66.66666666666667,
+    63.333333333333336
+   ],
+   "score": 66.66666666666667,
+   "critical_missed_by_majority": [
+    "terminal-disposition",
+    "store-split-from-docs"
+   ],
+   "qualified": false,
+   "keys_passed": 8,
+   "keys_total": 10,
+   "key_rate": 0.8,
+   "input_tokens": 648206,
+   "cached_input_tokens": 555392,
+   "uncached_input_tokens": 92814,
+   "output_tokens": 5069,
+   "input_plus_output_tokens": 653275,
+   "wall_seconds": 153.601,
+   "commands": 17,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "record": 2,
+     "freeze": 1,
+     "check": 3,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "orders-cancel-rpc",
+   "arm": "control",
+   "rep": 2,
+   "label": "orders-cancel-rpc-control-r2",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion",
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    73.33333333333333,
+    70.0,
+    73.33333333333333
+   ],
+   "score": 72.22222222222221,
+   "critical_missed_by_majority": [
+    "dependency-logic",
+    "store-split-from-docs"
+   ],
+   "qualified": false,
+   "keys_passed": 8,
+   "keys_total": 10,
+   "key_rate": 0.8,
+   "input_tokens": 1406114,
+   "cached_input_tokens": 1306880,
+   "uncached_input_tokens": 99234,
+   "output_tokens": 11164,
+   "input_plus_output_tokens": 1417278,
+   "wall_seconds": 335.44,
+   "commands": 19,
+   "code_blocks": 6,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "orders-cancel-rpc",
+   "arm": "candidate",
+   "rep": 2,
+   "label": "orders-cancel-rpc-candidate-r2",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    66.66666666666667,
+    66.66666666666667,
+    63.333333333333336
+   ],
+   "score": 65.55555555555556,
+   "critical_missed_by_majority": [
+    "terminal-disposition",
+    "store-split-from-docs"
+   ],
+   "qualified": false,
+   "keys_passed": 8,
+   "keys_total": 10,
+   "key_rate": 0.8,
+   "input_tokens": 818722,
+   "cached_input_tokens": 743680,
+   "uncached_input_tokens": 75042,
+   "output_tokens": 6246,
+   "input_plus_output_tokens": 824968,
+   "wall_seconds": 212.734,
+   "commands": 15,
+   "code_blocks": 3,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 3,
+     "record": 2,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "orders-cancel-rpc",
+   "arm": "control",
+   "rep": 3,
+   "label": "orders-cancel-rpc-control-r3",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "plan_structure",
+    "plan_completion",
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    73.33333333333333,
+    73.33333333333333,
+    80.0
+   ],
+   "score": 75.55555555555556,
+   "critical_missed_by_majority": [
+    "store-split-from-docs"
+   ],
+   "qualified": false,
+   "keys_passed": 8,
+   "keys_total": 10,
+   "key_rate": 0.8,
+   "input_tokens": 1776327,
+   "cached_input_tokens": 1670656,
+   "uncached_input_tokens": 105671,
+   "output_tokens": 11470,
+   "input_plus_output_tokens": 1787797,
+   "wall_seconds": 316.486,
+   "commands": 26,
+   "code_blocks": 8,
+   "route": "hand-built",
+   "conformance": {
+    "route": "hand-built",
+    "toolkit_commands": {},
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  },
+  {
+   "case": "orders-cancel-rpc",
+   "arm": "candidate",
+   "rep": 3,
+   "label": "orders-cancel-rpc-candidate-r3",
+   "heldout": true,
+   "present": true,
+   "outcome_ok": false,
+   "outcome_errors": [
+    "loop_terminal"
+   ],
+   "has_plan": true,
+   "graded_passes": 3,
+   "synthetic_score": false,
+   "pass_scores": [
+    63.333333333333336,
+    66.66666666666667,
+    70.0
+   ],
+   "score": 66.66666666666667,
+   "critical_missed_by_majority": [
+    "terminal-disposition",
+    "store-split-from-docs"
+   ],
+   "qualified": false,
+   "keys_passed": 8,
+   "keys_total": 10,
+   "key_rate": 0.8,
+   "input_tokens": 750235,
+   "cached_input_tokens": 684928,
+   "uncached_input_tokens": 65307,
+   "output_tokens": 5600,
+   "input_plus_output_tokens": 755835,
+   "wall_seconds": 166.407,
+   "commands": 14,
+   "code_blocks": 4,
+   "route": "toolkit",
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "record": 1,
+     "check": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1
+    },
+    "done_argv_wrappers": 1,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   }
+  }
+ ],
+ "regrade": "R1: parallel_groups removed from final_plan and inherited_draft (AMENDMENTS.md A2)",
+ "grader_rows_mentioning_parallel_groups": {
+  "control": 0,
+  "candidate": 0
+ }
+}

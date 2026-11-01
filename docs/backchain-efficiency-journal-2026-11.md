@@ -318,3 +318,27 @@ Amendment A1, decided at about 09:50, before any grade or analysis (`AMENDMENTS.
   candidate-win blocks fire under either definition, which is stricter on the candidate.
 - The quality comparison is also reported without `dependency-logic`, the one universal criterion that mentions
   parallelism.
+
+## Round 9 — cohort results: inconclusive on quality, decisive on cost (2026-11-01)
+
+Conditions: Round 8's frozen cohort. 60 attempts (10 cases × 3 repetitions × 2 arms), 180 blind grading passes
+(gpt-6-astra medium, read-only, none invalid, 1 quote lowered by the quote check). Then `cohort.py analyze`,
+amendment A1 (`a1_sensitivity.py`) and the post-hoc regrade R1 (`regrade_r1.py`, A2), whose rule was committed
+(21cc2d05) before it ran. Evidence:
+[`experiments/backchain-efficiency-20261101/cohort/`](experiments/backchain-efficiency-20261101/cohort/)
+(`analysis.json`/`.md`, `a1.json`/`.md`, `r1-analysis.json`/`.md`, `attempts.json`, `AMENDMENTS.md`).
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R9-1 | Registered decision: inconclusive. Quality, candidate minus control, is −1.19 points, 95% [−8.85, +6.26], Wilcoxon p = 0.75, against grader noise ±1.05. Neither near-identical nor a significant difference, so the rule gives no winner. | firm | `analysis.json` `decision` |
+| R9-2 | Cost decides nothing under the rule, but it is unambiguous. Per cell the candidate uses −630,081 tokens [−877,056, −422,651] and −124 s [−151, −100], 30 of 30 cells lower, p = 0.005 (10 cases). Arm totals: 20.0M against 38.9M tokens. Medians: 653,619 against 1,192,680 tokens and 115 s against 234 s. Also −25,210 uncached tokens, −5.1 commands and −3.7 code blocks per cell. | firm | `analysis.json` `paired`, `arms` |
+| R9-3 | Every control attempt hand-built its bookkeeping (30 of 30); every candidate attempt used the toolkit (30 of 30). | firm | `attempts.json` `route` |
+| R9-4 | Qualification as registered: candidate 19, control 7 (+0.40 [+0.13, +0.70]). Packaging-normalized (A1): 19 and 19. 13 of the control's 23 outcome failures are only the `parallel_groups: []` its card asks for; none of the candidate's 8 are. | firm | `a1.json` `packaging` |
+| R9-5 | The candidate's two largest quality losses are a derived-field artifact, found after seeing the grades (post-hoc). Graders mention `parallel_groups` in 76 candidate rows and 0 control rows. All 49 partial or missed ones are in the two edit-bounded repair cases, read as a change outside the caller's bounds. The candidate's toolkit recomputes the field; 0.6.6 keeps `[]`. With the field removed (R1), bounded-source-edge-repair goes from −26.6 to 0.0 (96.4 in all 9 passes of both arms) and revenue-export-lineage from −9.1 to −2.4; the control's scores do not move. | firm (diagnosis by R1) | `analysis.json` `per_case`; `r1-analysis.json` `per_case` |
+| R9-6 | R1, the post-hoc sensitivity: still inconclusive. Quality +2.18, 95% [−1.93, +7.49], p = 0.92, against its own grader noise ±0.62; qualification candidate 22, control 7; F7's pooled block does not fire (candidate 9 of 9). | firm (post-hoc) | `r1-analysis.json` |
+| R9-7 | One genuine candidate loss: orders-cancel-rpc, −8.5 registered and −7.8 in R1. Both arms stop on the seeded defects that preservation forbids repairing, but graders judged the candidate's stop worse (terminal-disposition missed in 8 of 9 candidate verdicts). | firm (n = 3 per arm) | `grades/p*/orders-cancel-rpc-*` |
+| R9-8 | The candidate's biggest gains: independent-inspection-scopes +16.7 (largely one control attempt scoring 47.4) and billing-late-fee +17.8. | firm | `analysis.json` `per_case` |
+| R9-9 | F6: the control ran 7 confirming reviews and none was non-trivial. With the 2026-10-16 prior that is 0 of 18 confirming reviews changing anything, which supports D1. | firm (n = 18) | `analysis.json` `confirming_review_yield` |
+| R9-10 | The design could hardly reach "near-identical". Its band is the grader noise (±0.62 to ±1.05 points), while 10 cases with a few large per-case swings give an interval about 9 to 15 points wide. So "inconclusive" here mostly reflects how little power the design has for small differences, not evidence of a difference. | exploratory | `analysis.json`; `r1-analysis.json` |
+
+Adoption is the owner's decision (A2): the registered rule names no winner.
