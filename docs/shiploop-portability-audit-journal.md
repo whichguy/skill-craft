@@ -175,9 +175,12 @@ and six test files), so the hashes of both commits changed.
 3. **Eight E2E-apparatus suites fail on 3.9 with "write to closed file", unexplained.** The apparatus is declared 3.10+, so
    they are out of the job, but a failure that is not a 3.10 API may be a real defect that only shows up there. Worth one
    short investigation before the declaration is relied on.
-4. **No live-model first run from a machine with nothing installed.** The marketplace lifecycle is covered
-   (`docs/marketplace-e2e-testing.md`), and the clean-room probes here ran the CLI and hooks, not a model session. Run the
-   marketplace lifecycle once from the published release, after the host refresh.
+4. **No live-model first run from a machine with nothing installed: partly resolved 2026-11-01** (Round 5). One live
+   `hello` session ran to `done` on the Codex host from a fresh-profile marketplace install of 2.27.2 (every verdict
+   passed). The Claude-host live run could not reach its model (usage limit), so no live Claude-host session has run from
+   the published release; the native Claude install and the installed tree were probed without a model. Earlier wording,
+   kept: "The marketplace lifecycle is covered (`docs/marketplace-e2e-testing.md`), and the clean-room probes here ran the
+   CLI and hooks, not a model session."
 5. **Hook cost and plugin-wide scope (F6) remain.** 45–60 ms per Bash call for every user of the plugin, ShipLoop or not.
    Splitting the hooks into a ShipLoop-only plugin would change the one-namespace decision, so it is the owner's call and
    is not proposed here.
@@ -201,6 +204,34 @@ kept: no live-model round exercised the hook wrappers (item 4), and the CI leg w
 | Release run 41311581045 | `python-floor` failed (L7); `core`, `shiploop-1`, `shiploop-2`, `shiploop-3`, `e2e-apparatus`, `plan` and `release-boundary` passed; the `hermetic` aggregate failed only because of `python-floor` |
 | CI fix | ``7047791fb298ac5490f8f43b9dd8a5d91bd17681`` runs the `python-floor` group on `ubuntu-24.04`; `test/ci-policy.test.py` now allows exactly that one pin (the earlier decision, `f14db1a41a143354a4435de820a9828252675e7d`, removed the pinned image so CI would follow `ubuntu-latest`; it still does for every other group) |
 | CI fix verified | run 41312286843, job 124865056886: see open item 1 |
+
+## Round 5 — clean install of the published release, live (2026-11-01)
+
+Asked by the owner after the publication ("Yes run it"). Evidence and commands: `docs/experiments/clean-install-20261101/`
+(`README.md`, `probes.sh`, `probes.out`, the two run results).
+
+| Check | Result |
+|-------|--------|
+| Native Claude install into a fresh `CLAUDE_CONFIG_DIR` | one plugin, `skill-craft@whichguy` 2.27.2; installed tree identical to the published tree; eight entry scripts mode 755; floor and card text present |
+| Installed tree on stock Python 3.9.6, `env -i` | `shiploop --help` exit 0; `workspace start` exit 0, 15,772-byte packet |
+| Hooks with `python3` off PATH | all five exit 0, silent |
+| Installed tree in a Python 3.7.3 container | hooks exit 0 silent; CLI exits 2 with the one-line floor message |
+| Live `hello`, Claude host, Ollama model | blocked: the first model call returned 429, "monthly usage limit"; invoked and plugin verdicts passed, nothing downstream ran |
+| Live `hello`, Codex host, gpt-6.1-terra xhigh, fresh-profile marketplace install | every verdict passed: `done`, committed, both request checks; 929.2 s, 202 turns, ShipLoop command failures 0 |
+
+Findings:
+
+| # | Finding | Status | Evidence |
+|---|---------|--------|----------|
+| F8 | A person who installs the published plugin gets exactly the tree that was released, and its hooks, floor check and CLI behave as designed on stock macOS Python 3.9.6, with no Python, and below the floor | firm for those cases | `probes.out` |
+| F9 | A live ShipLoop session runs to `done` from a fresh-profile Codex marketplace install of 2.27.2 on this Mac (n = 1, one tiny case) | interim | `codex-hello-result.json` |
+| F10 | The E2E apparatus's default subject (Ollama) can be unavailable for a whole month, and a run that hits the limit still appends a baseline row; the row is labelled failed with the 429 as its stop reason and is excluded from comparisons, but it is a row about the quota, not about ShipLoop | firm | `claude-hello-429-result.json`; `test/shiploop_e2e/baselines.jsonl` |
+| F11 | `workspace start` can print "progress observer unavailable" when the viewer misses its 1.0 s startup deadline; seen in 3 of 13 fresh starts at load average near 60; stderr only | interim, load-dependent | `shiploop_progress.start`; README side observation |
+
+What this teaches: the install half of the portability claim is now checked by native commands on the real release, and the
+live half has one passing host. The Claude host's live run is the missing piece, and it is blocked by a service quota the
+owner controls, not by ShipLoop. Which interpreter the Codex session ran is inferred (the packets printed Xcode's Python
+3.9.6; the session's PATH was not recorded), so the run is not yet proof of a live session on the floor.
 
 ## Proposals as first written (2026-10-31; applied as Round 3)
 

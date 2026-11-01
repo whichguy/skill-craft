@@ -1,0 +1,374 @@
+{
+  "case": "hello",
+  "host": "claude",
+  "backend": "ollama",
+  "model": "deepseek-v4.1-flash:1017-cloud",
+  "effort": null,
+  "pass": false,
+  "invoked": {
+    "pass": true,
+    "skill": "skill-craft:shiploop"
+  },
+  "plugin": {
+    "pass": true,
+    "loaded": [
+      "/Users/dadleet/e2e-runs/2026-11-01/shiploop-hello-floor-93c045/marketplace/plugins/skill-craft"
+    ],
+    "wanted": "/Users/dadleet/e2e-runs/2026-11-01/shiploop-hello-floor-93c045/marketplace/plugins/skill-craft"
+  },
+  "versions": {
+    "source": "marketplace",
+    "installed_by": "origin/main export",
+    "plugin_version": "2.27.2",
+    "shiploop_version": "1.26.2",
+    "plugin_sha256": "b665a3fac1d7",
+    "released": {
+      "origin_main": "3d5732d017899a6d486b3249915284793af19d3a",
+      "local_head": "3d5732d017899a6d486b3249915284793af19d3a",
+      "local_behind_main": true,
+      "catalog_version": "2.27.2",
+      "shiploop_version": "1.26.2",
+      "unreleased": [],
+      "ci": "pending"
+    },
+    "gate": []
+  },
+  "prompt_sha256": "d2d7e2dabeeb",
+  "boundary": {
+    "evaluator": "3f4fbdc54acc",
+    "oracle": "e5f1b99753ac",
+    "case": "313993af1a13"
+  },
+  "host_build": "2.1.316",
+  "span": {
+    "started": 1793541764.773,
+    "ended": 1793541945.617
+  },
+  "identity_unmeasured": {
+    "planning_seconds": "no stage has been accepted yet, so there is no planning window"
+  },
+  "process": {
+    "status": "failed",
+    "returncode": 1,
+    "elapsed_seconds": 183.0,
+    "stop": "error: api_error 429: API Error: Request rejected (429) \u00b7 you (dadleet) have reached your monthly usage limit, upgrade for",
+    "sessions": [
+      {
+        "status": "failed",
+        "returncode": 1,
+        "elapsed_seconds": 183.0,
+        "stop": "error: api_error 429: API Error: Request rejected (429) \u00b7 you (dadleet) have reached your monthly usage limit, upgrade for",
+        "resumed": null,
+        "host": "claude"
+      }
+    ],
+    "resumes": 0,
+    "pass": false
+  },
+  "termination": {
+    "process_status": "failed",
+    "returncode": 1,
+    "sessions": 1,
+    "resumes": 0,
+    "session_stops": [
+      "error: api_error 429: API Error: Request rejected (429) \u00b7 you (dadleet) have reached your monthly usage limit, upgrade for"
+    ],
+    "resume_stop": "host is not resumable",
+    "engine_status": "unknown",
+    "engine_stage": "unknown",
+    "engine_unaccepted_stage": null,
+    "engine_status_reason": null,
+    "engine_blocked_by": null,
+    "engine_awaiting_kind": null,
+    "engine_awaiting_no_default": null
+  },
+  "outcome_class": "FAILED",
+  "outcome_basis": "engine unknown; host is not resumable",
+  "environment": {
+    "start": {
+      "observed": true,
+      "at": "2026-11-01T14:02:37Z",
+      "tools": {
+        "node": "v26.12.1",
+        "python3": "Python 3.15.1",
+        "git": "git version 2.54.0 (Apple Git-157)"
+      },
+      "cpus": 18,
+      "loadavg": [
+        47.67,
+        42.11,
+        29.69
+      ],
+      "display_hold": true,
+      "unread": {},
+      "browser": {
+        "declared": false,
+        "probed": false,
+        "reason": "no case or --need declares a browser"
+      }
+    },
+    "end": {
+      "observed": true,
+      "at": "2026-11-01T14:05:52Z",
+      "cpus": 18,
+      "loadavg": [
+        111.42,
+        61.69,
+        39.68
+      ],
+      "unread": {}
+    },
+    "hosts_used": [
+      "claude"
+    ],
+    "mixed_host": false,
+    "launches_unreadable": [],
+    "environments": [
+      {
+        "launch": "invocation.json",
+        "host": "claude",
+        "model": "deepseek-v4.1-flash:1017-cloud",
+        "effort": null,
+        "host_build": null,
+        "identity_unmeasured": {
+          "host_build": "Claude: read from the init event after the run"
+        },
+        "environment": {
+          "observed": true,
+          "at": "2026-11-01T14:02:37Z",
+          "tools": {
+            "node": "v26.12.1",
+            "python3": "Python 3.15.1",
+            "git": "git version 2.54.0 (Apple Git-157)"
+          },
+          "cpus": 18,
+          "loadavg": [
+            47.67,
+            42.11,
+            29.69
+          ],
+          "display_hold": true,
+          "unread": {},
+          "browser": {
+            "declared": false,
+            "probed": false,
+            "reason": "no case or --need declares a browser"
+          }
+        },
+        "environment_reason": null
+      }
+    ],
+    "overlap": {
+      "observed": true,
+      "basis": "the first and last host event of this run and of each run folder under the runs root (timeline.jsonl holds host events only): it counts a pause between sessions, and misses the setup before the first event and the checks and reap after the last, so the seconds are neither an upper nor a lower bound; a run outside the root is not seen",
+      "root": "~/e2e-runs",
+      "span": {
+        "first": 1793541764.773,
+        "last": 1793541945.617
+      },
+      "siblings_read": 2,
+      "siblings_unreadable": [],
+      "ended_before": 3018,
+      "runs": [
+        {
+          "folder": "2026-11-01/closed-loop-pilot-01/cycle/epoch/runs/candidate-hello-hook-continuation-1",
+          "case": "hello-hook-continuation",
+          "hosts": [
+            "codex"
+          ],
+          "hosts_reason": null,
+          "overlapped_seconds": 180.8,
+          "started_offset_seconds": -123.8
+        },
+        {
+          "folder": "2026-11-01/closed-loop-pilot-01/cycle/epoch/runs/control-hello-hook-continuation-3",
+          "case": "hello-hook-continuation",
+          "hosts": [
+            "codex"
+          ],
+          "hosts_reason": null,
+          "overlapped_seconds": 180.8,
+          "started_offset_seconds": -159.1
+        }
+      ]
+    }
+  },
+  "left_behind": {
+    "observed": true,
+    "reaped": [],
+    "survived": []
+  },
+  "resources": {
+    "ledger": "resources.jsonl",
+    "leases": [],
+    "contention": {
+      "observed": true,
+      "root": "~/e2e-runs",
+      "live_runs": [
+        {
+          "folder": "2026-11-01/closed-loop-pilot-01/cycle/epoch/runs/candidate-hello-hook-continuation-1",
+          "host": "codex",
+          "model": "gpt-6.1-terra"
+        },
+        {
+          "folder": "2026-11-01/closed-loop-pilot-01/cycle/epoch/runs/control-hello-hook-continuation-3",
+          "host": "codex",
+          "model": "gpt-6.1-terra"
+        }
+      ],
+      "same_host": [],
+      "same_model": []
+    },
+    "disk": {
+      "path": "~/e2e-runs/2026-11-01",
+      "free_bytes": 2668199313408,
+      "need_bytes": 2147483648,
+      "ok": true
+    },
+    "cleanup": {
+      "end": {
+        "observed": true,
+        "stopped": [],
+        "survived": [],
+        "gone": [],
+        "reused": [],
+        "unverified": [],
+        "protected": []
+      }
+    }
+  },
+  "keepalive": null,
+  "shiploop": {
+    "pass": false,
+    "reason": "no ShipLoop state.md under the output directory",
+    "knowledge": {
+      "spec": false,
+      "head": null,
+      "uncommitted": [],
+      "spec_tracked": false,
+      "requirement_ids": [],
+      "head_commits": 0,
+      "head_files": 0,
+      "untracked_files": 0,
+      "branches": []
+    }
+  },
+  "committed": {
+    "pass": false,
+    "start_head": null,
+    "head": null,
+    "head_files": 0,
+    "uncommitted": []
+  },
+  "checks": [
+    {
+      "command": "test \"$(python3 hello.py)\" = 'Hello, world!'",
+      "pass": false,
+      "returncode": 1,
+      "output": "/opt/homebrew/Cellar/python@3.15/3.15.1/Frameworks/Python.framework/Versions/3.15/Resources/Python.app/Contents/MacOS/Python: can't open file '/Users/dadleet/e2e-runs/2026-11-01/shiploop-hello-floor-93c045/work/hello.py': [Errno 2] No such file or directory\n"
+    },
+    {
+      "command": "python3 -m unittest -q",
+      "pass": false,
+      "returncode": 5,
+      "output": "----------------------------------------------------------------------\nRan 0 tests in 0.000s\n\nNO TESTS RAN\n"
+    }
+  ],
+  "cli": {
+    "model": "deepseek-v4.1-flash:1017-cloud",
+    "sessions": [
+      {
+        "num_turns": 1,
+        "cost_usd": 0,
+        "stop": "error: api_error 429: API Error: Request rejected (429) \u00b7 you (dadleet) have reached your monthly usage limit, upgrade for"
+      }
+    ],
+    "stop": "error: api_error 429: API Error: Request rejected (429) \u00b7 you (dadleet) have reached your monthly usage limit, upgrade for",
+    "num_turns": 1,
+    "cost_usd": 0,
+    "truncated_outputs": null
+  },
+  "follow_on": null,
+  "base": null,
+  "delivery": {
+    "before": {
+      "observed": false,
+      "reason": "no work/ repository (torn down, or nothing was delivered)"
+    },
+    "after": {
+      "observed": false,
+      "reason": "no work/ repository (torn down, or nothing was delivered)"
+    }
+  },
+  "resumed_run": null,
+  "seeded": null,
+  "budget": null,
+  "expectations": {
+    "checks": "the request: each check tests a sentence of the prompt"
+  },
+  "product_at_stop": {
+    "information_only": true,
+    "ran": false,
+    "reason": "no ShipLoop state.md under the output directory",
+    "engine": {
+      "status": "unknown",
+      "stage": "unknown"
+    }
+  },
+  "metrics": {
+    "claude_code_version": "2.1.316",
+    "turns": 1,
+    "model_calls": 1,
+    "window_tokens": null,
+    "cost_usd": null,
+    "unreported_sessions": 0,
+    "compactions": null,
+    "truncated_outputs": null,
+    "improve_children": 0,
+    "stages": [],
+    "unmeasured": {
+      "compactions": "only Grok's events carry this signal (an auto_compact_completed event); this host's do not, so a count of 0 is a missing signal and not a measurement",
+      "truncated_outputs": "only Grok's events carry this signal (rawOutput.truncated on a tool_call_update); this host's do not, so a count of 0 is a missing signal and not a measurement",
+      "cancelled_tool_calls": "only Grok's events carry this signal (a failed tool_call_update saying the user cancelled it, Grok's permission refusal); this host's do not, so a count of 0 is a missing signal and not a measurement",
+      "knowledge_reads": "only Grok's events carry this signal (a read tool call naming a file path); this host's do not, so a count of 0 is a missing signal and not a measurement",
+      "window_tokens": "no result event named one context window in its modelUsage (the host reports none, the session ended before it reported, or several models reported different windows)",
+      "cost_usd": "the run ran on Ollama (--backend ollama): Claude Code prices its tokens at Anthropic's rates, so its total_cost_usd is not this run's cost; the tokens are"
+    },
+    "script_verifications": {
+      "records": 0,
+      "passed": 0,
+      "could_not_run": 0,
+      "commands": 0,
+      "red": 0
+    },
+    "planning_seconds": null,
+    "model_glue": 0,
+    "tmp_writes": 0,
+    "asked_user": 0,
+    "narrative": {
+      "emitted": 0,
+      "shown": 0,
+      "verbatim": 0,
+      "results": 0,
+      "with_headline": 0
+    },
+    "shiploop_failures": 0,
+    "cancelled_tool_calls": null
+  },
+  "output": "/Users/dadleet/e2e-runs/2026-11-01/shiploop-hello-floor-93c045",
+  "quality": {
+    "observed": false,
+    "declared": [],
+    "hosts_used": [
+      "claude"
+    ],
+    "mixed_host": false,
+    "reason": "ShipLoop did not reach done (no ShipLoop state.md under the output directory), so no delivery was returned",
+    "memory_writes": [],
+    "held_out_seen": null,
+    "unmeasured": {
+      "held_out_seen": "the case declares no held-out acceptance, so nothing is held out"
+    },
+    "seconds": 0.0
+  }
+}
