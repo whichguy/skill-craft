@@ -368,8 +368,9 @@ class ObservedHarmPacketTests(unittest.TestCase):
     def test_the_step_plan_declares_ids_it_will_title_and_names_every_suite(self) -> None:
         text = flat(self.found[("step-plan", "producer")])
         # The duty's `test_commands` item (4, 2026-10-10 rewrite) lists one bullet per suite: the focused one carries ids,
-        # one for each criterion it names (test-spec writes a case per ID; the step-plan gate refuses a criterion without).
-        self.assertIn("focused: this item's cases, an ID for each criterion it names", text)
+        # one for each executed criterion it names (test-spec writes a case per ID and none for a searched criterion; the
+        # step-plan gate refuses an executed criterion without one).
+        self.assertIn("focused: this item's cases, an ID for each executed criterion it names", text)
         self.assertNotIn("of the test-spec cases", text)
         for suite in test_loop.SUITES:
             self.assertIn("- " + suite + ": ", text)
