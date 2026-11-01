@@ -935,6 +935,13 @@ steps. `lifecycle.py` is the one place that does both.
   - the logs (`events.jsonl`, `stderr.txt`, `timeline.jsonl`);
   - the bundle (`delivery/work.bundle`), which git verifies and which holds that head.
 
+  A commit-only bundle cannot reconstruct Git-visible files that were dirty or unobserved when returned. Disposal therefore
+  also requires observed `delivery.before` and `delivery.after` snapshots with typed, empty `status` lists and matching,
+  nonempty `head` and `tree` values. If the original `work/` real directory still exists, its read-only Git fingerprint must
+  be observed, clean and match the recorded `after`; otherwise disposal refuses before removing any folder. If `work/` is
+  already absent, the clean recorded snapshots and evidence gate still permit idempotent disposal. This rule covers only the
+  returned `work/` tree; it does not promise a full active-workspace archive or resume.
+
   What it removed is recorded in the ledger. Disposal is never automatic: whoever inspects the run decides when.
 - **Leases (R20).** Before a host starts, the harness leases the controlled resources another run would conflict on, all or
   none:
