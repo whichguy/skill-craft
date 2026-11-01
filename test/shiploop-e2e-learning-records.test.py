@@ -169,7 +169,8 @@ class LearningRecordsTest(LedgerCase):
         """The seeded LR-20261030-5dce01 says materiality high where reviewers and the judge say material or minor. It was
         admitted by the owner and verified, and a re-find reopens it; select compared the field to the exact string material,
         so a re-found, re-admitted record could never be taken by a cycle, with no error."""
-        seeded = self.open_record("seeded", materiality="high")
+        seeded = lr.new_id()
+        self.raw_row(seeded, "opened", title="seeded", materiality="high", confidence="high", target="shiploop")
         lr.append("admitted", seeded, self.ledger)
         minor = self.open_record("minor", materiality="minor")
         lr.append("admitted", minor, self.ledger)
@@ -376,6 +377,59 @@ class LearningRecordsTest(LedgerCase):
         self.assertEqual(review._discovery_problems({**finding, "same_as": None}, 0), [])
         self.assertEqual(review._discovery_problems({**finding, "same_as": "LR-20261030-abcdef"}, 0), [])
         self.assertIn("same_as", " ".join(review._discovery_problems({**finding, "same_as": "none"}, 0)))
+
+    # Materiality vocabulary. review.py accepts `material` or `minor` and nothing else, and select() takes `material` (and,
+    # for the one seeded row, `high`), so an admitted record carrying any other word is never offered and nothing says so.
+    LEGACY = "LR-20261030-5dce01"
+
+    def raw_row(self, record, event, at="2020-01-01T00:00:00.000000Z", **fields):
+        """A row as an older append() could write it, which the current one may refuse."""
+        row = {"contract": lr.CONTRACT, "event_id": f"{at}-{event[:3]}000", "at": at, "record": record, "event": event, **fields}
+        with self.ledger.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(row) + "\n")
+
+    def test_append_refuses_a_materiality_that_select_could_never_read(self):
+        for value in ("high", "low", "critical", "Material", "material ", "", None, 3, ["material"]):
+            with self.subTest(value=value):
+                record = lr.new_id()
+                with self.assertRaisesRegex(ValueError, "materiality"):
+                    lr.append("opened", record, self.ledger, title="t", materiality=value)
+                self.assertFalse(self.ledger.exists() and self.ledger.read_text(), "a refused row is not written")
+        for value in ("material", "minor"):
+            with self.subTest(value=value):
+                lr.append("opened", lr.new_id(), self.ledger, title="t", materiality=value)
+        lr.append("opened", lr.new_id(), self.ledger, source={"run": "/runs/y"})
+        self.assertEqual(len(lr.rows(self.ledger)), 3, "a sighting that makes no claim about materiality is not refused")
+
+    def test_the_checked_in_ledger_has_one_unreadable_materiality_and_it_is_the_named_one(self):
+        """A history check, as for owner decisions: a union merge from a branch that predates the check in append() can
+        bring in a word the vocabulary does not have. This fails then, instead of a record being skipped without a sound.
+        The one row that says "high" (LR-20261030-5dce01, event_id 2026-10-31T05:14:11.983143Z-5f757d) is the exception
+        select() reads (MATERIAL); it is not edited, the ledger being append-only."""
+        odd = {(row["record"], row["materiality"]) for row in lr.rows(lr.LEDGER)
+               if row["event"] == "opened" and "materiality" in row and row["materiality"] not in lr.MATERIALITY}
+        self.assertEqual(odd, {(self.LEGACY, "high")})
+        self.assertIn("high", lr.MATERIAL, "select reads the one unreadable word the ledger holds")
+
+    def test_ingest_refuses_an_unreadable_materiality_before_it_writes_anything(self):
+        good = {"id": "D1", "title": "fine", "materiality": "material", "confidence": "high", "target": "shiploop"}
+        bad = {"id": "D2", "title": "odd", "materiality": "high", "confidence": "high", "target": "harness"}
+        for route in ("implementation", "owner_challenges", "harness"):
+            with self.subTest(route=route):
+                ledger = self.temp / f"bad-{route}.jsonl"
+                # The good finding goes on the route ingest handles first, or last when the bad one is on the first.
+                good_route = "harness" if route == "implementation" else "implementation"
+                with self.assertRaisesRegex(ValueError, "D2.*materiality"):
+                    lr.ingest({}, {good_route: [good], route: [bad]}, {"run": "/runs/r"}, ledger)
+                self.assertFalse(ledger.exists() and ledger.read_text(), "a half-recorded batch is not left behind")
+
+    def test_a_sighting_with_no_materiality_writes_none_rather_than_a_null(self):
+        known = self.open_record("known")
+        lr.ingest({}, {"owner_challenges": [{"same_as": known}]}, {"run": "/runs/r"}, self.ledger)
+        sighting = [row for row in lr.rows(self.ledger) if row["event"] == "opened"][-1]
+        self.assertNotIn("materiality", sighting)
+        self.assertEqual(lr.current(self.ledger)[known]["materiality"], "material", "the first claim stands")
+
 
 
 
