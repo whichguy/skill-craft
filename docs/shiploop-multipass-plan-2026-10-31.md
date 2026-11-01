@@ -1,7 +1,8 @@
 ---
-Execute: ask
-Status: **proposal**. The harness side (sections 4 and 5) is built, tested and pushed to main (03d046c6, aa601d37; quick tier 65 of 65). The ShipLoop behaviour
-  changes (D2 to D4) and the build of the fourth link wait for the owner and for the first live third pass (section 6, E1).
+Execute: inline
+Status: **D1 to D5 approved as recommended (owner, 2026-10-31, "Approve all")**. The harness side (sections 4 and 5) is built, tested and pushed to main
+  (03d046c6, aa601d37; quick tier 65 of 65). The ShipLoop behaviour changes (D2 to D4) are built as one candidate on a branch and stay off main until the A/B
+  (E2) meets the bar the journal's Round 2 fixed before any run; the fourth link waits for the first live third pass (E1), chain B for E2.
 Opened: 2026-10-31
 Consumer: the owner, who decides D1 to D5 in section 7; later whoever adds the fourth link or changes how a stage writes the
   living files, and reads the ledger as the before and after
@@ -29,8 +30,8 @@ Journal: [shiploop-multipass-journal.md](shiploop-multipass-journal.md); evidenc
    and a second chain on a small base are designed here and not built (section 4).
 6. **The delta is now recorded.** Every run's `metrics.json` carries a `delta` block: what changed against the head the run started from,
    where new knowledge landed, how much of the plan was about the new feature, and what the next pass finds. It is a record, not a verdict.
-7. **Needs your word:** D2 to D4 change what ShipLoop's stages write (a counted notice, three duty edits). The evidence is in; the test is
-   an A/B read through the ledger (E2). D1 and D5 are scope.
+7. **Decided (owner, 2026-10-31, "Approve all"):** D1 to D5 as recommended. D2 to D4 change what ShipLoop's stages write (a counted notice, duty
+   edits); they are built as a candidate and tested by an A/B read through the ledger (E2) before they reach main. D1 and D5 are scope.
 
 ## 1. The request, in order, and where each part is answered
 
@@ -145,7 +146,7 @@ heuristics, and a ledger of a first pass on a fixture has nothing to compare an 
 |---|---|---|
 | E0 | What does a second pass leave in the three files? | done: 8 saved runs, [journal Round 0](shiploop-multipass-journal.md) |
 | E1 | Does a third pass inherit and is it harmed by the second's leftovers? | queued: `ticket-comments` from the saved `bf-codex-r2` pass 2, Codex Terra `xhigh`, ShipLoop 1.26.0; waits on port 4180, which another session's runs hold |
-| E2 | Does a counted notice plus named destinations (D2, D3) reduce the leak without losing function? | proposed, after D2 and D3 |
+| E2 | Does a counted notice plus named destinations (D2, D3, D4) reduce the leak without losing function? | candidate built; arms, bar and predictions fixed in the journal's Round 2; runs after E1 |
 | E3 | Does a modifying fourth link retire and supersede rather than duplicate? | proposed, after E1 |
 
 **E1 predictions** are in the journal before the run, and [round1_readout.py](experiments/multipass-20261031/round1_readout.py) scores them from the run's own files. **Decision rule for E1:** a lost retained check or inherited hidden check means the leftovers
@@ -166,7 +167,9 @@ added a decision, and no hidden check lost in either arm. About six chains at 40
 | **D4** | The spec duty: title the file by the product, cite a requirement's basis by run label or date, never "current request" | **yes, with D3** | 4 of 4 specs; one sentence, no gate |
 | **D5** | Build the fourth link (modifying) after E1, and chain B after E2 | **yes** | section 4 |
 
-Each of D2 to D4 changes what a ShipLoop stage writes, which `AGENTS.md` keeps for the owner. None is built.
+Each of D2 to D4 changes what a ShipLoop stage writes, which `AGENTS.md` keeps for the owner. **Decided 2026-10-31: the owner approved D1 to D5 as
+recommended ("Approve all").** D2 to D4 are built as one candidate (branch `feat/multipass-placement-725e1a`); "behind E2" is read as: kept off main,
+merged only when E2 meets its bar.
 
 ## 8. Order
 

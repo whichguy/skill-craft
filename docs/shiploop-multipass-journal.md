@@ -26,7 +26,8 @@ not repeat old decisions and inherits some of them.
 | F5 A chain of three or more links lost its earlier links' regression checks and quality acceptance | firm (reproduced) | `ChainTest`, [chains.py](../test/shiploop_e2e/chains.py) |
 | F6 `knowledge_reads` is empty on every Codex run because it counts only read-tool calls | interim (instrument) | `metrics.json` of the eight runs |
 | F7 No harm to function: all eight runs passed, 14 of 14 on the follow-on, every earlier requirement and decision kept | firm (negative result) | [brownfield journal](shiploop-brownfield-baseline-journal.md), [ba45b9d2](https://github.com/whichguy/skill-craft/commit/ba45b9d2ada380d6f2aafe4e628f62eef5b29356) |
-| F8 A third and fourth pass have never run | open | Round 1 below |
+| F8 A third and fourth pass have never run | open (Round 1 is running) | Round 1 below |
+| F9 The owner approved D1 to D5 as recommended (2026-10-31, "Approve all"); D2 to D4 are built as one candidate off main and wait for E2 | decision | Round 2 below |
 
 ## Round 0: eight saved runs read for what a second pass leaves (2026-10-31)
 
@@ -194,6 +195,72 @@ the run's `result.json` and its delta block).
 
 Result: not yet recorded.
 
+## Round 2: the owner's decision, the candidate and the A/B (E2) (2026-10-31)
+
+**Decision (owner, 2026-10-31, reply "Approve all").** D1 to D5 of [the plan](shiploop-multipass-plan-2026-10-31.md), each as recommended. D2 to D4 were
+approved "behind E2". This round reads that as: built now as one candidate, kept off `main`, and merged only when the A/B below meets its bar (unaccepted
+candidate code stays out of `main`, AGENTS.md, Decisions, 2026-10-30).
+
+**Candidate.** Branch `feat/multipass-placement-725e1a` (local, not pushed), tip [c1d737dc](https://github.com/whichguy/skill-craft/commit/c1d737dc95c7df6698f20a6ac3464b3d8b40da19) (local; the branch is not pushed), parent
+[87d3da8e](https://github.com/whichguy/skill-craft/commit/87d3da8e22ee5158a6d3b877752a22eaf3e8e27b).
+- D2, the notice. `knowledge_home.placement_notices(state)` and `PLACEMENT_PREFIX = "ShipLoop placement notice: "`, printed by `_knowledge_close` after any
+  accepted stage that changed the home: the stage's edit is read against HEAD before the commit, the lines print after the section notices, none at the terminal
+  handoff, and nothing it does can fail a close. One line per living file for a *new* entry filed under Retired (spec.md) or Superseded (architecture.md), or a
+  *new* level-2 heading of environment.md or architecture.md that matches no named section or repeats one (the section notice's own prefix rule). A spec's own
+  headings are not counted, a rename in place is no repeat, and an old entry moved under Superseded is a supersession and not a misfiling.
+- D3, the destination. One packet line for the eight stages the ledger traced all 36 stray headings to (discovery, test-strategy, prepare, carry-forward,
+  system-test-author, release-plan, release-verify, operations), built from `SECTIONS` for the files each keeps; six duty edits where the duty asked for a report
+  (prepare 7, carry-forward 1, release-plan 2, release-verify 11, operations 5, system-test-author 8). `operations` is declared a writer of environment.md in
+  `STAGE_FILES`: the saved runs committed its edits as "knowledge after operations", and without the entry it would never have been told the rule. discovery and
+  test-strategy get the packet line only.
+- D4. Spec duty item 5 asks for a basis that stays true in later runs (the request's words with the date, or a decision ID; never "current request") and a
+  title for the product.
+- Around it: the reference (`project-knowledge.md`), the change note `changes/shiploop/placement-notice-and-destinations.md` (minor), and the journaled packet
+  ceilings for carry-forward in `head_table.json`.
+
+**Read before building (owner rule, 2026-10-30).**
+[7c962446](https://github.com/whichguy/skill-craft/commit/7c962446cc59d3b29ac9d995d6b5ff1129f835f6) found that a section check at the closes would have refused
+nearly every first close of an existing-style home, so the named sections are a counted notice; the new notice keeps "a count, never a refusal".
+[142724a7](https://github.com/whichguy/skill-craft/commit/142724a7cfcb22344813b63315834586a826917b) cut that notice from 17 lines to one per file because a
+notice that costs a cleared-context model its first screen is a defect even when it never blocks, and recorded that changing what a line is changes what a count
+means: hence one short line per file, a regular grammar, and a prefix of its own so the section notice's counts keep their meaning.
+[22b3e169](https://github.com/whichguy/skill-craft/commit/22b3e16978d695dd2d539a1f767d7122c3864166) proved the notice through the real gate and not only as a
+function, and keeps the terminal handoff silent. [917488b3](https://github.com/whichguy/skill-craft/commit/917488b33366a88b25a05fdfb76b512dd27886ec) made the
+writer table the way a stage learns which files it keeps, which is why `operations` is in it now.
+[d2c55b90](https://github.com/whichguy/skill-craft/commit/d2c55b90c321d8eff214deb398ef0a240e7f9ac4) (X11) allows no gate on a heading and keeps the standing
+release procedure in environment.md under the run's heading, so the first release section a run writes is the one stray heading the notice may legitimately print.
+
+**What the tests showed.**
+- 27 new tests in `shiploop-knowledge`, each failed first for the right reason (the API or the wording absent); the suite passes (163 tests).
+- The first quick-tier run (36 suites, 194 s) failed 4 subtests of `shiploop-packet-recut`, the packet ceilings. Cause: the first cut put the destination line in the
+  packets of all 16 stages that keep these files, +353 to +516 characters each, and validate-existing (not one of the eight) and carry-forward went over. The line
+  now goes to the eight stages that wrote the strays. Measured with one script in an arm-A tree and in the candidate tree: of the seven producer packets of the
+  offline case only carry-forward changes (printed head +81, whole +598 on both routes), and its ceilings were raised with the reason. Over one visit to each of
+  the eight stages the line is about 3.2 KB of a run's packets.
+- Second quick-tier run: 79 suites in 877 s wall at `--jobs 8` with the machine's load average above 100 for most of it (the `head_table.json` edit pulls the e2e-apparatus suites into the footprint): 77 pass. Two load-sensitive e2e-apparatus suites failed. `shiploop-e2e-lifecycle` passes alone (20 of 20). `shiploop-e2e-brownfield-tickets` fails its disagreeing-grade test alone at load 88 (6 re-graded, bar 4), and the same test fails on the parent tree at load 64 (11 re-graded, and one more check): the load flake the 2026-10-29 notes already record for that pair. A control, not a pass: both are owed a rerun on a quiet machine before any merge..
+
+**E2, the A/B, fixed before any run.**
+- Arms. A is ShipLoop at the candidate's parent (it publishes the same skill as the marketplace: no change note was pending). B is A plus the candidate. Both run
+  from checkouts (`--source checkout`), as the 2026-10-29 rounds did, so the apparatus is equal.
+- Chains. A chain is `ticket-assignment` (fresh on `fixtures/node-tickets`) and then `ticket-escalation` continuing from it, on the harness defaults (Codex
+  `gpt-6.1-terra` at `xhigh`, hooks on). Three chains per arm in the order A1 B1 A2 B2 A3 B3, so a drift in the model or the machine falls on both arms; about 35
+  minutes a chain. The runs take the machine-wide lease on port 4180 one at a time, after E1.
+- Read through the ledger ([delta.py](../test/shiploop_e2e/delta.py), an instrument that does not depend on the candidate) and the run's own events:
+  [round2_readout.py](experiments/multipass-20261031/round2_readout.py).
+- Bar, set before the runs. B1: no entry is filed as retired when new, in any of B's six passes. B2: the median number of stray headings added to environment.md
+  in pass 2 is at most 2 for B and at least 4 for A (the saved pass-2 runs: 7, 1, 6, 4). B3: in B, every pass that added a decision changed a live section of
+  architecture.md (the saved runs: 2 of 4). B4: every run passes and no inherited hidden check is lost, in both arms. B5: B's median pass-2 elapsed time is at most
+  1.2 times A's.
+- Predictions, before the runs. P1: B1 holds. P2: B's median pass-2 stray count is 2 (1 to 3; the standing release section is one the notice may print). P3: A's
+  median is at least 4 and A files at least one new entry as retired. P4: B prints a placement notice in at least 4 of its 6 passes and at least one flagged item
+  survives to the end (a notice is not always obeyed). P5: all 12 runs pass. P6: B's median pass-2 elapsed time is within 15 percent of A's.
+- Reading rule. B1 to B5 all held: recommend the release (the E2E round and `release.py` still apply, and the owner decides). B4 missed: the candidate is harmful;
+  drop it. B1, B3 or B5 missed with B4 held: read which stage still leaks (the ledger names the heading and the stage) before changing a word. B2 missed with the
+  rest held: the duty edits pull too little, so the notice is the only lever left and its effect is P4's survival count.
+- Limits. Three chains per arm, one case pair, one host and model. The saved runs come from four engine states, so arm A is run again here and not borrowed. The
+  candidate has not run live: B1's first pass is its first live use, and a breakage there is a finding, not an excuse.
+- Status: pending. The arms wait for E1 and for the other session's queue (its last run ends about 17:10).
+
 ## Decisions made without asking (routine, AGENTS.md "Decisions")
 
 - Work in an isolated worktree (`feat/multipass-c5fc75`), because three other sessions commit to `main` in the canonical checkout.
@@ -203,12 +270,17 @@ Result: not yet recorded.
 - No change to `LEARNINGS.md`: this is not an E2E round, and a touch of that file satisfies `release.py`'s `e2e_round_missing` for
   every earlier ShipLoop commit.
 - The live run uses the default subject (Codex Terra at `xhigh`, hooks on), so its row is comparable with the 2026-10-29 rounds.
+- Round 2 (2026-10-31): the placement notice has a prefix of its own and a spec's headings are not counted; the packet line goes to the eight stages that wrote the
+  strays and not to the 16 that keep the files; `operations` is declared a writer of environment.md; the arms are run again from two checkouts (a detached tree at the
+  parent and one at the candidate) and the candidate branch stays local and off `main`; the order A1 B1 A2 B2 A3 B3; the A/B starts after E1 so the two never wait
+  on each other for port 4180. Each is routine (a choice between equivalent fixes, or launching verification runs) and none changes a default that earlier evidence
+  relied on.
 
 ## Not done, and unknowns
 
 - Pass 3 and 4 behaviour on a live run (Round 1 is the first).
 - Whether naming the target heading in the reporting stages' duties, or a counted notice at each knowledge close, reduces
-  `stray_added`. It is an engine change and the owner's decision; the ledger is its readout.
+  `stray_added`. The owner approved building it (2026-10-31); Round 2 is the A/B, and the ledger is its readout.
 - A modifying increment (a request that changes or retires an earlier requirement) and a second chain on a smaller base.
 - An independent alternative delivery for `ticket-comments`, and a persistence check for the pass-4 link.
 - `knowledge_reads` on Codex is still empty; `delta.writes` is its heuristic replacement.
