@@ -20,8 +20,8 @@ with a build whose answer is known, so a surprise is the loop's and not the chan
   pilot's second run the build without it passed 0 of 3 and the build with it 3 of 3.
 - **Prediction** (`prediction.json`, record `LR-20261101-58f651` in `restore-ledger.jsonl`): the share of attempts that pass
   accuracy on the case rises by at least a half. The case is therefore a capability case, so a rise in its quality can promote.
-- **Size:** 3 attempts per arm, Codex `gpt-6.1-terra` at `high`, a stated tolerance of 0.25 that is a choice and not a
-  measurement. **Reviews are on:** each of the 6 sealed attempts is reviewed and judged (Codex `gpt-6-astra` at `xhigh`, the
+- **Size:** 3 attempts per arm, Codex `gpt-6.1-terra` at `xhigh` (Extra High, the owner's choice of 2026-11-01; `EFFORT` changes
+  it), a stated tolerance of 0.25 that is a choice and not a measurement. **Reviews are on:** each of the 6 sealed attempts is reviewed and judged (Codex `gpt-6-astra` at `xhigh`, the
   roles' defaults), one after another.
 
 ## What counts as a pass

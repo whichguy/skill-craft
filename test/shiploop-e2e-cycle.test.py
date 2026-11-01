@@ -974,7 +974,7 @@ class RestoreKitTest(unittest.TestCase):
         """The prediction says a floor rises, which is what makes a case a capability case; without it the same rise on a
         regression case is not a gain and the epoch could only stay undecided."""
         self.assertEqual(cycle.roles_for(self.prediction, self.CASE, None), {self.CASE: "capability"})
-        driver = {"host": "codex", "model": "gpt-6.1-terra", "effort": "high"}
+        driver = {"host": "codex", "model": "gpt-6.1-terra", "effort": "xhigh"}
         calibration = cycle.stated_calibration(3, 0.25)
         template = self.temp / "registration.json"
         template.write_text(json.dumps(cycle.registration_template(
@@ -1019,6 +1019,8 @@ class RestoreKitTest(unittest.TestCase):
         self.assertIn('"$out/control-tree" apply -R "$out/hook-delta.patch"', text)
         self.assertNotIn('"$out/candidate-tree" apply', text, "the candidate is the unmodified commit that holds the kit")
         self.assertNotIn("--skip-reviews", text, "every attempt is reviewed and judged")
+        self.assertIn("EFFORT:-xhigh", text, "the owner asked for Terra 6.1 at Extra High on 2026-11-01")
+        self.assertIn('--model gpt-6.1-terra --effort "$effort"', text)
         self.assertIn("unset SHIPLOOP_E2E_RUNS_ROOT", text, "only the epoch's own attempts may be neighbours of a sealed attempt")
         for name in ("prediction.json", "restore-ledger.jsonl"):
             self.assertIn(name, text)
@@ -1050,8 +1052,10 @@ class CycleKitTest(unittest.TestCase):
             self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
             self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"),
                              f"{case} declares a fixed port, which run.py leases machine-wide and launch_all does not serialise")
-        for flag in ("--tolerance 0.25", "--attempts 3", "--effort high", "--model gpt-6.1-terra", "--iterations 1"):
+        for flag in ("--tolerance 0.25", "--attempts 3", '--effort "$effort"', "--model gpt-6.1-terra", "--iterations 1"):
             self.assertIn(flag, text)
+        self.assertIn("EFFORT:-xhigh", text, "the owner asked for Terra 6.1 at Extra High on 2026-11-01")
+        self.assertNotIn("--effort high", text, "the first launches ran at high; the kit no longer does")
         self.assertNotIn("--skip-reviews", text, "the full cycle reviews every attempt")
         self.assertIn("unset SHIPLOOP_E2E_RUNS_ROOT", text, "only the epoch's own attempts may be neighbours of a sealed attempt")
 
@@ -1094,8 +1098,14 @@ class CalibrationKitTest(unittest.TestCase):
             self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"), f"{case} declares a fixed port")
         self.assertEqual(template["purpose"], "calibration")
         for arm in template["arms"].values():
-            self.assertEqual(arm["driver"], {"host": "codex", "model": "gpt-6.1-terra", "effort": "high"})
-        self.assertIn("--effort high --iterations 1", cycle_script.replace("--model gpt-6.1-terra ", ""))
+            self.assertEqual(arm["driver"], {"host": "codex", "model": "gpt-6.1-terra", "effort": "high"},
+                             "this kit is another session's and measures at high")
+        self.assertIn("--host codex --model gpt-6.1-terra", cycle_script, "the host and model are the cycle's")
+        self.assertIn("--iterations 1", cycle_script)
+        cycle_readme = (ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101" / "README.md").read_text()
+        self.assertIn("EFFORT:-xhigh", cycle_script)
+        self.assertIn("does not transfer to a cycle at `xhigh`", cycle_readme,
+                      "the cycle runs at Extra High by the owner's instruction while this kit measures at high; that is stated, not silent")
 
     def test_it_registers_four_attempts_per_arm_of_each_case_on_one_build(self):
         template = self.registration().template("0" * 12)

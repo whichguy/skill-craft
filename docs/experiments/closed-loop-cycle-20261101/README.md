@@ -17,7 +17,8 @@ Stage 5 of [the closed-loop plan](../../shiploop-e2e-closed-loop-plan-2026-10-30
    with a `Learning-Record:` trailer and a prediction; the script check and a fresh review confirm the change serves the record.
 3. **Register and run.** A `promotion/5` epoch: the tip against the candidate, `seat-reservations` (the exposing case) and `csv-report`
    (a case of another style, kept unseen by the improver), a stated tolerance of 0.25 and 3 attempts per arm recorded as
-   unmeasured, subject Codex `gpt-6.1-terra` at `high` (the owner's choice), 12 subject runs.
+   unmeasured, subject Codex `gpt-6.1-terra` at `xhigh` (Extra High, the owner's choice of 2026-11-01; the first launches ran at
+   `high`), 12 subject runs.
 4. **Review, decide, record.** Every attempt is reviewed and judged (Codex `gpt-6-astra` at `xhigh`, the role default), then
    `decide`. The prediction's verdict and the record's outcome go to the ledger and a journal entry to `LEARNINGS.md`, committed
    on the loop branch after any ShipLoop commit.
@@ -55,7 +56,9 @@ bash docs/experiments/closed-loop-cycle-20261101/run.sh BASE_SHA /path/to/new/ou
 By default it explores `seat-reservations` and keeps `csv-report` unseen, the pair the stage 3 calibration kit also measures.
 `EXPOSING_CASE` and `GENERALITY_CASE` change that for one launch, to any two cases with no fixed port and no hosted platform; for
 example `EXPOSING_CASE=shared-expenses` explores a stateful Node service that another session added (47ed1804) and keeps
-`csv-report` unseen. The cases are the only thing the variables change.
+`csv-report` unseen. `EFFORT` (default `xhigh`) sets the subject's reasoning effort. The reviewer, judge and improver keep their
+role defaults. The stage 3 calibration kit, which another session owns and runs, measures the cases at `high`, so its figure
+does not transfer to a cycle at `xhigh`; the stated tolerance stays the basis.
 
 Expect 3 to 5 hours: the exploration run and its review (about 40 minutes), the improver (up to 45 minutes) and the purpose
 review, then 12 subject runs (8 to 25 minutes each, at most `PARALLEL` at once) and 12 sequential reviews and judgments (about 10

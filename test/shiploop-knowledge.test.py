@@ -627,7 +627,7 @@ class RemovalTests(HomeFixture):
             "discovery": (E,), "research": (E,), "spec": (S,), "test-strategy": (E, A), "plan": (A,), "prepare": (E,),
             "step-plan": (A, E), "validate-existing": (E,), "implement": (E, A), "test": (E,), "document": (S, A, E),
             "carry-forward": (A, E),
-            "system-test-author": (E,), "release-plan": (E,), "release-check": (E,), "release-verify": (E,)})
+            "system-test-author": (E,), "release-plan": (E,), "release-check": (E,), "release-verify": (E,), "operations": (E,)})
         for table in (knowledge.CLOSES, knowledge.STAGE_FILES):
             for names in table.values():
                 self.assertTrue(set(names) <= set(knowledge.LIVING), names)
@@ -1340,6 +1340,338 @@ class SectionNoticeCloseTests(HomeFixture):
         committed = set(git(self.repo, "show", "--name-only", "--format=", "HEAD").split())
         self.assertTrue(all(name.startswith("docs/shiploop/") for name in committed))
         self.assertIn("docs/shiploop/environment.md", committed)
+
+
+class PlacementNoticeTests(HomeFixture):
+    """knowledge.placement_notices(state): a counted notice for where a stage's edit put an entry or a heading (multipass plan
+    2026-10-31, D2).  It reads what the edit added against what HEAD holds: a new entry filed under Retired or Superseded, and a
+    new level-2 heading of environment.md or architecture.md that matches no named section or repeats one.  A notice, never a
+    refusal; a spec's own headings are its author's."""
+
+    HOME = "docs/shiploop/"
+    SPEC = ("# Spec\n\n## Requirements\n\n### R-1 First\n\nOne.\n\n## Non-functional requirements\n\nNone.\n\n## Retired\n\nNone.\n")
+    ENV = ("# Environment\n\n## Targets and runtimes\n\nNode 22.\n\n## Commands\n\nnpm test\n\n## Platform facts\n\nLinux.\n")
+    ARCH = ("# Architecture\n\n## Stack\n\nNode.\n\n## Decisions\n\n### AD-1 Use Node\n\nWhy.\n\n## Superseded\n\nNone.\n")
+    ENV_NAMED = ("'Targets and runtimes', 'Commands', 'Skills', 'Harnesses and suites', 'ID convention', 'Access and accounts', "
+                 "'Platform facts'")
+    ARCH_NAMED = ("'Stack', 'Structure', 'Conventions', 'Interfaces and boundaries', 'Real-boundary checks', 'Decisions', "
+                  "'Superseded'")
+
+    def put(self, name: str, text: str) -> Path:
+        path = self.repo / self.HOME / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def previous(self, **files: str) -> None:
+        """The home as the last accepted stage left it: written and committed."""
+        texts = {"spec.md": self.SPEC, "environment.md": self.ENV, "architecture.md": self.ARCH, **files}
+        for name, text in texts.items():
+            self.put(name, text)
+        git(self.repo, "add", "docs/shiploop")
+        git(self.repo, "commit", "-qm", "previous stage")
+
+    def edit(self, name: str, old: str, new: str) -> Path:
+        path = self.repo / self.HOME / name
+        text = path.read_text(encoding="utf-8")
+        self.assertIn(old, text)
+        path.write_text(text.replace(old, new, 1), encoding="utf-8")
+        return path
+
+    def append(self, name: str, text: str) -> Path:
+        path = self.repo / self.HOME / name
+        path.write_text(path.read_text(encoding="utf-8") + text, encoding="utf-8")
+        return path
+
+    def notices(self) -> list:
+        return knowledge.placement_notices(self.state)
+
+    @staticmethod
+    def move(live: str) -> str:
+        return "move each under '" + live + "' unless it never held, and then say why in its text"
+
+    @classmethod
+    def sort(cls, named: str) -> str:
+        return ("put each fact under the named section it belongs to (" + named + ") or in your result, and keep a new heading "
+                "only for standing content that fits none")
+
+    def test_an_unchanged_home_gives_no_notice(self) -> None:
+        self.previous()
+        self.assertEqual(self.notices(), [])
+
+    def test_a_new_decision_filed_under_superseded_is_one_line_naming_it_and_where_it_belongs(self) -> None:
+        self.previous()
+        path = self.append("architecture.md", "\n### AD-2 Bulk escalation\n\nWhy.\n")
+        self.assertEqual(self.notices(), ["ShipLoop placement notice: " + str(path) + " gained AD-2 under 'Superseded' "
+                                          "(this stage is accepted); " + self.move("Decisions") + "."])
+
+    def test_an_old_decision_moved_under_superseded_is_a_supersession_and_not_a_misfiling(self) -> None:
+        self.previous()
+        self.edit("architecture.md", "### AD-1 Use Node\n\nWhy.\n\n## Superseded\n\nNone.\n",
+                  "## Superseded\n\n### AD-1 Use Node\n\nWhy.\n")
+        self.assertEqual(self.notices(), [])
+
+    def test_a_decision_already_filed_under_superseded_at_head_is_not_new(self) -> None:
+        self.previous(**{"architecture.md": self.ARCH + "\n### AD-2 Bulk escalation\n\nWhy.\n"})
+        self.assertEqual(self.notices(), [])
+
+    def test_a_requirement_new_under_retired_is_named_in_the_specs_line(self) -> None:
+        self.previous()
+        path = self.edit("spec.md", "## Retired\n\nNone.\n", "## Retired\n\n### R-2 Odd\n\nHmm.\n")
+        self.assertEqual(self.notices(), ["ShipLoop placement notice: " + str(path) + " gained R-2 under 'Retired' "
+                                          "(this stage is accepted); " + self.move("Requirements") + "."])
+
+    def test_a_new_heading_that_matches_no_named_section_is_quoted_with_the_sections_it_could_go_under(self) -> None:
+        self.previous()
+        path = self.append("environment.md", "\n## Preparation\n\nPrepared on 2026-10-29.\n")
+        self.assertEqual(self.notices(), [
+            "ShipLoop placement notice: " + str(path) + " gained new headings 'Preparation' that match no named section or "
+            "repeat one (this stage is accepted); " + self.sort(self.ENV_NAMED) + "."])
+
+    def test_a_second_copy_of_a_named_section_is_a_repeat(self) -> None:
+        self.previous()
+        path = self.append("environment.md", "\n## Commands (release)\n\nnpm run release\n")
+        self.assertEqual(self.notices(), [
+            "ShipLoop placement notice: " + str(path) + " gained new headings 'Commands (release)' that match no named section "
+            "or repeat one (this stage is accepted); " + self.sort(self.ENV_NAMED) + "."])
+
+    def test_a_rename_of_a_named_section_in_place_is_not_a_repeat_and_the_first_copy_is_not_one(self) -> None:
+        self.previous()
+        self.edit("environment.md", "## Commands\n", "## Commands and tools\n")
+        self.assertEqual(self.notices(), [])
+        self.previous(**{"environment.md": self.ENV.replace("## Commands\n\nnpm test\n\n", "")})
+        self.append("environment.md", "\n## Commands\n\nnpm test\n")
+        self.assertEqual(self.notices(), [])
+
+    def test_a_stray_heading_the_file_already_had_is_not_new_but_a_second_copy_of_it_is(self) -> None:
+        self.previous(**{"environment.md": self.ENV + "\n## Notes\n\nx\n"})
+        self.assertEqual(self.notices(), [])
+        path = self.append("environment.md", "\n## Notes\n\ny\n")
+        self.assertEqual(self.notices(), [
+            "ShipLoop placement notice: " + str(path) + " gained new headings 'Notes' that match no named section or repeat "
+            "one (this stage is accepted); " + self.sort(self.ENV_NAMED) + "."])
+
+    def test_deeper_headings_and_headings_inside_a_code_fence_are_not_counted(self) -> None:
+        self.previous()
+        self.append("environment.md", "\n### Local notes\n\ntext\n\n```md\n## Fenced\n```\n")
+        self.assertEqual(self.notices(), [])
+
+    def test_a_specs_own_headings_are_not_counted(self) -> None:
+        self.previous()
+        self.append("spec.md", "\n## Overview\n\nA product.\n")
+        self.assertEqual(self.notices(), [])
+
+    def test_a_first_write_is_read_against_nothing(self) -> None:
+        path = self.put("environment.md", self.ENV + "\n## Notes\n\nx\n")
+        self.put("architecture.md", self.ARCH)
+        self.assertEqual(self.notices(), [
+            "ShipLoop placement notice: " + str(path) + " gained new headings 'Notes' that match no named section or repeat "
+            "one (this stage is accepted); " + self.sort(self.ENV_NAMED) + "."])
+
+    def test_each_file_with_something_to_say_is_one_line_in_the_living_files_order_and_a_file_can_say_both(self) -> None:
+        self.previous()
+        spec = self.edit("spec.md", "## Retired\n\nNone.\n", "## Retired\n\n### R-2 Odd\n\nHmm.\n")
+        env = self.append("environment.md", "\n## Preparation\n\nDone.\n")
+        arch = self.append("architecture.md", "\n### AD-2 Bulk\n\nWhy.\n\n## Fleet boundary\n\nText.\n")
+        lines = self.notices()
+        self.assertEqual([line.split()[3] for line in lines], [str(spec), str(env), str(arch)])   # the word after the prefix
+        self.assertEqual(lines[2], "ShipLoop placement notice: " + str(arch) + " gained AD-2 under 'Superseded' and new headings "
+                         "'Fleet boundary' that match no named section or repeat one (this stage is accepted); "
+                         + self.move("Decisions") + "; " + self.sort(self.ARCH_NAMED) + ".")
+        for line in lines:
+            self.assertEqual(line.count(knowledge.PLACEMENT_PREFIX), 1)
+
+    def test_outside_a_checkout_or_with_an_unreadable_file_it_gives_no_line_and_raises_nothing(self) -> None:
+        self.previous()
+        self.append("environment.md", "\n## Preparation\n\nDone.\n")
+        with tempfile.TemporaryDirectory() as bare:
+            self.assertEqual(knowledge.placement_notices({"repo": bare, "run_id": "r-0123456789"}), [])
+        with mock.patch.object(Path, "read_text", side_effect=OSError("denied")):
+            self.assertEqual(self.notices(), [])
+
+    def test_it_writes_nothing(self) -> None:
+        self.previous()
+        self.append("environment.md", "\n## Preparation\n\nDone.\n")
+        before = sorted((p.relative_to(self.repo).as_posix(), p.read_bytes()) for p in self.repo.rglob("*") if p.is_file() and ".git/" not in p.as_posix())
+        self.assertTrue(self.notices())
+        after = sorted((p.relative_to(self.repo).as_posix(), p.read_bytes()) for p in self.repo.rglob("*") if p.is_file() and ".git/" not in p.as_posix())
+        self.assertEqual(before, after)
+        self.assertEqual(git(self.repo, "status", "--porcelain", "--", "docs").split(), ["M", "docs/shiploop/environment.md"])
+
+    def test_the_prefix_is_its_own_so_the_earlier_counts_keep_their_meaning(self) -> None:
+        self.assertEqual(knowledge.PLACEMENT_PREFIX, "ShipLoop placement notice: ")
+        self.assertFalse(knowledge.PLACEMENT_PREFIX.startswith(knowledge.NOTICE_PREFIX))
+        self.assertFalse(knowledge.NOTICE_PREFIX.startswith(knowledge.PLACEMENT_PREFIX))
+        for name in ("PLACEMENT_PREFIX", "placement_notices"):
+            self.assertIn(name, knowledge.__all__)
+
+    def test_the_count_commands_count_files_and_the_names_before_the_first_semicolon(self) -> None:
+        self.previous()
+        self.edit("spec.md", "## Retired\n\nNone.\n", "## Retired\n\n### R-2 Odd\n\nHmm.\n")
+        self.append("environment.md", "\n## Preparation\n\nDone.\n\n## Notes\n\nx\n")
+        self.append("architecture.md", "\n### AD-2 Bulk\n\nWhy.\n\n## Fleet boundary\n\nText.\n")
+        lines = self.notices()
+
+        def event(output: str) -> str:  # the shape a host logs a call's stdout in: one JSON line, newlines escaped
+            return json.dumps({"type": "user", "message": {"role": "user", "content": [
+                {"type": "tool_result", "content": "exit 0\n" + output + "\nShipLoop navigator | operations | revision 3\n"}]}})
+
+        log = self.repo / "events.jsonl"
+        log.write_text("\n".join([event("ShipLoop knowledge: committed the home.\n" + "\n".join(lines)),
+                                  event("ShipLoop knowledge: committed the home.")]) + "\n", encoding="utf-8")
+
+        def run(command: str) -> str:
+            done = subprocess.run(command, shell=True, cwd=self.repo, capture_output=True, text=True)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            return done.stdout.strip()
+
+        self.assertEqual(run("grep -o 'ShipLoop placement notice: ' events.jsonl | wc -l"), "3")
+        # The quoted names before each line's first semicolon: 'Retired'; 'Preparation', 'Notes'; 'Superseded', 'Fleet boundary'
+        # (an ID is not quoted; the section notice's count of headings is a different line and keeps its meaning)
+        self.assertEqual(run("grep -o 'ShipLoop placement notice: [^;]*' events.jsonl | grep -o \"'[^']*'\" | wc -l"), "5")
+        self.assertEqual(run("awk '{n=gsub(/ShipLoop placement notice: /,\"&\")} n{print NR\": \"n}' events.jsonl").splitlines(), ["1: 3"])
+        self.assertEqual(run("grep -o 'ShipLoop knowledge notice: ' events.jsonl | wc -l"), "0")  # the section count is untouched
+
+
+class PlacementNoticeCloseTests(HomeFixture):
+    """The placement notice at the knowledge commit the navigator makes after an accepted stage (``_knowledge_close``)."""
+
+    def close(self, stage: str, *, terminal: bool = False) -> tuple:
+        after = dict(self.state, history=[{"stage": stage, "outcome": "done"}])
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            navigator._knowledge_close({"history": []}, after, Path("/ws/run"), terminal=terminal)
+        return out.getvalue(), err.getvalue()
+
+    def previous(self) -> None:
+        """A home with every section, committed as the last accepted stage left it."""
+        support.write(self.state)
+        git(self.repo, "add", "docs/shiploop")
+        git(self.repo, "commit", "-qm", "previous stage")
+
+    def append(self, name: str, text: str) -> Path:
+        path = self.repo / "docs/shiploop" / name
+        path.write_text(path.read_text(encoding="utf-8") + text, encoding="utf-8")
+        return path
+
+    def test_a_stage_that_files_a_new_decision_under_superseded_gets_the_line_after_its_commit_and_is_accepted(self) -> None:
+        self.previous()
+        self.append("architecture.md", "\n### AD-2 Bulk escalation\n\nWhy.\n")
+        expected = knowledge.placement_notices(self.state)
+        self.assertEqual(len(expected), 1)
+        out, err = self.close("carry-forward")
+        self.assertEqual((out, err), (expected[0] + "\n", ""))
+        self.assertEqual(git(self.repo, "log", "-1", "--format=%s").strip(), knowledge.knowledge_subject(self.state, "carry-forward"))
+        self.assertEqual(knowledge.placement_notices(self.state), [])  # HEAD holds the edit now: it is said once
+
+    def test_it_is_said_for_any_stage_that_commits_the_home_and_a_stage_that_changed_nothing_says_nothing(self) -> None:
+        for stage in ("discovery", "prepare", "carry-forward", "release-plan", "release-verify", "operations"):
+            with self.subTest(stage):
+                self.previous() if stage == "discovery" else None
+                self.append("environment.md", "\n## Report of " + stage + "\n\nDone.\n")
+                out, _ = self.close(stage)
+                self.assertEqual(out.count(knowledge.PLACEMENT_PREFIX), 1)
+                self.assertEqual(self.close(stage), ("", ""))   # nothing new since that commit
+
+    def test_a_close_prints_its_section_notices_first_and_the_placement_notice_after_them(self) -> None:
+        support.write(self.state)
+        for name in knowledge.SECTIONS:
+            (self.repo / "docs/shiploop" / name).write_text("# " + name + "\n\nProse with no sections.\n", encoding="utf-8")
+        git(self.repo, "add", "docs/shiploop")
+        git(self.repo, "commit", "-qm", "previous stage")
+        self.append("environment.md", "\n## Preparation\n\nDone.\n")
+        out, _ = self.close("prepare")
+        kinds = [line.split(": ", 1)[0] for line in out.splitlines()]
+        self.assertEqual(kinds, ["ShipLoop knowledge notice"] * len(knowledge.SECTIONS) + ["ShipLoop placement notice"])
+
+    def test_the_terminal_handoff_says_nothing_and_a_commit_that_cannot_be_made_says_nothing(self) -> None:
+        self.previous()
+        self.append("environment.md", "\n## Preparation\n\nDone.\n")
+        self.assertNotIn(knowledge.PLACEMENT_PREFIX, "".join(self.close("handoff", terminal=True)))
+        self.append("environment.md", "\n## Second\n\nDone.\n")
+        with mock.patch.object(knowledge, "commit", side_effect=RuntimeError("cannot commit")):
+            out, err = self.close("carry-forward")
+        self.assertEqual(out, "")
+        self.assertEqual(err, "ShipLoop knowledge: cannot commit; the next accepted stage commits it.\n")
+
+    def test_a_notice_that_fails_to_compute_never_blocks_the_close(self) -> None:
+        self.previous()
+        self.append("environment.md", "\n## Preparation\n\nDone.\n")
+        with mock.patch.object(knowledge, "placement_notices", side_effect=ValueError("boom")):
+            out, err = self.close("carry-forward")
+        self.assertEqual((out, err), ("", ""))
+        self.assertEqual(git(self.repo, "log", "-1", "--format=%s").strip(), knowledge.knowledge_subject(self.state, "carry-forward"))
+
+    def test_a_notice_never_changes_what_the_close_commits(self) -> None:
+        self.previous()
+        self.append("environment.md", "\n## Preparation\n\nDone.\n")
+        self.close("carry-forward")
+        committed = set(git(self.repo, "show", "--name-only", "--format=", "HEAD").split())
+        self.assertEqual(committed, {"docs/shiploop/environment.md"})
+        self.assertIn("## Preparation", (self.repo / "docs/shiploop/environment.md").read_text(encoding="utf-8"))
+
+
+class PlacementDestinationTests(HomeFixture):
+    """What a stage that keeps environment.md or architecture.md is told about where its facts go (D3), and what the spec duty says
+    about a requirement's basis and the file's title (D4)."""
+
+    def told(self, stage: str) -> list:
+        return [line for line in knowledge.stage_lines(self.state, stage) if line.startswith("Keep ")]
+
+    # The eight stages the saved ticket runs' 36 stray headings came from (the plan's D3); the others added none.
+    REPORTING = ("discovery", "test-strategy", "prepare", "carry-forward", "system-test-author", "release-plan", "release-verify",
+                 "operations")
+
+    def test_the_eight_reporting_stages_are_told_the_standing_facts_rule_once_with_their_sections_and_no_other_stage_is(self) -> None:
+        self.assertEqual(set(self.REPORTING), set(knowledge._REPORTING_STAGES))
+        for stage in self.REPORTING:
+            self.assertIn(stage, knowledge.STAGE_FILES)
+        for stage, files in knowledge.STAGE_FILES.items():
+            kept = [name for name in files if name in ("environment.md", knowledge.ARCHITECTURE)]
+            with self.subTest(stage):
+                lines = self.told(stage)
+                if stage not in self.REPORTING or not kept:
+                    self.assertEqual(lines, [])
+                    continue
+                self.assertEqual(len(lines), 1)
+                text = lines[0]
+                for name in kept:
+                    self.assertIn(name + ": " + ", ".join("'" + heading + "'" for heading in knowledge.SECTIONS[name]), text)
+                for name in ("environment.md", knowledge.ARCHITECTURE):
+                    self.assertEqual(name in text, name in kept)
+                self.assertIn("standing facts", text)
+                self.assertIn("Add no ## heading for this stage's report and no date or 'this run' wording", text)
+                self.assertIn("the report goes in your result", text)
+
+    def test_duties_that_asked_for_a_report_now_send_it_to_the_result(self) -> None:
+        import shiploop_prompts as prompts
+        flat = {stage: " ".join(prompts.PROMPTS[stage].split()) for stage in prompts.PROMPTS}
+        pins = {
+            "prepare": ("Record readiness under KNOWLEDGE/environment.md ## Targets and runtimes and ## Commands as standing "
+                        "facts: the commands that start each runner and what a later run needs to start them; what you prepared "
+                        "and observed goes in `summary`."),
+            "carry-forward": "Update in place under the sections named here, with no new ## heading for this item's results;",
+            "release-plan": ("Keep the standing procedure any release repeats (steps, commands, rollback; no candidate identity, "
+                             "commit IDs or dates) in KNOWLEDGE/environment.md (item 8), in the release section the file already "
+                             "has, updated in place, else in one new section."),
+            "release-verify": ("Update KNOWLEDGE/environment.md in place with any target, command or access fact the release "
+                               "showed that the file lacks or states wrongly (## Targets and runtimes, ## Commands, ## Access "
+                               "and accounts); the observations themselves go in `summary`."),
+            "operations": ("Write the log and audit retrieval and recovery locators (standing facts, replacing an earlier entry "
+                           "in place) to KNOWLEDGE/environment.md (Service handoff guidance); the observation date and this "
+                           "run's open limits go in `summary`."),
+            "system-test-author": "(no new ## heading; OUTER test-planning handshake)",
+        }
+        for stage, pin in pins.items():
+            with self.subTest(stage):
+                self.assertIn(pin, flat[stage])
+
+    def test_the_spec_duty_asks_for_a_basis_that_stays_true_and_a_title_for_the_product(self) -> None:
+        import shiploop_prompts as prompts
+        text = " ".join(prompts.PROMPTS["spec"].split())
+        self.assertIn("state its basis as a source that stays true in later runs (the request's words with the date, or a "
+                      "decision ID; never 'current request')", text)
+        self.assertIn("Title spec.md for the product, not for one request.", text)
 
 
 FIXTURES = ROOT / "test" / "fixtures" / "commit-contract"

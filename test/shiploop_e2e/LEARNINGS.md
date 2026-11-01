@@ -5770,6 +5770,88 @@ Next
 
 - no independently admitted ShipLoop finding to apply; retained challenges need disposition
 
+## Placement notice and named destinations (D2 to D4): E2 round on the Codex harness, Terra 6.1 xhigh, three chains a side (2026-10-31 local, 2026-11-01 UTC) — status: firm for these runs (12 of 12 pass; 0 stray headings in six fix passes against 2 to 8 in six control passes; no measurable cost); passes 1 and 2 only (passes 3 and 4 are Round 4, under Not measured here)
+
+**Change under test.** The placement candidate of docs/shiploop-multipass-plan-2026-10-31.md (D2 to D4): a counted, non-refusing notice at each knowledge close for an entry that is new under Retired or Superseded and
+for level-2 headings that match no named section or repeat one; a packet line naming the destination for eight reporting stages; six duty edits; the spec wording. Tested at c1d737dc95c7df6698f20a6ac3464b3d8b40da19 on the base
+87d3da8e22ee5158a6d3b877752a22eaf3e8e27b; the shipped commit is that patch rebased (patch-id 8cf39729c9b94711faf1b7b2030b7a4adb7f8456 for both). The question: does it keep later passes from filling environment.md and
+architecture.md with stage reports, and what does it cost?
+
+**Runs.**
+- Six chains, each `ticket-assignment` then `ticket-escalation` (`--continue-from`), `run.py --source checkout`, Codex `gpt-6.1-terra` at xhigh, hooks on, order A1 B1 A2 B2 A3 B3 on one lane (port 4180). Arm A = the base (ShipLoop 1.26.0), arm B =
+  the candidate. 2026-10-31 17:33:58 to 21:40:17 local; an external scheduling pause (17:47:28 to 18:29:09) sits between the two passes of A1 and is not measured.
+- Output in `~/e2e-runs-multipass/20261031/e2/<A|B><n>-ticket-<case>`. The bar B1 to B5 and the predictions P1 to P6 were written in docs/shiploop-multipass-journal.md before any run.
+
+**Results** (docs/experiments/multipass-20261031/round2-readout-output.txt, round2-cost-output.txt, round2-ledgers.json):
+- All 12 runs pass; no inherited hidden check is lost (B4).
+- Stray headings added to environment.md in pass 2: fix 0, 0, 0; control 7, 6, 8 (B2). Over all passes: fix 0 in six; control 7, 7, 2, 6, 5, 8.
+- A fix pass that added a decision changed a live section of architecture.md in 6 of 6; the control in 3 of 6 (B3). The control's architecture.md keeps 1.7 to 2.1 KB under 3 to 4 stray headings; the fix's has none.
+- Pass-2 time: fix median 1,121.9 s against 1,105.2 s, 1.02 times (B5). Tokens processed 49.1 M against 49.0 M a run; model calls 200 against 206.
+- No entry was filed as retired when new in any of the 12 runs (B1) — it held untested. In B3 pass 2 the notice flagged `AD-3` under `Superseded` after `plan`; the run moved it under `Decisions`.
+
+**Contrary evidence.**
+- The control never showed the mislabel in six passes, so B1 cannot say what the fix prevents; an unfixed fourth pass (ticket-sla, E3) filed its new decision under `Superseded` behind two entries E1's third pass had put there.
+- An early reading from the first pair (the fix's pass 2 at 1.4 times the control's; 80 s on three stages) was control spread and was withdrawn: the control's own second passes span 13.3 to 21.5 minutes (up to six rounds of the test-quality gate).
+- The notice fired after test-strategy or discovery in five of six passes, stages with the packet line but no duty edit; the bundle cannot be split into notice, packet line and duty edits from these runs.
+- In chain B2 architecture.md holds 3 of its 7 named sections with the same volume of text.
+
+**Not measured here.**
+- Chain B on a smaller base; other hosts and models.
+- Which part of the bundle does the work: Round 4 (below) found that the notice's retired-entry clause never fired in a fix run, so the packet line and the duty edits explain the difference there, but the bundle is still not split. A second reader's
+  check that the facts the control files under stray headings are the ones the fix files under named sections.
+
+**Since this entry was first written: Round 4 measured passes 3 and 4.** Six runs in three matched pairs, each fix run beside a run without the fix on the same prior (docs/shiploop-multipass-journal.md, "Result of Round 4", commit
+d71eaa7198772501b189dff76308d4ee7ac533cb; pre-registered in 3d5732d017899a6d486b3249915284793af19d3a). With the fix no later pass filed its new decision under Superseded (0 of 3; the old ShipLoop did in 4 of 5 later passes, E1, E3, R4a0 and R4b0 but
+not R4c0); stray headings added to environment.md were 2, 0, 0 against 8, 1, 0; pass 4 with the fix was clean (16 of 16 hidden, the old rule changed in place, nothing unexplained). B2, B3 and B4 held, K held in two of three pairs, and B1 is missed as recorded:
+R4b FAILED on one base test of its delivery (the failed check passes 15 of 15 on rerun), which the journal reads both ways. That result is not part of what this entry vouches for, and the release stays the owner's word.
+
+**Checks on the shipped patch** (a compact export of the logs is in docs/experiments/multipass-20261031/candidate-rebase-checks-20261101.txt).
+- Rebased eight times between 21:48 on 10-31 and 07:55 on 11-01 (the branch's reflog), then replayed twice in fresh worktrees: onto d71eaa7198772501b189dff76308d4ee7ac533cb
+  and finally onto 8c5b4d4ec776dc9a06445c1054e9d4802558a649, 88 commits after 64402828725cdabfb173ecca177d5b7902a825c4; the releases 2.28.0 / 1.27.0, 2.28.1, 2.29.0 / 1.28.0
+  and 2.30.0 / 1.29.0 are in between, and none of them carries this change.
+- The patch-id (`git patch-id --stable`) was 8cf39729c9b94711faf1b7b2030b7a4adb7f8456 for the tested commit and every rebase until the first replay; since then it is
+  9fe0d24b6aca6493b7f74f3b5867d060fc0b8d00, only because main edited test/shiploop_e2e/head_table.json (its `_comment` and the step-plan heads, +49) and the feature's change
+  to that file (carry-forward's four ceilings and its reason in `_comment`) was re-applied on top; the diffs of the other seven files are byte-identical to the tested
+  commit's, file by file. Conflicts: this file whenever main and this entry both appended at its end (main's text stays first), and head_table.json at the first replay; the
+  feature commit met test/shiploop-callback-contract.test.py (the Python 3.9 floor, 7a3d133fa70f2a7d565223efe1a0d22ceae6e419), shiploop_navigator.py and shiploop_prompts.py
+  (the terms line 60dc376881d397d770874af16c8a6a8ed60956b2 and rule C 9870c6f68bfbd9375340c0e91ffdf4abfd76bd85) in other hunks and applied without a conflict.
+- Quick tier on d71eaa71 plus this change (CI's invocation: `CLAUDECODE=1`, `OLLAMA_URL` at a dead port, `--changed-from origin/main`; `--jobs 6` at nice 5): 83 suites in
+  2,327.4 s wall, with the machine's load average running from 12 at the start to above 80 at the end from other sessions' work. 78 passed at once and 5 failed, all five
+  timing- or race-bound: shiploop-e2e-environment (`assertLess(elapsed, 3.0)` at 3.31 s), shiploop-e2e-quality (a `KeyError: 'ratio'` in a time-budgeted mutation test),
+  shiploop-e2e-stage-live (two limits of 20 s, at 24.0 and 27.9 s), shiploop-e2e-lifecycle (a process-group race: `left_in_group` listed one process too many) and
+  shiploop-e2e-brownfield-tickets (a fake-host run returned the check flags [False, False, False] for [False, True, False]: the port collision that
+  26728eddd587930f5da3f6600e5d7ab4017d8acc fixed elsewhere in that suite, in the one test it had not covered; fixed on main in 8c5b4d4ec776dc9a06445c1054e9d4802558a649, which
+  the final tree contains).
+- Rerun on the final tree (this change on 8c5b4d4e), one suite at a time, load average 28 to 133 at each start: shiploop-e2e-environment 140 tests OK (231 s),
+  shiploop-e2e-quality 153 OK (107 s), shiploop-e2e-lifecycle 43 OK (38 s), shiploop-e2e-stage-live 86 OK (262 s), shiploop-knowledge 163 OK (56 s); shiploop-head-order (36),
+  shiploop-step-packets (10) and shiploop-packet-recut (30) OK. Brownfield-tickets with its fix: 31 tests OK in 369 s at a load average of 98. shiploop-callback-contract
+  passed in the tier and on Python 3.9 on the d71eaa71 tree; its run on the final tree started at a load average above 100 and had not finished when this entry was written,
+  and CI's run on main is its check.
+- Quick tier on the previous base, 64402828725cdabfb173ecca177d5b7902a825c4 (`--jobs 4` at nice 10, load average 20 to 112): 81 suites in 4,171.8 s; 77 passed at once and 4
+  failed, and all 4 pass alone. Three ran across a 16.5-minute pause of the tier's process tree that I made to keep its loopback suites off a live run's final check, which
+  counts against a suite's wall-clock limit: shiploop-e2e and shiploop-e2e-slice timed out at 1800 s (alone: 495 tests OK in 1,146 s; 72 tests OK in 824 s) and
+  shiploop-e2e-quality counted fewer mutation sites in a time-budgeted test, (3, 5, 1, 12) against (4, 7, 1, 12) (alone: 153 tests OK in 111 s). The fourth,
+  shiploop-e2e-stage-live, failed `Escapee.test_the_stop_file_bounds_the_sample_by_the_stop_grace_and_not_by_the_timeout` at 46.9 s against a limit of 20 s, at a load average
+  near 100 (alone: 86 tests OK in 237 s). The first tier, on the base 26728eddd587930f5da3f6600e5d7ab4017d8acc (stopped at 76 of 89 suites when main moved), had one failure,
+  shiploop-e2e-cycle, another session's pilot-kit test that read a README, which 27dedcff30f1ca05a0a541a4b4b1d21e3fe438d8 says it repairs; it passes in both later tiers.
+- Python 3.9 floor (on main since release 2.27.2 / 1.26.2), stock macOS Python 3.9.6: on the base 26728edd the python-floor group of 74 suites, `--jobs 6`, 1021.7 s: 73 passed
+  at once; shiploop-keepalive failed once, in one of its 86 tests, with an import-time `AttributeError: module 'shiploop_navigator' has no attribute 'DEFAULT_DELEGATION'` that
+  I could not explain (it was raised in a subprocess of the test's setUp, in the import chain `shiploop` to `shiploop_protocol` to `shiploop_navigator_dry_run` at its line
+  150, for a constant at line 172 of the navigator since 0.20.0, and no git operation in the worktree overlapped the suite: the last checkout was six minutes before it began)
+  and that did not recur in 3 of 3 reruns on a frozen checkout of the same patch (86 tests, 183 s each). After the fourth rebase, and again on the d71eaa71 tree, the five
+  suites that exercise the change pass there: shiploop-knowledge (163 tests; 202 s on the later tree), shiploop-head-order (36), shiploop-step-packets (10),
+  shiploop-callback-contract (99 tests, 327 s; 100 tests, 1,776 s at a load average above 100) and shiploop-keepalive (86 tests; 207 s, then 519 s). The unexplained failure
+  did not recur.
+- shiploop-e2e-brownfield-tickets failed 1 to 2 of its 24 calibration tests in every local tier, on this tree and on the parent. It was unrelated to the change and is fixed on
+  main (26728eddd587930f5da3f6600e5d7ab4017d8acc): its noise was another project's server answering on a port the base's tests had been handed, not load
+  (docs/experiments/brownfield-flake-20261101/). It passed in the second tier; its one failure in the third is the same collision in a test the first fix had not covered,
+  fixed in 8c5b4d4ec776dc9a06445c1054e9d4802558a649.
+- `scripts/release.py --dry-run` on the final tree: shiploop 1.29.0 to 1.30.0 (one pending note, this one) and skill-craft 2.30.0 to 2.31.0, no preflight complaint with this commit after the feature commit (before it, the preflight names the feature commit as shipped after its latest E2E round). Once this change is on main, any release cut from main carries it.
+
+**Evidence.**
+- Runs: `~/e2e-runs-multipass/20261031/e2/` (outside the repository). Twelve baseline rows appended to test/shiploop_e2e/baselines.jsonl (source checkout; six with local_head 87d3da8e, six with c1d737dc).
+- docs/experiments/multipass-20261031/: round2_readout.py, round2_cost.py, round2-*-output.txt, round2-ledgers.json, e2-hold*, candidate-rebase-checks-20261101.txt; Round 4: round4_readout.py, round4-*.txt, round4-ledgers.json.
+- Journal docs/shiploop-multipass-journal.md, Round 2 "Result of E2" and Round 4 "Result of Round 4"; plan docs/shiploop-multipass-plan-2026-10-31.md.
 ## `init` in an empty non-Git folder: first-command probes of the guard on the Codex harness, Terra 6.1 xhigh, `--stop-after-start` (2026-11-01) — status: firm for these 208 sessions (one model, one Salesforce prompt, one pair of explicit requests); the guard shipped on its second design only
 
 **What this vouches for.** The ShipLoop change released after this entry: `init` refuses an empty folder that is not a Git repository,

@@ -620,3 +620,79 @@ features; M2a (a recommended run started from a model-written request, which no 
 release is the owner's word).
 
 Released (2026-11-01): skill-craft 2.30.0 / ShipLoop 1.29.0, release commit 41ee3d89d580fb715fc90994b2361348550698c7. CI on the release push (run 41332749569) succeeded on all nine jobs (release-boundary, plan, full / core, full / shiploop-1, -2 and -3, full / python-floor, full / e2e-apparatus, hermetic). It was pushed with `scripts/release-push.py` (four checks passed: sync-plugin-views, marketplace packages, release boundary, test-groups). Hosts refreshed: Claude and Grok from 2.29.0 to 2.30.0, and Codex's marketplace on the second try (the first clone timed out at 30 s on the loaded machine); Cursor is the owner's through its app. Smoke on the published build: the no-model probes (`docs/experiments/clean-install-20261101/probes.sh`) passed (the installed plugin 2.30.0 is identical to the published tree; `shiploop --help` and `workspace start` exit 0 on stock Python 3.9.6 in a clean environment; the five hooks exit 0 with python3 absent and under Python 3.7.3; the CLI refuses 3.7.3 with the floor message), and a live Codex hello on the marketplace build passed every verdict (docs/experiments/follow-on-build-20261101/README.md, "The published build"); the paid Claude-host live session was not run. The three sweep failures are accounted for: the last sweep suite, `shiploop-e2e-test-adequacy`, failed one test under a load of up to 270 (22 of 25 mutants survived) and passes alone (1 test, 457.7 s, OK); `shiploop-e2e-ticket-sla`'s failing test passes alone in 8 s; `shiploop-workspace`'s failing test passes on the latest main base. No suite of the family fails because of this change.
+
+## Round 6 — 2026-11-01 — the recommended-run path, live on a primed request (design M2a, mechanics)
+
+### Plan (written and committed before any live run; the result follows below it)
+
+What happened. Round 5 shipped the list and said what its four live runs did not reach: none filed a gap or a decision, so the request file, the printed start command and a
+run started from that request were covered by hermetic tests only. The owner answered that closing message with "Determine how to conclude, plan out, and implement."
+(2026-11-01, verbatim). I read it as: conclude the open item that is mine to conclude, with a written plan first, and do not wait for a natural gap (a decision in 1.2% to
+1.8% of finished runs, Round 4). That reading is mine and the runs are cheap to stop. It is not read as a go for the value question (M2b), for auto-start (D2) or for a
+release; a release follows only if a defect needs a fix.
+
+Question (design U2 and the mechanics half of M2a). When a real run files a `decision`, does ShipLoop write a request a person would start and print a command that works as
+printed, and does a run started from that request deliver, keep what the project already did, and say what it did with the finding?
+
+Why a primed request. A natural decision is too rare to wait for. The request below reserves one choice for the person in plain words and says nothing about ShipLoop, so the
+model-written entry, its source, the gate, the request file and the command are all real; only the occasion is arranged. The result therefore says whether the path works. It
+does not say how often the path is used (M3) or whether a follow-on run repairs anything (M2b).
+
+Conditions. Host Codex, model gpt-6.1-terra, effort xhigh, `--source checkout` from a detached worktree at d2c6a5ff62a323a0f29c9d9b06c2f9bb5031a8a7: the release commit
+41ee3d89d580fb715fc90994b2361348550698c7 (skill-craft 2.30.0 / ShipLoop 1.29.0) plus its release record, without the init-guard work that origin/main has gained since
+(d8a8dce0 and f9f91667 are not in it; their change note is unreleased), so the tree is the one the owner's hosts run. Planning review `stage`, the harness's defaults otherwise,
+started with `docs/experiments/follow-on-recommended-run-20261101/launch.sh` over `test/shiploop_e2e/run.py` and nothing else, outputs under
+`/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/`. Two link-1 runs of the same request at once (`link1-a`, `link1-b`); then one link-2 run for every link-1 run that
+recommended a follow-on run, started from that run's own `follow-on-request.md` in a copy of its checkout (`--continue-from`). A program without a server leases no port. The
+machine is loaded by other sessions' work (load average 56, 104 and 96 over 1, 5 and 15 minutes at 10:30), so minutes are not comparable with any baseline.
+
+The owner's hold on new live E2E cycles (d9fefb1144dea7f9a8d85b5897ad1275dbe08a07, 2026-10-31) concerns improvement cycles, and other sessions have run cycles since. These runs
+verify a shipped feature, which AGENTS.md lists as routine ("launching verification runs"), as Round 5's four did. They decide nothing about the next cycle.
+
+Link-1 request (verbatim; `request.txt`):
+
+> Write slug.py, a small command-line tool: `python3 slug.py TITLE` prints TITLE as a URL slug on standard output and exits 0. Lowercase the letters, turn each run of spaces or
+> punctuation into a single hyphen, and drop hyphens from both ends, so "Hello, World!" gives hello-world and "  Many   spaces here " gives many-spaces-here. Titles with letters
+> outside A to Z, such as é or ü, are my call and not yours: the SEO team has not decided whether those letters are changed to their plain letter or kept as they are, and I will
+> tell you when they have, so do not choose. Until then, print "undecided: non-ASCII" on standard error and exit with status 2 for such a title. Add unit tests with unittest.
+
+Checks, each a shell command in the run's folder (`launch.sh`; calibrated before any run by `calibrate_checks.py` on three hand-written variants, 15 of 15 as expected). Link 1:
+"Hello, World!" gives hello-world; the spaces title gives many-spaces-here; "Café" exits 2 with "undecided: non-ASCII" on standard error (the reservation was kept);
+`python3 -m unittest -q` passes. Link 2: the first two, the unit tests, and "Café" does not end in a traceback (status other than 1), whichever way the finding is settled.
+
+Instruments, before any run: `check_printed_command.py` (runs the start command a finished run printed, on a copy of its checkout) was calibrated by hand on an adversarial request
+(backticks, `$(touch ...)`, quotes, a semicolon, a newline, é) with the done packet's own command form: exit 0, a workspace record, the injected marker file absent, the stored
+request equal to the file's text but for one trailing newline (what command substitution does). No model was called by any of this.
+
+Rules, fixed now (the folders are read by `docs/experiments/follow-on-build-20261101/extract_follow_on.py`, which only reads, and by `check_printed_command.py`):
+- R1. Link 1 holds. Both link-1 runs reach `done` with every verdict passing. A run that fails only the reservation check chose for the reserved letters: it is reported as having
+  ignored the request, is not a ShipLoop defect, and its list is still read. A run that fails for a reason traced to the list (a refusal loop at the handoff) is a defect.
+- R2. A recommendation exists. At least one link-1 run's accepted handoff lists a `gap` or a `decision`, its request file exists, and the done packet and the report print the
+  start command. The entry is read against the record its `source` names (supported, partly supported, unsupported), and so is whether the request file says what the request
+  reserved.
+- R3. The printed command works as printed (no model): exit 0, a workspace record, the stored request equal to the file's text but for its last newline, a clean stderr, and
+  nothing the model wrote run by the shell.
+- R4. A run started from the request delivers. Each link-2 run reaches `done` with every verdict passing. A failure is read before it is called a defect of the request: a run
+  that refuses or misreads the request is one; a host or environment failure is rerun once.
+- R5. Where the finding lands (descriptive): the files link 2's commits touch against link 1's HEAD (expected: slug.py, its tests, files under KNOWLEDGE/), whether link 2's
+  intake or spec record names the non-ASCII finding, and what link 2 did for "Café" (kept the reserved error, transliterated, kept the letters).
+- R6. Its own list. Link 2's handoff is accepted on its first `complete`; its classes; whether it files the decision again (nobody answers it in link 2).
+
+Predictions (probability, written before any run):
+- P1. Both link-1 runs reach `done` with every verdict passing (75%).
+- P2. At least one link-1 run files an accepted `gap` or `decision` (85%); both do (60%).
+- P3. Neither link-1 run files a `gap` (80%).
+- P4. R3 holds for every command tried (90%).
+- P5. Every link-2 run reaches `done` with every verdict passing (65%).
+- P6. Every link-2 run touches only slug.py, its tests and files under KNOWLEDGE/ or docs (70%).
+- P7. At least one link-2 run files a `decision` again (45%).
+
+Decision rule. R2, R3 and R4 hold: the path is shown live on a primed request; the design note's M2a records it; no code change and no release. A mechanical defect (the request
+cannot be started, the command misreads the text, a run started from the request is refused at intake or loses the finding for a reason in the request's wording): fix it
+generically with the test first, release when preflight and CI pass (routine), and rerun the failed link on the released build. R2 fails (no recommending entry in two runs): the
+path stays unproven live; read what each filed and why; a further attempt only with a changed request written down first.
+
+Not concluded whatever the numbers: two primed runs are a mechanics check, not a rate (M3) and not the value of a follow-on run (M2b); M2a's comparison with a hand-written
+request on the same base is not run; one host and one model; the person who answers a decision is not simulated (link 2 gets the request as ShipLoop wrote it); U11 is not measured.
+
+Files: `docs/experiments/follow-on-recommended-run-20261101/` (`request.txt`, `launch.sh`, `calibrate_checks.py`, `check_printed_command.py`, then the extracts and the README).
