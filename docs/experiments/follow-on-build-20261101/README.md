@@ -93,3 +93,14 @@ python3 read_records.py <output folder> ...                   # each entry besid
 Both only read. `runs.json` is the first one's `--json` output for the four runs, `readings.txt` the second one's output, and
 `verdicts.txt` the verdict blocks of the four runner outputs (the full output and `result.json` stay in the run folders). The four
 baseline rows the runs appended are in `test/shiploop_e2e/baselines.jsonl` (`local_head` `2da2d4f3d11b0f468c14ff48e6158a7bb334e8ee`).
+
+## The published build (after the release)
+
+After the release (skill-craft 2.30.0 and ShipLoop 1.29.0, release commit `41ee3d89d580fb715fc90994b2361348550698c7`) one more run used the marketplace
+build instead of the checkout: `run.py --case hello --host codex --source marketplace --timeout 5400` (published plugin tree `3efc9db89059`, `local_head` the
+release commit; Codex gpt-6.1-terra at xhigh). It passed every verdict, and its `versions` line names skill-craft 2.30.0 and ShipLoop 1.29.0. 199 turns,
+14.9 minutes at a load of 150 to 189 on 18 CPUs. The handoff was accepted on its first `complete` with `follow_on: []`, and the report has the Follow-on
+section ("none listed"). Its one ShipLoop command failure was a `shiploop check` at an Improve checkpoint that named a result path other than the current
+generated one; none is at the handoff. This is the check of the exact released tree that the feature's live round (which ran the checkout) could not make.
+Verdict lines: `published-hello-verdicts.txt`; the run's baseline row is in `test/shiploop_e2e/baselines.jsonl`. It is one hello run: it shows the published
+build starts and finishes, and nothing about what the list finds.

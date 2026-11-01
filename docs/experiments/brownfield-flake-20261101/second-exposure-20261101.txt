@@ -1,0 +1,35 @@
+Second exposure to the port collisions, 2026-11-01: a full fake-host run of the first case, and the live check.
+
+1. The failure in the candidate's quick tier on the final tree (tier3 start 09:17:31, --jobs 6, load average 12 at the start and above 80 at the end):
+   shiploop-e2e-brownfield-tickets, as the tier printed it:
+   | FAIL: test_the_host_starts_in_the_base_and_the_delivery_is_graded_from_it (__main__.ThroughMainTest.test_the_host_starts_in_the_base_and_the_delivery_is_graded_from_it)
+   | ----------------------------------------------------------------------
+   | Traceback (most recent call last):
+   |   File "/Users/dadleet/src/skill-craft/.claude/worktrees/mp-cand-8c6c28/test/shiploop-e2e-brownfield-tickets.test.py", line 585, in test_the_host_starts_in_the_base_and_the_delivery_is_graded_from_it
+   |     self.assertEqual([check["pass"] for check in result["checks"]], [False, True, False])
+   |     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   | AssertionError: Lists differ: [False, False, False] != [False, True, False]
+   | First differing element 1:
+   | False
+   | True
+   | - [False, False, False]
+   | ?         ^^^^
+   | + [False, True, False]
+   | ?         ^^^
+   | ----------------------------------------------------------------------
+   | Ran 28 tests in 471.061s
+   | FAILED (failures=1)
+   | FAIL shiploop-e2e-brownfield-tickets
+
+   The second check is the base's own node --test (python3 $E2E_CHECKS/base_tests.py suite node-tickets); the declared flags of the unchanged base are [False, True, False].
+   The same exposure failed the live run R4b at 08:07 (docs/shiploop-multipass-journal.md, Result of Round 4, F17): 130 of 131 base tests passed, one failed 3 ms in.
+
+2. The same suite run alone on the same tree, at a load average of 35 to 98 (nothing else of mine running): 28 tests, one failure, a different test:
+   FAIL: test_the_defects_that_edit_the_bases_tests_pass_their_own_suite_and_fail_the_pristine_one (__main__.CalibrationTest.test_the_defects_that_edit_the_bases_tests_pass_their_own_suite_and_fail_the_p
+   Ran 28 tests in 435.480s
+   FAILED (failures=1)
+   (CalibrationTest.test_the_defects_that_edit_the_bases_tests_pass_their_own_suite_and_fail_the_pristine_one; at that load the base's node tests time out as well as collide, so this one is not read as a collision.)
+
+3. The suite with the change (agreed(): flags that are not the declared ones are graded again, alone, until they are), on the tree after the change, load average 98 at the start:
+   Ran 31 tests in 369.043s
+   OK

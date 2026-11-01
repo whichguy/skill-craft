@@ -484,6 +484,11 @@ exposing, and `seat-reservations`, the unseen generality case, and were swapped 
   7ca88df4 fixed on 2026-10-31 (the same refusal; not replayed), though the ledger still reads admitted. So no record exists
   that a cycle on local cases could take, and a third blind exploration may meet the same owner-held items. Getting past
   this is the owner's decision (an admission route), listed with the options in the stage 5 report.
+- **A gap closed beside it (2026-11-01).** `learning_records.ingest` used to append `admitted` after an implementation-routed
+  re-find of a record the owner held, and the fold lets the later event win, so a re-find could take a record out of the
+  owner's hands (shown by a failing test first). A record that the owner holds, or that is in a candidate (`HELD`), now takes
+  the new evidence and stays where it is, whatever the route; an open record is still admitted and an admitted one can
+  still go to the owner.
 - **The first record:** from an exploration run on `seat-reservations`, or a seeded record whose reopen condition holds.
 - **Selection (2026-11-01):** `select` reads the cycle's cases (b3328b4). The one admitted record on the ledger,
   LR-20261031-8d97e7, was found on the hosted `gym-membership-salesforce` case, so a cycle on other cases would have
