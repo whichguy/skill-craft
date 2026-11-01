@@ -13,6 +13,7 @@ import json
 import shlex
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -102,6 +103,190 @@ class KeepaliveTestCase(unittest.TestCase):
             argv = [verb, "--run-dir", str(self.run_dir)] + (["--reason", "test"] if verb == "pause" else [])
             result = shiploop(*argv)
             self.assertEqual(result.returncode, 0, result.stderr)
+
+
+class StartupCallerTests(KeepaliveTestCase):
+    """Execute documented entry forms; observing their output must bind the caller."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        # Keep the selected logical package, even when its resources resolve elsewhere.
+        self.selected = self.temp / "loaded package" / "shiploop"
+        self.selected.parent.mkdir()
+        self.selected.symlink_to(SCRIPTS.parent, target_is_directory=True)
+
+    def render(self, command: str, prompt: str, repo: Path, run_dir: Path) -> str:
+        # Use the card's POSIX apostrophe route, not shlex.quote's alternate spelling.
+        request = "'" + prompt.replace("'", "'\\''") + "'"
+        for before, after in (
+            ("/selected/shiploop", str(self.selected)),
+            ('"$REPO"', shlex.quote(str(repo))),
+            ('"$RUN_DIR"', shlex.quote(str(run_dir))),
+            ('"$IMPROVE_SKILL"', shlex.quote(str(ROOT / "skills" / "improve" / "SKILL.md"))),
+            ("'<user request>'", request),
+            ("'requested outcome'", request),
+        ):
+            command = command.replace(before, after)
+        return command
+
+    def commands(self, prompt: str, repo: Path, run_dir: Path) -> list[str]:
+        card = (SCRIPTS.parent / "SKILL.md").read_text(encoding="utf-8")
+        section = card.split("## Start or resume\n", 1)[1].split("## Inner stages\n", 1)[0]
+        blocks = re.findall(r"(?ms)^```sh\n(.*?)^```", section)
+        # Honor any documented variable binding too: the old card executes successfully
+        # but its literal $CLI head is invisible to the actual observer.
+        bindings = [line for line in blocks[0].splitlines() if line.startswith(("SKILL_ROOT=", "CLI="))]
+        commands = []
+        for block in blocks[1:]:
+            for line in block.replace("\\\n", "").splitlines():
+                if line.startswith("python3 "):
+                    command = "\n".join([*bindings, line])
+                    commands.append(self.render(command, prompt, repo, run_dir))
+        self.assertEqual(len(commands), 4)  # workspace start, two init forms, next
+        return commands
+
+    def observe_output(self, host: str, session: str, command: str, output: str) -> dict | None:
+        payload = self.payload(host, "observe", session)
+        for key in ("tool_input", "toolInput"):
+            if isinstance(payload.get(key), dict):
+                payload[key]["command"] = command
+        if "command" in payload:
+            payload["command"] = command
+        # Retain the recorded host envelope; replace all fixture output with the real reply.
+        for key in ("tool_response", "toolResult", "output"):
+            if key in payload:
+                payload[key] = output
+        self.hook("observe", host, payload)
+        return keepalive.load_binding(host, session)
+
+    def test_documented_driving_commands_bind_with_the_real_observer(self) -> None:
+        prompt = "Add a neutral greeting command."
+        for index in range(4):
+            repo, run_dir = self.temp / f"source {index}", self.temp / f"run {index}"
+            repo.mkdir()
+            if index == 3:
+                run_dir = self.run_dir
+            command = self.commands(prompt, repo, run_dir)[index]
+            result = subprocess.run(["/bin/sh", "-c", command], stdin=subprocess.DEVNULL,
+                                    capture_output=True, text=True, check=False, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            marker = keepalive.last_marker(result.stdout)
+            self.assertIsNotNone(marker)
+            before = (Path(marker["run_dir"]) / "state.md").read_bytes()
+            for host in RECORDED_HOSTS:
+                with self.subTest(form=index, host=host):
+                    keepalive.release_owner(marker["run_dir"])
+                    binding = self.observe_output(host, f"startup-{index}-{host}", command, result.stdout)
+                    self.assertIsNotNone(binding, "documented command ran but keepalive did not bind its caller")
+                    if binding is not None:
+                        self.assertEqual(binding["run_id"], marker["run_id"])
+                        self.assertEqual(binding["run_dir"], marker["run_dir"])
+            self.assertEqual((Path(marker["run_dir"]) / "state.md").read_bytes(), before)
+
+    def test_reference_entry_commands_bind_and_preserve_run_options(self) -> None:
+        prompt = "Keep 'quoted' intent: café $HOME.\n\n"
+        count = 0
+        for reference in ("navigator.md", "consumer-delivery.md"):
+            text = (SCRIPTS.parent / "references" / reference).read_text(encoding="utf-8")
+            blocks = re.findall(r"(?ms)^```sh\n(.*?)^```", text)
+            recovery = self.run_dir
+            for block in blocks:
+                for line in block.replace("\\\n", "").splitlines():
+                    if not line.startswith("python3 "):
+                        continue
+                    words = shlex.split(line)
+                    if words[2] not in ("workspace", "init", "next"):
+                        continue
+                    repo, run_dir = self.temp / f"reference source {count}", self.temp / f"reference run {count}"
+                    repo.mkdir()
+                    if words[2] == "next":
+                        run_dir = recovery
+                    command = self.render(line, prompt, repo, run_dir)
+                    # Honor legacy variable heads without repairing the command sent to the observer.
+                    env = {**os.environ, "CLI": str(self.selected / "scripts" / "shiploop")}
+                    result = subprocess.run(["/bin/sh", "-c", command], stdin=subprocess.DEVNULL,
+                                            capture_output=True, text=True, env=env, check=False, timeout=30)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    marker = keepalive.last_marker(result.stdout)
+                    self.assertIsNotNone(marker)
+                    recovery = Path(marker["run_dir"])
+                    state_path = recovery / "state.md"
+                    before = state_path.read_bytes()
+                    state = store.read_record(state_path)
+                    self.assertEqual(state["prompt"], prompt)
+                    for option, key in (("--delegation=", "delegation"), ("--backchain-passes=", "backchain_passes"),
+                                        ("--improve-skill=", "improve_skill")):
+                        value = next((word[len(option):] for word in shlex.split(command) if word.startswith(option)), None)
+                        if value is not None:
+                            self.assertEqual(state[key], value)
+                    if reference == "consumer-delivery.md":
+                        self.assertEqual(state["delivery_contract_version"], 1)
+                    for host in RECORDED_HOSTS:
+                        with self.subTest(reference=reference, form=count, host=host):
+                            keepalive.release_owner(str(recovery))
+                            binding = self.observe_output(host, f"reference-{count}-{host}", command, result.stdout)
+                            self.assertIsNotNone(binding, "reference entry ran but did not bind its caller")
+                            if binding is not None:
+                                self.assertEqual((binding["run_id"], binding["run_dir"]),
+                                                 (marker["run_id"], marker["run_dir"]))
+                    self.assertEqual(state_path.read_bytes(), before)
+                    count += 1
+        self.assertEqual(count, 8)
+
+    def test_quoted_recovery_requires_the_output_marker(self) -> None:
+        command = self.commands("Keep the same request.", self.repo, self.run_dir)[3]
+        for host in RECORDED_HOSTS:
+            with self.subTest(host=host):
+                self.assertIsNone(self.observe_output(host, f"filtered-{host}", command, ""))
+
+    def test_selected_package_inspection_does_not_bind_even_with_a_live_marker(self) -> None:
+        cli = shlex.quote(str(self.selected / "scripts" / "shiploop"))
+        commands = (f"python3 {cli} --help", f"python3 {cli} status --run-dir {shlex.quote(str(self.run_dir))}",
+                    f"cat {shlex.quote(str(self.run_dir / 'state.md'))}")
+        before = (self.run_dir / "state.md").read_bytes()
+        for host in RECORDED_HOSTS:
+            for index, command in enumerate(commands):
+                with self.subTest(host=host, command=command):
+                    self.assertIsNone(self.observe_output(host, f"reader-{index}-{host}", command, self.packet))
+        self.assertEqual((self.run_dir / "state.md").read_bytes(), before)
+
+    def test_documented_recovery_cannot_bind_corrupt_state_from_an_old_marker(self) -> None:
+        command = self.commands("Keep the same request.", self.repo, self.run_dir)[3]
+        state = self.run_dir / "state.md"
+        state.write_text("invalid state\n")
+        for host in RECORDED_HOSTS:
+            with self.subTest(host=host):
+                self.assertIsNone(self.observe_output(host, f"corrupt-{host}", command, self.packet))
+        self.assertEqual(state.read_text(), "invalid state\n")
+
+    def test_documented_shell_forms_preserve_exact_argv_bytes(self) -> None:
+        # This stand-in only captures shell argv. The other test executes the real CLI.
+        bin_dir = self.temp / "bin"
+        bin_dir.mkdir()
+        python = bin_dir / "python3"
+        python.write_text(f"#!{sys.executable}\nimport os, sys\n"
+                          "sys.stdout.buffer.write(b'\\0'.join(os.fsencode(arg) for arg in sys.argv[1:]))\n")
+        python.chmod(0o755)
+        requests = ("Keep 'single' and \"double\" quotes.", "$HOME $(touch expanded) `touch expanded` \\",
+                    "Keep Unicode: café 雪 λ.", "first\nsecond\n\n", "--help --repo=/other path")
+        repo, run_dir = self.temp / "source with spaces", self.temp / "run with spaces"
+        env = {**os.environ, "PATH": str(bin_dir) + os.pathsep + os.environ.get("PATH", "")}
+        for request in requests:
+            for index, command in enumerate(self.commands(request, repo, run_dir)):
+                with self.subTest(request=request, form=index):
+                    result = subprocess.run(["/bin/sh", "-c", command], stdin=subprocess.DEVNULL,
+                                            capture_output=True, env=env, cwd=self.temp, check=False, timeout=10)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    argv = result.stdout.split(b"\0")
+                    self.assertEqual(argv[0], os.fsencode(self.selected / "scripts" / "shiploop"))
+                    self.assertEqual(argv[1:3] if index == 0 else argv[1:2],
+                                     [b"workspace", b"start"] if index == 0 else [b"next" if index == 3 else b"init"])
+                    self.assertEqual(argv[argv.index(b"--repo") + 1] if index != 3 else argv[-1],
+                                     os.fsencode(repo if index != 3 else run_dir))
+                    if index != 3:
+                        self.assertEqual([arg for arg in argv if arg.startswith(b"--prompt=")],
+                                         [b"--prompt=" + request.encode("utf-8")])
+                    self.assertFalse((self.temp / "expanded").exists())
 
 
 class HookStatusAndMarkerTests(KeepaliveTestCase):

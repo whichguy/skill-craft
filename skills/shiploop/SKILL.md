@@ -86,7 +86,7 @@ returned `/clear` text as a host reset. An external E2E harness may start a mode
 before invoking this skill; that launcher remains outside ShipLoop. Environment
 settings do not change this boundary.
 
-Before doing any ShipLoop-managed stage work, bind this package's `CLI` from
+Before doing any ShipLoop-managed stage work, locate this package's CLI from
 the **selected, loaded** `SKILL.md`. Obtain its absolute location from the
 host's skill context; if the host shows a selected skill-root alias, expand that
 alias first. The logical selected path is the host identity. It is not the
@@ -95,15 +95,19 @@ The bundled Python files may resolve their own package-local resources
 physically; do not replace the logical selected package with an ambient skill.
 
 ```sh
-# Replace this illustrative path with the selected absolute location before running.
-SKILL_ROOT="/absolute/directory-containing-the-loaded-SKILL.md"
+# Replace /selected/shiploop with the selected absolute package root.
+SKILL_ROOT="/selected/shiploop"
 CLI="$SKILL_ROOT/scripts/shiploop"
 python3 "$CLI" --help
 ```
 
 Claude Code may render `${CLAUDE_SKILL_DIR}` in skill text where supported, but
-that is not a portable shell environment variable. Rebind the absolute `CLI`
-for each independent tool call and quote it. If `python3` or the bundled CLI is
+that is not a portable shell environment variable. Rebind these inspection/non-entry
+locators per call. For startup/recovery, use the quoted literal selected CLI path
+directly before its verb; no `$CLI`, wrapper, function or interpreter code.
+Keep full startup/recovery output: quoted-head binding needs its marker. Copy packet
+commands as printed, including physical resource paths resolved by the selected script.
+If `python3` or the bundled CLI is
 unavailable, report the missing prerequisite; never substitute a similarly
 named executable. Resolve the user's repository and run directory to absolute
 paths. Determine whether this
@@ -137,7 +141,7 @@ known additional transient paths. Keep this external directory durable across
 context resets. Read [workspace lifecycle](references/workspace-lifecycle.md).
 
 ```sh
-python3 "$CLI" workspace start --repo "$REPO" --prompt='<user request>'
+python3 '/selected/shiploop/scripts/shiploop' workspace start --repo "$REPO" --prompt='<user request>'
 ```
 
 Before creating anything, start proves this session can write the
@@ -161,16 +165,16 @@ in-place/non-Git run may instead use the direct entry, documenting why
 isolation is not used; it has no automatic workspace-return protection:
 
 ```sh
-python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'
+python3 '/selected/shiploop/scripts/shiploop' init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'
 # Optional (required with --planning-review none): select the exact actual Improve skill at initialization.
-python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" \
+python3 '/selected/shiploop/scripts/shiploop' init --repo "$REPO" --run-dir "$RUN_DIR" \
   --improve-skill="$IMPROVE_SKILL" --prompt='<user request>'
 ```
 
 Recover an existing run's current packet with:
 
 ```sh
-python3 "$CLI" next --run-dir "$RUN_DIR"
+python3 '/selected/shiploop/scripts/shiploop' next --run-dir "$RUN_DIR"
 ```
 
 For a settled navigator run, `next` rereads the saved current state: it neither
@@ -180,10 +184,12 @@ identity. If a locator is missing or paths have moved, recover access to the
 same run and identity or leave it incomplete; never create a replacement run to
 make progress.
 
-Use structured argv where possible. Arbitrary text is one `--name=value`
-argument (`--prompt=--help`). In a shell, single-quote literal text and escape
-embedded quotes; never paste raw user text into double quotes. Preserve the
-original request, including multiline and Unicode text.
+Use direct structured argv if supported; keep selected CLI and verb visible.
+Text is one `--name=value` argument (`--prompt=--help`). In shells, single-quote
+literals; replace each apostrophe with `'\''`; never double-quote raw user text.
+Preserve original request bytes: Unicode and actual interior and terminal
+newlines inside quotes. Never trim or use command substitution: it strips
+terminal newlines.
 
 If a current packet requires another skill, bind it only from that
 dependency's own observed, selected `SKILL.md` path. Do not infer a
