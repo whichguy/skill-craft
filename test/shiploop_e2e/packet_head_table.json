@@ -1,10 +1,10 @@
 {
-  "_doc": "The per-stage head table of the packets (G-RENDER, test/shiploop_e2e/render_diff.py): the longest printed text each stage may have, in characters, by case, route, run-directory length and CLI path length (the key 'inline/83/96' is route/run directory/CLI path). render_diff exits non-zero when a stage prints more than its value here or has none. A value changes in the commit that journals the new value (the plan's U1 re-baselines it for the merged branches, U7 sets the allocation); no other unit raises it. The first values are main da9e2e75 (skill-craft 2.5.0 / ShipLoop 1.5.0) rendered by packets.py --offline --text-dir and written by render_diff.py --emit-table DIR --write; they are ceilings, not targets, and a stage over the 20,000-character host cut is journaled as such, not hidden here. Re-written 2026-10-17 by packet-review U3/U4 (feat/pr-u3-head-1b7a72) with render_diff.py --emit-table --write on the four renders: the head prints the guides its duties cite and the Backchain lines with the text that cites them (up to +1,200, carry-forward), the one-line pass, floor and ratchet rules (-172 at test and verify); every printed text stays under 20,000 at 83 and 163. Re-written 2026-10-17 by packet-review wave 2 W2-A/W2-B (feat/pr-w2-proof-75e8ad) with render_diff.py --emit-table --write on the four renders: step-plan asks each step for its check, the Proof implement runs at done (step-plan whole +581 inline, +699 ask-agent), and implement's exit conditions name the step's criteria and Proof (+212 inline, +120 ask-agent); every printed text stays under 20,000 at 83 and 163. Re-written 2026-11-01 for step-plan only, from render_diff.py --emit-table on the four renders of the focused-ID rule (docs/shiploop-step-plan-review-2026-11-01.md): +78 on each key, +40 of it this change (duty 5 'an ID for each criterion it names', Checked-by 'or lacks an ID per criterion') and +38 from 8dee00e0's duty 6 sentence, which head_table.json journaled but this table did not; inline/83/96 19,966, inline/163/96 19,332, ask-agent/83/96 18,832, ask-agent/163/96 19,872. The same renders put the test stage 3 under its value here; that is left as it was. Re-written 2026-11-01 for step-plan only (render_diff.py --emit-table on the four renders): +9 per key for duty 5's 'an ID for each executed criterion it names'.",
+  "_doc": "The per-stage head table of the packets (G-RENDER, test/shiploop_e2e/render_diff.py): the longest printed text each stage may have, in characters, by case, route, run-directory length and CLI path length (the key 'inline/83/96' is route/run directory/CLI path). render_diff exits non-zero when a stage prints more than its value here or has none. A value changes in the commit that journals the new value (the plan's U1 re-baselines it for the merged branches, U7 sets the allocation); no other unit raises it. The first values are main da9e2e75 (skill-craft 2.5.0 / ShipLoop 1.5.0) rendered by packets.py --offline --text-dir and written by render_diff.py --emit-table DIR --write; they are ceilings, not targets, and a stage over the 20,000-character host cut is journaled as such, not hidden here. Re-written 2026-10-17 by packet-review U3/U4 (feat/pr-u3-head-1b7a72) with render_diff.py --emit-table --write on the four renders: the head prints the guides its duties cite and the Backchain lines with the text that cites them (up to +1,200, carry-forward), the one-line pass, floor and ratchet rules (-172 at test and verify); every printed text stays under 20,000 at 83 and 163. Re-written 2026-10-17 by packet-review wave 2 W2-A/W2-B (feat/pr-w2-proof-75e8ad) with render_diff.py --emit-table --write on the four renders: step-plan asks each step for its check, the Proof implement runs at done (step-plan whole +581 inline, +699 ask-agent), and implement's exit conditions name the step's criteria and Proof (+212 inline, +120 ask-agent); every printed text stays under 20,000 at 83 and 163. Re-written 2026-11-01 for step-plan only, from render_diff.py --emit-table on the four renders of the focused-ID rule (docs/shiploop-step-plan-review-2026-11-01.md): +78 on each key, +40 of it this change (duty 5 'an ID for each criterion it names', Checked-by 'or lacks an ID per criterion') and +38 from 8dee00e0's duty 6 sentence, which head_table.json journaled but this table did not; inline/83/96 19,966, inline/163/96 19,332, ask-agent/83/96 18,832, ask-agent/163/96 19,872. The same renders put the test stage 3 under its value here; that is left as it was. Re-written 2026-11-01 for step-plan only (render_diff.py --emit-table on the four renders): +9 per key for duty 5's 'an ID for each executed criterion it names'. Re-written 2026-11-01 for step-plan round 2, D (render_diff.py --emit-table on the four renders): test-spec +54 per key (duty 3's and the RED placeholder's 'does not load yet').",
   "node-fix-bug": {
     "inline/83/96": {
       "step-plan": 19975,
       "step-plan-improve": 1329,
-      "test-spec": 15973,
+      "test-spec": 16027,
       "validate-existing": 14069,
       "implement": 16935,
       "test": 18820,
@@ -16,7 +16,7 @@
     "inline/163/96": {
       "step-plan": 19341,
       "step-plan-improve": 1649,
-      "test-spec": 15339,
+      "test-spec": 15393,
       "validate-existing": 15349,
       "implement": 17815,
       "test": 19718,
@@ -28,7 +28,7 @@
     "ask-agent/83/96": {
       "step-plan": 18841,
       "step-plan-improve": 1329,
-      "test-spec": 14139,
+      "test-spec": 14193,
       "validate-existing": 15070,
       "implement": 17113,
       "test": 18820,
@@ -40,7 +40,7 @@
     "ask-agent/163/96": {
       "step-plan": 19881,
       "step-plan-improve": 1649,
-      "test-spec": 15339,
+      "test-spec": 15393,
       "validate-existing": 12518,
       "implement": 17993,
       "test": 19718,

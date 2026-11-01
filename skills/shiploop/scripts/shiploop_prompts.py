@@ -1336,9 +1336,9 @@ Write no test code in this stage.
 3. Oracle from the requirement's text, never the code; check any golden, fixture or snapshot against it. It is an
    observation, never only that a page loads. Pair each absence assertion with a presence or count assertion; drop
    one that cannot fail (a bound above any reachable value). RED: how it fails on the item's base because the
-   behaviour is missing, given what earlier items and stages left deployed (the Test targets below say which target
-   keeps state and how its base state is produced); a guard that only checks a file is not RED. "characterisation" if
-   it already passes.
+   behaviour is missing, or because the code this item adds does not load yet, given what earlier items and stages left
+   deployed (the Test targets below say which target keeps state and how its base state is produced); a guard that only
+   checks a file is not RED. "characterisation" if it already passes.
 """ + _TEST_SPEC_PROCEDURE + """\
 5. Cover positive, failure and boundary. Each new or changed public entry point: one rejection case per constraint
    (missing, wrong type or shape, out of range), asserting the error type, the argument named and unchanged state,
