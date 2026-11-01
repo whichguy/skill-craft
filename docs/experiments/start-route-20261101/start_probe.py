@@ -195,9 +195,15 @@ def under(path: str, root: str) -> bool:
     return path == root or path.startswith(root.rstrip(os.sep) + os.sep)
 
 
+PATH_BREAKS = r"""\s='",:;()\[\]{}<>|&"""   # what can stand just before or after a path in a command line: white space, the = of
+# --run-dir=/t or NAME=/t, the : of PATH=a:/t, and the quotes and brackets of python3 -c "...('/t')"
+
+
 def names(command: str, root: str) -> bool:
-    """The command line names `root` as a whole path, not as the start of a longer name."""
-    return re.search(re.escape(root) + r"(?![\w.-])", command) is not None
+    """The command line names `root`, or a path inside it, as a whole path: it starts where a path can start and ends at `root` or at
+    a slash inside it. /t/trial-a1+backup and /other/t/trial-a1 are not the folder, and no list of characters that may follow or
+    precede the name could say so (Sol's review of this driver, 2026-11-01: a blacklist of trailing characters missed `+`)."""
+    return re.search(rf"(?<![^{PATH_BREAKS}])" + re.escape(root) + rf"(?:/|(?![^{PATH_BREAKS}]))", command) is not None
 
 
 def reap(trial: Path) -> None:

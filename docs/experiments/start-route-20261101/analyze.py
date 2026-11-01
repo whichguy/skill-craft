@@ -65,6 +65,12 @@ def tally(rows: list[dict]) -> dict:
     return cells
 
 
+def dark_cells(cells: dict) -> list[str]:
+    """The request/arm cells with no session that reached a start. A comparison needs both arms to have started somewhere: a
+    treatment that never starts shows no regression in the sessions it never ran (Sol's review, 2026-11-01)."""
+    return [f"{stimulus}/{arm}" for (stimulus, arm), c in sorted(cells.items()) if arm in ("C", "T2") and c["workspace"] + c["direct"] == 0]
+
+
 INPLACE_POOLED_DROP = 0.20     # pooled drop in `init` starts that counts as harm, with the one-sided p below
 INPLACE_STIMULUS_DROP = 0.30   # a single request is flagged at this drop and the same p
 INPLACE_P = 0.05
@@ -96,8 +102,11 @@ def evaluate_inplace(cells: dict) -> tuple[list[str], str]:
     if cn and ci / cn < INPLACE_MIN_CONTROL:
         lines.append(f"note: the control honors the explicit request in only {ci / cn:.0%} of sessions, so T2 is judged on not being worse")
     harmed = drop >= INPLACE_POOLED_DROP and p < INPLACE_P
+    dark = dark_cells(cells)
     verdict = ("HARM: T2 lowers explicit in-place starts (pooled)" if harmed else
-               f"HARM on {', '.join(flagged)}" if flagged else "NO HARM FOUND")
+               f"HARM on {', '.join(flagged)}" if flagged else
+               f"UNREADABLE: no session reached the start in {', '.join(dark)}, so there is nothing to compare there" if dark else
+               "NO HARM FOUND")
     return lines, verdict
 
 
@@ -110,11 +119,13 @@ def evaluate_hosts(cells: dict) -> tuple[list[str], str]:
     (sf-ui, repo), or fewer where `init` is right (the explicit in-place and non-Git requests)?"""
     lines: list[str] = []
     problems: list[str] = []
-    total = sum(c["n"] for c in cells.values())
-    nostart = sum(c["none"] for c in cells.values())
-    if total and nostart * 2 > total:   # registered: a host that does not reach the start in most sessions is unreadable, not fine
-        lines.append(f"sessions with no start: {nostart} of {total}")
-        return lines, f"UNREADABLE: the host reached ShipLoop's start in only {total - nostart} of {total} sessions"
+    for arm in ("C", "T2"):   # registered: a host that does not reach the start in most sessions is unreadable, not fine; judged
+        # per arm, because the other arm's sessions would otherwise hold the aggregate at half (Sol's review, 2026-11-01)
+        total = sum(c["n"] for (_, a), c in cells.items() if a == arm)
+        nostart = sum(c["none"] for (_, a), c in cells.items() if a == arm)
+        if total and nostart * 2 > total:
+            lines.append(f"{arm} sessions with no start: {nostart} of {total}")
+            return lines, f"UNREADABLE: the host reached ShipLoop's start in only {total - nostart} of {total} {arm} sessions"
     for s in sorted({s for s, _ in cells}):
         c, t_ = cells[(s, "C")], cells[(s, "T2")]
         cn, tn = c["workspace"] + c["direct"], t_["workspace"] + t_["direct"]
@@ -135,6 +146,9 @@ def evaluate_hosts(cells: dict) -> tuple[list[str], str]:
                      f"({ti / max(tn, 1):.2f}); drop {drop:+.2f}; one-sided p (T2 lower) {p:.4f}")
         if drop >= INPLACE_POOLED_DROP and p < INPLACE_P:
             problems.append("explicit requests: T2 lowers init (pooled)")
+    dark = dark_cells(cells)
+    if dark and not problems:
+        return lines, f"UNREADABLE: no session reached the start in {', '.join(dark)}, so there is nothing to compare there"
     return lines, ("REGRESSION: " + "; ".join(problems)) if problems else "NO REGRESSION FOUND"
 
 
@@ -342,13 +356,21 @@ def main() -> None:
     ap.add_argument("--replicates-arms", type=Path, help="the arms file that batch used (default: --arms)")
     args = ap.parse_args()
     rows, dropped = load(args.results)
+    if not rows:   # nothing to tally, and an empty tally must not read as "no harm"
+        print(f"0 valid slots; slots with no valid attempt: {dropped or 'none'}")
+        print(f"{'DECISION' if args.mode == 'start' else 'VERDICT'}: INSUFFICIENT: no valid session in {args.results}")
+        return
     planned = {slot["slot"] for slot in json.loads(args.plan.read_text())} if args.plan else None
     missing = sorted(planned - {r["slot"] for r in rows}) if planned is not None else []
     gaps = (f"{len(missing)} planned slot(s) have no valid session ({', '.join(map(str, missing[:12]))}{'...' if len(missing) > 12 else ''})"
             if missing else "")
 
     def settled(verdict: str) -> str:
-        """A verdict over a batch with planned slots missing is no verdict: say so and keep the arithmetic's reading beside it."""
+        """A verdict over a batch with planned slots missing is no verdict: say so and keep the arithmetic's reading beside it. So is
+        one with no plan to count against: thirteen rows of a 104-slot batch met every condition and printed RELEASE (Sol's review,
+        2026-11-01)."""
+        if planned is None:
+            return f"INSUFFICIENT: no --plan was given, so the registered design's completeness is not checked (the data as they stand read: {verdict})"
         return f"INSUFFICIENT: {gaps} (the data as they stand read: {verdict})" if gaps else verdict
 
     if args.mode == "guard":
