@@ -118,6 +118,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-improve-changes.test.py",
     "test/shiploop-knowledge.test.py",
     "test/shiploop-handoff.test.py",
+    "test/shiploop-follow-on.test.py",
     "test/shiploop-assumptions.test.py",
     "test/experiments/shiploop_delivery/fake_deployment.test.py",
     "test/experiments/shiploop_delivery/browser_consumer/serve_fixture.test.py",
@@ -226,6 +227,10 @@ _DURATION_SECONDS = {
     # moved in from the retired shiploop-retire suite (consumer contract 4c): 38 tests, 17.1 s at load average 4.8; with
     # the report tests and the working-tree return (4d) and main's settlement tests: 45 tests, 23.9 s.
     "test/shiploop-handoff.test.py": 24.0,
+    # measured locally 2026-11-01: 14 tests, 45.7 s on a quiet machine; 16 tests, 62.2 s at load average 50 to 80; the
+    # 17th (the stale request file) adds 9.7 s (ten drive the real CLI to a done handoff; one runs `workspace start` from
+    # the printed command).
+    "test/shiploop-follow-on.test.py": 72.0,
     # 33.0 was measured 2026-10-10 (three fake-host sessions).  2026-10-17 (several clears per slice): 45 tests, 81 s, one serial
     # run on a busy machine; the two slice.main tests run four and two fake-host sessions.  Under QUICK_MAX_SECONDS (120).
     "test/shiploop-e2e-slice.test.py": 81.0,

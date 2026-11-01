@@ -1,0 +1,58 @@
+====================================================================================================
+link1-a | pass True | turns 172 | gates {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True, 'checks': True}
+  span: {'started': 1793558288.487, 'ended': 1793558977.613}
+  handoff attempts: [{'exit': 0, 'moved_to': 'done'}] | status done | request file True | report section True
+  follow_on: 1 entries
+    - decision | lessons.open_next | -
+        statement: Final non-ASCII letter treatment remains for the user to decide.
+        needs:     The user supplies the SEO decision; a later change implements it and updates tests.
+  files in HEAD: ['.gitignore', 'README.md', 'docs/shiploop/architecture.md', 'docs/shiploop/environment.md', 'docs/shiploop/spec.md', 'slug.py', 'test_slug.py']
+  knowledge lines naming the finding: {'docs/shiploop/architecture.md': 1, 'docs/shiploop/environment.md': 1, 'docs/shiploop/spec.md': 3}
+  slug.py Café: {'exit': 2, 'stdout': '', 'stderr': 'undecided: non-ASCII', 'behaviour': 'kept the reserved error'}
+====================================================================================================
+link1-b | pass True | turns 159 | gates {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True, 'checks': True}
+  span: {'started': 1793558296.484, 'ended': 1793558931.104}
+  handoff attempts: [{'exit': 0, 'moved_to': 'done'}] | status done | request file True | report section True
+  follow_on: 1 entries
+    - decision | lessons.open_next | -
+        statement: Future handling of non-ASCII letters is undecided; keep the interim error until the user supplies the policy.
+        needs:     The user will provide the SEO decision when ready; a later change can then implement and test it.
+  files in HEAD: ['README.md', 'docs/shiploop/architecture.md', 'docs/shiploop/environment.md', 'docs/shiploop/spec.md', 'slug.py', 'test_slug.py']
+  knowledge lines naming the finding: {'docs/shiploop/architecture.md': 1, 'docs/shiploop/environment.md': 1, 'docs/shiploop/spec.md': 2}
+  slug.py Café: {'exit': 2, 'stdout': '', 'stderr': 'undecided: non-ASCII', 'behaviour': 'kept the reserved error'}
+====================================================================================================
+link2-a | pass False | turns 25 | gates {'invoked': True, 'plugin': True, 'process': True, 'shiploop': False, 'committed': False, 'checks': True}
+  span: {'started': 1793559014.049, 'ended': 1793559084.826}
+  handoff attempts: [] | status blocked | request file False | report section False
+  follow_on: NOT RECORDED
+  prompt is the prior request file: True | request plus the answer: n/a
+  files changed against the prior head: []
+  knowledge lines naming the finding: {'docs/shiploop/architecture.md': 1, 'docs/shiploop/environment.md': 1, 'docs/shiploop/spec.md': 3}
+  slug.py Café: {'exit': 2, 'stdout': '', 'stderr': 'undecided: non-ASCII', 'behaviour': 'kept the reserved error'}
+====================================================================================================
+link2-b | pass False | turns 25 | gates {'invoked': True, 'plugin': True, 'process': True, 'shiploop': False, 'committed': False, 'checks': True}
+  span: {'started': 1793558986.431, 'ended': 1793559069.637}
+  handoff attempts: [] | status blocked | request file False | report section False
+  follow_on: NOT RECORDED
+  prompt is the prior request file: True | request plus the answer: n/a
+  files changed against the prior head: []
+  knowledge lines naming the finding: {'docs/shiploop/architecture.md': 1, 'docs/shiploop/environment.md': 1, 'docs/shiploop/spec.md': 2}
+  slug.py Café: {'exit': 2, 'stdout': '', 'stderr': 'undecided: non-ASCII', 'behaviour': 'kept the reserved error'}
+====================================================================================================
+link3-a | pass True | turns 162 | gates {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True, 'checks': True}
+  span: {'started': 1793559267.158, 'ended': 1793560037.999}
+  handoff attempts: [{'exit': 0, 'moved_to': 'done'}] | status done | request file False | report section True
+  follow_on: 0 entries
+  prompt is the prior request file: False | request plus the answer: True
+  files changed against the prior head: ['README.md', 'docs/shiploop/architecture.md', 'docs/shiploop/environment.md', 'docs/shiploop/spec.md', 'slug.py', 'test_slug.py']
+  knowledge lines naming the finding: {'docs/shiploop/architecture.md': 2, 'docs/shiploop/environment.md': 5, 'docs/shiploop/spec.md': 4}
+  slug.py Café: {'exit': 0, 'stdout': 'cafe', 'stderr': '', 'behaviour': 'transliterated'}
+====================================================================================================
+link3-b | pass True | turns 144 | gates {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True, 'checks': True}
+  span: {'started': 1793559273.664, 'ended': 1793559952.52}
+  handoff attempts: [{'exit': 0, 'moved_to': 'done'}] | status done | request file False | report section True
+  follow_on: 0 entries
+  prompt is the prior request file: False | request plus the answer: True
+  files changed against the prior head: ['README.md', 'docs/shiploop/architecture.md', 'docs/shiploop/environment.md', 'docs/shiploop/spec.md', 'slug.py', 'test_slug.py']
+  knowledge lines naming the finding: {'docs/shiploop/architecture.md': 3, 'docs/shiploop/environment.md': 3, 'docs/shiploop/spec.md': 6}
+  slug.py Café: {'exit': 0, 'stdout': 'cafe', 'stderr': '', 'behaviour': 'transliterated'}

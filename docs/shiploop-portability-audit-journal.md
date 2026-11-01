@@ -171,10 +171,10 @@ and six test files), so the hashes of both commits changed.
 2. **The floor is enforced only in the full tier.** A change that needs newer syntax fails in the post-merge full run, not
    in the quick tier a push gets. Cheap candidate: put `shiploop-python-floor` plus an import of every `shiploop_*` module
    under 3.9 in the quick tier. Not done: it is a CI-policy trade-off (cost on every push against catching a break
-   earlier), and no break has yet reached `main` that it would have caught.
+   earlier), and no break has yet reached `main` that it would have caught. **Round 8: dropped by decision, see its triage table.**
 3. **Eight E2E-apparatus suites fail on 3.9 with "write to closed file", unexplained.** The apparatus is declared 3.10+, so
    they are out of the job, but a failure that is not a 3.10 API may be a real defect that only shows up there. Worth one
-   short investigation before the declaration is relied on.
+   short investigation before the declaration is relied on. **Round 8: explained, F23.**
 4. **No live-model first run from a machine with nothing installed: resolved for both hosts 2026-11-01** (Round 5). One live
    `hello` session ran to `done` on the Codex host from a fresh-profile marketplace install of 2.27.2 (F9), and one on the
    Claude host on Sonnet 5.5 from the published 2.27.3 build (F12), every verdict passing. Boundary kept: the Claude session
@@ -241,8 +241,8 @@ owner controls, not by ShipLoop; the owner chose Sonnet for the rerun and it pas
 Asked by the owner after Round 5: "Do weekly run", then "skip ollama, just use Claude. Merge to main and publish, implement
 improvements". Read as: add the weekly run; add the other no-secret improvement proposed (the consumer smoke) and write the
 post-release live check down with Claude as its host; do not build Ollama-specific handling. The harness's default backend
-(Ollama) was not changed, because that changes the subject model behind every earlier baseline; the owner has not said it
-should be.
+(Ollama) was not changed, because that changes the subject model behind every earlier baseline; the owner had not said it
+should be. **Superseded the same day (Round 7):** asked, the owner said yes.
 
 | Change | Commit | Result |
 |--------|--------|--------|
@@ -261,6 +261,59 @@ Not done, by the owner's choice: the harness preflight that makes a one-token Ol
 appends no baseline row (finding F10 still stands: a run that hits a usage limit appends a failed row). Not done and still
 open from "What is left": the floor is enforced only in the full tier (and now the weekly run), the eight unexplained
 E2E-apparatus failures on 3.9, and the 1.0 s progress-observer deadline (F11), which is a limit the owner decides.
+
+## Round 7 — Claude is the E2E harness's default backend (2026-11-01)
+
+Asked at the end of Round 6: "Make Claude the E2E harness's default backend instead of Ollama?" Owner: "Yes use that as default".
+Asked rather than done because AGENTS.md makes a default that breaks comparability with earlier evidence a one-way decision.
+
+| Change | Where | Result |
+|--------|-------|--------|
+| An explicit Claude host with no `--backend` runs `claude-sonnet-5-5` on Anthropic; `--backend ollama` selects DeepSeek flash; `hosts.RUN_DEFAULT_BACKEND` and `hosts.run_default_model` are removed | `test/shiploop_e2e/hosts.py`, `run.py`, `slice.py`, `stage_suite/stages.py`, `iterate.py`, `experiment.py` | four tests fail on the old default and pass on the new; the roles, slice and Ollama-class suites pass |
+| Docs say so | `test/shiploop_e2e/README.md`, `SPEC.md`, `LEARNINGS.md`, `docs/distribution.md` | the post-release Claude smoke no longer needs `--backend anthropic --model claude-sonnet-5-5` |
+
+Finding F15: the default now matches what the audit's live checks needed. The one Ollama-default Claude run (2026-11-01) hit the
+monthly cap at its first model call; the Sonnet run passed in 969.2 s for $4.13 (n = 1). Status: firm for the change, not
+measured for any run on the new default. The decision, its effect on baseline cells (38 Sonnet rows, 9 DeepSeek rows, nothing
+relabelled) and its cost are in `test/shiploop_e2e/LEARNINGS.md`, "the Claude host defaults to Anthropic's Sonnet 5.5".
+
+## Round 8 — conclusion: closed, dropped, and the owner's (2026-11-01)
+
+Asked after Round 7: "Determine how to conclude, plan out, and implement." Read as: close what the session can, check the
+current release live on the new default, and leave the owner a short list of what is theirs. Order run: the state of the repo,
+the hosts and CI; the install probes, the documented gate and one live session; a read of the weekly CI path; triage of the open
+items of Rounds 4 and 6; this record. Evidence: `docs/experiments/release-smoke-20261101/`.
+
+| # | Finding | Status | Evidence |
+|---|---------|--------|----------|
+| F16 | The documented post-release smoke works as written on 2.31.0 (`--source marketplace` passes its gate, the probes pass) and, after the gate refused on 2.30.0, through `--plugin-dir` on an export of the served payload | firm | rows 1, 2, 5, 6 |
+| F17 | A live `hello` session on the Claude host with no `--backend` and no `--model` passes every verdict on 2.30.0 / 1.29.0: backend `anthropic`, `claude-sonnet-5-5`, 1239.8 s, 280 turns, $5.6854 (n = 1). The cell's last six rows span 188 to 364 turns and $3.88 to $7.65, so no cost change is claimed | firm for the run | row 3 and the baseline row |
+| F18 | A model session on the owner's native Claude install of 2.30.0 lists the three ShipLoop skills (1 turn, $0.13). A native Claude install and a model have now met; this shows discoverability, not a run | firm | row 4 |
+| F19 | The harness gate refuses `--source marketplace` while any change note is pending on `origin/main`. On 2026-11-01 it refused 51 minutes after the 2.30.0 release commit and ten minutes before 2.31.0 was released, so a check that waits for the gate can wait a release cycle. The docs now give the `--plugin-dir` route and require the evidence to say the gate was bypassed | firm | `v2.30.0-gate-refused.txt`, `docs/distribution.md` |
+| F20 | The weekly schedule path was read end to end and holds: `ci_policy.select` maps `schedule` to the full tier (unit-tested), the `release-boundary` step falls to `*) ... exit 0` for any event other than push and pull request, the concurrency group is keyed on `run_id`, and `plan` compares `github.sha` with the checkout, which on a schedule is the default branch's tip. The first real firing, Monday 2026-11-02 14:23 UTC, is unobserved | firm for the reading | `.github/workflows/ci.yml`, `test/ci-policy.test.py` |
+| F21 | The `python-floor` leg (Python 3.9.25, `ubuntu-24.04`) passed in the full tier of the last three release commits: `570f308fda451c8b0b1a39ef16f33ffe32aa31d1` (run 41323924608, 20 min; that run was red in `shiploop-2` only), `4224161b095792825befe2a384075fab5660ae05` (41329381683, 20 min) and `41ee3d89d580fb715fc90994b2361348550698c7` (41332749569, 16 min) | firm | `gh run view` of those runs |
+| F22 | Cursor is the one host that is not current: `~/.cursor/plugins/local/skill-craft` holds a local copy at 1.21.0 (directory dated 2026-10-05) and the only marketplace entry there is `claude-craft` (2026-09-11), none named `whichguy`. Claude, Codex and Grok list the current release. A stale local copy beside a later marketplace install would load old skills twice | firm (read-only look) | `~/.cursor/plugins` |
+| F23 | The "write to closed file" failures of Round 2 are explained. Under macOS Python 3.9.6 (Xcode's) the 47 E2E-apparatus suites give 23 passes and 24 stops at the first failure, with no timeouts; 17 of the 24 logs show `AttributeError: module 'os' has no attribute 'waitid'`, and the rest are 3.10 to 3.12 APIs (`unittest.enterContext`, `sys.stdlib_module_names`, `TemporaryDirectory(ignore_cleanup_errors=)`, `tarfile.extractall(filter=)`) or checks not examined (`environment`, `lifecycle`, `stage-build`, `stages`). The closed-file error is a knock-on: `run.launch`'s daemon `pump` thread writes to the events file after the main thread's `AttributeError` has left the `with` that opened it. Run without fail-fast, five of six `waitid` suites printed it (`delta`, `commit-counters`, `baseline`, `quality`, `reorientation`; `ticket-sla` did not). No frame in any of the 24 tracebacks is in `skills/shiploop/` | firm | `docs/experiments/release-smoke-20261101/py39-apparatus-probe.txt`; `run.py`, `launch`, `pump` and `record` |
+
+### Triage of what was open
+
+| Item | Where it stood | Now |
+|------|----------------|-----|
+| Live session on the new default | Round 7: not measured | closed, F17 |
+| Native Claude install with a model | Round 5: never combined | partly closed, F18; a full run from a native install needs a login inside a disposable config, which is the owner's credential |
+| Weekly run unobserved | Round 6 | reviewed, F20; the firing itself waits for Monday |
+| Floor only in the full tier (Round 4, item 2) | open | dropped by decision: the floor held on three of three release commits (F21), no break has reached `main`, and a per-push leg costs a CI job on every push. Revisit if a break reaches a release. The owner may overrule; the cheap form is `shiploop-python-floor` plus an import of every `shiploop_*` module under 3.9 in the quick tier |
+| Eight E2E-apparatus failures on 3.9 (Round 4, item 3) | unexplained | explained, F23: a knock-on of `os.waitid`, which macOS Python lacks; not a separate defect and not in the product |
+| Windows | unknown | already declared unsupported in `docs/distribution.md` (the scripts use `fcntl`); WSL is Linux and untested |
+| Python 3.8, macOS without the Command Line Tools | unknown | unchanged: 3.7 and 3.9 are covered, and below 3.9 the CLI says so in one line |
+| The 1.0 s progress-observer deadline, hook cost and plugin-wide scope (F6) | the owner's | unchanged |
+| Cursor | the owner's | F22 |
+
+### The owner's, in order
+
+1. Install `skill-craft` in the Cursor app from the `whichguy` marketplace and remove the local 1.21.0 copy (F22).
+2. Read the first scheduled CI run on Monday 2026-11-02 after 14:23 UTC, or ask for a scheduled check to read it.
+3. The 1.0 s progress-observer deadline (a limit) and the hook-cost split (F6), as before.
 
 ## Proposals as first written (2026-10-31; applied as Round 3)
 

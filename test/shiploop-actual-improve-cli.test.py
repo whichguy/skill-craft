@@ -1868,7 +1868,7 @@ class EphemeralImproveCliTests(ImproveCliFixture):
 
         action = navigator.current_action(state)["id"]
         input_path = self.run / "inbox" / (action + ".md")
-        store.write_record(input_path, {"outcome": "done", "summary": "Final fixture handoff",
+        store.write_record(input_path, {"outcome": "done", "summary": "Final fixture handoff", "follow_on": [],
                                         "evidence_refs": self.parent_evidence_refs})
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", action, "--result", input_path)
         self.assertEqual(store.read_record(self.run / "state.md")["status"], "done")

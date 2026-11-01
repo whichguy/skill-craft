@@ -49,6 +49,27 @@ class LedgerCase(unittest.TestCase):
         return record
 
 
+    def assert_owner_decisions_respected(self, path):
+        """Catch conflicting branch histories without changing how old events fold."""
+        events = sorted(lr.rows(path), key=lambda event: (event["at"], event["event_id"]))
+        latest_decision = {row["record"]: index for index, row in enumerate(events)
+                           if row["event"] in ("owner", "reopened")}
+        held = {}
+        for index, row in enumerate(events):
+            record, event = row["record"], row["event"]
+            if index < latest_decision.get(record, -1):
+                continue
+            if event == "owner":
+                if row.get("outcome") == "accept":
+                    held.pop(record, None)
+                else:
+                    held[record] = row["event_id"]
+            elif event == "reopened":
+                held.pop(record, None)
+            elif event in ("admitted", "predicted"):
+                self.assertNotIn(record, held, f"{record}: {event} after owner hold; record an explicit resolution")
+
+
 class LearningRecordsTest(LedgerCase):
     def test_events_fold_into_one_status_per_record(self):
         record = self.open_record()
@@ -160,10 +181,150 @@ class LearningRecordsTest(LedgerCase):
         rows = [row for row in lr.rows(self.ledger) if row["record"] == opened[1] and row["event"] == "opened"]
         self.assertEqual(rows[0]["same_as_unknown"], "LR-20990101-abcdef")
 
+    def refound(self, record, route):
+        finding = {"id": "D9", "title": "again", "materiality": "material", "confidence": "high", "target": "shiploop",
+                   "files": [], "proposal": "p", "next_experiment": "n", "mission_anchor": {"clause_id": "S-6"},
+                   "same_as": record}
+        return lr.ingest({}, {route: [finding]}, {"run": "/runs/again", "exposure": "development"}, self.ledger)
+
+    def test_a_refound_record_the_owner_holds_stays_with_the_owner_until_the_owner_decides(self):
+        """Stage 5's second launch opened a record and routed it to the owner. A later exploration that re-finds it and
+        whose judge says implementation must add its evidence, not take the record out of the owner's hands."""
+        held = self.open_record("held")
+        lr.append("owner", held, self.ledger, reason="material challenge routed to the owner or an investigation")
+        self.assertEqual(self.refound(held, "implementation"), [held])
+        state = lr.current(self.ledger)[held]
+        self.assertEqual((state["status"], state["seen"]), ("owner", 2), "the evidence is kept and the owner's hold is not lost")
+        self.assertEqual(len(state["sources"]), 1, "the re-find's source is on the record")
+        self.assertIsNone(lr.select(self.ledger), "a record the owner holds is never offered to a cycle")
+        lr.append("owner", held, self.ledger, outcome="accept", owner_decision="qualify it")
+        self.assertEqual(lr.current(self.ledger)[held]["status"], "admitted")
+        self.assertEqual(lr.select(self.ledger), held, "the owner's accept is what makes it selectable")
+
+    def test_a_refound_record_in_a_candidate_stays_in_it_whatever_the_route(self):
+        for route in ("implementation", "owner_challenges", "harness"):
+            with self.subTest(route=route):
+                record = self.open_record(f"in flight {route}")
+                lr.append("admitted", record, self.ledger)
+                lr.append("predicted", record, self.ledger, prediction={"record": record}, candidate="abc")
+                self.refound(record, route)
+                state = lr.current(self.ledger)[record]
+                self.assertEqual((state["status"], state["seen"], state["candidate"]), ("in_candidate", 2, "abc"))
+
+    def test_a_refound_open_record_is_still_admitted_and_an_admitted_one_can_still_go_to_the_owner(self):
+        open_record = self.open_record("open")
+        self.refound(open_record, "implementation")
+        self.assertEqual(lr.current(self.ledger)[open_record]["status"], "admitted")
+        admitted = self.open_record("admitted")
+        lr.append("admitted", admitted, self.ledger)
+        self.refound(admitted, "owner_challenges")
+        self.assertEqual(lr.current(self.ledger)[admitted]["status"], "owner",
+                         "a new challenge to an admitted record is the owner's to answer")
+
+    def test_rediscovery_preserves_owner_disposition_and_keeps_new_evidence(self):
+        for outcome, route in itertools.product((None, "reject"), ("implementation", "owner_challenges", "harness")):
+            with self.subTest(outcome=outcome, route=route):
+                ledger = self.temp / f"{outcome}-{route}.jsonl"
+                record = lr.new_id()
+                lr.append("opened", record, ledger, title="held lesson", materiality="material", target="shiploop")
+                lr.append("admitted", record, ledger)
+                lr.append("owner", record, ledger, outcome=outcome, reason="keep the owner's reason",
+                          owner_decision="investigate first")
+                before = ledger.read_bytes()
+                ids = lr.ingest({}, {route: [{"id": "D1", "same_as": record, "routing": "investigate"}]},
+                                {"run": "/runs/new", "exposure": "development"}, ledger)
+                state = lr.current(ledger)[record]
+                self.assertEqual(ids, [record])
+                reopened_for_owner = outcome == "reject" and route == "owner_challenges"
+                self.assertEqual(state["status"], "rejected" if outcome == "reject" and not reopened_for_owner else "owner")
+                if not reopened_for_owner:
+                    self.assertEqual(state["reason"], "keep the owner's reason")
+                    self.assertEqual(state["owner_decision"], "investigate first")
+                    self.assertEqual(state["sources"][-1]["held"], "rejected" if outcome == "reject" else "owner")
+                    self.assertEqual(state["sources"][-1]["routing"], "investigate")
+                    self.assertEqual(len(lr.rows(ledger)), 4, "only the new observation is appended")
+                self.assertEqual(state["seen"], 2)
+                self.assertEqual(state["sources"][-1]["route"], route)
+                self.assertEqual(state["sources"][-1]["run"], "/runs/new")
+                self.assertTrue(ledger.read_bytes().startswith(before))
+                self.assertIsNone(lr.select(ledger), "owner disposition must exclude it without an exposure filter")
+
+    def test_checked_in_history_guard_detects_stale_branch_admission_and_prediction(self):
+        for event in ("admitted", "predicted"):
+            with self.subTest(event=event):
+                record = self.open_record()
+                lr.append("owner", record, self.ledger, outcome="reject")
+                lr.append(event, record, self.ledger)
+                # A union merge may place the later event first; event time governs the check.
+                self.ledger.write_text("\n".join(reversed(self.ledger.read_text().splitlines())) + "\n")
+                with self.assertRaisesRegex(AssertionError, record):
+                    self.assert_owner_decisions_respected(self.ledger)
+                self.ledger.unlink()
+        for release in ("accept", "reopened"):
+            with self.subTest(release=release):
+                record = self.open_record()
+                lr.append("owner", record, self.ledger)
+                lr.append("owner" if release == "accept" else "reopened", record, self.ledger, outcome="accept")
+                lr.append("admitted", record, self.ledger)
+                lr.append("predicted", record, self.ledger)
+                self.assert_owner_decisions_respected(self.ledger)
+
+    def test_history_guard_allows_a_later_explicit_resolution_without_erasing_the_conflict(self):
+        for resolution in ("accept", "owner", "reopened"):
+            with self.subTest(resolution=resolution):
+                ledger = self.temp / f"resolved-{resolution}.jsonl"
+                record = lr.new_id()
+                lr.append("opened", record, ledger)
+                lr.append("owner", record, ledger, outcome="reject")
+                lr.append("admitted", record, ledger, reason="conflicting branch")
+                before = ledger.read_bytes()
+                lr.append("reopened" if resolution == "reopened" else "owner", record, ledger,
+                          outcome="accept" if resolution == "accept" else None, reason="explicit resolution")
+                self.assert_owner_decisions_respected(ledger)
+                self.assertTrue(ledger.read_bytes().startswith(before))
+                if resolution == "owner":
+                    lr.append("predicted", record, ledger)
+                    with self.assertRaisesRegex(AssertionError, record):
+                        self.assert_owner_decisions_respected(ledger)
+
+    def test_a_same_batch_owner_referral_survives_a_later_automatic_route(self):
+        record = self.open_record()
+        finding = {"same_as": record}
+        lr.ingest({}, {"owner_challenges": [finding], "harness": [finding]},
+                  {"exposure": "confirmation"}, self.ledger)
+        state = lr.current(self.ledger)[record]
+        self.assertEqual((state["status"], state["seen"], state["exposure"]), ("owner", 3, "confirmation"))
+        self.assertEqual([source["route"] for source in state["sources"]], ["owner_challenges", "harness"])
+
+    def test_ordinary_reopening_and_explicit_owner_acceptance_still_allow_admission(self):
+        for disposition in ("deferred", "refuted", "verified", "accepted", "reopened"):
+            with self.subTest(disposition=disposition):
+                record = self.open_record(disposition)
+                lr.append("admitted", record, self.ledger)
+                if disposition == "deferred":
+                    lr.append("deferred", record, self.ledger, reason="ordinary deferral")
+                elif disposition in ("refuted", "verified"):
+                    lr.append("verdict", record, self.ledger, outcome=disposition)
+                else:
+                    lr.append("owner", record, self.ledger, outcome="reject")
+                    if disposition == "accepted":
+                        lr.append("owner", record, self.ledger, outcome="accept")
+                    else:
+                        lr.append("reopened", record, self.ledger, reason="explicit reopening")
+                lr.ingest({}, {"implementation": [{"same_as": record}]}, {}, self.ledger)
+                self.assertEqual(lr.current(self.ledger)[record]["status"], "admitted")
+
+    def test_unmarked_historical_route_events_keep_their_existing_meaning(self):
+        record = self.open_record()
+        lr.append("owner", record, self.ledger, outcome="reject")
+        lr.append("admitted", record, self.ledger, reason="historical or explicit event")
+        self.assertEqual(lr.current(self.ledger)[record]["status"], "admitted")
+
     def test_the_checked_in_ledger_folds_and_the_harness_alone_may_write_it(self):
         import boundary
         states = lr.current()
         self.assertTrue(states)
+        self.assert_owner_decisions_respected(lr.LEDGER)
         self.assertFalse(boundary.candidate_path("test/shiploop_e2e/learning-records.jsonl"))
         evaluator = {path.name for path in boundary.evaluator_files(ROOT / "test" / "shiploop_e2e")}
         self.assertNotIn("learning-records.jsonl", evaluator)

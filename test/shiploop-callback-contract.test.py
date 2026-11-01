@@ -275,6 +275,7 @@ class RealCliCase(unittest.TestCase):
             "assumptions": [{"id": "A1", "assumption": "x holds", "disposition": "evidenced",
                              "evidence": [str(self.evidence)]}],
             "unverified": [],
+            "follow_on": [],
             "primary": ["R-1"],   # the spec's primary requirements (run-5 batch F6); fill_done writes R-1's entry
             # Intake's key-question ledger (duty 9): every catalog category once, and one routed question.
             "question_categories": [{"id": f"K{n}", "applies": "no", "reason": "Synthetic fixture."} for n in range(1, 13)],
@@ -741,6 +742,33 @@ class RefusalRouteTests(RealCliCase):
         expected = [heading for heading in self.named_in(line) if heading != "Commands"]
         self.assertEqual(self.named_in(again[printed.index(line)]), expected)
         self.assertNotIn("'Commands'", again[printed.index(line)].split(";", 1)[0])
+
+    def test_a_close_whose_environment_file_gained_a_stray_heading_is_accepted_and_prints_one_placement_line_once(self) -> None:
+        # The placement notice (multipass plan D2) is no gate either: the same printed command accepts the close, commits the home
+        # with the heading in it and prints one counted line after the commit, read against HEAD before it.
+        run, head = self.new_run("prepare")
+        command, path, action = printed_callback(head)
+        repo = self.repo_of(run)
+        write_block(path, self.fill_done(head))
+        for named in re.findall(r"^- (/\S+)$", self.refused(command, run), re.M):
+            file = Path(named)
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_text(knowledge_support.sections(file.name) if file.name in knowledge.SECTIONS else "What this file records.\n",
+                            encoding="utf-8")
+        environment = repo / knowledge.HOME / "environment.md"
+        environment.write_text(environment.read_text(encoding="utf-8") + "\n## Preparation\n\nPrepared on 2026-10-31.\n",
+                               encoding="utf-8")
+        result = self.run_printed(command)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.recorded(run, action)["outcome"], "done")
+        found = [row for row in result.stdout.splitlines() if row.startswith(knowledge.PLACEMENT_PREFIX)]
+        self.assertEqual(len(found), 1)
+        self.assertTrue(found[0].startswith(knowledge.PLACEMENT_PREFIX + str(environment) + " gained new headings 'Preparation' "
+                                            "that match no named section or repeat one (this stage is accepted); "), found[0])
+        self.assertNotIn(knowledge.NOTICE_PREFIX, result.stdout)      # every named section is there: the section notice is silent
+        self.assertNotIn(knowledge.PLACEMENT_PREFIX, result.stderr)
+        self.assertIn("## Preparation", self.git(repo, "show", "HEAD:docs/shiploop/environment.md"))
+        self.assertEqual(knowledge.placement_notices(self.state(run)), [])   # said once: HEAD holds the edit now
 
     def test_a_close_whose_files_have_every_named_section_is_accepted_and_prints_no_notice(self) -> None:
         run, result, action = self.accept_a_prepare_with_files(sectioned=True)

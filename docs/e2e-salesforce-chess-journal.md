@@ -70,7 +70,8 @@ run showed. Judge a run by ShipLoop's SDLC fidelity, not by the chess app (see t
 
 Under the throwaway HOME that Grok and Codex use, `sf org list --json` hangs even with `~/.sfdx` and `~/.sf` symlinked into it. The CLI
 keeps its decryption key in the macOS keychain (an item named `sfdx` exists), and a different HOME hides it (measured: the hang; the keychain cause is the
-main session's reading, not separately proven). The same command works with the real HOME. Evidence: the main session's run of the command under the isolated HOME and under
+main session's reading, not separately proven; proven 2026-11-01, see F13: the hang is the modal "Keychain Not Found" dialog the CLI raises when it
+tries to store a new key in a HOME without a keychain). The same command works with the real HOME. Evidence: the main session's run of the command under the isolated HOME and under
 the real one, and the passing `selftest` rehearsal below (real HOME).
 
 ### F2. The rehearsal passed on the real org (firm, 2026-10-16)
@@ -452,3 +453,81 @@ gained a parameter whose default keeps this case's behaviour (`destructive_xml` 
 `destructive_deploy`, which now also names a refused destructive deploy's component failures); the chess suite is unchanged at 192
 tests and passes. The guard's permission-set scope and `org assign permset` exist only behind `sf_guard.py --permission-sets`, which
 this case's wrapper does not pass. Design, oracle and open items: `docs/e2e-salesforce-battleship-journal.md`.
+
+### F13. The F1 hang is macOS's "Keychain Not Found" dialog; a throwaway HOME now keeps the CLI's key in a file (firm, 2026-11-01)
+
+The owner kept seeing a modal dialog, "A keychain cannot be found to store "local"", during E2E runs and suspected the Chromium
+UI checks. `local` is the Salesforce CLI's key (keychain service `sfdx`, account `local`; `@salesforce/core` 9.4.1 `ACCOUNT = 'local'`).
+In a throwaway HOME the CLI finds no key, makes a new one and asks `/usr/bin/security` to store it; with no login keychain under
+that HOME macOS shows the dialog and the command blocks until someone answers. That is F1's hang. Chromium is not involved:
+Playwright 1.62.1 launches it with `--use-mock-keychain` and `--password-store=basic`.
+
+Where it happened: the start-route probe's `sf-ui` trials run Codex in a throwaway HOME without the guard wrapper, and the model
+ran the real CLI (`sf data` in 7 trials, `sf org` in 5, `sf apex` in 3, `sf alias` in 1 on 2026-11-01); `sf data query` sat for
+about a minute and ended with exit 130. The guarded cases' model commands go through the wrapper (real HOME; 0 direct `sf`
+commands in the three 2026-10-31 runs), so they never raised it.
+
+Decision: `hosts.THROWAWAY_HOME_ENV` sets `SF_USE_GENERIC_UNIX_KEYCHAIN=true` in every throwaway-HOME host environment (Codex,
+Grok), the CLI's documented switch for automation users: a command that reaches the real CLI outside the wrapper writes its key to
+`<throwaway home>/.sfdx/key.json` and fails at once for want of a login. `platform.model_bin` wrappers unset it (`env -u`) as they
+restore the real HOME, so the guarded real CLI keeps reading the real keychain. Measured: exit 2 in 2 s with
+`NamedOrgNotFoundError` in a fresh HOME; `org list` through the unset path lists `de` as Connected; no `key.json` in the real
+`~/.sfdx`. Rejected: linking `~/Library/Keychains` into the throwaway HOME (it would hand the model the login and bypass the guard,
+F3); creating an empty keychain per run (writes keychain search-list state, which is not ours to change).
+
+Unknowns: what "Reset To Defaults" does for a process with a throwaway HOME (answer Cancel); a case that `home_links` `.sfdx`
+would now let the key file land in the real `~/.sfdx` (no case does); other throwaway-HOME builders (`stage_suite/stage_oracle.py`,
+`probes/ticket_semantics.py`) run product tests, not the CLI, and are unchanged. Runs already in flight use the harness of the
+tree they started from and keep raising the dialog until they move to a tree with this change.
+
+Evidence: `docs/e2e-salesforce-chess-evidence/2026-11-01-keychain-dialog.md` and the owner's screenshot beside it.
+
+Follow-up, the same day (firm; checked live with the real CLI and the real Google Chrome).
+
+The owner reported the dialog again after the fix was written, and asked to run it and look at the screen. Two things made that
+possible, and one explained the report:
+- The screen cannot be captured from a session (`screencapture`: "could not create image from display", no Screen Recording
+  permission), so the check uses what needs none: macOS starts a `SecurityAgent` process to show the dialog, and the window server
+  lists every window's owner and on-screen state. `docs/e2e-salesforce-chess-evidence/keychain-dialog-check/check_dialog.py` (with `windows_of.js` and
+  `output-2026-11-01.txt`) builds the throwaway-HOME environment with the harness's own code (`hosts.host("codex").env`,
+  `run.write_model_bin`) and looks for a SecurityAgent process, a waiting `security *-generic-password` and SecurityAgent windows.
+- Control, so the check can be trusted: the old behaviour (the variable removed) in a fresh throwaway HOME raised the dialog
+  within 2.2 s (SecurityAgent run by the owner's user; its window on screen at 2.6 s, layer 1000, 425x172) and `sf` stayed blocked.
+  Killing the command's process group dismissed it 11.1 s later (an earlier run of the same control: 10.7 s), so a stuck run's
+  dialog goes when its group is killed. A first version of the check compared window owners before and after; it never saw the
+  control's window and it flagged the Dock once as new, so it was replaced by the SecurityAgent process and the windows that
+  process owns. The same first version also reported "chromium raised none: True" for a launch that had failed (the success test
+  matched the word "chromium" in the error path); the strict test (the page printed `chrome <version> ok`) replaced it.
+- With the fix, none of the five commands the trials ran raised a dialog: `sf --version` and `sf alias list` exit 0 (1.9 s, 3.2 s),
+  `sf data query`, `sf org list metadata` and `sf apex run test` exit 2 with `NamedOrgNotFoundError` in 4.0, 3.4 and 2.7 s (they
+  hung before), the key was written to `<throwaway home>/.sfdx/key.json` (mode 600), and nothing appeared 4 s later. The Grok host's
+  environment carries the variable too.
+- The guarded wrapper (`sf_guard.py`, called from the throwaway-HOME environment) listed 2 orgs with alias `de` in 2.5 s with no dialog;
+  the wrapper unsets the variable and the real `~/.sfdx` still has no `key.json`.
+- Chromium is not a cause: Playwright 1.62.1 with the installed Google Chrome 156.0.8078.79, launched the way the UI check launches
+  it, printed `chrome 156.0.8078.79 ok` in the real HOME (1.7 s) and in a throwaway HOME (1.1 s) with no dialog. (The bundled
+  headless shell in `~/Library/Caches/ms-playwright` is revision 1243 and this Playwright wants another, so only the installed
+  Chrome path was run.)
+
+The likely reason the owner still saw it (an inference; the watcher below will confirm or refute it): the fix is a harness change, and a run imports the harness of the checkout it was started from. The
+start-route probe's trials run from branch `probe-44b156` (1ff922a5 when looked at), which has no `THROWAWAY_HOME_ENV`
+(`grep -c` in its `hosts.py`: 0), so every trial there that reaches the real `sf` in its throwaway HOME still raises the dialog until
+that checkout merges the fix. At 10:16 two `security add-generic-password -a local -s sfdx` processes were waiting, 27 minutes
+after they started (09:49): parent PID 1, working folder `20261101-guard/trials/098-GOLD-sf-ui-13-a1/work`. The trial had killed
+its `sf` commands (exit 130) and left the keychain children, each holding a dialog on screen until answered. By 10:25 both were
+gone when checked again later that morning, with no SecurityAgent process and no waiting writer.
+
+Operating rule: while a run from a checkout without the fix is going, answer a "Keychain Not Found ... local" dialog with Cancel,
+never Reset To Defaults. A watcher (a session scratch script, `watch_keychain.sh`, run for 30 minutes from about 10:30) prints each new SecurityAgent or
+`security *-generic-password` process with its parent chain and working folder, so the next one names its run.
+
+The owner's machine also keeps the CLI current (owner, 2026-11-01: "we just want to make sure we update it all the time"):
+`~/.claude/tools/sf-cli-update-cron.sh` runs daily from cron and installs npm's `latest` `@salesforce/cli` when it differs from the
+installed one (Salesforce ships weekly), waiting while any `sf` command runs; the CLI is an npm global under Homebrew's node, so
+`brew upgrade` never touched it. 2.156.8 was npm's `latest` on 2026-11-01, so nothing was installed that day. A run's CLI can differ
+from an earlier run's: the snapshot's `sf --version` line (`chess_salesforce.sf_version`) records which ran.
+
+The skill records the rule: ShipLoop's `references/platforms/salesforce.md` gains `## CLI login` (the key lives in the keychain; a
+HOME without the login sets `SF_USE_GENERIC_UNIX_KEYCHAIN=true`; the HOME that holds it never does).
+
+Unknown: whether the dialog the owner saw "again" came from the probe's trials or from another path. The watcher will say.

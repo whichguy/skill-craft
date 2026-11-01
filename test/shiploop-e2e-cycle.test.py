@@ -126,6 +126,8 @@ class CycleTest(unittest.TestCase):
     def run_scheduler(self, root, plugins, cleanup_by_case=None):
         spawned, started, finished, violations = [], [], set(), []
         active, previous = {}, {}
+        ports_active, live = {}, []
+        self.overlaps = []  # (case, cases already running) for each attempt that started
         cleanup_by_case = cleanup_by_case or {}
 
         class Child:
@@ -139,7 +141,13 @@ class CycleTest(unittest.TestCase):
                 child.case = row["case"]
                 platform = runner.case_platform(child.case)
                 child.target = (platform.get("kind"), platform.get("org")) if platform else None
+                child.ports = set(runner.case_quality(child.case).get("refuse_ports") or [])
                 spawned.append(child.attempt_id)
+                taken = sorted(port for port in child.ports if port in ports_active)
+                if taken:  # run.py leases a declared fixed port machine-wide: a second attempt on it would be refused
+                    violations.append(f"{child.attempt_id} spawned while {ports_active[taken[0]]} held port {taken[0]}")
+                    child.returncode = 1
+                    return
                 if child.target is not None:
                     if child.target in active:
                         violations.append(f"{child.attempt_id} spawned while {active[child.target]} was running")
@@ -161,6 +169,10 @@ class CycleTest(unittest.TestCase):
                 intent = epoch.launch_intent(root, child.attempt_id, plugins[row["arm"]])
                 child.output = Path(intent["output"])
                 started.append(child.attempt_id)
+                for port in child.ports:
+                    ports_active[port] = child.attempt_id
+                self.overlaps.append((child.case, [other.case for other in live]))
+                live.append(child)
 
             def poll(child):
                 if child.returncode is not None:
@@ -183,6 +195,9 @@ class CycleTest(unittest.TestCase):
                 if child.target is not None:
                     active.pop(child.target, None)
                     previous[child.target] = child.attempt_id
+                for port in child.ports:
+                    ports_active.pop(port, None)
+                live.remove(child)
                 child.returncode = 0
                 return child.returncode
 
@@ -628,6 +643,27 @@ class CycleTest(unittest.TestCase):
         self.assertEqual({row["attempt_id"] for row in epoch.events(root) if row["kind"] == "launch_intent"}, expected)
         self.assertTrue(all(row["status"] == "recorded" for row in epoch.state(root)["attempts"]))
 
+    def test_launch_all_serializes_attempts_that_share_a_fixed_port_and_runs_the_others_beside_them(self):
+        """user-listing, battleship and checkers declare port 3000 and the ticket cases 4180. run.py leases a declared port
+        machine-wide, so two attempts on one port refuse each other, which is why a cycle on such a case had to run one attempt
+        at a time. The scheduler must hold the second back and use the free slot for work that needs no such port."""
+        for case, port in (("user-listing", 3000), ("battleship", 3000), ("ticket-assignment", 4180)):
+            self.assertEqual(runner.case_quality(case).get("refuse_ports"), [port], case)
+        self.assertFalse(runner.case_quality("csv-report").get("refuse_ports"))
+        root, plugins = self.scheduler_epoch("fixed-port-queue",
+                                             {"user-listing": 2, "battleship": 1, "ticket-assignment": 1, "csv-report": 2})
+
+        spawned, started, violations = self.run_scheduler(root, plugins)
+
+        expected = {row["id"] for row in epoch.registration(root)["attempts"]}
+        self.assertEqual(violations, [])
+        self.assertEqual(set(started), expected, "every attempt still runs, only not beside one that holds its port")
+        self.assertTrue(all(row["status"] == "recorded" for row in epoch.state(root)["attempts"]))
+        beside = [(case, running) for case, running in self.overlaps if running]
+        self.assertTrue(beside, "work that needs a different resource runs beside a port holder, or this is just serial")
+        self.assertTrue(any(case == "csv-report" for case, _running in beside) or
+                        any("ticket-assignment" in {case, *running} for case, running in beside))
+
     def test_launch_all_leaves_unclean_targets_queued_while_other_targets_and_local_runs_complete(self):
         cases = {"chess-salesforce": 2, "battleship-salesforce": 2, "csv-report": 2, "hello": 1}
         root, plugins = self.scheduler_epoch("blocked-target-queue", cases)
@@ -949,6 +985,93 @@ class PilotKitTest(unittest.TestCase):
         self.assertIn("exists", refused.stderr)
 
 
+class RestoreKitTest(unittest.TestCase):
+    """The stage 4b restore kit (docs/experiments/closed-loop-restore-20261101): the pilot's mirror, with every attempt
+    reviewed. Every input a live run needs is checked here without a model."""
+    KIT = ROOT / "docs" / "experiments" / "closed-loop-restore-20261101"
+    PILOT = ROOT / "docs" / "experiments" / "closed-loop-pilot-20261101"
+    CASE = "hello-hook-continuation"
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.temp = Path(temp.name)
+        self.prediction_file = self.KIT / "prediction.json"
+        self.prediction = json.loads(self.prediction_file.read_text())
+        self.ledger = self.KIT / "restore-ledger.jsonl"
+
+    def plugin(self, name):
+        plugin = self.temp / name
+        (plugin / "skills" / "shiploop").mkdir(parents=True)
+        (plugin / "skills" / "shiploop" / "SKILL.md").write_text(name)
+        return plugin
+
+    def test_the_case_is_a_capability_case_so_a_rise_in_its_quality_can_promote(self):
+        """The prediction says a floor rises, which is what makes a case a capability case; without it the same rise on a
+        regression case is not a gain and the epoch could only stay undecided."""
+        self.assertEqual(cycle.roles_for(self.prediction, self.CASE, None), {self.CASE: "capability"})
+        driver = {"host": "codex", "model": "gpt-6.1-terra", "effort": "xhigh"}
+        calibration = cycle.stated_calibration(3, 0.25)
+        template = self.temp / "registration.json"
+        template.write_text(json.dumps(cycle.registration_template(
+            cycle.roles_for(self.prediction, self.CASE, None), runner.tree_digest(self.plugin("control")),
+            runner.tree_digest(self.plugin("candidate")), driver, calibration["attempts"], calibration["tolerance"],
+            calibration["metric"])))
+        root = self.temp / "epoch"
+        epoch.initialise(root, template, self.prediction_file)
+        self.assertEqual(epoch.state(root)["prediction"]["record"], self.prediction["record"])
+        attempts = epoch.registration(root)["attempts"]
+        self.assertEqual(({row["case"] for row in attempts}, len(attempts)), ({self.CASE}, 6))
+
+    def test_a_restore_that_fixes_the_case_confirms_the_prediction_and_only_a_fall_refutes_it(self):
+        """Confirmed when the share of passing attempts rises by half; no effect when it does not move; refuted when it falls."""
+        registration = {"cases": {self.CASE: {"role": "capability", "attempts": 3}}, "tolerance": 0.25}
+        failing = [card(self.CASE, 10_000_000, ok=False) for _ in range(3)]
+        passing = [card(self.CASE, 13_000_000) for _ in range(3)]
+        fixed = predictions.verdict(self.prediction, registration, failing, passing)
+        self.assertEqual(fixed["verdict"], "confirmed")
+        self.assertEqual(predictions.outcome("PROMOTE", fixed)["outcome"], "verified")
+        self.assertEqual(predictions.verdict(self.prediction, registration, failing, failing)["verdict"], "no_effect",
+                         "a restore that fixes nothing is not refuted, it simply did not do what was predicted")
+        self.assertEqual(predictions.verdict(self.prediction, registration, passing, passing)["verdict"], "no_effect")
+        worse = predictions.verdict(self.prediction, registration, passing, failing)
+        self.assertEqual(worse["verdict"], "refuted")
+        self.assertIs(worse["guards"][0]["held"], False)
+
+    def test_the_record_resolves_and_no_loop_can_select_it(self):
+        view = lr.improver_view(self.prediction["record"], self.ledger)
+        self.assertIn("restoring", view["title"])
+        self.assertIsNone(lr.select(self.ledger), "a pilot record is an input, never a record a loop takes")
+        self.assertNotEqual(self.prediction["record"], json.loads((self.PILOT / "prediction.json").read_text())["record"])
+
+    def test_the_run_script_reverses_the_hook_in_the_control_only_and_keeps_reviews_on(self):
+        script = self.KIT / "run.sh"
+        self.assertEqual(subprocess.run(["bash", "-n", str(script)], capture_output=True, text=True, check=False).returncode, 0)
+        text = script.read_text()
+        pilot = (self.PILOT / "run.sh").read_text()
+        for pinned in ("779980629a81ce0e740f7c196e83e000dd582d99", "7f25acff8dab239485f262249ec70773ba906aad"):
+            self.assertIn(pinned, text)
+            self.assertIn(pinned, pilot, "the restore removes the same delta the pilot's candidate lacked")
+        self.assertIn('"$out/control-tree" apply -R "$out/hook-delta.patch"', text)
+        self.assertNotIn('"$out/candidate-tree" apply', text, "the candidate is the unmodified commit that holds the kit")
+        self.assertNotIn("--skip-reviews", text, "every attempt is reviewed and judged")
+        self.assertIn("EFFORT:-xhigh", text, "the owner asked for Terra 6.1 at Extra High on 2026-11-01")
+        self.assertIn('--model gpt-6.1-terra --effort "$effort"', text)
+        self.assertIn("unset SHIPLOOP_E2E_RUNS_ROOT", text, "only the epoch's own attempts may be neighbours of a sealed attempt")
+        for name in ("prediction.json", "restore-ledger.jsonl"):
+            self.assertIn(name, text)
+            self.assertTrue((self.KIT / name).is_file())
+        for returned in ("entry.md", "cycle-result.json", "epoch-verdict.json", "epoch-events.jsonl", "receipts", "ledger.jsonl",
+                         "cycle-exit-status.txt"):
+            self.assertIn(returned, text)
+            self.assertIn(returned, (self.KIT / "README.md").read_text())
+        used = self.temp / "used"
+        used.mkdir()
+        refused = subprocess.run(["bash", str(script), "0" * 40, str(used)], capture_output=True, text=True, check=False)
+        self.assertEqual(refused.returncode, 2, refused.stderr)
+        self.assertIn("exists", refused.stderr)
+
+
 class CycleKitTest(unittest.TestCase):
     """The stage 5 full-cycle kit (docs/experiments/closed-loop-cycle-20261101): what its script runs is checked here."""
     KIT = ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101"
@@ -957,13 +1080,19 @@ class CycleKitTest(unittest.TestCase):
         """The first launch was refused: user-listing declares port 3000 and another session's run held that lease."""
         text = (self.KIT / "run.sh").read_text()
         catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
-        self.assertIn("--case seat-reservations --generality-case csv-report", text)
-        for case in ("csv-report", "seat-reservations"):
+        self.assertIn("EXPOSING_CASE:-seat-reservations", text)
+        self.assertIn("GENERALITY_CASE:-csv-report", text)
+        self.assertIn('--case "$exposing" --generality-case "$generality"', text,
+                      "the cases come from the two variables, so a launch can change them and nothing else")
+        for case in ("csv-report", "seat-reservations", "shared-expenses"):  # the defaults and the documented override
             self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
             self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"),
-                             f"{case} declares a fixed port, which run.py leases machine-wide and launch_all does not serialise")
-        for flag in ("--tolerance 0.25", "--attempts 3", "--effort high", "--model gpt-6.1-terra", "--iterations 1"):
+                             f"{case} declares a fixed port: the default and documented override cases leave a launch independent of "
+                             "another session's port lease")
+        for flag in ("--tolerance 0.25", "--attempts 3", '--effort "$effort"', "--model gpt-6.1-terra", "--iterations 1"):
             self.assertIn(flag, text)
+        self.assertIn("EFFORT:-xhigh", text, "the owner asked for Terra 6.1 at Extra High on 2026-11-01")
+        self.assertNotIn("--effort high", text, "the first launches ran at high; the kit no longer does")
         self.assertNotIn("--skip-reviews", text, "the full cycle reviews every attempt")
         self.assertIn("unset SHIPLOOP_E2E_RUNS_ROOT", text, "only the epoch's own attempts may be neighbours of a sealed attempt")
 
@@ -994,19 +1123,27 @@ class CalibrationKitTest(unittest.TestCase):
 
     def test_it_runs_the_cycles_cases_at_the_cycles_driver_and_needs_no_fixed_port(self):
         """Its first design ran user-listing, ticket-assignment and battleship: each declares a fixed port, which run.py
-        leases machine-wide and launch_all does not serialise, so its own parallel attempts would have refused each other."""
+        leases machine-wide; launch_all did not then serialise attempts on one port (it does now), so its own parallel
+        attempts would have refused each other."""
         template = self.registration().template("0" * 12)
         cycle_script = (ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101" / "run.sh").read_text()
         catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
         self.assertEqual(set(template["cases"]), {"csv-report", "seat-reservations"})
-        self.assertIn("--case seat-reservations --generality-case csv-report", cycle_script)
+        self.assertIn("EXPOSING_CASE:-seat-reservations", cycle_script)
+        self.assertIn("GENERALITY_CASE:-csv-report", cycle_script)
         for case in template["cases"]:
             self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
             self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"), f"{case} declares a fixed port")
         self.assertEqual(template["purpose"], "calibration")
         for arm in template["arms"].values():
-            self.assertEqual(arm["driver"], {"host": "codex", "model": "gpt-6.1-terra", "effort": "high"})
-        self.assertIn("--effort high --iterations 1", cycle_script.replace("--model gpt-6.1-terra ", ""))
+            self.assertEqual(arm["driver"], {"host": "codex", "model": "gpt-6.1-terra", "effort": "high"},
+                             "this kit is another session's and measures at high")
+        self.assertIn("--host codex --model gpt-6.1-terra", cycle_script, "the host and model are the cycle's")
+        self.assertIn("--iterations 1", cycle_script)
+        cycle_readme = (ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101" / "README.md").read_text()
+        self.assertIn("EFFORT:-xhigh", cycle_script)
+        self.assertIn("does not transfer to a cycle at `xhigh`", cycle_readme,
+                      "the cycle runs at Extra High by the owner's instruction while this kit measures at high; that is stated, not silent")
 
     def test_it_registers_four_attempts_per_arm_of_each_case_on_one_build(self):
         template = self.registration().template("0" * 12)

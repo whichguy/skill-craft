@@ -1,0 +1,15 @@
+{
+  "output": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link1-a",
+  "request_file": true,
+  "printed_in": {
+    "packets": 1,
+    "report": 1
+  },
+  "printed": "python3 /Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link1-a/home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/scripts/shiploop workspace start --repo /Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link1-a/work --prompt=\"$(cat /Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link1-a/.shiploop-runs/work-20261101-183822-3be739/run/follow-on-request.md)\"",
+  "exit": 0,
+  "traceback": false,
+  "workspace_records": 1,
+  "stored_equals_file_but_last_newline": true,
+  "stored_equals_file_exactly": false,
+  "verdict": "works as printed"
+}

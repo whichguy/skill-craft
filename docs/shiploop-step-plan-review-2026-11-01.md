@@ -1,6 +1,6 @@
 ---
-Status: one change built, tested hermetically (§5) and live on Codex Terra 6.1 xhigh (§7a: 6 deliveries, 20 step-plan slices; a
-  wording fix, 45153684, came out of it); ticket-import deliveries pending; release and §8 are the owner's
+Status: one change built, tested hermetically (§5) and live on Codex Terra 6.1 xhigh (§7a: 9 deliveries, 20 step-plan slices; a
+  wording fix, 45153684, came out of it); released as skill-craft 2.29.0 / ShipLoop 1.28.0 (4224161b, CI green); §8 is the owner's
 Opened: 2026-11-01
 Consumer: the owner, who asked to make step planning as effective and efficient as possible; later, a session that changes
   the step-plan stage reads §3 for what it costs and what goes wrong, and §6 for what was considered and not built.
@@ -36,9 +36,10 @@ what the stage costs, and changes what the evidence supports.
   on all 175 accepted step plans, the rule refuses 24: the 9 that came back from test-spec and 15 that folded a
   criterion into another criterion's case. It refuses no plan whose every criterion had its own case.
 - **Not built.** A gate for a Proof that runs unwritten tests without naming a test file: four candidate rules each
-  flag Proofs that passed (§6.1), and so does the narrowest, rule S (5 of 12 flags were real); since 1.27.0 another session's narrow rule C refuses the plain-suite form by path. A Proof dry run, a
+  flag Proofs that passed (§6.1), and so does the narrowest, rule S (5 of 12 flags were real); since ShipLoop 1.26.4 another session's narrow rule C refuses the plain-suite form by path. A Proof dry run, a
   repeatable-Proof line and changes to the step-plan Improve review are listed for the owner (§8).
-- **Live (§7a, Codex Terra 6.1 xhigh).** Six deliveries passed with no test-spec send-back for IDs; 16 step-plan
+- **Live (§7a, Codex Terra 6.1 xhigh).** Nine deliveries passed with no test-spec send-back for IDs (ticket-import's three
+  through the open-item template path, the gate firing once and the next draft passing); 16 step-plan
   slices (A/B) and 4 more showed no extra step-plan time and no short plan. They also caught one regression: the first
   duty wording, "an ID for each criterion it names", drew IDs for searched criteria, which test-spec writes no case
   for. 45153684 narrows it to executed criteria, and SP3 confirmed the fix. At xhigh the shortage still occurs (10% of
@@ -185,7 +186,8 @@ passing ones are supplied checkers (`gym-ui`, `battleship-ui`), a script in the 
 which print IDs no tracked file holds. Not built (F30).
 
 Another session studied the same class at the same time (planning journal E17 and E18,
-docs/experiments/proof-coverage-replay-20261101/) and shipped a narrow rule in ShipLoop 1.27.0, rule C of the
+docs/experiments/proof-coverage-replay-20261101/) and shipped a narrow rule in ShipLoop 1.26.4 (skill-craft 2.27.4, 26123c9e; this said 1.27.0 until a
+2026-11-01 correction: 1.27.0 is the first minor release after it), rule C of the
 proof-order refusal (`shiploop_item_scope.proof_order_refusal`): a Proof that is a generic suite command (`npm test`)
 is refused when an executed criterion of its step names, in its Confirm by, a test path the base lacks (3 of 365 judged
 plans in sample, none on 42 held-out runs). It does not reach a test named by identifier (a unittest name, an Apex
@@ -254,7 +256,7 @@ about 10 minutes in 365 plans.
 |---|---|---|---|---|---|---|
 | SP1 pilot, **high** | b8d32033 | hello 1, csv-report 2 | 3 of 3 PASS (9.0, 11.6, 15.0 min) | 0 | 0 | 0 |
 | SP1, xhigh | b8d32033 | hello 1, csv-report 2 | 3 of 3 PASS (11.5, 15.3, 21.8 min) | 0 | 0 | 0 |
-| SP1, xhigh | 45153684 | ticket-import 3 | pending (port 4180 held by another session's round) | | | |
+| SP1, xhigh | 7ec63879 (45153684 merged with main) | ticket-import 3 | 3 of 3 PASS, 13 of 13 held-out checks each (12.7, 21.1, 34.8 min) | 0 | 1, then the next draft passed | 0 |
 | SP2 arm B | e81fdb55 (main) | tickets-assign 4, stand-in-rules 4 | 8 of 8 reached test-spec done | 0 | — | 0 of 8 |
 | SP2 arm T | b8d32033 | tickets-assign 4, stand-in-rules 4 | 8 of 8 | 1 (IDs for searched criteria) | 0 | 0 of 8 |
 | SP3 | 45153684 | stand-in-rules 4 | 4 of 4 | 0 | 0 | 0 of 4 |
@@ -277,7 +279,7 @@ about 10 minutes in 365 plans.
   the criteria's "Confirm by: unittest TC_1-TC_3" named tests it may not write (F31).
 - Slice verdict: every slice reports `no_overshoot` FAIL because ShipLoop accepts validate-existing by script in the
   same callback as test-spec; SP2 and SP3 read only step-plan and test-spec, so it does not bear on them.
-- Evidence: `sp2_scores.jsonl`, `sp3_scores.jsonl` (score_sp2.py); SP1 rows in test/shiploop_e2e/baselines.jsonl and the
+- Evidence: `sp1_scores.jsonl` (score_sp1.py), `sp2_scores.jsonl`, `sp3_scores.jsonl` (score_sp2.py); SP1 rows in test/shiploop_e2e/baselines.jsonl and the
   run folders under `~/e2e-runs-sp/20261101/` (pilot at its top level, `sp1-xhigh`, `sp2-xhigh`, `sp3-xhigh`).
 
 F31 (interim, three live cases): implement reads a criterion's "Confirm by" test as something it must run, though the
@@ -289,7 +291,8 @@ check; three cases in about thirty recent runs is too few to measure in one roun
 
 ## 8. Decisions for the owner
 
-1. Release this change after its live check (routine under the 2026-10-28 rule once the preflight and CI pass).
+1. Done: released at the owner's word ("Merge and publish now"), skill-craft 2.29.0 / ShipLoop 1.28.0, 4224161b, CI 9 of 9 jobs
+   green, Claude, Codex and Grok refreshed (Cursor is the owner's app).
 2. Whether the step-plan Improve review should keep running for every first and sent-back item, given F26 and §3.5
    (held for F1's three-arm measurement).
 3. Whether to add the repeatable-Proof clause (§6.2), which would take the step-plan head past its print bound unless

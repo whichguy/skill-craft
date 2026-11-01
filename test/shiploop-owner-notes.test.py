@@ -59,6 +59,7 @@ class CliRun(unittest.TestCase):
         self.base = Path(temp.name).resolve()
         self.repo, self.run = self.base / "repo", self.base / "run"
         self.repo.mkdir()
+        subprocess.run(["git", "init", "-q", str(self.repo)], check=True, capture_output=True)
         self.ok("init", "--repo", str(self.repo), "--prompt", "Add a greeting script.")
 
     def cli(self, *argv: str, run: Path | None = None) -> subprocess.CompletedProcess:

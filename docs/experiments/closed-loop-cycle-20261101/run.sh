@@ -7,7 +7,7 @@
 # OUTPUT_DIR    a folder that does not exist yet, outside every checkout. The worktree, the loop's output and the results go here.
 #
 # `iterate.py --qualify` makes its own worktree and branch (auto/shiploop-loop-<hex>) from that checkout. With no record this
-# cycle can take (select reads the cycle's cases), it explores seat-reservations on the tip: one run, reviewed and judged, whose
+# cycle can take (select reads the cycle's cases), it explores the exposing case on the tip: one run, reviewed and judged, whose
 # material findings open and admit records. It then applies one record with an improver, checks the change serves the record,
 # registers a promotion/5 epoch (a stated tolerance of 0.25 and 3 attempts per arm, recorded as unmeasured), runs both cases for
 # both arms, reviews and judges every attempt, decides, and records the prediction's verdict and a journal entry on the loop
@@ -15,7 +15,13 @@
 # Nothing here pushes, commits to main or edits the repository at $SKILL_CRAFT_REPO beyond adding its own detached worktree.
 #
 # Environment: SKILL_CRAFT_REPO (default ~/src/skill-craft) only supplies git objects; PARALLEL (default 3) is the number of
-# subject runs at once. See README.md for what to expect and what to return.
+# subject runs at once; EXPOSING_CASE (default seat-reservations) is the case explored and kept visible to the improver, and
+# GENERALITY_CASE (default csv-report) the case kept unseen by it. Neither may need a hosted platform. A case with a fixed port
+# (user-listing, battleship, checkers, the ticket cases) is allowed: attempts that share a port run one at a time, but a
+# start is still refused while another session's run holds that port, and a base older than the commit that added the
+# serialisation (see launch_all) must use PARALLEL=1.
+# EFFORT (default xhigh) is the subject's reasoning effort: the owner asked on 2026-11-01 for Codex with Terra 6.1 at Extra High;
+# the first four launches of this kit ran at high. See README.md for what to expect and what to return.
 set -euo pipefail
 export PYTHONDONTWRITEBYTECODE=1
 # A sealed attempt's receipt binds every run that overlapped it inside the runs root. Unset, that root is the epoch's own folder,
@@ -26,6 +32,9 @@ unset SHIPLOOP_E2E_RUNS_ROOT
 base_sha=${1:?usage: run.sh BASE_SHA OUTPUT_DIR}
 out=${2:?usage: run.sh BASE_SHA OUTPUT_DIR}
 repo=${SKILL_CRAFT_REPO:-$HOME/src/skill-craft}
+exposing=${EXPOSING_CASE:-seat-reservations}
+generality=${GENERALITY_CASE:-csv-report}
+effort=${EFFORT:-xhigh}
 
 if [ -e "$out" ]; then
   echo "run.sh: $out exists; choose a folder that does not" >&2
@@ -39,8 +48,8 @@ git -C "$repo" worktree add -q --detach "$out/tree" "$base_sha"
 
 cd "$out/tree"
 status=0
-python3 -B test/shiploop_e2e/iterate.py --qualify --case seat-reservations --generality-case csv-report \
-  --tolerance 0.25 --attempts 3 --host codex --model gpt-6.1-terra --effort high --iterations 1 \
+python3 -B test/shiploop_e2e/iterate.py --qualify --case "$exposing" --generality-case "$generality" \
+  --tolerance 0.25 --attempts 3 --host codex --model gpt-6.1-terra --effort "$effort" --iterations 1 \
   --parallel "${PARALLEL:-3}" --output "$out/loop" > "$out/loop-stdout.txt" 2>&1 || status=$?
 
 # What to return: small, text, byte-exact. The raw run folders stay where they are.

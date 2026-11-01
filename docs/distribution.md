@@ -288,9 +288,9 @@ A release is not proven by CI alone: CI runs the source and the built package, n
 #    docker is optional and adds the Python 3.7 check). The scratch directory must not exist yet.
 git fetch origin && SKILL_CRAFT_CHECKOUT="$PWD" sh docs/experiments/clean-install-20261101/probes.sh /tmp/skill-craft-probes-$(date +%s)
 
-# 2. A live ShipLoop session on the Claude host, on an Anthropic model (about 16 minutes, about $4 on Sonnet 5.5):
-python3 test/shiploop_e2e/run.py --case hello --host claude --backend anthropic --model claude-sonnet-5-5 \
-  --source marketplace --max-budget-usd 25
+# 2. A live ShipLoop session on the Claude host, on Anthropic's Sonnet 5.5, the harness's default for that host
+#    (16 to 21 minutes and $4 to $6 in the two runs so far):
+python3 test/shiploop_e2e/run.py --case hello --host claude --source marketplace --max-budget-usd 25
 
 # 3. Optional, the Codex host from a fresh-profile marketplace install (no Anthropic spend):
 python3 test/shiploop_e2e/run.py --case hello --host codex --source marketplace
@@ -299,6 +299,21 @@ python3 test/shiploop_e2e/run.py --case hello --host codex --source marketplace
 Read `PASS ... every verdict passed` and the `versions` line, which names the skill-craft and ShipLoop versions the run
 installed; it must match the release. What each one proves: step 1 the released tree, its modes, the 3.9 floor and the
 hooks without Python; step 2 a real session on the Claude host, but through `--plugin-dir` on an export of the published
-tree, not a native Claude install; step 3 a real session from a native Codex marketplace install. The harness's default
-Claude backend is Ollama, whose usage cap has blocked runs (2026-10-29, 2026-11-01), so name `--backend anthropic`.
-Evidence from the 2.27.x release: [clean-install-20261101](experiments/clean-install-20261101/README.md).
+tree, not a native Claude install; step 3 a real session from a native Codex marketplace install. The Claude host's
+default backend is Anthropic since 2026-11-01; Ollama's monthly usage cap had blocked runs (2026-10-29, 2026-11-01), and
+`--backend ollama` still selects it.
+
+Steps 2 and 3 refuse to start while `origin/main` carries an unreleased change note, because the harness insists that what it
+tests is what the marketplace serves, and another session's merge can add a note within minutes of a release. The refusal
+names the note. If the marketplace payload is still the release you mean to check (`git diff --stat <release commit>
+origin/main -- plugins/skill-craft .claude-plugin catalog/skill-craft-plugin.json` prints nothing), step 2 can run that
+payload through `--plugin-dir`, and the evidence must say that the gate was bypassed and why:
+
+```sh
+D=$(mktemp -d) && git archive origin/main plugins/skill-craft | tar -x -C "$D"
+python3 test/shiploop_e2e/run.py --case hello --host claude --plugin-dir "$D/plugins/skill-craft" --max-budget-usd 25
+```
+
+Step 3 has no such route, because a native install is its point: wait for the next release, or skip it. Evidence: the 2.27.x
+release in [clean-install-20261101](experiments/clean-install-20261101/README.md), and 2.30.0 and 2.31.0, including a refusal
+and the route above, in [release-smoke-20261101](experiments/release-smoke-20261101/README.md).

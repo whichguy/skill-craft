@@ -1,0 +1,61 @@
+# E2E-apparatus suites under macOS Python 3.9.6 (Xcode's), 2026-11-01
+# test/shiploop-e2e*.test.py, one run each with unittest -f (stop at the first failure), 240 s cap, 6 at a time.
+# rc: 0 pass, 1 stopped at its first failure, 124 timeout. 'first error' is the first exception line of the log.
+# summary: 23 pass, 24 fail, 0 timeout; 17 logs show the os.waitid AttributeError; 0 logs have a traceback frame inside skills/shiploop
+rc	suite	first error
+1	shiploop-e2e	AttributeError: module 'os' has no attribute 'waitid'
+1	shiploop-e2e-baseline	AttributeError: module 'os' has no attribute 'waitid'
+0	shiploop-e2e-battleship-salesforce	
+0	shiploop-e2e-battleship-ui	
+1	shiploop-e2e-brownfield	AttributeError: module 'os' has no attribute 'waitid'
+1	shiploop-e2e-brownfield-tickets	AttributeError: module 'os' has no attribute 'waitid'
+0	shiploop-e2e-chess-salesforce	
+1	shiploop-e2e-commit-counters	AttributeError: module 'os' has no attribute 'waitid'
+0	shiploop-e2e-cycle	
+1	shiploop-e2e-delta	AttributeError: module 'os' has no attribute 'waitid'
+0	shiploop-e2e-discovery	
+0	shiploop-e2e-dodges	
+0	shiploop-e2e-efficiency	
+1	shiploop-e2e-environment	KeyError: 'file'
+1	shiploop-e2e-epoch	AttributeError: 'EpochLaunchAndPredictionTest' object has no attribute 'enterContext'
+1	shiploop-e2e-experiments	TypeError: extractall() got an unexpected keyword argument 'filter'
+1	shiploop-e2e-fidelity	AttributeError: module 'os' has no attribute 'waitid'
+0	shiploop-e2e-gym-membership-salesforce	
+0	shiploop-e2e-gym-ui	
+0	shiploop-e2e-learning-records	
+1	shiploop-e2e-lifecycle	AssertionError: /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpmz7axmnz/fake-log.children never a
+0	shiploop-e2e-owner-page	
+0	shiploop-e2e-packet-anatomy	
+1	shiploop-e2e-platform	AttributeError: module 'os' has no attribute 'waitid'
+0	shiploop-e2e-qualification	
+1	shiploop-e2e-quality	AttributeError: module 'os' has no attribute 'waitid'
+1	shiploop-e2e-release-slice	AttributeError: module 'os' has no attribute 'waitid'
+0	shiploop-e2e-render-diff	
+1	shiploop-e2e-reorientation	AttributeError: module 'os' has no attribute 'waitid'
+0	shiploop-e2e-review-attribution	
+0	shiploop-e2e-roles	
+0	shiploop-e2e-run-trace	
+0	shiploop-e2e-runrecord	
+1	shiploop-e2e-scope-discovery	TypeError: __init__() got an unexpected keyword argument 'ignore_cleanup_errors'
+0	shiploop-e2e-sdlc-probes	
+0	shiploop-e2e-sf-guard	
+1	shiploop-e2e-slice	AttributeError: module 'os' has no attribute 'waitid'
+1	shiploop-e2e-stage-build	RuntimeError: EVIL json imported from the working directory
+1	shiploop-e2e-stage-live	AttributeError: module 'os' has no attribute 'waitid'
+0	shiploop-e2e-stage-oracle	
+1	shiploop-e2e-stage-report	AttributeError: module 'sys' has no attribute 'stdlib_module_names'
+1	shiploop-e2e-stages	FAIL: test_0_when_everything_selected_passed_and_the_cli_runs_from_any_working_directory (__main__.ExitCodes) 
+0	shiploop-e2e-status-card	
+1	shiploop-e2e-test-adequacy	AttributeError: module 'os' has no attribute 'waitid'
+1	shiploop-e2e-ticket-comments	AttributeError: module 'os' has no attribute 'waitid'
+0	shiploop-e2e-ticket-semantics	
+1	shiploop-e2e-ticket-sla	AttributeError: module 'os' has no attribute 'waitid'
+
+# Without -f, six suites that stop on os.waitid: count of 'write to closed file' lines in each log
+shiploop-e2e-baseline	2
+shiploop-e2e-reorientation	2
+shiploop-e2e-quality	2
+shiploop-e2e-delta	1
+shiploop-e2e-commit-counters	3
+shiploop-e2e-ticket-sla	0
+# mechanism: run.launch's daemon pump thread calls events.write after the main thread's AttributeError (listeners.unreaped -> os.waitid) left the with-block that opened events

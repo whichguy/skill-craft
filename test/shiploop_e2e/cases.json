@@ -1155,5 +1155,18 @@
       ],
       "refuse_ports_source": "The fixture defaults to port4180. Tests use ephemeral ports; a default-port leak must not collide with another run."
     }
+  },
+  "shared-expenses": {
+    "style": "stateful-service",
+    "prompt": "Build a small shared-expenses service in Node.js (no npm dependencies). server.js listens on the port in the PORT environment variable and keeps its data in the JSON file named by the DATA_FILE environment variable, so groups and expenses survive a restart. POST /groups with {\"id\": \"<group id>\", \"members\": [\"<name>\", ...]} creates a group: 201, 409 if the id exists, and 400 unless members holds at least two distinct non-empty names. POST /groups/<id>/expenses records an expense paid by one member. {\"payer\": \"<name>\", \"cents\": <positive integer>, \"split\": \"equal\"} shares it equally among all members, with any cents left over after an even division going one each to the members listed first. {\"payer\": \"<name>\", \"cents\": <positive integer>, \"split\": \"exact\", \"shares\": {\"<name>\": <cents>, ...}} makes each member listed in shares owe that many whole cents (zero is allowed), and the shares must add up to cents. It answers 201 with {\"expense\": <n>}, where n is 1 for the group's first expense, then 2, and so on; 400 for an unknown payer or member, a non-positive or non-integer amount, an unknown split, or shares that do not add up. GET /groups/<id>/balances returns an object with each member's net cents, what they paid minus what they owe, so the balances add up to 0. GET /groups/<id>/settlements returns a JSON array of {\"from\", \"to\", \"cents\"} payments that bring every balance to 0: repeatedly the member who owes most pays the member who is owed most the smaller of the two amounts, and ties go to the member listed first. Every route under /groups/<id> answers 404 for an unknown group. Concurrent requests must never lose an expense. Cover the behaviour with node:test tests under test/ that run with `node --test`.",
+    "checks": [
+      "python3 \"$E2E_CHECKS/expense_service.py\" unit",
+      "python3 \"$E2E_CHECKS/expense_service.py\" contract",
+      "python3 \"$E2E_CHECKS/expense_service.py\" split",
+      "python3 \"$E2E_CHECKS/expense_service.py\" settle",
+      "python3 \"$E2E_CHECKS/expense_service.py\" restart",
+      "python3 \"$E2E_CHECKS/expense_service.py\" concurrency"
+    ],
+    "checks_source": "the request: each check tests a sentence of the prompt"
   }
 }

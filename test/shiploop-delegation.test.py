@@ -552,6 +552,7 @@ class StepBlockTests(unittest.TestCase):
         base = Path(temp.name).resolve()
         self.repo, self.run = base / "repo", base / "run"
         self.repo.mkdir()
+        subprocess.run(["git", "init", "-q", str(self.repo)], check=True, capture_output=True)
         self.run.mkdir()
         env = dict(os.environ, GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
         for argv in (["init", "-q"], ["-c", "user.email=t@example.invalid", "-c", "user.name=t", "commit", "-q",
@@ -1222,6 +1223,7 @@ class DelegationCliTests(unittest.TestCase):
         self.base = Path(self.temp.name).resolve()
         self.repo = self.base / "product"
         self.repo.mkdir()
+        subprocess.run(["git", "init", "-q", str(self.repo)], check=True, capture_output=True)
         self.run = self.base / "run"
         self.env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "GIT_CONFIG_NOSYSTEM": "1",
                     "GIT_CONFIG_GLOBAL": os.devnull}

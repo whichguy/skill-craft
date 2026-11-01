@@ -596,6 +596,7 @@ _ROWS = (
         short_goal='write the final handoff',
         done_when=(
             "the handoff states source, test, release and consumer status with evidence",
+            "the follow-on list classifies what the run leaves for a later run, each entry citing a record",
             "the workspace return is verified (worktree runs)",
         ),
         reads=("intake", "spec", "plan", "product-acceptance", "release-verify", "operations"),

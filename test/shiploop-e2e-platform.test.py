@@ -44,7 +44,7 @@ import environment  # noqa: E402
 import hosts  # noqa: E402
 import listeners  # noqa: E402
 import run  # noqa: E402
-# The fake hosts answer the Claude host's Anthropic route; an E2E run's default is Ollama (hosts.RUN_DEFAULT_BACKEND).
+# The fake hosts answer the Claude host's Anthropic route, which is also its default backend; the runs name it so they stay on it.
 ANTHROPIC_ROUTE = {"claude": ("--backend", "anthropic")}
 
 TOKEN = "FAKE-TOKEN-DO-NOT-LOG"
@@ -91,7 +91,8 @@ with open(os.environ["PLAT_LOG"], "a") as log:
     log.write(json.dumps({"verb": "tool", "argv": sys.argv[1:], "home": os.environ.get("HOME"),
                           "checks": os.environ.get("E2E_CHECKS"), "platform_dir": os.environ.get("E2E_PLATFORM_DIR"),
                           "bin_dir": os.environ.get("E2E_MODEL_BIN_DIR"), "phase": os.environ.get("E2E_CHECK_PHASE"),
-                          "host_path": os.environ.get("PATH")}) + "\\n")
+                          "host_path": os.environ.get("PATH"),
+                          "sf_keychain": os.environ.get("SF_USE_GENERIC_UNIX_KEYCHAIN")}) + "\\n")
 print("tool ok")
 """
 
@@ -133,7 +134,8 @@ if argv[:2] == ["plugin", "list"]:
 os.chdir(argv[argv.index("--cwd") + 1])
 Path(os.environ["PLAT_MODEL_MARK"]).write_text("started")
 Path(os.environ["PLAT_LOG"] + ".model").write_text(json.dumps({{"home": str(home), "links": sorted(
-    n for n in os.listdir(home) if os.path.islink(os.path.join(home, n))), "path_head": os.environ["PATH"].split(os.pathsep)[0]}}))
+    n for n in os.listdir(home) if os.path.islink(os.path.join(home, n))), "path_head": os.environ["PATH"].split(os.pathsep)[0],
+    "sf_keychain": os.environ.get("SF_USE_GENERIC_UNIX_KEYCHAIN")}}))
 print(json.dumps({{"type": "available_commands", "tools": [], "commands": ["shiploop", "improve"]}}))
 print(json.dumps({{"type": "tool_call", "toolName": "run_terminal_command", "rawInput": {{"command": "python3 /x/skills/shiploop/scripts/shiploop next"}}}}))
 for command in json.loads(os.environ.get("FAKE_COMMANDS", '["sf org display --json"]')):
@@ -649,7 +651,13 @@ class ModelBinTest(PlatformCase):
         self.assertEqual(Path(preflight["home"]), out / "home", "the platform command itself still ran in the host's HOME")
         self.assertEqual(Path(preflight["path_head"]), out / "platform" / "bin")
         # The model's launch has it too; the harness's own before and cleanup do not (they must reach the real CLI).
-        self.assertEqual(Path(json.loads(Path(str(self.plat_log) + ".model").read_text())["path_head"]), out / "platform" / "bin")
+        model = json.loads(Path(str(self.plat_log) + ".model").read_text())
+        self.assertEqual(Path(model["path_head"]), out / "platform" / "bin")
+        # The throwaway HOME keeps the Salesforce CLI's key out of the keychain (no "Keychain Not Found" dialog); the wrapper,
+        # back in the real HOME, unsets that so the real CLI reads its real keychain.
+        self.assertEqual(model["sf_keychain"], "true")
+        self.assertIsNone(tool["sf_keychain"])
+        self.assertIn("-u SF_USE_GENERIC_UNIX_KEYCHAIN ", text)
         self.assertNotEqual(Path(before["path_head"]), out / "platform" / "bin")
         self.assertNotEqual(Path(cleanup["path_head"]), out / "platform" / "bin")
         # Recorded: names and the wrapper path only.
@@ -667,7 +675,8 @@ class ModelBinTest(PlatformCase):
         _, result, _ = self.invoke("grok", "done")
         out = Path(result["output"])
         before = len(self.tool_calls())
-        env = {"PATH": "/usr/bin:/bin", "PLAT_LOG": str(self.plat_log), "HOME": str(out / "home")}  # no E2E_* and a throwaway HOME
+        env = {"PATH": "/usr/bin:/bin", "PLAT_LOG": str(self.plat_log), "HOME": str(out / "home"),  # no E2E_* and a throwaway HOME
+               "SF_USE_GENERIC_UNIX_KEYCHAIN": "true"}
         done = subprocess.run([str(out / "platform" / "bin" / "mytool"), "a", "b c"], env=env, capture_output=True, text=True)
         self.assertEqual((done.returncode, done.stdout.strip()), (0, "tool ok"), done.stderr)
         call = self.tool_calls()[before]
@@ -678,6 +687,7 @@ class ModelBinTest(PlatformCase):
         self.assertEqual(Path(call["bin_dir"]), out / "platform" / "bin")
         self.assertEqual(call["phase"], "builder")
         self.assertEqual(call["host_path"], os.environ.get("PATH", os.defpath))
+        self.assertIsNone(call["sf_keychain"])
 
     def test_a_claude_host_gets_the_same_path_and_the_wrapper(self):
         self.use_case(self.with_bin())

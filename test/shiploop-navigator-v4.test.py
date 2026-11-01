@@ -59,6 +59,7 @@ class NavigatorV4Tests(unittest.TestCase):
         self.run = self.temp_root / "run"
         self.repo.mkdir()
         self.run.mkdir()
+        subprocess.run(["git", "init", "-q", str(self.repo)], check=True, capture_output=True)  # not the guarded empty non-Git folder
         self.skill = bridge.resolve_skill(str(ROOT / "skills" / "improve" / "SKILL.md"))
 
     def state(self) -> dict:
@@ -268,7 +269,7 @@ class NavigatorV4Tests(unittest.TestCase):
         navigator.save(self.run, pending)
         action = navigator.current_action(pending)["id"]
         result_path = navigator._result_input_path(self.run, action)
-        result_path.write_text(store.dumps(self.result("handoff"), "ShipLoop navigator result"),
+        result_path.write_text(store.dumps(self.result("handoff", follow_on=[]), "ShipLoop navigator result"),
                                encoding="utf-8")
         args = SimpleNamespace(command="complete", action=action, result=str(result_path))
         report = self.run / "report.html"
@@ -373,7 +374,7 @@ class NavigatorV4Tests(unittest.TestCase):
         navigator.save(self.run, pending)
         action = navigator.current_action(pending)["id"]
         result_path = navigator._result_input_path(self.run, action)
-        result_path.write_text(store.dumps(self.result("handoff"), "ShipLoop navigator result"),
+        result_path.write_text(store.dumps(self.result("handoff", follow_on=[]), "ShipLoop navigator result"),
                                encoding="utf-8")
         args = SimpleNamespace(command="complete", action=action, result=str(result_path))
         report = self.run / "report.html"

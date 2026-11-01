@@ -1,0 +1,36 @@
+== link3-a: files changed since the prior run's head c2dc5638 (git diff --stat)
+ README.md                     |  9 ++++++--
+ docs/shiploop/architecture.md | 10 ++++-----
+ docs/shiploop/environment.md  | 49 ++++++++++++++++++++++++++++++++++++-------
+ docs/shiploop/spec.md         | 14 ++++++-------
+ slug.py                       | 45 ++++++++++++++++++++++++++++++---------
+ test_slug.py                  | 30 ++++++++++++++++++++++----
+ 6 files changed, 122 insertions(+), 35 deletions(-)
+
+spec.md lines naming the settled rule:
+  Basis: earlier request S1-S2 and follow-up S6-S10. `python3 slug.py TITLE` prints one newline-terminated slug to stdout, exits 0, and emits no stderr. Lowercase ASCII letters; replace each run of other characters with a single hyphen and trim edge hyphens. Confirm by subprocess tests: `Hello, World!` -> `hello-world`; `  Many   spaces here ` -> `many-spaces-here`; digits now separate (follow-up S9 explicitly includes
+  Basis: follow-up S3-S5 and S9-S10 supersede the earlier pending decision. Convert a canonically decomposable accented ASCII letter to its plain ASCII base; treat a decomposed ASCII letter plus combining accent equivalently. Other characters, including other scripts, non-decomposing letters, digits, symbols, and detached combining marks, are separators. No interim error remains. Confirm subprocess tests for `café`, `ü
+architecture.md lines naming it:
+  Local `test_slug.py` subprocesses invoke `slug.py`, asserting stdout, stderr and status for retained examples and errors as well as accented, decomposed, non-Latin and separator cases. New policy assertions must fail against the old base and pass the candidate. No remote target, fixture or service a
+  AD-2: `slug.py` owns argument processing and slug conversion; `test_slug.py` owns subprocess tests. Reuse the existing module and test helper. Canonical decomposition recognizes accented ASCII letters; all other input characters become separators, without compatibility transliteration. No new namesp
+  One command argument, stdout success, stderr and status 2 for invalid argument counts. The superseded pending-letter error is removed.
+test names: def test_slug_output(self):, def test_accented_and_other_letters(self):, def test_non_accent_marks_separate(self):, def test_argument_count(self):
+
+== link3-b: files changed since the prior run's head 4ecdd302 (git diff --stat)
+ README.md                     |  2 +-
+ docs/shiploop/architecture.md | 12 ++++++++----
+ docs/shiploop/environment.md  | 25 +++++++++++++++++++++++++
+ docs/shiploop/spec.md         | 17 ++++++++++-------
+ slug.py                       | 31 ++++++++++++++++++++-----------
+ test_slug.py                  | 39 +++++++++++++++++++++++++--------------
+ 6 files changed, 89 insertions(+), 37 deletions(-)
+
+spec.md lines naming the settled rule:
+  Basis: prior request S1-S2 and follow-up S6-S10. A caller runs `python3 slug.py TITLE` with one argument. ASCII A-Z letters become lowercase; each maximal run of other characters becomes one hyphen and leading/trailing hyphens are removed, after R-2 accent conversion. The result and a newline go to stdout, stderr is empty and status is 0, including empty and separator-only inputs. Confirm through subprocess tests: `H
+  Basis: follow-up S3-S5 and S8-S10 and the named earlier request/lessons. Convert accented letters with a canonically decomposable ASCII base to that plain lowercase letter, including equivalent combining-accent input; other characters outside A-Z are separators under R-1. Examples `café für` -> `cafe-fur`, `e` plus combining acute -> `e`, and `a東京Kßb` -> `a-b`; confirm exact stdout, stderr and status through subproce
+  Basis: original request S5 and follow-up S6-S7. Keep standard-library unittest coverage of the complete CLI contract, run `python3 -m unittest discover -v`, and verify at least one discovered test. Independently confirm examples, casing, separator runs, trimming, empty inputs, composed and decomposed accents, non-Latin letters, symbols, digits and usage errors, including exact stdout/stderr/status.
+architecture.md lines naming it:
+  A standalone Python script accepts one argument and prints the output; standard-library Unicode decomposition and unittest avoid dependencies. Apply canonical decomposition only to characters whose decomposition has an ASCII letter base and combining marks; discard combining accents adjacent to ASCI
+  Run `python3 -m unittest discover -v`; subprocess tests assert stdout, stderr and status for examples, ASCII boundaries, accents, non-Latin characters, symbols and argument errors. No browser, remote runtime, service, persistent state or deployment target applies.
+  One title argv, stdout on success, stderr and exit 2 for incorrect argument count. There is no interim non-ASCII error. No service or network.
+test names: def test_non_accent_marks_are_separators(self):, def test_command_contract(self):

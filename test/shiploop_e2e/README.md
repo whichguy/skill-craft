@@ -39,7 +39,8 @@ New runs, step slices and experiment invocations default to **Codex / GPT-6.1 Te
 2026-10-29). Role profiles are explicit: reviewer **Astra xhigh**, fresh judge **Astra xhigh**, improver
 **GPT-6.1 Sol xhigh**. `iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides;
 its `--host`, `--model` and `--effort` select the subject only. Existing runs resume their recorded identities.
-`--host claude` still selects DeepSeek flash on Ollama; add `--backend anthropic` to select Claude's own models.
+`--host claude` selects Claude's own models (Sonnet 5.5, `--backend anthropic`, the default since 2026-11-01); add
+`--backend ollama` to select DeepSeek flash on Ollama.
 `--host grok` selects Grok's existing profile. New Terra results occupy their own host/model/effort baseline cells.
 Every stage launches a real
 model and costs money; none of it runs in default CI.
@@ -53,8 +54,8 @@ translated into Grok's event shape as it is captured, so metrics, the transcript
 and the reviewer read one format. Codex reports no dollar cost, so its cost is
 unknown, and it has no turn cap. Adding a host means adding one class.
 
-**The Claude host on Ollama** (`--host claude --backend ollama`, the default backend for that explicit host) runs Claude Code
-headless on a model the local Ollama
+**The Claude host on Ollama** (`--host claude --backend ollama`, an explicit choice; the host's default backend is
+Anthropic) runs Claude Code headless on a model the local Ollama
 server serves, by default `deepseek-v4.1-flash:1017-cloud`. It takes the route the `ask-ollama` skill verified:
 - **No credentials.** The child's environment loses every `ANTHROPIC_*` and `CLAUDE*` variable, so the launching
   session's OAuth token never reaches the endpoint. It gets only the base URL `http://127.0.0.1:11434`, the key `ollama`,
@@ -69,8 +70,8 @@ server serves, by default `deepseek-v4.1-flash:1017-cloud`. It takes the route t
   run another model served (`metrics.models_served`) is not attributable to its driver.
 
 ```sh
-python3 test/shiploop_e2e/run.py --host claude --case hello --output ~/e2e-runs/<day>/<name>                 # DeepSeek flash
-python3 test/shiploop_e2e/run.py --host claude --case hello --backend anthropic --output ~/e2e-runs/<day>/<name>  # Sonnet 5.5
+python3 test/shiploop_e2e/run.py --host claude --case hello --output ~/e2e-runs/<day>/<name>                          # Sonnet 5.5
+python3 test/shiploop_e2e/run.py --host claude --case hello --backend ollama --output ~/e2e-runs/<day>/<name>       # DeepSeek flash
 ```
 
 To check orchestration alone, without ShipLoop's SDLC or a product, run the
@@ -1449,7 +1450,7 @@ nothing about any platform; it runs the shell commands the case names, in this o
 | key | when | environment | on failure |
 |---|---|---|---|
 | `home_links` | before the preflight | names under the real `HOME`; for a host on a throwaway `HOME` (Grok, Codex) each name that exists becomes a symlink `<throwaway home>/<name>` to `~/<name>`. Only existence is checked, never contents. A name that is absent is skipped and recorded; Claude runs in the real `HOME` and needs nothing | recorded, never a failure |
-| `model_bin` | before the preflight (and again on a resume) | an object `{command name: shell command}`. For each name the harness writes an executable `#!/bin/sh` script `<output>/platform/bin/<name>` that runs `env HOME=<real home> <command> "$@"` with `E2E_CHECKS`, `E2E_PLATFORM_DIR` and `E2E_MODEL_BIN_DIR` baked in as literals, and puts that folder first on the PATH of the host's launch (every host) and of the `preflight`. `before`, `cleanup` and the checks keep the harness's PATH, so they reach the real CLI. The command is the case's policy (the Salesforce case runs `checks/sf_guard.py`); the harness knows none. Recorded as `platform.model_bin` / `environment.platform_model_bin` ({name: wrapper path}). The wrapper must also be what the model's shells find: see "The wrapper is first in the model's shells" below | recorded, never a failure; a wrapper that does not work, or that a shell does not find first, fails the preflight |
+| `model_bin` | before the preflight (and again on a resume) | an object `{command name: shell command}`. For each name the harness writes an executable `#!/bin/sh` script `<output>/platform/bin/<name>` that runs `env -u SF_USE_GENERIC_UNIX_KEYCHAIN HOME=<real home> <command> "$@"` (it unsets the throwaway HOME's own settings, `hosts.THROWAWAY_HOME_ENV`, so the real CLI reads the real keychain) with `E2E_CHECKS`, `E2E_PLATFORM_DIR` and `E2E_MODEL_BIN_DIR` baked in as literals, and puts that folder first on the PATH of the host's launch (every host) and of the `preflight`. `before`, `cleanup` and the checks keep the harness's PATH, so they reach the real CLI. The command is the case's policy (the Salesforce case runs `checks/sf_guard.py`); the harness knows none. Recorded as `platform.model_bin` / `environment.platform_model_bin` ({name: wrapper path}). The wrapper must also be what the model's shells find: see "The wrapper is first in the model's shells" below | recorded, never a failure; a wrapper that does not work, or that a shell does not find first, fails the preflight |
 | `preflight` | before any model call, also in `--preflight-only --case <name>` | the host's own (so a bad link shows here, and the `model_bin` wrappers are first on its PATH) | the run is refused with the command's scrubbed output; no model starts |
 | `before` | once, on a fresh run (not `--resume-run`) | the harness's | the run is refused; no model starts |
 | `cleanup` | after grading, always: in a `finally`, so a failed run, a crash, a Ctrl-C and a SystemExit still run it, except that `--keep-platform` keeps a finished delivery, and a working platform of an unfinished run (below). It first ends this case's own host and waits (at most 10 s) until it is gone, so a cleanup never overlaps a model that can still deploy; another case's host in a suite is left alone. A resume runs it again at its end; a regrade runs it only if the run's last cleanup record (`<output>/platform/cleanup-record.json`, which the cleanup itself writes and which wins over an older `result.json`; `result.json` where there is no such file) shows no successful cleanup or keep (an invocation of a case with a cleanup command writes a pending record there, `{"ran": false, "ok": false, "pending": true, ...}`, when its guard is armed and replaces it when it cleans or keeps, so a harness killed hard before that, in a first segment or a resumed one, leaves a record that shows none, whatever an earlier segment's said) **and** this invocation holds the case's `.harness-lock` (a regrade of a trial that is still running prints one line saying the cleanup was skipped, and does nothing to the platform). Two limits: the lock proves that no *harness* is running the case, not that no *model* is (a host runs in its own session and outlives a harness that was killed with SIGKILL, which also drops the lock), so stop the host of such a run before `--resume-run <output> --grade-only` cleans it; and ending the host's group cannot recall a deploy it already submitted to the platform. The Salesforce case's `sf` guard denies a deploy with `--async` or a `--wait` below 5 minutes, but a host's tool timeout kills the local `sf` and not the deploy running server side, and even a wait of 5 minutes can end before a large deploy does; the chess case's cleanup does **not** poll for deploys in flight. The backstop is the comparison of the org with the recorded baseline after the cleanup (it does not see a deploy that lands after it), and a look at Setup > Deployment Status in the org after any run that ended by timeout or stop | the harness's | a loud banner with the exact command to rerun by hand; the run fails |
@@ -1553,7 +1554,7 @@ Credentials: every command output the harness stores or prints goes through `run
 `accessToken`, `refreshToken`, `clientSecret` or `sfdxAuthUrl` and any string shaped like a Salesforce session token
 (`00D...!...`) with `[redacted]`. In a case with a platform the same scrub also covers the harness's own records
 (`events.jsonl`, `transcript.md`, check outputs, the live view). A platform command must never print or write a credential
-itself, and a case never types, stores or passes one: the only mechanism is the owner's existing login, reached either by `home_links` (a CLI whose login is a file under HOME) or by a `model_bin` wrapper (a CLI whose login lives in the macOS keychain, which a throwaway HOME hides: the wrapper runs the real CLI with the real HOME and applies the case's policy). The isolated HOME is hygiene, not a security boundary: the same OS user can read any absolute path, so the policy is in the wrapper, and a model that calls the CLI by absolute path or changes its own PATH goes around it; `guard_coverage` (above) tells a model that never reached the wrapper and a command that starts sf by a path outside it, not every other way round. A harness that is killed with SIGKILL
+itself, and a case never types, stores or passes one: the only mechanism is the owner's existing login, reached either by `home_links` (a CLI whose login is a file under HOME) or by a `model_bin` wrapper (a CLI whose login lives in the macOS keychain, which a throwaway HOME hides: the wrapper runs the real CLI with the real HOME and applies the case's policy). The isolated HOME is hygiene, not a security boundary: the same OS user can read any absolute path, so the policy is in the wrapper, and a model that calls the CLI by absolute path or changes its own PATH goes around it; `guard_coverage` (above) tells a model that never reached the wrapper and a command that starts sf by a path outside it, not every other way round. A throwaway HOME has no login keychain, so a CLI that stores a secret there makes macOS show a modal "Keychain Not Found" dialog and blocks until someone answers it; the Salesforce CLI does this on its first org command in a new HOME (its key is service `sfdx`, account `local`, so the dialog says it cannot store "local"). The throwaway HOME's environment therefore sets `SF_USE_GENERIC_UNIX_KEYCHAIN=true` (`hosts.THROWAWAY_HOME_ENV`): a model command that reaches the real CLI outside the wrapper gets its key in `<throwaway home>/.sfdx/key.json` and fails at once for want of a login, instead of hanging on the dialog. A case that `home_links` `.sfdx` would let that key file land in the real `~/.sfdx`; no case does. A harness that is killed with SIGKILL
 cannot clean up: run the cleanup command printed at the start, then resume (or, with its host stopped, `--resume-run <output> --grade-only`, which finds the pending record and cleans).
 
 #### A run's own prefix (`--platform-prefix`)
@@ -2541,7 +2542,17 @@ candidate, one decision: the loop tip advances only on PROMOTE.
 - **Learning records** (`learning_records.py`, `learning-records.jsonl`): each lesson's history, appended only by the
   harness and read alongside the last three commit messages (owner decision D2). `review.py` gives the reviewer the
   records' view, and a discovery that recurs a record names it in `same_as`; `iterate.py` records every judged material
-  discovery and commits the ledger with its learnings. Union-merged (`.gitattributes`); not in the evaluator digest.
+  discovery and commits the ledger with its learnings. Rediscovery adds evidence while preserving an `owner` hold or
+  `rejected` decision visible to that checkout; neither is automatically admitted or deferred. New owner-routed evidence
+  may return a rejected record to owner review. An existing hold keeps its reason; a withheld route is recorded in
+  `source.held`, and `source.routing` retains the judge's owner-review/investigation distinction when supplied.
+  Records already in a candidate also retain their state. Explicit owner acceptance or reopening can release the hold. This also applies to investigation findings routed to
+  `owner`: the loop may stop with no admitted record, rather than wait for a person. The returned ids still include
+  these observations. Unseen branch decisions and later epoch verdicts require separate reconciliation; the ledger test
+  detects admission or prediction after the latest unresolved owner hold in checked-in history; a later explicit owner
+  decision or reopening can resolve an earlier conflict without erasing it.
+  The ledger is union-merged (`.gitattributes`) and is not in the evaluator digest; `learning_records.py` is, so updating
+  the code requires a new comparison registration. Keep active campaigns on their frozen checkout.
   `python3 test/shiploop_e2e/learning_records.py view` prints what a reviewer reads.
 - **Predictions** (`prediction.py`): what a candidate will move, bound by `epoch.py init --prediction` before any attempt;
   after `decide`, each effect is confirmed, refuted, no effect or unknown, recorded beside the decision, never instead of it.

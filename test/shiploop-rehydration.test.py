@@ -161,6 +161,7 @@ class MasterIndexTests(unittest.TestCase):
             base = Path(temporary).resolve()
             repo, run = base / "repo", base / "run"
             repo.mkdir()
+            subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True)
             env = {**ENV, "SHIPLOOP_PROGRESS": "off"}
             started = subprocess.run([sys.executable, "-B", str(CLI), "init", "--repo", str(repo), "--prompt", "Add a thing.",
                                       "--run-dir", str(run)], env=env, text=True, capture_output=True, timeout=60)
@@ -388,6 +389,7 @@ class EvidenceGateTests(unittest.TestCase):
             root = Path(temporary).resolve()
             repo, run = root / "repo", root / "run"
             repo.mkdir()
+            subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True)
             init = subprocess.run([sys.executable, str(CLI), "init", f"--repo={repo}", f"--run-dir={run}",
                                    "--prompt=Evidence gate fixture."], capture_output=True, text=True, env=ENV)
             self.assertEqual(init.returncode, 0, init.stderr)

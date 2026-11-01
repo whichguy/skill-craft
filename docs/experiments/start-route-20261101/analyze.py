@@ -154,9 +154,11 @@ def tally_guard(rows: list[dict]) -> dict:
     return cells
 
 
-def evaluate_guard(rows: list[dict]) -> tuple[list[str], str]:
+def evaluate_guard(rows: list[dict], gate: str = "h1") -> tuple[list[str], str]:
     """The registered rule of the guard probe: do sessions recover to the isolated entry after a refusal (H1), are explicit
-    in-place requests still honored (H2), and do sessions that start right stay right (H3)."""
+    in-place requests still honored (H2), and do sessions that start right stay right (H3). The second probe gates on E
+    instead of H1 (--gate e): of the sf-ui sessions whose first start was `init`, refused or not, how many end on
+    workspace start. Both are always printed."""
     lines: list[str] = []
     sf = [r for r in rows if r["stimulus"] == "sf-ui"]
     refused = [r for r in sf if r.get("refused")]
@@ -171,6 +173,24 @@ def evaluate_guard(rows: list[dict]) -> tuple[list[str], str]:
         h1 = ws / n >= GUARD_SHARE and lo >= GUARD_LOWER
         lines.append(f"H1 recovery: {ws} of {n} refused sf-ui sessions ended on workspace start ({ws / n:.2f}, Wilson "
                      f"{lo:.2f}-{hi:.2f}; needs {GUARD_SHARE:.2f} and a lower bound of {GUARD_LOWER:.2f}): {'MET' if h1 else 'NOT MET'}")
+    inits = [r for r in sf if r["start"] == "direct"]
+    e_ws = sum(r.get("final_route") == "workspace" for r in inits)
+    e_n = len(inits)
+    elo, ehi = wilson(e_ws, e_n) if e_n else (0.0, 0.0)
+    flagged = sum(any(st.get("in_place") for st in r.get("starts", [])[:1]) for r in inits)
+    if e_n < GUARD_MIN_REFUSED:
+        e_ok = None
+        lines.append(f"E effectiveness: {e_ws} of {e_n} sf-ui sessions whose first start was init ended on workspace start: "
+                     f"INSUFFICIENT (at least {GUARD_MIN_REFUSED} are needed)")
+    else:
+        e_ok = e_ws / e_n >= GUARD_SHARE and elo >= GUARD_LOWER
+        lines.append(f"E effectiveness: {e_ws} of {e_n} sf-ui sessions whose first start was init ended on workspace start "
+                     f"({e_ws / e_n:.2f}, Wilson {elo:.2f}-{ehi:.2f}; needs {GUARD_SHARE:.2f} and {GUARD_LOWER:.2f}): "
+                     f"{'MET' if e_ok else 'NOT MET'}")
+    lines.append(f"    of those {e_n}, {flagged} already carried --in-place on that first command (so the guard could not "
+                 f"refuse them), {sum(bool(r.get('refused')) for r in inits)} were refused")
+    if gate == "e":
+        h1 = e_ok
     by_arm = {a: [r for r in refused if r["arm"] == a] for a in sorted({r["arm"] for r in sf})}
     lines.append("    refused sessions by build: " + ", ".join(f"{a} {len(v)}" for a, v in by_arm.items()))
     bypass = [r for r in refused if any(st.get("in_place") for st in r.get("starts", []))]
@@ -291,6 +311,7 @@ def main() -> None:
     ap.add_argument("results", type=Path)
     ap.add_argument("--export", type=Path)
     ap.add_argument("--arms", type=Path, default=HERE / "arms.json", help="the arms file the batch used (sizes)")
+    ap.add_argument("--gate", choices=("h1", "e"), default="h1", help="guard mode: which rule decides (the first probe h1, the second e)")
     ap.add_argument("--mode", choices=("start", "inplace", "hosts", "guard"), default="start",
                     help="start: init is wrong (the bar and tie-break); inplace: init is right (is T2 harmless?); "
                          "hosts: one other host, both directions; guard: what a session does after init is refused")
@@ -308,7 +329,7 @@ def main() -> None:
         for (stimulus, arm), c in tally_guard(rows).items():
             print(f"{stimulus:13s} {arm:5s} {c['n']:3d} {c['refused']:7d} {c['first_direct']:10d} {c['final_workspace']:8d} "
                   f"{c['final_direct']:12d} {c['final_none']:6d} {c['in_place']:10d}")
-        lines, verdict = evaluate_guard(rows)
+        lines, verdict = evaluate_guard(rows, args.gate)
         print()
         print("\n".join(lines))
         print()

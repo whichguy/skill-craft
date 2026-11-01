@@ -2757,7 +2757,7 @@ class LessonsReturnTests(_return_review.ReturnReviewCase):
         state = store.read_record(run / "state.md")
         action = navigator.current_action(state)
         result = run / "inbox" / f"{action['id']}.md"
-        store.write_record(result, {"outcome": "done", "summary": "Handed off."}, "ShipLoop navigator result")
+        store.write_record(result, {"outcome": "done", "summary": "Handed off.", "follow_on": []}, "ShipLoop navigator result")
         return self.cli("complete", "--run-dir", str(run), "--action", action["id"], "--result", str(result), code=code)
 
     def test_an_isolated_release_verify_that_changes_no_home_file_returns_its_lessons_commit_and_hands_off(self) -> None:
@@ -3212,6 +3212,7 @@ class RequestIndexTests(unittest.TestCase):
             base = Path(temporary).resolve()
             repo, run = base / "repo", base / "run"
             repo.mkdir()
+            subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True)
             env = {**os.environ, "SHIPLOOP_PROGRESS": "off", "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}
             started = subprocess.run([sys.executable, "-B", str(CLI), "init", "--repo", str(repo), "--prompt",
                                       self.PROMPT, "--run-dir", str(run)], env=env, text=True, capture_output=True,

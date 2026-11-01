@@ -1,6 +1,9 @@
 # Start route: does rewording the card's start section stop the wrong first command?
 
-Status: **done 2026-11-01.** Pre-registered before the first scored trial; T2 met the registered bar and shipped as skill-craft 2.27.3 / shiploop 1.26.3 (release f24746fa6193007235818f2d8b109408d70ca413); a published-build confirmation held and a clean replication (R2) held too (see "Results" and "Replication R2: result").
+Status: **done 2026-11-01.** Pre-registered before the first scored trial; T2 met the registered bar and shipped as skill-craft 2.27.3 / shiploop 1.26.3 (release f24746fa6193007235818f2d8b109408d70ca413); a published-build confirmation held and a clean replication (R2) held too (see "Results" and "Replication R2: result"). Follow-ups the same day, in the order
+they ran: the explicit in-place requests still start with `init` (48 of 48); T2 does nothing either way on Claude or Grok (no regression); a script guard
+that refuses `init` in an empty non-Git folder failed its first design (0 of 16 mistaken starts refused, the override was in `--help`) and met every
+registered condition in its second (20 of 20), released as skill-craft 2.31.0 / shiploop 1.30.0 (5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a).
 Owner: Jim Wiese. Model and harness (owner, 2026-11-01: "Use terra at xhigh", "We should be using the codex harness"):
 the E2E harness `test/shiploop_e2e/run.py` on its Codex host, `gpt-6.1-terra` at `xhigh`.
 
@@ -461,6 +464,134 @@ often it will fire.
 `python3 analyze.py <out>/results.jsonl --mode guard --export results-guard-compact.jsonl`.
 
 
+### Result of the first guard probe (104 sessions, 2026-11-01)
+
+One launch, no change while it ran, 104 valid sessions and no invalid attempt; the installed card equalled the build's card in every
+session (`analysis-guard-output.txt`, `results-guard-compact.jsonl`). Codex `gpt-6.1-terra` at `xhigh`, builds cut from d8a8dce097368ae349ba051ec76c83d036e7f2ef.
+
+| request | build | sessions | `init` first | refused | ended on `workspace start` | ended on the direct entry | no run |
+|---|---|---|---|---|---|---|---|
+| `sf-ui` | GOLD (old wording) | 60 | 16 | 0 | 44 | 15 | 1 |
+| `sf-ui` | G (T2) | 20 | 0 | 0 | 20 | 0 | 0 |
+| `inplace-hello` | G | 12 | 12 | 4 | 0 | 12 | 0 |
+| `nogit-hello` | G | 12 | 12 | 8 | 0 | 12 | 0 |
+
+**Registered verdict: INSUFFICIENT.** H1 could not be judged: 0 of the 60 old-wording sessions were refused (8 were needed). H2 held
+(24 of 24 explicit sessions ended on the direct entry, Wilson 0.86-1.00) and H3 held (20 of 20 G sessions that were never refused ended on
+`workspace start`).
+
+**What the zero means.** 16 old-wording sessions began with `init`, and not one was refused, because every one of the 16 carried
+`--in-place` on its first command. Every one of them had run a `--help` on the ShipLoop CLI before its first start (16 of 16; of the 44
+that began with `workspace start`, 7 had), and `--in-place` was in `init --help`. Sessions read `references/run-start.md` first (101 of
+104), then `run-options.md` (54); none read `references/navigator.md`, the other place the flag was mentioned. So the sessions that had
+chosen the direct entry by mistake learned the override before they used `init`, and passed it as the user's request. Effectiveness
+(an added line, see below): 0 of 16 first-`init` sessions ended on `workspace start` (Wilson upper bound 0.19). The guard stopped no
+wrong start. It refused only the sessions that did not know the flag, 12 of the 24 explicit sessions, all of which then passed it: a
+one-command cost on half of the explicit requests, for nothing. On the T2 card nothing began with `init` (0 of 20), so the guard had
+nothing to do there either.
+
+**Deviations from the registration, recorded.** (1) The analysis gained the effectiveness line E (of the `sf-ui` sessions whose first
+start was `init`, refused or not, how many ended on `workspace start`) and a `--gate` option; I added them at 16 of 104 sessions
+when the progress monitor showed three `init` first starts carrying `--in-place`, before the end of the batch, and the registered
+H1 gate was not changed (this verdict is H1's). (2) The registered remedy for "insufficient", adding old-wording sessions to the same
+batch, was not carried out: 0 of 16 first-`init` sessions were refused, so the refusal rate per `init` start is below 19% (95% upper
+bound), and 8 refusals would take at least 42 first-`init` sessions, about 160 more old-wording sessions, and more at any lower rate;
+the extra sessions could not change what the 16 show, which is why they were not run. (3) Everything else ran as registered.
+
+**What follows.** A guard whose override a session can read first is not a guard. The cause is specific and cheap to change: the flag
+was visible in `--help`, which the sessions that chose `init` read first. A second design hides the override from `--help` and puts
+the card's cue in the refusal itself (f9f91667228c1ef719cfb916757cba015e9189c7), and is registered below before its first trial.
+
+## The `init` guard, second design: does hiding the override from `--help` and sharpening the refusal make it work? (registered 2026-11-01, before its first trial)
+
+**Why.** The first probe (above) found the override self-certified in advance: 16 of 16 first-`init` old-wording sessions had run
+`--help`, saw `--in-place`, and passed it, so the refusal was never shown to the sessions it was for. The second design
+(f9f91667228c1ef719cfb916757cba015e9189c7, on the same unpushed branch as the first) changes two things: `--in-place` is hidden
+from `--help` (the refusal and the README name it), and the refusal repeats the card's cue at the moment of the decision ("a request
+that names the current directory is not that: `workspace start` returns the finished work there"). `references/navigator.md` no longer
+names the flag. Card unchanged.
+
+**Design.** The same as the first probe except the build and the order: builds cut with `scripts/build-packages.py` from the second
+commit, G (card `9571cfb4b317`, `shiploop_protocol.py` `87e9798247b1`) and GOLD (card `4e455a833e85`); `plan --set guard`, seed
+20261106 (`plan-guard2.json`); `--effect-stop`; sf-ui 60 GOLD and 20 G, inplace-hello 12 and nogit-hello 12 on G (104 sessions).
+
+**Rule** (`analyze.py --mode guard --gate e`). Gate **E**: among the `sf-ui` sessions whose first start was `init` (refused or not),
+at least 80% end on `workspace start`, Wilson lower bound at least 0.50, from at least 8 such sessions (60 old-wording sessions gave
+16 in the first probe). **H2** and **H3** unchanged (explicit sessions at least 80% on the direct entry, lower bound 0.50; at most 1 of
+the never-refused G sessions off `workspace start`). H1 is printed, not gated. Release the guard only if E, H2 and H3 are met. If E
+fails, the guard is not released in either design: a script guard whose override the session can self-certify does not stop the wrong
+start, and the T2 wording alone stands (the owner decides whether to try anything else, for example reading the request for the
+words "in place"; I do not build that, because a language heuristic in the script refuses legitimate requests worded differently).
+
+**Prediction.** E between 50% and 90%: a session refused with the sharper message mostly takes the isolated entry, but some will
+still answer with `--in-place` because they believe the request said so. H2 at least 90%: almost every explicit session is now refused
+once (it cannot know the flag) and then passes it, so the cost is one command each. H3 holds.
+
+**Limits.** As the first probe: one model and setting, one Salesforce prompt, one pair of explicit requests; the explicit requests now
+always pay the extra command, which is a cost of the design, not a fault.
+
+**Command**: as above with `--package-root <build of the second commit>`, `--plan plan-guard2.json`, `--out
+~/e2e-runs-startroute/20261101-guard2`.
+
+### Result of the second guard probe (104 sessions, 2026-11-01)
+
+One launch, no change while it ran, 104 valid sessions, no invalid attempt; installed cards equal to the builds' (G `9571cfb4b317`, GOLD
+`4e455a833e85`). Builds cut from f9f91667228c1ef719cfb916757cba015e9189c7 (`analysis-guard2-output.txt`, `results-guard2-compact.jsonl`).
+
+| request | build | sessions | `init` first | refused | ended on `workspace start` | ended on the direct entry | no run |
+|---|---|---|---|---|---|---|---|
+| `sf-ui` | GOLD (old wording) | 60 | 20 | 20 | 60 | 0 | 0 |
+| `sf-ui` | G (T2) | 20 | 0 | 0 | 20 | 0 | 0 |
+| `inplace-hello` | G | 12 | 12 | 12 | 0 | 12 | 0 |
+| `nogit-hello` | G | 12 | 12 | 12 | 0 | 12 | 0 |
+
+**Registered verdict: RELEASE.** E (the gate): 20 of 20 `sf-ui` sessions whose first start was `init` ended on `workspace start` (Wilson
+0.84-1.00), none of them carried `--in-place` on that first command (20 of 20 were refused), and none answered the refusal with it. H1 is
+the same 20 of 20. H2: 24 of 24 explicit sessions ended on the direct entry (Wilson 0.86-1.00). H3: 20 of 20 never-refused G sessions
+ended on `workspace start`. Every refused `sf-ui` session ran `init` once and then `workspace start` (20 of 20); every explicit session
+ran `init`, was refused, and ran `init --in-place` (24 of 24).
+
+**Against the first design.** The same old wording, the same request, the same model: first design 0 of 16 first-`init` sessions ended on
+`workspace start`, second design 20 of 20. The change was the visibility of the override: of the 20, 7 had run a `--help` before their
+first start (13 had not), and the flag was no longer in what `--help` printed. The prediction (E between 50% and 90%) was too cautious.
+
+**Costs, measured.** Every explicit in-place or non-Git session now pays one refused command (24 of 24; with the flag in `--help`
+it was 12 of 24). On the old wording the refused sessions took a median 50 s to reach their run against 44 s for the old-wording
+sessions that were not refused. On the T2 card nothing changed (0 of 20 began with `init`).
+
+**Limits.** Codex `gpt-6.1-terra` at `xhigh` only; Claude and Grok never began the Salesforce request with `init`, so their answer to
+the refusal text is untested (the text is plain and names the command to run); one Salesforce prompt and one pair of explicit requests.
+A user or script outside this repository that runs `init` in an empty non-Git folder now needs `--in-place` (the message says so).
+The guard's benefit on the current card is small by construction (T2 leaves about 1 wrong start in 80 on Codex); what the probe
+establishes is that it is safe and effective when a start is wrong, and that the old wording's failure would be caught.
+
+**Decision.** Released with the second design, as registered (E, H2 and H3 met). The first design is not released. Published as
+skill-craft 2.31.0 / shiploop 1.30.0 in 5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a (the guard d8a8dce097368ae349ba051ec76c83d036e7f2ef and its second
+design f9f91667228c1ef719cfb916757cba015e9189c7; the journal entries behind the release gate are in `test/shiploop_e2e/LEARNINGS.md`).
+
+**A side effect of the probes, found by another session.** The Salesforce prompt makes a session run the real `sf` in the trial's
+throwaway HOME before its run exists. On macOS the CLI's first org command there raised a "Keychain Not Found" dialog on the owner's
+screen and left a `security add-generic-password` child (parent 1, working directory in the trial's work folder, for example
+`20261101-guard/trials/098-GOLD-sf-ui-13-a1/work`) that the driver's per-trial cleanup, which matched command lines, did not reach. The
+fix for the harness is f9717c93631ae068bec75c6dc9238a2f878cc8ec (`SF_USE_GENERIC_UNIX_KEYCHAIN` in every throwaway HOME); the driver's
+`reap` now also matches the working directory. No measure here changed: every route is read at or after the run's first start, there
+was no invalid attempt in either guard launch, and the medians (44 to 50 s) show no session waited on a dialog; the cost was to the owner's screen.
+
+### Post-release checks of the published build (2.31.0 / 1.30.0, 2026-11-01)
+
+- *The published bytes, no model.* `init --repo <empty folder> --run-dir <beside it>` from the marketplace copy of the plugin exits 2 with the
+  refusal and creates nothing; `init --help` does not mention `--in-place`; with `--in-place` the run starts. `docs/distribution.md`'s
+  clean-install probes (`docs/experiments/clean-install-20261101/probes.sh`, a disposable Claude config, Python 3.9 and 3.7) printed output
+  identical to the committed 2.27.x output once paths, version and packet size are normalized, and the install reported
+  `skill-craft@whichguy 2.31.0 enabled`.
+- *A live case from the published build.* `run.py --case hello --host codex --source marketplace` (a fresh Codex profile, Terra 6.1 at
+  `xhigh`): `PASS every verdict passed`, marketplace versions skill-craft 2.31.0 / ShipLoop 1.30.0, `shiploop PASS done`, exited rc=0 in
+  569.8 s, both product checks passed, no refusal in the stream (it began with `workspace start`, recorded as `"start_route": "workspace"`
+  in `result.json`: the harness field of this series, read from the disk in a real full run). n = 1: it shows the guard does not get in the
+  way of an ordinary run, not a rate. Output: `~/e2e-runs-startroute/20261101-release-smoke-codex`.
+- *Hosts.* `claude plugin update skill-craft@whichguy` took Claude's install from 2.30.0 to 2.31.0 (a restart applies it); the Codex and Grok
+  marketplace refreshes show skill-craft 2.31.0 / ShipLoop 1.30.0 with the guard in their copies. Cursor is the owner's, in its app.
+
 ## Release CI
 
 The full CI run of the release commit f24746fa6193007235818f2d8b109408d70ca413 (run 41318115086) failed one job, `full /
@@ -487,5 +618,11 @@ https://github.com/whichguy/skill-craft/actions/runs/41318115086.
 - `analysis-i1-output.txt`, `results-i1-compact.jsonl`: the opposite-direction result. Raw rows: `~/e2e-runs-startroute/20261101-i1/`.
 - `analysis-output.txt`, `results-compact.jsonl`: the result (the compact rows trim each command; the raw rows are below).
 - `start_routes.py`, `recount.py`, `recount-output.txt`: the archive recount (run before any trial).
+- Other hosts: `analysis-h-claude-output.txt`, `analysis-h-grok-output.txt`, `results-h-claude-compact.jsonl`, `results-h-grok-compact.jsonl`.
+  The guard probes: `arms-guard.json`, `plan-guard.json` and `plan-guard2.json` (`plan --set guard`), `analysis-guard-output.txt` and
+  `results-guard-compact.jsonl` (first design), `analysis-guard2-output.txt` and `results-guard2-compact.jsonl` (second design);
+  `start_probe.py run --effect-stop --package-root <build>` and `analyze.py --mode guard --gate e` are the instruments, and
+  `analyze.py --replicates` prints whether a second batch repeats a selection.
+- Raw run folders for the follow-ups (not committed): `~/e2e-runs-startroute/20261101-h-claude`, `-h-grok`, `-guard`, `-guard2`.
 - Raw run folders (not committed): `~/e2e-runs-startroute/20261101/` (`results.jsonl`, `baselines-probe.jsonl`,
   `trials/<slot>-<arm>-<request>-<n>-a<attempt>/` with `events.jsonl`, `invocation.json`, `result.json`, `metrics.json`).

@@ -116,12 +116,13 @@ class TestGroupTests(unittest.TestCase):
         # two (2026-10-30), the seed seam suite, the stage suite's three (oracle, builder, runner), the optional UI adapter,
         # the stage suite's live tier's two (live core, report), two opt-in gym adapter suites, the test-writing adequacy suite, and
         # the follow-on chain's delta ledger, its third link and its fourth, the Python-floor suite (2026-10-31),
-        # clean-consumer checks, review attribution, ticket semantics and Discovery scope calibration (2026-11-01).
+        # clean-consumer checks, review attribution, ticket semantics and Discovery scope calibration (2026-11-01),
+        # and the follow-on list's suite (2026-11-01).
         # Core gains backchain-graph (2026-11-01: Backchain's validator moved out of ShipLoop with its parity tests)
         # and backchain-toolkit (its command line).
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 122)
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 123)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 55)
-        self.assertEqual(len(suite_catalog.SUITES), 179)
+        self.assertEqual(len(suite_catalog.SUITES), 180)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))

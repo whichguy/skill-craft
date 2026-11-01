@@ -52,11 +52,10 @@ OLLAMA_MODEL_VARS = ("ANTHROPIC_MODEL", "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROP
 # Monitor, Workflow, ...), which no outside model may have (ask-ollama). Skill and Agent are ShipLoop's Improve route.
 OLLAMA_TOOLS = ("Bash", "Read", "Edit", "Write", "Glob", "Grep", "NotebookEdit", "WebFetch", "WebSearch", "TodoWrite",
                 "Skill", "Agent")
-# The default backend an explicitly selected Claude host uses for an E2E run (run.py): Ollama's DeepSeek flash;
-# `--backend anthropic` selects Claude's own models. The host factory itself still defaults to Anthropic, so a caller
-# that explicitly asks for a Claude host without the E2E runner's backend policy keeps the factory default.
+# The host an E2E run drives when no --host is given. An explicitly selected Claude host runs Claude's own models
+# (Sonnet 5.5, backend "anthropic") like every other Claude caller; `--backend ollama` selects a model the local Ollama
+# server serves (owner, 2026-11-01, replacing the 2026-10-26 default of Ollama's DeepSeek flash).
 RUN_DEFAULT_HOST = "codex"
-RUN_DEFAULT_BACKEND = {"claude": "ollama"}
 
 ROLE_DEFAULTS = {
     "subject": {"host": RUN_DEFAULT_HOST, "model": "gpt-6.1-terra", "effort": "xhigh"},
@@ -69,8 +68,7 @@ ROLE_DEFAULTS = {
 def resolve_role(name: str, overrides: dict | None = None) -> dict:
     """Return a role's host/model/effort, applying explicit overrides.
 
-    Changing hosts selects that host's defaults; only the subject follows the E2E run backend (Claude on Ollama).
-    An explicit model or effort then wins.
+    Changing hosts selects that host's defaults. An explicit model or effort then wins.
     """
     if name not in ROLE_DEFAULTS:
         raise ValueError(f"unknown ShipLoop E2E role {name!r}; known: {', '.join(sorted(ROLE_DEFAULTS))}")
@@ -80,19 +78,13 @@ def resolve_role(name: str, overrides: dict | None = None) -> dict:
     if host_override is not None and host_override != resolved["host"]:
         if host_override not in HOSTS:
             raise ValueError(f"unknown E2E host {host_override!r}; known: {', '.join(sorted(HOSTS))}")
-        model = (run_default_model(host_override) if name == "subject" else HOST_DEFAULTS[host_override]["model"])
-        resolved.update(host=host_override, model=model,
+        resolved.update(host=host_override, model=HOST_DEFAULTS[host_override]["model"],
                         effort=HOST_DEFAULTS[host_override]["effort"])
     for key in ("host", "model", "effort"):
         value = overrides.get(key)
         if value is not None:
             resolved[key] = value
     return resolved
-
-
-def run_default_model(name: str) -> str:
-    """The model an E2E run of host ``name`` uses when no --model and no --backend are given."""
-    return OLLAMA_MODEL if RUN_DEFAULT_BACKEND.get(name) == "ollama" else HOSTS[name].model
 
 
 def ollama_ready(model: str, url: str = OLLAMA_URL, timeout: float = 5.0) -> str | None:
@@ -233,6 +225,14 @@ def run_agent(argv: list[str], cwd: Path, env: dict, events_path: Path, stderr_p
 
 # ---------------------------------------------------------------- hosts
 
+# A throwaway HOME has no login keychain, so a CLI that stores a secret in the keychain makes macOS show a modal "Keychain Not
+# Found" dialog on the owner's screen and blocks until someone answers it. The Salesforce CLI does this on its first org command
+# in a new HOME (it creates its key: service `sfdx`, account `local`, so the dialog says it cannot store "local"); this variable
+# makes it keep the key in <HOME>/.sfdx/key.json instead, and the command fails at once for want of a login. A command that runs
+# with the real HOME (platform.model_bin) unsets it, so the real CLI keeps reading its key from the real keychain.
+THROWAWAY_HOME_ENV = {"SF_USE_GENERIC_UNIX_KEYCHAIN": "true"}
+
+
 def _isolated_env(home: Path, git_config: Path | None, strip: tuple, extra: dict) -> dict:
     """The environment of a throwaway profile at ``home`` with its own git identity."""
     if git_config is None:
@@ -242,7 +242,7 @@ def _isolated_env(home: Path, git_config: Path | None, strip: tuple, extra: dict
     env.update(HOME=str(home), XDG_CONFIG_HOME=str(home / ".config"),
                XDG_DATA_HOME=str(home / ".local/share"), XDG_CACHE_HOME=str(home / ".cache"),
                XDG_STATE_HOME=str(home / ".local/state"),
-               GIT_CONFIG_GLOBAL=str(git_config), GIT_TERMINAL_PROMPT="0", NO_COLOR="1", **extra)
+               GIT_CONFIG_GLOBAL=str(git_config), GIT_TERMINAL_PROMPT="0", NO_COLOR="1", **THROWAWAY_HOME_ENV, **extra)
     return env
 
 

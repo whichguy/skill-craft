@@ -252,3 +252,75 @@ Ship iff all three hold:
 Decision: shipped in ShipLoop as a patch (`changes/shiploop/proof-order-plain-suite-proof.md`).
 - The packet text is unchanged. Step-plan's Checked-by line already names "a Proof needing an unwritten test".
 - The commit carries a No-E2E-Round reason. Rule C fires in about 1 plan in 120, so a live round would not exercise it.
+
+## Closing check (registered 2026-11-01, before it ran)
+
+Owner, 2026-11-01: "Determine how to conclude, plan out, and implement."
+
+The study closes on this check. Rule C shipped with two open limits (journal E18). Its in-sample case is 3 plans chosen
+after they were seen, and the 42 held-out runs held no catch. Other sessions have made many runs since: 1,194 run folders
+have a `state.md` created after the snapshot, 981 of them after the release (26123c9e, 07:13 PST).
+
+Done before this was written (a count; no rule scored):
+- No run record under `~/e2e-runs*/` holds rule C's refusal text, "runs only the tests the item base has".
+- Its 21 hits are copies of `test/shiploop-callback-contract.test.py` inside run trees, and one code review's transcripts.
+- A run's trace does keep a refused check's message, in the row's `error`. The focused-ID gate's refusal is in the trace
+  of sp1-xhigh ticket-import-s3.
+
+Method: `replay.py closing SCRIPTS ~/e2e-runs*`, on every run whose `state.md` was created after the snapshot. Each run is
+one of three kinds:
+- **live**: its ShipLoop had rule C. Either its checkout's `local_head` (in `invocation.json`) descends from 9870c6f6,
+  or its `shiploop_version` is 1.26.4 or later. A rule-C refusal in its trace is a live fire.
+- **replayed**: an older ShipLoop.
+- **unknown**: neither is recorded.
+
+The shipped rule runs on every kind's accepted step plans, after rules A and B pass, as in `shipped`. On a live run an
+accepted plan has already passed the gate. A replayed refusal there would mean the gate did not run on that plan's route,
+and that is reported as a defect.
+
+Each live fire and each replayed refusal is read and classed by ship check 2's definition. It is genuine when the step's
+Proof is a generic suite command and the cited criterion's confirming test is absent at the base. A reader error counts
+as false.
+
+Decision rule:
+- **Any false one, or a live-run refusal:** fix rule C or the gate in a patch, with the case as a test, before the study
+  closes.
+- **None:** rule C stands, and the study closes. Its rate is stated as an exact interval over all judged plans. If the
+  in-sample rate held (about 1 plan in 120), the live plans would hold about one fire per 120. The result states the
+  chance of seeing none at that rate.
+
+### Closing check result (2026-11-01): rule C stands, and the study is closed
+
+`replay.py closing` writes `closing-check.json`. The numbers below are from its second pass, at 10:50 PST.
+- **Live fires: 0.** 289 new runs had rule C, and their 82 judged step plans passed it with no refusal in any trace. The
+  file grep of the registration agrees.
+- **Replayed refusals: 0.** 277 new runs had an older ShipLoop. The shipped rule refuses none of their 65 judged plans.
+  No accepted plan of a live run is refused either, so no route skipped the gate.
+- **Plans: 147 judged, in 112 runs.** One more plan had no recorded base. At the in-sample rate (3 in 374), 147 plans
+  would hold about 1.2 refusals, and none happens 31% of the time (82 live plans: 0.66 expected, none 52%). The exact
+  95% interval for 0 of 147 is 0 to 2.5%.
+
+Reader audit, done before the decision:
+- The first pass (`closing-check-pass1.json`) counted 1,374 run folders, most of them copies of saved runs inside
+  checked-out skill-craft trees: test fixtures, a docs fixture, worktrees and marketplace copies. A count between the two
+  passes found 846 copies among 1,413 folders. A copy's `state.md` is new, but the run it copies is not.
+- The copies' 400 accepted plans record no repo, so none was judged, and the first pass's 0 fires and 0 refusals stand.
+  Its 136 judged plans all came from runs of their own.
+- The second pass sets copies apart (`inside_checkout`: a folder above the run holds `skills/shiploop/SKILL.md`) and
+  counts plans with no repo as having no base. It found 850 copies and 0 runs of unknown version, and adds the runs made
+  in between.
+
+Decision: rule C stands, as registered. No live fire or refusal was read false. Neither pass had a fire or refusal to
+read, so this check rules out false refusals; it says nothing new about how many real cases rule C catches.
+
+Remaining, not built:
+- A test named by identifier (a unittest name, an Apex class) or a compound Proof. E17 counted 6 such misses at about a
+  minute each, and the step-plan review (journal E19, F30) found no generic rule precise enough to gate on.
+- Implement's side of the same gap, journal F31. Implement reads a criterion's Confirm-by test as due at implement,
+  although the test stage writes it later. This is the owner's decision (`docs/shiploop-step-plan-review-2026-11-01.md` §8,
+  item 4).
+
+Reopen this study if any of these happens:
+- a live rule-C refusal is read as false;
+- a send-back of the identifier or compound form costs minutes rather than about one;
+- the owner takes up F31.

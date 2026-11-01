@@ -1,0 +1,15 @@
+== link2-a: blocked at spec (status blocked)
+headline:  Awaiting the requester’s final SEO letter policy
+question:  How should non-ASCII letters be handled in slugs? For example, should café become cafe or remain café?
+options:   Convert letters to plain ASCII where possible | Keep non-ASCII letters
+no_default: The prior request explicitly says the requester decides and prohibits choosing on their behalf.
+summary:   The final policy is explicitly reserved for the requester. An independently verifiable specification and its implementation cannot be completed until the requester supplies it. The baseline suite passed and prior behavior and documentation have been inspected.
+status_reason: answer: The final policy is explicitly reserved for the requester. An independently verifiable specification and its implementation cannot be completed until the requester supplies it. The baseline suite passed and prior behavior and documentation have been inspected.
+
+== link2-b: blocked at spec (status blocked)
+headline:  Awaiting the requester’s non-ASCII SEO policy.
+question:  What policy should slug.py use for non-ASCII letters?
+options:   Keep non-ASCII letters in the slug | Convert non-ASCII letters to plain letters | Keep the interim error for now
+no_default: The original request explicitly reserves the policy choice to the requester; retaining the interim error is temporary and does not settle the finding.
+summary:   Cannot specify or implement the requested resolution without the policy reserved to the requester. Existing R-2 and interim error remain in force. The existing tests passed, and no other independent work can close this finding.
+status_reason: answer: Cannot specify or implement the requested resolution without the policy reserved to the requester. Existing R-2 and interim error remain in force. The existing tests passed, and no other independent work can close this finding.

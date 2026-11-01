@@ -25,6 +25,7 @@ class ConsumerDeliveryCliTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.repo = Path(self.temp.name) / "product with spaces"
         self.repo.mkdir()
+        subprocess.run(["git", "init", "-q", str(self.repo)], check=True, capture_output=True)
         self.run = self.repo / ".shiploop"
 
     def cli(self, *args, package=PACKAGE):

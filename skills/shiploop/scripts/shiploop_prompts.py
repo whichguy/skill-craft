@@ -1001,9 +1001,10 @@ DUTIES = {
    decision as an open gap under its R-<n> in KNOWLEDGE/spec.md. List in `primary` the R-<n> that carry the request's
    primary outcomes, what the user asked for directly: product-acceptance accepts one left unverified only with a
    passed lower-layer test.
-5. In each R-<n> this run adds or changes, state its request or decision basis, preserved and changed behaviour,
-   source-section locators, evidence limits, and pending implementation and checks. ShipLoop derives the added,
-   changed and retired IDs from the spec diff; list none by hand.
+5. In each R-<n> this run adds or changes, state its basis as a source that stays true in later runs (the request's
+   words with the date, or a decision ID; never 'current request'), preserved and changed behaviour, source-section
+   locators, evidence limits, and pending implementation and checks. Title spec.md for the product, not for one request.
+   ShipLoop derives the added, changed and retired IDs from the spec diff; list none by hand.
 6. Assess non-functional requirements under KNOWLEDGE/spec.md ## Non-functional requirements (Requirements definition
    guide): operating conditions, a numeric bound inside any hard platform limit or an observable acceptance line,
    verification method, justified exclusion, or an unresolved bound. Invent no bound. A material requirement conflict goes in `summary` as open and
@@ -1226,9 +1227,10 @@ DUTIES = {
    names where it has one (GUIDES/platforms/), and record each prerequisite under KNOWLEDGE/environment.md ## Access and
    accounts; one still unresolved stays open there with its owner (who can grant it) and the stage that needs it.
    Create no grant; it does not block this stage.
-7. Record readiness under KNOWLEDGE/environment.md ## Targets and runtimes and ## Commands: what was prepared, the
-   commands that start each runner, the observations. Record not-applicable only when this candidate needs no
-   preparation, with what you assessed. Missing required access or setup is blocked, not not-applicable.
+7. Record readiness under KNOWLEDGE/environment.md ## Targets and runtimes and ## Commands as standing facts: the
+   commands that start each runner and what a later run needs to start them; what you prepared and observed goes in
+   `summary`. Record not-applicable only when this candidate needs no preparation, with what you assessed. Missing
+   required access or setup is blocked, not not-applicable.
 8. Tool state: a tool that writes its own files inside the checkout (the platform guide's ## Tool state names them)
    needs them in .gitignore before any build; add the missing lines and list .gitignore in `evidence_refs`. An
    unignored tool file reads as a product change to ShipLoop's checks.
@@ -1486,7 +1488,8 @@ preparatory commit); a mismatch there is a send-back.
    observed here, naming it.
 """,
     "carry-forward": """\
-1. **Knowledge home.** Update in place; keep completed evidence apart from future plans, never rewriting it:
+1. **Knowledge home.** Update in place under the sections named here, with no new ## heading for this item's results;
+   keep completed evidence apart from future plans, never rewriting it:
    - KNOWLEDGE/environment.md ## Commands: every command that worked.
    - KNOWLEDGE/architecture.md ## Decisions: each AD-<n> this item added; a superseded one moves to ## Superseded, never
      deleted.
@@ -1590,8 +1593,8 @@ preparatory commit); a mismatch there is a send-back.
    external effect it gates. Continue with every runnable case. Report blocked only when nothing else can proceed,
    add-work when product work is missing.
 8. The integrated test plan goes in `summary` under the catalog and in KNOWLEDGE/environment.md ## Harnesses and suites
-   (OUTER test-planning handshake): candidate and boundaries, selected cases and oracles, commands, lifecycle and
-   sharing decisions, cost, prerequisites, execution owners; which checks run now at system-test and which need the
+   (no new ## heading; OUTER test-planning handshake): candidate and boundaries, selected cases and oracles, commands,
+   lifecycle and sharing decisions, cost, prerequisites, execution owners; which checks run now at system-test and which need the
    authorized release first. Cite KNOWLEDGE/environment.md in `evidence_refs`; the decisions and constraints the plan
    rests on go in `summary`.
 """,
@@ -1678,8 +1681,10 @@ preparatory commit); a mismatch there is a send-back.
    record each new facility's locator, interface, readiness or gap, owner and revalidation condition. An unmet
    earlier deployment or test prerequisite: report add-work with corrective work and evidence (ShipLoop reruns the
    outer stages).
-2. Write the release steps in `summary` and KNOWLEDGE/environment.md (item 8): target and candidate identity, permission,
-   prerequisites, user impact, monitoring, stop conditions. Every operation the user-visible outcome needs is a
+2. Write the release steps in `summary`: target and candidate identity, permission, prerequisites, user impact,
+   monitoring, stop conditions. Keep the standing procedure any release repeats (steps, commands, rollback; no candidate
+   identity, commit IDs or dates) in KNOWLEDGE/environment.md (item 8), in the release section the file already has,
+   updated in place, else in one new section. Every operation the user-visible outcome needs is a
    named step with its exact command and authorization status: the deploy, each access or visibility change (for
    example granting a role or permission, activating an app or menu entry), each browser session a consumer check needs with
    its browser tool. A step no approval covers is a pending approval named now. Keep source return, artifact
@@ -1800,7 +1805,9 @@ preparatory commit); a mismatch there is a send-back.
    rerun those, reuse the rest only with identity and relevance stated.
 10. `lessons`, each in detail: `learned`, `considerations` (decisions and risks that matter), `open_next` (what a
     later run should pick up). ShipLoop commits them as the run's learnings, read at intake.
-11. Update KNOWLEDGE/environment.md with what the release showed about targets, commands and access.
+11. Update KNOWLEDGE/environment.md in place with any target, command or access fact the release showed that the file
+    lacks or states wrongly (## Targets and runtimes, ## Commands, ## Access and accounts); the observations themselves
+    go in `summary`.
 """,
     "operations": """\
 1. Reopen the observability coverage in KNOWLEDGE/environment.md and KNOWLEDGE/architecture.md; cite the sections used in
@@ -1814,8 +1821,8 @@ preparatory commit); a mismatch there is a send-back.
    evidence gap, not proof of no logging.
 4. Close only evidenced gaps this run owns. Duplicate no provider logs; treat not every failure as an incident; keep
    the required audit-failure and recovery policy.
-5. Write the current log and audit retrieval and recovery locators, with observation date and open limits, to
-   KNOWLEDGE/environment.md (Service handoff guidance).
+5. Write the log and audit retrieval and recovery locators (standing facts, replacing an earlier entry in place) to
+   KNOWLEDGE/environment.md (Service handoff guidance); the observation date and this run's open limits go in `summary`.
 6. A justified N/A in `summary` only after assessing the actual operational boundary: what you assessed, why it does
    not apply.
 7. Name the release-plan and system-test-author records you rely on (latest done after the last accepted add-work;
@@ -1851,6 +1858,15 @@ preparatory commit); a mismatch there is a send-back.
    Work-item context and earlier result references are not a durable index.
 7. Read release-verify's `lessons` (quoted in the hand-offs); carry its open-next items into the follow-up work in
    `summary` and report any conflict with what you observed.
+8. List in `follow_on` what this run leaves for a later run, one entry for each leftover in `summary`, the lessons'
+   open-next items, the unverified outcomes and the open assumptions: its `class`, a `statement`, the `source` record it
+   comes from, the request sentence S<n> a `gap` maps to ("" for any other class) and what `needs` to close it. Classes:
+   `gap` (a request outcome left unmet, or an assumption found refuted, that needs no person's answer), `decision` (a
+   choice about the spec or scope only a person can make), `person` (a person must do or confirm something),
+   `capability` (closable only where a capability this run lacked exists), `extension` (optional scope beyond the
+   request), `debt` (a small hygiene item in scope), `note` (knowledge for a later change; nothing is open). `[]` when
+   nothing remains. A `gap` or a `decision` makes ShipLoop write a request for a follow-on run and print the command
+   that starts it; ShipLoop starts nothing.
 """,
 }
 

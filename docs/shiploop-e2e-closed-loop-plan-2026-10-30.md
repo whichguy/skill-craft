@@ -77,6 +77,41 @@ evaluator digest. Run from the main checkout, the calibration epoch would refuse
 usable later only while the files that score an attempt are unchanged. `spread.py` records their digests, and `cycle.py`
 refuses a calibration whose digests differ from the epoch it is applied to.
 
+## How this program concludes (2026-11-01)
+
+Owner, 2026-11-01: "Determine how to conclude, plan out, and implement. Use Codex as the harness and Terra 6.1 Extra High as the
+model." Read as: the subject runs use Codex `gpt-6.1-terra` at `xhigh`. The reviewer, judge and improver keep their role defaults
+(Codex `gpt-6-astra` at `xhigh`, and `gpt-6.1-sol`), because a role change changes what an epoch's reviews mean; one flag per role
+changes them if the owner wants that. Two live jobs that were running at `high` when the instruction came were stopped and are
+rerun at `xhigh`. The stage 4 pilot, the only live run of this plan that finished before it, ran at `high` and stays as history.
+
+**Why the stage 5 cycle needs an end.** Two explorations on two cases (csv-report, seat-reservations) each stopped at "no admitted
+learning record after exploring": each produced one material ShipLoop finding, the judge's disposition was investigate, and the
+loop sends investigate to the owner. The same items were being fixed by hand in other sessions. So the improver, the purpose check
+and an epoch with reviews have not run live, and a blind third exploration has no measured reason to end differently.
+
+**Finish line.** The program is concluded when all of this is on `main` and true:
+1. Each decision path of the loop has live evidence, with its limits stated: a DROP with reviews skipped (stage 4, run 2), a PROMOTE
+   with every attempt reviewed (stage 4b), and the cycle's first steps, explore, review, judge, ingest and journal (stage 5).
+2. What no live run covered is named, with its cause: the improver and the purpose check, which need an admitted record.
+3. Every result, ledger row and journal entry is merged, and the docs say what ran and at what setting.
+4. A release happens only if a ShipLoop change promoted. None is expected: nothing here changes a skill.
+
+**Steps and stop rules.**
+- A. The restore pilot at `xhigh` (stage 4b), about 2 to 3 hours. Pass, inform and finding are defined there.
+- B. One more cycle launch at `xhigh` on `shared-expenses`, `csv-report` unseen (stage 5). If a record is admitted the cycle runs to
+  its decision, stopping early only on its stall rule (the same step unchanged for 90 minutes, or 9 hours in all). If none is, that
+  is the third designed stop, and the program concludes on it: no further blind explorations.
+- C. Land the results, update this plan's status, report.
+
+**Left to the owner.** This plan does not decide these.
+- An admission route for the improver half, if B admits nothing: accept one owner-held record (LR-20261101-bea142 or
+  LR-20261101-f8c562; both overlap work other sessions have shipped or are studying), or seed a record whose fix should move a
+  measure by at least the tolerance, or qualify a candidate another session built by the hand-built path of stage 4b, which is
+  where this loop is most useful today.
+- Whether the stage 3 calibration, which another session runs at `high`, should move to `xhigh` to match.
+- The hook's published-fidelity question (withdraw, accept or measure), held since 2026-10-31.
+
 ## Where it stands (2026-10-31)
 
 **Trying to achieve.** Every improvement to ShipLoop proven by its own comparison: one learning record, one candidate
@@ -122,7 +157,7 @@ became: SPEC.md's Purpose, "Learning records and predictions", Change admission'
 
 | Step | What | Where | Needs |
 |---|---|---|---|
-| 1 | Stage 3 (same-build calibration): **skipped by the owner**. The kit stays for a later measurement | `docs/experiments/e2e-calibration-20261031/` | nothing |
+| 1 | Stage 3 (same-build calibration): skipped by the owner on 2026-10-31, **measured 2026-11-01** on the stage 5 cycle's two cases (run 1): 0.45 on tokens at 3 attempts per arm keeps false calls at or under 10%; the stated 0.25 would call noise a change in 28% to 36% of same-build re-deals. D1 and D3 are the owner's; the measured calibration is already refused by `--calibration` on current main (see Stage 3) | `docs/experiments/e2e-calibration-20261031/run-01/` | the owner's decision |
 | 2 | State the tolerance and attempts per cycle (`--tolerance`, `--attempts`, recorded as unmeasured; start at 0.25 or more). D3 (limits) and D4 (sampled reviews) remain open | the decisions table above | the owner |
 | 3 | Trim the cycle if the owner wants it cheaper: sampled reviews, the second case at release, the purpose review on a flag | `epoch.py` `decide` (every attempt reviewed before PROMOTE); `cycle.py` `roles_for` and the purpose review in `qualify` | D4 |
 | 4 | Stage 4: the hook-revert pilot: **done 2026-11-01**. Run 1 UNDECIDED (parallel-launch defect, fixed), run 2 DROP with all six attempts valid. Its kit and results stay in `docs/experiments/closed-loop-pilot-20261101/` | `docs/experiments/closed-loop-pilot-20261101/` | nothing |
@@ -172,12 +207,15 @@ gap below.
     reviews that were not usable.
 - A gap: `epoch.launch` builds the run's arguments from host, model and effort only and never passes `--backend`, and the
   harness's default backend for the Claude host is Ollama. A cycle on the Claude host therefore tries Ollama and is
-  refused wherever Ollama is not running (a cloud session). The Codex host has no such gap.
+  refused wherever Ollama is not running (a cloud session). The Codex host has no such gap. **Closed 2026-11-01:** the
+  Claude host's default backend is now Anthropic (`test/shiploop_e2e/LEARNINGS.md`, "the Claude host defaults to Anthropic's
+  Sonnet 5.5"), so a cycle on the Claude host takes the Anthropic route with no `--backend`.
 
 **Owner decision, 2026-10-31: stage 3 is skipped.** The owner declined the same-build calibration ("skip it; I don't
 want 2-3 hrs"). Its kit stays in `docs/experiments/e2e-calibration-20261031/` for anyone who wants the measurement
 later. Consequences, so they are not rediscovered:
-- No `calibration.json` exists, so D1 (attempts per arm and tolerance) has no measured basis. The noise figure stays
+- No `calibration.json` exists, so D1 (attempts per arm and tolerance) has no measured basis. (Superseded 2026-11-01: run 1 of the
+  kit measured it on the stage 5 cycle's two cases; see Stage 3's result.) The noise figure stays
   unknown; the only hint is user-listing's turns on Terra, about ±13% across three mixed builds.
 - `iterate.py --qualify` and `cycle.py` refuse to start without `--calibration` (`cycle.load_calibration`). Qualified
   cycles therefore cannot run as built. A later change must either accept an explicit, recorded tolerance and attempt
@@ -398,6 +436,15 @@ Around it:
   "all of them" (2026-11-01), read as putting stage 3 back on the list after the 2026-10-31 skip, started it beside the stage 5
   cycle; it uses its own epoch folder, so it cannot be a neighbour of that cycle's attempts.
 
+- **Result (2026-11-01, run 1).** 16 runs (4 + 4 of `csv-report` and of `seat-reservations`, one build, Terra `high`, two at a time,
+  16:29Z to 19:04Z) all passed and sealed with valid evidence. Processed tokens of one build against itself ranged 17.7M to 44.1M
+  (`csv-report`, median 28.1M) and 22.1M to 50.4M (`seat-reservations`, median 35.5M). D1's rule gives a tolerance of **0.45 on
+  tokens at 3 attempts per arm** (0.40 at 4; none up to 0.50 at 2), and 0.30 on turns. At the stated 0.25 the same build compared with
+  itself would have been called a change in 35.7% and 27.7% of its re-deals. The first five twin pairs all had the candidate label
+  higher; with eight it was 6 of 8 (p = 0.14), so no label effect is shown. `--calibration` refuses this report on current main
+  because the scoring digest covers all of `checks/` and a new case's check file (47ed1804) changed it; narrowing the digest, or stating
+  `--tolerance 0.45 --attempts 3`, is the owner's choice. Details, limits and files: the kit's README and `run-01/`.
+
 ## Stage 4: known-bad pilot
 
 The 10-29 plan's "prove the loop can say no", live. Built 2026-11-01 as `docs/experiments/closed-loop-pilot-20261101/`
@@ -428,11 +475,27 @@ The 10-29 plan's "prove the loop can say no", live. Built 2026-11-01 as `docs/ex
   planted defect). Three attempts per arm under a stated, unmeasured tolerance: it shows this loop rejects this
   regression at this sample, not how often. Files: `docs/experiments/closed-loop-pilot-20261101/run-01`, `run-02` and
   its README.
+
+## Stage 4b: restore pilot
+
+The mirror of stage 4, added on 2026-11-01 when stage 5 could not get past its first step (below), in
+`docs/experiments/closed-loop-restore-20261101/`. The control is the tip without the qualified missing-completion hook (the
+reverse of the same delta), the candidate is the tip, the case is `hello-hook-continuation`, 3 attempts per arm, a stated
+tolerance of 0.25, Codex Terra `xhigh` (the owner's setting from 2026-11-01; the kit first said `high`), and **every attempt is
+reviewed and judged**. The prediction says the share of attempts
+that pass accuracy rises by at least a half, which makes the case a capability case, so a rise in its quality can promote.
+- **Why:** the reviews of an epoch's attempts, a PROMOTE and the journal entry of a promoted cycle have never run live, and
+  nothing else runs them until a record is admitted. The answer is known (0 of 3 against 3 of 3 in the pilot's second run),
+  so a surprise is the loop's and not the change's.
+- **Pass:** PROMOTE, the prediction confirmed, the record `verified`, all six attempts `recorded` and then `reviewed`.
+  UNDECIDED with a stated reason says what the loop still needs; DROP or an `invalid_evidence` attempt is a finding.
+- **Does not cover:** the improver and the purpose check, which need an admitted record.
+
 ## Stage 5: first qualified cycles
 
 ```sh
 python3 test/shiploop_e2e/iterate.py --qualify --case seat-reservations --generality-case csv-report \
-    --tolerance 0.25 --attempts 3 --host codex --model gpt-6.1-terra --effort high --iterations 1
+    --tolerance 0.25 --attempts 3 --host codex --model gpt-6.1-terra --effort xhigh --iterations 1
 ```
 
 (Corrected 2026-11-01: `iterate.py` has `--iterations`, not `--cycles`; one iteration first, since a cycle is the
@@ -441,8 +504,8 @@ measured. `user-listing` was then used for the first launch and refused: it decl
 `quality.refuse_ports`, `run.py` takes a declared port as a machine-wide lease and refuses to start while another
 harness holds it, and another session's `user-listing` run did. `battleship` and `checkers` declare 3000 too, the
 `ticket-*` cases 4180. A cycle on such a case would also fail its own parallel attempts, because `launch_all` serialises
-attempts that share a hosted platform but not attempts that share a fixed port; that gap is not fixed. The cycle
-therefore uses two cases with no fixed port and no hosted platform, of different styles. They were first `csv-report`,
+attempts that share a hosted platform but not attempts that share a fixed port; that gap was closed the same day (see
+"A second gap closed" below). The cycle therefore defaults to two cases with no fixed port and no hosted platform, of different styles. They were first `csv-report`,
 exposing, and `seat-reservations`, the unseen generality case, and were swapped after the second launch (below).)
 
 - **Launches (2026-11-01).** Launch 1 (kit a32b4402b74e4002495c8fa182b2653df0ef9b44, `user-listing`): refused at once by
@@ -453,6 +516,32 @@ exposing, and `seat-reservations`, the unseen generality case, and were swapped 
   `results/closed-loop-cycle-20261101-run2-loop` (f8ce110). The record went onto the ledger (8990029) before launch 3,
   which explores `seat-reservations` and keeps `csv-report` unseen: if its exploration re-finds that item it adds to the
   same record, which a cycle that keeps `csv-report` unseen cannot select, and the loop stops for the same stated reason.
+  Launch 3 (kit 6a6cb10172f78737b685a127c1c2f2be5c2aca52, `seat-reservations` exposing, PARALLEL=2): one exploration run
+  (PASS, 1255.4 s, 252 turns, 4 of 4 checks), two records opened, and the same designed stop. LR-20261101-f8c562 (ShipLoop,
+  S-6, reviewed criteria still exceeded the available focused test IDs) went to the owner: the judge calls it corroboration
+  of focused-ID work that is absent from the tested build, disposition investigate, not implementation-eligible.
+  LR-20261101-35ad6a (harness: epoch-local overlap records omit external contention) was deferred. Results on
+  `results/closed-loop-cycle-20261101-run3-files` (a4f9f80) and `results/closed-loop-cycle-20261101-run3-loop` (ffacc92).
+- **Why nothing has been admitted (2026-11-01).** Both explorations passed their case and found material ShipLoop items,
+  and the judge's disposition for each was investigate, which the loop routes to the owner. The same items are being worked
+  by hand in other sessions' A/B rounds: the focused-ID rule (b8d32033, 45153684) shipped in ShipLoop 1.28.0 (4224161b,
+  17:01Z), three minutes after launch 3 began on 1.27.0, and the proof-order rule has studies of its own (c614c532,
+  1bf6430c). The one admitted material record, LR-20261031-8d97e7, was found on the hosted gym case and appears to be what
+  7ca88df4 fixed on 2026-10-31 (the same refusal; not replayed), though the ledger still reads admitted. So no record exists
+  that a cycle on local cases could take, and a third blind exploration may meet the same owner-held items. Getting past
+  this is the owner's decision (an admission route), listed with the options in the stage 5 report.
+- **A second gap closed (2026-11-01).** `cycle.launch_all` now holds an attempt back while another attempt of the epoch holds a
+  fixed port its case declares (`quality.refuse_ports`; `cycle.fixed_ports`), and gives the free slot to other work, so a
+  cycle on `user-listing`, `battleship`, `checkers` or a ticket case no longer has to run one attempt at a time. It serialises
+  on the epoch process's life, which is longer than the run's lease (the process also settles and seals), so it is
+  conservative. Shown by a failing scheduler test first (two attempts of one port started together), then three mutations of
+  the new logic, each caught. A start is still refused while another session's run holds the port, and a base older than
+  this change must still use `PARALLEL=1`; the owner's `user-listing` cycle of 2026-11-01 runs from such a base.
+- **A gap closed beside it (2026-11-01).** `learning_records.ingest` used to append `admitted` after an implementation-routed
+  re-find of a record the owner held, and the fold lets the later event win, so a re-find could take a record out of the
+  owner's hands (shown by a failing test first). A record that the owner holds, or that is in a candidate (`HELD`), now takes
+  the new evidence and stays where it is, whatever the route; an open record is still admitted and an admitted one can
+  still go to the owner.
 - **The first record:** from an exploration run on `seat-reservations`, or a seeded record whose reopen condition holds.
 - **Selection (2026-11-01):** `select` reads the cycle's cases (b3328b4). The one admitted record on the ledger,
   LR-20261031-8d97e7, was found on the hosted `gym-membership-salesforce` case, so a cycle on other cases would have

@@ -4,6 +4,33 @@ Written by scripts/release.py.
 
 ## 2026-11-01
 
+### skill-craft 2.31.0
+
+- Skills: shiploop 1.30.0
+
+### shiploop 1.30.0
+
+- `init`, the direct entry, now refuses to start a run in an empty folder that is not a Git repository and prints the `workspace start` command to run instead: `workspace start` makes the folder a repository, works in a separate worktree and returns the finished work to the folder, which `init` does not. A user who explicitly asked for an in-place or non-Git run passes the new `--in-place`, which the refusal names and `--help` does not. A folder with any content, a Git repository, a folder inside one, an existing run, and every other refusal `init` already had are unchanged. The navigator reference and the consumer-delivery reference now state the same rule: `workspace start` is the entry for new work, and `init` only for an in-place or non-Git run the user explicitly asked for.
+- A later pass keeps the permanent files permanent. The packet of each stage that wrote the stray headings of the saved ticket runs (discovery, test-strategy, prepare, carry-forward, system-test-author, release-plan, release-verify, operations) now says where its facts go: standing facts under the named sections of `environment.md` and `architecture.md`, and the stage's own report in its result, never as a new `##` heading, a date or "this run" wording in the file; `operations`, which already wrote `environment.md`, is declared a writer of it. The duties that asked for a report (prepare, carry-forward, release-plan, release-verify, operations, system-test-author) now send it to `summary`, and release-plan keeps one standing release section, updated in place. The spec duty asks for a basis that stays true in later runs (never "current request") and a title for the product. After any accepted stage that changed the home, ShipLoop prints a counted `ShipLoop placement notice:` line when the edit filed a new decision or requirement under `## Superseded` or `## Retired`, or added a level-2 heading to `environment.md` or `architecture.md` that matches no named section or repeats one. It is a notice, never a refusal, and its prefix leaves the section notice's counts as they were.
+- The Salesforce platform guide gains a `CLI login` section: the CLI's login key lives in the macOS keychain, so in any
+  other HOME (an isolated profile, a sandbox, CI) an org command hangs on a modal "Keychain Not Found" dialog; such a HOME
+  sets `SF_USE_GENERIC_UNIX_KEYCHAIN=true` and the command fails at once instead. The HOME that holds the login never sets it.
+
+### skill-craft 2.30.0
+
+- Skills: shiploop 1.29.0
+
+### shiploop 1.29.0
+
+- The handoff lists what the run leaves for a later run in a new result key, `follow_on`: one entry for each leftover,
+  classified once (gap, decision, person, capability, extension, debt, note), each citing a record the run holds (an
+  unverified row, an assumption, the release-verify lessons, a stage's result or a commit). ShipLoop refuses only
+  mechanical faults: a missing list, an incomplete entry, a class outside the vocabulary, a placeholder left in, a source
+  the run does not hold, a gap that names no request sentence. A gap or a decision makes the script write
+  `follow-on-request.md` in the run folder and print the command that starts a follow-on run from it, in the done packet
+  and in the report's new Follow-on section. ShipLoop starts nothing and never blocks `done` for what an entry says. A run
+  saved without the list still loads.
+
 ### skill-craft 2.29.0
 
 - Skills: shiploop 1.28.0

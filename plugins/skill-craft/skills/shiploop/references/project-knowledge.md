@@ -573,6 +573,23 @@ same prefix when commands that passed at its item's test stage are not named und
 stage of its item under 'Commands' (this carry-forward is accepted); ...`, so it counts as one file and one heading. Whether the notice becomes a refusal waits for a live
 run that shows packets which quote the headings get them written.
 
+**Placement notice.** The named sections say where a fact goes; this notice says where an edit put it. The packet of each
+of the eight stages that wrote the saved runs' stray headings (discovery, test-strategy, prepare, carry-forward,
+system-test-author, release-plan, release-verify, operations) says: standing facts go under the named sections, a stage's
+own report is no `##` heading, date or "this run" wording in the file, and the report goes in its result. After any accepted
+stage that changed the home, ShipLoop reads that stage's edit against HEAD, before it commits, and prints one counted line
+per living file whose edit filed a new entry under `## Retired` (spec.md) or `## Superseded` (architecture.md), or added a
+level-2 heading to `environment.md` or `architecture.md` that matches no named section or repeats one (`knowledge.placement_notices`):
+`ShipLoop placement notice: <absolute file> gained AD-2 under 'Superseded' and new headings 'Fleet boundary' that match no named section or repeat one (this stage is accepted); move each under 'Decisions' unless it never held, and then say why in its text; put each fact under the named section it belongs to ('Stack', ...) or in your result, and keep a new heading only for standing content that fits none.`
+It is a notice, never a refusal (a decision of the consumer contract, X11), and it has its own prefix so the section
+notice's counts keep their meaning. `grep -o 'ShipLoop placement notice: ' events.jsonl | wc -l` counts the files
+reported, and `grep -o 'ShipLoop placement notice: [^;]*' events.jsonl | grep -o "'[^']*'" | wc -l` counts the quoted names
+before each line's first semicolon (the heading the entries were filed under, and the new headings; an ID is not quoted).
+A spec's own headings are not counted, a rename in place is no repeat, an entry that an edit moves under `## Superseded`
+is a supersession and not a misfiling, and nothing is printed at the terminal handoff or for an edit that an inline
+step's commit takes with it. Whether a counted line makes a model move the fact waits for the A/B in
+`docs/shiploop-multipass-plan-2026-10-31.md` (E2).
+
 **Lessons commit and read-back.** release-verify's result carries `lessons`: `learned`,
 `considerations` and `open_next`, each written in detail (`none` only when true). ShipLoop
 writes them, and the open items still left, as the body of that close's commit, which it

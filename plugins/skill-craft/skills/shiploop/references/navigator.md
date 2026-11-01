@@ -190,10 +190,11 @@ Resolve the installed or checkout-local `scripts/shiploop` path as `CLI`, and
 use absolute repository and run-directory paths.
 
 Before any stage duty, choose exactly one entry route: `workspace start` for
-new Git-backed work, direct `init` for an explicitly selected in-place/non-Git
-run, or `next` for an existing run. For an existing run, verify the
-printed original goal and repository identity before acting. Do not replace a
-missing or relocated run with a new one.
+new work (it makes an empty starting directory a Git repository), direct `init`
+only for an in-place or non-Git run the user explicitly asked for (naming the
+current directory is not that), or `next` for an existing run. For an existing
+run, verify the printed original goal and repository identity before acting. Do
+not replace a missing or relocated run with a new one.
 
 A later feature is a different request: preserve the earlier run, select a fresh
 external workspace root (omit `--workspace-root` to get a new default one; an
@@ -209,7 +210,9 @@ a second source of traversal state.
 
 ```sh
 python3 "$CLI" workspace start --repo="$REPO" --prompt='requested outcome'
-# Explicit direct/non-Git mode, without automatic workspace-return protection:
+# Direct entry, only for an in-place or non-Git run the user explicitly asked for; no automatic workspace-return
+# protection. In an empty folder that is not a Git repository init refuses, names workspace start and says how to
+# override when the user did ask:
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --prompt='requested outcome'
 # Optional explicit selected actual Improve card for a new run:
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --improve-skill="$IMPROVE_SKILL" --prompt='requested outcome'
@@ -803,6 +806,16 @@ target, rollback, and checks; `release` may honestly be non-applicable;
 `release-verify` examines the actual consumer/runtime boundary. `handoff`
 reports source, test, integration, release, consumer status, and remaining
 limits as facts.
+
+`handoff` also lists in `follow_on` what the run leaves for a later run: one entry for each leftover, classified once
+(`gap`, `decision`, `person`, `capability`, `extension`, `debt`, `note`), each citing a record the run holds in `source`.
+The script refuses only a mechanical fault: a missing list, an entry without its five texts, a class outside the
+vocabulary, a placeholder left in, a source that resolves to no record (an unverified row, an assumption, the
+release-verify lessons, a stage's accepted result, or a commit Git finds), and a `gap` that names no request sentence.
+A `gap` or a `decision` makes the script write `RUN/follow-on-request.md` and print, in the done packet and the report,
+the command that starts a follow-on run from it. ShipLoop starts nothing, asks nothing and never blocks `done` for what
+an entry says. A follow-on run is a new run on the delivered baseline, not a back edge: it inherits the living spec,
+architecture and environment, and the lessons commit, as any later request does.
 
 For an opt-in delivery-contract run, the existing ledger also carries typed
 requirements and separate source/update/identity/behavior observations. The

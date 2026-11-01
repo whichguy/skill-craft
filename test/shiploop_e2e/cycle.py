@@ -200,10 +200,18 @@ def roles_for(prediction: dict, exposing: str, generality: str | None) -> dict[s
     return {case: "capability" if case in rises else "regression" for case in cases}
 
 
+def fixed_ports(case: str) -> frozenset[int]:
+    """The fixed ports a case declares (cases.json ``quality.refuse_ports``). run.py leases each machine-wide for the length of
+    a run, so two attempts that share one cannot run at once: the second is refused at its start."""
+    import run as runner
+    return frozenset(runner.case_quality(case).get("refuse_ports") or [])
+
+
 def launch_all(root: Path, plugins: dict[str, Path], parallel: int, logs: Path) -> list[str]:
     """Launch ready attempts, at most `parallel` at once, each in its own epoch.py process.
 
-    Attempts for one declared platform target wait for the prior run's sealed clean cleanup. Attempts that stay blocked
+    Attempts for one declared platform target wait for the prior run's sealed clean cleanup. Attempts that share a declared
+    fixed port wait for the one holding it to exit, and the free slot goes to other work. Attempts that stay blocked
     after unrelated work finishes remain undispatched and have the reason written to their launch log. The return value
     remains the IDs of processes that exited unsuccessfully.
     """
@@ -213,6 +221,8 @@ def launch_all(root: Path, plugins: dict[str, Path], parallel: int, logs: Path) 
     targets: dict[str, tuple[str | None, str | None]] = {}
     running: list[tuple[str, str | None, subprocess.Popen]] = []
     active_targets: dict[str, str] = {}
+    ports_of = {row["id"]: fixed_ports(row["case"]) for row in pending}
+    active_ports: dict[int, str] = {}
     failed = []
     while pending or running:
         while pending and len(running) < parallel:
@@ -226,6 +236,10 @@ def launch_all(root: Path, plugins: dict[str, Path], parallel: int, logs: Path) 
                     continue
                 if key is not None and key in active_targets:
                     reasons[row["id"]] = f"platform target {key} is active for {active_targets[key]}"
+                    continue
+                held = sorted(port for port in ports_of[row["id"]] if port in active_ports)
+                if held:
+                    reasons[row["id"]] = f"fixed port {held[0]} is leased by {active_ports[held[0]]}"
                     continue
                 selected = (index, row, key)
                 break
@@ -247,12 +261,16 @@ def launch_all(root: Path, plugins: dict[str, Path], parallel: int, logs: Path) 
             running.append((row["id"], key, process))
             if key is not None:
                 active_targets[key] = row["id"]
+            for port in ports_of[row["id"]]:
+                active_ports[port] = row["id"]
             time.sleep(2)  # distinct run starts: promotion refuses two attempts with the same start
         for attempt, key, process in list(running):
             if process.poll() is not None:
                 running.remove((attempt, key, process))
                 if key is not None and active_targets.get(key) == attempt:
                     del active_targets[key]
+                for port in [port for port, holder in active_ports.items() if holder == attempt]:
+                    del active_ports[port]
                 if process.returncode != 0:
                     failed.append(attempt)
         if running:

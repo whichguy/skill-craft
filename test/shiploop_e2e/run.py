@@ -245,9 +245,8 @@ def stop_cause(stop_file: Path) -> str:
 # Grok does not namespace plugin skills; Claude prefixes them with the plugin name.
 def the_host(args) -> "hosts.Host":
     """The selected host, with the binary its --<host>-bin flag names and the backend --backend names (Claude only); with no
-    --backend, the E2E default for that host (hosts.RUN_DEFAULT_BACKEND: Claude on Ollama)."""
-    backend = getattr(args, "backend", None) or hosts.RUN_DEFAULT_BACKEND.get(args.host)
-    return hosts.host(args.host, getattr(args, args.host + "_bin"), backend)
+    --backend, the host's own default (the Claude host: Anthropic)."""
+    return hosts.host(args.host, getattr(args, args.host + "_bin"), getattr(args, "backend", None))
 
 
 def load_case(args) -> tuple[str, str, list[str], str | None]:
@@ -1782,17 +1781,19 @@ def platform_env(base: dict, platform_dir: Path, existing: str = "fresh") -> dic
 def write_model_bin(bins: dict, platform_dir: Path, real_home: Path) -> dict:
     """Write ``<platform_dir>/bin/<name>`` for each name: an executable ``#!/bin/sh`` script that runs the case's command with the
     real HOME, the operator's PATH and the model's argv as "$@". The harness's E2E_* variables are baked in as literals (the model's environment has
-    none). Returns {name: path}. The command is the case's own text, run as the case wrote it."""
+    none), and the throwaway HOME's own settings (``hosts.THROWAWAY_HOME_ENV``) are unset, so a real CLI reads its real keychain.
+    Returns {name: path}. The command is the case's own text, run as the case wrote it."""
     folder = platform_dir / "bin"
     folder.mkdir(parents=True, exist_ok=True)
     baked = {"E2E_CHECKS": str(HERE / "checks"), "E2E_PLATFORM_DIR": str(platform_dir), "E2E_MODEL_BIN_DIR": str(folder),
              "E2E_CHECK_PHASE": "builder"}
+    unset = "".join(f"-u {key} " for key in hosts.THROWAWAY_HOME_ENV)
     written = {}
     for name, command in bins.items():
         path = folder / name
         path.write_text("#!/bin/sh\n# written by the E2E harness (platform.model_bin); the case's policy decides what the model may run\n"
                         + "".join(f"export {key}={shlex.quote(value)}\n" for key, value in baked.items())
-                        + f"exec env HOME={shlex.quote(str(real_home))} PATH={shlex.quote(os.environ.get('PATH', os.defpath))} {command} \"$@\"\n")
+                        + f"exec env {unset}HOME={shlex.quote(str(real_home))} PATH={shlex.quote(os.environ.get('PATH', os.defpath))} {command} \"$@\"\n")
         path.chmod(0o755)
         written[name] = str(path)
     return written
@@ -2583,11 +2584,11 @@ def parser() -> argparse.ArgumentParser:
                    help=f"the host that drives ShipLoop (default: {hosts.RUN_DEFAULT_HOST}); 'all' only with --preflight-only "
                         "(checks every host)")
     p.add_argument("--backend", choices=("anthropic", "ollama"), default=None,
-                   help="claude only: ollama (default), Claude Code on a model the local Ollama server serves, default "
-                        f"{hosts.OLLAMA_MODEL}, with the user's Anthropic credentials scrubbed (SPEC \"The Claude host can run "
-                        "on Ollama\"); or anthropic, Claude's own models. A resume keeps its run's backend")
-    p.add_argument("--model", help=f"default: gpt-6.1-terra (codex), {hosts.OLLAMA_MODEL} (claude), "
-                                   "claude-sonnet-5-5 (claude --backend anthropic), grok-4.7 (grok)")
+                   help="claude only: anthropic (default), Claude's own models; or ollama, Claude Code on a model the local "
+                        f"Ollama server serves, default {hosts.OLLAMA_MODEL}, with the user's Anthropic credentials scrubbed "
+                        "(SPEC \"The Claude host can run on Ollama\"). A resume keeps its run's backend")
+    p.add_argument("--model", help=f"default: gpt-6.1-terra (codex), claude-sonnet-5-5 (claude), "
+                                   f"{hosts.OLLAMA_MODEL} (claude --backend ollama), grok-4.7 (grok)")
     p.add_argument("--effort", help="reasoning effort; default: xhigh (codex), host default (claude), medium (grok)")
     p.add_argument("--skill", help="command that invokes ShipLoop; default: skill-craft:shiploop (claude, codex), shiploop (grok)")
     p.add_argument("--source", choices=("marketplace", "checkout"), default="marketplace",

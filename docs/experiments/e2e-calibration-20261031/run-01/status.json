@@ -1,0 +1,107 @@
+{
+  "contract": "shiploop-epoch/2",
+  "purpose": "calibration",
+  "attempts": [
+    {
+      "id": "control-csv-report-1",
+      "arm": "control",
+      "case": "csv-report",
+      "status": "recorded"
+    },
+    {
+      "id": "candidate-csv-report-1",
+      "arm": "candidate",
+      "case": "csv-report",
+      "status": "recorded"
+    },
+    {
+      "id": "control-csv-report-2",
+      "arm": "control",
+      "case": "csv-report",
+      "status": "recorded"
+    },
+    {
+      "id": "candidate-csv-report-2",
+      "arm": "candidate",
+      "case": "csv-report",
+      "status": "recorded"
+    },
+    {
+      "id": "control-csv-report-3",
+      "arm": "control",
+      "case": "csv-report",
+      "status": "recorded"
+    },
+    {
+      "id": "candidate-csv-report-3",
+      "arm": "candidate",
+      "case": "csv-report",
+      "status": "recorded"
+    },
+    {
+      "id": "control-csv-report-4",
+      "arm": "control",
+      "case": "csv-report",
+      "status": "recorded"
+    },
+    {
+      "id": "candidate-csv-report-4",
+      "arm": "candidate",
+      "case": "csv-report",
+      "status": "recorded"
+    },
+    {
+      "id": "control-seat-reservations-1",
+      "arm": "control",
+      "case": "seat-reservations",
+      "status": "recorded"
+    },
+    {
+      "id": "candidate-seat-reservations-1",
+      "arm": "candidate",
+      "case": "seat-reservations",
+      "status": "recorded"
+    },
+    {
+      "id": "control-seat-reservations-2",
+      "arm": "control",
+      "case": "seat-reservations",
+      "status": "recorded"
+    },
+    {
+      "id": "candidate-seat-reservations-2",
+      "arm": "candidate",
+      "case": "seat-reservations",
+      "status": "recorded"
+    },
+    {
+      "id": "control-seat-reservations-3",
+      "arm": "control",
+      "case": "seat-reservations",
+      "status": "recorded"
+    },
+    {
+      "id": "candidate-seat-reservations-3",
+      "arm": "candidate",
+      "case": "seat-reservations",
+      "status": "recorded"
+    },
+    {
+      "id": "control-seat-reservations-4",
+      "arm": "control",
+      "case": "seat-reservations",
+      "status": "recorded"
+    },
+    {
+      "id": "candidate-seat-reservations-4",
+      "arm": "candidate",
+      "case": "seat-reservations",
+      "status": "recorded"
+    }
+  ],
+  "decision": null,
+  "prediction": null,
+  "discoveries": [],
+  "publication": "not_performed",
+  "generalisation": "unobserved unless independently qualified by the registered coverage"
+}

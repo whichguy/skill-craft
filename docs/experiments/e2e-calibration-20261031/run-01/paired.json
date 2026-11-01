@@ -1,0 +1,81 @@
+{
+  "all": {
+    "minutes": {
+      "candidate_higher": 6,
+      "median_relative_change": 0.2489,
+      "pairs": 8,
+      "sign_test_p_one_sided": 0.1445
+    },
+    "tokens": {
+      "candidate_higher": 6,
+      "median_relative_change": 0.1971,
+      "pairs": 8,
+      "sign_test_p_one_sided": 0.1445
+    },
+    "turns": {
+      "candidate_higher": 5,
+      "median_relative_change": 0.0899,
+      "pairs": 8,
+      "sign_test_p_one_sided": 0.3633
+    }
+  },
+  "cases": {
+    "csv-report": {
+      "minutes": {
+        "candidate_higher": 4,
+        "candidate_median": 20.1,
+        "control_median": 12.649999999999999,
+        "median_relative_change": 0.4009,
+        "pairs": 4,
+        "sign_test_p_one_sided": 0.0625
+      },
+      "tokens": {
+        "candidate_higher": 4,
+        "candidate_median": 35584449.0,
+        "control_median": 23965223.0,
+        "median_relative_change": 0.3404,
+        "pairs": 4,
+        "sign_test_p_one_sided": 0.0625
+      },
+      "turns": {
+        "candidate_higher": 3,
+        "candidate_median": 213.0,
+        "control_median": 168.0,
+        "median_relative_change": 0.2695,
+        "pairs": 4,
+        "sign_test_p_one_sided": 0.3125
+      }
+    },
+    "seat-reservations": {
+      "minutes": {
+        "candidate_higher": 2,
+        "candidate_median": 15.450000000000001,
+        "control_median": 15.85,
+        "median_relative_change": -0.0491,
+        "pairs": 4,
+        "sign_test_p_one_sided": 0.6875
+      },
+      "tokens": {
+        "candidate_higher": 2,
+        "candidate_median": 37006096.5,
+        "control_median": 35101947.5,
+        "median_relative_change": -0.0777,
+        "pairs": 4,
+        "sign_test_p_one_sided": 0.6875
+      },
+      "turns": {
+        "candidate_higher": 2,
+        "candidate_median": 219.5,
+        "control_median": 207.0,
+        "median_relative_change": -0.009,
+        "pairs": 4,
+        "sign_test_p_one_sided": 0.6875
+      }
+    }
+  },
+  "measures": [
+    "tokens",
+    "turns",
+    "minutes"
+  ]
+}

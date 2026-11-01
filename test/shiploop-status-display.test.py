@@ -61,6 +61,7 @@ class StatusBlockTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.repo = Path(self.temp.name) / "project"
         self.repo.mkdir()
+        subprocess.run(["git", "init", "-q", str(self.repo)], check=True, capture_output=True)
 
     def state(self) -> dict:
         return navigator.new_state(str(self.repo), "Add a --version flag.", improve_skill="")
@@ -405,6 +406,7 @@ class StatusHookTests(unittest.TestCase):
         cls.temp = tempfile.TemporaryDirectory(prefix="shiploop-status-hook-")
         repo = Path(cls.temp.name) / "project"
         repo.mkdir()
+        subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True)
         cls.run_dir = (Path(cls.temp.name) / "run").resolve()
         cls.cli = str(SCRIPTS / "shiploop")
         init = subprocess.run(

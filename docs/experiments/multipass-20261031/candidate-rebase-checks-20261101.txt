@@ -1,0 +1,82 @@
+The placement candidate's checks on its rebased trees, 2026-11-01. Compact export of logs that otherwise live outside the repository.
+
+== The replay onto main (fifth rebase)
+feature commit before: c6146283a252e5912940b1be45305af509978d04 (patch-id 8cf39729c9b94711faf1b7b2030b7a4adb7f8456, the same for the tested commit and four rebases)
+feature commit after:  5caacbbd724d4dce53430882ce92acef39d0bf32 (patch-id 9fe0d24b6aca6493b7f74f3b5867d060fc0b8d00)
+base: 8c5b4d4ec776dc9a06445c1054e9d4802558a649
+per-file patch-ids against the tested commit (git patch-id --stable of git show --format= <commit> -- <file>):
+  same     changes/shiploop/placement-notice-and-destinations.md
+  same     skills/shiploop/references/project-knowledge.md
+  same     skills/shiploop/scripts/shiploop_knowledge_home.py
+  same     skills/shiploop/scripts/shiploop_navigator.py
+  same     skills/shiploop/scripts/shiploop_prompts.py
+  same     test/shiploop-callback-contract.test.py
+  same     test/shiploop-knowledge.test.py
+  DIFFERS  test/shiploop_e2e/head_table.json
+
+== Quick tier 1, on the base 26728eddd587930f5da3f6600e5d7ab4017d8acc (stopped at 76 of 89 suites when main moved)
+one failure: shiploop-e2e-cycle (another session's pilot-kit test that read a README; 27dedcff30f1ca05a0a541a4b4b1d21e3fe438d8 says it repairs that)
+FAIL shiploop-e2e-cycle
+
+== Quick tier 2, on the base 64402828725cdabfb173ecca177d5b7902a825c4 (the tier's process tree was paused 08:20:19 to 08:36:54)
+timed out after 1800 seconds
+FAIL shiploop-e2e
+timed out after 1800 seconds; cleanup: KILL: [Errno 1] Operation not permitted
+FAIL shiploop-e2e-slice
+FAIL shiploop-e2e-quality
+FAIL shiploop-e2e-stage-live
+run-all.sh: FAILED
+run-all.sh: 81 suites in 4171.8 s wall (--jobs 4); slowest: shiploop-e2e 1811.1 s, shiploop-e2e-slice 1800.0 s, shiploop-e2e-quality 1370.0 s
+exit 1
+(77 suites OK; the lines above are the failures and the summary)
+the four failures, each rerun alone:
+  e2e-alone: shiploop-e2e alone start 08:41:18 · load 82.09 85.55 71.81
+     Ran 495 tests in 1146.243s · OK · exit 0 after 1149 s
+  slice-alone: shiploop-e2e-slice alone start 08:46:05 · load 67.25 86.52 78.13
+     Ran 72 tests in 824.395s · OK · exit 0 after 827 s
+  quality-alone: shiploop-e2e-quality alone start 09:00:05 · load 85.35 74.34 74.72
+     Ran 153 tests in 110.958s · OK · exit 0 after 112 s
+  stagelive-alone: shiploop-e2e-stage-live alone start 09:05:20 · load 29.01 45.11 60.97
+     Ran 86 tests in 236.727s · OK · exit 0 after 238 s
+
+== Quick tier 3, on d71eaa7198772501b189dff76308d4ee7ac533cb plus this change
+tier3 start 09:17:31 · base d71eaa71 · feat 1f07bd6b · load 12.15 17.33 34.95
+FAIL shiploop-e2e-environment
+FAIL shiploop-e2e-quality
+FAIL shiploop-e2e-stage-live
+FAIL shiploop-e2e-brownfield-tickets
+FAIL shiploop-e2e-lifecycle
+run-all.sh: FAILED
+run-all.sh: 83 suites in 2327.4 s wall (--jobs 6); slowest: shiploop-e2e-stages 904.5 s, shiploop-callback-contract 889.2 s, shiploop-e2e-slice 878.7 s
+exit 1
+(count of OK lines: 78, FAIL lines: 5)
+
+== Reruns on the newest tree (this change on 8c5b4d4ec776dc9a06445c1054e9d4802558a649), one suite at a time, python3 3.15.1:
+  final-tree suites start 10:09:01 · feat 46ce05b7 on 8c5b4d4e · load 35.31 96.00 102.53
+  shiploop-knowledge rc=0 in 56 s (load at start 35.31 96.00 102.53) :: Ran 163 tests in 55.766s OK
+  shiploop-e2e-environment rc=0 in 232 s (load at start 28.35 83.77 97.56) :: Ran 140 tests in 231.276s OK
+  shiploop-e2e-quality rc=0 in 108 s (load at start 132.81 97.60 98.81) :: Ran 153 tests in 107.013s OK
+  shiploop-e2e-lifecycle rc=0 in 39 s (load at start 43.06 76.37 90.37) :: Ran 43 tests in 38.236s OK
+  shiploop-e2e-stage-live rc=0 in 263 s (load at start 36.73 70.54 87.59) :: Ran 86 tests in 262.363s OK
+
+== Stock Python 3.9.6 (the python3 on PATH is /usr/bin/python3), the suites that exercise the change
+on the tree of the fourth rebase (base 64402828):
+  3.9 spot-check start 09:09:30 · load 23.31 31.50 50.72
+  shiploop-knowledge rc=0 in 43 s :: Ran 163 tests in 42.664s OK
+  shiploop-head-order rc=0 in 10 s :: Ran 36 tests in 10.173s OK
+  shiploop-step-packets rc=0 in 3 s :: Ran 10 tests in 2.365s OK
+  shiploop-callback-contract rc=0 in 327 s :: Ran 99 tests in 326.557s OK
+  shiploop-keepalive rc=0 in 207 s :: Ran 86 tests in 207.106s OK
+  done 09:19:21
+on the tree of the fifth rebase (base d71eaa71):
+  3.9 spot-check on the final tree start 09:19:57 · tree 05ddccc822f35f60c11be2021cf64c857600acd8 · load 34.30 23.95 34.80
+  shiploop-knowledge rc=0 in 202 s :: Ran 163 tests in 201.013s OK
+  shiploop-head-order rc=0 in 46 s :: Ran 36 tests in 44.551s OK
+  shiploop-step-packets rc=0 in 14 s :: Ran 10 tests in 11.851s OK
+  shiploop-callback-contract rc=0 in 1776 s :: Ran 100 tests in 1775.331s OK
+  shiploop-keepalive rc=0 in 519 s :: Ran 86 tests in 518.267s OK
+  done 10:02:34
+
+== scripts/release.py --dry-run on the final tree
+release: shiploop 1.29.0 -> 1.30.0 (1 note(s))
+release: skill-craft 2.30.0 -> 2.31.0

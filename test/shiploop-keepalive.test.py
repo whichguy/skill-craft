@@ -61,6 +61,7 @@ class KeepaliveTestCase(unittest.TestCase):
         self.repo = self.temp / "repo"
         self.run_dir = self.temp / "run"
         self.repo.mkdir()
+        subprocess.run(["git", "init", "-q", str(self.repo)], check=True, capture_output=True)  # not the guarded empty non-Git folder
         # No progress observer: `init` would start one detached, and it writes into the run folder every 2 s, so a fast
         # test's cleanup raced it ("Directory not empty", 4 of 7 direct runs on 2026-10-28; run_suites.py sets it too).
         env = {"SHIPLOOP_KEEPALIVE_HOME": str(self.temp / "state"), "HOME": str(self.temp / "home"),

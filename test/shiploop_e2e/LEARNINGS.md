@@ -3672,7 +3672,7 @@ the baseline row is in this commit).
 - The improve-skill skip (6 of 22) is a candidate packet fix: the Improve packet could put the Skill call first and
   make it unmissable.
 
-## Harness change: an E2E run defaults to DeepSeek flash on Ollama (2026-10-26) — status: firm (a default, not a finding), until the Grok reset on Thursday 2026-10-29
+## Harness change: an E2E run defaults to DeepSeek flash on Ollama (2026-10-26) — status: superseded 2026-11-01 (the Claude host now defaults to Anthropic's Sonnet 5.5; see the entry "the Claude host defaults to Anthropic's Sonnet 5.5" further down this file); was firm (a default, not a finding), until the Grok reset on Thursday 2026-10-29
 
 **Scope in time.** The switch holds until Grok's credits reset on Thursday 2026-10-29. Then the owner decides whether
 to go back.
@@ -5413,7 +5413,7 @@ send-back family also appears here without a way to tie it to K12.
   results-tables.md, b-ticket-s2-refusals/.
 - Journal docs/shiploop-intake-question-bank-journal.md, §5.6 and §9 (F30-F35).
 
-## Focused-ID rule: E2E round on the Codex harness, Terra 6.1 xhigh (2026-11-01) — status: firm that the change costs no step-plan time and, after its wording fix, causes no test-spec send-back for IDs on these runs (6 deliveries, 20 step-plan slices); its benefit at xhigh is test quality, not shown here as fewer send-backs; the ticket-import deliveries (the template's open-item path) are pending
+## Focused-ID rule: E2E round on the Codex harness, Terra 6.1 xhigh (2026-11-01) — status: firm that the change costs no step-plan time and, after its wording fix, causes no test-spec send-back for IDs on these runs (6 deliveries, 20 step-plan slices); its benefit at xhigh is test quality, not shown here as fewer send-backs; the template's open-item path held live (ticket-import 3 of 3, 13 of 13 held-out checks each)
 
 **Change under test.** b8d32033 (step-plan refuses an executed criterion a focused command names without a focused test
 ID of its own; the template lists one ID per criterion its focused row names; duty 5 and the Checked-by line say so) and
@@ -5423,8 +5423,8 @@ ID of its own; the template lists one ID per criterion its focused row names; du
 
 **Runs.** All Codex `gpt-6.1-terra` at xhigh (the owner, 2026-11-01: "For using a test harness and runner we want to use
 codex Terra 6.1 at xhigh"), hooks on, `--source checkout`, from the worktree of branch stepplan-ids-f80cd9.
-- SP1, whole deliveries (`run.py`, launch_sp1.sh): hello 1 and csv-report 2 on b8d32033; ticket-import 3 on 45153684,
-  waiting on port 4180 when this was written. A pilot of the same three at Terra high (made before the owner's word) is
+- SP1, whole deliveries (`run.py`, launch_sp1.sh): hello 1 and csv-report 2 on b8d32033; ticket-import 3 on 7ec63879
+  (45153684 merged with main, skills/ equal to the 2.29.0 release but for version strings), run after port 4180 freed. A pilot of the same three at Terra high (made before the owner's word) is
   kept apart, in `~/e2e-runs-sp/20261101/`.
 - SP2, step-plan slices (`slice.py --stop-after test-spec`, launch_sp2.sh): arm B = main at e81fdb55, arm T = b8d32033;
   tickets-assign and stand-in-rules, 4 slices per arm per case, order B T T B.
@@ -5437,6 +5437,7 @@ codex Terra 6.1 at xhigh"), hooks on, `--source checkout`, from the worktree of 
 |---|---|---|---|---|---|---|
 | SP1 (b8d32033) | hello 1, csv-report 2 | 3 of 3 PASS (11.5, 15.3, 21.8 min) | 0 | 0 | 0 | — |
 | SP1 pilot at high | hello 1, csv-report 2 | 3 of 3 PASS (9.0, 11.6, 15.0 min) | 0 | 0 | 0 | — |
+| SP1 (7ec63879) | ticket-import 3 | 3 of 3 PASS, 13 of 13 held-out checks each (12.7, 21.1, 34.8 min) | 0 | 1 | 0 | — |
 | SP2 arm B (main) | 8 slices | 8 of 8 to test-spec done | 0 | — | 0 | 2.17 |
 | SP2 arm T (b8d32033) | 8 slices | 8 of 8 | 1 | 0 | 0 | 2.25 |
 | SP3 (45153684) | 4 slices | 4 of 4 | 0 | 0 | 0 | 2.50 |
@@ -5450,6 +5451,13 @@ codex Terra 6.1 at xhigh"), hooks on, `--source checkout`, from the worktree of 
   criterion. Arm B also produced no short plan (0 of 8) against the pre-registered "some"; in the saved runs Terra xhigh
   plans were short 7 times in 67, and test-spec folded 6 of them rather than sending them back (Terra high: 8 in 75, 7
   sent back). 0 of 8 at 10% happens 43% of the time.
+
+**The open-item path, live.** In ticket-import s1 the packet's template showed `"criteria": ["C1", "C2", "C3"], "ids":
+["TC-1", "TC-2", "TC-3"]` (C3 the row settling A2); the plan settled A2 through its own executed criterion with four
+focused IDs for its two criteria, and test-spec passed first time. In s2 the plan kept the template's shape exactly (C3
+from A2, IDs TC-1 to TC-3 for C1 to C3). In s3 the gate fired once, on W3's draft ("Criterion C2 has no focused test ID
+of its own (the focused commands list IDs TC_7 for C1, C2)"); the next check, 25 seconds later, passed with TC_7 and TC_8,
+and test-spec accepted W3 first time: the 25 seconds stand where a test-spec send-back or a folded case used to.
 
 **Reading.** On the owner's runner the change costs nothing measurable at step-plan (medians within 0.33 min of main),
 and once worded for executed criteria it leaves test-spec nothing to send back for IDs. Its gain at xhigh is that each
@@ -5467,16 +5475,535 @@ other models (DeepSeek flash 3 of 21 plans short, Sonnet 3 of 7, Grok 3 of 5) it
   test-spec, so the run is at implement when the slice stops; SP2 and SP3 read only step-plan and test-spec.
 
 **Not measured.**
-- The template's open-item path live: ticket-import, the case whose plans carry a criterion settling an open item due at
-  W1 (where the template showed three criteria and two IDs), is the pending part of SP1. The hermetic test covers the
-  template row.
 - The extra test-writing time of the cases the 15 folded plans would gain.
 - DeepSeek flash (at its Ollama limit), Grok and Sonnet.
 
 **Evidence.**
 - Runs: `~/e2e-runs-sp/20261101/` (pilot), `sp1-xhigh`, `sp2-xhigh`, `sp3-xhigh`.
 - `docs/experiments/step-plan-review-20261101/`: README, launch_sp1.sh, launch_sp2.sh, launch_sp3.sh, score_sp1.py,
-  score_sp2.py, sp2_scores.jsonl, sp3_scores.jsonl, and the corpus files (replay_ids.jsonl, sendback_classes.jsonl).
-- Baseline rows appended to test/shiploop_e2e/baselines.jsonl: SP1's 3 xhigh runs and the 3 pilot runs at high (their
+  score_sp2.py, sp1_scores.jsonl, sp2_scores.jsonl, sp3_scores.jsonl, and the corpus files (replay_ids.jsonl, sendback_classes.jsonl).
+- Baseline rows appended to test/shiploop_e2e/baselines.jsonl: SP1's 6 xhigh runs and the 3 pilot runs at high (their
   effort is in each row).
 - Journal docs/shiploop-question-driven-planning-journal.md, E19 and E20.
+
+## Follow-on list at the handoff: E2E round on the Codex harness, Terra 6.1 xhigh (2026-11-01) — status: firm that a real model fills the list and the gate accepts it on the first try on four small requests (4 of 4 passed, 0 handoff refusals); the list found almost nothing to recommend (no gap, no decision) and the recommended-run path was not reached live
+
+**Change under test.** 826c951ccfdecb8f48e406f8fbdacb6a69daabbc, on origin/main d06e18a56ee43db8d04dc872e680d4efdd33f076 (release skill-craft 2.28.1 / ShipLoop
+1.27.0). The handoff's done result carries `follow_on`, a list of entries {class, statement, source, request_sentence, needs} with classes gap,
+decision, person, capability, extension, debt, note; the script refuses only mechanical faults (a missing list, an incomplete entry, a placeholder,
+a class outside the list, a source the run does not hold, a gap with no request sentence); a gap or a decision makes it write
+`follow-on-request.md` and print the command that starts a follow-on run, which it never starts. The design is
+docs/shiploop-follow-on-run-design-2026-10-31.md; the hermetic evidence (14 new tests, fail first) is in the feature commit's message. The runs
+started from 2da2d4f3d11b0f468c14ff48e6158a7bb334e8ee (the plan, journal Round 5, committed before any run), whose skill files are the feature's; every
+run loaded plugin tree bf3be9d89072. The tree to be released also holds ba3297d707329a6500ac036577d3f211b2e6a352 (one `except` clause for a workspace record
+that is missing, which a real isolated run always has) and test-only commits; the runs did not run those.
+
+**Runs.**
+- Command: `run.py --case <case> --host codex --model gpt-6.1-terra --effort xhigh --source checkout --timeout 5400 --output <folder>`, four at once
+  from this worktree, planning review `stage`. Output in `~/e2e-runs/2026-11-01/follow-on-live-436258/`. Pre-registered in 2da2d4f3d11b0f468c14ff48e6158a7bb334e8ee
+  (rules R1-R6, predictions P1-P6).
+- Cases: hello (1), csv-report (2: its saved runs gave the replay's `decision` row F08), seat-reservations (1). `user-listing` and the ticket cases were left out
+  because another session's pilots hold their port leases.
+- The machine's load was 51 at the start and 60 to 87 at the ends on 18 CPUs; each run overlapped five others (its siblings and two of another
+  session's calibration runs).
+
+**Result.** All four runs passed every verdict; each loaded plugin tree bf3be9d89072.
+
+| Case | Runs | Passed | Turns | Minutes | ShipLoop command failures | Handoff attempts (exit) | `follow_on` | Handoff head printed (whole) |
+|---|---|---|---|---|---|---|---|---|
+| hello | 1 | 1 | 143 | 12.4 | 0 | 1 (0) | `[]` | 16,850 (20,653) |
+| csv-report | 2 | 2 | 178, 185 | 17.5, 18.9 | 0, 1 | 1 (0), 1 (0) | one note each | 17,068 (20,762), 17,101 (20,855) |
+| seat-reservations | 1 | 1 | 216 | 20.0 | 5 | 1 (0) | `[]` | 17,462 (21,245) |
+
+- R1 holds (4 of 4 done, every verdict). R2 holds (0 refusals naming `follow_on`; every handoff accepted on its first `complete`). R3 holds on n = 2: both
+  entries (csv-report, class note, source `assumption:A2`) are supported by the assumption they cite. R4: entries 0, 1, 1, 0; one flag, not a defect
+  (seat-reservations filed `[]` while its `lessons.open_next` holds a revalidation condition and its considerations say the server has no authentication;
+  by the duty's words a note, and its summary says no follow-on is required). R5 not exercised (no gap, no decision, so no request file and no start
+  command). R6 holds: the handoff head printed 16,850 to 17,462 against the 20,000 cut; hello is +1,475 printed and +1,696 whole against the saved
+  Codex hello run (shiploop-hello-codex-floor-2c31ea: 15,375 and 18,957).
+- Predictions: P1, P2, P5, P6 held; P3 (at least 3 of 4 file an entry) missed, 2 of 4 did; P4 (a csv-report run files a decision) missed, neither did.
+- The model took the default for the open tie rule and header in both csv-report runs (plan assumption A2, which the ledger still shows `open` because it
+  never updates a disposition) and said so in a `note`; hello and seat-reservations had the same kind of A2, say a passing test settled it and filed
+  nothing.
+
+**Contrary evidence and unexplained.**
+- The list found almost nothing, as the design's own numbers predicted (decision in 1.2% to 1.8% of finished runs, no gap), so this round says the
+  mechanics hold and says nothing about whether the list finds what a person would want. The four requests are small and fully specified.
+- The `decision` the replay found in saved csv-report runs did not recur: both runs recorded a default. Whether that is the list or the model's
+  usual unattended behaviour (S-14) is not separable here: there is no arm without the list.
+- The one R4 flag (seat-reservations) shows the list can stay silent about a revalidation condition the model itself wrote in its lessons.
+- The ShipLoop command failures in seat-reservations (5) and csv-report-2 (1) are earlier-stage `shiploop check` refusals; no run was refused at the
+  handoff, so nothing here ties them to the change.
+
+**Not measured.** A recommended run live (the request file, the start command from a model-written list, intake's handling of a request that quotes
+findings, design U2); entry-level agreement between readers (U11); the owner's own features; the Claude and Grok hosts; efforts other than xhigh;
+`user-listing` and the ticket cases; cost (Codex reports none). Four lists are an existence check, not a rate.
+
+**Evidence.**
+- docs/experiments/follow-on-build-20261101/: README.md (the write-up), runs.json, readings.txt, verdicts.txt, extract_follow_on.py, read_records.py.
+- The four baseline rows are in test/shiploop_e2e/baselines.jsonl (`local_head` 2da2d4f3d11b0f468c14ff48e6158a7bb334e8ee); the evidence commit is 7c2ce6cb9345959292c38688106a4c8d16be865c.
+- Journal docs/shiploop-follow-on-run-journal.md, Round 5.
+
+## Follow-on list, the recommended-run path: E2E round on the Codex harness, Terra 6.1 xhigh, six custom-prompt runs on a primed request (2026-11-01) — status: firm for these six runs, mechanics only (n = 2 per link; a primed request): a model filed a `decision`, the printed start command worked as printed, a run started from the request asked the requester and changed nothing, and a run started from the request plus the answer delivered and did not file the decision again
+
+**Change under test.** None. The released tree (skill-craft 2.30.0 / ShipLoop 1.29.0, plugin tree 3efc9db89059, from a detached worktree at d2c6a5ff62a323a0f29c9d9b06c2f9bb5031a8a7), whose follow-on list the
+previous entry checked on four small requests without reaching a recommendation. The question is the path after the list: the request file, the printed command, and a run started from the request. The plan, rules R1 to R6 and
+predictions P1 to P7 were committed before any run (7bcb2884e410adb362206f82bf93695ec14da163); link 3 was registered after the link-2 outcome and before it ran (e6088502a9b60728717ec6c58b5ef290983c6e5e).
+
+**Runs.**
+- Command: `docs/experiments/follow-on-recommended-run-20261101/launch.sh` over `run.py --prompt ... --check ... --host codex --model gpt-6.1-terra --effort xhigh --source checkout` (custom prompt, no named case, no fixed
+  port). Link 1: a request that reserves one choice for the person (whether accented letters in a slug are converted or kept; "do not choose"), two replicates at once. Link 2: one run for each, started from that
+  replicate's own `follow-on-request.md` in a copy of its checkout (`--continue-from`). Link 3: the same request file plus one fixed requester answer, in a copy of the same checkout.
+- Output: `/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/`. Launches were refused three times before the first run, by four idle progress observers of another session's finished runs (memory note
+  e2e-launch-refusals, item 9); that session stopped them after a message.
+
+**Result.**
+
+| Run | Started from | Turns | Minutes | Gates | Handoff | `follow_on` | `slug.py Café` |
+|---|---|---|---|---|---|---|---|
+| link1-a, link1-b | the request | 172, 159 | 11.5, 10.6 | 6 of 6 each | 1 attempt each | one `decision` each, `lessons.open_next` | exit 2, "undecided: non-ASCII" |
+| link2-a, link2-b | each replicate's request file | 25, 25 | 1.2, 1.4 | 4 of 6 each | none: BLOCKED at spec | not reached | exit 2 (product unchanged) |
+| link3-a, link3-b | request file + the answer | 162, 144 | 12.8, 11.3 | 6 of 6 each | 1 attempt each | `[]` | `cafe`, exit 0 |
+
+- R1, R2, R3, R7, R8 and R9 hold. The printed command ran as printed on a copy of each link-1 checkout (exit 0, one workspace record, the stored request equal to the file but for its last newline). R4 as registered is
+  not met (0 of 2 link-2 runs reached `done`) and P5 (65%) missed; P1, P2, P3, P4, P8, P9 and P10 held. Link 2 changed no file; link 3 changed `slug.py`, `test_slug.py`, README and the three living knowledge files.
+
+**Mismatch triage** (the harness wrote `mismatch.md` for link2-a and link2-b: expected `shiploop` done and `committed`, observed blocked and HEAD unchanged). In the harness's order: the checks are not wrong; the cause is not
+the environment; it reproduced 2 of 2 and its trigger is clear (the request tells the run the decision is the requester's); the expectation was mine and describes an outcome ("done") an unanswered decision cannot have;
+a normal run with an unanswered decision would hit it; the behaviour comes from SPEC S-14 (blocked awaiting an answer when no default can proceed), the owner's own rule. Decision: the expectation changes (the plan's R4
+for an unanswered decision), no product change; link 3 supplies the answer.
+
+**Contrary evidence and unexplained.**
+- The request is primed, so a pass shows the path and not its use; two replicates of one request are a mechanics check, not a rate.
+- The person is simulated by one fixed answer chosen from the options the runs themselves offered; the harness never resumes a blocked run as if answered, so link 3 carries the answer in the prompt.
+- The double period in the request text (the model's `needs` ends with one and the template adds another) was seen twice and not fixed.
+- Two slips in my readout (a hash compared with the wrong string; a folder filter that skipped link 3) were found on first use, before any value was read through them.
+
+**Not measured.** The comparison with a hand-written request on the same base (design M2a's second half); a recommended `gap`; a person answering; the owner's own features (M3); the Claude and Grok hosts; efforts other than
+xhigh; entry-level agreement between readers (U11).
+
+**Evidence.**
+- docs/experiments/follow-on-recommended-run-20261101/: README.md (the write-up), readings.txt, runs.json, verdicts.txt, printed-command-link1-a.json and -b.json, requests.md, blocked-questions.txt, link3-changes.txt, and the
+  instruments request.txt, answer.txt, launch.sh, calibrate_checks.py, check_printed_command.py, readout.py. The six baseline rows are in test/shiploop_e2e/baselines.jsonl (`local_head` d2c6a5ff62a323a0f29c9d9b06c2f9bb5031a8a7);
+  the evidence commit is f9454b31ff1751d333e16b6439842a312f3e6f31.
+- Journal docs/shiploop-follow-on-run-journal.md, Round 6 (plan, addendum 1, result, findings F38 to F44).
+
+## Harness change: the Claude host defaults to Anthropic's Sonnet 5.5, not Ollama's DeepSeek flash (2026-11-01) — status: firm (a default, not a finding); supersedes the 2026-10-26 entry "an E2E run defaults to DeepSeek flash on Ollama"
+
+**Owner decision.** 2026-11-01, in chat, "Yes use that as default", answering "Make Claude the E2E harness's default backend
+instead of Ollama?". It was asked first because AGENTS.md lists a default that breaks comparability with earlier evidence as
+one-way; the portability session had read "just use Claude" (2026-11-01) as scope and left the default alone.
+
+**What changed.** `run.py`, `slice.py`, the stage suite and a Claude-host run from `iterate.py` or `experiment.py`, started with
+`--host claude` and no `--backend`, now run `claude-sonnet-5-5` on the Anthropic backend. `--backend ollama` still selects
+`deepseek-v4.1-flash:1017-cloud`, with its credential scrub, tool allowlist and readiness refusal unchanged.
+- `hosts.RUN_DEFAULT_BACKEND` and `hosts.run_default_model` are gone. With Anthropic as the default, the mapping would have said
+  what the host factory already does (`hosts.host("claude")` is Anthropic), so each caller passes `--backend` through and the
+  factory decides. One place names the default, as before.
+- The default host is still Codex (`hosts.RUN_DEFAULT_HOST`, Terra 6.1 xhigh, owner 2026-10-29 and 2026-11-01); only an explicit
+  Claude host changed. A resume or regrade of a run recorded before the backend field exists still stays on Anthropic
+  (`run.resume_backend`, untouched), and a resume keeps its run's recorded backend.
+
+**Why.**
+- Ollama's monthly usage cap blocked runs twice: on 2026-10-29 (the 429 above, at 44.9 min of `ticket-assignment`) and on
+  2026-11-01, at the first model call of the clean-install check (`docs/experiments/clean-install-20261101/claude-hello-429-result.json`,
+  commit 7b8639802b65e2b2dd4c1be2d65dc62f2e078a6b). `hosts.ollama_ready` lists models only and cannot see a quota, so a default run
+  launches and fails at its first call, or hours in.
+- The same check on Sonnet 5.5 passed every verdict: 969.2 s, 188 turns, $4.1302 (`claude-sonnet-hello-result.json`, baseline row
+  in e20ea84061e9feea80873e3fe8e1a2b8d1328fe6), n = 1.
+- A gap recorded on 2026-10-30 in `docs/shiploop-e2e-closed-loop-plan-2026-10-30.md` closes for the Claude host: `epoch.launch`
+  never passes `--backend`, so a cycle on the Claude host tried Ollama and was refused wherever Ollama is not running (a cloud
+  session). It now gets the Anthropic route. Not run: this follows from `run.the_host`, which the new test pins.
+
+**Effect on earlier results.** None are relabelled. `baselines.jsonl` has 167 rows; 38 are in the `claude` / `claude-sonnet-5-5` cell
+and 9 in `claude` / `deepseek-v4.1-flash:1017-cloud`. A default Claude-host run now lands in the Sonnet cell, whose earlier rows
+are older ShipLoop builds (for example 1.15.0 on 2026-10-26); the DeepSeek cell stays comparable only with itself and needs
+`--backend ollama --model deepseek-v4.1-flash:1017-cloud`. The decision of 2026-10-28 in commit
+917e0c2bac344854597823bb01ee18936b13d070 ("the E2E default stays DeepSeek flash after the Grok reset", on the grounds that every baseline since
+2026-10-26 was DeepSeek flash and Grok's credits ran out within a week) is superseded by the owner, with the cap as the new evidence.
+
+**Cost.** An Anthropic run spends budget that Ollama's did not charge (its cost was "not measured"): $4.13 for `hello`, n = 1.
+Longer cases are not measured on Sonnet at the current ShipLoop. `--max-budget-usd` applies on this backend and is refused on Ollama.
+
+**Tests (fail-first).** Four tests fail on the old default and pass on the new one, run in a scratch worktree at the previous
+commit with only the three changed test files copied in: two in `shiploop-e2e-roles.test.py` (`resolve_role` and `the_host` give
+`('ollama', 'deepseek-v4.1-flash:1017-cloud')`, not `('anthropic', 'claude-sonnet-5-5')`), `test_a_slice_with_no_backend_runs_on_claudes_own_models`
+in `shiploop-e2e-slice.test.py` and `test_an_e2e_run_defaults_to_claudes_own_models_and_ollama_is_named` in `shiploop-e2e.test.py`. The
+slice test that proves `--backend ollama` still routes to the DeepSeek model and is refused when Ollama is not ready was split
+off the old default test, so that coverage stays. The test files that name `--backend anthropic` for their fake claude keep
+doing so: now redundant, left explicit, with their comments corrected.
+
+**Found by the quick tier, not before.** Two more tests, in `shiploop-e2e-stages.test.py`, asserted the old default and failed on
+the new one (`test_the_driver_defaults_are_slices_and_the_options_override_them` for `--host claude`, and
+`test_a_host_on_ollama_that_does_not_answer_is_refused`, which started a Claude host without naming Ollama). I had run only the
+suites I had edited, not every suite that parses `--host claude`; the tier (`--changed-from` the origin/main tip, `--jobs 8`) ran 61
+suites in 1105.7 s wall under a machine load of 70 to 150 from other sessions, and 60 were OK. The two tests now expect the
+Anthropic default and name `--backend ollama` for the Ollama cases; the suite reran alone, 121 tests OK in 347.8 s. These two edits
+were not run against the old default, so they are not fail-first; the other 60 suites were not rerun after them, because the fix
+touches only that test file.
+
+**Not measured when this was committed (2e1f89a8fbb671d150a85ab0ebb9f13bf0f0f02b):** whether a live run works on the new default.
+Superseded the same day by the next paragraph.
+
+**First live run on the new default (2026-11-01, 10:27 to 10:48 PT) — status: firm for this run (n = 1).** `run.py --case hello
+--host claude --plugin-dir <export of origin/main plugins/skill-craft> --max-budget-usd 25`, with no `--backend` and no `--model`:
+`result.json` records `backend: anthropic`, `model: claude-sonnet-5-5`. Every verdict passed on skill-craft 2.30.0 / ShipLoop 1.29.0
+(tree digest 3efc9db89059): process rc 0 in 1239.8 s, 280 turns, $5.6854, 23 of 23 stages accepted, HEAD with 6 files and 0
+uncommitted, both request checks. Four ShipLoop commands exited 2 (three `--check-only` gates and one `improve-pass` on an
+already-imported stage); the run went on to `done` after each. The run used `--plugin-dir`, not `--source marketplace`, because
+the gate refused: `origin/main` held one unreleased change note from another session (the payload was still byte-identical to the
+2.30.0 release commit). Across the last six `hello` rows of this cell the turns are 197, 364, 230, 193, 188 and 280 and the cost
+$4.18, $7.65, $4.39, $3.88, $4.13 and $5.69, so 280 turns and $5.69 are inside the range and no cost change is claimed. The same
+folder shows the documented command passing its gate on 2.31.0 once the note was released. Evidence:
+`docs/experiments/release-smoke-20261101/`.
+
+## Send-back replication R3 on shared-expenses: E2E round on the Codex harness, Terra 6.1 high (2026-11-01) — status: firm for this case and setting that the K12 line did not send stages back more often (A 4 of 10 runs, B 3 of 10); the send-back family itself is common (7 of 20 runs) and does not need K12, interim
+
+**Change under test.** The K12 terms-and-references change (60dc376881d397d770874af16c8a6a8ed60956b2, released in skill-craft 2.28.0 / ShipLoop 1.27.0), on `main` at 47ed1804d379e1ad58ac5ad081e027dab043f906 (ShipLoop 1.29.0,
+skill-craft 2.30.0). Arm B is that tree, arm A is the tree with the change reverted. Round 1 of the first A/B had A 0 of 6 runs with a send-back and B 4 of 5
+(74cfdc91ea4a15287508d9a5913336a3b8584b90); its replication R2 had A 0 of 4 and B 1 of 4 (9c2bf16a0264edc7d8b682ded7dc9a8292e8a838 registered it).
+
+**Runs.**
+- Command: `run.py --case shared-expenses --host codex --model gpt-6.1-terra --effort high --source checkout`, each run from its arm's own worktree (B: the commit
+  above, detached; A: the same plus `git revert --no-commit 60dc376881d397d770874af16c8a6a8ed60956b2` committed on a scratch branch, never merged). Rules registered in ade06b6426e5b4e53f4817049f80028832476baf before any scored run
+  (R3-1: runs with a send-back, B higher, exact one-sided Fisher p at most 0.05; power 43% against a true 40% versus 5%).
+- 20 runs over five lanes of two-run background tasks, 10:08 to 11:22, the arms alternating in each lane; no launch refused, every run at its first attempt, no
+  restart. The case is new (shared-expenses, 47ed1804d379e1ad58ac5ad081e027dab043f906): Node, no port lease, six product checks calibrated on a reference service and nine defects; one unscored smoke
+  run before the registration.
+- Output `~/e2e-runs-r3/20261101/`; reader docs/experiments/send-back-replication-r3-20261101/r3_reader.py.
+
+**Result.** All 20 runs passed (the six checks passed on every delivery); plugin tree e1f3664f5d9c in the 10 A runs and 3efc9db89059 in the 10 B runs.
+
+| Arm | Runs | Passed | Minutes (mean) | Processed tokens, millions (mean) | Refused callbacks per run | Runs with a send-back | Send-backs |
+|---|---|---|---|---|---|---|---|
+| A | 10 | 10 | 14.6 | 32.8 | 2.4 | 4 | 6 (implement 5, validate-existing 1) |
+| B | 10 | 10 | 15.2 | 34.2 | 3.4 | 3 | 3 (test 1, implement 1, system-test 1) |
+
+- R3-1 does not fire (one-sided exact p 0.8251): R3-3, no excess seen. S1 holds (one digest per arm; 11 against 12 stored ledger categories). C1 to C3 hold
+  (tokens ratio 1.04; refused callbacks +1.0 per run, bound +1.5; nobody asked a person, no blocked run). K12 was marked "yes" in 10 of 10 B ledgers and no
+  question was filed under it.
+
+**Contrary evidence and unexplained.**
+- The control's rate was 40%, not the 5% the rule was sized for; against it the rule could have fired only with B at 9 or 10 of 10, so this round could not see a
+  moderate excess. It shows that B was not worse here; it does not show that K12 has no effect on send-backs.
+- The implement send-back (a step's proof needs tests the test stage writes later; on an empty baseline `node --test` runs zero tests) is present in both arms on a
+  tree that has rule C (9870c6f68bfbd9375340c0e91ffdf4abfd76bd85) and the focused-ID fixes: 5 of 20 runs (A s1, s4, s9, s10; B s2; a split chosen after looking, one-sided p 0.1517 for A over B), and
+  7 of 20 runs had any send-back. A run with one took 16.7 minutes and 42.3M tokens against 13.9 and 28.8M without (pooled, descriptive). It looks independent of K12
+  and belongs to whoever owns step-plan's proofs.
+- Round 1's imbalance stays unexplained. Refused callbacks: B +1.0 per run (test 21 against 14, step-plan 10 against 7, improve 3 against 0), none at intake.
+
+**Not measured.** K12's benefit (the request defines its own terms); other cases, subjects or efforts; the 2.27.2 pair; any cost beyond the C bounds (run-to-run
+spread is tens of percent).
+
+**Evidence.** docs/experiments/send-back-replication-r3-20261101/ (README.md with the rules and the Results, scores.json, results-tables.md, extra-analysis.txt,
+r3_reader.py, r3_extra.py, lanes.sh); 20 rows in test/shiploop_e2e/baselines.jsonl; the journal docs/shiploop-intake-question-bank-journal.md §5.7 and F42 to F45.
+
+## E2E iteration 0 learnings (csv-report, codex high)
+
+Iteration 0 ran ShipLoop built from 27dedcff30f1ca05a0a541a4b4b1d21e3fe438d8 with codex gpt-6.1-terra (effort high) from an empty directory on the csv-report case.
+
+Outcome
+
+- run: PASS; host exited (rc 0) after 945.3 s, 186 turns, cost not reported
+- ShipLoop: status done, stage done, report True
+- checks in work/: 5/5 pass
+- ended as: PASS (every verdict passed)
+
+Reviewer outcome
+
+The run delivered a clean, committed CLI that passed every catalog check, while exposing a recurring proof-prerequisite gap, progress-contract violations and avoidable verification glue.
+
+Learnings
+
+- Investigate proof prerequisites before strengthening the gate (material, within current authority)
+  Evidence: S-9/S-10: .shiploop-runs/work-20261101-155412-05d2fa/run/results/nav-536d0db98e444645b72b6162cf06bd1f.md:79 assigns a unittest proof before test creation; its Improve evidence/01-review-2.md:7 says 'Test creation precedes S1'. events.jsonl:146 records 'Ran 0 tests' with exit 0. The implementation sent the plan back; metrics.json records 67 seconds of repeated step-plan and 22 seconds of repeated test-spec.
+  Proposal: Extend the existing proof-order investigation to prose-only confirmation and composite suite/inline commands. Preserve valid direct proofs, existing tests, earlier-step suppliers and test-only work. Do not revive the broad refusal rejected in cc828f7372a0bc3c75aa3b9b703a4c805a3d298a or merely repeat existing guidance.
+  Premise: S-1/S-9: scripts retain stage selection and acceptance; the investigation seeks earlier detection without accepting zero-test proof or removing review.
+  Files: skills/shiploop/scripts/shiploop_item_scope.py, skills/shiploop/scripts/shiploop_prompts.py
+
+Missing considerations
+
+- Align progress guidance with exact script-rendered display (minor, within current authority)
+  Evidence: S-3/S-15: events.jsonl:153,196,217,248 contain model-composed progress. SKILL.md:298 asks for at most one line per completed step and :308 says to briefly report the milestone, while references/status-display.md requires script-authored status. Genuine undisplayed narrative bodies remain at events 185,247,349.
+  Proposal: Replace the ambiguous card sentences with the existing exact-display obligation, including hook ownership and suppression of unchanged repeats. Preserve the rendered narrative and avoid adding a new runtime refusal. Treat wording as a plausible contributor, not a proven sole cause.
+  Premise: S-15 remains unchanged: scripts compose progress from saved state and the model relays it.
+  Files: skills/shiploop/SKILL.md, skills/shiploop/references/status-display.md
+
+Optimizations
+
+- Investigate duplicate returned-tree verification (minor, within current authority)
+  Evidence: S-4/S-5/S-12: events.jsonl:338 contains model-written mkdir, git archive, extraction and unittest execution. The subsequent script record tests/nav-d733538739a84a5d85096027af2fd472-verify1.md independently exports the returned tree and runs the same three tests against the same f783991bfec7a3c9febe7f7d9a4cd6865ae6fb5a head. shiploop_prompts.py:1771 asks the host to run checks although completion also runs them.
+  Proposal: Investigate a script-issued verification route that supplies evidence for the model's assessment without requiring a second hand-built export. Preserve completion-time identity checks, failure recovery and remote-target freshness. Retain the prior deferral until those conditions are demonstrated; no speedup is established here.
+  Premise: S-5/S-9: export, execution and acceptance remain script-owned; model-authored success notes cannot replace verification.
+  Files: skills/shiploop/scripts/shiploop_prompts.py, skills/shiploop/scripts/shiploop_test_loop.py, skills/shiploop/scripts/shiploop_workspace.py
+
+Discoveries and independent judgment
+
+- A reviewed proof still depended on future tests (material, requires separate disposition)
+  Evidence: [{'reference': '.shiploop-runs/work-20261101-155412-05d2fa/run/improve/nav-536d0db98e444645b72b6162cf06bd1f/evidence/01-review-2.md:7', 'observation': 'Improve accepted a trivial review that incorrectly stated test creation preceded S1.', 'interpretation': "The review did not correctly apply the engine's actual execution order."}, {'reference': 'events.jsonl:146; .shiploop-runs/work-20261101-155412-05d2fa/run/results/nav-71a6272ea144462ca197531e3970164c.md:14; metrics.json.stages', 'observation': 'The proof ran zero tests, implementation sent it back, and repeated planning/test-spec consumed 89 recorded seconds.', 'interpretation': 'Recovery protected delivery, but earlier review and structural validation left consequential avoidable work.'}]
+  Proposal: Continue the known proof-readiness investigation. Commit 9870c6f68bfbd9375340c0e91ffdf4abfd76bd85 explicitly retained prose/identifier misses; this run confirms that limitation and adds a composite-command example, rather than disproving its narrow path-based guarantee.
+  Files: skills/shiploop/scripts/shiploop_item_scope.py, skills/shiploop/scripts/shiploop_prompts.py, test/shiploop-callback-contract.test.py
+  Mission relationship: {"challenge": "No amendment is requested. A zero-test exit cannot prove behavior; S-10 review exits must respect actual prerequisites.", "clause_id": "S-9", "relationship": "supports"}
+  Confidence: high; next experiment: Replay neutral cases covering prose-only future tests, the same suite combined with a nonbehavioral inline assertion, a genuine standalone behavioral proof, existing tests, earlier-step suppliers and test-only work. Require discrimination without the false refusals found in cc828f7372a0bc3c75aa3b9b703a4c805a3d298a before constructing a candidate.
+- The card permits an ambiguous progress interpretation (minor, within current authority)
+  Evidence: [{'reference': 'events.jsonl:248; skills/shiploop/SKILL.md:298; skills/shiploop/SKILL.md:308; skills/shiploop/references/status-display.md:4', 'observation': "The model composed a delivery-progress update; the card's brief-report wording is weaker than the reference and packet exact-copy instruction.", 'interpretation': 'The interchange contains avoidable ambiguity, although host-level communication instructions could also explain the behavior.'}]
+  Proposal: Align the two ambiguous card sentences with the existing display rule, preserving hook behavior and every required narrative. This continues the unimplemented clarification discussed in b1d4dab1924b54af6c6cb9089c3f7458f5a73e8d; it does not introduce a new status mechanism.
+  Files: skills/shiploop/SKILL.md, skills/shiploop/references/status-display.md, test/shiploop-status-display.test.py
+  Mission relationship: {"challenge": "Preserve the accepted script-authored display contract and reconcile the card under S-3.", "clause_id": "S-15", "relationship": "supports"}
+  Confidence: medium; next experiment: Test a neutral milestone with exact-copy instructions and competing generic progress guidance, including hook-displayed and unchanged-repeat controls. A later live comparison must measure genuine milestone obligations rather than raw packet appearances.
+- The host duplicates an existing script-owned export (minor, requires separate disposition)
+  Evidence: [{'reference': 'events.jsonl:338; .shiploop-runs/work-20261101-155412-05d2fa/run/notes/release-verification.txt', 'observation': 'The host built a clean archive and manually ran the consumer suite.', 'interpretation': 'The prompt led to mechanical work already implemented by ShipLoop.'}, {'reference': '.shiploop-runs/work-20261101-155412-05d2fa/run/tests/nav-d733538739a84a5d85096027af2fd472-verify1.md', 'observation': 'Completion then exported the receipt-bound returned result and ran the same three tests successfully.', 'interpretation': 'The existing script path supplies authoritative evidence; the extra host path is a candidate for simplification, subject to freshness safeguards.'}]
+  Proposal: Retain the investigation deferred in b1d4dab1924b54af6c6cb9089c3f7458f5a73e8d. Build on e9ec4733b98c5b41f67f2b0f42291faa903fca64's receipt-bound export rather than creating another exporter or weakening completion checks.
+  Files: skills/shiploop/scripts/shiploop_prompts.py, skills/shiploop/scripts/shiploop_test_loop.py, skills/shiploop/scripts/shiploop_workspace.py, test/shiploop-workspace.test.py
+  Mission relationship: {"challenge": "S-4 and S-12 favor eliminating duplicate mechanical glue, while S-9 still requires current script-run evidence.", "clause_id": "S-5", "relationship": "supports"}
+  Confidence: high; next experiment: Use a neutral local-return fixture to test evidence retrieval and completion against unchanged, changed and unreadable receipt-bound trees. Include a mutable-target control that must not reuse stale evidence.
+- Packet rereads distort narrative display accounting (minor, requires separate disposition)
+  Evidence: [{'reference': 'metrics.json.narrative; events.jsonl:299-302,316-319,334-337,339-342', 'observation': 'Metrics reports 27 emissions and 14 verbatim displays. These sequences contain an original narrative, numbered reread and matching user display that the counter treats as skipped.', 'interpretation': 'Tool appearances are being confused with milestone display obligations.'}, {'reference': 'events.jsonl; test/shiploop_e2e/metrics.py:2319-2337', 'observation': 'Normalizing numbered rereads yields 21 distinct narrative bodies, 18 displayed verbatim; bodies at events 185,247,349 remain undisplayed. The reader opens a new display window for each tool call.', 'interpretation': 'The published counter overstates omissions, but actual S-15 violations remain. Distinct-body counting is diagnostic, not a replacement grading rule.'}]
+  Proposal: Reconcile with 420018f1db8e93ec9f27d1c254a85e17d4b25004, which already implemented unchanged-progress accounting on saved history but is not an ancestor of this run's source. Test its coverage of numbered rereads before proposing another implementation. Keep this evaluator experiment separate from ShipLoop qualification.
+  Files: test/shiploop_e2e/metrics.py, test/shiploop-e2e.test.py
+  Mission relationship: {"challenge": "The evaluator should distinguish repeated access to saved status from a newly owed milestone, without hiding genuine omissions or repeated user displays.", "clause_id": "S-15", "relationship": "supports"}
+  Confidence: high; next experiment: Replay original emission followed by plain or numbered reread and one display; contrast changed milestones, intervening milestones, genuine omissions and duplicate user displays. Preserve original metrics and append the calibrated interpretation.
+Judge: {"assessments": [{"disposition": "investigate", "evidence": [".shiploop-runs/work-20261101-155412-05d2fa/run/results/nav-536d0db98e444645b72b6162cf06bd1f.md:13-79 assigns behavioral criteria to unittest and combines that suite with a docstring assertion.", ".shiploop-runs/work-20261101-155412-05d2fa/run/improve/nav-536d0db98e444645b72b6162cf06bd1f/evidence/01-review-2.md:7 says test creation precedes S1, while packets/nav-71a6272ea144462ca197531e3970164c.md:20,49 explicitly schedules tests later and prohibits writing them during implementation.", "events.jsonl:145-146 records the composite command returning successfully after running zero tests; run/trace.jsonl:41 records the implementation send-back.", "metrics.json.stages records repeated planning and test-spec stages of 67 and 22 seconds. These are observed recovery costs, not demonstrated savings."], "id": "D-PROOF-PREREQUISITE-ESCAPE", "reason": "The reviewed proof depended on future tests; its additional assertion checked only a docstring. Recovery prevented acceptance of empty behavioral evidence. This material finding supports investigation, but neither a safe broader gate nor prospective savings is established.", "status": "supported"}, {"disposition": "investigate", "evidence": ["The run-installed skills/shiploop/SKILL.md:294-310 juxtaposes script-rendered narrative instructions with 'at most one line' and 'briefly report the milestone'; references/status-display.md assigns rendering to scripts and specifies exact model relay.", "events.jsonl:153,196,217,248 contains model-composed progress updates.", "events.jsonl:185,247,349 requests exact narrative display; subsequent user-facing messages omit those complete bodies. The omissions remain after accounting for packet rereads."], "id": "D-PROGRESS-INSTRUCTION-ALIGNMENT", "reason": "The card contains competing progress wording, and composed updates occurred. Wording is a plausible contributor, not an established cause. This minor finding does not meet the materiality requirement for implementation.", "status": "supported"}, {"disposition": "investigate", "evidence": ["events.jsonl:338 builds a git archive, extracts it into run/scratch/returned-check and executes unittest; events.jsonl:339 and run/notes/release-verification.txt retain the three-test output.", ".shiploop-runs/work-20261101-155412-05d2fa/run/tests/nav-d733538739a84a5d85096027af2fd472-verify1.md independently records the same command and test IDs against head f783991bfec7a3c9febe7f7d9a4cd6865ae6fb5a.", "All seven tracked files in the preserved returned-check and consumer-check copies match that commit, corroborating the model-written identity claim.", "Run-installed shiploop_prompts.py:1771 requires preliminary execution, while shiploop_test_loop.py:1421-1457 performs the script-owned export and verification. Preliminary execution currently informs the model's assessment."], "id": "D-RETURNED-CHECK-DUPLICATION", "reason": "Both paths exported the same committed source and ran the same three tests. Safe consolidation and meaningful savings remain unproved. Investigation should assess the existing script check route while preserving completion-time identity and freshness checks.", "status": "supported"}, {"disposition": "investigate", "evidence": ["metrics.json.narrative records 27 emissions and 14 verbatim displays.", "events.jsonl:299-302,316-319,334-337,339-342 each contains an original narrative, a numbered reread and a matching user display.", "Independent read-only analysis of events.jsonl merges consecutive identical bodies after removing reread numbering; only bodies first appearing at events 185,247,349 remain undisplayed.", "Source test/shiploop_e2e/metrics.py:2319-2337 opens separate windows for matching tool results. Commit 420018f1db8e93ec9f27d1c254a85e17d4b25004 adds unchanged-body accounting but lacks numbered-reread normalization and is not an ancestor of the recorded run source."], "id": "D-NARRATIVE-REREAD-ACCOUNTING", "reason": "The counter confuses repeated packet access with new display obligations. Independent normalization reproduces 21 distinct bodies, 18 displayed verbatim and three genuine omissions. This is a harness calibration finding, not an eligible ShipLoop implementation.", "status": "supported"}], "review_sha256": "1f862c1e4255ef6a280551e3086518f01011f6970560a5393f5becbfe711323d", "validity": {"reason": null, "status": "valid"}}
+
+Harness questions
+
+- learning retention: Keep the existing append-only learning records and full Git messages. The needed improvement is history reconciliation, not another state store. Recording this review's learning remains pending with the authorized operator; this reviewer wrote nothing.
+  proposal: Record the clean delivery, proof-order recovery, exact identities, measured costs, unknowns and raw artifact locations in the operator-owned learning commit.
+  proposal: Retain the rejected broad proof rule, the narrow adopted rule and its explicit remaining misses together; do not infer a regression from an uncovered case.
+  proposal: Preserve the original narrative metrics and attach any calibrated reinterpretation separately. Bind a fresh independent judge assessment to this review's exact bytes.
+- further learning: The highest-value next observations concern proof readiness, truthful progress accounting and what a cold consumer learns from retained knowledge. This run does not establish campaign exhaustion.
+  proposal: Run the discriminating proof-prerequisite replay before selecting an engine candidate; then qualify one record at a time on csv-report and a contrasting style such as stateful-service.
+  proposal: Use a cold follow-on to determine whether the mixed planned/completed statements in environment.md cause rediscovery or mistaken readiness judgments under S-11.
+  proposal: Calibrate a two-nonempty-input aggregation fault against the delivered tests and public checks. The current implementation has no demonstrated defect; the question is oracle adequacy under S-9.
+  proposal: Exercise missing-completion continuation and fresh-context recovery separately; their absence here does not reconfirm LR-20261030-5dce01 or S-6.
+- evaluation criteria: No new promotion floor is justified by this run. Calibrate existing measurements and preserve their limits before using them to judge efficacy.
+  proposal: Distinguish narrative appearances, milestone obligations and user displays while retaining genuine S-15 violations.
+  proposal: Investigate the existing verification-reader disagreement: metrics counts eight commands while fidelity counts five and does not understand step-proof. Preserve raw baseline failures despite summary red=0; do not turn unknowns into S-9 passes.
+  proposal: Keep script mutation samples distinct from independent held-out quality, and keep checkout exploration distinct from marketplace qualification.
+  proposal: Do not convert packet bytes, review counts, missing notice-only sections or a single run's planning time into optimization targets or new verdicts.
+
+Learning records: LR-20261101-bea142 (test/shiploop_e2e/learning-records.jsonl)
+
+Next
+
+- no independently admitted ShipLoop finding to apply; retained challenges need disposition
+
+## E2E iteration 0 learnings (seat-reservations, codex high)
+
+Iteration 0 ran ShipLoop built from 6a6cb10172f78737b685a127c1c2f2be5c2aca52 with codex gpt-6.1-terra (effort high) from an empty directory on the seat-reservations case.
+
+Outcome
+
+- run: PASS; host exited (rc 0) after 1255.4 s, 252 turns, cost not reported
+- ShipLoop: status done, stage done, report True
+- checks in work/: 4/4 pass
+- ended as: PASS (every verdict passed)
+
+Reviewer outcome
+
+ShipLoop delivered a clean, committed seat-reservation service that passed all four case checks, while exposing avoidable planning rework and recurring progress and verification-contract issues.
+
+Learnings
+
+- Reconcile the existing focused-test-ID fix (material, within current authority)
+  Evidence: S-4/S-5/S-6: the accepted step-plan result nav-9d8beb22e0e54a8883c3ea20b0f8dd87 names executed criteria C1 and C3 on focused commands but lists only TC_1. Three Improve passes leave that mismatch. The test-spec result nav-b725229e6e8d435da10f6ae8404e42ce sends it back for separate IDs; nav-35683642df93456aa37f3b6f60bdaeef adds TC_2. These files are under .shiploop-runs/work-20261101-165847-d00e20/run/results/. metrics.json records 25 seconds for the send-back and 47 seconds for replanning. Full commits b8d320335c81151a99e7d168b684d79fd0e81352 and 4515368495e2b2e50ea07f7599146875188449f9 already implement a narrowly scoped matching check and wording correction; neither is an ancestor of this run's 6a6cb10172f78737b685a127c1c2f2be5c2aca52.
+  Proposal: Use this run as additional evidence for the existing focused-ID investigation. Replay its matching check against both saved plans before proposing another change. Preserve regression-only coverage, searched or inspected criteria, and existing notice semantics. The 72 recorded seconds are recovery work, not established net savings.
+  Premise: S-1/S-5: the existing shared script gate checks a mechanical producer-consumer constraint; scripts retain routing and acceptance.
+  Files: skills/shiploop/scripts/shiploop_test_loop.py, skills/shiploop/scripts/shiploop_navigator.py, skills/shiploop/scripts/shiploop_prompts.py
+
+Missing considerations
+
+- Align progress instructions with exact script display (minor, within current authority)
+  Evidence: S-3/S-15: events.jsonl:31,131,183,356,446,467 contain model-composed progress. After normalizing numbered rereads and coalescing consecutive identical narratives, three requested milestone bodies remain undisplayed: events 153,182,398. SKILL.md:294-300 describes script-rendered display, while :396-400 invites reporting activity and the next check. This repeats the unimplemented clarification recorded in full commit f8ce110b6bba72e77d3a33cfb741dde9ade2bb6b.
+  Proposal: Continue the existing investigation into reconciling those card sentences with exact script-authored display. Test hook-displayed milestones, unchanged rereads and genuine omissions before adopting wording changes. Do not introduce a new status mechanism or runtime refusal.
+  Premise: S-15: scripts continue composing progress from saved state; the model only relays it. Wording is a plausible contributor, not a proven sole cause.
+  Files: skills/shiploop/SKILL.md, skills/shiploop/references/status-display.md
+
+Optimizations
+
+- Investigate duplicate returned-tree verification (minor, within current authority)
+  Evidence: S-4/S-5/S-12: events.jsonl:459 creates a directory and exports HEAD with git archive; :461 manually runs the consumer unittest command. The subsequent script record .shiploop-runs/work-20261101-165847-d00e20/run/tests/nav-a85b5bc530be459da57f3a7e5399b228-verify1.md independently exports the returned tree and runs the same two tests. Both preserved copies match all seven tracked files of returned commit 778a854fb8ad1a3423de1cdfa2afb85f56108195. shiploop_prompts.py:1771 asks for preliminary execution, while the callback already performs authoritative verification.
+  Proposal: Continue the investigation retained in f8ce110b6bba72e77d3a33cfb741dde9ade2bb6b: expose script-run verification evidence for the model's assessment without requiring another handwritten export. Reuse the receipt-bound mechanism introduced by e9ec4733b98c5b41f67f2b0f42291faa903fca64. Preserve completion-time identity checks, failure recovery and mutable-target freshness; safe consolidation and meaningful savings remain unproved.
+  Premise: S-1/S-5/S-9: export, execution and acceptance remain script-owned. Model-authored success claims cannot replace current verification.
+  Files: skills/shiploop/scripts/shiploop_prompts.py, skills/shiploop/scripts/shiploop_test_loop.py, skills/shiploop/scripts/shiploop_workspace.py
+
+Discoveries and independent judgment
+
+- Reviewed criteria still exceeded available focused test IDs (material, requires separate disposition)
+  Evidence: [{'reference': '.shiploop-runs/work-20261101-165847-d00e20/run/results/nav-9d8beb22e0e54a8883c3ea20b0f8dd87.md; run/improve/nav-9d8beb22e0e54a8883c3ea20b0f8dd87/evidence/01-review-3.md', 'observation': 'The accepted plan names two executed criteria on focused commands with only one test ID, after three Improve passes.', 'interpretation': "Review did not resolve a mechanically detectable mismatch with the next stage's one-case-per-ID, one-criterion-per-case contract."}, {'reference': '.shiploop-runs/work-20261101-165847-d00e20/run/results/nav-b725229e6e8d435da10f6ae8404e42ce.md:12; metrics.json.planning.stages', 'observation': 'Test-spec explicitly sends the plan back for the missing separate ID; the failed handoff and replanning occupy 25 and 47 recorded seconds.', 'interpretation': "The mismatch caused consequential recovery work in this run, although a candidate's net efficiency benefit remains unmeasured."}, {'reference': 'Git commits b8d320335c81151a99e7d168b684d79fd0e81352, 4515368495e2b2e50ea07f7599146875188449f9 and de1b554552dcd7071b2086a30888cf159011d762', 'observation': 'Existing work adds focused-ID matching, corrects wording for searched criteria, and records limited live evidence. Those commits are absent from the tested build.', 'interpretation': 'This is corroboration of an existing investigation, not evidence that its fix failed or grounds for duplicating it.'}]
+  Proposal: Reconcile this evidence with the existing focused-ID work and its explicit contrary evidence before constructing or selecting a candidate; retain one learning record per qualified candidate.
+  Files: skills/shiploop/scripts/shiploop_test_loop.py, skills/shiploop/scripts/shiploop_navigator.py, skills/shiploop/scripts/shiploop_prompts.py, test/shiploop-callback-contract.test.py
+  Mission relationship: {"challenge": "No amendment is requested. The producing packet and shared validation should carry the mechanically necessary consumer contract, consistent with S-4/S-5.", "clause_id": "S-6", "relationship": "supports"}
+  Confidence: high; next experiment: Replay the existing matching implementation against this run's original and corrected plans, plus neutral regression-only, searched-criterion and shared-ID fixtures. If supported, qualify the existing candidate prospectively under promotion/5 on the exposing case and another style; a replay alone cannot establish end-to-end savings.
+- Epoch-local overlap records omit observed external contention (material, requires separate disposition)
+  Evidence: [{'reference': 'result.json.environment.overlap; result.json.resources.contention', 'observation': 'Both records report empty lists under the explicitly scoped root ending in closed-loop-cycle-03/loop.', 'interpretation': 'These observations do not establish machine-wide isolation.'}, {'reference': '/Users/dadleet/e2e-runs/2026-11-01/calibration-01/epoch/runs/{candidate-csv-report-2,control-csv-report-2,control-csv-report-3,candidate-csv-report-3}/timeline.jsonl', 'observation': "Timestamp-only inspection confirms overlaps of 691.399, 411.472, 548.145 and 541.197 seconds with this run's recorded span.", 'interpretation': 'Elapsed-time observations were collected alongside external work, even though the scoped overlap list is empty.'}, {'reference': 'Git commit 8493c5b9fc3b4fa6bac67588521e90912ff71592', 'observation': "The kit deliberately narrows neighbor discovery to avoid binding sealed evidence to another campaign's still-changing files.", 'interpretation': 'Simply widening the root would risk restoring a known evidence-sealing failure.'}]
+  Proposal: Separate contention visibility from mutable neighbor-file dependencies. Preserve this run's PASS and original records; append any revised interpretation.
+  Files: test/shiploop_e2e/environment.py, test/shiploop_e2e/scorecard.py, test/shiploop_e2e/epoch.py
+  Mission relationship: {"challenge": "The current scoped counter is accurately labeled; this is a qualification blind spot under the Parallel work rules, not a claim that the run's product verdict is wrong.", "clause_id": "S-12", "relationship": "extends"}
+  Confidence: high; next experiment: In a separate evaluator experiment, replay two synthetic campaigns with an overlapping external sibling that continues writing. Require accurate contention reporting while the completed attempt's sealed evidence remains stable.
+Judge: {"assessments": [{"disposition": "investigate", "evidence": [".shiploop-runs/work-20261101-165847-d00e20/run/results/nav-9d8beb22e0e54a8883c3ea20b0f8dd87.md: executed criteria C1 and C3 share a focused command listing only TC_1.", ".shiploop-runs/work-20261101-165847-d00e20/run/improve/nav-9d8beb22e0e54a8883c3ea20b0f8dd87/passes.md and receipt.md: three Improve passes culminated in a result retaining that shortage.", ".shiploop-runs/work-20261101-165847-d00e20/run/packets/nav-b725229e6e8d435da10f6ae8404e42ce.md: one case per focused ID and one criterion per case; uncovered criteria receive notices. The corresponding results file explicitly sends back the missing ID, and results/nav-35683642df93456aa37f3b6f60bdaeef.md adds TC_2.", "metrics.json.planning.stages: the send-back took 25 recorded seconds and replanning took 47; these measure recovery, not counterfactual savings.", "Read-only replay of criteria_without_ids from commit b8d320335c81151a99e7d168b684d79fd0e81352 returns ['C3'] for the original saved plan and [] for the corrected plan. Installed scripts lack this function; Git ancestry checks confirm b8d320335c81151a99e7d168b684d79fd0e81352, 4515368495e2b2e50ea07f7599146875188449f9 and de1b554552dcd7071b2086a30888cf159011d762 are absent from the recorded build's ancestry."], "id": "D-FOCUSED-ID-HANDOFF", "reason": "High-confidence evidence supports a material handoff mismatch and resulting recovery work. The existing matching function detects the original shortage and accepts the corrected plan. Coverage notices remain permissible; this does not justify blanket cardinality enforcement. Net savings remain unmeasured, and the finding is not implementation-eligible.", "status": "supported"}, {"disposition": "investigate", "evidence": ["result.json.environment.overlap and result.json.resources.contention: empty inventories explicitly scoped to closed-loop-cycle-03/loop; the overlap description acknowledges that runs outside this root are unseen.", "timeline.jsonl: first and last timestamps are 1793552316.833 and 1793553570.198.", "/Users/dadleet/e2e-runs/2026-11-01/calibration-01/epoch/runs/{candidate-csv-report-2,control-csv-report-2,control-csv-report-3,candidate-csv-report-3}/timeline.jsonl: independently computed intersections reproduce 691.399, 411.472, 548.145 and 541.197 seconds respectively.", "Commit 8493c5b9fc3b4fa6bac67588521e90912ff71592 unsets SHIPLOOP_E2E_RUNS_ROOT. Source test/shiploop_e2e/scorecard.py:507-530 hashes mutable neighbor files into receipts, while epoch.py:276-299 waits only for internal siblings, substantiating the sealing concern.", "result.json.checks: all four public checks passed; temporal overlap alone supplies no contrary product-verdict evidence."], "id": "D-EXTERNAL-CONTENTION", "reason": "The material timing-qualification blind spot is supported with high confidence: empty scoped records coexist with external run overlap. Actual resource contention and its effect on elapsed time remain unknown. Investigating immutable contention observations is justified; this harness finding does not authorize a ShipLoop implementation or invalidate the product PASS.", "status": "supported"}], "review_sha256": "8d64bae63d2ffd9fe66a5ddc8690afdfea9e2df2635f46edafc489ee9780dd82", "validity": {"reason": null, "status": "valid"}}
+
+Harness questions
+
+- learning retention: Keep the existing append-only ledger and full Git learning messages. History reconciliation is needed, not another state store. The authorized operator's learning record remains pending because this review is read-only.
+  proposal: Record the clean delivery, exact build and driver, planning recovery, useful quality repairs, unknown served identity, contention and raw evidence locations.
+  proposal: Carry forward the focused-ID candidate's searched-criterion regression and limited live evidence; do not describe absent candidate code as a failed applied fix.
+  proposal: Record the self-contained final proofs as contrary evidence relevant to LR-20261101-bea142, without changing its owner disposition. LR-20261030-5dce01 remains unexercised here.
+  proposal: Bind a fresh independent judge assessment to this review's exact bytes before discovery-qualified admission.
+- further learning: The most useful next observations concern the known planning mismatch, clean verification handoff and cold reuse of repository knowledge. This run establishes neither broad qualification nor exhausted learning.
+  proposal: Resolve narrow mechanisms with discriminating replays, then use one learning record per prospectively registered candidate with exposing-plus-generality coverage or an explicitly narrower claim.
+  proposal: Under S-11, test a cold follow-on against the delivered knowledge: spec.md:26 still says implementation and checks are pending, and architecture.md:24 says release verification remains due. Whether these stale statements cause rediscovery or wrong decisions is unobserved.
+  proposal: Exercise S-6 recovery at a stage boundary and inside a stage, and test missing-completion continuation separately.
+  proposal: Under S-9, calibrate stronger independent concurrency and persistence faults before claiming oracle completeness; the four public checks and sampled engine mutations do not establish it.
+- evaluation criteria: No new promotion floor is justified. Existing measurements need calibrated interpretation before they support efficacy claims.
+  proposal: S-15: preserve the original 30/18 narrative metric and append the independently reproduced interpretation of 21 distinct consecutive milestone bodies, 18 displayed and three omissions. Reconcile existing accounting work before another patch.
+  proposal: S-9/S-12: investigate the explicit verification-reader disagreement, 25 command keys versus 15 executed runs, and the unmapped step-proof mechanism. Unknown classifications must remain unknown.
+  proposal: S-4/S-5: model_glue=[] does not establish absence of mechanical glue; retain the concrete archive command at events.jsonl:459 without undoing legitimate evidence-write exclusions.
+  proposal: Keep checkout exploration separate from marketplace qualification, scoped overlap separate from isolation, engine mutation samples separate from held-out quality, and packet bytes or review counts separate from optimization targets.
+
+Learning records: LR-20261101-f8c562, LR-20261101-35ad6a (test/shiploop_e2e/learning-records.jsonl)
+
+Next
+
+- no independently admitted ShipLoop finding to apply; retained challenges need disposition
+
+## Placement notice and named destinations (D2 to D4): E2 round on the Codex harness, Terra 6.1 xhigh, three chains a side (2026-10-31 local, 2026-11-01 UTC) — status: firm for these runs (12 of 12 pass; 0 stray headings in six fix passes against 2 to 8 in six control passes; no measurable cost); passes 1 and 2 only (passes 3 and 4 are Round 4, under Not measured here)
+
+**Change under test.** The placement candidate of docs/shiploop-multipass-plan-2026-10-31.md (D2 to D4): a counted, non-refusing notice at each knowledge close for an entry that is new under Retired or Superseded and
+for level-2 headings that match no named section or repeat one; a packet line naming the destination for eight reporting stages; six duty edits; the spec wording. Tested at c1d737dc95c7df6698f20a6ac3464b3d8b40da19 on the base
+87d3da8e22ee5158a6d3b877752a22eaf3e8e27b; the shipped commit is that patch rebased (patch-id 8cf39729c9b94711faf1b7b2030b7a4adb7f8456 for both). The question: does it keep later passes from filling environment.md and
+architecture.md with stage reports, and what does it cost?
+
+**Runs.**
+- Six chains, each `ticket-assignment` then `ticket-escalation` (`--continue-from`), `run.py --source checkout`, Codex `gpt-6.1-terra` at xhigh, hooks on, order A1 B1 A2 B2 A3 B3 on one lane (port 4180). Arm A = the base (ShipLoop 1.26.0), arm B =
+  the candidate. 2026-10-31 17:33:58 to 21:40:17 local; an external scheduling pause (17:47:28 to 18:29:09) sits between the two passes of A1 and is not measured.
+- Output in `~/e2e-runs-multipass/20261031/e2/<A|B><n>-ticket-<case>`. The bar B1 to B5 and the predictions P1 to P6 were written in docs/shiploop-multipass-journal.md before any run.
+
+**Results** (docs/experiments/multipass-20261031/round2-readout-output.txt, round2-cost-output.txt, round2-ledgers.json):
+- All 12 runs pass; no inherited hidden check is lost (B4).
+- Stray headings added to environment.md in pass 2: fix 0, 0, 0; control 7, 6, 8 (B2). Over all passes: fix 0 in six; control 7, 7, 2, 6, 5, 8.
+- A fix pass that added a decision changed a live section of architecture.md in 6 of 6; the control in 3 of 6 (B3). The control's architecture.md keeps 1.7 to 2.1 KB under 3 to 4 stray headings; the fix's has none.
+- Pass-2 time: fix median 1,121.9 s against 1,105.2 s, 1.02 times (B5). Tokens processed 49.1 M against 49.0 M a run; model calls 200 against 206.
+- No entry was filed as retired when new in any of the 12 runs (B1) — it held untested. In B3 pass 2 the notice flagged `AD-3` under `Superseded` after `plan`; the run moved it under `Decisions`.
+
+**Contrary evidence.**
+- The control never showed the mislabel in six passes, so B1 cannot say what the fix prevents; an unfixed fourth pass (ticket-sla, E3) filed its new decision under `Superseded` behind two entries E1's third pass had put there.
+- An early reading from the first pair (the fix's pass 2 at 1.4 times the control's; 80 s on three stages) was control spread and was withdrawn: the control's own second passes span 13.3 to 21.5 minutes (up to six rounds of the test-quality gate).
+- The notice fired after test-strategy or discovery in five of six passes, stages with the packet line but no duty edit; the bundle cannot be split into notice, packet line and duty edits from these runs.
+- In chain B2 architecture.md holds 3 of its 7 named sections with the same volume of text.
+
+**Not measured here.**
+- Chain B on a smaller base; other hosts and models.
+- Which part of the bundle does the work: Round 4 (below) found that the notice's retired-entry clause never fired in a fix run, so the packet line and the duty edits explain the difference there, but the bundle is still not split. A second reader's
+  check that the facts the control files under stray headings are the ones the fix files under named sections.
+
+**Since this entry was first written: Round 4 measured passes 3 and 4.** Six runs in three matched pairs, each fix run beside a run without the fix on the same prior (docs/shiploop-multipass-journal.md, "Result of Round 4", commit
+d71eaa7198772501b189dff76308d4ee7ac533cb; pre-registered in 3d5732d017899a6d486b3249915284793af19d3a). With the fix no later pass filed its new decision under Superseded (0 of 3; the old ShipLoop did in 4 of 5 later passes, E1, E3, R4a0 and R4b0 but
+not R4c0); stray headings added to environment.md were 2, 0, 0 against 8, 1, 0; pass 4 with the fix was clean (16 of 16 hidden, the old rule changed in place, nothing unexplained). B2, B3 and B4 held, K held in two of three pairs, and B1 is missed as recorded:
+R4b FAILED on one base test of its delivery (the failed check passes 15 of 15 on rerun), which the journal reads both ways. That result is not part of what this entry vouches for, and the release stays the owner's word.
+
+**Checks on the shipped patch** (a compact export of the logs is in docs/experiments/multipass-20261031/candidate-rebase-checks-20261101.txt).
+- Rebased eight times between 21:48 on 10-31 and 07:55 on 11-01 (the branch's reflog), then replayed twice in fresh worktrees: onto d71eaa7198772501b189dff76308d4ee7ac533cb
+  and finally onto 8c5b4d4ec776dc9a06445c1054e9d4802558a649, 88 commits after 64402828725cdabfb173ecca177d5b7902a825c4; the releases 2.28.0 / 1.27.0, 2.28.1, 2.29.0 / 1.28.0
+  and 2.30.0 / 1.29.0 are in between, and none of them carries this change.
+- The patch-id (`git patch-id --stable`) was 8cf39729c9b94711faf1b7b2030b7a4adb7f8456 for the tested commit and every rebase until the first replay; since then it is
+  9fe0d24b6aca6493b7f74f3b5867d060fc0b8d00, only because main edited test/shiploop_e2e/head_table.json (its `_comment` and the step-plan heads, +49) and the feature's change
+  to that file (carry-forward's four ceilings and its reason in `_comment`) was re-applied on top; the diffs of the other seven files are byte-identical to the tested
+  commit's, file by file. Conflicts: this file whenever main and this entry both appended at its end (main's text stays first), and head_table.json at the first replay; the
+  feature commit met test/shiploop-callback-contract.test.py (the Python 3.9 floor, 7a3d133fa70f2a7d565223efe1a0d22ceae6e419), shiploop_navigator.py and shiploop_prompts.py
+  (the terms line 60dc376881d397d770874af16c8a6a8ed60956b2 and rule C 9870c6f68bfbd9375340c0e91ffdf4abfd76bd85) in other hunks and applied without a conflict.
+- Quick tier on d71eaa71 plus this change (CI's invocation: `CLAUDECODE=1`, `OLLAMA_URL` at a dead port, `--changed-from origin/main`; `--jobs 6` at nice 5): 83 suites in
+  2,327.4 s wall, with the machine's load average running from 12 at the start to above 80 at the end from other sessions' work. 78 passed at once and 5 failed, all five
+  timing- or race-bound: shiploop-e2e-environment (`assertLess(elapsed, 3.0)` at 3.31 s), shiploop-e2e-quality (a `KeyError: 'ratio'` in a time-budgeted mutation test),
+  shiploop-e2e-stage-live (two limits of 20 s, at 24.0 and 27.9 s), shiploop-e2e-lifecycle (a process-group race: `left_in_group` listed one process too many) and
+  shiploop-e2e-brownfield-tickets (a fake-host run returned the check flags [False, False, False] for [False, True, False]: the port collision that
+  26728eddd587930f5da3f6600e5d7ab4017d8acc fixed elsewhere in that suite, in the one test it had not covered; fixed on main in 8c5b4d4ec776dc9a06445c1054e9d4802558a649, which
+  the final tree contains).
+- Rerun on the final tree (this change on 8c5b4d4e), one suite at a time, load average 28 to 133 at each start: shiploop-e2e-environment 140 tests OK (231 s),
+  shiploop-e2e-quality 153 OK (107 s), shiploop-e2e-lifecycle 43 OK (38 s), shiploop-e2e-stage-live 86 OK (262 s), shiploop-knowledge 163 OK (56 s); shiploop-head-order (36),
+  shiploop-step-packets (10) and shiploop-packet-recut (30) OK. Brownfield-tickets with its fix: 31 tests OK in 369 s at a load average of 98. shiploop-callback-contract
+  passed in the tier and on Python 3.9 on the d71eaa71 tree; its run on the final tree started at a load average above 100 and had not finished when this entry was written,
+  and CI's run on main is its check.
+- Quick tier on the previous base, 64402828725cdabfb173ecca177d5b7902a825c4 (`--jobs 4` at nice 10, load average 20 to 112): 81 suites in 4,171.8 s; 77 passed at once and 4
+  failed, and all 4 pass alone. Three ran across a 16.5-minute pause of the tier's process tree that I made to keep its loopback suites off a live run's final check, which
+  counts against a suite's wall-clock limit: shiploop-e2e and shiploop-e2e-slice timed out at 1800 s (alone: 495 tests OK in 1,146 s; 72 tests OK in 824 s) and
+  shiploop-e2e-quality counted fewer mutation sites in a time-budgeted test, (3, 5, 1, 12) against (4, 7, 1, 12) (alone: 153 tests OK in 111 s). The fourth,
+  shiploop-e2e-stage-live, failed `Escapee.test_the_stop_file_bounds_the_sample_by_the_stop_grace_and_not_by_the_timeout` at 46.9 s against a limit of 20 s, at a load average
+  near 100 (alone: 86 tests OK in 237 s). The first tier, on the base 26728eddd587930f5da3f6600e5d7ab4017d8acc (stopped at 76 of 89 suites when main moved), had one failure,
+  shiploop-e2e-cycle, another session's pilot-kit test that read a README, which 27dedcff30f1ca05a0a541a4b4b1d21e3fe438d8 says it repairs; it passes in both later tiers.
+- Python 3.9 floor (on main since release 2.27.2 / 1.26.2), stock macOS Python 3.9.6: on the base 26728edd the python-floor group of 74 suites, `--jobs 6`, 1021.7 s: 73 passed
+  at once; shiploop-keepalive failed once, in one of its 86 tests, with an import-time `AttributeError: module 'shiploop_navigator' has no attribute 'DEFAULT_DELEGATION'` that
+  I could not explain (it was raised in a subprocess of the test's setUp, in the import chain `shiploop` to `shiploop_protocol` to `shiploop_navigator_dry_run` at its line
+  150, for a constant at line 172 of the navigator since 0.20.0, and no git operation in the worktree overlapped the suite: the last checkout was six minutes before it began)
+  and that did not recur in 3 of 3 reruns on a frozen checkout of the same patch (86 tests, 183 s each). After the fourth rebase, and again on the d71eaa71 tree, the five
+  suites that exercise the change pass there: shiploop-knowledge (163 tests; 202 s on the later tree), shiploop-head-order (36), shiploop-step-packets (10),
+  shiploop-callback-contract (99 tests, 327 s; 100 tests, 1,776 s at a load average above 100) and shiploop-keepalive (86 tests; 207 s, then 519 s). The unexplained failure
+  did not recur.
+- shiploop-e2e-brownfield-tickets failed 1 to 2 of its 24 calibration tests in every local tier, on this tree and on the parent. It was unrelated to the change and is fixed on
+  main (26728eddd587930f5da3f6600e5d7ab4017d8acc): its noise was another project's server answering on a port the base's tests had been handed, not load
+  (docs/experiments/brownfield-flake-20261101/). It passed in the second tier; its one failure in the third is the same collision in a test the first fix had not covered,
+  fixed in 8c5b4d4ec776dc9a06445c1054e9d4802558a649.
+- `scripts/release.py --dry-run` on the final tree: shiploop 1.29.0 to 1.30.0 (one pending note, this one) and skill-craft 2.30.0 to 2.31.0, no preflight complaint with this commit after the feature commit (before it, the preflight names the feature commit as shipped after its latest E2E round). Once this change is on main, any release cut from main carries it.
+
+**Evidence.**
+- Runs: `~/e2e-runs-multipass/20261031/e2/` (outside the repository). Twelve baseline rows appended to test/shiploop_e2e/baselines.jsonl (source checkout; six with local_head 87d3da8e, six with c1d737dc).
+- docs/experiments/multipass-20261031/: round2_readout.py, round2_cost.py, round2-*-output.txt, round2-ledgers.json, e2-hold*, candidate-rebase-checks-20261101.txt; Round 4: round4_readout.py, round4-*.txt, round4-ledgers.json.
+- Journal docs/shiploop-multipass-journal.md, Round 2 "Result of E2" and Round 4 "Result of Round 4"; plan docs/shiploop-multipass-plan-2026-10-31.md.
+## `init` in an empty non-Git folder: first-command probes of the guard on the Codex harness, Terra 6.1 xhigh, `--stop-after-start` (2026-11-01) — status: firm for these 208 sessions (one model, one Salesforce prompt, one pair of explicit requests); the guard shipped on its second design only
+
+**What this vouches for.** The ShipLoop change released after this entry: `init` refuses an empty folder that is not a Git repository,
+names `workspace start`, and accepts `--in-place` as the user's explicit override
+(d8a8dce097368ae349ba051ec76c83d036e7f2ef, refined by f9f91667228c1ef719cfb916757cba015e9189c7), with the references and the
+`/shiploop` command card aligned to the card sentence of 2.27.3. No full-cycle E2E round ran for it, and none was needed to see the
+change: it acts only before a run exists, and an E2E case begins with `workspace start` (0 of 20 sessions on the current card began
+with `init`). These are first-command probes through `run.py --stop-after-start`, each ending at the first run on disk.
+
+**Observed.** Journal and registrations: `docs/experiments/start-route-20261101/README.md`; raw sessions under `~/e2e-runs-startroute/`.
+- *First design* (override visible in `init --help`), 104 sessions: of 60 old-wording Salesforce sessions, 16 began with `init` and 0 were
+  refused: all 16 had run `--help`, saw `--in-place` and passed it on the first command, then ended on the direct entry (effectiveness 0
+  of 16). Explicit in-place and non-Git requests, 24 of 24 on the direct entry, 12 of them after one refusal. Registered verdict
+  INSUFFICIENT; not released.
+- *Second design* (override hidden from `--help`, refusal repeats "naming the current directory is not an in-place request"), 104
+  sessions: 20 of 20 old-wording sessions that began with `init` were refused and then ran `workspace start` (Wilson 0.84-1.00); 24 of 24
+  explicit sessions were refused once, ran `init --in-place` and ended on the direct entry; 20 of 20 never-refused T2 sessions ended on
+  `workspace start`. Registered verdict RELEASE (gate E, H2, H3).
+
+**Triage of the first design's miss** (per the order above): not the check, not the environment, reproduced (16 of 16), not an
+expectation about how; a normal run hits it (the sessions that choose `init` read `--help` first); the expectation traced to the
+request, so the product changed: the override left `--help`. **Verified by** the second probe, a hermetic test that pins it
+(`DirectEntryGuardTests.test_the_override_is_named_by_the_refusal_and_not_by_help`), and the quick tier (46 of 46) on the merged branch.
+
+**Cost and limits.** Every explicit in-place or non-Git run now pays one refused command (24 of 24); old-wording sessions that were
+refused took a median 50 s to their run against 44 s. Claude and Grok never began the Salesforce request with `init`, so their answer to
+the refusal is untested. 17 suites' fixtures needed a repository or `--in-place` (listed in the guard commit's message).
+
+**Not measured:** a full case end to end with the guard present; the guard's rate of firing on the current card (about 1 start in 80 on
+Codex, none seen on the other hosts).
+
+**Addendum, after the release (2026-11-01).** A full case with the guard present was then run from the published build: `hello` on
+the Codex host (`--source marketplace`, a fresh profile, Terra 6.1 xhigh), `PASS every verdict passed`, skill-craft 2.31.0 /
+ShipLoop 1.30.0, `shiploop PASS done`, rc=0 in 569.8 s, no refusal in the stream (it began with `workspace start`; `start_route`
+`workspace` in `result.json`). n = 1; it supersedes "not measured" above for that one case and says nothing about a rate. The
+no-model clean-install probes printed the committed output. Details: `docs/experiments/start-route-20261101/README.md`.
+
+## Release preflight: a merge of main into a branch is listed as a ShipLoop change without a round (2026-11-01) — status: firm (seen twice in one release); the gate is unchanged and the owner decides whether to change it
+
+**What happened.** `scripts/release.py --dry-run` for 2.31.0 / 1.30.0 refused twice, each time naming one commit that is a merge:
+582fe176 (main merged into the guard branch) and, after other sessions pushed, 794c0b81 (main merged into `fix/sf-keychain-39fa3a`).
+`git log -- skills/shiploop changes/shiploop` keeps a merge that differs from both parents in those paths, which a merge of
+main into a branch that also changed them always does. A merge adds no change of its own, and the repository's rule is to merge
+main into branches (never rebase, so cited hashes survive), so the refusal recurs every time two sessions change ShipLoop in the
+same window.
+
+**What stands behind the changes this release ships** (the non-merge commits since 41ee3d89d580fb715fc90994b2361348550698c7 that touch
+`skills/shiploop/` or `changes/shiploop/`; checked one by one, not by the gate):
+- 9e39b146 (stages report where standing facts go): covered by the placement candidate's E2 round entry above it (a04ad7f5).
+- d8a8dce0 and f9f91667 (the `init` guard): each carries its own `No-E2E-Round:` trailer, and the entry before this one records the
+  two first-command probes that vouch for them.
+- 20a7f385 (a Salesforce platform guide section): carries its own `No-E2E-Round:` trailer (reference text only; the behaviour was
+  measured live for f9717c93).
+
+**Decision.** This entry follows both merges; it records that their non-merge commits were looked at, not that a round ran on the
+merges. The gate was not changed: it is the owner's rule. A smaller fix would list non-merge commits only
+(`git log --no-merges`), or accept a merge whose parents are all covered; until then a release that follows two sessions' merges
+needs an entry like this one after the last merge.
