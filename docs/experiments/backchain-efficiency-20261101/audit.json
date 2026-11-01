@@ -1,0 +1,1691 @@
+{
+ "schema": "backchain-efficiency-audit/v1",
+ "study": "/Users/dadleet/src/backchain/results/full-workflow-20261016",
+ "study_decision_sha256": "ab18e98819611e7c485bad6db818238b4198b34a0d54509487c1957cd34a1a6d",
+ "instruction_bytes": {
+  "backchain_study_0.6.3": {
+   "SKILL.md": 28085,
+   "references/convergence.md": 11228,
+   "references/technical-lenses.md": 8038,
+   "references/technical-lens-cards.md": 36412,
+   "references/technical-interactions.md": 9608,
+   "references/dependency-context.md": 948,
+   "references/caller-contract.md": 15520,
+   "prompts/convergence-review.prompt.md": 3314,
+   "prompts/generator.v1.md": 19052,
+   "prompts/dependency-review.prompt.md": 3038,
+   "prompts/elaborator.v1.md": 51072,
+   "prompts/audit.prompt.md": 3773,
+   "prompts/revise.prompt.md": 4270
+  },
+  "backchain_checkout": {
+   "SKILL.md": 28636,
+   "references/convergence.md": 19006,
+   "references/technical-lenses.md": 8038,
+   "references/technical-lens-cards.md": 36412,
+   "references/technical-interactions.md": 9608,
+   "references/dependency-context.md": 948,
+   "references/caller-contract.md": 15520,
+   "prompts/convergence-review.prompt.md": 4009,
+   "prompts/generator.v1.md": 19233,
+   "prompts/dependency-review.prompt.md": 3038,
+   "prompts/elaborator.v1.md": 51072,
+   "prompts/audit.prompt.md": 4554,
+   "prompts/revise.prompt.md": 5904
+  },
+  "until_loop_checkout": {
+   "ADAPTER.md": 24819,
+   "references/runtime-ephemeral.md": 27913
+  }
+ },
+ "summary": {
+  "by_arm": {
+   "current": {
+    "runs": 18,
+    "qualified": 11,
+    "median_commands": 16.5,
+    "median_input_tokens": 967777.5,
+    "median_uncached_input_tokens": 84169.5,
+    "median_output_tokens": 7507.0,
+    "median_wall_seconds": 168.14999999999998,
+    "median_tool_output_bytes": 348778.5,
+    "median_hand_written_code_blocks": 7.0,
+    "range_hand_written_code_blocks": [
+     5,
+     16
+    ]
+   },
+   "lean": {
+    "runs": 18,
+    "qualified": 11,
+    "median_commands": 15.0,
+    "median_input_tokens": 765758.0,
+    "median_uncached_input_tokens": 75319.5,
+    "median_output_tokens": 6938.0,
+    "median_wall_seconds": 150.75,
+    "median_tool_output_bytes": 288260.5,
+    "median_hand_written_code_blocks": 7.0,
+    "range_hand_written_code_blocks": [
+     5,
+     10
+    ]
+   }
+  },
+  "confirming_reviews": {
+   "after_a_trivial_review": 11,
+   "found_anything": 0,
+   "runs_with_gate_2": 12
+  },
+  "disqualifying_workflow_errors": {
+   "missing exact bound resource: resources/backchain/references/convergence.md": 8,
+   "latest packet resource not retained": 5,
+   "missing exact bound resource: resources/until-loop/scripts/until_loop_ephemeral.py": 3,
+   "review assessment shape incomplete": 3,
+   "wrong planning disposition": 1,
+   "wrong/missing terminal status": 1,
+   "retained runner/transport failure: 'context_identity'": 1,
+   "subject process or telemetry incomplete": 1,
+   "wrong plan completion status": 1
+  },
+  "disqualified_with_binding_errors_only": [
+   "bounded-source-edge-repair-current-r3",
+   "bounded-source-edge-repair-lean-r1",
+   "bounded-source-edge-repair-lean-r2",
+   "independent-inspection-scopes-current-r2",
+   "known-external-approval-blocker-lean-r1",
+   "known-external-approval-blocker-lean-r2",
+   "legacy-draft-discovers-mapping-current-r2",
+   "legacy-draft-discovers-mapping-current-r3"
+  ]
+ },
+ "runs": [
+  {
+   "run": "bounded-source-edge-repair-current-r1",
+   "case": "bounded-source-edge-repair",
+   "arm": "current",
+   "rep": 1,
+   "commands": 16,
+   "tool_output_bytes": 284574,
+   "input_tokens": 569141,
+   "cached_input_tokens": 505728,
+   "uncached_input_tokens": 63413,
+   "output_tokens": 6383,
+   "wall_seconds": 123.4,
+   "helper_scripts_written": [
+    "artifacts/build-evidence.py",
+    "artifacts/check-evidence.py"
+   ],
+   "hand_written_code_blocks": 8,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 6,
+    "resources/backchain/prompts/audit.prompt.md": 3,
+    "resources/backchain/prompts/convergence-review.prompt.md": 3,
+    "resources/backchain/prompts/revise.prompt.md": 3,
+    "resources/backchain/references/caller-contract.md": 2,
+    "resources/backchain/references/convergence.md": 4,
+    "resources/backchain/references/technical-interactions.md": 4,
+    "resources/backchain/references/technical-lens-cards.md": 4,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 7,
+    "resources/until-loop/references/runtime-ephemeral.md": 4,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "non-trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "64a75c56ef4f",
+    "932a2a14075a"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "bounded-source-edge-repair-current-r2",
+   "case": "bounded-source-edge-repair",
+   "arm": "current",
+   "rep": 2,
+   "commands": 15,
+   "tool_output_bytes": 269199,
+   "input_tokens": 644436,
+   "cached_input_tokens": 560384,
+   "uncached_input_tokens": 84052,
+   "output_tokens": 6241,
+   "wall_seconds": 146.5,
+   "helper_scripts_written": [
+    "artifacts/build-review.py",
+    "artifacts/check-evidence.py"
+   ],
+   "hand_written_code_blocks": 7,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 5,
+    "resources/backchain/prompts/audit.prompt.md": 2,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/revise.prompt.md": 2,
+    "resources/backchain/references/caller-contract.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/technical-interactions.md": 3,
+    "resources/backchain/references/technical-lens-cards.md": 4,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 6,
+    "resources/until-loop/references/runtime-ephemeral.md": 4,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "non-trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "932a2a14075a"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "bounded-source-edge-repair-current-r3",
+   "case": "bounded-source-edge-repair",
+   "arm": "current",
+   "rep": 3,
+   "commands": 13,
+   "tool_output_bytes": 241509,
+   "input_tokens": 641719,
+   "cached_input_tokens": 576000,
+   "uncached_input_tokens": 65719,
+   "output_tokens": 6111,
+   "wall_seconds": 122.3,
+   "helper_scripts_written": [
+    "artifacts/write-review.py"
+   ],
+   "hand_written_code_blocks": 5,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 4,
+    "resources/backchain/prompts/audit.prompt.md": 1,
+    "resources/backchain/prompts/convergence-review.prompt.md": 1,
+    "resources/backchain/prompts/revise.prompt.md": 1,
+    "resources/backchain/references/caller-contract.md": 1,
+    "resources/backchain/references/convergence.md": 1,
+    "resources/backchain/references/technical-interactions.md": 2,
+    "resources/backchain/references/technical-lens-cards.md": 3,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 3,
+    "resources/until-loop/references/runtime-ephemeral.md": 2,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "non-trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "64a75c56ef4f",
+    "932a2a14075a"
+   ],
+   "qualified": false,
+   "workflow_errors": [
+    "missing exact bound resource: resources/backchain/references/convergence.md",
+    "latest packet resource not retained"
+   ],
+   "adjudicated_semantic": "fail"
+  },
+  {
+   "run": "bounded-source-edge-repair-lean-r1",
+   "case": "bounded-source-edge-repair",
+   "arm": "lean",
+   "rep": 1,
+   "commands": 12,
+   "tool_output_bytes": 264306,
+   "input_tokens": 628778,
+   "cached_input_tokens": 563968,
+   "uncached_input_tokens": 64810,
+   "output_tokens": 7090,
+   "wall_seconds": 151.2,
+   "helper_scripts_written": [
+    "artifacts/verify-evidence.py"
+   ],
+   "hand_written_code_blocks": 7,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 6,
+    "resources/backchain/prompts/audit.prompt.md": 2,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/revise.prompt.md": 2,
+    "resources/backchain/references/caller-contract.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/technical-interactions.md": 3,
+    "resources/backchain/references/technical-lens-cards.md": 4,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 7,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 3
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "non-trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "64a75c56ef4f",
+    "932a2a14075a"
+   ],
+   "qualified": false,
+   "workflow_errors": [
+    "missing exact bound resource: resources/backchain/references/convergence.md",
+    "latest packet resource not retained"
+   ],
+   "adjudicated_semantic": "fail"
+  },
+  {
+   "run": "bounded-source-edge-repair-lean-r2",
+   "case": "bounded-source-edge-repair",
+   "arm": "lean",
+   "rep": 2,
+   "commands": 12,
+   "tool_output_bytes": 242276,
+   "input_tokens": 612981,
+   "cached_input_tokens": 547712,
+   "uncached_input_tokens": 65269,
+   "output_tokens": 6628,
+   "wall_seconds": 1031.5,
+   "helper_scripts_written": [
+    "artifacts/build-evidence.py"
+   ],
+   "hand_written_code_blocks": 6,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 6,
+    "resources/backchain/prompts/audit.prompt.md": 2,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/revise.prompt.md": 2,
+    "resources/backchain/references/caller-contract.md": 1,
+    "resources/backchain/references/convergence.md": 1,
+    "resources/backchain/references/technical-interactions.md": 3,
+    "resources/backchain/references/technical-lens-cards.md": 4,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 5,
+    "resources/until-loop/references/runtime-ephemeral.md": 2,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "non-trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "64a75c56ef4f",
+    "932a2a14075a"
+   ],
+   "qualified": false,
+   "workflow_errors": [
+    "missing exact bound resource: resources/backchain/references/convergence.md",
+    "latest packet resource not retained"
+   ],
+   "adjudicated_semantic": "fail"
+  },
+  {
+   "run": "bounded-source-edge-repair-lean-r3",
+   "case": "bounded-source-edge-repair",
+   "arm": "lean",
+   "rep": 3,
+   "commands": 14,
+   "tool_output_bytes": 329429,
+   "input_tokens": 764178,
+   "cached_input_tokens": 686464,
+   "uncached_input_tokens": 77714,
+   "output_tokens": 5514,
+   "wall_seconds": 113.8,
+   "helper_scripts_written": [
+    "artifacts/build-evidence.py",
+    "artifacts/check-evidence.py"
+   ],
+   "hand_written_code_blocks": 6,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 5,
+    "resources/backchain/prompts/audit.prompt.md": 3,
+    "resources/backchain/prompts/convergence-review.prompt.md": 3,
+    "resources/backchain/prompts/elaborator.v1.md": 1,
+    "resources/backchain/prompts/revise.prompt.md": 2,
+    "resources/backchain/references/caller-contract.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/technical-interactions.md": 3,
+    "resources/backchain/references/technical-lens-cards.md": 4,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 4,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "non-trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "932a2a14075a",
+    "932a2a14075a"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "independent-inspection-scopes-current-r1",
+   "case": "independent-inspection-scopes",
+   "arm": "current",
+   "rep": 1,
+   "commands": 16,
+   "tool_output_bytes": 378656,
+   "input_tokens": 1087341,
+   "cached_input_tokens": 992256,
+   "uncached_input_tokens": 95085,
+   "output_tokens": 6537,
+   "wall_seconds": 151.4,
+   "helper_scripts_written": [
+    "artifacts/build-plan.py",
+    "artifacts/record-review.py"
+   ],
+   "hand_written_code_blocks": 7,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 3,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/elaborator.v1.md": 4,
+    "resources/backchain/prompts/generator.v1.md": 2,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 2,
+    "resources/backchain/references/technical-lens-cards.md": 4,
+    "resources/backchain/references/technical-lenses.md": 4,
+    "resources/until-loop/ADAPTER.md": 3,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 2,
+   "review_classes": [
+    "unresolved"
+   ],
+   "reviewed_candidate_digests": [
+    "1987c70918e3"
+   ],
+   "qualified": false,
+   "workflow_errors": [
+    "wrong/missing terminal status",
+    "wrong planning disposition",
+    "latest packet resource not retained"
+   ],
+   "adjudicated_semantic": "fail"
+  },
+  {
+   "run": "independent-inspection-scopes-current-r2",
+   "case": "independent-inspection-scopes",
+   "arm": "current",
+   "rep": 2,
+   "commands": 21,
+   "tool_output_bytes": 412648,
+   "input_tokens": 1286950,
+   "cached_input_tokens": 1189120,
+   "uncached_input_tokens": 97830,
+   "output_tokens": 7629,
+   "wall_seconds": 180.2,
+   "helper_scripts_written": [
+    "artifacts/build-plan.py",
+    "artifacts/record-review.py"
+   ],
+   "hand_written_code_blocks": 9,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 4,
+    "resources/backchain/prompts/convergence-review.prompt.md": 3,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/elaborator.v1.md": 3,
+    "resources/backchain/prompts/generator.v1.md": 1,
+    "resources/backchain/references/convergence.md": 1,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 3,
+    "resources/backchain/references/technical-lens-cards.md": 5,
+    "resources/backchain/references/technical-lenses.md": 5,
+    "resources/until-loop/ADAPTER.md": 4,
+    "resources/until-loop/references/runtime-ephemeral.md": 2,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 3
+   },
+   "required_trivial_reviews": 2,
+   "review_classes": [
+    "trivial",
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "6f84f9d6c783",
+    "6f84f9d6c783"
+   ],
+   "qualified": false,
+   "workflow_errors": [
+    "missing exact bound resource: resources/backchain/references/convergence.md"
+   ],
+   "adjudicated_semantic": "fail"
+  },
+  {
+   "run": "independent-inspection-scopes-current-r3",
+   "case": "independent-inspection-scopes",
+   "arm": "current",
+   "rep": 3,
+   "commands": 19,
+   "tool_output_bytes": 367639,
+   "input_tokens": 1023463,
+   "cached_input_tokens": 929408,
+   "uncached_input_tokens": 94055,
+   "output_tokens": 8562,
+   "wall_seconds": 199.5,
+   "helper_scripts_written": [],
+   "hand_written_code_blocks": 10,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 3,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/elaborator.v1.md": 3,
+    "resources/backchain/prompts/generator.v1.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/technical-interactions.md": 4,
+    "resources/backchain/references/technical-lens-cards.md": 5,
+    "resources/backchain/references/technical-lenses.md": 5,
+    "resources/until-loop/ADAPTER.md": 4,
+    "resources/until-loop/references/runtime-ephemeral.md": 2,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 3
+   },
+   "required_trivial_reviews": 2,
+   "review_classes": [
+    "trivial",
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "03f03e1addba",
+    "03f03e1addba"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "independent-inspection-scopes-lean-r1",
+   "case": "independent-inspection-scopes",
+   "arm": "lean",
+   "rep": 1,
+   "commands": 17,
+   "tool_output_bytes": 287629,
+   "input_tokens": 762336,
+   "cached_input_tokens": 683904,
+   "uncached_input_tokens": 78432,
+   "output_tokens": 8114,
+   "wall_seconds": 177.4,
+   "helper_scripts_written": [],
+   "hand_written_code_blocks": 9,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 5,
+    "resources/backchain/prompts/convergence-review.prompt.md": 3,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/direct.v1.md": 1,
+    "resources/backchain/references/convergence.md": 4,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 3,
+    "resources/backchain/references/technical-lens-cards.md": 4,
+    "resources/backchain/references/technical-lenses.md": 5,
+    "resources/until-loop/ADAPTER.md": 3,
+    "resources/until-loop/references/runtime-ephemeral.md": 2,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 3
+   },
+   "required_trivial_reviews": 2,
+   "review_classes": [
+    "trivial",
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "91bd8b4e926d",
+    "91bd8b4e926d"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "independent-inspection-scopes-lean-r2",
+   "case": "independent-inspection-scopes",
+   "arm": "lean",
+   "rep": 2,
+   "commands": 18,
+   "tool_output_bytes": 319418,
+   "input_tokens": 984273,
+   "cached_input_tokens": 897664,
+   "uncached_input_tokens": 86609,
+   "output_tokens": 9754,
+   "wall_seconds": 219.8,
+   "helper_scripts_written": [],
+   "hand_written_code_blocks": 10,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 4,
+    "resources/backchain/prompts/convergence-review.prompt.md": 3,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/direct.v1.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/technical-interactions.md": 5,
+    "resources/backchain/references/technical-lens-cards.md": 7,
+    "resources/backchain/references/technical-lenses.md": 4,
+    "resources/until-loop/ADAPTER.md": 3,
+    "resources/until-loop/references/runtime-ephemeral.md": 2,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 3
+   },
+   "required_trivial_reviews": 2,
+   "review_classes": [
+    "trivial",
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "975db32ca851",
+    "975db32ca851",
+    "975db32ca851"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "independent-inspection-scopes-lean-r3",
+   "case": "independent-inspection-scopes",
+   "arm": "lean",
+   "rep": 3,
+   "commands": 19,
+   "tool_output_bytes": 355887,
+   "input_tokens": 895393,
+   "cached_input_tokens": 809600,
+   "uncached_input_tokens": 85793,
+   "output_tokens": 6885,
+   "wall_seconds": 148.3,
+   "helper_scripts_written": [
+    "artifacts/build-plan.py",
+    "artifacts/record-review.py",
+    "artifacts/start-loop.py"
+   ],
+   "hand_written_code_blocks": 9,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 5,
+    "resources/backchain/prompts/convergence-review.prompt.md": 3,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/direct.v1.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 3,
+    "resources/backchain/references/technical-lens-cards.md": 5,
+    "resources/backchain/references/technical-lenses.md": 5,
+    "resources/until-loop/ADAPTER.md": 5,
+    "resources/until-loop/references/runtime-ephemeral.md": 2,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 3
+   },
+   "required_trivial_reviews": 2,
+   "review_classes": [
+    "trivial",
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "c65ad1381a79",
+    "c65ad1381a79"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "known-external-approval-blocker-current-r1",
+   "case": "known-external-approval-blocker",
+   "arm": "current",
+   "rep": 1,
+   "commands": 20,
+   "tool_output_bytes": 465501,
+   "input_tokens": 1506667,
+   "cached_input_tokens": 1390592,
+   "uncached_input_tokens": 116075,
+   "output_tokens": 11180,
+   "wall_seconds": 242.1,
+   "helper_scripts_written": [],
+   "hand_written_code_blocks": 11,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 3,
+    "resources/backchain/prompts/convergence-review.prompt.md": 4,
+    "resources/backchain/prompts/dependency-review.prompt.md": 2,
+    "resources/backchain/prompts/elaborator.v1.md": 3,
+    "resources/backchain/prompts/generator.v1.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 6,
+    "resources/backchain/references/technical-lens-cards.md": 7,
+    "resources/backchain/references/technical-lenses.md": 6,
+    "resources/until-loop/ADAPTER.md": 4,
+    "resources/until-loop/references/runtime-ephemeral.md": 2,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 3
+   },
+   "required_trivial_reviews": 2,
+   "review_classes": [
+    "trivial",
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "9ec095a2e375",
+    "9ec095a2e375"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "known-external-approval-blocker-current-r2",
+   "case": "known-external-approval-blocker",
+   "arm": "current",
+   "rep": 2,
+   "commands": 24,
+   "tool_output_bytes": 425347,
+   "input_tokens": 1403212,
+   "cached_input_tokens": 1289856,
+   "uncached_input_tokens": 113356,
+   "output_tokens": 11939,
+   "wall_seconds": 256.7,
+   "helper_scripts_written": [
+    "artifacts/build-plan.py",
+    "artifacts/loop/observations-01.js",
+    "artifacts/loop/observations-02.js",
+    "artifacts/loop/observations-03.js",
+    "artifacts/record-review.py",
+    "artifacts/start-loop.py",
+    "artifacts/submit-report.py",
+    "artifacts/update-domain.py",
+    "artifacts/verify-domain.py"
+   ],
+   "hand_written_code_blocks": 16,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 3,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/elaborator.v1.md": 4,
+    "resources/backchain/prompts/generator.v1.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 3,
+    "resources/backchain/references/technical-lens-cards.md": 5,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 4,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 4
+   },
+   "required_trivial_reviews": 2,
+   "review_classes": [
+    "non-trivial",
+    "trivial",
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "771c53e7b150",
+    "c8a7018d7d8a",
+    "c8a7018d7d8a"
+   ],
+   "qualified": true,
+   "workflow_errors": [
+    "exact terminal receipt absent from successful callback output",
+    "unexpected number of observed terminal callbacks"
+   ],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "known-external-approval-blocker-current-r3",
+   "case": "known-external-approval-blocker",
+   "arm": "current",
+   "rep": 3,
+   "commands": 21,
+   "tool_output_bytes": 505975,
+   "input_tokens": 1605166,
+   "cached_input_tokens": 1388544,
+   "uncached_input_tokens": 216622,
+   "output_tokens": 11836,
+   "wall_seconds": 264.9,
+   "helper_scripts_written": [
+    "artifacts/build-plan.py",
+    "artifacts/prepare-loop.py",
+    "artifacts/verify-domain.py",
+    "artifacts/write-review-01.py",
+    "artifacts/write-review-02.py"
+   ],
+   "hand_written_code_blocks": 12,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 4,
+    "resources/backchain/prompts/convergence-review.prompt.md": 4,
+    "resources/backchain/prompts/dependency-review.prompt.md": 2,
+    "resources/backchain/prompts/elaborator.v1.md": 4,
+    "resources/backchain/prompts/generator.v1.md": 2,
+    "resources/backchain/references/convergence.md": 4,
+    "resources/backchain/references/technical-interactions.md": 4,
+    "resources/backchain/references/technical-lens-cards.md": 5,
+    "resources/backchain/references/technical-lenses.md": 4,
+    "resources/until-loop/ADAPTER.md": 3,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 3
+   },
+   "required_trivial_reviews": 2,
+   "review_classes": [
+    "trivial",
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "531e5127d8d3",
+    "531e5127d8d3"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "known-external-approval-blocker-lean-r1",
+   "case": "known-external-approval-blocker",
+   "arm": "lean",
+   "rep": 1,
+   "commands": 18,
+   "tool_output_bytes": 327521,
+   "input_tokens": 1115298,
+   "cached_input_tokens": 1030400,
+   "uncached_input_tokens": 84898,
+   "output_tokens": 8220,
+   "wall_seconds": 179.2,
+   "helper_scripts_written": [],
+   "hand_written_code_blocks": 10,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 3,
+    "resources/backchain/prompts/convergence-review.prompt.md": 4,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/direct.v1.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 3,
+    "resources/backchain/references/technical-lens-cards.md": 5,
+    "resources/backchain/references/technical-lenses.md": 4,
+    "resources/until-loop/ADAPTER.md": 3,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 3
+   },
+   "required_trivial_reviews": 2,
+   "review_classes": [
+    "trivial",
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "25a97b56afa0",
+    "25a97b56afa0"
+   ],
+   "qualified": false,
+   "workflow_errors": [
+    "missing exact bound resource: resources/until-loop/scripts/until_loop_ephemeral.py"
+   ],
+   "adjudicated_semantic": "fail"
+  },
+  {
+   "run": "known-external-approval-blocker-lean-r2",
+   "case": "known-external-approval-blocker",
+   "arm": "lean",
+   "rep": 2,
+   "commands": 17,
+   "tool_output_bytes": 337230,
+   "input_tokens": 1100833,
+   "cached_input_tokens": 1006208,
+   "uncached_input_tokens": 94625,
+   "output_tokens": 8046,
+   "wall_seconds": 199.7,
+   "helper_scripts_written": [
+    "artifacts/build-plan.py",
+    "artifacts/record-review.py",
+    "artifacts/start-loop.py"
+   ],
+   "hand_written_code_blocks": 9,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 3,
+    "resources/backchain/prompts/convergence-review.prompt.md": 3,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/direct.v1.md": 1,
+    "resources/backchain/prompts/elaborator.v1.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/technical-interactions.md": 5,
+    "resources/backchain/references/technical-lens-cards.md": 5,
+    "resources/backchain/references/technical-lenses.md": 5,
+    "resources/until-loop/ADAPTER.md": 3,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 3
+   },
+   "required_trivial_reviews": 2,
+   "review_classes": [
+    "trivial",
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "7e0063b1e8f5",
+    "7e0063b1e8f5",
+    "7e0063b1e8f5"
+   ],
+   "qualified": false,
+   "workflow_errors": [
+    "missing exact bound resource: resources/until-loop/scripts/until_loop_ephemeral.py"
+   ],
+   "adjudicated_semantic": "fail"
+  },
+  {
+   "run": "known-external-approval-blocker-lean-r3",
+   "case": "known-external-approval-blocker",
+   "arm": "lean",
+   "rep": 3,
+   "commands": 16,
+   "tool_output_bytes": 323443,
+   "input_tokens": 992545,
+   "cached_input_tokens": 902528,
+   "uncached_input_tokens": 90017,
+   "output_tokens": 9213,
+   "wall_seconds": 207.1,
+   "helper_scripts_written": [],
+   "hand_written_code_blocks": 9,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 4,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/direct.v1.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/technical-interactions.md": 4,
+    "resources/backchain/references/technical-lens-cards.md": 6,
+    "resources/backchain/references/technical-lenses.md": 5,
+    "resources/until-loop/ADAPTER.md": 3,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 3
+   },
+   "required_trivial_reviews": 2,
+   "review_classes": [
+    "trivial",
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "cf968ef07ff1",
+    "cf968ef07ff1"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "legacy-draft-discovers-mapping-current-r1",
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "current",
+   "rep": 1,
+   "commands": 14,
+   "tool_output_bytes": 314635,
+   "input_tokens": 833229,
+   "cached_input_tokens": 750208,
+   "uncached_input_tokens": 83021,
+   "output_tokens": 7675,
+   "wall_seconds": 166.2,
+   "helper_scripts_written": [
+    "artifacts/check-evidence.py",
+    "artifacts/prepare.py",
+    "artifacts/record-review.py",
+    "artifacts/start-loop.py"
+   ],
+   "hand_written_code_blocks": 7,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 4,
+    "resources/backchain/prompts/convergence-review.prompt.md": 3,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/elaborator.v1.md": 3,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 4,
+    "resources/backchain/references/technical-lens-cards.md": 4,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 3,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "b5f465162c68",
+    "b5f465162c68"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "legacy-draft-discovers-mapping-current-r2",
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "current",
+   "rep": 2,
+   "commands": 16,
+   "tool_output_bytes": 314602,
+   "input_tokens": 814114,
+   "cached_input_tokens": 736128,
+   "uncached_input_tokens": 77986,
+   "output_tokens": 7696,
+   "wall_seconds": 158.4,
+   "helper_scripts_written": [
+    "artifacts/check-evidence.py"
+   ],
+   "hand_written_code_blocks": 7,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 5,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/elaborator.v1.md": 3,
+    "resources/backchain/references/convergence.md": 1,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 2,
+    "resources/backchain/references/technical-lens-cards.md": 3,
+    "resources/backchain/references/technical-lenses.md": 2,
+    "resources/until-loop/ADAPTER.md": 5,
+    "resources/until-loop/references/runtime-ephemeral.md": 2,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "non-trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "66e6675ff6e1",
+    "66e6675ff6e1"
+   ],
+   "qualified": false,
+   "workflow_errors": [
+    "missing exact bound resource: resources/backchain/references/convergence.md"
+   ],
+   "adjudicated_semantic": "fail"
+  },
+  {
+   "run": "legacy-draft-discovers-mapping-current-r3",
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "current",
+   "rep": 3,
+   "commands": 14,
+   "tool_output_bytes": 317566,
+   "input_tokens": 871182,
+   "cached_input_tokens": 790400,
+   "uncached_input_tokens": 80782,
+   "output_tokens": 7448,
+   "wall_seconds": 162.8,
+   "helper_scripts_written": [],
+   "hand_written_code_blocks": 5,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 3,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/elaborator.v1.md": 3,
+    "resources/backchain/prompts/generator.v1.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 4,
+    "resources/backchain/references/technical-lens-cards.md": 4,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 3,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "3cf9066d4602"
+   ],
+   "qualified": false,
+   "workflow_errors": [
+    "missing exact bound resource: resources/until-loop/scripts/until_loop_ephemeral.py"
+   ],
+   "adjudicated_semantic": "fail"
+  },
+  {
+   "run": "legacy-draft-discovers-mapping-lean-r1",
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "lean",
+   "rep": 1,
+   "commands": 15,
+   "tool_output_bytes": 246169,
+   "input_tokens": 767338,
+   "cached_input_tokens": 698624,
+   "uncached_input_tokens": 68714,
+   "output_tokens": 7016,
+   "wall_seconds": 150.3,
+   "helper_scripts_written": [],
+   "hand_written_code_blocks": 7,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 5,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/elaborator.v1.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/technical-interactions.md": 2,
+    "resources/backchain/references/technical-lens-cards.md": 3,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 5,
+    "resources/until-loop/references/runtime-ephemeral.md": 2,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "non-trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "ab7e7de1f5f7",
+    "c6c1b8c3167a"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "legacy-draft-discovers-mapping-lean-r2",
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "lean",
+   "rep": 2,
+   "commands": 14,
+   "tool_output_bytes": 274507,
+   "input_tokens": 792466,
+   "cached_input_tokens": 720000,
+   "uncached_input_tokens": 72466,
+   "output_tokens": 6208,
+   "wall_seconds": 143.4,
+   "helper_scripts_written": [
+    "artifacts/build-plan.py",
+    "artifacts/save-review.py",
+    "artifacts/start-loop.py"
+   ],
+   "hand_written_code_blocks": 6,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 3,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/elaborator.v1.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 2,
+    "resources/backchain/references/technical-lens-cards.md": 3,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 3,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "bc7effa47bae"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "legacy-draft-discovers-mapping-lean-r3",
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "lean",
+   "rep": 3,
+   "commands": 14,
+   "tool_output_bytes": 232848,
+   "input_tokens": 663507,
+   "cached_input_tokens": 600320,
+   "uncached_input_tokens": 63187,
+   "output_tokens": 6871,
+   "wall_seconds": 144.7,
+   "helper_scripts_written": [
+    "artifacts/prepare.py",
+    "artifacts/record-review.py",
+    "artifacts/start.py",
+    "artifacts/verify-evidence.py"
+   ],
+   "hand_written_code_blocks": 7,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 4,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/elaborator.v1.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 4,
+    "resources/backchain/references/technical-lens-cards.md": 4,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 4,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "88612351eac3"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "missing-normative-redaction-source-current-r1",
+   "case": "missing-normative-redaction-source",
+   "arm": "current",
+   "rep": 1,
+   "commands": 16,
+   "tool_output_bytes": 340186,
+   "input_tokens": 984092,
+   "cached_input_tokens": 904320,
+   "uncached_input_tokens": 79772,
+   "output_tokens": 7566,
+   "wall_seconds": 180.6,
+   "helper_scripts_written": [],
+   "hand_written_code_blocks": 8,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 5,
+    "resources/backchain/prompts/audit.prompt.md": 1,
+    "resources/backchain/prompts/convergence-review.prompt.md": 1,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/elaborator.v1.md": 3,
+    "resources/backchain/prompts/generator.v1.md": 1,
+    "resources/backchain/prompts/revise.prompt.md": 1,
+    "resources/backchain/references/caller-contract.md": 1,
+    "resources/backchain/references/convergence.md": 3,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 2,
+    "resources/backchain/references/technical-lens-cards.md": 3,
+    "resources/backchain/references/technical-lenses.md": 2,
+    "resources/until-loop/ADAPTER.md": 3,
+    "resources/until-loop/references/runtime-ephemeral.md": 2,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "unresolved"
+   ],
+   "reviewed_candidate_digests": [
+    "e6f782a44a70"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "missing-normative-redaction-source-current-r2",
+   "case": "missing-normative-redaction-source",
+   "arm": "current",
+   "rep": 2,
+   "commands": 16,
+   "tool_output_bytes": 339407,
+   "input_tokens": 951463,
+   "cached_input_tokens": 862976,
+   "uncached_input_tokens": 88487,
+   "output_tokens": 7439,
+   "wall_seconds": 170.1,
+   "helper_scripts_written": [
+    "artifacts/write-review.py"
+   ],
+   "hand_written_code_blocks": 6,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 5,
+    "resources/backchain/prompts/audit.prompt.md": 2,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/dependency-review.prompt.md": 2,
+    "resources/backchain/prompts/elaborator.v1.md": 3,
+    "resources/backchain/prompts/generator.v1.md": 1,
+    "resources/backchain/prompts/revise.prompt.md": 2,
+    "resources/backchain/references/caller-contract.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 3,
+    "resources/backchain/references/technical-lens-cards.md": 4,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 5,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "unresolved"
+   ],
+   "reviewed_candidate_digests": [
+    "b6dedfe0e7e7"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "missing-normative-redaction-source-current-r3",
+   "case": "missing-normative-redaction-source",
+   "arm": "current",
+   "rep": 3,
+   "commands": 17,
+   "tool_output_bytes": 356816,
+   "input_tokens": 1062081,
+   "cached_input_tokens": 979456,
+   "uncached_input_tokens": 82625,
+   "output_tokens": 6206,
+   "wall_seconds": 150.2,
+   "helper_scripts_written": [
+    "artifacts/assess.py",
+    "artifacts/prepare.py"
+   ],
+   "hand_written_code_blocks": 6,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 4,
+    "resources/backchain/prompts/audit.prompt.md": 1,
+    "resources/backchain/prompts/convergence-review.prompt.md": 1,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/elaborator.v1.md": 3,
+    "resources/backchain/prompts/generator.v1.md": 1,
+    "resources/backchain/prompts/revise.prompt.md": 1,
+    "resources/backchain/references/caller-contract.md": 1,
+    "resources/backchain/references/convergence.md": 1,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 2,
+    "resources/backchain/references/technical-lens-cards.md": 3,
+    "resources/backchain/references/technical-lenses.md": 2,
+    "resources/until-loop/ADAPTER.md": 3,
+    "resources/until-loop/references/runtime-ephemeral.md": 2,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "unresolved"
+   ],
+   "reviewed_candidate_digests": [
+    "47b341b8f954"
+   ],
+   "qualified": false,
+   "workflow_errors": [
+    "missing exact bound resource: resources/backchain/references/convergence.md",
+    "review assessment shape incomplete"
+   ],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "missing-normative-redaction-source-lean-r1",
+   "case": "missing-normative-redaction-source",
+   "arm": "lean",
+   "rep": 1,
+   "commands": 12,
+   "tool_output_bytes": 287253,
+   "input_tokens": 626737,
+   "cached_input_tokens": 560640,
+   "uncached_input_tokens": 66097,
+   "output_tokens": 6137,
+   "wall_seconds": 126.2,
+   "helper_scripts_written": [],
+   "hand_written_code_blocks": 5,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 4,
+    "resources/backchain/prompts/audit.prompt.md": 2,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/direct.v1.md": 1,
+    "resources/backchain/references/caller-contract.md": 1,
+    "resources/backchain/references/convergence.md": 3,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 3,
+    "resources/backchain/references/technical-lens-cards.md": 5,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 4,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "unresolved"
+   ],
+   "reviewed_candidate_digests": [
+    "1683832803a0",
+    "1683832803a0"
+   ],
+   "qualified": false,
+   "workflow_errors": [
+    "missing exact bound resource: resources/backchain/references/convergence.md",
+    "latest packet resource not retained",
+    "review assessment shape incomplete"
+   ],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "missing-normative-redaction-source-lean-r2",
+   "case": "missing-normative-redaction-source",
+   "arm": "lean",
+   "rep": 2,
+   "commands": 15,
+   "tool_output_bytes": 294963,
+   "input_tokens": 799390,
+   "cached_input_tokens": 727296,
+   "uncached_input_tokens": 72094,
+   "output_tokens": 6383,
+   "wall_seconds": 148.3,
+   "helper_scripts_written": [
+    "artifacts/record-assessment.py"
+   ],
+   "hand_written_code_blocks": 6,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 6,
+    "resources/backchain/prompts/audit.prompt.md": 1,
+    "resources/backchain/prompts/convergence-review.prompt.md": 1,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/direct.v1.md": 1,
+    "resources/backchain/prompts/revise.prompt.md": 1,
+    "resources/backchain/references/caller-contract.md": 1,
+    "resources/backchain/references/convergence.md": 1,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 2,
+    "resources/backchain/references/technical-lens-cards.md": 3,
+    "resources/backchain/references/technical-lenses.md": 2,
+    "resources/until-loop/ADAPTER.md": 5,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "unresolved"
+   ],
+   "reviewed_candidate_digests": [
+    "569f8a2f6724",
+    "569f8a2f6724"
+   ],
+   "qualified": false,
+   "workflow_errors": [
+    "missing exact bound resource: resources/backchain/references/convergence.md",
+    "review assessment shape incomplete"
+   ],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "missing-normative-redaction-source-lean-r3",
+   "case": "missing-normative-redaction-source",
+   "arm": "lean",
+   "rep": 3,
+   "commands": 16,
+   "tool_output_bytes": 318193,
+   "input_tokens": 810089,
+   "cached_input_tokens": 736384,
+   "uncached_input_tokens": 73705,
+   "output_tokens": 6926,
+   "wall_seconds": 132.2,
+   "helper_scripts_written": [],
+   "hand_written_code_blocks": 8,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 5,
+    "resources/backchain/prompts/audit.prompt.md": 1,
+    "resources/backchain/prompts/convergence-review.prompt.md": 1,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/direct.v1.md": 1,
+    "resources/backchain/prompts/revise.prompt.md": 1,
+    "resources/backchain/references/caller-contract.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/technical-interactions.md": 3,
+    "resources/backchain/references/technical-lens-cards.md": 4,
+    "resources/backchain/references/technical-lenses.md": 2,
+    "resources/until-loop/ADAPTER.md": 4,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "unresolved"
+   ],
+   "reviewed_candidate_digests": [
+    "6a4634c47f7e",
+    "6a4634c47f7e",
+    "6a4634c47f7e"
+   ],
+   "qualified": false,
+   "workflow_errors": [
+    "retained runner/transport failure: 'context_identity'"
+   ],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "stale-build-receipt-identity-current-r1",
+   "case": "stale-build-receipt-identity",
+   "arm": "current",
+   "rep": 1,
+   "commands": 21,
+   "tool_output_bytes": 386151,
+   "input_tokens": 836160,
+   "cached_input_tokens": 758272,
+   "uncached_input_tokens": 77888,
+   "output_tokens": 7391,
+   "wall_seconds": 173.8,
+   "helper_scripts_written": [],
+   "hand_written_code_blocks": 7,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 6,
+    "resources/backchain/prompts/convergence-review.prompt.md": 1,
+    "resources/backchain/prompts/dependency-review.prompt.md": 2,
+    "resources/backchain/prompts/elaborator.v1.md": 4,
+    "resources/backchain/prompts/generator.v1.md": 3,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 2,
+    "resources/backchain/references/technical-lens-cards.md": 4,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 6,
+    "resources/until-loop/references/runtime-ephemeral.md": 2,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "non-trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "d44f539881e1",
+    "7d299911349a",
+    "7d299911349a"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "stale-build-receipt-identity-current-r2",
+   "case": "stale-build-receipt-identity",
+   "arm": "current",
+   "rep": 2,
+   "commands": 19,
+   "tool_output_bytes": 340741,
+   "input_tokens": 929983,
+   "cached_input_tokens": 845696,
+   "uncached_input_tokens": 84287,
+   "output_tokens": 7312,
+   "wall_seconds": 159.3,
+   "helper_scripts_written": [
+    "artifacts/check-evidence.py",
+    "artifacts/make-plan.py",
+    "artifacts/record-review.py"
+   ],
+   "hand_written_code_blocks": 7,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 3,
+    "resources/backchain/prompts/convergence-review.prompt.md": 3,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/elaborator.v1.md": 4,
+    "resources/backchain/prompts/generator.v1.md": 1,
+    "resources/backchain/references/convergence.md": 3,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 3,
+    "resources/backchain/references/technical-lens-cards.md": 5,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 5,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 3
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "284df2167d4e"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "stale-build-receipt-identity-current-r3",
+   "case": "stale-build-receipt-identity",
+   "arm": "current",
+   "rep": 3,
+   "commands": 17,
+   "tool_output_bytes": 398987,
+   "input_tokens": 1164631,
+   "cached_input_tokens": 1075200,
+   "uncached_input_tokens": 89431,
+   "output_tokens": 8975,
+   "wall_seconds": 902.1,
+   "helper_scripts_written": [
+    "artifacts/create-plan.py",
+    "artifacts/review-and-repair.py",
+    "artifacts/verify-evidence.py"
+   ],
+   "hand_written_code_blocks": 7,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 4,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/dependency-review.prompt.md": 2,
+    "resources/backchain/prompts/elaborator.v1.md": 4,
+    "resources/backchain/prompts/generator.v1.md": 2,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/dependency-context.md": 1,
+    "resources/backchain/references/technical-interactions.md": 2,
+    "resources/backchain/references/technical-lens-cards.md": 3,
+    "resources/backchain/references/technical-lenses.md": 2,
+    "resources/until-loop/ADAPTER.md": 3,
+    "resources/until-loop/references/runtime-ephemeral.md": 2,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "non-trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "1f879f5fc75e",
+    "08e53fec489d"
+   ],
+   "qualified": false,
+   "workflow_errors": [
+    "subject process or telemetry incomplete",
+    "wrong plan completion status"
+   ],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "stale-build-receipt-identity-lean-r1",
+   "case": "stale-build-receipt-identity",
+   "arm": "lean",
+   "rep": 1,
+   "commands": 16,
+   "tool_output_bytes": 288892,
+   "input_tokens": 730758,
+   "cached_input_tokens": 653824,
+   "uncached_input_tokens": 76934,
+   "output_tokens": 7139,
+   "wall_seconds": 157.8,
+   "helper_scripts_written": [],
+   "hand_written_code_blocks": 6,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 4,
+    "resources/backchain/prompts/convergence-review.prompt.md": 3,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/direct.v1.md": 1,
+    "resources/backchain/references/convergence.md": 3,
+    "resources/backchain/references/technical-interactions.md": 3,
+    "resources/backchain/references/technical-lens-cards.md": 4,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 6,
+    "resources/until-loop/references/runtime-ephemeral.md": 4,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "6c6a110693da"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "stale-build-receipt-identity-lean-r2",
+   "case": "stale-build-receipt-identity",
+   "arm": "lean",
+   "rep": 2,
+   "commands": 14,
+   "tool_output_bytes": 248715,
+   "input_tokens": 729014,
+   "cached_input_tokens": 644352,
+   "uncached_input_tokens": 84662,
+   "output_tokens": 6950,
+   "wall_seconds": 189.5,
+   "helper_scripts_written": [
+    "artifacts/prepare.py",
+    "artifacts/review-repair.py",
+    "artifacts/start-loop.py"
+   ],
+   "hand_written_code_blocks": 5,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 4,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/direct.v1.md": 1,
+    "resources/backchain/prompts/elaborator.v1.md": 2,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/technical-interactions.md": 2,
+    "resources/backchain/references/technical-lens-cards.md": 3,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 3,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "non-trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "8f08930cb971",
+    "31dbfe21a961"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  },
+  {
+   "run": "stale-build-receipt-identity-lean-r3",
+   "case": "stale-build-receipt-identity",
+   "arm": "lean",
+   "rep": 3,
+   "commands": 14,
+   "tool_output_bytes": 270729,
+   "input_tokens": 653641,
+   "cached_input_tokens": 581376,
+   "uncached_input_tokens": 72265,
+   "output_tokens": 6109,
+   "wall_seconds": 137.1,
+   "helper_scripts_written": [],
+   "hand_written_code_blocks": 6,
+   "instruction_files_named": {
+    "resources/backchain/SKILL.md": 4,
+    "resources/backchain/prompts/convergence-review.prompt.md": 2,
+    "resources/backchain/prompts/dependency-review.prompt.md": 1,
+    "resources/backchain/prompts/direct.v1.md": 1,
+    "resources/backchain/references/convergence.md": 2,
+    "resources/backchain/references/technical-interactions.md": 3,
+    "resources/backchain/references/technical-lens-cards.md": 4,
+    "resources/backchain/references/technical-lenses.md": 3,
+    "resources/until-loop/ADAPTER.md": 3,
+    "resources/until-loop/references/runtime-ephemeral.md": 3,
+    "resources/until-loop/scripts/until_loop_ephemeral.py": 2
+   },
+   "required_trivial_reviews": 0,
+   "review_classes": [
+    "trivial"
+   ],
+   "reviewed_candidate_digests": [
+    "0a74c2c753db"
+   ],
+   "qualified": true,
+   "workflow_errors": [],
+   "adjudicated_semantic": "pass"
+  }
+ ]
+}
