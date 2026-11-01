@@ -1714,6 +1714,12 @@ each of these after the fact, at the cost of a relaunch or a re-read of stored r
    credentials (the Claude host keeps the real HOME). Calibrate the analysis on counterexamples and replays before the first trial
    (`docs/experiments/start-route-20261101/check_analyzer.py`), and have an independent model review the plan before the owner is
    asked to approve it. This list is from Astra's review of the work (`astra-review-2026-11-01.md` in that folder), asked afterwards.
+7. *Make the instruments fail loud, then try to make them lie.* An analysis names the registered plan of its batch (`--plan`) and
+   prints no verdict without it; a comparison needs a started session in both arms, and an arm that mostly never started makes the
+   host unreadable, not clean; a process killer matches whole paths (the folder or a slash inside it, after a place a path can
+   start), never a prefix or a list of characters that may follow. Sol's review of the fixes to Astra's findings (2026-11-01) found
+   each of these three still failing in the safe-looking direction, and each shipped in a test that failed first
+   (`check_analyzer.py`).
 
 ### Launching long runs
 

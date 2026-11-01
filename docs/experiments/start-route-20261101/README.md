@@ -461,7 +461,7 @@ often it will fire.
 **Command** (one launch, no change while it runs):
 `python3 start_probe.py run --host codex --arms arms-guard.json --package-root <build-packages.py output of the guard commit>
 --effect-stop --plan plan-guard.json --out ~/e2e-runs-startroute/20261101-guard --jobs 4`; analysis
-`python3 analyze.py <out>/results.jsonl --mode guard --export results-guard-compact.jsonl`.
+`python3 analyze.py <out>/results.jsonl --mode guard --plan plan-guard.json --export results-guard-compact.jsonl`. Every analysis names the plan of its batch with `--plan` (Sol's review, below): without it the analyzer prints its arithmetic but no verdict.
 
 
 ### Result of the first guard probe (104 sessions, 2026-11-01)
@@ -630,6 +630,26 @@ the run lock, the failed first design kept in this journal, the stop-race test f
 and first-start probes as a cheap tool that does not certify delivery. Its remark that "E2E cases start with workspace start" is a weak
 reason for the guard commit's `No-E2E-Round` trailer is right: the probes are the evidence, as the entry in `test/shiploop_e2e/LEARNINGS.md` says.
 
+## Sol's review of the fixes (2026-11-01, before they shipped)
+
+The four local commits that took Astra's review (`4cc3d787`, `07a7fcb7`, `5605c4fa`, `d8216470`, on top of `aa5d24fe`) went to Sol
+(gpt-6.1-sol, effort medium, read-only) for an adversarial review, as the standing rule for code asks. It returned five reproducible gaps and
+a list of what it checked and found sound. Each gap was reproduced here with its own script before anything was changed, and each fix
+was written test-first (the new tests failed for the stated reason before the change and pass after).
+
+| Sol's finding | What I checked | Disposition |
+|---|---|---|
+| P0 the reaper still kills a process whose path only contains the trial's: `names()` blacklists some trailing characters and has no leading boundary, so `/tmp/trial-a1+backup/work` and `/other/tmp/trial-a1/work` were killed when cleaning `/tmp/trial-a1` | Reproduced both; three more passed the same way (`/tmp/trial-a1~/`, `/tmp/trial-a1@2/`, `/mnt/tmp/trial-a1`) | Done: a path must start where a path can start (after white space, `=`, a quote, `:` or a bracket) and end at the folder or a slash inside it; 7 command lines that must be killed and 9 that must not are tested |
+| P0 a partial batch with no `--plan` prints RELEASE: 13 of the 104 slots of the second guard batch met every condition | Reproduced with Sol's selection; the documented invocation did not pass `--plan` | Done: with no `--plan` the report says `INSUFFICIENT: no --plan was given` beside the arithmetic (every mode); `check_analyzer.py` replays each of the 7 committed batches with its registered plan and each keeps its conclusion; the invocation above is corrected |
+| P0 a complete host batch whose treatment never started prints NO REGRESSION FOUND (`/dev/null` too) | Reproduced; `--mode inplace` had the same defect (`p = 1.0`, `drop = 0` for a zero denominator) | Done: the registered "most sessions did not start" rule is now judged per arm (it implies the aggregate rule it replaces); a request/arm cell with no started session is UNREADABLE in the host and in-place sets; no valid session at all is INSUFFICIENT in every mode |
+| P1 a carried leading-dash Improve path fails in the second parser: `workspace start` handed `init` the two words `--improve-skill -path` | Reproduced end to end on the real recovery: exit 2, `expected one argument`, after the folder had been made a Git repository and the worktree prepared | Done: one word, `--improve-skill=<path>` |
+| P1 `--bound-plan` disappears in the recovery | Reproduced; the option has no caller left in the repository (the planning-context collector that used it was retired in `f0127708`) and no documentation | Done: `workspace start` takes `--bound-plan` and forwards it, the printed command carries it as `init` records it (resolved), and a test compares the two commands' option lists so an `init` option added later cannot be dropped in silence. No retry check on a re-entry, as for `--improve-skill` |
+
+What Sol checked and found sound, and I did not repeat: the quoting round trip (spaces, quotes, dollar signs, newlines, leading dashes);
+the shared choices of the two parsers; that a missing Improve locator alone is not a recovery-specific mismatch; the emptiness predicate
+and the neutral-locale probe; `route()` and `recorded()`; the seven committed analyzer verdicts. Not done by Sol and still not done:
+a real Python 3.9 run (no interpreter on this machine; grammar only), mount points, permission failures and a full host lifecycle.
+
 ## Release CI
 
 The full CI run of the release commit f24746fa6193007235818f2d8b109408d70ca413 (run 41318115086) failed one job, `full /
@@ -661,6 +681,7 @@ https://github.com/whichguy/skill-craft/actions/runs/41318115086.
   `results-guard-compact.jsonl` (first design), `analysis-guard2-output.txt` and `results-guard2-compact.jsonl` (second design);
   `start_probe.py run --effect-stop --package-root <build>` and `analyze.py --mode guard --gate e` are the instruments, and
   `analyze.py --replicates` prints whether a second batch repeats a selection.
+- `check_analyzer.py`: `python3 -I check_analyzer.py` from this folder (a few seconds, no model): Astra's and Sol's counterexamples for the analyzer and the reaper, and the replay of the 7 committed batches with their plans.
 - Raw run folders for the follow-ups (not committed): `~/e2e-runs-startroute/20261101-h-claude`, `-h-grok`, `-guard`, `-guard2`.
 - Raw run folders (not committed): `~/e2e-runs-startroute/20261101/` (`results.jsonl`, `baselines-probe.jsonl`,
   `trials/<slot>-<arm>-<request>-<n>-a<attempt>/` with `events.jsonl`, `invocation.json`, `result.json`, `metrics.json`).

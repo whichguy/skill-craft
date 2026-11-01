@@ -6034,6 +6034,20 @@ command dropped the options the refused `init` carried, and Git's diagnostic was
 each with a test that runs the printed recovery. What the review left open for the owner is listed in the same README: an outcome-level
 check for direct runs, a cross-host recovery screen, the release gate's reading of conflict resolutions, and the non-Git fixtures.
 
+**Addendum, Sol's review of the fixes (2026-11-01).** The four commits that took Astra's findings went to Sol (gpt-6.1-sol, effort
+medium, read-only) for an adversarial code review before they shipped; it found five more gaps, each reproduced here before it was
+fixed and fixed test-first (the journal is `docs/experiments/start-route-20261101/README.md`, "Sol's review of the fixes"). Two are in
+the product's recovery: a leading-dash Improve path failed in the second parser *after* the folder had been made a repository and its
+worktree prepared (`workspace start` handed `init` two words), and `--bound-plan`, the one `init` option `workspace start` lacked, was
+dropped in silence. Three are in the probe instruments and all three failed in the direction that looks safe: the reaper killed
+processes whose paths only contained the trial's (`/tmp/trial-a1+backup`, `/other/tmp/trial-a1`), the analyzer printed RELEASE for 13
+of a batch's 104 slots when `--plan` was not passed, and NO REGRESSION FOUND for a host whose treatment never started (and for no
+sessions at all, in the in-place set too). What changes: a verdict needs its registered plan and a started session in both arms; a
+test compares the option lists of `init` and `workspace start`, so an option added to one cannot be dropped by the printed recovery;
+the probe checklist gains an item (7) on making instruments fail loud. No new E2E round ran: the recovery is covered by tests that run
+the printed command, and nothing in the measured first-command behaviour (the card wording, the refusal text) changed. Not measured:
+a real Python 3.9 run of any of it (no interpreter here), and the recovery on the other hosts.
+
 ## Release preflight: a merge of main into a branch is listed as a ShipLoop change without a round (2026-11-01) — status: firm (seen twice in one release); the gate is unchanged and the owner decides whether to change it
 
 **What happened.** `scripts/release.py --dry-run` for 2.31.0 / 1.30.0 refused twice, each time naming one commit that is a merge:
