@@ -101,6 +101,38 @@ def evaluate_inplace(cells: dict) -> tuple[list[str], str]:
     return lines, verdict
 
 
+HOSTS_MORE_INIT = 3        # extra `init` starts on T2, over the control, that count as a regression where `workspace start` is right
+HOSTS_P = 0.05
+
+
+def evaluate_hosts(cells: dict) -> tuple[list[str], str]:
+    """One host that is not the one the card was tuned on: does T2 start more runs with `init` where `workspace start` is right
+    (sf-ui, repo), or fewer where `init` is right (the explicit in-place and non-Git requests)?"""
+    lines: list[str] = []
+    problems: list[str] = []
+    for s in sorted({s for s, _ in cells}):
+        c, t_ = cells[(s, "C")], cells[(s, "T2")]
+        cn, tn = c["workspace"] + c["direct"], t_["workspace"] + t_["direct"]
+        lines.append(f"{s}: init as the first start, C {c['direct']}/{cn}, T2 {t_['direct']}/{tn}; no start: C {c['none']}, T2 {t_['none']}")
+        if s in ("sf-ui", "repo") and cn and tn:
+            p_more = fisher_lower(t_["direct"], tn, c["direct"], cn)   # T2 has at least as many `init` starts as it does
+            if t_["direct"] - c["direct"] >= HOSTS_MORE_INIT and p_more < HOSTS_P:
+                problems.append(f"{s}: T2 starts with init more often than the old wording (p {p_more:.3f})")
+    explicit = [s for s in sorted({s for s, _ in cells}) if s not in ("sf-ui", "repo")]
+    if explicit:
+        ci = sum(cells[(s, "C")]["direct"] for s in explicit)
+        cn = sum(cells[(s, "C")]["workspace"] + cells[(s, "C")]["direct"] for s in explicit)
+        ti = sum(cells[(s, "T2")]["direct"] for s in explicit)
+        tn = sum(cells[(s, "T2")]["workspace"] + cells[(s, "T2")]["direct"] for s in explicit)
+        p = fisher_lower(ci, cn, ti, tn) if cn and tn else 1.0
+        drop = (ci / cn - ti / tn) if cn and tn else 0.0
+        lines.append(f"explicit in-place and non-Git requests pooled: C {ci}/{cn} ({ci / max(cn, 1):.2f}), T2 {ti}/{tn} "
+                     f"({ti / max(tn, 1):.2f}); drop {drop:+.2f}; one-sided p (T2 lower) {p:.4f}")
+        if drop >= INPLACE_POOLED_DROP and p < INPLACE_P:
+            problems.append("explicit requests: T2 lowers init (pooled)")
+    return lines, ("REGRESSION: " + "; ".join(problems)) if problems else "NO REGRESSION FOUND"
+
+
 def card_sizes(arms_file: Path) -> dict:
     card = (ROOT / "skills" / "shiploop" / "SKILL.md").read_text()
     arms = json.loads(arms_file.read_text())
@@ -182,14 +214,15 @@ def main() -> None:
     ap.add_argument("results", type=Path)
     ap.add_argument("--export", type=Path)
     ap.add_argument("--arms", type=Path, default=HERE / "arms.json", help="the arms file the batch used (sizes)")
-    ap.add_argument("--mode", choices=("start", "inplace"), default="start",
-                    help="start: init is wrong (the bar and tie-break); inplace: init is right (is T2 harmless?)")
+    ap.add_argument("--mode", choices=("start", "inplace", "hosts"), default="start",
+                    help="start: init is wrong (the bar and tie-break); inplace: init is right (is T2 harmless?); "
+                         "hosts: one other host, both directions")
     ap.add_argument("--also", type=Path, help="another batch's results: add a pooled table (descriptive only)")
     args = ap.parse_args()
     rows, dropped = load(args.results)
     cells = tally(rows)
     print(f"{len(rows)} valid slots; slots with no valid attempt: {dropped or 'none'}")
-    label = "init share (95% CI)" if args.mode == "inplace" else "wrong rate (95% CI)"
+    label = "wrong rate (95% CI)" if args.mode == "start" else "init share (95% CI)"
     print(f"{'request':13s} {'arm':3s} {'n':>3s} {'workspace':>9s} {'direct':>6s} {'none':>4s} {label:>22s} "
           f"{'bootstrap':>9s} {'read run-start':>14s} {'median s':>8s}")
     for (stimulus, arm), c in cells.items():
@@ -199,8 +232,8 @@ def main() -> None:
         median = c["seconds"][len(c["seconds"]) // 2] if c["seconds"] else "-"
         print(f"{stimulus:13s} {arm:3s} {c['n']:3d} {c['workspace']:9d} {c['direct']:6d} {c['none']:4d} {rate:>22s} "
               f"{c['bootstrap']:9d} {c['read_run_start']:14d} {median!s:>8s}")
-    if args.mode == "inplace":
-        lines, verdict = evaluate_inplace(cells)
+    if args.mode in ("inplace", "hosts"):
+        lines, verdict = (evaluate_inplace if args.mode == "inplace" else evaluate_hosts)(cells)
         print()
         print("\n".join(lines))
         print()
