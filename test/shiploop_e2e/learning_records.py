@@ -45,6 +45,9 @@ RECORD_ID = re.compile(r"LR-\d{8}-[0-9a-f]{6}")
 # The reviewer sees these first; the rest are history it should not re-propose.
 LIVE = ("in_candidate", "admitted", "open", "owner")
 SETTLED = ("refuted", "no_effect", "deferred", "rejected", "unexplained_gain", "verified")
+# What select reads as material. Reviewers and the judge write material or minor; the one record seeded by hand,
+# LR-20261030-5dce01, says high, and a spelling select did not know made it impossible to take with no error.
+MATERIAL = ("material", "high")
 # A new sighting adds its evidence to a record in these and never moves it: the owner decides an `owner` record, and an
 # `in_candidate` one belongs to a registered epoch.
 HELD = ("owner", "in_candidate")
@@ -221,7 +224,7 @@ def select(path: Path = LEDGER, case: str | None = None, generality: str | None 
     With ``case``, the cycle's exposing case, a record must be one that cycle can measure and has not seen: it was found
     on that case, or names no case at all (a seeded record); and none of its evidence came from ``generality``, the case
     the cycle keeps unseen to confirm with. A record found on a hosted case the cycle will not run is another cycle's."""
-    candidates = [s for s in current(path).values() if s["status"] == "admitted" and s.get("materiality") == "material"
+    candidates = [s for s in current(path).values() if s["status"] == "admitted" and s.get("materiality") in MATERIAL
                   and s["exposure"] != "confirmation" and s.get("target", "shiploop") == "shiploop"]
     if case is not None:
         candidates = [s for s in candidates

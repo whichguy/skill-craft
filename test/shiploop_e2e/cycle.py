@@ -67,6 +67,9 @@ import spread  # noqa: E402
 CONTRACT = "shiploop-cycle/1"
 JOURNAL = Path("test", "shiploop_e2e", "LEARNINGS.md")  # relative to the worktree
 NON_PROMOTE_STOP = 2  # cycles in a row without PROMOTE before the loop stops (D3 proposal)
+# Assessments (a reviewer and a judge, fresh each time) tried on one attempt before its review is left incomplete. Live, two
+# of six judge answers failed the harness's own consistency check; an incomplete attempt keeps a PROMOTE from being claimed.
+REVIEW_ASSESSMENTS = 3
 
 
 class RegistrationRefused(ValueError):
@@ -279,18 +282,28 @@ def launch_all(root: Path, plugins: dict[str, Path], parallel: int, logs: Path) 
 
 
 def review_all(root: Path, ledger: Path, generality: str | None) -> list[str]:
-    """Review and judge every sealed attempt; their material discoveries become learning records."""
+    """Review and judge every sealed attempt; their material discoveries become learning records.
+
+    A review that ends incomplete (the reviewer or the judge answered in a way the harness refuses, which a model sometimes
+    does) is assessed again from scratch, a fresh exposure each time, up to REVIEW_ASSESSMENTS in all for the attempt,
+    counting those made before this call. Every exposure stays in the epoch's log. An attempt still incomplete after the
+    last stays recorded (its last event is review_incomplete), and epoch.decide then reports UNDECIDED instead of a PROMOTE."""
     opened = []
     for row in epoch.state(root)["attempts"]:
-        if row["status"] != "recorded":
+        if row["status"] != "recorded":  # epoch.state keeps an attempt recorded until a review of it completes
             continue
-        with epoch.locked(root, epoch.INTENT_WAIT):
-            event = epoch.review_attempt(root, row["id"], records=learning_records.reviewer_view(ledger))
-        receipt = json.loads((root / event["receipt"]).read_text())
-        exposure = "confirmation" if row["case"] == generality else "development"
-        opened += learning_records.ingest(receipt["review"], receipt["routes"], {
-            "epoch": str(root), "attempt": row["id"], "case": row["case"], "exposure": exposure,
-            "review_sha256": (receipt.get("judge") or {}).get("review_sha256")}, ledger)
+        spent = len([event for event in epoch.events(root) if event["kind"] == "exposure" and event["attempt_id"] == row["id"]])
+        while spent < REVIEW_ASSESSMENTS:
+            spent += 1
+            with epoch.locked(root, epoch.INTENT_WAIT):
+                event = epoch.review_attempt(root, row["id"], records=learning_records.reviewer_view(ledger))
+            receipt = json.loads((root / event["receipt"]).read_text())
+            exposure = "confirmation" if row["case"] == generality else "development"
+            opened += learning_records.ingest(receipt["review"], receipt["routes"], {
+                "epoch": str(root), "attempt": row["id"], "case": row["case"], "exposure": exposure,
+                "review_sha256": (receipt.get("judge") or {}).get("review_sha256")}, ledger)
+            if event["kind"] == "reviewed":
+                break
     return opened
 
 

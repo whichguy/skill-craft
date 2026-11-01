@@ -1,0 +1,671 @@
+{
+ "review": {
+  "lenses": [
+   {
+    "lens": "cut",
+    "headline": "The work built a list of leftovers for a problem the evidence says barely occurs (about 1.5% of runs, zero natural gaps), and skipped the gate the owner actually asked for. Freeze it, and spend the next effort on one real-feature trial of whether a second look after delivery finds anything a person would act on.",
+    "recommendations": [
+     {
+      "claim": "Cut the classified follow_on machinery down to a one-field handoff note ('what I would do next, and what answer I need'). Keep the request-file writer only if a person actually uses it.",
+      "why": "The shipped design has seven model-invented classes, evidence citations, a gate and a request-file generator. Your own data: decisions in 1.2% to 1.8% of 166 runs, no confirmed gap, and the one class that could run unattended (gap) appeared only when the request was written to produce it. A decision is by definition a request for a person, and the existing blocked/ask path already handles that. The classes add a model-judged taxonomy with no consumer. They also add surface area: three later test suites broke on hand-built handoff results, so every future handoff change pays for this.",
+      "refuting_check": "Take the 4 unprimed live runs plus 10 older finished runs. Replace follow_on with a free-text 'next' line. Ask the owner (blind to which format is which) to say which items he would act on. If the classified list surfaces actionable items the free text misses, keep the classes. Otherwise cut.",
+      "cost": "Low: about half a day, no model runs beyond re-reading existing handoffs",
+      "value": "medium"
+     },
+     {
+      "claim": "The owner's real goal is 'did the delivered feature actually meet intent, and what did building teach', and the gate that answers that was never built. Build the gate first, not the list.",
+      "why": "The dictated intention was a replanning step plus a gate that decides whether to re-enter. What shipped is a leftover list that never decides anything and never blocks 'done'. A leftover list depends on the building model volunteering its own shortfalls, so it only reports what the run already noticed. A gate that does not depend on the run's self-report (held-out acceptance, or a spec-vs-behaviour diff) catches what the run did not notice. The 166-run saturation (every run completes) also says the self-report path will mostly return nothing.",
+      "refuting_check": "On 10 finished runs, run a fresh-context reviewer that gets only the original request and the deployed behaviour (not the run's records) and produces acceptance probes. Count runs where a probe fails and a person agrees it is a real miss. If it finds roughly 0 in 10, the continuation idea is dead and the whole direction can be dropped with confidence.",
+      "cost": "Medium: one reviewer prompt and 10 model runs, about 1 to 2 days",
+      "value": "high"
+     },
+     {
+      "claim": "Stop measuring on tiny arranged tasks and stop writing journal rounds about mechanics. The next evidence must come from one substantial feature on the owner's real work.",
+      "why": "Rounds 5 to 7 show the path works when primed. That was never in doubt, since it is a script writing a file. The questions that decide value (natural rate, whether a follow-on run repairs anything, whether the owner uses the command) are unmeasured, and each primed round adds journal and design-note weight (678 plus 925 lines) without answering them. The M3 tally script already exists; use it on real deliveries.",
+      "refuting_check": "Run the M3 tally over the owner's next 5 real deliveries. If a recommended run is started in 0 of 5 and the owner calls the list noise, treat the feature as unused and apply recommendation 1. If at least 2 of 5 are started and led to a change, keep it.",
+      "cost": "Low in effort but slow in calendar time (the next 5 deliveries)",
+      "value": "high"
+     },
+     {
+      "claim": "The 'Determine how to conclude, plan out, and implement' loop is rewarding the session for shipping process rather than for a better product. Set a stop condition before further work on this direction.",
+      "why": "Two days produced 6 design-note revisions, 7 journal rounds, a release and a live check, for a thing whose measured demand was 1.2% to 1.8%. The session itself recorded that a replay advising to wait was 'evidence about demand that was not kept'. That is the pattern to avoid: each one-line prompt triggers more building, and the evidence against building was set aside. A pre-registered stop is cheap and honest.",
+      "refuting_check": "State in the journal: if the real-delivery tally (recommendation 3) shows under 1 in 5 deliveries with a recommended run actually started within 30 days, the feature is frozen and no further rounds are written. Check later whether that rule would have stopped Rounds 5 to 7.",
+      "cost": "Very low: one paragraph",
+      "value": "medium"
+     },
+     {
+      "claim": "If a continuation signal is wanted, take it from outside the run (failures and complaints after deployment, or the owner's own next prompt) rather than from the run's self-classification.",
+      "why": "The owner already sends a follow-up prompt after each delivery. That prompt is a free, high-quality label of 'what the delivery missed'. Logging it against the prior run's handoff (did the follow-up request correspond to any listed leftover?) measures the recall of the list without model-run cost and without priming. Low recall means the list is aimed at the wrong target.",
+      "refuting_check": "Take the owner's last 10 post-delivery prompts and the matching handoffs. If the handoff already listed the thing the owner asked for in at least 7 of 10, the list has value and my recommendation weakens. If under 3, it does not.",
+      "cost": "Low: manual read of about 10 pairs, about 1 hour",
+      "value": "high"
+     }
+    ],
+    "risks": [
+     "Priming: all positive evidence (decision filed, gap filed, unattended run delivered) comes from requests written to produce that occasion, so it shows mechanics only and says nothing about natural use.",
+     "Small n and a single host/model/effort (Codex Terra xhigh on small command-line tasks); two to four runs per cell cannot support any rate claim, and the 166-run replay is saturated (every run completes), so it cannot show demand either way.",
+     "Model-written classes graded by the same model families: the reader passes (two of one model, one of another) share blind spots about what counts as a leftover, so the 1.2% to 1.8% may itself be unreliable in either direction.",
+     "Sunk-cost momentum: the owner's repeated one-line prompt plus a released feature makes stopping feel like a regression, so the direction may continue without evidence of demand.",
+     "Maintenance drag: the follow_on gate sits in the handoff path, and the sweep already broke three unrelated suites; every future handoff or test-fixture change must account for it.",
+     "Wrong target: a list that only the building model fills in cannot see what that model did not notice, which is the case that most matters for continuing a delivery."
+    ]
+   },
+   {
+    "lens": "gate",
+    "headline": "The built list answers \"what did the run notice?\", not \"has the feature concluded?\". A gate is only worth having if it fires on evidence the implementing model did not write and has been shown to fire on a known gap. Neither is true yet, so measure the gate's sensitivity on seeded gaps before building anything on top of it.",
+    "recommendations": [
+     {
+      "claim": "Before trusting any gate, calibrate it on seeded gaps that the request does not arrange. Take completed runs, silently break one requested outcome in the delivered build (drop it, weaken it, or hard-code a case) while the run's own tests stay green, then ask whether the gate fires. Do the same for the existing `follow_on` list as the baseline.",
+      "why": "The archive is saturated (26 of 26 brownfield runs pass every held-out check; `decision` in 1.2 to 1.8% of runs, no confirmed `gap`). The live cells were primed by requests that told the model to defer or reserve something, so they show the classifier obeys an arranged occasion, not that it detects a real gap. A gate with unmeasured recall can say 'concluded' on every run, and the original idea needs it to say 'not concluded' correctly. Seeding gives a known positive without waiting for the natural rate.",
+      "refuting_check": "Seed one gap in each of about 12 completed runs (3 kinds x 4 runs). If the model-classified `follow_on` list files a `gap` or `decision` for at least 10 of them with no prime, the list already is a sensitive gate and the rest of this critique is weaker. If it files 0 to 3 and an executable probe (rec 2) catches most, the list is a note-taker, not a gate.",
+      "cost": "About 12 to 24 model runs plus hand-seeding (1 to 2 days). No change to the product.",
+      "value": "high"
+     },
+     {
+      "claim": "Replace the model-classified `gap` with an executable red: an independent reviewer pass (fresh context, a different model if possible) sees only the verbatim request and the running build, not the spec, lessons or self-reported leftovers. It must emit runnable black-box probes. Only a probe that fails against the delivered build counts as 'not concluded'. Prose findings go in as notes.",
+      "why": "The list is judged by the same context that built the feature, so it shares that context's blind spots. It also shares the request-to-spec drift, because the spec is the thing under suspicion. A failing probe is checkable by a script, is hard to game by relabelling, and has no class boundary to argue about. It turns the 'gap' versus 'note' coin-flip seen in the deferred-option cell into a pass or fail result.",
+      "refuting_check": "On the seeded set from rec 1 plus the same runs unseeded, compare the probe reviewer with the list. It is refuted if probes fail on more than about 10% of unseeded saturated runs (false alarms from over-reading the request), or catch no more seeded gaps than the list does.",
+      "cost": "One extra stage, one reviewer call plus probe execution per run (roughly 5 to 15 minutes, 1 model call; a modest slice of the run's token cost). Failure modes: probes that misread an ambiguous request and fail on a legitimate choice (those should go to `decision`, not `gap`), and flaky probes (run each twice).",
+      "value": "high"
+     },
+     {
+      "claim": "Derive a ground-truth label from real history before designing the gate further. For each past owner delivery, mark it 'needed follow-up' if within N days there was a fix commit touching the delivered files, a revert, or an owner prompt like 'determine how to conclude', 'it does not work', 'also add'. Then score any candidate gate (the list, probes, reviewer) against that label.",
+      "why": "The owner's own next move is the real 'did building teach us something' signal, and it is free and already on disk. The current evidence has no label at all: classes are the system's own definitions, and E2E tasks are tiny and always complete. Real features are where 'not concluded' lives, and the natural rate of it there is the number that decides whether any of this is worth building.",
+      "refuting_check": "Take the last 20 to 30 real runs on the owner's repos. If fewer than about 10% have a follow-up within 14 days, there is little for a gate to catch and the direction should shrink to the lessons commit. If more than 30% do, the list's recall against that label can be computed immediately.",
+      "cost": "A few hours of read-only git and transcript mining, no model runs. Failure mode: follow-ups that are new scope, not gaps. Label by hand for the 20 or so positives.",
+      "value": "high"
+     },
+     {
+      "claim": "Add a sealed acceptance check to ShipLoop itself. At test-strategy, a separate context writes acceptance checks from the request only, stored where the implementer and its loop never read them. They run once at release-verify or handoff. A pass means 'concluded on the request'. A failure that survives the in-run loop becomes a mandatory gap with an executable red. Keep it advisory for `done`.",
+      "why": "Production runs have no held-out check: the held-out checks exist only in the E2E apparatus. The implementer sees all its own tests, so test-passing is a weak proof of 'the request is met'. A sealed set breaks that coupling and costs one test run. Note the earlier decision that an end-of-run gate that refuses `done` has refused honest runs (the coverage-check replay); advisory use avoids repeating that.",
+      "refuting_check": "Replay on the seeded set (rec 1) and on 10 unseeded runs. It is refuted if sealed checks fail on honest unseeded runs more than about 10% of the time (they test a different reading of the request), or if they add nothing over the visible tests on the seeded gaps.",
+      "cost": "One extra authoring step plus one run of the checks. About 1 to 2 days to build, plus the replay. Failure modes: sealed checks that encode the author's reading, and a leaked path that lets the implementer see them (needs a guard).",
+      "value": "medium"
+     },
+     {
+      "claim": "Define 'concluded' as convergence, not as an empty list, and collapse the classes to what each action needs: executable red (start a run), person question (ask), and note. Only after rec 1 and rec 3 show a base rate above zero on real features, build the chain exit as 'two consecutive independent passes with no new red and no open decision'. Until then, cut auto-start, D3 chain machinery and the extension/debt/capability/person distinctions.",
+      "why": "An empty list from the same model is a statement of its own confidence, not a stopping rule. 'Two clean independent rounds' is the discipline the repo already uses elsewhere (review-converge) and has an exit that can be checked. Seven classes carry meaning only for the model that wrote them, and three of them ('person', 'capability', 'extension') are not different next actions. Complexity should follow a measured base rate, which is currently unmeasured.",
+      "refuting_check": "Count how often each class changes what the owner actually does in the next session (starts a run, answers, ignores). If the owner acts differently on 4 or more classes, the split is justified. If they act on 2, collapse it.",
+      "cost": "Cheap, mostly deletion and a count over existing evidence (under a day). Failure mode: collapsing classes loses a distinction that a later chain would need, which is recoverable from git.",
+      "value": "medium"
+     }
+    ],
+    "risks": [
+     "Circularity: the gate, its classes, and the cases that show it works were all produced by the same model family and session. A 'passing' live check shows the classifier follows a primed request, not that it detects an unprimed gap.",
+     "Saturation cuts both ways: the archive cannot show the value of a gate because everything completes, so success there says nothing. Do not read 'no gaps found in 166 runs' as 'the idea is not needed' either. The corpus cannot contain the thing being searched for.",
+     "Spec drift hides the gap: the spec, plan and tests all descend from one reading of the request. Any gate that reads those artifacts inherits that reading. Only a check that starts from the verbatim request, or from the owner's later behaviour, escapes it.",
+     "The deployed-feature signal does not exist for these runs: ShipLoop ends at handoff and observes nothing after it, so 'usage or failure signals' reduce to what the owner chooses to report, which is sparse and biased toward visible breakage. Use it as a label (rec 3), not as an automatic gate.",
+     "Sealed or independent checks can create false 'not concluded' signals when the request is ambiguous, which sends the owner more work than it saves. Route disputed readings to `decision`, and track the false-alarm rate as the primary cost.",
+     "Held-out checks and reviewers add cost on every run to catch something with a low natural rate. If rec 3 shows follow-ups under about 10%, the most valuable change may be to do nothing beyond the lessons commit."
+    ]
+   },
+   {
+    "lens": "ideas",
+    "headline": "The target is probably wrong: the work classifies what a run says it left over, not whether the delivery matches what the requester wanted. The best alternatives measure that mismatch directly, starting with the owner's own post-delivery prompts as the ground-truth label, which is the cheapest step.",
+    "recommendations": [
+     {
+      "claim": "Use the owner's real post-delivery prompts as ground truth. For each delivery on a real feature (not E2E probes), record what the owner asked next (the repeated 'Determine how to conclude, plan out, and implement' plus any content they added or changed). Replay the follow_on list, or any candidate gate, against those deliveries and score it: would it have predicted that a follow-up was needed, and what it would be?",
+      "why": "The brief's evidence comes from 166 saturated E2E runs and 2 to 4 primed live runs; neither says whether the list matches anything the owner actually wanted. The owner's follow-up messages are the only natural label for 'not concluded'. The 'Determine how to conclude' prompt also suggests the owner wants a stop rule, which a leftovers list does not give.",
+      "refuting_check": "Take the last 10 to 20 real deliveries from session history. For each, mark 'owner asked for more' yes/no from the transcript. If the follow_on list (or the model's own handoff leftovers) predicts that mark no better than a coin flip, or the owner's next asks never correspond to a filed gap/decision, the leftovers direction is aimed at the wrong target.",
+      "cost": "Low: a few hours of reading transcripts and handoff results, no model runs.",
+      "value": "high"
+     },
+     {
+      "claim": "Add a release-verification probe in a fresh context: from the verbatim original request only (not the spec, plan or tests the run wrote), a stage writes 3 to 5 acceptance checks and runs them against the delivered artifact as a new user would (README happy path, the request's literal wording, one adversarial input). Any failed or unrunnable check is a script-computed 'not concluded' signal.",
+      "why": "The run grades itself against a spec it wrote, so spec-versus-request drift is invisible to every current check. A held-out probe derived from the request breaks the shared-author blind spot and is a gate that does not depend on a model classifying its own leftovers. It is generic (no stack rules), consistent with the 'generic focus' decision.",
+      "refuting_check": "On 20 past E2E runs where the request is retained, run the probe and check whether it finds any defect or unmet request outcome that the run's own system-test missed. If it finds none in 20 on saturated runs, also run it on 5 runs with injected spec drift (a request clause quietly dropped from the spec). If it misses the injections, cut it.",
+      "cost": "Medium: one new stage prompt, plus about 25 runs of a single extra step; no harness changes needed for the offline replay.",
+      "value": "high"
+     },
+     {
+      "claim": "Replace the model-classified 'gap' with a deterministic concluded test built from artifacts the run already holds: the coverage ledger and request requirements. Report, read-only and without gating, the count of request outcomes with no passing proof, unverified rows, and open assumptions. Show the raw rows rather than classes.",
+      "why": "The classes are the author's own, the model decides what counts as a leftover, and the only 'decision' class evidence is 2 of 166 (1.2% to 1.8%). A script-computed unmet-requirement count cannot be primed or flattered by wording. The earlier ledger work found an ID gate costs 25%, so use it only as a report, never as a gate.",
+      "refuting_check": "Compare the deterministic count to the model's follow_on on the same 20 to 40 runs. If the count is zero wherever the list is non-empty on real defects (or the reverse) the two disagree and one is wrong; hand-check 10 disagreements. If the count is always zero on saturated runs, it adds nothing there and should be tested on the real-feature set from recommendation 1.",
+      "cost": "Low to medium: a script over existing run records; no model calls.",
+      "value": "medium"
+     },
+     {
+      "claim": "Give the next intake an instrumented learning log instead of a new stage: keep the existing lessons ('open for the next run', 'key considerations'), but measure whether the next intake actually used each item (quoted, acted on, ignored). Prune what is never used and promote what is.",
+      "why": "The idea of 'what building taught' already exists as a lessons commit that the next run quotes. What is unknown is whether it changes behaviour. A reflection stage that adds a second list is cost with no evidence of use; usage evidence is the missing piece and is cheap to get from existing runs.",
+      "refuting_check": "In existing run pairs (run N and the next run on the same project), count lesson items quoted at intake and the share that appear in the next run's plan or spec. If under about 20% are used, a new reflection stage would not help either; if over 60%, extend the log rather than adding the follow-on machinery.",
+      "cost": "Low: offline trace reading over existing run records.",
+      "value": "medium"
+     },
+     {
+      "claim": "At the owner level, add a monthly review of follow-on outcomes with a kill criterion: how many printed follow-on commands the owner actually ran, how many ended in a delivery the owner accepted, and how many request files stayed unread. Retire the feature if fewer than about 1 in 5 are used over a fixed window, and write the stop rule for chains before D3's 'no ceiling' is exercised.",
+      "why": "The work has no adoption metric: nothing says the owner will ever run a printed command, and a person starts every follow-on. The original goal ('re-enter instead of exiting') implies a stop rule; D3 allows unbounded chains with no measure of when a chain should end, which risks endless low-value runs. A cadence with a kill metric keeps the direction honest.",
+      "refuting_check": "Count over the next 10 deliveries on real features how often a request file is generated and how often the owner uses it. If the owner never runs it (or reaches for 'Determine how to conclude' instead), the printed command adds nothing over what the owner already does.",
+      "cost": "Low: one counter in the run result plus a monthly 15-minute read.",
+      "value": "medium"
+     }
+    ],
+    "risks": [
+     "Wrong target: the intention is 'did building teach something that changes the spec or feature', but what was built is a self-reported leftover list. A run that says nothing is left cannot be told apart from a run that missed things.",
+     "The classifier and the thing classified are the same kind of model; the classes (gap, decision, person and so on) are the author's own, and readers agree only by one row on the decisive class.",
+     "Priming and arranged occasions: both positive live results used requests written to produce a decision or gap; unprimed runs produced notes only. The natural rate on real features is unmeasured, and the saturated E2E corpus cannot produce it.",
+     "Tiny n (0 to 4 runs per cell), one host and one model family at one effort level, so a stable-looking pass could be a lucky sample.",
+     "Goodhart on the list: once models know a gap triggers a request file, they may file notes to look compliant or file spurious gaps; nothing measures false positives against a held-out defect set.",
+     "Chains with no ceiling (D3) and no stop rule risk spending effort on low-value follow-ups, and the original 'gate' (has the feature concluded) was never built, so there is still no principled stopping point."
+    ]
+   },
+   {
+    "lens": "evidence",
+    "headline": "Every number measures what a run chose to say about itself, so none can distinguish \"nothing is left\" from \"the model did not notice\". The cheapest high-value check is a hidden-probe recall test against deliveries whose true state is known independently of the model.",
+    "recommendations": [
+     {
+      "claim": "The central blind spot is the missing independent ground truth. The 166-run replay, the 4 unprimed live runs and the primed runs all score the model's own leftover text (read by readers of the same families). There is no measure of recall: how many real unmet outcomes a finished delivery contains versus how many the list names. 'No confirmed gap in 166 runs' and 'empty lists in unprimed runs' are therefore equally consistent with 'the system is complete' and 'the model does not look'. The journal's own flag of possible silence on seat-reservations (`[]` beside an open revalidation condition) is the visible edge of this.",
+      "why": "The E2E cases are saturated by construction: they complete when their own checks pass, so the corpus has almost no variance in delivery quality. A detector cannot be evaluated on a population where the positives are removed in advance. The conclusion 'gaps appear only when the request arranges them' (F49) is an artefact of that selection, not a finding about real features.",
+      "refuting_check": "Hold-out probes: for 4 to 6 existing cases, write 3 to 5 behavioural probes each for things a reasonable requester would expect but the request never states (tie rules, empty input, ordering, idempotence, error exit codes). Write them with a different model family from Terra, and write them BEFORE reading any run's follow_on or leftovers. Run them against retained final workspaces (the run folders under /Users/dadleet/e2e-runs hold run artefacts; confirm the product repos are retained, otherwise do 3 fresh --prompt runs per case with `--check` unchanged). If probes fail in about 15% or more of 'completed' runs while the lists name none of those failures, the reading 'few gaps exist' is refuted and the problem is recall. If fewer than 5% fail, the cut recommendation stands.",
+      "cost": "About 2 to 3 hours of one reader's time writing probes plus seconds of python per workspace if the products are retained; about 6 to 8 Terra xhigh runs at 12 to 20 minutes each if not. Offline version respects the owner's hold on live E2E cycles.",
+      "value": "high"
+     },
+     {
+      "claim": "The live evidence for the build tests compliance with an arranged occasion, not detection. The requests that produced a decision or a gap said, in plain words, 'reserve this choice for the person' and 'build only the basic tool now and leave the option for later'. Any competent model files those. What the model did not do on its own: unprimed lists were 0, 1, 1, 0 entries, all notes.",
+      "why": "What the primed runs establish is mechanics: a printed command works, a request file blocks at spec and asks, an answered run delivers and does not re-file. That is useful as plumbing proof and says nothing about whether the list helps on the owner's real features. The reported 2 of 4 filing predictions (P3, P4 missed) are honest, but the write-up still reads the primed rounds as evidence for the direction.",
+      "refuting_check": "Run the same two primed requests with the occasion hidden in the world and not in the wording: a request whose second half is unsatisfiable in the sandbox (for example a behaviour that needs a capability the harness lacks) without the words 'later', 'defer' or 'reserve'. Score whether the list names it, by a script grep on the planted requirement's key phrase, not by a reader. Predict failure to file in 2 or more of 4; a pass refutes this claim.",
+      "cost": "4 runs of 12 to 20 minutes, about 1 hour on Terra xhigh with the existing custom --prompt route; scoring is a script.",
+      "value": "high"
+     },
+     {
+      "claim": "The classes and the gate are model-defined at both ends, so agreement between readers is not validity. The first reader, the three replay readers, and the subject that writes `follow_on` are all Claude or Codex frontier models given the same class definitions authored by the same session. Class counts of 1.2% to 1.8% decisions rest on one author's definition of 'decision' versus 'person' versus 'extension'.",
+      "why": "Inter-reader agreement shows the definitions are communicable, not that they carve the real distinction 'could this run unattended and be better?'. The distinction that matters for the intention (does a follow-on run change the delivered outcome?) is never labelled by anything outside the model. Redefining 'extension' or 'debt' by a few words moves the 'gap' count between 0 and several.",
+      "refuting_check": "Pre-register the class-to-outcome test: take the 25 non-empty leftovers from the peek and, for each, have a run (not a reader) attempt it unattended from the generated request; record whether the delivered product changes and passes an unchanged hidden check. If the per-class outcome (changed and verified) does not differ between 'gap' and 'extension'/'debt', the classes carry no decision value. Needs a case built for M2b, which the journal says still does not exist.",
+      "cost": "25 follow-on runs is too many; do 6 (2 each from three classes), about 1.5 to 2 hours, after the probe experiment gives you something real to start from.",
+      "value": "medium"
+     },
+     {
+      "claim": "Single host, single model, single effort, tiny tasks, n of 2 to 4 per cell, so nothing here supports a rate or a transfer to the owner's real, larger features. 'Every run completes' is a property of Terra xhigh on cases written for E2E, not of ShipLoop.",
+      "why": "A list that is empty on a one-file CLI says little about a feature with several stages, shared state and a real deploy, where a leftover may be a behaviour the requester would call unfinished. Model choice is also known to move how much a run flags (K12 terms line, send-back excess in the journal's own history).",
+      "refuting_check": "Run the identical hidden-probe set (recommendation 1) with a different Claude host and model (the default Claude host, Sonnet) on 3 cases. If the lists' recall differs by more than 2 entries per case on the same planted failures, the list is model-specific and any rate is not a ShipLoop property.",
+      "cost": "3 to 6 runs on the second host, about 1 to 1.5 hours; the `hosts.HOSTS` interface exists.",
+      "value": "medium"
+     },
+     {
+      "claim": "The cheapest decisive data about demand is the owner's own behaviour, and the work has not looked at it. The original intention was triggered by the owner's real experience after real deliveries; what the owner actually typed next (a repair, an extension, a clarification, nothing) is unprimed, unclassified-by-model ground truth about whether a follow-on run is needed and what it should contain.",
+      "why": "The follow-on build answered 'can a model file entries' (yes) and 'does the path work' (yes). The unmeasured, decisive quantity is P(owner sends a follow-up prompt after a delivery) and what kind it is. If most of the owner's follow-ups are corrections of behaviour the run delivered (gaps the list never named), that targets the probe and release-verify stage, not a leftover list. If they are mostly new ideas, the follow-on run is a convenience and the cut stands.",
+      "refuting_check": "From the session transcripts and ShipLoop request logs (read-only), take the last 20 real ShipLoop runs on the owner's own projects and the next owner message after each handoff; label by two readers blind to the follow_on design as repair, extension, question or none. Compare against what that run's lessons 'open for the next run' contained (past runs have it). If under 20% are repair or the lessons already named them, the recommend-only list is adequate; if over 40% are unnamed repairs, the list is aimed at a symptom.",
+      "cost": "About 1 hour of read-only analysis with `mcp__ccd_session_mgmt__search_session_transcripts` or the run folders; no model run.",
+      "value": "high"
+     }
+    ],
+    "risks": [
+     "Reading the primed rounds (6 and 7) as support for auto-start or for the direction: they test plumbing; the journal itself says a gap appeared only when arranged, which the probe experiment may show is an artefact of unmeasured recall.",
+     "Same-family circularity: the subject, the first reader and the replay readers share class definitions written by this session; the agreement figures overstate how well classes capture real unmet need.",
+     "Selection: the corpus is saturated (every run completes), so absence of gaps in 166 runs is nearly guaranteed and carries almost no information about real features.",
+     "The unbuilt gate: what was built is a list of leftovers, not the owner's gate 'has the feature concluded?'. Further rounds on the list refine an instrument that never answers the owner's actual question; a held-out acceptance check does answer it.",
+     "Sunk-cost drift: seven journal rounds and a release now make the feature feel established; the cheap kill criterion (hold-out probes fail and the list misses them, or the owner's follow-ups are mostly unnamed repairs) should be set before reading the results.",
+     "Cost of the E2E harness: runs of 12 to 20 minutes each on a heavily loaded machine (load 50 to 87 noted in the journal) and the owner's hold on live cycles make a live-run-first plan slow; the offline hidden-probe check is the way to avoid that."
+    ]
+   }
+  ],
+  "synthesis": {
+   "recommendations": [
+    {
+     "rank": 1,
+     "claim": "Use the owner's own next message after each real delivery as the ground-truth label for 'not concluded'. Score the follow_on list (and any candidate gate) against it before building anything more.",
+     "why": "All four lenses raised this. The 166-run replay and the primed live runs only measure what a run says about itself. The owner's follow-up prompt is the one unprimed signal that the delivery missed something. It is also the only way to measure whether the list names what the owner actually asked for next.",
+     "refuting_check": "Take the last 10 to 20 real deliveries and the matching handoffs. Label the owner's next message as repair, extension, question or none, ideally with readers blind to the follow_on design. If the handoff already named the follow-up in about 7 of 10, the list has value. If it named under about 3 of 10, or follows no better than a coin flip, the list is aimed at the wrong target. Write the thresholds in the journal before reading the results.",
+     "cost": "Low. A few hours of read-only transcript and git mining, no model runs. Failure mode: follow-ups that are new scope rather than gaps, so hand-label the positives.",
+     "supported_by": [
+      "cut",
+      "gate",
+      "ideas",
+      "evidence"
+     ]
+    },
+    {
+     "rank": 2,
+     "claim": "Measure the list's recall on gaps the request did not arrange: seed one known gap into each of about 12 completed runs while their own tests stay green, then see whether follow_on files it.",
+     "why": "The archive is saturated, since every run completes, so it contains no positives. The primed live cells show the model obeys an arranged occasion, not that it detects an unnoticed gap. Without a recall figure, 'no confirmed gap in 166 runs' and 'the model does not look' cannot be told apart.",
+     "refuting_check": "Seed gaps of 3 kinds across 4 runs each, silently dropping, weakening or hard-coding a requested outcome, and score the filed follow_on entries by script. If the unprimed list files a gap or decision for at least 10 of 12, it is already a sensitive gate and this critique weakens. If it files 0 to 3, it is a note-taker.",
+     "cost": "Medium. About 12 to 24 model runs plus hand-seeding, 1 to 2 days. No product change.",
+     "supported_by": [
+      "gate",
+      "evidence",
+      "ideas"
+     ]
+    },
+    {
+     "rank": 3,
+     "claim": "Build the 'did the delivery meet the request' check the owner actually described, as a fresh-context probe stage. It sees only the verbatim request and the running build, writes 3 to 5 runnable acceptance probes, and only a failing probe counts as 'not concluded'. Keep it advisory.",
+     "why": "The current list depends on the building model volunteering its own shortfalls. The spec, plan and tests all descend from one reading of the request, so spec-versus-request drift is invisible to every current check. A probe that starts from the verbatim request is script-checkable and escapes that shared reading. It also turns the gap versus note coin-flip into pass or fail. Keep it advisory because an end-of-run gate that refuses done has refused honest runs before (the coverage-check replay).",
+     "refuting_check": "Run it on the seeded set from recommendation 2, on about 10 to 20 unseeded finished runs, and on a few runs with a request clause quietly dropped from the spec. It is refuted if probes fail on more than about 10% of honest runs, which are false alarms from over-reading the request, or if it catches no more seeded gaps than the list does. Disputed readings should route to decision, not gap.",
+     "cost": "Medium. One reviewer prompt plus probe execution, about 1 to 2 days to build, and one extra call per run afterwards.",
+     "supported_by": [
+      "cut",
+      "gate",
+      "ideas",
+      "evidence"
+     ]
+    },
+    {
+     "rank": 4,
+     "claim": "Set a pre-registered stop rule now, and collect the natural rate from the owner's next 5 real deliveries with the existing M3 tally on one substantial feature, not on more tiny arranged tasks.",
+     "why": "The decisive quantities are unmeasured: the natural rate, whether a recommended run is ever started, and whether the owner uses the printed command. Rounds 5 to 7 only proved the plumbing works when primed. Two days produced 6 design-note revisions, 7 journal rounds and a release for a measured demand of 1.2% to 1.8%, and the evidence against building was set aside. A written stop condition counters that momentum.",
+     "refuting_check": "Write the rule in the journal first. If under 1 in 5 deliveries within 30 days has a recommended run actually started, the feature is frozen and no further rounds are written. Later check whether that rule would have stopped Rounds 5 to 7.",
+     "cost": "Very low to write, one paragraph. Slow in calendar time, because the tally needs the next 5 deliveries.",
+     "supported_by": [
+      "cut",
+      "ideas",
+      "gate"
+     ]
+    },
+    {
+     "rank": 5,
+     "claim": "Run the unprimed-occasion test: repeat the two primed requests with the occasion built into the world, such as an unsatisfiable second half in the sandbox, and without the words 'later', 'defer' or 'reserve'. Score filing by script grep on the planted phrase.",
+     "why": "The decision and gap results came from requests that told the model to defer or reserve something, so they show compliance with an arranged occasion. The 4 unprimed runs produced 0, 1, 1, 0 entries, all notes. This directly tests whether detection exists without priming.",
+     "refuting_check": "Predict failure to file in at least 2 of 4 runs. Filing in all 4 refutes this claim.",
+     "cost": "Low. 4 runs of 12 to 20 minutes on the existing custom prompt route, and scoring is a script.",
+     "supported_by": [
+      "evidence",
+      "gate"
+     ]
+    },
+    {
+     "rank": 6,
+     "claim": "Do not collapse or cut the classes on opinion. Count whether each class changes what the owner does next (starts a run, answers, ignores). Collapse to executable red, person question and note if the owner acts differently on 2 or fewer classes.",
+     "why": "Seven model-invented classes graded by the same model families carry meaning only for the model that wrote them. Three of them (person, capability, extension) are not different next actions. Reader agreement shows the definitions are communicable, not that they are valid. The lenses differ on timing, so this deliberately waits for the owner-action data from recommendation 1.",
+     "refuting_check": "From the real-delivery data, list each filed item and the owner's action. If the owner acts differently on 4 or more classes, the split is justified. If on 2, collapse. Fall back to the one-field handoff note only if the classified list surfaces nothing the free-text note misses on the 4 unprimed plus about 10 older runs (the owner reads blind to format).",
+     "cost": "Low. Mostly counting existing evidence, under a day. Deletion is recoverable from git.",
+     "supported_by": [
+      "cut",
+      "gate",
+      "evidence",
+      "ideas"
+     ]
+    },
+    {
+     "rank": 7,
+     "claim": "Add a read-only, non-gating script report from artifacts the run already holds: request outcomes with no passing proof, unverified ledger rows and open assumptions, shown as raw rows rather than classes.",
+     "why": "A script-computed count cannot be primed or flattered by wording, and it gives a cross-check on the model's list at no model cost. It must stay a report, because the earlier ledger work found an ID gate costs 25%.",
+     "refuting_check": "Compare the count with follow_on on the same 20 to 40 runs and hand-check 10 disagreements. If the count is always zero on saturated runs, it adds nothing there. Re-test it on the real-feature set from recommendation 1.",
+     "cost": "Low to medium. A script over existing run records, no model calls.",
+     "supported_by": [
+      "ideas",
+      "gate"
+     ]
+    }
+   ],
+   "disagreements": [
+    "Cut now or wait for data. The cut lens wants the classified machinery reduced to a one-field handoff note now. The gate lens wants classes collapsed but the convergence exit built only after a base rate above zero shows up. The evidence lens says the cut stands only if hidden probes fail in under about 5% of runs. The ideas lens wants a monthly review with a kill criterion rather than an immediate cut. This is recorded as unresolved, and recommendation 6 defers it to the owner-action data.",
+    "Thresholds differ and were not reconciled. The 'list has value' bar is 7 of 10 (cut) versus better than a coin flip (ideas) versus under 20% repairs (evidence). The false-alarm bar for probes is above about 10% (gate, ideas) versus 15% or more of runs with unnamed failures as proof that recall is the problem (evidence). Pre-register one set before reading any results.",
+    "Blocking or advisory. The cut lens says build 'the gate' the owner asked for. The gate lens says keep it advisory for done, citing the earlier coverage-check refusals. The ideas lens says report only, without gating. The merged list takes advisory, but the cut lens did not endorse that.",
+    "Scale of the probe-stage cost. The cut lens estimates 1 to 2 days and 10 runs. The ideas lens estimates about 25 replay runs, and the gate lens adds seeded runs. Total cost is therefore uncertain.",
+    "Value of the primed live rounds. Cut and evidence read them as plumbing proof only, with no demand evidence. Gate treats them as showing the classifier follows an arranged request. None argues they support the direction, so there is no real conflict, but the cut lens would stop writing such rounds while the evidence lens would still run one more unprimed variant (recommendation 5)."
+   ],
+   "stop_doing": [
+    "Writing further journal rounds and design-note revisions on primed or arranged tasks. They only show the mechanics work.",
+    "Reading the 166-run saturated corpus as evidence either that demand is low or that it is high. It has no positives by construction.",
+    "Treating agreement between same-family readers on the model's own class definitions as validity.",
+    "Building auto-start, D3 unbounded chains or finer class distinctions before any natural base rate exists.",
+    "Letting the owner's repeated one-line prompt plus a released feature stand in for evidence of demand."
+   ],
+   "next_step": "Write the pre-registered thresholds and the stop rule into the journal. Then mine the owner's last 10 to 20 real post-delivery messages against the matching handoffs, labeling each as repair, extension, question or none. This needs no model runs and a few hours of work, and its result decides whether recommendations 2, 3 and 6 go ahead."
+  }
+ },
+ "audit": {
+  "audits": [
+   {
+    "group": "round6-numbers",
+    "verdict": "overstated",
+    "checked": [
+     "result.json/metrics.json for all six runs: turns 172/159/25/25/162/144 match",
+     "elapsed_seconds and span for all six: minutes 11.52, 10.60, 1.20, 1.41, 12.87, 11.34",
+     "gates per run (shiploop, committed false only in link2-a/b), outcome_class PASS/PASS/BLOCKED/BLOCKED/PASS/PASS, engine_status blocked at spec with awaiting_kind answer and no_default true",
+     "plugin_sha256 3efc9db89059 and local_head d2c6a5ff in all six result.json; six matching rows in test/shiploop_e2e/baselines.jsonl",
+     "state.md of each run: link1 accepted entries carry exactly one follow_on decision with source lessons.open_next; link3 follow_on is []; link2 has no handoff and an awaiting block with question and options",
+     "trace.jsonl: each handoff-stage complete is the first at that stage, exit 0, handoff to done; one handoff packet per run",
+     "prompt.txt: link1 prompts are byte-equal to request.txt; link2 prompts are byte-equal to the link-1 follow-on-request.md; link3 prompts are that file followed by answer.txt (byte-exact)",
+     "transcripts of link2-a and link2-b: both cat the earlier run/request.md named in the request file",
+     "printed-command JSON for link1-a and link1-b (exit 0, no traceback, one workspace record, stored request equal but for last newline)",
+     "link3 work checkouts: git log, unittest (4 and 2 tests OK), slug.py behaviour, grep of README/spec/architecture/environment for undecided/pending/interim wording",
+     "registered rules and predictions in commit 7bcb2884 (R1-R6, P1-P7) and addendum in e6088502 (R7-R9, P8-P10) against the README's verdicts",
+     "git object existence and dates of 7bcb2884, e6088502, d2c6a5ff relative to run start times"
+    ],
+    "issues": [
+     {
+      "claim": "link3-a took 12.8 minutes",
+      "problem": "The figure is truncated, not rounded. The raw elapsed time is 772.4 s (span 770.8 s), which is 12.87 min and rounds to 12.9. The other five times are correctly rounded (11.5, 10.6, 1.2, 1.4, 11.3).",
+      "evidence": "link3-a/result.json process.elapsed_seconds = 772.4; span ended - started = 770.84 s",
+      "severity": "low",
+      "fix": "Change 12.8 to 12.9 in the README table, and in any journal or commit text that repeats it, or state that minutes are truncated."
+     },
+     {
+      "claim": "Both link-2 runs accepted a blocked result whose no_default reason quotes the earlier \"do not choose\" (README R4, repeated in the commit e6088502 text)",
+      "problem": "Neither reason quotes it. link2-a paraphrases it as the requester decides and the run is told not to choose for them. link2-b does not contain the idea of not choosing at all. It says the original request reserves the policy choice and the interim error does not settle the finding.",
+      "evidence": "link2-a state.md awaiting.no_default: \"The prior request explicitly says the requester decides and prohibits choosing on their behalf.\" link2-b: \"The original request explicitly reserves the policy choice to the requester; retaining the interim error is temporary and does not settle the finding.\" Neither contains the phrase \"do not choose\".",
+      "severity": "medium",
+      "fix": "Replace with: \"each accepting a blocked result that asks the requester one question with options and a no_default reason that cites the earlier request's reservation of the choice to the requester (link2-a: it prohibits choosing on their behalf; link2-b: it reserves the policy choice)\". Do not use quotation marks around \"do not choose\"."
+     },
+     {
+      "claim": "P7 (45%) \"did not apply: link 2 never reached a handoff\"",
+      "problem": "P7 was registered unconditionally: at least one link-2 run files a decision again. Neither link-2 run filed one, so the literal score is 0 of 2 and not met. Calling it \"did not apply\" is a rescoring that the plan did not register. The README also says P6 \"held for link 3\", but P6 was registered for link-2 runs only, and link 3 also changed README.md, which is outside the registered \"slug.py, its tests, KNOWLEDGE/ or docs\".",
+      "evidence": "Plan in 7bcb2884: \"P7. At least one link-2 run files a decision again (45%)\"; \"P6. Every link-2 run touches only slug.py, its tests and files under KNOWLEDGE/ or docs (70%)\". Raw: link2 has no handoff and no follow_on; link3 files_changed includes README.md.",
+      "severity": "low",
+      "fix": "Write: \"P7 (45%) missed as written (0 of 2 link-2 runs filed a decision, because neither reached a handoff); it is uninformative about the list.\" Write: \"P6 (70%) is vacuous for link 2 (no file changed); the link-3 file list is reported but was not registered under P6.\""
+     },
+     {
+      "claim": "Link 3 delivered and kept what the project already did (R7, R8; README question: \"keep what the project already did\")",
+      "problem": "The README is silent on a regression that both link-3 runs share. The answer text (\"any other character outside A to Z is treated like punctuation\") was read literally, so digits became separators. Before the answer, digits were kept. After it, \"Hello2World\" gives hello-world and \"Route 66 Café\" gives route-cafe. None of the harness checks covers digits, so the six gates pass. The spec of link3-a records \"digits now separate\".",
+      "evidence": "Ran python3 slug.py \"Hello2World\" in link1-a/work (hello2world), link3-a/work and link3-b/work (hello-world, both). \"Route 66 Café\" gives route-cafe in both link-3 checkouts. link3-changes.txt spec line: \"digits now separate (follow-up S9 explicitly includes...\".",
+      "severity": "medium",
+      "fix": "Add to Contrary evidence and limits: \"Both link-3 runs took the answer literally and made digits separators (Hello2World: hello2world before, hello-world after); the original request did not reserve digits and no check covers them, so R7 'delivers' means the answered rule was implemented and the listed checks passed, not that all earlier behaviour was kept. This follows the answer's wording, which I wrote.\""
+     },
+     {
+      "claim": "Table column \"Gates passed\" with \"4 of 6 (`shiploop`, `committed`)\" for link 2",
+      "problem": "The parenthesis names the two gates that failed, but the column heading reads as the gates passed. A reader can take shiploop and committed to be the ones that passed.",
+      "evidence": "readings.txt gates: shiploop False, committed False for link2-a and link2-b; the other four are True.",
+      "severity": "low",
+      "fix": "Write \"4 of 6 (failed: `shiploop`, `committed`)\"."
+     },
+     {
+      "claim": "Conditions: machine load average 56, 104 and 96 at 10:30, so minutes are not comparable",
+      "problem": "The figures are from 10:30, before the runs, and come from the plan commit text. The runs' own recorded load at start was lower: 1-minute 18.8 and 21.4 for link 1 and 21.6 and 22.0 for link 3, with 5-minute loads of 14.1 to 37.6. The caveat about comparing minutes is fair, but the numbers given do not describe the conditions the runs saw.",
+      "evidence": "result.json environment.start.loadavg: link1-a [18.78,37.57,64.26], link1-b [21.36,37.48,63.91], link2-b [12.91,14.4,34.94], link3-a [21.64,14.65,29.0]",
+      "severity": "low",
+      "fix": "Say \"load average 56, 104 and 96 at 10:30 (planning time); at the runs' own starts the 1-minute load was 12 to 22 on 18 CPUs (result.json environment.start)\"."
+     }
+    ]
+   },
+   {
+    "group": "round6-instruments",
+    "verdict": "overstated",
+    "checked": [
+     "Ran `python3 -I calibrate_checks.py`: 21 lines (7 checks x 3 variants), every one 'ok', prints 'calibrated', exit 0; no model called.",
+     "Ran `python3 -I check_printed_command.py --self-test`: 'self-test ok', exit 0. The self-test only exercises the LINE regex (three asserts); it does not run a command.",
+     "Compared the packet line in link1-a and link1-b against the 'printed' field of the two JSON files: identical, one match each, exactly one 'workspace start' line in 31 packets each.",
+     "Read the link1 follow-on-request.md files: both end in one newline, and the requests.md blocks equal them minus the final newline. This matches stored_equals_file_but_last_newline true and stored_equals_file_exactly false.",
+     "Compared the packet and report forms with skills/shiploop/scripts/shiploop_follow_on.py: start_command and done_lines emit `python3 <shlex.quote(cli)> workspace start --repo <quoted repo> --prompt=\"$(cat <quoted path>)\"`, and the packet matches. html_section emits `\"$CLI\"` in place of the path, and the report <pre> in both runs shows `python3 \"$CLI\" workspace start ...`. `git diff d2c6a5ff HEAD` on that file does not touch start_command, done_lines or html_section.",
+     "Read check_printed_command.py: the run uses the packets' line only, then substitutes `python3 -I <--cli>` and a copy of work for --repo. The report line is counted (printed_in.report = 1) but never executed.",
+     "Read the readout.py history (fa7b34ab, c460d353, 7c07eb18) and the current readout.py. The link-3 filter slip is real: c460d353 added link3 handling but left main() filtering on ('link1','link2'), and 7c07eb18 adds 'link3' to the filter. The current file has both fixes.",
+     "Recomputed the hash slip from the raw link2-a and link2-b folders: result.json prompt_sha256 is 476d599c9c63 (link2-a) and 21bd1b9f029c (link2-b). sha256(prior request text.rstrip('\\n')) starts with exactly those 12 characters in both. run.py line 637 is `hashlib.sha256(prompt.strip().encode()).hexdigest()[:12]`."
+    ],
+    "issues": [
+     {
+      "claim": "The first readout slip was 'a hash compared with the wrong string', because the harness 'hashes a different string' (the one naming the planning-review mode). This is stated in the c460d353 message, the readout.py comment and F42.",
+      "problem": "The diagnosis is false. The harness hashes the same string (the prompt stripped, which here is the request file stripped of its newline). It stores only the first 12 hex digits, so the old readout compared a 64-digit digest with a 12-digit value and could never be True. The slip is real and the fix (compare prompt.txt with the request file) is correct, but the stated cause is wrong.",
+      "evidence": "run.py line 637 is `hashlib.sha256(prompt.strip().encode()).hexdigest()[:12]`. For link2-a, result.json has prompt_sha256 476d599c9c63 and sha256(request.rstrip('\\n'))[:12] is 476d599c9c63. For link2-b both are 21bd1b9f029c. The `case_prompt` docstring does mention a planning-review sentence, but that sentence is only appended when a run uses `--planning-review none`, and these two prompts matched without it. fa7b34ab's readout compared `hashlib.sha256(...).hexdigest() == data.get('prompt_sha256')` at full length.",
+      "severity": "medium",
+      "fix": "In readout.py, replace the comment with: 'The first version compared the full 64-digit sha256 of the request text with result.json's prompt_sha256, which the harness stores truncated to 12 hex digits (run.py, prompt_digest: sha256(prompt.strip())[:12]), so it read False for a prompt that was the file.' Make the same correction in F42, in the README line, and as a superseding note on c460d353. Describe the slip as 'a full-length hash compared with a 12-character stored hash', not 'the wrong string'."
+     },
+     {
+      "claim": "The printed command in the done packet and the report 'ran as printed' (exit 0, one workspace record, stored request equal to the file minus its last newline).",
+      "problem": "Only the done-packet form was run, and with substitutions. The report prints a different form, `python3 \"$CLI\" workspace start ...`, which needs CLI set and was never executed. The checker also replaced `--repo` with a copy of work, added `-I`, and took the CLI from --cli (the tree under test) rather than the printed path. The JSON files record the printed original, not what was executed. The journal and the f9454b31 message say 'in the done packet and in the report' as though both forms were run.",
+      "evidence": "The report <pre> in link1-a and link1-b contains `python3 &quot;$CLI&quot; workspace start --repo .../work --prompt=...`, while the packet line has the full CLI path. check_printed_command.py `check()` uses `where['packets'][-1]` only and builds `command = f\"python3 -I {shlex.quote(cli)} workspace start --repo {shlex.quote(str(copy))} {match.group('rest')}\"`.",
+      "severity": "low",
+      "fix": "Reword to: 'The done packet's start command, with --repo pointed at a copy of the checkout and the CLI of the tree under test, ran: exit 0, one workspace record, stored request equal to the file minus its last newline. The report prints the same command with \"$CLI\" for the script and was not run separately.'"
+     },
+     {
+      "claim": "The readout slips are described as two, both 'found on first use'. The c460d353 message says 'The script now reads link 3 folders too.'",
+      "problem": "That sentence was false when written. c460d353 changed only describe() and show(), and main() still filtered on link1 and link2, so link 3 stayed unread. 7c07eb18 fixed the filter 10 minutes later and says so. The pair of messages is consistent, but c460d353 on its own overstates its fix.",
+      "evidence": "The diff of c460d353 does not touch the `startswith((\"link1\", \"link2\"))` line in main(). The diff of 7c07eb18 changes that line to include link3.",
+      "severity": "low",
+      "fix": "When citing c460d353 in the journal, add 'c460d353 extended describe() for link 3 but not the folder filter; 7c07eb18 completed it'. No code change is needed."
+     }
+    ]
+   },
+   {
+    "group": "round7-numbers",
+    "verdict": "wrong",
+    "checked": [
+     "Turns and minutes recomputed from result.json for link1-a, link1-b and link2-b: 141, 146, 167 turns; span gives 8.52, 9.64, 9.03 min. All match.",
+     "All six gates (invoked, plugin, process, shiploop, committed, checks) are true in all three result.json files, and every --check passes in each.",
+     "Versions and plugin trees from result.json: link 1 is 2.31.0 / 1.30.0 with tree b604dade538e; link 2 is 2.32.0 / 1.30.1 with tree 6aa0a67b2ac0. Both match.",
+     "Backchain 0.7.0 is in the 2.32.0 plugin cache (skills/backchain/SKILL.md says version 0.7.0; the 2.31.0 tree has 0.6.6).",
+     "A recursive diff of skills/shiploop between the two plugin caches shows the same six files as the git diff 5c9bf5e8..01d537e9.",
+     "State of each accepted handoff. link1-a filed one note with an empty request_sentence. link1-b filed one gap with request_sentence S3. link2-b filed []. Each run has one handoff complete with exit 0, so one attempt.",
+     "link1-b run/request.md numbered sentences: S3 is the sentence asking for --max-length N with both examples. S4 only defers it. So S3 is right.",
+     "link2-b prompt.txt is byte-identical (cmp) to link1-b run/follow-on-request.md, and invocation.json carries the same text.",
+     "slug.py run in each work tree: link1-a and link1-b exit 2 for --max-length 5 and 8 and for --bogus, and print hello-world for the plain title. link2-b prints hello-wo for 8 and hello for 6 (exit 0), and --bogus exits 2.",
+     "Git history of the three work repos: only link2-b has SHIPLOOP.md, added by b3adc23 (chore(shiploop): commit files written after the last work item). None of the six Round 6 work repos has it. The diff of link2-b against link1-b has 7 files, which matches the README list.",
+     "Commit 2cd8f33b30f3056a925e3636f624849aadf61982 exists. Its subject is 'fix(shiploop): commit the SHIPLOOP.md knowledge index with docs/shiploop/' and its date is 2026-09-27.",
+     "git diff 5c9bf5e8..01d537e9 -- skills/shiploop: shiploop_follow_on.py is untouched and no handoff duty text is in the diff. The 6 files that changed are README.md, SKILL.md, references/backchain-planning.md, references/backchain-route.md, scripts/shiploop_backchain_graph.py (778 lines) and scripts/shiploop_prompts.py.",
+     "The three baseline rows in test/shiploop_e2e/baselines.jsonl carry local_head e7c05e68, with turns 141, 146, 167. Commit e7c05e68 exists and is the plan commit.",
+     "printed-command-link1-b.json says exit 0, one workspace record, and the stored request equal to the file but for the last newline."
+    ],
+    "issues": [
+     {
+      "claim": "README R5 and journal F-text: link2-b committed SHIPLOOP.md, 'the knowledge index ShipLoop has committed with docs/shiploop/ since 2026-09-27 (2cd8f33b30f3056a925e3636f624849aadf61982)'. The journal adds 'a check showed it is old behaviour'.",
+      "problem": "2cd8f33b is real and correctly described, but ShipLoop stopped committing SHIPLOOP.md as knowledge on 2026-10-11, before both builds the runs loaded. So the 'since 2026-09-27' sentence is false for 2.31.0 and 2.32.0. link2-b's SHIPLOOP.md was host-authored and was swept into the commit b3adc23 by the generic 'commit files written after the last work item' step.",
+      "evidence": "git show 589bc03e (2026-10-11) 'feat(shiploop)!: remove ... ShipLoop's SHIPLOOP.md' says 'SHIPLOOP.md as ShipLoop knowledge (INDEX, KNOWLEDGE_INDEX): KNOWLEDGE = (HOME,). The host-authored index is read if present ... never committed'. git merge-base --is-ancestor 589bc03e 5c9bf5e8 is true. At 5c9bf5e8, shiploop_knowledge_home.py has 'KNOWLEDGE = (HOME,)' and a comment that the root index is the host's file, never committed. git show --stat b3adc23 in link2-b/work lists only SHIPLOOP.md. link1-b's matching chore commit 0c2ed6a lists only .gitignore.",
+      "severity": "high",
+      "fix": "Replace the parenthetical in README R5 and in the link2-changes.txt header with: 'SHIPLOOP.md, the host-authored knowledge index (2cd8f33b made ShipLoop commit it on 2026-09-27, but 589bc03e removed that on 2026-10-11, so neither build commits it as knowledge). link2-b's model wrote it and ShipLoop's generic commit of files written after the last work item committed it (b3adc23). Neither link-1 run nor any Round 6 run wrote one. Why this run wrote it is not examined.' Delete the journal sentence 'a check showed it is old behaviour, and the evidence says so', or replace it with 'a check showed the committing behaviour was removed on 2026-10-11, so the newer build did not introduce it'."
+     },
+     {
+      "claim": "README Conditions and journal: 'The 1.30.1 change is to the converge marker line of plan packets (the default one packets are unchanged) ... Backchain 0.7.0 is the planning child's own command line.'",
+      "problem": "This understates the ShipLoop diff between the two builds. 'Touches neither the follow-on module nor the handoff duty' is true. But the diff is not only the plan packet's converge marker line. It also adds a converge-only repair/revise audit-stage text (_BACKCHAIN_AUDIT_CONVERGE). It rewrites shiploop_backchain_graph.py by -778 lines, so ShipLoop's backchain-check now imports Backchain's validator (commit 90b9ac99). Backchain 0.7.0 also changes its default gate to one trivial review, though ShipLoop's 'Backchain passes: one' marker keeps the old gate for default runs. The runs did not exercise the changed code: 'backchain 0' records in all three verdicts, and zero backchain-check hits in the link2-b trace.",
+      "evidence": "git diff --stat 5c9bf5e8 01d537e9 -- skills/shiploop gives 6 files, 43 insertions and 769 deletions, of which shiploop_backchain_graph.py is 778. The shiploop_prompts.py hunks add _BACKCHAIN_AUDIT_CONVERGE and change the plan converge gate sentence. git log for the range shows 39af8ce0 and 90b9ac99. verdicts.txt shows 'backchain 0' for all three runs.",
+      "severity": "medium",
+      "fix": "Replace the sentence with: 'Between the two builds ShipLoop changed only converge-mode packet text (the plan marker line and the repair/revise audit pointer; default one packets are byte-identical per commit 39af8ce0) and moved the backchain-check validator into Backchain (90b9ac99); none of this ran in these runs (backchain records 0). It touches neither shiploop_follow_on.py nor the handoff duty. Backchain 0.7.0 also changes its own default gate and card, which these default one runs do not use.'"
+     },
+     {
+      "claim": "Prediction P7 'held (75%)', with SHIPLOOP.md 'counted as a living knowledge file'. The README R5 line lists 'the three living knowledge files and SHIPLOOP.md' as separate items.",
+      "problem": "P7 was registered as 'only slug.py, its tests, README.md and the living knowledge files'. SHIPLOOP.md is not one of the three living files (spec, architecture, environment), as the README's own R5 line separates them. So on the registered wording P7 missed, and 'held' relies on a reading chosen after the fact. The reading is disclosed but not flagged as a stretch.",
+      "evidence": "journal Round 7 plan, P7 line. link2-changes.txt lists docs/shiploop/{architecture,environment,spec}.md and SHIPLOOP.md as separate paths.",
+      "severity": "low",
+      "fix": "State 'P7 missed on its registered wording: link2-b also added SHIPLOOP.md, which is not a living knowledge file; it held only if the knowledge index is counted as one.'"
+     }
+    ]
+   },
+   {
+    "group": "docs-consistency",
+    "verdict": "overstated",
+    "checked": [
+     "All 82 distinct 40-hex hashes cited in the design note and the journal resolve with git cat-file -e <hash>^{commit}. No hash is missing.",
+     "Repository paths cited in both files exist, including all files in the four docs/experiments/follow-on-* directories, test/shiploop-follow-on.test.py, shiploop_follow_on.py, LEARNINGS.md and the multipass docs. Only runtime paths (RUN/follow-on-request.md and a /e2e-runs-multipass path) are absent, as expected.",
+     "Table numbers for turns, minutes, gates, handoff attempts, follow_on classes and Cafe/--max-length outcomes in journal Rounds 5, 6 and 7 match docs/experiments/follow-on-recommended-run-20261101/{README,readings.txt} and follow-on-recommended-gap-20261101/{README,readings.txt}. The minutes were recomputed from the span epochs.",
+     "Round 5 table (turns 143/178/185/216, packet sizes 16,850-17,462, +1,475) matches the follow-on-build README. P-scoring (four of six held) matches.",
+     "Plugin-tree ids 3efc9db89059, bf3be9d89072, b604dade538e and 6aa0a67b2ac0 appear in the invocation.json and result.json of exactly the runs the docs say. The version strings 2.28.1/1.27.0, 2.30.0/1.29.0, 2.31.0/1.30.0 and 2.32.0/1.30.1 also match.",
+     "The tally_follow_on.py figures quoted in M3 (5, 6 and 3 runs; 0, 2 and 1 recommending; 4 starts with 2 blocked and 2 done; 1 start) were re-run read-only and match. The 5 in Round 5 includes the published-build hello.",
+     "Baseline row counts in baselines.jsonl: 6 rows for d2c6a5ff, 3 for e7c05e68, 4 for 2da2d4f3.",
+     "Release facts: 2.31.0 (5c9bf5e8, 10:38) CHANGELOG carries the multipass placement fix and the init guard. 2.32.0 (01d537e9) was released at 13:00:49 and link2-b started at 13:03:12. 2.32.1 (9273b4cf) is the double-period release, and c01c9663 carries the No-E2E-Round trailer. CI run 41332749569 succeeded on 9 jobs.",
+     "The F46 duty quotations match shiploop_prompts.py. The 2cd8f33b date (2026-09-27) matches. Section 5 and the replay figures (2 of 166 = 1.2%, 3 = 1.8%, 3 of 122) are consistent with Round 4.",
+     "The link2 Round 6 BLOCKED runs reached intake, discovery and research and blocked at spec (status.md), which supports U2. blocked-questions.txt confirms the reasons quote the earlier request."
+    ],
+    "issues": [
+     {
+      "claim": "F39 (firm, 2 of 2) and design M2a result/D2: \"An unanswered `decision` cannot be delivered unattended ... only a `gap` could ever run without [a person]\"",
+      "problem": "Stated as a general property from two replicates of one primed request that reserves the choice in words (\"do not choose\"). The blocked reasons quote that reservation and the model-written entry itself says \"for the user to decide\". Round 5 showed unattended runs taking an open default and recording it, which is what S-14 asks. The \"firm\" label and \"ever\" are not justified.",
+      "evidence": "docs/experiments/follow-on-recommended-run-20261101/blocked-questions.txt: no_default = \"The prior request explicitly says the requester decides and prohibits choosing on their behalf.\" Entry statement: \"Final non-ASCII letter treatment remains for the user to decide.\" docs/experiments/follow-on-build-20261101/README: both csv-report runs \"took the default and recorded it, which is the unattended behaviour SPEC S-14 asks for\". Design 4.3 defines `decision` as a choice \"a person must give\".",
+      "severity": "medium",
+      "fix": "Replace with: \"In 2 of 2 runs on a primed request whose requester reserved the choice, a follow-on run started from the recommended `decision` stopped at spec and asked; a `decision` that names no reserved choice and has a safe default was not tried. Exploratory for any wider claim; so far only a `gap` has been seen to run without an answer (n = 1, F45).\" Change F39's label to \"firm for these two runs only\"."
+     },
+     {
+      "claim": "F49 / design D2 row: \"gaps have appeared only on arranged requests\"; \"Auto-start for gaps therefore has little to start in practice\"; \"the replay found none in 166 runs\"",
+      "problem": "The absence is in a corpus the design itself calls saturated, with no runs of the owner's own features (M3 unmeasured, U7). The D2 table cell drops F49's \"reading, not a measurement\" caveat. Also the replay did not find \"none\": sol-b labelled two rows `gap` and a third look only declined to confirm them. And the arranged requests produced 1 gap in 2 replicates, so the count is tiny.",
+      "evidence": "Design section 6, row 593b4b44: \"absence of gaps here does not refute the idea\". U7: \"the only two runs of the owner's own features were unfinished\". Journal Round 4 F28: \"sol-b ... labelled F01 and N1 `gap`\"; no gap was confirmed.",
+      "severity": "medium",
+      "fix": "F49 and the D2 cell: \"No gap was confirmed in the 166 replayed runs (two Sol-retest candidates were not confirmed) or in Round 5's four runs; a gap appeared only on Round 7's arranged request, in 1 of 2 replicates. The corpus is saturated and holds none of the owner's own features, so whether a natural gap occurs is unmeasured (M3).\" Delete \"has little to start in practice\" or mark it a guess."
+     },
+     {
+      "claim": "F38 and the commit/README title: \"The recommended-run path ran live end to end\"",
+      "problem": "The answered half was not the product path. The harness never resumes a blocked run as if answered, so link 3 was a fresh run whose prompt was the request file plus a hand-typed answer chosen from the options the runs offered. The blocked runs were not answered through ShipLoop. \"End to end\" overstates; the journal's own contrary-evidence paragraph says so.",
+      "evidence": "Journal Round 6 addendum 1: \"the harness will not resume a blocked run as if answered\"; link3 prompt = \"request plus the answer: True\" (readings.txt); README: \"link 3 was started with the answer in the prompt because the harness never resumes a blocked run\".",
+      "severity": "medium",
+      "fix": "\"The path ran live in two linked parts on a primed request: a recommended `decision`, its request file and command, and a run that asked (n = 2); then a separate run started from that request plus a fixed typed answer, which delivered. The answer path of a blocked run was not exercised.\" Apply to F38, the design M2a result, and section 9."
+     },
+     {
+      "claim": "Design section 1 (the \"Revisions 2 to 5\" bullet and the Order bullet), section 4.7, and the header: \"So a chain ... still waits for the fix's release, and whether it should also wait for E4's result is open\"; \"Consider chaining runs only with ... the multipass fix's release\"; \"Journal: ... (Rounds 0 to 5)\"",
+      "problem": "Statements that are no longer true are not marked as-of. The multipass fix was released in 2.31.0 (5c9bf5e8, CHANGELOG 'A later pass keeps the permanent files permanent') and E4 reported (d71eaa71). Section 4.7 is likewise unmarked: \"stays off main until it is released ... So a chain waits for the release of the fix\". The header still says Journal Rounds 0 to 5 and its Evidence line omits the two new experiment directories, although Rounds 6 and 7 are cited in the body.",
+      "evidence": "git show 5c9bf5e8:CHANGELOG.md (shiploop 1.30.0); the D2 row itself says \"the multipass fix is released (skill-craft 2.31.0, 5c9bf5e8...)\"; the section 5 Update paragraph says E4 reported.",
+      "severity": "medium",
+      "fix": "Append \"(as of 3d5732d0; released since in 5c9bf5e8, and E4 reported at d71eaa71)\" to those sentences. In the Order bullet replace \"the multipass fix's release\" with \"the owner's calls on D2 and D3\". Header: \"Journal: ... (Rounds 0 to 7)\" and add docs/experiments/follow-on-recommended-run-20261101/ and follow-on-recommended-gap-20261101/ to Evidence."
+     },
+     {
+      "claim": "Design section 8 and journal Round 5 \"Third merge\": SKILL.md \"30,115 after another session's release 2.29.0\" / \"their release added 104; the feature added none\"; and \"Facts re-checked against origin/main 6a6cb101: SKILL.md is 30,011 bytes\"",
+      "problem": "False. The 104 bytes were added by b6598455 (the init-entry card sentence), before the feature's own base. d06e18a5 and 826c951c are already 30,115, and release 4224161b (2.29.0) changed only the version line, leaving 30,115. At 6a6cb101 the file is 30,115, not 30,011.",
+      "evidence": "wc -c of git show <rev>:skills/shiploop/SKILL.md: 3d5732d0=30011; b6598455^=30011; b6598455=30115; d06e18a5=30115; 826c951c=30115; 4224161b^ = 4224161b = 30115; 6a6cb101=30115. git log 3d5732d0..d06e18a5 lists b6598455 as the SKILL.md change.",
+      "severity": "medium",
+      "fix": "Design section 8: \"30,011 bytes at 3d5732d0, 30,115 from b6598455 (the init-entry sentence, +104) on, which is what the feature's base d06e18a5 already held; the feature changed nothing, so about 385 bytes remain under the 30500 bound.\" Journal line 600: \"30,115 bytes\"; line 606: delete \"their release added 104\"."
+     },
+     {
+      "claim": "Journal Round 5 Result and follow-on-build README: \"The released tree adds ba3297d (one `except` clause) and test-only commits\" to the tested tree",
+      "problem": "Incomplete and contradicted by the journal's own Third-merge paragraph. The released tree (41ee3d89) also carries the 2.29.0 step-plan focused-ID rule, which the four live runs did not test. skills/ differs by six files between the tested tree and the release.",
+      "evidence": "git diff --stat 2da2d4f3 41ee3d89 -- skills: README.md, SKILL.md, shiploop_follow_on.py (ba3297d), shiploop_navigator.py (35 lines), shiploop_prompts.py, shiploop_test_loop.py. Non-merge skill commits in range: b8d32033, 45153684, 4224161b, ba3297d7, 41ee3d89. Journal: \"Their step-plan and prompt changes were not in the tree the four live runs tested\".",
+      "severity": "medium",
+      "fix": "\"The released tree adds ba3297d7 (one `except` clause) and the focused-ID step-plan rule of 2.29.0 (b8d32033, 45153684, released in 4224161b), which these runs did not exercise; the published-build hello (README, 'The published build') is the only live check of the exact released tree.\""
+     },
+     {
+      "claim": "Journal Round 6 Result / README / F38: runs were on \"the published tree\" (plan: \"the tree the owner's hosts run\")",
+      "problem": "True only at plan time and for link 1. 2.31.0 was published at 10:38:16. Link 1 started 10:38:08, link 2 at 10:50 and link 3 at 10:54, so the runs that asked and delivered ran on a superseded build. Round 7's plan says 2.31.0 changed the start route and packets.",
+      "evidence": "date -r on the spans in runs.json/readings.txt: link1 10:38:08, link2-b 10:50:14, link3-a 10:54:27. git show -s 5c9bf5e8: 2026-11-01 10:38:16.",
+      "severity": "low",
+      "fix": "\"the 2.30.0 tree (pinned by --source checkout), which 2.31.0 replaced as the published build as link 1 started\"."
+     },
+     {
+      "claim": "F40 (firm, 2 of 2): \"The request text's heading 'Decision to settle with the requester' was a sufficient cue for the follow-on run's spec stage to ask.\"",
+      "problem": "A causal claim with no control, labelled firm. The recorded reasons cite the earlier request's \"do not choose\", reached by the pointer, and the model-written entry already says the user decides. The heading's effect is not isolated.",
+      "evidence": "blocked-questions.txt no_default texts; requests.md shows the entry text and pointer.",
+      "severity": "low",
+      "fix": "Relabel the sentence exploratory: \"Both runs asked; their stated reason is the earlier request's reservation, found through the pointer. Whether the heading alone would have been enough was not tested.\""
+     },
+     {
+      "claim": "Design M2a result 2: \"So a recommended `gap` is what an unattended follow-on run can take\"; section 9 live row: \"a model-filed `gap` was started from its request, delivered unattended and was not filed again\"",
+      "problem": "Generalises one link-2 run (n = 1, one of two replicates; the other replicate filed a `note` and recommended nothing; the two links ran on different builds). The D2 cell and the journal carry the n; M2a result 2 and the section 9 cell do not.",
+      "evidence": "gap README table: link1-a note, link1-b gap, link2-b only; builds 2.31.0 then 2.32.0.",
+      "severity": "low",
+      "fix": "Add \"in 1 of 1 run started (one of two replicates filed the gap; primed)\" to both places."
+     },
+     {
+      "claim": "Design M3 \"How to read it\": \"Round 5, 5 runs ... Round 6 ... (4 starts: 2 blocked, 2 done)\"",
+      "problem": "Numbers verified by running the tally, but Round 5 is described elsewhere as four live runs; the fifth is the post-release published-build hello, unexplained here. The \"starts\" counted for Round 6 include the two link-3 runs that the harness built from request plus answer, not starts by a person. The note says the tool cannot tell a person from a script, but not that these starts were scripted.",
+      "evidence": "tally_follow_on.py output for follow-on-live-436258 (5 roots incl. published-hello) and follow-on-live2-dacc9b (4 starts incl. link3-a/b).",
+      "severity": "low",
+      "fix": "Add \"(four live runs plus the published-build hello)\" and \"(all four starts were made by the harness)\"."
+     },
+     {
+      "claim": "Design section 7 header \"M2. Live measurements (need the owner's go)\" and section 6 row d9fefb11 \"any live case (M2) needs the owner's go\"",
+      "problem": "M2a was run in Rounds 6 and 7 without an explicit go, under a 'routine verification' reading recorded only in the journal. The design still states the opposite rule without noting the reading.",
+      "evidence": "Journal Round 6 and 7 plans: \"These runs verify a shipped feature, which AGENTS.md lists as routine\".",
+      "severity": "low",
+      "fix": "Add to the M2 header: \"(M2a's mechanics runs were launched as routine verification of a shipped feature; journal Rounds 6 and 7; M2b still needs the owner's go)\"."
+     },
+     {
+      "claim": "Journal Round 7 plan: runs \"launched from a worktree at origin/main\"",
+      "problem": "The Round 7 README and baseline rows say the worktree's HEAD was the plan commit e7c05e68 (local_head), which is on origin/main but is not its tip at launch.",
+      "evidence": "README: \"launched from a worktree whose HEAD was the plan commit\"; baselines.jsonl 3 rows with local_head e7c05e68.",
+      "severity": "low",
+      "fix": "\"launched from a worktree whose HEAD was the plan commit e7c05e68 (an ancestor of origin/main)\"."
+     },
+     {
+      "claim": "Design section 7 M1 Result: \"the recommendation stays not to build until runs of the owner's own features show more\" (and the matching 'Reading' bullet)",
+      "problem": "No longer the current recommendation. The owner asked for the build and D1/D4 and the header say so, but this paragraph, which reads as a present-tense result, is not marked superseded.",
+      "evidence": "Design header: \"The replay's advice to wait stands as evidence about demand, not as a rule that was kept\"; D4 row \"Decided: built\".",
+      "severity": "low",
+      "fix": "Append \"(Superseded 2026-11-01 for the build decision: the owner asked for the build, D4; the evidence about demand stands.)\""
+     }
+    ]
+   },
+   {
+    "group": "release-claims",
+    "verdict": "holds",
+    "checked": [
+     "git show --stat c01c9663: exactly 3 files (skills/shiploop/scripts/shiploop_follow_on.py, test/shiploop-follow-on.test.py, changes/shiploop/follow-on-request-sentences.md)",
+     "RED/GREEN: extracted the fix commit's tree to /tmp/audit-followon-A/tree, ran the new test against the pre-fix module (git show c01c9663^) and against the fixed module. Pre-fix failed with 'answer.. Recorded in'; fixed passed. Full file on the fixed tree: 18 tests OK.",
+     "Direct request_text comparison, pre vs fixed, on 4 rows. Pre-fix output: 'answer.. Recorded', a statement with no period left unfinished, 'an answer?. Recorded', 'now!. Recorded'. Fixed output: one well-formed sentence each, no '..'.",
+     "Release commit 9273b4cf: its only content is the version bumps, the CHANGELOG entry, README/SKILL.md version lines, the catalogs and plugin.json, the plugins/ copy of shiploop_follow_on.py (byte-identical to skills/ source at that commit), and deletion of the one pending note. changes/ holds only README.md afterwards. The CHANGELOG entry text matches the note.",
+     "gh run list and view: ci run 41353869800 for headSha 9273b4cfda87761f4ad002324b238e6d8f755bfb is completed/success. All 10 jobs are success (release-boundary, plan, full/core, full/python-floor, full/shiploop-1/2/3, full/e2e-apparatus, hermetic).",
+     "diff -r of ~/.claude/plugins/cache/whichguy/skill-craft/2.32.1/skills/shiploop against git archive of 9273b4cf plugins/skill-craft/skills/shiploop: IDENTICAL, 120 files each. The installed plugin.json reads 2.32.1.",
+     "Fix commit message carries 'No-E2E-Round: ...' in its final paragraph. Honesty: no follow-on-request.md was written after the fix. The only one newer than 12:54 is link1-b of Round 7, written 13:02 by the unfixed 2.31.0 build, and it still has '..'. The commit and the journal both say no live run exercised the fix.",
+     "tally_follow_on.py --self-test prints 'self-test ok' (rc 0). Real tallies: follow-on-live-436258 reads 5 runs, 0 recommending. follow-on-live2-dacc9b reads 6 runs, 2 recommending, 4 starts (2 blocked, 2 done). follow-on-gap-d79bc3 reads 3 runs, 1 recommending, 1 start (done). These match the design note M3 paragraph."
+    ],
+    "issues": [
+     {
+      "claim": "Fix commit message: 'nothing in 6 + 4 live runs shows the doubled period changed what a run did'",
+      "problem": "Round 6 had 6 runs, but Round 7 had 3 runs, not 4. The tally prints 'runs: 3' for follow-on-gap-d79bc3, and the journal result says 'three runs'. The sum is 9, not 10. The conclusion is unaffected.",
+      "evidence": "tally on /Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3 gives runs: 3 (link1-a, link1-b, link2-b). The Round 7 journal Result heading says 'three runs'.",
+      "severity": "low",
+      "fix": "The commit message is immutable. If anything restates it, say '6 + 3 live runs'."
+     }
+    ]
+   },
+   {
+    "group": "unprimed-rate",
+    "verdict": "overstated",
+    "checked": [
+     "Re-ran docs/experiments/follow-on-replay-20261101/compare.py to /tmp: output is byte-identical to compare-output.txt. It gives decision rows first=3 (F08,F22,F23), majority=2 (F08,F22), and gap rows first/sol-a/grok=0, sol-b=2 (F01,N1). 3/166=1.81% and 2/166=1.20% are correct arithmetic, and 3/122=2.46%.",
+     "rows.json holds 32 rows (25 frozen, 7 new) across 17 distinct requests. Re-ran peek.py (read-only, stdout and /tmp only): a scan of every ~/e2e-runs* root for strict 'Open for the next run' texts finds all 32 rows' runs plus 9 runs that finished later, so the numerator side reproduces.",
+     "Looked for where 166 comes from: it is a hard-coded constant, FINISHED_RUNS_NOW = 166, in compare.py. Its comment says '(build_set.py's scan)', but build_set.py counts only rows with text, never finished runs. The journal (Round 4 Plan) says the 44 new runs were found 'the way ledger.find_runs() reads them', but ledger.ROOTS lists only 5 roots (e2e-runs, -brownfield, -qr, -x4, -owner-note), and 6 of the 7 N rows come from roots find_runs does not read (-hostonly, -multipass, -xr). My own all-root rescan with peek.read_run: handoff-done runs not in the 125-run snapshot, state.md mtime before the replay commit 30ec0958, number 51, not 44 (so 173, not 166); today 159 new (281 handoff-done in all). The journal itself says 1 of the 44 had not reached handoff (-tl 1).",
+     "Round 5: read the accepted handoff `follow_on` straight from state.md of hello-1, csv-report-1, csv-report-2 and seat-reservations-1 in /Users/dadleet/e2e-runs/2026-11-01/follow-on-live-436258. They hold [], 1 note (assumption:A2), 1 note (assumption:A2) and []. This matches runs.json and the README. All four are done with every verdict passing. The published-hello run (a fifth run, not one of 'four') is also []. In csv-report-1 and -2 the old lessons.open_next reads 'None.' while the new list carries a note; seat-reservations-1's open_next says 'None for this request; revalidate...', with follow_on [].",
+     "Rounds 6 and 7 (journal F38 to F49): re-read the state.md files in follow-on-live2-dacc9b (link1-a and link1-b both filed a `decision`) and follow-on-gap-d79bc3 (link1-a filed a `note`, link1-b filed a `gap` against S3). So the single gap ever seen is n=1, in an arranged deferral, and the same occasion was filed as a note in the other replicate (F46).",
+     "Read third-look.txt for the sol-b gap labels. F01 and N1 are unmet request requirement R-4 ('rendered Lightning board'), owned by a person with the reason 'no authenticated browser'. They are excluded by rule G (grok disagreed), not because they are not unmet outcomes.",
+     "Computed Clopper-Pearson 95% intervals: 2/166 is 0.15 to 4.3%, 3/166 is 0.37 to 5.2%, 0/32 is 0 to 10.9%, 0/166 is 0 to 2.2%, and 0/4 is 0 to 60%.",
+     "Read the replay README sections 4 and 5, build README 'What this does and does not show', and design D2 / section 5 (corpus saturated 26 of 26, add-work used in 3 of 125 runs, 'a reflection can only list what the run knew it left open'). These documents already carry most of the caveats that F49 and the D2 cell drop."
+    ],
+    "issues": [
+     {
+      "claim": "F49: 'the replay found none [no gap] in 166 runs (Round 4)'. Similarly the replay README's headline 'no gap appears' and the statement that a decision was found 'in 1.2% to 1.8% of 166 finished runs'.",
+      "problem": "The replay classified 32 leftover texts, not 166 runs. The other 134 contributed no text: 'None', a 'none' phrase, or no release-verify. For those runs the absence of a gap is the run's own statement that nothing was left, and it is not the replay's finding. The 166 is the denominator of the decision rate, not the number of runs examined for gaps.",
+      "evidence": "rows.json has 32 rows. compare.py hard-codes FINISHED_RUNS_NOW = 166. The peek README gives 122 runs at handoff, 45 loose-text and 25 strict. design section 5 says 'A reflection can only list what the run knew it left open' and that the set 'excludes runs whose lessons say none'.",
+      "severity": "medium",
+      "fix": "Write: 'the replay found no confirmed gap among the 32 non-empty leftover texts of 166 finished runs (the other 134 recorded none), and a decision in 2 (majority) to 3 (first reader) of those 32 texts, which is 1.2% to 1.8% of the 166 runs.'"
+     },
+     {
+      "claim": "The 166 finished runs denominator (journal Round 4 Plan: 44 runs finished since the snapshot, found 'the way ledger.find_runs() reads them'; compare.py: 'build_set.py's scan').",
+      "problem": "No committed script computes it. The comment in compare.py points at a script that does not count runs. The journal's description is wrong, because ledger.find_runs reads only 5 roots and requires product-acceptance. My rescan does not give 44.",
+      "evidence": "ledger.py line 54 ROOTS = (~/e2e-runs, -brownfield, -qr, -x4, -owner-note). Six of the seven N rows come from -hostonly, -multipass and -xr. My all-root scan with peek.read_run counts 51 handoff-done runs outside the snapshot with state.md mtime before the replay commit (173 total, not 166). Now it is 159 new and 281 in all. The journal also says 1 of the 44 had not reached handoff, so 'finished' mixes definitions.",
+      "severity": "low",
+      "fix": "State it as 'about 166 (122 in the snapshot plus 44 later, counted by hand; my rescan gives 173 at the commit time, which would make the rates 1.2% to 1.7%)'. Better, add the count to build_set.py's output so the denominator is reproducible."
+     },
+     {
+      "claim": "'1.2% to 1.8%' presented as the unprimed decision rate (replay README section 1, journal Round 6 plan, design D1/D4 'a 1% to 2% case').",
+      "problem": "It reads as a range of estimates but it is two readers' point estimates of 2 or 3 events. The uncertainty is not given and it is large. The runs are not independent: the 32 texts come from 17 distinct requests (the README says the new rows are 'the same few ticket cases'). The 134 zero-text runs are heavily repeated hello and csv-report style cases.",
+      "evidence": "Clopper-Pearson 95%: 2/166 is 0.15 to 4.3%, 3/166 is 0.37 to 5.2%. 17 distinct requests across 32 rows. P3, the Jaccard threshold, was met 'exactly' (2/3), by one row.",
+      "severity": "medium",
+      "fix": "Add: '2 to 3 events; 95% interval about 0.2% to 5%; correlated runs on 17 distinct requests; not a base rate for other work'."
+     },
+     {
+      "claim": "Round 5: four live runs with lists of 0, 1, 1, 0 entries, all notes.",
+      "problem": "The counts are right. It supports almost nothing about gap incidence, and it is one model, one host and one effort on three small, fully specified cases (hello, csv-report x2, seat-reservations). The build README itself says 'Four lists are an existence check, not a rate'. F49 nevertheless lists it as one of the observations behind 'gaps appear only when arranged'.",
+      "evidence": "state.md of the four runs: follow_on [], note, note, []. 0 events in 4 runs gives a 95% upper bound of about 60%. Codex gpt-6.1-terra xhigh only. Round 5's own R4 flag: seat-reservations filed [] although its lessons note the server has no authentication.",
+      "severity": "low",
+      "fix": "In F49 say 'Round 5 (4 runs, 3 small cases, one model) is an existence check and adds no evidence about gap incidence'."
+     },
+     {
+      "claim": "F49 and the D2 cell: 'a gap has appeared only when the occasion was arranged' / 'gaps appear only when arranged'; and the inference 'Auto-start for gaps therefore has little to start in practice'.",
+      "problem": "Does not follow, for four reasons. (1) The positive side is n=1: one gap (Round 7 link1-b), in a request built to contain a deferred outcome, and the replicate on the same request filed a note (F46). 'Only when arranged' has no natural-run gap to contrast with, so it describes absence of evidence, not a difference. (2) It is near-tautological. A gap is an unmet request outcome, and the unprimed E2E requests are small and fully specified and every completed run passes its held-out checks (26 of 26 brownfield), so runs that finish leave nothing unmet. The arranged requests were designed to leave one. (3) Gaps a run notices are already absorbed in-run by add-work (3 of 125 runs in the snapshot, 4 in the current scan), and the leftover list shows only what the run knew it left open, so the instrument cannot see most gaps. (4) Three different instruments are stitched together: outside readers on the old free-text field (Round 4), the model's own classification under the new duty (Rounds 5 to 7), and primed requests. None covers the owner's own features (M3 and M2b are untouched). The class boundary also moves the answer: sol-b called F01 and N1 'gap' when the classes were listed in reverse order, and 4 `capability` rows are unmet outcomes that a later run with a different environment could close.",
+      "evidence": "journal F49 is labelled 'reading, not a measurement'. State.md of link1-a (note) and link1-b (gap) in follow-on-gap-d79bc3. Design section 5 and the replay README section 4 ('a gap may simply not be in it'; 'says nothing about the owner's own features'). The third-look reading that excludes F01 and N1 only by rule G. peek.json add-work counts.",
+      "severity": "high",
+      "fix": "Replace F49's reading with: 'No gap has been seen in any unprimed run: none among the 32 non-empty leftover texts of about 166 E2E runs (Round 4) and none in 4 Codex runs (Round 5). The one gap seen (Round 7, 1 of 2 replicates) was in a request built to defer an outcome. The E2E corpus is small, saturated (every completed run passes its held-out checks) and made of fully specified requests, and gaps the run notices are closed in-run by add-work, so this does not show that gaps are rare on the owner's own features. That is M3.' Change D2's cell to 'no gap has been seen on an unarranged request in the E2E corpus (journal F49)', and delete 'therefore has little to start in practice'."
+     }
+    ]
+   }
+  ],
+  "critic": {
+   "missing": [
+    "Round 5 has no audit group of its own. Only the four-run table and the P-scoring were rechecked, inside docs-consistency. The build README's causal claims, the published-hello run and the tested-versus-released tree gap are unaudited as a whole.",
+    "Journal findings F41 to F48 and F50 onward were not checked one by one. Only F38 to F40, F45, F46 and F49 were. Predictions P1 to P10 were scored against the README only for Rounds 6 and 7 (the P7 and P6 issues), and not for Round 5.",
+    "The follow-on code's behaviour was not audited. That covers classification (decision, gap, capability, note), rejection of malformed `follow_on` entries, entries listing more than one item, duplicate or stale entries after a later pass, and how `request_sentence` is chosen. The only code path with a RED/GREEN check is the double-period fix. The 18 tests were run but not read against the design.",
+    "The quality of the request file itself is not examined. Nobody checked whether it is self-sufficient in a fresh checkout, whether the pointer to the earlier `run/request.md` survives when that run directory is cleaned up, or what happens when the CLI path in the printed command is stale.",
+    "Design note sections 3, 4.x and 9, and the owner-decision rows D1 to D4, were checked for hashes and numbers but not for whether each design statement matches the shipped code. Only the 4.3, 4.7, 5, 6, 7 and 8 claims that were quoted were read.",
+    "Host coverage after the release: the 2.32.1 plugin tree was compared on Claude only. The Codex, Grok, Cursor and OpenCode refresh claims, if made, were not checked. CI was verified for 9273b4cf only, not for 2.31.0, 2.32.0 or the merge to main.",
+    "Every live run used one model and host combination (Codex gpt-6.1-terra at xhigh). No Claude, Grok or Ollama host ran the follow-on duty, so the 'handoff duty is followed' claim has no cross-host check.",
+    "Costs were not audited: handoff turns, tokens, and the SKILL.md size margin after the 104-byte change. The 'about 385 bytes under the bound' figure in the fix is itself unverified.",
+    "The correctness of tally_follow_on.py's 'recommending' and 'start' classification was only re-run. It was not checked against the raw state files for all 14 runs.",
+    "Round 6 link-3 digits regression: the audit found it, but nobody checked whether it was in the registered predictions or the contrary-evidence text, or whether the answer text should be called ambiguous. The spec lines 'digits now separate' were not traced into the final README of the work repos.",
+    "Whether the owner approved the 'routine verification' reading for Rounds 6 and 7 was not checked against AGENTS.md or the memory files. Only the journal's own statement of it was seen."
+   ],
+   "unverified": [
+    "F39 and F40 (a primed `decision` stops at spec and asks, and the heading is a sufficient cue) rest on 2 runs of one request that reserved the choice in words, with no control and no unreserved `decision` tried. The audit gave 'firm for these two runs only' and 'exploratory' as the fix. Whether a decision that is not reserved would still block is unmeasured.",
+    "The only confirmed gap is n = 1: Round 7 link1-b. The replicate filed a `note`, and link 2 ran on a different build (2.32.0 rather than 2.31.0). 'A gap is what an unattended run can take' and 'delivered unattended' therefore rest on one run.",
+    "Link 3 delivering after a typed answer is 2 of 2 runs from the same hand-written answer, and the answer path was never exercised through ShipLoop. The claim 'R7 delivers and keeps earlier behaviour' is also false for digits (both runs). Nothing tested digits.",
+    "The 'ran as printed' start-command check is 2 runs (link1-a and link1-b). Only the done-packet form was executed, with substitutions, and the report form with \"$CLI\" was not run.",
+    "The unprimed rates (1.2% to 1.8% decisions, no gap) come from 32 non-empty texts across 17 distinct requests in a saturated corpus. They are 2 or 3 events with a 95% interval of about 0.2% to 5%, and the denominator 166 is a hard-coded constant (my rescan gives 173). Round 5 (4 runs, 3 small cases) adds almost nothing on gaps. Nothing covers the owner's own features (M3).",
+    "The cause of link2-b writing SHIPLOOP.md is not examined (n = 1, one of three Round 7 runs). The claim that it is 'old behaviour' is false, because committing it was removed on 2026-10-11 and the generic sweep commit did it. P7 'held' depends on counting it as a living knowledge file.",
+    "Round 6 link 1 reads as a result on the published tree, but 2.31.0 was published as link 1 started. Link 2 and link 3 ran on a superseded build, so the three links do not share one build. Round 7 spans two builds (2.31.0 and 2.32.0) with one run on the second.",
+    "The published-hello run is the only live check of the exact released tree for Round 5. It is n = 1 and gave an empty list, so it exercises nothing about the list.",
+    "The double-period fix has zero live runs after it. The tests are RED/GREEN, but no live follow-on-request.md was ever written by the fixed build. The commit message says '6 + 4' runs where the count is 6 + 3.",
+    "Machine load: the load figures quoted (56, 104, 96) are from planning time. The runs' own start loads were 12 to 22 on 18 CPUs. Minute comparisons across runs are therefore weaker than the text implies, and one time (12.8 min) is truncated rather than rounded (12.9)."
+   ],
+   "suggestions": [
+    "Apply the audit's wording fixes in one superseding docs commit. High and medium items first: the unprimed-rate gap reading (F49 and the D2 cell), the SHIPLOOP.md history (R5), the link-2 no_default quote, the digits regression, the hash-slip cause, the F39 label, the 'end to end' wording, the SKILL.md 30,115 bytes figure, and the 'multipass fix waits' sentences. Leave the older commit messages alone and mark them superseded in the journal, as AGENTS.md asks.",
+    "Make the 166 denominator reproducible: have build_set.py (or a committed script) emit the finished-run count, and report the 95% interval beside every rate (2/166 is about 0.2% to 4.3%, 3/166 about 0.4% to 5.2%).",
+    "Close the main n-of-1/2 gaps, in this order. (a) A `decision` with no reserved choice and a safe default, 4 or more replicates, to see whether it blocks or takes the default. (b) The same arranged-gap request, 4 or more replicates per build, to get a gap rate. (c) A real resume of a blocked run with an answer, not a hand-built prompt. (d) One or two runs on the owner's own features (M3). Each is routine verification only if the owner's go is on record; M2b still needs it.",
+    "Run the follow-on duty once on a Claude host and once on Grok. Hold the model and effort fixed on each so the host effect can be read.",
+    "Fix or test the digits behaviour: add a held-out check for the answer text, and write down that 'any other character outside A to Z' made digits separators. Also confirm what slug.py's spec said before the answer.",
+    "After the next release, run one live follow-on after the double-period fix and read the request file's first sentence. Also re-run check_printed_command.py on the report form with CLI set, so both printed forms are covered.",
+    "Extend the audit to the unaudited groups: the Round 5 README and P-scoring, F41 to F48, design sections 3 and 4.x against the shipped module, host refresh on Codex, Grok and Cursor, and CI for the 2.31.0 and 2.32.0 commits."
+   ]
+  }
+ }
+}
