@@ -45,7 +45,6 @@ import environment  # noqa: E402
 import hosts  # noqa: E402
 import iterate  # noqa: E402
 import metrics  # noqa: E402
-import package_build
 import packets
 import progress  # noqa: E402
 import review  # noqa: E402
@@ -8040,228 +8039,270 @@ class GitDiscoveryTests(unittest.TestCase):
         env = run.isolate_git_discovery({"GIT_CEILING_DIRECTORIES": "/a"}, Path("/tmp/out"))
         self.assertIn("/a", env["GIT_CEILING_DIRECTORIES"].split(os.pathsep))
 
-class StartupContractEvaluatorTest(unittest.TestCase):
-    """Calibrate raw documented startup commands and the keepalive observer."""
+class StartupBehaviorCheckerTest(unittest.TestCase):
+    """Neutral artifact copies only: no package loading, hooks, engines or models."""
 
-    def _load_checker(self, checks):
-        sys.path.insert(0, str(checks))
-        try:
-            spec = importlib.util.spec_from_file_location(
-                "startup_contract_under_test", checks / "shiploop_startup_contract.py")
-            self.assertIsNotNone(spec)
-            self.assertIsNotNone(spec.loader)
-            checker = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(checker)
-            return checker
-        finally:
-            sys.path.remove(str(checks))
+    def setUp(self):
+        import hashlib
 
-    def test_new_case_reuses_hello_continuation_obligations(self):
-        cases = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text(encoding="utf-8"))
-        old = cases["hello-hook-continuation"]
-        new = cases["hello-startup-contract"]
-        self.assertEqual(new["style"], old["style"])
-        self.assertEqual(new["prompt"], old["prompt"])
-        self.assertEqual(new["checks"][:len(old["checks"])], old["checks"])
-        self.assertEqual(new["checks"][-1], 'python3 -B "$E2E_CHECKS/shiploop_startup_contract.py"')
-        self.assertIn("startup", new["checks_source"].lower())
+        self.temporary = tempfile.TemporaryDirectory(prefix="startup-behavior-")
+        self.addCleanup(self.temporary.cleanup)
+        self.out = Path(self.temporary.name)
+        self.work = self.out / "work"
+        self.root = self.work / ".shiploop" / "neutral-run"
+        self.root.mkdir(parents=True)
+        self.session = "neutral-codex-thread"
+        self.session_hash = hashlib.sha256(self.session.encode()).hexdigest()[:12]
+        self.action = "nav-neutral-intake"
+        self.head = '"$CLI"'
+        self.checker = ROOT / "test/shiploop_e2e/checks/shiploop_startup_behavior.py"
+        self.decisions_path = self.out / "home/.local/state/shiploop/keepalive/decisions.log"
+        self.receipt = self.out / "shiploop-startup-behavior-receipt.json"
+        first, self.first_text = self.packet(self.action, "intake", 0, 110)
+        second, self.second_text = self.packet("nav-neutral-discovery", "discovery", 1, 131)
+        self.trace = [first, self.command("init", 111, fresh=True),
+                      {"v": 1, "ts": 120.001, "at": "1970-01-01T00:02:00Z", "kind": "hook", "hook": "stop",
+                       "host": "codex", "session": self.session_hash, "decision": "continue",
+                       "why": "run can move", "text": "Continue the pending action."},
+                      second, self.command("complete", 132, accepted=True)]
+        self.events = [{"type": "available_commands", "commands": [], "sessionId": self.session},
+                       *self.tool("startup", self.startup_command(), self.first_text),
+                       {"type": "text", "data": "STARTUP_HANDOFF_CHECKPOINT\n"}, self.turn_end(),
+                       *self.tool("completion", f'python3 {self.head} complete --run-dir "{self.root}" '
+                                  f'--action {self.action} --result /neutral/result.md', self.second_text),
+                       {"type": "text", "data": "Delivery finished.\n"}, self.turn_end()]
+        self.sessions = [self.session_start(1, 0, 100), self.session_end(1, len(self.events), 200)]
+        self.decisions = [{"at": 120.0001, "host": "codex", "session": self.session_hash,
+                           "decision": "continue", "why": "run can move"}]
+        (self.out / "invocation.json").write_text(json.dumps({
+            "host": "codex", "case": "hello-startup-contract", "cwd": str(self.work),
+        }))
 
-    def test_literal_shell_heads_are_extracted_from_external_card_text(self):
-        with tempfile.TemporaryDirectory(prefix="startup-path-extraction-") as temporary:
-            cli = str(Path(temporary) / "selected-package" / "skills" / "shiploop" / "scripts" / "shiploop")
-            first = """python3 '/absolute/directory-containing-the-loaded-SKILL.md/scripts/shiploop' workspace start --repo "$REPO" --prompt='<user request>'"""
-            second = """python3 "/selected/synthetic-installed-skill-root/scripts/shiploop" workspace start --repo "$REPO" --prompt='<user request>'"""
-            third = f"""python3 "{cli}" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'"""
-            fence = chr(96) * 3
-            card = (f"{fence}sh\n{first}\n{fence}\n{fence}bash\n{second}\n{fence}\n"
-                    f"{fence}sh\n{third}\n{fence}\n")
-            checker = self._load_checker(ROOT / "test" / "shiploop_e2e" / "checks")
-            examples = checker.startup_commands_from_text(card, cli)
-            self.assertEqual(examples, [("workspace_start", first),
-                                        ("workspace_start", second), ("init", third)])
+    def packet(self, action, stage, revision, timestamp):
+        import hashlib
 
-    def test_registered_literal_head_substitutes_selected_path_and_preserves_quotes(self):
-        with tempfile.TemporaryDirectory(prefix="startup-path-render-") as temporary:
-            cli = str(Path(temporary) / "selected-package" / "skills" / "shiploop" / "scripts" / "shiploop")
-            checker = self._load_checker(ROOT / "test" / "shiploop_e2e" / "checks")
-            source = """python3 '/absolute/directory-containing-the-loaded-SKILL.md/scripts/shiploop' workspace start --repo "$REPO" --prompt='<user request>'"""
-            rendered = checker.render_example(source, selected_cli=cli, repo="/tmp/repo path",
-                                              run_dir="/tmp/run path", request="request's\n")
-            source_head = checker._quoted_head(source)
-            rendered_head = checker._quoted_head(rendered)
-            self.assertEqual((source_head[1], source_head[2]),
-                             ("/absolute/directory-containing-the-loaded-SKILL.md/scripts/shiploop", "'"))
-            self.assertEqual((rendered_head[1], rendered_head[2]), (cli, "'"))
-            self.assertIn("--prompt=" + checker.shell_single("request's\n"), rendered)
+        text = (f"=== ShipLoop: {stage} ===\nAction: {action}\n"
+                f"Keepalive marker: SHIPLOOP-RUN run=neutral-run rev={revision} dir={self.root}\n")
+        digest = hashlib.sha256(text.encode()).hexdigest()[:16]
+        relative = f"packets/sent/{digest}.md"
+        path = self.root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+        return ({"v": 1, "ts": timestamp, "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(timestamp)), "kind": "packet", "action": action,
+                 "stage": stage, "status": "active", "rev": revision, "chars": len(text), "printed": len(text + "=== end ShipLoop print ===\n"),
+                 "whole": True, "sha": digest, "file": relative}, text + "=== end ShipLoop print ===\n")
 
-            selected_placeholder = """python3 '/selected/another-distinct-package/scripts/shiploop' workspace start --repo "$REPO" --prompt='<user request>'"""
-            selected_rendered = checker.render_example(
-                selected_placeholder, selected_cli=cli, repo="/tmp/repo", run_dir="/tmp/run", request="request")
-            selected_head = checker._quoted_head(selected_rendered)
-            self.assertEqual((selected_head[1], selected_head[2]), (cli, "'"))
+    def command(self, verb, timestamp, *, fresh=False, accepted=False):
+        row = {"v": 1, "ts": timestamp, "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(timestamp)), "kind": "command", "verb": verb,
+               "exit": 0, "ms": 12, "status": "active", "rev": [None if fresh else 0, 1 if accepted else 0],
+               "stage": [None if fresh else "intake", "discovery" if accepted else "intake"],
+               "cursor": [None if fresh else self.action, "nav-neutral-discovery" if accepted else self.action]}
+        if accepted:
+            row.update(action=self.action, accepted=[{"action": self.action, "stage": "intake",
+                                                     "item": None, "outcome": "done"}])
+        return row
 
-            exact = f'python3 "{cli}" workspace start --repo "$REPO" --prompt=\'<user request>\''
-            exact_rendered = checker.render_example(exact, selected_cli=cli, repo="/tmp/repo",
-                                                    run_dir="/tmp/run", request="request")
-            self.assertEqual(checker._quoted_head(exact_rendered)[1:],
-                             checker._quoted_head(exact)[1:])
-            self.assertEqual(checker._quoted_head(exact_rendered)[0].group("word"),
-                             checker._quoted_head(exact)[0].group("word"))
+    def startup_command(self):
+        return f'python3 {self.head} init --repo "{self.work}" --run-dir "{self.root}" --prompt "Neutral request"'
 
-    def test_unregistered_foreign_absolute_head_is_rejected(self):
-        with tempfile.TemporaryDirectory(prefix="startup-foreign-head-") as temporary:
-            cli = str(Path(temporary) / "selected-package" / "skills" / "shiploop" / "scripts" / "shiploop")
-            checker = self._load_checker(ROOT / "test" / "shiploop_e2e" / "checks")
-            foreign = """python3 '/foreign/unknown/scripts/shiploop' workspace start --repo "$REPO" --prompt='<user request>'"""
-            fence = chr(96) * 3
-            card = f"{fence}sh\n{foreign}\n{fence}\n"
-            with self.assertRaisesRegex(checker.ContractFailure, "unsupported absolute"):
-                checker.startup_commands_from_text(card, cli)
+    @staticmethod
+    def tool(identity, command, output):
+        return [{"type": "tool_call", "toolCallId": identity, "title": "run_terminal_command",
+                 "toolName": "run_terminal_command", "status": "pending", "rawInput": {"command": command}},
+                {"type": "tool_call_update", "toolCallId": identity, "status": "completed",
+                 "content": [{"type": "content", "content": {"type": "text", "text": output}}],
+                 "rawOutput": {"type": "command_execution", "output_for_prompt": output,
+                               "exit_code": 0, "command": command}}]
 
-    def test_selected_package_startup_observer_calibration(self):
-        checks = ROOT / "test" / "shiploop_e2e" / "checks"
-        checker = checks / "shiploop_startup_contract.py"
-        self.assertTrue(checker.is_file(), "startup contract checker is not implemented yet")
-        helper_path = checks / "shiploop_hook_contract.py"
-        spec = importlib.util.spec_from_file_location("startup_identity_helpers", helper_path)
-        self.assertIsNotNone(spec)
-        self.assertIsNotNone(spec.loader)
-        helpers = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(helpers)
-        built_package = package_build.plugins() / "skill-craft"
-        self.assertTrue((built_package / "skills" / "shiploop" / "scripts" / "shiploop").is_file())
-        with tempfile.TemporaryDirectory(prefix="startup-contract-test-") as temporary:
-            output = Path(temporary)
-            checker_module = self._load_checker(checks)
-            fence = chr(96) * 3
-            fixtures = []
-            for variant in ("old-variable", "valid-literal"):
-                variant_root = output / variant
-                package = variant_root / "package"
-                variant_root.mkdir()
-                shutil.copytree(built_package, package)
-                selected_cli = str(package / "skills" / "shiploop" / "scripts" / "shiploop")
-                if variant == "old-variable":
-                    commands = [
-                        """python3 "$CLI" workspace start --repo "$REPO" --prompt='<user request>'""",
-                        """python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'""",
-                    ]
+    def turn_end(self):
+        return {"type": "end", "stopReason": "end_turn", "sessionId": self.session, "num_turns": 1,
+                "total_cost_usd": None, "usage": {"input_tokens": 1, "cache_read_input_tokens": 0,
+                                                 "output_tokens": 1, "reasoning_tokens": None}, "error": None}
+
+    @staticmethod
+    def session_start(n, line, timestamp, reason="start"):
+        return {"row": "start", "n": n, "kind": "first" if n == 1 else "continued", "reason": reason,
+                "host": "codex", "model": "neutral", "t": timestamp, "events_line": line,
+                "told": None, "resumed_session": None if n == 1 else "neutral-codex-thread", "engine": None}
+
+    @staticmethod
+    def session_end(n, line, timestamp):
+        return {"row": "end", "n": n, "t": timestamp, "events_line": line, "status": "exited",
+                "returncode": 0, "engine": None}
+
+    def write_artifacts(self):
+        self.sessions[-1]["events_line"] = len(self.events)
+        for path, records in ((self.out / "events.jsonl", self.events), (self.out / "sessions.jsonl", self.sessions),
+                              (self.root / "trace.jsonl", self.trace), (self.decisions_path, self.decisions)):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("".join(json.dumps(row) + "\n" for row in records))
+
+    def check(self, expected, reason=None):
+        self.write_artifacts()
+        before = {path: path.read_bytes() for path in self.out.rglob("*") if path.is_file() and path != self.receipt}
+        result = subprocess.run([sys.executable, "-B", str(self.checker)], cwd=self.work,
+                                capture_output=True, text=True, timeout=10, check=False)
+        self.assertTrue(self.receipt.is_file(), result.stdout + result.stderr)
+        receipt = json.loads(self.receipt.read_text())
+        self.assertEqual(result.returncode, {"pass": 0, "fail": 1, "unknown": 2}[expected], result.stdout + result.stderr)
+        self.assertEqual(receipt["status"], expected, receipt)
+        if reason:
+            self.assertIn(reason, receipt["reason"])
+        self.assertEqual(before, {path: path.read_bytes() for path in before}, "original artifacts changed")
+        self.assertEqual({p for p in self.out.rglob("*") if p.is_file()}, set(before) | {self.receipt})
+        self.assertFalse((self.out / "result.json").exists(), "grading must precede result.json")
+        return receipt
+
+    def test_same_session_continue_and_one_same_action_acceptance_pass(self):
+        receipt = self.check("pass")
+        for key in ("startup", "first_packet", "checkpoint", "first_turn_end", "first_stop", "continue_hook",
+                    "intake_acceptance", "continued_callback"):
+            self.assertTrue(receipt["observations"][key]["artifact"])
+        self.assertEqual(receipt["observations"]["first_stop"]["session_hash"], self.session_hash)
+        self.assertEqual(receipt["observations"]["intake_acceptance"]["lines"], [5])
+
+    def test_allow_or_unbound_first_stop_fails_despite_later_resume_and_acceptance(self):
+        self.sessions = [self.session_start(1, 0, 100), self.session_end(1, 5, 124),
+                         self.session_start(2, 5, 125, "resume-loop"), self.session_end(2, len(self.events), 200)]
+        self.decisions[0].update(decision="allow")
+        for why in ("no progress", "no run bound to this session"):
+            with self.subTest(why=why):
+                self.decisions[0]["why"] = why
+                if why == "no progress":
+                    self.trace[2].update(decision="allow", why=why)
                 else:
-                    commands = [
-                        f"""python3 {checker_module.shell_single(selected_cli)} workspace start --repo "$REPO" --prompt='<user request>'""",
-                        f"""python3 {checker_module.shell_double(selected_cli)} init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'""",
-                    ]
-                card = f"{fence}sh\n" + "\n".join(commands) + f"\n{fence}\n"
-                (package / "skills" / "shiploop" / "SKILL.md").write_text(card, encoding="utf-8")
-                work = variant_root / "work"
-                work.mkdir()
-                fixtures.append({"variant": variant, "root": variant_root, "package": package,
-                                 "selected_cli": selected_cli, "work": work, "commands": commands,
-                                 "card": card})
+                    self.trace.pop(2)  # An unbound stop writes no hook into this run.
+                self.check("fail", "first checkpoint stop allowed termination")
 
-            # Freeze both controlled cards before capturing any package identity or digest.
-            built_signature = helpers.tree_signature(built_package)
-            for fixture in fixtures:
-                package = fixture["package"]
-                invocation = {
-                    "case": "hello-startup-contract",
-                    "cwd": str(fixture["work"]),
-                    "host": "codex",
-                    "plugin_dir": str(package),
-                    "plugin": {"pass": True, "path": str(package)},
-                    "versions": {"plugin_sha256": helpers.runner_tree_digest(package)},
-                }
-                (fixture["root"] / "invocation.json").write_text(
-                    json.dumps(invocation), encoding="utf-8")
+    def test_missing_checkpoint_or_stop_is_unknown(self):
+        checkpoint = self.events.pop(3)
+        self.check("unknown", "checkpoint is missing")
+        self.events.insert(3, checkpoint)
+        self.decisions = []
+        self.check("unknown", "empty artifact")
 
-            env = os.environ.copy()
-            env["E2E_CHECKS"] = str(checks)
-            for fixture in fixtures:
-                variant = fixture["variant"]
-                package = fixture["package"]
-                work = fixture["work"]
-                result = subprocess.run([sys.executable, "-B", str(checker)], cwd=work, env=env,
-                                        capture_output=True, text=True, timeout=120, check=False)
-                receipt_path = fixture["root"] / "shiploop-startup-contract-receipt.json"
-                self.assertTrue(receipt_path.is_file(), result.stdout + result.stderr)
-                receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-                old_variable = variant == "old-variable"
-                self.assertEqual(result.returncode, 1 if old_variable else 0, result.stdout + result.stderr)
-                self.assertEqual(receipt.get("schema"), "shiploop-startup-contract/v2")
-                self.assertEqual(receipt.get("verdict"), "fail" if old_variable else "pass")
-                self.assertEqual(receipt.get("calibration_verdict"), "pass")
-                self.assertEqual(
-                    receipt["selected_documentation"]["observer_head_policy"],
-                    "preserve $CLI and exact selected literal; substitute only absolute heads under "
-                    "/absolute/ or /selected/ ending /scripts/shiploop")
-                probes = {row["id"]: row for row in receipt.get("probes", [])}
-                self.assertEqual(len(probes), 17)
-                expected_doc_failures = (
-                    {"documented_workspace_start", "documented_init"} if old_variable else set())
-                self.assertEqual({key for key, row in probes.items() if row["status"] == "fail"},
-                                 expected_doc_failures, receipt)
-                self.assertTrue(all(row["package"]["unchanged"] and
-                                    row["package"]["before_sha256"] == row["package"]["after_sha256"]
-                                    for row in probes.values()))
-                for probe_id in ("documented_workspace_start", "documented_init"):
-                    row = probes[probe_id]
-                    expected_head = "$CLI" if old_variable else fixture["selected_cli"]
-                    self.assertEqual(checker_module._quoted_head(row["source_command"])[1], expected_head)
-                    self.assertEqual(checker_module._quoted_head(row["command"])[1], expected_head)
-                    self.assertEqual(row["observed"]["bound"], not old_variable)
+    def test_next_init_and_restart_before_acceptance_fail(self):
+        for verb in ("next", "init", "restart"):
+            with self.subTest(verb=verb):
+                self.trace.insert(3, self.command(verb, 125))
+                self.check("fail", "while first intake remains pending")
+                self.trace.pop(3)
 
-                literal_specs = {
-                    "literal_absolute_placeholder_single":
-                        ("/absolute/directory-containing-the-loaded-SKILL.md/scripts/shiploop", "'"),
-                    "literal_selected_placeholder_double":
-                        ("/selected/synthetic-installed-skill-root/scripts/shiploop", '"'),
-                    "literal_exact_selected_double": (fixture["selected_cli"], '"'),
-                }
-                for probe_id, (raw_head, quote) in literal_specs.items():
-                    row = probes[probe_id]
-                    self.assertTrue(row["observed"]["bound"], receipt)
-                    self.assertTrue(row["observed"]["bound_run_id_matches"], receipt)
-                    source_head = checker_module._quoted_head(row["source_command"])
-                    rendered_head = checker_module._quoted_head(row["command"])
-                    self.assertEqual((source_head[1], source_head[2]), (raw_head, quote))
-                    self.assertEqual((rendered_head[1], rendered_head[2],
-                                      source_head[2]), (fixture["selected_cli"], quote, quote))
+    def test_observed_next_without_a_trace_row_still_fails(self):
+        self.events[5:5] = self.tool("replay", f'python3 {self.head} next --run-dir "{self.root}"', self.first_text)
+        self.check("fail", "tool call before intake acceptance")
 
-                self.assertTrue(probes["unsupported_foreign_literal"]["observed"]["rejected"])
-                self.assertFalse(probes["unsupported_foreign_literal"]["observed"]["observer_called"])
-                self.assertIsNone(probes["unsupported_foreign_literal"]["observed"]["rendered_command"])
-                self.assertFalse(probes["variable_head"]["observed"]["bound"])
-                self.assertFalse(probes["read_packet"]["observed"]["bound"])
-                self.assertFalse(probes["read_status"]["observed"]["bound"])
-                self.assertFalse(probes["missing_state"]["observed"]["bound"])
-                self.assertFalse(probes["corrupt_state"]["observed"]["bound"])
-                self.assertEqual(probes["foreign_owner"]["observed"]["decision"], "allow")
-                self.assertTrue(probes["foreign_owner"]["observed"]["owner_preserved"])
-                for probe_id in ("argv_documented_workspace_start", "argv_documented_init",
-                                 "argv_literal_absolute_single", "argv_literal_selected_double",
-                                 "argv_literal_exact_double"):
-                    self.assertTrue(probes[probe_id]["observed"]["argv_match"], probes[probe_id])
-                argv_fixture = receipt["argv_fixture"]
-                self.assertTrue(argv_fixture["paths_are_synthetic"])
-                self.assertTrue(argv_fixture["stub_cli_path"].endswith("\n"))
-                self.assertTrue(argv_fixture["repo_path"].endswith("\n"))
-                self.assertTrue(argv_fixture["run_dir_path"].endswith("\n"))
-                for path_value in (argv_fixture["stub_cli_path"], argv_fixture["repo_path"],
-                                   argv_fixture["run_dir_path"]):
-                    self.assertIn(" path ' $ " + chr(96) + " Ω\ninside\n", path_value)
-                self.assertTrue(argv_fixture["request"].startswith("--option-like=value"))
-                self.assertIn("apostrophe's dollar$ grave" + chr(96), argv_fixture["request"])
-                self.assertIn("internal line\n", argv_fixture["request"])
-                self.assertTrue(argv_fixture["request"].endswith("\n"))
-                self.assertTrue(receipt["package_unchanged"])
-                self.assertEqual(receipt["package_signature_before_sha256"],
-                                 receipt["package_signature_after_sha256"])
-                self.assertEqual(len(receipt["synthetic_card"]["commands"]), 3)
-                self.assertEqual(receipt["synthetic_card"]["text"].count(chr(96) * 3), 6)
-                self.assertTrue(receipt["foreign_literal_card"]["sha256"])
+    def test_malformed_or_missing_artifacts_are_unknown(self):
+        self.trace[-1]["accepted"] = ["unparseable acceptance"]
+        self.check("unknown", "artifact/correlation gap")
+        self.trace[-1] = self.command("complete", 132, accepted=True)
+        self.events[2]["rawOutput"]["command"] = "different command"
+        self.check("unknown", "unverified Codex command output")
 
-            self.assertEqual(helpers.tree_signature(built_package), built_signature,
-                             "controlled fixture cards must not modify the shared package-build output")
+    def test_callback_before_checkpoint_fails(self):
+        callback = self.events[5:7]
+        del self.events[5:7]
+        self.events[3:3] = callback
+        self.check("fail", "tool call/callback precedes")
+
+    def test_duplicate_accepted_first_intake_fails(self):
+        self.trace.append(self.command("complete", 150, accepted=True))
+        self.check("fail", "duplicate accepted")
+
+    def test_command_head_bytes_do_not_decide_behavior(self):
+        for head in ('"$CLI"', "'/neutral/scripts/shiploop'"):
+            with self.subTest(head=head):
+                self.head = head
+                self.events[1:3] = self.tool("startup", self.startup_command(), self.first_text)
+                receipt = self.check("pass")
+                self.assertEqual(receipt["observations"]["startup"]["command"], self.startup_command())
+                self.decisions[0].update(decision="allow", why="no run bound to this session")
+                self.check("fail", "first checkpoint stop allowed termination")
+                self.decisions[0].update(decision="continue", why="run can move")
+
+    def test_later_launch_reusing_tool_ids_does_not_change_first_session_pairing(self):
+        boundary = len(self.events)
+        self.events += [{"type": "available_commands", "commands": [], "sessionId": self.session},
+                        *self.tool("startup", "git status --short", ""), self.turn_end()]
+        self.sessions += [self.session_start(2, boundary, 210, "resume-loop"),
+                          self.session_end(2, len(self.events), 220)]
+        self.check("pass")
+
+    def test_workspace_start_form_can_join_the_same_actual_behavior(self):
+        command = f'python3 -B {self.head} workspace start --repo "{self.work}" --prompt "Neutral request"'
+        self.events[1:3] = self.tool("startup", command, self.first_text)
+        self.trace[1]["verb"] = "workspace"
+        self.check("pass")
+
+    def test_retained_printed_head_joins_without_requiring_unprinted_packet_text(self):
+        import hashlib
+
+        packet = self.trace[0]
+        full = self.root / packet["file"]
+        text = full.read_text() + "Unprinted neutral fixture tail.\n"
+        packet["sha"] = hashlib.sha256(text.encode()).hexdigest()[:16]
+        packet["file"] = f'packets/sent/{packet["sha"]}.md'
+        (self.root / packet["file"]).write_text(text)
+        head_hash = hashlib.sha256(self.first_text.encode()).hexdigest()[:16]
+        packet.update(whole=False, chars=len(text), head_file=f"packets/sent/{head_hash}.md")
+        (self.root / packet["head_file"]).write_text(self.first_text)
+        self.check("pass")
+
+    def test_mixed_session_identity_or_multiple_run_traces_are_unknown(self):
+        self.events[4]["sessionId"] = "other-thread"
+        self.check("unknown", "mixed Codex session identity")
+        self.events[4]["sessionId"] = self.session
+        other = self.work / ".shiploop" / "other-run" / "trace.jsonl"
+        other.parent.mkdir(parents=True)
+        other.write_text(json.dumps(self.trace[0]) + "\n")
+        self.check("unknown", "multiple candidate run traces")
+
+    def test_missing_hook_or_wrong_session_hash_is_unknown(self):
+        hook = self.trace.pop(2)
+        self.check("unknown", "first stop trace")
+        self.trace.insert(2, hook)
+        self.trace[2]["session"] = "abcdef123456"
+        self.check("unknown", "mixed session identity")
+
+    def test_mixed_stop_sessions_are_unknown_instead_of_skipping_first_stop(self):
+        self.decisions.insert(0, dict(self.decisions[0], at=119, session="abcdef123456"))
+        self.check("unknown", "mixed or unidentified stop sessions")
+
+    def test_outer_resume_with_intake_pending_fails_even_after_continue(self):
+        self.sessions = [self.session_start(1, 0, 100), self.session_end(1, 5, 124),
+                         self.session_start(2, 5, 125, "resume-loop"), self.session_end(2, len(self.events), 200)]
+        self.check("fail", "outer resume-loop started with intake pending")
+
+    def test_read_status_or_compound_commands_with_marker_cannot_qualify(self):
+        for command in ('cat /neutral/packet.md', f'python3 {self.head} status --run-dir "{self.root}"',
+                        self.startup_command() + f'; python3 {self.head} complete --action {self.action}'):
+            with self.subTest(command=command):
+                self.events[1:3] = self.tool("startup", command, self.first_text)
+                self.check("unknown", "no bounded fresh startup")
+
+    def test_unverified_host_and_partial_packet_and_tied_stop_are_unknown(self):
+        invocation = self.out / "invocation.json"
+        record = json.loads(invocation.read_text())
+        invocation.write_text(json.dumps(dict(record, host="grok")))
+        self.check("unknown", "only normalized Codex")
+        invocation.write_text(json.dumps(record))
+        self.trace[0]["whole"] = False
+        self.check("unknown", "lacks its archived printed head")
+        self.trace[0]["whole"] = True
+        self.decisions.append(dict(self.decisions[0]))
+        self.check("unknown", "cannot be uniquely correlated")
+
+    def test_case_keeps_original_checks_and_adds_startup_probe_term(self):
+        cases = json.loads((ROOT / "test/shiploop_e2e/cases.json").read_text())
+        old, new = cases["hello-hook-continuation"], cases["hello-startup-contract"]
+        self.assertEqual(new["style"], old["style"])
+        self.assertEqual(new["checks"][:4], old["checks"])
+        self.assertEqual(new["checks"][-1], 'python3 -B "$E2E_CHECKS/shiploop_startup_behavior.py"')
+        self.assertIn("STARTUP_HANDOFF_CHECKPOINT", new["prompt"])
+        self.assertNotIn("HOOK_CONTINUATION_CHECKPOINT", new["prompt"])
+        self.assertNotIn("$CLI", new["prompt"])
+        terms = json.loads((ROOT / "test/shiploop_e2e/probe_terms.json").read_text())["terms"]
+        self.assertEqual(terms["hello-startup-contract"], terms["hello-hook-continuation"])
 
 
 if __name__ == "__main__":
