@@ -331,6 +331,40 @@ at least 80% of the explicit sessions on both cards.
 **Limits.** Each host is one model at one setting; Claude loads the owner's global instructions, as the harness's Claude host
 always does. Small base rates mean this checks for harm, not benefit.
 
+### Result of the other-hosts probe
+
+Both hosts ran the registered plan to the end on 2026-11-01 (`plan-hosts.json`, seed 20261104, one launch per host, `run.py`, the
+final driver, no change while they ran): 96 valid sessions each, every slot valid, the installed card equal to the arm's card in
+every session (C `dd1a2ebf1d5d`, T2 `fe70f7b8e3b8`; the package the host probe was cut from was 2.28.1, three releases after the R2
+build's 2.27.3). Claude `claude-sonnet-5-5` on its own models, Grok `grok-4.7` at medium. `analyze.py --mode hosts`
+(`analysis-h-claude-output.txt`, `analysis-h-grok-output.txt`; sessions in `results-h-claude-compact.jsonl`,
+`results-h-grok-compact.jsonl`):
+
+| request | card | Claude: first start `init` | Grok: first start `init` |
+|---|---|---|---|
+| `sf-ui` (the failing prompt) | C, old wording | 0 of 16 | 0 of 16 |
+| `sf-ui` | T2, published | 0 of 16 | 0 of 16 |
+| `repo` (an existing Git repository) | C | 0 of 8 | 0 of 8 |
+| `repo` | T2 | 0 of 8 | 0 of 8 |
+| `inplace-hello` (explicit in-place) | C | 12 of 12 | 12 of 12 |
+| `inplace-hello` | T2 | 12 of 12 | 12 of 12 |
+| `nogit-hello` (explicit non-Git) | C | 12 of 12 | 12 of 12 |
+| `nogit-hello` | T2 | 12 of 12 | 12 of 12 |
+
+**Verdict, both hosts: no regression found.** The rule's two triggers were not near: on `sf-ui` and `repo` T2 started with `init`
+0 times against 0 for C, and over the two explicit requests the `init` share was 24 of 24 for both cards (drop 0). The prediction held
+on both hosts (2 or fewer `init` per card on `sf-ui` and `repo`; at least 80% `init` on the explicit requests, here 100%).
+
+**What it shows and what it cannot.** T2 does not move either host in either direction on these requests, and neither host ever
+started the Salesforce request with `init` on the old wording either (0 of 16 each), as the archive said (Claude 0 of 56 starts, Grok 0
+of 111). So there is a floor: T2 cannot be shown to help on these hosts, only not to hurt, and with 16 sessions a rate under
+about 17% (Wilson upper bound 0.19) could still be hidden in each cell. The sentence's benefit is Codex Terra's.
+
+**Faults.** Claude: 4 invalid attempts (three had no run record, one ended without a skill call), each retried to a valid session
+by the driver; they are in `results.jsonl` and are not outcomes. Grok: none. Route readings: Claude's command route and the route
+on disk agreed in all 83 sessions where both were readable (13 command only); Grok's stop precedes any write, so all 96 rest on the
+command alone, as registered. Median time to the start: Claude 24 s, Grok 65 s.
+
 ## Published-build confirmation (registered 2026-11-01, before it runs)
 
 After the release, `start_probe.py confirm` runs 12 sessions of the `sf-ui` request on the build a user installs (the published
@@ -376,6 +410,126 @@ the route agree wherever both are readable.
 
 **Cost.** About 18M tokens and 15 to 35 minutes, as the first batch (estimate; a stopped session reports no totals).
 
+## The `init` guard: what does a session do after `init` is refused? (registered 2026-11-01, before its first trial)
+
+**Why.** T2 fixed the wording (0 of 80 Salesforce-request sessions began with `init` against 25 of 80 on the old wording, pooled over
+the first batch and R2), and the other-hosts probe showed no effect either way on Claude or Grok. One of 80 sessions on T2 still
+began with `init` in an empty non-Git folder, which leaves a run whose product is never committed (the live run that started this
+experiment). The owner asked for a script guard as well (2026-11-01, "All of them"): `init` in an empty folder that is not a Git
+repository is refused with the `workspace start` command to run instead, unless the user's own request for an in-place or non-Git
+run is stated with `--in-place` (commit d8a8dce097368ae349ba051ec76c83d036e7f2ef, on a branch not yet pushed). A refusal only helps if the session then takes the isolated entry; it harms if
+sessions add `--in-place` reflexively, or if it blocks an explicit in-place request.
+
+**Design.** Codex `gpt-6.1-terra` at `xhigh` through `run.py` with `--stop-after-start` (the harness ends the host once a run
+exists on disk, so the recovery after a refusal is observed to its end; 288f35c59dd56f65aee82e27ae80630bfcc6ef22). Two builds cut
+with `scripts/build-packages.py` from the guard commit (`--package-root`): **G**, the build as it stands (T2 wording plus the guard),
+and **GOLD**, G with T2's sentence reversed (the old wording, so that wrong first attempts are frequent enough to observe: 8 to 17
+of 40 `sf-ui` sessions on the old wording). Requests (`plan --set guard`, seed 20261105, `plan-guard.json`): `sf-ui` 60 sessions on
+GOLD and 20 on G; `inplace-hello` 12 and `nogit-hello` 12 on G: 104 sessions (60 old-wording sessions give at
+least 8 refusals with probability 93% at a first-start `init` rate of 20%, the lowest the old wording showed, and above 99.9% at
+the pooled 31%). G: card `9571cfb4b317 (30,115 bytes)`, `shiploop_protocol.py`
+`7caafc6adf1a`; GOLD: card `4e455a833e85 (30,011 bytes)`.
+
+**Measured per session.** The first ShipLoop start command and its route; whether the guard's refusal appeared (as rendered, with a
+path); every start command and whether it carried `--in-place`; the route of the run that exists on disk at the end (`start_route`).
+
+**Rule** (`analyze.py --mode guard`, one launch, no change while it runs, a fault restarts the batch):
+- *H1, recovery.* Among `sf-ui` sessions where the guard refused an `init`, at least 80% end on the isolated entry
+  (`workspace start`) with a Wilson lower bound of at least 0.50, from at least 8 such sessions. Fewer than 8: "insufficient";
+  more old-wording sessions are added to the same batch, not a restart.
+- *H2, explicit requests honored.* Over `inplace-hello` and `nogit-hello` (G), at least 80% end on the direct entry, lower bound at
+  least 0.50.
+- *H3, right starts stay right.* Of the G `sf-ui` sessions that were never refused, at most 1 ends off `workspace start`.
+- Reported, not gated: sessions that never made a run; refused sessions that then used `--in-place` without the user's request.
+If H1, H2 and H3 are met the guard is released; if H2 fails the message or the flag is reworked; if H1 fails (sessions answer the
+refusal with `--in-place`) the guard is not released as it stands. Whatever the result, it is reported in full.
+
+**Prediction.** GOLD begins with `init` in 15% to 45% of `sf-ui` sessions and G in 5% or fewer; of the refused sessions at least 90%
+end on `workspace start`; at least 90% of the explicit sessions end `direct` (those that begin with `init` are refused once and
+then rerun it with `--in-place`).
+
+**Limits.** One model at one setting, one Salesforce prompt, one pair of explicit requests; the sessions that begin with
+`workspace start` never see the guard, so G only measures the guard's cost on right starts through H3. The benefit on the current
+card is small by construction (T2 leaves about 1 wrong start in 80); the probe asks whether the guard is safe and effective, not how
+often it will fire.
+
+**Cost.** About 104 sessions at roughly a minute and 0.2M tokens each (an estimate from the earlier probes plus one recovery step).
+
+**Command** (one launch, no change while it runs):
+`python3 start_probe.py run --host codex --arms arms-guard.json --package-root <build-packages.py output of the guard commit>
+--effect-stop --plan plan-guard.json --out ~/e2e-runs-startroute/20261101-guard --jobs 4`; analysis
+`python3 analyze.py <out>/results.jsonl --mode guard --export results-guard-compact.jsonl`.
+
+
+### Result of the first guard probe (104 sessions, 2026-11-01)
+
+One launch, no change while it ran, 104 valid sessions and no invalid attempt; the installed card equalled the build's card in every
+session (`analysis-guard-output.txt`, `results-guard-compact.jsonl`). Codex `gpt-6.1-terra` at `xhigh`, builds cut from d8a8dce097368ae349ba051ec76c83d036e7f2ef.
+
+| request | build | sessions | `init` first | refused | ended on `workspace start` | ended on the direct entry | no run |
+|---|---|---|---|---|---|---|---|
+| `sf-ui` | GOLD (old wording) | 60 | 16 | 0 | 44 | 15 | 1 |
+| `sf-ui` | G (T2) | 20 | 0 | 0 | 20 | 0 | 0 |
+| `inplace-hello` | G | 12 | 12 | 4 | 0 | 12 | 0 |
+| `nogit-hello` | G | 12 | 12 | 8 | 0 | 12 | 0 |
+
+**Registered verdict: INSUFFICIENT.** H1 could not be judged: 0 of the 60 old-wording sessions were refused (8 were needed). H2 held
+(24 of 24 explicit sessions ended on the direct entry, Wilson 0.86-1.00) and H3 held (20 of 20 G sessions that were never refused ended on
+`workspace start`).
+
+**What the zero means.** 16 old-wording sessions began with `init`, and not one was refused, because every one of the 16 carried
+`--in-place` on its first command. Every one of them had run a `--help` on the ShipLoop CLI before its first start (16 of 16; of the 44
+that began with `workspace start`, 7 had), and `--in-place` was in `init --help`. Sessions read `references/run-start.md` first (101 of
+104), then `run-options.md` (54); none read `references/navigator.md`, the other place the flag was mentioned. So the sessions that had
+chosen the direct entry by mistake learned the override before they used `init`, and passed it as the user's request. Effectiveness
+(an added line, see below): 0 of 16 first-`init` sessions ended on `workspace start` (Wilson upper bound 0.19). The guard stopped no
+wrong start. It refused only the sessions that did not know the flag, 12 of the 24 explicit sessions, all of which then passed it: a
+one-command cost on half of the explicit requests, for nothing. On the T2 card nothing began with `init` (0 of 20), so the guard had
+nothing to do there either.
+
+**Deviations from the registration, recorded.** (1) The analysis gained the effectiveness line E (of the `sf-ui` sessions whose first
+start was `init`, refused or not, how many ended on `workspace start`) and a `--gate` option; I added them at 16 of 104 sessions
+when the progress monitor showed three `init` first starts carrying `--in-place`, before the end of the batch, and the registered
+H1 gate was not changed (this verdict is H1's). (2) The registered remedy for "insufficient", adding old-wording sessions to the same
+batch, was not carried out: 0 of 16 first-`init` sessions were refused, so the refusal rate per `init` start is below 19% (95% upper
+bound), and 8 refusals would take at least 42 first-`init` sessions, about 160 more old-wording sessions, and more at any lower rate;
+the extra sessions could not change what the 16 show, which is why they were not run. (3) Everything else ran as registered.
+
+**What follows.** A guard whose override a session can read first is not a guard. The cause is specific and cheap to change: the flag
+was visible in `--help`, which the sessions that chose `init` read first. A second design hides the override from `--help` and puts
+the card's cue in the refusal itself (f9f91667228c1ef719cfb916757cba015e9189c7), and is registered below before its first trial.
+
+## The `init` guard, second design: does hiding the override from `--help` and sharpening the refusal make it work? (registered 2026-11-01, before its first trial)
+
+**Why.** The first probe (above) found the override self-certified in advance: 16 of 16 first-`init` old-wording sessions had run
+`--help`, saw `--in-place`, and passed it, so the refusal was never shown to the sessions it was for. The second design
+(f9f91667228c1ef719cfb916757cba015e9189c7, on the same unpushed branch as the first) changes two things: `--in-place` is hidden
+from `--help` (the refusal and the README name it), and the refusal repeats the card's cue at the moment of the decision ("a request
+that names the current directory is not that: `workspace start` returns the finished work there"). `references/navigator.md` no longer
+names the flag. Card unchanged.
+
+**Design.** The same as the first probe except the build and the order: builds cut with `scripts/build-packages.py` from the second
+commit, G (card `9571cfb4b317`, `shiploop_protocol.py` `87e9798247b1`) and GOLD (card `4e455a833e85`); `plan --set guard`, seed
+20261106 (`plan-guard2.json`); `--effect-stop`; sf-ui 60 GOLD and 20 G, inplace-hello 12 and nogit-hello 12 on G (104 sessions).
+
+**Rule** (`analyze.py --mode guard --gate e`). Gate **E**: among the `sf-ui` sessions whose first start was `init` (refused or not),
+at least 80% end on `workspace start`, Wilson lower bound at least 0.50, from at least 8 such sessions (60 old-wording sessions gave
+16 in the first probe). **H2** and **H3** unchanged (explicit sessions at least 80% on the direct entry, lower bound 0.50; at most 1 of
+the never-refused G sessions off `workspace start`). H1 is printed, not gated. Release the guard only if E, H2 and H3 are met. If E
+fails, the guard is not released in either design: a script guard whose override the session can self-certify does not stop the wrong
+start, and the T2 wording alone stands (the owner decides whether to try anything else, for example reading the request for the
+words "in place"; I do not build that, because a language heuristic in the script refuses legitimate requests worded differently).
+
+**Prediction.** E between 50% and 90%: a session refused with the sharper message mostly takes the isolated entry, but some will
+still answer with `--in-place` because they believe the request said so. H2 at least 90%: almost every explicit session is now refused
+once (it cannot know the flag) and then passes it, so the cost is one command each. H3 holds.
+
+**Limits.** As the first probe: one model and setting, one Salesforce prompt, one pair of explicit requests; the explicit requests now
+always pay the extra command, which is a cost of the design, not a fault.
+
+**Command**: as above with `--package-root <build of the second commit>`, `--plan plan-guard2.json`, `--out
+~/e2e-runs-startroute/20261101-guard2`.
+
 ## Release CI
 
 The full CI run of the release commit f24746fa6193007235818f2d8b109408d70ca413 (run 41318115086) failed one job, `full /
@@ -383,7 +537,13 @@ shiploop-3`, on `test_a_document_rerun_is_held_to_the_count_the_test_stage_accep
 Directory not empty: '.../repo/.git/objects'` raised by `tempfile` while it removed the test's temporary Git repository, a cleanup
 race, not an assertion about the card. The test passes alone (3 of 3 locally), every other job of the run passed, and rerunning the
 failed job passed, so the run ended green. The same class of race was fixed for another fixture in
-f48df6587d78cf3e958120382128e072cfa948f4 (isolate ephemeral fixtures from progress writers); this test's temporary repository is not yet isolated that way.
+f48df6587d78cf3e958120382128e072cfa948f4 (isolate ephemeral fixtures from progress writers); this test's temporary repository is not isolated that way.
+
+**Follow-up (2026-11-01).** No writer was found: the suite starts no thread or process, `run_suites.py` already sets
+`SHIPLOOP_PROGRESS=off`, the named test passed 150 of 150 runs alone and the whole class 8 of 8 times (4 at a time) under a load above 80.
+fbcbf0d53345b3e65f24b316a3df1125bfc2ec20 repeats the fixtures' directory removal (up to 5 passes, the last error raised) in the four
+real-Git fixtures of that file instead; whether the failure returns is the test of it. The CI run that failed:
+https://github.com/whichguy/skill-craft/actions/runs/41318115086.
 
 ## Evidence
 

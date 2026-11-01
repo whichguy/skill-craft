@@ -4,6 +4,35 @@ Written by scripts/release.py.
 
 ## 2026-11-01
 
+### skill-craft 2.30.0
+
+- Skills: shiploop 1.29.0
+
+### shiploop 1.29.0
+
+- The handoff lists what the run leaves for a later run in a new result key, `follow_on`: one entry for each leftover,
+  classified once (gap, decision, person, capability, extension, debt, note), each citing a record the run holds (an
+  unverified row, an assumption, the release-verify lessons, a stage's result or a commit). ShipLoop refuses only
+  mechanical faults: a missing list, an incomplete entry, a class outside the vocabulary, a placeholder left in, a source
+  the run does not hold, a gap that names no request sentence. A gap or a decision makes the script write
+  `follow-on-request.md` in the run folder and print the command that starts a follow-on run from it, in the done packet
+  and in the report's new Follow-on section. ShipLoop starts nothing and never blocks `done` for what an entry says. A run
+  saved without the list still loads.
+
+### skill-craft 2.29.0
+
+- Skills: shiploop 1.28.0
+
+### shiploop 1.28.0
+
+- Step-plan now refuses a plan in which an executed criterion that a focused command names has no focused test ID of its
+  own. Test-spec writes one case per focused ID, and each case names one criterion, so such a plan left a criterion
+  without a case. In the saved runs of 2026-10-25 to 11-01, 24 of 175 step plans did this: 9 came back from test-spec as a
+  send-back, and 15 folded the criterion into another criterion's case. The refusal names the criteria and the IDs listed.
+  The step-plan result template now lists one ID per criterion its focused row names; with an open item due at the item,
+  it had shown three criteria and two IDs. The duty asks for an ID for each executed criterion a focused command names
+  (a searched criterion gets none: test-spec writes it no case), and the Checked-by line names the refusal.
+
 ### skill-craft 2.28.1
 
 - Skills: shiploop-e2e-audit 0.7.16

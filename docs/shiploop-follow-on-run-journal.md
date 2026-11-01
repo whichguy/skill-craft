@@ -473,3 +473,150 @@ to a seeded lineage.
 
 Superseded (marked 2026-11-01): the design's statements that M1 was a plan or that no second reader had classified the rows
 (sections 1, 3.C, 7, 10, 11); Round 3's "Open: the replay with a second reader" (done, Round 4).
+
+## Round 5 — 2026-11-01 — the build: the recommend-only follow-on list, and its live check
+
+### Plan (written and committed before any live run; the result follows below it)
+
+What happened. The owner replied to the Round 4 question "Keep D4 at 'do not build now'?" with "Rebase, Merge to main and publish,
+implement improvements" (2026-11-01, verbatim). I read it as: build the recommend-only list of the design (D1 a follow-on run, D2
+recommend-only, D3 no ceiling, D4 build), then rebase, merge to main and publish. That reading is mine; the feature commit says so
+and is the one to revert if it was not meant. The design's own rule N, fixed before the M1 replay, still says the list will
+recommend a run rarely (decision in 1.2% to 1.8% of finished runs, no gap), so this release is no new evidence of demand.
+
+Built (feature commit 826c951ccfdecb8f48e406f8fbdacb6a69daabbc, on origin/main d06e18a56ee43db8d04dc872e680d4efdd33f076, which holds
+skill-craft 2.28.1 and ShipLoop 1.27.0): `skills/shiploop/scripts/shiploop_follow_on.py` and its wiring; its message holds the
+shape decisions, the tests (14 new, fail first) and the packet-size figure. Two things of the design's draft changed at build, both
+recorded there: no per-entry `id` and no per-entry `evidence_refs` (the script resolves the cited record from `source`), and a fifth
+source kind, `result:<stage>`.
+
+Question for the live round (design U1, the unknown the offline replay cannot answer): given the built list, does a real model at
+the handoff write a list the gate accepts, with sources it can cite and classes a reader finds supported by the cited record?
+
+Conditions. Host Codex, model gpt-6.1-terra, effort xhigh, `--source checkout` (this checkout's build, the plugin tree recorded in
+each run's `invocation.json`), planning review `stage`, the harness's defaults otherwise, started with `test/shiploop_e2e/run.py` and
+nothing else, one run per output folder under `/Users/dadleet/e2e-runs/2026-11-01/follow-on-live-*`. Cases: `hello` (1 run: a
+trivial request, few leftovers), `csv-report` (2 runs: its saved runs gave the peek its F08 `decision`, "whether exponent notation
+and a leading + count as numeric", so it is the case where a decision is most likely) and `seat-reservations` (1 run). Those three
+need no fixed port: another session's pilots hold the lease of `user-listing`'s (ca85a372a8e79577ac01591d1d07e0ceaee4f0ed). Four runs in all, at most four
+at once. The machine's load average was 80 when this was written, from other sessions' work, so durations are not comparable with
+the baselines'.
+
+The owner's hold on new live E2E cycles, which other sessions record (d9fefb1144dea7f9a8d85b5897ad1275dbe08a07 and the commits that
+cite it), concerns improvement cycles. These four runs are the verification round the release preflight orders after a ShipLoop
+change, which AGENTS.md lists as routine ("launching verification runs") and the memory note "proactively run verification" asks
+for; they are not a cycle and decide nothing about the next one. If the owner objects, the runs are cheap to stop.
+
+Rules, fixed now (each is read from the run folders by `docs/experiments/follow-on-build-20261101/extract_follow_on.py`, which only
+reads):
+- R1. The gate holds. Every run reaches `done` with every verdict passing (invoked, plugin, process, shiploop, committed, checks). A
+  run that does not, for a reason traced to the list (a refusal loop, a template the model cannot fill), is a defect to fix before any
+  release; a run that fails for another reason is reported and does not decide R1.
+- R2. First-try shape. The refusals at the handoff that name `follow_on` are counted per run (each `complete` command that leaves the
+  cursor at the handoff). Mean at most 1 per run; none above 3.
+- R3. Support. Each accepted entry is read against the record its `source` names and called supported, partly supported or
+  unsupported; the reader is me, alone (exploratory, no second reader).
+- R4. No inflation, no silence. Entries per run are reported. A run whose list is `[]` while its release-verify `lessons.open_next`
+  or its unverified list holds an item that is not "none" is flagged as possible silence (a flag, not a defect).
+- R5. Recommendation. Each run that recommends a follow-on run is read: is the request file one a person would start?
+- R6. Size. The handoff packet's `chars` and `printed` in each run's trace, against the same figures in saved Codex hello runs
+  (2026-11-01: 18,957 and 15,375).
+
+Predictions (probability, written before any run):
+- P1. All four runs reach `done` with every verdict passing (80%).
+- P2. Mean refusals naming `follow_on` is at most 1 per run, and no run needs more than 3 (65%).
+- P3. At least 3 of the 4 runs file at least one entry; `hello` files none or one (60%).
+- P4. At least one of the two `csv-report` runs files a `decision` entry about numeric forms or arguments (40%).
+- P5. No run files a `gap` (85%).
+- P6. At least 90% of the entries are supported by their cited record (70%).
+
+Decision rule. The release goes ahead when R1 holds. The other results change the design note's revision 6 and the next measurement
+(U11, M3), not the release. If R1 fails for a reason in the list, I fix it, rerun the run that failed, and do not release before a run
+passes.
+
+Not concluded whatever the numbers: four lists are an existence check, not a rate; one reader judges support; the cases are the E2E
+corpus (small, saturated, every run completes); whether a person ever starts a recommended run is M3 and is not measured; entry-level
+agreement between readers (U11) is not measured.
+
+Files: `docs/experiments/follow-on-build-20261101/` (`extract_follow_on.py`, then the per-run extracts and the README).
+
+### Result (2026-11-01; four live runs on Codex only, hermetic checks on the build; exploratory for any rate)
+
+Hermetic, on the feature commit 826c951ccfdecb8f48e406f8fbdacb6a69daabbc and what followed (measured in the worktree, on a machine at load average 50 to 87):
+- The new suite `test/shiploop-follow-on.test.py` was written first: against the unchanged code 14 tests gave 7 failures and 9 errors (every CLI route
+  said "result has unsupported fields: follow_on"); with the build 14 of 14 passed (45.7 s alone), and also under the system Python 3.9.6, the floor. It has
+  17 tests now: ba3297d707329a6500ac036577d3f211b2e6a352 added two route tests (the isolated run's start repository, and a request holding backticks, `$(...)`, quotes, `$HOME` and `;` reaching
+  the CLI as one plain argument, run through a real shell) and 12d293a83ab2c05d30bb575b3d0c5989604a3601 one for the stale request file.
+- Older suites after the build: callback-contract 98 OK, handoff 133, full-runtime 2, navigator-v4 18, loophole-gates 5 (two new dodge rows), guidance,
+  packet-completeness (`follow_on` joins its gate words), head-order, navigator-contract, consumer-delivery, test-loop, package-integrity 11, clean-consumer 3
+  and test-groups 52 OK. Four of them (handoff, full-runtime, navigator-v4 and callback-contract's `field_values`) had to carry `follow_on: []`, as predicted
+  from d84d30a977aa584ecc748fb34982f2bd7add21df.
+- The quick tier (`--changed-from d06e18a56ee43db8d04dc872e680d4efdd33f076`, 42 suites because the navigator is a hub, `--jobs 4`): 1,564.5 s wall, 41 passed and 1
+  failed. The failure was a fifth hand-built handoff result, `shiploop-actual-improve-cli` (found only by the tier); 12d293a83ab2c05d30bb575b3d0c5989604a3601 fixed its stand-in and the rerun passed
+  (100 tests, 886 s). `shiploop-progress` and `shiploop-cross-run` also failed in a wider sweep and fail on a clean origin/main (72fa7f4cd9ab370703c272eda65a0831575128e4) at the same load
+  (2 and 3 failures there): the progress observer's timing, not this change.
+- The rest of the ShipLoop family (the suites the tier did not select) was swept three times on the loaded machine. The first sweep (3 at a time, catalog order) was stopped
+  by me after 15 suites, with `shiploop-progress` and `shiploop-cross-run` failing as they do on the clean main control. The second (4 at a time, risk first) ran 19 suites
+  on the pre-merge tree: 18 passed and `shiploop-e2e-slice` erred once in its temporary-folder cleanup (OSError, Directory not empty; that test alone passes in 7.6 s);
+  I stopped it when the third merge changed the tree under it. I then ran `shiploop-workspace`, `shiploop-return-review` and `shiploop-e2e-release-slice` by hand on the merged tree:
+  3 tests of the first two failed (a stand-in handoff result without `follow_on`, F37), fixed in 74b2112fabe241c9717ba02d0f2afa01018c89b8. The third sweep (6 at a time) ran the 48 suites no run had yet covered on a tree with the change, on
+  the merged tree: 47 of the 48 had finished, all passing except two tests that are not about this change: `shiploop-workspace`'s `test_public_return_is_refused_before_release_or_handoff_without_mutation` (a snapshot comparison that includes the progress observer's file) fails alone on this branch's older main base and on a clean control at that base (72fa7f4cd9ab370703c272eda65a0831575128e4), and passes alone on the final candidate tree (the latest main plus this change) and on a control at the latest main (419dd4f308fb3b26c1902dd829c10c0e0720f048); `shiploop-e2e-ticket-sla`'s `test_a_requirement_edited_in_place_passes_retention_when_it_names_the_new_variable_and_fails_when_it_does_not` (one of five retention checks false under load) passes alone in 8 s. The last suite, `shiploop-e2e-test-adequacy`, was still running when this entry was committed; CI's full tier runs it on the push. The quick tier on the merged tree (`--changed-from 4224161b095792825befe2a384075fab5660ae05`, 46 suites, `--jobs 6`): 46 of 46 passed in 597.6 s wall. On the final candidate tree after the fourth merge, test-groups (52 tests), shiploop-e2e-baseline (177), shiploop-e2e-platform (169), shiploop-e2e (495, 836.7 s) and shiploop-follow-on (17) passed.
+
+Live, scored against the plan (the table, the readings and the verdict blocks are in `docs/experiments/follow-on-build-20261101/`; the entry in
+`test/shiploop_e2e/LEARNINGS.md` is c593e8f27d65d7157438d9b14c2dd7c09f3bbc89):
+- R1 holds: hello, csv-report twice and seat-reservations all reached `done` with every verdict passing (turns 143, 178, 185, 216; 12.4 to 20.0 minutes).
+- R2 holds: all four handoffs were accepted on the first `complete`, so 0 refusals naming `follow_on`.
+- R3 holds on n = 2: the two entries (csv-report, class note, source `assumption:A2`) are supported by the assumption they cite.
+- R4: entries 0, 1, 1, 0; one flag of possible silence (seat-reservations: `[]` beside a `lessons.open_next` that holds a revalidation condition), not a defect.
+- R5 not exercised: no gap and no decision, so no request file and no start command in any run.
+- R6 holds: the handoff head printed 16,850 to 17,462 characters against the cut of 20,000 (+1,475 printed on hello against a saved Codex run).
+- Predictions: P1, P2, P5 and P6 held; P3 (at least 3 of 4 file an entry; 2 did) and P4 (a csv-report run files a decision; neither did) missed.
+- The tested tree is 2da2d4f3d11b0f468c14ff48e6158a7bb334e8ee's (plugin tree bf3be9d89072). The released tree adds ba3297d707329a6500ac036577d3f211b2e6a352 (one `except` clause) and test-only commits.
+
+Findings (status; citations):
+- F32 (firm for these runs): a real model fills the list on the first try. The template row and one duty paragraph were enough for 4 of 4 accepted first
+  submissions with real sources. Evidence: the four runs, `docs/experiments/follow-on-build-20261101/runs.json`; 7c2ce6cb9345959292c38688106a4c8d16be865c.
+- F33 (exploratory): the lists were conservative. Both csv-report runs recorded the default for the open tie rule and header as a `note` on plan assumption
+  A2 (which the ledger still shows `open`); hello and seat-reservations said a passing test settled the same kind of A2 and filed nothing. The replay's
+  csv-report `decision` (F08) did not recur, and with no arm without the list this round cannot say whether the list changed that. Evidence: `readings.txt`.
+- F34 (firm): the targeted run of the suites I expected to hand-build a handoff result missed one, which the quick tier found (F37 adds two more that the tier missed). A gate that requires a key at the
+  CLI is found in fixtures by running the tier, not by guessing which suites import the helper (d84d30a977aa584ecc748fb34982f2bd7add21df had the same effect).
+  Evidence: 12d293a83ab2c05d30bb575b3d0c5989604a3601.
+- F35 (firm): the claim a commit lists as "not covered by a hermetic test" deserves its test. Writing the one for an isolated run's start repository found
+  that `source_repo` caught OSError and ValueError while the store raises `StorageError`, so a missing workspace record would have raised out of the final
+  `complete` for a run that recommends a follow-on run. A real isolated run always has the record, so no live run could meet it. Evidence: ba3297d707329a6500ac036577d3f211b2e6a352.
+- F37 (firm): the quick tier selects suites by the files a branch changes, and it passed 46 of 46 on the merged tree while two suites it had not selected still hand-built a handoff
+  result: three tests in `shiploop-workspace` and `shiploop-return-review`, each expecting the return-receipt refusal that follows the follow-on gate. Seven suites in all carry a stand-in
+  result that had to get `follow_on: []`. A sweep of the rest of the family found them; CI's full tier on a release push would have found them as a red main, which blocks other
+  sessions' Codex resumes. Evidence: 74b2112fabe241c9717ba02d0f2afa01018c89b8.
+- F36 (firm): `shiploop-progress` and `shiploop-cross-run` fail on a clean origin/main at load 50 to 87 (72fa7f4cd9ab370703c272eda65a0831575128e4); a failure of either in this branch's tier is
+  not evidence about the change.
+
+Changed in the design (revision 6): the status and the header; section 1 (a "Built" bullet, the order bullet); 3.C's verdict; 4.2 (the shape fixed at build:
+five texts, no `id`, no `evidence_refs`, five kinds of `source`) and 4.4's source rule; section 6 (three rows); section 8 (what was built, and what was not,
+above the sketch); section 9 (two rows measured or partly measured); section 10 (D1 and D4); section 11 (U1, U2). Nothing else in the design moved.
+
+Facts re-checked against origin/main 6a6cb10172f78737b685a127c1c2f2be5c2aca52 (the newest main commits touch the E2E cycle's docs and tests only): the multipass fix is
+still off main (its branch tip moved to 065a73f0a4ec); E4 was not re-read; SKILL.md is 30,011 bytes against the 30500 bound and the feature commit did not
+change it. The build branch was merged with origin/main at f1a5868da64587610d6711105650caacb2d557fc (a merge, not a rebase: the plan, the evidence and the LEARNINGS entry cite the hashes).
+
+Third merge (9f07ba40a2beeacf9d51b936c55d4177d7dcbe18): origin/main moved to 4224161b095792825befe2a384075fab5660ae05 while the release candidate was being cut, because another session released skill-craft 2.29.0 and ShipLoop 1.28.0 (the
+step-plan focused-ID rule) at 09:01. The pending note therefore ships as ShipLoop 1.29.0 and skill-craft 2.30.0 (`release.py --dry-run` on the merged tree; the first candidate's
+2.29.0 / 1.28.0 was discarded unpublished). The merge conflicted only in the append-only `LEARNINGS.md` and `baselines.jsonl`, resolved by keeping both sides (the other session's
+entry and rows first). SKILL.md is 30,115 bytes against the bound of 30500 (their release added 104; the feature added none). Their step-plan and prompt changes were not in the tree
+the four live runs tested, so the merged tree was verified again by the quick tier before the release (the line below).
+
+Fourth merge: origin/main reached d71eaa7198772501b189dff76308d4ee7ac533cb with the multipass work's E4 result (its Round 4: with the fix no later pass filed its new decision under `## Superseded`, 0 of 3, against 4 of 5
+for the old ShipLoop; a clean prior still mislabelled, so this journal's lineage reading, F21 to F26, is not needed and not sufficient alone). The design note's multipass subsection now says so
+("Update, as of d71eaa7198772501b189dff76308d4ee7ac533cb"), and the statements elsewhere that E4 had not started are marked as of 3d5732d0. D2 is unchanged: the fix is not on main and its release is the owner's word.
+
+Superseded (marked 2026-11-01): Round 4's "the recommendation stays not to build until runs of the owner's own features show more" was not kept: the owner asked for
+the build (see the plan above). Its evidence about demand stands. The design's "Nothing is built, adopted or released" (revision 5's status line) is replaced
+by revision 6's.
+
+Open (as written before the release; its first two items are done, see "Released" below): the sweep line above while it runs; a post-release run of the published build
+(`--source marketplace`) as the check of the exact tree; and still open after it: U11 (entry-level agreement, now possible on model-written entries); M3 on the owner's own
+features; M2a (a recommended run started from a model-written request, which no live run reached); E4 and the multipass fix's release (the other session; E4 reported, the
+release is the owner's word).
+
+Released (2026-11-01): skill-craft 2.30.0 / ShipLoop 1.29.0, release commit 41ee3d89d580fb715fc90994b2361348550698c7. CI on the release push (run 41332749569) succeeded on all nine jobs (release-boundary, plan, full / core, full / shiploop-1, -2 and -3, full / python-floor, full / e2e-apparatus, hermetic). It was pushed with `scripts/release-push.py` (four checks passed: sync-plugin-views, marketplace packages, release boundary, test-groups). Hosts refreshed: Claude and Grok from 2.29.0 to 2.30.0, and Codex's marketplace on the second try (the first clone timed out at 30 s on the loaded machine); Cursor is the owner's through its app. Smoke on the published build: the no-model probes (`docs/experiments/clean-install-20261101/probes.sh`) passed (the installed plugin 2.30.0 is identical to the published tree; `shiploop --help` and `workspace start` exit 0 on stock Python 3.9.6 in a clean environment; the five hooks exit 0 with python3 absent and under Python 3.7.3; the CLI refuses 3.7.3 with the floor message), and a live Codex hello on the marketplace build passed every verdict (docs/experiments/follow-on-build-20261101/README.md, "The published build"); the paid Claude-host live session was not run. The three sweep failures are accounted for: the last sweep suite, `shiploop-e2e-test-adequacy`, failed one test under a load of up to 270 (22 of 25 mutants survived) and passes alone (1 test, 457.7 s, OK); `shiploop-e2e-ticket-sla`'s failing test passes alone in 8 s; `shiploop-workspace`'s failing test passes on the latest main base. No suite of the family fails because of this change.

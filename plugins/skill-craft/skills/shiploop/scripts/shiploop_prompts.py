@@ -1279,9 +1279,9 @@ Change no product file in this stage.
      repository-local skill reused unchanged. `locator`: an existing SKILL.md or card; `stages`: implement (default),
      test, document, improve.
 5. **`test_commands`**, run from the repository root.
-   - focused: this item's cases with the IDs they carry and a runner flag that prints test names (Jest `--verbose`,
-     pytest `-v`, others: GUIDES/platforms/; never dot or junit); a hand-written check prints its ID and outcome on
-     every exit. """ + ID_WORD_RULE + """ `min_tests`
+   - focused: this item's cases, an ID for each executed criterion it names, and a runner flag that prints test names
+     (Jest `--verbose`, pytest `-v`, others: GUIDES/platforms/; never dot or junit); a hand-written check prints its ID
+     and outcome on every exit. """ + ID_WORD_RULE + """ `min_tests`
      where a command must run at least that many. A run that executed no test is refused, so check the filter.
    - regression: the retained suites the changed paths affect; only the fast one marked `"minimum": true` runs
      before the last step (none: `minimum_na`).
@@ -1851,6 +1851,15 @@ preparatory commit); a mismatch there is a send-back.
    Work-item context and earlier result references are not a durable index.
 7. Read release-verify's `lessons` (quoted in the hand-offs); carry its open-next items into the follow-up work in
    `summary` and report any conflict with what you observed.
+8. List in `follow_on` what this run leaves for a later run, one entry for each leftover in `summary`, the lessons'
+   open-next items, the unverified outcomes and the open assumptions: its `class`, a `statement`, the `source` record it
+   comes from, the request sentence S<n> a `gap` maps to ("" for any other class) and what `needs` to close it. Classes:
+   `gap` (a request outcome left unmet, or an assumption found refuted, that needs no person's answer), `decision` (a
+   choice about the spec or scope only a person can make), `person` (a person must do or confirm something),
+   `capability` (closable only where a capability this run lacked exists), `extension` (optional scope beyond the
+   request), `debt` (a small hygiene item in scope), `note` (knowledge for a later change; nothing is open). `[]` when
+   nothing remains. A `gap` or a `decision` makes ShipLoop write a request for a follow-on run and print the command
+   that starts it; ShipLoop starts nothing.
 """,
 }
 

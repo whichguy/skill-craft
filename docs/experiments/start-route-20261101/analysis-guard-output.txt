@@ -1,0 +1,19 @@
+104 valid slots; slots with no valid attempt: none
+request       build   n refused first init final ws final direct no run --in-place
+inplace-hello G      12       4         12        0           12      0         12
+nogit-hello   G      12       8         12        0           12      0         12
+sf-ui         G      20       0          0       20            0      0          0
+sf-ui         GOLD   60       0         16       44           15      1         16
+
+H1 recovery: 0 of 0 refused sf-ui sessions ended on workspace start: INSUFFICIENT (at least 8 refused sessions are needed)
+E effectiveness: 0 of 16 sf-ui sessions whose first start was init ended on workspace start (0.00, Wilson 0.00-0.19; needs 0.80 and 0.50): NOT MET
+    of those 16, 16 already carried --in-place on that first command (so the guard could not refuse them), 0 were refused
+    refused sessions by build: G 0, GOLD 0
+    of the refused sessions, 0 then ran init with --in-place without the user's request (final routes: workspace 0, direct 0, no run 0)
+H2 explicit requests: 24 of 24 ended on the direct entry (1.00, Wilson 0.86-1.00; needs 0.80 and 0.50): MET
+    explicit sessions the guard refused first: 12 (they then needed --in-place; final direct counted above)
+H3 sessions that start right: 20 of 20 unrefused G sf-ui sessions ended on workspace start (at most 1 off allowed): MET
+not gated: sessions that never made a run: 1 of 104
+
+VERDICT: INSUFFICIENT: H2 and H3 hold but too few sessions were refused to judge H1; add old-wording sessions
+wrote results-guard-compact.jsonl

@@ -1,0 +1,16 @@
+published-hello (runner output, verdict block only; `run.py --case hello --host codex --source marketplace`)
+PASS  shiploop e2e case=hello host=codex  output=/Users/dadleet/e2e-runs/2026-11-01/follow-on-live-436258/published-hello
+  versions  marketplace: skill-craft 2.30.0, ShipLoop 1.29.0
+  invoked   PASS  /skill-craft:shiploop
+  plugin    PASS  skill-craft@whichguy 2.30.0
+  process   PASS  exited rc=0 895.3s cost=not reported sessions=1
+  shiploop  PASS  done
+  outcome   PASS  every verdict passed
+  environment  load 149.97 -> 188.94 on 18 cpus; display held
+  environment  overlap: calibration-01/epoch/runs/candidate-csv-report-4 (codex) 81.8 s, began 1336.6 s before this run started; calibration-01/epoch/runs/candidate-seat-reservations-1 (codex) 742.0 s, began 104.5 s after this run started; calibration-01/epoch
+  committed PASS  HEAD 425bbd0a (started at no commit); 6 files in HEAD, 0 uncommitted product paths
+  metrics   turns 199, cost not reported, sessions 1 (end_turn), compactions 0, truncated outputs not measured, cancelled tool calls not measured, ShipLoop command failures 1, script verifications 3/3 passed, model glue 0, asked a person 0, Improve children 8 
+  failed    shiploop check exit 2, a --check-only check: navigator result path must be the current generated path: RUN/inbox/nav-70d8050b1fbd4074ae2868d5b9a9db08.md
+  checks    expected from the request: each check tests a sentence of the prompt
+  check     PASS  test "$(python3 hello.py)" = 'Hello, world!'
+  check     PASS  python3 -m unittest -q

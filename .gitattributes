@@ -9,3 +9,5 @@ test/shiploop_e2e/learning-records.jsonl merge=union
 
 # Results returned from a live run are kept byte for byte, a trailing blank line included.
 docs/experiments/closed-loop-pilot-20261101/run-*/** -text -whitespace
+docs/experiments/closed-loop-restore-20261101/run-*/** -text -whitespace
+docs/experiments/closed-loop-cycle-20261101/run-*-results/** -text -whitespace

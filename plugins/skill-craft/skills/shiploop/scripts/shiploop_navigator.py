@@ -34,6 +34,7 @@ import shiploop_fields as fields
 import shiploop_primary as primary
 import shiploop_test_layers as layers
 import shiploop_unverified as unverified
+import shiploop_follow_on as follow_on
 import shiploop_prompts as guidance
 import shiploop_consumer_delivery as consumer_delivery
 import shiploop_lint as lint
@@ -78,7 +79,7 @@ _RESULT_KEYS = frozenset((
     "outcome", "summary", "headline", "evidence_refs", "work_items", "choices", "delivery_assessment",
     "reconciliation_target", "assumptions", "lint_waivers", "test_commands", "test_commands_na",
     "criteria", "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na",
-    "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified",
+    "red_na", "awaiting", "paths", "consumer_entry", "steps", "unverified", "follow_on",
     "expectations", "check_na", "minimum_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
     "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions",
@@ -128,7 +129,7 @@ BLOCKED_RULE = (
 _DONE_ONLY_FIELDS = (
     "work_items", "assumptions", "criteria", "steps", "paths", "test_commands", "test_commands_na",
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
-    "red_na", "lint_waivers", "unverified", "follows", "test_cases", "lessons", "not_covered", "concerns",
+    "red_na", "lint_waivers", "unverified", "follow_on", "follows", "test_cases", "lessons", "not_covered", "concerns",
     "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
     "mutant_dispositions", "knowledge", "added_tests", "question_categories", "questions",
 )
@@ -1264,6 +1265,13 @@ def _canonical_result(
         try:
             result["unverified"] = unverified.canonical(value["unverified"])
         except unverified.UnverifiedError as exc:
+            raise NavigatorError(str(exc)) from exc
+    if "follow_on" in value:
+        # Shape only, like unverified: the exact fields, the class and the sources are checked at the CLI gates.
+        _need(stage in follow_on.STAGES and outcome == "done", "follow_on is allowed only on a done handoff result")
+        try:
+            result["follow_on"] = follow_on.canonical(value["follow_on"])
+        except follow_on.FollowOnError as exc:
             raise NavigatorError(str(exc)) from exc
     if "delivery_assessment" in value:
         _need(delivery_contract,
@@ -2858,6 +2866,28 @@ def _check_focused_guards(stage: str, result: Any) -> None:
                 "to load on the base is a real failure, and ShipLoop reads it. Then run the same callback again.")
 
 
+def _check_focused_criteria_ids(stage: str, result: Any) -> None:
+    """Refuse a done step plan in which an executed criterion a focused command names has no focused test ID of its own
+    (``test_loop.criteria_without_ids``): test-spec writes one case per focused ID and a case names one criterion, so
+    such a criterion came back from test-spec as a send-back (9 of the 24 saved plans that had one) or got no case."""
+    if stage != "step-plan" or not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    commands, criteria = result.get("test_commands") or (), result.get("criteria") or ()
+    missing = test_loop.criteria_without_ids(commands, criteria)
+    if not missing:
+        return
+    listed = ["IDs " + (", ".join(str(ident) for ident in row.get("ids") or ()) or "none") + " for "
+              + ", ".join(str(name) for name in row.get("criteria") or ())
+              for row in commands if isinstance(row, Mapping) and row.get("suite") == "focused" and row.get("criteria")]
+    raise NavigatorError(
+        ("Criterion " + missing[0] + " has no focused test ID of its own" if len(missing) == 1 else
+         "Criteria " + ", ".join(missing) + " have no focused test ID of their own")
+        + " (the focused commands list " + "; ".join(listed) + "). Test-spec writes one case per focused ID and each "
+        "case names one criterion, so every executed criterion a focused command names needs its own ID in a focused "
+        "command that names it. Add an ID for each (one test file can hold them all), or, for a criterion that existing "
+        "tests already confirm, name it on the regression command instead; then run the same callback again.")
+
+
 def _check_intake_questions(stage: str, result: Any) -> None:
     """Refuse a malformed key-question ledger (intake duty 9) or one at another stage.  The ledger is optional: the
     template asks for it, as in pilot X1-T (recall 0.49 without it, 0.91 with it, Codex Terra 6.1 high), and both live
@@ -3735,6 +3765,17 @@ def _check_submitted_unverified(state: Mapping[str, Any], stage: str, result: An
         unverified.check_submitted(stage, result)
         unverified.check_restated(state, stage, result)
     except unverified.UnverifiedError as exc:
+        raise NavigatorError(str(exc)) from exc
+
+
+def _check_submitted_follow_on(state: Mapping[str, Any], stage: str, result: Any) -> None:
+    """Refuse a submitted done handoff result without a usable follow-on list: a missing list, a malformed entry, a
+    source no record of the run holds.  CLI gates only, like ``unverified``: the pure graph functions check the shape
+    when the field is present and do not require it, so simulations and saved runs are unaffected.  Nothing here
+    refuses an entry for what it says, so a list that recommends a follow-on run never blocks ``done``."""
+    try:
+        follow_on.check_submitted(state, stage, result)
+    except follow_on.FollowOnError as exc:
         raise NavigatorError(str(exc)) from exc
 
 
@@ -5235,8 +5276,11 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
                               *({"id": criterion, "text": "<what this item's test shows for " + ident + ">",
                                  "confirm": "executed", "from": ident} for criterion, ident in zip(settles, due))]
         # The check row is the item's lint, type or build command, which confirms no behaviour: a check row naming C2
-        # taught 22 of 445 executed criteria to rest on one (stage-prompt review, 2026-10-31).
-        result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1", "TC-2"],
+        # taught 22 of 445 executed criteria to rest on one (stage-prompt review, 2026-10-31).  The focused row lists one
+        # ID per criterion it names, as test-spec needs (_check_focused_criteria_ids): with an open item due here it had
+        # shown three criteria and two IDs since 8dee00e0, and plans copy the template's shape.
+        result["test_commands"] = [{"command": "...", "suite": "focused",
+                                    "ids": ["TC-" + str(number) for number in range(1, 3 + len(settles))],
                                     "criteria": ["C1", "C2", *settles]},
                                    {"command": "<exit-code check command>", "suite": "check"},
                                    {"command": "...", "suite": "regression", "minimum": True}]
@@ -5286,6 +5330,8 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
     elif unverified.must_restate(state, stage):
         # The current list, to carry forward: drop what this stage observed, move what it could not, keep the rest.
         result["unverified"] = [dict(row) for row in unverified.current_list(state)[2] or ()]
+    if stage in follow_on.STAGES:
+        result["follow_on"] = [dict(follow_on.TEMPLATE_ROW)]
     assessment = consumer_delivery.template_assessment(state, stage)
     if assessment is not None:
         result["delivery_assessment"] = assessment
@@ -6158,6 +6204,7 @@ def _render_lines(core: Any, root: Path, state: Mapping[str, Any], timeline: Map
             [
                 "It's all complete.",
                 f"Report: {root / 'report.html'}",
+                *follow_on.done_lines(state, root, _command(core)),
                 "This is agent-declared completion from accepted navigator results; it does not independently prove checks, repository state, artifacts, deployment, or external effects.",
             ]
         )
@@ -7143,7 +7190,8 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
                      + ", or evidence files that do not exist")
     if stage == "step-plan":
         gates.append("a missing follows list, or a follows ID with no entry in KNOWLEDGE/spec.md or KNOWLEDGE/architecture.md")
-        gates.append("a focused command that only reruns an earlier item's test IDs or starts with a file guard")
+        gates.append("a focused command that only reruns an earlier item's test IDs, starts with a file guard, or lacks "
+                     "an ID per criterion")
         gates.append("a criterion without confirm, an executed one whose only commands search text, or an inspected "
                      "one naming no Test layers row that lacks a runner; code paths with no Test layers row")
     if stage == "test-strategy":
@@ -7167,6 +7215,10 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
         gates.append("a missing unverified list, an entry that is incomplete or still holds a template placeholder, "
                      "a requirement with no current entry in KNOWLEDGE/spec.md, a due_stage that is not a later stage, "
                      "or a primary requirement's lower_layer_check that names no test ShipLoop's test runs passed for it")
+    if stage in follow_on.STAGES:
+        gates.append("a missing follow_on list, an entry that is incomplete or still holds a template placeholder, a "
+                     "class outside the list, a source that resolves to no record of this run, or a gap with no request "
+                     "sentence")
     if stage in knowledge.CLOSES:
         # A close that also requires files earlier stages wrote (prepare, release-plan) did not write them all.
         gates.append("a KNOWLEDGE file this stage's close requires, missing or empty" if knowledge.required_earlier(stage)
@@ -8603,7 +8655,7 @@ def _render_report(state: Mapping[str, Any], root: Path | None = None) -> str:
     delivery_section = consumer_delivery.html_section(state)
     leftover_section = _leftovers_section(_leftovers(root, state))
     report_tail = ["</tbody></table>", *progress_section, *_handoff_sections(state, root), *unverified.html_section(state),
-                   *workspace_section,
+                   *follow_on.html_section(state, root), *workspace_section,
                    *leftover_section, delivery_section, "</body></html>"]
     return "\n".join(
         [
@@ -8761,7 +8813,15 @@ def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] |
     writes[run_reference.REFERENCE_FILE] = run_reference.render(state, root, run_reference.package_version())
     # Derived request file: the request verbatim and its sentence index S1..Sn (shiploop_request).
     writes[request_file.REQUEST_FILE] = request_file.render(state["prompt"])
-    store.transaction(root, writes)
+    # Derived follow-on request (shiploop_follow_on): written while the accepted handoff list recommends a follow-on run,
+    # removed once a later handoff's list does not, so a stale request never outlives its list.
+    subject = knowledge.knowledge_subject(state, "release-verify") if any(
+        row.get("stage") == "release-verify" and row.get("outcome") == "done" for row in state["history"]) else ""
+    follow_on_request = follow_on.request_text(follow_on.recorded(state) or (), run_dir=str(root), lessons_subject=subject)
+    stale = [follow_on.FILE] if not follow_on_request and (root / follow_on.FILE).exists() else []
+    if follow_on_request:
+        writes[follow_on.FILE] = follow_on_request
+    store.transaction(root, writes, stale)
 
 
 def _submitted_result(root: Path, args: Any, *, suffix: str = "", state: Mapping[str, Any] | None = None,
@@ -9704,10 +9764,12 @@ def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, s
     _check_submitted_concerns(state, current, submitted)
     _check_submitted_layers(state, current, submitted)
     _check_submitted_unverified(state, current, submitted)
+    _check_submitted_follow_on(state, current, submitted)
     _check_submitted_primary(root, state, current, submitted)
     _check_submitted_test_commands(current, submitted)
     _check_focused_ids_new(state, current, submitted)
     _check_focused_guards(current, submitted)
+    _check_focused_criteria_ids(current, submitted)
     _check_proof_inputs(state["repo"], current, submitted)
     _check_intake_questions(current, submitted)
     _check_added_tests(state, current, submitted)
@@ -9884,6 +9946,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     _check_focused_ids_new(
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_focused_guards(
+                        child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_focused_criteria_ids(
                         child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_proof_inputs(
                         state["repo"], child["stage"], child["seed_result"] if final_result is None else final_result)

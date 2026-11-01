@@ -30,7 +30,12 @@ not repeat old decisions and inherits some of them.
 | F10 The candidate's notice, replayed over 58 real (commit, file) pairs, would have spoken in 57 of them at a knowledge commit and flagged nothing that was standing content beyond the release section X11 allows; both entries filed as retired when new (AD-3, AD-4) were written by `plan`, a stage the candidate's packet line does not reach | interim (offline replay, one case pair) | Round 2, [replay output](experiments/multipass-20261031/replay-placement-output.txt) |
 | F11 A request that replaces an earlier rule breaks two things the additive links never met: the nearest-declaration rule hands the new link a hidden check (the second link's at-most-once) that a correct delivery fails by design, and the ledger cannot tell a run that changed the old rule from one that left it standing unless the case names the entries it may change | firm (hermetic: `ModifiedRuleTest`, `MayChangeTest`) | Round 3 |
 | F12 The candidate met its pre-registered bar in the A/B (E2): 12 of 12 runs passed and B1 to B5 held. The fix added 0 stray headings to `environment.md` in all six passes against 2 to 8 in the control (second passes: 0, 0, 0 against 7, 6, 8), its architecture file kept every decision under `Decisions`, and time and tokens did not differ (second-pass time 1.02 times, mean tokens 49.1 M against 49.0 M). B1 held without being tested (the control never filed a decision as retired in six passes); the notice caught that mislabel once live (B3 pass 2) | firm for three chains per arm, one case pair, Codex Terra, passes 1 and 2 only | [readout](experiments/multipass-20261031/round2-readout-output.txt), [cost and file views](experiments/multipass-20261031/round2-cost-output.txt), [ledgers](experiments/multipass-20261031/round2-ledgers.json), Round 2 result below |
-| F13 The first live fourth pass (E3, published ShipLoop): the delivery is right (16 of 16 hidden checks, its own three, the earlier links' regression) and it edited the escalation requirement in place; its first contact with a real prior exposed two wrong words in the new case (a copied retention word that failed a correct delivery, and ledger patterns written from the request), both fixed; the unfixed fourth pass repeats both leaks (9 stray headings; its new decision AD-5 filed under Superseded behind AD-3 and AD-4 from E1), so the mislabel appears to compound with the pass number | firm for one run; the compounding is exploratory (n=2) | [readout](experiments/multipass-20261031/round3-readout-output.txt), [ledger](experiments/multipass-20261031/e3-ledger.json), Round 3 result below |
+| F13 The first live fourth pass (E3, published ShipLoop): the delivery is right (16 of 16 hidden checks, its own three, the earlier links' regression) and it edited the escalation requirement in place; its first contact with a real prior exposed two wrong words in the new case (a copied retention word that failed a correct delivery, and ledger patterns written from the request), both fixed; the unfixed fourth pass repeats both leaks (9 stray headings; its new decision AD-5 filed under Superseded behind AD-3 and AD-4 from E1), so the mislabel appears to compound with the pass number | firm for one run; the compounding is exploratory (n=2), **superseded 2026-11-01 by F16**: R4b0 and R4c0 do not fit it | [readout](experiments/multipass-20261031/round3-readout-output.txt), [ledger](experiments/multipass-20261031/e3-ledger.json), Round 3 result below |
+| F14 With the fix, no later pass filed its new decision under Superseded (0 of 3: R4a, R4b, R4c); the old ShipLoop did in 4 of 5 later passes (E1, E3, R4a0, R4b0; not R4c0). Stray headings added to `environment.md` fell from 8, 1, 0 (controls) to 2, 0, 0 (fix runs), and pass 4 with the fix was clean (16 of 16 hidden, the old rule changed in place, nothing unexplained) | firm for these six runs, one run per cell (a contrast per pair, not a rate) | [readout](experiments/multipass-20261031/round4-readout-output.txt), [ledgers](experiments/multipass-20261031/round4-ledgers.json), Round 4 result below |
+| F15 Where the new decision lands is set by the stage before `plan`: `plan` first writes it in every run, and follows where the stage before it wrote (below `Superseded` in the controls; inside a named section in the fix runs, so AD-4 sat in Real-boundary checks in R4b, not Decisions). The notice's retired-entry clause never fired in a fix run | interim (read from the runs' commit histories in two pairs; the bundle is not split) | [stage outlines](experiments/multipass-20261031/round4-tidy-pair-stage-outlines.txt) |
+| F16 The mislabel is not tied to the pass number or to the file's shape alone: R4b0 mislabelled from a clean prior; R4c0 did not from a prior that had one; E2's control passes A2 and A3 had priors that end with `Superseded` and did not either. It fits a per-run chance, high on these chains (4 of 5 on passes 3 and 4) | exploratory (supersedes the compounding reading of F13) | [readout](experiments/multipass-20261031/round4-readout-output.txt) |
+| F17 B1 is missed as recorded: R4b FAILED on one base test (`test/service.test.js`, 3 ms in) of the delivery's own `node --test`; the same check passes 15 of 15 and the file 24 of 24 on rerun. The app listens on all addresses and the test dials 127.0.0.1, so another project's server can answer, as `brownfield-flake-20261101` measured; the TAP was not kept. The live check is not changed (a retry could hide a delivery whose own server resets; the fixture is pinned: the owner's call) | firm that it happened and that reruns pass; the cause is likely, not proven | [reruns](experiments/multipass-20261031/round4-r4b-check-reruns.txt), `brownfield-flake-20261101/` |
+| F18 The pass-4 control did not leak as K and B2 count leaks (no new heading, nothing retired), but it appended eight `###` stage-report subsections under the stray `##` its prior ended with (3.0 KB to 9.8 KB; 7 appends to `environment.md` against 0 for the fix run, whose prior had no stray heading); Kc is missed as registered and the fix is not credited in pair c | post hoc, exploratory | [ledgers](experiments/multipass-20261031/round4-ledgers.json) |
 | F9 The owner approved D1 to D5 as recommended (2026-10-31, "Approve all"); D2 to D4 were built as one candidate off main; E2 met its bar (F12) and the release is the owner's decision | decision | Round 2 below |
 
 ## Round 0: eight saved runs read for what a second pass leaves (2026-10-31)
@@ -460,7 +465,7 @@ verdicts. The corrected check passes (`feature in spec: yes`). The recorded resu
 
 **The leaks on an unfixed fourth pass.** Both recur: 9 stray headings added to `environment.md`, and the new decision AD-5 filed under `## Superseded` (born retired), behind AD-3 and AD-4 that E1's mislabel had already put there. In the prior file
 `## Superseded` was the last section, so the new decision was appended after it: the F1 mechanism, compounding. This is the second of two live later passes on published ShipLoop (E1 and E3) that filed a new decision as retired, against 0 of 6
-first and second passes of the E2 control, which suggests (exploratory, n=2) that the mislabel needs a trailing `Superseded` section, which exists only after an earlier pass has made one, and so grows with the pass number. The fix's notice
+first and second passes of the E2 control, which suggests (exploratory, n=2) that the mislabel needs a trailing `Superseded` section, which exists only after an earlier pass has made one, and so grows with the pass number. *[Superseded 2026-11-01: Round 4 found a trailing `Superseded` section without an earlier mislabel (the fix's own tidy files end with one, and R4b0 mislabelled from such a prior), and a pass-4 control that did not mislabel from a prior that had one (R4c0); see F16 and the Result of Round 4.]* The fix's notice
 caught exactly this once in E2 (B3 pass 2), in a file whose last section is `Superseded`; whether it holds from a prior that already carries the mislabel is not measured.
 
 **The predictions (written before the run).**
@@ -552,7 +557,111 @@ other commits that do not touch the knowledge home). One case pair, one host and
 controls are run again on X because E1 ran from the marketplace. The tidy prior is the fix's own pass 2, so the tidy pass 4 prior is the tidy pass 3 of the same arm. Order: the seeded pair, the tidy pair, then
 pass 4 with the fix before pass 4 without it, so that a cut short by the lane leaves the pairs that matter most whole. The readout was written and calibrated first. No merge or release is decided by this round.
 
-**Status: fixed; not started.** Arms frozen at X and Y above; the runs start after this commit is on `origin/main`.
+**Status: ran 2026-11-01 (about 06:53 to 09:02); the result follows.** Arms frozen at X and Y above; the runs started after the pre-registration commit was on `origin/main`.
+
+### Result of Round 4 (ran 2026-11-01 about 06:53 to 09:02; one run per cell; firm for these six runs as three contrasts, not as rates)
+
+Six runs, one at a time on the port-4180 lease, in the registered order, on the frozen arms of the pre-registration (3d5732d017899a6d486b3249915284793af19d3a): X is the detached checkout
+`e81fdb55d58bdb0bcc8c1643d93d5973709100e4` (no fix), Y is X plus the candidate's feature commit (patch-id `8cf39729c9b94711faf1b7b2030b7a4adb7f8456`; the diff of Y against X is the candidate's eight files),
+both with `--source checkout`, Codex `gpt-6.1-terra` at xhigh, hooks on. The driver started at 05:58 and was refused the lane 67 times (another session's test-loop runs held port 4180) before R4a0 began at about 06:53;
+the other five followed without a wait. Evidence: [readout](experiments/multipass-20261031/round4-readout-output.txt) (`round4_readout.py`), [ledgers](experiments/multipass-20261031/round4-ledgers.json),
+[driver log](experiments/multipass-20261031/round4-driver-log.txt), [tick log](experiments/multipass-20261031/round4-tick-log.txt), [R4b's check reruns](experiments/multipass-20261031/round4-r4b-check-reruns.txt),
+[the stage-by-stage view of the tidy pair](experiments/multipass-20261031/round4-tidy-pair-stage-outlines.txt), the runs under `~/e2e-runs-multipass/20261101/r4/` (outside the repository) and six rows in `test/shiploop_e2e/baselines.jsonl`.
+
+**The runs.**
+
+| run | prior | recorded | minutes | model calls | stray headings added to environment.md | environment.md | the new decision | notices printed |
+|---|---|---|---|---|---|---|---|---|
+| R4a0 without the fix | seeded (AD-3 under Superseded, the last section) | pass | 20.8 | 176 | 8 | 10,531 to 17,506 B | AD-4 filed under Superseded, behind AD-3 | 0 |
+| R4a with the fix | the same | pass | 14.3 | 132 | 2 | 10,531 to 13,971 B | AD-4 under Decisions; AD-3 left where the prior had it | 3 (4 headings flagged, all 4 still there at the end) |
+| R4b0 without the fix | tidy (E2's `B1-ticket-escalation`, made with the fix, ends with `## Superseded` / `None.`) | pass | 18.5 | 193 | 1 | 6,971 to 12,205 B | AD-4 filed under Superseded | 0 |
+| R4b with the fix | the same | FAILED (see below) | 18.2 | 184 | 0 | 6,971 to 9,645 B | AD-4 under Real-boundary checks (a live section) | 1 (its heading did not survive) |
+| R4c with the fix | R4b's output (pass 4) | pass, 16 of 16 hidden | 28.6 | 293 | 0 | 9,645 to 13,226 B | AD-5 under Decisions; AD-3 changed in place | 0 |
+| R4c0 without the fix | R4b0's output (pass 4) | pass, 16 of 16 hidden | 24.3 | 191 | 0 (but see the post hoc note) | 12,205 to 19,147 B | AD-5 under Decisions; AD-3 changed in place; the prior's AD-4 left under Superseded | 0 |
+
+**R4b's recorded verdict is FAILED, and the cause is not what the fix wrote.** Twelve of its 13 checks pass. The one that fails is `base_tests.py suite node-tickets`, which runs the delivery's own `node --test`: 130 pass, 1 fail, the
+base's `test/service.test.js` "the worker delivers each notification once to the notification file, and the outbox shows it sent", which failed after 3.03 ms. The test waits 50 ms before it reads the notification file, so it failed
+on its first requests to the server, before that wait. The base's test helper starts the service with `server.listen(0)` (all addresses) and dials `http://127.0.0.1:<port>`; on this machine other projects' servers listen on
+127.0.0.1 and a client of 127.0.0.1 reaches one of those ahead of an all-address listener, which `docs/experiments/brownfield-flake-20261101/` measured as 32 failed runs in 928 of this same base's tests (two of the answers were
+another project's JSON). The raw TAP of the failed run was not kept, so that is the likely cause and not a proven one. Triage in the mismatch note's order: the check is not wrong (it passes on the other deliveries and again on this one);
+it is the environment (step 2: the expectation stands). Reruns on the saved delivery: see [the reruns](experiments/multipass-20261031/round4-r4b-check-reruns.txt). The recorded result stays FAILED in `result.json` and in the baseline row
+(the E3 precedent: the record shows what the run did live, and this entry says why). The machine was crowded when it happened: other sessions' runs and a full test tier pushed the load average past 100 at 08:06, and my own quick tier of the
+rebased candidate (nice 10, 4 jobs) was one of them. E2's result commit (6a6badb3e6b8bd858015817c40ee216addf76ba6) had said that a heavy tier on the same machine can fail a
+live run's checks, and I ran mine anyway: it started at 07:30 and ran beside R4b0 (passed), R4b (the one that failed), the first 13 minutes of R4c and R4c0; R4a0 and R4a had
+ended before it started. I cannot split my tier's part from the other sessions', so the cause above stays "likely". For the last 16 minutes of R4c I paused only that tier's
+process tree. B1 is missed as recorded.
+
+**What the fix did.**
+- Pair a (the seeded prior, which already files AD-3 as retired and ends with `## Superseded`): without the fix, 8 stray headings (each named "Comments ...": discovery, harnesses and suites plan, commands, preparation, verified commands,
+  release route, returned verification, operational handoff) and AD-4 born under Superseded behind AD-3; with the fix, 2 stray headings (Comment test commands, Comment feature discovery) and AD-4 under Decisions. The run left the prior's own AD-3
+  where it was (P6): the fix speaks about what an edit adds. The notice was printed three times and was not obeyed: all four headings it flagged (two counted as stray, two that appear twice in the file) are still there, so on this prior the
+  difference comes from the packet line and the duty edits, not from a repair after a notice. 857 s against 1,249 s and 132 model calls against 176.
+- Pair b (the tidy prior): without the fix, 1 stray heading and AD-4 born under Superseded, so a prior with no earlier mislabel gets one anyway; with the fix, no stray heading and AD-4 live, under Real-boundary checks and not under
+  Decisions. The notice was printed once, for a heading, and that heading was gone by the end. 1,091 s against 1,111 s, 184 model calls against 193.
+- Pair c (pass 4, the modifying link `ticket-sla`, which changes the escalation rule): with the fix, no stray heading and no notice; AD-3 (the old escalation decision) changed in place and AD-5 added under Decisions; R-6 (Escalation)
+  changed in place with the basis "request 2026-11-01 S1-S8 supersedes the 2026-10-31 once-only rule", which is the D4 wording (a dated basis, never "current request"); unexplained changes none in the spec or the architecture;
+  R-5, which the case lists as possibly touched, was left alone, as it should be. Without the fix: it also passed, changed AD-3 in place and added AD-5 under Decisions (not under Superseded, although the file it was given ends with
+  AD-4 there), and changed R-6 the same way; it also edited R-4 (Compatibility) to say that existing tests remain unchanged "except the once-only escalation assertions explicitly superseded", which the case does not list (the ledger counts
+  it as unexplained; it is a reasonable edit, and the fix run left R-4 as it was while modifying one earlier test file, as the control did). The fix run took 28.6 minutes and 293 model calls against 24.3 and 191: 1.18 and 1.53 times.
+- Post hoc, not part of the registered result: the pass-4 control leaked in a form the registered measure does not count. Its prior (R4b0's output) ended with the stray `## Comments discovery (2026-11-01)` (3,032 B, 4 subsections), and the
+  control appended eight new `###` stage-report subsections under it (Escalation wait discovery, Priority escalation test strategy, readiness, assembled evidence, system test, local delivery and recovery, return verification, operations),
+  taking that section to 9,798 B and 12 subsections; the ledger shows 7 appends to environment.md for it against 0 for R4c, which was given a prior with no stray heading to append under. The registered K and B2 count new level-2 headings and
+  decisions filed as retired, so Kc is missed as registered and the fix is not credited in pair c; the post hoc reading is that the leak was there, as `###` under an inherited `##`.
+
+**Where the new decision lands is set by the stage before `plan` (read from the runs' own commit histories, `git -C <run>/work log -- docs/shiploop/architecture.md`).** In both arms of both pass-3 pairs the decision is first written
+by the `plan` stage, which is one of the stages without the destination line. Pair b, without the fix: the test-strategy stage appended `### Comments real-boundary checks (planned)` below the prior's last heading, `## Superseded`
+(the file's `## Superseded` is at line 25 and the new subsection at line 28), and `plan` then appended `### AD-4 Comment state and delivery` after it (line 32): born under Superseded one stage later. Pair b, with the fix: the
+test-strategy stage, which has the line, wrote its planned checks inside `## Real-boundary checks` (lines 8 to 16), and `plan` appended AD-4 at the end of that section (lines 8 to 18). Pair a: AD-4 first appears after `plan` in both
+arms, under Superseded in the control (run commit e9aca40) and under Decisions in the fix (3715821). So, in these runs, `plan` follows the stage before it, and what the stage before it did differs by arm; that is consistent with the
+destination line on the earlier stage being what moves the chain out of Superseded, and with AD-4 sitting in Real-boundary checks in R4b because `plan` has no line of its own. The notice's retired-entry clause, the part aimed at this
+mislabel, did not fire in any of the three fix runs; the clause for headings fired in R4a (three times) and R4b (once). The stage-by-stage view of pair b is in `round4-tidy-pair-stage-outlines.txt`.
+
+**The bar and the control.**
+
+| | | result |
+|---|---|---|
+| B1 | every fix run passes and loses no hidden check | missed as recorded: R4b FAILED on one base test (above). R4a and R4c pass; R4c passes 16 of 16 hidden checks; R4b's other 12 checks pass |
+| B2 | every fix run adds at most 2 stray headings to environment.md | held: 2, 0, 0 |
+| B3 | no fix run files a new decision as retired | held: 0 of 3 |
+| B4 | pass 4 with the fix changes no earlier entry the request did not name | held: unexplained is empty in the spec and in the architecture |
+| Ka | the run without the fix leaks on the seeded pass 3 | held: 8 stray headings and AD-4 retired |
+| Kb | the same on the tidy pass 3 | held through the retired entry (AD-4 filed under Superseded); 1 stray heading |
+| Kc | the same on the tidy pass 4 | missed: 0 stray headings, nothing filed as retired (see the post hoc note) |
+
+**The predictions.**
+
+| | prediction | observed | |
+|---|---|---|---|
+| P1 | R4a prints a notice and its new decision is not filed as retired | 3 notices; AD-4 under Decisions | held |
+| P2 | R4b prints a notice | 1 | held |
+| P3 | R4b adds at most 2 stray headings and files nothing as retired | 0; AD-4 live | held |
+| P4 | R4c adds at most 2 stray headings and passes with all 16 hidden checks | 0; 16 of 16 | held |
+| P5 | R4c touches the old escalation decision | AD-3 changed in place | held |
+| P6 | R4a leaves the prior's mislabel alone | AD-3 still under Superseded | held |
+| P7 | the controls repeat E1: R4a0 at least 4 stray headings and a retired new decision; R4b0 and R4c0 at least 4 stray headings | R4a0 8 and retired (held); R4b0 1 (missed); R4c0 0 (missed) | held for a, missed for b and c |
+| P8 | each fix run within 1.3 times its control's time | a 0.69, b 0.98, c 1.18 | held |
+
+**Reading rule, applied.** B2, B3 and B4 held; K held in two pairs (a and b); Kc missed; B1 is missed as recorded, by one flaky base test of a delivery, and not by anything the fix wrote. By the letter of the first branch ("B1 to B4 held
+and K held in at least two pairs") the rule is not met, because of B1. By B1's own triage (the check is not wrong, the environment failed it, and the same check passes on the same delivery when run again) the first branch is met: the fix holds on
+passes 3 and 4 for these chains, credited in pairs a and b, and not credited in pair c. Both readings are recorded and the release stays the owner's word. B3 did not miss in R4b or R4c, so the branch about the `plan` stage does not apply.
+The branch "K missed in the tidy pairs" does not apply either: K held in the tidy pair b and missed in the tidy pair c.
+
+**What it shows, and what it does not.**
+- Firm for these runs: with the fix no later pass filed its new decision under Superseded (0 of 3); the old ShipLoop did in 2 of 3 runs of this round (R4a0, R4b0) and in E1 and E3 before it, 4 of 5 later passes in all. Stray headings added to
+  environment.md fell from 8, 1, 0 to 2, 0, 0, and no run lost a check the fix could have caused.
+- Exploratory (one run per cell): neither reading in the pre-registration predicts all five old-ShipLoop later passes. A lineage that already carries the mislabel was not needed (R4b0 started clean), and a lineage that carries it was not
+  enough (R4c0's prior had AD-4 under Superseded as the last section, and its AD-5 went under Decisions). E2's control passes A2 and A3 started from priors that end with `## Superseded` / `None.` (read from the saved files for this entry; the
+  pre-registration's item 3 said they were not read) and did not file their new decision under Superseded at pass 2 either. The data fit a per-run chance that is high on these chains (4 of 5 on passes 3 and 4), not a rule tied to the pass
+  number or to the file's shape alone.
+- Not shown: which part of the bundle does the work. The retired-entry clause never fired, so in these runs the packet line and the duty edits explain the difference, not the clause that was written for the mislabel; the bundle was not split.
+- Cost is not shown to be nil. Time was 0.69, 0.98 and 1.18 of the control's, and model calls were fewer in both pass-3 pairs (132 against 176, 184 against 193) and higher in the pass-4 pair (293 against 191). One run per cell cannot separate
+  that from spread (E2's control second passes alone ran from 13.3 to 21.5 minutes); the pass-4 call count is the one place the fix run is clearly higher, and nothing here says why.
+- The decision can still land in the wrong live section (R4b: Real-boundary checks). That is harmless to function (the entry is live and counted) and no notice flags it, because the stage that wrote it, `plan`, has no destination line. Adding one
+  is a new change with its own A/B and is not made here.
+- One run per cell, as registered: a pair is a contrast, not a test. The six runs shared a crowded machine (the load average ran from 30 to above 100), so the minutes are noisy. One chain (ticket), one host and model (Codex Terra at xhigh),
+  main at the 3.9-floor release for both arms.
+- The apparatus has a live exposure: a base test of the delivery can fail a live run's final check through the machine's port space, as R4b's did. The calibration suite that shares the mechanism is fixed (26728eddd587930f5da3f6600e5d7ab4017d8acc);
+  the live check `base_tests.py suite node-tickets` is not changed. A retry there could hide a delivery whose own server resets, and the fixture is pinned, so both are the owner's call.
 
 ## Decisions made without asking (routine, AGENTS.md "Decisions")
 
@@ -569,10 +678,17 @@ pass 4 with the fix before pass 4 without it, so that a cut short by the lane le
   on each other for port 4180. Each is routine (a choice between equivalent fixes, or launching verification runs) and none changes a default that earlier evidence
   relied on.
 
+- Round 4 (2026-11-01): the controls and fix runs ran in the registered order with no change to the arms, the readout or the bar. R4b's recorded FAILED stays in the record and the bar is read with the triage beside it; its check was rerun
+  before anything else was concluded (the mismatch note's step 3). No retry was added to `base_tests.py`, and R4b was not run again: a replicate is a new experiment. The candidate's own quick tier ran at nice 10 beside the live runs; after R4b's final
+  check lost a base test while it ran, its process tree was paused (SIGSTOP, only that tree) for the last 16 minutes of R4c and the pause was not repeated for R4c0, whose verdict does not enter the bar. The pause made two suites time out by
+  wall clock and one time-budgeted mutation test count fewer sites; all three pass alone. Each is routine (launching verification runs, managing my own processes) and none changes a default earlier evidence relied on.
+
 ## Not done, and unknowns
 
-- Pass 3 and 4 behaviour with the fix on a live run: fixed in Round 4 (2026-11-01), not started when this line was written. Unfixed, Round 1 is the first third pass and E3 the first fourth pass.
-- Which part of the candidate (the notice, the packet line, the duty edits) does the work, and whether it holds on a third and a fourth pass: E2 shows the bundle on passes 1 and 2 only (F12); Round 4 asks the second half.
+- Pass 3 and 4 behaviour with the fix on a live run: measured in Round 4 (2026-11-01, six runs, one per cell): no fix run filed its new decision under Superseded (0 of 3; the old ShipLoop did in 4 of 5 later passes); pass 4 with the fix was clean; B1 is missed as recorded by one flaky base test. One chain, one host and model.
+- Which part of the candidate (the notice, the packet line, the duty edits) does the work: not split. Round 4 shows it holds on a third and a fourth pass for these chains, and that the notice's retired-entry clause never fired in a fix run, so the packet line and the duty edits explain the difference there.
+- A destination line for the `plan` stage (the new decision landed in Real-boundary checks in R4b, which no notice flags), a replicate of the tidy pair with its TAP kept, and whether the pass-4 appends under an inherited stray heading (R4c0) are the leak the fix prevents: each is a new experiment, none is started.
+- The live check `base_tests.py suite node-tickets` can fail a run through the machine's port space (R4b). The calibration suite with the same mechanism is fixed; the live check is not, and a retry or a pinned bind address there is the owner's call.
 - A second chain on a smaller base (designed, not built; D5 builds it after E2). The modifying increment, `ticket-sla`, is built and ran live once (E3, Round 3); whether a run retires and supersedes the old decision needs a prior without E1's mislabel.
 - An independent alternative delivery for `ticket-comments`, and a persistence check for the pass-4 link.
 - `knowledge_reads` on Codex is still empty; `delta.writes` is its heuristic replacement.

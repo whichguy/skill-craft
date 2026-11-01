@@ -51,7 +51,7 @@ import review  # noqa: E402
 import rollouts  # noqa: E402
 import run  # noqa: E402
 import status_card
-# The fake hosts answer the Claude host's Anthropic route; an E2E run's default is Ollama (hosts.RUN_DEFAULT_BACKEND).
+# The fake hosts answer the Claude host's Anthropic route, which is also its default backend; the runs name it so they stay on it.
 ANTHROPIC_ROUTE = {"claude": ("--backend", "anthropic")}
 import scorecard  # noqa: E402
 import fanout  # noqa: E402
@@ -247,12 +247,16 @@ elif mode in ("hang", "hang-active") or (mode == "hang-resumed" and resumed):
 elif mode in ("resume", "stuck", "stuck-stop", "hang-resumed", "anon", "crash-resumed"):
     Path(".shiploop").mkdir(exist_ok=True)
     store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
-    if mode == "stuck-stop":
-        (Path.cwd().parent / "stop").write_text("")  # a person asks for a stop as this session ends
 end = {{"type": "end", "stopReason": "cancelled", "sessionId": "sess-1", "num_turns": 4, "total_cost_usd": 0.01}}
 if mode == "anon":
     del end["sessionId"]  # the host never named its session: there is nothing to resume
-print(json.dumps(end))
+print(json.dumps(end), flush=True)
+if mode == "stuck-stop":
+    # A person asks for a stop in the last instant of this session: after its end event, and the process leaves at once.
+    # The request used to land before the end event and the interpreter's shutdown, a window the harness's poll could
+    # fall in when the machine was busy and kill a host that was already finishing (3 of 16 parallel runs).
+    (Path.cwd().parent / "stop").write_text("")
+    os._exit(0)
 """
 
 
@@ -2706,6 +2710,91 @@ def write_engine_records(run_dir: Path, accepted: list, *, status: str = "done",
          "accepted": {a: stamp(t) for a, _s, _o, t in accepted if t is not None}}, indent=2) + "\n")
 
 
+class SharedExpensesCheckTest(unittest.TestCase):
+    """checks/expense_service.py, the shared-expenses case's product checks (style stateful-service; a Node service that leases
+    no port, added 2026-11-01 as the representative case for the send-back replication R3). Calibrated as seat-reservations was
+    (P6) before any live run: the reference service passes all six checks and writes nothing into the work folder, and each
+    defect of one of the prompt's sentences fails the check that reads that sentence. The race-prone service, in which every
+    request works on a snapshot taken before an await, is seen only by the concurrency check."""
+
+    REFERENCE = run.HERE / "fixtures" / "shared-expenses-reference"
+    CHECKS = ("unit", "contract", "split", "settle", "restart", "concurrency")
+    RACE = ([("server.js", "req.on('end', () => {", "req.on('end', async () => {"),
+             ("server.js", "const [status, payload] = route(",
+              "const stale = JSON.stringify(groups);\n    await new Promise((resolve) => setTimeout(resolve, 3));\n"
+              "    groups = JSON.parse(stale);\n    const [status, payload] = route(")], "concurrency")
+    DEFECTS = {
+        "the cents left over by an even split go to the members listed last":
+            ([("expenses.js", "index < extra", "index >= members.length - extra")], "split"),
+        "shares that do not add up to the amount are accepted":
+            ([("expenses.js", "return total === cents ? owed : null;", "return owed;")], "contract"),
+        "a negative share is accepted":
+            ([("expenses.js", "Number.isSafeInteger(value) && value >= 0", "Number.isSafeInteger(value)")], "contract"),
+        "a group of one member is accepted":
+            ([("expenses.js", "members.length >= 2", "members.length >= 1")], "contract"),
+        "a fractional amount is accepted":
+            ([("server.js", "!Number.isSafeInteger(cents) || cents <= 0", "!(cents > 0)")], "contract"),
+        "expense numbers start at 0":
+            ([("server.js", "expense: group.expenses.length", "expense: group.expenses.length - 1")], "contract"),
+        "a tie between members goes to the member listed last":
+            ([("expenses.js", "net[name] < net[debtor]", "net[name] <= net[debtor]"),
+              ("expenses.js", "net[name] > net[creditor]", "net[name] >= net[creditor]")], "settle"),
+        "nothing is written to the data file": ([("server.js", "function save() {", "function save() {\n  return;")], "restart"),
+        "every request works on a snapshot taken before an await (lost updates)": RACE,
+    }
+
+    @classmethod
+    def setUpClass(cls):
+        if shutil.which("node") is None:
+            raise unittest.SkipTest("node is not installed")
+
+    def service(self, tmp: str, edits=()) -> Path:
+        work = Path(tmp) / "work"
+        shutil.copytree(self.REFERENCE, work)
+        for filename, find, replace in edits:
+            source = (work / filename).read_text()
+            self.assertEqual(source.count(find), 1, find)
+            (work / filename).write_text(source.replace(find, replace))
+        return work
+
+    def verdict(self, work: Path, check: str) -> tuple[int, str]:
+        done = subprocess.run([sys.executable, "-B", str(run.HERE / "checks" / "expense_service.py"), check], cwd=work,
+                              capture_output=True, text=True, timeout=120, stdin=subprocess.DEVNULL)
+        return done.returncode, done.stdout + done.stderr
+
+    def test_the_reference_service_passes_every_check_and_the_checks_write_nothing_into_the_work_folder(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            work = self.service(tmp)
+            before = sorted(item.relative_to(work).as_posix() for item in work.rglob("*"))
+            for check in self.CHECKS:
+                with self.subTest(check=check):
+                    code, output = self.verdict(work, check)
+                    self.assertEqual(code, 0, output)
+            self.assertEqual(sorted(item.relative_to(work).as_posix() for item in work.rglob("*")), before)
+
+    def test_each_defect_fails_the_check_that_reads_the_sentence_it_breaks(self):
+        for what, (edits, check) in self.DEFECTS.items():
+            with self.subTest(defect=what), tempfile.TemporaryDirectory() as tmp:
+                code, output = self.verdict(self.service(tmp, edits), check)
+                self.assertEqual(code, 1, output)
+                self.assertIn("FAIL:", output)
+
+    def test_the_race_prone_service_passes_every_check_but_the_concurrency_check(self):
+        edits, _ = self.RACE
+        with tempfile.TemporaryDirectory() as tmp:
+            work = self.service(tmp, edits)
+            for check in self.CHECKS:
+                with self.subTest(check=check):
+                    code, output = self.verdict(work, check)
+                    self.assertEqual(code, 1 if check == "concurrency" else 0, output)
+
+    def test_the_case_declares_its_six_checks_a_probe_term_and_no_port_lease(self):
+        case = json.loads(run.CASES.read_text())["shared-expenses"]
+        self.assertEqual(case["style"], "stateful-service")
+        self.assertEqual([check.rsplit(" ", 1)[1] for check in case["checks"]], list(self.CHECKS))
+        self.assertFalse(run.case_quality("shared-expenses").get("refuse_ports"), "a case with no fixed port leases none")
+        self.assertIn("shared-expenses", json.loads((run.HERE / "probe_terms.json").read_text())["terms"])
+
 class StageAttributionTest(unittest.TestCase):
     """Per-stage attribution reads ShipLoop's own records and never invents timing."""
 
@@ -4512,18 +4601,23 @@ class ClaudeOnOllamaTest(PrintedCase):
                              "--plugin-dir", str(self.plugin), "--baseline", str(self.baselines), *extra])
         return code, out, printed.getvalue()
 
-    def test_an_e2e_run_defaults_to_deepseek_flash_on_ollama(self):
+    def test_an_e2e_run_defaults_to_claudes_own_models_and_ollama_is_named(self):
         code, out, printed = self.ollama(backend=())
         self.assertEqual(code, 0, printed)
         result = json.loads((out / "result.json").read_text())
-        self.assertEqual((result["backend"], result["model"]), ("ollama", hosts.OLLAMA_MODEL))
-        self.assertEqual(self.child_env()["ANTHROPIC_BASE_URL"], hosts.OLLAMA_URL, "the child is routed to Ollama")
-        self.assertEqual((hosts.run_default_model("claude"), hosts.run_default_model("grok")),
-                         (hosts.OLLAMA_MODEL, hosts.GrokHost.model))
-        anthropic = run.the_host(run.parser().parse_args(["--host", "claude", "--backend", "anthropic"]))
-        self.assertEqual((anthropic.backend, anthropic.model), ("anthropic", "claude-sonnet-5-5"), "--backend anthropic names "
-                         "Claude's own models")
-        self.assertEqual(hosts.host("claude").backend, "anthropic", "the factory's default (reviewer, slice) is unchanged")
+        self.assertEqual((result["backend"], result["model"]), ("anthropic", "claude-sonnet-5-5"))
+        env = self.child_env()
+        self.assertEqual((env["ANTHROPIC_BASE_URL"], env["ANTHROPIC_AUTH_TOKEN"]),
+                         (self.SECRETS["ANTHROPIC_BASE_URL"], self.SECRETS["ANTHROPIC_AUTH_TOKEN"]),
+                         "the child keeps the user's Anthropic route; nothing sends it to Ollama")
+        argv = json.loads(self.log.read_text())["argv"]
+        self.assertEqual(argv[argv.index("--model") + 1], "claude-sonnet-5-5")
+        self.assertNotIn("--tools", argv, "the coding-tool allowlist is the Ollama route's")
+        self.assertEqual((hosts.HOST_DEFAULTS["claude"]["model"], hosts.HOST_DEFAULTS["grok"]["model"]),
+                         ("claude-sonnet-5-5", hosts.GrokHost.model))
+        ollama = run.the_host(run.parser().parse_args(["--host", "claude", "--backend", "ollama"]))
+        self.assertEqual((ollama.backend, ollama.model), ("ollama", hosts.OLLAMA_MODEL), "--backend ollama names the Ollama route")
+        self.assertEqual(hosts.host("claude").backend, "anthropic", "the factory's default and the run's are the same")
 
     def test_a_regrade_of_a_run_from_before_the_backend_field_stays_anthropic(self):
         _, out, _ = self.ollama(backend=("--backend", "anthropic"))
@@ -6291,8 +6385,11 @@ class StopFileTest(PrintedCase):
         # same as a killed host (SPEC: a requested stop has no process verdict); the session keeps its own status.
         self.assertEqual((result["process"]["status"], result["process"]["pass"]), ("stopped", None))
         self.assertEqual(result["termination"]["process_status"], "stopped")
-        self.assertEqual([s["status"] for s in result["process"]["sessions"]], ["exited"])
-        self.assertIn("host stopped rc=0", printed)
+        # On a busy machine the harness can see the request in the instant before the host has left and then end it
+        # itself: the session reads "stopped" and the host's code is -9, and every record above is the same. Either
+        # ending is the one under test (the kill is also pinned, deterministically, by the stop-file test above).
+        self.assertIn([s["status"] for s in result["process"]["sessions"]], (["exited"], ["stopped"]))
+        self.assertRegex(printed, r"host stopped rc=(0|-9)")
         self.assertFalse(self.baselines.exists(), "a stopped run is not a baseline")
 
     def test_a_stop_during_a_resumed_session_reads_as_stopped_and_is_not_relaunched(self):

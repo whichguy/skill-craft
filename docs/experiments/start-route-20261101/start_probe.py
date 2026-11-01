@@ -53,7 +53,7 @@ HARD_LIMIT_SECONDS = 420     # the driver kills a run folder's process group whe
 STOP_GRACE_SECONDS = 120     # after the stop file, the harness is given this long to write its records
 MAX_INVALID_STREAK = 6        # invalid attempts in a row that stop the whole batch
 MAX_ATTEMPTS = 3             # a slot is retried only when its trial was invalid (infrastructure), never for its outcome
-ARMS = ("C", "T1", "T2")
+ARMS = ("C", "T1", "T2", "GOLD", "G")
 # stimulus -> selector for run.py. sf-ui is the prompt of the failing run, byte for byte; hello is the smoke case (an empty
 # directory, no "current directory" wording); repo is a brownfield case that declares no port (an existing Git repository;
 # user-listing was the first choice and was dropped: it leases the machine-wide port 3000). The last three ask for an
@@ -63,9 +63,15 @@ SELECTORS = {"sf-ui": ["--prompt-file"], "hello": ["--case", "hello"], "repo": [
 # a plan set: which cards run, and how many sessions per card for each request
 PLAN_SETS = {"start": {"arms": ("C", "T1", "T2"), "counts": {"sf-ui": 40, "hello": 10, "repo": 10}},
              "inplace": {"arms": ("C", "T2"), "counts": {"inplace-hello": 16, "nogit-hello": 16, "inplace-sf": 16}},
-             "hosts": {"arms": ("C", "T2"), "counts": {"sf-ui": 16, "repo": 8, "inplace-hello": 12, "nogit-hello": 12}}}
+             "hosts": {"arms": ("C", "T2"), "counts": {"sf-ui": 16, "repo": 8, "inplace-hello": 12, "nogit-hello": 12}},
+             # the guard probe: what a session does after `init` is refused in an empty non-Git folder (a dict gives each arm its own count)
+             "guard": {"arms": ("GOLD", "G"), "counts": {"sf-ui": {"GOLD": 60, "G": 20}, "inplace-hello": {"G": 12},
+                                                         "nogit-hello": {"G": 12}}}}
 SEED = 20261101
 ARMS_FILE = HERE / "arms.json"   # --arms picks another; the replication uses arms-r2.json
+PACKAGE_ROOT = ROOT              # --package-root: where the plugin package and marketplace file the arms are cut from live
+EFFECT_STOP = False              # --effect-stop: the harness ends the host once a run exists (--stop-after-start); route read from disk
+REFUSED = re.compile(r"blocked: /[^\"]*? is an empty folder that is not a Git repository")   # the guard's refusal, as rendered
 
 # A start is the ShipLoop CLI invoked with the verb `workspace start` or `init`, written as a shell command, with the
 # CLI in a variable, or as a Python subprocess argument list. A reader command that mentions the words is not a start.
@@ -90,8 +96,10 @@ def detect_start(cmd: str) -> str | None:
 
 def make_plan(seed: int = SEED, plan_set: str = "start") -> list[dict]:
     chosen = PLAN_SETS[plan_set]
-    slots = [{"stimulus": s, "arm": a, "i": i} for s, n in chosen["counts"].items() for a in chosen["arms"]
-             for i in range(1, n + 1)]
+    slots = []
+    for stimulus, count in chosen["counts"].items():
+        per_arm = count if isinstance(count, dict) else {arm: count for arm in chosen["arms"]}
+        slots += [{"stimulus": stimulus, "arm": a, "i": i} for a, n in per_arm.items() for i in range(1, n + 1)]
     random.Random(seed).shuffle(slots)
     for number, slot in enumerate(slots, 1):
         slot["slot"] = number
@@ -103,8 +111,8 @@ def build_arm(arm: str, edits: list, dest: Path) -> str:
     if dest.exists():
         shutil.rmtree(dest)
     (dest / ".agents" / "plugins").mkdir(parents=True)
-    shutil.copy2(ROOT / ".agents" / "plugins" / "marketplace.json", dest / ".agents" / "plugins" / "marketplace.json")
-    shutil.copytree(ROOT / "plugins" / "skill-craft", dest / "plugins" / "skill-craft", symlinks=True)
+    shutil.copy2(PACKAGE_ROOT / ".agents" / "plugins" / "marketplace.json", dest / ".agents" / "plugins" / "marketplace.json")
+    shutil.copytree(PACKAGE_ROOT / "plugins" / "skill-craft", dest / "plugins" / "skill-craft", symlinks=True)
     card = dest / "plugins" / "skill-craft" / "skills" / "shiploop" / "SKILL.md"
     text = card.read_text()
     for old, new in edits:
@@ -156,6 +164,28 @@ def scan(events_path: Path) -> dict:
                     return found
                 found["commands"].append(command)
     return found
+
+
+def starts_in(events_path: Path) -> dict:
+    """Every ShipLoop start command of a session in order (route, and whether it carried --in-place), and whether the guard
+    refused an `init` (its refusal as rendered, so a read of the source that holds the same words does not count)."""
+    starts: list[dict] = []
+    refused = False
+    if events_path.is_file():
+        with events_path.open(errors="replace") as fh:
+            for line in fh:
+                if REFUSED.search(line):
+                    refused = True
+                try:
+                    event = json.loads(line)
+                except ValueError:
+                    continue
+                if isinstance(event, dict):
+                    for command in commands_of(event):
+                        route = detect_start(command)
+                        if route:
+                            starts.append({"route": route, "in_place": "--in-place" in command})
+    return {"starts": starts, "refused": refused}
 
 
 def reap(trial: Path) -> None:
@@ -225,7 +255,7 @@ def run_trial(slot: dict, attempt: int, out: Path, expected: dict) -> dict:
              else ["--plugin-dir", str(out / "arms" / arm / "root" / "plugins" / "skill-craft")])
     argv = [sys.executable, str(RUN_PY), *selector, "--host", HOST, "--model", MODEL,
             *(["--effort", EFFORT] if EFFORT else []), *HOSTS[HOST]["args"],
-            *build, "--output", str(trial),
+            *build, "--output", str(trial), *(["--stop-after-start"] if EFFECT_STOP else []),
             "--timeout", str(HOST_TIMEOUT_SECONDS), "--quiet", "--baseline", str(out / "baselines-probe.jsonl")]
     started = time.monotonic()
     proc = None
@@ -243,7 +273,8 @@ def run_trial(slot: dict, attempt: int, out: Path, expected: dict) -> dict:
         while proc.poll() is None:
             time.sleep(1.0)
             now = time.monotonic()
-            if stopped_at is None and (trial / "events.jsonl").is_file() and scan(trial / "events.jsonl")["start"] != "none":
+            if (not EFFECT_STOP and stopped_at is None and (trial / "events.jsonl").is_file()
+                    and scan(trial / "events.jsonl")["start"] != "none"):
                 row["seconds_to_start"] = round(now - started, 1)
                 (trial / "stop").touch()
                 stopped_at = now
@@ -266,6 +297,9 @@ def run_trial(slot: dict, attempt: int, out: Path, expected: dict) -> dict:
         except (OSError, ValueError) as exc:
             row["error"] = f"no run record: {exc}"
             return row
+        if EFFECT_STOP:
+            row.update(starts_in(trial / "events.jsonl"))
+            row["final_route"] = result.get("start_route")   # read from the disk by the harness: workspace, direct, or None
         installed = installed_cards(trial, result)
         sha = hashlib.sha256(installed[0].read_bytes()).hexdigest()[:12] if len(installed) == 1 else None
         row["installed_card_sha256"] = sha
@@ -424,6 +458,8 @@ def main() -> None:
     p.add_argument("--host", default="codex", choices=tuple(HOSTS))
     p.add_argument("--arms", default=None)
     p.add_argument("--arm", default="C", choices=ARMS)
+    p.add_argument("--package-root", default=None)
+    p.add_argument("--effect-stop", action="store_true")
     p.add_argument("--stimulus", default="sf-ui", choices=tuple(SELECTORS))
     p.add_argument("--out", required=True)
     p = sub.add_parser("confirm")
@@ -441,10 +477,18 @@ def main() -> None:
     p.add_argument("--plan", required=True)
     p.add_argument("--out", required=True)
     p.add_argument("--jobs", type=int, default=4)
+    p.add_argument("--package-root", default=None, help="cut the arms from this tree's plugins/skill-craft (a build-packages.py output)")
+    p.add_argument("--effect-stop", action="store_true", help="the harness ends each host at its first run (--stop-after-start)")
     args = ap.parse_args()
     if getattr(args, "arms", None):
         global ARMS_FILE
         ARMS_FILE = Path(args.arms).resolve()
+    if getattr(args, "package_root", None):
+        global PACKAGE_ROOT
+        PACKAGE_ROOT = Path(args.package_root).resolve()
+    if getattr(args, "effect_stop", False):
+        global EFFECT_STOP
+        EFFECT_STOP = True
     if getattr(args, "host", None):
         use_host(args.host)
     if args.cmd == "plan":

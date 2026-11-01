@@ -341,7 +341,8 @@ class ReviewReturnTests(ReturnReviewCase):
         root, _, run = self.candidate("handoff text")
         action = navigator.current_action(store.read_record(run / "state.md"))
         result = run / "inbox" / f"{action['id']}.md"
-        store.write_record(result, {"outcome": "done", "summary": "Rejected without a return."}, "ShipLoop navigator result")
+        store.write_record(result, {"outcome": "done", "summary": "Rejected without a return.", "follow_on": []},
+                           "ShipLoop navigator result")
         refused = self.cli("complete", "--run-dir", str(run), "--action", action["id"], "--result", str(result), code=2)
         text = refused.stderr
         self.assertIn("handoff requires a verified workspace return", text)

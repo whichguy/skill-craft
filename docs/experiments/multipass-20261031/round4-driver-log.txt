@@ -1,0 +1,149 @@
+05:58:14 R4 driver started (pid 2756); arms X=e81fdb55 Y=40640d48
+05:58:14 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 1)
+05:58:15 R4a0-comments-seeded-old try 1: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s1 (pid 20921, case ticket-assignment): it ends when tha
+05:59:00 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 2)
+05:59:01 R4a0-comments-seeded-old try 2: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s1 (pid 20921, case ticket-assignment): it ends when tha
+05:59:46 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 3)
+05:59:48 R4a0-comments-seeded-old try 3: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s1 (pid 20921, case ticket-assignment): it ends when tha
+06:00:33 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 4)
+06:00:39 R4a0-comments-seeded-old try 4: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s1 (pid 20921, case ticket-assignment): it ends when tha
+06:01:24 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 5)
+06:01:26 R4a0-comments-seeded-old try 5: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s1 (pid 20921, case ticket-assignment): it ends when tha
+06:02:11 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 6)
+06:02:12 R4a0-comments-seeded-old try 6: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s1 (pid 20921, case ticket-assignment): it ends when tha
+06:02:57 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 7)
+06:02:59 R4a0-comments-seeded-old try 7: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s1 (pid 20921, case ticket-assignment): it ends when tha
+06:03:44 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 8)
+06:03:47 R4a0-comments-seeded-old try 8: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s1 (pid 20921, case ticket-assignment): it ends when tha
+06:04:32 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 9)
+06:04:34 R4a0-comments-seeded-old try 9: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:05:19 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 10)
+06:05:20 R4a0-comments-seeded-old try 10: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:06:05 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 11)
+06:06:06 R4a0-comments-seeded-old try 11: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:06:51 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 12)
+06:06:53 R4a0-comments-seeded-old try 12: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:07:38 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 13)
+06:07:39 R4a0-comments-seeded-old try 13: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:08:24 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 14)
+06:08:27 R4a0-comments-seeded-old try 14: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:09:12 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 15)
+06:09:13 R4a0-comments-seeded-old try 15: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:09:58 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 16)
+06:09:58 R4a0-comments-seeded-old try 16: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:10:43 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 17)
+06:10:45 R4a0-comments-seeded-old try 17: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:11:30 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 18)
+06:11:37 R4a0-comments-seeded-old try 18: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:12:22 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 19)
+06:12:29 R4a0-comments-seeded-old try 19: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:13:14 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 20)
+06:13:22 R4a0-comments-seeded-old try 20: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:14:07 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 21)
+06:14:16 R4a0-comments-seeded-old try 21: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:15:01 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 22)
+06:15:02 R4a0-comments-seeded-old try 22: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:15:47 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 23)
+06:15:48 R4a0-comments-seeded-old try 23: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:16:33 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 24)
+06:16:35 R4a0-comments-seeded-old try 24: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:17:20 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 25)
+06:17:21 R4a0-comments-seeded-old try 25: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:18:06 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 26)
+06:18:08 R4a0-comments-seeded-old try 26: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:18:53 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 27)
+06:19:01 R4a0-comments-seeded-old try 27: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:19:46 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 28)
+06:19:48 R4a0-comments-seeded-old try 28: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:20:33 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 29)
+06:20:35 R4a0-comments-seeded-old try 29: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:21:20 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 30)
+06:21:21 R4a0-comments-seeded-old try 30: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:22:06 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 31)
+06:22:07 R4a0-comments-seeded-old try 31: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/B-ticket-assignment-s1 (pid 81488, case ticket-assignment): it ends when tha
+06:22:52 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 32)
+06:22:53 R4a0-comments-seeded-old try 32: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:23:38 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 33)
+06:23:40 R4a0-comments-seeded-old try 33: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:24:25 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 34)
+06:24:35 R4a0-comments-seeded-old try 34: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:25:20 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 35)
+06:25:21 R4a0-comments-seeded-old try 35: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:26:06 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 36)
+06:26:11 R4a0-comments-seeded-old try 36: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:26:56 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 37)
+06:26:58 R4a0-comments-seeded-old try 37: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:27:43 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 38)
+06:27:54 R4a0-comments-seeded-old try 38: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:28:40 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 39)
+06:28:42 R4a0-comments-seeded-old try 39: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:29:27 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 40)
+06:29:29 R4a0-comments-seeded-old try 40: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:30:14 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 41)
+06:30:16 R4a0-comments-seeded-old try 41: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:31:01 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 42)
+06:31:03 R4a0-comments-seeded-old try 42: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:31:48 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 43)
+06:32:00 R4a0-comments-seeded-old try 43: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:32:45 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 44)
+06:32:47 R4a0-comments-seeded-old try 44: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:33:32 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 45)
+06:33:33 R4a0-comments-seeded-old try 45: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:34:19 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 46)
+06:34:20 R4a0-comments-seeded-old try 46: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:35:05 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 47)
+06:35:09 R4a0-comments-seeded-old try 47: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:35:54 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 48)
+06:35:55 R4a0-comments-seeded-old try 48: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:36:40 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 49)
+06:36:55 R4a0-comments-seeded-old try 49: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:37:40 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 50)
+06:37:43 R4a0-comments-seeded-old try 50: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:38:29 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 51)
+06:38:31 R4a0-comments-seeded-old try 51: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:39:16 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 52)
+06:39:18 R4a0-comments-seeded-old try 52: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:40:03 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 53)
+06:40:07 R4a0-comments-seeded-old try 53: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:40:52 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 54)
+06:40:56 R4a0-comments-seeded-old try 54: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:41:41 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 55)
+06:41:44 R4a0-comments-seeded-old try 55: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:42:30 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 56)
+06:42:43 R4a0-comments-seeded-old try 56: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:43:28 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 57)
+06:43:31 R4a0-comments-seeded-old try 57: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:44:16 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 58)
+06:44:19 R4a0-comments-seeded-old try 58: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:45:04 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 59)
+06:45:06 R4a0-comments-seeded-old try 59: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:45:51 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 60)
+06:45:54 R4a0-comments-seeded-old try 60: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:46:39 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 61)
+06:46:40 R4a0-comments-seeded-old try 61: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:47:26 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 62)
+06:47:34 R4a0-comments-seeded-old try 62: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:48:19 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 63)
+06:48:21 R4a0-comments-seeded-old try 63: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:49:06 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 64)
+06:49:09 R4a0-comments-seeded-old try 64: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:49:54 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 65)
+06:49:57 R4a0-comments-seeded-old try 65: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:50:42 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 66)
+06:50:48 R4a0-comments-seeded-old try 66: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:51:33 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 67)
+06:51:37 R4a0-comments-seeded-old try 67: port-4180 is leased by the harness of /Users/dadleet/e2e-runs-tl/20261101/A-ticket-assignment-s2 (pid 81571, case ticket-assignment): it ends when tha
+06:52:22 START R4a0-comments-seeded-old (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4x-bf5a2d, try 68)
+07:14:29 END R4a0-comments-seeded-old exit 0 after 68 tries
+07:14:29 START R4a-comments-seeded-fix (case ticket-comments, prior bf-codex-r2-ticket-escalation, arm mp-r4y-bf5a2d, try 1)
+07:29:19 END R4a-comments-seeded-fix exit 0 after 1 tries
+07:29:19 START R4b0-comments-tidy-old (case ticket-comments, prior B1-ticket-escalation, arm mp-r4x-bf5a2d, try 1)
+07:48:21 END R4b0-comments-tidy-old exit 0 after 1 tries
+07:48:22 START R4b-comments-tidy-fix (case ticket-comments, prior B1-ticket-escalation, arm mp-r4y-bf5a2d, try 1)
+08:07:05 END R4b-comments-tidy-fix exit 1 after 1 tries
+08:07:05 START R4c-sla-tidy-fix (case ticket-sla, prior R4b-comments-tidy-fix, arm mp-r4y-bf5a2d, try 1)
+08:36:52 END R4c-sla-tidy-fix exit 0 after 1 tries
+08:36:52 START R4c0-sla-tidy-old (case ticket-sla, prior R4b0-comments-tidy-old, arm mp-r4x-bf5a2d, try 1)
+09:02:04 END R4c0-sla-tidy-old exit 0 after 1 tries
+09:02:04 R4 driver done
+driver exit 0

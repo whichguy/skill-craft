@@ -65,6 +65,7 @@ RUN_DIR_GLOBS = (".shiploop-runs/*/run", "work/.shiploop")
 GRACE_SECONDS = listeners.GRACE_SECONDS  # after SIGTERM a group gets this long before SIGKILL
 FORCE_SECONDS = listeners.FORCE_SECONDS
 POLL_SECONDS = listeners.POLL_SECONDS
+OBSERVER_SETTLE_SECONDS = 5.0  # how long cleanup waits for an observer whose starter is still running to become an orphan
 
 _WRITE = threading.Lock()  # suite cases run in threads of one harness; each appends to its own ledger, but one lock is enough
 
@@ -214,17 +215,16 @@ def observer_records(folder) -> list[Path]:
     return sorted(path for pattern in RUN_DIR_GLOBS for path in folder.glob(f"{pattern}/{OBSERVER_RECORD}"))
 
 
-def observer(path: Path, now: dict[int, dict]) -> dict | None:
-    """The live observer a record names, or None. Accepted only while it is an orphan (parent pid 1: the ShipLoop command that
-    started it has exited, so it is no one's foreground watch), leads its own group, and its command line carries the record's
-    instance id and run directory (shiploop_progress.start passes both)."""
+def _observer_row(path: Path, now: dict[int, dict]) -> dict | None:
+    """The live process a progress-observer record names, or None: its command line must carry the record's instance id and run
+    directory (shiploop_progress.start passes both). Says nothing about whose child it is."""
     try:
         found = json.loads(path.read_text())
         pid, instance = int(found["pid"]), str(found["instance"])
     except (OSError, ValueError, KeyError, TypeError):
         return None
     row = now.get(pid)
-    if not row or row["ppid"] != 1 or row["pgid"] != pid:
+    if not row:
         return None
     words = row["command"].split()
     run_dir = _flag(words, "--run-dir")
@@ -233,17 +233,61 @@ def observer(path: Path, now: dict[int, dict]) -> dict | None:
     return row
 
 
+def observer(path: Path, now: dict[int, dict]) -> dict | None:
+    """The live observer a record names, or None. Accepted only while it is an orphan (parent pid 1: the ShipLoop command that
+    started it has exited, so it is no one's foreground watch) and leads its own group."""
+    row = _observer_row(path, now)
+    if not row or row["ppid"] != 1 or row["pgid"] != row["pid"]:
+        return None
+    return row
+
+
+def own_observer_records(folder) -> list[Path]:
+    """The observer records of this run's own folder: the two default layouts, plus the run directory of any state.md under the
+    folder (a model may pass `--run-dir` anywhere in it). The orphan scan of other folders keeps to the two layouts, since it
+    would otherwise walk every earlier run's product tree."""
+    folder = Path(folder)
+    found = set(observer_records(folder))
+    try:
+        entries = sorted(folder.iterdir())
+    except OSError:
+        return sorted(found)
+    for entry in entries:
+        if entry.name in ("home", "build") or not entry.is_dir():
+            continue
+        with contextlib.suppress(OSError):
+            for state in entry.rglob("state.md"):
+                if (state.parent / OBSERVER_RECORD).is_file():
+                    found.add(state.parent / OBSERVER_RECORD)
+    return sorted(found)
+
+
 def adopt_observers(out, now: dict[int, dict]) -> list[dict]:
     """Record, as groups of role ``observer``, the live observers of this run's ShipLoop runs that the ledger does not hold yet."""
     known = {(row.get("pgid"), (row.get("leader") or {}).get("started")) for row in rows(out) if row.get("kind") == "group"}
     adopted = []
-    for path in observer_records(out):
+    for path in own_observer_records(out):
         row = observer(path, now)
         if row and (row["pgid"], row["started"]) not in known:
             with contextlib.suppress(OSError):
                 adopted.append(record(out, "group", id=f"{row['pid']}@{time.time():.6f}", pgid=row["pgid"], role="observer",
                                       leader=row, record=path.relative_to(Path(out)).as_posix()))
     return adopted
+
+
+def settle_observers(out) -> list[dict]:
+    """Adopt this run's observers, waiting up to OBSERVER_SETTLE_SECONDS for one whose starter is still running. A ShipLoop start
+    that was in the middle of its work when the host was ended has not yet left its observer an orphan; adopting only orphans
+    let it outlive the run, and the harness then refused every later launch because of it (2026-11-01)."""
+    end = time.monotonic() + OBSERVER_SETTLE_SECONDS
+    adopted: list[dict] = []
+    while True:
+        now = table()
+        adopted += adopt_observers(out, now)
+        waiting = [path for path in own_observer_records(out) if (row := _observer_row(path, now)) and row["ppid"] != 1]
+        if not waiting or time.monotonic() >= end:
+            return adopted
+        time.sleep(POLL_SECONDS)
 
 
 # ---------------------------------------------------------------- stopping
@@ -305,7 +349,7 @@ def cleanup(out) -> dict:
     out = Path(out)
     found: dict = {"observed": True, "stopped": [], "survived": [], "gone": [], "reused": [], "unverified": [], "protected": []}
     try:
-        adopt_observers(out, table())
+        settle_observers(out)
         for group in open_groups(out):
             how, detail = stop(group)
             entry = {"pgid": group["pgid"], "role": group.get("role"),

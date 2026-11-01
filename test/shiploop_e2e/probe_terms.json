@@ -88,6 +88,10 @@
       "\\bhelp[- ]?desk\\b",
       "\\bESCALATE_HIGH_MINUTES\\b",
       "\\bticket[- ]sla\\b"
+    ],
+    "shared-expenses": [
+      "\\bshared[- ]expenses?\\b",
+      "\\bexpense[- ]split\\b"
     ]
   },
   "exempt": [

@@ -1,0 +1,138 @@
+[
+  {
+    "output": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live-436258/hello-1",
+    "runs": [
+      {
+        "run": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live-436258/hello-1/.shiploop-runs/work-20261101-162847-3d854f/run",
+        "status": "done",
+        "stage": "done",
+        "handoff_attempts": [
+          {
+            "exit": 0,
+            "moved_to": "done"
+          }
+        ],
+        "packets": [
+          {
+            "chars": 20653,
+            "printed": 16850,
+            "whole": false
+          }
+        ],
+        "follow_on": [],
+        "handoff_accepted": true,
+        "request_file": false,
+        "report_has_section": true,
+        "unverified_at_handoff": []
+      }
+    ],
+    "verdicts": {},
+    "case": "hello"
+  },
+  {
+    "output": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live-436258/csv-report-1",
+    "runs": [
+      {
+        "run": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live-436258/csv-report-1/.shiploop-runs/work-20261101-162844-73ac50/run",
+        "status": "done",
+        "stage": "done",
+        "handoff_attempts": [
+          {
+            "exit": 0,
+            "moved_to": "done"
+          }
+        ],
+        "packets": [
+          {
+            "chars": 20762,
+            "printed": 17068,
+            "whole": false
+          }
+        ],
+        "follow_on": [
+          {
+            "class": "note",
+            "needs": "No action required; retain the stated default if extending the CLI.",
+            "request_sentence": "",
+            "source": "assumption:A2",
+            "statement": "Half-even aggregate rounding and first-record header behavior were implemented and verified."
+          }
+        ],
+        "handoff_accepted": true,
+        "request_file": false,
+        "report_has_section": true,
+        "unverified_at_handoff": []
+      }
+    ],
+    "verdicts": {},
+    "case": "csv-report"
+  },
+  {
+    "output": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live-436258/csv-report-2",
+    "runs": [
+      {
+        "run": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live-436258/csv-report-2/.shiploop-runs/work-20261101-162851-b8ec24/run",
+        "status": "done",
+        "stage": "done",
+        "handoff_attempts": [
+          {
+            "exit": 0,
+            "moved_to": "done"
+          }
+        ],
+        "packets": [
+          {
+            "chars": 20855,
+            "printed": 17101,
+            "whole": false
+          }
+        ],
+        "follow_on": [
+          {
+            "class": "note",
+            "needs": "A future change would define different header or rounding policy if desired.",
+            "request_sentence": "",
+            "source": "assumption:A2",
+            "statement": "Input headers are assumed to be as specified; half-even tie handling is a documented default."
+          }
+        ],
+        "handoff_accepted": true,
+        "request_file": false,
+        "report_has_section": true,
+        "unverified_at_handoff": []
+      }
+    ],
+    "verdicts": {},
+    "case": "csv-report"
+  },
+  {
+    "output": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live-436258/seat-reservations-1",
+    "runs": [
+      {
+        "run": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live-436258/seat-reservations-1/.shiploop-runs/work-20261101-162845-d50abc/run",
+        "status": "done",
+        "stage": "done",
+        "handoff_attempts": [
+          {
+            "exit": 0,
+            "moved_to": "done"
+          }
+        ],
+        "packets": [
+          {
+            "chars": 21245,
+            "printed": 17462,
+            "whole": false
+          }
+        ],
+        "follow_on": [],
+        "handoff_accepted": true,
+        "request_file": false,
+        "report_has_section": true,
+        "unverified_at_handoff": []
+      }
+    ],
+    "verdicts": {},
+    "case": "seat-reservations"
+  }
+]

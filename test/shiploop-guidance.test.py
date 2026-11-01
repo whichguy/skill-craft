@@ -3041,6 +3041,34 @@ class UnverifiedWordingTests(unittest.TestCase):
         self.assertIn("listed in its `unverified` result with the stage that reports it", reference)
 
 
+class FollowOnWordingTests(unittest.TestCase):
+    """The handoff states the follow-on list, its seven classes and the one thing a recommendation does."""
+
+    def test_the_row_and_the_duty_name_the_list_the_classes_and_what_a_recommendation_does(self) -> None:
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_follow_on as follow_on
+        import shiploop_stage_spec as spec
+        done = normalized(" ".join(spec.stage("handoff").done_when))
+        self.assertIn("the follow-on list classifies what the run leaves for a later run, each entry citing a record", done)
+        duty = normalized(prompts.DUTIES["handoff"])
+        for name in follow_on.CLASSES:
+            self.assertIn("`" + name + "`", duty)
+        for phrase in ("List in `follow_on` what this run leaves for a later run",
+                       "A `gap` or a `decision` makes ShipLoop write a request for a follow-on run",
+                       "ShipLoop starts nothing"):
+            self.assertIn(phrase, duty)
+
+    def test_the_reference_and_the_glossary_say_what_the_script_refuses_and_what_it_never_does(self) -> None:
+        reference = normalized((REFERENCES / "navigator.md").read_text(encoding="utf-8"))
+        for phrase in ("`handoff` also lists in `follow_on` what the run leaves for a later run",
+                       "and a `gap` that names no request sentence",
+                       "ShipLoop starts nothing, asks nothing and never blocks `done` for what an entry says"):
+            self.assertIn(phrase, reference)
+        glossary = normalized((REFERENCES / "glossary.md").read_text(encoding="utf-8"))
+        self.assertIn("| follow-on |", glossary)
+        self.assertIn("a follow-up return", glossary)   # the entry says which neighbouring term it is not (S-16)
+
+
 class LiveRunGuidanceTests(unittest.TestCase):
     """The texts a live four-item run (2026-10-19, run folder chess-sf-full-05fe25b) showed missing: each answers a
     question the model otherwise answered by reading ShipLoop's source, or a cost it did not know (build plan S2.4-S2.6,

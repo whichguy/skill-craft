@@ -1,0 +1,21 @@
+{
+  "contract": "prediction/1",
+  "record": "LR-20261101-58f651",
+  "anchor": "S-2",
+  "because": "The control lacks the same-action continuation, so a deliberate premature FINAL message ends the action with the completion contract unmet and the case's own hook check fails (the stage 4 pilot's second run: 0 of 3 on a build without it, 3 of 3 with it). The candidate has it, so the share of attempts that pass accuracy on hello-hook-continuation should rise by at least half.",
+  "effects": [
+    {
+      "case": "hello-hook-continuation",
+      "measure": "accuracy",
+      "direction": "up",
+      "at_least": 0.5
+    }
+  ],
+  "guards": [
+    {
+      "case": "*",
+      "measure": "accuracy",
+      "direction": "not_down"
+    }
+  ]
+}
