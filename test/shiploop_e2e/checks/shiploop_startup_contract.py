@@ -27,10 +27,14 @@ class ContractFailure(RuntimeError):
     pass
 
 
-ILLUSTRATIVE_CLI_HEADS = frozenset({
-    "/absolute/.../scripts/shiploop",
-    "/selected/.../scripts/shiploop",
-})
+ILLUSTRATIVE_CLI_ROOTS = ("/absolute/", "/selected/")
+ILLUSTRATIVE_CLI_SUFFIX = "/scripts/shiploop"
+
+
+def _is_illustrative_cli_head(value: str) -> bool:
+    return any(value.startswith(root) and value.endswith(ILLUSTRATIVE_CLI_SUFFIX)
+               and len(value) > len(root) + len(ILLUSTRATIVE_CLI_SUFFIX)
+               for root in ILLUSTRATIVE_CLI_ROOTS)
 
 
 def fail(message: str) -> None:
@@ -78,7 +82,7 @@ def _startup_kind(command: str, selected_cli: str) -> str | None:
         kind = "init"
     else:
         return None
-    if head[1] in ("$CLI", selected_cli, *ILLUSTRATIVE_CLI_HEADS):
+    if head[1] in ("$CLI", selected_cli) or _is_illustrative_cli_head(head[1]):
         return kind
     if Path(head[1]).is_absolute():
         fail(f"unsupported absolute ShipLoop CLI head: {head[1]!r}")
@@ -142,7 +146,7 @@ def render_example(command: str, *, selected_cli: str, repo: str, run_dir: str, 
     if head is None:
         fail("startup example has no simply quoted python3 CLI head")
     match, head_value, quote = head
-    if head_value in ILLUSTRATIVE_CLI_HEADS:
+    if _is_illustrative_cli_head(head_value):
         replacement = shell_single(selected_cli) if quote == "'" else shell_double(selected_cli)
         command = command[:match.start("word")] + replacement + command[match.end("word"):]
     elif head_value == selected_cli or head_value == "$CLI":
@@ -328,7 +332,15 @@ def run_probe(invocation: dict[str, Any], package: Path, skill: Path, modules: d
         if live.get("error") or live.get("status") != "active" or not live.get("run_id"):
             fail("temporary fixture run is not readable and active through selected hook-status")
         marker = _marker(live["run_id"], live.get("revision"), live["run_dir"])
-        selected_cli = str(skill / "scripts" / "shiploop")
+        selected_record = invocation.get("plugin")
+        if invocation.get("host") in ("codex", "grok") and isinstance(selected_record, dict):
+            selected_root = selected_record.get("path")
+        else:
+            selected_root = invocation.get("plugin_dir")
+        if not isinstance(selected_root, str) or not selected_root:
+            fail("selected package identity has no logical package path for its CLI")
+        selected_cli = str(Path(selected_root).expanduser() / "skills" / "shiploop" /
+                           "scripts" / "shiploop")
         if not Path(selected_cli).is_file():
             fail("selected package's exact ShipLoop CLI path is unavailable")
         source_path = skill / "SKILL.md"
@@ -342,7 +354,9 @@ def run_probe(invocation: dict[str, Any], package: Path, skill: Path, modules: d
         report["selected_documentation"] = {
             "path": str(source_path), "sha256": hashlib.sha256(source_text.encode("utf-8")).hexdigest(),
             "commands": examples, "selected_cli_path": selected_cli,
-            "observer_head_policy": "preserve $CLI and exact selected literal; substitute only the two registered illustrative heads",
+            "observer_head_policy": (
+                "preserve $CLI and exact selected literal; substitute only absolute heads under "
+                "/absolute/ or /selected/ ending /scripts/shiploop"),
         }
         report["documented_probe_ids"] = ["documented_workspace_start", "documented_init"]
         for probe_id, kind in (("documented_workspace_start", "workspace_start"),
@@ -353,10 +367,12 @@ def run_probe(invocation: dict[str, Any], package: Path, skill: Path, modules: d
 
         synthetic_source = Path(scratch.name) / "external-synthetic-card.md"
         literal_absolute_single = (
-            "python3 '/absolute/.../scripts/shiploop' workspace start --repo \"$REPO\" "
+            "python3 '/absolute/directory-containing-the-loaded-SKILL.md/scripts/shiploop' "
+            "workspace start --repo \"$REPO\" "
             "--prompt='<user request>'")
         literal_selected_double = (
-            'python3 "/selected/.../scripts/shiploop" workspace start --repo "$REPO" '
+            'python3 "/selected/synthetic-installed-skill-root/scripts/shiploop" '
+            'workspace start --repo "$REPO" '
             "--prompt='<user request>'")
         literal_exact_double = (
             f'python3 "{selected_cli}" workspace start --repo "$REPO" '
@@ -420,10 +436,14 @@ def run_probe(invocation: dict[str, Any], package: Path, skill: Path, modules: d
                {"rejected": True, "observer_called": False, "rendered_command": None},
                foreign_observed, package, foreign_probe_before, source_command=foreign_command)
 
-        variable_command = rendered["workspace_start"]
+        variable_source = (
+            'python3 "$CLI" workspace start --repo "$REPO" --prompt=\'<user request>\'')
+        variable_command = render_example(
+            variable_source, selected_cli=selected_cli, repo=repo, run_dir=run_dir,
+            request=simple_request)
         observer_probe(report, receipt, package, keepalive, host, "variable_head",
                        variable_command, marker, {"bound": False},
-                       source_command=examples["workspace_start"])
+                       source_command=variable_source)
 
         packet = shell_single(str(Path(run_dir) / "packets" / "next.md"))
         observer_probe(report, receipt, package, keepalive, host, "read_packet",
