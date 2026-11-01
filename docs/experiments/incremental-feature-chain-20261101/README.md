@@ -1,9 +1,10 @@
 # One base, then two features: an incremental ShipLoop test plan
 
-Status: proposed case requests and evaluation plan. The reused apparatus passed
-45 focused no-model checks at `3423e21801165d86c21e1d9e59d5c55d130bff66`.
-The new feature checks are not implemented or calibrated and this chain has not
-run live. This is not yet an unattended launch kit or a ShipLoop improvement claim.
+Status: the three requests now have experiment-local behavior checks, synthetic
+calibration, a one-link launcher and an evidence-bound predecessor gate. Independent
+verification passed 30 pilot tests and 52 suite-registration tests; the first live chain is pending. This is test apparatus, not a
+measured ShipLoop improvement. The earlier 45 focused checks at
+`3423e21801165d86c21e1d9e59d5c55d130bff66` verified reused components only.
 
 Consumer: the E2E operator planning and reviewing successive ShipLoop runs. The
 builder always invokes ShipLoop in a separate fresh context; the operator does
@@ -85,9 +86,9 @@ and then to implemented and verified only when evidence supports it.
 All checks derive from the public request or applicable prior decisions. Keep an
 external `checks_source` map identifying the request sentences behind each check.
 Link 2 intentionally incorporates link 1's accepted requirement by reference.
-This pilot therefore tests a broader rule than SPEC's current “own prompt only”
-case-writing contract. Before catalog adoption, propose a dated SPEC amendment in
-its own commit; this plan changes neither SPEC nor the catalog. The evaluator's
+The separately implemented user-listing Chain B carries the dated SPEC
+amendment for explicit incorporation by reference. This CSV pilot remains
+experiment-local and does not add a central catalog case. The evaluator's
 inputs and expected outputs remain outside the builder's product.
 
 | Condition group | Required observations |
@@ -179,8 +180,11 @@ profile consistently rather than silently changing its default. Proposed pilot:
 Codex `gpt-6.1-terra`, **high**, honoring the owner's request to return to high.
 This is not a high-versus-xhigh comparison and changes no harness default.
 
-The reviewed published build is skill-craft 2.31.0 / ShipLoop 1.30.0 at release
-`5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a`; it already includes placement notices.
+The original review used skill-craft 2.31.0 / ShipLoop 1.30.0 at release
+`5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a`. Before the first live launch, the
+published locator was refreshed to skill-craft **2.32.1 / ShipLoop 1.30.2**,
+`9273b4cfda87761f4ad002324b238e6d8f755bfb`; the launcher accepts an explicit
+`--release-commit` and requires that exact clean, detached release checkout.
 Resolve the selected published build again before launching and freeze it for all
 links. Following the existing experiment pattern, use `--source checkout` on a
 detached checkout of that release, with the pilot requests/checks in this experiment
@@ -202,7 +206,72 @@ tracked test-owned state between independent repetitions. A Git copy does not
 establish a remote-system checkpoint. The shared Salesforce org's unrelated apps
 remain outside cleanup scope.
 
-## The smallest next work, in order
+## Run the implemented kit
+
+Use a clean detached checkout of the selected release for `RELEASE_TREE`, and
+put `OUT` outside both source checkouts. `KIT` is this experiment directory in
+the apparatus checkout. The source harness builds the released tree into the
+isolated subject's package; the current implementation checkout is not the
+subject build.
+
+```sh
+mkdir -p "$OUT"
+python3 -B "$KIT/calibrate_checks.py" \
+  --base-checks "$RELEASE_TREE/test/shiploop_e2e/checks/csv_report.py" \
+  > "$OUT/calibration.json"
+python3 -B "$KIT/test_checkpoint.py"
+python3 -B "$KIT/launch.py" --release-tree "$RELEASE_TREE" \
+  --release-commit 9273b4cfda87761f4ad002324b238e6d8f755bfb \
+  --output-root "$OUT" --calibration "$OUT/calibration.json" \
+  --trial-id pilot-a --link base --dry-run
+```
+
+After checking the command, repeat the launch without `--dry-run`. It launches
+one fresh Codex invocation, records its exact request/check/model/release identity
+in external `runs.json`, and preserves a failed attempt. A launch requires a
+passing calibration artifact whose input digests still match the checks, their
+fixtures, the requests and the selected release's base checker. Editing a checker
+after calibration invalidates that proof. It neither schedules the
+next link nor supplies its semantic verdict. No new turn, resume or runtime cap
+is added by the kit.
+
+Before the next link, follow the [review guide](review-guide.md):
+
+```sh
+python3 -B "$KIT/checkpoint.py" inspect --run-dir "$OUT/pilot-a/base" \
+  --inventory "$OUT/runs.json" --trial-id pilot-a --link base \
+  --output "$OUT/reviews/pilot-a/base-snapshot.json"
+# Fill a separate base-review.json from review-template.json and retained evidence.
+python3 -B "$KIT/checkpoint.py" create --run-dir "$OUT/pilot-a/base" \
+  --inventory "$OUT/runs.json" --trial-id pilot-a --link base \
+  --review "$OUT/reviews/pilot-a/base-review.json" \
+  --snapshot "$OUT/reviews/pilot-a/base-snapshot.json" \
+  --output "$OUT/checkpoints/pilot-a/base.json"
+python3 -B "$KIT/launch.py" --release-tree "$RELEASE_TREE" \
+  --release-commit 9273b4cfda87761f4ad002324b238e6d8f755bfb \
+  --output-root "$OUT" --calibration "$OUT/calibration.json" \
+  --trial-id pilot-a --link filter \
+  --checkpoint "$OUT/checkpoints/pilot-a/base.json"
+```
+
+Repeat inspection and review for `filter`, then launch `output` from its
+checkpoint. Review the final link too. The [source map](checks-source.json) links
+each condition to the public request. The [calibration](calibrate_checks.py)
+uses two independent implementation structures and explicit good/bad expectations.
+Keep this calibration artifact immutable across the chain; a new calibration gets a
+new filename. Editing or overwriting a pinned artifact invalidates the checkpoint.
+Repository CI runs both calibration and checkpoint tests through
+`test/shiploop-e2e-incremental-pilot.test.py`.
+
+If the host interrupts an unfinished link, repeat that link's launcher command
+with `--resume`. The launcher uses the harness's existing `--resume-run` path:
+it continues the same link and retains the earlier attempt before updating its
+result. It does not copy the predecessor again or repeat the original request.
+The same source, profile, calibrated checks and recorded partial checkout must
+still match. A completed delivery that failed its checks, or an owner-decision
+stop, is not a transient host interruption. Preserve and review that result.
+
+## Accepted sequence and optional extensions
 
 1. Build the filter/output checks and the predecessor inspection for these exact
    requests. Reuse the existing base checks and `delta` reader; add no controller,
@@ -309,3 +378,19 @@ These are apparatus checks, not new live-case results.
 Document check: relative source/request links resolve and the rendered Markdown
 tables were inspected in a local HTML preview. The Mermaid source was reviewed;
 the local Pandoc preview does not render Mermaid diagrams.
+
+## Implementation verification, 2026-11-01
+
+The final independent check passed 30 pilot tests (29 checkpoint/launch tests plus
+calibration) and 52 suite-registration tests. The calibrated matrix matched all
+136 cells (17 variants by eight oracles), with no live model calls and unchanged
+input/source identity. The dry-run selected the clean detached 9273b4cf release,
+verified the calibration binding and created no product output. Raw evidence is
+retained outside the repository under
+`/Users/dadleet/e2e-runs/2026-11-01/incremental-implementation-6vr1vrbo/csv-verification-03`.
+These results qualify the apparatus contracts; live ShipLoop behavior is pending.
+
+Interrupted-run recovery requires a harness result and invocation to have been
+recorded. It does not recover a killed launcher with no retained record. The
+source harness records copied start HEAD/tree and ancestry, but does not expose
+an atomic post-copy whole-file manifest before the child starts.
