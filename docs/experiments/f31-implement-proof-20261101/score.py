@@ -8,7 +8,8 @@ Each folder RUNS_ROOT/<arm>-<case>-s<n> is a slice (slice-result.json) or a csv-
 records the item's implement results in order, and for each implement send-back its headline, its summary and whether
 the text matches F31's registered pattern. The pattern only finds candidates: labels.jsonl, one reading per send-back,
 decides, and an unlabelled candidate is reported as unread. Labels are made from ``--blind``'s list, which shows each
-send-back's headline and summary under a key (a hash of run and action), in a fixed shuffled order, without its run. It also records the test files implement changed (slices:
+send-back's headline, summary and the Proofs of the step plan in force under a key (a hash of run and action), in a
+fixed shuffled order, without its run (README, amendment of 2026-11-01). It also records the test files implement changed (slices:
 the candidate's changed paths that are test files), the case checks (slices) or run.py's pass (deliveries), and the
 minutes. Then it applies the registered decision rule.
 """
@@ -45,9 +46,16 @@ def state_dirs(out: Path):
 
 
 def implement_results(store, run: Path, item: str | None):
+    """The item's implement results in order, each with the Proofs of the step plan in force when it ran (the plan of
+    the item's last accepted step-plan before it; a seeded plan when the run never ran step-plan)."""
     state = store.read_record(run / "state.md")
-    rows = []
+    accepted = state.get("accepted") or {}
+    rows, plan_of = [], {}
     for row in state.get("history") or []:
+        if row.get("stage") == "step-plan" and row.get("outcome") == "done":
+            plan = accepted.get(row.get("action"))
+            if isinstance(plan, dict):
+                plan_of[row.get("workitem")] = plan
         if row.get("stage") != "implement" or (item and row.get("workitem") != item):
             continue
         headline = ""
@@ -57,8 +65,11 @@ def implement_results(store, run: Path, item: str | None):
                 headline = str((store.read_record(result_file).get("result") or {}).get("headline") or "")
             except Exception:  # noqa: BLE001 - an unreadable result keeps the history summary
                 headline = ""
+        plan = plan_of.get(row.get("workitem")) or {}
+        proofs = [str(step.get("id")) + ": " + str(step.get("proof") or "")[:400]
+                  for step in plan.get("steps") or () if isinstance(step, dict)]
         rows.append({"action": row.get("action"), "outcome": row.get("outcome"), "headline": headline,
-                     "summary": str(row.get("summary") or "")})
+                     "summary": str(row.get("summary") or ""), "proofs": proofs})
     return rows
 
 
@@ -103,7 +114,7 @@ def main() -> None:
             text = row["headline"] + " " + row["summary"]
             label = labels.get(key_of(out.name, str(row["action"])))
             sendbacks.append({"key": key_of(out.name, str(row["action"])), "action": row["action"],
-                              "headline": row["headline"], "summary": row["summary"][:600],
+                              "headline": row["headline"], "summary": row["summary"][:600], "proofs": row["proofs"],
                               "pattern": bool(NAMES_TEST.search(text) and SAYS_WHY.search(text)),
                               "f31": label["f31"] if label else None, "reading": label.get("reading") if label else None})
         entry = {"run": out.name, **name.groupdict(), "kind": kind,
@@ -123,7 +134,7 @@ def main() -> None:
         runs.append(entry)
 
     if args.blind:
-        shown = [{"key": s["key"], "headline": s["headline"], "summary": s["summary"]}
+        shown = [{"key": s["key"], "headline": s["headline"], "summary": s["summary"], "proofs": s["proofs"]}
                  for r in runs for s in r.get("sendbacks") or ()]
         random.Random(20261101).shuffle(shown)
         print(json.dumps(shown, indent=1))

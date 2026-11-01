@@ -93,6 +93,26 @@ change is adopted only if each failure is shown to be unrelated to it (infrastru
 Power: there are 8 slices per arm. If A's F31 rate were 10% per slice, A would show at least one 57% of the time; at
 30%, 94% of the time.
 
+## Amendment (2026-11-01, before any score)
+
+Made on evidence from another session, Prompt enrichment research (docs/experiments/implement-send-back-class-20261101/;
+runs in ~/e2e-runs-r3/20261101, Codex Terra 6.1 high, a greenfield Node case). When it was written, no run of this check
+had finished and nothing was scored. The definition of an F31 send-back and the decision rule are unchanged.
+- **Power, recalibrated.** That study had 28 implement attempts with a direct-probe Proof whose executed criteria named
+  test-stage tests in their Confirm by. They gave 1 F31 send-back (3.6%) and 27 done. At that rate, 8 slices show at
+  least one F31 in arm A only about 25% of the time. So "mechanism unexercised, benefit unmeasured" is the likeliest
+  outcome, and the decision then rests on rules 1 to 4. The 10% and 30% figures above were assumptions.
+- **Labelling shows the Proof.** 5 of that study's 6 implement loops also named the unwritten TC tests, but their Proof
+  was the test runner on a base with no tests (`node --test`, or a wrapper naming the test file). That is the
+  proof-order class, which arm B's wording cannot fix. A label made from the headline and summary alone could call them
+  F31. `score.py --blind` now also prints the Proofs of the step plan in force at each send-back, still without its run
+  or arm, so the registered definition can be applied. In Part 2 step-plan writes its own Proofs, so such send-backs can
+  occur in either arm.
+- **A clean F31 to calibrate the labels:** that study's A10, second send-back. "S1 independent HTTP proof passed, but
+  C1-C3 still require unwritten TC_1-TC_4 at implement stage, which prohibits test creation."
+- **Cost anchors:** a loop averaged 2.0 minutes (1.1 to 3.2, n = 6), and F31 was 1 of the 6 loops, about 0.1 minutes a
+  run in that case. The no-harm rules weigh more than the benefit.
+
 ## Result
 
 Not yet run.
