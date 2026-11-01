@@ -118,6 +118,8 @@ other 8. Full table and reading: test/shiploop_e2e/LEARNINGS.md (the entry of 20
   - *Each send-back costs about a minute, so no rule is added.*
   - *Superseded in part the same day (journal E18). The narrow form, for plain suite Proofs only, is built as rule C
     of the shipped refusal, for the Proof duty rather than for time.*
+  - *Closed 2026-11-01 (journal E21). On the runs made since its release, rule C never fired and refused no plan, in
+    147 judged plans. The identifier and compound forms stay unbuilt, and F31 is the owner's.*
 - **A proof-command dry run.** One baseline send-back on Terra high was a Proof with unescaped shell quotes (a
   SyntaxError before any assertion); no gate reads that today. *2026-11-01: 3 of the 35 implement send-backs in the
   saved runs are a Proof's shell quoting (`labels.jsonl` in the folder above). They are counted only; their cost was not

@@ -449,12 +449,19 @@ def rule_c_live(run: Path):
         return None
 
 
+def inside_checkout(run: Path) -> bool:
+    """Whether a run folder is a copy inside a checked-out skill-craft tree (its test fixtures, mostly): a folder above
+    it holds ``skills/shiploop/SKILL.md``. Such a copy's ``state.md`` is new, but the run it copies is not."""
+    return any((folder / "skills" / "shiploop" / "SKILL.md").is_file() for folder in run.parents)
+
+
 def closing(roots) -> None:
     """The closing check (README, "Closing check"): on every run whose ``state.md`` was created after the snapshot, the
     rule-C refusals its trace records, and the shipped rule replayed on its accepted step plans after rules A and B pass
-    (as ``shipped`` does), split by whether the run's ShipLoop had rule C. Writes closing-check.json."""
+    (as ``shipped`` does), split by whether the run's ShipLoop had rule C. A copy inside a checked-out tree is counted
+    and its trace read, but its plans are not judged. Writes closing-check.json."""
     snapshot = 1793542440  # 2026-11-01 06:14:00 PST
-    kinds, fires, refusals, without_base = [], [], [], 0
+    kinds, fires, refusals, without_base, copied_plans, judged_runs = [], [], [], 0, 0, set()
     judged = {"live": 0, "replayed": 0, "unknown": 0}
     for run in runs(roots):
         if (run / "state.md").stat().st_birthtime <= snapshot:
@@ -462,7 +469,8 @@ def closing(roots) -> None:
         state = read(run)
         if not state:
             continue
-        kind = {True: "live", False: "replayed", None: "unknown"}[rule_c_live(run)]
+        copy = inside_checkout(run)
+        kind = "copy" if copy else {True: "live", False: "replayed", None: "unknown"}[rule_c_live(run)]
         kinds.append(kind)
         for row in trace_rows(run):
             if RULE_C_TEXT in str(row.get("error") or ""):
@@ -472,7 +480,13 @@ def closing(roots) -> None:
         items = [str(w.get("id")) for w in state.get("work_items") or () if isinstance(w, dict)]
         for index, row in enumerate(history):
             plan = accepted.get(row.get("action"))
-            if row.get("stage") != "step-plan" or row.get("outcome") != "done" or not isinstance(plan, dict) or not repo:
+            if row.get("stage") != "step-plan" or row.get("outcome") != "done" or not isinstance(plan, dict):
+                continue
+            if copy:
+                copied_plans += 1
+                continue
+            if not repo:
+                without_base += 1
                 continue
             base = base_for(run, repo, row["action"], bool(items) and row.get("workitem") == items[0])
             if not base or subprocess.run(["git", "-C", repo, "cat-file", "-e", f"{base}^{{commit}}"],
@@ -480,6 +494,7 @@ def closing(roots) -> None:
                 without_base += 1
                 continue
             judged[kind] += 1
+            judged_runs.add(str(run))
 
             def exists(path, base=base, repo=repo):
                 return subprocess.run(["git", "-C", repo, "cat-file", "-e", f"{base}:{path}"],
@@ -494,8 +509,11 @@ def closing(roots) -> None:
                 refusals.append({"run": label_of(run), "kind": kind, "item": row.get("workitem"), "refusal": refusal,
                                  "hits": confirm_by_hits(plan, exists, no_path_only=True, generic_only=True),
                                  "implement_outcomes": outcomes})
-    report = {"snapshot": snapshot, "runs": len(kinds), "runs_by_kind": {kind: kinds.count(kind) for kind in judged},
-              "judged_plans": judged, "plans_without_base": without_base, "live_fires": fires, "refusals": refusals}
+    report = {"snapshot": snapshot, "run_folders": len(kinds),
+              "run_folders_by_kind": {kind: kinds.count(kind) for kind in (*judged, "copy")},
+              "judged_plans": judged, "plans_without_base": without_base, "plans_in_copies": copied_plans,
+              "runs_with_judged_plans": len(judged_runs),
+              "live_fires": fires, "refusals": refusals}
     (HERE / "closing-check.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(report, indent=1))
 

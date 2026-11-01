@@ -1,0 +1,17 @@
+{
+  "snapshot": 1793542440,
+  "runs": 1374,
+  "runs_by_kind": {
+    "live": 282,
+    "replayed": 781,
+    "unknown": 311
+  },
+  "judged_plans": {
+    "live": 71,
+    "replayed": 65,
+    "unknown": 0
+  },
+  "plans_without_base": 1,
+  "live_fires": [],
+  "refusals": []
+}

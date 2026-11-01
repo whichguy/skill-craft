@@ -36,7 +36,7 @@ what the stage costs, and changes what the evidence supports.
   on all 175 accepted step plans, the rule refuses 24: the 9 that came back from test-spec and 15 that folded a
   criterion into another criterion's case. It refuses no plan whose every criterion had its own case.
 - **Not built.** A gate for a Proof that runs unwritten tests without naming a test file: four candidate rules each
-  flag Proofs that passed (§6.1), and so does the narrowest, rule S (5 of 12 flags were real); since 1.27.0 another session's narrow rule C refuses the plain-suite form by path. A Proof dry run, a
+  flag Proofs that passed (§6.1), and so does the narrowest, rule S (5 of 12 flags were real); since ShipLoop 1.26.4 another session's narrow rule C refuses the plain-suite form by path. A Proof dry run, a
   repeatable-Proof line and changes to the step-plan Improve review are listed for the owner (§8).
 - **Live (§7a, Codex Terra 6.1 xhigh).** Nine deliveries passed with no test-spec send-back for IDs (ticket-import's three
   through the open-item template path, the gate firing once and the next draft passing); 16 step-plan
@@ -186,7 +186,8 @@ passing ones are supplied checkers (`gym-ui`, `battleship-ui`), a script in the 
 which print IDs no tracked file holds. Not built (F30).
 
 Another session studied the same class at the same time (planning journal E17 and E18,
-docs/experiments/proof-coverage-replay-20261101/) and shipped a narrow rule in ShipLoop 1.27.0, rule C of the
+docs/experiments/proof-coverage-replay-20261101/) and shipped a narrow rule in ShipLoop 1.26.4 (skill-craft 2.27.4, 26123c9e; this said 1.27.0 until a
+2026-11-01 correction: 1.27.0 is the first minor release after it), rule C of the
 proof-order refusal (`shiploop_item_scope.proof_order_refusal`): a Proof that is a generic suite command (`npm test`)
 is refused when an executed criterion of its step names, in its Confirm by, a test path the base lacks (3 of 365 judged
 plans in sample, none on 42 held-out runs). It does not reach a test named by identifier (a unittest name, an Apex

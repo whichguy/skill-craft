@@ -7,7 +7,8 @@ files. The proposal and the stage-by-stage reference are in
 [docs/experiments/key-questions-intake-20261030/](experiments/key-questions-intake-20261030/). The illustrated pages
 are the planning map, https://claude.ai/artifact/BvpneLuojWv7Le1M7CEdnP, and the outcome summary,
 https://claude.ai/artifact/QbP7gaR9x2gW2yUKkWMW1t (E4), and the verdicts of 2026-10-31,
-https://claude.ai/artifact/S5r3siGPAJWkAEszTqDwwT (E5-E11); all are private to the owner. The verdicts and the
+https://claude.ai/artifact/S5r3siGPAJWkAEszTqDwwT (E5-E11), and the plan-time experiments verdict,
+https://claude.ai/artifact/LRQebHNqQ3yGKJim9Trmy2 (E12-E18, E21); all are private to the owner. The verdicts and the
 improvement plan: [docs/shiploop-question-record-verdicts-and-plan-2026-10-31.md](shiploop-question-record-verdicts-and-plan-2026-10-31.md).
 
 This work designs the owner's open TODO of 2026-10-11 ("plan → key questions → research/experiment Until Loops →
@@ -459,6 +460,38 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
 - Evidence: sp2_scores.jsonl, sp3_scores.jsonl, the run folders under ~/e2e-runs-sp/20261101/, test/shiploop_e2e/
   LEARNINGS.md (the round entry of 2026-11-01).
 
+### E21 — 2026-11-01: the proof-coverage study closes (saved runs, no model run)
+
+- Question (the owner: "Determine how to conclude, plan out, and implement"): what is left before E17 and E18's study
+  closes, and has rule C held on the runs made since?
+- Loose ends, checked:
+  - Release CI. The full tier on 26123c9e failed one suite, `shiploop-e2e-cycle`: its PilotKitTest read hook pins from a
+    pilot README that 46f2266f had rewritten. Rule C's suite (`shiploop-callback-contract`) passed. The quick tier on
+    9870c6f6 was green, and the full tier runs only on releases. 27dedcff repaired the test 38 minutes after the
+    release, and the full tier passed on every later release (2.30.0, 41ee3d89: 9 of 9 jobs).
+  - Hosts. Claude, Codex and Grok run skill-craft 2.31.0, which has rule C. Cursor has only a local 1.21.0 copy; Cursor
+    is the owner's app.
+  - E19 studied the same class at the same time and agrees that no wider rule is precise (F30). It dated rule C to
+    ShipLoop 1.27.0; corrected to 1.26.4 in the review and in its rule-S script.
+- Closing check (registered in 4a6c06c4 before it ran; README "Closing check"):
+  - 566 run folders were made since the snapshot, with 850 copies inside checked-out trees set apart. They hold 147
+    judged step plans in 112 runs: 82 on a ShipLoop with rule C, 65 replayed on an older one.
+  - 0 live fires and 0 refusals. At the in-sample rate 147 plans would hold about 1.2, and none happens 31% of the time.
+    0 of 147 is 0 to 2.5% (exact 95%).
+  - Reader audit: the first pass counted the copies as new runs. None of them had a judged plan (no repo recorded), so
+    its 0 and 0 stand; the second pass sets them apart.
+- Decision: rule C stands, and the study closes.
+- Contrary evidence: there is still no live catch, and the 3 in-sample plans remain rule C's only cases. This check
+  rules out false refusals at this size, not a lower catch rate.
+- Remaining, not built:
+  - The identifier and compound forms: E17's 6 misses, about a minute each, with no precise generic rule (F30).
+  - F31, implement's side of the same gap, which is the owner's (step-plan review §8, item 4).
+- Reopen when a live rule-C refusal reads false, when a send-back of those forms costs minutes, or when the owner takes
+  up F31.
+- Status: closed. Firm for the mechanism; its benefit is the Proof duty, not measured time.
+- Evidence: `closing-check.json`, `closing-check-pass1.json` and `replay.py closing`, in
+  docs/experiments/proof-coverage-replay-20261101/.
+
 ## Findings
 
 Each finding is stated in full, with its evidence, in §6.1 of the proposal document.
@@ -489,7 +522,7 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F22 | An executed criterion settling an open plan item holds live: used in 4 of 4 runs, all pass, and it replaces checks that time nothing (`node --version`, a 404 from the unbuilt route) with the item's own timed tests | firm (mechanism); no harm seen at 4 runs a side, not ruled out; unmeasured (stall rate, so the benefit). Corrected 2026-11-01 (E16); was "firm (mechanism, no harm)" | E15, E16 |
 | F23 | A refusal of a criterion whose Confirm by names an unwritten test does not pay. The registered no-path form catches 3 send-backs the shipped rule misses but would refuse 5 plans whose Proof tests the step directly; a proof-order send-back costs about 1 minute (n = 20), so the 9 misses are worth about 10 minutes in 365 plans; 6 of them name the test by identifier, not path. Superseded in part 2026-11-01 (E18): its narrow form, plain suite Proofs only, is built for the Proof duty, not for time | firm (replay, registered rule) | E17, E18 |
 | F24 | No step-plan stall under fix 1's wording in 14 runs with an open item due (0–23%), against 4 of 33 before fix 11 (12%); one-sided p 0.23. One stop was outside XI's case | observational | E17 |
-| F25 | A plain suite Proof (`npm test`) is refused when its step's criterion is confirmed by a test the base lacks (rule C of the proof-order refusal): 3 of 365 judged plans in-sample, 0 false; 0 of 42 held-out runs | firm (mechanism) | E18 |
+| F25 | A plain suite Proof (`npm test`) is refused when its step's criterion is confirmed by a test the base lacks (rule C of the proof-order refusal): 3 of 365 judged plans in-sample, 0 false; 0 of 42 held-out runs; since the release, 0 fires and 0 refusals in 147 judged plans of new runs (82 with rule C live) | firm (mechanism); study closed | E18, E21 |
 | F26 | Step-plan is a median 11% of a run; its Improve review is about 45% of the stage; refusals in its loop halved after c2da4604 | firm | E19 |
 | F27 | 28% of step plans come back to step-plan; on ShipLoop >= 1.25.0 the largest class (8 of 19) is a focused command with fewer IDs than its executed criteria, and the named-path proof-order class is gone (13 -> 0) | firm | E19 |
 | F28 | The shortage comes from step-plan's contract: test-spec's one-case-per-ID rule was never stated there, and the template has shown a short row since 8dee00e0; Improve missed it in 22 of 22 reviewed short plans | firm (mechanism); the template's own share unmeasured | E19 |

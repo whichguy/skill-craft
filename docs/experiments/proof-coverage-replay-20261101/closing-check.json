@@ -1,0 +1,20 @@
+{
+  "snapshot": 1793542440,
+  "run_folders": 1416,
+  "run_folders_by_kind": {
+    "live": 289,
+    "replayed": 277,
+    "unknown": 0,
+    "copy": 850
+  },
+  "judged_plans": {
+    "live": 82,
+    "replayed": 65,
+    "unknown": 0
+  },
+  "plans_without_base": 1,
+  "plans_in_copies": 400,
+  "runs_with_judged_plans": 112,
+  "live_fires": [],
+  "refusals": []
+}
