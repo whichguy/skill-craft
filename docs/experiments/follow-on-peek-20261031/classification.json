@@ -1,0 +1,199 @@
+{
+ "reader": "Claude Sonnet 5.5, one reader, 2026-10-31; no second reader yet",
+ "status": "exploratory",
+ "classes": {
+  "decision": "names a choice or an answer a person must give about the spec or scope before anything is built",
+  "person": "a person must do or confirm something (a manual check, a click-through)",
+  "capability": "a later run with a capability this run lacked (a headed browser, a Lightning UI, a Windows host) could close it",
+  "extension": "optional or conditional scope beyond what the request asks",
+  "debt": "a small hygiene item inside the request's scope (a test to keep, a documentation line)",
+  "note": "knowledge for a later change (a recorded default, where to resume); nothing is open",
+  "gap": "a request outcome or a refuted assumption that the system could close without a person"
+ },
+ "coarse": {
+  "person": "person or capability limit",
+  "capability": "person or capability limit",
+  "extension": "optional or debt",
+  "debt": "optional or debt",
+  "note": "notes",
+  "decision": "needs a person's decision",
+  "gap": "gap the system could close alone"
+ },
+ "entries": [
+  {
+   "run": "~/e2e-runs/2026-10-30/shiploop-salesforce-battleship-zbcb4i5d/run/.shiploop-runs/work-20261030-134151-bce807/run",
+   "text_start": "Confirm rendering and click-through in an authenti",
+   "class": "person",
+   "arguable": false,
+   "note": "needs an authenticated browser that a person holds"
+  },
+  {
+   "run": "~/e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp/qualification-full-ui/runs/battleship-candidate/.shiploop-runs/work-20261030-192802-b18b24/run",
+   "text_start": "If promoting beyond this Developer Edition, add co",
+   "class": "extension",
+   "arguable": false,
+   "note": "conditional on promoting beyond the Developer Edition"
+  },
+  {
+   "run": "~/e2e-runs/2026-10-30/shiploop-sf-qualified-pv9hf_8a/development-01/run/.shiploop-runs/work-20261031-030317-734f4e/run",
+   "text_start": "A full visual theme and viewport audit was not per",
+   "class": "extension",
+   "arguable": true,
+   "note": "an audit not performed that no requirement names; a reader could call it capability (it needs a browser)"
+  },
+  {
+   "run": "~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-03/.shiploop-runs/work-20261031-122739-3e2dae/run",
+   "text_start": "If responsive dark-theme support is required, vali",
+   "class": "extension",
+   "arguable": false,
+   "note": "conditional on a responsive dark-theme requirement the request does not state"
+  },
+  {
+   "run": "~/e2e-runs/20261017/bs-sf-int-b7c77f/.shiploop-runs/work-20261018-040601-5105d5/run",
+   "text_start": "A later run should open app SLBattle on tab SLBatt",
+   "class": "capability",
+   "arguable": false,
+   "note": "a later run with headed Chrome on the org"
+  },
+  {
+   "run": "~/e2e-runs/20261018/bs-release-update-436528/.shiploop-runs/seed/run",
+   "text_start": "A person still has to open App Launcher entry SL B",
+   "class": "person",
+   "arguable": false,
+   "note": "a person opens the App Launcher entry and confirms the board"
+  },
+  {
+   "run": "~/e2e-runs/20261024/chess-sf-full-12a23d/.shiploop-runs/work-20261025-020942-4061a0/run",
+   "text_start": "A later run that can open Lightning app SLChess at",
+   "class": "capability",
+   "arguable": false,
+   "note": "a later run that can open the Lightning app; three items stay open until then"
+  },
+  {
+   "run": "~/e2e-runs/20261024/gate-290-b60ed7-claude-csv-report/.shiploop-runs/work-20261025-023951-c1c6f6/run",
+   "text_start": "Ask the requester whether exponent notation and a ",
+   "class": "decision",
+   "arguable": false,
+   "note": "spec ambiguity (numeric forms, exit code with no arguments): ask the requester"
+  },
+  {
+   "run": "~/e2e-runs/20261024/gate-290-b60ed7-codex-hello/.shiploop-runs/work-20261025-020711-a0aed0/run",
+   "text_start": "No product follow-up is open. If a later change to",
+   "class": "note",
+   "arguable": false,
+   "note": "says no product follow-up is open"
+  },
+  {
+   "run": "~/e2e-runs/20261025/gate-2100-96810d-claude-web/battleship/.shiploop-runs/work-20261025-201613-0bd28f/run",
+   "text_start": "Retain the browser click-through as a BROWSER=1 te",
+   "class": "debt",
+   "arguable": false,
+   "note": "keep the browser click-through as an opt-in test; today a scratch script"
+  },
+  {
+   "run": "~/e2e-runs/20261025/gate-2100-96810d-claude-web/battleship-scoring/.shiploop-runs/work-20261025-204415-a86b45/run",
+   "text_start": "Ship names are a recorded default (the request nam",
+   "class": "note",
+   "arguable": true,
+   "note": "a recorded default the owner may change by editing SHIP_NAMES; nothing else is open"
+  },
+  {
+   "run": "~/e2e-runs/20261025/gate-2132-f7ba78-grok-hello/.shiploop-runs/work-20261026-034535-857137/run",
+   "text_start": "A later run inherits the two Commands and the thre",
+   "class": "note",
+   "arguable": false,
+   "note": "what a later run inherits"
+  },
+  {
+   "run": "~/e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship/.shiploop-runs/work-20261026-045417-6440d1/run",
+   "text_start": "A later run with a runner that can activate a cont",
+   "class": "capability",
+   "arguable": false,
+   "note": "a later run with a runner that can activate a control and hold a response"
+  },
+  {
+   "run": "~/e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship-scoring/.shiploop-runs/work-20261026-082022-fb1de8/run",
+   "text_start": "SYS-CLICK stays with the local player at handoff: ",
+   "class": "person",
+   "arguable": false,
+   "note": "the local player clicks one cell and reads the score"
+  },
+  {
+   "run": "~/e2e-runs/20261026/pilot-ollama-dsflash-993a9d-hello/.shiploop-runs/work-20261026-181830-936fda/run",
+   "text_start": "If a later run changes the delivered files, it mus",
+   "class": "note",
+   "arguable": false,
+   "note": "where a later run must start and how it returns"
+  },
+  {
+   "run": "~/e2e-runs/20261027/v2170-ds-battleship-759a03/.shiploop-runs/work-20261027-150517-62d689/run",
+   "text_start": "Carry the manual consumer pass to the user: play t",
+   "class": "person",
+   "arguable": true,
+   "note": "a manual consumer pass with a screen reader; it also names a one-line README fix (debt)"
+  },
+  {
+   "run": "~/e2e-runs/20261027/v2170-sonnet-battleship-491d9a/.shiploop-runs/work-20261027-103928-803b48/run",
+   "text_start": "A5: a person opens http://localhost:3000/ after no",
+   "class": "person",
+   "arguable": false,
+   "note": "a person opens the page and confirms hit and miss marks"
+  },
+  {
+   "run": "~/e2e-runs/20261027/v2180-sonnet-battleship-36036c/.shiploop-runs/work-20261027-234612-373c7c/run",
+   "text_start": "Optional: a test for the page's fetch-failure mess",
+   "class": "extension",
+   "arguable": false,
+   "note": "optional tests, an expiry for abandoned games and a README note"
+  },
+  {
+   "run": "~/e2e-runs/20261028/pa-ds-battleship-4ed4e3/.shiploop-runs/work-20261028-173217-a07d74/run",
+   "text_start": "A person still has to play one game in a real brow",
+   "class": "person",
+   "arguable": false,
+   "note": "a person plays one game in a real browser"
+  },
+  {
+   "run": "~/e2e-runs/effort-eeff1/control-hello/.shiploop-runs/work-20261025-183611-483768/run",
+   "text_start": "The six kept files are uncommitted on main. A late",
+   "class": "note",
+   "arguable": false,
+   "note": "state of the kept files"
+  },
+  {
+   "run": "~/e2e-runs/effort-eeff1-r1/control-hello/.shiploop-runs/work-20261024-214332-7afe50/run",
+   "text_start": "If a later run wants a fast-forward, do not let pl",
+   "class": "note",
+   "arguable": false,
+   "note": "a hint for a later fast-forward return"
+  },
+  {
+   "run": "~/e2e-runs-brownfield/20261028/bf-ds-ticket-assignment-09c33b/.shiploop-runs/work-20261028-230157-1584ba/run",
+   "text_start": "Whoever picks this up next should decide whether t",
+   "class": "decision",
+   "arguable": true,
+   "note": "an enhancement the build revealed: whether ticket.assigned gets a real delivery route, added as a work item if yes; a reader could call it extension"
+  },
+  {
+   "run": "~/e2e-runs-brownfield/20261028/bf-ds-ticket-escalation-09c33b/.shiploop-runs/work-20261029-005315-5834f6/run",
+   "text_start": "At handoff: record the requesting user's answer to",
+   "class": "decision",
+   "arguable": false,
+   "note": "record the requesting user's answer to assumption A1 (person-level delivery)"
+  },
+  {
+   "run": "~/e2e-runs-brownfield/20261029/hooks-after-ticket-escalation/.shiploop-runs/work-20261030-004732-321bfd/run",
+   "text_start": "No feature work remains; future service or fixture",
+   "class": "note",
+   "arguable": false,
+   "note": "no feature work remains"
+  },
+  {
+   "run": "~/e2e-runs-owner-note/20261028/pc-ds-hello-note-b45e87/.shiploop-runs/work-20261028-194550-435718/run",
+   "text_start": "Only A1 travels onward: a Windows host should conf",
+   "class": "capability",
+   "arguable": false,
+   "note": "a Windows host to confirm the output bytes"
+  }
+ ]
+}

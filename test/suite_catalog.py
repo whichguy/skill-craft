@@ -182,6 +182,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-test-adequacy.test.py",
     "test/shiploop-e2e-delta.test.py",
     "test/shiploop-e2e-ticket-comments.test.py",
+    "test/shiploop-e2e-ticket-sla.test.py",
     "test/shiploop-e2e-lifecycle.test.py",
     "test/shiploop-packet-obligations.test.py",
     "test/shiploop-efficiency-journal.test.py",
@@ -417,7 +418,7 @@ _DURATION_SECONDS = {
     "test/shiploop-e2e-brownfield-tickets.test.py": 90.0,
     # Measured 2026-10-31: 23 tests, eight full adequacy sweeps and false-positive/invalid controls, 260.8 s locally.
     "test/shiploop-e2e-test-adequacy.test.py": 261.0,
-    # The follow-on chain and the delta ledger (chains.py; test/shiploop_e2e/delta.py): 74 tests on synthetic Git repositories, one
+    # The follow-on chain and the delta ledger (chains.py; test/shiploop_e2e/delta.py): 80 tests on synthetic Git repositories, one
     # fake event stream and the eight saved runs of the ticket pair (docs/experiments/multipass-20261031/). 3.3 s locally on 2026-10-31.
     "test/shiploop-e2e-delta.test.py": 5.0,
     # The third link of the ticket chain, ticket-comments (reference_ticket_comments.py): 17 tests; the calibration builds the base, the
@@ -425,6 +426,12 @@ _DURATION_SECONDS = {
     # base then run the whole chain's 13 checks, and the reference runs the 14 hidden checks the link inherits. 45 s locally on
     # 2026-10-31 at load average about 10.
     "test/shiploop-e2e-ticket-comments.test.py": 60.0,
+    # The fourth link of the ticket chain, ticket-sla (reference_ticket_sla.py), the first that changes an earlier rule: the calibration builds
+    # the base, the reference, an alternative and eight defects and grades the case's three checks and its three new hidden checks on each
+    # (real node, a server a check), then the chain's regression, retention and the whole hidden acceptance run on the reference and the
+    # alternative, and the second link's "at most once" check is shown to fail a correct delivery. 303 s locally on 2026-10-31 at
+    # load average about 6 (the calibration 227 s, the rest 76 s).
+    "test/shiploop-e2e-ticket-sla.test.py": 330.0,
     # The resource lifecycle (lifecycle.py; leases, recorded groups, crash and retry, disposal): 19 tests, real ps, flock and
     # signals on processes the tests start, one SIGKILLed harness subprocess. 7.3 s locally on 2026-10-26.
     "test/shiploop-e2e-lifecycle.test.py": 8.0,
@@ -749,7 +756,7 @@ _PREFIX_SUITE_IDS = {
     "test/fixtures/reorientation/": ("shiploop-e2e-reorientation",),
     "test/fixtures/e2e-environment/": ("shiploop-e2e-environment",),
     "test/fixtures/quality/": ("shiploop-e2e-quality", "shiploop-e2e-brownfield", "shiploop-e2e-brownfield-tickets",
-                               "shiploop-e2e-test-adequacy", "shiploop-e2e-ticket-comments"),
+                               "shiploop-e2e-test-adequacy", "shiploop-e2e-ticket-comments", "shiploop-e2e-ticket-sla"),
     "test/fixtures/commit-counters/": ("shiploop-e2e-commit-counters",),
     # The two saved-run extracts the efficiency measurement reads, and the journal rows its test checks.
     "test/fixtures/efficiency/": ("shiploop-e2e-efficiency",),

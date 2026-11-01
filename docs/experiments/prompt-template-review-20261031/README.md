@@ -108,14 +108,14 @@ the parent re-ran the check in current code (main `11414642`).
 | S5 Test-ID slices (optional) | Does item 10's new sentence produce a convention `named()` reads? | 8 hello slices on Terra; ~30 min | Adopt if ≥3 of 4 |
 | S6 F1 bundle count | Does a bundle review at prepare find what per-stage reviews find? | Analysis in F1's planned three-arm batch (45a4d2ff) | Part of F1's decision |
 
-**Owner decisions flagged, nothing proposed**
+**Owner decisions flagged, nothing proposed (all three decided 2026-10-31, answer "3" to "apply the three defaults")**
 
 - research: the written exploration allowance (15 minutes, 64 actions, 3 experiments) is a limit, so it is the
-  owner's to change ([[shiploop-loops-unbounded]]).
+  owner's to change ([[shiploop-loops-unbounded]]). *Decided 2026-10-31: keep; no limit changes.*
 - carry-forward: the skill procedure is 3,321 of 6,104 duty characters, and every run decided `none`. The owner kept
-  the decision per item (7b2d57b7); its revisit trigger has not fired.
+  the decision per item (7b2d57b7); its revisit trigger has not fired. *Decided 2026-10-31: keep.*
 - spec: the goal-6 live measure (docs/shiploop-question-record-verdicts-and-plan-2026-10-31.md §4) has no signal in
-  39 of 39 outcomes and could be closed.
+  39 of 39 outcomes and could be closed. *Decided 2026-10-31: closed; see section 4 of that document.*
 
 ## 4. Cross-cutting learnings
 

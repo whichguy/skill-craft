@@ -96,20 +96,35 @@ def _squeeze(text: str) -> str:
 
 # --- ids ----------------------------------------------------------------------------------------------------------------
 
-def ids_block(prior_text: str | None, final_text: str | None, prefix: str) -> dict:
-    """The ``ids`` entry of one file: the entries the run added, dropped, changed, retired and filed as retired when new."""
+def ids_block(prior_text: str | None, final_text: str | None, prefix: str, may_change: list[str] | None = None) -> dict:
+    """The ``ids`` entry of one file: the entries the run added, dropped, changed, retired and filed as retired when new.
+
+    ``may_change`` is the case's list of patterns (cases.json, ``delta.may_change``, case-insensitive regular expressions) for the
+    earlier entries its request replaces: the entries of the prior file whose text matches one.  When it is given the block also
+    says which of them the run touched (changed in place or moved under Retired or Superseded) and which it left as they were, a
+    rule the new code may now contradict, and which other earlier entries it touched without the request naming them.
+    """
     prior = knowledge._entries(prior_text, prefix) if prior_text and prior_text.strip() else {}
     final = knowledge._entries(final_text, prefix) if final_text and final_text.strip() else {}
     kept = prior.keys() & final.keys()
     new = final.keys() - prior.keys()
     changed = sorted((i for i in kept if _squeeze(prior[i].text) != _squeeze(final[i].text)), key=_number)
-    return {"prefix": prefix, "prior": len(prior), "final": len(final),
-            "added": sorted(new, key=_number),
-            "dropped": sorted(prior.keys() - final.keys(), key=_number),
-            "changed": changed,
-            "unchanged": len(kept) - len(changed),
-            "retired_by_run": sorted((i for i in kept if final[i].retired and not prior[i].retired), key=_number),
-            "born_retired": sorted((i for i in new if final[i].retired), key=_number)}
+    block = {"prefix": prefix, "prior": len(prior), "final": len(final),
+             "added": sorted(new, key=_number),
+             "dropped": sorted(prior.keys() - final.keys(), key=_number),
+             "changed": changed,
+             "unchanged": len(kept) - len(changed),
+             "retired_by_run": sorted((i for i in kept if final[i].retired and not prior[i].retired), key=_number),
+             "born_retired": sorted((i for i in new if final[i].retired), key=_number)}
+    if may_change is not None:
+        patterns = [re.compile(pattern, re.I) for pattern in may_change]
+        expected = sorted((i for i in prior if any(pattern.search(prior[i].text) for pattern in patterns)), key=_number)
+        touched = set(changed) | set(block["retired_by_run"]) | (prior.keys() - final.keys())
+        block.update({"expected": expected,
+                      "expected_touched": [i for i in expected if i in touched],
+                      "expected_untouched": [i for i in expected if i not in touched],
+                      "unexplained": sorted((i for i in touched if i not in expected), key=_number)})
+    return block
 
 
 # --- placement ----------------------------------------------------------------------------------------------------------
@@ -357,6 +372,19 @@ def _kind(out: Path) -> tuple[str, str | None]:
     return ("base" if record.get("base") else "seed" if record.get("seeded") else "fresh"), None
 
 
+def _may_change(out: Path) -> dict | None:
+    """The case's ``delta.may_change`` (cases.json) found from the run's invocation record; None when its case declares none."""
+    try:
+        name = json.loads((Path(out) / "invocation.json").read_text()).get("case")
+        cases = json.loads((HERE / "cases.json").read_text())
+    except (OSError, ValueError, AttributeError):
+        return None
+    cases = cases.get("cases", cases) if isinstance(cases, dict) else {}
+    entry = cases.get(name) if isinstance(name, str) else None
+    change = ((entry or {}).get("delta") or {}).get("may_change") if isinstance(entry, dict) else None
+    return change if isinstance(change, dict) else None
+
+
 def build(out: Path, run_dir: Path | None, tools) -> dict:
     """The two keys run.py adds to metrics.json: ``delta`` and ``delta_unmeasured``."""
     out = Path(out)
@@ -378,7 +406,8 @@ def build(out: Path, run_dir: Path | None, tools) -> dict:
             finals[name] = path.read_text(encoding="utf-8-sig", errors="replace") if path.is_file() else None
         except OSError:
             finals[name] = None
-    ids = {name: ids_block(priors[name], finals[name], prefix) for name, prefix in PREFIX.items()}
+    change = _may_change(out)
+    ids = {name: ids_block(priors[name], finals[name], prefix, change.get(name) if change else None) for name, prefix in PREFIX.items()}
     changed = {i for entry in ids.values() for key in ("added", "changed") for i in entry[key]}
     held = {i for name, prefix in PREFIX.items() if priors[name] for i in knowledge._entries(priors[name], prefix)}
     plan, plan_why = plan_block(run_dir, changed, held)
@@ -439,7 +468,13 @@ def line(name: str, block: dict) -> str:
                 f"retired {len(entry['retired_by_run'])} born-retired {len(entry['born_retired'])}")
 
     follows, tests = plan.get("step_plan_follows") or {}, plan.get("test_cases") or {}
-    return (f"{name}: {d['basis']['kind']} | R {moves(spec)} | AD {moves(arch)} | "
+    def replaced(entry: dict) -> str:
+        if "expected" not in entry:
+            return ""
+        return (f" replaced {len(entry['expected_touched'])}/{len(entry['expected'])} left {len(entry['expected_untouched'])} "
+                f"unexplained {len(entry['unexplained'])}")
+
+    return (f"{name}: {d['basis']['kind']} | R {moves(spec)}{replaced(spec)} | AD {moves(arch)}{replaced(arch)} | "
             f"stray+ spec {len(place['spec.md']['stray_added'])} env {len(place['environment.md']['stray_added'])} "
             f"arch {len(place[knowledge.ARCHITECTURE]['stray_added'])} | "
             f"appends spec {written['spec.md']['appends']} env {written['environment.md']['appends']} "
