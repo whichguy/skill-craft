@@ -336,7 +336,9 @@ question about the loop is not a stop: answer it and continue the packet.
    test criteria before implementation, refine cases using the actual code,
    and give each completion criterion a `Confirm by:` confirmation. Treat those
    criteria as exit criteria: confirm each by its stated method with what is
-   already present, fix the work rather than the check, rerun every check in one
+   already present (at implement, a criterion whose tests the test stage writes
+   is shown by a command that observes it: the step's Proof where it exercises
+   it, else a check in RUN/scratch), fix the work rather than the check, rerun every check in one
    pass after the last edit, and stop only when all are confirmed, one is proven
    unachievable (route to planning), or the same check keeps failing in the same way after a genuine fix
    ([stage Until Loops](references/inner-loop.md#stage-until-loops)).

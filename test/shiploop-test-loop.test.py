@@ -2747,17 +2747,19 @@ class TestLoopTests(unittest.TestCase):
 
     def test_implement_done_rests_on_the_proof_while_the_criterions_confirm_by_test_is_unwritten(self):
         """F31 (planning journal): a criterion whose Confirm by names a test the test stage writes later does not hold
-        implement back.  The step's Until Loop exit condition says the step's Proof shows the criterion and that the
-        Confirm-by tests are written and run at the test stage, and complete accepts done on the Proof with that test
-        absent."""
+        implement back.  The step's Until Loop exit condition says a command that observes the criterion shows it (the
+        step's Proof where it exercises the criterion) and that the criterion's own tests are written and run at the test
+        stage, and complete accepts done on the Proof with that test absent."""
         self.start()
         plan = self.proof_plan(self.PROOF)
         plan["criteria"] = [{"id": "C1", "text": "The planned change works. Confirm by: python3 -m unittest "
                                                   "tests/test_change.py; pass when TC-1 passes."}]
         self.drive_to("implement", step_plan=plan)
         condition = stage_spec.STEP_CRITERIA_CONDITION
-        self.assertIn("by the step's Proof or another command or file", condition)
-        self.assertIn("tests named in a criterion's Confirm by are written and run at the test stage", condition)
+        self.assertIn("by a command or file that observes it (the step's Proof where it exercises the criterion, else "
+                      "a check in RUN/scratch", condition)
+        self.assertIn("a criterion's own tests are written and run at the test stage", condition)
+        self.assertNotIn("Confirm by", condition)   # the condition names no result field (84d4d9da)
         contract = json.loads((self.run_dir / loops.contract_path(self.action())).read_text())
         self.assertIn(condition + " (assigned: C1)", contract["exit_condition"])
         (self.repo / "proof.txt").write_text("proved\n")

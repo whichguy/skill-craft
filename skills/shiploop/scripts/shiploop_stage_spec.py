@@ -83,12 +83,15 @@ def send_back_target(stage: str) -> str:
     return OUTER_SEND_BACK_TO.get(stage, SEND_BACK_TO)
 # The implement step's first exit condition (the owner's D4 words, made binding by D7): its criteria are the unit
 # of completion and the item's other requirements stay binding.  The loop appends the step's criterion IDs to it.
-# At implement the step's Proof shows a criterion; the tests its Confirm by names are the test stage's, which implement
-# may not write (planning journal F31: implement read them as due here and sent good plans back).
+# What shows a criterion at implement is a command or file that observes it: the step's Proof where it exercises the
+# criterion, else a scratch check. The criterion's own tests are the test stage's, which implement may not write
+# (planning journal F31: implement read them as due here and sent good plans back). The condition names no result field
+# (84d4d9da: an item without tests has no criteria and no Confirm-by text), and a Proof that exercises nothing is not
+# a witness (the 2026-11-01 review of F31's first wording).
 STEP_CRITERIA_CONDITION = ("each criterion assigned to this step is satisfied and none of the others is broken, shown "
-                           "after the last edit by the step's Proof or another command or file (tests named in a "
-                           "criterion's Confirm by are written and run at the test stage), and no later step's work is "
-                           "in the change")
+                           "after the last edit by a command or file that observes it (the step's Proof where it "
+                           "exercises the criterion, else a check in RUN/scratch; a criterion's own tests are written "
+                           "and run at the test stage), and no later step's work is in the change")
 # Implement's second exit condition on every route: the step's Proof is its step plan `proof`.  ShipLoop runs it at done
 # (``complete_runs`` step-proof).
 STEP_PROOF_CONDITION = "after the last edit, the Proof of each step this action builds (its `proof` in the step plan) exited 0"
