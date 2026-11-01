@@ -14,8 +14,8 @@ report section and the done-packet lines), on origin/main `d06e18a56ee43db8d04dc
 ShipLoop 1.27.0). The runs started from `2da2d4f3d11b0f468c14ff48e6158a7bb334e8ee`, the plan commit above it (journal Round 5,
 committed before any run), whose skill files are the feature's. Every run loaded plugin tree `bf3be9d89072`
 (`plugin_sha256` in the four baseline rows). The tree that will be released also holds `ba3297d707329a6500ac036577d3f211b2e6a352`
-(one `except` clause in `source_repo`, for a workspace record that is missing, which a real isolated run always has) and test-only
-commits; the four runs did not run those.
+(one `except` clause in `source_repo`, for a workspace record that is missing, which a real isolated run always has), test-only
+commits and the focused-ID step-plan rule of 2.29.0 (b8d320335c81151a99e7d168b684d79fd0e81352, 4515368495e2b2e50ea07f7599146875188449f9, released in 4224161b095792825befe2a384075fab5660ae05); the four runs did not run those (corrected 2026-11-01, Round 8: the rule was missing from this list).
 
 ## Runs
 

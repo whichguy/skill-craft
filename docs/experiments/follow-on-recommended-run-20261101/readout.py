@@ -91,8 +91,8 @@ def describe(folder: Path) -> dict:
         sent_file = folder / "prompt.txt"
         if request is not None and sent_file.is_file():
             # prompt.txt is the prompt the host was given (the harness adds a final newline; command substitution had removed
-            # the request's).  The first version compared result.json's prompt_sha256, which the harness computes over a
-            # different string (it names the planning-review mode), so it read False for a prompt that was the file.
+            # the request's).  The first version compared the full 64-digit sha256 of the request with result.json's prompt_sha256,
+            # which the harness stores as the first 12 hex digits of sha256(prompt.strip()) (run.py), so it read False for a prompt that was the file.
             text = request.read_text(encoding="utf-8")
             sent = sent_file.read_text(encoding="utf-8")
             row["prompt_is_prior_request_file"] = sent.rstrip("\n") == text.rstrip("\n")

@@ -8,10 +8,9 @@ started from that request deliver it unattended while keeping what already works
 run to build the option in a later run), so this shows that the path works and says nothing about how often it is used (M3).
 
 **Conditions.** Codex gpt-6.1-terra at xhigh, `--source marketplace` (the published build the hosts run), custom `--prompt` runs with `--check` commands (`launch.sh`),
-launched from a worktree whose HEAD was the plan commit, outputs under `/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/`. No fixed port. **The published build moved
+launched from a worktree whose HEAD was the plan commit e7c05e6875679ad0a617923c41e1f9fd5c57079e (an ancestor of origin/main, not its tip at launch), outputs under `/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/`. No fixed port. **The published build moved
 during the round**: the two link-1 runs loaded skill-craft 2.31.0 / ShipLoop 1.30.0 (plugin tree b604dade538e); another session released skill-craft 2.32.0 / ShipLoop 1.30.1 /
-Backchain 0.7.0 at 13:00, so the link-2 run, launched at 13:03, loaded that build (plugin tree 6aa0a67b2ac0). The 1.30.1 change is to the `converge` marker line of plan packets (the
-default `one` packets are unchanged) and touches neither the follow-on module nor the handoff duty; Backchain 0.7.0 is the planning child's own command line. So a request file written
+Backchain 0.7.0 at 13:00, so the link-2 run, launched at 13:03, loaded that build (plugin tree 6aa0a67b2ac0). Between the two builds ShipLoop changed converge-mode packet text (the plan marker line and a repair/revise audit pointer; the default `one` packets are meant to be unchanged, 39af8ce04222fb49aa6d612e08b4dbabd73e5db3) and moved the backchain-check validator into Backchain (90b9ac99e02d89efa8102f8686321da9ccccf554): 6 files, 43 insertions, 769 deletions, none of which ran here (backchain records 0); it touches neither the follow-on module nor the handoff duty. Backchain 0.7.0 also changes its own default gate, which these default `one` runs do not use. (Corrected 2026-11-01, Round 8: this first named the marker line only.) So a request file written
 by 1.30.0 was consumed by 1.30.1, which is the realistic upgrade case, and the comparison between links is not between identical builds.
 
 | Run | Started from | Build | Turns | Minutes | Gates | Handoff | `follow_on` | `--max-length` |
@@ -28,13 +27,13 @@ by 1.30.0 was consumed by 1.30.1, which is the realistic upgrade case, and the c
 - R3 holds: the printed command ran as printed on a copy of link1-b's checkout (exit 0, one workspace record, the stored request equal to the file but for its last newline;
   `printed-command-link1-b.json`).
 - R4 holds, on one run: link2-b reached `done` with every verdict, both examples of the option and the basic checks included, with nobody answering anything.
-- R5 (descriptive): link2-b changed `slug.py`, `test_slug.py`, `README.md`, the three living knowledge files and `SHIPLOOP.md`, the knowledge index ShipLoop has committed with `docs/shiploop/` since
-  2026-09-27 (2cd8f33b30f3056a925e3636f624849aadf61982; neither link-1 run of this round nor any Round 6 run committed one; which condition triggers it is not examined here). The spec says the formerly
+- R5 (descriptive): link2-b changed `slug.py`, `test_slug.py`, `README.md`, the three living knowledge files and `SHIPLOOP.md`, the host-authored knowledge index (2cd8f33b30f3056a925e3636f624849aadf61982 made ShipLoop commit it on 2026-09-27, and 589bc03ebe4bb31759a371e10bbc261bb071aab3 removed that on 2026-10-11, so neither build commits it as knowledge; link2-b's model wrote it and the generic commit of files written after
+  the last work item swept it in; neither link-1 run of this round nor any Round 6 run wrote one, and why this run did is not examined; corrected 2026-11-01, Round 8). The spec says the formerly
   deferred option is now supported (R-4) and every other unknown option still exits 2 (`link2-changes.txt`).
 - R6 holds: link2-b's handoff was accepted on its first `complete` and filed `[]`, so the gap was not filed again.
 
 **Predictions** (probability, written before the runs): P1 held (75%). P2 held for "at least one gap" (55%) and missed for "both" (30%): one `gap`, one `note`. P3 held (85%: the gap maps to S3).
-P4 held (90%). P5 held (80%: 1 of 1). P6 held (85%). P7 held (75%; `SHIPLOOP.md` is the knowledge index, counted as a living knowledge file). P8 held (85%: no handoff refusal in either link-1 run).
+P4 held (90%). P5 held (80%: 1 of 1). P6 held (85%). P7 missed on its registered wording (75%: slug.py, its tests, README.md and the living knowledge files; `SHIPLOOP.md` is not one of the three, and counting it as one was a reading chosen after the fact; corrected 2026-11-01, Round 8). P8 held (85%: no handoff refusal in either link-1 run).
 
 **Findings** (journal Round 7 has the numbered list and statuses).
 - The recommended gap ran live end to end and unattended: a model filed a `gap` that maps to the right request sentence, ShipLoop wrote a request and a command that work as printed, and a run started

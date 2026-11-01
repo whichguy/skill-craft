@@ -414,6 +414,10 @@ on the owner's machine.
 
 ### Result (2026-11-01; exploratory; 32 rows, four readers, E2E cases only)
 
+Note added 2026-11-01 (Round 8): the rates below, 2 of 166 (1.2%) and 3 of 166 (1.8%), are 2 or 3 events: their 95% interval is about 0.2% to 5%. The 32 texts come from 17 distinct
+requests, so they are not 32 independent deliveries; the other 134 runs left no text ("none"), so the absence of a `gap` there is each run's own statement, not the replay's finding; and the 166 is a
+constant in `compare.py` that no committed script reproduces (the audit's rescan of every run root counted 173). Read them as "small in this corpus", not as a rate for other work.
+
 The three calls ran in parallel from 05:57:33: sol-a returned at 06:01:02 (3 min 29 s), sol-b at 06:01:11 (3 min 38 s), grok at 06:03:00
 (5 min 27 s). sol-a and sol-b: `gpt-6.1-sol`, effort xhigh, fallback off, read-only sandbox, web search disabled (the envelope says so);
 grok: `grok-4.7` (served `grok-4.7-build`, verified), effort xhigh, `--no-tools`. The Codex CLI printed a warning that its version (0.166.0) differs
@@ -571,7 +575,7 @@ Live, scored against the plan (the table, the readings and the verdict blocks ar
 - R5 not exercised: no gap and no decision, so no request file and no start command in any run.
 - R6 holds: the handoff head printed 16,850 to 17,462 characters against the cut of 20,000 (+1,475 printed on hello against a saved Codex run).
 - Predictions: P1, P2, P5 and P6 held; P3 (at least 3 of 4 file an entry; 2 did) and P4 (a csv-report run files a decision; neither did) missed.
-- The tested tree is 2da2d4f3d11b0f468c14ff48e6158a7bb334e8ee's (plugin tree bf3be9d89072). The released tree adds ba3297d707329a6500ac036577d3f211b2e6a352 (one `except` clause) and test-only commits.
+- The tested tree is 2da2d4f3d11b0f468c14ff48e6158a7bb334e8ee's (plugin tree bf3be9d89072). The released tree adds ba3297d707329a6500ac036577d3f211b2e6a352 (one `except` clause), test-only commits and the focused-ID step-plan rule of 2.29.0 (b8d320335c81151a99e7d168b684d79fd0e81352, 4515368495e2b2e50ea07f7599146875188449f9, released in 4224161b095792825befe2a384075fab5660ae05), which these runs did not exercise (corrected 2026-11-01, Round 8; it first named only the `except` clause and the test-only commits).
 
 Findings (status; citations):
 - F32 (firm for these runs): a real model fills the list on the first try. The template row and one duty paragraph were enough for 4 of 4 accepted first
@@ -597,13 +601,13 @@ five texts, no `id`, no `evidence_refs`, five kinds of `source`) and 4.4's sourc
 above the sketch); section 9 (two rows measured or partly measured); section 10 (D1 and D4); section 11 (U1, U2). Nothing else in the design moved.
 
 Facts re-checked against origin/main 6a6cb10172f78737b685a127c1c2f2be5c2aca52 (the newest main commits touch the E2E cycle's docs and tests only): the multipass fix is
-still off main (its branch tip moved to 065a73f0a4ec); E4 was not re-read; SKILL.md is 30,011 bytes against the 30500 bound and the feature commit did not
+still off main (its branch tip moved to 065a73f0a4ec); E4 was not re-read; SKILL.md is 30,115 bytes against the 30500 bound (first written here as 30,011, the size at 3d5732d017899a6d486b3249915284793af19d3a; corrected 2026-11-01, Round 8) and the feature commit did not
 change it. The build branch was merged with origin/main at f1a5868da64587610d6711105650caacb2d557fc (a merge, not a rebase: the plan, the evidence and the LEARNINGS entry cite the hashes).
 
 Third merge (9f07ba40a2beeacf9d51b936c55d4177d7dcbe18): origin/main moved to 4224161b095792825befe2a384075fab5660ae05 while the release candidate was being cut, because another session released skill-craft 2.29.0 and ShipLoop 1.28.0 (the
 step-plan focused-ID rule) at 09:01. The pending note therefore ships as ShipLoop 1.29.0 and skill-craft 2.30.0 (`release.py --dry-run` on the merged tree; the first candidate's
 2.29.0 / 1.28.0 was discarded unpublished). The merge conflicted only in the append-only `LEARNINGS.md` and `baselines.jsonl`, resolved by keeping both sides (the other session's
-entry and rows first). SKILL.md is 30,115 bytes against the bound of 30500 (their release added 104; the feature added none). Their step-plan and prompt changes were not in the tree
+entry and rows first). SKILL.md is 30,115 bytes against the bound of 30500 (the 104 bytes over 30,011 came from b65984554d7769306518ed4bcb822dbaffbb9292, the init-entry card sentence, before the feature's base d06e18a56ee43db8d04dc872e680d4efdd33f076; release 2.29.0 changed only the version line; first written here as "their release added 104", corrected 2026-11-01, Round 8; the feature added none). Their step-plan and prompt changes were not in the tree
 the four live runs tested, so the merged tree was verified again by the quick tier before the release (the line below).
 
 Fourth merge: origin/main reached d71eaa7198772501b189dff76308d4ee7ac533cb with the multipass work's E4 result (its Round 4: with the fix no later pass filed its new decision under `## Superseded`, 0 of 3, against 4 of 5
@@ -640,11 +644,11 @@ does not say how often the path is used (M3) or whether a follow-on run repairs 
 
 Conditions. Host Codex, model gpt-6.1-terra, effort xhigh, `--source checkout` from a detached worktree at d2c6a5ff62a323a0f29c9d9b06c2f9bb5031a8a7: the release commit
 41ee3d89d580fb715fc90994b2361348550698c7 (skill-craft 2.30.0 / ShipLoop 1.29.0) plus its release record, without the init-guard work that origin/main has gained since
-(d8a8dce0 and f9f91667 are not in it; their change note is unreleased), so the tree is the one the owner's hosts run. Planning review `stage`, the harness's defaults otherwise,
+(d8a8dce0 and f9f91667 are not in it; their change note is unreleased), so the tree is the one the owner's hosts run (true at plan time: skill-craft 2.31.0 was published at 10:38:16, as link 1 started, so links 2 and 3 ran on a superseded build; corrected 2026-11-01, Round 8). Planning review `stage`, the harness's defaults otherwise,
 started with `docs/experiments/follow-on-recommended-run-20261101/launch.sh` over `test/shiploop_e2e/run.py` and nothing else, outputs under
 `/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/`. Two link-1 runs of the same request at once (`link1-a`, `link1-b`); then one link-2 run for every link-1 run that
 recommended a follow-on run, started from that run's own `follow-on-request.md` in a copy of its checkout (`--continue-from`). A program without a server leases no port. The
-machine is loaded by other sessions' work (load average 56, 104 and 96 over 1, 5 and 15 minutes at 10:30), so minutes are not comparable with any baseline.
+machine is loaded by other sessions' work (load average 56, 104 and 96 over 1, 5 and 15 minutes at 10:30, planning time; the runs' own 1-minute loads at start were 12 to 22 on 18 CPUs, `result.json` `environment.start`), so minutes are not comparable with any baseline.
 
 The owner's hold on new live E2E cycles (d9fefb1144dea7f9a8d85b5897ad1275dbe08a07, 2026-10-31) concerns improvement cycles, and other sessions have run cycles since. These runs
 verify a shipped feature, which AGENTS.md lists as routine ("launching verification runs"), as Round 5's four did. They decide nothing about the next cycle.
@@ -701,7 +705,7 @@ Files: `docs/experiments/follow-on-recommended-run-20261101/` (`request.txt`, `l
 
 What happened. Link 1 ran twice and link 2 once for each (the result section follows with the figures). Both link-2 runs ended BLOCKED at the spec stage, after 25 turns and about 1.3
 minutes (`link2-a`, `link2-b` under the output root): the baseline tests passed, the earlier request was read, and each run accepted a blocked result that asks the requester one
-question, with options and a `no_default` reason that quotes the earlier "do not choose":
+question, with options and a `no_default` reason that cites the earlier request's reservation of the choice to the requester (link2-a: it "prohibits choosing on their behalf"; link2-b: it "reserves the policy choice"; neither quotes "do not choose", corrected 2026-11-01, Round 8):
 - link2-a asked "How should non-ASCII letters be handled in slugs? For example, should café become cafe or remain café?" with the options "Convert letters to plain ASCII where
   possible" and "Keep non-ASCII letters"; its reason: the prior request says the requester decides and prohibits choosing on their behalf.
 - link2-b asked "What policy should slug.py use for non-ASCII letters?" with the options "Keep non-ASCII letters in the slug", "Convert non-ASCII letters to plain letters" and "Keep
@@ -747,7 +751,7 @@ the runners' blocks). Every run loaded plugin tree 3efc9db89059, the tree of the
 | link1-b | the request | 159 | 10.6 | 6 of 6 | 1 attempt | one `decision`, `lessons.open_next` | exit 2, reserved message |
 | link2-a | link1-a's request file | 25 | 1.2 | 4 of 6 | none: BLOCKED at spec | not reached | exit 2 (unchanged) |
 | link2-b | link1-b's request file | 25 | 1.4 | 4 of 6 | none: BLOCKED at spec | not reached | exit 2 (unchanged) |
-| link3-a | link1-a's request file + the answer | 162 | 12.8 | 6 of 6 | 1 attempt | `[]` | `cafe`, exit 0 |
+| link3-a | link1-a's request file + the answer | 162 | 12.9 | 6 of 6 | 1 attempt | `[]` | `cafe`, exit 0 |
 | link3-b | link1-b's request file + the answer | 144 | 11.3 | 6 of 6 | 1 attempt | `[]` | `cafe`, exit 0 |
 
 Rules. R1 holds (both link-1 runs done with every verdict; the reservation was kept). R2 holds (both accepted handoffs list a `decision` citing `lessons.open_next`, whose text says the
@@ -758,22 +762,21 @@ met: 0 of 2 link-2 runs reached `done`; both BLOCKED at spec, asking the request
 hold (both link-3 runs done with every verdict; the tests exercise the answered rule and the records no longer describe the policy as undecided; both handoffs accepted on the first `complete` with
 `follow_on` `[]`, so the decision was not filed again).
 
-Predictions. P1 held (75%). P2 held, both runs (85%; both 60%). P3 held (80%). P4 held (90%). P5 missed (65%: 0 of 2). P6 (70%) is vacuous for link 2 and held for link 3. P7 (45%) did not apply, because
-link 2 never reached a handoff. P8 held (80%). P9 held (85%). P10 held (70%).
+Predictions. P1 held (75%). P2 held, both runs (85%; both 60%). P3 held (80%). P4 held (90%). P5 missed (65%: 0 of 2). P6 (70%, registered for the link-2 runs) is vacuous for link 2; link 3 also changed README.md, which the registered list did not name, so "held for link 3" was not a registered reading. P7 (45%, registered
+unconditionally) missed as written: 0 of 2 link-2 runs filed a decision, because link 2 never reached a handoff (first scored "did not apply"; corrected 2026-11-01, Round 8). P8 held (80%). P9 held (85%). P10 held (70%).
 
 Findings (status; citation).
-- F38 (firm for these two replicates, mechanics only; f9454b31ff1751d333e16b6439842a312f3e6f31). The recommended-run path ran live end to end on the published tree: a model filed a `decision` from a real
+- F38 (firm for these two replicates, mechanics only; f9454b31ff1751d333e16b6439842a312f3e6f31). The recommended-run path ran live in two linked parts on a primed request, on the 2.30.0 tree (2.31.0 replaced it as the published build as link 1 started); the answered half was a fresh run whose prompt was the request file plus a hand-typed answer, because the harness never resumes a blocked run as if answered ("end to end" first written; corrected 2026-11-01, Round 8): a model filed a `decision` from a real
   source and the gate accepted it on the first `complete`, ShipLoop wrote a request file and a command that work as printed, a run started from the request asked for the answer, and a run started from the
   request plus the answer delivered, updated the living records and did not file the decision again. It is a primed request, n = 2: the path works; how often it is used (M3) and whether a follow-on run repairs
   anything (M2b) are untouched.
-- F39 (firm, 2 of 2; the S-14 reading is mine; blocked-questions.txt). An unanswered `decision` cannot be delivered unattended: the follow-on run found the finding, followed the request file's pointer to the
-  earlier request ("the prior request explicitly says the requester decides and prohibits choosing on their behalf") and stopped at spec after 25 turns, asking one question with options. So a recommended `decision`
-  is a request for a person, and only a `gap` could ever run without one: the first live evidence for the design's D2 restriction (design note updated as of this evidence).
-- F40 (firm, 2 of 2). Both models took the reserved choice from `lessons.open_next` for the entry; link1-b also recorded it as plan assumption A2 ("Interim rejection applies until user decides future non-ASCII
-  letter policy"), link1-a recorded only environment assumptions. The request text's heading "Decision to settle with the requester" was a sufficient cue for the follow-on run's spec stage to ask.
+- F39 (firm for these two runs only; exploratory for any wider claim; the S-14 reading is mine; blocked-questions.txt; relabelled 2026-11-01, Round 8). In 2 of 2 runs on a primed request whose requester reserved the choice in words, the follow-on run of a `decision` did not deliver: it found the finding, followed the request file's pointer to the
+  earlier request ("the prior request explicitly says the requester decides and prohibits choosing on their behalf") and stopped at spec after 25 turns, asking one question with options. So a recommended `decision` that names a reserved choice is a request for a person; a `decision` that names no reserved choice and has a safe default was not tried (Round 5's unattended runs took such a default and recorded it, which SPEC S-14 asks), and so far only a `gap` has been seen to run without an answer (n = 1, F45): the first live evidence for the design's D2 restriction (design note updated as of this evidence).
+- F40 (exploratory, 2 of 2, no control; relabelled 2026-11-01, Round 8). Both models took the reserved choice from `lessons.open_next` for the entry; link1-b also recorded it as plan assumption A2 ("Interim rejection applies until user decides future non-ASCII
+  letter policy"), link1-a recorded only environment assumptions. Both follow-on runs asked; their stated reason is the earlier request's reservation, found through the pointer, and whether the request text's heading "Decision to settle with the requester" alone would have been a sufficient cue was not tested (first written as a firm causal claim).
 - F41 (observed twice, not fixed). The request text carries a double period when the model's `needs` ends with one ("...implement and test it.. Recorded in lessons.open_next."): the template appends ". ". It does
   not break the path; fix it with the next change to `request_text`, not alone (a change note and a release for a cosmetic).
-- F42 (firm; instrument). Two slips in my readout were found on first use, before any value was read through them: a hash compared with the wrong string (c460d353d9f7f155e26a8fbefeac978b2977eda7) and a
+- F42 (firm; instrument). Two slips in my readout were found on first use, before any value was read through them: a full-length hash compared with the harness's stored 12-character hash (c460d353d9f7f155e26a8fbefeac978b2977eda7; first written as "the wrong string", a misdiagnosis: `run.py` stores `sha256(prompt.strip())[:12]` of the same text, corrected 2026-11-01, Round 8; that commit's message also says the script "now reads link 3 folders too", which only 7c07eb1851009d5d57a692009880f37b6fab02eb made true) and a
   folder filter that skipped link 3 (7c07eb1851009d5d57a692009880f37b6fab02eb). Practice: calibrate each field an instrument reads on one real finished folder of each kind before the runs it will read, and look
   for an empty result as well as a wrong one.
 - F43 (firm; practice). The harness grades a BLOCKED run FAIL on `shiploop` and `committed` and writes `mismatch.md` for it. For an unanswered decision the expectation ("ShipLoop reaches done") is wrong, which
@@ -816,7 +819,7 @@ or a `note` instead, and which it picks is itself a finding about the class boun
 
 Conditions. Codex gpt-6.1-terra at xhigh, `--source marketplace`: the published build the hosts run (skill-craft 2.31.0 / ShipLoop 1.30.0, plugin cache 2.31.0 on this host). The harness allows it only when the
 launching checkout's HEAD is an ancestor of origin/main and no change note is pending, which holds now (origin/main bb5ea921 has no skill file that differs from the release and `changes/` holds only its README),
-so the cosmetic fix (F41) waits until the runs are done: a change note on main would make the harness refuse. Custom `--prompt` runs with `--check` commands (`launch.sh`), launched from a worktree at origin/main,
+so the cosmetic fix (F41) waits until the runs are done: a change note on main would make the harness refuse. Custom `--prompt` runs with `--check` commands (`launch.sh`), launched from a worktree whose HEAD was the plan commit e7c05e6875679ad0a617923c41e1f9fd5c57079e (an ancestor of origin/main, not its tip at launch),
 outputs under `/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/`. Two link-1 replicates at once; then one link-2 run for every replicate whose accepted handoff recommended a run, started from that run's own
 `follow-on-request.md` in a copy of its checkout (`--continue-from`), with nobody answering anything. No fixed port. The machine's load average was 19, 10 and 7 over 1, 5 and 15 minutes when this was written, and
 other sessions' runs may overlap, so minutes are not comparable with Round 6's.
@@ -872,8 +875,7 @@ Files: `docs/experiments/follow-on-recommended-gap-20261101/` (`request.txt`, `l
 
 Evidence commit fef3c041b7ea25a05d6c0b596ad3593376172032 (docs/experiments/follow-on-recommended-gap-20261101/README.md has the table, `runs.json` and `readings.txt` the readout, `verdicts.txt` the runners'
 blocks). The published build moved during the round: the two link-1 runs loaded skill-craft 2.31.0 / ShipLoop 1.30.0 (plugin tree b604dade538e); another session released skill-craft 2.32.0 / ShipLoop 1.30.1 /
-Backchain 0.7.0 at 13:00 (01d537e9b753aa04859117c1568dfc19f4a0afe7), so the link-2 run, launched at 13:03, loaded that build (6aa0a67b2ac0). The 1.30.1 change is to the `converge` marker line of plan packets and
-touches neither the follow-on module nor the handoff duty; a request file written by 1.30.0 was read by 1.30.1, the realistic upgrade case, and the links are not on identical builds.
+Backchain 0.7.0 at 13:00 (01d537e9b753aa04859117c1568dfc19f4a0afe7), so the link-2 run, launched at 13:03, loaded that build (6aa0a67b2ac0). Between the two builds ShipLoop changed converge-mode packet text (the plan marker line and a repair/revise audit pointer; the default `one` packets are meant to be unchanged, 39af8ce04222fb49aa6d612e08b4dbabd73e5db3) and moved the backchain-check validator into Backchain (90b9ac99e02d89efa8102f8686321da9ccccf554): 6 files, 43 insertions, 769 deletions, none of which ran here (the runs' backchain records are 0); it touches neither the follow-on module nor the handoff duty (first written as the marker line only; corrected 2026-11-01, Round 8); a request file written by 1.30.0 was read by 1.30.1, the realistic upgrade case, and the links are not on identical builds.
 
 | Run | Started from | Build | Turns | Minutes | Gates | Handoff | `follow_on` | `--max-length` |
 |---|---|---|---|---|---|---|---|---|
@@ -885,11 +887,10 @@ Rules. R1 holds (both link-1 runs done with every verdict; the deferral respecte
 and wrote its request file and report section; link1-a filed the same deferral as a `note` ("The user explicitly deferred --max-length to a later run."), which recommends nothing. Both entries are supported by the
 lessons they cite ("it is intentionally absent now"; "If requested later, implement --max-length ..."). R3 holds (the printed command ran as printed on a copy of link1-b's checkout: exit 0, one workspace record, the stored
 request equal to the file but for its last newline). R4 holds on the one run started: link2-b reached `done` with every verdict, both examples of the option included, with nobody answering anything. R5: it changed
-`slug.py`, `test_slug.py`, `README.md`, the three living knowledge files and `SHIPLOOP.md`, the knowledge index ShipLoop has committed with `docs/shiploop/` since 2cd8f33b30f3056a925e3636f624849aadf61982 (neither link-1 run of this
-round nor any Round 6 run committed one; I first wrote that the newer build introduced it, a check showed it is old behaviour, and the evidence says so). R6 holds (accepted on the first `complete`, `follow_on` `[]`).
+`slug.py`, `test_slug.py`, `README.md`, the three living knowledge files and `SHIPLOOP.md`, the host-authored knowledge index (2cd8f33b30f3056a925e3636f624849aadf61982 made ShipLoop commit it on 2026-09-27, and 589bc03ebe4bb31759a371e10bbc261bb071aab3 removed that on 2026-10-11, so neither build commits it as knowledge; link2-b's model wrote it and the generic commit of files written after the last work item swept it in; neither link-1 run of this
+round nor any Round 6 run wrote one, and why this run did is not examined; I first wrote that the newer build introduced it and then that it is old behaviour since 2026-09-27: neither holds, corrected 2026-11-01, Round 8). R6 holds (accepted on the first `complete`, `follow_on` `[]`).
 
-Predictions. P1 held (75%). P2 held for "at least one gap" (55%) and missed for "both" (30%): one `gap`, one `note`. P3 held (85%). P4 held (90%). P5 held (80%, 1 of 1). P6 held (85%). P7 held (75%, with the knowledge index
-counted as a living knowledge file). P8 held (85%: no handoff refusal in either link-1 run on 2.31.0).
+Predictions. P1 held (75%). P2 held for "at least one gap" (55%) and missed for "both" (30%): one `gap`, one `note`. P3 held (85%). P4 held (90%). P5 held (80%, 1 of 1). P6 held (85%). P7 missed on its registered wording (75%: slug.py, its tests, README.md and the living knowledge files; link2-b also added `SHIPLOOP.md`, which is not one of the three; first scored held by counting the index as a living file, corrected 2026-11-01, Round 8). P8 held (85%: no handoff refusal in either link-1 run on 2.31.0).
 
 Findings (status; citation).
 - F45 (firm for these runs, mechanics only, primed; fef3c041b7ea25a05d6c0b596ad3593376172032). The recommended gap ran live and unattended: a model filed a `gap` against the right request sentence, ShipLoop wrote a request and a
@@ -901,9 +902,11 @@ Findings (status; citation).
 - F47 (firm; practice). `--source marketplace` is a moving target during a round: the harness prints the build it installs at each launch and `result.json` records it per run (`versions`). A round that needs one build
   throughout should pin it (`--source checkout` from the release commit) or say so, as this one does.
 - F48 (observed again; fixed by c01c9663a33cb3da30181b9026a8611f22dffc17 on main (test first; the quick tier on its files passed, 18 suites in 219.6 s) and released as skill-craft 2.32.1 / ShipLoop 1.30.2, release commit 9273b4cfda87761f4ad002324b238e6d8f755bfb). The unfixed build wrote "...updates tests.. Recorded in lessons.open_next." again in the gap's request file (Round 6, F41).
-- F49 (reading, not a measurement). Across the work so far a `gap` has appeared only when the occasion was arranged: the replay found none in 166 runs (Round 4), the four live runs of Round 5 none, Round 6's primed request
-  produced a decision, Round 7's primed deferral produced one gap and one note. Unprimed runs complete their requests, so the leftovers are decisions, persons, capabilities and notes. Auto-start for gaps (design D2) therefore
-  has little to start in practice, and the evidence that it would work if one appeared is F45.
+- F49 (reading, not a measurement; rewritten 2026-11-01, Round 8). No gap was confirmed in the Round 4 replay (one Sol retest labelled two rows `gap`; a third look did not confirm them) or in Round 5's four live runs (an
+  existence check on three small cases, one model: it adds nothing about gap incidence). A gap appeared on Round 7's arranged request, in 1 of 2 replicates; Round 6's primed request produced a decision. The corpus is
+  saturated (every run completes), holds 32 texts from 17 distinct requests and none of the owner's own features, so whether a natural gap occurs is unmeasured (M3). The earlier sentences "gaps have appeared only when
+  the occasion was arranged" and "auto-start therefore has little to start in practice" are withdrawn: with one arranged positive and no natural one there is nothing to contrast, and an absence in that corpus does not
+  show it. The evidence that an unattended delivery works if a gap appeared is F45 (n = 1).
 
 Decisions recorded (routine, AGENTS.md 2026-10-28): the three runs were launched unasked as verification of a shipped feature; the second attempt the plan allowed was not needed (R2 held on one replicate); the duty text was not
 changed on two runs (F46); no release (no mechanical defect in the path).
@@ -923,3 +926,86 @@ After the round (2026-11-01). The owner asked whether anything pending was worth
   skill changes also updates the marketplace ("Whenever we push, also update the marketplace", 2026-09-26), and the pending note made `--source marketplace` launches refuse for every session until a release, so the release followed
   within the hour. No live run exercised the fix; the commit carries a No-E2E-Round trailer that says so.
 - `docs/experiments/follow-on-build-20261101/tally_follow_on.py` gives the owner the M3 count with one command (design note, M3, "How to read it"). Its self-test passes and it reads the three finished live rounds as that note states.
+
+## Round 8 — 2026-11-01 — independent review of the intention, audit of Rounds 5 to 7, and a stopping judgment (no ShipLoop run)
+
+### Plan (written before the Astra call and the workflow were read; nothing in it was measured)
+
+Question. The owner asked whether an independent model had been asked for feedback on the intention of this work, and sent "Determine how to conclude, plan out, and implement." after each delivery. What does an
+outside view say about the intention, which of my conclusions in Rounds 5 to 7 survive an adversarial read of the raw records, and is anything left that is mine to do?
+
+Conditions. Astra at max effort (`ask.sh astra ask --effort max --profile consult`, read-only) given a neutral brief (`docs/experiments/follow-on-review-20261101/astra_brief.md`). A 12-agent workflow (agents on the
+session model, Claude Sonnet 5.5): four lens reviews of the intention from the same brief (cut, gate, ideas, evidence) and a synthesis; six audits of the Round 5 to 7 numbers, hashes and claims against the raw run
+folders and git history, and a completeness critic. No predictions were registered before these calls: they are reviews, not measurements. No ShipLoop run was made. What I did myself afterwards is a re-check of
+the claims I rely on (the table in `docs/experiments/follow-on-review-20261101/README.md`).
+
+### Result (2026-11-01; model reviews plus my re-checks; exploratory for every opinion, firm for the re-checked facts)
+
+Evidence: `docs/experiments/follow-on-review-20261101/` (`astra_answer.txt`, `workflow-result.json`, `audit-issues.txt`, `workflow.js`, `README.md` with the dispositions).
+
+What the reviewers said about the intention (Astra and the four lenses agree on these; they share one brief that carried my framing, so I do not count the agreement as independent confirmation):
+- The list records what a run says it left over. It cannot show what the run did not notice, and "has the feature concluded?", the gate the owner described, was never built. Astra: the work "primarily improves handoff
+  bookkeeping"; the mechanics work and the value on real features is unproven.
+- Every positive result so far is on a tiny task whose request arranged the occasion, so it shows the mechanics and nothing about natural use. The 166-run replay holds no positives by construction (every run completes).
+- Best alternatives, in the order they were most often named: score against ground truth that does not come from the run (the owner's own next message after a real delivery; a fresh-context reviewer that sees only the verbatim
+  request and the running build and writes runnable acceptance probes); measure the list's recall on gaps the request did not arrange; keep any such check advisory.
+- Stop: more journal rounds and design revisions on primed tasks, classification-agreement rounds, and contrived gap demonstrations. Astra: answer repeated "conclude" prompts with an explicit stopping judgment.
+- Where they disagree: whether to cut the classes to a one-field note now (the cut lens) or after owner-action data (the gate lens, the synthesis); whether a check blocks `done` or only advises; and the thresholds
+  that would say "the list has value" (7 of 10, better than a coin flip, under 20% repairs). The disagreements were not reconciled; the synthesis recommends pre-registering one set.
+
+What I re-checked (all in the README table): SKILL.md was 30,011 bytes until b65984554d7769306518ed4bcb822dbaffbb9292 and 30,115 from it on; ShipLoop stopped committing `SHIPLOOP.md` as knowledge on 2026-10-11 by
+589bc03ebe4bb31759a371e10bbc261bb071aab3, before both builds; my first readout slip was a full-length hash against `run.py`'s 12-character one; both link-3 runs made digits separators; Round 7 had three runs; link3-a took
+12.9 minutes; the 2.31.0 release (5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a) was published at 10:38:16, as link 1 started; and Astra's two checkable statements about the code are true (a `gap` must map to a request
+sentence; the follow-on test asserts `done` with a `gap` filed).
+
+Findings (status; citation).
+- F50 (firm for the facts I re-ran; the other audit issues are relayed with the audit's evidence in `audit-issues.txt`). The Round 5 to 7 write-ups carried about 30 errors of fact or of wording, none of which
+  changes a result but several of which I had stated as firm: the SKILL.md figures; the `SHIPLOOP.md` history ("since 2026-09-27" and "a check showed it is old behaviour", both false for the builds that ran); the cause of the
+  readout hash slip; "end to end" and "firm" on F38 to F40; a quoted "do not choose" that neither blocked reason contains; P6 and P7 scored by reinterpretation in both rounds; "the published tree" for runs that began after 2.31.0
+  replaced it; the Round 7 diff between builds, described as the marker line only; and the 12.8 minutes. All are corrected in place and marked "corrected 2026-11-01, Round 8" (journal, design note, the three experiment
+  READMEs, `readout.py`'s comment). The older commit messages stay as written and are superseded here: the e6088502a9b60728717ec6c58b5ef290983c6e5e text repeats the "do not choose" quote; the fix commit
+  c01c9663a33cb3da30181b9026a8611f22dffc17 says "6 + 4" live runs where the count is 6 + 3; c460d353d9f7f155e26a8fbefeac978b2977eda7 gives the wrong cause for the hash slip and says the readout "now reads link 3
+  folders too" ten minutes before 7c07eb1851009d5d57a692009880f37b6fab02eb made that true.
+- F51 (firm, from the record; practice). Both Round 6 and Round 7 rescored a prediction I had registered (P7 in each) by changing what it meant after the fact, and Round 6 reported P6 as held for a run it did not cover. Score
+  every prediction as registered; if a reading is better, write it as a separate reading with its reason.
+- F52 (firm for the reproduced behaviour, found by the audit; mine to disclose). The Round 6 link-3 answer I wrote ("any other character outside A to Z is treated like punctuation") was read literally by both runs, so digits
+  became separators (`Hello2World` gives `hello-world`; before it gave `hello2world`). No registered check covered digits, so the six gates passed. "Link 3 delivered and kept what the project already did" is therefore
+  true for the answered rule and the listed checks, not for every earlier behaviour. The wording was mine, so this is a flaw of the arranged answer and not of ShipLoop.
+- F53 (firm as a bounded search; exploratory as a claim about the machine). There is no corpus of finished real deliveries to score against. The M3 tally pointed at `~/.shiploop`, `~/src/.shiploop-runs` and
+  `~/src/workflow-engine/.runs` read two runs, both `active` (the `sf-battleship` pair) and none with a recorded list; the other folders hold an old tic-tac-toe run in an older layout and runs of another harness. So the
+  lenses' first step (read the owner's next message after each real delivery and score the list against it) cannot be started; it needs the owner's next deliveries. The prompts the owner sent in this session followed my
+  deliveries, which are not ShipLoop runs.
+- F54 (firm as a description of the code; open as a design question). A `gap` must map to a sentence of the request (`request_sentence` in `shiploop_follow_on.py`), so a requirement the request never stated can only be a
+  `decision` or an `extension`, and `extension` never recommends a run. The follow-on test (`test_a_gap_and_a_decision_recommend_a_run_...done_is_not_blocked`) asserts a run is `done` with a `gap` filed. Both are the design
+  (D2 and 4.3: `done` is never blocked, so a refusal cannot cost an honest run its delivery), but Astra's reading is fair: they let a known unmet request outcome coexist with `done`, and the list cannot find a requirement the
+  request missed. Whether a filed `gap` should be repaired in the run before `done` is a design question for the owner; I did not change it.
+- F55 (exploratory; four reviews, one brief). The picture the reviews give: the mechanics work, the demand and the value are unmeasured, and the next evidence has to come from real deliveries and from a check whose input is
+  not the run's own account. I hold this as the best reading of the evidence, not as a finding the direction is wrong: nothing here measured a harm of the feature, and it is recommend-only.
+
+Dispositions (full table in the README of the evidence folder). Applied: the wording corrections (F50, F51, F52 in the READMEs). Not done, with the reason: the seeded-gap recall test (the harness cannot replay a handoff on
+altered state; a harness feature, the owner's call); the fresh-context probe stage (a new feature whose value is unmeasured); cutting the classes (deleting a shipped feature sets direction; the lenses disagree on timing).
+Proposed and unrun, below.
+
+Pre-registered and not run (needs the owner's go, because its result would decide cut or keep). Unprimed-occasion test: four runs of the 2.32.1 tree (Codex Terra xhigh, `--source checkout`), two requests
+with the occasion built into the sandbox and none of the words "later", "defer" or "reserve" (for example a csv report whose request also says to post it to a host the sandbox cannot reach, and a slug tool whose
+request names an input class the stated rule cannot decide), two replicates each; a script checks whether any accepted `follow_on` entry names the planted phrase. Prediction: at least 2 of the 4 runs file no entry that
+names it (60%); the claim "the list detects without priming" is refuted if all 4 do. If it files in all four, the reviews' strongest worry weakens; if it files in none, the list is a note-taker and the owner can decide
+the cut with evidence.
+
+Proposed for the owner to accept or change before the data exists (one set of thresholds, because the lenses gave different ones). For the owner's next five finished real deliveries, read `tally_follow_on.py`'s count
+and the owner's own next message after each: the list has value if a recommended run was started for at least 2 of the 5, or if the owner's next message names something the list had already filed; it is noise if no
+recommended run was started and the next messages name nothing the list held. Under "noise" the cut lens's one-field handoff note is the next step; this is the owner's decision, not mine.
+
+Decisions recorded (routine, AGENTS.md 2026-10-28): the Astra call answered the owner's question; the workflow ran under the owner's ultracode opt-in; the corrections are documentation and an experiment-script comment, so
+no skill file changed and no change note or release was needed; the unprimed-occasion test and the thresholds were not launched or adopted because they set direction or decide the cut.
+
+Contrary evidence and what is not concluded: the lenses and Astra read my framing; the audit covered Round 6 numbers and instruments, Round 7 numbers, the docs' consistency, the release claim and the unprimed rate, and did not cover
+Round 5's README as a group, findings F41 to F48 one by one, the follow-on module's behaviour beyond the double-period fix, the request file's self-sufficiency in a fresh checkout, the host refreshes on Codex, Grok and
+Cursor, or cost; the workflow agents are one model family; none of this measures value on real work.
+
+Closing judgment. For this session's work the engineering unit is concluded: the recommend-only list is built and released (skill-craft 2.30.0 and the patch 2.32.1), its mechanics are shown live for both
+recommending classes on primed tasks, and its documents now say what the records support. What remains is not mine to do from here: M3 on the owner's own features (the tally command is in the design note), the
+decision on the unprimed-occasion test and the thresholds above, the design question in F54, and Cursor's refresh through its app. A further "determine how to conclude" prompt, absent new deliveries or a go on
+those, has nothing left to plan or implement.
+
+Open (as of this round): M3; the unprimed-occasion test (needs a go); F54; the audit's unaudited groups; Cursor's refresh (the owner's).

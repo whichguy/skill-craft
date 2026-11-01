@@ -1,0 +1,83 @@
+**The intention is sound, but the work primarily improves handoff bookkeeping. The evidence establishes continuation mechanics; it does not establish when continuation improves the feature.**
+
+**1. Is the intention right?**
+
+The real goal is to turn implementation and usage discoveries into better user outcomes—including discovering that the original specification was incomplete or mistaken.
+
+The current mechanism serves a narrower purpose: organizing already recognized leftovers. Requiring a `gap` to reference an existing request sentence while excluding `extension` from recommendations makes it poorly suited to discovering valuable requirements absent from the request. [Design—classification and routing](/Users/dadleet/src/skill-craft/docs/shiploop-follow-on-run-design-2026-10-31.md:228).
+
+Recommend-only is a reasonable deployment posture, but it leaves the owner responsible for deciding whether the feature has concluded.
+
+I also challenge the interpretation of Round 7: explicitly postponing an option until the requester sees the basic tool is planned sequencing, not necessarily an unmet obligation of the current run. Auto-starting that option could bypass the intended review. [Journal—deferred-option request](/Users/dadleet/src/skill-craft/docs/shiploop-follow-on-run-journal.md:827).
+
+“Only gaps can run unattended” follows your definitions and routing policy. It is not evidence that autonomous improvement has little potential value.
+
+**2. What is the strongest argument against the direction?**
+
+The existing system already repairs known omissions, records lessons, and accepts new requests. Another taxonomy adds maintenance and attention costs without supplying new evidence about the product.
+
+There is also a completion-semantics problem: the follow-on test explicitly permits a known request defect to coexist with terminal `done`. This can normalize postponing work that belongs in the existing repair loop. [Test—gap and decision permit done](/Users/dadleet/src/skill-craft/test/shiploop-follow-on.test.py:199).
+
+I would freeze taxonomy expansion, automatic chaining, and additional generic reflection stages. Keep the shipped report and request generator provisionally; their existence does not justify further investment. An unrestricted chain is particularly premature while marginal benefit and stopping behavior remain unmeasured.
+
+**3. What would make a better gate?**
+
+Ask: **“What observed evidence justifies which next action?”**
+
+Use complementary evidence:
+
+- **Held-out acceptance checks:** independently derived from the intended outcome, including negative cases and regressions.
+- **Intent-versus-behavior comparison:** compare the original request and accepted scope with the running artifact. Comparing only model-written specifications and tests can preserve a shared misunderstanding.
+- **Fresh reviewer:** inspect the request and artifact before reading the implementer’s conclusions; require reproducible examples for defect claims.
+- **Usage evidence:** task failures, abandonment, support requests, latency, or other feature-specific outcomes.
+
+These distinguish contractual correctness from whether the specification actually solves the user’s problem. Outcome evaluation should inspect the environment, rather than rely on the agent’s account of success. [Anthropic’s evaluation guidance](https://www.anthropic.com/research/demystifying-evals-for-ai-agents).
+
+Route confirmed current-scope defects through repair; route justified, authorized new work into a new request; ask reserved human decisions directly. When evidence is insufficient, record a specific observation trigger. “Concluded for now” should mean sufficient acceptance evidence and no justified next action—not exhaustion of every possible enhancement.
+
+**4. What other ideas would I try?**
+
+My expected-value ordering is:
+
+1. Improve the evidence used by existing acceptance and release verification.
+2. Review substantial features after meaningful use.
+3. Make existing lessons identify a changed belief, its evidence, and its consequence for the next intake.
+4. Add generic reflection only if it demonstrates incremental discoveries.
+
+A delayed review can observe information unavailable at handoff. Reuse existing signals first; representative traffic and metrics tied to user-visible problems matter more than adding many checks. [Google SRE guidance](https://sre.google/workbook/canarying-releases/).
+
+A blanket weekly review is unnecessary unless there is evidence or a pending decision to review.
+
+**5. What are the measurement blind spots, and the decisive experiment?**
+
+The largest weakness is **construct validity**, beyond small sample size:
+
+- Finished, saturated toy runs are the wrong population for substantial features whose adequacy remains uncertain.
+- Repeated runs of a few tasks are not 166 independent feature deliveries.
+- Reclassifying model-written leftovers measures agreement about reported concerns; it cannot discover concerns the writer omitted.
+- Shared definitions make reader agreement weaker evidence of useful routing.
+- Priming establishes mechanics. The gap/note split also exposes an ambiguous scope contract.
+- One host/model and changing builds limit generalization, but broader model coverage would not repair the wrong target.
+
+The single most useful experiment is a **paired review of six real, substantial deliveries**, using frozen snapshots and consecutive selection rather than favorable examples.
+
+For each, compare the existing handoff/follow-on output with a fresh reviewer given the original intent, runnable artifact, and available usage evidence. Before seeing recommendations, have the owner specify acceptance probes and what would make a specification change worthwhile. Blind the recommendation source during adjudication.
+
+Measure **unique validated findings, missed failures, unnecessary work proposed, owner minutes, and model cost**. For one actionable finding, execute the proposed change on a scratch branch and verify both the improvement and preserved behavior. This tests discovery and practical value without rerunning six complete delivery pipelines. It remains a pilot, not a prevalence estimate.
+
+**6. What would I do next—and stop doing?**
+
+Declare the current engineering unit complete: the mechanism works; its value remains unproven. Run the real-feature comparison as the next decision-making activity.
+
+Stop further classification-consensus rounds and contrived gap demonstrations. Repeated requests to “conclude” should lead to an explicit stopping judgment, rather than another mechanically reachable experiment. Unmeasured demand can remain an observation question without becoming unfinished implementation work.
+
+Ranked recommendations below; costs are rough estimates, not measurements.
+
+| Rank | Recommendation and why | Smallest check that would overturn it | Rough cost |
+|---|---|---|---|
+| **1** | **Pilot independent outcome review.** It can expose omissions absent from the author’s leftovers. | The six-feature comparison produces no incremental validated findings, or benefits do not justify review cost. | ½–1 day preparation, 12 short reviews; one repair extra |
+| **2** | **Clarify completion versus continuation.** Current defects, explicit deferrals, and newly learned requirements need different treatment. | Reviewers cannot consistently route those three concrete cases using the proposed rule. | 1–2 hours of contract review |
+| **3** | **Defer taxonomy expansion and auto-chaining.** Their incremental value is unestablished. | A valuable, already authorized continuation is lost specifically because orchestration is missing. | Near zero to defer |
+| **4** | **Pilot a delayed feature review.** Usage may invalidate assumptions that delivery checks cannot test. | Two review windows produce no actionable information beyond existing verification. | About 20 minutes per feature using existing signals |
+| **5** | **Reuse existing lessons for changed beliefs and revisit triggers.** This preserves learning without another knowledge store. | Subsequent related runs ignore the lessons or repeat the same demonstrated mistake. | 5–10 minutes per run |
+| **6** | **Resolve reserved choices at handoff before starting another run.** Navigating a new lifecycle merely to ask the known question adds little. | Follow-on investigation materially changes the question or available choices. | Minutes; existing handoff machinery |
