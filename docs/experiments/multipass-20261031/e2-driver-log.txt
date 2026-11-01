@@ -1,0 +1,2 @@
+17:33:51 E1 launcher 37676 has ended; E2 starts
+18:29:09 E2 resumes after the pilots

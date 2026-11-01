@@ -1264,7 +1264,8 @@ checks as well as the second's and is measured by the nearest quality declaratio
 checks see only the pass just before it as `$PRIOR_WORK`, and a suite runs the links in order, each continuing from the one
 before (SPEC, "Follow-on chains and the delta ledger"). The request of a link names only the new behaviour. The earlier
 links' tests are the standing assumption: ShipLoop runs them as the project's suite, and the harness runs the earlier links'
-checks again after the run.
+checks again after the run. A link that changes an earlier rule (`ticket-sla`, the fourth ticket link) declares an acceptance of its own,
+since the one it would inherit reads the sentence it replaces, and lists the earlier entries it may change (`delta.may_change`, below).
 
 #### The delta ledger (`delta`)
 
@@ -1292,6 +1293,12 @@ radius (tests that existed at the start and were changed or deleted; the start's
 they were (`p`); `tests d6/p0` is the same for the `requirement` of its test cases. `lessons` is the release-verify
 commit the next run quotes. `docs/experiments/multipass-20261031/` holds the eight saved runs it was built on (`cut_saved_pairs.py`
 regenerates them) and `docs/shiploop-multipass-journal.md` what they showed.
+
+A case that replaces an earlier rule lists the earlier entries its request may change (`delta.may_change` in cases.json: per living
+file, case-insensitive patterns matched against the entry as the run started with it). For such a case `R` and `AD` each add
+`replaced 1/1 left 0 unexplained 0`: of the entries the request named, how many the run changed or moved under Retired or
+Superseded, how many it left standing as written (a rule the new code may now contradict), and how many other earlier entries it
+touched. The full block names them (`expected`, `expected_touched`, `expected_untouched`, `unexplained`).
 
 ### A brownfield case
 

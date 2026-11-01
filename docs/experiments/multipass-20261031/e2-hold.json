@@ -1,0 +1,8 @@
+{
+  "since": "2026-10-31T17:47:28",
+  "reason": "the owner chose the other session's two test-writing pilots for the shared port-4180 lane (relayed from the Codex chat 'Review ShipLoop E2E improvement loop')",
+  "what_was_done": "the E2 driver's shell (pid 60993) was stopped while A1-ticket-assignment (run.py pid 67868) was running; the run was not touched and finishes normally, dispatching nothing after it",
+  "resume_when": "two pilot cases under .../test-adequacy-qualification-20261031/model-runs/ have finished and the lease is free for 120 s (watcher resume_e2_after_pilots.py)",
+  "unchanged": "builds (arm A 87d3da8e, arm B c1d737dc), arm order A1 B1 A2 B2 A3 B3, bar, predictions, scoring",
+  "pilots_first_output": "/Users/dadleet/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/model-runs/ticket-tests-published-01"
+}

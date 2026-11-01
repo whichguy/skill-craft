@@ -1,0 +1,47 @@
+runs that reached handoff: 122 of 125 readable
+`Open for the next run` has text (loose): 45; real content (strict): 25
+
+fine classes (one reader, README.md section 2):
+  decision     3  names a choice or an answer a person must give about the spec or scope before anything is built
+  person       6  a person must do or confirm something (a manual check, a click-through)
+  capability   4  a later run with a capability this run lacked (a headed browser, a Lightning UI, a Windows host) could close it
+  extension    4  optional or conditional scope beyond what the request asks
+  debt         1  a small hygiene item inside the request's scope (a test to keep, a documentation line)
+  note         7  knowledge for a later change (a recorded default, where to resume); nothing is open
+  gap          0  a request outcome or a refuted assumption that the system could close without a person
+
+coarse:
+  person or capability limit     10
+  optional or debt                5
+  notes                           7
+  needs a person's decision       3
+  gap the system could close alone  0
+
+arguable rows (a second reader could move them): 3, 11, 16, 22
+
+rows (* = arguable):
+  1 person      needs an authenticated browser that a person holds
+  2 extension   conditional on promoting beyond the Developer Edition
+  3 extension * an audit not performed that no requirement names; a reader could call it capability (it needs a browser)
+  4 extension   conditional on a responsive dark-theme requirement the request does not state
+  5 capability  a later run with headed Chrome on the org
+  6 person      a person opens the App Launcher entry and confirms the board
+  7 capability  a later run that can open the Lightning app; three items stay open until then
+  8 decision    spec ambiguity (numeric forms, exit code with no arguments): ask the requester
+  9 note        says no product follow-up is open
+ 10 debt        keep the browser click-through as an opt-in test; today a scratch script
+ 11 note      * a recorded default the owner may change by editing SHIP_NAMES; nothing else is open
+ 12 note        what a later run inherits
+ 13 capability  a later run with a runner that can activate a control and hold a response
+ 14 person      the local player clicks one cell and reads the score
+ 15 note        where a later run must start and how it returns
+ 16 person    * a manual consumer pass with a screen reader; it also names a one-line README fix (debt)
+ 17 person      a person opens the page and confirms hit and miss marks
+ 18 extension   optional tests, an expiry for abandoned games and a README note
+ 19 person      a person plays one game in a real browser
+ 20 note        state of the kept files
+ 21 note        a hint for a later fast-forward return
+ 22 decision  * an enhancement the build revealed: whether ticket.assigned gets a real delivery route, added as a work item if yes; a reader could call it extension
+ 23 decision    record the requesting user's answer to assumption A1 (person-level delivery)
+ 24 note        no feature work remains
+ 25 capability  a Windows host to confirm the output bytes

@@ -1405,8 +1405,10 @@ class EventFactsTest(QualityCase):
         cases = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
         self.assertEqual(boundary.held_out_files(cases), ["test/fixtures/quality/reference_checkers.py",
                                                           "test/fixtures/quality/reference_ticket_assignment.py",
+                                                          "test/fixtures/quality/reference_ticket_comments.py",
                                                           "test/fixtures/quality/reference_ticket_escalation.py",
                                                           "test/fixtures/quality/reference_ticket_import.py",
+                                                          "test/fixtures/quality/reference_ticket_sla.py",
                                                           "test/fixtures/quality/reference_user_listing.py",
                                                           "test/fixtures/quality/ticket_adequacy_alternative.test.js",
                                                           "test/fixtures/quality/ticket_adequacy_strong.test.js",
@@ -1415,6 +1417,7 @@ class EventFactsTest(QualityCase):
                                                           "test/shiploop_e2e/checks/ticket_assignment_accept.py",
                                                           "test/shiploop_e2e/checks/ticket_escalation_accept.py",
                                                           "test/shiploop_e2e/checks/ticket_import_accept.py",
+                                                          "test/shiploop_e2e/checks/ticket_sla_accept.py",
                                                           "test/shiploop_e2e/checks/ticket_test_adequacy.py",
                                                           "test/shiploop_e2e/checks/ticket_test_variants.py",
                                                           "test/shiploop_e2e/checks/user_listing_accept.py"])

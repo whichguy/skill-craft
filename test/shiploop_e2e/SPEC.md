@@ -668,7 +668,7 @@ and two decisions are compared only under the same id.
   - *The medium pair (added 2026-10-28; D7 of docs/shiploop-brownfield-baseline-design-2026-10-28.md).* `ticket-assignment`
     extends `fixtures/node-tickets`, a help-desk ticket service of about 3,600 lines (1,700 of source) with eight decision
     records, and `ticket-escalation` follows it, so it starts from the first run's delivery and runs the first case's checks
-    again beside its retention checks. A third link, `ticket-comments` (2026-10-31), follows that ("Follow-on chains", below). The pair measures what D7 asks: whether a run keeps behaviour and team decisions its
+    again beside its retention checks. A third link, `ticket-comments`, and a fourth, `ticket-sla` (both 2026-10-31; the fourth is the first that changes an earlier rule), follow that ("Follow-on chains", below). The pair measures what D7 asks: whether a run keeps behaviour and team decisions its
     request does not name, and whether the follow-on keeps what the first run had to learn. As node-base does, its base holds a
     latent defect in the flow the request touches, which the request depends on and does not name.
     - *Checks that start the product themselves.* A held-out check may take a second parameter, the delivered copy
@@ -720,6 +720,14 @@ and two decisions are compared only under the same id.
   - *The delta ledger* (`delta` in metrics.json; the table above). It measures what the retention checks cannot: not only that
     nothing was lost but where the new knowledge landed. It is a record. Placement, appends and relative wording become
     retention checks only after an engine change that enforces them has a baseline.
+  - *A link may change an earlier rule* (the fourth ticket link, `ticket-sla`). Its request must name what it replaces, because
+    the old rule is written in the living spec, in a decision and in a hidden check of an earlier link. Such a link declares an
+    acceptance of its own: the earlier link's hidden checks except the one that reads the replaced sentence (a correct delivery fails
+    that one by design, and the nearest-declaration rule would otherwise inherit it), plus checks of the new rule. It also lists in
+    cases.json `delta.may_change`: per living file, case-insensitive patterns for the earlier entries the request replaces. The ledger
+    then says, for each file, which of those entries the run changed or moved under Retired or Superseded (`expected_touched`),
+    which it left standing as written (`expected_untouched`: a rule the new code may now contradict) and which other earlier
+    entries it touched without the request naming them (`unexplained`). A record, not a verdict, as the rest of the ledger.
 - **Qualified iteration (added 2026-10-30; docs/shiploop-e2e-closed-loop-plan-2026-10-30.md).** An iteration that
   qualifies its changes builds each candidate from one learning record and compares it with the loop tip, the last
   promoted commit of the loop branch, in a `promotion/5` epoch registered for that candidate alone.

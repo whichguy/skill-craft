@@ -1,0 +1,60 @@
+archived runs found (reached product-acceptance): 125; readable: 125
+  reached handoff done: 122
+  with a current release-verify result: 122
+  `Open for the next run` is not exactly 'none' (loose): 45
+  ... and does not open with a 'none' phrase (strict): 25
+  runs ending with >= 1 open assumption row: 59 (rows 121, with a person owner 44; unreadable 0); the reader never closes a plan row, so this is not a signal
+  runs whose unverified list is non-empty at the end: 38 (rows 47, with an owner 47); runs that never listed it: 17
+  runs with an add-work: 3; with a send-back: 30
+
+--- strict rows, in run order ---
+ 1. ~/e2e-runs/2026-10-30/shiploop-salesforce-battleship-zbcb4i5d/run/.shiploop-runs/work-20261030-134151-bce807/run
+    Confirm rendering and click-through in an authenticated browser.
+ 2. ~/e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp/qualification-full-ui/runs/battleship-candidate/.shiploop-runs/work-20261030-192802-b18b24/run
+    If promoting beyond this Developer Edition, add coverage for additional seed layout families and rerun production-style validation.
+ 3. ~/e2e-runs/2026-10-30/shiploop-sf-qualified-pv9hf_8a/development-01/run/.shiploop-runs/work-20261031-030317-734f4e/run
+    A full visual theme and viewport audit was not performed.
+ 4. ~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-03/.shiploop-runs/work-20261031-122739-3e2dae/run
+    If responsive dark-theme support is required, validate those viewports and theme separately.
+ 5. ~/e2e-runs/20261017/bs-sf-int-b7c77f/.shiploop-runs/work-20261018-040601-5105d5/run
+    A later run should open app SLBattle on tab SLBattle Board in headed Chrome and run boardClick from docs/shiploop/architecture.md. Report a miss, a hit, a sunk cell, the shot count, ships left, and the game-over line. Do not run sf org open. The owner is the operator of this machine when the CLI session cannot open Lightning without a new login.
+ 6. ~/e2e-runs/20261018/bs-release-update-436528/.shiploop-runs/seed/run
+    A person still has to open App Launcher entry SL Battleship and /lightning/n/SLBattle_Board and confirm the 10x10 board, the shot count, ships left and the New game button. The knowledge commit aea74ad983dd9869ebe7964eb93a42e2d95175b0 is on the run branch and was not returned to master, because release-verify cannot return.
+ 7. ~/e2e-runs/20261024/chess-sf-full-12a23d/.shiploop-runs/work-20261025-020942-4061a0/run
+    A later run that can open Lightning app SLChess at path /lightning/n/SLChess_Board should play the board procedure and record whether the tab is hidden and whether an illegal Lightning call shows AuraHandledException. Until then those three items stay open.
+ 8. ~/e2e-runs/20261024/gate-290-b60ed7-claude-csv-report/.shiploop-runs/work-20261025-023951-c1c6f6/run
+    Ask the requester whether exponent notation and a leading '+' should count as numeric and whether zero arguments should exit 1; otherwise none.
+ 9. ~/e2e-runs/20261024/gate-290-b60ed7-codex-hello/.shiploop-runs/work-20261025-020711-a0aed0/run
+    No product follow-up is open. If a later change touches this script or its tests, retain the exact stdout contract and rerun focused and full unittest discovery against the returned result.
+10. ~/e2e-runs/20261025/gate-2100-96810d-claude-web/battleship/.shiploop-runs/work-20261025-201613-0bd28f/run
+    Retain the browser click-through as a BROWSER=1 test (currently a throwaway script in the run's scratch). No other open items.
+11. ~/e2e-runs/20261025/gate-2100-96810d-claude-web/battleship-scoring/.shiploop-runs/work-20261025-204415-a86b45/run
+    Ship names are a recorded default (the request named none); change SHIP_NAMES in game.js if different names are wanted. Chrome cases remain opt-in (BROWSER=1). Nothing else.
+12. ~/e2e-runs/20261025/gate-2132-f7ba78-grok-hello/.shiploop-runs/work-20261026-034535-857137/run
+    A later run inherits the two Commands and the three rollback recipes. No remote, service, or pending grant. A greeting change must keep the method name TC_1 and the 14-byte stdout.
+13. ~/e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship/.shiploop-runs/work-20261026-045417-6440d1/run
+    A later run with a runner that can activate a control and hold a response should run the architecture TC-3 procedure on server.js at a free port and report the visible cell text. Do not add Playwright or test/browser-page.test.js to the default suite.
+14. ~/e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship-scoring/.shiploop-runs/work-20261026-082022-fb1de8/run
+    SYS-CLICK stays with the local player at handoff: click one cell on server.js and read #score, #sunk, and the cell text. A later run should keep that gap out of the default suite.
+15. ~/e2e-runs/20261026/pilot-ollama-dsflash-993a9d-hello/.shiploop-runs/work-20261026-181830-936fda/run
+    If a later run changes the delivered files, it must start from `a8be4ce` on `main` in `…/hello/work` and return again through the workspace route; the rollback recipes remain valid (`3ba3354a64fff776d16bfdfe21a48923b1d3d3e5` and `shiploop/run-be3ff1621c7a2782` both exist). When a run's post-release checkout is the same local repository, prefer recording the receipt and the file hashes beside the consumer output, as here — that is what shows the files reached the source checkout rather than a work-area copy.
+16. ~/e2e-runs/20261027/v2170-ds-battleship-759a03/.shiploop-runs/work-20261027-150517-62d689/run
+    Carry the manual consumer pass to the user: play the returned game with a screen reader and a second browser, and report the announcements, the visible ring and any wording that does not make sense. Fix README.md:175's AD-1...AD-17 so it matches the knowledge home's AD-1...AD-19 (A2, due handoff). For a later run of this harness: keep the explicit keep list in the release procedure, expect the follow-up return after any late knowledge edit, and treat the row census in the return plan as something that grows with each Improve pass rather than a fixed number.
+17. ~/e2e-runs/20261027/v2170-sonnet-battleship-491d9a/.shiploop-runs/work-20261027-103928-803b48/run
+    A5: a person opens http://localhost:3000/ after node server.js and confirms hit/miss marks, status text and game over message, or a later run adds a browser driver.
+18. ~/e2e-runs/20261027/v2180-sonnet-battleship-36036c/.shiploop-runs/work-20261027-234612-373c7c/run
+    Optional: a test for the page's fetch-failure message and dark colour scheme, an expiry for abandoned games if the server is ever left running long, and a README note on stopping a server left on a custom port. A node server.js started on port 34567 during documentation (PID 20304) was still running at release-verify; stop it by hand.
+19. ~/e2e-runs/20261028/pa-ds-battleship-4ed4e3/.shiploop-runs/work-20261028-173217-a07d74/run
+    A person still has to play one game in a real browser from the returned tree (A12/RB-9, handoff): run node server.js in /Users/dadleet/e2e-runs/20261028/pa-ds-battleship-4ed4e3/work, open http://127.0.0.1:3000/ and play to `Game over — all five ships sunk.` Also worth picking up: AD-3's 1,000-redraw placement cap and two of test-support/browser.js's launch-failure branches remain unexercised, recorded in KNOWLEDGE/architecture.md and KNOWLEDGE/environment.md ### Facilities rather than tested.
+20. ~/e2e-runs/effort-eeff1/control-hello/.shiploop-runs/work-20261025-183611-483768/run
+    The six kept files are uncommitted on main. A later run should treat that working tree as the product. The consumer entry stays python3 hello.py from the repository root.
+21. ~/e2e-runs/effort-eeff1-r1/control-hello/.shiploop-runs/work-20261024-214332-7afe50/run
+    If a later run wants a fast-forward, do not let plan-return commit a file the return will exclude.
+22. ~/e2e-runs-brownfield/20261028/bf-ds-ticket-assignment-09c33b/.shiploop-runs/work-20261028-230157-1584ba/run
+    Whoever picks this up next should decide whether the ticket.assigned line gets a real delivery route — a relay that tails NOTIFY_FILE plus an address per agent — and if so, add it as a new work item with its own boundary case; until then R-8 is 'the agent is told through the notification file' and A1 remains open. The service still has no authentication, so any exposure beyond loopback needs a decision first.
+23. ~/e2e-runs-brownfield/20261028/bf-ds-ticket-escalation-09c33b/.shiploop-runs/work-20261029-005315-5834f6/run
+    At handoff: record the requesting user's answer to A1 (person-level delivery) and state where the post-release knowledge lives (A2 — the run branch tip, not the delivered master at 85116c0). Operations should confirm readiness against the delivered checkout and its receipt, not the run worktree, and must not re-release. If a later change touches src/, test/ or package.json, the delivered-tree observation and the no-history copy probe must be rerun.
+24. ~/e2e-runs-brownfield/20261029/hooks-after-ticket-escalation/.shiploop-runs/work-20261030-004732-321bfd/run
+    No feature work remains; future service or fixture changes should revalidate the system test and full suite.
+25. ~/e2e-runs-owner-note/20261028/pc-ds-hello-note-b45e87/.shiploop-runs/work-20261028-194550-435718/run
+    Only A1 travels onward: a Windows host should confirm hello.py's output bytes there, since print translates \n to \r\n and TC_1's exact-tuple assertion is written for this target's terminator. Everything else is closed — the two product files and the knowledge home are delivered at a87db0cb with every selected case green on the delivered surface.

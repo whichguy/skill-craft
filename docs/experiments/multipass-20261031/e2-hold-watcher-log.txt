@@ -1,0 +1,8 @@
+17:47:28 watching the lease at /Users/dadleet/.local/state/shiploop-e2e/leases/port-4180.lock; hold since 2026-10-31T17:47:28
+18:02:28 pilot 1 holds the lease: ticket-tests-published-01
+18:05:28 pilot finished: ticket-tests-published-01 (1 of 2)
+18:17:28 still holding after 30 min: pilots seen ['ticket-tests-published-01'], finished 1
+18:22:08 pilot 2 holds the lease: ticket-tests-published-02
+18:27:09 pilot finished: ticket-tests-published-02 (2 of 2)
+18:29:09 two pilots have finished and the lease is free: lifting the hold
+18:29:09 E2 driver started (it skips every case that already has a result)
