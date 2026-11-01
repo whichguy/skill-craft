@@ -890,5 +890,33 @@ class PilotKitTest(unittest.TestCase):
         self.assertIn("exists", refused.stderr)
 
 
+class CycleKitTest(unittest.TestCase):
+    """The stage 5 full-cycle kit (docs/experiments/closed-loop-cycle-20261101): what its script runs is checked here."""
+    KIT = ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101"
+
+    def test_the_cycle_uses_no_hosted_platform_and_no_shared_lane_and_reads_its_own_cases(self):
+        text = (self.KIT / "run.sh").read_text()
+        catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
+        for case in ("user-listing", "csv-report"):
+            self.assertIn(case, text)
+            self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
+            self.assertNotIn("4180", json.dumps(catalog[case]), f"{case} must not take the shared port-4180 lane")
+        for flag in ("--tolerance 0.25", "--attempts 3", "--effort high", "--model gpt-6.1-terra", "--iterations 1"):
+            self.assertIn(flag, text)
+        self.assertNotIn("--skip-reviews", text, "the full cycle reviews every attempt")
+
+    def test_the_run_script_parses_names_what_it_returns_and_refuses_a_used_folder(self):
+        script = self.KIT / "run.sh"
+        self.assertEqual(subprocess.run(["bash", "-n", str(script)], capture_output=True, text=True, check=False).returncode, 0)
+        text = script.read_text()
+        for returned in ("iterate-exit-status.txt", "LOOP.md", "branches.txt", "cycle-result.json", "epoch-verdict.json"):
+            self.assertIn(returned, text)
+            self.assertIn(returned, (self.KIT / "README.md").read_text())
+        with tempfile.TemporaryDirectory() as used:
+            refused = subprocess.run(["bash", str(script), "0" * 40, used], capture_output=True, text=True, check=False)
+        self.assertEqual(refused.returncode, 2, refused.stderr)
+        self.assertIn("exists", refused.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()
