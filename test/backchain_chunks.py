@@ -23,8 +23,8 @@ PRESERVATION = SKILL / "scripts/check_preservation.py"
 PRESERVATION_CHECK_ID = "backchain-preservation"
 PRESERVATION_CHECK_CLAUSE = "Final candidate-specific domain evidence is saved."
 EVIDENCE_CHECK_ID = "backchain-evidence"
-sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
-import shiploop_backchain_graph as graph  # noqa: E402
+sys.path.insert(0, str(SKILL / "scripts"))
+import backchain_graph as graph  # noqa: E402
 
 
 def read(path):

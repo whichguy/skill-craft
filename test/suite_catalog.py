@@ -509,6 +509,7 @@ def _shiploop(path: str) -> Suite:
 
 _CORE_SUITES = (
     _suite("backchain-chunks", "core", "test/backchain-chunks.test.py", "python3", "-B", "test/backchain-chunks.test.py"),
+    _suite("backchain-graph", "core", "test/backchain-graph.test.py", "python3", "-B", "test/backchain-graph.test.py"),
     _suite("test-groups", "core", "test/test-groups.test.py", "python3", "test/test-groups.test.py"),
     _suite("ci-policy", "core", "test/ci-policy.test.py", "python3", "test/ci-policy.test.py"),
     _suite("integration-boundaries", "core", "test/integration-boundaries.test.py", "python3", "test/integration-boundaries.test.py"),
