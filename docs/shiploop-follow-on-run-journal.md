@@ -140,7 +140,8 @@ Findings:
   decision was filed under `## Superseded`. The 40-heading cap arithmetic puts the first cut at the fifth pass's packet. A chain of
   follow-on runs would repeat this, so a chain waits for the multipass decisions D2 to D4. (Refined 2026-10-31, Round 2, F16 and
   F17: the third pass repeated the leaks at a steady rate, and the chain now waits for the result of the A/B test of the fix,
-  not for a decision.)
+  not for a decision. Refined again 2026-11-01, Round 3, F21, F22, F24 and F26: the A/B test met its bar, so the chain now waits
+  for the fix's release; the mislabel persists once a lineage has it, on one lineage; the fifth pass's cut is now counted.)
 - F14 (firm). `--continue-from` and `follows` are test-harness features (`test/shiploop_e2e/run.py`, `cases.json`). The engine
   records no field for which run another follows. A chain would add one; the recommend-only list does not need it.
 - F15 (firm). The multipass apparatus (`chains.py`, `delta.py`, `ticket-comments`) is the fixture and the readout for a mechanics
@@ -195,19 +196,20 @@ Findings:
   Round 1.
 - F17 (firm). What a chain waits for moved from a decision to a measurement. The owner approved the multipass D1 to D5 ("Approve
   all", 15ef676f). D2 to D4, the fix for what stages write, is one candidate kept off main until its A/B test (E2) meets a bar
-  written before the first run. E2 as last recorded on main (d1e5df37): started 17:33:58; held 41 min 41 s from 17:47:28 so another
-  session's two test-writing pilots could use the shared port-4180 lane first, 31 min 21 s of it with nobody holding the lane;
-  resumed 18:29:09 with chain A1's second case. No E2 result is on main at df44fd30. The multipass work's own offline replay found
-  a gap in the candidate: both entries filed as retired when new (AD-3, AD-4) were written by the plan stage, which the
-  candidate's packet line does not reach (c55d0bc0). So the born-retired entry may survive E2.
+  written before the first run. E2 as last recorded on main (d1e5df37): started 17:33:58; held 41 min 41 s from 17:47:28 so
+  another session's two test-writing pilots could use the shared port-4180 lane first, 31 min 21 s of it with nobody holding the
+  lane; resumed 18:29:09 with chain A1's second case. No E2 result is on main at df44fd30 (superseded 2026-11-01 by Round 3,
+  F21: E2 reported, 6a6badb3). The multipass work's own offline replay found a gap in the candidate: both entries filed as
+  retired when new (AD-3, AD-4) were written by the plan stage, which the candidate's packet line does not reach (c55d0bc0). So
+  the born-retired entry may survive E2.
 - F18 (firm for what exists; hermetic). The modifying link is built. `ticket-sla` (bf68e959) asks a pass to replace "a ticket is
   escalated at most once" with "at most twice, and by priority" and to change the requirement, the decision behind it and the
   tests together. Its acceptance is its own (the second link's hidden check reads the very sentence it replaces, so a correct
   delivery would fail it), its ledger says whether the old entries were changed or left standing, and 11 hand-written variants
-  each failed exactly the checks that read what they break. There is no live run: E3 waits for E2. Its request is hand-written;
-  none of the peek's three `decision` rows (csv-report numeric forms, a delivery route for `ticket.assigned`, person-level
-  delivery) concerns how often a ticket is escalated. So M2b still has no case that starts from a real leftover, and `ticket-sla`
-  is the fixture for U10, not a measurement of value.
+  each failed exactly the checks that read what they break. There is no live run: E3 waits for E2 (superseded 2026-11-01 by
+  Round 3, F22: E3 ran, a232cf03). Its request is hand-written; none of the peek's three `decision` rows (csv-report numeric
+  forms, a delivery route for `ticket.assigned`, person-level delivery) concerns how often a ticket is escalated. So M2b still
+  has no case that starts from a real leftover, and `ticket-sla` is the fixture for U10, not a measurement of value.
 - F19 (firm, about this document). Revision 2 recorded moving status as fact. It was authored at 17:19:26 and committed, after a
   rebase, at 18:43:03; the owner's approval (15ef676f, 17:29), E1's result (c55d0bc0, 17:40) and `ticket-sla` (bf68e959, 18:41)
   are all ancestors of it, so three of its statements were already stale when it was published. This was known and disclosed to
@@ -215,7 +217,8 @@ Findings:
   journal that holds the live state; the design's header says so.
 - F20 (firm, from source). The skill card's byte bound limits a build: `card_max_bytes` is 30500 in
   `test/fixtures/shiploop-card-ledger.json` and `skills/shiploop/SKILL.md` is 29,955 bytes, so about 545 bytes of card text; a
-  candidate for another change exceeded the bound on 2026-10-31 (df44fd30). Added to the design's section 8 and section 6.
+  candidate for another change exceeded the bound on 2026-10-31 (df44fd30). Added to the design's section 8 and section 6. (Figure superseded 2026-11-01 by Round 3: 30,011 bytes and about 489 bytes of card
+  text as of e13af240; the bound and the reading stand.)
 
 Changed in the design: the header, sections 1, 2, 3.B, 4.7, 5, 6, 7 (M2a and M2b), 8 (one bullet), 9 (one row), 10 (D2's
 condition) and 11 (U2, U9, U10). D1 to D4 keep their recommendations.
@@ -231,4 +234,105 @@ origin/main); the base is origin/main because the canonical `main` had diverged;
 branch, not on main) is not cited in the design; nothing is pushed until the owner says so; no release (documents only).
 
 Open: the replay with a second reader (design section 7, M1); a revision 4 when E2 reports; M2a after E2 and E3; the owner's D1 to
-D4.
+D4. (Superseded 2026-11-01 by Round 3: revision 4 is written, and E2 and E3 have reported.)
+
+## Round 3 — 2026-11-01 — revision 4: E2 and E3 reported
+
+Question: revision 3 was published with its moving statements written "as of" its base, df44fd30. Two multipass results landed
+on main after that base: the A/B test of the fix for the leaks (E2) and the first live fourth pass (E3). Which statements of
+the design do they overtake, and does either change a recommendation?
+
+Conditions: base e13af240100c066489e83c028d97339845402b55 (origin/main), in the worktree and on the branch of revision 3
+(`docs/follow-on-rev3-dd7837`). Revision 3 was rebased onto 17cbbd9b830e8e95385617f0c1c9fb68dd850546, tested (the quick tier, pinned to that base)
+and pushed first, as published 7bb1c35683a18d37bd800df12a2f4c45c32ecc77, at the owner's word. Main then moved by five commits (a Python 3.9
+floor, release skill-craft 2.27.2 and shiploop 1.26.2, two documents); revision 4, the second commit, was rebased onto the last of them and its
+facts were re-checked against it. No model call and no ShipLoop run. One reader, Claude Sonnet 5.5, who also wrote the design.
+
+Read in full: 6a6badb3e6b8bd858015817c40ee216addf76ba6 (E2), a232cf038789b532c8485c7583136177cb6be929 (E3) and
+9d5067f3d6b38ff0231e3e98835d78fb96e5a37a (the fix to the fourth link's case); the multipass journal's summary table, the results
+of E2 and E3, its routine decisions and its unknowns; the multipass plan's diff from df44fd30 to the base; the E3 readout and
+the `environment.md` figures of `e3-ledger.json`. Read in part: the first 40 lines of ed2f0a34 (another session's learning
+commit, which cites a candidate for another change measured at 30,440 bytes against the card bound; that candidate is not on
+main). Searched: a keyword pass (follow-on, multipass, ticket-sla, chain, superseded, SKILL.md, card, port-4180, lease) over the
+messages of the 19 commits between df44fd30 and 17cbbd9b found the multipass commits above and nothing else that bears on the
+design; the others, judged by subject and by the lines of six of them that mention the card or bytes, are other sessions' E2E
+apparatus, retention and Salesforce work. `git diff --stat` over that range lists 23 files, none under `skills/`, `agents/`,
+`plugins/`, `changes/` or the card ledger. The five commits after it, up to the base, were checked the same way and by the diff of
+the card: the multipass plan, journal, readouts and cases are unchanged; no module the design cites changed (the diff names the CLI
+entry scripts, the hook scripts, the README and a new `shiploop_pyfloor.py`); the one fact of the design they move is the card's
+size, which release 2.27.2 raised from 29,955 to 30,011 bytes against the unchanged bound of 30500 (94bccf23 added one sentence naming
+the Python 3.9 floor), so Round 2's F20 stands in its reading and its figure of about 545 bytes becomes about 489 (marked in F20
+above). The candidate branch was rebased again onto the base while this was written, and still does not touch the card. The Round 0
+reading of the engine holds.
+
+Findings:
+
+- F21 (firm for three chains per arm, one pair of cases, passes 1 and 2, Codex gpt-6.1-terra at xhigh). The fix for the leaks met
+  its bar. E2 ran 2026-10-31 17:33:58 to 21:40:17: three chains of two passes on the 1.26.0 tree and three on the candidate. 12 of
+  12 runs passed and B1 to B5 all held. Stray headings added to `environment.md`: 0 in all six fix passes, 7, 7, 2, 6, 5 and 8 in the
+  control (second passes 0, 0, 0 against 7, 6, 8). A pass that added a decision changed a live section of `architecture.md` in 6
+  of 6 fix passes against 3 of 6. Second-pass time was 1.02 times the control's (limit 1.2); tokens 49.1 M a run against 49.0 M.
+  B1 (no entry filed as retired when new) held without being tested: the control never did it in six passes. The notice caught
+  the mislabel once live (B3 pass 2), printed in the packet of a stage after `plan`, the route the offline replay had predicted;
+  it is the first live catch. Limits: the candidate is a bundle, the passes are 1 and 2, the machine was shared. The candidate is
+  not on main; the release is recommended and is the owner's call. Evidence: 6a6badb3 and the multipass journal's Round 2 result.
+- F22 (firm for one run; the persistence of the mislabel is exploratory, n=2, one lineage). The first live fourth pass (E3)
+  delivered what it was asked and repeated both leaks. `ticket-sla` continued from E1's output on published ShipLoop
+  (skill-craft 2.27.1, ShipLoop 1.26.1, no fix), Codex gpt-6.1-terra at xhigh: 993 s, 37.0 M tokens, 158 model calls. All 16
+  hidden checks passed, requirement R-7 was changed in place, all 8 IDs were kept and one earlier test file was modified. It is
+  recorded FAILED, 15 of 16 checks, on one check of the new case that was wrong (F23). `environment.md` gained 9 stray headings
+  (+6.4 KiB, 16,637 to 23,175 bytes), and the new decision AD-5 was filed under `## Superseded` behind AD-3 (mislabelled since
+  the lineage's saved second pass) and AD-4 (E1's). Two of two later passes (E1, E3) filed their new decision as retired. Both
+  continue the lineage whose saved second pass (bf-codex-r2) made the mislabel; one of the four saved second passes made it and
+  none of E2's six control passes did. This extends F13 and F16. The multipass commit reads it as the mislabel compounding with
+  the pass number (it needs a trailing `Superseded` section, which exists only after an earlier pass has made one). I read it
+  more narrowly: the evidence is one lineage, so it shows the mislabel persisting once made, and the pass number is not
+  separated from the lineage. It also leaves open what F16 could not say, whether a pass retires or supersedes an old decision,
+  because AD-3 was already marked. Evidence: a232cf03, the multipass journal's Round 3 result, `round3-readout-output.txt` and
+  `e3-ledger.json` under `docs/experiments/multipass-20261031/`.
+- F23 (firm). A case written from the request and a synthetic prior had two wrong words at its first contact with a real prior.
+  Its retention check looked for the word `comment`, copied from the previous link; the prior spec already contained it, so the
+  in-place route could not pass. The ledger's pattern for the old rule used the request's wording ("at most once") where the third
+  pass had written "enqueued once". The calibration passed because its synthetic delivery added a requirement ID, taking the other
+  of the two routes through the check, and the pattern had been written from the request. Both are fixed (9d5067f3), with three
+  tests that fail on the old case file; the verdict was corrected after the result was seen and both verdicts are kept. For M2b:
+  a case that tests a follow-on request takes its checks from a real prior pass and exercises each route. Evidence: 9d5067f3, a232cf03.
+- F24 (firm, from the saved file; one run). After the fourth pass `environment.md` holds 40 headings (1 title, 33 level-2, 6
+  level-3; 23,175 bytes), exactly the listing cap (`_CONTENTS_LINES` is 40 in `shiploop_navigator.py`), where aa601d37 had put the
+  first cut at the fifth pass's packet by arithmetic. Counted by a short script over
+  `~/e2e-runs-multipass/20261031/mp-codex-ticket-sla/work/docs/shiploop/environment.md` (outside the repository), skipping fenced
+  code; the rendered listing was not printed. As of the base, the fifth pass has not run.
+- F25 (firm, about this document). F19's rule reached the headline of a passage and not every sentence. By my count of the
+  revision 3 text, 15 sentences state a status that E2 or E3 overtook ("waits for E2", "has not run", "queues behind"); 3 carry
+  "as of" and 12 do not, mostly in table rows and bullets. Revision 3 landed with E2 and E3 already on main (they were pushed while
+  it waited for the owner's word), so those 12 were stale from the day it landed. Revision 4 corrects them and labels each moving
+  statement it keeps. A search of a draft for "waits", "not run", "queues", "pending", "running" and "next" finds them.
+- F26 (firm for the reasoning; no recommendation changes). What a chain waits for moved a third time: from a decision (revision
+  2) to a measurement (revision 3) to a release (revision 4: the fix met its bar and is not on main). Beyond the release, one
+  question the A/B does not answer applies to a chain and not to a person-started pass: the fix was tried on passes 1 and 2, and
+  a chain reaches the later passes, where a mislabel, once made, persists. It is stated in 4.7 and U9 and not in D2's wording.
+  D2's condition keeps its text, with its two parts marked (met; not yet merged). Whether to add "seen on a third pass" is the
+  owner's call.
+
+Changed in the design: the header, sections 1, 2, 3.B, 4.7, 5, 6 (three rows updated and three added), 7 (M2a and M2b), 8 (one
+clause), 9 (one row), 10 (D2's parenthesis) and 11 (U2, U9, U10). D1 to D4 keep their recommendations.
+
+Superseded (kept above, marked 2026-11-01): Round 2's F17 sentence "No E2 result is on main at df44fd30" (true as of that base), F18's
+"There is no live run: E3 waits for E2", Round 2's "Open:" line and F20's byte figure (29,955 bytes, about 545 of headroom); revision 3's
+statements counted in F25.
+
+Harness and test-case changes: none. No skill change, no change note, no release. Effect on earlier results: F13 and F16 are extended
+by F22 (the later-pass mislabel is now two of two); F17's gate moved (F26).
+
+Routine decisions: revision 3 was pushed first, unchanged except for the rebase (its hash changed when it was rebased onto the base),
+and revision 4 is a second commit on top of it, so the stale statements and their correction both stay visible in history (the owner's
+order: merge, then E2 as revision 4); E3 is folded in with E2 although the owner's words named E2, because the design says in several
+places that a fourth pass has not run and E3 landed within hours of E2; the candidate's branch is named and its hashes are not
+(another session's local branch, rebased since the A/B); a moving statement is labelled "as of" the base and the candidate's state "as
+read for this revision"; no release (documents only); main moved while revision 4 was being checked, so it was rebased a
+second time and the card figure it stated was corrected before the push.
+
+Open: the replay with a second reader (design section 7, M1), which could now include the runs under `~/e2e-runs-multipass` (whether
+they reached handoff is not checked); M2a, after whatever the owner orders on port 4180 next (the multipass plan names a smaller second
+chain); the fix's release and a fix-arm third or fourth pass (the multipass journal's next measurements); the owner's D1 to D4; a
+revision 5 when the fix is released or a fix-arm later pass reports.
