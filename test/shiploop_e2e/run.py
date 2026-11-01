@@ -4677,9 +4677,10 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
               # folder masked, the host CLI's build (Claude's
               # init event; the others' launch probe) and the stream's first and last stamp.
               "prompt_sha256": masked_prompt_digest(case_prompt(prompt, improve_skill), out, args.resume_run or args.output),
-              # The route the run began with, read from what its start left on disk (start_route.py): workspace (the isolated
-              # entry), direct (init), or null where ShipLoop never started a run.
-              "start_route": start_route.route(out),
+              # The route the run began with, read from what its start left on disk (start_route.py; a probe records the first one
+              # its watcher saw): workspace (the isolated entry, once its run has a state), direct (init), or null where ShipLoop
+              # never started a run.
+              "start_route": start_route.recorded(start_watch, out),
               # What graded this run (SPEC: the evaluator boundary): the harness's code, its checks/ and the case entry read
               # above. A regrade records its own; promotion.py compares a case only across equal digests.
               "boundary": boundary.fingerprint(HERE, case),
