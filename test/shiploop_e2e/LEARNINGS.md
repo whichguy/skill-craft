@@ -6046,6 +6046,13 @@ merges. The gate was not changed: it is the owner's rule. A smaller fix would li
 (`git log --no-merges`), or accept a merge whose parents are all covered; until then a release that follows two sessions' merges
 needs an entry like this one after the last merge.
 
+**Addendum, same day: the owner decided, and the gate changed.** Asked "Make the release gate list non-merge commits only?", the owner
+answered "Yes, change it" (2026-11-01). `scripts/release.py` now passes `--no-merges` to the log that lists the commits needing a round
+(39b417c26d24f2344a7b6c84617f8b94a9a554b8); AGENTS.md and `docs/skill-release-checklist.md` state the rule. Replayed on real history: at 2905cf841927b7809c97c7c1537f9f5f697f258c, where
+794c0b81 was listed, the new gate accepts; at the parent of the 1.18.0 release both gates still name the same three changes. What
+is no longer read is the hand-written content of a conflict resolution; both sides' own commits are. The paragraph above that says the gate
+was unchanged and recommends this change is superseded by this addendum; the entry before it stays as the record of why.
+
 ## Release preflight for Backchain 0.7.0: two merges of main into the Backchain branch are listed as ShipLoop changes without a round (2026-11-01) — status: firm; no round ran on the merges, and the gate is unchanged
 
 **What happened.** `scripts/release.py` for the Backchain efficiency release refused, naming two commits, both merges of main into
