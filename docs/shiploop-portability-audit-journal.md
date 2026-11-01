@@ -236,6 +236,32 @@ live half now has a passing session on each host. The Claude host's first attemp
 owner controls, not by ShipLoop; the owner chose Sonnet for the rerun and it passed. Which interpreter the Codex session ran is inferred (the packets printed Xcode's Python
 3.9.6; the session's PATH was not recorded), so the run is not yet proof of a live session on the floor.
 
+## Round 6 — improvements from the audit (2026-11-01)
+
+Asked by the owner after Round 5: "Do weekly run", then "skip ollama, just use Claude. Merge to main and publish, implement
+improvements". Read as: add the weekly run; add the other no-secret improvement proposed (the consumer smoke) and write the
+post-release live check down with Claude as its host; do not build Ollama-specific handling. The harness's default backend
+(Ollama) was not changed, because that changes the subject model behind every earlier baseline; the owner has not said it
+should be.
+
+| Change | Commit | Result |
+|--------|--------|--------|
+| Weekly full-tier CI run (Mondays 14:23 UTC): a schedule event maps to the full tier in `ci_policy.select` | `427c97b8801ba2216f6ebedca32653d3de4b7201` | two tests red then green; the first scheduled run is Monday 2026-11-02 and is not yet observed |
+| `shiploop-clean-consumer`: the built package run in a scrubbed environment on the interpreter under test (CLI help, `workspace start` with no git identity, every hook entry with `python3` absent) | `be57e809ff9035d9a729ffda64e39e6bb7d61031` | 3 tests; fails with `(127, '', 'env: python3: No such file or directory')` when the pre-fix hook is restored; passes on 3.9.6 and the default Python; passed in the python-floor job of full-tier run 41323374730 |
+| "Smoke checks after a release" in `docs/distribution.md`: the no-model probes, a live `hello` session on Claude (`--backend anthropic --model claude-sonnet-5-5`), and an optional Codex one | `116a65e8257f8258d1f48c0aae2b83adb7e77403` | the Claude path is documented as the default; Ollama is named only as the cause of two blocked runs |
+
+Findings:
+
+| # | Finding | Status | Evidence |
+|---|---------|--------|----------|
+| F13 | The scrubbed-environment smoke of the built package passes on Linux, Python 3.9.25, `ubuntu-24.04`, as well as on macOS: the python-floor group is now 75 suites and ran in 1,202.9 s wall at `--jobs 4`, `shiploop-clean-consumer` OK | firm for that run | run 41323374730, job 124898192333 |
+| F14 | The consumer smoke adds little over what existed (`shiploop-package-integrity` already checks entries compile and are executable; two suites already run built copies): its gain is the scrubbed environment only. A second mutation, removing an execute bit, never reached it because `scripts/build-packages.py` refuses the build first, so a redundant executability test was dropped | firm | mutation runs described in `be57e809ff9035d9a729ffda64e39e6bb7d61031` |
+
+Not done, by the owner's choice: the harness preflight that makes a one-token Ollama call and the rule that a quota failure
+appends no baseline row (finding F10 still stands: a run that hits a usage limit appends a failed row). Not done and still
+open from "What is left": the floor is enforced only in the full tier (and now the weekly run), the eight unexplained
+E2E-apparatus failures on 3.9, and the 1.0 s progress-observer deadline (F11), which is a limit the owner decides.
+
 ## Proposals as first written (2026-10-31; applied as Round 3)
 
 1. **Declare the floor.** One line in `skills/shiploop/SKILL.md` and its README: Python 3.9 or newer and `git` on PATH.
