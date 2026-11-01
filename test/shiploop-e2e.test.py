@@ -3891,6 +3891,33 @@ class CodexHostTest(unittest.TestCase):
             self.assertEqual(hosts.HOST_DEFAULTS[name], {"model": agent.model, "effort": agent.effort})
 
 
+class ThrowawayHomeEnvTest(unittest.TestCase):
+    """A throwaway HOME has no login keychain, so a CLI that stores a secret there makes macOS show a modal "Keychain Not
+    Found" dialog and blocks until someone answers it. The Salesforce CLI does on its first org command (2026-11-01, the
+    start-route probe's trials); SF_USE_GENERIC_UNIX_KEYCHAIN keeps its key in <HOME>/.sfdx/key.json instead. The HOME that
+    holds the login must never get it: the CLI would stop reading the keychain key and could not decrypt the saved logins."""
+
+    VAR = "SF_USE_GENERIC_UNIX_KEYCHAIN"
+
+    def test_the_codex_and_grok_throwaway_homes_carry_it(self):
+        with tempfile.TemporaryDirectory() as temp:
+            auth = Path(temp) / "auth.json"
+            auth.write_text("{}")
+            with mock.patch.dict(os.environ, {"CODEX_HOME": temp}), mock.patch.object(hosts, "GROK_AUTH", auth):
+                for name in ("codex", "grok"):
+                    home = Path(temp) / f"{name}-home"
+                    env = hosts.host(name).env(home)
+                    self.assertEqual(env["HOME"], str(home), name)
+                    self.assertEqual(env[self.VAR], "true", name)
+
+    def test_the_claude_host_runs_in_the_real_home_and_never_carries_it(self):
+        with mock.patch.dict(os.environ):
+            os.environ.pop(self.VAR, None)
+            for backend in (None, "ollama"):
+                env = hosts.host("claude", None, backend).env(Path(tempfile.gettempdir()) / "unused-home")
+                self.assertNotIn(self.VAR, env, str(backend))
+
+
 class FanoutGradeTest(unittest.TestCase):
     """The live fan-out/fan-in check is graded from stamps and dispatcher state, never by the model."""
 

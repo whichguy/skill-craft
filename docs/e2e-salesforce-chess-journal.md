@@ -530,4 +530,56 @@ from an earlier run's: the snapshot's `sf --version` line (`chess_salesforce.sf_
 The skill records the rule: ShipLoop's `references/platforms/salesforce.md` gains `## CLI login` (the key lives in the keychain; a
 HOME without the login sets `SF_USE_GENERIC_UNIX_KEYCHAIN=true`; the HOME that holds it never does).
 
-Unknown: whether the dialog the owner saw "again" came from the probe's trials or from another path. The watcher will say.
+~~Unknown: whether the dialog the owner saw "again" came from the probe's trials or from another path. The watcher will say.~~ Answered the same day: see the closing below.
+
+Closing, the same day (2026-11-01, firm; what follows was checked against git, the process table and the hosts' plugin files, not
+taken from a message).
+
+- The source is settled. The probe session ("Testing phase coverage and spec alignment") answered the message sent to it: the
+  dialogs came from its guard-probe trials, where the Salesforce prompt makes the model run the real `sf` in a throwaway HOME
+  before its run exists; its probes are finished (two launches of 104 sessions each) and none is planned. Checked independently:
+  no process has its command line or its working folder under `~/e2e-runs-startroute`, no `security *-generic-password` was waiting
+  and no SecurityAgent process existed. By its account its driver's per-trial cleanup matched command lines only, so a `security`
+  child that names no folder escaped it, and it is adding a working-folder match. (The one `security add-generic-password` it saw
+  alive was, as far as I can tell, the watcher test's fake: an `exec -a` of a `sleep 4` that carried the service name `sfdxtest`,
+  not a keychain call.)
+- A second watcher (one process snapshot per second, so a short-lived process keeps its details; Claude Code's own credential reads
+  skipped) ran for 30 minutes from about 10:35 and delivered no event: no SecurityAgent and no `security *-generic-password` for any
+  other service. It started after the probe had finished, so it shows that nothing else raised the dialog in that half hour; it is not
+  a test of the fix under load (the live control above did that). The first watcher's two events at 10:33:26 and 10:33:27 carried no
+  details because the processes had exited before they were read; nothing was pending 25 s later.
+- Release and CI. 2.31.0 / 1.30.0 (`5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a`), cut by the probe session on top of
+  `2905cf841927b7809c97c7c1537f9f5f697f258c`, ships the `## CLI login` note of `20a7f38559edaa1c06010332d71b9753e64279d5`; no change
+  note is pending. CI on 2905cf84: release-boundary, plan, quick and hermetic all passed. The release preflight listed the merge
+  commits of main into the keychain branch as ShipLoop changes without an E2E round (by my reading of `release.e2e_round_missing`, a merge that
+  differs from both parents in `skills/shiploop/` is listed, and the merge messages carried no `No-E2E-Round`); the releasing session covered them with a LEARNINGS
+  entry (`c8c50e68b795715dab200aae1a2404d13dd71a0d`) and left the gate alone. The Claude, Codex and Grok host plugins read 2.31.0
+  (Claude and Grok were refreshed at 10:41; Codex's cache holds 2.31.0), and the canonical checkout equals origin/main (0 ahead, 0
+  behind).
+- Test guard. Only a fake Grok launch in the platform suite pinned the variable; nothing pinned Codex or the Claude host.
+  `ThrowawayHomeEnvTest` in `test/shiploop-e2e.test.py` now pins that the Codex and Grok throwaway homes carry
+  `SF_USE_GENERIC_UNIX_KEYCHAIN=true` and that the Claude host, which runs in the real HOME that holds the login key, never does.
+  Each test fails when its own invariant is broken (the variable emptied out of `hosts.THROWAWAY_HOME_ENV`: the first fails; the
+  variable added to `Host.env`: the second fails) and both pass as committed.
+- The CLI updater, proved on its real path. `~/.claude/tools/sf-cli-update-cron.sh` (cron, daily 09:20; owner: "we just want to
+  make sure we update it all the time") had only ever run against fakes, because the installed CLI already was npm's `latest`. A real
+  run against a week-old CLI in a temporary npm prefix found a bug the 10 fake-based tests could not: the install worked
+  (2.156.5 to 2.156.8) but the script reported "sf --version failed after the install" and skipped the plugin update, because
+  `sf --version | head -n 1` under `pipefail` fails when the CLI prints more than one line (head exits, sf dies of SIGPIPE). Every
+  good update would have been reported as an error. Fixed by reading the whole output and keeping its first line; the fake `sf
+  --version` now prints a second line after a pause, the test fails on the unfixed script (8 of 10) and passes on the fixed one (10 of
+  10), and the real run then went clean: 2.156.5 to 2.156.8 in 9 s, `sf plugins update` ran, the second run was a no-op, the updated
+  CLI listed the owner's 2 orgs (alias `de`) read-only, and the owner's own install was untouched (same version and `package.json`
+  mtime). Also established: npm 12.2.1 skips install scripts for global installs; the CLI's own only guards, protobufjs's only warns
+  and yarn's runs with its output discarded and errors ignored, so skipping them changes no file; an in-place upgrade differs from a fresh install by 21 files, all in third-party nested dependencies;
+  `npm root -g` prints UUID-shaped path segments as `***` (a test prefix must be UUID-free; `/opt/homebrew/lib/node_modules` is
+  not affected); the job follows the `latest` tag (2.156.8; `latest-rc` 2.157.7 and `nightly` 2.158.3 exist), so its first real
+  update comes when `latest` moves; it notifies only on failure (the success banner was removed: a banner is a popup); the existing
+  scheduled task `nightly-cli-update` does not cover this CLI. Evidence:
+  `docs/e2e-salesforce-chess-evidence/2026-11-01-sf-cli-updater-real-path.md`.
+
+Unknowns left: whether a future CLI release keeps honouring `SF_USE_GENERIC_UNIX_KEYCHAIN` (documented for automation users; the
+weekly update will move the CLI, and `keychain-dialog-check/check_dialog.py` is the way to recheck after a major version); what
+"Reset To Defaults" does for a process with a throwaway HOME; the harness still leaves a `security` child behind when it kills only
+`sf`, which matters for any other program that writes to a keychain from a throwaway HOME (the probe's driver is being fixed; the
+shared harness is not changed).
