@@ -38,6 +38,7 @@ MODEL, EFFORT = "gpt-6.1-terra", "xhigh"
 HOST_TIMEOUT_SECONDS = 240   # the harness ends a host that never starts ShipLoop; the driver's own stop usually comes first
 HARD_LIMIT_SECONDS = 420     # the driver kills a run folder's process group when the harness itself has not exited
 STOP_GRACE_SECONDS = 120     # after the stop file, the harness is given this long to write its records
+MAX_INVALID_STREAK = 6        # invalid attempts in a row that stop the whole batch
 MAX_ATTEMPTS = 3             # a slot is retried only when its trial was invalid (infrastructure), never for its outcome
 ARMS = ("C", "T1", "T2")
 # stimulus -> (selector for run.py, trials per arm). sf-ui is the prompt of the failing run, byte for byte; hello is the
@@ -45,6 +46,7 @@ ARMS = ("C", "T1", "T2")
 # existing Git repository). user-listing was the first choice and was dropped: it leases the machine-wide port 3000.
 STIMULI = {"sf-ui": (["--prompt-file"], 40), "hello": (["--case", "hello"], 10), "repo": (["--case", "ticket-assignment-tests"], 10)}
 SEED = 20261101
+ARMS_FILE = HERE / "arms.json"   # --arms picks another; the replication uses arms-r2.json
 
 # A start is the ShipLoop CLI invoked with the verb `workspace start` or `init`, written as a shell command, with the
 # CLI in a variable, or as a Python subprocess argument list. A reader command that mentions the words is not a start.
@@ -67,9 +69,9 @@ def detect_start(cmd: str) -> str | None:
     return "workspace" if match.group(1).startswith("workspace") else "direct"
 
 
-def make_plan() -> list[dict]:
+def make_plan(seed: int = SEED) -> list[dict]:
     slots = [{"stimulus": s, "arm": a, "i": i} for s, (_, n) in STIMULI.items() for a in ARMS for i in range(1, n + 1)]
-    random.Random(SEED).shuffle(slots)
+    random.Random(seed).shuffle(slots)
     for number, slot in enumerate(slots, 1):
         slot["slot"] = number
     return slots
@@ -150,6 +152,20 @@ def stop_group(proc: subprocess.Popen) -> None:
         os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
     except OSError:
         pass
+
+
+def effects(trial: Path) -> dict:
+    """What the start left on disk, read before the folders are removed: an independent check on the route read from the
+    command. `workspace start` writes a workspace.md beside the run and turns an empty folder into a Git repository;
+    `init` writes a state.md and does neither. Absent when the start command was stopped before it wrote anything."""
+    def outside_home(found) -> list[str]:
+        return sorted(str(f.relative_to(trial)) for f in found if "home" not in f.relative_to(trial).parts)
+
+    workspace = outside_home(trial.rglob("workspace.md"))
+    state = outside_home(trial.rglob("state.md"))
+    route = "workspace" if workspace else "direct" if state else "none"
+    return {"effect_route": route, "effect": {"work_is_git": (trial / "work" / ".git").exists(),
+                                              "workspace_md": workspace[:2], "state_md": state[:2]}}
 
 
 def run_trial(slot: dict, attempt: int, out: Path, expected: dict) -> dict:
@@ -238,6 +254,7 @@ def run_trial(slot: dict, attempt: int, out: Path, expected: dict) -> dict:
         row["seconds"] = round(time.monotonic() - started, 1)
         time.sleep(2)   # let a start command that was running when the stop file appeared finish spawning
         reap(trial)
+        row.update(effects(trial))
         for heavy in ("home", "work", "platform"):
             shutil.rmtree(trial / heavy, ignore_errors=True)
         trial.mkdir(parents=True, exist_ok=True)
@@ -318,7 +335,7 @@ def run_confirm(out: Path, count: int, jobs: int) -> None:
 
 
 def prepare(out: Path) -> dict:
-    arms = json.loads((HERE / "arms.json").read_text())
+    arms = json.loads(ARMS_FILE.read_text())
     return {"card_sha256": {arm: build_arm(arm, arms[arm], out / "arms" / arm / "root") for arm in ARMS}}
 
 
@@ -332,13 +349,20 @@ def run_all(plan: list[dict], out: Path, jobs: int) -> None:
             row = json.loads(line)
             done[row["slot"]] = 99 if row["valid"] else max(done.get(row["slot"], 0) % 99, row["attempt"])
     lock = threading.Lock()
+    abort = threading.Event()
+    streak = [0]   # consecutive invalid attempts; a fault the driver cannot absorb stops the run (fix it, restart clean)
 
     def work(slot: dict) -> None:
         first = done.get(slot["slot"], 0) + 1   # attempts are numbered across launches; each launch makes at most MAX_ATTEMPTS
         for attempt in range(first, first + MAX_ATTEMPTS):
+            if abort.is_set():
+                return
             row = run_trial(slot, attempt, out, expected)
             with lock, results_path.open("a") as fh:
                 fh.write(json.dumps(row) + "\n")
+                streak[0] = 0 if row["valid"] else streak[0] + 1
+                if streak[0] >= MAX_INVALID_STREAK:
+                    abort.set()
             print(f"slot {slot['slot']:3d} {slot['arm']:2s} {slot['stimulus']:6s} a{attempt} -> {row['start']:9s} "
                   f"valid={row['valid']} {row['seconds']}s {row['error'] or ''}", flush=True)
             if row["valid"]:
@@ -346,6 +370,9 @@ def run_all(plan: list[dict], out: Path, jobs: int) -> None:
 
     with ThreadPoolExecutor(max_workers=jobs) as pool:
         list(pool.map(work, [s for s in plan if done.get(s["slot"], 0) < 99]))
+    if abort.is_set():
+        print(f"ABORTED: {MAX_INVALID_STREAK} invalid attempts in a row; fix the cause and restart the batch from scratch", flush=True)
+        raise SystemExit(3)
 
 
 def main() -> None:
@@ -353,7 +380,9 @@ def main() -> None:
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("plan")
     p.add_argument("--out", required=True)
+    p.add_argument("--seed", type=int, default=SEED)
     p = sub.add_parser("smoke")
+    p.add_argument("--arms", default=None)
     p.add_argument("--arm", default="C", choices=ARMS)
     p.add_argument("--stimulus", default="sf-ui", choices=tuple(STIMULI))
     p.add_argument("--out", required=True)
@@ -367,13 +396,17 @@ def main() -> None:
     p.add_argument("--out", required=True)
     p.add_argument("--apply", action="store_true")
     p = sub.add_parser("run")
+    p.add_argument("--arms", default=None)
     p.add_argument("--plan", required=True)
     p.add_argument("--out", required=True)
     p.add_argument("--jobs", type=int, default=4)
     args = ap.parse_args()
+    if getattr(args, "arms", None):
+        global ARMS_FILE
+        ARMS_FILE = Path(args.arms).resolve()
     if args.cmd == "plan":
-        Path(args.out).write_text(json.dumps(make_plan(), indent=1) + "\n")
-        print(f"{len(make_plan())} slots, seed {SEED} -> {args.out}")
+        Path(args.out).write_text(json.dumps(make_plan(args.seed), indent=1) + "\n")
+        print(f"{len(make_plan(args.seed))} slots, seed {args.seed} -> {args.out}")
     elif args.cmd == "smoke":
         out = Path(args.out)
         out.mkdir(parents=True, exist_ok=True)

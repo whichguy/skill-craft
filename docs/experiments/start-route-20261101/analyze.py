@@ -65,9 +65,9 @@ def tally(rows: list[dict]) -> dict:
     return cells
 
 
-def card_sizes() -> dict:
+def card_sizes(arms_file: Path) -> dict:
     card = (ROOT / "skills" / "shiploop" / "SKILL.md").read_text()
-    arms = json.loads((HERE / "arms.json").read_text())
+    arms = json.loads(arms_file.read_text())
     sizes = {}
     for arm, edits in arms.items():
         text = card
@@ -77,13 +77,13 @@ def card_sizes() -> dict:
     return sizes
 
 
-def evaluate(cells: dict) -> tuple[list[str], str | None]:
+def evaluate(cells: dict, arms_file: Path) -> tuple[list[str], str | None]:
     lines: list[str] = []
     control = cells[("sf-ui", "C")]
     c_started = control["workspace"] + control["direct"]
     lines.append(f"control (sf-ui): {control['direct']} wrong of {c_started} started "
                  f"(precondition: at least {MIN_CONTROL_WRONG} wrong): {'met' if control['direct'] >= MIN_CONTROL_WRONG else 'NOT met'}")
-    sizes = card_sizes()
+    sizes = card_sizes(arms_file)
     meeting: list[tuple[int, int, str]] = []
     for arm in ("T1", "T2"):
         cell = cells[("sf-ui", arm)]
@@ -109,6 +109,23 @@ def evaluate(cells: dict) -> tuple[list[str], str | None]:
     return lines, (min(meeting)[2] if meeting else None)
 
 
+def agreement(rows: list[dict]) -> list[str]:
+    """The route read from the command against the route read from what the start left on disk (effect_route)."""
+    seen = [r for r in rows if "effect_route" in r]
+    if not seen:
+        return []
+    both = [r for r in seen if r["start"] != "none" and r["effect_route"] != "none"]
+    differ = [r for r in both if r["start"] != r["effect_route"]]
+    unseen = [r for r in seen if r["start"] != "none" and r["effect_route"] == "none"]
+    lines = [(f"route from the command against route from what the start left on disk: {len(seen)} sessions; both readable "
+              f"{len(both)}, agree {len(both) - len(differ)}, differ {len(differ)}; command only (start stopped before it "
+              f"wrote anything, or wrote outside the folder) {len(unseen)}")]
+    lines.extend(f"    DIFFER slot {r['slot']} {r['arm']} {r['stimulus']}: command {r['start']}, disk {r['effect_route']}" for r in differ)
+    no_start = [r for r in seen if r["start"] == "none"]
+    lines.extend(f"    NO START slot {r['slot']} {r['arm']} {r['stimulus']}: disk reads {r['effect_route']}" for r in no_start)
+    return lines
+
+
 def compact(row: dict) -> dict:
     def short(text: str | None, limit: int) -> str | None:
         if text is None:
@@ -117,7 +134,7 @@ def compact(row: dict) -> dict:
         text = re.sub(r"/Users/[^ '\"]*?/trials/[^/ '\"]+/", "<trial>/", text)
         return text[:limit]
     keys = ("slot", "attempt", "stimulus", "arm", "i", "start", "end", "valid", "error", "seconds_to_start",
-            "read_run_start", "self_bootstrap", "skill_seen", "installed_card_sha256")
+            "read_run_start", "self_bootstrap", "skill_seen", "installed_card_sha256", "effect_route")
     out = {k: row.get(k) for k in keys}
     out["start_command"] = short(row.get("start_command"), 200)
     out["pre_start"] = [short(c, 110) for c in row.get("pre_start", [])[:6]]
@@ -128,6 +145,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("results", type=Path)
     ap.add_argument("--export", type=Path)
+    ap.add_argument("--arms", type=Path, default=HERE / "arms.json", help="the arms file the batch used (sizes)")
+    ap.add_argument("--also", type=Path, help="another batch's results: add a pooled table (descriptive only)")
     args = ap.parse_args()
     rows, dropped = load(args.results)
     cells = tally(rows)
@@ -141,11 +160,27 @@ def main() -> None:
         median = c["seconds"][len(c["seconds"]) // 2] if c["seconds"] else "-"
         print(f"{stimulus:7s} {arm:3s} {c['n']:3d} {c['workspace']:9d} {c['direct']:6d} {c['none']:4d} {rate:>22s} "
               f"{c['bootstrap']:9d} {c['read_run_start']:14d} {median!s:>8s}")
-    lines, winner = evaluate(cells)
+    lines, winner = evaluate(cells, args.arms)
     print()
     print("\n".join(lines))
     print()
     print(f"DECISION: ship {winner}" if winner else "DECISION: ship nothing (no candidate meets the pre-registered bar)")
+    extra = agreement(rows)
+    if extra:
+        print()
+        print("\n".join(extra))
+    if args.also:
+        more, _ = load(args.also)
+        pooled = tally(rows + more)
+        print()
+        print("pooled over both batches (descriptive, not a decision): sf-ui wrong / started")
+        for arm in ARMS:
+            c = pooled[("sf-ui", arm)]
+            started = c["workspace"] + c["direct"]
+            lo, hi = wilson(c["direct"], started)
+            print(f"   {arm:3s} {c['direct']:3d} / {started:3d}  {c['direct'] / started:.3f} ({lo:.3f}-{hi:.3f})  none {c['none']}")
+        pc, pt = pooled[("sf-ui", "C")], pooled[("sf-ui", "T2")]
+        print(f"   T2 against C, one-sided Fisher p = {fisher_lower(pc['direct'], pc['workspace'] + pc['direct'], pt['direct'], pt['workspace'] + pt['direct']):.2e}")
     if args.export:
         args.export.write_text("".join(json.dumps(compact(r)) + "\n" for r in rows))
         print(f"wrote {args.export}")

@@ -242,9 +242,41 @@ card's hash equals the release package's card on every session and the harness r
 (`confirm-output.txt`, `confirm-compact.jsonl`). The prediction held. With 0 of 12 the interval reaches 24%, so this confirms the
 package, not the rate: the rate is the 0 of 40 above.
 
+## Replication R2 (registered 2026-11-01, before its first trial)
+
+**Why.** The owner asked for a rerun wherever accuracy needs it. The first batch reached its decision only after four
+corrections made while it ran (a help request read as a start, a start form the detector missed, stray observers that blocked
+the harness, a port lease held by another session) and a re-read of the stored event streams; its numbers are right as
+corrected, but they did not come from one clean run. R2 repeats the whole design in one launch with the final instrument.
+
+**What is the same.** The question, the three requests, the model and effort (Codex gpt-6.1-terra, xhigh, through `run.py`),
+the sample sizes (40, 10 and 10 per card), the stop rule, and the decision rule above.
+
+**What is different.**
+1. *Base.* The published 2.27.3 package, whose card already carries T2's wording. The cards are rebuilt from it
+   (`arms-r2.json`): C is the old wording (T2's edit reversed; hash 772ef68948a6, 30,011 bytes), T1 is the old wording plus T1's
+   edit (6fb44b49c5ca, 30,033), T2 is the published card (9588268edbe9, 30,115; the hash the confirmation measured).
+2. *Order.* A new random order, seed 20261102 (`plan-r2.json`); one launch; the final driver (the `--help` rule, escaped-quote
+   starts, per-trial cleanup, private lease folders for the `repo` request from the start).
+3. *Faults.* No fix is made while the batch runs. Six invalid attempts in a row stop it (the driver aborts); a valid session with no
+   start, or a command route that differs from the route on disk, is investigated before the result is used. A fault means the cause
+   is fixed and the whole batch restarts from scratch; the aborted data stay as evidence and are not pooled.
+4. *A second reading of the route.* After each session, before its folders are removed, the driver records what the start left on
+   disk: `workspace.md` (the isolated entry) or only `state.md` (the direct entry), and whether the folder became a Git repository.
+   `analyze.py` prints it beside the route read from the command.
+
+**Decision.** R2 replicates the first batch if T2 meets all six items against C again. Whatever it shows is reported in full and both
+batches stand; a pooled table is descriptive. If T2 fails the bar, or C shows fewer than 5 wrong starts, the first result is not
+relied on and the release goes back to the owner (reverting a published release is theirs to decide).
+
+**Prediction.** C 25% to 45% wrong on `sf-ui`, T1 15% or less, T2 5% or less; no guard session starts with `init`; the two readings of
+the route agree wherever both are readable.
+
+**Cost.** About 18M tokens and 15 to 35 minutes, as the first batch (estimate; a stopped session reports no totals).
+
 ## Evidence
 
-- `arms.json`, `stimuli/sf-ui.txt`, `plan.json`, `start_probe.py`, `analyze.py`: the design. `start_probe.py reclassify` and
+- `arms.json`, `stimuli/sf-ui.txt`, `plan.json`, `start_probe.py`, `analyze.py`: the design. `arms-r2.json`, `plan-r2.json`: the replication's. `start_probe.py reclassify` and
   `rescan` are the two detector corrections of "Deviations" 4 and 6.
 - `confirm-output.txt`, `confirm-compact.jsonl`: the published-build confirmation (`start_probe.py confirm`).
 - `analysis-output.txt`, `results-compact.jsonl`: the result (the compact rows trim each command; the raw rows are below).
