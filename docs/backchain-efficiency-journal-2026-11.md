@@ -342,3 +342,8 @@ amendment A1 (`a1_sensitivity.py`) and the post-hoc regrade R1 (`regrade_r1.py`,
 | R9-10 | The design could hardly reach "near-identical". Its band is the grader noise (±0.62 to ±1.05 points), while 10 cases with a few large per-case swings give an interval about 9 to 15 points wide. So "inconclusive" here mostly reflects how little power the design has for small differences, not evidence of a difference. | exploratory | `analysis.json`; `r1-analysis.json` |
 
 Adoption is the owner's decision (A2): the registered rule names no winner.
+
+Decision D4 (owner, 2026-11-01): ship the candidate. Asked with the registered result (inconclusive), R1 (inconclusive,
+no harm detected once the artifact is removed) and the cost result (halved) side by side. Follow-ups:
+- orders-cancel-rpc's stop, which graders judged worse in the candidate (R9-7);
+- the cases' bounded-repair criteria, which should tell graders that `parallel_groups` is derived (R9-5).
