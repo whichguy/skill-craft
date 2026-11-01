@@ -8039,5 +8039,78 @@ class GitDiscoveryTests(unittest.TestCase):
         env = run.isolate_git_discovery({"GIT_CEILING_DIRECTORIES": "/a"}, Path("/tmp/out"))
         self.assertIn("/a", env["GIT_CEILING_DIRECTORIES"].split(os.pathsep))
 
+class StartupContractEvaluatorTest(unittest.TestCase):
+    """Calibrate the selected package startup examples and keepalive observer."""
+
+    def test_new_case_reuses_hello_continuation_obligations(self):
+        cases = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text(encoding="utf-8"))
+        old = cases["hello-hook-continuation"]
+        new = cases["hello-startup-contract"]
+        self.assertEqual(new["style"], old["style"])
+        self.assertEqual(new["prompt"], old["prompt"])
+        self.assertEqual(new["checks"][:len(old["checks"])], old["checks"])
+        self.assertEqual(new["checks"][-1], 'python3 -B "$E2E_CHECKS/shiploop_startup_contract.py"')
+        self.assertIn("startup", new["checks_source"].lower())
+
+    def test_selected_package_startup_observer_calibration(self):
+        package = (ROOT / "plugins" / "skill-craft").resolve()
+        checks = ROOT / "test" / "shiploop_e2e" / "checks"
+        checker = checks / "shiploop_startup_contract.py"
+        self.assertTrue(checker.is_file(), "startup contract checker is not implemented yet")
+        helper_path = checks / "shiploop_hook_contract.py"
+        spec = importlib.util.spec_from_file_location("startup_identity_helpers", helper_path)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        helpers = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(helpers)
+        with tempfile.TemporaryDirectory(prefix="startup-contract-test-") as temporary:
+            output = Path(temporary)
+            work = output / "work"
+            work.mkdir()
+            invocation = {
+                "case": "hello-startup-contract",
+                "cwd": str(work.resolve()),
+                "host": "codex",
+                "plugin_dir": str(package),
+                "plugin": {"pass": True, "path": str(package)},
+                "versions": {"plugin_sha256": helpers.runner_tree_digest(package)},
+            }
+            (output / "invocation.json").write_text(json.dumps(invocation), encoding="utf-8")
+            env = os.environ.copy()
+            env["E2E_CHECKS"] = str(checks)
+            result = subprocess.run([sys.executable, "-B", str(checker)], cwd=work, env=env,
+                                    capture_output=True, text=True, timeout=120, check=False)
+            receipt_path = output / "shiploop-startup-contract-receipt.json"
+            self.assertTrue(receipt_path.is_file(), result.stdout + result.stderr)
+            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(receipt.get("schema"), "shiploop-startup-contract/v1")
+            self.assertEqual(receipt.get("verdict"), "pass")
+            probes = {row["id"]: row for row in receipt.get("probes", [])}
+            self.assertEqual(len(probes), 12)
+            self.assertTrue(all(row["status"] == "pass" for row in probes.values()), receipt)
+            self.assertTrue(all(row["package"]["unchanged"] and
+                                row["package"]["before_sha256"] == row["package"]["after_sha256"]
+                                for row in probes.values()))
+            self.assertTrue(probes["documented_workspace_start"]["observed"]["bound"])
+            self.assertTrue(probes["documented_init"]["observed"]["bound"])
+            self.assertTrue(probes["documented_workspace_start"]["observed"]["bound_run_id_matches"])
+            self.assertTrue(probes["documented_init"]["observed"]["bound_run_id_matches"])
+            self.assertFalse(probes["variable_head"]["observed"]["bound"])
+            self.assertFalse(probes["read_packet"]["observed"]["bound"])
+            self.assertFalse(probes["read_status"]["observed"]["bound"])
+            self.assertFalse(probes["missing_state"]["observed"]["bound"])
+            self.assertFalse(probes["corrupt_state"]["observed"]["bound"])
+            self.assertEqual(probes["foreign_owner"]["observed"]["decision"], "allow")
+            for probe_id in ("argv_workspace_start", "argv_init"):
+                forms = probes[probe_id]["observed"]["forms"]
+                self.assertEqual(set(forms), {"documented_variable", "literal_single", "literal_double"})
+                self.assertTrue(all(form["argv_match"] for form in forms.values()))
+            self.assertTrue(receipt["package_unchanged"])
+            self.assertTrue(receipt["package_signature_before_sha256"])
+            self.assertEqual(receipt["package_signature_before_sha256"],
+                             receipt["package_signature_after_sha256"])
+
+
 if __name__ == "__main__":
     unittest.main()
