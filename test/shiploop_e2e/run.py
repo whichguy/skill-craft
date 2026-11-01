@@ -151,6 +151,7 @@ import lifecycle  # noqa: E402
 import listeners  # noqa: E402
 import metrics  # noqa: E402
 import owner_note  # noqa: E402
+import start_route  # noqa: E402
 import quality  # noqa: E402
 import release_slice  # noqa: E402
 import run_choice
@@ -2566,6 +2567,11 @@ def parser() -> argparse.ArgumentParser:
                    help="write one owner note (`shiploop note`, with the run's own CLI) once a step of STAGE is current and its "
                         "packet has printed, as the run's owner would mid-step; recorded in owner-note.json, and its fate "
                         "(held, delivered, cited) in metrics.json run_trace.checks.owner_note. A resume keeps the stage")
+    p.add_argument("--stop-after-start", action="store_true",
+                   help="a first-command probe: end the host as soon as its ShipLoop run has started (a workspace.md for "
+                        "`workspace start`, a state.md for `init`), the harness's own stop, so a question about a run's first "
+                        "command costs seconds. Takes no fixed-port lease (nothing is served) and no platform; the route is "
+                        "recorded as start_route in result.json and the baseline row either way")
     p.add_argument("--check", action="append", help="extra shell check run in the work dir (repeatable)")
     p.add_argument("--planning-review", choices=stage_spec.PLANNING_REVIEW_MODES,
                    help="the ShipLoop run option: append it to the prompt of a --case or --prompt run so the model starts "
@@ -2737,6 +2743,7 @@ def baseline_row(result: dict, style: str | None, suite: str | None,
             "truncated_outputs": m.get("truncated_outputs"), "narrative": m.get("narrative"),
             # Identity: what the run ran on and for how long, null where the result does not say (never 0 or ''). A
             # checkout run records its head in versions.local_head, a marketplace run under versions.released.
+            "start_route": result.get("start_route"),
             "plugin_sha256": versions.get("plugin_sha256"), "prompt_sha256": result.get("prompt_sha256"),
             "host_build": result.get("host_build"),
             "local_head": versions.get("local_head") or (versions.get("released") or {}).get("local_head"),
@@ -3738,9 +3745,10 @@ def refuse_lifecycle(out: Path, runs: int = 1, own: Path | None = None) -> dict:
     return found
 
 
-def take_leases(name: str, platform_spec: dict | None, only_platform: bool = False) -> "lifecycle.Lease":
-    """Lease the case's platform state and its declared fixed ports, all or none (lifecycle.take raises Refused)."""
-    ports = [] if only_platform or name == "custom" else list(case_quality(name).get("refuse_ports") or [])
+def take_leases(name: str, platform_spec: dict | None, only_platform: bool = False, probe: bool = False) -> "lifecycle.Lease":
+    """Lease the case's platform state and its declared fixed ports, all or none (lifecycle.take raises Refused). A probe
+    (--stop-after-start) ends before anything is served, so it takes no port: another session's run of the same case may hold it."""
+    ports = [] if only_platform or probe or name == "custom" else list(case_quality(name).get("refuse_ports") or [])
     lease = lifecycle.take(lifecycle.lease_keys(platform_spec, ports),
                            {"pid": os.getpid(), "case": name, "since": datetime.now().isoformat(timespec="seconds")}, ports=ports)
     for note in lease.notes:
@@ -3950,6 +3958,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     if args.planning_review and args.seed_at:
         raise SystemExit("--planning-review with --seed-at: the harness starts a seeded run itself and records its stages "
                          "without doing them, so the option would change nothing")
+    if args.stop_after_start and (args.suite or args.seed_at or args.resume_run or args.continue_from or args.keep_platform):
+        raise SystemExit("--stop-after-start ends a new run at its first start: it does not go with --suite, --seed-at, "
+                         "--resume-run, --continue-from or --keep-platform")
     if args.suite:
         return run_suite(args, argv)
     if args.plugin_dir:
@@ -4052,6 +4063,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         name, prompt, checks, follows = load_case(args)
         seed_built = seed_materials(name, args.seed_at)  # refused here, before the folder, the install and the platform
         platform_spec = case_platform(name)
+        if args.stop_after_start and platform_spec:
+            raise SystemExit(f"--stop-after-start: case {name!r} has a platform, which a probe must not touch; use --prompt")
         existing = platform_existing_mode(args.platform_existing, name, platform_spec)
         if args.keep_platform and not platform_spec:
             raise SystemExit(f"--keep-platform: case {name!r} has no platform, so there is nothing to keep")
@@ -4067,7 +4080,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         if not args.suite_name:
             refuse_stale_listeners(None)  # before the folder exists, so a refusal leaves nothing behind
             start_disk = refuse_lifecycle(planned_output(args.output, name))
-        lease = take_leases(name, platform_spec)  # all or none, before the folder exists (SPEC "The resource lifecycle")
+        lease = take_leases(name, platform_spec, probe=args.stop_after_start)  # all or none, before the folder exists (SPEC "The resource lifecycle")
         held.append(lease)
         out = new_output_dir(args.output, name)
         lease.bind(out)
@@ -4400,6 +4413,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     deadline = time.monotonic() + (args.timeout or float("inf"))
     note_watcher = (owner_note.Watcher(out, the_cli, owner_note_at, lambda: live_run_dir(out)).start()
                     if owner_note_at and not regrade else None)
+    start_watch = start_route.StartWatcher(out, stop_file).start() if args.stop_after_start and not regrade else None
     if regrade:
         # ShipLoop is done or blocked: no host is started, and the verdicts are computed from what is on disk.
         process = regraded_process(earlier_result.get("process"))
@@ -4410,6 +4424,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                          stop_file=stop_file, kind="first" if resumed is None else "fresh",
                          reason="start" if resumed is None else "resume-run",
                          told=resume_told(resumed["run_dir"], the_cli) if resumed else None)
+    if start_watch is not None:
+        start_watch.stop()
     sessions = [] if regrade else [dict(process, resumed=None, host=host.name)]  # a regrade launched no session
     # A headless Grok session ends whenever the model ends its turn. While ShipLoop's
     # run is still active, resume that same session instead of losing the run.
@@ -4660,6 +4676,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
               # folder masked, the host CLI's build (Claude's
               # init event; the others' launch probe) and the stream's first and last stamp.
               "prompt_sha256": masked_prompt_digest(case_prompt(prompt, improve_skill), out, args.resume_run or args.output),
+              # The route the run began with, read from what its start left on disk (start_route.py): workspace (the isolated
+              # entry), direct (init), or null where ShipLoop never started a run.
+              "start_route": start_route.route(out),
               # What graded this run (SPEC: the evaluator boundary): the harness's code, its checks/ and the case entry read
               # above. A regrade records its own; promotion.py compares a case only across equal digests.
               "boundary": boundary.fingerprint(HERE, case),
