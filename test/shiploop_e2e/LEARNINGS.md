@@ -5544,6 +5544,50 @@ findings, design U2); entry-level agreement between readers (U11); the owner's o
 - The four baseline rows are in test/shiploop_e2e/baselines.jsonl (`local_head` 2da2d4f3d11b0f468c14ff48e6158a7bb334e8ee); the evidence commit is 7c2ce6cb9345959292c38688106a4c8d16be865c.
 - Journal docs/shiploop-follow-on-run-journal.md, Round 5.
 
+## Follow-on list, the recommended-run path: E2E round on the Codex harness, Terra 6.1 xhigh, six custom-prompt runs on a primed request (2026-11-01) — status: firm for these six runs, mechanics only (n = 2 per link; a primed request): a model filed a `decision`, the printed start command worked as printed, a run started from the request asked the requester and changed nothing, and a run started from the request plus the answer delivered and did not file the decision again
+
+**Change under test.** None. The released tree (skill-craft 2.30.0 / ShipLoop 1.29.0, plugin tree 3efc9db89059, from a detached worktree at d2c6a5ff62a323a0f29c9d9b06c2f9bb5031a8a7), whose follow-on list the
+previous entry checked on four small requests without reaching a recommendation. The question is the path after the list: the request file, the printed command, and a run started from the request. The plan, rules R1 to R6 and
+predictions P1 to P7 were committed before any run (7bcb2884e410adb362206f82bf93695ec14da163); link 3 was registered after the link-2 outcome and before it ran (e6088502a9b60728717ec6c58b5ef290983c6e5e).
+
+**Runs.**
+- Command: `docs/experiments/follow-on-recommended-run-20261101/launch.sh` over `run.py --prompt ... --check ... --host codex --model gpt-6.1-terra --effort xhigh --source checkout` (custom prompt, no named case, no fixed
+  port). Link 1: a request that reserves one choice for the person (whether accented letters in a slug are converted or kept; "do not choose"), two replicates at once. Link 2: one run for each, started from that
+  replicate's own `follow-on-request.md` in a copy of its checkout (`--continue-from`). Link 3: the same request file plus one fixed requester answer, in a copy of the same checkout.
+- Output: `/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/`. Launches were refused three times before the first run, by four idle progress observers of another session's finished runs (memory note
+  e2e-launch-refusals, item 9); that session stopped them after a message.
+
+**Result.**
+
+| Run | Started from | Turns | Minutes | Gates | Handoff | `follow_on` | `slug.py Café` |
+|---|---|---|---|---|---|---|---|
+| link1-a, link1-b | the request | 172, 159 | 11.5, 10.6 | 6 of 6 each | 1 attempt each | one `decision` each, `lessons.open_next` | exit 2, "undecided: non-ASCII" |
+| link2-a, link2-b | each replicate's request file | 25, 25 | 1.2, 1.4 | 4 of 6 each | none: BLOCKED at spec | not reached | exit 2 (product unchanged) |
+| link3-a, link3-b | request file + the answer | 162, 144 | 12.8, 11.3 | 6 of 6 each | 1 attempt each | `[]` | `cafe`, exit 0 |
+
+- R1, R2, R3, R7, R8 and R9 hold. The printed command ran as printed on a copy of each link-1 checkout (exit 0, one workspace record, the stored request equal to the file but for its last newline). R4 as registered is
+  not met (0 of 2 link-2 runs reached `done`) and P5 (65%) missed; P1, P2, P3, P4, P8, P9 and P10 held. Link 2 changed no file; link 3 changed `slug.py`, `test_slug.py`, README and the three living knowledge files.
+
+**Mismatch triage** (the harness wrote `mismatch.md` for link2-a and link2-b: expected `shiploop` done and `committed`, observed blocked and HEAD unchanged). In the harness's order: the checks are not wrong; the cause is not
+the environment; it reproduced 2 of 2 and its trigger is clear (the request tells the run the decision is the requester's); the expectation was mine and describes an outcome ("done") an unanswered decision cannot have;
+a normal run with an unanswered decision would hit it; the behaviour comes from SPEC S-14 (blocked awaiting an answer when no default can proceed), the owner's own rule. Decision: the expectation changes (the plan's R4
+for an unanswered decision), no product change; link 3 supplies the answer.
+
+**Contrary evidence and unexplained.**
+- The request is primed, so a pass shows the path and not its use; two replicates of one request are a mechanics check, not a rate.
+- The person is simulated by one fixed answer chosen from the options the runs themselves offered; the harness never resumes a blocked run as if answered, so link 3 carries the answer in the prompt.
+- The double period in the request text (the model's `needs` ends with one and the template adds another) was seen twice and not fixed.
+- Two slips in my readout (a hash compared with the wrong string; a folder filter that skipped link 3) were found on first use, before any value was read through them.
+
+**Not measured.** The comparison with a hand-written request on the same base (design M2a's second half); a recommended `gap`; a person answering; the owner's own features (M3); the Claude and Grok hosts; efforts other than
+xhigh; entry-level agreement between readers (U11).
+
+**Evidence.**
+- docs/experiments/follow-on-recommended-run-20261101/: README.md (the write-up), readings.txt, runs.json, verdicts.txt, printed-command-link1-a.json and -b.json, requests.md, blocked-questions.txt, link3-changes.txt, and the
+  instruments request.txt, answer.txt, launch.sh, calibrate_checks.py, check_printed_command.py, readout.py. The six baseline rows are in test/shiploop_e2e/baselines.jsonl (`local_head` d2c6a5ff62a323a0f29c9d9b06c2f9bb5031a8a7);
+  the evidence commit is f9454b31ff1751d333e16b6439842a312f3e6f31.
+- Journal docs/shiploop-follow-on-run-journal.md, Round 6 (plan, addendum 1, result, findings F38 to F44).
+
 ## Harness change: the Claude host defaults to Anthropic's Sonnet 5.5, not Ollama's DeepSeek flash (2026-11-01) — status: firm (a default, not a finding); supersedes the 2026-10-26 entry "an E2E run defaults to DeepSeek flash on Ollama"
 
 **Owner decision.** 2026-11-01, in chat, "Yes use that as default", answering "Make Claude the E2E harness's default backend

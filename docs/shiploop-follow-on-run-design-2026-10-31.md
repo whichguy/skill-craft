@@ -80,7 +80,8 @@ the whole loop again.
   cites this note's U9 as its open question, and had not started. So a chain of follow-on runs still waits for the fix's release,
   and whether it should also wait for E4's result is open (section 4.7).
 - Order: the recommend-only list is built and was checked live (revision 6); the replay (revision 5) had advised waiting for runs of the owner's own features,
-  and the owner asked for the build. The next measurements are the list on the owner's own features (M3) and a recommended run started from a
+  and the owner asked for the build. As of f9454b31ff1751d333e16b6439842a312f3e6f31 a recommended run started from a model-written request has run live (section 7, M2a: a `decision` blocks and asks, the answered run
+  delivers). The next measurements are the list on the owner's own features (M3) and a recommended run for a `gap` started from a
   model-written request (M2a); the peek and the replay rerun in minutes. Consider chaining runs only with new evidence, the multipass fix's release
   and the owner's calls on D2 and D3.
 
@@ -508,6 +509,13 @@ has E4 (six runs, about 1 h 45 min of Terra, one at a time on the lane) fixed an
 base, so M2a queues behind them or behind whatever the owner orders next. The multipass journal (Rounds 2 to 4) holds the live
 state.
 
+M2a result (journal Round 6; docs/experiments/follow-on-recommended-run-20261101/; as of f9454b31ff1751d333e16b6439842a312f3e6f31). The mechanics half ran without the multipass chain, on a primed request: a one-file
+tool whose request reserves one choice for the person, two replicates, Codex Terra xhigh on the published tree. Both link-1 runs passed every gate, filed one `decision` citing `lessons.open_next` and wrote a request
+file; the printed command worked as printed on a copy of each checkout. A run started from that request file stopped at its spec stage after 25 turns and about 1.3 minutes, asking the requester the open question
+with options and a reason no default would do, and changed nothing; a run started from the request plus one fixed answer passed every gate, implemented and tested the answer, updated the living spec and
+architecture to say it supersedes the earlier pending decision, and filed no decision again (2 of 2 each). So an unanswered `decision` is a request for a person, not for a run; only a `gap` could run unattended.
+Not run: the comparison with a hand-written request on the same base, a recommended `gap`, the multipass chain as a base, and a person answering instead of a fixed answer.
+
 M2b. Value: does a follow-on run repair a delivery that is wrong? Still no case: every pass in the ticket chain passes (E1 and
 E3 included), and XI's baseline failures were stalls. Calibrate a brownfield case whose first run completes and fails a held-out
 check, and in which the run can know it did not verify the deciding fact (so the fact reaches `unverified` or `Open for the next
@@ -583,7 +591,7 @@ the build plan.
 | weakens a clause | S-12: a second parser for requests or lessons | mitigated: reuse `shiploop_request` and `shiploop_knowledge_home` |
 | other style, host, platform | the printed command breaks under a host's quoting | mitigated: command substitution of a file; test on each host's adapter |
 | fails silently | the model files a real gap under `note` | accepted: same as today; M1 measured it: all four readers label the same 11 rows `note`, and none of them a gap |
-| passes tests, fails live | a list that validates but never recommends | partly measured (revision 6): four live Codex runs were accepted on the first try with real sources and two supported notes; no run reached a recommendation, so the recommended-run path is still unmeasured live (M2a) |
+| passes tests, fails live | a list that validates but never recommends | partly measured (revision 6): four live Codex runs were accepted on the first try with real sources and two supported notes; no run reached a recommendation then. As of f9454b31ff1751d333e16b6439842a312f3e6f31 (Round 6, a primed request, n = 2) a model filed a recommending `decision`, the printed command worked as printed, an unanswered run blocked and asked, and an answered run delivered; the natural rate and a recommended `gap` are still unmeasured (M3, M2a) |
 | model-written glue, dead ends | a malformed list refuses `complete` with no exit | mitigated: the refusal states the exit and a test submits it through the real CLI |
 | enlarges packets | the handoff head grows | measured (revision 6): +1,475 printed characters in a real hello run (the head printed 16,850 to 17,462 of 20,000 in the four live runs); the handoff is not in `head_table.json` |
 | leaks, touches user work | the request file quotes result text | mitigated: it is written under `RUN`, outside the repository, through the existing privacy screens |
@@ -601,7 +609,7 @@ limit changes.
 | | Question | Recommendation |
 |---|---|---|
 | D1 | Shape: follow-on run, in-run back edge, or stay manual | a follow-on run, as built (the list's request starts one; no back edge). Staying manual until runs of the owner's own features show more was the M1 advice and was not kept (M1 reported: no gap, two to three decisions in 166 runs) |
-| D2 | Recommend-only, or auto-start a chain for `gap` entries | recommend-only; auto-start only after M2b shows a use and the multipass fix for what stages write has met its A/B test (E2: met) and been merged (as of 3d5732d0: not yet; tried on passes 1 and 2 only, E4 on passes 3 and 4 fixed and not started, U9) |
+| D2 | Recommend-only, or auto-start a chain for `gap` entries | recommend-only; auto-start only after M2b shows a use and the multipass fix for what stages write has met its A/B test (E2: met) and been merged (as of 3d5732d0: not yet; tried on passes 1 and 2 only, E4 on passes 3 and 4 fixed and not started, U9); as of f9454b31ff1751d333e16b6439842a312f3e6f31 a recommended run for a `decision` blocked at spec and asked the requester in 2 of 2 live runs (Round 6), so an auto-start could apply only to `gap` entries |
 | D3 | A dollars or minutes ceiling on a chain | none proposed; yours if you want one, ending in a report |
 | D4 | Build the recommend-only list now, or measure first | Decided: built, on the owner's "Rebase, Merge to main and publish, implement improvements" (2026-11-01), which I read as D4 = build. M1's advice to wait stands as evidence about demand: rerun the peek and the replay when runs of the owner's own features have finished (minutes, a few model calls) |
 
@@ -613,7 +621,8 @@ start command uses command substitution of the request file.
 - U1. Whether the producing model classifies as a second reader would. M1 measured it on saved text: three other readers reproduce the first reader's classes on 28 of 32 rows.
   The live round (revision 6) measured the producing model at the handoff: four Codex runs filled the list on the first try with real sources, two notes supported by
   the assumption they cite and two empty lists, no gap and no decision. Whether a second reader would class those entries alike is U11, not measured.
-- U2. (The request file exists since revision 6; no live run has started from one.) IN1 requires intake to cite every sentence of the request. A follow-on request that quotes the whole original would put
+- U2. (The request file exists since revision 6. As of f9454b31ff1751d333e16b6439842a312f3e6f31 two live runs were started from a model-written request file that names the original request by path: intake and discovery
+  handled it and the spec stage asked the requester the open question; a request that quotes the whole original is still untested.) IN1 requires intake to cite every sentence of the request. A follow-on request that quotes the whole original would put
   those sentences under IN1. The draft passes the original by path, not by value; whether intake handles a quoted original
   is untested. The multipass cases pass a delta-only request and their runs planned only the delta (the live third pass too:
   0 kept IDs followed, 8 test cases citing no kept requirement; the fourth pass: 0 kept IDs in test cases and step plans, the

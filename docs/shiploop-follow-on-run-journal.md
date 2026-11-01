@@ -617,7 +617,7 @@ by revision 6's.
 Open (as written before the release; its first two items are done, see "Released" below): the sweep line above while it runs; a post-release run of the published build
 (`--source marketplace`) as the check of the exact tree; and still open after it: U11 (entry-level agreement, now possible on model-written entries); M3 on the owner's own
 features; M2a (a recommended run started from a model-written request, which no live run reached); E4 and the multipass fix's release (the other session; E4 reported, the
-release is the owner's word).
+release is the owner's word). Updated 2026-11-01 (Round 6): the mechanics half of M2a has since been run live on a primed request; see Round 6.
 
 Released (2026-11-01): skill-craft 2.30.0 / ShipLoop 1.29.0, release commit 41ee3d89d580fb715fc90994b2361348550698c7. CI on the release push (run 41332749569) succeeded on all nine jobs (release-boundary, plan, full / core, full / shiploop-1, -2 and -3, full / python-floor, full / e2e-apparatus, hermetic). It was pushed with `scripts/release-push.py` (four checks passed: sync-plugin-views, marketplace packages, release boundary, test-groups). Hosts refreshed: Claude and Grok from 2.29.0 to 2.30.0, and Codex's marketplace on the second try (the first clone timed out at 30 s on the loaded machine); Cursor is the owner's through its app. Smoke on the published build: the no-model probes (`docs/experiments/clean-install-20261101/probes.sh`) passed (the installed plugin 2.30.0 is identical to the published tree; `shiploop --help` and `workspace start` exit 0 on stock Python 3.9.6 in a clean environment; the five hooks exit 0 with python3 absent and under Python 3.7.3; the CLI refuses 3.7.3 with the floor message), and a live Codex hello on the marketplace build passed every verdict (docs/experiments/follow-on-build-20261101/README.md, "The published build"); the paid Claude-host live session was not run. The three sweep failures are accounted for: the last sweep suite, `shiploop-e2e-test-adequacy`, failed one test under a load of up to 270 (22 of 25 mutants survived) and passes alone (1 test, 457.7 s, OK); `shiploop-e2e-ticket-sla`'s failing test passes alone in 8 s; `shiploop-workspace`'s failing test passes on the latest main base. No suite of the family fails because of this change.
 
@@ -735,3 +735,62 @@ knowledge files stop describing the policy as undecided (70%).
 Decision rule. R7 and R9 hold: the whole path (a recommendation, a request, a command, a run that asks, an answered run that delivers) is shown live on a primed request; the design note
 records it; no code change. A mechanical defect in the answered run or its list (a re-filed decision for a closed finding, a refusal loop at the gate): fix it generically with the test first
 and rerun. Still not concluded: as the plan says above, and the person is simulated by one fixed answer, so what a person does when asked is not measured.
+
+### Result (2026-11-01; six runs on Codex Terra xhigh, the published tree; a primed request, so mechanics only)
+
+Evidence commit f9454b31ff1751d333e16b6439842a312f3e6f31 (docs/experiments/follow-on-recommended-run-20261101/README.md has the table, `runs.json` and `readings.txt` the readout, `verdicts.txt`
+the runners' blocks). Every run loaded plugin tree 3efc9db89059, the tree of the published skill-craft 2.30.0 / ShipLoop 1.29.0, from a detached worktree at d2c6a5ff62a323a0f29c9d9b06c2f9bb5031a8a7.
+
+| Run | Started from | Turns | Minutes | Gates | Handoff | `follow_on` | `slug.py Café` |
+|---|---|---|---|---|---|---|---|
+| link1-a | the request | 172 | 11.5 | 6 of 6 | 1 attempt | one `decision`, `lessons.open_next` | exit 2, reserved message |
+| link1-b | the request | 159 | 10.6 | 6 of 6 | 1 attempt | one `decision`, `lessons.open_next` | exit 2, reserved message |
+| link2-a | link1-a's request file | 25 | 1.2 | 4 of 6 | none: BLOCKED at spec | not reached | exit 2 (unchanged) |
+| link2-b | link1-b's request file | 25 | 1.4 | 4 of 6 | none: BLOCKED at spec | not reached | exit 2 (unchanged) |
+| link3-a | link1-a's request file + the answer | 162 | 12.8 | 6 of 6 | 1 attempt | `[]` | `cafe`, exit 0 |
+| link3-b | link1-b's request file + the answer | 144 | 11.3 | 6 of 6 | 1 attempt | `[]` | `cafe`, exit 0 |
+
+Rules. R1 holds (both link-1 runs done with every verdict; the reservation was kept). R2 holds (both accepted handoffs list a `decision` citing `lessons.open_next`, whose text says the
+user's SEO decision is awaited, so the entries are supported; both runs wrote `follow-on-request.md` and the report section, and the done packet and the report print the command). R3 holds
+(the printed command ran as printed on a copy of each checkout: exit 0, no traceback, one workspace record, the stored request equal to the file but for its last newline). R4 as registered is not
+met: 0 of 2 link-2 runs reached `done`; both BLOCKED at spec, asking the requester (reading in addendum 1; the plan's mistake, not a defect of the request). R5: link 2 changed no file; link 3 changed
+`slug.py`, `test_slug.py`, `README.md` and the three living knowledge files, and both specs say the settled rule supersedes the earlier pending decision. R6: link 2 never reached a handoff. R7, R8 and R9
+hold (both link-3 runs done with every verdict; the tests exercise the answered rule and the records no longer describe the policy as undecided; both handoffs accepted on the first `complete` with
+`follow_on` `[]`, so the decision was not filed again).
+
+Predictions. P1 held (75%). P2 held, both runs (85%; both 60%). P3 held (80%). P4 held (90%). P5 missed (65%: 0 of 2). P6 (70%) is vacuous for link 2 and held for link 3. P7 (45%) did not apply, because
+link 2 never reached a handoff. P8 held (80%). P9 held (85%). P10 held (70%).
+
+Findings (status; citation).
+- F38 (firm for these two replicates, mechanics only; f9454b31ff1751d333e16b6439842a312f3e6f31). The recommended-run path ran live end to end on the published tree: a model filed a `decision` from a real
+  source and the gate accepted it on the first `complete`, ShipLoop wrote a request file and a command that work as printed, a run started from the request asked for the answer, and a run started from the
+  request plus the answer delivered, updated the living records and did not file the decision again. It is a primed request, n = 2: the path works; how often it is used (M3) and whether a follow-on run repairs
+  anything (M2b) are untouched.
+- F39 (firm, 2 of 2; the S-14 reading is mine; blocked-questions.txt). An unanswered `decision` cannot be delivered unattended: the follow-on run found the finding, followed the request file's pointer to the
+  earlier request ("the prior request explicitly says the requester decides and prohibits choosing on their behalf") and stopped at spec after 25 turns, asking one question with options. So a recommended `decision`
+  is a request for a person, and only a `gap` could ever run without one: the first live evidence for the design's D2 restriction (design note updated as of this evidence).
+- F40 (firm, 2 of 2). Both models took the reserved choice from `lessons.open_next` for the entry; link1-b also recorded it as plan assumption A2 ("Interim rejection applies until user decides future non-ASCII
+  letter policy"), link1-a recorded only environment assumptions. The request text's heading "Decision to settle with the requester" was a sufficient cue for the follow-on run's spec stage to ask.
+- F41 (observed twice, not fixed). The request text carries a double period when the model's `needs` ends with one ("...implement and test it.. Recorded in lessons.open_next."): the template appends ". ". It does
+  not break the path; fix it with the next change to `request_text`, not alone (a change note and a release for a cosmetic).
+- F42 (firm; instrument). Two slips in my readout were found on first use, before any value was read through them: a hash compared with the wrong string (c460d353d9f7f155e26a8fbefeac978b2977eda7) and a
+  folder filter that skipped link 3 (7c07eb1851009d5d57a692009880f37b6fab02eb). Practice: calibrate each field an instrument reads on one real finished folder of each kind before the runs it will read, and look
+  for an empty result as well as a wrong one.
+- F43 (firm; practice). The harness grades a BLOCKED run FAIL on `shiploop` and `committed` and writes `mismatch.md` for it. For an unanswered decision the expectation ("ShipLoop reaches done") is wrong, which
+  the E2E LEARNINGS entry records as the triage answer (the expectation changes); the harness itself is not wrong and was not changed.
+- F44 (firm; practice, memory note e2e-launch-refusals item 9). The first launches were refused three times by four idle progress observers of another session's finished closed-loop runs. The owning session
+  stopped them after a message (two other sessions answered that they were not theirs). A monitor that tested their liveness with `kill -0` reported them gone while `ps` showed them alive, because the tool's shell
+  cannot signal other processes; `ps -o pid= -p` is the check that works. An observer exits by itself when its run is done or after 1800 s idle, so a stale one blocks launches for at most about 30 minutes.
+
+Decisions recorded (routine, AGENTS.md 2026-10-28): the six runs were launched unasked as verification of a shipped feature; link 3 was added to the plan after the link-2 outcome and registered before it ran; the
+double period (F41) was not fixed; no change note and no release, because no mechanical defect appeared in the path.
+
+Contrary evidence and what is not concluded: the request is primed, so a pass shows the path and not its use; two replicates of one request; the person is simulated by one fixed answer chosen from the options the
+runs offered, and link 3 carries the answer in the prompt because the harness never resumes a blocked run as if answered; one host, one model, one effort; design M2a's comparison with a hand-written request on the
+same base was not run; a recommended `gap` was not produced; U11 and M3 are untouched.
+
+Superseded (marked 2026-11-01): Round 5's "Open" list names M2a as a recommended run "which no live run reached". Its mechanics half is now run (Round 6); the comparison with a hand-written request and a recommended `gap`
+remain open.
+
+Open (as of this round): M3 on the owner's own features (the demand question); U11 (entry-level agreement, now possible on 2 model-written entries that are alike); a recommended `gap` and the comparison with a hand-written
+request (the rest of M2a); the cosmetic double period with the next change to `request_text`; the multipass fix's release (the other session's, the owner's word); Cursor's refresh through its app (the owner's).
