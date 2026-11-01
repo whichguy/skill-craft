@@ -100,11 +100,10 @@ python3 '/absolute/directory-containing-the-loaded-SKILL.md/scripts/shiploop' --
 ```
 
 Claude Code may render `${CLAUDE_SKILL_DIR}` in skill text where supported, but
-that is not a portable shell environment variable. In every independent shell
-tool call, write the selected absolute CLI path literally and shell-quote it,
-with the driving verb directly after it, as below. Keepalive observes the command
-text: do not hide that path or verb behind `$CLI`, a wrapper, function or
-interpreter code. Copy packet-issued commands as printed. If `python3` or the bundled CLI is
+that is not a portable shell environment variable. Each independent shell call
+must use the shell-quoted literal selected absolute CLI path followed directly
+by its driving verb: no `$CLI`, wrapper, function or interpreter code. Copy
+packet-issued commands as printed. If `python3` or the bundled CLI is
 unavailable, report the missing prerequisite; never substitute a similarly
 named executable. Resolve the user's repository and run directory to absolute
 paths. Determine whether this
@@ -181,13 +180,12 @@ identity. If a locator is missing or paths have moved, recover access to the
 same run and identity or leave it incomplete; never create a replacement run to
 make progress.
 
-Use structured argv where the tool accepts it directly, keeping the selected
-CLI and verb visible. Arbitrary text is one `--name=value` argument
-(`--prompt=--help`). In a shell, single-quote literal text, replacing each
-embedded apostrophe with `'\''`; never paste raw user text into double quotes.
-Preserve the original request exactly, including Unicode and actual interior
-and terminal newlines inside the quoted argument. Do not trim it or transport
-it through command substitution, which removes terminal newlines.
+Use direct structured argv if supported; keep selected CLI and verb visible.
+Text is one `--name=value` argument (`--prompt=--help`). In shells, single-quote
+literals; replace each apostrophe with `'\''`; never double-quote raw user text.
+Preserve original request bytes: Unicode and actual interior and terminal
+newlines inside quotes. Never trim or use command substitution: it strips
+terminal newlines.
 
 If a current packet requires another skill, bind it only from that
 dependency's own observed, selected `SKILL.md` path. Do not infer a
