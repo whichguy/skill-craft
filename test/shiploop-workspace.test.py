@@ -2160,6 +2160,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
             {
                 "outcome": "done",
                 "summary": "This completion must be rejected without a return receipt.",
+                "follow_on": [],
             },
             "ShipLoop navigator result",
         )
@@ -2247,7 +2248,7 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         stale_summary = "Historical claim: return is currently verified <unsafe-summary>."
         store.write_record(
             result_path,
-            {"outcome": "done", "summary": stale_summary},
+            {"outcome": "done", "summary": stale_summary, "follow_on": []},
             "ShipLoop navigator result",
         )
         terminal = self.cli(
