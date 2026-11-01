@@ -56,8 +56,8 @@ PLUGIN_PATH = "plugins/cache/whichguy/skill-craft"
 
 def detect_start(cmd: str) -> str | None:
     """`workspace` for the isolated entry, `direct` for init, None when the command is not a ShipLoop start."""
-    if "shiploop" not in cmd:
-        return None
+    if "shiploop" not in cmd or ("--repo" not in cmd and "--prompt" not in cmd):
+        return None   # `init --help` and `workspace start --help` read the verb; a start carries the repository or the request
     match = SHELL_START.search(cmd)
     if match is None and "scripts/shiploop" in cmd and ("subprocess" in cmd or "execv" in cmd):
         match = PY_START.search(cmd)
@@ -226,6 +226,27 @@ def run_trial(slot: dict, attempt: int, out: Path, expected: dict) -> dict:
         (trial / "trial.json").write_text(json.dumps(row, indent=1) + "\n")
 
 
+def reclassify(out: Path) -> None:
+    """Re-read every stored trial's events.jsonl with the current detector; a valid row whose start does not read the same
+    is superseded by an invalid row (same attempt number), so the slot is run again. Nothing else in a row is rewritten."""
+    results_path = out / "results.jsonl"
+    rows = [json.loads(line) for line in results_path.read_text().splitlines() if line.strip()]
+    last: dict[int, dict] = {}
+    for row in rows:
+        last[row["slot"]] = row
+    changed = []
+    for slot, row in sorted(last.items()):
+        if not row["valid"] or row["start"] == "none":
+            continue
+        found = scan(Path(row["run_dir"]) / "events.jsonl")
+        if (found["start"], found["event_n"]) != (row["start"], row["event_n"]):
+            changed.append((slot, row["arm"], row["stimulus"], row["start"], found["start"]))
+            with results_path.open("a") as fh:
+                fh.write(json.dumps({**row, "valid": False, "start": "none", "superseded": True,
+                                     "error": "superseded: the stored start was a help request, not a start"}) + "\n")
+    print(f"{sum(r['valid'] and r['start'] != 'none' for r in last.values())} stored starts re-read; superseded: {changed or 'none'}")
+
+
 def prepare(out: Path) -> dict:
     arms = json.loads((HERE / "arms.json").read_text())
     return {"card_sha256": {arm: build_arm(arm, arms[arm], out / "arms" / arm / "root") for arm in ARMS}}
@@ -235,11 +256,11 @@ def run_all(plan: list[dict], out: Path, jobs: int) -> None:
     out.mkdir(parents=True, exist_ok=True)
     expected = prepare(out)
     results_path = out / "results.jsonl"
-    done: dict[int, int] = {}   # slot -> its highest attempt number, or 99 once a valid row exists
+    done: dict[int, int] = {}   # slot -> its highest attempt number, or 99 while its last row is valid
     if results_path.is_file():
         for line in results_path.read_text().splitlines():
             row = json.loads(line)
-            done[row["slot"]] = 99 if row["valid"] else max(done.get(row["slot"], 0), row["attempt"])
+            done[row["slot"]] = 99 if row["valid"] else max(done.get(row["slot"], 0) % 99, row["attempt"])
     lock = threading.Lock()
 
     def work(slot: dict) -> None:
@@ -266,6 +287,8 @@ def main() -> None:
     p.add_argument("--arm", default="C", choices=ARMS)
     p.add_argument("--stimulus", default="sf-ui", choices=tuple(STIMULI))
     p.add_argument("--out", required=True)
+    p = sub.add_parser("reclassify")
+    p.add_argument("--out", required=True)
     p = sub.add_parser("run")
     p.add_argument("--plan", required=True)
     p.add_argument("--out", required=True)
@@ -280,6 +303,8 @@ def main() -> None:
         expected = prepare(out)
         print(json.dumps(run_trial({"slot": 0, "arm": args.arm, "stimulus": args.stimulus, "i": 0}, 1, out, expected),
                          indent=1))
+    elif args.cmd == "reclassify":
+        reclassify(Path(args.out))
     else:
         run_all(json.loads(Path(args.plan).read_text()), Path(args.out), args.jobs)
 

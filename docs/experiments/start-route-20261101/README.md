@@ -166,6 +166,14 @@ Recorded as they happened; none changes an arm, the sample sizes, the order, or 
 3. **Timing.** The `repo` slots run after their planned position, so the guard's trials are not interleaved in time with the
    other requests. The `sf-ui` comparison, the one the decision rests on, is unaffected.
 
+4. **The start detector was fixed (2026-11-01, 05:49, after 40 rows).** The detector counted `... init --help` and
+   `... workspace start --help` as starts, so a session was ended at a help request, before its real decision. 14 of the 40 stored
+   rows (all `sf-ui`: 11 recorded as `workspace`, 3 as `direct`; control 6, T1 5, T2 3) were of this kind. A start must now carry
+   `--repo` or `--prompt`, which a help request does not. `start_probe.py reclassify` re-read every stored trial's `events.jsonl`
+   with the fixed detector, superseded those 14 rows with invalid rows, and the 14 slots ran again; the other 26 rows read
+   identically. The last row of a slot decides whether the slot has a valid trial (`analyze.py` and the driver both read it that
+   way). The definition of the outcome is unchanged: the first command that starts a run.
+
 ## Results
 
 (pending)

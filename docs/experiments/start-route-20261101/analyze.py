@@ -3,7 +3,7 @@
 
     python3 -I analyze.py RESULTS.jsonl [--export results-compact.jsonl]
 
-A slot counts once, by its last valid attempt; a slot with no valid attempt is reported and left out. The outcome of a
+A slot counts once, by its last row if that row is valid; a slot whose last row is invalid is reported and left out. The outcome of a
 sf-ui trial is the first ShipLoop start command the model ran: `workspace` (the isolated entry, right for an empty
 directory the user did not ask to work in place in) or `direct` (init, the wrong route there).
 """
@@ -42,16 +42,13 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
 
 
 def load(path: Path) -> tuple[list[dict], list[int]]:
-    best: dict[int, dict] = {}
-    seen: set[int] = set()
+    last: dict[int, dict] = {}
     for line in path.read_text().splitlines():
-        if not line.strip():
-            continue
-        row = json.loads(line)
-        seen.add(row["slot"])
-        if row["valid"]:
-            best[row["slot"]] = row
-    return [best[s] for s in sorted(best)], sorted(seen - set(best))
+        if line.strip():
+            row = json.loads(line)
+            last[row["slot"]] = row   # the last row of a slot decides: a later invalid row supersedes an earlier valid one
+    valid = {slot: row for slot, row in last.items() if row["valid"]}
+    return [valid[s] for s in sorted(valid)], sorted(set(last) - set(valid))
 
 
 def tally(rows: list[dict]) -> dict:
