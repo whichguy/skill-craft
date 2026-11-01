@@ -1,0 +1,18 @@
+96 valid slots; slots with no valid attempt: none
+request       arm   n workspace direct none    init share (95% CI) bootstrap read run-start median s
+inplace-hello C    16         0     16    0       1.00 (0.81-1.00)         0             16     18.2
+inplace-hello T2   16         0     16    0       1.00 (0.81-1.00)         0             16     17.1
+inplace-sf    C    16         0     16    0       1.00 (0.81-1.00)         0             16     33.3
+inplace-sf    T2   16         0     16    0       1.00 (0.81-1.00)         0             16     32.2
+nogit-hello   C    16         0     16    0       1.00 (0.81-1.00)         0             16     17.1
+nogit-hello   T2   16         0     16    0       1.00 (0.81-1.00)         0             16     18.1
+
+inplace-hello: init as the first start, C 16/16, T2 16/16; drop +0.00; one-sided p (T2 lower) 1.000; own git init/config/commit: C 0, T2 0
+inplace-sf: init as the first start, C 16/16, T2 16/16; drop +0.00; one-sided p (T2 lower) 1.000; own git init/config/commit: C 0, T2 0
+nogit-hello: init as the first start, C 16/16, T2 16/16; drop +0.00; one-sided p (T2 lower) 1.000; own git init/config/commit: C 0, T2 0
+pooled: C 48/48 (1.00), T2 48/48 (1.00); drop +0.00; one-sided p 1.0000
+
+VERDICT: NO HARM FOUND
+
+route from the command against route from what the start left on disk: 96 sessions; both readable 96, agree 96, differ 0; command only (start stopped before it wrote anything, or wrote outside the folder) 0
+wrote results-i1-compact.jsonl
