@@ -786,6 +786,21 @@ class CycleTest(unittest.TestCase):
         cycle.apply_decision(self.worktree, "loop-test", self.record, self.tip, candidates[1], "KEEP_AS_REF")
         self.assertEqual(len(self.git("for-each-ref", "refs/shiploop-loop/loop-test").splitlines()), 2)
 
+    def test_the_loop_selects_its_record_for_its_own_cases_both_before_and_after_exploring(self):
+        args = argparse.Namespace(case="user-listing", generality_case="csv-report", calibration=None, tolerance=0.25,
+                                  attempts=3, output=self.temp / "loop-out", iterations=1, host="codex", model=None,
+                                  effort=None, permission_mode="auto")
+        calls = []
+
+        def select(ledger, case=None, generality=None):
+            calls.append((case, generality))
+
+        with mock.patch.object(iterate, "new_worktree", return_value=(self.worktree, "auto/test")), \
+                mock.patch.object(cycle.learning_records, "select", select), \
+                mock.patch.object(cycle, "explore", return_value=[]):
+            cycle.loop(args)
+        self.assertEqual(calls, [("user-listing", "csv-report")] * 2)
+
     def test_a_malformed_calibration_report_is_a_refusal_not_a_traceback(self):
         path = self.temp / "bad.json"
         path.write_text(json.dumps({"contract": spread.CONTRACT, "cases": {case: {} for case in CASES}}))
@@ -861,16 +876,46 @@ class PilotKitTest(unittest.TestCase):
     def test_the_run_script_parses_pins_the_hook_commits_and_refuses_a_used_folder(self):
         script = self.KIT / "run.sh"
         self.assertEqual(subprocess.run(["bash", "-n", str(script)], capture_output=True, text=True, check=False).returncode, 0)
-        text, readme = script.read_text(), (self.KIT / "README.md").read_text()
+        text = script.read_text()
         for pinned in ("779980629a81ce0e740f7c196e83e000dd582d99", "7f25acff8dab239485f262249ec70773ba906aad"):
             self.assertIn(pinned, text)
-            self.assertIn(pinned, readme)
         for name in ("prediction.json", "pilot-ledger.jsonl"):
             self.assertIn(name, text)
             self.assertTrue((self.KIT / name).is_file())
         used = self.temp / "used"
         used.mkdir()
         refused = subprocess.run(["bash", str(script), "0" * 40, str(used)], capture_output=True, text=True, check=False)
+        self.assertEqual(refused.returncode, 2, refused.stderr)
+        self.assertIn("exists", refused.stderr)
+
+
+class CycleKitTest(unittest.TestCase):
+    """The stage 5 full-cycle kit (docs/experiments/closed-loop-cycle-20261101): what its script runs is checked here."""
+    KIT = ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101"
+
+    def test_the_cycle_needs_no_hosted_platform_no_fixed_port_and_names_its_own_cases(self):
+        """The first launch was refused: user-listing declares port 3000 and another session's run held that lease."""
+        text = (self.KIT / "run.sh").read_text()
+        catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
+        self.assertIn("--case csv-report --generality-case seat-reservations", text)
+        for case in ("csv-report", "seat-reservations"):
+            self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
+            self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"),
+                             f"{case} declares a fixed port, which run.py leases machine-wide and launch_all does not serialise")
+        for flag in ("--tolerance 0.25", "--attempts 3", "--effort high", "--model gpt-6.1-terra", "--iterations 1"):
+            self.assertIn(flag, text)
+        self.assertNotIn("--skip-reviews", text, "the full cycle reviews every attempt")
+        self.assertIn("unset SHIPLOOP_E2E_RUNS_ROOT", text, "only the epoch's own attempts may be neighbours of a sealed attempt")
+
+    def test_the_run_script_parses_names_what_it_returns_and_refuses_a_used_folder(self):
+        script = self.KIT / "run.sh"
+        self.assertEqual(subprocess.run(["bash", "-n", str(script)], capture_output=True, text=True, check=False).returncode, 0)
+        text = script.read_text()
+        for returned in ("iterate-exit-status.txt", "LOOP.md", "branches.txt", "cycle-result.json", "epoch-verdict.json"):
+            self.assertIn(returned, text)
+            self.assertIn(returned, (self.KIT / "README.md").read_text())
+        with tempfile.TemporaryDirectory() as used:
+            refused = subprocess.run(["bash", str(script), "0" * 40, used], capture_output=True, text=True, check=False)
         self.assertEqual(refused.returncode, 2, refused.stderr)
         self.assertIn("exists", refused.stderr)
 

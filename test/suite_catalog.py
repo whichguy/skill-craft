@@ -141,6 +141,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-planning-handoff.test.py",
     "test/shiploop-package-integrity.test.py",
     "test/shiploop-python-floor.test.py",
+    "test/shiploop-clean-consumer.test.py",
     "test/shiploop-e2e.test.py",
     "test/shiploop-e2e-discovery.test.py",
     "test/shiploop-e2e-qualification.test.py",
@@ -172,6 +173,9 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-owner-page.test.py",
     "test/shiploop-e2e-experiments.test.py",
     "test/shiploop-e2e-sdlc-probes.test.py",
+    "test/shiploop-e2e-review-attribution.test.py",
+    "test/shiploop-e2e-ticket-semantics.test.py",
+    "test/shiploop-e2e-scope-discovery.test.py",
     "test/shiploop-e2e-stage-oracle.test.py",
     "test/shiploop-e2e-stage-build.test.py",
     "test/shiploop-e2e-stages.test.py",
@@ -303,6 +307,8 @@ _DURATION_SECONDS = {
     "test/shiploop-package-integrity.test.py": 0.2,
     # New 2026-10-31 (the Python floor and the fail-open hooks): about 20 short subprocesses, under 2 s locally.
     "test/shiploop-python-floor.test.py": 2.0,
+    # New 2026-11-01 (the clean-consumer smoke): builds the package once, then three short subprocess groups; 2.4 s locally.
+    "test/shiploop-clean-consumer.test.py": 3.0,
     # 0.7 was written at 14 tests; it has 228 and ran 303 s on GitHub (322 s idle locally) until ebc2d25d replaced the
     # 2 s poll sleep in run.launch() with a wait.  Estimate, not a GitHub reading: 64.5 s idle locally after the fix,
     # scaled by the measured GitHub/local ratio of this suite (303/322); the quick run that selected it finished in

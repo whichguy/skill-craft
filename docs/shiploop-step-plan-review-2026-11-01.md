@@ -4,7 +4,8 @@ Status: one change built, tested hermetically (§5) and live on Codex Terra 6.1 
 Opened: 2026-11-01
 Consumer: the owner, who asked to make step planning as effective and efficient as possible; later, a session that changes
   the step-plan stage reads §3 for what it costs and what goes wrong, and §6 for what was considered and not built.
-Journal: docs/shiploop-question-driven-planning-journal.md, E17 (findings F23-F27)
+Journal: docs/shiploop-question-driven-planning-journal.md, E19 (findings F26-F30) and E20 (F31, F32); E17 and E18 there are
+  another session's concurrent proof-coverage study
 Evidence: docs/experiments/step-plan-review-20261101/ (corpus, scripts, JSON lines; README there)
 ---
 
@@ -35,7 +36,7 @@ what the stage costs, and changes what the evidence supports.
   on all 175 accepted step plans, the rule refuses 24: the 9 that came back from test-spec and 15 that folded a
   criterion into another criterion's case. It refuses no plan whose every criterion had its own case.
 - **Not built.** A gate for a Proof that runs unwritten tests without naming a test file: four candidate rules each
-  flag Proofs that passed (§6.1), and so does the narrowest, Rule C (5 of 12 flags were real). A Proof dry run, a
+  flag Proofs that passed (§6.1), and so does the narrowest, rule S (5 of 12 flags were real); since 1.27.0 another session's narrow rule C refuses the plain-suite form by path. A Proof dry run, a
   repeatable-Proof line and changes to the step-plan Improve review are listed for the owner (§8).
 - **Live (§7a, Codex Terra 6.1 xhigh).** Six deliveries passed with no test-spec send-back for IDs; 16 step-plan
   slices (A/B) and 4 more showed no extra step-plan time and no short plan. They also caught one regression: the first
@@ -129,19 +130,19 @@ plans that came back (§3.3), 46 had been reviewed.
 
 ## 4. Findings
 
-- **F23 (firm).** Step-plan is a median 11% of a run; its review is about 45% of the stage; the authoring loop's
+- **F26 (firm).** Step-plan is a median 11% of a run; its review is about 45% of the stage; the authoring loop's
   refusals halved after c2da4604. Evidence: §3.1-3.2, `runs.jsonl`.
-- **F24 (firm).** 28% of step plans come back to step-plan. On the current ShipLoop the largest class (8 of 19) is a
+- **F27 (firm).** 28% of step plans come back to step-plan. On the current ShipLoop the largest class (8 of 19) is a
   focused command with fewer IDs than its executed criteria; the proof-order refusal took its class from 13 to 0.
   Evidence: §3.3, `sendback_classes.jsonl`.
-- **F25 (firm by construction; the template's share unmeasured).** The shortage comes from the contract: step-plan
+- **F28 (firm by construction; the template's share unmeasured).** The shortage comes from the contract: step-plan
   never stated test-spec's one-case-per-ID, one-criterion-per-case rule, and its template has modelled a short row
   since 8dee00e0. The shortage predates that template (it is in 1.17.0 and 1.24.1 runs), so the template is one cause,
   not the only one. Evidence: §3.4, 8dee00e0, c2da4604.
-- **F26 (firm, replay).** A matching rule (each executed criterion a focused command names gets a distinct ID of a
+- **F29 (firm, replay).** A matching rule (each executed criterion a focused command names gets a distinct ID of a
   focused command that names it) refuses 24 of 175 saved plans: the 9 that test-spec sent back and 15 that test-spec
   folded; none whose every criterion had a case. Evidence: `replay_ids.jsonl`.
-- **F27 (firm, replay).** No precise rule separates a Proof that runs unwritten tests without naming a file from a
+- **F30 (firm, replay).** No precise rule separates a Proof that runs unwritten tests without naming a file from a
   legitimate one: a focused command can be a hand-written check that exists before the test stage (a browser checker,
   an anonymous Apex script). Evidence: §6.1, `replay_proofs.jsonl`.
 
@@ -175,13 +176,21 @@ ones (a supplied browser checker, an anonymous Apex script that prints its IDs),
 The 2026-10-31 study reached the same answer for the prompt route (X4, journal E8).
 
 Side replay (2026-11-01, after SP1's xhigh csv-report s1 hit the class live: S1's Proof `python3 -m unittest -v && rg -n
-"CSV" report.py`, unittest exiting 0 on zero tests): Rule C, the narrowest generic form, flags a first step whose Proof
+"CSV" report.py`, unittest exiting 0 on zero tests): rule S, the narrowest generic form, flags a first step whose Proof
 holds, as one whole shell segment, a focused command none of whose IDs any tracked file of the item base holds
-(`git grep -w -F` in the recorded lint item-base tree; `replay_rule_c.py`). Over the 171 plans with a recorded base it
+(`git grep -w -F` in the recorded lint item-base tree; `replay_rule_s.py`). Over the 171 plans with a recorded base it
 flags 12: 5 went on to a proof-order send-back (2 of them Rule A already refuses), 5 passed implement, 1 blocked and 1
 was sent back for another reason (`grep -P`). Exempting a command whose own text holds its IDs moves nothing: the
 passing ones are supplied checkers (`gym-ui`, `battleship-ui`), a script in the run folder and Salesforce test runs,
-which print IDs no tracked file holds. Not built (F27).
+which print IDs no tracked file holds. Not built (F30).
+
+Another session studied the same class at the same time (planning journal E17 and E18,
+docs/experiments/proof-coverage-replay-20261101/) and shipped a narrow rule in ShipLoop 1.27.0, rule C of the
+proof-order refusal (`shiploop_item_scope.proof_order_refusal`): a Proof that is a generic suite command (`npm test`)
+is refused when an executed criterion of its step names, in its Confirm by, a test path the base lacks (3 of 365 judged
+plans in sample, none on 42 held-out runs). It does not reach a test named by identifier (a unittest name, an Apex
+class) or a compound Proof, so SP1's csv-report s1 above would still pass it; that session's E17 measured the misses at
+about 10 minutes in 365 plans.
 
 ### 6.2 Others
 
@@ -265,13 +274,13 @@ which print IDs no tracked file holds. Not built (F27).
   empty base as no behaviour-specific RED; step-plan resubmitted unchanged citing the test-loop guide, and it passed);
   SP1 xhigh csv-report s1, twice from implement: first S1's Proof `python3 -m unittest -v && rg -n "CSV" report.py` ran
   the focused suite before any test existed (unittest exit 0 on zero tests; §6.1's class), then implement objected that
-  the criteria's "Confirm by: unittest TC_1-TC_3" named tests it may not write (F28).
+  the criteria's "Confirm by: unittest TC_1-TC_3" named tests it may not write (F31).
 - Slice verdict: every slice reports `no_overshoot` FAIL because ShipLoop accepts validate-existing by script in the
   same callback as test-spec; SP2 and SP3 read only step-plan and test-spec, so it does not bear on them.
 - Evidence: `sp2_scores.jsonl`, `sp3_scores.jsonl` (score_sp2.py); SP1 rows in test/shiploop_e2e/baselines.jsonl and the
   run folders under `~/e2e-runs-sp/20261101/` (pilot at its top level, `sp1-xhigh`, `sp2-xhigh`, `sp3-xhigh`).
 
-F28 (interim, three live cases): implement reads a criterion's "Confirm by" test as something it must run, though the
+F31 (interim, three live cases): implement reads a criterion's "Confirm by" test as something it must run, though the
 test stage writes that test after implement (SP1 xhigh csv-report s1; F-ticket-import-s1 and B-ticket-import-s4 of the
 2026-10-31 rounds). Implement's done-when says each criterion is "shown by a command or file after the last edit" and
 its duty item 3 says the item's other checks belong to the test stage. A candidate fix, not built: the done-when names
@@ -281,9 +290,9 @@ check; three cases in about thirty recent runs is too few to measure in one roun
 ## 8. Decisions for the owner
 
 1. Release this change after its live check (routine under the 2026-10-28 rule once the preflight and CI pass).
-2. Whether the step-plan Improve review should keep running for every first and sent-back item, given F23 and §3.5
+2. Whether the step-plan Improve review should keep running for every first and sent-back item, given F26 and §3.5
    (held for F1's three-arm measurement).
 3. Whether to add the repeatable-Proof clause (§6.2), which would take the step-plan head past its print bound unless
    another line is cut.
-4. Whether to pursue F28 (§7a): implement's done-when naming the step's Proof as its confirmation, so a criterion's
+4. Whether to pursue F31 (§7a): implement's done-when naming the step's Proof as its confirmation, so a criterion's
    Confirm-by test (written at the test stage) no longer reads as due at implement; it would need its own live check.

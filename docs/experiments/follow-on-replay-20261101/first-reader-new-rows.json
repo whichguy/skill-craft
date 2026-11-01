@@ -1,0 +1,55 @@
+{
+ "entries": [
+  {
+   "alt": "capability",
+   "arguable": true,
+   "class": "person",
+   "id": "N1",
+   "note": "an authenticated Lightning session is needed to observe and play the board; closest to frozen row 1 (person), a reader could call it capability"
+  },
+  {
+   "alt": null,
+   "arguable": false,
+   "class": "note",
+   "id": "N2",
+   "note": "says no product work remains; what to preserve for a later removal is knowledge, nothing is open"
+  },
+  {
+   "alt": null,
+   "arguable": false,
+   "class": "extension",
+   "id": "N3",
+   "note": "conditional scope beyond the request: only if retries and duplicate-free external delivery are both required (like frozen rows 2 and 4)"
+  },
+  {
+   "alt": null,
+   "arguable": false,
+   "class": "note",
+   "id": "N4",
+   "note": "says no task is pending; what a later change should preserve is knowledge"
+  },
+  {
+   "alt": null,
+   "arguable": false,
+   "class": "note",
+   "id": "N5",
+   "note": "says nothing requested remains; the external relay is named only as out of scope"
+  },
+  {
+   "alt": "note",
+   "arguable": true,
+   "class": "extension",
+   "id": "N6",
+   "note": "conditional on larger workloads arising; optional work beyond the request, or a hint for a later change"
+  },
+  {
+   "alt": "debt",
+   "arguable": true,
+   "class": "note",
+   "id": "N7",
+   "note": "a convention to follow in a later change; a reader could call it a small hygiene item (debt)"
+  }
+ ],
+ "frozen": "2026-11-01, before any second-reader call; classes as defined in ../follow-on-peek-20261031/classification.json",
+ "reader": "Claude Sonnet 5.5 (the first reader of the 2026-10-31 peek)"
+}

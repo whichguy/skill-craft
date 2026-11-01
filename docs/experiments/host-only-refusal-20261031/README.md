@@ -157,7 +157,10 @@ Output: `live-check-output.txt`. Scripts: `live_check.py` (the four signals from
   which an empty, non-Git folder does not match, so that lead-in is the likely trap; the transcript holds no stated reason.
   With `init` the harness's `work` folder never became a git repository, so the product copied into it was never committed.
   Frequency: of 454 earlier event streams since 2026-10-24 the first start was `workspace start` in 160 and `init` in 8; 286
-  could not be read that way (resumed or seeded runs, other forms). Of these three runs, one used `init`. Not acted on: a
+  could not be read that way (resumed or seeded runs, other forms). Of these three runs, one used `init`. **Superseded
+  2026-11-01** by the recount in docs/experiments/start-route-20261101/recount-output.txt (a different corpus, with the
+  evaluator fixtures left out): model-chosen first starts are Codex 131 `workspace start` and 4 `init`, Claude 56 and 0,
+  Grok 111 and 0; the four `init` starts are all Terra, three of them Salesforce prompts (3 of 12). Not acted on: a
   change to the card's text needs a change note and a measurement, and is the owner's call. The run's `mismatch.md` is left
   unfilled and `test/shiploop_e2e/LEARNINGS.md` untouched on purpose: the release preflight reads that file's commit order, and
   these runs are not an E2E round that vouches for the release.
@@ -166,4 +169,5 @@ Output: `live-check-output.txt`. Scripts: `live_check.py` (the four signals from
   these three runs too. The joint case took three runs to see.
 
 What stays open: the saving per avoided loop (1.3 to 4.1 minutes and 4 to 7 packets in E-close.md) is still predicted from
-earlier runs; the card's start lead-in (L3) is unexamined beyond reading it and counting starts.
+earlier runs; the card's start lead-in (L3) was examined on 2026-11-01 in docs/experiments/start-route-20261101/ (a 180-session probe
+on Codex Terra xhigh: `init` as the first start in 17 of 40 sessions on the published card, 0 of 40 with the reworded direct-entry sentence).

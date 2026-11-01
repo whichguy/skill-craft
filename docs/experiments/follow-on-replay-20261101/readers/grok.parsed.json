@@ -1,0 +1,162 @@
+{
+ "F01": {
+  "alt": "capability",
+  "class": "person",
+  "reason": "Someone must confirm rendering and click-through in an authenticated browser."
+ },
+ "F02": {
+  "alt": null,
+  "class": "extension",
+  "reason": "Extra seed families and production validation apply only if promoting beyond this Developer Edition."
+ },
+ "F03": {
+  "alt": "note",
+  "class": "extension",
+  "reason": "A full visual theme and viewport audit is beyond the requested functional UI check."
+ },
+ "F04": {
+  "alt": "decision",
+  "class": "extension",
+  "reason": "Responsive dark-theme validation is conditional scope beyond the specified gym journeys."
+ },
+ "F05": {
+  "alt": "person",
+  "class": "capability",
+  "reason": "A later headed-Chrome run should play the Lightning board and report the shot outcomes."
+ },
+ "F06": {
+  "alt": "capability",
+  "class": "person",
+  "reason": "A person must open the Lightning board and confirm the grid, counts, and New game button."
+ },
+ "F07": {
+  "alt": "person",
+  "class": "capability",
+  "reason": "A later run that can open the Lightning board should play it and record three checks."
+ },
+ "F08": {
+  "alt": null,
+  "class": "decision",
+  "reason": "The requester must decide exponent notation, a leading plus, and the zero-argument exit code."
+ },
+ "F09": {
+  "alt": null,
+  "class": "note",
+  "reason": "No follow-up is open; a later edit must keep the stdout contract and rerun tests."
+ },
+ "F10": {
+  "alt": null,
+  "class": "debt",
+  "reason": "The browser click-through should be kept as an opt-in BROWSER=1 test."
+ },
+ "F11": {
+  "alt": null,
+  "class": "note",
+  "reason": "Ship names are a recorded default, and opt-in Chrome cases leave nothing else open."
+ },
+ "F12": {
+  "alt": null,
+  "class": "note",
+  "reason": "Nothing is pending; a later greeting change must keep TC_1 and the 14-byte stdout."
+ },
+ "F13": {
+  "alt": null,
+  "class": "capability",
+  "reason": "A later run with a control-activating runner should execute the TC-3 procedure."
+ },
+ "F14": {
+  "alt": "capability",
+  "class": "person",
+  "reason": "The local player must click one cell and read the score, sunk list, and cell text."
+ },
+ "F15": {
+  "alt": null,
+  "class": "note",
+  "reason": "A later edit must resume from the named commit and keep the recorded rollback recipes."
+ },
+ "F16": {
+  "alt": "debt",
+  "class": "person",
+  "reason": "The user must play the returned game with a screen reader and a second browser."
+ },
+ "F17": {
+  "alt": "capability",
+  "class": "person",
+  "reason": "A person must open the local server and confirm hit, miss, and game-over text."
+ },
+ "F18": {
+  "alt": "extension",
+  "class": "person",
+  "reason": "A leftover server on port 34567 must be stopped by hand."
+ },
+ "F19": {
+  "alt": "capability",
+  "class": "person",
+  "reason": "A person must play one full game in a real browser until the game-over text."
+ },
+ "F20": {
+  "alt": null,
+  "class": "note",
+  "reason": "The uncommitted working tree is the product, and python3 hello.py stays the consumer entry."
+ },
+ "F21": {
+  "alt": null,
+  "class": "note",
+  "reason": "If a later run fast-forwards, plan-return must not commit a file the return excludes."
+ },
+ "F22": {
+  "alt": "extension",
+  "class": "decision",
+  "reason": "Someone must decide on a real delivery route and on any exposure beyond loopback."
+ },
+ "F23": {
+  "alt": "decision",
+  "class": "person",
+  "reason": "Operations must confirm the delivered checkout, and the user's A1 delivery answer still needs recording."
+ },
+ "F24": {
+  "alt": null,
+  "class": "note",
+  "reason": "No feature work remains; revalidation applies only if the service or fixtures later change."
+ },
+ "F25": {
+  "alt": "person",
+  "class": "capability",
+  "reason": "A Windows host this run lacked must confirm hello.py's exact output bytes."
+ },
+ "N1": {
+  "alt": "capability",
+  "class": "person",
+  "reason": "A person must play and restart the authenticated Lightning board, since only that rendered UI counts."
+ },
+ "N2": {
+  "alt": null,
+  "class": "note",
+  "reason": "No product work remains; keep the metadata inventory and permission grant for later removal."
+ },
+ "N3": {
+  "alt": "decision",
+  "class": "extension",
+  "reason": "An idempotent receiver is conditional scope only if retries and duplicate-free delivery are required."
+ },
+ "N4": {
+  "alt": null,
+  "class": "note",
+  "reason": "No task is pending; later changes should preserve file loading and notification retry."
+ },
+ "N5": {
+  "alt": null,
+  "class": "note",
+  "reason": "No requested local behavior remains, and external relay integration stays outside scope."
+ },
+ "N6": {
+  "alt": null,
+  "class": "extension",
+  "reason": "Performance revalidation for substantially larger outboxes is conditional on workloads beyond the request."
+ },
+ "N7": {
+  "alt": null,
+  "class": "note",
+  "reason": "A future pull request should follow the repository version and changelog convention."
+ }
+}

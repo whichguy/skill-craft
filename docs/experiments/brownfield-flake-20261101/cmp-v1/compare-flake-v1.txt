@@ -1,0 +1,5 @@
+06:20:28 old 1: exit 1 in 171 s · Ran 24 tests in 170.766s FAILED (failures=1)  · load 63.20 78.25 67.96 · failing: FAIL: test_a_disagreeing_grade_is_rare,
+06:22:57 new 1: exit 0 in 148 s · Ran 28 tests in 148.002s OK  · load 55.74 72.57 67.39 · failing:
+06:25:42 old 2: exit 1 in 165 s · Ran 24 tests in 163.927s FAILED (failures=1)  · load 73.99 76.90 70.01 · failing: FAIL: test_the_follow_on_passes_its_regression_feature_and_retention_checks_only_when_it_builds_on_the_first_run,
+06:29:33 new 2: exit 1 in 231 s · Ran 28 tests in 230.867s FAILED (failures=4)  · load 69.85 79.91 73.18 · failing: FAIL: test_the_first_cases_base_fails_the_suite_and_http_checks_and_its_deliveries_pass_all,FAIL: test_the_follow_on_passes_its_regression_feature_and_retention_checks_only_when_it_builds_on_the_first
+06:33:07 old 3: exit 1 in 214 s · Ran 24 tests in 212.809s FAILED (failures=1)  · load 66.77 78.47 74.14 · failing: FAIL: test_a_disagreeing_grade_is_rare,

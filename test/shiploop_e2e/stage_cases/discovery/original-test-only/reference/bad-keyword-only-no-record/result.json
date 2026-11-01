@@ -1,0 +1,4 @@
+{
+  "outcome": "done",
+  "summary": "New node:test coverage goes in the test directory. The source implementation and package manifest stay as-is. Existing automated checks and their shared helpers, along with named project obligations, remain unchanged. The request does not bar separate ShipLoop workflow records."
+}

@@ -111,6 +111,17 @@ other 8. Full table and reading: test/shiploop_e2e/LEARNINGS.md (the entry of 20
 - **The proof-order fault's other form.** Two of the nine faults name no test path (`npm test`, or criteria that demand
   the test file). A replay of the criteria's Confirm-by commands against the same rule would measure whether a second
   rule pays.
+  *Measured 2026-11-01 (docs/experiments/proof-coverage-replay-20261101, journal E17): it does not.*
+  - *On the larger corpus, the shipped rule comes before 11 of 20 proof-order send-backs.*
+  - *The registered second rule catches 3 more, but would refuse 5 plans whose Proof tests the step directly.*
+  - *6 misses name the test by identifier, not path.*
+  - *Each send-back costs about a minute, so no rule is added.*
+  - *Superseded in part the same day (journal E18). The narrow form, for plain suite Proofs only, is built as rule C
+    of the shipped refusal, for the Proof duty rather than for time.*
+- **A proof-command dry run.** One baseline send-back on Terra high was a Proof with unescaped shell quotes (a
+  SyntaxError before any assertion); no gate reads that today. *2026-11-01: 3 of the 35 implement send-backs in the
+  saved runs are a Proof's shell quoting (`labels.jsonl` in the folder above). They are counted only; their cost was not
+  measured.*
 - **Subjects.** On Sonnet the catalog changes little downstream (X2b-S: spec carries every decision either way,
   agreement 0.59 → 0.63). DeepSeek flash, the E2E default, was at its monthly limit all day: re-run X1-T and X2b on it
   when it returns (the harness in the evidence folder takes a subject slug).

@@ -334,5 +334,142 @@ second time and the card figure it stated was corrected before the push.
 
 Open: the replay with a second reader (design section 7, M1), which could now include the runs under `~/e2e-runs-multipass` (whether
 they reached handoff is not checked); M2a, after whatever the owner orders on port 4180 next (the multipass plan names a smaller second
-chain); the fix's release and a fix-arm third or fourth pass (the multipass journal's next measurements); the owner's D1 to D4; a
-revision 5 when the fix is released or a fix-arm later pass reports.
+chain); the fix's release and a fix-arm third or fourth pass (the multipass journal's next measurements); the owner's D1 to D4; a revision 5 when the fix is released or a fix-arm later pass reports. (Superseded 2026-11-01 by Round 4: the replay is done and its set included the
+`-multipass` runs, 14 of which reached handoff; revision 5 folds in the replay and E4's pre-registration, so the next revision waits for the fix's release or an
+E4 result.)
+
+## Round 4 — 2026-11-01 — the replay with a second reader (design section 7, M1)
+
+### Plan (written and committed before any reader was called; the result follows below it)
+
+Question (design section 7, M1): do readers other than the first agree with the first reader's classes of what finished runs
+leave under `Open for the next run`, on `gap` and `decision` in particular? The first reader (Claude Sonnet 5.5, who also wrote
+the design) found 0 gaps and 3 decisions (F08, F22, F23) in 25 rows from 122 finished runs, and marked four rows arguable (F03,
+F11, F16, F22). The owner answered "Yes" to "Should I run the M1 replay with a second reader next?" (2026-11-01). The replay is
+offline: it calls models on short texts, runs no ShipLoop and respects the owner's hold on live E2E cycles
+(d9fefb1144dea7f9a8d85b5897ad1275dbe08a07).
+
+Conditions: base e81fdb55d58bdb0bcc8c1643d93d5973709100e4 (origin/main), in a fresh worktree on branch
+`docs/follow-on-m1-replay-8e83c2`. Read for the plan: design section 7 and the peek's README, `classification.json`, `peek.py`
+and `peek.json` (17cb4e4ad859f89bbc578c06abf974e47e0933e3 created them and 671873bce787d9e9c25bbbe8ab64e7c7f7061db0 touched
+them); `ledger.find_runs()` of the coverage ledger (6c6265747116b6ba2ca2a8dd11a2f28bb0551b3b). The commits behind the new rows
+were read in Round 3.
+
+Set. 32 rows, one per run. F01..F25 are the 25 frozen strict rows of the peek (their texts are `peek.json`'s, their labels are
+`classification.json`'s). N1..N7 are the strict rows of runs that are not in the snapshot: a scan of every `~/e2e-runs*` root, the
+way `ledger.find_runs()` reads them, found 44 runs finished since the snapshot (so 166 finished runs now against the snapshot's
+122) and 7 with real text under `Open for the next run`: `-hostonly` 2, `-multipass` 3 (E2's A2 and B3, E3), `-xr` 1 and `~/e2e-runs`
+1. The other new runs' text is "none" or opens with a "none" phrase, or the run had not reached handoff (`-tl` 1). `build_set.py`
+builds the set (`rows.json`, sha256 3b4c67b18f9dfe7a5fb6b98263b38c1bbef22cd7b6740222f4e4d879a7c827be): full text, and the
+request of each run as its numbered sentences (17 distinct requests). The first reader labelled N1..N7 before any other reader was
+called (`first-reader-new-rows.json`, sha256 a7e424970ed18602fc9fb2b00cff5bd8e2e105283e0adb7fefb6df64c2bd97a9): N1 person
+(arguable: capability), N2 note, N3 extension, N4 note, N5 note, N6 extension (arguable: note), N7 note (arguable: debt); no gap.
+
+Readers, all blind to every label, note and arguable flag, to case and run names, and to each other. The prompt holds the seven
+class definitions of `classification.json` verbatim, each row's full text and its request (home directory prefix redacted);
+rows are shuffled and renamed r01..r32 and requests lettered by first appearance (`make_prompts.py`).
+- sol-a, the second reader and the main comparison: Codex GPT-6.1 Sol (gpt-6.1-sol, fallback disabled) through
+  `ask.sh sol --json --effort xhigh --profile ask` in an empty temporary directory (read-only sandbox, web search off). Class
+  order as in the file, shuffle seed 20261101, prompt sha256 a71e3d77ebd38637fe837eb0477c3bf6b502a5a2e1220c9b008632fdf58251ab.
+- sol-b, the retest of sol-a (its own noise): the same model and effort, class order reversed, seed 20261102, prompt sha256
+  1b13815bf30be49b79174d4276b5bca90e62080cf5a154cd3967ce77fa15ff07.
+- grok, the third reader: `ask.sh grok --json --no-tools` in an empty temporary directory, file class order, seed 20261103,
+  prompt sha256 d985061da8648dd58f463a21f0f6f8fc208b58f3ba9c34b2476a207115c60ed1. It classifies all 32 rows blind, which is the
+  design's "third reader" for every disagreement, and makes a 2-of-3 majority possible.
+A reply that is not one JSON array with all 32 ids and valid class names is rerun once with the same prompt; a second failure is
+reported as a failed reader. `parse_reader.py` reads a reply; `compare.py` computes everything below (its self-test passes).
+
+Measures: fine agreement over the seven classes and coarse agreement over the five groups of `classification.json` (person and
+capability; extension and debt; note; decision; gap) for every pair of readers, over all 32 rows and over the 25 frozen and the 7
+new; Cohen's kappa on the coarse groups (descriptive, n is small); the gap and decision analyses; the 2-of-3 majority of first,
+sol-a and grok.
+
+Reading, the design's three rules made precise before the run:
+- G. A row that sol-a or sol-b labels `gap` is a candidate. It is confirmed if grok also labels it `gap` and, on my reading of the
+  row, its run's request and its state, a request sentence is unmet or an assumption was refuted in a way that needs no person.
+  A confirmed gap means D2 has a real use: record the run. A candidate that is not confirmed is listed and not counted.
+- N. If no gap is confirmed, `decision` is the only live class. Its count is the 2-of-3 majority over the 166 finished runs
+  (the first reader's was 3 of 122). Building a field for it stays the owner's call (D4), and the recommendation stays not to build
+  until runs of the owner's own features show more.
+- D. The `decision` class is separable from `extension` and `note` if the Jaccard overlap of the sets of rows that first and sol-a
+  label `decision` is at least 2/3. Below that, readers cannot agree on it and it cannot be script-routed: show the non-note
+  leftovers unclassified. The design's two test rows, F22 (decision or extension) and F11 (note or decision), are reported for
+  every reader; the rule uses the whole set.
+- Rows with three different majority votes are unresolved and go to the owner.
+
+Predictions (probability, written before any reader was called; `compare.py` scores them):
+- P1. sol-a labels no row `gap` (70%).
+- P2. Coarse agreement between first and sol-a is at least 26 of 32 (65%).
+- P3. Jaccard(first, sol-a) on `decision` is at least 0.67 (55%).
+- P4. At least half of the fine disagreements between first and sol-a fall on rows the first reader marked arguable (60%).
+- P5. sol-a and sol-b agree on at least 28 of 32 rows (60%).
+
+Not concluded whatever the numbers: agreement between readers does not make a label true; it says nothing about the value of a
+follow-on run (design M2b) or about the owner's own features; the readers share the first reader's class definitions; the
+corpus is E2E cases, small and saturated.
+
+Files: `docs/experiments/follow-on-replay-20261101/` (`build_set.py`, `make_prompts.py`, `parse_reader.py`, `compare.py`,
+`rows.json`, `first-reader-new-rows.json`, `prompts/`). The archives live outside the repository, so `build_set.py` reproduces only
+on the owner's machine.
+
+### Result (2026-11-01; exploratory; 32 rows, four readers, E2E cases only)
+
+The three calls ran in parallel from 05:57:33: sol-a returned at 06:01:02 (3 min 29 s), sol-b at 06:01:11 (3 min 38 s), grok at 06:03:00
+(5 min 27 s). sol-a and sol-b: `gpt-6.1-sol`, effort xhigh, fallback off, read-only sandbox, web search disabled (the envelope says so);
+grok: `grok-4.7` (served `grok-4.7-build`, verified), effort xhigh, `--no-tools`. The Codex CLI printed a warning that its version (0.166.0) differs
+from the runner's contract (0.144.5). The prompt hashes in the status files matched the plan. No reply needed a rerun and no log shows a tool or command
+call. Evidence: `docs/experiments/follow-on-replay-20261101/` (`README.md`, `compare-output.txt`, `extra-output.txt`, `third-look.txt`, `readers/`).
+
+Findings:
+
+- F27 (interim; 32 rows). The first reader's classes hold across readers. All four label 28 of the 32 rows alike. First against sol-a: 28 rows
+  alike on the seven classes, 30 on the five coarse groups (kappa 0.91); against sol-b 28 and 28 (0.83); against grok 30 and 30 (0.91). The three other
+  readers agree with one another on 30 to 32 rows. `note` (11 rows), `debt` (1) and `capability` as the first reader read it (4) are unanimous.
+- F28 (interim). No gap is confirmed. The first reader, sol-a and grok labelled none. sol-b, with the classes listed in reverse order, labelled F01 and
+  N1 `gap` (sol-a called both `capability`, grok `person`); grok did not agree, and both runs record the open item with a person as owner and no authenticated
+  browser as the reason (`third-look.txt`). The `person` / `capability` / `gap` line is where the definitions are least stable: the same reader moved
+  across it when their order changed.
+- F29 (interim). `decision` is the only live class, and it is smaller than the first reader said. F08 (csv-report numeric forms) and F22 (the delivery route
+  of `ticket.assigned`) are `decision` for all four readers; F23 (record the requesting user's answer to A1, among other handoff duties) is `person` for all
+  three others. By majority: 2 rows out of 166 finished runs (1.2%); the first reader alone: 3 (1.8%); the snapshot: 3 of 122 (2.5%). Rule D is met exactly:
+  Jaccard(first, sol-a) is 2/3, by one row. The design's two test rows agree across all four readers (F22 `decision`, F11 `note`).
+- F30 (interim). One class per text is lossy. The rows the readers split on that are not the gap line, F18 and F23, each mix items of different classes (F18:
+  three optional items and an unconditional "stop it by hand"; F23: an answer to record, a place where knowledge lives, a readiness check). The follow-on list in the
+  design would classify entries, not whole texts, so this split would not arise there; whether readers agree entry by entry is not measured.
+- F31 (firm, about the first reader). The `arguable` flags did not predict disagreement. Of the seven flagged rows (F03, F11, F16, F22, N1, N6, N7) six kept the
+  first reader's class in every reader; the other three rows readers moved (F01, F18, F23) were not flagged. Prediction P4 missed. On F18 the majority is the better class.
+
+Predictions (written before the run; `compare.py` scores them): P1 (70%) held; P2 (65%) held, 30 of 32; P3 (55%) held, at the threshold; P4 (60%) missed, 1 of 4;
+P5 (60%) held, 30 of 32. Four of five.
+
+Rules applied. G: no gap is confirmed. N: with no gap, `decision` is the only live class, 2 of 166 by majority (3 by the first reader); the recommendation stays not
+to build the follow-on list until runs of the owner's own features show more. D: `decision` is separable from `extension` and `note` on this evidence, by one row.
+
+Not concluded: the classes are not shown to be right (every reader had the first reader's definitions); nothing about the value of a follow-on run (design M2b) or
+about the owner's own features (none of the 32 rows is one); the new rows are correlated (the same few ticket cases).
+
+Routine decisions: the post-hoc statistics are in `extra_stats.py`, separate from the pre-registered `compare.py`, which was not changed after the readers were called;
+the raw replies are kept in `readers/` and the readers' thinking summaries are not; the third look at the two gap candidates was made even though rule G was already not met
+(Grok did not agree), to record why they are not gaps.
+
+Open: revision 5 of the design folds this result in (the commit after this result, described below); the owner's D1 to D4; M2a
+and M2b as before; a rerun of `peek.py` and this replay when runs of the owner's own features have finished (the cost is a few
+minutes and a few model calls).
+
+Changed in the design (revision 5, the commit after this result): the header, sections 1, 2, 3.B, 3.C, 4.7, 5 (a subsection for
+the replay; the multipass bullets), 6 (the row for 3d5732d0, the as-of labels), 7 (M1 done with its result; M2a's lane), 8 (the
+card figure's as-of), 9 (three rows), 10 (D1, D2, D4) and 11 (U1, U6, U9 and a new U11). D1 to D4 keep their recommendations:
+the replay applies the design's own reading rule, so D1 and D4 lose the wait for M1 and now say what to wait for instead (runs
+of the owner's own features). The peek's README marks its "one reader" claims as superseded.
+
+Facts re-checked against 3d5732d0 (main moved while the replay ran, and the multipass work pre-registered its Round 4 there):
+the multipass plan and journal changed (E4 fixed on 2026-11-01 before any run: six runs in three matched pairs on passes 3 and
+4, each fix run beside a run without the fix on the same prior, bar B1 to B4, control K, predictions P1 to P8; not started);
+`skills/shiploop/SKILL.md` is still 30,011 bytes against 30500 and the card ledger is unchanged; the candidate is still only on
+the other session's local branch, rebased onto 3d5732d0. The multipass Round 4 names this journal's F21 to F26 reading (the
+mislabel persists once a lineage has it) as one of the two readings E4 separates, and U9 as the open question. Its reading rule
+says what each outcome would mean: a run without the fix that does not leak on the tidy prior would read as the mislabel bound
+to a seeded lineage.
+
+Superseded (marked 2026-11-01): the design's statements that M1 was a plan or that no second reader had classified the rows
+(sections 1, 3.C, 7, 10, 11); Round 3's "Open: the replay with a second reader" (done, Round 4).

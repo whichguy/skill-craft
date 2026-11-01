@@ -1,0 +1,578 @@
+[
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 7,
+  "slot": 1
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "C",
+  "i": 11,
+  "slot": 2
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "T2",
+  "i": 9,
+  "slot": 3
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 2,
+  "slot": 4
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 13,
+  "slot": 5
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 4,
+  "slot": 6
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 4,
+  "slot": 7
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 3,
+  "slot": 8
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 12,
+  "slot": 9
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "C",
+  "i": 5,
+  "slot": 10
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 11,
+  "slot": 11
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "T2",
+  "i": 4,
+  "slot": 12
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "T2",
+  "i": 1,
+  "slot": 13
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 13,
+  "slot": 14
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 1,
+  "slot": 15
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "C",
+  "i": 9,
+  "slot": 16
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 14,
+  "slot": 17
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 15,
+  "slot": 18
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "C",
+  "i": 7,
+  "slot": 19
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "C",
+  "i": 14,
+  "slot": 20
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 15,
+  "slot": 21
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "T2",
+  "i": 11,
+  "slot": 22
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 8,
+  "slot": 23
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 5,
+  "slot": 24
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "T2",
+  "i": 13,
+  "slot": 25
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "T2",
+  "i": 16,
+  "slot": 26
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 4,
+  "slot": 27
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "C",
+  "i": 12,
+  "slot": 28
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 1,
+  "slot": 29
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "C",
+  "i": 13,
+  "slot": 30
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "C",
+  "i": 3,
+  "slot": 31
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "C",
+  "i": 8,
+  "slot": 32
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 14,
+  "slot": 33
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "T2",
+  "i": 6,
+  "slot": 34
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 6,
+  "slot": 35
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 16,
+  "slot": 36
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 11,
+  "slot": 37
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 7,
+  "slot": 38
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 5,
+  "slot": 39
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 2,
+  "slot": 40
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 14,
+  "slot": 41
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 13,
+  "slot": 42
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 16,
+  "slot": 43
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 14,
+  "slot": 44
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 6,
+  "slot": 45
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "T2",
+  "i": 8,
+  "slot": 46
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 5,
+  "slot": 47
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 9,
+  "slot": 48
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 1,
+  "slot": 49
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "T2",
+  "i": 15,
+  "slot": 50
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 6,
+  "slot": 51
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 13,
+  "slot": 52
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 3,
+  "slot": 53
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 9,
+  "slot": 54
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "C",
+  "i": 6,
+  "slot": 55
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 6,
+  "slot": 56
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 3,
+  "slot": 57
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 8,
+  "slot": 58
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 10,
+  "slot": 59
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 8,
+  "slot": 60
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "T2",
+  "i": 3,
+  "slot": 61
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 15,
+  "slot": 62
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 2,
+  "slot": 63
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 12,
+  "slot": 64
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 8,
+  "slot": 65
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 10,
+  "slot": 66
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 4,
+  "slot": 67
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 16,
+  "slot": 68
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "T2",
+  "i": 5,
+  "slot": 69
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 16,
+  "slot": 70
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 11,
+  "slot": 71
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "C",
+  "i": 10,
+  "slot": 72
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 12,
+  "slot": 73
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 11,
+  "slot": 74
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "T2",
+  "i": 10,
+  "slot": 75
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 9,
+  "slot": 76
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "T2",
+  "i": 2,
+  "slot": 77
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "C",
+  "i": 1,
+  "slot": 78
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 10,
+  "slot": 79
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "T2",
+  "i": 12,
+  "slot": 80
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 10,
+  "slot": 81
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 7,
+  "slot": 82
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 15,
+  "slot": 83
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "C",
+  "i": 2,
+  "slot": 84
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "T2",
+  "i": 7,
+  "slot": 85
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 1,
+  "slot": 86
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "C",
+  "i": 4,
+  "slot": 87
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 7,
+  "slot": 88
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 2,
+  "slot": 89
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "C",
+  "i": 15,
+  "slot": 90
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "C",
+  "i": 16,
+  "slot": 91
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 9,
+  "slot": 92
+ },
+ {
+  "stimulus": "inplace-sf",
+  "arm": "T2",
+  "i": 14,
+  "slot": 93
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 5,
+  "slot": 94
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 3,
+  "slot": 95
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 12,
+  "slot": 96
+ }
+]

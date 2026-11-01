@@ -1,0 +1,185 @@
+{
+  "contract": "shiploop-epoch/2",
+  "purpose": "product_change",
+  "attempts": [
+    {
+      "id": "control-hello-hook-continuation-1",
+      "arm": "control",
+      "case": "hello-hook-continuation",
+      "status": "recorded"
+    },
+    {
+      "id": "control-hello-hook-continuation-2",
+      "arm": "control",
+      "case": "hello-hook-continuation",
+      "status": "invalid_evidence"
+    },
+    {
+      "id": "control-hello-hook-continuation-3",
+      "arm": "control",
+      "case": "hello-hook-continuation",
+      "status": "invalid_evidence"
+    },
+    {
+      "id": "candidate-hello-hook-continuation-1",
+      "arm": "candidate",
+      "case": "hello-hook-continuation",
+      "status": "invalid_evidence"
+    },
+    {
+      "id": "candidate-hello-hook-continuation-2",
+      "arm": "candidate",
+      "case": "hello-hook-continuation",
+      "status": "invalid_evidence"
+    },
+    {
+      "id": "candidate-hello-hook-continuation-3",
+      "arm": "candidate",
+      "case": "hello-hook-continuation",
+      "status": "recorded"
+    }
+  ],
+  "decision": {
+    "sequence": 20,
+    "at": 1793543602.566234,
+    "kind": "decision",
+    "result": {
+      "contract": "promotion/5",
+      "registration": "fa37b01bf7e058212595e4cb66074758e1b56062cf80ede91d04037e87ccb54b",
+      "purpose": "product_change",
+      "decision": "UNDECIDED",
+      "reasons": [
+        "registered attempts have no sealed run receipt: candidate-hello-hook-continuation-1, candidate-hello-hook-continuation-2, control-hello-hook-continuation-2, control-hello-hook-continuation-3",
+        "required quality evidence is unknown for hello-hook-continuation (control), hello-hook-continuation (candidate)"
+      ],
+      "cases": {
+        "hello-hook-continuation": {
+          "role": "regression",
+          "control": {
+            "attempts": 1,
+            "registered_attempts": 3,
+            "successes": 1,
+            "unknown": 0,
+            "share": null
+          },
+          "candidate": {
+            "attempts": 1,
+            "registered_attempts": 3,
+            "successes": 0,
+            "unknown": 0,
+            "share": null
+          }
+        }
+      },
+      "attempts": [
+        {
+          "id": "control-hello-hook-continuation-1",
+          "arm": "control",
+          "case": "hello-hook-continuation",
+          "started": 1793540985.112,
+          "product": {
+            "observed": true,
+            "head": "f184f8b44cec05979012cd4252c55786e17b12b1",
+            "tree": "466dd28f732c484ea8ae63e79653362087bec8b3",
+            "after_head": "f184f8b44cec05979012cd4252c55786e17b12b1",
+            "after_tree": "466dd28f732c484ea8ae63e79653362087bec8b3",
+            "unchanged_during_checks": true
+          },
+          "scorecard": "scorecard/6",
+          "evidence_valid": true,
+          "evidence_errors": [],
+          "reported_outcome": "success",
+          "outcome": "success",
+          "hard_floor_failures": [],
+          "unknown_floors": []
+        },
+        {
+          "id": "candidate-hello-hook-continuation-3",
+          "arm": "candidate",
+          "case": "hello-hook-continuation",
+          "started": 1793542492.077,
+          "product": {
+            "observed": true,
+            "head": "ed28f67c18b1a13aa20a97521aa762c5d9df86d1",
+            "tree": "f862415f48ba2f1efee6e26c740b73da2e04c062",
+            "after_head": "ed28f67c18b1a13aa20a97521aa762c5d9df86d1",
+            "after_tree": "f862415f48ba2f1efee6e26c740b73da2e04c062",
+            "unchanged_during_checks": true
+          },
+          "scorecard": "scorecard/6",
+          "evidence_valid": true,
+          "evidence_errors": [],
+          "reported_outcome": "failure",
+          "outcome": "failure",
+          "hard_floor_failures": [
+            "accuracy",
+            "fidelity"
+          ],
+          "unknown_floors": []
+        }
+      ],
+      "known_floor_failures": [
+        {
+          "id": "candidate-hello-hook-continuation-3",
+          "arm": "candidate",
+          "case": "hello-hook-continuation",
+          "floors": [
+            "accuracy",
+            "fidelity"
+          ],
+          "evidence_valid": true
+        }
+      ],
+      "hard_floor_failures": [],
+      "unknown_floor_evidence": [],
+      "notes": [],
+      "global_errors": [],
+      "evidence_issues": [
+        {
+          "id": null,
+          "arm": null,
+          "case": null,
+          "reason": "registered attempts have no sealed run receipt: candidate-hello-hook-continuation-1, candidate-hello-hook-continuation-2, control-hello-hook-continuation-2, control-hello-hook-continuation-3"
+        }
+      ],
+      "qualification": {
+        "claim": "product_change",
+        "scorecard": "scorecard/6",
+        "snapshot": "1180d43f342fe1aed7a0a571e4793268c989d68c6ca67026113a46a012afd9b9",
+        "attribution": "ShipLoop build change"
+      }
+    }
+  },
+  "prediction": {
+    "contract": "prediction/1",
+    "record": "LR-20261101-1b4675",
+    "anchor": "S-2",
+    "because": "Reverting the same-action continuation removes the recovery work that cost the tip 34.2% more processed tokens in the pair behind 07734b9, so the reverted build should need at least a quarter fewer tokens per successful attempt.",
+    "effects": [
+      {
+        "case": "hello-hook-continuation",
+        "measure": "tokens",
+        "direction": "down",
+        "at_least": 0.25
+      }
+    ],
+    "guards": [
+      {
+        "case": "hello-hook-continuation",
+        "measure": "accuracy",
+        "direction": "not_down"
+      }
+    ]
+  },
+  "discoveries": [],
+  "publication": "not_performed",
+  "generalisation": "unobserved unless independently qualified by the registered coverage"
+}
+Traceback (most recent call last):
+  File "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-pilot-01/control-tree/test/shiploop_e2e/epoch.py", line 525, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-pilot-01/control-tree/test/shiploop_e2e/epoch.py", line 518, in main
+    return promotion.EXIT.get(result.get("decision"), 0)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: cannot use 'dict' as a dict key (unhashable type: 'dict')

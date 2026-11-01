@@ -27,6 +27,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import boundary
+import environment
 import hosts
 import lifecycle
 import listeners
@@ -40,6 +41,8 @@ TORN_RETRIES = 5  # re-reads of a ledger whose last row is torn: a writer may be
 TORN_WAIT = 0.1  # seconds between them
 INTENT_WAIT = 30.0  # seconds a launch waits for another launch's intent or seal to finish
 SEAL_WAIT = 3600.0  # a finished run waits this long to seal, past a review that holds the lock
+SIBLING_WAIT = 7200.0  # a finished run waits this long, unsealed, for a sibling that overlapped it to end
+SIBLING_POLL = 5.0  # seconds between looks at those siblings
 SEALED_FILES = ("result.json", "metrics.json", "timeline.jsonl", "invocation.json")
 
 
@@ -269,6 +272,33 @@ def launch_intent(root: Path, attempt_id: str, plugin: Path) -> dict:
                   registration_sha256=digest(root / "registration.json"))
 
 
+def live_siblings(root: Path, output: Path) -> list[Path]:
+    """Run folders of this epoch that overlapped ``output`` and whose harness is still running.
+
+    ``scorecard.run_receipt`` binds the timeline, metrics and invocation files of every run that overlapped the one it seals.
+    A neighbour still running changes them, so an attempt sealed beside it reads as changed evidence the moment that
+    neighbour writes again (the stage 4 pilot: four of five parallel attempts ended invalid_evidence). Only runs inside the
+    epoch's own folder are looked at: the epoch cannot wait for other sessions' runs, and they are not its siblings."""
+    overlap_root = environment.runs_root(output).resolve()
+    inside = root.resolve()
+    folders = {(overlap_root / row["folder"]).resolve() for row in environment.overlap(output).get("runs") or []
+               if isinstance(row, dict) and isinstance(row.get("folder"), str)}
+    return sorted(folder for folder in folders if folder.is_relative_to(inside) and listeners.case_alive(folder))
+
+
+def settle_siblings(root: Path, output: Path, wait: float | None = None, poll: float | None = None) -> list[Path]:
+    """Wait until no overlapping sibling is still running, then return the ones that still are (none unless ``wait`` ran out).
+
+    It does not hold the epoch's lock: a sibling needs it to seal itself when it ends."""
+    wait, poll = SIBLING_WAIT if wait is None else wait, SIBLING_POLL if poll is None else poll
+    deadline = time.monotonic() + wait
+    while True:
+        alive = live_siblings(root, output)
+        if not alive or time.monotonic() >= deadline:
+            return alive
+        time.sleep(min(poll, max(0.0, deadline - time.monotonic())))
+
+
 def record_run(root: Path, attempt_id: str) -> dict:
     reg = registration(root)
     attempt_spec(reg, attempt_id)
@@ -281,6 +311,10 @@ def record_run(root: Path, attempt_id: str) -> dict:
     output = Path(launches[-1]["output"])
     if listeners.case_alive(output):
         raise ValueError("the harness is still running; do not seal partial quality results")
+    beside = live_siblings(root, output)
+    if beside:
+        raise ValueError("a run that overlapped this one is still running (" + ", ".join(folder.name for folder in beside)
+                         + "); sealing now would not be stable evidence: reconcile it once that run ends")
     if not (output / "result.json").is_file():
         raise ValueError("no result receipt; launch remains unknown")
     files = {name: digest(output / name) for name in SEALED_FILES if (output / name).is_file()}
@@ -386,6 +420,7 @@ def launch(root: Path, attempt_id: str, plugin: Path) -> dict:
             "--effort", driver["effort"], "--plugin-dir", intent["plugin"], "--output", intent["output"]]
     # No retries: a crash after dispatch leaves an intent for explicit reconciliation.
     result = runner.main(argv)
+    settle_siblings(root, Path(intent["output"]))  # before the lock: a sibling that ends needs it to seal itself
     with locked(root, SEAL_WAIT):
         append(root, "runner_returned", attempt_id=attempt_id, returncode=result)
         return record_run(root, attempt_id)
@@ -515,7 +550,8 @@ def main(argv=None) -> int:
                     else:
                         result = review_attempt(root, args.attempt)
         print(json.dumps(result, indent=2))
-        return promotion.EXIT.get(result.get("decision"), 0)
+        decision = result.get("decision")  # a string from `decide`; the whole decision event from `status` and `next`
+        return promotion.EXIT.get(decision, 0) if isinstance(decision, str) else 0
     except (ValueError, OSError) as exc:
         print(f"epoch: {exc}", file=sys.stderr)
         return 1

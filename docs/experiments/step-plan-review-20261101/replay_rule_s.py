@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Replay candidate Rule C over saved step plans, read-only (step-plan review 2026-11-01, side replay).
+"""Replay candidate rule S (a focused-command segment) over saved step plans, read-only (step-plan review 2026-11-01,
+side replay; renamed from "Rule C" once the proof-order refusal's own rule C shipped in ShipLoop 1.27.0).
 
-Usage: python3 -I replay_rule_c.py TRACES.txt OUT.jsonl
+Usage: python3 -I replay_rule_s.py TRACES.txt OUT.jsonl
 
-Rule C: the FIRST step's Proof holds, as one whole shell segment (split at &&, || and ;), a focused command of the
+Rule S: the FIRST step's Proof holds, as one whole shell segment (split at &&, || and ;), a focused command of the
 plan, and none of that command's test IDs appears in any tracked file of the item base.  At S1's implement the item's
 tests are unwritten (implement writes none; S1's test stage writes them after), so that segment runs none of them: it
 fails or passes on zero tests.  The base is the lint item-base tree ShipLoop records (RUN/lint/items/<item>.md), searched

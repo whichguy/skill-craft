@@ -218,6 +218,11 @@ Two readings claimed more than 4 runs a side carry:
   - Measuring it would be expensive. Suppose the stall still hit 1 run in 4 without fix 1, and never with it. At 15
     runs a side, a one-sided Fisher test reaches p < 0.05 only about half the time (power 0.54); 80% needs about 25
     runs a side (power 0.79).
+  - The cheap stand-in, counted the same day from the saved runs (docs/experiments/proof-coverage-replay-20261101, Q2;
+    observational):
+    - no run stopped at step-plan under fix 1's wording: 0 of 14 runs with an open item due (0–23%);
+    - before fix 11, 4 of 33 stopped (12%);
+    - one-sided p 0.23.
 
 The decisions stand. Fix 1 stays: its rule was met, and it replaces checks that settle nothing. XI and XR stay not
 adopted.

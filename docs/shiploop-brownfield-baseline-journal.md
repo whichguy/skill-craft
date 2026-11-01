@@ -373,7 +373,10 @@ on the E2E subject (DeepSeek flash on Ollama through the Claude host, `hosts.RUN
     ran the ephemeral range out (`EADDRNOTAVAIL`). The checks now keep one connection per server and close it first, and the
     base's test client keeps one per test. What remained, under load averages of 40 to 90 from other work, was about one
     reset in two hundred concurrent `node --test` runs, never twice in a row; the calibration grades a disagreeing result once
-    more, alone, and pins that this happens at most four times.
+    more, alone, and pins that this happens at most four times. *(Superseded in part, 2026-11-01, see the last section: the
+    rate was 3.4 percent of runs on that day, not 0.5, and what grows it is other work's listeners, not load. 13 of 32 failures
+    were a wrong answer, two of them another project's JSON, and 19 were resets; the calibration now grades again until a grade
+    agrees and pins four results that disagree twice in a row.)*
 - **Runs.** None yet: the owner launches them. `python3 test/shiploop_e2e/run.py --case ticket-assignment --output <out>`,
   then `python3 test/shiploop_e2e/run.py --case ticket-escalation --continue-from <out> --output <out2>`, both on the E2E
   subject by default. The same pair runs again after section 10's build.
@@ -449,3 +452,19 @@ on the E2E subject (DeepSeek flash on Ollama through the Claude host, `hosts.RUN
 - **Evidence.** `test/shiploop_e2e/LEARNINGS.md` ("Wave A before and after"), `docs/experiments/brownfield-baseline-20261028/results/d7/hooks-*`,
   seven rows in `test/shiploop_e2e/baselines.jsonl`.
 - **Commits.** Wave A 232689c5, fdec0f6e, 5a65d62c, 9147dcca; documentation 31d627ae; base 8dde0855.
+
+## 2026-11-01: the calibration's first grades that disagree are collisions with other work's servers
+
+- **Question.** `shiploop-e2e-brownfield-tickets` failed in most local executions (1 to 2 of its 24 tests; 6 results re-graded against a cap of 4 at load 88 and 11 on the unchanged parent at load 64, 2026-10-31).
+  The cause on record was load. What is it, and what should the suite do?
+- **Measured** (probes in [brownfield-flake-20261101](experiments/brownfield-flake-20261101/README.md), all at low priority on a machine at load 21 to 230 from other sessions). The suite's own grading, four
+  executions: 4, 8, 0 and 1 first grades disagreed, every one a `node --test` run of the base's own tests. The base's tests alone, 16 at a time: 8 of 128, 1 of 160 and 23 of 640 runs failed (32 of 928, 3.4 percent):
+  19 resets (`socket hang up`) and 13 wrong answers, two of which carried JSON of another project's API (`{"game":"g"}` where a 404 was expected). During the longest batch the machine held 560 listeners on the IPv6
+  wildcard, where the base's tests bind with `listen(0)`, and 32 on a specific IPv4 address, 25 of them node or Python servers on `127.0.0.1`.
+- **Reading.** Status: firm for the rates and for the two bodies read; inferred for the mechanism (a wildcard listener handed a port number an IPv4 listener holds, an IPv4 client reaching that one). The old cap of
+  4 sat in the middle of the noise, a pool of 6 against 16 showed no difference in four executions, and the first grade of a result is wrong by chance and is right the second time. The fixture is pinned and Node refuses
+  `--test-concurrency` in `NODE_OPTIONS`, so the calibration has to live with it.
+- **Change.** A result that disagrees is graded again, alone, until a grade agrees (at most three more times); the suite pins four results that disagree twice in a row, which a collision does not do and a variant or a
+  check that wavers does. `CaseChecksTest` grades its verdict lists the same way. Old logic, 1 of 5 executions passed; new logic, 2 of 2 (the first version, which left `CaseChecksTest` alone, 1 of 2).
+- **Limits.** Small samples; probes at low priority; one machine, one day. The live scoring in `checks/base_tests.py` is unchanged on purpose: a retry there could hide a delivery whose own server resets connections.
+- **Evidence.** `docs/experiments/brownfield-flake-20261101/` (README, probes, outputs, drivers); the commit that carries this section.

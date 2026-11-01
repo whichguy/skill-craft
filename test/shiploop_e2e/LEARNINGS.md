@@ -5341,6 +5341,78 @@ docs/experiments/experiment-route-20261031/README.md "Calibration (2026-11-01)" 
   candidate, is not appended.
 - Journal docs/shiploop-question-driven-planning-journal.md, E14 and E15.
 
+
+## Intake terms and references (K12): E2E round on the Codex harness, Terra 6.1 high (2026-11-01) — status: firm for these runs that the shipped wording runs live without a ledger refusal, a stop for a person or a failed delivery (19 of 19 passed); the benefit is not measured here, and an excess of stage send-backs in arm B is unexplained (R2 did not reproduce it by its registered rule)
+
+**Change under test.** 60dc376881d397d770874af16c8a6a8ed60956b2, on origin/main e13af240100c066489e83c028d97339845402b55 (release skill-craft
+2.27.2 / ShipLoop 1.26.2). Intake duty 9 gains the catalog line K12 (terms and references) and a sentence that orders the lookup: the skills and
+commands the host lists, then the repository and its documents, then a search (`research`); when nothing settles a term, the best reading and
+the run's confidence become the `default`, and `person` is for two readings that lead to different work. The ledger's shape check names
+K1-K12. Evidence behind it: docs/experiments/terms-line-confirmation-20261031/ (QB5, exercise level: items right 0.52 to 0.67, exact one-sided
+p 0.0083, +8% output tokens; its silent-assertion rule missed at p 0.115 and the owner's go of 2026-11-01 covers that).
+
+**Runs.**
+- Command: `run.py --case <case> --host codex --model gpt-6.1-terra --effort high --source checkout`, from each arm's own detached worktree: A =
+  e13af240 (main), B = 60dc3768 (A plus five files). Pre-registered in e48993e307b401a669257e7c699e61a067a3c9d3 (rules L1-L5, decided before
+  any run).
+- Round 1: three lanes in parallel (hello, user-listing, ticket-assignment; declared ports none, 3000, 4180), each lane A1, B1, A2, B2.
+  Eleven of 12 runs finished; B ticket-assignment run 2 was refused at launch (no model started) and then held out for 29 minutes, 78
+  attempts, by another session's Round 4 on the machine-wide lease of port 4180.
+- R2: after reading round 1 an excess the rules did not count (stage send-backs) was replicated on new runs, registered in
+  9c2bf16a0264edc7d8b682ded7dc9a8292e8a838 before they ran: hello, 4 more runs per arm, four lanes started together.
+- Output in `~/e2e-runs-tl/20261101/`. Reader: docs/experiments/terms-line-live-ab-20261101/e2e_ab.py.
+
+**Result.** All 19 runs passed; arm A loaded plugin tree b665a3fac1d7 in all 10 runs, arm B b054e60d0e03 in all 9.
+
+| Case | Arm | Runs | Passed | Minutes (mean) | Processed tokens, millions (mean) | Refused callbacks per run | Runs with a send-back |
+|---|---|---|---|---|---|---|---|
+| hello | A | 6 | 6 | 10.3 | 18.4 | 0.33 | 0 |
+| hello | B | 6 | 6 | 11.2 | 19.5 | 0.67 | 3 |
+| user-listing | A | 2 | 2 | 12.1 | 18.3 | 0.50 | 0 |
+| user-listing | B | 2 | 2 | 13.6 | 21.9 | 1.50 | 1 |
+| ticket-assignment | A | 2 | 2 | 25.5 | 63.8 | 2.00 | 0 |
+| ticket-assignment | B | 1 | 1 | 17.1 | 26.1 | 2.00 | 1 |
+
+- Round 1 rules: L1 holds (5 of 5 B ledgers name K1-K12; 0 intake refusals in B), L2 holds (A 6 of 6, B 5 of 5), L3 holds (refused callbacks per
+  run A 1.00, B 1.40), L4 holds (mean tokens 21.8M against 34.4M; unbalanced by case, by case the ratios are 0.92, 1.19 and 0.41), L5 holds
+  (nobody blocked, nobody asked a person). With the missing run counted as a failure L1 and L2 still hold at 5 of 6.
+- R2-1 did not fire: B had 1 run with a send-back (B hello s5, test-spec), A had 0 (a gap of 2 was needed).
+- K12 was used. B ledgers: 5 of 9 mark it "yes", 4 "no" with a reason; one filed a question under it (B ticket-assignment s1, route inspect:
+  "How does the repository define notification and ticket status?"). No `research` and no `person` route in either arm. Intake seconds 25.9
+  against 25.3 and tool calls 5.3 against 5.6.
+
+**Contrary evidence and unexplained.**
+- Stage send-backs: round 1 had A 0 of 6 runs, B 4 of 5 (hello s1 and s2 at test-spec, a step plan whose focused command listed no test ID;
+  ticket-assignment s1 and user-listing s2 at implement, a criterion needing tests the test stage writes later). R2: A 0 of 4, B 1 of 4. Pooled,
+  descriptive, biased toward an effect because round 1 was picked for being odd: A 0 of 10, B 5 of 9 (exact one-sided p 0.011). Earlier rounds on
+  this subject and effort with the proof-order refusal in the product had 2 runs with a send-back in 18. No mechanism is known by which intake's
+  ledger changes step-plan five stages later. A moderate real effect (40% against 5%) would fire R2-1 46% of the time at 4 runs a side, so R2
+  cannot rule one out. The cost seen is small: hello minutes 11.2 against 10.3, tokens 19.5M against 18.4M, every run passed.
+- The arms are unbalanced by case in the registered rounds (A has two ticket-assignment runs, B one) and run-to-run tokens vary from 15M to 67M,
+  so no cost or saving is claimed.
+
+**Not measured.** The benefit of K12 (all three requests are fully specified); the ticket-assignment second B run; replications on
+user-listing or ticket-assignment; other subjects and efforts; the `research` route with a real search tool; a loosely worded live request.
+Pass rate: 19 of 19 rules out only true rates below about 85% (one-sided 95%).
+
+**Merged-tree check (added 2026-11-01, after the merge).** The round above ran on 2.27.2's base (e13af240100c066489e83c028d97339845402b55). Before landing,
+origin/main had moved by two releases, skill-craft 2.27.3 (f24746fa6193007235818f2d8b109408d70ca413) and 2.27.4 (26123c9efd2d02d8df77c6053bd16787b704f507), among them
+rule C of the proof-order refusal (9870c6f68bfbd9375340c0e91ffdf4abfd76bd85) and the card's start text (b65984554d7769306518ed4bcb822dbaffbb9292). The change was merged
+twice (d2bee85c28219c48fa16afbf9ea270e649f6b38e, a32b4402b74e4002495c8fa182b2653df0ef9b44) and the exact merged tree, a32b4402, was checked before release:
+- the quick and prompt tiers, pinned to origin/main's tip at the first merge: 42 suites OK in 473.3 s;
+- one live run each of hello and user-listing on it (same command, subject and effort; plugin tree 851847a33ff6): both passed, both wrote
+  all 12 categories with K12 "yes", neither had an intake refusal or asked a person. hello 9.9 minutes, 16.7M tokens, 0 refused callbacks, no
+  send-back; user-listing 15.4 minutes, 29.7M tokens, 3 refused callbacks and one send-back at implement (its criteria required the focused
+  test/user-listing.test.js, which implement cannot write: the family of round 1's implement send-backs, on a tree that already has rule C).
+This is a smoke check of the tree being released: one run per case, no control arm, n = 1. It does not decide the send-back question. The
+send-back family also appears here without a way to tie it to K12.
+
+**Evidence.**
+- Runs: `~/e2e-runs-tl/20261101/[AB]-<case>-s<n>` and `M-<case>-s1`; the 21 rows are in test/shiploop_e2e/baselines.jsonl.
+- docs/experiments/terms-line-live-ab-20261101/: README.md (rules, Results, limits), e2e_ab.py, lane.sh, lane-r2.sh, scores.json,
+  results-tables.md, b-ticket-s2-refusals/.
+- Journal docs/shiploop-intake-question-bank-journal.md, §5.6 and §9 (F30-F35).
+
 ## Focused-ID rule: E2E round on the Codex harness, Terra 6.1 xhigh (2026-11-01) — status: firm that the change costs no step-plan time and, after its wording fix, causes no test-spec send-back for IDs on these runs (6 deliveries, 20 step-plan slices); its benefit at xhigh is test quality, not shown here as fewer send-backs; the ticket-import deliveries (the template's open-item path) are pending
 
 **Change under test.** b8d32033 (step-plan refuses an executed criterion a focused command names without a focused test
@@ -5390,7 +5462,7 @@ other models (DeepSeek flash 3 of 21 plans short, Sonnet 3 of 7, Grok 3 of 5) it
   base as no behaviour-specific RED; step-plan resubmitted unchanged, citing the test-loop guide); SP1 xhigh csv-report
   s1, twice from implement (S1's Proof `python3 -m unittest -v && rg -n "CSV" report.py` ran the focused suite before any
   test existed, unittest exiting 0 on zero tests; then the criteria's "Confirm by: unittest TC_1-TC_3" read as due at
-  implement, review F28).
+  implement, review F31).
 - Every slice reports `no_overshoot` FAIL: ShipLoop accepts validate-existing by script in the same callback as
   test-spec, so the run is at implement when the slice stops; SP2 and SP3 read only step-plan and test-spec.
 
@@ -5407,4 +5479,4 @@ other models (DeepSeek flash 3 of 21 plans short, Sonnet 3 of 7, Grok 3 of 5) it
   score_sp2.py, sp2_scores.jsonl, sp3_scores.jsonl, and the corpus files (replay_ids.jsonl, sendback_classes.jsonl).
 - Baseline rows appended to test/shiploop_e2e/baselines.jsonl: SP1's 3 xhigh runs and the 3 pilot runs at high (their
   effort is in each row).
-- Journal docs/shiploop-question-driven-planning-journal.md, E17 and E18.
+- Journal docs/shiploop-question-driven-planning-journal.md, E19 and E20.

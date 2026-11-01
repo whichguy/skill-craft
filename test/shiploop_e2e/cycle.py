@@ -838,11 +838,11 @@ def loop(args) -> int:
         if boundary.qualification_snapshot(HERE, cases) != frozen:
             stop = "the evaluator changed: start a new loop"
             break
-        record = learning_records.select(ledger)
+        record = learning_records.select(ledger, args.case, args.generality_case)
         if record is None:
             opened = explore(worktree, out / f"explore-{index}", args)
             iterate.journal(journal, [f"## Exploration {index}", "", f"- records opened: {', '.join(opened) or 'none'}"])
-            record = learning_records.select(ledger)
+            record = learning_records.select(ledger, args.case, args.generality_case)
             if record is None:
                 stop = "no admitted learning record after exploring"
                 break
@@ -908,7 +908,7 @@ def main(argv: list[str] | None = None) -> int:
              "driver": f"{driver['host']} {driver['model']} {driver['effort']}", "attempts": calibration["attempts"],
              "tolerance": calibration["tolerance"], "metric": calibration["metric"],
              "calibration": calibration_basis(calibration), "epoch": str(out / "epoch"),
-             "tip_note": "A hand-built candidate: nothing on a loop branch moved."}
+             "tip_note": "The candidate was built by hand; no loop branch changed."}
     (out / "entry.md").write_text(entry({"record": args.record, **record}, result, setup))
     (out / "cycle-result.json").write_text(json.dumps({"contract": CONTRACT, **result}, indent=2, default=str) + "\n")
     print(json.dumps({"decision": result["decision"], "verdict": (result.get("verdict") or {}).get("verdict"),

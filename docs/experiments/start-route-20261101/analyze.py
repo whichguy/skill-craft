@@ -3,7 +3,7 @@
 
     python3 -I analyze.py RESULTS.jsonl [--export results-compact.jsonl]
 
-A slot counts once, by its last valid attempt; a slot with no valid attempt is reported and left out. The outcome of a
+A slot counts once, by its last row if that row is valid; a slot whose last row is invalid is reported and left out. The outcome of a
 sf-ui trial is the first ShipLoop start command the model ran: `workspace` (the isolated entry, right for an empty
 directory the user did not ask to work in place in) or `direct` (init, the wrong route there).
 """
@@ -42,22 +42,19 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
 
 
 def load(path: Path) -> tuple[list[dict], list[int]]:
-    best: dict[int, dict] = {}
-    seen: set[int] = set()
+    last: dict[int, dict] = {}
     for line in path.read_text().splitlines():
-        if not line.strip():
-            continue
-        row = json.loads(line)
-        seen.add(row["slot"])
-        if row["valid"]:
-            best[row["slot"]] = row
-    return [best[s] for s in sorted(best)], sorted(seen - set(best))
+        if line.strip():
+            row = json.loads(line)
+            last[row["slot"]] = row   # the last row of a slot decides: a later invalid row supersedes an earlier valid one
+    valid = {slot: row for slot, row in last.items() if row["valid"]}
+    return [valid[s] for s in sorted(valid)], sorted(set(last) - set(valid))
 
 
 def tally(rows: list[dict]) -> dict:
     cells: dict = {}
-    for stimulus in ("sf-ui", "hello", "repo"):
-        for arm in ARMS:
+    for stimulus in sorted({r["stimulus"] for r in rows}):
+        for arm in sorted({r["arm"] for r in rows}):
             mine = [r for r in rows if r["stimulus"] == stimulus and r["arm"] == arm]
             cells[(stimulus, arm)] = {
                 "n": len(mine), "workspace": sum(r["start"] == "workspace" for r in mine),
@@ -68,9 +65,45 @@ def tally(rows: list[dict]) -> dict:
     return cells
 
 
-def card_sizes() -> dict:
+INPLACE_POOLED_DROP = 0.20     # pooled drop in `init` starts that counts as harm, with the one-sided p below
+INPLACE_STIMULUS_DROP = 0.30   # a single request is flagged at this drop and the same p
+INPLACE_P = 0.05
+INPLACE_MIN_CONTROL = 0.30     # below this share of `init` starts in the control the old wording does not honor the request either
+
+
+def evaluate_inplace(cells: dict) -> tuple[list[str], str]:
+    """Requests that explicitly ask for an in-place or non-Git run: `init` is the right first start. Does T2 lower it?"""
+    stimuli = sorted({s for s, _ in cells})
+    lines: list[str] = []
+    flagged: list[str] = []
+
+    def share(arm: str, subset: list[str]) -> tuple[int, int]:
+        init = sum(cells[(s, arm)]["direct"] for s in subset)
+        return init, sum(cells[(s, arm)]["workspace"] + cells[(s, arm)]["direct"] for s in subset)
+
+    for s in stimuli:
+        (ci, cn), (ti, tn) = share("C", [s]), share("T2", [s])
+        p = fisher_lower(ci, cn, ti, tn) if cn and tn else 1.0
+        drop = (ci / cn - ti / tn) if cn and tn else 0.0
+        lines.append(f"{s}: init as the first start, C {ci}/{cn}, T2 {ti}/{tn}; drop {drop:+.2f}; one-sided p (T2 lower) {p:.3f}"
+                     f"; own git init/config/commit: C {cells[(s, 'C')]['bootstrap']}, T2 {cells[(s, 'T2')]['bootstrap']}")
+        if drop >= INPLACE_STIMULUS_DROP and p < INPLACE_P:
+            flagged.append(s)
+    (ci, cn), (ti, tn) = share("C", stimuli), share("T2", stimuli)
+    p = fisher_lower(ci, cn, ti, tn) if cn and tn else 1.0
+    drop = (ci / cn - ti / tn) if cn and tn else 0.0
+    lines.append(f"pooled: C {ci}/{cn} ({ci / max(cn, 1):.2f}), T2 {ti}/{tn} ({ti / max(tn, 1):.2f}); drop {drop:+.2f}; one-sided p {p:.4f}")
+    if cn and ci / cn < INPLACE_MIN_CONTROL:
+        lines.append(f"note: the control honors the explicit request in only {ci / cn:.0%} of sessions, so T2 is judged on not being worse")
+    harmed = drop >= INPLACE_POOLED_DROP and p < INPLACE_P
+    verdict = ("HARM: T2 lowers explicit in-place starts (pooled)" if harmed else
+               f"HARM on {', '.join(flagged)}" if flagged else "NO HARM FOUND")
+    return lines, verdict
+
+
+def card_sizes(arms_file: Path) -> dict:
     card = (ROOT / "skills" / "shiploop" / "SKILL.md").read_text()
-    arms = json.loads((HERE / "arms.json").read_text())
+    arms = json.loads(arms_file.read_text())
     sizes = {}
     for arm, edits in arms.items():
         text = card
@@ -80,13 +113,13 @@ def card_sizes() -> dict:
     return sizes
 
 
-def evaluate(cells: dict) -> tuple[list[str], str | None]:
+def evaluate(cells: dict, arms_file: Path) -> tuple[list[str], str | None]:
     lines: list[str] = []
     control = cells[("sf-ui", "C")]
     c_started = control["workspace"] + control["direct"]
     lines.append(f"control (sf-ui): {control['direct']} wrong of {c_started} started "
                  f"(precondition: at least {MIN_CONTROL_WRONG} wrong): {'met' if control['direct'] >= MIN_CONTROL_WRONG else 'NOT met'}")
-    sizes = card_sizes()
+    sizes = card_sizes(arms_file)
     meeting: list[tuple[int, int, str]] = []
     for arm in ("T1", "T2"):
         cell = cells[("sf-ui", arm)]
@@ -112,6 +145,23 @@ def evaluate(cells: dict) -> tuple[list[str], str | None]:
     return lines, (min(meeting)[2] if meeting else None)
 
 
+def agreement(rows: list[dict]) -> list[str]:
+    """The route read from the command against the route read from what the start left on disk (effect_route)."""
+    seen = [r for r in rows if "effect_route" in r]
+    if not seen:
+        return []
+    both = [r for r in seen if r["start"] != "none" and r["effect_route"] != "none"]
+    differ = [r for r in both if r["start"] != r["effect_route"]]
+    unseen = [r for r in seen if r["start"] != "none" and r["effect_route"] == "none"]
+    lines = [(f"route from the command against route from what the start left on disk: {len(seen)} sessions; both readable "
+              f"{len(both)}, agree {len(both) - len(differ)}, differ {len(differ)}; command only (start stopped before it "
+              f"wrote anything, or wrote outside the folder) {len(unseen)}")]
+    lines.extend(f"    DIFFER slot {r['slot']} {r['arm']} {r['stimulus']}: command {r['start']}, disk {r['effect_route']}" for r in differ)
+    no_start = [r for r in seen if r["start"] == "none"]
+    lines.extend(f"    NO START slot {r['slot']} {r['arm']} {r['stimulus']}: disk reads {r['effect_route']}" for r in no_start)
+    return lines
+
+
 def compact(row: dict) -> dict:
     def short(text: str | None, limit: int) -> str | None:
         if text is None:
@@ -120,7 +170,7 @@ def compact(row: dict) -> dict:
         text = re.sub(r"/Users/[^ '\"]*?/trials/[^/ '\"]+/", "<trial>/", text)
         return text[:limit]
     keys = ("slot", "attempt", "stimulus", "arm", "i", "start", "end", "valid", "error", "seconds_to_start",
-            "read_run_start", "self_bootstrap", "skill_seen", "installed_card_sha256")
+            "read_run_start", "self_bootstrap", "skill_seen", "installed_card_sha256", "effect_route")
     out = {k: row.get(k) for k in keys}
     out["start_command"] = short(row.get("start_command"), 200)
     out["pre_start"] = [short(c, 110) for c in row.get("pre_start", [])[:6]]
@@ -131,24 +181,55 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("results", type=Path)
     ap.add_argument("--export", type=Path)
+    ap.add_argument("--arms", type=Path, default=HERE / "arms.json", help="the arms file the batch used (sizes)")
+    ap.add_argument("--mode", choices=("start", "inplace"), default="start",
+                    help="start: init is wrong (the bar and tie-break); inplace: init is right (is T2 harmless?)")
+    ap.add_argument("--also", type=Path, help="another batch's results: add a pooled table (descriptive only)")
     args = ap.parse_args()
     rows, dropped = load(args.results)
     cells = tally(rows)
     print(f"{len(rows)} valid slots; slots with no valid attempt: {dropped or 'none'}")
-    print(f"{'request':7s} {'arm':3s} {'n':>3s} {'workspace':>9s} {'direct':>6s} {'none':>4s} {'wrong rate (95% CI)':>22s} "
+    label = "init share (95% CI)" if args.mode == "inplace" else "wrong rate (95% CI)"
+    print(f"{'request':13s} {'arm':3s} {'n':>3s} {'workspace':>9s} {'direct':>6s} {'none':>4s} {label:>22s} "
           f"{'bootstrap':>9s} {'read run-start':>14s} {'median s':>8s}")
     for (stimulus, arm), c in cells.items():
         started = c["workspace"] + c["direct"]
         lo, hi = wilson(c["direct"], started)
         rate = f"{c['direct'] / started:.2f} ({lo:.2f}-{hi:.2f})" if started else "-"
         median = c["seconds"][len(c["seconds"]) // 2] if c["seconds"] else "-"
-        print(f"{stimulus:7s} {arm:3s} {c['n']:3d} {c['workspace']:9d} {c['direct']:6d} {c['none']:4d} {rate:>22s} "
+        print(f"{stimulus:13s} {arm:3s} {c['n']:3d} {c['workspace']:9d} {c['direct']:6d} {c['none']:4d} {rate:>22s} "
               f"{c['bootstrap']:9d} {c['read_run_start']:14d} {median!s:>8s}")
-    lines, winner = evaluate(cells)
-    print()
-    print("\n".join(lines))
-    print()
-    print(f"DECISION: ship {winner}" if winner else "DECISION: ship nothing (no candidate meets the pre-registered bar)")
+    if args.mode == "inplace":
+        lines, verdict = evaluate_inplace(cells)
+        print()
+        print("\n".join(lines))
+        print()
+        print(f"VERDICT: {verdict}")
+        winner = None
+    else:
+        lines, winner = evaluate(cells, args.arms)
+        print()
+        print("\n".join(lines))
+        print()
+        print(f"DECISION: ship {winner}" if winner else "DECISION: ship nothing (no candidate meets the pre-registered bar)")
+    extra = agreement(rows)
+    if extra:
+        print()
+        print("\n".join(extra))
+    if args.also:
+        more, _ = load(args.also)
+        pooled = tally(rows + more)
+        if args.mode != "start":
+            raise SystemExit("--also is for the start set")
+        print()
+        print("pooled over both batches (descriptive, not a decision): sf-ui wrong / started")
+        for arm in ARMS:
+            c = pooled[("sf-ui", arm)]
+            started = c["workspace"] + c["direct"]
+            lo, hi = wilson(c["direct"], started)
+            print(f"   {arm:3s} {c['direct']:3d} / {started:3d}  {c['direct'] / started:.3f} ({lo:.3f}-{hi:.3f})  none {c['none']}")
+        pc, pt = pooled[("sf-ui", "C")], pooled[("sf-ui", "T2")]
+        print(f"   T2 against C, one-sided Fisher p = {fisher_lower(pc['direct'], pc['workspace'] + pc['direct'], pt['direct'], pt['workspace'] + pt['direct']):.2e}")
     if args.export:
         args.export.write_text("".join(json.dumps(compact(r)) + "\n" for r in rows))
         print(f"wrote {args.export}")

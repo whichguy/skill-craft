@@ -16,8 +16,9 @@ A scenario folder holds ``scenario.json`` and, optionally:
 
 scenario.json keys (unknown keys are rejected): stage (a stage_spec stage, or ``improve@<stage>``, which loads and validates but
 does not build yet), about, tags, tiers (verify, render, live; default all three), fixture (a folder of test/shiploop_e2e/
-fixtures/), request_from (a key of step_cases.json: prompt, work_item and checks), options {delegation}, seed_records, worktree_mode,
-planted [{id P<n>, what, signature}], controls [{id C<n>, what}], render [check], oracle [check], live {samples, pass}.
+fixtures/), request_from (a key of step_cases.json: prompt, work_item and checks), optional request_text (a nonblank prompt
+override), options {delegation, seed_home}, seed_records, worktree_mode, planted [{id P<n>, what, signature}], controls [{id C<n>, what}],
+render [check], oracle [check], live {samples, pass}.
 ``about`` and ``fixture`` are required; ``request_from`` is required once the render or live tier is on (the verify tier reads
 no request). Every other key has its default.
 
@@ -81,8 +82,8 @@ TIERS = ("verify", "render", "live")
 DELEGATIONS = ("inline", "ask-agent")
 WORKTREE_MODES = ("committed", "uncommitted")
 NEXT_SECONDS = 120  # a `shiploop next` that takes longer is stuck
-KEYS = ("stage", "about", "tags", "tiers", "fixture", "request_from", "options", "seed_records", "worktree_mode", "planted",
-        "controls", "render", "oracle", "live")
+KEYS = ("stage", "about", "tags", "tiers", "fixture", "request_from", "request_text", "options", "seed_records",
+        "worktree_mode", "planted", "controls", "render", "oracle", "live")
 PLANTED_ID = re.compile(r"^P[1-9][0-9]*$")
 CONTROL_ID = re.compile(r"^C[1-9][0-9]*$")
 TAG = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
@@ -310,13 +311,20 @@ def validate(data: Any, scenario_dir: Path) -> list[str]:
             problems.append("request_from is required with the render or live tier: a key of step_cases.json")
     elif not isinstance(request, str) or request not in step_cases():
         problems.append(f"request_from {request!r} is not a key of step_cases.json")
+    if "request_text" in data:
+        if not _text(data["request_text"]):
+            problems.append("request_text must be a non-empty string")
+        elif not isinstance(request, str) or request not in step_cases():
+            problems.append("request_text requires a valid request_from key")
     options = data.get("options", {})
     if not isinstance(options, dict):
         problems.append("options must be an object")
     else:
-        problems += [f"options: unknown key {key!r}" for key in options if key != "delegation"]
+        problems += [f"options: unknown key {key!r}" for key in options if key not in ("delegation", "seed_home")]
         if "delegation" in options and options["delegation"] not in DELEGATIONS:
             problems.append(f"options.delegation must be one of {', '.join(DELEGATIONS)}")
+        if "seed_home" in options and not isinstance(options["seed_home"], bool):
+            problems.append("options.seed_home must be a boolean")
     records = data.get("seed_records", {})
     if not isinstance(records, dict):
         problems.append("seed_records must be an object of {stage: fields}")
@@ -632,7 +640,10 @@ def _buildable(sc: Scenario) -> dict:
     request = sc.data.get("request_from")
     if request is None:
         raise ScenarioError([f"{sc.id}: request_from is required to build a run"])
-    return step_cases()[request]
+    case = dict(step_cases()[request])
+    if "request_text" in sc.data:
+        case["prompt"] = sc.data["request_text"]
+    return case
 
 
 def build(sc: Scenario, out: Path, *, cli: Path | None = None) -> Built:
@@ -652,9 +663,11 @@ def build(sc: Scenario, out: Path, *, cli: Path | None = None) -> Built:
         shutil.rmtree(material)
     fixture = _compose(sc, material / "fixture", ("repo",))
     overlay = sc.dir / "worktree"
+    options = sc.data.get("options") or {}
     with seam_seed(overlay if overlay.is_dir() else None):
         seeded = run.seed_run(cli, work, out, case["prompt"], sc.stage, fixture=fixture, work_item=case["work_item"],
-                              delegation=(sc.data.get("options") or {}).get("delegation", "inline"), checks=case["checks"],
+                              delegation=options.get("delegation", "inline"), checks=case["checks"],
+                              home=options.get("seed_home", True),
                               records=sc.data.get("seed_records") or None)
     run_dir = Path(seeded["run_dir"])
     state = store.read_record(run_dir / "state.md")
