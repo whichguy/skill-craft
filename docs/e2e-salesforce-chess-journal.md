@@ -583,3 +583,13 @@ weekly update will move the CLI, and `keychain-dialog-check/check_dialog.py` is 
 "Reset To Defaults" does for a process with a throwaway HOME; the harness still leaves a `security` child behind when it kills only
 `sf`, which matters for any other program that writes to a keychain from a throwaway HOME (the probe's driver is being fixed; the
 shared harness is not changed).
+
+Follow-up, later the same day (2026-11-01, firm): the updater's keychain smoke check. Owner's choice among the follow-ups ("Updater
+smoke check"). After every install, and whenever the installed CLI is not the version last checked, the updater runs a fresh-throwaway-HOME
+`sf data query` with `SF_USE_GENERIC_UNIX_KEYCHAIN=true` and requires it to end with a key file and no dialog; a failure notifies and
+exits 4. Tests 10 of 10 (five mutations each caught), the updater's 19 of 19, a real pass on 2.156.8, a real full run against a week-old CLI
+in a temporary prefix, and a real control that raised the dialog and was detected in 2.6 s. The first real cron run (09:20 on 2026-11-02)
+does its own check from the real cron context, because the marker file was left absent on purpose. Correction to the earlier "answer
+Cancel" rule (F13): the CLI retries a failed keychain write 3 times, so each Cancel can bring another dialog (up to four per command);
+the owner got a burst of them after the control and cancelled them. Kill the stuck command's process group instead. Evidence and file
+hashes: `docs/e2e-salesforce-chess-evidence/2026-11-01-sf-cli-updater-real-path.md`.

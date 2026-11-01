@@ -188,15 +188,29 @@ link when finished. This tests the package; it is not a public catalog submissio
 Cursor also supports a personal marketplace import in the current desktop UI:
 **Customize → Browse Marketplace → Add Marketplace → Import from GitHub**. Select
 **Scope: User** and enter the source repository root exactly as
-`https://github.com/whichguy/skill-craft`. This User import was verified in Cursor
-3.20.21 with the earlier per-skill packages; re-check that the one
-`skill-craft` plugin lists every skill. That repository
+`https://github.com/whichguy/skill-craft`. That repository
 owns the required root
 `.cursor-plugin/marketplace.json`; the retired `skill-craft-market`
 repository has no Cursor index. Cursor does not document a ref or `/tree/<branch>` URL syntax for
 this field, so use the repository root. To stage a different default branch without
 changing the production repository, use a separate staging repository with a valid
 root marketplace index.
+
+Verified in Cursor 3.27.22 on 2026-11-01: with the repository registered, **Browse Marketplace → Whichguy → skill-craft →
+Add** installs the one `skill-craft` plugin (2.32.1, 23 skills, identical to `plugins/skill-craft` at the indexed commit),
+cached under `~/.cursor/plugins/cache/whichguy/skill-craft/<commit>`. The Cursor CLI registers the same marketplace without the
+UI, at user scope on the account: `cursor-agent plugin marketplace add https://github.com/whichguy/skill-craft`, and
+`cursor-agent plugin marketplace list --format json` shows each registration's `gitRef` and `lastIndexedAt`. The CLI has no
+plugin install command; the install is the click.
+
+A registration keeps the commit it was indexed at. `cursor-agent plugin marketplace update whichguy` re-indexed it but left its
+`gitRef` where it was: on 2026-11-01 `main` had moved on from `f5fb7d6446bb461e1a771a7bc64effaabd6822d1` while the
+registration stayed there. That is how three registrations of this repository (`whichguy`, `skill-craft`,
+`whichguy-skill-craft`), indexed at commits from 2026-09-16 to 2026-09-27 and one of them still on the per-skill catalog, sat
+side by side and stale. Keep one registration per repository, named `whichguy`. To pick up a release, `marketplace remove whichguy`,
+`marketplace add` the repository again, and Add the plugin again in the app (removing a marketplace may drop what was installed
+from it); whether an installed plugin follows a newer commit by itself is not verified. Once the marketplace plugin is installed,
+move any copy under `~/.cursor/plugins/local/skill-craft` out of the way so the skills do not load twice.
 
 Team-scoped marketplace import remains a Teams or Enterprise administrator action
 through **Dashboard → Settings → Plugins → Import from Repo**. A public listing

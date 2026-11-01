@@ -4,6 +4,16 @@ Written by scripts/release.py.
 
 ## 2026-11-01
 
+### skill-craft 2.32.1
+
+- Skills: shiploop 1.30.2
+
+### shiploop 1.30.2
+
+- The follow-on request ShipLoop writes no longer doubles a closing period or leaves a sentence without one: a statement or a
+  needs text that the model ended with a period, a question mark or an exclamation mark keeps it, and one without gets a
+  period, so the request a person starts reads as plain sentences.
+
 ### skill-craft 2.32.0
 
 - Skills: backchain 0.7.0, shiploop 1.30.1

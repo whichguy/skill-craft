@@ -546,6 +546,14 @@ wrong words in a case that had passed its calibration, 9d5067f3).
 D4 built the recommend-only version (revision 6): log the list on the owner's real runs without acting on it, and count how often a
 recommended follow-on is started. This measures demand in the population the E2E corpus lacks.
 
+How to read it (added after Round 7; `docs/experiments/follow-on-build-20261101/tally_follow_on.py`, read-only, with a `--self-test`): `python3 tally_follow_on.py <folder that holds
+.shiploop-runs> [more folders] [--json]` counts the runs by status, the runs whose handoff recorded a list and those that did not (an older build, or no handoff yet: unmeasured, not
+none), the entries by class, the runs that recommend a follow-on run (a `gap` or a `decision`) and, for those, the later runs whose prompt begins with the recommending run's
+`follow-on-request.md` (the skill invocation a host adds and the final newline are ignored), with each started run's status. A project's runs live next to the repository
+(`<repo-parent>/.shiploop-runs/<repo>-<stamp>/run/`), so the folder to pass is the repository's parent. On the three finished live rounds it reads: Round 5, 5 runs, 0 recommending;
+Round 6, 6 runs, 2 recommending, both with started follow-on runs (4 starts: 2 blocked, 2 done); Round 7, 3 runs, 1 recommending, with 1 started run (done). It cannot tell a person
+who started a run from a script, which is the reader's call; it is the demand count this measurement asked for, and the owner's runs are the only place it can be read.
+
 ## 8. The build (revision 6), and the sketch it followed
 
 Built on the owner's instruction of 2026-11-01 (D4; journal Round 5). The commits, with the branch `feat/follow-on-list-4f85f3` merged with origin/main at

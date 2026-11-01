@@ -183,6 +183,13 @@ def _text(value: Any) -> str:
     return " ".join(str(value).split())
 
 
+def _end(value: Any) -> str:
+    """One sentence of the request: the text with a closing mark, so a period the model wrote is not doubled by the template and a
+    text without one still reads as a sentence."""
+    text = _text(value)
+    return text if not text or text[-1] in ".!?" else text + "."
+
+
 def request_text(entries: Sequence[Mapping[str, str]], *, run_dir: str, lessons_subject: str) -> str:
     """The follow-on run's request: each gap and decision with its source, what keeps working, and where the earlier run's
     record is; empty when no entry recommends a run.  Plain text for a command substitution: the shell never re-reads it."""
@@ -196,7 +203,7 @@ def request_text(entries: Sequence[Mapping[str, str]], *, run_dir: str, lessons_
         sentence = _text(row.get("request_sentence", ""))
         label = ("Gap, " + sentence + " of the earlier request" if kind == "gap" and sentence
                  else "Gap" if kind == "gap" else "Decision to settle with the requester")
-        lines.append(f"- {label}: {_text(row.get('statement', ''))} Needs: {_text(row.get('needs', ''))}. "
+        lines.append(f"- {label}: {_end(row.get('statement', ''))} Needs: {_end(row.get('needs', ''))} "
                      f"Recorded in {_text(row.get('source', ''))}.")
     lines += [("Everything the project already does must keep working. Keep the decisions in the living spec and "
                "architecture unless a finding above says otherwise, and run the existing tests first."),

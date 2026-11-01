@@ -186,6 +186,60 @@ class ReleasePreflightTests(unittest.TestCase):
         self.git("merge", "-q", "--no-ff", "-m", "merge side", "side")
         self.assertRefused(self.release("--dry-run"))
 
+    def change(self, path, subject, trailer=None):
+        """A ShipLoop change: write one file under the skill and commit it, with an optional trailer."""
+        self.write(path, f"print({subject!r})\n")
+        self.commit(subject, trailer)
+
+    def test_a_merge_of_main_into_a_branch_that_both_changed_the_skill_is_not_a_change_of_its_own(self):
+        # The repository merges main into branches (never rebases). A merge whose result differs from both parents in the
+        # skill's paths is listed by `git log -- skills/shiploop/` although it adds nothing: 2.31.0 was refused twice for one.
+        self.release_commit()
+        self.git("switch", "-q", "-c", "side")
+        self.change("skills/shiploop/scripts/side.py", "feat(shiploop): a change on the branch", "No-E2E-Round: covered on its own")
+        self.git("switch", "-q", "main")
+        self.change("skills/shiploop/scripts/main.py", "feat(shiploop): a change on main", "No-E2E-Round: covered on its own")
+        self.git("switch", "-q", "side")
+        self.git("merge", "-q", "--no-ff", "-m", "Merge main into side", "main")
+        self.git("switch", "-q", "main")
+        self.git("merge", "-q", "--ff-only", "side")
+        self.note("shiploop", trailer="No-E2E-Round: the note of a covered change")
+        self.assertAccepted(self.release("--dry-run"))
+
+    def test_a_change_a_merge_brings_in_is_still_named_and_the_merge_is_not(self):
+        self.release_commit()
+        self.git("switch", "-q", "-c", "side")
+        self.change("skills/shiploop/scripts/side.py", "feat(shiploop): an uncovered change on the branch")
+        self.git("switch", "-q", "main")
+        self.change("skills/shiploop/scripts/main.py", "feat(shiploop): a covered change on main", "No-E2E-Round: covered on its own")
+        self.git("merge", "-q", "--no-ff", "-m", "merge the side branch", "side")
+        self.note("shiploop", trailer="No-E2E-Round: the note of a covered change")
+        message = self.assertRefused(self.release("--dry-run"))
+        self.assertIn("1 change(s)", message)
+        self.assertIn("feat(shiploop): an uncovered change on the branch", message)
+        self.assertNotIn("merge the side branch", message)
+        self.assertNotIn("a covered change on main", message)
+        self.write(LEARNINGS, "# Learnings\n\n## Run 1\n")
+        self.commit("test(shiploop-e2e): a run after them")
+        self.assertAccepted(self.release("--dry-run"))
+
+    def test_what_a_conflict_resolution_itself_changed_is_not_read(self):
+        # The one thing the rule no longer reads: the hand-written content of a merge that resolved a conflict. Both sides'
+        # own commits are still read, so a side that was not covered would be named (the test above).
+        self.release_commit()
+        self.git("switch", "-q", "-c", "side")
+        self.change("skills/shiploop/scripts/shared.py", "feat(shiploop): the side edits the shared file", "No-E2E-Round: covered on its own")
+        self.git("switch", "-q", "main")
+        self.change("skills/shiploop/scripts/shared.py", "feat(shiploop): main edits the shared file", "No-E2E-Round: covered on its own")
+        conflicted = subprocess.run(["git", "-C", str(self.repo), "merge", "--no-ff", "--no-commit", "side"], env=self.env,
+                                    capture_output=True, text=True, timeout=30)
+        self.assertEqual(conflicted.returncode, 1, conflicted.stdout + conflicted.stderr)
+        self.write("skills/shiploop/scripts/shared.py", "print('resolved by hand, differently from both sides')\n")
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", "Merge the side branch, resolving the conflict by hand")
+        self.note("shiploop", trailer="No-E2E-Round: the note of a covered change")
+        self.assertAccepted(self.release("--dry-run"))
+
     def test_a_release_that_does_not_ship_shiploop_is_not_asked(self):
         self.release_commit()
         self.note("other")
