@@ -126,7 +126,9 @@ incomplete planning, as `references/convergence.md` states.
 
 ### `plan` / `draft`
 
-The host gives the generator the original request plus selected source snapshots as `RAW_PROMPT` data and retains the same packet/lens findings for dependency review and elaboration. Return `{ "plan": <existing Backchain plan>, "review": <review object> }`. Backchain always binds the enriched candidate to selected Until Loop and returns the final source assessment with its opaque `review.convergence` record, or an honest incomplete result. It does not self-certify execution, and its structural status is the `backchain.py check` verdict on the exact candidate, never a model's claim.
+For a fresh `new-draft`, the host gives `prompts/direct.v1.md` the unedited original request, selected source snapshots, and the `backchain-caller/v1` packet as `RAW_PROMPT` data. Retain and pass the identical request, source, caller, and lens data to dependency review and any needed elaboration. Resolve questions only with user answers or inspected evidence. If an answer/inspection changes the graph, or an open material question must be recorded as a real unresolved dependency, repair the direct candidate with `prompts/elaborator.v1.md`; when no graph change is needed, carry the candidate forward without an unchanged rewrite. A supplied existing plan goes directly to elaboration, preserving its IDs, input edges, `goal_needs`, and `confirm` entries. The generator remains for the development checkout's one-shot pipeline.
+
+Return `{ "plan": <existing Backchain plan>, "review": <review object> }`. Backchain binds the final candidate to the selected Until Loop and returns the final source assessment with its opaque `review.convergence` record, or an honest incomplete result. The direct prompt creates a candidate only; it does not self-certify execution, source coverage, or convergence, and the structural status is the `backchain.py check` verdict on the exact candidate, never a model's claim.
 
 ### `review` / `audit`
 

@@ -138,3 +138,24 @@ Held-out cases for Phase 5, frozen before the candidate: designed blind by a sep
 digests and counts), 4 cases with 7, 10, 7 and 10 mechanical keys, at
 `/Users/dadleet/src/backchain/results/backchain-efficiency-20261101/heldout/`, MANIFEST.json SHA-256
 `7c81681f9a1e558dfd5a4b0a06786943744abc07ce2d7b5fb02d7665b115e07a` (17 files); its `validate.sh` passes. Not opened.
+
+Round 2 landed as 39af8ce04222fb49aa6d612e08b4dbabd73e5db3. The first quick-tier run of it failed four
+subtests of `shiploop-navigator-dry-run`, whose two converge tests still pinned the old no-marker text; they moved to
+D1 and the rerun passed (39 suites, 315.9 s).
+
+## Round 3 — the lean synthesis prompts (2026-11-01)
+
+Conditions: no model run. The two prompts are copied byte for byte from the 2026-10-16 study's frozen lean snapshot:
+`direct.v1.md` SHA-256 `2e25db77c52d41c0646ce368f65b70216af896678b0aa9b71a35240d78d31407` and the compact
+`elaborator.v1.md` `8d69665758266ff18313c35232153012fcae90760e3383d7ce1c6fbdb5510544`, both matching that study's
+`candidate-source-manifest-v2.json`. The replaced elaborator was unchanged since that study (0.6.3 = 0.6.6), and the
+compact one keeps the same four placeholders the checkout's harness renders.
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R3-1 | A fresh request's full reads are 79,187 bytes, or 96,441 when its dependency review calls for the elaborator, against 231,784 at 0.6.6 (−65.8 % / −58.4 %). | firm (bytes) | `git cat-file -s` at e81fdb55; work-tree sizes |
+| R3-2 | The prompts carry the measured design: direct synthesis, then the dependency review, then the elaborator only on a change (`prepare` prints that order; the generator is in no native route). | firm (test) | `RunTests.test_each_route_reads_its_prompts_once_in_order` |
+
+Risk carried into the cohort: the 2026-10-16 adversarial review's false-edge hazard of direct synthesis is now
+mitigated by the generated-vs-inherited rule (a review may remove an edge its own run generated); its frequency is
+unmeasured, and the held-out `inherited-edges` and `seeded-defect` cases are where it would show.

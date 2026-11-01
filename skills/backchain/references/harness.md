@@ -114,7 +114,10 @@ hand/harness-supplied) is the goal-closure check.
 
 ## What the prompts do (manual multi-step)
 
-The templates remain authoritative; this is a maintainer's map.
+The templates remain authoritative; this is a maintainer's map. A native fresh request is planned by
+`prompts/direct.v1.md` (direct synthesis: backward from the requested end states, then a forward walk), its
+dependency review, and `prompts/elaborator.v1.md` only when that review changes the graph; the generator below
+serves the checkout's one-shot pipeline.
 
 1. `prompts/generator.v1.md` takes the unedited request at `{{RAW_PROMPT}}` and returns a JSON-only
    draft. It derives the request's terminal observable conditions into `goal_needs` **before**

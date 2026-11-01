@@ -58,10 +58,11 @@ absolute paths and the next command. Choose a new run directory outside the proj
    every resource (the selected Until Loop is the bundled `../improve/runtime/until-loop/ADAPTER.md`
    beside this skill unless `--until-loop` names another; a missing one stops the run) and prints
    the prompts to read, once each, in order.
-2. **Plan.** Follow the printed prompts: draft from the request into `DIR/draft.json`, then
-   elaborate into `DIR/plan.json`; an inherited draft is elaborated (or, with a caller packet,
-   audited and revised) directly. Resolve only evidenced facts: an unevidenced world-state is
-   not `initial_state`. Leave `parallel_groups` as `[]`; the script computes them.
+2. **Plan.** Follow the printed prompts: synthesize the plan from the request into
+   `DIR/draft.json`, review its dependencies, and elaborate it into `DIR/plan.json` only when that
+   review changes something (otherwise copy the draft). An inherited draft is elaborated (or, with
+   a caller packet, audited and revised) directly. Resolve only evidenced facts: an unevidenced
+   world-state is not `initial_state`. Leave `parallel_groups` as `[]`; the script computes them.
 3. **Freeze.** `freeze --run DIR` checks the candidate (the seven invariants, the draft's
    `goal_needs` and confirmations, an inherited draft's steps and edges), packages it and writes
    the Until Loop contract. Fix what it reports and run it again.

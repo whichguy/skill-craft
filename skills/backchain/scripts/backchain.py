@@ -85,10 +85,15 @@ CHANGE_CLASSES = ("material", "trivial", "none", "unknown")
 EXIT_ASSESSMENTS = ("satisfied", "unsatisfied", "unknown")
 CONTINUATIONS = ("allowed", "blocked", "cancelled")
 
-# What a run reads, once each, in this order, by route. Paths are relative to the Backchain skill root.
-DRAFTING = (("prompts/generator.v1.md", "draft the plan from the request; save the JSON draft as {run}/draft.json"),
-            ("prompts/dependency-review.prompt.md", "the dependency context of the draft"),
-            ("prompts/elaborator.v1.md", "enrich the draft; save the plan as {run}/plan.json"))
+# What a run reads, once each, in this order, by route. Paths are relative to the Backchain skill root. A fresh
+# request is planned by direct synthesis, and elaborated only when its dependency review changes something (the
+# lean route measured in the 2026-10-16 study); generator.v1.md stays for the checkout's one-shot pipeline.
+DRAFTING = (("prompts/direct.v1.md", "synthesize the plan from the request; save it as {run}/draft.json"),
+            ("prompts/dependency-review.prompt.md", "review the draft's dependencies; when an answer or inspection "
+                                                    "changes a dependency, supplier, step claim or unresolved need, "
+                                                    "read 3; otherwise copy {run}/draft.json to {run}/plan.json"),
+            ("prompts/elaborator.v1.md", "only when 2 found a change: elaborate the draft with its dependency "
+                                         "context; save the plan as {run}/plan.json"))
 ELABORATING = (("prompts/dependency-review.prompt.md", "the dependency context of {run}/input/draft.json"),
                ("prompts/elaborator.v1.md", "elaborate {run}/input/draft.json; save the plan as {run}/plan.json"))
 REVISING = (("prompts/audit.prompt.md", "audit {run}/input/draft.json against the caller packet"),

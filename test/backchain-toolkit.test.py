@@ -416,6 +416,25 @@ class RunTests(unittest.TestCase):
         self.assertTrue(all(len(entry["sha256"]) == 64 for entry in meta["resources"]))
         self.assertEqual(meta["route"], "fresh")
 
+    def test_each_route_reads_its_prompts_once_in_order(self):
+        def reads(*extra: str, name: str) -> list:
+            done = run("prepare", "--run", str(self.base / name), "--request", str(self.request), *extra)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            return [line.strip() for line in done.stdout.splitlines() if line.strip()[:3] in ("1. ", "2. ", "3. ")]
+        # A fresh request: direct synthesis, its dependency review, the elaborator only when that review finds a change.
+        fresh = reads(name="fresh-route")
+        self.assertEqual([line.split(": ")[0].rsplit("/", 2)[-2:] for line in fresh],
+                         [["prompts", "direct.v1.md"], ["prompts", "dependency-review.prompt.md"],
+                          ["prompts", "elaborator.v1.md"]])
+        self.assertIn("only when 2 found a change", fresh[2])
+        inherited = self.base / "inherited.json"
+        inherited.write_text(json.dumps(self.plan))
+        draft = reads("--draft", str(inherited), name="draft-route")
+        self.assertEqual([line.split(": ")[0].rsplit("/", 1)[-1] for line in draft],
+                         ["dependency-review.prompt.md", "elaborator.v1.md"])
+        for route in (fresh, draft):
+            self.assertFalse(any("generator.v1.md" in line for line in route))  # the checkout's one-shot pipeline only
+
     def test_the_gate_texts_are_the_convergence_references(self):
         import importlib.util
         spec = importlib.util.spec_from_file_location("backchain_cli", CLI)
