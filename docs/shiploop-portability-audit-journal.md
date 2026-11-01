@@ -175,12 +175,13 @@ and six test files), so the hashes of both commits changed.
 3. **Eight E2E-apparatus suites fail on 3.9 with "write to closed file", unexplained.** The apparatus is declared 3.10+, so
    they are out of the job, but a failure that is not a 3.10 API may be a real defect that only shows up there. Worth one
    short investigation before the declaration is relied on.
-4. **No live-model first run from a machine with nothing installed: partly resolved 2026-11-01** (Round 5). One live
-   `hello` session ran to `done` on the Codex host from a fresh-profile marketplace install of 2.27.2 (every verdict
-   passed). The Claude-host live run could not reach its model (usage limit), so no live Claude-host session has run from
-   the published release; the native Claude install and the installed tree were probed without a model. Earlier wording,
-   kept: "The marketplace lifecycle is covered (`docs/marketplace-e2e-testing.md`), and the clean-room probes here ran the
-   CLI and hooks, not a model session."
+4. **No live-model first run from a machine with nothing installed: resolved for both hosts 2026-11-01** (Round 5). One live
+   `hello` session ran to `done` on the Codex host from a fresh-profile marketplace install of 2.27.2 (F9), and one on the
+   Claude host on Sonnet 5.5 from the published 2.27.3 build (F12), every verdict passing. Boundary kept: the Claude session
+   loaded the harness's export through `--plugin-dir`, and the native Claude install was probed separately without a model
+   (F8); no run combined a native Claude install with a model. The first Claude attempt, on the Ollama model, was blocked by a
+   usage limit (F10). Earlier wording, kept: "The marketplace lifecycle is covered (`docs/marketplace-e2e-testing.md`), and
+   the clean-room probes here ran the CLI and hooks, not a model session."
 5. **Hook cost and plugin-wide scope (F6) remain.** 45–60 ms per Bash call for every user of the plugin, ShipLoop or not.
    Splitting the hooks into a ShipLoop-only plugin would change the one-namespace decision, so it is the owner's call and
    is not proposed here.
@@ -218,6 +219,7 @@ Asked by the owner after the publication ("Yes run it"). Evidence and commands: 
 | Installed tree in a Python 3.7.3 container | hooks exit 0 silent; CLI exits 2 with the one-line floor message |
 | Live `hello`, Claude host, Ollama model | blocked: the first model call returned 429, "monthly usage limit"; invoked and plugin verdicts passed, nothing downstream ran |
 | Live `hello`, Codex host, gpt-6.1-terra xhigh, fresh-profile marketplace install | every verdict passed: `done`, committed, both request checks; 929.2 s, 202 turns, ShipLoop command failures 0 |
+| Live `hello`, Claude host, claude-sonnet-5-5 (Anthropic), the build published at launch: 2.27.3 / 1.26.3 through `--plugin-dir` | every verdict passed: `done`, committed, both request checks; 969.2 s, 188 turns, $4.13; 3 designed gate refusals, no faults |
 
 Findings:
 
@@ -227,10 +229,11 @@ Findings:
 | F9 | A live ShipLoop session runs to `done` from a fresh-profile Codex marketplace install of 2.27.2 on this Mac (n = 1, one tiny case) | interim | `codex-hello-result.json` |
 | F10 | The E2E apparatus's default subject (Ollama) can be unavailable for a whole month, and a run that hits the limit still appends a baseline row; the row is labelled failed with the 429 as its stop reason and is excluded from comparisons, but it is a row about the quota, not about ShipLoop | firm | `claude-hello-429-result.json`; `test/shiploop_e2e/baselines.jsonl` |
 | F11 | `workspace start` can print "progress observer unavailable" when the viewer misses its 1.0 s startup deadline; seen in 3 of 13 fresh starts at load average near 60; stderr only | interim, load-dependent | `shiploop_progress.start`; README side observation |
+| F12 | A live ShipLoop session runs to `done` on the Claude host, on Sonnet 5.5, from the build the marketplace published at launch (2.27.3 / 1.26.3, which holds the 2.27.2 floor work): turns 193 to 188 and cost $3.88 to $4.13 against the 2026-10-26 run in the same cell on ShipLoop 1.15.0 (n = 1 each, load 28 to 167 on 18 CPUs) | interim | `claude-sonnet-hello-result.json` |
 
-What this teaches: the install half of the portability claim is now checked by native commands on the real release, and the
-live half has one passing host. The Claude host's live run is the missing piece, and it is blocked by a service quota the
-owner controls, not by ShipLoop. Which interpreter the Codex session ran is inferred (the packets printed Xcode's Python
+What this teaches: the install half of the portability claim is checked by native commands on the real release, and the
+live half now has a passing session on each host. The Claude host's first attempt was blocked by a service quota the
+owner controls, not by ShipLoop; the owner chose Sonnet for the rerun and it passed. Which interpreter the Codex session ran is inferred (the packets printed Xcode's Python
 3.9.6; the session's PATH was not recorded), so the run is not yet proof of a live session on the floor.
 
 ## Proposals as first written (2026-10-31; applied as Round 3)
