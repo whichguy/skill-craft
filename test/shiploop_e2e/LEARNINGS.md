@@ -6024,6 +6024,16 @@ ShipLoop 1.30.0, `shiploop PASS done`, rc=0 in 569.8 s, no refusal in the stream
 `workspace` in `result.json`). n = 1; it supersedes "not measured" above for that one case and says nothing about a rate. The
 no-model clean-install probes printed the committed output. Details: `docs/experiments/start-route-20261101/README.md`.
 
+**Addendum, Astra's review (2026-11-01).** The guard and its probes shipped without the independent review the owner's standing rule asks
+for; Astra at max effort reviewed them afterwards (`docs/experiments/start-route-20261101/astra-review-2026-11-01.md`; each finding and
+its disposition are in that folder's README). Two things here change. First, the `No-E2E-Round` reason on the guard commit ("E2E cases
+start with workspace start") is weak, since the incident exists because a model sometimes chooses otherwise; the evidence behind those
+commits is the two first-command probes, not a case. Second, the released guard had defects the probes could not show, found by the
+review and reproduced: a folder holding only an empty `.shiploop` was refused and the printed recovery then failed, the printed
+command dropped the options the refused `init` carried, and Git's diagnostic was read in English only. A patch release fixes them,
+each with a test that runs the printed recovery. What the review left open for the owner is listed in the same README: an outcome-level
+check for direct runs, a cross-host recovery screen, the release gate's reading of conflict resolutions, and the non-Git fixtures.
+
 ## Release preflight: a merge of main into a branch is listed as a ShipLoop change without a round (2026-11-01) — status: firm (seen twice in one release); the gate is unchanged and the owner decides whether to change it
 
 **What happened.** `scripts/release.py --dry-run` for 2.31.0 / 1.30.0 refused twice, each time naming one commit that is a merge:
