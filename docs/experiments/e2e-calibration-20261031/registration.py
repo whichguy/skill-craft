@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Stage 3's registration (docs/shiploop-e2e-closed-loop-plan-2026-10-30.md): one ShipLoop build against itself,
-a promotion/5 `calibration` epoch on Codex gpt-6.1-terra at xhigh, the subject every Terra round since 2026-10-29 used.
+a promotion/5 `calibration` epoch on Codex gpt-6.1-terra at high, the subject of the stage 5 cycle, on that cycle's two
+cases (csv-report and seat-reservations), so its figure measures the noise of the comparison it would replace.
 
     python3 docs/experiments/e2e-calibration-20261031/registration.py --plugin PLUGIN_DIR > registration-template.json
 
-Both arms bind the same plugin build, so every sealed attempt of a case is a sample of that build. Battleship's attempts
-come first in the list because launch_all dispatches in this order and battleship has never run on Terra: its time is
-unknown and likely the longest, so starting it first keeps the parallel slots busy. Reviews are not part of a calibration.
+Both arms bind the same plugin build, so every sealed attempt of a case is a sample of that build. The first design ran
+battleship, user-listing and ticket-assignment at xhigh; each declares a fixed port, which run.py leases machine-wide and
+launch_all does not serialise, so its own parallel attempts would have refused each other. Reviews are not part of a
+calibration.
 """
 
 from __future__ import annotations
@@ -20,10 +22,9 @@ HARNESS = Path(__file__).resolve().parents[3] / "test" / "shiploop_e2e"
 sys.path.insert(0, str(HARNESS))
 import run as runner  # noqa: E402
 
-# Attempts per arm. Eight samples of each brownfield case give 560 three-against-three splits for spread.py; battleship's
-# four samples measure its time on Terra and give a first, coarse spread.
-CASES = {"battleship": 2, "user-listing": 4, "ticket-assignment": 4}
-DRIVER = {"host": "codex", "model": "gpt-6.1-terra", "effort": "xhigh"}
+# Attempts per arm. Eight samples of a case (four in each arm) give 560 three-against-three splits for spread.py.
+CASES = {"csv-report": 4, "seat-reservations": 4}
+DRIVER = {"host": "codex", "model": "gpt-6.1-terra", "effort": "high"}
 ARMS = ("control", "candidate")
 
 

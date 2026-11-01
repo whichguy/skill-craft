@@ -307,6 +307,30 @@ harm, is excluded; so is any drop larger than about 7 points on these requests. 
 it). Because the old wording already honored the explicit request every time, this shows T2 broke nothing, not that it improved
 anything. Cost: 260 model calls (mean input peak 35,398 tokens), about 5M to 9M tokens (an estimate).
 
+## Other hosts: does T2 hold on Claude and Grok? (registered 2026-11-01, before its first trial)
+
+**Why.** The wording was tuned on Codex Terra, the only host that ever chose `init` in the archive (Claude 0 of 56 starts, Grok 0 of
+111, all before T2). Neither host has been run on the new sentence, in either direction: it could make them start with `init`
+where `workspace start` is right, or with `workspace start` where the user asked for an in-place run.
+
+**Design.** The same driver, stop rule and fault policy, one launch per host through `run.py`, each host at the harness's own
+defaults: Claude `claude-sonnet-5-5` on its own models (`--backend anthropic`, no effort), Grok `grok-4.7` at medium. Two cards (`arms-r2.json`): C, the old
+wording, and T2, the published card. Four requests per card (`plan --set hosts`, seed 20261104, `plan-hosts.json`): `sf-ui` 16,
+`repo` 8 (an existing Git repository), `inplace-hello` 12 and `nogit-hello` 12 (the explicit requests): 48 per card, 96 per host.
+One unscored smoke session per host (T2, `sf-ui`) began with `workspace start` and the card hashes matched.
+
+**Outcome and rule** (`analyze.py --mode hosts`, per host). A host *regresses* if T2 starts with `init` at least 3 times more often
+than C on `sf-ui` or `repo` with one-sided Fisher p below 0.05 (T2 more), or if over the two explicit requests together its `init`
+share is at least 20 points below C's with one-sided p below 0.05. Otherwise "no regression found", which with these sizes cannot see
+a smaller change. A regression is reported to the owner and the sentence is reworded and retested; a host that does not
+reach the start in most sessions is reported as unreadable, not as fine.
+
+**Prediction.** Claude and Grok start with `init` in 2 or fewer sessions per card on `sf-ui` and `repo` together, and with `init` in
+at least 80% of the explicit sessions on both cards.
+
+**Limits.** Each host is one model at one setting; Claude loads the owner's global instructions, as the harness's Claude host
+always does. Small base rates mean this checks for harm, not benefit.
+
 ## Published-build confirmation (registered 2026-11-01, before it runs)
 
 After the release, `start_probe.py confirm` runs 12 sessions of the `sf-ui` request on the build a user installs (the published
@@ -364,7 +388,8 @@ f48df6587d78cf3e958120382128e072cfa948f4 (isolate ephemeral fixtures from progre
 ## Evidence
 
 - `arms.json`, `stimuli/sf-ui.txt`, `plan.json`, `start_probe.py`, `analyze.py`: the design. `arms-r2.json`, `plan-r2.json`: the replication's.
-  `stimuli/inplace-*.txt`, `stimuli/nogit-hello.txt`, `plan-inplace.json`: the explicit in-place set (`plan --set inplace`, `analyze.py --mode inplace`). `start_probe.py reclassify` and
+  `stimuli/inplace-*.txt`, `stimuli/nogit-hello.txt`, `plan-inplace.json`: the explicit in-place set (`plan --set inplace`, `analyze.py --mode inplace`).
+  `plan-hosts.json`: the other-hosts set (`plan --set hosts`, `start_probe.py run --host claude|grok`, `analyze.py --mode hosts`). `start_probe.py reclassify` and
   `rescan` are the two detector corrections of "Deviations" 4 and 6.
 - `confirm-output.txt`, `confirm-compact.jsonl`: the published-build confirmation (`start_probe.py confirm`).
 - `analysis-r2-output.txt`, `results-r2-compact.jsonl`: the replication's result. Raw rows: `~/e2e-runs-startroute/20261101-r2/`.

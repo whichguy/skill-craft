@@ -786,6 +786,20 @@ class CycleTest(unittest.TestCase):
         cycle.apply_decision(self.worktree, "loop-test", self.record, self.tip, candidates[1], "KEEP_AS_REF")
         self.assertEqual(len(self.git("for-each-ref", "refs/shiploop-loop/loop-test").splitlines()), 2)
 
+    def test_a_record_found_by_the_plain_iterate_loop_names_its_case_so_a_cycle_can_tell_whose_it_is(self):
+        """iterate.py's own ingest left the case out, so such a record counted as seeded and any cycle could take it, a cycle
+        whose unseen generality case produced it included."""
+        source = iterate.ingest_source(self.temp / "run", {"review_sha256": "abc"}, "csv-report")
+        self.assertEqual((source["case"], source["exposure"], source["review_sha256"]), ("csv-report", "development", "abc"))
+        found = lr.new_id()
+        lr.append("opened", found, self.ledger, title="a finding", anchor={"clause_id": "S-14"}, materiality="material",
+                  confidence="high", target="shiploop", files=[], proposal="p", source=source)
+        lr.append("admitted", found, self.ledger)
+        lr.append("predicted", self.record, self.ledger)  # the seeded record of setUp is taken: only `found` is left
+        self.assertEqual(lr.select(self.ledger, "csv-report", "seat-reservations"), found)
+        self.assertIsNone(lr.select(self.ledger, "seat-reservations", "csv-report"),
+                          "a record found on the generality case is not offered to a cycle that keeps that case unseen")
+
     def test_the_loop_selects_its_record_for_its_own_cases_both_before_and_after_exploring(self):
         args = argparse.Namespace(case="user-listing", generality_case="csv-report", calibration=None, tolerance=0.25,
                                   attempts=3, output=self.temp / "loop-out", iterations=1, host="codex", model=None,
@@ -806,6 +820,52 @@ class CycleTest(unittest.TestCase):
         path.write_text(json.dumps({"contract": spread.CONTRACT, "cases": {case: {} for case in CASES}}))
         with self.assertRaisesRegex(ValueError, "malformed"):
             cycle.load_calibration(path, list(CASES))
+
+
+class EntryTableTest(unittest.TestCase):
+    """The journal entry's result table is read by the owner: a cell with no value, a 17-digit float or a missing success
+    count hides what a run showed (stage 4 pilot run 2: the candidate had no successful attempt)."""
+    RECORD = {"record": "LR-20261101-1b4675", "title": "a reverted hook looks cheaper", "anchor": None}
+    SETUP = {"cases": ["hello-hook-continuation"], "control_build": "605a526e7cf9", "candidate_build": "b04162c89445",
+             "driver": "codex gpt-6.1-terra high", "attempts": 3, "tolerance": 0.25, "metric": "tokens",
+             "calibration": cycle.UNMEASURED, "epoch": "/tmp/epoch", "roles": {"hello-hook-continuation": "regression"}}
+
+    def result(self, candidate_tokens, successes, change=None):
+        effect = {"case": "hello-hook-continuation", "measure": "tokens", "control": 18203931.333333332,
+                  "candidate": candidate_tokens, "direction": "down", "at_least": 0.25}
+        if change is None:
+            effect.update(unknown="no attempt succeeded, so there is no per-success token figure", verdict="unknown")
+        else:
+            effect.update(change=change, verdict="confirmed")
+        guard = {"case": "hello-hook-continuation", "measure": "accuracy", "control": 1.0, "candidate": successes / 3,
+                 "change": successes / 3 - 1, "direction": "not_down", "held": successes == 3}
+        return {"decision": "DROP", "reasons": ["an established requirement fell: hello-hook-continuation"],
+                "verdict": {"verdict": "refuted", "effects": [effect], "guards": [guard]},
+                "outcome": {"outcome": "refuted", "reason": "dropped"},
+                "cases": {"hello-hook-continuation": {"role": "regression",
+                          "control": {"attempts": 3, "successes": 3, "share": 1.0},
+                          "candidate": {"attempts": 3, "successes": successes, "share": successes / 3}}}}
+
+    def test_an_arm_with_no_successes_reads_as_not_applicable_with_its_success_counts(self):
+        text = cycle.entry(self.RECORD, self.result(None, 0), {**self.SETUP})
+        self.assertNotIn("None", text)
+        self.assertIn("| n/a |", text)
+        self.assertIn("hello-hook-continuation: control 3 of 3 attempts succeeded, candidate 0 of 3", text)
+
+    def test_large_figures_are_whole_numbers_with_separators_and_small_ones_keep_their_digits(self):
+        text = cycle.entry(self.RECORD, self.result(13652948.5, 3, change=-0.2501), {**self.SETUP})
+        self.assertIn("18,203,931", text)
+        self.assertNotIn("18203931.33", text)
+        self.assertIn("13,652,948", text)
+        self.assertIn("-0.2501", text)
+        self.assertIn("control 3 of 3 attempts succeeded, candidate 3 of 3", text)
+
+    def test_a_result_without_per_case_counts_still_renders(self):
+        result = self.result(None, 0)
+        del result["cases"]
+        text = cycle.entry(self.RECORD, result, {**self.SETUP})
+        self.assertNotIn("attempts succeeded", text)
+        self.assertIn("**What it shows.**", text)
 
 
 class PilotKitTest(unittest.TestCase):
@@ -918,6 +978,49 @@ class CycleKitTest(unittest.TestCase):
             refused = subprocess.run(["bash", str(script), "0" * 40, used], capture_output=True, text=True, check=False)
         self.assertEqual(refused.returncode, 2, refused.stderr)
         self.assertIn("exists", refused.stderr)
+
+
+class CalibrationKitTest(unittest.TestCase):
+    """The stage 3 same-build calibration kit (docs/experiments/e2e-calibration-20261031): it measures the noise of the
+    cases and the driver the stage 5 cycle runs, so its figure can replace that cycle's stated tolerance."""
+    KIT = ROOT / "docs" / "experiments" / "e2e-calibration-20261031"
+
+    def registration(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("calibration_registration", self.KIT / "registration.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_it_runs_the_cycles_cases_at_the_cycles_driver_and_needs_no_fixed_port(self):
+        """Its first design ran user-listing, ticket-assignment and battleship: each declares a fixed port, which run.py
+        leases machine-wide and launch_all does not serialise, so its own parallel attempts would have refused each other."""
+        template = self.registration().template("0" * 12)
+        cycle_script = (ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101" / "run.sh").read_text()
+        catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
+        self.assertEqual(set(template["cases"]), {"csv-report", "seat-reservations"})
+        self.assertIn("--case csv-report --generality-case seat-reservations", cycle_script)
+        for case in template["cases"]:
+            self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
+            self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"), f"{case} declares a fixed port")
+        self.assertEqual(template["purpose"], "calibration")
+        for arm in template["arms"].values():
+            self.assertEqual(arm["driver"], {"host": "codex", "model": "gpt-6.1-terra", "effort": "high"})
+        self.assertIn("--effort high --iterations 1", cycle_script.replace("--model gpt-6.1-terra ", ""))
+
+    def test_it_registers_four_attempts_per_arm_of_each_case_on_one_build(self):
+        template = self.registration().template("0" * 12)
+        self.assertEqual({row["id"] for row in template["attempts"]},
+                         {f"{arm}-{case}-{n}" for case in ("csv-report", "seat-reservations")
+                          for arm in ("control", "candidate") for n in range(1, 5)})
+        self.assertEqual({arm["shiploop_build"] for arm in template["arms"].values()}, {"0" * 12})
+        self.assertEqual({row["attempts"] for row in template["cases"].values()}, {4})
+
+    def test_the_run_script_parses_and_keeps_the_epochs_neighbours_to_its_own_attempts(self):
+        script = self.KIT / "run.sh"
+        self.assertEqual(subprocess.run(["bash", "-n", str(script)], capture_output=True, text=True, check=False).returncode, 0)
+        self.assertIn("unset SHIPLOOP_E2E_RUNS_ROOT", script.read_text(),
+                      "a seal binds every overlapping run under the runs root, so another session's runs must not be neighbours")
 
 
 if __name__ == "__main__":
