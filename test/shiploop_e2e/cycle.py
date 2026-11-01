@@ -335,7 +335,7 @@ def qualify_built(root: Path, record: str, prediction_file: Path, control_plugin
                             epoch=str(root), calibration=calibration_basis(calibration))
     learning_records.append("verdict", record, ledger, verdict=judged["verdict"], **after)
     return {"decision": decided["decision"], "reasons": decided.get("reasons"), "verdict": judged, "outcome": after,
-            "opened": opened, "control_build": control, "candidate_build": candidate}
+            "cases": decided.get("cases"), "opened": opened, "control_build": control, "candidate_build": candidate}
 
 
 def cases_generality(cases: dict[str, str], args) -> str | None:
@@ -366,6 +366,27 @@ not what any change would do.
 """
 
 
+def figure(value) -> str:
+    """One cell of the entry's result table: no value reads n/a, a large number is whole with separators, and a small one
+    (a share, a relative change) keeps its digits."""
+    if value is None:
+        return "n/a"
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return str(value)
+    return f"{value:,.0f}" if abs(value) >= 1000 else str(round(value, 4))
+
+
+def attempts_line(cases: dict | None) -> str | None:
+    """How many attempts succeeded on each arm of each case, from the promotion decision's per-case counts."""
+    parts = []
+    for case, sides in (cases or {}).items():
+        control, candidate = (sides or {}).get("control"), (sides or {}).get("candidate")
+        if isinstance(control, dict) and isinstance(candidate, dict):
+            parts.append(f"{case}: control {control['successes']} of {control['attempts']} attempts succeeded, "
+                         f"candidate {candidate['successes']} of {candidate['attempts']}")
+    return "**Attempts.** " + "; ".join(parts) + "." if parts else None
+
+
 def entry(record: dict, result: dict, setup: dict) -> str:
     """The LEARNINGS entry for one cycle, in the journal's Question / Setup / Result / What it shows shape."""
     day = datetime.datetime.now(datetime.timezone.utc).date().isoformat()
@@ -383,13 +404,15 @@ def entry(record: dict, result: dict, setup: dict) -> str:
         lines += ["**Result.**", "", "| case | measure | control | candidate | change | predicted | verdict |",
                   "|---|---|---|---|---|---|---|"]
         for row in judged["effects"]:
-            lines.append(f"| {row['case']} | {row['measure']} | {row.get('control')} | {row.get('candidate')} | "
-                         f"{row.get('change', row.get('unknown'))} | {row['direction']} {row['at_least']} | {row['verdict']} |")
+            lines.append(f"| {row['case']} | {row['measure']} | {figure(row.get('control'))} | {figure(row.get('candidate'))} | "
+                         f"{figure(row.get('change', row.get('unknown')))} | {row['direction']} {row['at_least']} | {row['verdict']} |")
         for row in judged.get("guards") or []:
-            lines.append(f"| {row['case']} | {row['measure']} (guard) | {row.get('control')} | {row.get('candidate')} | "
-                         f"{row.get('change', row.get('unknown'))} | {row['direction']} | "
+            lines.append(f"| {row['case']} | {row['measure']} (guard) | {figure(row.get('control'))} | "
+                         f"{figure(row.get('candidate'))} | {figure(row.get('change', row.get('unknown')))} | {row['direction']} | "
                          f"{'held' if row['held'] else 'broken' if row['held'] is False else 'unknown'} |")
         lines.append("")
+        counted = attempts_line(result.get("cases"))
+        lines += [counted, ""] if counted else []
     source = setup.get("candidate_source")
     if source:
         lines += candidate_source_lines(source, setup["tip"], setup["candidate"], result["decision"])

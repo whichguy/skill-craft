@@ -808,6 +808,52 @@ class CycleTest(unittest.TestCase):
             cycle.load_calibration(path, list(CASES))
 
 
+class EntryTableTest(unittest.TestCase):
+    """The journal entry's result table is read by the owner: a cell with no value, a 17-digit float or a missing success
+    count hides what a run showed (stage 4 pilot run 2: the candidate had no successful attempt)."""
+    RECORD = {"record": "LR-20261101-1b4675", "title": "a reverted hook looks cheaper", "anchor": None}
+    SETUP = {"cases": ["hello-hook-continuation"], "control_build": "605a526e7cf9", "candidate_build": "b04162c89445",
+             "driver": "codex gpt-6.1-terra high", "attempts": 3, "tolerance": 0.25, "metric": "tokens",
+             "calibration": cycle.UNMEASURED, "epoch": "/tmp/epoch", "roles": {"hello-hook-continuation": "regression"}}
+
+    def result(self, candidate_tokens, successes, change=None):
+        effect = {"case": "hello-hook-continuation", "measure": "tokens", "control": 18203931.333333332,
+                  "candidate": candidate_tokens, "direction": "down", "at_least": 0.25}
+        if change is None:
+            effect.update(unknown="no attempt succeeded, so there is no per-success token figure", verdict="unknown")
+        else:
+            effect.update(change=change, verdict="confirmed")
+        guard = {"case": "hello-hook-continuation", "measure": "accuracy", "control": 1.0, "candidate": successes / 3,
+                 "change": successes / 3 - 1, "direction": "not_down", "held": successes == 3}
+        return {"decision": "DROP", "reasons": ["an established requirement fell: hello-hook-continuation"],
+                "verdict": {"verdict": "refuted", "effects": [effect], "guards": [guard]},
+                "outcome": {"outcome": "refuted", "reason": "dropped"},
+                "cases": {"hello-hook-continuation": {"role": "regression",
+                          "control": {"attempts": 3, "successes": 3, "share": 1.0},
+                          "candidate": {"attempts": 3, "successes": successes, "share": successes / 3}}}}
+
+    def test_an_arm_with_no_successes_reads_as_not_applicable_with_its_success_counts(self):
+        text = cycle.entry(self.RECORD, self.result(None, 0), {**self.SETUP})
+        self.assertNotIn("None", text)
+        self.assertIn("| n/a |", text)
+        self.assertIn("hello-hook-continuation: control 3 of 3 attempts succeeded, candidate 0 of 3", text)
+
+    def test_large_figures_are_whole_numbers_with_separators_and_small_ones_keep_their_digits(self):
+        text = cycle.entry(self.RECORD, self.result(13652948.5, 3, change=-0.2501), {**self.SETUP})
+        self.assertIn("18,203,931", text)
+        self.assertNotIn("18203931.33", text)
+        self.assertIn("13,652,948", text)
+        self.assertIn("-0.2501", text)
+        self.assertIn("control 3 of 3 attempts succeeded, candidate 3 of 3", text)
+
+    def test_a_result_without_per_case_counts_still_renders(self):
+        result = self.result(None, 0)
+        del result["cases"]
+        text = cycle.entry(self.RECORD, result, {**self.SETUP})
+        self.assertNotIn("attempts succeeded", text)
+        self.assertIn("**What it shows.**", text)
+
+
 class PilotKitTest(unittest.TestCase):
     """The stage 4 pilot kit (docs/experiments/closed-loop-pilot-20261101): a live run is only as good as its inputs, so
     every input it needs is checked here without a model."""
