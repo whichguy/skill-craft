@@ -107,3 +107,94 @@ So, before anything is scored:
   "test" path that classify misplaces. It cannot check the rule.
 - **Rule C, unrestricted, is reported beside C′ as descriptive only.** No decision rests on it.
 
+
+## Results (scored 2026-11-01 06:14 PST)
+
+The corpus at that time:
+- 1,863 accepted step plans in 246 run folders under 14 roots;
+- 365 of them judged, meaning the run's repository still has the base.
+
+Other sessions were adding runs while this ran, so a rerun reads a few more.
+
+`labels.jsonl` holds 35 implement send-backs:
+- 20 are labelled `proof-order`. SG1's 12 reproduce 8e5d6f47's judgement: 9 proof-order, 3 other.
+- 3 of the others carry the sub-label `shell-quoting`.
+
+### Q1: no new proof-order rule
+
+The shipped rule (A, B) refuses 14 judged plans, and comes before 11 of the 20 proof-order send-backs.
+
+| Rule | Plans refused | Caught | Caught beyond shipped | False | Hollow | Unjudged |
+|---|---|---|---|---|---|---|
+| C′, registered (the Proof names no repository path) | 10 | 3 | 3 | 5 | 1 | 1 |
+| C, descriptive (every Proof) | 12 | 4 | 3 | 6 | 1 | 1 |
+| C on generic suite Proofs only, post-hoc | 3 | 2 | 2 | 0 | 1 | 0 |
+
+Costs:
+- `T_refusal`: median 0.11 minutes, n = 100.
+- `T_sendback`: median 1.0 minute, n = 20. The range is 0.6 to 5.7, and the total 24.5.
+- An Improve review of the re-planned step plan, where one followed and could be timed (5): median 1.0 minute, at
+  most 7.4. Not registered; reported only.
+
+Decision, by the registered rule on C′:
+1. It catches 3 plans beyond the shipped rule. Met.
+2. False is 5. **Not met.**
+3. Net saving is +2.5 minutes.
+
+**C′ is not built.**
+
+Why item 2 fails: the reader. `command_paths` skips absolute paths, `../` paths and inline code. So "the Proof names no
+repository path" also covers Proofs that test the step directly, and implement passed all five with one:
+- `node /Users/dadleet/e2e-runs/20261025/gate-2132-…` (the gate-2132 battleship, two plans), a scratch proof script;
+- `node --test ../run/scratch/proofs/W1-S1.test.js` (bf-ds-ticket-escalation);
+- `node -e "…filterUsers…"` (bf-ds-user-listing);
+- `node -e "eval(Buffer.from('…'))"` (B-ticket-assignment-s2).
+
+The amendment expected `false` to be near-empty. It was wrong about the reader.
+
+Post-hoc, not adopted: rule C restricted to generic suite Proofs (`npm test`, `pytest`, `python3 -m unittest -v`;
+`generic_proof` in replay.py).
+- It meets all three items here: 2 caught (bf-codex-r1-user-listing's first plan, FX F s1), 1 hollow
+  (A-ticket-assignment-s1), 0 false, net +1.65 minutes.
+- But it was defined after seeing these plans and rests on 2 catches. Adopting it would need runs it has not seen.
+
+What the shipped rule misses, 9 of 20:
+- 3 that the candidates see: a criterion's Confirm by names an unwritten test file.
+- 6 that name the test by identifier or in prose, which no path reader sees:
+  - `test_hello.GreetingTest.test_TC_1` (live/run);
+  - "unittest" (hook-missing-done W2);
+  - an Apex test class (battleship-candidate; SLGymControllerTest in the gym);
+  - `python3 -m unittest -v`, with no tests yet (csv-published-discovery-01);
+  - "Confirm by: focused and full tests" (B-ticket-import-s4).
+
+The stakes are small:
+- A proof-order send-back costs about one minute of wall time (median, n = 20), plus about a minute of Improve review
+  where one follows.
+- Implement stops early: in 19 of the 20, the send-back and the re-plan together take under 2 minutes.
+- All 9 misses come to about 10 minutes across 365 judged plans.
+- ffea2956's message says each is "found only after a whole implement Until Loop and an Improve review". In wall time,
+  that overstates it.
+
+So no proof-order rule is added. Reopen this if a proof-order send-back costs a run more than a few minutes, or a host or
+model makes the fault frequent.
+
+### Q2: no stall under fix 1's wording; observational
+
+| Wording | Runs | With an open item due | Stopped at step-plan | Stop rate, exact 95% | Runs with open-item refusals |
+|---|---|---|---|---|---|
+| w0, before fix 11 | 125 | 33 | 4 | 12% (3.4–28.2%) | 34 |
+| w11, fix 11 (2.26.2) | 11 | 6 | 0 | 0% (0–45.9%) | 3 |
+| w1, fix 1 (2.27.0 on) | 38 | 14 | 0 | 0% (0–23.2%) | 4 |
+
+- Every stop had an open item due. The four are all on Codex Terra 6.1: XI A s1, s4 and s6 (ticket-import), and
+  hooks-before-ticket-escalation-attempt1 (2026-10-29). So the stall was not peculiar to XI's case.
+- Against w0, one-sided Fisher gives p 0.23 for w1 alone, and p 0.14 for w11 and w1 together.
+- This is consistent with fix 11 and fix 1 removing the stall, but it is not evidence of it: cases, models and hosts
+  differ by wording.
+
+Reader check:
+- The first marker for fix 11 also matched the wording that c2da4604 replaced, so XI arm A read w11. Arm A ran 02a215e9,
+  which lacks c2da4604.
+- Packets are hard-wrapped, which hid fix 1's sentence from the first reader.
+- The reader now matches each full sentence on whitespace-collapsed text. Checked: XI A s1–s6 and B s1–s5 and s7 read w0;
+  FX P s1–s4 read w11; FX F s1–s4 read w1.

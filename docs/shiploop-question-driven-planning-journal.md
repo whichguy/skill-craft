@@ -352,6 +352,40 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   above were corrected in place with this date, and README "Calibration (2026-11-01)" holds the numbers.
 - Status: firm (a recomputation over the committed evidence).
 
+### E17 — 2026-11-01: does a refusal of a criterion whose Confirm by needs an unwritten test pay, and do runs stall under fix 1? (saved runs, no model run)
+
+- Question: the owner's go, "Yes, rebase and run", to the top item left after E16. It covers verdicts §4's "other form"
+  of the proof-order fault, and E16's unmeasured stall benefit.
+- Method: pre-registered in docs/experiments/proof-coverage-replay-20261101/README.md, then amended before any score.
+  - replay.py reads every saved run under `~/e2e-runs*/` that the current state reader reads: 1,863 accepted step plans
+    in 246 run folders, 365 judged.
+  - Its base rule is sg1/replay_d6.py's.
+  - labels.jsonl labels 35 implement send-backs from their summaries alone: 20 are proof-order.
+- Result, Q1:
+  - The shipped rule comes before 11 of the 20 proof-order send-backs.
+  - The registered candidate C′ (rule A on each executed criterion's Confirm by, for Proofs naming no repository path)
+    catches 3 more, but 5 of its 10 refusals are plans whose Proof tests the step directly. `command_paths` skips
+    absolute, `../` and inline-code Proofs. So registered item 2 fails, and C′ is not built.
+  - A post-hoc variant on generic suite Proofs only catches 2, with 0 false refusals. It was defined after seeing the
+    data, so it is not adopted.
+  - The other 6 misses name the test by identifier or in prose: a unittest name, an Apex class, "focused and full tests".
+  - A proof-order send-back costs about 1 minute of wall time (median, n = 20), and a step-plan refusal 7 seconds (n =
+    100). So the 9 misses come to about 10 minutes in 365 plans.
+- Result, Q2, observational. Runs stopped at step-plan with an open item due, by the duty wording they ran:
+  - before fix 11: 4 of 33, 12% (3.4–28.2%);
+  - fix 11: 0 of 6;
+  - fix 1: 0 of 14 (0–23.2%).
+  Against "before fix 11", one-sided p is 0.23 for fix 1 and 0.14 for both fixes together. One of the four stops is
+  outside XI's case (hooks-before-ticket-escalation, 2026-10-29).
+- Decision:
+  - No new proof-order rule. Reopen it only if this send-back starts costing a run minutes.
+  - Fix 1 stays. No controlled stall measurement (E16).
+- Contrary evidence:
+  - ffea2956 described each proof-order send-back as "found only after a whole implement Until Loop and an Improve
+    review". Measured in wall time, the implement stops within about a minute, in 19 of 20 cases.
+  - Q2 cannot separate the wordings from the cases, models and hosts that ran them.
+- Status: firm for Q1 (a replay over the saved runs, by its registered rule); observational for Q2.
+
 ## Findings
 
 Each finding is stated in full, with its evidence, in §6.1 of the proposal document.
@@ -380,3 +414,5 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F20 | One sentence on the `experiment` route moves runtime questions there (10% -> 33%, p 0.0035) without over-routing, below the +1.0 bar; a prompt shifts what intake proposes, not what the run probes | firm (no-tool) | E13 |
 | F21 | A research duty that probes each `experiment` question rarely probes live (1 of 6 runs); every baseline failure on ticket-import was a step-plan stall, not a missed runtime fact | firm (mechanism), interim (stall rate) | E14 |
 | F22 | An executed criterion settling an open plan item holds live: used in 4 of 4 runs, all pass, and it replaces checks that time nothing (`node --version`, a 404 from the unbuilt route) with the item's own timed tests | firm (mechanism); no harm seen at 4 runs a side, not ruled out; unmeasured (stall rate, so the benefit). Corrected 2026-11-01 (E16); was "firm (mechanism, no harm)" | E15, E16 |
+| F23 | A refusal of a criterion whose Confirm by names an unwritten test does not pay. The registered no-path form catches 3 send-backs the shipped rule misses but would refuse 5 plans whose Proof tests the step directly; a proof-order send-back costs about 1 minute (n = 20), so the 9 misses are worth about 10 minutes in 365 plans; 6 of them name the test by identifier, not path | firm (replay, registered rule) | E17 |
+| F24 | No step-plan stall under fix 1's wording in 14 runs with an open item due (0–23%), against 4 of 33 before fix 11 (12%); one-sided p 0.23. One stop was outside XI's case | observational | E17 |
