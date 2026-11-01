@@ -1,0 +1,154 @@
+# ShipLoop portability audit — journal
+
+## Question (2026-10-31)
+
+Can a machine that installs the `skill-craft@whichguy` marketplace plugin run ShipLoop immediately, given that
+ShipLoop is script-backed (a Python CLI plus host hooks), and is shipping executable scripts through a marketplace
+skill a problem? Audited at `240594c9922c42ac0a761717671f93f220e31743` (skill-craft 2.27.0, shiploop 1.26.0).
+
+## What ships and how it runs
+
+A host installs `plugins/skill-craft/` as a copy (Claude's installed 2.27.0 is byte-identical to the release output), so
+scripts travel with the skill.
+ShipLoop executes through three channels, each with its own prerequisites:
+
+| Channel | Started by | Needs |
+|---------|-----------|-------|
+| CLI: `python3 <skill>/scripts/shiploop …` | the model, through the host's shell tool | `python3` on PATH, `git` on PATH, the absolute skill path from the host |
+| Plugin hooks (`hooks/hooks.json`, `codex.json`, `cursor.json`) | the host, on every Bash call, Skill call, Stop and SessionEnd, in every project | the entry scripts' exec bit, `python3` (4 of 5 hooks) |
+| Self-installed hooks | `shiploop` itself under Grok (`~/.grok/hooks/shiploop-keepalive.json`), or `shiploop-hook install` | write access to the host's config directory |
+
+## Round 1 — clean-room probes (2026-10-31)
+
+Conditions: the release payload `plugins/skill-craft` copied without `__pycache__`; `env -i`, a throwaway `HOME`,
+`PATH=/usr/bin:/bin:/usr/sbin:/sbin`, `PYTHONDONTWRITEBYTECODE=1`; macOS arm64 Python 3.9.6 (Xcode's `/usr/bin/python3`)
+unless stated. No model was involved.
+
+| Probe | Result |
+|-------|--------|
+| `shiploop --help` under 3.9.6, 3.11.15, 3.13.17, 3.15.1 | exit 0 on all four |
+| import all 47 `shiploop_*` modules under 3.9.6 | 47 imported, 0 failed |
+| `workspace start` on a one-commit repo, no git identity configured | exit 0, intake packet printed |
+| plugin copy and repo under paths with spaces | exit 0; printed commands are shell-quoted |
+| repo whose parent directory is not writable | exit 3, `SHIPLOOP-GRANT-NEEDED`, rerun line with `--workspace-root` (text says "sandbox" although the cause is permissions) |
+| Linux aarch64, Python 3.13.13, procps `ps`, no `node`, no git identity | `workspace start` exit 0; `init` in a non-git directory exit 0; hooks exit 0 |
+| Linux, `git` removed from PATH | exit 2, "git is not available on PATH" |
+| Debian 10 (`node:14` image), Python 3.7.3, git 2.20.1, Node 14 | `shiploop --help` and `workspace start` exit 1 with a bare traceback, `TypeError: 'ABCMeta' object is not subscriptable`, from `os.PathLike[str]` in `shiploop_store` (subscripting `os.PathLike` is Python 3.9+); `removeprefix` in `shiploop_navigator` is also 3.9+; all four Python hooks exit 1 with the same traceback on every call |
+| each hook script with `python3` off PATH | `shiploop-status-hook` exit 0 (shell guard); `shiploop-keepalive-observe`, `-stop`, `-session-end` and `shiploop-skill-call` exit 127 with `env: python3: No such file or directory` |
+
+Cost of the per-Bash-call hooks, 20 calls each, this M-series Mac, Python 3.9: `shiploop-keepalive-observe` 43 ms
+with bytecode caching allowed, 61 ms without; `shiploop-status-hook` 11 ms (its shell `case` exits before Python).
+A first pass measured 150–170 ms per call; it ran while a background job loaded the machine, and the second pass
+replaced it (superseded, kept here so the discarded number is not rediscovered).
+
+Install payload: `diff -rq plugins/skill-craft ~/.claude/plugins/cache/whichguy/skill-craft/2.27.0` differs only by
+`.in_use`. All ten entry scripts are mode 100755 in `plugins/`; the 47 library modules are 100644.
+
+Static facts: every import in `scripts/*.py` is the standard library or a `shiploop_*` sibling; the only network code
+is the opt-in viewer bound to `127.0.0.1` (`shiploop_progress_serve.py`); `fcntl` makes the CLI POSIX-only, which the
+frontmatter states (`platforms: linux, macos`). `references/` hold no `/Users/` or Homebrew paths.
+
+## Round 2 — the ShipLoop suites under Python 3.9 (2026-10-31)
+
+`bash test/run-all.sh --group shiploop` cannot start on 3.9: `run_process` in `test/run_suites.py` calls
+`tempfile.TemporaryDirectory(ignore_cleanup_errors=True)`, which is Python 3.10+ (a test-harness gap, not a product
+gap). The 116 suites in the group were run one by one under 3.9.6 with the runner's own isolation (a private
+`XDG_STATE_HOME`, no bytecode, `SHIPLOOP_PROGRESS=off`).
+
+Result: 90 of 116 pass; 26 fail. None of the 26 tracebacks has a frame inside `skills/shiploop/`; every one is in test
+code or the E2E apparatus.
+
+- 4 suites (`shiploop-actual-improve-cli`, `-handoff`, `-skill-calls`, `-loophole-gates`): one module-level `Path | None`
+  annotation in `test/shiploop-actual-improve-cli.test.py`, which lacked `from __future__ import annotations` (Python
+  3.10+); the other three load that file. (First read as four test files; corrected on 2026-10-31 from their tracebacks.)
+- 11 E2E suites: `os.waitid`, used by `test/shiploop_e2e/listeners.py` and two tests; absent from this macOS Python 3.9.
+- 8 E2E suites: `ValueError: write to closed file` inside the apparatus; the cause was not isolated.
+- `shiploop-e2e-stage-report`: `sys.stdlib_module_names` (3.10+). `shiploop-e2e-stage-build`: a "EVIL json imported from
+  the working directory" check of the apparatus's interpreter isolation fails; not investigated.
+- `shiploop-callback-contract`: the test expects Python 3.13's JSON error text ("Illegal trailing comma"). The product
+  echoes the interpreter's own message, so a model's recovery text differs by Python version (3.9: "Expecting property
+  name enclosed in double quotes"). Behaviour is correct; the assertion is version-bound.
+- `shiploop-test-loop` timed out at the 900 s cap in the 6-way run, then passed alone: 518.6 s on 3.9.6 and 498.6 s on
+  3.13.17, run side by side while other sessions' E2E runs loaded the machine (the catalog expects 94 s). The timeout was
+  load, not the interpreter.
+
+Evidence is the command lines and counts above; the per-suite logs were in the session scratchpad and are not retained.
+
+## Findings
+
+| # | Finding | Status | Evidence |
+|---|---------|--------|----------|
+| F1 | The CLI needs only `python3` and `git`; no third-party packages, no outbound network | firm | import census; Round 1 static facts |
+| F2 | The core path (`workspace start`, `init`, packet print, quoting, error exits) runs on stock macOS Python 3.9.6 and Linux Python 3.13 from a bare environment | firm for those two interpreters | Round 1 |
+| F3 | Missing `git` and an unwritable parent fail with a named cause and a next step | firm | Round 1 |
+| F4 | Four of five hooks fail with exit 127 and a stderr line when `python3` is missing; the fifth does not | firm; per-host effect of exit 127 not observed; fixed in Round 3 (exit 0, silent) | Round 1 |
+| F5 | The real Python floor is 3.9 (3.7 verified failing; 3.8 inferred from the same missing 3.9 feature) and is declared nowhere: `SKILL.md` says `python3`; below 3.9 the CLI dies at import with a bare traceback and every hook exits 1 on each call; CI runs `3.x` latest on `ubuntu-latest` only; the test runner needs 3.10+ | firm for 3.7 and 3.9+; 3.8 interim; floor declared, checked and tested in Round 3 | `.github/workflows/ci.yml`; Round 1 Debian 10 row; Round 2 |
+| F5b | On Python 3.9.6 no ShipLoop product code fails in the shiploop group: 90 suites pass, and the 26 that fail do so in test code or the E2E apparatus (those 26 do not show the product runs on 3.9) | firm for the 90 | Round 2 |
+| F6 | The plugin's hooks are plugin-wide: anyone who installs `skill-craft` for any skill gets ShipLoop's hooks on every Bash call, about 45–60 ms each; `SHIPLOOP_KEEPALIVE=off` disables them | firm | Round 1; `references/keepalive.md` |
+| F7 | Under Grok the first `shiploop` command writes `~/.grok/hooks/shiploop-keepalive.json` outside the project | firm (documented behaviour, not re-run) | `references/keepalive.md` |
+
+## Unknowns
+
+- Windows (excluded by `platforms:` and `fcntl`); WSL not tried.
+- Python 3.8 itself (no image on this machine), and Linux images with busybox `ps` (`-o lstart` is read by the keepalive process table).
+- macOS without the Command Line Tools (`/usr/bin/python3` and `git` are installer stubs).
+- What Codex, Cursor and Grok do with a hook that exits 127 (Claude treats a non-2 exit as non-blocking).
+- Whether hosts pass `PYTHONDONTWRITEBYTECODE` to hooks (this session's shell has it set, so hooks there pay the 61 ms figure).
+- A live-model first run on a machine with nothing installed: earlier work covers installed-package calibration and the
+  marketplace lifecycle (`docs/marketplace-e2e-testing.md`, eef1eda1) but not a machine without `python3`.
+
+## Decisions (owner, 2026-10-31)
+
+Asked whether to declare a floor, where the E2E apparatus stands, and whether to implement. Answers: the floor is
+**Python 3.9** (not 3.8, which would need `os.PathLike[str]` and `str.removeprefix` replaced and could not be tested
+here); the E2E apparatus is **declared 3.10+** and stays out of the 3.9 job; **implement and commit**.
+
+## Round 3 — the fixes (2026-10-31)
+
+Worktree `portability-floor-0430cb` from `bf68e959` (main had moved twice during the audit: 2.27.1 was released by another
+session).
+
+| Change | Where |
+|--------|-------|
+| One declaration of the floor and its check, written for Python 3.7 syntax so an old interpreter reaches it | `skills/shiploop/scripts/shiploop_pyfloor.py` (`FLOOR`, `require`) |
+| `shiploop`, `shiploop-drive` and `shiploop-hook` call `require` before their first `shiploop_*` import; a host hook event exits 0 silently, everything else exits 2 with one line | the three entry scripts |
+| The four Python hook entries become `sh` wrappers like `shiploop-status-hook`: no `python3`, exit 0, no output; otherwise `exec python3 …/shiploop-hook <verb> --host <host>` | `shiploop-keepalive-observe`, `-stop`, `-session-end`, `shiploop-skill-call` (same names, so `host-hooks.json` and the generated host files are unchanged) |
+| The card states the prerequisite (30,011 of 30,500 bytes); the installer doc says it, with Linux/macOS only | `SKILL.md`, `docs/distribution.md` |
+| A `python-floor` test group (every ShipLoop suite except `shiploop-e2e*`, 74 suites) and a CI leg that runs it on Python 3.9, added to the full tier | `test/suite_catalog.py`, `test/ci_policy.py`, `.github/workflows/ci.yml` |
+| The test runner's scratch directory no longer needs Python 3.10 (`_scratch_directory`); the one test file that evaluated `Path \| None` at definition time imports `annotations`; the callback-contract test computes the JSON parser's wording instead of assuming 3.13's | `test/run_suites.py`, `test/shiploop-actual-improve-cli.test.py`, `test/shiploop-callback-contract.test.py` |
+| `test/shiploop-python-floor.test.py` (9 tests): both exits under a simulated 3.8, silence for each hook verb, every entry that imports a ShipLoop module checks the floor first, the guard module parses as 3.7, each wrapper's exit and exact `shiploop-hook` arguments with a stub `python3`, and the card and CI naming the same floor | new suite; membership of the group is pinned in `test/test-groups.test.py` |
+
+Real-interpreter check after the change, the same Debian 10 image (Python 3.7.3): all five hook entries exit 0 with empty
+stdout and stderr; `shiploop --help`, `shiploop-next` and `shiploop-drive` exit 2 with `error: ShipLoop needs Python 3.9
+or newer; this python3 is 3.7.3. Put a newer python3 first on PATH.`; `shiploop-hook status --host claude` exits 2 with the
+same line; `shiploop-hook observe --host auto` exits 0 silently. Before: every one exited 1 with a `TypeError` traceback.
+
+Lint: `ruff --select F,E9` on the eleven changed or new Python files shows the same four F811 findings in
+`shiploop-actual-improve-cli.test.py` at HEAD and after (line numbers shifted by two); none are new.
+
+The `python-floor` group through the real runner on Python 3.9.6 (the CI command, `CLAUDECODE=1`,
+`CLAUDE_CODE_SESSION_ID=ci-stand-in`): 74 suites, 673.7 s wall at `--jobs 8` while other sessions loaded the machine.
+73 passed at once. `shiploop-skill-calls` failed three tests with `SyntaxError` on `command -v python3 …`: it ran each hook
+entry as `[sys.executable, entry]`, which interprets the shell wrapper as Python. A host runs the file, so the tests now run
+each entry as a program with a `python3` shim for the interpreter under test; the suite then passed on Python 3.9.6 (34
+tests, 49.4 s) and on the default Python 3.15.1 (48.1 s). What it teaches: a test that routes an entry through the
+interpreter is coupled to the entry being Python, and nothing the host does depends on that.
+
+Default Python 3.15.1: `shiploop-python-floor` (9 tests), `shiploop-package-integrity`, `test-groups` (52 tests, including
+the new group assertion), `ci-policy` and `shiploop-callback-contract` pass. Adding the new suite to the quick baseline
+broke four pinned selection expectations, because a suite that imports the catalog inherits every path the catalog names;
+the suite is therefore not in the quick baseline, imports no catalog, and is still selected by a change to any file its
+source names (`shiploop_pyfloor.py`, the hook entries, `SKILL.md`, `ci.yml`).
+
+## Proposals as first written (2026-10-31; applied as Round 3)
+
+1. **Declare the floor.** One line in `skills/shiploop/SKILL.md` and its README: Python 3.9 or newer and `git` on PATH.
+   The card has 545 bytes of headroom under its 30,500-byte bound (`test/fixtures/shiploop-card-ledger.json`).
+2. **Hooks fail open.** Replace the four Python hook entries with `sh` wrappers on the pattern `shiploop-status-hook`
+   already uses (`command -v python3 … || exit 0`), and make the Python entry exit 0 under 3.8 or older; give the CLI a
+   one-line "needs Python 3.9" message before its first import. Removes F4 and the bare traceback of F5.
+3. **Test the floor.** One CI job on Python 3.9 over the product suites. It needs the runner's `ignore_cleanup_errors`
+   removed, `from __future__ import annotations` in the four test files, and a decision whether the E2E apparatus
+   (`os.waitid`, `sys.stdlib_module_names`) must also run on 3.9 or is declared 3.10+.
+4. **Leave as is:** hook cost (45–60 ms; a text-only pre-filter would change `observe`'s claim refresh for bound
+   sessions), the Grok hook self-install (documented), and no `doctor` verb (the failures already name their cause).

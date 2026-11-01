@@ -140,6 +140,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-owner-notes.test.py",
     "test/shiploop-planning-handoff.test.py",
     "test/shiploop-package-integrity.test.py",
+    "test/shiploop-python-floor.test.py",
     "test/shiploop-e2e.test.py",
     "test/shiploop-e2e-discovery.test.py",
     "test/shiploop-e2e-qualification.test.py",
@@ -300,6 +301,8 @@ _DURATION_SECONDS = {
     # the plugin bundle once.  Under QUICK_MAX_SECONDS.
     "test/shiploop-skill-calls.test.py": 27.0,
     "test/shiploop-package-integrity.test.py": 0.2,
+    # New 2026-10-31 (the Python floor and the fail-open hooks): about 20 short subprocesses, under 2 s locally.
+    "test/shiploop-python-floor.test.py": 2.0,
     # 0.7 was written at 14 tests; it has 228 and ran 303 s on GitHub (322 s idle locally) until ebc2d25d replaced the
     # 2 s poll sleep in run.launch() with a wait.  Estimate, not a GitHub reading: 64.5 s idle locally after the fix,
     # scaled by the measured GitHub/local ratio of this suite (303/322); the quick run that selected it finished in
@@ -487,6 +490,9 @@ _COMPOSITION_PATHS = frozenset({
 })
 
 
+# The python-floor group is every ShipLoop suite except the E2E apparatus's (shiploop-e2e*): the CI job that runs it uses the
+# oldest Python ShipLoop declares (shiploop_pyfloor.FLOOR), so a change that needs a newer one fails there.  The apparatus is
+# developer tooling for live model runs and needs 3.10+ (os.waitid, sys.stdlib_module_names).
 def _shiploop(path: str) -> Suite:
     groups: set[str] = set()
     if path in _QUICK_PATHS:
@@ -495,6 +501,8 @@ def _shiploop(path: str) -> Suite:
         groups.add("ask-agent")
     if path in _COMPOSITION_PATHS:
         groups.add("shiploop-composition")
+    if not _identifier(path).startswith("shiploop-e2e"):
+        groups.add("python-floor")
     interpreter = "node" if path.endswith(".cjs") else "python3"
     return _suite(_identifier(path), "shiploop", path, interpreter, path, groups=groups)
 
@@ -606,6 +614,7 @@ GROUPS = (
     "agent-harness",
     "in-parallel",
     "shiploop-composition",
+    "python-floor",
     "e2e-apparatus",
 )
 

@@ -103,8 +103,8 @@ python3 "$CLI" --help
 
 Claude Code may render `${CLAUDE_SKILL_DIR}` in skill text where supported, but
 that is not a portable shell environment variable. Rebind the absolute `CLI`
-for each independent tool call and quote it. If `python3` or the bundled CLI is
-unavailable, report the missing prerequisite; never substitute a similarly
+for each independent tool call and quote it. ShipLoop needs `python3` 3.9 or newer and `git` on PATH. If either, or the
+bundled CLI, is unavailable, report the missing prerequisite; never substitute a similarly
 named executable. Resolve the user's repository and run directory to absolute
 paths. Determine whether this
 is a genuinely new request or the same existing run. Never replace another run

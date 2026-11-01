@@ -115,14 +115,23 @@ class TestGroupTests(unittest.TestCase):
         # Current main's 97 ShipLoop suites plus four learning-loop contract suites, the SDLC probes, the closed loop's
         # two (2026-10-30), the seed seam suite, the stage suite's three (oracle, builder, runner), the optional UI adapter,
         # the stage suite's live tier's two (live core, report), two opt-in gym adapter suites, the test-writing adequacy suite, and
-        # the follow-on chain's delta ledger, its third link and its fourth.
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 117)
+        # the follow-on chain's delta ledger, its third link and its fourth, and the Python-floor suite (2026-10-31).
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 118)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 53)
-        self.assertEqual(len(suite_catalog.SUITES), 172)
+        self.assertEqual(len(suite_catalog.SUITES), 173)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
         suite_catalog.validate_catalog()
+
+    def test_the_python_floor_group_is_every_shiploop_suite_except_the_e2e_apparatus(self) -> None:
+        # The CI job that runs it uses the oldest Python ShipLoop declares (shiploop_pyfloor.FLOOR, 2026-10-31 audit).
+        selected = suite_catalog.select(("python-floor",))
+        self.assertEqual(selected, tuple(suite for suite in suite_catalog.SHIPLOOP_SUITES
+                                         if not suite.id.startswith("shiploop-e2e")))
+        self.assertEqual({suite.family for suite in selected}, {"shiploop"})
+        self.assertIn("shiploop-python-floor", {suite.id for suite in selected})
+        self.assertIn("python-floor", ci_policy.FULL_GROUPS)
 
     def test_full_ci_components_are_the_complete_deduplicated_union(self) -> None:
         full = suite_catalog.select(("all",))

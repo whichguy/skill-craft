@@ -17,7 +17,10 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import shiploop_store as store
+import shiploop_pyfloor  # noqa: E402
+
+shiploop_pyfloor.require()
+import shiploop_store as store  # noqa: E402
 
 EXIT_OK = 0
 EXIT_BLOCKED = 2

@@ -268,3 +268,12 @@ Skill discovery is separate from execution. Prompt skills can still reference
 optional host agents, external CLIs, or project-specific harnesses.
 Benchmark skills retain declared independent-session, harness and project-access
 prerequisites; packaging does not manufacture unavailable capabilities.
+
+### ShipLoop's prerequisites
+
+ShipLoop's scripts and hooks need `python3` 3.9 or newer and `git` on PATH, on Linux or macOS (they use `fcntl`; there
+is no Windows support). The floor is `shiploop_pyfloor.FLOOR`; the `python-floor` CI group runs the ShipLoop suites
+(not the E2E apparatus, which needs 3.10+) on that version. Below the floor the CLI exits 2 with one line naming the
+requirement, and a host hook event does nothing; with no `python3`, the hook entries exit 0 silently. Setting
+`SHIPLOOP_KEEPALIVE=off` turns the hooks off whatever the interpreter. Evidence:
+[the portability audit](shiploop-portability-audit-journal.md).

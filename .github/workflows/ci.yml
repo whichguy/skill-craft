@@ -62,7 +62,8 @@ jobs:
           fetch-depth: ${{ needs.plan.outputs.tier == 'quick' && '0' || '1' }}
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.x'
+          # The python-floor group runs on the oldest Python ShipLoop declares (shiploop_pyfloor.FLOOR); the rest on the latest.
+          python-version: ${{ matrix.group == 'python-floor' && '3.9' || '3.x' }}
           check-latest: true
       - uses: actions/setup-node@v7
         with:

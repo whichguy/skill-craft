@@ -6,7 +6,8 @@ import os
 from pathlib import Path, PurePosixPath
 import subprocess
 
-FULL_GROUPS = ["core", "shiploop-1", "shiploop-2", "shiploop-3", "e2e-apparatus"]
+# python-floor re-runs the ShipLoop suites (minus the E2E apparatus) on the oldest Python ShipLoop declares; see ci.yml.
+FULL_GROUPS = ["core", "shiploop-1", "shiploop-2", "shiploop-3", "e2e-apparatus", "python-floor"]
 
 
 def git(root, *args):
