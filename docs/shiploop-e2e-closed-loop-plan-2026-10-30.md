@@ -157,7 +157,7 @@ became: SPEC.md's Purpose, "Learning records and predictions", Change admission'
 
 | Step | What | Where | Needs |
 |---|---|---|---|
-| 1 | Stage 3 (same-build calibration): **skipped by the owner**. The kit stays for a later measurement | `docs/experiments/e2e-calibration-20261031/` | nothing |
+| 1 | Stage 3 (same-build calibration): skipped by the owner on 2026-10-31, **measured 2026-11-01** on the stage 5 cycle's two cases (run 1): 0.45 on tokens at 3 attempts per arm keeps false calls at or under 10%; the stated 0.25 would call noise a change in 28% to 36% of same-build re-deals. D1 and D3 are the owner's; the measured calibration is already refused by `--calibration` on current main (see Stage 3) | `docs/experiments/e2e-calibration-20261031/run-01/` | the owner's decision |
 | 2 | State the tolerance and attempts per cycle (`--tolerance`, `--attempts`, recorded as unmeasured; start at 0.25 or more). D3 (limits) and D4 (sampled reviews) remain open | the decisions table above | the owner |
 | 3 | Trim the cycle if the owner wants it cheaper: sampled reviews, the second case at release, the purpose review on a flag | `epoch.py` `decide` (every attempt reviewed before PROMOTE); `cycle.py` `roles_for` and the purpose review in `qualify` | D4 |
 | 4 | Stage 4: the hook-revert pilot: **done 2026-11-01**. Run 1 UNDECIDED (parallel-launch defect, fixed), run 2 DROP with all six attempts valid. Its kit and results stay in `docs/experiments/closed-loop-pilot-20261101/` | `docs/experiments/closed-loop-pilot-20261101/` | nothing |
@@ -214,7 +214,8 @@ gap below.
 **Owner decision, 2026-10-31: stage 3 is skipped.** The owner declined the same-build calibration ("skip it; I don't
 want 2-3 hrs"). Its kit stays in `docs/experiments/e2e-calibration-20261031/` for anyone who wants the measurement
 later. Consequences, so they are not rediscovered:
-- No `calibration.json` exists, so D1 (attempts per arm and tolerance) has no measured basis. The noise figure stays
+- No `calibration.json` exists, so D1 (attempts per arm and tolerance) has no measured basis. (Superseded 2026-11-01: run 1 of the
+  kit measured it on the stage 5 cycle's two cases; see Stage 3's result.) The noise figure stays
   unknown; the only hint is user-listing's turns on Terra, about ±13% across three mixed builds.
 - `iterate.py --qualify` and `cycle.py` refuse to start without `--calibration` (`cycle.load_calibration`). Qualified
   cycles therefore cannot run as built. A later change must either accept an explicit, recorded tolerance and attempt
@@ -434,6 +435,15 @@ Around it:
   parallel attempts would have refused one another, and another session's run held port 3000. The kit had not run. The owner's
   "all of them" (2026-11-01), read as putting stage 3 back on the list after the 2026-10-31 skip, started it beside the stage 5
   cycle; it uses its own epoch folder, so it cannot be a neighbour of that cycle's attempts.
+
+- **Result (2026-11-01, run 1).** 16 runs (4 + 4 of `csv-report` and of `seat-reservations`, one build, Terra `high`, two at a time,
+  16:29Z to 19:04Z) all passed and sealed with valid evidence. Processed tokens of one build against itself ranged 17.7M to 44.1M
+  (`csv-report`, median 28.1M) and 22.1M to 50.4M (`seat-reservations`, median 35.5M). D1's rule gives a tolerance of **0.45 on
+  tokens at 3 attempts per arm** (0.40 at 4; none up to 0.50 at 2), and 0.30 on turns. At the stated 0.25 the same build compared with
+  itself would have been called a change in 35.7% and 27.7% of its re-deals. The first five twin pairs all had the candidate label
+  higher; with eight it was 6 of 8 (p = 0.14), so no label effect is shown. `--calibration` refuses this report on current main
+  because the scoring digest covers all of `checks/` and a new case's check file (47ed1804) changed it; narrowing the digest, or stating
+  `--tolerance 0.45 --attempts 3`, is the owner's choice. Details, limits and files: the kit's README and `run-01/`.
 
 ## Stage 4: known-bad pilot
 

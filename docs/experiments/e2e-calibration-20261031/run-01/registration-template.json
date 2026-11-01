@@ -1,0 +1,114 @@
+{
+  "contract": "promotion/5",
+  "purpose": "calibration",
+  "cases": {
+    "csv-report": {
+      "role": "regression",
+      "attempts": 4
+    },
+    "seat-reservations": {
+      "role": "regression",
+      "attempts": 4
+    }
+  },
+  "arms": {
+    "control": {
+      "shiploop_build": "df86014cfb87",
+      "driver": {
+        "host": "codex",
+        "model": "gpt-6.1-terra",
+        "effort": "high"
+      }
+    },
+    "candidate": {
+      "shiploop_build": "df86014cfb87",
+      "driver": {
+        "host": "codex",
+        "model": "gpt-6.1-terra",
+        "effort": "high"
+      }
+    }
+  },
+  "attempts": [
+    {
+      "id": "control-csv-report-1",
+      "arm": "control",
+      "case": "csv-report"
+    },
+    {
+      "id": "candidate-csv-report-1",
+      "arm": "candidate",
+      "case": "csv-report"
+    },
+    {
+      "id": "control-csv-report-2",
+      "arm": "control",
+      "case": "csv-report"
+    },
+    {
+      "id": "candidate-csv-report-2",
+      "arm": "candidate",
+      "case": "csv-report"
+    },
+    {
+      "id": "control-csv-report-3",
+      "arm": "control",
+      "case": "csv-report"
+    },
+    {
+      "id": "candidate-csv-report-3",
+      "arm": "candidate",
+      "case": "csv-report"
+    },
+    {
+      "id": "control-csv-report-4",
+      "arm": "control",
+      "case": "csv-report"
+    },
+    {
+      "id": "candidate-csv-report-4",
+      "arm": "candidate",
+      "case": "csv-report"
+    },
+    {
+      "id": "control-seat-reservations-1",
+      "arm": "control",
+      "case": "seat-reservations"
+    },
+    {
+      "id": "candidate-seat-reservations-1",
+      "arm": "candidate",
+      "case": "seat-reservations"
+    },
+    {
+      "id": "control-seat-reservations-2",
+      "arm": "control",
+      "case": "seat-reservations"
+    },
+    {
+      "id": "candidate-seat-reservations-2",
+      "arm": "candidate",
+      "case": "seat-reservations"
+    },
+    {
+      "id": "control-seat-reservations-3",
+      "arm": "control",
+      "case": "seat-reservations"
+    },
+    {
+      "id": "candidate-seat-reservations-3",
+      "arm": "candidate",
+      "case": "seat-reservations"
+    },
+    {
+      "id": "control-seat-reservations-4",
+      "arm": "control",
+      "case": "seat-reservations"
+    },
+    {
+      "id": "candidate-seat-reservations-4",
+      "arm": "candidate",
+      "case": "seat-reservations"
+    }
+  ]
+}

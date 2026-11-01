@@ -1,0 +1,192 @@
+{
+  "contract": "calibration/1",
+  "epoch": "/Users/dadleet/e2e-runs/2026-11-01/calibration-01/epoch",
+  "registration_sha256": "cb9bcfa832b2d474014f26afd9f394770dbbb34fc9e163b3722b8ebad16e837d",
+  "driver": {
+    "host": "codex",
+    "model": "gpt-6.1-terra",
+    "effort": "high"
+  },
+  "build": "df86014cfb87",
+  "attempts_sealed": 16,
+  "attempts_registered": 16,
+  "floors": [
+    "accuracy",
+    "fidelity"
+  ],
+  "grid": [
+    0.05,
+    0.1,
+    0.15,
+    0.2,
+    0.25,
+    0.3,
+    0.35,
+    0.4,
+    0.45,
+    0.5
+  ],
+  "cases": {
+    "csv-report": {
+      "attempts": 8,
+      "successes": 8,
+      "failures": 0,
+      "unknown": 0,
+      "failure_rate": 0.0,
+      "false_drop_risk": 0.0,
+      "measures": {
+        "tokens": {
+          "n": 8,
+          "median": 28054337.5,
+          "min": 17726179,
+          "max": 44142937
+        },
+        "turns": {
+          "n": 8,
+          "median": 175.5,
+          "min": 120,
+          "max": 232
+        },
+        "output_tokens": {
+          "n": 8,
+          "median": 49355.5,
+          "min": 35972,
+          "max": 63577
+        }
+      },
+      "false_decision": {
+        "tokens": {
+          "0.05": 0.8905,
+          "0.10": 0.8024,
+          "0.15": 0.6714,
+          "0.20": 0.5571,
+          "0.25": 0.4595,
+          "0.30": 0.3595,
+          "0.35": 0.2738,
+          "0.40": 0.1952,
+          "0.45": 0.131,
+          "0.50": 0.1048,
+          "compared": 420
+        },
+        "turns": {
+          "0.05": 0.831,
+          "0.10": 0.619,
+          "0.15": 0.4929,
+          "0.20": 0.3571,
+          "0.25": 0.2405,
+          "0.30": 0.1405,
+          "0.35": 0.0833,
+          "0.40": 0.0452,
+          "0.45": 0.0238,
+          "0.50": 0.0119,
+          "compared": 420
+        },
+        "output_tokens": {
+          "0.05": 0.7952,
+          "0.10": 0.6333,
+          "0.15": 0.4476,
+          "0.20": 0.3405,
+          "0.25": 0.2262,
+          "0.30": 0.1333,
+          "0.35": 0.0619,
+          "0.40": 0.0333,
+          "0.45": 0.0214,
+          "0.50": 0.0119,
+          "compared": 420
+        }
+      },
+      "splits": 420,
+      "quality_split_differs": 0.0
+    },
+    "seat-reservations": {
+      "attempts": 8,
+      "successes": 8,
+      "failures": 0,
+      "unknown": 0,
+      "failure_rate": 0.0,
+      "false_drop_risk": 0.0,
+      "measures": {
+        "tokens": {
+          "n": 8,
+          "median": 35490190.0,
+          "min": 22123200,
+          "max": 50444148
+        },
+        "turns": {
+          "n": 8,
+          "median": 219.0,
+          "min": 162,
+          "max": 252
+        },
+        "output_tokens": {
+          "n": 8,
+          "median": 60505.5,
+          "min": 48013,
+          "max": 66370
+        }
+      },
+      "false_decision": {
+        "tokens": {
+          "0.05": 0.8571,
+          "0.10": 0.7262,
+          "0.15": 0.6262,
+          "0.20": 0.5024,
+          "0.25": 0.3976,
+          "0.30": 0.3048,
+          "0.35": 0.2262,
+          "0.40": 0.1619,
+          "0.45": 0.1167,
+          "0.50": 0.0929,
+          "compared": 420
+        },
+        "turns": {
+          "0.05": 0.7786,
+          "0.10": 0.5452,
+          "0.15": 0.3667,
+          "0.20": 0.2429,
+          "0.25": 0.1381,
+          "0.30": 0.0667,
+          "0.35": 0.0357,
+          "0.40": 0.0167,
+          "0.45": 0.0024,
+          "0.50": 0.0,
+          "compared": 420
+        },
+        "output_tokens": {
+          "0.05": 0.7381,
+          "0.10": 0.4214,
+          "0.15": 0.2452,
+          "0.20": 0.1214,
+          "0.25": 0.0357,
+          "0.30": 0.0143,
+          "0.35": 0.0,
+          "0.40": 0.0,
+          "0.45": 0.0,
+          "0.50": 0.0,
+          "compared": 420
+        }
+      },
+      "splits": 420,
+      "quality_split_differs": 0.0
+    }
+  },
+  "recommended": {
+    "attempts": 2,
+    "metric": "tokens",
+    "threshold": 0.1,
+    "tolerance": null,
+    "by_case": {
+      "csv-report": null,
+      "seat-reservations": 0.5
+    },
+    "why": "no tolerance in 0.05..0.5 keeps false tokens decisions at or under 0.1 on every case at this many attempts: more attempts, or this metric cannot decide"
+  },
+  "scoring": {
+    "sha256": "fccc62fef683cc2740d06203f158ab31090693b0fdd254a94dbb9a56bbc61716",
+    "files": "28795802847c",
+    "cases": [
+      "csv-report",
+      "seat-reservations"
+    ]
+  }
+}
