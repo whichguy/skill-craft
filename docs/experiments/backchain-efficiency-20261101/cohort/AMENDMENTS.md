@@ -28,3 +28,33 @@ the decision rule. Added, decided before any grade or analysis exists:
 
 None of this changes a frozen input. `cohort.py`, `PROTOCOL.md` and the cases are untouched; the extra analyses run
 as a separate script over the retained attempts after `analyze`.
+
+## A2 — post-hoc regrade R1 without `parallel_groups` (2026-11-01, about 11:50, after the registered analysis)
+
+Registered result (`analysis.json`): inconclusive. Quality, candidate minus control, was −1.19 points, 95% [−8.85, +6.26],
+Wilcoxon p = 0.75, with grader noise ±1.05, so there is no winner. Tokens (−630k per cell, 30 of 30 cells lower,
+p = 0.005) and time (−124 s, 30 of 30 lower) favoured the candidate, but they decide only when quality is
+near-identical. A1: packaging-normalized qualification 19 of 30 in both arms; F7's pooled block fires under it
+(candidate 6/9, control 9/9).
+
+What prompts the regrade, found after seeing the grades (post-hoc):
+- Graders mention `parallel_groups` in 76 candidate criterion rows and in 0 control rows.
+- All 49 of the partial or missed ones are in the two edit-bounded repair cases: bounded-source-edge-repair
+  (candidate −26.6 points) and revenue-export-lineage (−9.1).
+- There, graders read the candidate's recomputed `parallel_groups` (from the inherited `[]` to
+  `[["S1","S3"]]`) as a change outside the caller's bounds ("no-out-of-bounds-changes": missed). The candidate's
+  toolkit recomputes this derived field on every save; 0.6.6 keeps `[]`.
+- The candidate's three F7 non-qualifications are those bounded-repair attempts.
+
+R1, fixed before it runs:
+- **What changes.** Exactly the registered grader packets, minus `parallel_groups` in `final_plan` and
+  `inherited_draft`, for every attempt of both arms. `parallel_groups` is derived from the steps' inputs, which
+  stay in the packet.
+- **What stays.** The same rubric, grader, model, effort, three passes and decision rule (cohort.py
+  `build_report`), and the same quote check. The script is `regrade_r1.py`, writing `grades-r1/` and
+  `r1-analysis.json`.
+- **How it reports.** R1 is a post-hoc sensitivity analysis. The registered decision stays "inconclusive";
+  R1's result goes to the owner, who decides adoption.
+- **How it reads.** If R1's quality is near-identical (inside its own grader noise), the cost results stand as
+  the difference between the arms. If R1 still shows a material quality difference, that difference is not a
+  `parallel_groups` artifact.

@@ -1,0 +1,3210 @@
+{
+ "schema": "backchain-efficiency-cohort-attempts/v1",
+ "revisions": {
+  "control": "e81fdb55d58bdb0bcc8c1643d93d5973709100e4",
+  "candidate": "1e77f30b1006ab95e24dc476d0151370ee296f53"
+ },
+ "model": "gpt-6-astra",
+ "effort": "medium",
+ "cli_version": "codex-cli 0.166.0",
+ "source": "/Users/dadleet/src/backchain/results/backchain-efficiency-20261101/cohort",
+ "attempts": [
+  {
+   "label": "billing-late-fee-candidate-r1",
+   "case": "billing-late-fee",
+   "arm": "candidate",
+   "rep": 1,
+   "heldout": true,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 1,
+    "expected_gate": 1,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "4ec89d5d0a59ff8d476c496c7d74a228f395d47de3c322376c3386c6c938bf02",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": {
+    "passed": 3,
+    "total": 7,
+    "failed": [
+     "fixture-supplier-planned",
+     "fixture-built-from-csv",
+     "test-run-reaches-module",
+     "test-run-reaches-fixture"
+    ]
+   },
+   "cost": {
+    "wall_seconds": 132.901,
+    "input_tokens": 584551,
+    "cached_input_tokens": 521216,
+    "uncached_input_tokens": 63335,
+    "output_tokens": 4012,
+    "input_plus_output_tokens": 588563,
+    "commands": 12,
+    "code_blocks": 4
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "billing-late-fee-candidate-r2",
+   "case": "billing-late-fee",
+   "arm": "candidate",
+   "rep": 2,
+   "heldout": true,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 1,
+    "expected_gate": 1,
+    "packets": 3
+   },
+   "plan": {
+    "present": true,
+    "sha256": "b52ebc3fb6745fc8065d791ee72ad61cb8709bd348d8448ff1f6e01833aeb94b",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": {
+    "passed": 5,
+    "total": 7,
+    "failed": [
+     "fixture-built-from-csv",
+     "test-run-reaches-module"
+    ]
+   },
+   "cost": {
+    "wall_seconds": 165.031,
+    "input_tokens": 981794,
+    "cached_input_tokens": 900096,
+    "uncached_input_tokens": 81698,
+    "output_tokens": 6219,
+    "input_plus_output_tokens": 988013,
+    "commands": 17,
+    "code_blocks": 6
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "billing-late-fee-candidate-r3",
+   "case": "billing-late-fee",
+   "arm": "candidate",
+   "rep": 3,
+   "heldout": true,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 1,
+    "expected_gate": 1,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "597fdc383fbff5ba0163a9a5c5414738d4e73f2f78260c9aa904818e73ffeadc",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": {
+    "passed": 3,
+    "total": 7,
+    "failed": [
+     "fixture-supplier-planned",
+     "fixture-built-from-csv",
+     "test-run-reaches-module",
+     "test-run-reaches-fixture"
+    ]
+   },
+   "cost": {
+    "wall_seconds": 155.244,
+    "input_tokens": 705321,
+    "cached_input_tokens": 640896,
+    "uncached_input_tokens": 64425,
+    "output_tokens": 5392,
+    "input_plus_output_tokens": 710713,
+    "commands": 14,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "billing-late-fee-control-r1",
+   "case": "billing-late-fee",
+   "arm": "control",
+   "rep": 1,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 2,
+    "expected_gate": 2,
+    "packets": 3
+   },
+   "plan": {
+    "present": true,
+    "sha256": "c2236e34b4b348f2edd3948ec3db054a85b6904d5c4142e98e2b62e59ddf1204",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": {
+    "passed": 3,
+    "total": 7,
+    "failed": [
+     "fixture-supplier-planned",
+     "fixture-built-from-csv",
+     "test-run-reaches-module",
+     "test-run-reaches-fixture"
+    ]
+   },
+   "cost": {
+    "wall_seconds": 417.986,
+    "input_tokens": 2007974,
+    "cached_input_tokens": 1902336,
+    "uncached_input_tokens": 105638,
+    "output_tokens": 14397,
+    "input_plus_output_tokens": 2022371,
+    "commands": 26,
+    "code_blocks": 9
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "billing-late-fee-control-r2",
+   "case": "billing-late-fee",
+   "arm": "control",
+   "rep": 2,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 2,
+    "expected_gate": 2,
+    "packets": 3
+   },
+   "plan": {
+    "present": true,
+    "sha256": "381eb52cf0fe32acd9bd333ce03cfe63b026958d33ee9460e4cfb618c8078063",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": {
+    "passed": 3,
+    "total": 7,
+    "failed": [
+     "fixture-supplier-planned",
+     "fixture-built-from-csv",
+     "test-run-reaches-module",
+     "test-run-reaches-fixture"
+    ]
+   },
+   "cost": {
+    "wall_seconds": 349.865,
+    "input_tokens": 1995427,
+    "cached_input_tokens": 1888384,
+    "uncached_input_tokens": 107043,
+    "output_tokens": 12875,
+    "input_plus_output_tokens": 2008302,
+    "commands": 27,
+    "code_blocks": 9
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "billing-late-fee-control-r3",
+   "case": "billing-late-fee",
+   "arm": "control",
+   "rep": 3,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    },
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 2,
+    "expected_gate": 2,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "16518aba4187bf29ffe2773d7f71658e34833203c0726e946726eac473c73cdd",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": {
+    "passed": 5,
+    "total": 7,
+    "failed": [
+     "test-run-reaches-module",
+     "plan-complete"
+    ]
+   },
+   "cost": {
+    "wall_seconds": 286.768,
+    "input_tokens": 1252874,
+    "cached_input_tokens": 1148032,
+    "uncached_input_tokens": 104842,
+    "output_tokens": 10102,
+    "input_plus_output_tokens": 1262976,
+    "commands": 18,
+    "code_blocks": 6
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "bounded-source-edge-repair-candidate-r1",
+   "case": "bounded-source-edge-repair",
+   "arm": "candidate",
+   "rep": 1,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "64a75c56ef4fb5891595ab9f931c6d0c3ced60459ac9f658417b7bdb8bf95882",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 95.071,
+    "input_tokens": 604567,
+    "cached_input_tokens": 544000,
+    "uncached_input_tokens": 60567,
+    "output_tokens": 3609,
+    "input_plus_output_tokens": 608176,
+    "commands": 16,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "bounded-source-edge-repair-candidate-r2",
+   "case": "bounded-source-edge-repair",
+   "arm": "candidate",
+   "rep": 2,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "64a75c56ef4fb5891595ab9f931c6d0c3ced60459ac9f658417b7bdb8bf95882",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 96.293,
+    "input_tokens": 624186,
+    "cached_input_tokens": 552704,
+    "uncached_input_tokens": 71482,
+    "output_tokens": 3534,
+    "input_plus_output_tokens": 627720,
+    "commands": 16,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "bounded-source-edge-repair-candidate-r3",
+   "case": "bounded-source-edge-repair",
+   "arm": "candidate",
+   "rep": 3,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "64a75c56ef4fb5891595ab9f931c6d0c3ced60459ac9f658417b7bdb8bf95882",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 84.199,
+    "input_tokens": 613513,
+    "cached_input_tokens": 556928,
+    "uncached_input_tokens": 56585,
+    "output_tokens": 3418,
+    "input_plus_output_tokens": 616931,
+    "commands": 13,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "bounded-source-edge-repair-control-r1",
+   "case": "bounded-source-edge-repair",
+   "arm": "control",
+   "rep": 1,
+   "heldout": false,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "edf5fbb2475f3e94fa29384a00fdf5ab543666f323ad624a22c94999fd11345e",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 164.56,
+    "input_tokens": 838867,
+    "cached_input_tokens": 772736,
+    "uncached_input_tokens": 66131,
+    "output_tokens": 7458,
+    "input_plus_output_tokens": 846325,
+    "commands": 15,
+    "code_blocks": 6
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "bounded-source-edge-repair-control-r2",
+   "case": "bounded-source-edge-repair",
+   "arm": "control",
+   "rep": 2,
+   "heldout": false,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "edf5fbb2475f3e94fa29384a00fdf5ab543666f323ad624a22c94999fd11345e",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 185.891,
+    "input_tokens": 723156,
+    "cached_input_tokens": 646272,
+    "uncached_input_tokens": 76884,
+    "output_tokens": 8007,
+    "input_plus_output_tokens": 731163,
+    "commands": 13,
+    "code_blocks": 6
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "bounded-source-edge-repair-control-r3",
+   "case": "bounded-source-edge-repair",
+   "arm": "control",
+   "rep": 3,
+   "heldout": false,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "edf5fbb2475f3e94fa29384a00fdf5ab543666f323ad624a22c94999fd11345e",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 162.402,
+    "input_tokens": 769551,
+    "cached_input_tokens": 704768,
+    "uncached_input_tokens": 64783,
+    "output_tokens": 7292,
+    "input_plus_output_tokens": 776843,
+    "commands": 14,
+    "code_blocks": 5
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "independent-inspection-scopes-candidate-r1",
+   "case": "independent-inspection-scopes",
+   "arm": "candidate",
+   "rep": 1,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 1,
+    "expected_gate": 1,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "3d0f619dce1aed9abd5164980bd3435ea509e7ecd913db73135a50f73f409a13",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 92.8,
+    "input_tokens": 634060,
+    "cached_input_tokens": 563840,
+    "uncached_input_tokens": 70220,
+    "output_tokens": 3688,
+    "input_plus_output_tokens": 637748,
+    "commands": 13,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "independent-inspection-scopes-candidate-r2",
+   "case": "independent-inspection-scopes",
+   "arm": "candidate",
+   "rep": 2,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 1,
+    "expected_gate": 1,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "370840a4f715bcd9484b9d7e71238b22d41ef494d7960d6851db039409966494",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 102.744,
+    "input_tokens": 666349,
+    "cached_input_tokens": 609152,
+    "uncached_input_tokens": 57197,
+    "output_tokens": 3650,
+    "input_plus_output_tokens": 669999,
+    "commands": 14,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "independent-inspection-scopes-candidate-r3",
+   "case": "independent-inspection-scopes",
+   "arm": "candidate",
+   "rep": 3,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 1,
+    "expected_gate": 1,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "f869c02417fa3e8e6eb523751479d3682ff7f1a6fb08b5be3d6731f70c0f40f9",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 112.738,
+    "input_tokens": 704331,
+    "cached_input_tokens": 646912,
+    "uncached_input_tokens": 57419,
+    "output_tokens": 3648,
+    "input_plus_output_tokens": 707979,
+    "commands": 15,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "independent-inspection-scopes-control-r1",
+   "case": "independent-inspection-scopes",
+   "arm": "control",
+   "rep": 1,
+   "heldout": false,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Committed dependency graph contains a cycle; Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    },
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 2,
+    "expected_gate": 2,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "53ec9093dca8dd6934b08599bbf3d4184d0a2b1e295ace29eb997042c5422a2d",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 160.766,
+    "input_tokens": 814341,
+    "cached_input_tokens": 736000,
+    "uncached_input_tokens": 78341,
+    "output_tokens": 6962,
+    "input_plus_output_tokens": 821303,
+    "commands": 19,
+    "code_blocks": 6
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "independent-inspection-scopes-control-r2",
+   "case": "independent-inspection-scopes",
+   "arm": "control",
+   "rep": 2,
+   "heldout": false,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 2,
+    "expected_gate": 2,
+    "packets": 3
+   },
+   "plan": {
+    "present": true,
+    "sha256": "7dbc0156abe497c431e73e4d7f47b888c2711e1e79ee7bc0ba5499a49c13d0b7",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 213.001,
+    "input_tokens": 1141264,
+    "cached_input_tokens": 1037184,
+    "uncached_input_tokens": 104080,
+    "output_tokens": 8235,
+    "input_plus_output_tokens": 1149499,
+    "commands": 22,
+    "code_blocks": 10
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "independent-inspection-scopes-control-r3",
+   "case": "independent-inspection-scopes",
+   "arm": "control",
+   "rep": 3,
+   "heldout": false,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 2,
+    "expected_gate": 2,
+    "packets": 3
+   },
+   "plan": {
+    "present": true,
+    "sha256": "999227062a9e29db0e3da659afa506ef1fe1c441e26fc9ec56c19214d0f75ba1",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 278.204,
+    "input_tokens": 1914878,
+    "cached_input_tokens": 1798144,
+    "uncached_input_tokens": 116734,
+    "output_tokens": 11297,
+    "input_plus_output_tokens": 1926175,
+    "commands": 24,
+    "code_blocks": 10
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "known-external-approval-blocker-candidate-r1",
+   "case": "known-external-approval-blocker",
+   "arm": "candidate",
+   "rep": 1,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 1,
+    "expected_gate": 1,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "7012c2181897dbcbfb439d12a26d6a388b6fe0fbed1cb006fc7d6de2738f2658",
+    "structure_ok": true,
+    "completion": "incomplete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 121.713,
+    "input_tokens": 655936,
+    "cached_input_tokens": 577280,
+    "uncached_input_tokens": 78656,
+    "output_tokens": 3975,
+    "input_plus_output_tokens": 659911,
+    "commands": 17,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "known-external-approval-blocker-candidate-r2",
+   "case": "known-external-approval-blocker",
+   "arm": "candidate",
+   "rep": 2,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 1,
+    "expected_gate": 1,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "0c66f06d14bfaca297df35f6a6eeea15372ea82a325e0b27aa912068e5b71892",
+    "structure_ok": true,
+    "completion": "incomplete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 121.125,
+    "input_tokens": 667482,
+    "cached_input_tokens": 606848,
+    "uncached_input_tokens": 60634,
+    "output_tokens": 3707,
+    "input_plus_output_tokens": 671189,
+    "commands": 14,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "known-external-approval-blocker-candidate-r3",
+   "case": "known-external-approval-blocker",
+   "arm": "candidate",
+   "rep": 3,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 1,
+    "expected_gate": 1,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "31e1c3836c9155f8fc5207952be59604f16a6bf305af50831aeb90cd72cb7c9a",
+    "structure_ok": true,
+    "completion": "incomplete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 146.465,
+    "input_tokens": 731830,
+    "cached_input_tokens": 661888,
+    "uncached_input_tokens": 69942,
+    "output_tokens": 4279,
+    "input_plus_output_tokens": 736109,
+    "commands": 14,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "known-external-approval-blocker-control-r1",
+   "case": "known-external-approval-blocker",
+   "arm": "control",
+   "rep": 1,
+   "heldout": false,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected incomplete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 2,
+    "expected_gate": 2,
+    "packets": 4
+   },
+   "plan": {
+    "present": true,
+    "sha256": "6302df73eb9a907299481365e0dd453417a12c7e550b21a89c496c5e1e3040d5",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 319.732,
+    "input_tokens": 2397758,
+    "cached_input_tokens": 2279808,
+    "uncached_input_tokens": 117950,
+    "output_tokens": 12482,
+    "input_plus_output_tokens": 2410240,
+    "commands": 28,
+    "code_blocks": 14
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "known-external-approval-blocker-control-r2",
+   "case": "known-external-approval-blocker",
+   "arm": "control",
+   "rep": 2,
+   "heldout": false,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected incomplete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 2,
+    "expected_gate": 2,
+    "packets": 4
+   },
+   "plan": {
+    "present": true,
+    "sha256": "b2e9722fb9c289fb5490b9d2b3f269e39db28806c2bb14d2fc2c50f272afa229",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 406.171,
+    "input_tokens": 2724256,
+    "cached_input_tokens": 2583680,
+    "uncached_input_tokens": 140576,
+    "output_tokens": 14131,
+    "input_plus_output_tokens": 2738387,
+    "commands": 29,
+    "code_blocks": 14
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "known-external-approval-blocker-control-r3",
+   "case": "known-external-approval-blocker",
+   "arm": "control",
+   "rep": 3,
+   "heldout": false,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected incomplete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 2,
+    "expected_gate": 2,
+    "packets": 3
+   },
+   "plan": {
+    "present": true,
+    "sha256": "8dc26eefd4053ca7831162d32108328424efcc6262618b2406522fdcd65cabcd",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 245.88,
+    "input_tokens": 1392163,
+    "cached_input_tokens": 1295104,
+    "uncached_input_tokens": 97059,
+    "output_tokens": 8880,
+    "input_plus_output_tokens": 1401043,
+    "commands": 19,
+    "code_blocks": 8
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "legacy-draft-discovers-mapping-candidate-r1",
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "candidate",
+   "rep": 1,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "2616a4c5d9c8a231d9ce15ffb2cb2e0a10586f2e62b538373b2cdb5b20b210d9",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 96.602,
+    "input_tokens": 650178,
+    "cached_input_tokens": 593536,
+    "uncached_input_tokens": 56642,
+    "output_tokens": 3785,
+    "input_plus_output_tokens": 653963,
+    "commands": 14,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "legacy-draft-discovers-mapping-candidate-r2",
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "candidate",
+   "rep": 2,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "48da6e0b986937d441f98e6a957502f8d6243fd1b007bed383e4f4bb5e836a99",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 108.878,
+    "input_tokens": 552857,
+    "cached_input_tokens": 476544,
+    "uncached_input_tokens": 76313,
+    "output_tokens": 3617,
+    "input_plus_output_tokens": 556474,
+    "commands": 12,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "legacy-draft-discovers-mapping-candidate-r3",
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "candidate",
+   "rep": 3,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "eba5f620e1216401d2b55e2337001f972d2d65b97801c4f362de6b5c66489ad1",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 110.291,
+    "input_tokens": 645373,
+    "cached_input_tokens": 580992,
+    "uncached_input_tokens": 64381,
+    "output_tokens": 3921,
+    "input_plus_output_tokens": 649294,
+    "commands": 13,
+    "code_blocks": 4
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "legacy-draft-discovers-mapping-control-r1",
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "control",
+   "rep": 1,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "84b99f24fbb1c251bcfa677ff5495ab35817b6788489167ae39bcceabcf928e6",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 211.452,
+    "input_tokens": 1008001,
+    "cached_input_tokens": 924032,
+    "uncached_input_tokens": 83969,
+    "output_tokens": 8283,
+    "input_plus_output_tokens": 1016284,
+    "commands": 16,
+    "code_blocks": 8
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "legacy-draft-discovers-mapping-control-r2",
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "control",
+   "rep": 2,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "4378683c3ec34200683aa777ca852e961f8e1cc46f7bc15231e3d78720f643f1",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 221.963,
+    "input_tokens": 1011951,
+    "cached_input_tokens": 928768,
+    "uncached_input_tokens": 83183,
+    "output_tokens": 7556,
+    "input_plus_output_tokens": 1019507,
+    "commands": 16,
+    "code_blocks": 5
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "legacy-draft-discovers-mapping-control-r3",
+   "case": "legacy-draft-discovers-mapping",
+   "arm": "control",
+   "rep": 3,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "618a4a76899246110c7e7b02d9a0e5d0a2d42df575606a83dcfdbb5398571528",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 188.851,
+    "input_tokens": 1153953,
+    "cached_input_tokens": 1077504,
+    "uncached_input_tokens": 76449,
+    "output_tokens": 8506,
+    "input_plus_output_tokens": 1162459,
+    "commands": 18,
+    "code_blocks": 7
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "library-reminders-candidate-r1",
+   "case": "library-reminders",
+   "arm": "candidate",
+   "rep": 1,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_completion",
+     "detail": "completion incomplete, expected complete"
+    },
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "31d2151320b525c2bfa4e46c68bddb45511c7f55388a3836db6484bc4af8f77d",
+    "structure_ok": true,
+    "completion": "incomplete"
+   },
+   "keys": {
+    "passed": 9,
+    "total": 10,
+    "failed": [
+     "plan-complete"
+    ]
+   },
+   "cost": {
+    "wall_seconds": 136.454,
+    "input_tokens": 669042,
+    "cached_input_tokens": 605696,
+    "uncached_input_tokens": 63346,
+    "output_tokens": 4652,
+    "input_plus_output_tokens": 673694,
+    "commands": 13,
+    "code_blocks": 4
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "library-reminders-candidate-r2",
+   "case": "library-reminders",
+   "arm": "candidate",
+   "rep": 2,
+   "heldout": true,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "04c2faa13082eb4c9d257da9a08d9a981fd388aa79929664730eff3de3efe142",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": {
+    "passed": 10,
+    "total": 10,
+    "failed": []
+   },
+   "cost": {
+    "wall_seconds": 161.419,
+    "input_tokens": 782191,
+    "cached_input_tokens": 713088,
+    "uncached_input_tokens": 69103,
+    "output_tokens": 5518,
+    "input_plus_output_tokens": 787709,
+    "commands": 15,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "library-reminders-candidate-r3",
+   "case": "library-reminders",
+   "arm": "candidate",
+   "rep": 3,
+   "heldout": true,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "d72874c521a676fbc1fb2e0fb643a6164e4fc6b067f7150d980c53d782dccc74",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": {
+    "passed": 10,
+    "total": 10,
+    "failed": []
+   },
+   "cost": {
+    "wall_seconds": 138.655,
+    "input_tokens": 697148,
+    "cached_input_tokens": 634112,
+    "uncached_input_tokens": 63036,
+    "output_tokens": 4789,
+    "input_plus_output_tokens": 701937,
+    "commands": 14,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "library-reminders-control-r1",
+   "case": "library-reminders",
+   "arm": "control",
+   "rep": 1,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    },
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "7fba84715a06f22ba204f683a44614462277cf5b9e4cdba391d39f1512440504",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": {
+    "passed": 9,
+    "total": 10,
+    "failed": [
+     "plan-complete"
+    ]
+   },
+   "cost": {
+    "wall_seconds": 231.985,
+    "input_tokens": 1226278,
+    "cached_input_tokens": 1130880,
+    "uncached_input_tokens": 95398,
+    "output_tokens": 9372,
+    "input_plus_output_tokens": 1235650,
+    "commands": 21,
+    "code_blocks": 7
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "library-reminders-control-r2",
+   "case": "library-reminders",
+   "arm": "control",
+   "rep": 2,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "a960088bd2884593dde9fab16d8125ec7363c87ee554d249bd9c4381166b0fa5",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": {
+    "passed": 10,
+    "total": 10,
+    "failed": []
+   },
+   "cost": {
+    "wall_seconds": 274.811,
+    "input_tokens": 1342486,
+    "cached_input_tokens": 1251072,
+    "uncached_input_tokens": 91414,
+    "output_tokens": 11098,
+    "input_plus_output_tokens": 1353584,
+    "commands": 22,
+    "code_blocks": 7
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "library-reminders-control-r3",
+   "case": "library-reminders",
+   "arm": "control",
+   "rep": 3,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    },
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "27b88a6b196943087d332e15f70c8a22b8989d8bbda8bd0deb84c05037300a23",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": {
+    "passed": 9,
+    "total": 10,
+    "failed": [
+     "plan-complete"
+    ]
+   },
+   "cost": {
+    "wall_seconds": 274.756,
+    "input_tokens": 1269981,
+    "cached_input_tokens": 1175808,
+    "uncached_input_tokens": 94173,
+    "output_tokens": 10122,
+    "input_plus_output_tokens": 1280103,
+    "commands": 18,
+    "code_blocks": 6
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "missing-normative-redaction-source-candidate-r1",
+   "case": "missing-normative-redaction-source",
+   "arm": "candidate",
+   "rep": 1,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "51f7bdcbfbb6c35961b9ebeba21ea4a03e4de47ebe55d4e9abd29ab40aeb431b",
+    "structure_ok": true,
+    "completion": "incomplete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 105.342,
+    "input_tokens": 713563,
+    "cached_input_tokens": 645248,
+    "uncached_input_tokens": 68315,
+    "output_tokens": 3841,
+    "input_plus_output_tokens": 717404,
+    "commands": 14,
+    "code_blocks": 6
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "missing-normative-redaction-source-candidate-r2",
+   "case": "missing-normative-redaction-source",
+   "arm": "candidate",
+   "rep": 2,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "943777df2ca0725649941c2aefa116e968bebe08b5aea024705682081ebee967",
+    "structure_ok": true,
+    "completion": "incomplete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 88.214,
+    "input_tokens": 622400,
+    "cached_input_tokens": 558592,
+    "uncached_input_tokens": 63808,
+    "output_tokens": 3487,
+    "input_plus_output_tokens": 625887,
+    "commands": 12,
+    "code_blocks": 6
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "missing-normative-redaction-source-candidate-r3",
+   "case": "missing-normative-redaction-source",
+   "arm": "candidate",
+   "rep": 3,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "9591355847ac127fd99f3299cef49cc8a0e92797d247c7ff3f5e0f16a4718a39",
+    "structure_ok": true,
+    "completion": "incomplete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 81.18,
+    "input_tokens": 663323,
+    "cached_input_tokens": 594688,
+    "uncached_input_tokens": 68635,
+    "output_tokens": 3571,
+    "input_plus_output_tokens": 666894,
+    "commands": 13,
+    "code_blocks": 4
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "missing-normative-redaction-source-control-r1",
+   "case": "missing-normative-redaction-source",
+   "arm": "control",
+   "rep": 1,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "f68fb57d36cbdde0d17d42c797fb1ded2e6f0f7acb36c9dcb7841e12789d8df2",
+    "structure_ok": true,
+    "completion": "incomplete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 190.208,
+    "input_tokens": 1132960,
+    "cached_input_tokens": 1041024,
+    "uncached_input_tokens": 91936,
+    "output_tokens": 7236,
+    "input_plus_output_tokens": 1140196,
+    "commands": 17,
+    "code_blocks": 5
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "missing-normative-redaction-source-control-r2",
+   "case": "missing-normative-redaction-source",
+   "arm": "control",
+   "rep": 2,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "cb08712146bb336980f4b13bd94ffcca5eddf55b0c4951c04bad1fff7b32f5db",
+    "structure_ok": true,
+    "completion": "incomplete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 230.183,
+    "input_tokens": 1185694,
+    "cached_input_tokens": 1089280,
+    "uncached_input_tokens": 96414,
+    "output_tokens": 8575,
+    "input_plus_output_tokens": 1194269,
+    "commands": 18,
+    "code_blocks": 5
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "missing-normative-redaction-source-control-r3",
+   "case": "missing-normative-redaction-source",
+   "arm": "control",
+   "rep": 3,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "aa82c6f9b2739986d39fa50cc8cf9ec758643d63246cb8a0458f9a09aa0d5f21",
+    "structure_ok": true,
+    "completion": "incomplete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 195.218,
+    "input_tokens": 1111229,
+    "cached_input_tokens": 1022592,
+    "uncached_input_tokens": 88637,
+    "output_tokens": 7573,
+    "input_plus_output_tokens": 1118802,
+    "commands": 24,
+    "code_blocks": 6
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "orders-cancel-rpc-candidate-r1",
+   "case": "orders-cancel-rpc",
+   "arm": "candidate",
+   "rep": 1,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 1,
+    "expected_gate": 1,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "eb7254e72532db7df9a2aba4ec30ed95e6e79b32d6b0074241ae17214460d9ce",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": {
+    "passed": 8,
+    "total": 10,
+    "failed": [
+     "store-supplier-split-out",
+     "server-not-behind-docs"
+    ]
+   },
+   "cost": {
+    "wall_seconds": 153.601,
+    "input_tokens": 648206,
+    "cached_input_tokens": 555392,
+    "uncached_input_tokens": 92814,
+    "output_tokens": 5069,
+    "input_plus_output_tokens": 653275,
+    "commands": 17,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "orders-cancel-rpc-candidate-r2",
+   "case": "orders-cancel-rpc",
+   "arm": "candidate",
+   "rep": 2,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 1,
+    "expected_gate": 1,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "ab5439e10d471ebdf6ad7ffce515c644e5ab2dc191379ae1a453d3fb80971c01",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": {
+    "passed": 8,
+    "total": 10,
+    "failed": [
+     "store-supplier-split-out",
+     "server-not-behind-docs"
+    ]
+   },
+   "cost": {
+    "wall_seconds": 212.734,
+    "input_tokens": 818722,
+    "cached_input_tokens": 743680,
+    "uncached_input_tokens": 75042,
+    "output_tokens": 6246,
+    "input_plus_output_tokens": 824968,
+    "commands": 15,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "orders-cancel-rpc-candidate-r3",
+   "case": "orders-cancel-rpc",
+   "arm": "candidate",
+   "rep": 3,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 1,
+    "expected_gate": 1,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "b5f1884fec1d2714f4b00e3970ac59b7c0e60566fcc6f6fc38178a37b9e7f1ae",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": {
+    "passed": 8,
+    "total": 10,
+    "failed": [
+     "store-supplier-split-out",
+     "server-not-behind-docs"
+    ]
+   },
+   "cost": {
+    "wall_seconds": 166.407,
+    "input_tokens": 750235,
+    "cached_input_tokens": 684928,
+    "uncached_input_tokens": 65307,
+    "output_tokens": 5600,
+    "input_plus_output_tokens": 755835,
+    "commands": 14,
+    "code_blocks": 4
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "orders-cancel-rpc-control-r1",
+   "case": "orders-cancel-rpc",
+   "arm": "control",
+   "rep": 1,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    },
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 2,
+    "expected_gate": 2,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "c75a97080570ab03107e931a2129d006743179779ec25c01e5560e257c9321fd",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": {
+    "passed": 8,
+    "total": 10,
+    "failed": [
+     "store-supplier-split-out",
+     "server-not-behind-docs"
+    ]
+   },
+   "cost": {
+    "wall_seconds": 236.811,
+    "input_tokens": 1201167,
+    "cached_input_tokens": 1109504,
+    "uncached_input_tokens": 91663,
+    "output_tokens": 9761,
+    "input_plus_output_tokens": 1210928,
+    "commands": 17,
+    "code_blocks": 5
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "orders-cancel-rpc-control-r2",
+   "case": "orders-cancel-rpc",
+   "arm": "control",
+   "rep": 2,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    },
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 2,
+    "expected_gate": 2,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "f87b842f83234318ed7772acff14063538a358c992c4a8739001fde1611a45d8",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": {
+    "passed": 8,
+    "total": 10,
+    "failed": [
+     "store-supplier-split-out",
+     "server-not-behind-docs"
+    ]
+   },
+   "cost": {
+    "wall_seconds": 335.44,
+    "input_tokens": 1406114,
+    "cached_input_tokens": 1306880,
+    "uncached_input_tokens": 99234,
+    "output_tokens": 11164,
+    "input_plus_output_tokens": 1417278,
+    "commands": 19,
+    "code_blocks": 6
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "orders-cancel-rpc-control-r3",
+   "case": "orders-cancel-rpc",
+   "arm": "control",
+   "rep": 3,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    },
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 2,
+    "expected_gate": 2,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "b45aeabce1572c28cfe5ba7abe610b11f4f0a9601007f3cfc21c8552fdfe0881",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": {
+    "passed": 8,
+    "total": 10,
+    "failed": [
+     "store-supplier-split-out",
+     "server-not-behind-docs"
+    ]
+   },
+   "cost": {
+    "wall_seconds": 316.486,
+    "input_tokens": 1776327,
+    "cached_input_tokens": 1670656,
+    "uncached_input_tokens": 105671,
+    "output_tokens": 11470,
+    "input_plus_output_tokens": 1787797,
+    "commands": 26,
+    "code_blocks": 8
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "revenue-export-lineage-candidate-r1",
+   "case": "revenue-export-lineage",
+   "arm": "candidate",
+   "rep": 1,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "83d8fc3c406dc78ed1106fcb8e8b726a559da2e32890810354ca6bdcde3442ed",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": {
+    "passed": 7,
+    "total": 7,
+    "failed": []
+   },
+   "cost": {
+    "wall_seconds": 86.72,
+    "input_tokens": 587238,
+    "cached_input_tokens": 530176,
+    "uncached_input_tokens": 57062,
+    "output_tokens": 3982,
+    "input_plus_output_tokens": 591220,
+    "commands": 13,
+    "code_blocks": 4
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "revenue-export-lineage-candidate-r2",
+   "case": "revenue-export-lineage",
+   "arm": "candidate",
+   "rep": 2,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "83d8fc3c406dc78ed1106fcb8e8b726a559da2e32890810354ca6bdcde3442ed",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": {
+    "passed": 7,
+    "total": 7,
+    "failed": []
+   },
+   "cost": {
+    "wall_seconds": 108.187,
+    "input_tokens": 533896,
+    "cached_input_tokens": 475008,
+    "uncached_input_tokens": 58888,
+    "output_tokens": 3989,
+    "input_plus_output_tokens": 537885,
+    "commands": 15,
+    "code_blocks": 4
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "revenue-export-lineage-candidate-r3",
+   "case": "revenue-export-lineage",
+   "arm": "candidate",
+   "rep": 3,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "83d8fc3c406dc78ed1106fcb8e8b726a559da2e32890810354ca6bdcde3442ed",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": {
+    "passed": 7,
+    "total": 7,
+    "failed": []
+   },
+   "cost": {
+    "wall_seconds": 90.283,
+    "input_tokens": 592323,
+    "cached_input_tokens": 532224,
+    "uncached_input_tokens": 60099,
+    "output_tokens": 3839,
+    "input_plus_output_tokens": 596162,
+    "commands": 13,
+    "code_blocks": 4
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "revenue-export-lineage-control-r1",
+   "case": "revenue-export-lineage",
+   "arm": "control",
+   "rep": 1,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    },
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "34ad5fae1cfde92464f8edc1435d85cb5df5dd840202a3df4dcee033bce786ee",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": {
+    "passed": 7,
+    "total": 7,
+    "failed": []
+   },
+   "cost": {
+    "wall_seconds": 186.709,
+    "input_tokens": 864360,
+    "cached_input_tokens": 797056,
+    "uncached_input_tokens": 67304,
+    "output_tokens": 7126,
+    "input_plus_output_tokens": 871486,
+    "commands": 15,
+    "code_blocks": 6
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "revenue-export-lineage-control-r2",
+   "case": "revenue-export-lineage",
+   "arm": "control",
+   "rep": 2,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    },
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "34ad5fae1cfde92464f8edc1435d85cb5df5dd840202a3df4dcee033bce786ee",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": {
+    "passed": 7,
+    "total": 7,
+    "failed": []
+   },
+   "cost": {
+    "wall_seconds": 163.261,
+    "input_tokens": 890525,
+    "cached_input_tokens": 820480,
+    "uncached_input_tokens": 70045,
+    "output_tokens": 7304,
+    "input_plus_output_tokens": 897829,
+    "commands": 15,
+    "code_blocks": 6
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "revenue-export-lineage-control-r3",
+   "case": "revenue-export-lineage",
+   "arm": "control",
+   "rep": 3,
+   "heldout": true,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "fail",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    },
+    {
+     "check": "loop_terminal",
+     "detail": "terminal stopped, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "34ad5fae1cfde92464f8edc1435d85cb5df5dd840202a3df4dcee033bce786ee",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": {
+    "passed": 7,
+    "total": 7,
+    "failed": []
+   },
+   "cost": {
+    "wall_seconds": 141.419,
+    "input_tokens": 701344,
+    "cached_input_tokens": 632064,
+    "uncached_input_tokens": 69280,
+    "output_tokens": 6362,
+    "input_plus_output_tokens": 707706,
+    "commands": 12,
+    "code_blocks": 4
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "stale-build-receipt-identity-candidate-r1",
+   "case": "stale-build-receipt-identity",
+   "arm": "candidate",
+   "rep": 1,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "2b533870d5b36be95eb3bb8d1cc9c394b66f8dde96daf46ea9adf1d0f042b3c0",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 117.738,
+    "input_tokens": 635584,
+    "cached_input_tokens": 571776,
+    "uncached_input_tokens": 63808,
+    "output_tokens": 4904,
+    "input_plus_output_tokens": 640488,
+    "commands": 15,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "stale-build-receipt-identity-candidate-r2",
+   "case": "stale-build-receipt-identity",
+   "arm": "candidate",
+   "rep": 2,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "6c85e2b21540ce728a4cd8a3bf65a75fb5b74c7eb6d8d347c64cb9288bdab6f8",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 128.135,
+    "input_tokens": 596620,
+    "cached_input_tokens": 528896,
+    "uncached_input_tokens": 67724,
+    "output_tokens": 4378,
+    "input_plus_output_tokens": 600998,
+    "commands": 14,
+    "code_blocks": 4
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "stale-build-receipt-identity-candidate-r3",
+   "case": "stale-build-receipt-identity",
+   "arm": "candidate",
+   "rep": 3,
+   "heldout": false,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_completion",
+     "detail": "completion incomplete, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "2f734d2c8f41a36ab24beb85bdd5380cedf00f58fefc8ac75cf26ac49d9771c8",
+    "structure_ok": true,
+    "completion": "incomplete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 136.424,
+    "input_tokens": 579314,
+    "cached_input_tokens": 520320,
+    "uncached_input_tokens": 58994,
+    "output_tokens": 4521,
+    "input_plus_output_tokens": 583835,
+    "commands": 14,
+    "code_blocks": 3
+   },
+   "route": "toolkit"
+  },
+  {
+   "label": "stale-build-receipt-identity-control-r1",
+   "case": "stale-build-receipt-identity",
+   "arm": "control",
+   "rep": 1,
+   "heldout": false,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "70e79bfa08e0bed0256462224cf4ac4264da9ce9360f360cbc89ae9caf5c4eae",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 238.845,
+    "input_tokens": 1244006,
+    "cached_input_tokens": 1157504,
+    "uncached_input_tokens": 86502,
+    "output_tokens": 9365,
+    "input_plus_output_tokens": 1253371,
+    "commands": 18,
+    "code_blocks": 8
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "stale-build-receipt-identity-control-r2",
+   "case": "stale-build-receipt-identity",
+   "arm": "control",
+   "rep": 2,
+   "heldout": false,
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "fail",
+    "plan_completion": "fail",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [
+    {
+     "check": "plan_structure",
+     "detail": "structurally invalid: Stored parallel_groups does not match recomputed longest-path depth groups"
+    },
+    {
+     "check": "plan_completion",
+     "detail": "completion invalid, expected complete"
+    }
+   ],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "01fb85a384cc25b72f6e929a2247f19ee12a34f9c51c0461d9d40a5fe64523dd",
+    "structure_ok": false,
+    "completion": "invalid"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 245.923,
+    "input_tokens": 1181628,
+    "cached_input_tokens": 1091456,
+    "uncached_input_tokens": 90172,
+    "output_tokens": 9463,
+    "input_plus_output_tokens": 1191091,
+    "commands": 17,
+    "code_blocks": 8
+   },
+   "route": "hand-built"
+  },
+  {
+   "label": "stale-build-receipt-identity-control-r3",
+   "case": "stale-build-receipt-identity",
+   "arm": "control",
+   "rep": 3,
+   "heldout": false,
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "plan": {
+    "present": true,
+    "sha256": "705023725cb25941060199c9c3087eac32676664f39882e1b4e16b4a11f5628e",
+    "structure_ok": true,
+    "completion": "complete"
+   },
+   "keys": null,
+   "cost": {
+    "wall_seconds": 290.688,
+    "input_tokens": 980119,
+    "cached_input_tokens": 899840,
+    "uncached_input_tokens": 80279,
+    "output_tokens": 10306,
+    "input_plus_output_tokens": 990425,
+    "commands": 16,
+    "code_blocks": 8
+   },
+   "route": "hand-built"
+  }
+ ]
+}

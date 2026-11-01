@@ -1,0 +1,171 @@
+{
+ "schema": "backchain-efficiency-a1/v1",
+ "amendment": "AMENDMENTS.md A1",
+ "packaging": {
+  "qualified": {
+   "control": {
+    "registered": 7,
+    "packaged": 19,
+    "attempts": 30
+   },
+   "candidate": {
+    "registered": 19,
+    "packaged": 19,
+    "attempts": 30
+   }
+  },
+  "outcome_failures_explained_by_packaging": {
+   "control": {
+    "registered_failures": 23,
+    "pass_after_packaging": 13
+   },
+   "candidate": {
+    "registered_failures": 8,
+    "pass_after_packaging": 0
+   }
+  },
+  "paired_qualified_packaged": {
+   "mean": 0.0,
+   "low": -0.3,
+   "high": 0.2333,
+   "n": 30,
+   "cases": 10,
+   "case_mean": -0.0,
+   "wilcoxon_p": null,
+   "candidate_higher": 4,
+   "candidate_lower": 4,
+   "per_case": {
+    "billing-late-fee": 0.6667,
+    "bounded-source-edge-repair": -1.0,
+    "independent-inspection-scopes": 0.3333,
+    "known-external-approval-blocker": 0.0,
+    "legacy-draft-discovers-mapping": 0.0,
+    "library-reminders": 0.3333,
+    "missing-normative-redaction-source": 0.0,
+    "orders-cancel-rpc": 0.0,
+    "revenue-export-lineage": 0.0,
+    "stale-build-receipt-identity": -0.3333
+   }
+  },
+  "family_block_packaged": {
+   "control": {
+    "cells": 9,
+    "qualified": 9,
+    "mean_score": 98.80952380952381,
+    "scores": [
+     96.42857142857143,
+     96.42857142857143,
+     96.42857142857143,
+     100.0,
+     100.0,
+     100.0,
+     100.0,
+     100.0,
+     100.0
+    ],
+    "keys_passed": null,
+    "keys_total": null,
+    "median_tokens": 1140196,
+    "median_seconds": 195.218
+   },
+   "candidate": {
+    "cells": 9,
+    "qualified": 6,
+    "mean_score": 89.23483923483924,
+    "scores": [
+     70.23809523809524,
+     69.04761904761905,
+     70.23809523809524,
+     100.0,
+     100.0,
+     100.0,
+     100.0,
+     96.15384615384615,
+     97.43589743589745
+    ],
+    "keys_passed": null,
+    "keys_total": null,
+    "median_tokens": 659911,
+    "median_seconds": 96.293
+   },
+   "cases": [
+    "bounded-source-edge-repair",
+    "known-external-approval-blocker",
+    "missing-normative-redaction-source"
+   ],
+   "candidate_lower": true
+  }
+ },
+ "decisions": {
+  "registered": {
+   "winner": null,
+   "decided_by": null,
+   "blocked": false,
+   "blockers": [],
+   "reasons": [
+    "quality -1.19, 95% [-8.85, +6.26], Wilcoxon p=0.7532, 30 cells in 10 cases (points): inconclusive (not near-identical, and the tests do not agree on a difference)"
+   ]
+  },
+  "blocks_under_packaging": {
+   "winner": null,
+   "decided_by": null,
+   "blocked": false,
+   "blockers": [
+    "qualification in the three previously losing cases, pooled, lower: candidate 6/9, control 9/9 (finding F7)"
+   ],
+   "reasons": [
+    "quality -1.19, 95% [-8.85, +6.26], Wilcoxon p=0.7532, 30 cells in 10 cases (points): inconclusive (not near-identical, and the tests do not agree on a difference)"
+   ]
+  },
+  "combined": {
+   "winner": null,
+   "decided_by": null,
+   "blocked": false,
+   "blockers": [],
+   "reasons": [
+    "quality -1.19, 95% [-8.85, +6.26], Wilcoxon p=0.7532, 30 cells in 10 cases (points): inconclusive (not near-identical, and the tests do not agree on a difference)"
+   ]
+  },
+  "without_dependency-logic": {
+   "winner": null,
+   "decided_by": null,
+   "blocked": false,
+   "blockers": [],
+   "reasons": [
+    "quality -1.57, 95% [-9.12, +5.74], Wilcoxon p=0.7532, 30 cells in 10 cases (points): inconclusive (not near-identical, and the tests do not agree on a difference)"
+   ]
+  }
+ },
+ "robust_to_criterion": true,
+ "grader_noise_without_dependency-logic": {
+  "mean_pairwise_pass_difference": 1.622405372405372,
+  "bound": 0.94
+ },
+ "quality_without_dependency-logic": {
+  "mean": -1.5664,
+  "low": -9.1168,
+  "high": 5.7428,
+  "n": 30,
+  "cases": 10,
+  "case_mean": -1.5664,
+  "wilcoxon_p": 0.7532,
+  "candidate_higher": 5,
+  "candidate_lower": 13,
+  "per_case": {
+   "billing-late-fee": 17.0635,
+   "bounded-source-edge-repair": -26.0684,
+   "independent-inspection-scopes": 15.2778,
+   "known-external-approval-blocker": 0.0,
+   "legacy-draft-discovers-mapping": 0.0,
+   "library-reminders": -0.0,
+   "missing-normative-redaction-source": -1.8519,
+   "orders-cancel-rpc": -11.1111,
+   "revenue-export-lineage": -8.9744,
+   "stale-build-receipt-identity": 0.0
+  }
+ },
+ "grader_rows_mentioning_parallel_groups": {
+  "control": 0,
+  "candidate": 76
+ }
+}
