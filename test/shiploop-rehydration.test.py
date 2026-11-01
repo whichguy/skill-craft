@@ -18,6 +18,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -115,9 +116,10 @@ class MasterIndexTests(unittest.TestCase):
 
     def test_the_index_opens_with_a_map_of_about_three_kilobytes(self) -> None:
         state = drive_to("implement")
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary) / "run"
-            text = context_index.render(state, root, "implement")
+        # Fixed logical paths keep the prose budget independent of the installation and temporary directory.
+        with mock.patch.object(context_index, "SCRIPTS", Path("/simulation-only/shiploop/scripts")), \
+                mock.patch.object(context_index, "GUIDES", Path("/simulation-only/shiploop/references")):
+            text = context_index.render(state, Path("/simulation-only/run"), "implement")
         head = self.map_text(text)
         self.assertLess(len(head.encode("utf-8")), self.MAP_LIMIT)
         self.assertGreater(len(head.encode("utf-8")), 1_500)  # a real table, not a pointer
