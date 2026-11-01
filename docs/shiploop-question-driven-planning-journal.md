@@ -386,6 +386,29 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   - Q2 cannot separate the wordings from the cases, models and hosts that ran them.
 - Status: firm for Q1 (a replay over the saved runs, by its registered rule); observational for Q2.
 
+### E18 — 2026-11-01: the narrow second proof check, built for the Proof duty (saved runs, no model run)
+
+- Question: the owner asked "Do we need to do the second proof check? Propose and implement a plan".
+- Answer:
+  - Not for time. E17 puts every miss at about 10 minutes in 365 plans.
+  - For the Proof duty. The duty says a step's Proof proves its criteria at its done, and a plain suite Proof cannot
+    prove a criterion whose confirming test is unwritten. In A-ticket-assignment-s1, implement passed exactly that way.
+  - Plan: build E17's post-hoc variant as rule C of the shipped proof-order refusal. Freeze it, and pre-register a
+    held-out check before scoring (README "Follow-up").
+- Result:
+  - 0 mismatches between the shipped function and the replay, on 374 judged plans.
+  - 0 refusals on 42 held-out runs.
+  - The new tests fail on the old code and pass on the new.
+- Decision:
+  - Shipped in ShipLoop as a patch, with the packet text unchanged. Checked-by already names "a Proof needing an
+    unwritten test".
+  - No E2E round: the rule fires in about 1 plan in 120.
+- Contrary evidence:
+  - The in-sample case rests on 3 plans, and was chosen after seeing them.
+  - The held-out runs hold no catch.
+  - E17's 6 misses that name the test by identifier or in prose remain.
+- Status: firm for the mechanism (tests, replay equivalence). Its benefit is the duty, not measured time.
+
 ## Findings
 
 Each finding is stated in full, with its evidence, in §6.1 of the proposal document.
@@ -414,5 +437,6 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F20 | One sentence on the `experiment` route moves runtime questions there (10% -> 33%, p 0.0035) without over-routing, below the +1.0 bar; a prompt shifts what intake proposes, not what the run probes | firm (no-tool) | E13 |
 | F21 | A research duty that probes each `experiment` question rarely probes live (1 of 6 runs); every baseline failure on ticket-import was a step-plan stall, not a missed runtime fact | firm (mechanism), interim (stall rate) | E14 |
 | F22 | An executed criterion settling an open plan item holds live: used in 4 of 4 runs, all pass, and it replaces checks that time nothing (`node --version`, a 404 from the unbuilt route) with the item's own timed tests | firm (mechanism); no harm seen at 4 runs a side, not ruled out; unmeasured (stall rate, so the benefit). Corrected 2026-11-01 (E16); was "firm (mechanism, no harm)" | E15, E16 |
-| F23 | A refusal of a criterion whose Confirm by names an unwritten test does not pay. The registered no-path form catches 3 send-backs the shipped rule misses but would refuse 5 plans whose Proof tests the step directly; a proof-order send-back costs about 1 minute (n = 20), so the 9 misses are worth about 10 minutes in 365 plans; 6 of them name the test by identifier, not path | firm (replay, registered rule) | E17 |
+| F23 | A refusal of a criterion whose Confirm by names an unwritten test does not pay. The registered no-path form catches 3 send-backs the shipped rule misses but would refuse 5 plans whose Proof tests the step directly; a proof-order send-back costs about 1 minute (n = 20), so the 9 misses are worth about 10 minutes in 365 plans; 6 of them name the test by identifier, not path. Superseded in part 2026-11-01 (E18): its narrow form, plain suite Proofs only, is built for the Proof duty, not for time | firm (replay, registered rule) | E17, E18 |
 | F24 | No step-plan stall under fix 1's wording in 14 runs with an open item due (0–23%), against 4 of 33 before fix 11 (12%); one-sided p 0.23. One stop was outside XI's case | observational | E17 |
+| F25 | A plain suite Proof (`npm test`) is refused when its step's criterion is confirmed by a test the base lacks (rule C of the proof-order refusal): 3 of 365 judged plans in-sample, 0 false; 0 of 42 held-out runs | firm (mechanism) | E18 |

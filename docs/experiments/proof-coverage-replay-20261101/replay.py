@@ -366,5 +366,53 @@ def score(roots) -> None:
     print(json.dumps(report, indent=1))
 
 
+def shipped(roots) -> None:
+    """The follow-up's ship checks 1 and 2 (README, "Follow-up"): the shipped proof_order_refusal, rule C included,
+    against this file's post-hoc ``rule_c_generic`` on every judged plan, and its rule-C refusals on held-out runs (a
+    ``state.md`` created after the 2026-11-01 06:14 PST snapshot). Writes shipped-check.json."""
+    snapshot = 1793542440  # 2026-11-01 06:14:00 PST
+    mismatches, held_out, judged, held_runs = [], [], 0, set()
+    for run in runs(roots):
+        state = read(run)
+        if not state:
+            continue
+        fresh = (run / "state.md").stat().st_birthtime > snapshot
+        if fresh:
+            held_runs.add(label_of(run))
+        repo, history, accepted = state.get("repo"), state.get("history") or [], state.get("accepted") or {}
+        items = [str(w.get("id")) for w in state.get("work_items") or () if isinstance(w, dict)]
+        for index, row in enumerate(history):
+            plan = accepted.get(row.get("action"))
+            if row.get("stage") != "step-plan" or row.get("outcome") != "done" or not isinstance(plan, dict) or not repo:
+                continue
+            base = base_for(run, repo, row["action"], bool(items) and row.get("workitem") == items[0])
+            if not base or subprocess.run(["git", "-C", repo, "cat-file", "-e", f"{base}^{{commit}}"],
+                                          capture_output=True).returncode != 0:
+                continue
+            judged += 1
+
+            def exists(path, base=base, repo=repo):
+                return subprocess.run(["git", "-C", repo, "cat-file", "-e", f"{base}:{path}"],
+                                      capture_output=True).returncode == 0
+            rules_ab = scope.proof_order_refusal(dict(plan, steps=[dict(s, criteria=[]) for s in plan.get("steps") or ()
+                                                                   if isinstance(s, dict)]), exists)
+            if rules_ab:
+                continue
+            new = scope.proof_order_refusal(plan, exists)
+            replayed = confirm_by_hits(plan, exists, no_path_only=True, generic_only=True)
+            if bool(new) != bool(replayed):
+                mismatches.append({"run": label_of(run), "item": row.get("workitem"), "shipped": new[:200],
+                                   "replayed": replayed})
+            if new and fresh:
+                outcomes = [later.get("outcome") for later in history[index + 1:]
+                            if later.get("workitem") == row.get("workitem") and later.get("stage") == "implement"]
+                held_out.append({"run": label_of(run), "item": row.get("workitem"), "refusal": new,
+                                 "implement_outcomes": outcomes})
+    report = {"judged": judged, "mismatches": mismatches, "held_out_runs": len(held_runs),
+              "held_out_refusals": held_out}
+    (HERE / "shipped-check.json").write_text(json.dumps(report, indent=2) + "\n")
+    print(json.dumps(report, indent=1))
+
+
 if __name__ == "__main__":
-    {"sendbacks": sendbacks, "score": score}[sys.argv[1]](sys.argv[3:])
+    {"sendbacks": sendbacks, "score": score, "shipped": shipped}[sys.argv[1]](sys.argv[3:])

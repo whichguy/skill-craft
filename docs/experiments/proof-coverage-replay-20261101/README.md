@@ -233,3 +233,22 @@ Ship iff all three hold:
    one.
 3. **The tests pass.** Its route test passes (refused, then the corrected plan accepted through the real gate), and so
    does the quick tier.
+
+### Follow-up result (2026-11-01): shipped
+
+1. **The move kept the reading.** `replay.py shipped` writes `shipped-check.json`. On all 374 judged plans that rules A
+   and B pass, the shipped function refuses exactly the plans that replay.py's `rule_c_generic` refuses: 0 mismatches.
+   In-sample, these are the 3 plans of Q1's post-hoc row.
+2. **No false refusal on held-out runs.** 42 runs were created after the snapshot, and rule C refuses none of their
+   plans. That is 0 false, and also 0 caught, as expected at about 1 plan in 120.
+3. **The tests pass.** All of these pass, and all fail on the old code (2 failures and 1 error):
+   - the route test: refused, then the same callback accepts a direct Proof, and a plain suite Proof is accepted when the
+     base has the test;
+   - the reader test, for `generic_command` and `confirm_by_command`;
+   - the Checked-by guard row.
+
+   The quick tier result is in the commit.
+
+Decision: shipped in ShipLoop as a patch (`changes/shiploop/proof-order-plain-suite-proof.md`).
+- The packet text is unchanged. Step-plan's Checked-by line already names "a Proof needing an unwritten test".
+- The commit carries a No-E2E-Round reason. Rule C fires in about 1 plan in 120, so a live round would not exercise it.
