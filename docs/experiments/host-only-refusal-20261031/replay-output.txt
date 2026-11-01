@@ -1,0 +1,12 @@
+test records scanned: 2929; records that ran the drift check: 23
+drift refusals before: 6
+  removed by the exemption (hosted-runtime commands): 6
+  left (any other command): 0
+clean drift runs: 3 would now be skipped, 18 still run
+hosted-runtime runs by the way they were recognised: {'card': 2, 'target': 7}
+  removed: ns/battleship-candidate/.shiploop-runs/work-20261030-192802-b18b24/run | card | sf apex run test --target-org de --class-names SLBtlFull654E
+  removed: f_8a/development-01/run/.shiploop-runs/work-20261031-030317-734f4e/run | target | sf apex run test --target-org de --class-names SLNavUiEngine
+  removed: f_8a/development-01/run/.shiploop-runs/work-20261031-030317-734f4e/run | target | sf apex run test --target-org de --class-names SLNavUiEngine
+  removed: m-published-baseline-03/.shiploop-runs/work-20261031-122739-3e2dae/run | target | sf apex run test --target-org de --class-names SLGymControll
+  removed: 24/chess-sf-full-12a23d/.shiploop-runs/work-20261025-020942-4061a0/run | target | sf apex run test --target-org de --class-names SLChessRulesT
+  removed: 24/chess-sf-full-12a23d/.shiploop-runs/work-20261025-020942-4061a0/run | target | sf apex run test --target-org de --class-names SLChessBudget

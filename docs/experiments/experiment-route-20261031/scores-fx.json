@@ -1,0 +1,181 @@
+{
+  "rows": [
+    {
+      "run": "F-ticket-import-s1",
+      "arm": "F",
+      "sample": 1,
+      "end": "PASS",
+      "passes": true,
+      "open": {
+        "A2": "criterion"
+      },
+      "refusals": 0,
+      "failed": [],
+      "minutes": 10.4,
+      "send_backs": [
+        {
+          "stage": "implement",
+          "summary": "C1 and C2 require a new test file which the implementation contract forbids writing until test stage; revise step confirmations to runnable implementation-stage checks while retaining full test obligations. Implementation edits are present and must be preserved. npm test passed and lint found no new"
+        }
+      ],
+      "settled_by": {
+        "A2": "criterion: 5000 ticket persisted import responds under 10 seconds. Confirm by: node ../run/scratch/import-probe.js; pass when timed assertion passes."
+      }
+    },
+    {
+      "run": "F-ticket-import-s2",
+      "arm": "F",
+      "sample": 2,
+      "end": "PASS",
+      "passes": true,
+      "open": {
+        "A2": "criterion"
+      },
+      "refusals": 0,
+      "failed": [],
+      "minutes": 11.5,
+      "send_backs": [],
+      "settled_by": {
+        "A2": "criterion: R-2 and R-3: 5000 persisted tickets return under 10 seconds and existing behavior remains intact. Confirm by: focused and regression suite; pass when timed case and existing tests pass."
+      }
+    },
+    {
+      "run": "F-ticket-import-s3",
+      "arm": "F",
+      "sample": 3,
+      "end": "PASS",
+      "passes": true,
+      "open": {
+        "A2": "criterion"
+      },
+      "refusals": 0,
+      "failed": [],
+      "minutes": 11.0,
+      "send_backs": [],
+      "settled_by": {
+        "A2": "criterion: R-3 persistent 5000-item import responds within 10 seconds and existing behavior passes. Confirm by: timed HTTP test and npm test; pass when all assertions succeed."
+      }
+    },
+    {
+      "run": "F-ticket-import-s4",
+      "arm": "F",
+      "sample": 4,
+      "end": "PASS",
+      "passes": true,
+      "open": {
+        "A2": "criterion"
+      },
+      "refusals": 0,
+      "failed": [],
+      "minutes": 14.4,
+      "send_backs": [],
+      "settled_by": {
+        "A2": "criterion: R-3: A 5000-item HTTP import with persistence completes within 10 seconds and supports maximum escaped valid fields. Confirm by: timed node:test; pass when count, IDs and duration match."
+      }
+    },
+    {
+      "run": "P-ticket-import-s1",
+      "arm": "P",
+      "sample": 1,
+      "end": "PASS",
+      "passes": true,
+      "open": {
+        "A2": "expectation"
+      },
+      "refusals": 0,
+      "failed": [],
+      "minutes": 11.9,
+      "send_backs": [
+        {
+          "stage": "test-spec",
+          "summary": "The step plan lists only TC_IMPORT but two criteria C1 and C2; test-spec requires exactly one case per listed ID and one criterion per case, so add a second focused ID to cover C2 without dropping C1. Preserve all existing cases and checks."
+        }
+      ],
+      "settled_by": {
+        "A2": "expectation: node --version"
+      }
+    },
+    {
+      "run": "P-ticket-import-s2",
+      "arm": "P",
+      "sample": 2,
+      "end": "PASS",
+      "passes": true,
+      "open": {
+        "A2": "expectation"
+      },
+      "refusals": 1,
+      "failed": [],
+      "minutes": 16.1,
+      "send_backs": [
+        {
+          "stage": "test",
+          "summary": "TC_1 and TC_2 specify HTTP route outcomes but S1 implements only validation; the HTTP route is scheduled for S3. Split validation tests from route tests so each stage can satisfy its own checks without future implementation."
+        }
+      ],
+      "settled_by": {
+        "A2": "expectation: node -e \"const assert=require('node:assert/strict');require('./test/helpers').withService({},async api=>{const r=await api.post('/tickets/import',{tickets:[]});assert.equal(r.status,404)}).catch(e=>{console.error(e);process.exitCode=1})\""
+      }
+    },
+    {
+      "run": "P-ticket-import-s3",
+      "arm": "P",
+      "sample": 3,
+      "end": "PASS",
+      "passes": true,
+      "open": {
+        "A2": "expectation"
+      },
+      "refusals": 0,
+      "failed": [],
+      "minutes": 12.9,
+      "send_backs": [
+        {
+          "stage": "implement",
+          "summary": "Accepted step proof has broken shell quoting and fails with SyntaxError before executing; see implement-proof.txt. Return to step-plan to correct quoting without weakening assertions. Preserve product edits and revalidate them; performance remains unverified."
+        }
+      ],
+      "settled_by": {
+        "A2": "expectation: node --test test/store.test.js"
+      }
+    },
+    {
+      "run": "P-ticket-import-s4",
+      "arm": "P",
+      "sample": 4,
+      "end": "PASS",
+      "passes": true,
+      "open": {
+        "A2": "expectation"
+      },
+      "refusals": 0,
+      "failed": [],
+      "minutes": 15.3,
+      "send_backs": [],
+      "settled_by": {
+        "A2": "expectation: node -e \"require('./src/store')\""
+      }
+    }
+  ],
+  "arms": {
+    "F": {
+      "n": 4,
+      "passes": 4,
+      "with_open_item": 4,
+      "criterion_route": 4,
+      "refusals_of_the_rule": 0
+    },
+    "P": {
+      "n": 4,
+      "passes": 4,
+      "with_open_item": 4,
+      "criterion_route": 0,
+      "refusals_of_the_rule": 1
+    }
+  },
+  "rule": {
+    "no_harm": true,
+    "mechanism": true,
+    "adopt": true
+  }
+}

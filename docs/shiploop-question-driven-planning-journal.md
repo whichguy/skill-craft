@@ -287,6 +287,42 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   `experiment` in all four samples.
 - Status: firm (no-tool exercise, one judge).
 
+### E14 — 2026-10-31: XI, does research probing each `experiment` question help live delivery? (Terra high, all tools)
+
+- Method (pre-registered in 593b4b44, README "XI"; amended in 7911224b before any arm-B work): the case ticket-import
+  (calibrated in 4b62715e) asks for POST /tickets/import of up to 5000 tickets, all or none, answered within 10 seconds,
+  and leaves unnamed the base facts it turns on (a 64 KiB body limit, a data file rewritten after every change, create's
+  audit and notification, ordered numbers). Arm A: ShipLoop at main 02a215e9. Arm B: A plus a research duty and gate
+  that probe each intake question routed `experiment` (b174d6b2, kept on exp/experiment-route-candidate-f3da32). Codex
+  Terra 6.1 high, all tools, one lane, 6 runs a side.
+- Result: A 3 of 6 pass every held-out check, B 6 of 6 (exact one-sided p = 0.0909, needed < 0.05); probe commands are
+  in the host's event stream in 1 of 6 B runs (needed 4). Not adopted (empty learning commit 2ae6200e).
+- Reading: no run missed a runtime fact. All three A failures are one stall at step-plan: plan left the unbuilt
+  endpoint's timing open, due at W1, step-plan's rule asked for an expectation checked on the unchanged base, and the
+  model judged that impossible and stopped. B's research mostly wrote the question down as open ("the endpoint does not
+  exist yet") instead of probing it. The stall is a defect of the rule, which fix 1 changes (8dee00e0, 035b3a41, in
+  2.27.0); E15 measures that.
+- Status: firm that the candidate's mechanism did not fire (1 of 6); interim on the stall rate (3 of 6 against 0 of 6,
+  p 0.09).
+
+### E15 — 2026-10-31: FX, does settling an open plan item through an executed criterion hold live? (Terra high, all tools)
+
+- Method (pre-registered in 1670f8f5, README "FX", before the first FX run at 15:28): ticket-import again. Arm P: ShipLoop as on main
+  7f565994 (2.26.2) plus the case. Arm F: P plus fix 1 (8dee00e0, 035b3a41; the rule published in 2.27.0). 4 runs a
+  side in the order P F F P P F F P, one lane. Rule: adopt iff F passes at least as many runs as P, a criterion cites the
+  open item in at least 3 of the F runs that have one, and the quick tier passes.
+- Result: P 4 of 4 and F 4 of 4 pass every held-out check. Every plan in both arms left the timing item (A2: 5000
+  imports answer within 10 seconds) open, due at W1. Every F step plan settled it with an executed criterion (4 of 4).
+  Every P step plan met the old rule with an expectation that times nothing: `node --version`, the unbuilt route
+  answering 404, the existing store's tests, a check that the store module loads. The rule refused P once (s2), F
+  never; no run stalled. Adopted: fix 1 stays as shipped.
+- Reading: with fix 1 the item is settled where it can be: by the item's own tests after the build, a timed scratch
+  probe at implement (s1) or the focused suite's timed 5000-ticket test (s2 to s4). Contrary: the delivered tests time
+  the import in both arms, so the change is to what planning records and to the stall path, not to what is tested; and
+  P never stalled (c2da4604 reworded its step-plan `from` duty after XI's baseline), so no stall rate is measured.
+  Mean minutes F 11.8, P 14.1 (exact one-sided p 0.086; not a pre-registered test, no claim).
+- Status: firm for the mechanism and no harm on this case; the stall rate is unmeasured.
+
 ## Findings
 
 Each finding is stated in full, with its evidence, in §6.1 of the proposal document.
@@ -299,7 +335,7 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F4 | On Sonnet 5.5 the shipped intake already surfaces 93% of omitted decisions; a catalog adds cost and wrong guesses | exploratory | E2 |
 | F5 | Without an intent oracle, gains from questions are small and early assumptions persist | firm (literature) | E3 |
 | F6 | Implicit requirements in interfaces, conventions and invariants dominate autonomous failures and are repository-checkable | firm (literature, grade C) | E3 |
-| F7 | Plan-time experiments are unused live; research's prose allowance conflicts with the no-caps rule | firm | E1, E3 |
+| F7 | Plan-time experiments are unused live; research's prose allowance conflicts with the no-caps rule; a duty to probe each `experiment` question probed in 1 of 6 runs (E14), while the item's own timed tests settle what only the built code shows (E15) | firm | E1, E3, E14, E15 |
 | F8 | 42% of acted planning findings were missing content, the class questions could move earlier (unmeasured) | interim | E1 |
 | F9 | Step planning's measured failure is Proof order (SG1/D6 in flight) | firm (two live cases) | E1 |
 | F10 | Plan and step-plan packet heads are at their print bound; a quoted record belongs in the packet file | firm | E1 |
@@ -313,3 +349,5 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F18 | Live on Terra high the refusal moves the proof-order fault from a send-back to one step-plan refusal (0 of 6 runs with the send-back against 4 of 6, p 0.03), with every hidden check kept; the ledger is written without a gate | firm (proof order), interim (time) | E10 |
 | F19 | On the brownfield cases we have, runs already find runtime facts and keep existing behaviour: 26 of 26 completed runs pass every held-out check, 0 of 17 products break a probed behaviour; a plan-time experiment step has nothing to bind there | firm (two Node bases) | E12 |
 | F20 | One sentence on the `experiment` route moves runtime questions there (10% -> 33%, p 0.0035) without over-routing, below the +1.0 bar; a prompt shifts what intake proposes, not what the run probes | firm (no-tool) | E13 |
+| F21 | A research duty that probes each `experiment` question rarely probes live (1 of 6 runs); every baseline failure on ticket-import was a step-plan stall, not a missed runtime fact | firm (mechanism), interim (stall rate) | E14 |
+| F22 | An executed criterion settling an open plan item holds live: used in 4 of 4 runs, all pass, and it replaces checks that time nothing (`node --version`, a 404 from the unbuilt route) with the item's own timed tests | firm (mechanism, no harm), unmeasured (stall rate) | E15 |

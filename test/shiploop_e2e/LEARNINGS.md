@@ -5237,3 +5237,89 @@ docs/shiploop-question-record-verdicts-and-plan-2026-10-31.md §3.
 
 **Not measured.** One subject and effort; three cases; long requests (fix 9: these prompts are short); the
 release-verify restate path (no run left a due `unverified` entry).
+
+## Open plan item settled by an executed criterion (fix 1): E2E round on the Codex harness, Terra 6.1 high (2026-10-31) — status: firm that the route holds live on this case (used in 4 of 4 runs, no harm); the stall rate it removes is not measured here
+
+**Change under test.** 8dee00e0, with 035b3a41's doc fit, published in 2.27.0 (eeb433d5). It lets an executed criterion
+settle an open plan assumption due at its item through `from`, as an expectation already could. Before it, the
+step-plan gate accepted only an expectation. An expectation's check runs on the unchanged item base at
+validate-existing, so an assumption about what the item builds could be met only by a check that settles nothing, or not
+at all. Here the assumption was that the unbuilt import endpoint answers 5000 tickets within 10 seconds.
+
+Replaying 205 traced runs found 15 refusals of the rule:
+- 4 about what already exists, each met with a real experiment;
+- 10 met with a check that settled nothing;
+- 1 stall (XI A s1).
+
+In XI (journal E14), ShipLoop at 02a215e9 stopped at this rule in 3 of 6 ticket-import runs. Both commits carry a
+`No-E2E-Round` trailer that names this round as their live check.
+
+**Runs.**
+- Command: `run.py --case ticket-import --host codex --model gpt-6.1-terra --effort high --source checkout --timeout
+  7200 --permission-mode auto`, hooks on, one lane (port 4180).
+- Output in `~/e2e-runs-xr/20261031/<P|F>-ticket-import-s<n>`.
+- Arm P: ShipLoop as on main 7f565994 (2.26.2) plus the case, from a detached worktree at 7167c284 (`skills/`
+  identical to 7f565994).
+- Arm F: P plus fix 1, at 52feffd0 (aa99fdff plus dcf98cb6). Its `skills/` equal 2.27.0's except for version strings.
+- Order P F F P P F F P, pre-registered in 1670f8f5 (docs/experiments/experiment-route-20261031/README.md "FX")
+  before the first run.
+- Reader: `docs/experiments/experiment-route-20261031/score_fx.py` (`scores-fx.json`). It reports:
+  - held-out acceptance (13 checks) and the end state;
+  - minutes;
+  - each open item due at an item, with the route and the command its step plans cite it by;
+  - refusals of the rule in RUN/trace.jsonl;
+  - send-backs.
+
+**Result.**
+
+| Run | Held-out checks | End | Minutes | Open item: route and the command that settles it | Refusals of the rule | Send-backs |
+|---|---|---|---|---|---|---|
+| P s1 | 13/13 | PASS | 11.9 | A2 expectation: `node --version` | 0 | test-spec |
+| F s1 | 13/13 | PASS | 10.4 | A2 criterion: `node ../run/scratch/import-probe.js` | 0 | implement |
+| F s2 | 13/13 | PASS | 11.5 | A2 criterion: `focused and regression suite` | 0 | none |
+| P s2 | 13/13 | PASS | 16.1 | A2 expectation: `node -e "const … assert.equal(r.status,404)}).catch(e=>{c` | 1 | test |
+| P s3 | 13/13 | PASS | 12.9 | A2 expectation: `node --test test/store.test.js` | 0 | implement |
+| F s3 | 13/13 | PASS | 11.0 | A2 criterion: `timed HTTP test and npm test` | 0 | none |
+| F s4 | 13/13 | PASS | 14.4 | A2 criterion: `timed node:test` | 0 | none |
+| P s4 | 13/13 | PASS | 15.3 | A2 expectation: `node -e "require('./src/store')"` | 0 | none |
+
+- Rule (README "FX"), all three met:
+  1. F passes 4 of 4 against P's 4 of 4.
+  2. Every F plan leaves A2 open, and every F step plan cites it through an executed criterion (4 of 4; 3 needed).
+  3. The fix's one quick-tier failure (package integrity) was fixed in 035b3a41, and the full CI tier passed on
+     eeb433d5 (run 41247212349).
+
+  Decision: fix 1 is retained as shipped. Nothing is reverted and no release follows. The rule was settled once F s4
+  passed, since F 4 of 4 cannot be beaten; P s4 completed the pre-registered record.
+- Refusals of the rule: P 1 (s2: "add an expectation…", then an expectation that the import route answers 404
+  on the base), F 0. No run stalled in either arm.
+- Mean minutes: P 14.1, F 11.8 (exact one-sided p 0.086, not a pre-registered test). No time effect is claimed.
+
+**Reading.** With fix 1, the open item is settled by the item's own tests after the build:
+- a scratch probe that times 5000 persisted imports and a restart at implement (s1);
+- the focused suite's timed 5000-ticket test (s2 to s4).
+
+Without it, every P step plan met the rule with an expectation that times nothing: `node --version`, the not-yet-built
+route answering 404, the existing store's tests, a check that the store module loads.
+
+**Contrary evidence.**
+- The test stage writes a timed 5000-ticket test in both arms (P s1 `TC_SCALE`, F s1 `TC-2`, F s2 `TC_4`): the spec
+  carries the 10-second requirement. The route changes what the step plan records as settling the item, and removes the
+  stall path; it does not change what gets tested.
+- P never stalled. Its step-plan wording differs from XI's baseline: c2da4604, the stage-prompt review's fix 11,
+  reworded the `from` duty. So this round shows no stall rate either way.
+- F s1's one send-back was a step whose Proof (`npm test`) could not run the item's new criteria at implement. The
+  criterion without a `from` (C1) had the same fault. The proof-order refusal reads only test paths a Proof names, so it
+  does not see this. It is a separate step-plan gap.
+
+**Not measured.**
+- One case on one base, one subject and effort, 4 runs a side.
+- The stall rate on 2.27.0's baseline wording.
+- DeepSeek flash and the other hosts.
+
+**Evidence.**
+- Runs: `~/e2e-runs-xr/20261031/[PF]-ticket-import-s*`.
+- `docs/experiments/experiment-route-20261031/`: README "FX", `score_fx.py`, `scores-fx.json`.
+- Baseline rows appended to test/shiploop_e2e/baselines.jsonl: FX's 8 and XI arm A's 6. XI arm B, the rejected
+  candidate, is not appended.
+- Journal docs/shiploop-question-driven-planning-journal.md, E14 and E15.

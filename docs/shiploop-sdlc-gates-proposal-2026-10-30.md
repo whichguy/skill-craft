@@ -5,6 +5,8 @@ Status: **approved 2026-10-30 as recommended (D1–D8)**: owner, "Recommend and 
     replay tool. Its verdict needs the owner's saved runs.
   - SG2 is declared in PR #27, which moves the harness digests, so merge it between epochs. It waits for a Codex Terra
     host: this container has no Codex CLI, and the Ollama route is at its monthly limit.
+  - SG2 ran a five-slice smoke on 2026-10-31 and the owner closed it the same day ("Close SG2"): docs/experiments/
+    sdlc-gates-20261030/sg2-smoke-20261031.md. D3b has no result.
 Opened: 2026-10-30
 Consumer: the owner, who approves, strikes or re-scopes each decision in §7 before anything is built or run; later,
   whoever proposes a ShipLoop gate from outside research and needs the bar it must meet
@@ -247,6 +249,7 @@ SG4 (same failure on an unchanged tree) was planned and is dropped: the audit in
 **Decided 2026-10-30.** Owner: "Recommend and proceed". Each decision below is taken as recommended:
 - D1, D2, D7, D8: as written.
 - D3: approved. D3b waits for SG2's result.
+  - 2026-10-31: SG2 closed by the owner after the smoke. D3b has no result and is not proposed; the 2026-09-24 default stands.
 - D4: D-10 is kept.
 - D5: V4 is not adopted.
 - D6: waits for SG1's replay on the full saved runs.

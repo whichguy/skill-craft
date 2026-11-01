@@ -1,7 +1,8 @@
 ---
-Execute: ask
-Status: **proposal**. The harness side (sections 4 and 5) is built, tested and pushed to main (03d046c6, aa601d37; quick tier 65 of 65). The ShipLoop behaviour
-  changes (D2 to D4) and the build of the fourth link wait for the owner and for the first live third pass (section 6, E1).
+Execute: inline
+Status: **D1 to D5 approved as recommended (owner, 2026-10-31, "Approve all")**. The harness side (sections 4 and 5) is built, tested and pushed to main
+  (03d046c6, aa601d37; quick tier 65 of 65). The ShipLoop behaviour changes (D2 to D4) are built as one candidate on a branch and stay off main until the A/B
+  (E2) meets the bar the journal's Round 2 fixed before any run; the fourth link waits for the first live third pass (E1), chain B for E2.
 Opened: 2026-10-31
 Consumer: the owner, who decides D1 to D5 in section 7; later whoever adds the fourth link or changes how a stage writes the
   living files, and reads the ledger as the before and after
@@ -12,9 +13,10 @@ Journal: [shiploop-multipass-journal.md](shiploop-multipass-journal.md); evidenc
 
 ## 0. The answer
 
-1. **A second pass works. A third has never run.** Eight saved second passes (four pairs on Codex Terra) all passed, kept every earlier
+1. **A second and a third pass work, and the third repeats both leaks.** Eight saved second passes (four pairs on Codex Terra) all passed, kept every earlier
    requirement and decision, numbered the new ones correctly, wrote tests only for the new requirements and touched no earlier test
-   ([journal F4, F7](shiploop-multipass-journal.md)). Nothing says the third behaves the same; the first live one is queued (E1).
+   ([journal F4, F7](shiploop-multipass-journal.md)). The first live third pass (E1, 2026-10-31) passed 13 of 13 checks and 14 of 14 hidden checks, kept R-1 to R-7
+   byte for byte, added 8 stage-report headings (+6.0 KiB) and filed its new decision under `## Superseded` again (journal Round 1, F8).
 2. **The permanent files do not stay permanent.** `environment.md` grows 5 to 6 KiB per pass as a chronological record of stage reports,
    and `architecture.md` receives each pass's decision by appending after the last heading: in one of four runs a live decision landed
    under `## Superseded`, and the engine itself then labels it superseded in the next pass's packet (F1, F2).
@@ -29,8 +31,8 @@ Journal: [shiploop-multipass-journal.md](shiploop-multipass-journal.md); evidenc
    and a second chain on a small base are designed here and not built (section 4).
 6. **The delta is now recorded.** Every run's `metrics.json` carries a `delta` block: what changed against the head the run started from,
    where new knowledge landed, how much of the plan was about the new feature, and what the next pass finds. It is a record, not a verdict.
-7. **Needs your word:** D2 to D4 change what ShipLoop's stages write (a counted notice, three duty edits). The evidence is in; the test is
-   an A/B read through the ledger (E2). D1 and D5 are scope.
+7. **Decided (owner, 2026-10-31, "Approve all"):** D1 to D5 as recommended. D2 to D4 change what ShipLoop's stages write (a counted notice, duty
+   edits); they are built as a candidate and tested by an A/B read through the ledger (E2) before they reach main. D1 and D5 are scope.
 
 ## 1. The request, in order, and where each part is answered
 
@@ -71,7 +73,7 @@ three files and the commit messages and nothing of the first run's folder.
 | **A. Three living files, edited in place; current activity stays in the run folder and the commit trail** | already the design; the next pass reads exactly these; no new consumer | the leak (F1 to F3) needs a fix at the stages that write | **recommended (D1)** |
 | B. A file per run in the repository (`docs/shiploop/runs/<label>.md`) | explicit trace of each pass | removed 2026-10-11 for lack of a reader; the delta is derivable from Git; n files for n passes | reject |
 | C. A change log section in the spec | human-readable history | duplicates `git log`; grows; the origin of an ID is derivable (`git log -S`) | reject; add run-label provenance instead (D4) |
-| D. Stage reports out of `environment.md` and into the run's notes | removes F2 at its root: all 36 stray headings are stage reports, and the next run needs none of them | edits the duty text of eight stages; touches X11's "under whatever heading the run uses" | this is D3 |
+| D. Stage reports out of `environment.md` and into the run's notes | removes F2 at its root: 30 of the 36 stray headings are stage reports and 2 are second copies of the release procedure (the other 4 are that procedure, which X11 intends), and the next run needs none of them | edits the duty text of eight stages; touches X11's "under whatever heading the run uses" | this is D3 |
 
 ## 3. Is ShipLoop set up for an nth pass?
 
@@ -81,7 +83,7 @@ three files and the commit messages and nothing of the first run's folder.
 | It reads the inherited knowledge | `READS` lists the living files in 17 of 24 stages; intake quotes the last three commits and the newest lessons commit | shell reads of the files in every run; one lessons commit per pass with three non-empty fields | works |
 | New data gets new IDs and old ones stay | monotonic `R-<n>` and `AD-<n>`; the refusal of a dropped ID | 0 changed, dropped or retired earlier entries in 4 of 4; numbering continued correctly | works |
 | It does not rebuild the old run | `primary` and the test cases scope to the delta | tests cite no kept ID (0 of 19); no earlier test touched (0 of 4); `follows` still names kept IDs in 3 of 4 | works at n=2; `follows` interim |
-| It inherits decisions | the AD list, the standing suite, hidden latent facts | pair: 14 of 14 hidden checks in 4 of 4, 7 facts kept from pass 1 | works at n=2; n=3 untested |
+| It inherits decisions | the AD list, the standing suite, hidden latent facts | pair: 14 of 14 hidden checks in 4 of 4, 7 facts kept from pass 1; third pass: 14 of 14 | works at n=2, and in one run at n=3 |
 | Permanent files stay permanent | nothing enforces position or purpose; `X11` forbids a heading gate | `environment.md` +4.5 to 6.4 KiB in pass 2; 4 of 4 `architecture.md` outside their sections; the third pass's first packet lists `AD-3` under `## Superseded` and 22 `environment.md` headings, and a 40-heading cap would hide the newest sections from the fifth pass (arithmetic) | **fails, and compounds** |
 | Architecture updated when the feature updates it | stages' duties say "under `## Decisions`" | updated in a section it belongs in: 2 of 4; under Superseded: 1; nowhere: 1 | **inconsistent** |
 | The delta can be traced afterwards | `spec_diff` covers spec and architecture only | the ledger now covers IDs, placement, footprint, plan, handoff | built (section 5) |
@@ -144,8 +146,8 @@ heuristics, and a ledger of a first pass on a fixture has nothing to compare an 
 | | Question | State |
 |---|---|---|
 | E0 | What does a second pass leave in the three files? | done: 8 saved runs, [journal Round 0](shiploop-multipass-journal.md) |
-| E1 | Does a third pass inherit and is it harmed by the second's leftovers? | queued: `ticket-comments` from the saved `bf-codex-r2` pass 2, Codex Terra `xhigh`, ShipLoop 1.26.0; waits on port 4180, which another session's runs hold |
-| E2 | Does a counted notice plus named destinations (D2, D3) reduce the leak without losing function? | proposed, after D2 and D3 |
+| E1 | Does a third pass inherit and is it harmed by the second's leftovers? | done 2026-10-31: `ticket-comments` from the saved `bf-codex-r2` pass 2, Codex Terra `xhigh`, ShipLoop 1.26.0: passed, nothing lost, both leaks repeated (journal Round 1) |
+| E2 | Does a counted notice plus named destinations (D2, D3, D4) reduce the leak without losing function? | candidate built; arms, bar and predictions fixed in the journal's Round 2; runs after E1 |
 | E3 | Does a modifying fourth link retire and supersede rather than duplicate? | proposed, after E1 |
 
 **E1 predictions** are in the journal before the run, and [round1_readout.py](experiments/multipass-20261031/round1_readout.py) scores them from the run's own files. **Decision rule for E1:** a lost retained check or inherited hidden check means the leftovers
@@ -162,11 +164,13 @@ added a decision, and no hidden check lost in either arm. About six chains at 40
 |---|---|---|---|
 | **D1** | Keep three living files, add no per-run file to the repository, derive the delta | **yes** | section 2 |
 | **D2** | A counted, non-refusing notice at each knowledge close: an entry that is new in this edit but sits under Retired or Superseded; level-2 headings the edit added that are no named section or repeat one | **yes, behind E2** | consistent with X11 (a count, never a refusal); the first alone fixes the case where the script mislabels a live decision |
-| **D3** | Name the destination in the duties of the stages that report (prepare, carry-forward, release-plan, release-verify, operations, system-test-author, discovery, test-strategy): standing facts under the named sections, no stage report, no date, no "this run" | **yes, behind E2** | all 36 stray headings are those stages' reports; amends X11's "under whatever heading the run uses" to "standing, without run-specific values", its stated intent |
+| **D3** | Name the destination in the duties of the stages that report (prepare, carry-forward, release-plan, release-verify, operations, system-test-author, discovery, test-strategy): standing facts under the named sections, no stage report, no date, no "this run" | **yes, behind E2** | 30 of the 36 stray headings are those stages' reports and 2 are second copies of the release procedure; the other 4, release-plan's first-pass procedure, stay allowed; amends X11's "under whatever heading the run uses" to "standing, without run-specific values", its stated intent |
 | **D4** | The spec duty: title the file by the product, cite a requirement's basis by run label or date, never "current request" | **yes, with D3** | 4 of 4 specs; one sentence, no gate |
 | **D5** | Build the fourth link (modifying) after E1, and chain B after E2 | **yes** | section 4 |
 
-Each of D2 to D4 changes what a ShipLoop stage writes, which `AGENTS.md` keeps for the owner. None is built.
+Each of D2 to D4 changes what a ShipLoop stage writes, which `AGENTS.md` keeps for the owner. **Decided 2026-10-31: the owner approved D1 to D5 as
+recommended ("Approve all").** D2 to D4 are built as one candidate (branch `feat/multipass-placement-725e1a`); "behind E2" is read as: kept off main,
+merged only when E2 meets its bar.
 
 ## 8. Order
 

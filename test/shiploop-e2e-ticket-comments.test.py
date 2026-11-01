@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -46,6 +47,11 @@ CASES = json.loads(run.CASES.read_text())
 CASE = CASES["ticket-comments"]
 OWN, RETENTION = CASE["checks"], CASE["retention"]
 NAMES = ("basics", "notified", "persisted")
+
+# The deliveries are Node and the cases' HTTP checks run through serve.py, which finds the listener with lsof: where either is missing the
+# classes that start servers are skipped, as the pair's calibration (shiploop-e2e-brownfield-tickets.test.py) skips them.
+needs_servers = unittest.skipUnless(shutil.which("node") and shutil.which("lsof"),
+                                    "the cases' HTTP checks run through serve.py, which needs node and lsof")
 
 SPEC_BEFORE = "# Spec\n\n## Requirements\n\n### R-1 Assignment\nA ticket is assigned.\n\n### R-2 Escalation\nUrgent tickets are escalated.\n"
 SPEC_AFTER = SPEC_BEFORE + "\n### R-3 Comments\nA ticket takes comments.\n"
@@ -135,6 +141,7 @@ class CaseDeclarationTest(unittest.TestCase):
             self.assertIn(case, note)
 
 
+@needs_servers
 class CalibrationTest(Isolated):
     """The three checks of the new feature against the base, the reference and each defect."""
 
@@ -173,6 +180,7 @@ class CalibrationTest(Isolated):
         self.assertTrue(all(defects.values()))
 
 
+@needs_servers
 class ChainRunTest(Isolated):
     """The whole chain's checks, as the harness runs them after a delivery, with the second link's reference as the run before."""
 
@@ -211,6 +219,7 @@ class ChainRunTest(Isolated):
         self.assertEqual(self.checks(work, RETENTION, self.prior), [False, True, True, False, False])
 
 
+@needs_servers
 class InheritedAcceptanceTest(Isolated):
     """The hidden acceptance the link inherits from the second link: the third pass is held to what the second built."""
 
