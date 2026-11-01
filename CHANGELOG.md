@@ -4,6 +4,17 @@ Written by scripts/release.py.
 
 ## 2026-11-01
 
+### skill-craft 2.28.1
+
+- Skills: shiploop-e2e-audit 0.7.16
+
+### shiploop-e2e-audit 0.7.16
+
+- Make improvement checkpoints record conclusions, unknowns and the next useful
+  experiment. Calibrate behavioral checks before live comparisons and require
+  review-boundary evidence before crediting a repair. Clarify how campaigns that
+  publish between improvements use the existing one-iteration option.
+
 ### skill-craft 2.28.0
 
 - Skills: shiploop 1.27.0
