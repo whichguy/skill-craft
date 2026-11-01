@@ -191,6 +191,36 @@ python3 test/shiploop_e2e/stage_suite/stages.py live step-plan/proof-runs-focuse
 python3 -I docs/experiments/step-plan-round2-20261101/score_xa.py B=<root> [B=<root2>] T=<root> --out xa_scores.jsonl
 ```
 
+## Amendment, before any arm T sample (2026-11-01, after arm B's pilot)
+
+Arm B's 4 pilot samples (on 49d21bc5, Codex Terra 6.1 xhigh, about 70 seconds each) produced a third form that the registered scorer does
+not count.
+
+- **The third form.** Sample 4 proves S1 with `node --test --test-name-pattern='TC_2|TC_5' && rg 'HTTP contract' server.js`, S2 with
+  `node --test --test-name-pattern='TC_1|TC_3'` and S3 with `node --test --test-name-pattern=TC_4`. Each is a filtered copy of its focused
+  suite (`node --test --test-name-pattern='TC_1|TC_2|TC_3|TC_4|TC_5'`), with no file.
+  - On the empty base node's runner finds only this item's test files, and each step's own cases are written after that step's implement.
+    So every one of these Proofs runs no test at its step's done. That is the class's fault.
+  - Form 2 as registered needs the focused command verbatim, so it misses this.
+  - Samples 1 to 3 are clean under either reading. Two of them run node's runner on a scratch file the step plan wrote, which exists at the
+    step's done; the third runs that scratch file with `node`.
+- **The amended measure.**
+  - Form 2 now counts `form2_filtered` as well (`proofscore.classify`). This is a whole segment that names no path or inline code and runs
+    the same program (its first two words) as a generic focused command whose IDs no base code or test file holds.
+  - The registered verbatim reading is reported beside it in every table (`faulty_registered`).
+  - `test_scorers.py` gains the pilot's samples 1 and 4 and a filtered suite whose IDs a base test holds (13 tests, all pass).
+- **What follows from the amendment.**
+  - The pilot reads 1 of 4 under the amended measure (sample 4) and 0 of 4 under the registered one.
+  - The amended branch is taken: 12 per arm. B's pilot is its first 4, so 8 more B samples run.
+  - The registered branch would have run 4 more B samples, so B gets those either way.
+- **A2's rule, amended.** T has form 2 (verbatim or filtered) in at most 1 of 12, and B's excess over T is significant: exact one-sided
+  Fisher p at most 0.10. The verdict under the registered reading is reported too. This amendment is made after seeing arm B's data and
+  before any arm T sample; it widens what counts as the fault, not what counts as a success.
+
 ## Results
 
-(appended after the runs)
+| Run | Arm | Samples | Faulty (amended) | Form 1 | Form 2 verbatim | Form 2 filtered only | Faulty (registered) | Short of IDs | Not done | Refusals |
+|---|---|---|---|---|---|---|---|---|---|---|
+| pilot | B (49d21bc5) | 4 | 1 (sample 4) | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
+
+Evidence: `xa_scores.jsonl` (score_xa.py); the runs in `~/e2e-runs-sp/20261101/round2/xa-B/` (outside git).

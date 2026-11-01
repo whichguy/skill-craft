@@ -33,13 +33,16 @@ def score(arm: str, root: Path) -> list[dict]:
             found = proofscore.classify(plan, base, base)
             row.update({
                 "outcome": plan.get("outcome"),
-                "form1": found["form1"], "form2": found["form2"],
-                "faulty": bool(found["form1"] or found["form2"]),
+                "form1": found["form1"], "form2": found["form2"], "form2_filtered": found["form2_filtered"],
+                "faulty_registered": bool(found["form1"] or found["form2"]),
+                "faulty": bool(found["form1"] or found["form2"] or found["form2_filtered"]),
+                "form2_any": bool(found["form2"] or found["form2_filtered"]),
                 "proofs": {str(step.get("id")): step.get("proof") for step in plan.get("steps") or () if isinstance(step, dict)},
                 "steps": len(plan.get("steps") or ()),
                 "criteria_without_ids": test_loop.criteria_without_ids(plan.get("test_commands") or [], plan.get("criteria") or []),
                 "focused_commands": [c.get("command") for c in plan.get("test_commands") or () if isinstance(c, dict) and c.get("suite") == "focused"],
                 "refusals": samples.refusals(bundle.trace),
+                "minutes": round(sum(float(s.get("seconds") or 0) for s in (read["verdict"] or {}).get("sessions") or ()) / 60, 2),
                 "oracle_pass": (read["verdict"] or {}).get("pass"),
                 "oracle_ids": (read["verdict"] or {}).get("ids"),
             })
@@ -61,7 +64,9 @@ def main(argv: list[str] | None = None) -> int:
         mine = [row for row in rows if row["arm"] == arm]
         ran = [row for row in mine if row.get("outcome") is not None]
         print(f"{arm}: {len(mine)} samples, {len(ran)} scored; faulty {sum(r['faulty'] for r in ran)} "
-              f"(form 1 {sum(bool(r['form1']) for r in ran)}, form 2 {sum(bool(r['form2']) for r in ran)}); "
+              f"(form 1 {sum(bool(r['form1']) for r in ran)}, form 2 verbatim {sum(bool(r['form2']) for r in ran)}, "
+              f"form 2 filtered {sum(bool(r['form2_filtered']) and not r['form2'] for r in ran)}; registered reading "
+              f"{sum(r['faulty_registered'] for r in ran)}); "
               f"short of IDs {sum(bool(r['criteria_without_ids']) for r in ran)}; not done {sum(r['outcome'] != 'done' for r in ran)}")
     return 0
 

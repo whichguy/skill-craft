@@ -1,0 +1,125 @@
+{
+ "source": "~/e2e-runs-sp/20261101/round2/xa-B/step-plan/proof-runs-focused-suite/1",
+ "action": null,
+ "base_files": [
+  "docs/shiploop/architecture.md",
+  "docs/shiploop/environment.md",
+  "docs/shiploop/spec.md"
+ ],
+ "base_texts": {
+  "docs/shiploop/architecture.md": "# Architecture\n\n## Decisions\nAD-1: Use built-in HTTP and filesystem primitives, with a single serialized writer; requests complete after persistent replacement succeeds. A process owns its configured data file.\n\n## Real-boundary checks\nPlanned: component tests spawn the actual server and issue HTTP requests against fresh local data files. Restart validates disk state; concurrent requests validate serialization. No remote services, UI, cache, identity or async worker exist.\n\n## Structure\nAD-2: CommonJS server.js owns HTTP parsing, validation, calculation and single-process JSON file writes. The data file stores groups with ordered members and expenses, local filesystem only; no migration from empty baseline. Data is retained until operator removes the file. Atomic replacement and serialized writes protect accepted changes; errors return failure.\n\n## Interfaces and boundaries\nClients use HTTP request/response. PORT and DATA_FILE select local runtime; no external service or authentication. Each incoming mutation is validated on the server.\n",
+  "docs/shiploop/environment.md": "# Environment\n\n## Targets and runtimes\nNode v26.12.1 observed via node --version. Local HTTP service and JSON file configured by environment; source checkout receives the final guarded return. Empty repository has no CI or deployment configuration; return triggers no known automation. No remote target requested.\n\n## Commands\nnode --test is the requested verification. No baseline suite exists in the empty checkout.\n\n## Platform facts\nEmpty starting repository: no code, conventions, dependencies, docs, or existing consumers to preserve. Use Node built-ins.\n\n## Skills\nNo repository-local skills or instructions exist.\n\n## Access and accounts\nLocal process and filesystem only; no remote identity or account required.\n\n## Harnesses and suites\nPlanned: Node built-in node:test with isolated temporary directories and child processes; setup starts server on an ephemeral port, teardown stops it and removes fixture. R-1 restart and concurrency, R-2 valid and invalid groups, R-3 equal and exact with invalid cases, R-4 balances and ordered settlements, R-5 missing routes, R-6 suite discovery all use HTTP component tests due implementation and test stages. Base is empty and tests must fail before implementation. No remote test target.\n\n## ID convention\nTC_1 runtime persistence and concurrency\nTC_2 groups\nTC_3 expenses\nTC_4 balances and settlements\nTC_5 missing groups\n\n## Full suite command\nPlanned, local Node, isolated fixtures; all TC cases, seconds.\n```sh\nnode --test\n```\n\nRunner readiness: node --test --help exited 0; no installation needed. Tests and fixture are to be authored in W1. Return has no known automation trigger; local checkout is consumer target.\n",
+  "docs/shiploop/spec.md": "# Shared expenses specification\n\n## Requirements\n\n### R-1: Runtime and persistence\nRun server.js with PORT and DATA_FILE, no npm dependencies. Groups and expenses persist across restart; a successful response means the update was saved. Confirm by starting, writing, restarting and reading over HTTP. Basis: request S1-S2, S11. New system; no preserved behaviour. State is owned by one server process, persists until file removal, and is readable by its clients; no authentication was requested. Concurrent requests must all survive. Confirm by concurrent POSTs and restart.\n\n### R-2: Groups\nPOST /groups creates a group with ID and at least two distinct nonempty member names, returning 201; existing ID returns 409 and invalid members return 400. Confirm via HTTP, including duplicates and empty names. Basis: S3. Default: reject empty or non-string IDs and names. New system, no previous state.\n\n### R-3: Expenses\nPOST /groups/<id>/expenses accepts a member payer, positive whole safe integer cents, and equal or exact split; equal distributes remainders to earliest members; exact shares list valid members with nonnegative whole cents summing to the amount. Return 201 and per-group 1-based sequential expense number; invalid input returns 400. Confirm via HTTP and balances, including omitted exact members and invalid amounts and shares. Basis: S4-S7. New data persists with its group. Safe integer limit avoids numeric corruption.\n\n### R-4: Balances and settlements\nGET balances gives each member paid minus owed, summing to zero. GET settlements repeatedly pays largest debtor to largest creditor, tie broken by member order, for the smaller amount. Confirm exact outputs and payment application via HTTP. Basis: S8-S9. New data; no preserved behaviour.\n\n### R-5: Missing groups\nAll routes under an unknown group return 404. Confirm via HTTP for reads, writes and unrecognized subpaths. Basis: S10.\n\n### R-6: Tests\nRun node --test for tests under test/ covering the stated behaviour. Confirm command exits successfully. Basis: S12.\n\n## Non-functional requirements\nNo specific throughput, UI, identity, or deployment target requested. Concurrent update correctness and durable restart are covered by R-1. Availability under filesystem errors must not return false success. Test via local process and isolated files; no remote target.\n\n## Replayable examples\nCreate group g with members [A, B, C] (R-2); A pays 100 cents equally (R-3). Shares are 34, 33, 33 and balances are {A: 66, B: -33, C: -33} (R-4). Settlements are B to A 33, then C to A 33: debtor tie follows member order. Start with a fresh data file; no earlier expenses. Separately A pays 10 exact with shares {A: 0, B: 10}; balances become {A: 10, B: -10, C: 0}. Each action is permitted by R-2 and R-3. These are planned checks, not observed execution.\n"
+ },
+ "plan": {
+  "criteria": [
+   {
+    "confirm": "executed",
+    "id": "C1",
+    "text": "R-2 and R-5 group creation validates arguments and missing group routes return 404. Confirm by: TC_2 and TC_5 HTTP assertions; pass when valid creation, duplicate, invalid members and missing routes have their exact statuses."
+   },
+   {
+    "confirm": "executed",
+    "from": "A2",
+    "id": "C2",
+    "text": "R-1 and R-3 record and validate expenses without losing concurrent writes and persist across restart. Confirm by: TC_1 and TC_3 HTTP assertions; pass when exact responses, sequential numbers, equal and exact shares, invalid input, concurrent writes and restart state match."
+   },
+   {
+    "confirm": "executed",
+    "id": "C3",
+    "text": "R-4 balances and ordered settlements are correct. Confirm by: TC_4 HTTP assertions; pass when exact balances and payments match and application clears each balance."
+   },
+   {
+    "confirm": "searched",
+    "id": "C4",
+    "text": "R-1 public server entry point carries a contract describing configuration and request validation. Confirm by: search for the contract marker; pass when the documented contract is present."
+   }
+  ],
+  "steps": [
+   {
+    "criteria": [
+     "C1",
+     "C4"
+    ],
+    "deps": [],
+    "id": "S1",
+    "paths": [
+     "server.js"
+    ],
+    "proof": "node --test --test-name-pattern='TC_2' /Users/dadleet/e2e-runs-sp/20261101/round2/xa-B/step-plan/proof-runs-focused-suite/1/.shiploop-runs/seed/run/scratch/proof.cjs && rg -q 'Server contract:' server.js",
+    "skills": [],
+    "task": "Implement C1 and C4 in server.js with HTTP validation and public contract."
+   },
+   {
+    "criteria": [
+     "C2"
+    ],
+    "deps": [
+     "S1"
+    ],
+    "id": "S2",
+    "paths": [
+     "server.js"
+    ],
+    "proof": "node --test --test-name-pattern='TC_1' /Users/dadleet/e2e-runs-sp/20261101/round2/xa-B/step-plan/proof-runs-focused-suite/1/.shiploop-runs/seed/run/scratch/proof.cjs",
+    "skills": [],
+    "task": "Implement C2 in server.js including serialization, persistence and balance calculation."
+   },
+   {
+    "criteria": [
+     "C3"
+    ],
+    "deps": [
+     "S2"
+    ],
+    "id": "S3",
+    "paths": [
+     "server.js"
+    ],
+    "proof": "node --test --test-name-pattern='TC_4' /Users/dadleet/e2e-runs-sp/20261101/round2/xa-B/step-plan/proof-runs-focused-suite/1/.shiploop-runs/seed/run/scratch/proof.cjs",
+    "skills": [],
+    "task": "Implement C3 in server.js with ordered greedy settlement."
+   }
+  ],
+  "test_commands": [
+   {
+    "command": "node --test test/service.test.js",
+    "criteria": [
+     "C1",
+     "C2",
+     "C3"
+    ],
+    "ids": [
+     "TC_1",
+     "TC_2",
+     "TC_3",
+     "TC_4",
+     "TC_5"
+    ],
+    "min_tests": 3,
+    "suite": "focused"
+   },
+   {
+    "command": "rg -q 'Server contract:' server.js",
+    "criteria": [
+     "C4"
+    ],
+    "suite": "focused"
+   },
+   {
+    "command": "node --test",
+    "minimum": true,
+    "suite": "regression"
+   },
+   {
+    "command": "node --check server.js",
+    "suite": "check"
+   }
+  ],
+  "paths": [
+   "server.js",
+   "test/*.js",
+   "README.md"
+  ]
+ }
+}

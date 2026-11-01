@@ -8,6 +8,11 @@ tests. Two forms of a Proof that needs a test not yet written:
   item base lacks and no earlier step declares;
 - form 2 (the focused suite): a whole shell segment of the Proof is a focused command of the plan that names no path and no
   inline code (`node --test`, `python3 -m unittest -v`), while no code or test file of the base holds any of its IDs.
+  ``form2`` is that segment verbatim (the registered reading); ``form2_filtered`` (the amendment of README.md, made after arm B's
+  pilot sample 4 and before any arm T sample) is a segment that also names no path or inline code and runs the same program
+  as such a focused command (its first two words: `node --test`, `npm test`, `python3 -m`), with other options, such as
+  `node --test --test-name-pattern='TC_2|TC_5'`. On a base with none of the IDs it finds only this item's tests, which do
+  not exist yet at the step's done.
 
 An item whose paths are all tests is exempt from both, as in rule A (`shiploop_item_scope.proof_order_refusal`). Knowledge files
 are not searched for IDs: they record planned IDs (A-s9's environment.md lists TC_1-TC_5), not tests.
@@ -76,14 +81,15 @@ def holds_id(ident: str, texts: Mapping[str, str]) -> bool:
 
 
 def classify(plan: Mapping[str, Any], base_files: Iterable[str], base_texts: Mapping[str, str]) -> dict:
-    """{"form1": [{"step", "path"}], "form2": [{"step", "command"}]} for ``plan`` on a base holding ``base_files``."""
+    """{"form1": [{"step", "path"}], "form2": [{"step", "command"}], "form2_filtered": [{"step", "command", "segment"}]}
+    for ``plan`` on a base holding ``base_files``. A segment that is a focused command verbatim is in ``form2`` only."""
     base = set(base_files)
     item_paths = [str(path) for path in plan.get("paths") or ()]
     if item_paths and all(scope.classify(path) == "test" for path in item_paths):
-        return {"form1": [], "form2": []}
+        return {"form1": [], "form2": [], "form2_filtered": []}
     focused = [row for row in plan.get("test_commands") or () if isinstance(row, Mapping) and row.get("suite") == "focused"]
     declared: set[str] = set()
-    form1, form2 = [], []
+    form1, form2, filtered = [], [], []
     for step in [row for row in plan.get("steps") or () if isinstance(row, Mapping)]:
         name, proof = str(step.get("id")), str(step.get("proof") or "")
         for path in named_paths(proof):
@@ -97,7 +103,13 @@ def classify(plan: Mapping[str, Any], base_files: Iterable[str], base_texts: Map
                 continue
             if any(holds_id(str(ident), base_texts) for ident in row.get("ids") or ()):
                 continue
+            program = words(command)[:2]
             if words(command) in parts:
                 form2.append({"step": name, "command": command})
+                continue
+            for part in parts:
+                if len(program) == 2 and part[:2] == program and scope.generic_command(shlex.join(part)):
+                    filtered.append({"step": name, "command": command, "segment": shlex.join(part)})
+                    break
         declared.update(str(path) for path in step.get("paths") or ())
-    return {"form1": form1, "form2": form2}
+    return {"form1": form1, "form2": form2, "form2_filtered": filtered}
