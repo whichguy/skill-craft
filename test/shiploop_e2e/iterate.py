@@ -68,6 +68,12 @@ def git(repo: Path, *args: str) -> str:
     return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True).stdout.strip()
 
 
+def ingest_source(run: Path, judged: dict, case: str) -> dict:
+    """Where a learning record found in a judged review came from. The case matters: ``learning_records.select`` takes a
+    cycle's records by the case they were found on, and one with no case counts as seeded and fits any cycle."""
+    return {"run": str(run), "case": case, "review_sha256": judged.get("review_sha256"), "exposure": "development"}
+
+
 def new_worktree(name: str) -> tuple[Path, str]:
     branch = f"auto/{name}"
     path = ROOT / ".claude" / "worktrees" / name
@@ -421,9 +427,8 @@ def main(argv: list[str] | None = None) -> int:
             verdict["actionable"] = routes["implementation"]
             (stage / "dispositions.json").write_text(json.dumps(routes, indent=2) + "\n")
             # The judged material discoveries become learning records, committed with the learnings below.
-            verdict["learning_records"] = learning_records.ingest(verdict, routes, {
-                "run": str(stage / "run"), "review_sha256": judged.get("review_sha256"), "exposure": "development"},
-                ledger)
+            verdict["learning_records"] = learning_records.ingest(
+                verdict, routes, ingest_source(stage / "run", judged, args.case), ledger)
         else:
             # Historical reviews are readable diagnostics, not fresh discovery/judge evidence.
             verdict["actionable"] = []
