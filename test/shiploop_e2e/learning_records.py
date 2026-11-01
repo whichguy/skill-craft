@@ -116,6 +116,8 @@ def _fold(record: str, events: list[dict]) -> dict:
                 if key in row and (state.get(key) is None or state["seen"] == 0):
                     state[key] = row[key]
             state["seen"] += 1
+            if row.get("materiality") in MATERIAL and state.get("materiality") not in MATERIAL:
+                state["materiality"] = row["materiality"]  # a record is as material as its most material sighting
             if row.get("source"):
                 state["sources"].append(row["source"])
                 if (row["source"] or {}).get("exposure") == "confirmation":
