@@ -1,0 +1,150 @@
+"""Argparse/dataclass calibration implementation; placeholders are frozen by calibrate_checks.py."""
+from __future__ import annotations
+
+import argparse
+from dataclasses import dataclass
+from decimal import Decimal
+from pathlib import Path
+from collections import defaultdict
+import csv
+import io
+import json
+import sys
+
+STAGE = "@@STAGE@@"
+BUG = "@@BUG@@"
+CENT = Decimal("0.01")
+
+
+@dataclass(frozen=True)
+class Entry:
+    region: str
+    product: str
+    units: int
+    price: Decimal
+
+
+@dataclass
+class Totals:
+    rows: int
+    revenue: Decimal
+    by_region: dict[str, Decimal]
+    by_product: dict[str, int]
+
+
+def arguments(argv):
+    parser = argparse.ArgumentParser(prog="report.py")
+    if STAGE in ("filter", "full"):
+        parser.add_argument("--region")
+    if STAGE == "full":
+        default = "csv" if BUG == "wrong-default" else "json"
+        parser.add_argument("--format", choices=("json", "csv"), default=default)
+    parser.add_argument("files", nargs="+")
+    args = parser.parse_args(argv)
+    return getattr(args, "region", None), getattr(args, "format", "json"), args.files
+
+
+def matches(region, actual):
+    if region is None:
+        return True
+    if BUG == "case-insensitive":
+        return actual.casefold() == region.casefold()
+    if BUG == "substring":
+        return region in actual
+    return actual == region
+
+
+def read_entries(paths, region):
+    entries = []
+    diagnostics = []
+    for filename in paths:
+        try:
+            with Path(filename).open(encoding="utf-8", newline="") as stream:
+                reader = csv.reader(stream)
+                next(reader, None)
+                for row in reader:
+                    line = reader.line_num
+                    if row == []:
+                        continue
+                    if BUG == "hide-invalid" and region is not None and not matches(region, row[1] if len(row) > 1 else ""):
+                        continue
+                    if len(row) != 5:
+                        diagnostics.append(f"{filename}:{line}: wrong number of columns")
+                        continue
+                    try:
+                        units = int(row[3])
+                        price = Decimal(row[4])
+                    except Exception:
+                        diagnostics.append(f"{filename}:{line}: units or unit_price is not numeric")
+                        continue
+                    if units < 0 or not price.is_finite() or price < 0:
+                        diagnostics.append(f"{filename}:{line}: units or unit_price is negative")
+                        continue
+                    entry = Entry(row[1], row[2], units, price)
+                    if region is None or matches(region, entry.region):
+                        entries.append(entry)
+        except OSError as exc:
+            print(f"{filename}: {exc}", file=sys.stderr)
+            return None, diagnostics, 1
+    for diagnostic in diagnostics:
+        print(diagnostic, file=sys.stderr)
+    return entries, diagnostics, 2 if diagnostics else 0
+
+
+def total(entries):
+    amount = Decimal("0")
+    regions = defaultdict(Decimal)
+    products = defaultdict(int)
+    for entry in entries:
+        row_amount = entry.units * entry.price
+        amount += row_amount
+        regions[entry.region] += row_amount
+        products[entry.product] += 1 if BUG == "lost-base" else entry.units
+    return Totals(len(entries), amount, dict(regions), dict(products))
+
+
+def json_value(totals):
+    return {
+        "rows": totals.rows,
+        "revenue": float(totals.revenue.quantize(CENT)),
+        "by_region": {name: float(amount.quantize(CENT)) for name, amount in totals.by_region.items()},
+        "by_product": totals.by_product,
+    }
+
+
+def emit(totals, output_format):
+    if output_format == "json":
+        print(json.dumps(json_value(totals), ensure_ascii=False))
+        return
+    if BUG == "success-stderr":
+        print("report: CSV output generated", file=sys.stderr)
+    if BUG == "buffered-crlf":
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+    else:
+        writer = csv.writer(sys.stdout, lineterminator="\n")
+    writer.writerow(("region", "revenue"))
+    for name in sorted(totals.by_region):
+        writer.writerow((name, f"{totals.by_region[name].quantize(CENT):.2f}"))
+    if BUG == "buffered-crlf":
+        print(buffer.getvalue())
+
+
+def main():
+    region, output_format, paths = arguments(sys.argv[1:])
+    entries, diagnostics, status = read_entries(paths, region)
+    if entries is None:
+        return 1
+    result = total(entries)
+    if BUG == "csv-ignores-filter" and output_format == "csv" and region is not None:
+        all_entries, extra_diagnostics, extra_status = read_entries(paths, None)
+        if all_entries is None:
+            return 1
+        result = total(all_entries)
+        status = max(status, extra_status)
+    emit(result, output_format)
+    return status
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

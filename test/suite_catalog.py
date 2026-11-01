@@ -187,8 +187,10 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-brownfield-tickets.test.py",
     "test/shiploop-e2e-test-adequacy.test.py",
     "test/shiploop-e2e-delta.test.py",
+    "test/shiploop-e2e-incremental-pilot.test.py",
     "test/shiploop-e2e-ticket-comments.test.py",
     "test/shiploop-e2e-ticket-sla.test.py",
+    "test/shiploop-e2e-user-chain.test.py",
     "test/shiploop-e2e-user-directory.test.py",
     "test/shiploop-e2e-lifecycle.test.py",
     "test/shiploop-packet-obligations.test.py",
@@ -781,6 +783,8 @@ _PREFIX_SUITE_IDS = {
     "docs/experiments/multipass-20261031/": ("shiploop-e2e-delta",),
     # The real pass-1 living files chain B's words and ledger patterns were written from, and the script that cut them.
     "docs/experiments/multipass-chain-b-20261101/": ("shiploop-e2e-user-directory",),
+    "docs/experiments/incremental-feature-chain-20261101/": ("shiploop-e2e-incremental-pilot",),
+    "docs/experiments/user-listing-chain-20261101/": ("shiploop-e2e-user-chain",),
     # The frozen record shapes the Run Review tests read (figures.json) and the scripts that cut them: the Run Review suite pins both.
     "docs/experiments/run-review-r22c-20261009/": ("shiploop-run-review",),
     "docs/experiments/run-review-r23-20261009/": ("shiploop-run-review",),
@@ -791,7 +795,7 @@ _PREFIX_SUITE_IDS = {
     "test/fixtures/e2e-environment/": ("shiploop-e2e-environment",),
     "test/fixtures/quality/": ("shiploop-e2e-quality", "shiploop-e2e-brownfield", "shiploop-e2e-brownfield-tickets",
                                "shiploop-e2e-test-adequacy", "shiploop-e2e-ticket-comments", "shiploop-e2e-ticket-sla",
-                               "shiploop-e2e-user-directory"),
+                               "shiploop-e2e-user-chain", "shiploop-e2e-user-directory"),
     "test/fixtures/commit-counters/": ("shiploop-e2e-commit-counters",),
     # The two saved-run extracts the efficiency measurement reads, and the journal rows its test checks.
     "test/fixtures/efficiency/": ("shiploop-e2e-efficiency",),

@@ -1,0 +1,505 @@
+{
+  "version": 1,
+  "request_files": {
+    "base": "01-base.txt",
+    "filter": "02-region.txt",
+    "output": "03-csv-output.txt"
+  },
+  "sources": {
+    "base.contract": {
+      "file": "01-base.txt",
+      "line": 1,
+      "sentence": "Print one JSON object to stdout: {\"rows\": the number of valid rows, \"revenue\": the sum of units * unit_price rounded to 2 decimals, \"by_region\": revenue per region rounded to 2 decimals, \"by_product\": total units per product}."
+    },
+    "base.invalid": {
+      "file": "01-base.txt",
+      "line": 1,
+      "sentence": "A row with the wrong number of columns, or a non-numeric or negative units or unit_price, is skipped and reported on stderr as `FILE:LINE: <reason>` (the header is line 1), and the exit code is then 2; otherwise it is 0."
+    },
+    "base.unreadable": {
+      "file": "01-base.txt",
+      "line": 1,
+      "sentence": "A file that cannot be read prints an error on stderr without a traceback, prints nothing on stdout and exits 1."
+    },
+    "base.empty-file": {
+      "file": "01-base.txt",
+      "line": 1,
+      "sentence": "A file with only a header contributes nothing."
+    },
+    "base.tests": {
+      "file": "01-base.txt",
+      "line": 1,
+      "sentence": "Cover the behaviour with unittest tests that run with `python3 -m unittest`."
+    },
+    "filter.decision": {
+      "file": "01-base.txt",
+      "line": 3,
+      "sentence": "Requirement approved for a later delivery, outside this delivery: an optional --region REGION selector will match exact, case-sensitive region text, including the empty string."
+    },
+    "filter.aggregations": {
+      "file": "01-base.txt",
+      "line": 3,
+      "sentence": "Selection affects all aggregations: rows, revenue, by_region and by_product count only selected valid rows, and unselected regions/products have no entries."
+    },
+    "filter.empty-selection": {
+      "file": "01-base.txt",
+      "line": 3,
+      "sentence": "With no selected valid rows, return rows 0, revenue 0 and empty by_region and by_product objects."
+    },
+    "filter.validation": {
+      "file": "01-base.txt",
+      "line": 3,
+      "sentence": "All input rows must still be validated; an invalid row outside the selection still produces the prescribed diagnostic and exit 2, and an unreadable file still produces no stdout and exits 1."
+    },
+    "filter.usage": {
+      "file": "01-base.txt",
+      "line": 3,
+      "sentence": "The supported future invocation is python3 report.py [--region REGION] FILE [FILE ...], with the optional flag once before the files; a missing flag value is a usage error with stderr, no stdout and exit 2."
+    },
+    "filter.now-requested": {
+      "file": "02-region.txt",
+      "line": 1,
+      "sentence": "Implement the previously approved optional region selector in this report tool now."
+    },
+    "filter.preserve": {
+      "file": "02-region.txt",
+      "line": 1,
+      "sentence": "Preserve the existing default invocation, input-validation behavior, error reporting, and exit-code contract."
+    },
+    "output.default-json": {
+      "file": "03-csv-output.txt",
+      "line": 1,
+      "sentence": "Add an optional CSV output capability to the existing report tool: --format json|csv, default json."
+    },
+    "output.csv-contract": {
+      "file": "03-csv-output.txt",
+      "line": 1,
+      "sentence": "CSV mode writes a header region,revenue followed by one row for each region represented in the selected valid rows, ordered by Python string order (Unicode code points, case-sensitive); revenue has exactly two digits after the decimal point."
+    },
+    "output.quoting": {
+      "file": "03-csv-output.txt",
+      "line": 1,
+      "sentence": "Use CSV quoting so commas, quotes and newlines in region names round-trip."
+    },
+    "output.empty": {
+      "file": "03-csv-output.txt",
+      "line": 1,
+      "sentence": "With no selected valid rows, write only the header."
+    },
+    "output.validation": {
+      "file": "03-csv-output.txt",
+      "line": 3,
+      "sentence": "The accepted validation, error-reporting and exit-code contracts continue to apply: invalid rows outside the selection still produce diagnostics, the chosen output format still reports valid selected rows with exit 2, and an unreadable file produces no stdout and exits 1."
+    },
+    "output.usage": {
+      "file": "03-csv-output.txt",
+      "line": 3,
+      "sentence": "Supported usage is python3 report.py [--region REGION] [--format json|csv] FILE [FILE ...]."
+    },
+    "output.option-order": {
+      "file": "03-csv-output.txt",
+      "line": 3,
+      "sentence": "Each option may appear once, in either order before the files."
+    },
+    "output.usage-errors": {
+      "file": "03-csv-output.txt",
+      "line": 3,
+      "sentence": "Missing option values and unsupported format values produce a usage error on stderr, no stdout and exit 2."
+    },
+    "output.keep-entrypoint": {
+      "file": "03-csv-output.txt",
+      "line": 5,
+      "sentence": "Keep the existing report.py entrypoint, standard-library-only constraint and earlier behavior."
+    },
+    "base.usage": {
+      "file": "01-base.txt",
+      "line": 1,
+      "sentence": "Usage: `python3 report.py FILE [FILE ...]`."
+    },
+    "filter.deferred": {
+      "file": "01-base.txt",
+      "line": 5,
+      "sentence": "This delivery's outcome for that future requirement is that it is recorded in the project's living knowledge and clearly marked not implemented."
+    },
+    "filter.do-not-implement": {
+      "file": "01-base.txt",
+      "line": 5,
+      "sentence": "Do not implement --region in this delivery."
+    },
+    "output.json-preserves": {
+      "file": "03-csv-output.txt",
+      "line": 1,
+      "sentence": "JSON mode, including invocation without --format, keeps the current output contract."
+    },
+    "base.input-types": {
+      "file": "01-base.txt",
+      "line": 1,
+      "sentence": "Each FILE is CSV with the header row `date,region,product,units,unit_price`; units is a non-negative integer and unit_price a non-negative decimal."
+    }
+  },
+  "checks": {
+    "condition_groups": {
+      "base-scope": [
+        {
+          "id_prefix": "base-scope.base-contract.",
+          "sources": [
+            "base.usage",
+            "base.contract",
+            "base.invalid"
+          ]
+        },
+        {
+          "id": "base-scope.filter-not-implemented",
+          "sources": [
+            "filter.decision",
+            "filter.deferred",
+            "filter.do-not-implement"
+          ]
+        },
+        {
+          "id_prefix": "base-scope.selector-probe.",
+          "sources": [
+            "filter.decision",
+            "filter.deferred",
+            "filter.do-not-implement"
+          ]
+        }
+      ],
+      "filter": [
+        {
+          "id_prefix": "filter.exact-multiple-files-all-aggregations.",
+          "sources": [
+            "filter.decision",
+            "filter.aggregations",
+            "filter.now-requested"
+          ]
+        },
+        {
+          "id_prefix": "filter.case-sensitive.",
+          "sources": [
+            "filter.decision",
+            "filter.now-requested"
+          ]
+        },
+        {
+          "id_prefix": "filter.substring-near-match.",
+          "sources": [
+            "filter.decision",
+            "filter.now-requested"
+          ]
+        },
+        {
+          "id_prefix": "filter.empty-region.",
+          "sources": [
+            "filter.decision",
+            "filter.now-requested"
+          ]
+        },
+        {
+          "id_prefix": "filter.no-match-empty-aggregations.",
+          "sources": [
+            "filter.empty-selection",
+            "filter.now-requested"
+          ]
+        },
+        {
+          "id_prefix": "filter.omitted-selector-base-behavior.",
+          "sources": [
+            "filter.preserve"
+          ]
+        },
+        {
+          "id_prefix": "filter.unselected-invalid-still-reported.",
+          "sources": [
+            "filter.validation",
+            "filter.now-requested"
+          ]
+        },
+        {
+          "id_prefix": "filter.unreadable-precedes-invalid.",
+          "sources": [
+            "filter.validation"
+          ]
+        },
+        {
+          "id_prefix": "filter.missing-region-value.",
+          "sources": [
+            "filter.usage"
+          ]
+        },
+        {
+          "id": "filter.unselected-wrong-column-count-diagnostic",
+          "sources": [
+            "base.invalid",
+            "filter.validation"
+          ]
+        },
+        {
+          "id": "filter.unselected-negative-units-diagnostic",
+          "sources": [
+            "base.invalid",
+            "base.input-types",
+            "filter.validation"
+          ]
+        },
+        {
+          "id": "filter.unselected-fractional-units-diagnostic",
+          "sources": [
+            "base.input-types",
+            "filter.validation"
+          ]
+        },
+        {
+          "id": "filter.unselected-nonnumeric-price-diagnostic",
+          "sources": [
+            "base.invalid",
+            "filter.validation"
+          ]
+        },
+        {
+          "id": "filter.unselected-negative-price-diagnostic",
+          "sources": [
+            "base.invalid",
+            "filter.validation"
+          ]
+        },
+        {
+          "id": "filter.unselected-invalid-all-diagnostics",
+          "sources": [
+            "base.invalid",
+            "base.input-types",
+            "filter.validation"
+          ]
+        }
+      ],
+      "output": [
+        {
+          "id_prefix": "output.default-json.",
+          "sources": [
+            "output.default-json",
+            "output.json-preserves",
+            "output.keep-entrypoint",
+            "base.contract"
+          ]
+        },
+        {
+          "id_prefix": "output.explicit-json.",
+          "sources": [
+            "output.default-json",
+            "output.json-preserves",
+            "base.contract"
+          ]
+        },
+        {
+          "id": "output.explicit-json-equals-default",
+          "sources": [
+            "output.json-preserves"
+          ]
+        },
+        {
+          "id_prefix": "output.csv-table.",
+          "sources": [
+            "output.csv-contract"
+          ]
+        },
+        {
+          "id": "output.csv-header-columns",
+          "sources": [
+            "output.csv-contract"
+          ]
+        },
+        {
+          "id": "output.csv-codepoint-region-order",
+          "sources": [
+            "output.csv-contract"
+          ]
+        },
+        {
+          "id": "output.csv-two-decimal-revenue",
+          "sources": [
+            "output.csv-contract"
+          ]
+        },
+        {
+          "id": "output.csv-quoted-values-round-trip",
+          "sources": [
+            "output.quoting"
+          ]
+        },
+        {
+          "id": "output.csv-each-row-has-two-columns",
+          "sources": [
+            "output.csv-contract"
+          ]
+        },
+        {
+          "id_prefix": "output.filter-region-before-format.",
+          "sources": [
+            "output.option-order",
+            "output.usage"
+          ]
+        },
+        {
+          "id_prefix": "output.filter-format-before-region.",
+          "sources": [
+            "output.option-order",
+            "output.usage"
+          ]
+        },
+        {
+          "id": "output.filter-region-before-format-fields",
+          "sources": [
+            "output.option-order",
+            "output.validation"
+          ]
+        },
+        {
+          "id": "output.filter-format-before-region-fields",
+          "sources": [
+            "output.option-order",
+            "output.validation"
+          ]
+        },
+        {
+          "id": "output.filter-option-orders-equivalent",
+          "sources": [
+            "output.option-order"
+          ]
+        },
+        {
+          "id_prefix": "output.csv-filtered-validation.",
+          "sources": [
+            "output.validation"
+          ]
+        },
+        {
+          "id": "output.csv-unselected-invalid-still-diagnosed-and-selected-output",
+          "sources": [
+            "output.validation"
+          ]
+        },
+        {
+          "id_prefix": "output.csv-unreadable-precedence.",
+          "sources": [
+            "output.validation"
+          ]
+        },
+        {
+          "id_prefix": "output.csv-empty-selection.",
+          "sources": [
+            "output.empty",
+            "output.validation"
+          ]
+        },
+        {
+          "id": "output.csv-empty-selection-header-only",
+          "sources": [
+            "output.empty"
+          ]
+        },
+        {
+          "id_prefix": "output.csv-header-only-input.",
+          "sources": [
+            "output.empty"
+          ]
+        },
+        {
+          "id_prefix": "output.missing-format-value.",
+          "sources": [
+            "output.usage-errors"
+          ]
+        },
+        {
+          "id_prefix": "output.unsupported-format-value.",
+          "sources": [
+            "output.usage-errors"
+          ]
+        },
+        {
+          "id": "output.csv-header-only-input-header-only",
+          "sources": [
+            "output.empty"
+          ]
+        },
+        {
+          "id": "output.csv-unselected-wrong-column-count-diagnostic",
+          "sources": [
+            "base.invalid",
+            "output.validation"
+          ]
+        },
+        {
+          "id": "output.csv-unselected-negative-units-diagnostic",
+          "sources": [
+            "base.invalid",
+            "base.input-types",
+            "output.validation"
+          ]
+        },
+        {
+          "id": "output.csv-unselected-fractional-units-diagnostic",
+          "sources": [
+            "base.input-types",
+            "output.validation"
+          ]
+        },
+        {
+          "id": "output.csv-unselected-nonnumeric-price-diagnostic",
+          "sources": [
+            "base.invalid",
+            "output.validation"
+          ]
+        },
+        {
+          "id": "output.csv-unselected-negative-price-diagnostic",
+          "sources": [
+            "base.invalid",
+            "output.validation"
+          ]
+        },
+        {
+          "id": "output.csv-unselected-invalid-all-diagnostics",
+          "sources": [
+            "base.invalid",
+            "base.input-types",
+            "output.validation"
+          ]
+        },
+        {
+          "id": "output.csv-data-row-arity",
+          "sources": [
+            "output.csv-contract"
+          ]
+        }
+      ]
+    },
+    "reused-base-checks": {
+      "unit": {
+        "sources": [
+          "base.tests"
+        ]
+      },
+      "totals": {
+        "sources": [
+          "base.contract"
+        ]
+      },
+      "invalid": {
+        "sources": [
+          "base.invalid"
+        ]
+      },
+      "missing": {
+        "sources": [
+          "base.unreadable"
+        ]
+      },
+      "empty": {
+        "sources": [
+          "base.empty-file"
+        ]
+      }
+    }
+  },
+  "semantic_review_limit": "The base-scope probe establishes only whether a --region invocation visibly filters these records or is rejected. It does not determine whether living knowledge records the approved rule, its basis, or its deferred status; a human must inspect those claims and source context. No keyword, file-count, or label detector is used."
+}

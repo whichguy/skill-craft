@@ -1,0 +1,26 @@
+{
+  "reviewer": "REPLACE",
+  "trial_id": "REPLACE",
+  "link": "base",
+  "prompt_sha256": "REPLACE_FROM_SNAPSHOT",
+  "result_sha256": "REPLACE_FROM_SNAPSHOT",
+  "checkout_identity_sha256": "REPLACE_FROM_SNAPSHOT",
+  "retrieval_source": {
+    "status": "unknown",
+    "note": "Trace has not yet established which retained source was used.",
+    "evidence": []
+  },
+  "follow_on": {
+    "class": "RECORD_OBSERVED_CLASS",
+    "statement": "RECORD_OBSERVED_STATEMENT",
+    "source": "RECORD_SOURCE",
+    "rationale": "Explain the observed classification; no class is required."
+  },
+  "dimensions": {
+    "requested_behavior": {"status": "unknown", "evidence": []},
+    "prior_behavior": {"status": "unknown", "evidence": []},
+    "decision_handling": {"status": "unknown", "evidence": []},
+    "knowledge_and_organization": {"status": "unknown", "evidence": []},
+    "workflow_and_lineage": {"status": "unknown", "evidence": []}
+  }
+}

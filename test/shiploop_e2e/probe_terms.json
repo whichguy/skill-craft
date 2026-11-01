@@ -105,6 +105,18 @@
     "shared-expenses": [
       "\\bshared[- ]expenses?\\b",
       "\\bexpense[- ]split\\b"
+    ],
+    "user-teams": [
+      "\\buser[- ]teams?\\b",
+      "\\binclude=team\\b"
+    ],
+    "user-summary": [
+      "\\buser[- ]summary\\b",
+      "\\bby_team\\b"
+    ],
+    "user-team-casefold": [
+      "\\bteam[- ]casefold\\b",
+      "\\bby_team\\b"
     ]
   },
   "exempt": [

@@ -708,7 +708,20 @@ and two decisions are compared only under the same id.
   - *The request is the delta.* A link's prompt names the new behaviour and says that everything the project already does
     keeps working; it does not restate or ask for an earlier link's behaviour. The earlier links' tests are the standing
     assumption: they exist, ShipLoop runs them as the project's suite, and the harness runs the earlier links' checks again
-    (below). A link's own checks and held-out acceptance read only the sentences of its prompt, as every case's do (S-9).
+    (below). A link's own checks and held-out acceptance read the sentences of its prompt, including an explicit reference
+    to an earlier accepted rule under the dated clarification below, as every case's do (S-9).
+  - *An explicit reference may carry an inherited rule* (clarified 2026-11-01; incremental CSV pilot and user-listing Chain B).
+    A request such as "use the same name and team filters GET /users applies" deliberately asks the fresh run to recover
+    accepted behavior from its predecessor's repository knowledge. A check's source must quote that reference and the
+    particular earlier request clauses it incorporates; test-fixture behavior and unstated conventions grant no authority.
+    Pin the intended predecessor, request/check identities and graded checkout before advancing. An absent or failed
+    predecessor, missing accepted knowledge, or an unexplained post-review edit blocks the dependent run; the operator
+    does not inject the missing answer to rescue the chain. This is distinct from launching an independent clean repetition.
+    Review current authority and implementation evidence separately. Valid reconciliation can update a requirement in
+    place or explicitly retire it in favor of a replacement; no new ID, file, keyword or test-count increase is required.
+    The delta ledger remains a locator for this semantic review. Correct output alone does not establish which source the
+    subject retrieved: report that source as unknown when the access evidence is incomplete. This clarification permits
+    source-mapped incorporation by reference; it does not make an exploratory chain a promotion/5 qualification.
   - *A chain is read to its end* (`chains.py`). A link's regression is every earlier link's own checks, oldest first; a
     check an earlier link already contributed runs once, and a case's own list is never thinned. Its quality measures are the
     nearest declaration among the cases it follows, key by key. Its retention checks see only the link just before it as
