@@ -482,10 +482,10 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--host", choices=sorted(hosts.HOSTS), default=hosts.RUN_DEFAULT_HOST,
                    help=f"host for the slice (default: {hosts.RUN_DEFAULT_HOST})")
     p.add_argument("--backend", choices=("anthropic", "ollama"), default=None,
-                   help="claude only: ollama (default, as for run.py: Claude Code on the local Ollama server's "
-                        f"{hosts.OLLAMA_MODEL}) or anthropic, Claude's own models")
-    p.add_argument("--model", help=f"default: gpt-6.1-terra (codex), {hosts.OLLAMA_MODEL} (claude), "
-                                   "claude-sonnet-5-5 (claude --backend anthropic), grok-4.7 (grok)")
+                   help="claude only: anthropic (default, as for run.py), Claude's own models; or ollama, Claude Code on the "
+                        f"local Ollama server's {hosts.OLLAMA_MODEL}")
+    p.add_argument("--model", help=f"default: gpt-6.1-terra (codex), claude-sonnet-5-5 (claude), "
+                                   f"{hosts.OLLAMA_MODEL} (claude --backend ollama), grok-4.7 (grok)")
     p.add_argument("--effort", help="reasoning effort; default: xhigh (codex), host default (claude), medium (grok)")
     p.add_argument("--delegation", choices=("inline", "ask-agent"), default="inline",
                    help="inline (default): one session, every packet in the main context; ask-agent: native workers")
@@ -602,9 +602,8 @@ def _main(argv: list[str] | None, held: list) -> int:
         held.append(lock)
     work = out / "work"
     work.mkdir()
-    # A step slice is an E2E run: with no --backend it takes run.py's default (hosts.RUN_DEFAULT_BACKEND).
-    host = hosts.host(args.host, getattr(args, f"{args.host}_bin"),
-                      args.backend or hosts.RUN_DEFAULT_BACKEND.get(args.host))
+    # A step slice is an E2E run: with no --backend it takes the host's own default, as run.py does.
+    host = hosts.host(args.host, getattr(args, f"{args.host}_bin"), args.backend)
     model, effort = args.model or host.model, args.effort or host.effort
     host.model = model  # the model the host's environment routes to (the Claude host on Ollama names it there)
     backend = getattr(host, "backend", None)

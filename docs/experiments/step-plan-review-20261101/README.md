@@ -35,7 +35,7 @@ this review adds, replayed on every accepted step plan.
 
 Live checks: `launch_sp1.sh` and `score_sp1.py` (SP1, whole deliveries), `launch_sp2.sh` and `score_sp2.py` (SP2, step-plan
 slices, arm B against arm T), `launch_sp3.sh` (SP3, slices on the wording fix, read by `score_sp2.py`); pre-registered in the
-review's §7 and run on Codex Terra 6.1 xhigh. Scores: `sp2_scores.jsonl` (16 slices), `sp3_scores.jsonl` (4); results in the
+review's §7 and run on Codex Terra 6.1 xhigh. Scores: `sp1_scores.jsonl` (6 deliveries), `sp2_scores.jsonl` (16 slices), `sp3_scores.jsonl` (4); results in the
 review's §7a.
 
 Send-back classes: `proof-test-path` (the Proof runs a test file the test stage writes later; refused at step-plan since

@@ -590,8 +590,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-early-stop", action="store_true", help="queue: run every sample even once a verdict is settled")
     p.add_argument("--samples", type=int, default=None, help="run: samples 1..N (default: the experiment's samples)")
     p.add_argument("--sample", type=int, default=None, help="run: exactly this one sample (its own background task)")
-    # Each slice uses slice.py's host profile by default; --host claude selects the explicit Claude route, whose E2E
-    # backend defaults to Ollama unless --backend=anthropic is passed.
+    # Each slice uses slice.py's host profile by default; --host claude selects the explicit Claude route, whose
+    # backend defaults to Anthropic unless --backend=ollama is passed.
     p.add_argument("--host", default=hosts.RUN_DEFAULT_HOST,
                    help=f"slice host (default {hosts.RUN_DEFAULT_HOST})")
     p.add_argument("--out", type=Path, default=None)

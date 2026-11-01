@@ -39,7 +39,8 @@ New runs, step slices and experiment invocations default to **Codex / GPT-6.1 Te
 2026-10-29). Role profiles are explicit: reviewer **Astra xhigh**, fresh judge **Astra xhigh**, improver
 **GPT-6.1 Sol xhigh**. `iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides;
 its `--host`, `--model` and `--effort` select the subject only. Existing runs resume their recorded identities.
-`--host claude` still selects DeepSeek flash on Ollama; add `--backend anthropic` to select Claude's own models.
+`--host claude` selects Claude's own models (Sonnet 5.5, `--backend anthropic`, the default since 2026-11-01); add
+`--backend ollama` to select DeepSeek flash on Ollama.
 `--host grok` selects Grok's existing profile. New Terra results occupy their own host/model/effort baseline cells.
 Every stage launches a real
 model and costs money; none of it runs in default CI.
@@ -53,8 +54,8 @@ translated into Grok's event shape as it is captured, so metrics, the transcript
 and the reviewer read one format. Codex reports no dollar cost, so its cost is
 unknown, and it has no turn cap. Adding a host means adding one class.
 
-**The Claude host on Ollama** (`--host claude --backend ollama`, the default backend for that explicit host) runs Claude Code
-headless on a model the local Ollama
+**The Claude host on Ollama** (`--host claude --backend ollama`, an explicit choice; the host's default backend is
+Anthropic) runs Claude Code headless on a model the local Ollama
 server serves, by default `deepseek-v4.1-flash:1017-cloud`. It takes the route the `ask-ollama` skill verified:
 - **No credentials.** The child's environment loses every `ANTHROPIC_*` and `CLAUDE*` variable, so the launching
   session's OAuth token never reaches the endpoint. It gets only the base URL `http://127.0.0.1:11434`, the key `ollama`,
@@ -69,8 +70,8 @@ server serves, by default `deepseek-v4.1-flash:1017-cloud`. It takes the route t
   run another model served (`metrics.models_served`) is not attributable to its driver.
 
 ```sh
-python3 test/shiploop_e2e/run.py --host claude --case hello --output ~/e2e-runs/<day>/<name>                 # DeepSeek flash
-python3 test/shiploop_e2e/run.py --host claude --case hello --backend anthropic --output ~/e2e-runs/<day>/<name>  # Sonnet 5.5
+python3 test/shiploop_e2e/run.py --host claude --case hello --output ~/e2e-runs/<day>/<name>                          # Sonnet 5.5
+python3 test/shiploop_e2e/run.py --host claude --case hello --backend ollama --output ~/e2e-runs/<day>/<name>       # DeepSeek flash
 ```
 
 To check orchestration alone, without ShipLoop's SDLC or a product, run the

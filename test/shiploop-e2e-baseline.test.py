@@ -34,7 +34,7 @@ import hosts  # noqa: E402
 import metrics  # noqa: E402
 import progress  # noqa: E402
 import run  # noqa: E402
-# The fake hosts answer the Claude host's Anthropic route; an E2E run's default is Ollama (hosts.RUN_DEFAULT_BACKEND).
+# The fake hosts answer the Claude host's Anthropic route, which is also its default backend; the runs name it so they stay on it.
 ANTHROPIC_ROUTE = {"claude": ("--backend", "anthropic")}
 import delivery  # noqa: E402
 import scorecard  # noqa: E402

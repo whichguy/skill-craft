@@ -949,6 +949,91 @@ class PilotKitTest(unittest.TestCase):
         self.assertIn("exists", refused.stderr)
 
 
+class RestoreKitTest(unittest.TestCase):
+    """The stage 4b restore kit (docs/experiments/closed-loop-restore-20261101): the pilot's mirror, with every attempt
+    reviewed. Every input a live run needs is checked here without a model."""
+    KIT = ROOT / "docs" / "experiments" / "closed-loop-restore-20261101"
+    PILOT = ROOT / "docs" / "experiments" / "closed-loop-pilot-20261101"
+    CASE = "hello-hook-continuation"
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.temp = Path(temp.name)
+        self.prediction_file = self.KIT / "prediction.json"
+        self.prediction = json.loads(self.prediction_file.read_text())
+        self.ledger = self.KIT / "restore-ledger.jsonl"
+
+    def plugin(self, name):
+        plugin = self.temp / name
+        (plugin / "skills" / "shiploop").mkdir(parents=True)
+        (plugin / "skills" / "shiploop" / "SKILL.md").write_text(name)
+        return plugin
+
+    def test_the_case_is_a_capability_case_so_a_rise_in_its_quality_can_promote(self):
+        """The prediction says a floor rises, which is what makes a case a capability case; without it the same rise on a
+        regression case is not a gain and the epoch could only stay undecided."""
+        self.assertEqual(cycle.roles_for(self.prediction, self.CASE, None), {self.CASE: "capability"})
+        driver = {"host": "codex", "model": "gpt-6.1-terra", "effort": "high"}
+        calibration = cycle.stated_calibration(3, 0.25)
+        template = self.temp / "registration.json"
+        template.write_text(json.dumps(cycle.registration_template(
+            cycle.roles_for(self.prediction, self.CASE, None), runner.tree_digest(self.plugin("control")),
+            runner.tree_digest(self.plugin("candidate")), driver, calibration["attempts"], calibration["tolerance"],
+            calibration["metric"])))
+        root = self.temp / "epoch"
+        epoch.initialise(root, template, self.prediction_file)
+        self.assertEqual(epoch.state(root)["prediction"]["record"], self.prediction["record"])
+        attempts = epoch.registration(root)["attempts"]
+        self.assertEqual(({row["case"] for row in attempts}, len(attempts)), ({self.CASE}, 6))
+
+    def test_a_restore_that_fixes_the_case_confirms_the_prediction_and_only_a_fall_refutes_it(self):
+        """Confirmed when the share of passing attempts rises by half; no effect when it does not move; refuted when it falls."""
+        registration = {"cases": {self.CASE: {"role": "capability", "attempts": 3}}, "tolerance": 0.25}
+        failing = [card(self.CASE, 10_000_000, ok=False) for _ in range(3)]
+        passing = [card(self.CASE, 13_000_000) for _ in range(3)]
+        fixed = predictions.verdict(self.prediction, registration, failing, passing)
+        self.assertEqual(fixed["verdict"], "confirmed")
+        self.assertEqual(predictions.outcome("PROMOTE", fixed)["outcome"], "verified")
+        self.assertEqual(predictions.verdict(self.prediction, registration, failing, failing)["verdict"], "no_effect",
+                         "a restore that fixes nothing is not refuted, it simply did not do what was predicted")
+        self.assertEqual(predictions.verdict(self.prediction, registration, passing, passing)["verdict"], "no_effect")
+        worse = predictions.verdict(self.prediction, registration, passing, failing)
+        self.assertEqual(worse["verdict"], "refuted")
+        self.assertIs(worse["guards"][0]["held"], False)
+
+    def test_the_record_resolves_and_no_loop_can_select_it(self):
+        view = lr.improver_view(self.prediction["record"], self.ledger)
+        self.assertIn("restoring", view["title"])
+        self.assertIsNone(lr.select(self.ledger), "a pilot record is an input, never a record a loop takes")
+        self.assertNotEqual(self.prediction["record"], json.loads((self.PILOT / "prediction.json").read_text())["record"])
+
+    def test_the_run_script_reverses_the_hook_in_the_control_only_and_keeps_reviews_on(self):
+        script = self.KIT / "run.sh"
+        self.assertEqual(subprocess.run(["bash", "-n", str(script)], capture_output=True, text=True, check=False).returncode, 0)
+        text = script.read_text()
+        pilot = (self.PILOT / "run.sh").read_text()
+        for pinned in ("779980629a81ce0e740f7c196e83e000dd582d99", "7f25acff8dab239485f262249ec70773ba906aad"):
+            self.assertIn(pinned, text)
+            self.assertIn(pinned, pilot, "the restore removes the same delta the pilot's candidate lacked")
+        self.assertIn('"$out/control-tree" apply -R "$out/hook-delta.patch"', text)
+        self.assertNotIn('"$out/candidate-tree" apply', text, "the candidate is the unmodified commit that holds the kit")
+        self.assertNotIn("--skip-reviews", text, "every attempt is reviewed and judged")
+        self.assertIn("unset SHIPLOOP_E2E_RUNS_ROOT", text, "only the epoch's own attempts may be neighbours of a sealed attempt")
+        for name in ("prediction.json", "restore-ledger.jsonl"):
+            self.assertIn(name, text)
+            self.assertTrue((self.KIT / name).is_file())
+        for returned in ("entry.md", "cycle-result.json", "epoch-verdict.json", "epoch-events.jsonl", "receipts", "ledger.jsonl",
+                         "cycle-exit-status.txt"):
+            self.assertIn(returned, text)
+            self.assertIn(returned, (self.KIT / "README.md").read_text())
+        used = self.temp / "used"
+        used.mkdir()
+        refused = subprocess.run(["bash", str(script), "0" * 40, str(used)], capture_output=True, text=True, check=False)
+        self.assertEqual(refused.returncode, 2, refused.stderr)
+        self.assertIn("exists", refused.stderr)
+
+
 class CycleKitTest(unittest.TestCase):
     """The stage 5 full-cycle kit (docs/experiments/closed-loop-cycle-20261101): what its script runs is checked here."""
     KIT = ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101"
@@ -957,8 +1042,11 @@ class CycleKitTest(unittest.TestCase):
         """The first launch was refused: user-listing declares port 3000 and another session's run held that lease."""
         text = (self.KIT / "run.sh").read_text()
         catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
-        self.assertIn("--case seat-reservations --generality-case csv-report", text)
-        for case in ("csv-report", "seat-reservations"):
+        self.assertIn("EXPOSING_CASE:-seat-reservations", text)
+        self.assertIn("GENERALITY_CASE:-csv-report", text)
+        self.assertIn('--case "$exposing" --generality-case "$generality"', text,
+                      "the cases come from the two variables, so a launch can change them and nothing else")
+        for case in ("csv-report", "seat-reservations", "shared-expenses"):  # the defaults and the documented override
             self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
             self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"),
                              f"{case} declares a fixed port, which run.py leases machine-wide and launch_all does not serialise")
@@ -999,7 +1087,8 @@ class CalibrationKitTest(unittest.TestCase):
         cycle_script = (ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101" / "run.sh").read_text()
         catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
         self.assertEqual(set(template["cases"]), {"csv-report", "seat-reservations"})
-        self.assertIn("--case seat-reservations --generality-case csv-report", cycle_script)
+        self.assertIn("EXPOSING_CASE:-seat-reservations", cycle_script)
+        self.assertIn("GENERALITY_CASE:-csv-report", cycle_script)
         for case in template["cases"]:
             self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
             self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"), f"{case} declares a fixed port")

@@ -1094,12 +1094,14 @@ target reuse; a fresh product folder is not a deployed-system reset.
   the local Ollama server serves (default `deepseek-v4.1-flash:1017-cloud`), the route the `ask-ollama` skill verified.
   The backend is part of the driver, recorded on every launch, and a resume keeps its run's backend. Owner's ask:
   evaluations on a cheap, fast model, independent of the Grok and Anthropic budgets.
-  - *The default for testing (owner, 2026-10-26).* An E2E run with no `--backend` runs the Claude host on Ollama;
-    `--backend anthropic` runs Claude's own models. A resume or regrade of a run recorded before the field exists
-    stays on Anthropic, so the default never relabels an earlier run. A step slice (`slice.py`) takes the same
-    default, and `iterate.py`'s host defaults to claude. The host factory's own default stays Anthropic, so the
-    session reviewer and the fan-out check keep Claude's models. `experiment.py` keeps its own host default: the
-    plan-sizing R3 round was mid-flight on it.
+  - *The default (owner, 2026-11-01).* An E2E run of the Claude host with no `--backend` runs Claude's own models
+    (the Anthropic backend, Sonnet 5.5); `--backend ollama` runs it on Ollama. From 2026-10-26 the default was Ollama
+    (owner: "switch the default e2e ... to use ollama and deepseek-flash as the models for testing"); Ollama's monthly
+    usage cap blocked runs on 2026-10-29 and 2026-11-01, and the owner chose Anthropic as the default. A resume or
+    regrade of a run recorded before the backend field exists stays on Anthropic, so a default never relabels an
+    earlier run. A step slice (`slice.py`), the stage suite and a Claude-host run from `iterate.py` or `experiment.py`
+    take the same default as `run.py`, which is the host factory's own: the session reviewer and the fan-out check
+    use it too.
   - *No user credential reaches the endpoint.* The host drops every `ANTHROPIC_*` and `CLAUDE_CODE_*` variable, and
     `CLAUDECODE` and `CLAUDE_PROXY_BYPASS`. It then sets only the Ollama route: the base URL, the key `ollama`, and the
     model for the main thread, every default model class and subagents. ask-ollama found on 2026-10-24 (Claude Code
