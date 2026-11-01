@@ -4,8 +4,8 @@ Topic: whether ShipLoop should, after a run is delivered and deployed, reflect o
 with an improvement prompt. Design: [shiploop-follow-on-run-design-2026-10-31.md](shiploop-follow-on-run-design-2026-10-31.md).
 Evidence: [experiments/follow-on-peek-20261031/](experiments/follow-on-peek-20261031/README.md).
 
-Consumer: the owner, deciding D1 to D4 of the design, and any session that measures or builds the follow-on list. Read the
-newest round first. A claim is edited later, not deleted: it is marked superseded with the date and the reason.
+Consumer: the owner, deciding D1 to D4 of the design, and any session that measures or builds the follow-on list. Rounds run in
+order, the newest last. A claim is edited later, not deleted: it is marked superseded with the date and the reason.
 
 Status words: firm (read from source or reproduced), interim (one measurement or a small n), exploratory (one reader,
 unreplicated), superseded (kept, with the reason).
@@ -105,3 +105,52 @@ same ceiling that 593b4b44 measured on the held-out side (every completed run al
 
 Next: the replay with a second reader (design, section 7, M1), once the owner has seen the design. The product decisions D1 to
 D4 are the owner's.
+
+## Round 1 — 2026-10-31 (late) — rebased onto main, the multipass work folded in, one stale claim corrected
+
+Question: the multipass work of another session landed on main after Round 0, and its memory entry names this design as lacking a
+live follow-on case. Does it change the design, and what in revision 1 is wrong?
+
+Conditions: rebased onto 240594c9922c42ac0a761717671f93f220e31743 (ten commits after the Round 0 base, no file overlap). No model
+call and no ShipLoop run. One reader, Claude Sonnet 5.5.
+
+Read in full: the multipass [plan](shiploop-multipass-plan-2026-10-31.md) and [journal](shiploop-multipass-journal.md); the commits
+03d046c64f2edce109394e2cecf3085b3e1c20c2, aa601d37d2f97434fd51c00e0a05b494c692cb91, 84b6bdd247288d3c81b2c717a7dde3bbfef7fc52,
+1bdeac40136b908b591b34883710cb3770b879b2, 737640caa50ef567d154259b7260c907a6cba5dd and 589bc03ebe4bb31759a371e10bbc261bb071aab3.
+Skimmed: 39bb5d5da1cb1e36716d0ecacabcfc1725fbb3af and 87d3da8e22ee5158a6d3b877752a22eaf3e8e27b (the SG2 smoke and its closing).
+
+Findings:
+
+- F10 (firm). Revision 1 cited a step that no longer exists. It said the handoff retires the run's feature spec (19c25538,
+  2026-10-10). The next day 589bc03e removed the feature folder, the retire, `outcome.md` and the feature list; the engine has no
+  retire symbols, and the terminal close is commit, follow-up return, print. Found because the multipass plan says the per-run
+  feature folder was removed on 2026-10-11, then checked in the code. Corrected in sections 2, 3.A and 6 of the design. The mistake
+  was mine: the Round 0 history search listed 589bc03e and I did not open it, reading only the older commit. Rule kept: before
+  citing a decision, read the later commits that touched the same symbols. The SPEC S-11 text I read at the Round 0 base was
+  stale on the same point and misled in the same direction; c3c957641aa74ed872d23de6ba066e60cf2bdd66 (2026-10-31, after that
+  base) reconciled it, and the SPEC now says the feature-spec folders and the handoff-retire commit are no longer required.
+- F11 (firm, from the multipass journal F4 and F7). A second pass works and is delta-first: all 8 saved runs (four pairs, a
+  first and a second pass each) passed; in the 4 second passes R-1 to R-5 were kept byte for byte, no earlier test was touched, and
+  0 of 19 planned test cases cite a requirement the run did not add. The strongest evidence for shape B so far. (The multipass plan
+  says "eight saved second passes"; its journal is exact: eight runs, four of them second passes.)
+- F12 (firm, no model). The lessons reach a third pass: the first packet of a pass built from a saved second pass quotes the last
+  three commit messages and the newest lessons commit in full (aa601d37, `ThirdPassPacketTest`).
+- F13 (interim). The leaks compound. `environment.md` gained 4.5 to 6.4 KiB in the second pass (32 of 36 stray headings are stage
+  reports or second copies of the release procedure; 4 are the procedure the consumer contract intends). In 1 of 4 runs a live
+  decision was filed under `## Superseded`. The 40-heading cap arithmetic puts the first cut at the fifth pass's packet. A chain of
+  follow-on runs would repeat this, so a chain waits for the multipass decisions D2 to D4.
+- F14 (firm). `--continue-from` and `follows` are test-harness features (`test/shiploop_e2e/run.py`, `cases.json`). The engine
+  records no field for which run another follows. A chain would add one; the recommend-only list does not need it.
+- F15 (firm). The multipass apparatus (`chains.py`, `delta.py`, `ticket-comments`) is the fixture and the readout for a mechanics
+  test of a follow-on request (design section 7, M2a). It cannot test value, because every pass in the ticket chain passes. M2b, a
+  case where the first run completes wrong, is still absent.
+
+Changed in the design: sections 1, 2, 3, 4.5, 4.7, 5, 6, 7 (M2 split into M2a and M2b), 8, 9, 10 (D2's condition) and 11 (U2
+extended, U9 and U10 added). D1 to D4 keep their recommendations; D2 gains a dependency.
+
+Superseded: the Round 0 sketch of M2 as one live measurement (now two), and revision 1's claim about the retire (F10).
+
+Routine decisions: rebased rather than merged; revision 2 is a second commit so the correction stays visible; nothing was pushed.
+
+Open: the live third pass of the multipass work (its E1) had no recorded result when this round was written. Read it before M2a is
+planned.

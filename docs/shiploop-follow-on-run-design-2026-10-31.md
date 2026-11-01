@@ -1,10 +1,12 @@
 ---
-Status: design proposal, revision 1, 2026-10-31. Nothing is built, adopted or released. Execute: ask.
+Status: design proposal, revision 2, 2026-10-31. Nothing is built, adopted or released. Execute: ask. Revision 2 folds in
+the multipass work that landed after revision 1 and corrects one stale claim (section 6, the 589bc03e row).
 Consumer: the owner, deciding D1 to D4 (section 10). Later: the session that runs the replay (section 7) or builds the follow-on list (section 8).
-Journal: docs/shiploop-follow-on-run-journal.md (Round 0).
+Journal: docs/shiploop-follow-on-run-journal.md (Round 0 and Round 1).
 Evidence: docs/experiments/follow-on-peek-20261031/README.md.
 Category: a proposed generic ShipLoop improvement and the exploratory evidence behind it. No E2E apparatus change, no skill change, no release.
-Base: 4a75a13d052c994c3e855b9d556637fde05c0b58 (origin/main when this was written).
+Base: 240594c9922c42ac0a761717671f93f220e31743 (origin/main when revision 2 was written). Revision 1 was written at
+4a75a13d052c994c3e855b9d556637fde05c0b58.
 ---
 
 # A post-delivery follow-on run for ShipLoop
@@ -39,6 +41,11 @@ the whole loop again.
 - Evidence so far (exploratory, section 5): of 122 archived runs that reached handoff, 3 name a decision a person must make
   about the spec or scope, and none leaves a gap the system could close alone. The outcome for a gap a run notices in-run,
   `add-work`, was used in 3 of 125 runs.
+- Revision 2: the multipass work of another session landed on main after revision 1. It measures a pass started by a person
+  on the repository an earlier run left (a pass is one such run). Its findings support the shape (all 8 saved runs of four
+  ticket pairs passed, and the 4 second passes kept every earlier requirement and decision) and supply the chain harness and the readout for the live
+  measurement (section 7). They also show every pass leaking activity into the permanent files, so a chain of follow-on runs
+  waits for that work's decisions (section 4.7).
 - Order: replay the gate with a second reader first (offline, no ShipLoop run); build the recommend-only version only if the
   replay supports it; consider chaining runs only with new evidence and the owner's calls on D2 and D3.
 
@@ -53,7 +60,8 @@ the whole loop again.
 | Inner loop-back | `send-back` to `step-plan` (`SEND_BACK_TO`); outer `OUTER_SEND_BACK_TO` for `system-test` and `release-verify` | a record an earlier stage wrote is wrong | a stage re-runs; no new request |
 | Pre-dispatch edge | the plan Improve "reconcile" to discovery, research, spec or test-strategy (`planning_revision.RECONCILIATION_TARGETS`); `system-test`, `product-acceptance`, `release-verify` and `handoff` carry `blocks={"reconciliation"}` | planning reviews | closed after dispatch |
 | Leftovers with owners | `unverified` (`unverified.current_list`, `must_restate`: product-acceptance writes it and the handoff restates it); `assumptions.open_items` | structured, script-read, each with an owner and a due stage | request outcomes only; `open_items` never closes a plan row |
-| A new run on a delivered baseline | SKILL.md "for a later feature request"; the knowledge home; the ticket-assignment then ticket-escalation pair (SPEC, brownfield); the next-run probe (a953e68a) | inherits the living spec, architecture and environment; the run's feature spec merges into the living spec and is retired at handoff (19c25538) | started by a person with a hand-written request |
+| A new run on a delivered baseline | SKILL.md "for a later feature request"; the knowledge home; the ticket-assignment then ticket-escalation pair (SPEC, brownfield); the next-run probe (a953e68a) | inherits the living spec, architecture and environment; the requirement IDs a run added are derivable with `spec_diff` from the run baseline; there is no per-run feature spec and no retire step since 2026-10-11 (589bc03e) | started by a person with a hand-written request |
+| Chains of passes (test apparatus) | `test/shiploop_e2e/chains.py`, `delta.py`, the case `ticket-comments`, and the [multipass plan](shiploop-multipass-plan-2026-10-31.md) and [journal](shiploop-multipass-journal.md). A link is one case that follows another; the delta ledger is a record kept beside each run of what it changed compared with the run before | eight saved runs (four pairs, a first and a second pass each) read: all passed, and the four second passes kept everything; a no-model probe shows the lessons reach a third pass's first packet (03d046c6, aa601d37) | started by a person; nothing starts a pass from a run's leftovers; every pass leaks activity into the permanent files |
 | One request per run | SKILL.md: an `init` retry with a different prompt is refused; `request.md` splits the prompt into S1..Sn; IN1 (70d88d37) | stable anchors for intake, spec, plan and the trace | an in-run "new prompt" has no home |
 
 ## 3. Options for the shape
@@ -71,8 +79,8 @@ For each: the strongest case for, the strongest case against, a verdict.
     stance for saved runs is that nothing is converted or partly resumed.
   - Delivery authority is per run: a "yes" covers this run only unless the user says "standing" (SKILL.md). A reopened run
     silently extends a grant.
-  - `done` stops being final, and handoff has side effects: the return receipt, the knowledge close and the retire of the
-    feature spec (19c25538). Reopening after them is not defined.
+  - `done` stops being final, and handoff has side effects: the return receipt and the knowledge close (commit, follow-up
+    return, print). Reopening after them is not defined.
   - It touches `graph`, `_accepted_done`, `planning_revision.current_actions`, the trace, the progress view and keepalive.
 - Verdict: no.
 
@@ -81,14 +89,24 @@ For each: the strongest case for, the strongest case against, a verdict.
 - For:
   - It reuses a tested path. The next-run probe found a cold follow-on consuming the living files where expected (a953e68a),
     and the brownfield pair measures that a follow-on keeps what the first run learned.
+  - The multipass readings back it: all 8 saved runs (four pairs) passed, and the 4 second passes kept R-1 to R-5 byte for
+    byte, touched no earlier test and planned no test case for an old requirement (0 of 19). A request that is the delta alone is what those cases
+    use (03d046c6).
   - The request is new, so intake, spec, plan and tests anchor to it. The owner's rule that a step's tests follow that step's
     own intention (fdec0f6e) holds unchanged.
   - `done` keeps its meaning: the request was delivered. Authority is asked again. No new edge type.
 - Against:
   - A second prelude (discovery, the baseline test run, research, spec, plan) is paid again for even a small delta.
   - The lessons must reach the new run. They do by subject (`last_lessons`), not by position in the last three commits: one
-    more closing commit once pushed them out of the window (49c502ea, K13).
-- Verdict: yes.
+    more closing commit once pushed them out of the window (49c502ea, K13). A no-model probe of four saved second passes
+    confirmed the lessons are quoted correctly in a third pass's first packet (aa601d37).
+  - Each pass leaks activity into the permanent files (multipass journal F1 to F3). `environment.md` gained 4.5 to 6.4 KiB
+    in the second pass, mostly stage reports under headings of their own (32 of 36 stray headings; 4 are the release
+    procedure the consumer contract intends). In one of four runs a live decision was filed under `## Superseded`, and the
+    engine then labels it superseded. A packet lists at most 40 headings of a file, so on the observed growth the newest
+    sections are first cut in the fifth pass's packet (arithmetic, not seen on a run). A chain of follow-on runs repeats
+    this at machine speed; one follow-on run is no worse than the person-started second pass it replaces.
+- Verdict: yes for one follow-on run; a chain waits (section 4.7).
 
 ### C. Stay manual (today)
 
@@ -171,10 +189,13 @@ under-recommends, which is today's behaviour.
 The script computes `recommend` as: any `gap` or any `decision`. When it holds, it writes `RUN/follow-on-request.md`:
 
 1. Request: each `gap` statement and each `decision` question, with its evidence references.
-2. Preserve: keep the decisions in the living spec and architecture unless a finding says otherwise; run the existing suite
-   first. This restates for a prompt the rule of AGENTS.md: preserve earlier decisions unless new evidence or an explicit
-   owner decision warrants changing them.
-3. Context: the path of this run's `request.md` and the lessons commit subject, not the verbatim original (U2).
+2. Preserve: say that everything the project already does keeps working (the multipass cases say the same in their
+   delta-only requests), keep the decisions in the living spec and architecture unless a finding says otherwise, and run the
+   existing suite first. This restates for a prompt the rule of AGENTS.md: preserve earlier decisions unless new evidence or
+   an explicit owner decision warrants changing them.
+3. Context: the path of this run's `request.md` and the lessons commit subject, not the verbatim original (U2). The
+   multipass runs planned only the delta from a delta-only request (0 of 19 test cases cite a kept requirement), which
+   favours this.
 
 The final packet and `report.html` show the list, rendered by the script (S-15), and print the start command:
 
@@ -197,6 +218,10 @@ is excluded by evidence: an end-of-run gate that refuses has refused honest runs
 records which run it follows. The chain ends when a run's list has no `gap`, or when a `gap` returns unchanged (same source
 and statement) after a run that claimed to close it: the chain stops and reports (a state-repeat stop, not a count; S-10).
 `decision` entries are surfaced, never chained. A dollars or minutes ceiling is the owner's to set (D3).
+
+The engine has no field for which run another follows: `--continue-from` and `follows` belong to the test harness, so a chain
+would add one. Nothing has run past a second pass, and the multipass decisions on what stages write to the living files (its
+D2 to D4) decide whether a chain is safe, so a chain waits for them and for its live third pass.
 
 ### 4.8 How it sits with the rest
 
@@ -235,9 +260,28 @@ Reading:
   completed-but-wrong baseline: 3 of 6 baseline runs passed every check and the other 3 paused at step-plan on an
   open-assumption rule (2ae6200e). A reflection can only list what the run knew it left open.
 
+### What the multipass work adds (revision 2)
+
+Read in full after rebasing: its [plan](shiploop-multipass-plan-2026-10-31.md), its
+[journal](shiploop-multipass-journal.md) and commits 03d046c6, aa601d37, 84b6bdd2, 1bdeac40 and 737640ca (full hashes in
+section 6). A pass is one run on the repository an earlier run left; a link is one test case that follows another; the delta
+ledger is a record kept beside each run of what it changed compared with the run before. Most of it read eight saved runs and
+called no model.
+
+- A second pass works: all 8 saved runs (four pairs) passed, and in the 4 second passes R-1 to R-5 were kept byte for byte, no
+  earlier test was touched, and 0 of 19 planned test cases cite a requirement the run did not add. This is the best evidence for shape B.
+- The lessons reach a third pass: a no-model probe of four saved second passes shows the last three commit messages and the
+  newest lessons commit quoted in full in the third pass's first packet.
+- Passes leak into the permanent files, and the leak compounds with the pass number (section 3.B).
+- A third and a fourth pass have never run. The first live third pass (`ticket-comments` from a saved second pass) was queued
+  behind another session's runs when this was written, with its predictions fixed in the journal first.
+- The ticket chain is at its ceiling too: every pass in it passes, so it can show the mechanics of a follow-on run, not its
+  value (section 7, M2a and M2b).
+
 ## 6. Earlier decisions this design respects
 
-Read in full before writing; hashes resolved with `git log -1 --format=%H`.
+Read in full before writing; hashes resolved with `git log -1 --format=%H`. Revision 2 corrected the `19c25538` row and added
+the rows from `589bc03e` on.
 
 | Commit | What it decided or measured | Consequence here |
 |---|---|---|
@@ -246,7 +290,8 @@ Read in full before writing; hashes resolved with `git log -1 --format=%H`.
 | 5e6643b3525baab5336af01b9fdd3ca580d7f956 (2026-10-11) | the follow-up return carries the empty lessons commit to the source branch (a blocker once) | the new run finds the lessons where the source branch has them |
 | 8d51a8e988864479333de044202a20f0e5c481dc (2026-10-11) | the report is the consumer for the person who asked; it shows every hand-off and the exact lessons message after a working-tree return | the follow-on section belongs in `report.html`, script-rendered |
 | c6c82b16b8dc57cdb72ea4f43b75cbc1f69ce446 (2026-10-18) | four outcomes; `add-work` (was `replan`): missing product work is built, then the run resumes at `system-test-author`; the old set made the model choose among overlapping names | no fifth outcome; a follow-on is not an outcome |
-| 19c255386d11100ac0e8e080a0848632a0f71ede (2026-10-10) | the run's feature spec merges into the living spec and is retired at handoff (33 of 33 saved runs) | at `done` the living spec is the carrier; a follow-on run amends it through the existing lifecycle |
+| 19c255386d11100ac0e8e080a0848632a0f71ede (2026-10-10) | built the handoff retire of the run's feature spec into the living spec (33 of 33 saved runs). Revision 1 cited it as current; it is not | superseded by the next row |
+| 589bc03ebe4bb31759a371e10bbc261bb071aab3 (2026-10-11) | the next day removed the feature folder, the handoff retire, `outcome.md` and the feature list: the terminal close is commit, follow-up return, print; added IDs travel by `spec_diff` from the run baseline and the lessons by the lessons commit | at `done` there is no per-run spec to retire; the three living files and the lessons commit carry a run into the next, and a follow-on run needs nothing else |
 | a953e68a8c23fb2738e3cfa51ee4304a73d147b8 (2026-10-11) | next-run probe: a cold follow-on consumes the living files where expected and opens the earlier test-spec, system-tests and release-plan as precedent | follow-on runs work; their persistent inputs belong in `environment.md` |
 | a6eca10c6cc460047cbd8ec01509509c1d3ceb62, 70d88d379fece7457b9136b39ab8d586fd43cdae (2026-10-26) | an end-of-run coverage check refused 5 of 8 honest runs; the check moved to where the link is made (TS1, IN1) | never gate `done` on the list; check a link where it is made |
 | fdec0f6ed642165effd33be640974c9ee25c1561 (2026-10-29) | owner: tests follow that step's own intention; coverage of the request is a property of the plan | the follow-on request must state its own intention; its plan checks coverage |
@@ -256,13 +301,18 @@ Read in full before writing; hashes resolved with `git log -1 --format=%H`.
 | 2ae6200e05ef0d95bc05fa592c9ae0cf6ef7d018, c30e706ca8710fa65e74865f54497b032a2ff52c (2026-10-31) | XI: baseline 3 of 6 pass, the 3 failures were step-plan stalls (since changed by fix 1 in 2.27.0), probes ran in 1 of 6; not adopted | no completed-but-wrong baseline exists even in the case built for it; research probes are a separate line |
 | 20769530290a7bc4db71cef6b57afe24d0f2c418 (2026-10-31) | a published-skill csv-report run whose existing recovery worked: "do not change effort, review schedule, loop exits or add a final stage from it" | the same stance: no stage, no loop change |
 | 8bae4bd6ff87503eb4a7c5bb160a776725354eb9, ea46f9493c4c3fc2d153cfe16563eb7d84324ffd (2026-10-31) | the owner's rule for learning commits and history reads; a rejected candidate leaves an empty commit, not files | this note is a proposal with its investigation, not a candidate; the commit that lands it follows the rule |
+| 03d046c64f2edce109394e2cecf3085b3e1c20c2 (2026-10-31) | the multipass harness: `chains.py` (a chain of three links once dropped link 1's checks; fixed), `delta.py`, the case `ticket-comments`; eight saved runs (four pairs) read: all passed, the four second passes kept everything, and every pass leaked activity into the permanent files | the chain harness and the ledger are the fixture and the readout for M2a; the leaks are the cost of a chain |
+| aa601d37d2f97434fd51c00e0a05b494c692cb91 (2026-10-31) | a no-model probe pinned what a third pass is shown first: the lessons are quoted correctly; a packet lists at most 40 headings of a file | the lessons commit reaches a follow-on run; the cap does not touch it, because the lessons are quoted whole |
+| 84b6bdd247288d3c81b2c717a7dde3bbfef7fc52 (2026-10-31) | cited the pushed commits in the multipass journal after the work landed, and scored predictions written before the live run from the run's own files | the way to cite hashes (a commit cannot cite itself) and a model for M2a's readout |
+| 737640caa50ef567d154259b7260c907a6cba5dd (2026-10-31) | corrected its own count: 32 of the 36 stray headings are the defect, 4 are the release procedure the consumer contract intends | cite 32 of 36, not 36 |
+| 39bb5d5da1cb1e36716d0ecacabcfc1725fbb3af, 87d3da8e22ee5158a6d3b877752a22eaf3e8e27b (2026-10-31) | the SG2 smoke: nine slices, all correct at implement time, the end-of-item review changed nothing; the owner closed SG2 | the same ceiling seen from the review side: where the producer writes the specified behaviour, a reflection by the same model has little to add (U1) |
 
 ## 7. Measurement plan
 
 ### M1. Replay with a second reader (offline, routine)
 
 - Set: the strict rows of `peek.json` at the time, plus any finished runs under the experiment roots the peek skipped
-  (`~/e2e-runs-xr`, `-s7`, `-pf`); whether those roots hold runs that reached handoff has not been checked.
+  (`~/e2e-runs-xr`, `-s7`, `-pf`, `-multipass`); whether those roots hold runs that reached handoff has not been checked.
 - Readers: the frozen first classification; a second, materially distinct model reader, blind to those labels, given the text
   and the class definitions of `classification.json` and the run's request sentences.
 - Measures: agreement on the coarse classes, and on `gap` and `decision` in particular; every disagreement looked at by a third
@@ -276,12 +326,27 @@ Read in full before writing; hashes resolved with `git log -1 --format=%H`.
     Fall back to showing the non-note leftovers unclassified.
 - Cost: model calls on a few dozen short texts. No ShipLoop run; the owner's live hold is respected.
 
-### M2. A case that can show value (live; needs the owner's go)
+### M2. Live measurements (need the owner's go)
 
-None exists. Calibrate a brownfield case whose first run completes and fails a held-out check, and in which the run can know it
-did not verify the deciding fact (so the fact reaches `unverified` or `Open for the next run`). Pre-register it: write the
-case, the arms and the pass rule down in a commit before any scored call. Add a stop-early rule as XI had: three baseline
-runs first, and stop if all pass, because the comparison then cannot show a gain.
+Two different questions. The multipass work (section 5) bears on the first only.
+
+M2a. Mechanics: does a run started from a script-built follow-on request plan like one started from a hand-written request?
+The fixture and the readout exist. The chain harness (`chains.py`) starts link N+1 from link N's delivery and holds it to every
+earlier link's checks; `delta.py` records whether the plan stayed on the delta; the ticket chain (assignment, escalation,
+comments) is a base. Build the follow-on request from the leftovers of a saved pass, start the next pass from it, and set it
+beside the chain's hand-written delta prompt on the same base. Measures: the earlier checks still pass; the plan stays on the
+delta (the multipass journal's F4: no planned test case cites a kept requirement); where the new knowledge lands, as the
+ledger reads it. Write the predictions in the journal before the run, as the multipass Round 1 did, and score them from the
+run's own files. It shares the machine-wide lease on port 4180 with other sessions' runs, so it follows the live third pass
+of the multipass work (its E1), which also supplies the hand-written baseline.
+
+M2b. Value: does a follow-on run repair a delivery that is wrong? Still no case: every pass in the ticket chain passes, and
+XI's baseline failures were stalls. Calibrate a brownfield case whose first run completes and fails a held-out check, and in
+which the run can know it did not verify the deciding fact (so the fact reaches `unverified` or `Open for the next run`).
+Pre-register it: write the case, the arms and the pass rule down in a commit before any scored call. Add a stop-early rule as
+XI had: three baseline runs first, and stop if all pass, because the comparison then cannot show a gain. The multipass plan's
+modifying link (a request that changes an earlier requirement; designed as `ticket-sla`, not built) is the nearest existing
+design for the `decision` class.
 
 - Arms (the two versions compared): A, ShipLoop as it is. B, the recommend-only list plus a harness that starts the follow-on
   run from the printed request when `recommend` holds.
@@ -309,8 +374,9 @@ Touchpoints, by symbol; nothing here is designed in detail.
 - Nomenclature (S-16): "follow-on" is not in the glossary. It is near "follow-up return" (a product fix committed after the
   workspace return) and "follow-on case" (an E2E case that follows another). The glossary entry must say which is which.
   "Improve" is a stage and a skill, so no name here uses it.
-- E2E: a SPEC clause and a metric `follow_on` in `metrics.json` (unmeasured is not zero); the brownfield pair can exercise the
-  printed request.
+- E2E: a SPEC clause and a metric `follow_on` in `metrics.json` beside the `delta` block (unmeasured is not zero). The chain
+  harness can start a link from the printed request. Its suites, `suite_catalog.py`, the `test-groups` counts and the SPEC
+  table conflict whenever two sessions add to them, so expect to keep both sides.
 - Tests: fail first, with the refusal's named exit submitted through the real CLI (not the wording); neutral fixtures (S-13).
 - Cost to check: the handoff head's headroom against `test/shiploop_e2e/head_table.json` is unmeasured; the offline render diff
   decides.
@@ -334,6 +400,7 @@ the build plan.
 | breaks saved runs, pins | a required key refuses a saved run at handoff | accepted: the stored shape is loose and the key is checked at the CLI gate only, as for `unverified`; no state version bump is expected |
 | costs more than it saves | a second prelude for a 2% case | open: D4; M3 |
 | gamed | the model classifies for effect (everything `note`, or `gap` to start runs) | mitigated: citations resolve; `gap` needs an S<n>; the full list is shown; no target metric on the count |
+| compounds with the pass number | a chain of follow-on runs adds to the leaks the multipass journal measured (F1 to F3) | open: recommend-only is no worse than a person-started pass; a chain waits for the multipass decisions D2 to D4 and its live third pass |
 
 Anchor: S-14 (a step that needs a person records an open item) and S-11 (the next run builds on retained knowledge); the run
 evidence is thin (3 decisions in 122 runs), which is why section 7 comes first. Non-regression: no outcome, stage, loop or
@@ -344,7 +411,7 @@ limit changes.
 | | Question | Recommendation |
 |---|---|---|
 | D1 | Shape: follow-on run, in-run back edge, or stay manual | a follow-on run; stay manual until M1 reports |
-| D2 | Recommend-only, or auto-start a chain for `gap` entries | recommend-only; auto-start only after M2 shows a use |
+| D2 | Recommend-only, or auto-start a chain for `gap` entries | recommend-only; auto-start only after M2b shows a use and the multipass decisions on what stages write are made |
 | D3 | A dollars or minutes ceiling on a chain | none proposed; yours if you want one, ending in a report |
 | D4 | Build the recommend-only list now, or measure first | measure first (M1), then decide |
 
@@ -357,7 +424,7 @@ start command uses command substitution of the request file.
   producing model at handoff.
 - U2. IN1 requires intake to cite every sentence of the request. A follow-on request that quotes the whole original would put
   those sentences under IN1. The draft passes the original by path, not by value; whether intake handles a quoted original
-  is untested.
+  is untested. The multipass cases pass a delta-only request and their runs planned only the delta, which favours the path.
 - U3. The request file lives under `RUN`, outside the repository and next to the run's workspace; where a later session finds
   it after the run directory is cleaned is unspecified.
 - U4. The host's stop hook releases at `done`; a chain needs the host to start the next run in the same turn or the driver to.
@@ -369,6 +436,11 @@ start command uses command substitution of the request file.
   runs of the owner's own features were unfinished).
 - U8. Whether `release-verify`, whose lessons are written before `operations`, or `handoff` is the better owner of the list.
   The handoff was chosen because it restates and sees operations.
+- U9. Chains past two passes. Nothing has run past a second pass; the first live third pass (multipass E1) had no recorded
+  result when this was written, and the permanent-file leaks compound with the pass number.
+- U10. A `decision` that changes an earlier requirement is the multipass plan's modifying link (designed, not built; its E3).
+  How a pass retires or supersedes an earlier entry in the living files is untested, and a follow-on run acting on such a
+  decision depends on it.
 
 Rejected: a size threshold (a number nobody can know, and big is not unfinished); asking the user at the end (S-14); a
 reflection stage with an Improve-style loop (no checkable exit); gating `done` on the list (honest runs would be refused);

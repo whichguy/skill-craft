@@ -125,7 +125,7 @@ the same place.
   class named in section 2, would give at most decision 2 to 4, extension 3 to 5, person 5 to 6, capability 4 to 5, debt 1 to 2
   and note 6 to 7; `gap` stays 0 unless a reader finds a system-closable row that this reader did not.
 - The run set is `ledger.find_runs()`'s five roots (`~/e2e-runs`, `-brownfield`, `-qr`, `-x4`, `-owner-note`). The output roots
-  of the experiments `-xr`, `-s7`, `-pf` and `-brownfield-interrupted` are not read. The set grows as sessions finish runs, so
+  of the experiments `-xr`, `-s7`, `-pf`, `-multipass` and `-brownfield-interrupted` are not read. The set grows as sessions finish runs, so
   a rerun can differ; this snapshot is 125 runs.
 - The open-assumption count is not a signal: `shiploop_assumptions.open_items` never closes a plan row ("the ledger never
   updates a disposition"), so 59 runs end with an open row whether or not anything is left. The unverified count is not an
