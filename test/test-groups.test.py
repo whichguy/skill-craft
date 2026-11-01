@@ -116,10 +116,11 @@ class TestGroupTests(unittest.TestCase):
         # two (2026-10-30), the seed seam suite, the stage suite's three (oracle, builder, runner), the optional UI adapter,
         # the stage suite's live tier's two (live core, report), two opt-in gym adapter suites, the test-writing adequacy suite, and
         # the follow-on chain's delta ledger, its third link and its fourth, and the Python-floor suite (2026-10-31).
-        # Core gains backchain-graph (2026-11-01): Backchain's validator moved out of ShipLoop with its parity tests.
+        # Core gains backchain-graph (2026-11-01: Backchain's validator moved out of ShipLoop with its parity tests)
+        # and backchain-toolkit (its command line).
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 118)
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 54)
-        self.assertEqual(len(suite_catalog.SUITES), 174)
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 55)
+        self.assertEqual(len(suite_catalog.SUITES), 175)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -182,7 +183,7 @@ class TestGroupTests(unittest.TestCase):
                          "shiploop-navigator-v4"} <= baseline)
         self.assertLess(len(baseline), 17)
         cases = {
-            "skills/backchain/prompts/revise.prompt.md": {"backchain-chunks", "backchain-graph"},
+            "skills/backchain/prompts/revise.prompt.md": {"backchain-chunks", "backchain-graph", "backchain-toolkit"},
             "test/backchain_chunks.py": {"backchain-chunks"},
             "test/fixtures/backchain-chunks/mixed.json": {"backchain-chunks", "marketplace-package"},
             # shiploop-loops reaches the stop hook end to end on a real run (owed-outcome phase A); shiploop-e2e-slice frees

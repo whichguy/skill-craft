@@ -22,6 +22,21 @@ SPEC.loader.exec_module(CHECK)
 
 
 class PackageTests(unittest.TestCase):
+    def test_backchain_command_line_runs_from_built_package(self):
+        # The command line imports backchain_graph beside it; a package that dropped the library would fail here.
+        cli = PLUGINS / "skill-craft/skills/backchain/scripts/backchain.py"
+        plan = ROOT / "test/fixtures/backchain-export/confirmed.plan.json"
+        checked = subprocess.run([sys.executable, "-I", "-B", str(cli), "check", str(plan)],
+                                 cwd=self.temp.name, capture_output=True, text=True)
+        self.assertEqual(checked.returncode, 0, checked.stderr)
+        self.assertEqual((json.loads(checked.stdout)["schema"], json.loads(checked.stdout)["completion"]),
+                         ("backchain-check/v1", "complete"))
+        exported = subprocess.run([sys.executable, "-I", "-B", str(cli), "export", str(plan)],
+                                  cwd=self.temp.name, capture_output=True, text=True)
+        self.assertEqual(exported.returncode, 0, exported.stderr)
+        self.assertEqual(json.loads(exported.stdout),
+                         json.loads((ROOT / "test/fixtures/backchain-export/confirmed.graph.json").read_text()))
+
     def test_backchain_preservation_helper_runs_from_built_package(self):
         helper = PLUGINS / "skill-craft/skills/backchain/scripts/check_preservation.py"
         plan = json.loads((ROOT / "test/fixtures/backchain-chunks/mixed.json").read_text())["plan"]

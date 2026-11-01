@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "source": {
+    "format": "backchain",
+    "plan_sha256": "2ffd9930575690a32baa8f1ff05aaefda61cbd67c80dd6a2b123d5187086a798",
+    "goal": "A merged result is ready after two independent suppliers",
+    "initial_state": [
+      "repository exists"
+    ],
+    "goal_needs": [],
+    "inputs": {
+      "S1": [
+        {
+          "need": "repository exists",
+          "from": null
+        }
+      ],
+      "S2": [
+        {
+          "need": "repository exists",
+          "from": null
+        }
+      ],
+      "S3": [
+        {
+          "need": "left artifact ready",
+          "from": "S1"
+        },
+        {
+          "need": "right artifact ready",
+          "from": "S2"
+        }
+      ]
+    },
+    "validation": "structurally valid and completionStatus=complete; done strings carry each produce's confirm method when the plan declares one; readiness and semantic verification remain dispatcher-owned"
+  },
+  "steps": [
+    {
+      "id": "S1",
+      "deps": [],
+      "contract": {
+        "task": "The left artifact is prepared",
+        "ready": [
+          "repository exists"
+        ],
+        "done": [
+          "left artifact ready"
+        ]
+      }
+    },
+    {
+      "id": "S2",
+      "deps": [],
+      "contract": {
+        "task": "The right artifact is prepared",
+        "ready": [
+          "repository exists"
+        ],
+        "done": [
+          "right artifact ready"
+        ]
+      }
+    },
+    {
+      "id": "S3",
+      "deps": [
+        "S1",
+        "S2"
+      ],
+      "contract": {
+        "task": "The merged result is prepared from both artifacts",
+        "ready": [
+          "left artifact ready",
+          "right artifact ready"
+        ],
+        "done": [
+          "merged result ready"
+        ]
+      }
+    }
+  ]
+}

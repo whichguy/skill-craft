@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "source": {
+    "format": "backchain",
+    "plan_sha256": "893e1a998bc789dfb8da27603ce98a2cccc919d38ec3c54f2ce0231f749715e9",
+    "goal": "A diamond dependency graph is structurally sound",
+    "initial_state": [
+      "repository exists"
+    ],
+    "goal_needs": [],
+    "inputs": {
+      "S1": [
+        {
+          "need": "repository exists",
+          "from": null
+        }
+      ],
+      "S2": [
+        {
+          "need": "root ready",
+          "from": "S1"
+        }
+      ],
+      "S3": [
+        {
+          "need": "root ready",
+          "from": "S1"
+        }
+      ],
+      "S4": [
+        {
+          "need": "left ready",
+          "from": "S2"
+        },
+        {
+          "need": "right ready",
+          "from": "S3"
+        }
+      ]
+    },
+    "validation": "structurally valid and completionStatus=complete; done strings carry each produce's confirm method when the plan declares one; readiness and semantic verification remain dispatcher-owned"
+  },
+  "steps": [
+    {
+      "id": "S1",
+      "deps": [],
+      "contract": {
+        "task": "The root foundation is ready",
+        "ready": [
+          "repository exists"
+        ],
+        "done": [
+          "root ready"
+        ]
+      }
+    },
+    {
+      "id": "S2",
+      "deps": [
+        "S1"
+      ],
+      "contract": {
+        "task": "The left branch is ready",
+        "ready": [
+          "root ready"
+        ],
+        "done": [
+          "left ready"
+        ]
+      }
+    },
+    {
+      "id": "S3",
+      "deps": [
+        "S1"
+      ],
+      "contract": {
+        "task": "The right branch is ready",
+        "ready": [
+          "root ready"
+        ],
+        "done": [
+          "right ready"
+        ]
+      }
+    },
+    {
+      "id": "S4",
+      "deps": [
+        "S2",
+        "S3"
+      ],
+      "contract": {
+        "task": "The merge result is ready",
+        "ready": [
+          "left ready",
+          "right ready"
+        ],
+        "done": [
+          "merge ready"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "goal": "The CSV importer accepts the vendor feed and reports rejected rows.",
+  "initial_state": [
+    "The repository contains src/import/csv.js."
+  ],
+  "goal_needs": [
+    "Rejected rows are reported with their line numbers."
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "statement": "The importer maps the vendor header names to canonical fields.",
+      "produces": [
+        "The importer maps the vendor header names to canonical fields.",
+        "src/import/header-map.js exports canonicalHeader."
+      ],
+      "inputs": [
+        {
+          "need": "The repository contains src/import/csv.js.",
+          "from": null
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "The importer maps the vendor header names to canonical fields.",
+          "by": "node test/header-map.test.js; pass when all 6 cases pass",
+          "level": "execute"
+        },
+        {
+          "produces": "src/import/header-map.js exports canonicalHeader.",
+          "by": "grep -n 'export function canonicalHeader' src/import/header-map.js; pass when one line matches",
+          "level": "inspect"
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "statement": "Rejected rows are reported with their line numbers.",
+      "produces": [
+        "Rejected rows are reported with their line numbers."
+      ],
+      "inputs": [
+        {
+          "need": "src/import/header-map.js exports canonicalHeader.",
+          "from": "S1"
+        },
+        {
+          "need": "The importer maps the vendor header names to canonical fields.",
+          "from": "S1"
+        }
+      ],
+      "origin": "seed",
+      "confirm": [
+        {
+          "produces": "Rejected rows are reported with their line numbers.",
+          "by": "an operator reading the nightly report agrees each line number matches the feed",
+          "level": "unconfirmable"
+        }
+      ]
+    }
+  ],
+  "parallel_groups": [],
+  "unresolved": []
+}

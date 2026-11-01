@@ -1,0 +1,21 @@
+{
+  "schema": "backchain-export-goldens/v1",
+  "recorded": "2026-11-01",
+  "recorder": "node scripts/export-execution-graph.js <name>.plan.json > <name>.graph.json",
+  "exporter": {
+    "repository": "Backchain development checkout (/Users/dadleet/src/backchain)",
+    "head": "a26d7b0f4f13c93548e8df9b9849c812317cfa19",
+    "last_commit_touching_exporter_or_lib": "10efadae26a122a1bb291ef5d9ef0f1e370157f0",
+    "export-execution-graph.js_sha256": "48800bbca4cfa88d0aea01db443125e6ea184c0483f7948d6dd649b00d246823",
+    "harness/lib.js_sha256": "a9b99125d06d6aa8ea49216de68f803b9dfde3f3335acf83f47d960869b7585a"
+  },
+  "note": "The JS exporter is the reference for skills/backchain/scripts/backchain.py export; each graph is its output on the plan beside it. diamond and fan-in are packaged corpus plans (test/fixtures/backchain-check/structural/good/); confirmed carries one confirm entry of each level.",
+  "files": {
+    "confirmed.graph.json": "52f557635baef3f5225f8b9bdb302ac3bc5816c9b0b10e5e0943c13b606bce46",
+    "confirmed.plan.json": "83161f9ee763db37492465183851541518818027197a731c2a1dc733ff88d3c0",
+    "diamond.graph.json": "d448eaf396bfd6c471d9e7fa5c1209adb411dd3c496a084646c648821ceffe3e",
+    "diamond.plan.json": "893e1a998bc789dfb8da27603ce98a2cccc919d38ec3c54f2ce0231f749715e9",
+    "fan-in.graph.json": "08156f3d5c2d71ff57b21c9c04b5461b78550395cc97853d3ec686fadc378c7d",
+    "fan-in.plan.json": "2ffd9930575690a32baa8f1ff05aaefda61cbd67c80dd6a2b123d5187086a798"
+  }
+}

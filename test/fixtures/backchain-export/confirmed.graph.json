@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "source": {
+    "format": "backchain",
+    "plan_sha256": "83161f9ee763db37492465183851541518818027197a731c2a1dc733ff88d3c0",
+    "goal": "The CSV importer accepts the vendor feed and reports rejected rows.",
+    "initial_state": [
+      "The repository contains src/import/csv.js."
+    ],
+    "goal_needs": [
+      "Rejected rows are reported with their line numbers."
+    ],
+    "inputs": {
+      "S1": [
+        {
+          "need": "The repository contains src/import/csv.js.",
+          "from": null
+        }
+      ],
+      "S2": [
+        {
+          "need": "src/import/header-map.js exports canonicalHeader.",
+          "from": "S1"
+        },
+        {
+          "need": "The importer maps the vendor header names to canonical fields.",
+          "from": "S1"
+        }
+      ]
+    },
+    "validation": "structurally valid and completionStatus=complete; done strings carry each produce's confirm method when the plan declares one; readiness and semantic verification remain dispatcher-owned"
+  },
+  "steps": [
+    {
+      "id": "S1",
+      "deps": [],
+      "contract": {
+        "task": "The importer maps the vendor header names to canonical fields.",
+        "ready": [
+          "The repository contains src/import/csv.js."
+        ],
+        "done": [
+          "The importer maps the vendor header names to canonical fields.. Confirm by: node test/header-map.test.js; pass when all 6 cases pass",
+          "src/import/header-map.js exports canonicalHeader.. Confirm by: grep -n 'export function canonicalHeader' src/import/header-map.js; pass when one line matches (inspection is sufficient)"
+        ]
+      }
+    },
+    {
+      "id": "S2",
+      "deps": [
+        "S1"
+      ],
+      "contract": {
+        "task": "Rejected rows are reported with their line numbers.",
+        "ready": [
+          "src/import/header-map.js exports canonicalHeader.",
+          "The importer maps the vendor header names to canonical fields."
+        ],
+        "done": [
+          "Rejected rows are reported with their line numbers.. Confirm by: unconfirmable here — an operator reading the nightly report agrees each line number matches the feed"
+        ]
+      }
+    }
+  ]
+}
