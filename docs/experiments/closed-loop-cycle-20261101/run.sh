@@ -18,6 +18,10 @@
 # subject runs at once. See README.md for what to expect and what to return.
 set -euo pipefail
 export PYTHONDONTWRITEBYTECODE=1
+# A sealed attempt's receipt binds every run that overlapped it inside the runs root. Unset, that root is the epoch's own folder,
+# so only the epoch's attempts are neighbours, and epoch.settle_siblings waits for exactly those; a root shared with other
+# sessions' runs would bind runs this cycle cannot wait for.
+unset SHIPLOOP_E2E_RUNS_ROOT
 
 base_sha=${1:?usage: run.sh BASE_SHA OUTPUT_DIR}
 out=${2:?usage: run.sh BASE_SHA OUTPUT_DIR}

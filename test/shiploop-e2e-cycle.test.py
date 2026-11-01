@@ -904,6 +904,7 @@ class CycleKitTest(unittest.TestCase):
         for flag in ("--tolerance 0.25", "--attempts 3", "--effort high", "--model gpt-6.1-terra", "--iterations 1"):
             self.assertIn(flag, text)
         self.assertNotIn("--skip-reviews", text, "the full cycle reviews every attempt")
+        self.assertIn("unset SHIPLOOP_E2E_RUNS_ROOT", text, "only the epoch's own attempts may be neighbours of a sealed attempt")
 
     def test_the_run_script_parses_names_what_it_returns_and_refuses_a_used_folder(self):
         script = self.KIT / "run.sh"
