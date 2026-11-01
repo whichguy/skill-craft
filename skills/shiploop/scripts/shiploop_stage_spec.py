@@ -83,8 +83,12 @@ def send_back_target(stage: str) -> str:
     return OUTER_SEND_BACK_TO.get(stage, SEND_BACK_TO)
 # The implement step's first exit condition (the owner's D4 words, made binding by D7): its criteria are the unit
 # of completion and the item's other requirements stay binding.  The loop appends the step's criterion IDs to it.
+# At implement the step's Proof shows a criterion; the tests its Confirm by names are the test stage's, which implement
+# may not write (planning journal F31: implement read them as due here and sent good plans back).
 STEP_CRITERIA_CONDITION = ("each criterion assigned to this step is satisfied and none of the others is broken, shown "
-                           "by a command or file after the last edit, and no later step's work is in the change")
+                           "after the last edit by the step's Proof or another command or file (tests named in a "
+                           "criterion's Confirm by are written and run at the test stage), and no later step's work is "
+                           "in the change")
 # Implement's second exit condition on every route: the step's Proof is its step plan `proof`.  ShipLoop runs it at done
 # (``complete_runs`` step-proof).
 STEP_PROOF_CONDITION = "after the last edit, the Proof of each step this action builds (its `proof` in the step plan) exited 0"
