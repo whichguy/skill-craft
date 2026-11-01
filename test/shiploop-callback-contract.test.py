@@ -1326,12 +1326,14 @@ class StepSizingRouteTests(RealCliCase):
         self.assertEqual(template["criteria"][-1], {"id": "C3", "text": "<what this item's test shows for A1>",
                                                     "confirm": "executed", "from": "A1"})
         self.assertIn("C3", template["test_commands"][0]["criteria"])
+        # One ID per criterion the focused row names (step-plan review, 2026-11-01): the row showed three and two.
+        self.assertEqual(template["test_commands"][0]["ids"], ["TC-1", "TC-2", "TC-3"])
         self.assertFalse([row for row in template["expectations"] if "from" in row])
         good = self.fill_done(head)
         settles = {"id": "C2", "text": "the export opens: its file test reads it back", "confirm": "executed", "from": "A1"}
         by_criterion = {**good, "criteria": [*good["criteria"], settles],
                         "steps": [dict(good["steps"][0], criteria=["C1", "C2"]), *good["steps"][1:]],
-                        "test_commands": [dict(good["test_commands"][0], criteria=["C1", "C2"]),
+                        "test_commands": [dict(good["test_commands"][0], criteria=["C1", "C2"], ids=["TC-1", "TC-2"]),
                                           *good["test_commands"][1:]]}
         broken = [
             ("no row settles A1", good, "settle each here: an executed criterion"),
@@ -1356,6 +1358,45 @@ class StepSizingRouteTests(RealCliCase):
             fact = {"id": "E2", "state": "works", "statement": "a.txt holds the exported line", "steps": ["S1"],
                     "paths": ["a.txt"], "check": "grep -q x a.txt", "from": "A1"}
             write_block(path, {**done, "expectations": [*done["expectations"], fact]})
+            self.accepted(command)
+
+    def test_each_executed_criterion_a_focused_command_names_has_an_id_of_its_own(self) -> None:
+        """Step-plan review (2026-11-01): test-spec writes one case per focused ID and a case names one criterion, so a
+        focused command naming more executed criteria than it lists IDs left a criterion with no case.  In the saved
+        runs 24 of 175 step plans did; 9 came back from test-spec ("Focused test identifiers need to cover both
+        criteria") and 15 folded a criterion into another's case.  `check` and `complete` refuse it now, naming the
+        criteria and the IDs listed, and the plan with an ID for each is accepted through the same callback."""
+        run, head = self.new_run("step-plan")
+        command, path, action = printed_callback(head)
+        self.assertIn("starts with a file guard, or lacks an ID per criterion", head)   # the Checked-by line lists the gate
+        good = self.fill_done(head)
+        second = {"id": "C2", "text": "a bad row changes nothing: its rejection test reads the file back",
+                  "confirm": "executed"}
+        short = {**good, "criteria": [*good["criteria"], second],
+                 "steps": [dict(good["steps"][0], criteria=["C1", "C2"]), *good["steps"][1:]],
+                 "test_commands": [dict(good["test_commands"][0], criteria=["C1", "C2"]), *good["test_commands"][1:]]}
+        write_block(path, short)
+        check = self.run_printed(command.replace(" complete ", " check ", 1))
+        self.assertEqual(check.returncode, 2, check.stdout + check.stderr)
+        refusal = self.refused(command, run)
+        self.assertIn("Criterion C2 has no focused test ID of its own (the focused commands list IDs TC-1 for C1, C2)",
+                      refusal)
+        self.assertIn("Add an ID for each", refusal)
+        fixed = {**short, "test_commands": [dict(short["test_commands"][0], ids=["TC-1", "TC-2"]),
+                                            *short["test_commands"][1:]]}
+        write_block(path, fixed)
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["test_commands"][0]["ids"], ["TC-1", "TC-2"])
+        with self.subTest("a criterion only existing tests confirm needs no focused ID"):
+            run, head = self.new_run("step-plan")
+            command, path, _ = printed_callback(head)
+            kept = {"id": "C2", "text": "the old report still prints: the existing suite passes", "confirm": "executed"}
+            done = self.fill_done(head)
+            write_block(path, {**done, "criteria": [*done["criteria"], kept],
+                               "steps": [dict(done["steps"][0], criteria=["C1", "C2"]), *done["steps"][1:]],
+                               "test_commands": [done["test_commands"][0],
+                                                 *(dict(row, criteria=["C2"]) if row["suite"] == "regression" else row
+                                                   for row in done["test_commands"][1:])]})
             self.accepted(command)
 
     def test_a_step_plan_field_of_any_length_is_accepted_and_stored_whole(self) -> None:

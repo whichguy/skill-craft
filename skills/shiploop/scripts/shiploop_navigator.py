@@ -2858,6 +2858,28 @@ def _check_focused_guards(stage: str, result: Any) -> None:
                 "to load on the base is a real failure, and ShipLoop reads it. Then run the same callback again.")
 
 
+def _check_focused_criteria_ids(stage: str, result: Any) -> None:
+    """Refuse a done step plan in which an executed criterion a focused command names has no focused test ID of its own
+    (``test_loop.criteria_without_ids``): test-spec writes one case per focused ID and a case names one criterion, so
+    such a criterion came back from test-spec as a send-back (9 of the 24 saved plans that had one) or got no case."""
+    if stage != "step-plan" or not isinstance(result, Mapping) or result.get("outcome") != "done":
+        return
+    commands, criteria = result.get("test_commands") or (), result.get("criteria") or ()
+    missing = test_loop.criteria_without_ids(commands, criteria)
+    if not missing:
+        return
+    listed = ["IDs " + (", ".join(str(ident) for ident in row.get("ids") or ()) or "none") + " for "
+              + ", ".join(str(name) for name in row.get("criteria") or ())
+              for row in commands if isinstance(row, Mapping) and row.get("suite") == "focused" and row.get("criteria")]
+    raise NavigatorError(
+        ("Criterion " + missing[0] + " has no focused test ID of its own" if len(missing) == 1 else
+         "Criteria " + ", ".join(missing) + " have no focused test ID of their own")
+        + " (the focused commands list " + "; ".join(listed) + "). Test-spec writes one case per focused ID and each "
+        "case names one criterion, so every executed criterion a focused command names needs its own ID in a focused "
+        "command that names it. Add an ID for each (one test file can hold them all), or, for a criterion that existing "
+        "tests already confirm, name it on the regression command instead; then run the same callback again.")
+
+
 def _check_intake_questions(stage: str, result: Any) -> None:
     """Refuse a malformed key-question ledger (intake duty 9) or one at another stage.  The ledger is optional: the
     template asks for it, as in pilot X1-T (recall 0.49 without it, 0.91 with it, Codex Terra 6.1 high), and both live
@@ -5233,8 +5255,11 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
                               *({"id": criterion, "text": "<what this item's test shows for " + ident + ">",
                                  "confirm": "executed", "from": ident} for criterion, ident in zip(settles, due))]
         # The check row is the item's lint, type or build command, which confirms no behaviour: a check row naming C2
-        # taught 22 of 445 executed criteria to rest on one (stage-prompt review, 2026-10-31).
-        result["test_commands"] = [{"command": "...", "suite": "focused", "ids": ["TC-1", "TC-2"],
+        # taught 22 of 445 executed criteria to rest on one (stage-prompt review, 2026-10-31).  The focused row lists one
+        # ID per criterion it names, as test-spec needs (_check_focused_criteria_ids): with an open item due here it had
+        # shown three criteria and two IDs since 8dee00e0, and plans copy the template's shape.
+        result["test_commands"] = [{"command": "...", "suite": "focused",
+                                    "ids": ["TC-" + str(number) for number in range(1, 3 + len(settles))],
                                     "criteria": ["C1", "C2", *settles]},
                                    {"command": "<exit-code check command>", "suite": "check"},
                                    {"command": "...", "suite": "regression", "minimum": True}]
@@ -7141,7 +7166,8 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
                      + ", or evidence files that do not exist")
     if stage == "step-plan":
         gates.append("a missing follows list, or a follows ID with no entry in KNOWLEDGE/spec.md or KNOWLEDGE/architecture.md")
-        gates.append("a focused command that only reruns an earlier item's test IDs or starts with a file guard")
+        gates.append("a focused command that only reruns an earlier item's test IDs, starts with a file guard, or lacks "
+                     "an ID per criterion")
         gates.append("a criterion without confirm, an executed one whose only commands search text, or an inspected "
                      "one naming no Test layers row that lacks a runner; code paths with no Test layers row")
     if stage == "test-strategy":
@@ -9706,6 +9732,7 @@ def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, s
     _check_submitted_test_commands(current, submitted)
     _check_focused_ids_new(state, current, submitted)
     _check_focused_guards(current, submitted)
+    _check_focused_criteria_ids(current, submitted)
     _check_proof_inputs(state["repo"], current, submitted)
     _check_intake_questions(current, submitted)
     _check_added_tests(state, current, submitted)
@@ -9882,6 +9909,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     _check_focused_ids_new(
                         state, child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_focused_guards(
+                        child["stage"], child["seed_result"] if final_result is None else final_result)
+                    _check_focused_criteria_ids(
                         child["stage"], child["seed_result"] if final_result is None else final_result)
                     _check_proof_inputs(
                         state["repo"], child["stage"], child["seed_result"] if final_result is None else final_result)
