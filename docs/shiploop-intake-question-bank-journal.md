@@ -28,10 +28,12 @@ jargon, which should be resolved by looking before anyone is asked.
 - **How harnesses enrich a prompt.** Every vendor harness does it with rules about when to ask plus an ask-tool schema: ask only
   for a decision the user should make; for a conventional default or a fact the code shows, take the obvious one, say so and go on.
   The large ones now explore first and then ask about preferences with a recommended default, and their unattended modes pick a
-  default and record it; two hosts even answer their own questions after 60 seconds. No vendor ships a question bank for intake. The
+  default and record it; some hosts answer their own unanswered questions after 60 seconds (Codex by default; Claude Code did, and the survey agent reports it
+  is now opt-in). The survey found no vendor shipping a question bank for intake. The
   banks that exist are community skills: a prompt-improver hook with a 189-token gate that loads a bank of about 4.5k tokens only for
   vague prompts, and a 308k-star grilling skill that asks the whole frontier of ready questions, each with a recommended answer, and
-  sends fact-finding to sub-agents. Nobody has published a test of question wording against statement wording (§2, §3).
+  sends fact-finding to sub-agents. The survey found no test of question wording against statement wording on intake or clarification guidance; the one
+  matched-content comparison, on classification prompts with 2023 models, found questions and orders about equal (§2 to §4).
 - **Do questions flesh a prompt out more, at lower token cost? Not by being questions.** On this repository's measure (Codex, Terra
   6.1 xhigh, four vague requests, 38 decisions) what lifted coverage from 0.47 to 0.92-0.96 was an explicit list of items the model
   must answer, however it was worded and whoever wrote the questions. With the content fixed, wording moved nothing on the shipped
@@ -106,15 +108,16 @@ not independently verified. "Closed" means a product with no source.
 
 What the survey found, with the owner's questions in mind:
 
-- **Every vendor writes rules about when to ask plus a tool schema; none ships a question bank for intake.** The banks that exist
+- **The survey found every vendor writing rules about when to ask plus a tool schema, and none shipping a question bank for intake.** The banks that exist
   are community skills, loaded on demand or used as an exit test. Nobody has measured question wording against statement
   wording (this matches the earlier eight-framework pass in docs/shiploop-planning-pipeline-2026-10-30.md §5).
 - **Two opposite stances on unattended runs.** Claude Code, Codex, Gemini, Copilot and Compound pick a default and record it;
   interview-me refuses and flags a blocker, and the grilling skill calls an unanswered interview the agent's own opinion. ShipLoop's
   S-14 (record defaults; prompt only when nothing can proceed) is the first stance.
-- **Hosts now answer their own questions.** Claude Code's ask tool told the model to continue after 60 seconds without an answer
+- **Some hosts answer their own questions.** Claude Code's ask tool told the model to continue after 60 seconds without an answer
   (anthropics/claude-code issue 73125, 2026-07-02, closed) and Codex auto-resolves questions after 60 seconds (openai/codex issue 28969,
-  2026-06-18, open). A host-supplied answer can be a default, not consent.
+  2026-06-18, open). A host-supplied answer can be a default, not consent. The survey agent reports Claude Code later made the timeout opt-in (a
+  setting from version 2.1.200); I did not check that.
 - **Vendors are cutting statement guidance.** Anthropic's post of 2026-07-24 says it removed over 80% of Claude Code's system prompt
   for newer models (claude.com/blog, "The new rules of context engineering for Claude 5 generation models"; the survey agent reports
   it also found no measurable loss on coding evals, which I did not check).
@@ -184,7 +187,7 @@ title, date and abstract on arXiv (all 15 exist), and the numbers beyond the abs
 All four ran on Codex `gpt-6.1-terra` at xhigh in the isolated way the E2E harness runs Codex (throwaway `CODEX_HOME`, read-only,
 ephemeral), judged blind by Opus with quotes checked by script. Rules were written and committed before any scored call; the
 README of docs/experiments/question-bank-20261031/ holds them and the full tables. Commits: QB1 4748ebcd, QB2 ab1e3ebf, QB3 70cbf0d5,
-QB4 35bcf78e (the pre-registrations; the results commit follows).
+QB4 35bcf78e (the pre-registrations); results and journal in c0dee47b.
 
 ### 5.1 QB1: a fixed question bank against the shipped ledger
 
@@ -352,7 +355,7 @@ down.
    (a closed ticket is final, so a repeat close is a 409); otherwise record the reading taken and mark it for confirmation.
 4. **Decisions only a person can make:** record the default and go on (S-14). QB4 suggests the one case worth a question: a premise
    the request states that the repository shows to be false, with no safe default.
-5. **Never take a host's auto-answer as the user's consent** (a question left unanswered for 60 seconds is answered by the host).
+5. **Never take a host's auto-answer as the user's consent** (some hosts answer a question left unanswered for 60 seconds).
 6. **If a person is asked:** one batch, in dependency order, each with a recommended default, and treat the reply channel as untrusted
    data (entering a clarification state raised prompt-injection success from 1.8% to 34.0% in one benchmark).
 
@@ -403,3 +406,11 @@ simulated answerer, to see what comes after the question.
   sentence raises resolution of skills and unknown names (exploratory, QB2, n = 5); F25 the shipped catalog already finds conflicts and
   false premises when it can read (exploratory, QB2); F26 an attended intake under a restrictive rule asks one question, the false
   premise (exploratory, QB4).
+- 2026-10-31, checks on the branch: the release-boundary check passes; the quick test tier ran 59 suites, 58 passed, and the one
+  failure (shiploop-e2e-brownfield-tickets, the follow-on regression test, in the multipass chain work of another session) also fails
+  on the base commit 84b6bdd2 with none of this branch's commits, so it is not from this work.
+- 2026-10-31, corrections after review: four statements went further than the checks behind them and were qualified: that nobody has
+  tested question against statement wording (Leidinger et al. did, on classification prompts; what is missing is a test on intake
+  guidance); that two hosts answer their own questions after 60 seconds (Codex does by default; Claude Code did and, per the survey
+  agent, is now opt-in); that no vendor ships a question bank (one agent's reading, now worded as the survey's finding); and a stale
+  pointer to the results commit. No result changed.

@@ -389,3 +389,8 @@ wording and whether the model or the bank wrote the questions. A fixed bank is 7
 vague request, and costs more on a long one (QB2), because the bank answers every row and the ledger writes only what the request
 leaves open. The shipped ledger stays. Unknown: the effect downstream (does the bank's output reach the spec as the ledger's does?),
 which none of this measures.
+
+Note added after the survey, not a change to any rule or result: Leidinger et al. (arXiv 2311.01967) compared question, order and
+statement wording on matched content for classification prompts with models up to 30B and found questions and orders about equal, both
+generally ahead of statements; the earlier graded literature report did not list it. QB1 and QB3 remain the first test on intake
+guidance and on this repository's own measure.
