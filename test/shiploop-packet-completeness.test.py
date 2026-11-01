@@ -239,6 +239,8 @@ class PacketCompletenessTests(unittest.TestCase):
         "KNOWLEDGE": {"prepare", "test-spec", "release-plan", "spec", "plan", "step-plan", "product-acceptance"},
         "unverified": {"product-acceptance"},
         "due_stage": {"product-acceptance"},
+        # The follow-on list the handoff classifies (design 4.4); its refusals are the handoff's gates.
+        "follow_on": {"handoff"},
         # The spec's primary requirements, the plan that keeps each in a work item's follows (F3 of the 2026-10-28
         # plan), and the lower-layer check product-acceptance holds a primary one to (F6).
         "primary": {"spec", "plan", "product-acceptance"},

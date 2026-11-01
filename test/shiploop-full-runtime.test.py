@@ -772,6 +772,8 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         if stage in ("product-acceptance", "handoff") and result.get("outcome") == "done" and "unverified" not in result:
             # Product-acceptance lists none, so the handoff restates that empty list (restate-unverified, 2026-10-26).
             result["unverified"] = []
+        if stage == "handoff" and result.get("outcome") == "done" and "follow_on" not in result:
+            result["follow_on"] = []                                  # the handoff classifies what is left for a later run
         if stage in knowledge_support.knowledge.CLOSES:
             knowledge_support.write(state)
         if final_result is None:
