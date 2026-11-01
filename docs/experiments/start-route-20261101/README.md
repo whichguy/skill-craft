@@ -1,6 +1,6 @@
 # Start route: does rewording the card's start section stop the wrong first command?
 
-Status: **pre-registered 2026-11-01**, before the first scored trial. Results: see "Results" (empty until the batch has run).
+Status: **done 2026-11-01.** Pre-registered before the first scored trial; T2 meets the registered bar and ships (see "Results").
 Owner: Jim Wiese. Model and harness (owner, 2026-11-01: "Use terra at xhigh", "We should be using the codex harness"):
 the E2E harness `test/shiploop_e2e/run.py` on its Codex host, `gpt-6.1-terra` at `xhigh`.
 
@@ -173,14 +173,67 @@ Recorded as they happened; none changes an arm, the sample sizes, the order, or 
    with the fixed detector, superseded those 14 rows with invalid rows, and the 14 slots ran again; the other 26 rows read
    identically. The last row of a slot decides whether the slot has a valid trial (`analyze.py` and the driver both read it that
    way). The definition of the outcome is unchanged: the first command that starts a run.
+5. **Stray observers blocked the harness (2026-11-01, 06:03, at 102 counted rows).** When a start command gets as far as
+   running before the stop file ends the host, the ShipLoop CLI has already spawned its read-only progress observer, which can
+   outlive the harness. The harness refuses every later launch while such an orphan lives ("no host is started" in the trial
+   log), so 47 attempts in two minutes (about 120 invalid rows in all, every request) ended in 3 to 4 seconds with no model
+   call. I killed my own observers (12, each naming one of my trial folders; no other session's process), ran the harness's
+   `lifecycle.py cleanup` for the one trial it named, added a per-trial cleanup to the driver (`reap`), and relaunched; the
+   refused slots ran again. These refusals made no model call and are not outcomes.
+6. **The detector missed one start form (2026-11-01, 06:23, after all 180 slots had a valid row).** A start written as a
+   `python3 -c` one-liner inside a double-quoted shell command carries its quotes backslash-escaped
+   (`\"workspace\",\"start\"`), which the pattern did not match. Such a session was not stopped at its start and ran on to the
+   240 s host timeout, so it was recorded as "no start" (9 sessions, all `sf-ui`: control 2, T1 4, T2 3) although ShipLoop had
+   started in each. `start_probe.py rescan` re-read all 180 stored event streams with a pattern that allows the escapes: 171
+   rows read identically, and those 9 now read as starts (control 1 `init` and 1 `workspace start`; T1 4 and T2 3 `workspace
+   start`). The analysis before the rescan (control 16 wrong of 38 started, T1 4 of 36, T2 0 of 37, 9 without a start) and after
+   it (below) give the same decision. The rule is unchanged, and the fix is by command form, not by outcome.
 
 ## Results
 
-(pending)
+180 valid sessions (the last row of each slot decides), `analysis-output.txt`, compact rows in `results-compact.jsonl`.
+Wrong = the first ShipLoop start command was `init`.
+
+| request | card | sessions | `workspace start` | `init` | wrong rate (95% interval) |
+|---|---|---|---|---|---|
+| sf-ui | C, the published card | 40 | 23 | **17** | 42.5% (29% to 58%) |
+| sf-ui | T1, lead-in names an empty directory | 40 | 36 | **4** | 10% (4% to 23%) |
+| sf-ui | T2, direct entry is for an explicitly requested in-place or non-Git run | 40 | 40 | **0** | 0% (0% to 9%) |
+| hello | C, T1, T2 | 10 each | 10 each | 0 | 0% (0% to 28%) each |
+| repo | C, T1, T2 | 10 each | 10 each | 0 | 0% (0% to 28%) each |
+
+- **The bar.** Both candidates meet all six items. T1: one-sided Fisher p 0.0009, rate 10% against 42.5%. T2: p below 0.0001.
+  Neither added a session without a start (0 of 40 in every arm after the rescan), no guard session started with `init` or ran its
+  own `git init`/`git config`/`git commit` (0 of 60), and the cards are 30,033 and 30,115 bytes against the 30,500 cap.
+- **The choice.** The registered tie-break (fewer wrong starts, then the smaller card) picks **T2**. T2 against T1 on their own is
+  0 of 40 against 4 of 40, one-sided p 0.058: the data do not show T2 better than T1, and T1 is the smaller change (+22 bytes
+  against +104). T2 ships because the rule said so before the data existed, not because the two differ measurably.
+- **Prediction check.** Control about 25%: observed 42.5% (the archive's 3 of 12 has an interval of 6% to 57%, so they agree).
+  T2 at most 10%: held (0%). T1 "changes little": **refuted** (10% against 42.5%); naming the empty directory in the lead-in
+  mattered much more than expected.
+- **Exploratory: how often a session read a start verb's `--help` first.** Control 24 of 40, T1 16 of 40, T2 12 of 40. The
+  published wording leaves many sessions unsure which verb to use; both edits cut that. Not a registered outcome.
+- **Cost.** 180 valid sessions made 820 model calls (mean input peak 42,212 tokens), about 17M to 35M tokens processed with
+  cache reads counted: an estimate, since a stopped session reports no totals. Median 30 s to the start in every arm. 137
+  attempts made no model call (123 refused by the harness, 14 superseded by the detector fix).
+
+Findings.
+- F1, **firm** for this probe: on the Salesforce-style request, Codex Terra at xhigh began with `init` in 17 of 40 sessions on the
+  published 2.27.2 card, 4 of 40 with T1, 0 of 40 with T2 (pre-registered, interleaved, one fixed order).
+- F2, **firm**: the guards held: 60 of 60 plain and existing-repository sessions began with `workspace start` on all three cards.
+- F3, **interim**: T1 and T2 each reduce the wrong route; the data cannot say whether the empty-directory lead-in, the
+  current-directory sentence, or both do the work in each, and the two edits were not tested together.
+- F4, **exploratory**: the archive's concentration of `init` starts in Salesforce prompts (3 of 12, against 1 of 123 for every
+  other prompt) matches the probe: the probe's request is the one that provokes it. The probe's control rate (42.5%) is above
+  the archive's overall Codex rate (3.0%), so the saving in real runs will be smaller than the probe's drop.
+- Limits as registered: first command only, Codex Terra xhigh only, one Salesforce request; Claude and Grok never chose `init`
+  in the archive, so nothing is claimed for them; no minutes, tokens or loops saved are measured.
 
 ## Evidence
 
-- `arms.json`, `stimuli/sf-ui.txt`, `plan.json`, `start_probe.py`, `analyze.py`: the design.
+- `arms.json`, `stimuli/sf-ui.txt`, `plan.json`, `start_probe.py`, `analyze.py`: the design. `start_probe.py reclassify` and
+  `rescan` are the two detector corrections of "Deviations" 4 and 6.
+- `analysis-output.txt`, `results-compact.jsonl`: the result (the compact rows trim each command; the raw rows are below).
 - `start_routes.py`, `recount.py`, `recount-output.txt`: the archive recount (run before any trial).
 - Raw run folders (not committed): `~/e2e-runs-startroute/20261101/` (`results.jsonl`, `baselines-probe.jsonl`,
   `trials/<slot>-<arm>-<request>-<n>-a<attempt>/` with `events.jsonl`, `invocation.json`, `result.json`, `metrics.json`).

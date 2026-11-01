@@ -49,7 +49,8 @@ SEED = 20261101
 # A start is the ShipLoop CLI invoked with the verb `workspace start` or `init`, written as a shell command, with the
 # CLI in a variable, or as a Python subprocess argument list. A reader command that mentions the words is not a start.
 SHELL_START = re.compile(r"(?:scripts/shiploop|\$\{?CLI\}?)['\"]?\s+(workspace\s+start|init)\b")
-PY_START = re.compile(r"""\[[^\]]*?['"](workspace['"]\s*,\s*['"]start|init)['"]""", re.DOTALL)
+# In a python -c one-liner inside a double-quoted shell command the quotes arrive backslash-escaped (\"workspace\",\"start\").
+PY_START = re.compile(r"""\[[^\]]*?\\*['"](workspace\\*['"]\s*,\s*\\*['"]start|init)\\*['"]""", re.DOTALL)
 BOOTSTRAP = re.compile(r"\bgit\s+(init|config|commit)\b")
 PLUGIN_PATH = "plugins/cache/whichguy/skill-craft"
 
@@ -129,6 +130,19 @@ def scan(events_path: Path) -> dict:
                 return found
             found["commands"].append(command)
     return found
+
+
+def reap(trial: Path) -> None:
+    """Kill anything still running that names the trial folder. A start command spawns a progress observer that can outlive
+    the harness; the harness then refuses every later launch as long as such an orphan lives."""
+    listing = subprocess.run(["ps", "-axo", "pid=,command="], capture_output=True, text=True, check=False).stdout
+    for line in listing.splitlines():
+        pid, _, command = line.strip().partition(" ")
+        if str(trial) in command and pid.isdigit() and int(pid) != os.getpid():
+            try:
+                os.kill(int(pid), signal.SIGKILL)
+            except OSError:
+                pass
 
 
 def stop_group(proc: subprocess.Popen) -> None:
@@ -220,6 +234,8 @@ def run_trial(slot: dict, attempt: int, out: Path, expected: dict) -> dict:
         if proc is not None and proc.poll() is None:
             stop_group(proc)
         row["seconds"] = round(time.monotonic() - started, 1)
+        time.sleep(2)   # let a start command that was running when the stop file appeared finish spawning
+        reap(trial)
         for heavy in ("home", "work", "platform"):
             shutil.rmtree(trial / heavy, ignore_errors=True)
         trial.mkdir(parents=True, exist_ok=True)
@@ -245,6 +261,35 @@ def reclassify(out: Path) -> None:
                 fh.write(json.dumps({**row, "valid": False, "start": "none", "superseded": True,
                                      "error": "superseded: the stored start was a help request, not a start"}) + "\n")
     print(f"{sum(r['valid'] and r['start'] != 'none' for r in last.values())} stored starts re-read; superseded: {changed or 'none'}")
+
+
+def rescan(out: Path, apply: bool) -> None:
+    """Re-read every valid trial's whole events.jsonl with the current detector. A row that read `none` but whose session
+    did run a start (the session was never stopped, so it ran on to the timeout) is rewritten with that start; a row whose
+    recorded start no longer matches is only reported. Without --apply nothing is written."""
+    results_path = out / "results.jsonl"
+    rows = [json.loads(line) for line in results_path.read_text().splitlines() if line.strip()]
+    last: dict[int, dict] = {}
+    for row in rows:
+        last[row["slot"]] = row
+    found_new, differ, same = [], [], 0
+    for slot, row in sorted(last.items()):
+        if not row["valid"]:
+            continue
+        found = scan(Path(row["run_dir"]) / "events.jsonl")
+        if row["start"] == "none" and found["start"] != "none":
+            found_new.append((slot, row["arm"], row["stimulus"], found["start"], found["event_n"]))
+            if apply:
+                with results_path.open("a") as fh:
+                    fh.write(json.dumps({**row, "start": found["start"], "start_command": found["start_command"],
+                                         "event_n": found["event_n"], "end": "start", "seconds_to_start": None,
+                                         "rescanned": True}) + "\n")
+        elif (found["start"], found["event_n"]) != (row["start"], row["event_n"]):
+            differ.append((slot, row["arm"], row["stimulus"], row["start"], row["event_n"], found["start"], found["event_n"]))
+        else:
+            same += 1
+    print(f"unchanged: {same}; none -> a start: {found_new or 'none'}; changed otherwise: {differ or 'none'}"
+          + ("" if apply else "  (dry run: nothing written)"))
 
 
 def prepare(out: Path) -> dict:
@@ -289,6 +334,9 @@ def main() -> None:
     p.add_argument("--out", required=True)
     p = sub.add_parser("reclassify")
     p.add_argument("--out", required=True)
+    p = sub.add_parser("rescan")
+    p.add_argument("--out", required=True)
+    p.add_argument("--apply", action="store_true")
     p = sub.add_parser("run")
     p.add_argument("--plan", required=True)
     p.add_argument("--out", required=True)
@@ -305,6 +353,8 @@ def main() -> None:
                          indent=1))
     elif args.cmd == "reclassify":
         reclassify(Path(args.out))
+    elif args.cmd == "rescan":
+        rescan(Path(args.out), args.apply)
     else:
         run_all(json.loads(Path(args.plan).read_text()), Path(args.out), args.jobs)
 
