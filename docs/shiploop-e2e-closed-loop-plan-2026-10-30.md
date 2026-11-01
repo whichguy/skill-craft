@@ -172,7 +172,9 @@ gap below.
     reviews that were not usable.
 - A gap: `epoch.launch` builds the run's arguments from host, model and effort only and never passes `--backend`, and the
   harness's default backend for the Claude host is Ollama. A cycle on the Claude host therefore tries Ollama and is
-  refused wherever Ollama is not running (a cloud session). The Codex host has no such gap.
+  refused wherever Ollama is not running (a cloud session). The Codex host has no such gap. **Closed 2026-11-01:** the
+  Claude host's default backend is now Anthropic (`test/shiploop_e2e/LEARNINGS.md`, "the Claude host defaults to Anthropic's
+  Sonnet 5.5"), so a cycle on the Claude host takes the Anthropic route with no `--backend`.
 
 **Owner decision, 2026-10-31: stage 3 is skipped.** The owner declined the same-build calibration ("skip it; I don't
 want 2-3 hrs"). Its kit stays in `docs/experiments/e2e-calibration-20261031/` for anyone who wants the measurement

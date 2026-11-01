@@ -1070,7 +1070,7 @@ class ClearThroughMainTests(unittest.TestCase):
             signal.signal(number, handler)
 
     def main(self, holds: list[str], *flags: str, backend: tuple = ("--backend", "anthropic"), ready: str | None = None) -> dict:
-        """The fake claude answers the Anthropic route unless ``backend`` names another (a slice's default is Ollama)."""
+        """The fake claude answers the Anthropic route unless ``backend`` names another; ``()`` is the slice's own default."""
         config = self.tmp / "config.json"
         config.write_text(json.dumps({"prompts": str(self.prompts), "scripts": str(CLI.parent), "cli": str(CLI),
                                       "run_dir": str(self.run_dir), "holds": holds, "improve_of": "document"}))
@@ -1088,14 +1088,19 @@ class ClearThroughMainTests(unittest.TestCase):
     def sent(self) -> list[str]:
         return [json.loads(line) for line in self.prompts.read_text().splitlines()]
 
-    def test_a_slice_with_no_backend_runs_on_ollama_and_is_refused_when_ollama_is_not_ready(self):
+    def test_a_slice_with_no_backend_runs_on_claudes_own_models(self):
         self.main(["implement"], backend=())
         invocation = json.loads((self.out / "invocation.json").read_text())
-        self.assertEqual((invocation["backend"], invocation["model"]), ("ollama", step_slice.hosts.OLLAMA_MODEL),
+        self.assertEqual((invocation["backend"], invocation["model"]), ("anthropic", "claude-sonnet-5-5"),
                          "a step slice is an E2E run: it takes run.py's default backend")
+
+    def test_a_slice_on_ollama_runs_the_deepseek_model_and_is_refused_when_ollama_is_not_ready(self):
+        self.main(["implement"], backend=("--backend", "ollama"))
+        invocation = json.loads((self.out / "invocation.json").read_text())
+        self.assertEqual((invocation["backend"], invocation["model"]), ("ollama", step_slice.hosts.OLLAMA_MODEL))
         self.out = self.tmp / "out-refused"
         with self.assertRaises(SystemExit) as refused:
-            self.main(["implement"], backend=(), ready="the Ollama server does not answer")
+            self.main(["implement"], backend=("--backend", "ollama"), ready="the Ollama server does not answer")
         self.assertIn("--backend ollama: the Ollama server does not answer", str(refused.exception))
 
     def test_a_live_slice_holds_its_case_lock_so_the_orphan_scan_beside_it_finds_nothing(self):

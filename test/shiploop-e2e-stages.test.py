@@ -878,8 +878,9 @@ class LiveDryRun(NoLaunch):
         self.assertNothingStarted()
 
     def test_the_driver_defaults_are_slices_and_the_options_override_them(self):
-        for argv, wanted in ((("--host", "grok"), "grok/grok-4.7/medium"), (("--host", "claude"), "claude:ollama/"),
-                             (("--host", "claude", "--backend", "anthropic"), "claude:anthropic/claude-sonnet-5-5/default"),
+        for argv, wanted in ((("--host", "grok"), "grok/grok-4.7/medium"),
+                             (("--host", "claude"), "claude:anthropic/claude-sonnet-5-5/default"),
+                             (("--host", "claude", "--backend", "ollama"), "claude:ollama/"),
                              (("--model", "x", "--effort", "low"), "codex/x/low")):
             with self.subTest(argv=argv):
                 code, out, err = cli("live", "--dry-run", *argv, "--cases-dir", str(self.cases))
@@ -917,7 +918,8 @@ class LiveRefusals(NoLaunch):
     def test_a_host_on_ollama_that_does_not_answer_is_refused(self):
         with mock.patch.object(stages.shutil, "which", return_value="/bin/claude"), \
              mock.patch.object(stages.hosts, "ollama_ready", return_value="the Ollama server at http://x does not answer (down)"):
-            self.refused("--host", "claude", wanted="--backend ollama: the Ollama server at http://x does not answer")
+            self.refused("--host", "claude", "--backend", "ollama",
+                         wanted="--backend ollama: the Ollama server at http://x does not answer")
 
     def test_an_overlay_that_does_not_load_is_refused(self):
         bad = self.temp / "overlay.json"

@@ -241,8 +241,8 @@ owner controls, not by ShipLoop; the owner chose Sonnet for the rerun and it pas
 Asked by the owner after Round 5: "Do weekly run", then "skip ollama, just use Claude. Merge to main and publish, implement
 improvements". Read as: add the weekly run; add the other no-secret improvement proposed (the consumer smoke) and write the
 post-release live check down with Claude as its host; do not build Ollama-specific handling. The harness's default backend
-(Ollama) was not changed, because that changes the subject model behind every earlier baseline; the owner has not said it
-should be.
+(Ollama) was not changed, because that changes the subject model behind every earlier baseline; the owner had not said it
+should be. **Superseded the same day (Round 7):** asked, the owner said yes.
 
 | Change | Commit | Result |
 |--------|--------|--------|
@@ -261,6 +261,21 @@ Not done, by the owner's choice: the harness preflight that makes a one-token Ol
 appends no baseline row (finding F10 still stands: a run that hits a usage limit appends a failed row). Not done and still
 open from "What is left": the floor is enforced only in the full tier (and now the weekly run), the eight unexplained
 E2E-apparatus failures on 3.9, and the 1.0 s progress-observer deadline (F11), which is a limit the owner decides.
+
+## Round 7 — Claude is the E2E harness's default backend (2026-11-01)
+
+Asked at the end of Round 6: "Make Claude the E2E harness's default backend instead of Ollama?" Owner: "Yes use that as default".
+Asked rather than done because AGENTS.md makes a default that breaks comparability with earlier evidence a one-way decision.
+
+| Change | Where | Result |
+|--------|-------|--------|
+| An explicit Claude host with no `--backend` runs `claude-sonnet-5-5` on Anthropic; `--backend ollama` selects DeepSeek flash; `hosts.RUN_DEFAULT_BACKEND` and `hosts.run_default_model` are removed | `test/shiploop_e2e/hosts.py`, `run.py`, `slice.py`, `stage_suite/stages.py`, `iterate.py`, `experiment.py` | four tests fail on the old default and pass on the new; the roles, slice and Ollama-class suites pass |
+| Docs say so | `test/shiploop_e2e/README.md`, `SPEC.md`, `LEARNINGS.md`, `docs/distribution.md` | the post-release Claude smoke no longer needs `--backend anthropic --model claude-sonnet-5-5` |
+
+Finding F15: the default now matches what the audit's live checks needed. The one Ollama-default Claude run (2026-11-01) hit the
+monthly cap at its first model call; the Sonnet run passed in 969.2 s for $4.13 (n = 1). Status: firm for the change, not
+measured for any run on the new default. The decision, its effect on baseline cells (38 Sonnet rows, 9 DeepSeek rows, nothing
+relabelled) and its cost are in `test/shiploop_e2e/LEARNINGS.md`, "the Claude host defaults to Anthropic's Sonnet 5.5".
 
 ## Proposals as first written (2026-10-31; applied as Round 3)
 
