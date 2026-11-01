@@ -966,5 +966,48 @@ class CycleKitTest(unittest.TestCase):
         self.assertIn("exists", refused.stderr)
 
 
+class CalibrationKitTest(unittest.TestCase):
+    """The stage 3 same-build calibration kit (docs/experiments/e2e-calibration-20261031): it measures the noise of the
+    cases and the driver the stage 5 cycle runs, so its figure can replace that cycle's stated tolerance."""
+    KIT = ROOT / "docs" / "experiments" / "e2e-calibration-20261031"
+
+    def registration(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("calibration_registration", self.KIT / "registration.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_it_runs_the_cycles_cases_at_the_cycles_driver_and_needs_no_fixed_port(self):
+        """Its first design ran user-listing, ticket-assignment and battleship: each declares a fixed port, which run.py
+        leases machine-wide and launch_all does not serialise, so its own parallel attempts would have refused each other."""
+        template = self.registration().template("0" * 12)
+        cycle_script = (ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101" / "run.sh").read_text()
+        catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
+        self.assertEqual(set(template["cases"]), {"csv-report", "seat-reservations"})
+        self.assertIn("--case csv-report --generality-case seat-reservations", cycle_script)
+        for case in template["cases"]:
+            self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
+            self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"), f"{case} declares a fixed port")
+        self.assertEqual(template["purpose"], "calibration")
+        for arm in template["arms"].values():
+            self.assertEqual(arm["driver"], {"host": "codex", "model": "gpt-6.1-terra", "effort": "high"})
+        self.assertIn("--effort high --iterations 1", cycle_script.replace("--model gpt-6.1-terra ", ""))
+
+    def test_it_registers_four_attempts_per_arm_of_each_case_on_one_build(self):
+        template = self.registration().template("0" * 12)
+        self.assertEqual({row["id"] for row in template["attempts"]},
+                         {f"{arm}-{case}-{n}" for case in ("csv-report", "seat-reservations")
+                          for arm in ("control", "candidate") for n in range(1, 5)})
+        self.assertEqual({arm["shiploop_build"] for arm in template["arms"].values()}, {"0" * 12})
+        self.assertEqual({row["attempts"] for row in template["cases"].values()}, {4})
+
+    def test_the_run_script_parses_and_keeps_the_epochs_neighbours_to_its_own_attempts(self):
+        script = self.KIT / "run.sh"
+        self.assertEqual(subprocess.run(["bash", "-n", str(script)], capture_output=True, text=True, check=False).returncode, 0)
+        self.assertIn("unset SHIPLOOP_E2E_RUNS_ROOT", script.read_text(),
+                      "a seal binds every overlapping run under the runs root, so another session's runs must not be neighbours")
+
+
 if __name__ == "__main__":
     unittest.main()

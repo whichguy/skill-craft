@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stage 3 of docs/shiploop-e2e-closed-loop-plan-2026-10-30.md: the same-build calibration.
+# Stage 3 of docs/shiploop-e2e-closed-loop-plan-2026-10-30.md: the same-build calibration, on the stage 5 cycle's cases.
 #
 #   bash docs/experiments/e2e-calibration-20261031/run.sh [COMMIT]
 #
@@ -13,6 +13,10 @@
 # or leave it; it is never relaunched. E2E_CALIBRATION_DRY=1 stops after registration, so the setup can be checked
 # without a model call.
 set -euo pipefail
+
+# An attempt's seal binds every run that overlapped it under the runs root, which defaults to the epoch's own folder; a
+# shell that exports SHIPLOOP_E2E_RUNS_ROOT would make other sessions' runs its neighbours, which it cannot wait for.
+unset SHIPLOOP_E2E_RUNS_ROOT
 
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(git -C "$here" rev-parse --show-toplevel)

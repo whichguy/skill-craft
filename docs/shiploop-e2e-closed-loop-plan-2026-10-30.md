@@ -391,6 +391,13 @@ Around it:
 - **If battleship's median exceeds 60 minutes:** the generality case moves to each batch's breadth run, and every cycle
   entry says its claim is scoped to brownfield.
 
+- **Changed 2026-11-01.** The kit now measures the stage 5 cycle's own cases, `csv-report` and `seat-reservations`, 4 attempts
+  per arm each (16 runs), at Terra `high`, so its figure is the noise of the comparison a cycle makes. The cases above each
+  declare a fixed port (3000, 3000, 4180), which `run.py` leases machine-wide and `launch_all` does not serialise: the kit's own
+  parallel attempts would have refused one another, and another session's run held port 3000. The kit had not run. The owner's
+  "all of them" (2026-11-01), read as putting stage 3 back on the list after the 2026-10-31 skip, started it beside the stage 5
+  cycle; it uses its own epoch folder, so it cannot be a neighbour of that cycle's attempts.
+
 ## Stage 4: known-bad pilot
 
 The 10-29 plan's "prove the loop can say no", live. Built 2026-11-01 as `docs/experiments/closed-loop-pilot-20261101/`
