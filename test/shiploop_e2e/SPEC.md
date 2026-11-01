@@ -375,6 +375,14 @@ the old term added to its retired list, so it never returns as a live
 synonym. A change that evolves a term says so in its commit and change note
 (owner, 2026-10-24).
 
+**S-17 Startup commands preserve observer binding and arguments.** A documented
+shell form for starting a run invokes the selected package's CLI in a form the
+installed keepalive observer recognizes as a driving command when the host
+reports its command. Shell quoting preserves the request and repository/run
+path arguments byte-for-byte, including quotes and newlines. A marker printed
+by a read or status command still does not bind a session. This capability does
+not establish that a model naturally renders or follows the command.
+
 ## Change admission
 
 No change is planned, let alone made, before its negative consequences have
