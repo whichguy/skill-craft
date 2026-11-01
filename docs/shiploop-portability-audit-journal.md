@@ -292,7 +292,7 @@ items of Rounds 4 and 6; this record. Evidence: `docs/experiments/release-smoke-
 | F19 | The harness gate refuses `--source marketplace` while any change note is pending on `origin/main`. On 2026-11-01 it refused 51 minutes after the 2.30.0 release commit and ten minutes before 2.31.0 was released, so a check that waits for the gate can wait a release cycle. The docs now give the `--plugin-dir` route and require the evidence to say the gate was bypassed | firm | `v2.30.0-gate-refused.txt`, `docs/distribution.md` |
 | F20 | The weekly schedule path was read end to end and holds: `ci_policy.select` maps `schedule` to the full tier (unit-tested), the `release-boundary` step falls to `*) ... exit 0` for any event other than push and pull request, the concurrency group is keyed on `run_id`, and `plan` compares `github.sha` with the checkout, which on a schedule is the default branch's tip. The first real firing, Monday 2026-11-02 14:23 UTC, is unobserved | firm for the reading | `.github/workflows/ci.yml`, `test/ci-policy.test.py` |
 | F21 | The `python-floor` leg (Python 3.9.25, `ubuntu-24.04`) passed in the full tier of the last three release commits: `570f308fda451c8b0b1a39ef16f33ffe32aa31d1` (run 41323924608, 20 min; that run was red in `shiploop-2` only), `4224161b095792825befe2a384075fab5660ae05` (41329381683, 20 min) and `41ee3d89d580fb715fc90994b2361348550698c7` (41332749569, 16 min) | firm | `gh run view` of those runs |
-| F22 | Cursor is the one host that is not current: `~/.cursor/plugins/local/skill-craft` holds a local copy at 1.21.0 (directory dated 2026-10-05) and the only marketplace entry there is `claude-craft` (2026-09-11), none named `whichguy`. Claude, Codex and Grok list the current release. A stale local copy beside a later marketplace install would load old skills twice | firm (read-only look) | `~/.cursor/plugins` |
+| F22 | Cursor is the one host that is not current: `~/.cursor/plugins/local/skill-craft` holds a local copy at 1.21.0 (directory dated 2026-10-05) and the only marketplace entry there is `claude-craft` (2026-09-11), none named `whichguy`. Claude, Codex and Grok list the current release. A stale local copy beside a later marketplace install would load old skills twice | firm (read-only look); resolved in Round 9 | `~/.cursor/plugins` |
 | F23 | The "write to closed file" failures of Round 2 are explained. Under macOS Python 3.9.6 (Xcode's) the 47 E2E-apparatus suites give 23 passes and 24 stops at the first failure, with no timeouts; 17 of the 24 logs show `AttributeError: module 'os' has no attribute 'waitid'`, and the rest are 3.10 to 3.12 APIs (`unittest.enterContext`, `sys.stdlib_module_names`, `TemporaryDirectory(ignore_cleanup_errors=)`, `tarfile.extractall(filter=)`) or checks not examined (`environment`, `lifecycle`, `stage-build`, `stages`). The closed-file error is a knock-on: `run.launch`'s daemon `pump` thread writes to the events file after the main thread's `AttributeError` has left the `with` that opened it. Run without fail-fast, five of six `waitid` suites printed it (`delta`, `commit-counters`, `baseline`, `quality`, `reorientation`; `ticket-sla` did not). No frame in any of the 24 tracebacks is in `skills/shiploop/` | firm | `docs/experiments/release-smoke-20261101/py39-apparatus-probe.txt`; `run.py`, `launch`, `pump` and `record` |
 
 ### Triage of what was open
@@ -311,12 +311,36 @@ items of Rounds 4 and 6; this record. Evidence: `docs/experiments/release-smoke-
 
 ### The owner's, in order
 
-1. Install `skill-craft` in the Cursor app from the `whichguy` marketplace and remove the local 1.21.0 copy (F22).
+1. ~~Install `skill-craft` in the Cursor app from the `whichguy` marketplace and remove the local 1.21.0 copy (F22).~~ Done the
+   same day at the owner's word (Round 9).
 2. The first scheduled CI run, Monday 2026-11-02 after 14:23 UTC. At the owner's word on 2026-11-01 ("Yes, schedule it") a
    one-time, read-only Desktop task, `read-first-weekly-ci-run-2026-11-02` (the app's Scheduled list), is set for 08:30 PST that
    day. It waits for the run and reports; it records nothing, so writing the observed half of F20 here still needs a session.
    It runs while the app is open, or on the next launch.
 3. The 1.0 s progress-observer deadline (a limit) and the hook-cost split (F6), as before.
+
+## Round 9 — skill-craft in the Cursor app, stale copies removed (2026-11-01)
+
+Asked by the owner after Round 8, in dictated words: "I want Steelcraft to be in the Cursor app, and remove any Steel copies".
+Read as skill-craft and stale copies, because Round 8 had just listed exactly that for Cursor. Cursor 3.27.22, one machine.
+
+| # | Finding | Status | Evidence |
+|---|---------|--------|----------|
+| F24 | Before: skill-craft was in Cursor only as a local copy at 1.21.0 (`~/.cursor/plugins/local/skill-craft`, directory dated 2026-10-05), and the Cursor account held three user-scope registrations of this repository, none current: `whichguy` pinned to `85d31923154d72a7e54dee9f294899aed48e66e5` (release 1.7.0, 2026-09-27), `skill-craft` pinned to `f6c95537e0ff20f7fd5faea56ea63322e3f6f6f9` (2026-09-24, the per-skill catalog) and `whichguy-skill-craft` with no pin, last indexed 2026-09-16. No plugin of any of them was installed in the app: there was no `plugins/cache` folder for them | firm | `cursor-agent plugin marketplace list --format json`; `~/.cursor/plugins` |
+| F25 | `cursor-agent plugin marketplace update` does not move a registration. It re-indexed the old `whichguy` (indexed time moved) and left its `gitRef` at `85d31923...`. After a fresh `add`, the registration's `gitRef` was the commit `main` held at that moment, `f5fb7d6446bb461e1a771a7bc64effaabd6822d1`; a later `update` re-indexed it again and left it there while `main` had reached `36b6046e006f1338c0f4059273660fba20365397`. Following a release takes a remove and an add | firm (observed twice) | the `list` outputs before and after |
+| F26 | Now: one registration, `whichguy`, user scope, indexed at `f5fb7d64...`. The plugin installed from it by one click (Browse Marketplace, Whichguy, skill-craft, Add) is skill-craft 2.32.1 with 23 skills, byte-identical to `git archive` of that commit, and the app's installed list shows one skill-craft with no Local badge. The local 1.21.0 copy is in the Trash (`~/.Trash/skill-craft-local-1.21.0-stale-20261101`). No skill-craft skill sits in `~/.cursor/skills`, `~/.claude/skills`, `~/.codex/skills` or `~/.agents/skills` | firm | `~/.cursor/plugins/cache/whichguy/skill-craft/`; the app's list |
+
+Left, and why:
+- Whether an installed marketplace plugin follows a newer commit by itself is not verified (no release has landed since); today a
+  refresh is a remove, an add and a click.
+- The app's installed count went from 32 to 31 across the change, where swapping one local copy for one marketplace plugin should
+  have kept it at 32. Removing a registration may drop an installed entry; which one is not known.
+- `~/.cursor/skills/.skill-craft/receipts.jsonl`, install.sh's ledger of links that no longer exist, was left: it is a record, not
+  a copy, and Cursor does not read it.
+- The app was driven in click-only mode (no typing), so the marketplace was registered from the CLI instead of the "Import from
+  GitHub" form. After the app's screen lagged behind a screenshot, one click opened the detail page of an unrelated plugin (Amazon
+  Location Service); its "Add to Cursor" button was not pressed.
+- Cursor 3.27.22 on one machine; the Team-scope route is an administrator's and was not touched.
 
 ## Proposals as first written (2026-10-31; applied as Round 3)
 
