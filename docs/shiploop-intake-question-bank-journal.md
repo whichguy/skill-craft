@@ -50,7 +50,9 @@ jargon, which should be resolved by looking before anyone is asked.
   sentence raised the share of items answered right from 0.56 to 0.73 (the same plus the bank: 0.74 and 0.80; exact p 0.004 to 0.012,
   five outputs each). Installed skills named in the request were tied to the host's list 0.73 to 0.93 of the time instead of 0.33; an unknown
   name was flagged as undefined 0.4 to 0.8 of the time instead of never (the shipped catalog called it context); unflagged assertions
-  fell from 1.6 per output to 0 to 0.4. It cost about 12% more output tokens (§5.3). Exploratory: one request, five outputs per arm.
+  fell from 1.6 per output to 0 to 0.4. It cost about 12% more output tokens (§5.3). Exploratory: one request, five outputs per arm. On three new requests over three other repositories (QB5, 60
+  outputs) the same line plus sentence raised items right from 0.52 to 0.67 (p 0.008, ahead in every request) for 8% more output tokens;
+  the fall in silent assertions (0.67 to 0.20 per output) missed the registered p < 0.05 (p 0.115) (§5.5).
 - **Conflicts and false premises were already caught.** Every arm found the contradictions in the request and the filter behaviour the
   docs state wrongly, B included, so a conflicts category added nothing here. What every arm missed was what the files show about the
   cost of the change: no template for closed tickets, a dedupe that holds only while a notification is pending, a data file saved on
@@ -61,8 +63,9 @@ jargon, which should be resolved by looking before anyone is asked.
   the model read more (10 to 14 shell commands against 7.6), while earlier tests found models rarely run a probe merely because it is
   allowed (§5.4).
 - **Recommendation (nothing under skills/ changed).** Keep intake item 9 as shipped; do not build the bank, the 12-word cap or a
-  rewording of the catalog. The evidence supports one addition, a terms-and-references category with the look-it-up-first sentence, but
-  on one request and five outputs per arm: confirm it on more requests, pre-registered, then a live A/B, then ship (§8).
+  rewording of the catalog. The evidence supports one addition, a terms-and-references category with the look-it-up-first sentence: it replicated on
+  three more requests (QB5) on the main measure, but one registered condition failed (silent assertions, p 0.115), so by the rules' letter it
+  is not confirmed. The next step, a live A/B and then the change itself, needs the owner's go (§5.5, §8).
 
 ## 1. How I read the request's own terms
 
@@ -266,6 +269,22 @@ and no default is safe. The unknown name, "right away" against "batch it", the b
 recorded. Predictions: person rows concern decision items (6 of 6, true); no wasted asks (true); the bank asks more (false, 2 against
 4). The count is steered by the rule's wording; a looser rule would ask more. Evidence: README.md QB4 section, qb4/.
 
+### 5.5 QB5: the confirmation on three new requests and repositories
+
+Question: does the terms-and-references line, with or without the look-it-up-first sentence, resolve more of a long dictated request on
+repositories QB2 was not designed on? Setup (pre-registered in 6f0b7083): three requests over three small fixtures (a user store and
+server, an order meter with a hard limit, a text helper), 41 items with expected handling written beforehand and facts verified in the
+files, four arms (B as shipped, Bk line and sentence, Bk12 line only, Bsen sentence only), 5 outputs each, 60 intakes on Terra xhigh,
+15 blind Opus judge calls.
+
+Result (status: firm on the main measure for these requests; one registered rule missed): items right per output B 0.52, Bk 0.67
+(+0.155, p 0.008, ahead in every request: +0.186, +0.186, +0.092), Bk12 0.65, Bsen 0.62; installed skills right 0.20 in B and 0.80 in Bk;
+unknown names 0.33 and 0.60; conflicts 0.67 in every arm; output tokens 3,032 and 3,277 (+8%); silent assertions per output 0.67, 0.20,
+0.20 and 0.47, the drop for Bk not significant (p 0.115). Rules: C1, C2 and C4 hold, C3 fails. The registration did not say what to do when
+only C3 fails; that gap is recorded in the README and not filled in afterwards. The line alone gets +0.126 (p 0.027) and the sentence alone
++0.103 (p 0.069); the data cannot separate their contributions. One intake call stalled for six minutes and was retried by the runner.
+Evidence: docs/experiments/terms-line-confirmation-20261031/ (README.md, scores.json, intake/, judge/).
+
 ## 6. What a change to intake has to beat
 
 - **Coverage and cost of the shipped catalog on vague requests** (QB1, Terra xhigh): recall 0.935, agreement 0.74, noise share 0.36,
@@ -363,16 +382,18 @@ down.
 
 **Decisions** (nothing here is built; the owner's go is needed for the second):
 - D1. Keep intake item 9 as shipped. No bank, no 12-word cap, no rewording of the catalog (recommended; §5.1, §5.2).
-- D2. Confirm the terms-and-references addition before shipping it: a pre-registered run on at least three more dictated requests over
-  different repositories and different jargon, B against B plus K12 and the sentence, scored by the QB2 method; then a live A/B like
-  45f9752e. Cost to ship: about 12% more intake output tokens, a change to a shipped and live-validated prompt, and the shape check.
+- D2. The exercise-level confirmation is done (§5.5): the resolution gain replicated (C1, C2 and C4 hold), the silent-assertion rule C3
+  missed (p 0.115). What remains is the live A/B and the change itself: the K12 line, the sentence, the ledger's shape check extended from
+  K1-K11 to K12, a change note and tests. It needs the owner's go: it changes a shipped and live-validated prompt, costs about 8% to 12% more
+  intake output tokens, uses a live cycle on the shared Terra account, and whether the C3 miss is acceptable is the owner's call.
 - D3. Leave S-14 as it is (unattended by default). QB4 shows what a rule that asks would send to a person (one question), if the owner
   ever wants it.
 
 **Unknowns:**
 - Whether the bank's output reaches the spec as the ledger's does (X2b measured the ledger: carried 0.776 to 0.897). The bank drops the
   `changes` and `blocks` fields; nothing here measures the cost.
-- Whether QB2's gain is the K12 line or the look-it-up sentence (Bp had both).
+- Whether the gain is the K12 line or the look-it-up sentence: QB5 says each carries most of it (line alone +0.126, sentence alone
+  +0.103, both +0.155) and cannot separate them.
 - One request and one repository for QB2; four requests, one subject and one judge for QB1 and QB3, with a judge whose calibration moves
   2.6 to 4.8 points between batches. The E2E default subject (DeepSeek flash) was not run (its Ollama limit); Sonnet, a stronger
   intake, may already catch most of what Terra misses (X1: Sonnet at 0.93 without the catalog).
@@ -414,3 +435,8 @@ simulated answerer, to see what comes after the question.
   guidance); that two hosts answer their own questions after 60 seconds (Codex does by default; Claude Code did and, per the survey
   agent, is now opt-in); that no vendor ships a question bank (one agent's reading, now worded as the survey's finding); and a stale
   pointer to the results commit. No result changed.
+- 2026-10-31, QB5: registered (6f0b7083) before any scored call; 60 intakes and 15 judge calls; one intake call stalled and was retried.
+  Findings: F27 the terms line replicates on three new repositories (firm on items right, +0.155, p 0.008); F28 its fall in silent
+  assertions is not significant at 15 outputs per arm (p 0.115; same direction as QB2); F29 the line and the sentence each carry most of
+  the gain and cannot be separated here (exploratory). Landing: the first study was merged into main by merge commits, not a rebase, so the
+  hashes this journal cites stand (dbbf945b); this QB5 work is on its own branch.

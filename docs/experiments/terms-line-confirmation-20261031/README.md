@@ -96,6 +96,49 @@ python3 qb5.py score
 `run.py` and `stats.py` are the question-bank study's, copied. Codex event streams, stderr and the judge prompts are not committed; each
 envelope keeps the call's token usage and the shell commands the model ran.
 
-## Results
+## Results (60 outputs, 15 per arm, 0 unverified judge quotes; `scores.json`, `judge/`)
 
-(appended after the runs)
+One intake call (`records-B-s1`) stalled: its event stream showed nothing after the turn started for about six minutes, against 35 to 60
+seconds for every other call. I ended that process and the runner's built-in retry produced the output (attempt 2, 41.7 s); the stalled
+attempt produced nothing and is not a sample.
+
+| Arm | covered | right | partial | wrong | silent per output | person per output | output tokens | uncached input | commands | items | noise |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| B (as shipped) | 0.98 | 0.52 | 0.44 | 0.01 | 0.67 | 0.13 | 3,032 | 13,184 | 5.8 | 13.5 | 3.2 |
+| Bk (line and sentence) | 0.98 | 0.67 | 0.30 | 0.00 | 0.20 | 0.07 | 3,277 | 15,332 | 5.9 | 14.8 | 3.4 |
+| Bk12 (line only) | 0.99 | 0.65 | 0.34 | 0.00 | 0.20 | 0.13 | 3,165 | 12,839 | 5.0 | 14.3 | 3.5 |
+| Bsen (sentence only) | 0.97 | 0.62 | 0.34 | 0.00 | 0.47 | 0.13 | 3,114 | 13,758 | 6.2 | 13.3 | 3.1 |
+
+Share of items right per request (B, Bk, Bk12, Bsen): users 0.61, 0.80, 0.77, 0.71; meter 0.31, 0.50, 0.46, 0.40; records 0.63, 0.72, 0.71,
+0.75. Per group, pooled over the requests: installed skills 0.20, 0.80, 0.58, 0.53; slang 0.60, 0.63, 0.63, 0.57; unknown names 0.33, 0.60,
+0.40, 0.47; references and false premises 0.42, 0.47, 0.60, 0.60; conflicts 0.67 in every arm; constraints 0.80, 0.77, 0.83, 0.83; open
+decisions 0.80, 0.76, 0.76, 0.68. Route mix over the 205 item grades per arm (environment, knowledge, default, person, silent): B 53, 14,
+121, 2, 10; Bk 79, 13, 104, 1, 3; Bk12 78, 13, 106, 2, 3; Bsen 71, 13, 106, 2, 7.
+
+**Rules, as registered**
+- **C1 holds.** Bk raises the mean share of items right from 0.52 to 0.67, +0.155, exact one-sided p 0.0083.
+- **C2 holds.** Bk is ahead of B in every request: users +0.186, meter +0.186, records +0.092.
+- **C3 fails.** Silent assertions per output fall from 0.67 to 0.20, but the exact one-sided p is 0.115, above the 0.05 the rule requires.
+- **C4 holds.** Bk writes 1.08 times B's output tokens (3,277 against 3,032).
+
+**What the rules decide, and a gap in them.** Not all four rules hold, so by their letter the terms line is **not "confirmed on the
+exercise"**. The decision text above covered "all four hold", "C1 and C2 hold and C4 fails" and "C1 or C2 fails"; it did not say what to
+do when C1, C2 and C4 hold and only C3 fails. I record that gap and do not fill it after the fact. In substance: the resolution gain
+replicated on three repositories QB2 was not designed on (+0.155, every request ahead, 8% more tokens), and the silent-assertion
+reduction has the same direction as in QB2 (1.6 to 0.4 per output there, 0.67 to 0.20 here) without clearing the registered bar at 15
+outputs per arm. The live A/B and any change under `skills/` stay with the owner.
+
+**Components (exploratory).** Against B: the line alone +0.126 (p 0.027), the sentence alone +0.103 (p 0.069), both +0.155 (p 0.008).
+Against each other: Bk over Bk12 +0.029 (p 0.32), Bk over Bsen +0.052 (p 0.21). Each part carries most of the gain and together they carry
+slightly more; the data cannot separate them. The installed-skill items are where the combined version stands out (0.80 against 0.58 and
+0.53).
+
+**Predictions, scored.** P1 true (skills 0.20 in B, 0.80 in Bk). P2 half true (unknown names reach 0.60 in Bk, but B started at 0.33, not
+0.2 or less). P3 false (the false-premise and reference items were found more often with a single component, 0.60, than by B, 0.42).
+P4 true (conflicts 0.67 in every arm). P5 not supported (the sentence alone carries about 55% of the skill gain, the line alone about
+63%, both 100%). P6 false (+8% output tokens, under the 10% to 20% predicted). Shell commands did not rise, unlike QB2 (5.8 in B, 5.9 in
+Bk).
+
+**Limits.** As registered, plus: the gain is in the items an exercise can grade (names and references resolved from the skill list and the
+files); the live behaviour of a run that resolves them is untested; "partial" remains 0.30 even in Bk, mostly where intake defers a
+repository fact to discovery, which is the real stage's job.

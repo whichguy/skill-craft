@@ -1,0 +1,392 @@
+{
+  "qb5-users-s1": {
+    "O1": {
+      "arm": "Bsen",
+      "sample": 1,
+      "case": "users",
+      "file": "intake/users-Bsen-s1.json"
+    },
+    "O2": {
+      "arm": "Bk",
+      "sample": 1,
+      "case": "users",
+      "file": "intake/users-Bk-s1.json"
+    },
+    "O3": {
+      "arm": "Bk12",
+      "sample": 1,
+      "case": "users",
+      "file": "intake/users-Bk12-s1.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 1,
+      "case": "users",
+      "file": "intake/users-B-s1.json"
+    }
+  },
+  "qb5-users-s2": {
+    "O1": {
+      "arm": "Bk12",
+      "sample": 2,
+      "case": "users",
+      "file": "intake/users-Bk12-s2.json"
+    },
+    "O2": {
+      "arm": "Bsen",
+      "sample": 2,
+      "case": "users",
+      "file": "intake/users-Bsen-s2.json"
+    },
+    "O3": {
+      "arm": "B",
+      "sample": 2,
+      "case": "users",
+      "file": "intake/users-B-s2.json"
+    },
+    "O4": {
+      "arm": "Bk",
+      "sample": 2,
+      "case": "users",
+      "file": "intake/users-Bk-s2.json"
+    }
+  },
+  "qb5-users-s3": {
+    "O1": {
+      "arm": "Bk12",
+      "sample": 3,
+      "case": "users",
+      "file": "intake/users-Bk12-s3.json"
+    },
+    "O2": {
+      "arm": "Bsen",
+      "sample": 3,
+      "case": "users",
+      "file": "intake/users-Bsen-s3.json"
+    },
+    "O3": {
+      "arm": "B",
+      "sample": 3,
+      "case": "users",
+      "file": "intake/users-B-s3.json"
+    },
+    "O4": {
+      "arm": "Bk",
+      "sample": 3,
+      "case": "users",
+      "file": "intake/users-Bk-s3.json"
+    }
+  },
+  "qb5-users-s4": {
+    "O1": {
+      "arm": "Bk12",
+      "sample": 4,
+      "case": "users",
+      "file": "intake/users-Bk12-s4.json"
+    },
+    "O2": {
+      "arm": "B",
+      "sample": 4,
+      "case": "users",
+      "file": "intake/users-B-s4.json"
+    },
+    "O3": {
+      "arm": "Bk",
+      "sample": 4,
+      "case": "users",
+      "file": "intake/users-Bk-s4.json"
+    },
+    "O4": {
+      "arm": "Bsen",
+      "sample": 4,
+      "case": "users",
+      "file": "intake/users-Bsen-s4.json"
+    }
+  },
+  "qb5-users-s5": {
+    "O1": {
+      "arm": "Bk",
+      "sample": 5,
+      "case": "users",
+      "file": "intake/users-Bk-s5.json"
+    },
+    "O2": {
+      "arm": "B",
+      "sample": 5,
+      "case": "users",
+      "file": "intake/users-B-s5.json"
+    },
+    "O3": {
+      "arm": "Bsen",
+      "sample": 5,
+      "case": "users",
+      "file": "intake/users-Bsen-s5.json"
+    },
+    "O4": {
+      "arm": "Bk12",
+      "sample": 5,
+      "case": "users",
+      "file": "intake/users-Bk12-s5.json"
+    }
+  },
+  "qb5-meter-s1": {
+    "O1": {
+      "arm": "Bsen",
+      "sample": 1,
+      "case": "meter",
+      "file": "intake/meter-Bsen-s1.json"
+    },
+    "O2": {
+      "arm": "B",
+      "sample": 1,
+      "case": "meter",
+      "file": "intake/meter-B-s1.json"
+    },
+    "O3": {
+      "arm": "Bk",
+      "sample": 1,
+      "case": "meter",
+      "file": "intake/meter-Bk-s1.json"
+    },
+    "O4": {
+      "arm": "Bk12",
+      "sample": 1,
+      "case": "meter",
+      "file": "intake/meter-Bk12-s1.json"
+    }
+  },
+  "qb5-meter-s2": {
+    "O1": {
+      "arm": "Bsen",
+      "sample": 2,
+      "case": "meter",
+      "file": "intake/meter-Bsen-s2.json"
+    },
+    "O2": {
+      "arm": "Bk12",
+      "sample": 2,
+      "case": "meter",
+      "file": "intake/meter-Bk12-s2.json"
+    },
+    "O3": {
+      "arm": "B",
+      "sample": 2,
+      "case": "meter",
+      "file": "intake/meter-B-s2.json"
+    },
+    "O4": {
+      "arm": "Bk",
+      "sample": 2,
+      "case": "meter",
+      "file": "intake/meter-Bk-s2.json"
+    }
+  },
+  "qb5-meter-s3": {
+    "O1": {
+      "arm": "Bsen",
+      "sample": 3,
+      "case": "meter",
+      "file": "intake/meter-Bsen-s3.json"
+    },
+    "O2": {
+      "arm": "Bk12",
+      "sample": 3,
+      "case": "meter",
+      "file": "intake/meter-Bk12-s3.json"
+    },
+    "O3": {
+      "arm": "B",
+      "sample": 3,
+      "case": "meter",
+      "file": "intake/meter-B-s3.json"
+    },
+    "O4": {
+      "arm": "Bk",
+      "sample": 3,
+      "case": "meter",
+      "file": "intake/meter-Bk-s3.json"
+    }
+  },
+  "qb5-meter-s4": {
+    "O1": {
+      "arm": "Bk12",
+      "sample": 4,
+      "case": "meter",
+      "file": "intake/meter-Bk12-s4.json"
+    },
+    "O2": {
+      "arm": "Bsen",
+      "sample": 4,
+      "case": "meter",
+      "file": "intake/meter-Bsen-s4.json"
+    },
+    "O3": {
+      "arm": "Bk",
+      "sample": 4,
+      "case": "meter",
+      "file": "intake/meter-Bk-s4.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 4,
+      "case": "meter",
+      "file": "intake/meter-B-s4.json"
+    }
+  },
+  "qb5-meter-s5": {
+    "O1": {
+      "arm": "B",
+      "sample": 5,
+      "case": "meter",
+      "file": "intake/meter-B-s5.json"
+    },
+    "O2": {
+      "arm": "Bsen",
+      "sample": 5,
+      "case": "meter",
+      "file": "intake/meter-Bsen-s5.json"
+    },
+    "O3": {
+      "arm": "Bk12",
+      "sample": 5,
+      "case": "meter",
+      "file": "intake/meter-Bk12-s5.json"
+    },
+    "O4": {
+      "arm": "Bk",
+      "sample": 5,
+      "case": "meter",
+      "file": "intake/meter-Bk-s5.json"
+    }
+  },
+  "qb5-records-s1": {
+    "O1": {
+      "arm": "B",
+      "sample": 1,
+      "case": "records",
+      "file": "intake/records-B-s1.json"
+    },
+    "O2": {
+      "arm": "Bk",
+      "sample": 1,
+      "case": "records",
+      "file": "intake/records-Bk-s1.json"
+    },
+    "O3": {
+      "arm": "Bsen",
+      "sample": 1,
+      "case": "records",
+      "file": "intake/records-Bsen-s1.json"
+    },
+    "O4": {
+      "arm": "Bk12",
+      "sample": 1,
+      "case": "records",
+      "file": "intake/records-Bk12-s1.json"
+    }
+  },
+  "qb5-records-s2": {
+    "O1": {
+      "arm": "B",
+      "sample": 2,
+      "case": "records",
+      "file": "intake/records-B-s2.json"
+    },
+    "O2": {
+      "arm": "Bk",
+      "sample": 2,
+      "case": "records",
+      "file": "intake/records-Bk-s2.json"
+    },
+    "O3": {
+      "arm": "Bk12",
+      "sample": 2,
+      "case": "records",
+      "file": "intake/records-Bk12-s2.json"
+    },
+    "O4": {
+      "arm": "Bsen",
+      "sample": 2,
+      "case": "records",
+      "file": "intake/records-Bsen-s2.json"
+    }
+  },
+  "qb5-records-s3": {
+    "O1": {
+      "arm": "Bsen",
+      "sample": 3,
+      "case": "records",
+      "file": "intake/records-Bsen-s3.json"
+    },
+    "O2": {
+      "arm": "Bk12",
+      "sample": 3,
+      "case": "records",
+      "file": "intake/records-Bk12-s3.json"
+    },
+    "O3": {
+      "arm": "B",
+      "sample": 3,
+      "case": "records",
+      "file": "intake/records-B-s3.json"
+    },
+    "O4": {
+      "arm": "Bk",
+      "sample": 3,
+      "case": "records",
+      "file": "intake/records-Bk-s3.json"
+    }
+  },
+  "qb5-records-s4": {
+    "O1": {
+      "arm": "Bk12",
+      "sample": 4,
+      "case": "records",
+      "file": "intake/records-Bk12-s4.json"
+    },
+    "O2": {
+      "arm": "Bk",
+      "sample": 4,
+      "case": "records",
+      "file": "intake/records-Bk-s4.json"
+    },
+    "O3": {
+      "arm": "Bsen",
+      "sample": 4,
+      "case": "records",
+      "file": "intake/records-Bsen-s4.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 4,
+      "case": "records",
+      "file": "intake/records-B-s4.json"
+    }
+  },
+  "qb5-records-s5": {
+    "O1": {
+      "arm": "Bk12",
+      "sample": 5,
+      "case": "records",
+      "file": "intake/records-Bk12-s5.json"
+    },
+    "O2": {
+      "arm": "Bsen",
+      "sample": 5,
+      "case": "records",
+      "file": "intake/records-Bsen-s5.json"
+    },
+    "O3": {
+      "arm": "Bk",
+      "sample": 5,
+      "case": "records",
+      "file": "intake/records-Bk-s5.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 5,
+      "case": "records",
+      "file": "intake/records-B-s5.json"
+    }
+  }
+}
