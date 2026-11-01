@@ -468,3 +468,20 @@ on the E2E subject (DeepSeek flash on Ollama through the Claude host, `hosts.RUN
   check that wavers does. `CaseChecksTest` grades its verdict lists the same way. Old logic, 1 of 5 executions passed; new logic, 2 of 2 (the first version, which left `CaseChecksTest` alone, 1 of 2).
 - **Limits.** Small samples; probes at low priority; one machine, one day. The live scoring in `checks/base_tests.py` is unchanged on purpose: a retry there could hide a delivery whose own server resets connections.
 - **Evidence.** `docs/experiments/brownfield-flake-20261101/` (README, probes, outputs, drivers); the commit that carries this section.
+
+## 2026-11-01 (later): the same collision fails a full fake-host run of the suite, and a live run
+
+- **Question.** After 26728eddd587930f5da3f6600e5d7ab4017d8acc the suite passed 15 of 15 executions at a load average near 95. Is the collision exposure closed?
+- **Measured.** No. In the candidate's quick tier on 2026-11-01 (83 suites, `--jobs 6`, load average 12 at the start and above 80 at the end) `ThroughMainTest.test_the_host_starts_in_the_base_and_the_delivery_is_graded_from_it`
+  failed: a fake-host run of the first case on the unchanged base returned the check flags `[False, False, False]` where the declared ones are `[False, True, False]`; the second check is the base's own `node --test`.
+  That test reads the flags straight from the run, so neither `graded()` nor `CaseChecksTest.expect` covered it. The same exposure had failed a live run an hour earlier (R4b of the multipass study: 130 of 131 base tests
+  passed, one failed 3 ms in; docs/shiploop-multipass-journal.md, F17). Excerpts: [second-exposure-20261101.txt](experiments/brownfield-flake-20261101/second-exposure-20261101.txt).
+- **Reading.** Status: firm that the test failed once on a collision-shaped flag and that the live run failed once the same way; the cause of each is likely, not proven (neither kept its raw TAP). The earlier
+  limit stands: the live scoring in `checks/base_tests.py` is unchanged on purpose.
+- **Change.** `agreed(flags, expected, grade_again)` grades the flags of a check list again, alone, until they are the declared ones (`settle`), and the through-main test uses it for the first case's three flags. Three
+  unit tests: flags that agree are not graded again; a middle check that flaked is graded again and the agreeing flags stand; a middle check that really fails is reported after every regrade. Two of the three fail on a
+  helper that returns the flags unchanged. The whole suite with the change: 31 tests OK in 369 s at a load average of 98.
+- **Not covered, on purpose.** The same test's acceptance assertion (the failing hidden checks of the quality phase) starts the product's server too and has the same exposure; it has not been seen to fail and is left
+  alone. One alone-run of the suite at a load average of 35 to 98 failed a different test, `CalibrationTest.test_the_defects_that_edit_the_bases_tests_pass_their_own_suite_and_fail_the_pristine_one`, after its
+  regrades; at that load the base's node tests also time out, so it is not read as a collision and is not changed.
+- **Evidence.** `docs/experiments/brownfield-flake-20261101/second-exposure-20261101.txt`; the commit that carries this section.

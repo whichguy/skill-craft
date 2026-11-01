@@ -1,7 +1,7 @@
 ---
 Execute: inline
 Status: research done; QB1 to QB5 run and scored; the terms-and-references category (K12) built and live-tested on 2026-11-01 (§5.6) and
-  released after this entry (its version is in CHANGELOG.md); recommendation in §0 and §8
+  released after this entry (its version is in CHANGELOG.md); recommendation in §0 and §8; its send-back excess is being replicated on a new case, R3 (§5.7, registered 2026-11-01)
 Opened: 2026-10-31
 Consumer: the owner, who asked how harnesses enrich a prompt, whether questions beat statements and cost fewer tokens, and
   whether a question bank belongs in ShipLoop's intake; later, a session that changes intake duty item 9 or adds term and
@@ -310,6 +310,19 @@ did not rise (25.9 and 5.3 against 25.3 and 5.6). Evidence: docs/experiments/ter
 Results and the limits; scores.json; results-tables.md; e2e_ab.py; lane.sh and lane-r2.sh; b-ticket-s2-refusals/), runs in
 ~/e2e-runs-tl/20261101/.
 
+### 5.7 R3: do the send-backs repeat on a representative case? (2026-11-01, registered before its runs)
+
+Question: on today's main, does the K12 line make ShipLoop send stages back more often? Round 1's excess (A 0 of 6 runs with a send-back, B 4 of 5)
+did not replicate by R2 (A 0 of 4, B 1 of 4) and stayed unexplained. Both ran on release 2.27.2, which lacks three later ShipLoop commits that bear
+on the causes seen: b8d320335c81151a99e7d168b684d79fd0e81352 (step-plan refuses a criterion a focused command names without a test ID of its own), 9870c6f68bfbd9375340c0e91ffdf4abfd76bd85 (rule C of the proof-order
+refusal) and 4515368495e2b2e50ea07f7599146875188449f9 (the focused-ID wording fix); and hello is a one-step case (mean 10.2 minutes at high), so the owner suggested "a more
+complicated test which does a standalone node server with app functionality". Setup (rules and power in
+docs/experiments/send-back-replication-r3-20261101/README.md, committed before any scored run): the new case `shared-expenses` (47ed1804d379e1ad58ac5ad081e027dab043f906; a Node
+service with six checks calibrated on a reference and nine defects; it leases no port); 10 runs per arm over five lanes on Codex gpt-6.1-terra at high;
+arm B = main at 47ed1804d379e1ad58ac5ad081e027dab043f906, arm A = the same with the K12 commit 60dc376881d397d770874af16c8a6a8ed60956b2 reverted (a scratch commit, never merged); rule R3-1: the runs with a send-back, B
+higher, exact one-sided p at most 0.05, which a true 40% against 5% reaches 43% of the time at 10 a side. Status: registered; the result is appended
+here when it is read.
+
 ## 6. What a change to intake has to beat
 
 - **Coverage and cost of the shipped catalog on vague requests** (QB1, Terra xhigh): recall 0.935, agreement 0.74, noise share 0.36,
@@ -499,3 +512,14 @@ and names skills and slang, graded on what the run does with them, to measure K1
   release preflight asked for a learnings entry after the merged-in releases; the entry now carries a merged-tree check. F38: the implement
   send-back for a criterion that needs a test the test stage writes later also appears on the merged tree (user-listing, one run), which
   already has rule C, so that fault family is not specific to arm B (exploratory, n = 1).
+- 2026-11-01, R3 registered. The owner answered "Yes" to running about 10 more hello runs a side, then suggested a more complicated standalone Node
+  server case as "a more representative test case to repeat on". Added `shared-expenses` (47ed1804d379e1ad58ac5ad081e027dab043f906): no existing case fit (the Node cases lease port 3000
+  or 4180, which starved the A/B's twelfth run for 29 minutes; battleship and checkers need a browser; csv-report and seat-reservations are Python).
+  Its six checks passed on the reference service and each of nine one-line defects failed the check that reads the sentence it breaks (the
+  race-prone service only the concurrency check). Quick and prompt tiers on the change: 69 of 72 suites OK and 3 timing tests failed under a load average of 50 to 190, each
+  passing alone. One unscored live smoke run passed all six checks (22.2 minutes, 37.1M tokens, 227 turns). Registered R3 and pushed it before launching any scored run.
+  Findings (status in brackets): F39 the case's checks tell a correct service from nine defects, and a model's delivery passed them in the one smoke run
+  (firm for the reference and defects; exploratory, n = 1, for models); F40 the smoke run had an implement send-back of round 1's family ("the step proof
+  requires node --test to execute TC_1-TC_4, but implement forbids writing tests"), on a tree that already has rule C (exploratory, n = 1; it agrees with F38);
+  F41 (process) the A/B base 2.27.2 lacked the three fixes that bear on those send-backs, so no 2.27.2 result says what today's product does and R3 runs on today's
+  main (firm: `git merge-base --is-ancestor`).
