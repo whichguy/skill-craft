@@ -555,10 +555,12 @@ Hermetic, on the feature commit 826c951ccfdecb8f48e406f8fbdacb6a69daabbc and wha
   failed. The failure was a fifth hand-built handoff result, `shiploop-actual-improve-cli` (found only by the tier); 12d293a83ab2c05d30bb575b3d0c5989604a3601 fixed its stand-in and the rerun passed
   (100 tests, 886 s). `shiploop-progress` and `shiploop-cross-run` also failed in a wider sweep and fail on a clean origin/main (72fa7f4cd9ab370703c272eda65a0831575128e4) at the same load
   (2 and 3 failures there): the progress observer's timing, not this change.
-- The rest of the ShipLoop family (the 85 suites the tier did not select) was run in two sweeps on the loaded machine. The first (3 at a time, catalog order) was
-  stopped by me after 15 suites, with `shiploop-progress` and `shiploop-cross-run` failing as they do on the clean main control. The second (4 at a time, risk first: the E2E
-  apparatus suites that drive the CLI, run-review, workspace, return-review, knowledge) was still running when this entry was committed, with no failure so far; its
-  final line is added below when it ends (SWEEP_FINAL).
+- The rest of the ShipLoop family (the suites the tier did not select) was swept three times on the loaded machine. The first sweep (3 at a time, catalog order) was stopped
+  by me after 15 suites, with `shiploop-progress` and `shiploop-cross-run` failing as they do on the clean main control. The second (4 at a time, risk first) ran 19 suites
+  on the pre-merge tree: 18 passed and `shiploop-e2e-slice` erred once in its temporary-folder cleanup (OSError, Directory not empty; that test alone passes in 7.6 s);
+  I stopped it when the third merge changed the tree under it. I then ran `shiploop-workspace`, `shiploop-return-review` and `shiploop-e2e-release-slice` by hand on the merged tree:
+  3 tests of the first two failed (a stand-in handoff result without `follow_on`, F37), fixed in 74b2112fabe241c9717ba02d0f2afa01018c89b8. The third sweep (6 at a time) ran the 48 suites no run had yet covered on a tree with the change, on
+  the merged tree: 47 of the 48 had finished, all passing except two tests that are not about this change: `shiploop-workspace`'s `test_public_return_is_refused_before_release_or_handoff_without_mutation` (a snapshot comparison that includes the progress observer's file) fails alone on this branch's older main base and on a clean control at that base (72fa7f4cd9ab370703c272eda65a0831575128e4), and passes alone on the final candidate tree (the latest main plus this change) and on a control at the latest main (419dd4f308fb3b26c1902dd829c10c0e0720f048); `shiploop-e2e-ticket-sla`'s `test_a_requirement_edited_in_place_passes_retention_when_it_names_the_new_variable_and_fails_when_it_does_not` (one of five retention checks false under load) passes alone in 8 s. The last suite, `shiploop-e2e-test-adequacy`, was still running when this entry was committed; CI's full tier runs it on the push. The quick tier on the merged tree (`--changed-from 4224161b095792825befe2a384075fab5660ae05`, 46 suites, `--jobs 6`): 46 of 46 passed in 597.6 s wall. On the final candidate tree after the fourth merge, test-groups (52 tests), shiploop-e2e-baseline (177), shiploop-e2e-platform (169), shiploop-e2e (495, 836.7 s) and shiploop-follow-on (17) passed.
 
 Live, scored against the plan (the table, the readings and the verdict blocks are in `docs/experiments/follow-on-build-20261101/`; the entry in
 `test/shiploop_e2e/LEARNINGS.md` is c593e8f27d65d7157438d9b14c2dd7c09f3bbc89):
@@ -577,12 +579,16 @@ Findings (status; citations):
 - F33 (exploratory): the lists were conservative. Both csv-report runs recorded the default for the open tie rule and header as a `note` on plan assumption
   A2 (which the ledger still shows `open`); hello and seat-reservations said a passing test settled the same kind of A2 and filed nothing. The replay's
   csv-report `decision` (F08) did not recur, and with no arm without the list this round cannot say whether the list changed that. Evidence: `readings.txt`.
-- F34 (firm): the targeted run of the suites I expected to hand-build a handoff result missed one; the quick tier found it. A gate that requires a key at the
+- F34 (firm): the targeted run of the suites I expected to hand-build a handoff result missed one, which the quick tier found (F37 adds two more that the tier missed). A gate that requires a key at the
   CLI is found in fixtures by running the tier, not by guessing which suites import the helper (d84d30a977aa584ecc748fb34982f2bd7add21df had the same effect).
   Evidence: 12d293a83ab2c05d30bb575b3d0c5989604a3601.
 - F35 (firm): the claim a commit lists as "not covered by a hermetic test" deserves its test. Writing the one for an isolated run's start repository found
   that `source_repo` caught OSError and ValueError while the store raises `StorageError`, so a missing workspace record would have raised out of the final
   `complete` for a run that recommends a follow-on run. A real isolated run always has the record, so no live run could meet it. Evidence: ba3297d707329a6500ac036577d3f211b2e6a352.
+- F37 (firm): the quick tier selects suites by the files a branch changes, and it passed 46 of 46 on the merged tree while two suites it had not selected still hand-built a handoff
+  result: three tests in `shiploop-workspace` and `shiploop-return-review`, each expecting the return-receipt refusal that follows the follow-on gate. Seven suites in all carry a stand-in
+  result that had to get `follow_on: []`. A sweep of the rest of the family found them; CI's full tier on a release push would have found them as a red main, which blocks other
+  sessions' Codex resumes. Evidence: 74b2112fabe241c9717ba02d0f2afa01018c89b8.
 - F36 (firm): `shiploop-progress` and `shiploop-cross-run` fail on a clean origin/main at load 50 to 87 (72fa7f4cd9ab370703c272eda65a0831575128e4); a failure of either in this branch's tier is
   not evidence about the change.
 
