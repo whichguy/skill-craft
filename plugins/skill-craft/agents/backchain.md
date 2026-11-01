@@ -12,7 +12,9 @@ model: inherit
 Load and follow the **backchain** skill (`skills/backchain/SKILL.md` or the installed
 `backchain` skill). Do not re-author the full planning procedure here.
 
-- Mode table, native procedure, harness packaging, and plan contract: skill card.
-- Prompts: `prompts/` under the skill package (generator, elaborator, dependency-review).
-- Install: use your host's plugin marketplace (`backchain` plugin), or from a Skill Craft
-  checkout run `./install.sh --skill backchain` (optional `--agents` for this card).
+- Native procedure, plan contract and invariants: the skill card.
+- Prompts: `prompts/` under the skill package; the run's checks and records:
+  `scripts/backchain.py` (`prepare`, `freeze`, `record`, `verify`, `finish`, `check`, `export`).
+- Install: the `skill-craft` plugin from your host's marketplace (`skill-craft@whichguy`;
+  invoke `/skill-craft:backchain`). OpenCode: `./install.sh --skill backchain` from a Skill
+  Craft checkout.

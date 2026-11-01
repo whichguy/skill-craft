@@ -9,7 +9,7 @@ description: >-
   selected Until Loop to repeat dependency review, by default until the first
   trivial/no-change review, for one cycle when the caller states `Backchain passes: one`,
   or until two consecutive trivial reviews with `Backchain passes: converge`.
-version: 0.6.6
+version: 0.7.0
 author: Backchain
 license: MIT
 platforms:

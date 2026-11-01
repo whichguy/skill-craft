@@ -281,8 +281,9 @@ whole `repair`/`revise` operation. Each whole operation lets Backchain invoke th
 selected actual Until Loop for its dependency-specific review/fix/check cycle. Until
 Loop alone owns callback progress, its review gate (the packet's printed gate for the
 run's Backchain passes option: in `one` the `required_trivial_reviews` and the exit condition
-to copy, in `converge` the two-review gate; a `repair`/`revise` packet in `one` and `none`
-points to Backchain's convergence reference for the gate), recovery, and
+to copy, in `converge` the two-review gate and its `Backchain passes: converge` line; a
+`repair`/`revise` packet in `one` and `none` points to Backchain's convergence reference for
+the gate), recovery, and
 terminal state. Backchain returns only after the child reports `complete`
 and the exact terminal evidence is saved; a blocked, stopped, unresolved, or
 incompatible child leaves the parent action incomplete and must not be submitted as

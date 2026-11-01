@@ -4,6 +4,51 @@ Written by scripts/release.py.
 
 ## 2026-11-01
 
+### skill-craft 2.32.0
+
+- Skills: backchain 0.7.0, shiploop 1.30.1
+
+### backchain 0.7.0
+
+- Backchain ships its own command line, `scripts/backchain.py` (standard library, Python 3.9+), so a planning run no
+  longer writes its own bookkeeping code:
+
+  - `check` gives the structural verdict (the seven invariants) and completion of a plan, `package` writes it with
+    recomputed `parallel_groups`, and `export` writes the Plan Dispatcher execution graph of a complete plan. Native
+    plans no longer need the Backchain development checkout to be validated, packaged or handed to Plan Dispatcher.
+  - `prepare`, `freeze`, `record`, `verify` and `finish` keep a planning run's records: `freeze` writes the whole
+    Until Loop contract (gate, every bound resource, frozen exit checks) for Until Loop's parent-written-contract
+    route; `record` runs inside each loop callback, saves the review cycle and writes the report that callback submits
+    (a cycle whose plan changed is never trivial, an assessment names the candidate it reviewed and what it checked,
+    and a callback that submitted any other report is found); `verify` is the contract's evidence check and refuses
+    any change to the frozen inputs, contract or resolved resources; `finish` accepts only the run's own terminal
+    Until Loop packet and writes `{plan, convergence}`, or `{plan, review}` for a caller packet with `--review FILE`,
+    a review of the final candidate.
+  - Inherited steps keep their IDs and input edges, checked mechanically, and a caller's `edit_bounds` are enforced
+    (edge keys `consumer<-supplier`, `null` for an `initial_state` input; an edge gains inputs only with
+    `allow_new_edges`); an edge or step the run itself generated may be removed by a later review.
+- A fresh request is planned by direct synthesis (`prompts/direct.v1.md`, 8.8 KB) and its dependency review, and goes
+  to the elaborator only when that review changes the graph; the elaborator is the compact version (17 KB, was 51 KB)
+  with the same placeholders, five-lens back-check, need resolution and preservation rules. Both are the prompts the
+  2026-10-16 study measured. `prompts/generator.v1.md` stays for the development checkout's one-shot pipeline.
+- The skill card is the native procedure only: five steps on `scripts/backchain.py` (prepare, plan, freeze, loop,
+  finish), the plan contract and the invariants. The development checkout's harness material moved to
+  `references/harness.md`. A fresh request's runs read about 39 % fewer bytes in full (232 KB to 141 KB): the Until
+  Loop runtime document is no longer required reading, and lens cards are read on demand (`backchain.py lenses
+  T07 T35`). The install text names the `skill-craft` plugin.
+
+  By default a Backchain review loop now completes at its first trivial review (`required_trivial_reviews: 1`); a
+  cycle that repaired anything is non-trivial, so a fresh review always follows a repair. `Backchain passes: one`
+  still runs one review/fix/check cycle, and the new `Backchain passes: converge` keeps two consecutive trivial
+  reviews. A review may remove an edge or step its own run generated when it finds it unjustified; inherited content
+  stays.
+
+### shiploop 1.30.1
+
+- In a `--backchain-passes converge` run, the plan packet and the repair/revise route print the `Backchain passes:
+  converge` marker line, so the Backchain child keeps its two-review gate now that Backchain's own default is the
+  first trivial review. Packets of `one` (the default) and `none` runs are unchanged.
+
 ### skill-craft 2.31.0
 
 - Skills: shiploop 1.30.0

@@ -82,17 +82,18 @@ frozen candidate to the selected actual Until Loop card under
 Backchain standalone Until Loop binding: <binding-id>
 ```
 
-A caller that wants one review cycle instead of the default two consecutive reviews adds the line
-`Backchain passes: one` beside it, as `references/convergence.md` defines.
+By default the first trivial review completes the loop. A caller that wants one review cycle adds
+the line `Backchain passes: one` beside the marker, and one that wants two consecutive trivial
+reviews adds `Backchain passes: converge`, as `references/convergence.md` defines.
 
-Resolve and read in full the selected Until Loop card (`SKILL.md`, or a bundled
-`ADAPTER.md` explicitly selected by the caller) and `references/runtime-ephemeral.md`
-relative to that card's directory, then retain absolute observed locators for them and the
-ephemeral runtime script. The child scope is plan artifacts and their permitted companion evidence only:
-preserve original request, sources, lenses, action/action ID/owner/workflow stage,
-candidate identity, all edit bounds, and parent request/latest-packet/return-route/printed
-terminal-receipt locators in `context.resources`; do not commit, push, merge, execute the
-project, or broaden scope. Until Loop is the sole counter,
+`scripts/backchain.py prepare --caller PACKET.json` freezes this packet and resolves the selected
+Until Loop card (the bundled `ADAPTER.md` beside the skill, or the card the caller names with
+`--until-loop`), and `freeze` writes the contract for that card's parent-written route; read the
+card once before starting it. The child scope is plan artifacts and their permitted companion
+evidence only: `freeze` binds the original request, this packet (sources, lenses,
+action/action ID/owner/workflow stage, candidate identity, all edit bounds), the latest packet
+(the receipt), the domain evidence and the result destination in `context.resources`; do not
+commit, push, merge, execute the project, or broaden scope. Until Loop is the sole counter,
 resume/recovery, resource/stop, and terminal authority. Authorized in-scope revisions and
 new evidence are recorded in reports/handoffs and remain in the same run; their material
 classification resets Until Loop's gate. Only an external/unapproved baseline substitution,
@@ -107,23 +108,33 @@ An explicit `review/audit` stays read-only and never starts the Until Loop bindi
 
 Final `{plan, review}` restores outer caller action/stage/ID and original input identity,
 records actual final output digest and final source assessment, and stores an opaque
-`review.convergence` binding record. It may say converged planning only with the exact
+`review.convergence` binding record. After the loop ends, write the final source assessment as
+the review object below (its interface, action, stage and action ID the packet's) and run
+`finish --run DIR --review FILE`: it does that restoring and recording, and takes
+`coverage.structural_plan_status` from the check receipt on the final candidate. It refuses a
+review that does not assess the final candidate: `candidate.output_sha256` must be the final
+candidate's sha256 (the last `record` printed it), `findings` a list, and
+`coverage.source_review_status` `complete` or `incomplete`. It may say converged planning only with the exact
 Until Loop terminal `complete` receipt plus candidate-specific domain evidence. Missing or
 stale selection/candidate/source/bounds resources, `blocked`/`stopped`/cancelled Until Loop,
 or absent domain evidence is incomplete. Do not infer terminal state from copied text,
 structural validity, or a model-written count.
-By default, preserve access to both original qualifying review records since the run began or
-latest reset, whichever is later, and their observed identities in the final handoff/domain
-evidence under `references/convergence.md`; a terminal receipt with only the latest review
-recoverable is incomplete planning. The caller selects the gate: with `Backchain passes: one`
-beside the binding marker in the child request, one cycle runs and the evidence set is its one
-review record plus the `backchain-check` receipt on the final candidate, as `references/convergence.md` states.
+The caller selects the gate, and with it the evidence set `finish` reopens before it reports
+converged planning (`backchain.py record` keeps every cycle's original review record and its
+observed identities). By default it is the completing cycle's trivial review record. With
+`Backchain passes: one` beside the binding marker in the child request, one cycle runs and the
+evidence set is its one review record plus the `backchain-check` receipt on the final candidate.
+With `Backchain passes: converge`, it is both original qualifying review records since the run began
+or latest reset, whichever is later; a terminal receipt with only the latest review recoverable is
+incomplete planning, as `references/convergence.md` states.
 
 ## Operations
 
 ### `plan` / `draft`
 
-The host gives the generator the original request plus selected source snapshots as `RAW_PROMPT` data and retains the same packet/lens findings for dependency review and elaboration. Return `{ "plan": <existing Backchain plan>, "review": <review object> }`. Backchain always binds the enriched candidate to selected Until Loop and returns the final source assessment with its opaque `review.convergence` record, or an honest incomplete result. It does not self-certify execution or structural validity.
+For a fresh `new-draft`, the host gives `prompts/direct.v1.md` the unedited original request, selected source snapshots, and the `backchain-caller/v1` packet as `RAW_PROMPT` data. Retain and pass the identical request, source, caller, and lens data to dependency review and any needed elaboration. Resolve questions only with user answers or inspected evidence. If an answer/inspection changes the graph, or an open material question must be recorded as a real unresolved dependency, repair the direct candidate with `prompts/elaborator.v1.md`; when no graph change is needed, carry the candidate forward without an unchanged rewrite. A supplied existing plan goes directly to elaboration, preserving its IDs, input edges, `goal_needs`, and `confirm` entries. The generator remains for the development checkout's one-shot pipeline.
+
+Return `{ "plan": <existing Backchain plan>, "review": <review object> }`. Backchain binds the final candidate to the selected Until Loop and returns the final source assessment with its opaque `review.convergence` record, or an honest incomplete result. The direct prompt creates a candidate only; it does not self-certify execution, source coverage, or convergence, and the structural status is the `backchain.py check` verdict on the exact candidate, never a model's claim.
 
 ### `review` / `audit`
 
@@ -133,9 +144,9 @@ Compare the candidate against the original request, source clauses, indexed map,
 
 This is separate from legacy elaboration. Legacy elaboration continues to preserve inherited seed/null edges and `goal_needs`. An authorized revise may remove or rewire an exact provisional edge only within explicit bounds.
 
-Running/completed steps are always protected. Accepted facts/evidence and listed protected items remain protected. Existing items may change only if their exact ID/key is provisional. New steps require `allow_new_steps: true`; new edges require `allow_new_edges: true`; adding/changing an edge to an existing consumer also requires that consumer to be provisional and not running/completed. Each removal, split, replacement, or rewire needs an old-to-new mapping and source-linked reason. An active selected Until Loop callback may apply authorized revisions through the one-revision `prompts/revise.prompt.md`; Until Loop classifies cycles and owns recurrence. A blocked or out-of-bounds necessary repair stays incomplete.
+Running/completed steps are always protected. Accepted facts/evidence and listed protected items remain protected: a protected fact the inherited plan states in `initial_state` stays there, and one it never stated must not be contradicted, but is not added. Existing items may change only if their exact ID/key is provisional. New steps require `allow_new_steps: true`; new edges require `allow_new_edges: true`; adding/changing an edge to an existing consumer also requires that consumer to be provisional and not running/completed. An edge key is `consumer<-supplier`, the consumer's step ID and the `from` of its inputs; an `initial_state` input's supplier is written `null` (`S3<-null`), and every input a consumer takes from one supplier belongs to that key. Rewording or dropping an input of a provisional key changes that edge; ending with more inputs on a key than it had needs `allow_new_edges: true`. `freeze`, `record` and `verify` enforce these bounds against the inherited candidate and name each edit outside them. Each removal, split, replacement, or rewire needs an old-to-new mapping and source-linked reason. An active selected Until Loop callback may apply authorized revisions through the one-revision `prompts/revise.prompt.md`; Until Loop classifies cycles and owns recurrence. A blocked or out-of-bounds necessary repair stays incomplete.
 
-A revised plan must emit `parallel_groups: []`. Set `structural_plan_status: "unknown"` until an actual deterministic packaging/validation receipt for this exact `output_sha256` is recorded; never carry stale waves or structural status forward.
+A revised plan emits `parallel_groups: []`; `backchain.py record` packages each revision and checks its structure, so `parallel_groups` and `structural_plan_status` always come from the receipt for this exact `output_sha256`. Until that receipt exists, `structural_plan_status` is `"unknown"`; never carry stale waves or structural status forward.
 
 ## Review object
 

@@ -2048,9 +2048,15 @@ that needs the loop resources named in the planning guide's Source-aware native
 caller section (the packet's "Loop resources" line reports them)."""
 # Modes one and none.  An instruction to write the marker line, not a gate field: the audit text never names
 # `required_trivial_reviews`; the child's gate and exit condition are the ones Backchain's convergence reference
-# defines for the marker line, and without the line a repair/revise child runs that reference's two-review default.
+# defines for the marker line, and without a line a repair/revise child runs that reference's default (its first
+# trivial review completes, owner decision 2026-11-01).
 _BACKCHAIN_AUDIT_ONE_PASS = """ A repair/revise child runs one review/fix/check cycle: put the line
 `Backchain passes: one` beside the binding marker in the child request, as Backchain's
+convergence reference defines it."""
+# Mode converge: Backchain's default stopped being two reviews (2026-11-01), so a converge run's repair/revise child
+# names its gate with the converge marker line, as the plan packet does.
+_BACKCHAIN_AUDIT_CONVERGE = """ A repair/revise child runs the two-review gate: put the line
+`Backchain passes: converge` beside the binding marker in the child request, as Backchain's
 convergence reference defines it."""
 _BACKCHAIN_AUDIT_WHOLE = """ A whole `plan`/`draft` is requested only
 at `plan`."""
@@ -2074,12 +2080,13 @@ A protected or out-of-scope change follows the existing blocked or recovery rout
 
 
 # The plan-stage gate sentence in `converge` mode: the runtime's own two-review gate, as it was printed before the
-# Backchain passes option existed.
+# Backchain passes option existed, now named by its marker line because Backchain's default is one trivial review.
 _BACKCHAIN_PLAN_GATE_CONVERGE = """\
 Until Loop owns the callback handle, progress, its `required_trivial_reviews: 2` gate for
 two consecutive distinct complete trivial/no-change dependency reviews, recovery, and
 terminal transition; Backchain and ShipLoop do not copy that runtime or create another
-controller.
+controller. Put the line `Backchain passes: converge` beside the binding marker in the
+child request, as Backchain's convergence reference defines it.
 """
 # In `one` mode the host writes the gate itself, so the packet prints the gate and the exit condition to copy.
 # Owner decision 2026-10-04 (docs/shiploop-fast-planning-plan-2026-10-04.md, "Backchain single pass: mechanism").
@@ -2157,7 +2164,8 @@ permits Backchain planning convergence. The draft is a proposed candidate; ShipL
 acceptance and lifecycle state.
 """ + BACKCHAIN_CHECK
     if stage in BACKCHAIN_STAGES:  # an audit stage, or plan in a run that offers no whole loop
-        audit = (_BACKCHAIN_AUDIT_HEAD + (_BACKCHAIN_AUDIT_ONE_PASS if _one_pass(backchain_passes) else "")
+        audit = (_BACKCHAIN_AUDIT_HEAD + (_BACKCHAIN_AUDIT_ONE_PASS if _one_pass(backchain_passes)
+                                          else _BACKCHAIN_AUDIT_CONVERGE)
                  + (_BACKCHAIN_AUDIT_WHOLE_NONE if backchain_passes == "none" else _BACKCHAIN_AUDIT_WHOLE)
                  + _BACKCHAIN_AUDIT_TAIL)
         return _BACKCHAIN_ROUTE + audit + BACKCHAIN_CHECK
