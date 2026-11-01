@@ -198,3 +198,38 @@ Reader check:
 - Packets are hard-wrapped, which hid fix 1's sentence from the first reader.
 - The reader now matches each full sentence on whitespace-collapsed text. Checked: XI A s1–s6 and B s1–s5 and s7 read w0;
   FX P s1–s4 read w11; FX F s1–s4 read w1.
+
+## Follow-up: the narrow check, built for the Proof duty (pre-registered 2026-11-01, before the held-out score)
+
+Owner, 2026-11-01: "Do we need to do the second proof check? Propose and implement a plan".
+
+Proposal:
+- Not for time: Q1 puts every miss together at about 10 minutes in 365 plans.
+- For rigour. The step-plan duty says a step's `proof` is "the one command … that proves the step's criteria … ShipLoop
+  runs it at the step's done".
+- A plain suite command cannot do that for a criterion whose confirming test is not written yet. In
+  A-ticket-assignment-s1, implement passed with `npm test` while C1's Confirm by named the unwritten
+  `test/assignment.test.js`, so its done proved nothing about C1.
+- Q1's post-hoc variant is exactly that case. In-sample it refused 3 plans: 2 caught, 1 hollow, 0 false.
+
+Frozen rule, rule C of `shiploop_item_scope.proof_order_refusal`:
+- For each step whose Proof is a generic suite command (`generic_command`: no script or test path in any form, absolute,
+  `../` or relative, and no inline code).
+- For each executed criterion that step lists: refuse when the criterion's Confirm by (`confirm_by_command`: the text after
+  "Confirm by:" up to "; pass when" or the first ";") names a test-class path that the item base lacks and no earlier
+  step declares.
+- The whole item being tests exempts it, as for rule A.
+- The reading is replay.py's `generic_proof` and `confirm_by`, moved unchanged.
+
+Held-out set: run folders whose `state.md` was created after this replay's snapshot (2026-11-01 06:14 PST). There are 42
+when this is written.
+
+Ship iff all three hold:
+1. **The move kept the reading.** On every judged plan of the full corpus that rules A and B pass, the shipped function
+   refuses exactly the plans that replay.py's `rule_c_generic` refuses.
+2. **No false refusal on held-out runs.** Every held-out plan it refuses is genuine on reading: the step's Proof is a
+   generic suite command, and the cited criterion's confirming test is absent at the base. A reader error counts as
+   false, and false must be 0. Held-out catches are not required: at about 1 plan in 120, 42 runs are unlikely to hold
+   one.
+3. **The tests pass.** Its route test passes (refused, then the corrected plan accepted through the real gate), and so
+   does the quick tier.
