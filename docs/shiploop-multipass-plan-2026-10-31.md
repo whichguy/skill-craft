@@ -3,7 +3,7 @@ Execute: inline
 Status: **D1 to D5 approved as recommended (owner, 2026-10-31, "Approve all")**. The harness side (sections 4 and 5, with the fourth link `ticket-sla`) is built, tested and
   pushed to main. The ShipLoop behaviour changes (D2 to D4) are built as one candidate on a branch. The A/B (E2) ran on 2026-10-31 and met the bar the journal's Round 2 fixed
   before any run (12 of 12 runs passed, B1 to B5 held), so the candidate waits only for its rebase, a quiet-machine tier run and the owner's word on the release. The fourth
-  link's live run (E3) is running on published ShipLoop; chain B (small base) is next.
+  link's live run (E3) ran on published ShipLoop: the delivery was right, a wrong check in the new case was found and fixed, and the unfixed fourth pass repeated both leaks; chain B (small base) is next.
 Opened: 2026-10-31
 Consumer: the owner, who decides D1 to D5 in section 7; later whoever adds the fourth link or changes how a stage writes the
   living files, and reads the ledger as the before and after
@@ -150,7 +150,7 @@ heuristics, and a ledger of a first pass on a fixture has nothing to compare an 
 | E0 | What does a second pass leave in the three files? | done: 8 saved runs, [journal Round 0](shiploop-multipass-journal.md) |
 | E1 | Does a third pass inherit and is it harmed by the second's leftovers? | done 2026-10-31: `ticket-comments` from the saved `bf-codex-r2` pass 2, Codex Terra `xhigh`, ShipLoop 1.26.0: passed, nothing lost, both leaks repeated (journal Round 1) |
 | E2 | Does a counted notice plus named destinations (D2, D3, D4) reduce the leak without losing function? | done 2026-10-31 (17:33 to 21:40): 12 of 12 runs passed and B1 to B5 held; the fix added 0 stray headings in all six passes against 2 to 8 in the control, with no measurable cost (journal Round 2, Result) |
-| E3 | Does a modifying fourth link retire and supersede rather than duplicate? | link built and calibrated; the live run started 21:40 on the real third pass and published ShipLoop (predictions in the journal's Round 3) |
+| E3 | Does a modifying fourth link retire and supersede rather than duplicate? | done 2026-10-31 (21:40 to 21:57): delivery right (16 of 16 hidden checks), a wrong retention check in the case found and fixed, both leaks repeated on the unfixed fourth pass (journal Round 3, Result) |
 
 **E1 predictions** are in the journal before the run, and [round1_readout.py](experiments/multipass-20261031/round1_readout.py) scores them from the run's own files. **Decision rule for E1:** a lost retained check or inherited hidden check means the leftovers
 are harmful, and D2 to D4 become urgent. A pass with the same hygiene as pass 2 means they are cost and noise, and E2 decides the fix.
@@ -178,9 +178,9 @@ merged only when E2 meets its bar.
 
 ```
  done     [E0: 8 saved runs] ─► [chains.py + delta.py + ticket-comments + calibration] ─► [journal, plan, SPEC/README]
- done     [E1: live third pass] ─► D1..D5 approved ─► candidate built ─► [E2: A/B, 12 of 12 passed, bar met] ─► ticket-sla built and calibrated
- running  [E3: live fourth link, on published ShipLoop]
- next     rebase the candidate + quiet-machine tier ─► owner's word ─► release (preflight + E2E round) ─► hosts
+ done     [E1: live third pass] ─► D1..D5 approved ─► candidate built ─► [E2: A/B, 12 of 12 passed, bar met] ─► ticket-sla built, calibrated and run live once (E3)
+ running  quiet-machine tier of the rebased candidate
+ next     owner's word ─► release (preflight + E2E round) ─► hosts
           chain B (small base, a second domain)
 ```
 

@@ -1,0 +1,273 @@
+{
+ "basis": {
+  "followed_case": "ticket-comments",
+  "head": "39ffa71a0c43f35e94bf88ea1b2d0ee350dd8c77",
+  "kind": "follow-on",
+  "start_head": "6d1ac1b6b11e862f151975f153a358d42ee39c2d"
+ },
+ "footprint": {
+  "by_class": {
+   "docs": {
+    "added": 1,
+    "deleted": 0,
+    "deletions": 11,
+    "insertions": 46,
+    "modified": 5
+   },
+   "living": {
+    "added": 0,
+    "deleted": 0,
+    "deletions": 2,
+    "insertions": 95,
+    "modified": 3
+   },
+   "source": {
+    "added": 0,
+    "deleted": 0,
+    "deletions": 12,
+    "insertions": 25,
+    "modified": 5
+   },
+   "tests": {
+    "added": 0,
+    "deleted": 0,
+    "deletions": 1,
+    "insertions": 143,
+    "modified": 1
+   }
+  },
+  "prior_source_files": 27,
+  "prior_source_modified": 5,
+  "prior_tests_modified": [
+   "test/reassignment-escalation.test.js"
+  ]
+ },
+ "handoff": {
+  "lessons_chars": {
+   "considerations": 157,
+   "learned": 148,
+   "open_next": 82
+  },
+  "lessons_commit": "d0b6eea1e624",
+  "sections": {
+   "architecture.md": {
+    "empty": [],
+    "missing": []
+   },
+   "environment.md": {
+    "empty": [],
+    "missing": []
+   },
+   "spec.md": {
+    "empty": [],
+    "missing": []
+   }
+  },
+  "tracked": {
+   "architecture.md": true,
+   "environment.md": true,
+   "spec.md": true
+  }
+ },
+ "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+ "ids": {
+  "architecture.md": {
+   "added": [
+    "AD-5"
+   ],
+   "born_retired": [
+    "AD-5"
+   ],
+   "changed": [],
+   "dropped": [],
+   "expected": [
+    "AD-3"
+   ],
+   "expected_touched": [],
+   "expected_untouched": [
+    "AD-3"
+   ],
+   "final": 5,
+   "prefix": "AD",
+   "prior": 4,
+   "retired_by_run": [],
+   "unchanged": 4,
+   "unexplained": []
+  },
+  "spec.md": {
+   "added": [],
+   "born_retired": [],
+   "changed": [
+    "R-7"
+   ],
+   "dropped": [],
+   "expected": [
+    "R-7"
+   ],
+   "expected_touched": [
+    "R-7"
+   ],
+   "expected_untouched": [],
+   "final": 8,
+   "prefix": "R",
+   "prior": 8,
+   "retired_by_run": [],
+   "unchanged": 7,
+   "unexplained": []
+  }
+ },
+ "placement": {
+  "architecture.md": {
+   "added_under_retired": [
+    "Priority escalation real-boundary checks",
+    "AD-5 Priority escalation and continuity (implemented)"
+   ],
+   "bytes": {
+    "final": 6480,
+    "prior": 4817
+   },
+   "changed_sections": [
+    "Superseded"
+   ],
+   "duplicate": [],
+   "level2": 7,
+   "named_empty": [],
+   "named_missing": [],
+   "relative_wording": {
+    "examples": [],
+    "n": 0
+   },
+   "stray": [],
+   "stray_added": [],
+   "title": {
+    "final": "Architecture",
+    "prior": "Architecture"
+   }
+  },
+  "environment.md": {
+   "added_under_retired": [],
+   "bytes": {
+    "final": 23175,
+    "prior": 16637
+   },
+   "changed_sections": [
+    "Commands"
+   ],
+   "duplicate": [
+    "Commands",
+    "Harnesses and suites"
+   ],
+   "level2": 33,
+   "named_empty": [],
+   "named_missing": [],
+   "relative_wording": {
+    "examples": [],
+    "n": 0
+   },
+   "stray": [
+    "Prepared environment",
+    "Verified assignment checks",
+    "Integrated suite",
+    "Local return and verification",
+    "Returned result",
+    "Operational observations",
+    "Bulk reassignment and escalation discovery (2026-10-29)",
+    "Comments discovery (2026-10-31)",
+    "Comment suite plan",
+    "Comment preparation",
+    "Comment implementation carry-forward",
+    "Integrated comment suite",
+    "Comment release route",
+    "Returned comments verification",
+    "Comment operational handoff (2026-10-31)",
+    "Priority escalation discovery (2026-10-31)",
+    "Priority escalation test strategy",
+    "Priority escalation preparation",
+    "Priority escalation checks",
+    "Priority escalation carry-forward",
+    "Priority escalation system suite",
+    "Priority escalation local release plan",
+    "Priority escalation returned verification",
+    "Priority escalation operational handoff"
+   ],
+   "stray_added": [
+    "Priority escalation discovery (2026-10-31)",
+    "Priority escalation test strategy",
+    "Priority escalation preparation",
+    "Priority escalation checks",
+    "Priority escalation carry-forward",
+    "Priority escalation system suite",
+    "Priority escalation local release plan",
+    "Priority escalation returned verification",
+    "Priority escalation operational handoff"
+   ],
+   "title": {
+    "final": "Environment",
+    "prior": "Environment"
+   }
+  },
+  "spec.md": {
+   "added_under_retired": [],
+   "bytes": {
+    "final": 7642,
+    "prior": 6124
+   },
+   "changed_sections": [
+    "Requirements"
+   ],
+   "duplicate": [],
+   "level2": 3,
+   "named_empty": [],
+   "named_missing": [],
+   "relative_wording": {
+    "examples": [],
+    "n": 0
+   },
+   "stray": [],
+   "stray_added": [],
+   "title": {
+    "final": "Ticket assignment specification",
+    "prior": "Ticket assignment specification"
+   }
+  }
+ },
+ "plan": {
+  "delta_ids": [
+   "AD-5",
+   "R-7"
+  ],
+  "primary": {
+   "delta": 1,
+   "preserved": 0,
+   "unknown": 0
+  },
+  "step_plan_follows": {
+   "delta": 2,
+   "preserved": 0,
+   "unknown": 0
+  },
+  "test_cases": {
+   "delta": 5,
+   "no_requirement": 0,
+   "preserved": 0,
+   "unknown": 0
+  }
+ },
+ "writes": {
+  "architecture.md": {
+   "appends": 0,
+   "other_writes": 7,
+   "reads": 3
+  },
+  "environment.md": {
+   "appends": 0,
+   "other_writes": 17,
+   "reads": 1
+  },
+  "spec.md": {
+   "appends": 0,
+   "other_writes": 15,
+   "reads": 6
+  }
+ }
+}

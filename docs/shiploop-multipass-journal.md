@@ -30,6 +30,7 @@ not repeat old decisions and inherits some of them.
 | F10 The candidate's notice, replayed over 58 real (commit, file) pairs, would have spoken in 57 of them at a knowledge commit and flagged nothing that was standing content beyond the release section X11 allows; both entries filed as retired when new (AD-3, AD-4) were written by `plan`, a stage the candidate's packet line does not reach | interim (offline replay, one case pair) | Round 2, [replay output](experiments/multipass-20261031/replay-placement-output.txt) |
 | F11 A request that replaces an earlier rule breaks two things the additive links never met: the nearest-declaration rule hands the new link a hidden check (the second link's at-most-once) that a correct delivery fails by design, and the ledger cannot tell a run that changed the old rule from one that left it standing unless the case names the entries it may change | firm (hermetic: `ModifiedRuleTest`, `MayChangeTest`) | Round 3 |
 | F12 The candidate met its pre-registered bar in the A/B (E2): 12 of 12 runs passed and B1 to B5 held. The fix added 0 stray headings to `environment.md` in all six passes against 2 to 8 in the control (second passes: 0, 0, 0 against 7, 6, 8), its architecture file kept every decision under `Decisions`, and time and tokens did not differ (second-pass time 1.02 times, mean tokens 49.1 M against 49.0 M). B1 held without being tested (the control never filed a decision as retired in six passes); the notice caught that mislabel once live (B3 pass 2) | firm for three chains per arm, one case pair, Codex Terra, passes 1 and 2 only | [readout](experiments/multipass-20261031/round2-readout-output.txt), [cost and file views](experiments/multipass-20261031/round2-cost-output.txt), [ledgers](experiments/multipass-20261031/round2-ledgers.json), Round 2 result below |
+| F13 The first live fourth pass (E3, published ShipLoop): the delivery is right (16 of 16 hidden checks, its own three, the earlier links' regression) and it edited the escalation requirement in place; its first contact with a real prior exposed two wrong words in the new case (a copied retention word that failed a correct delivery, and ledger patterns written from the request), both fixed; the unfixed fourth pass repeats both leaks (9 stray headings; its new decision AD-5 filed under Superseded behind AD-3 and AD-4 from E1), so the mislabel appears to compound with the pass number | firm for one run; the compounding is exploratory (n=2) | [readout](experiments/multipass-20261031/round3-readout-output.txt), [ledger](experiments/multipass-20261031/e3-ledger.json), Round 3 result below |
 | F9 The owner approved D1 to D5 as recommended (2026-10-31, "Approve all"); D2 to D4 were built as one candidate off main; E2 met its bar (F12) and the release is the owner's decision | decision | Round 2 below |
 
 ## Round 0: eight saved runs read for what a second pass leaves (2026-10-31)
@@ -376,7 +377,7 @@ surviving flag as shown. P5 held (12 of 12). P6 held (1,121.9 s is within 15 per
 failed two suites under a load average above 100; one of them, brownfield-tickets, fails on the parent too, and the other, lifecycle, passes alone), add the E2E round entry (this A/B is the round for the candidate; `release.py` reads commit order), then `release.py`, push and the host refresh.
 A fix-arm third or fourth pass (the candidate on a chain's later links, or chain B on a small base) is the next measurement and not a condition.
 
-## Round 3: the fourth link, `ticket-sla`, the first that changes an earlier rule (built and calibrated 2026-10-31; the live run E3 is pending)
+## Round 3: the fourth link, `ticket-sla`, the first that changes an earlier rule (built and calibrated 2026-10-31; E3 ran 21:40 to 21:57, result at the end of this round)
 
 **Why this link.** The first three links add behaviour. A real product also changes a rule it set earlier, and a second request that contradicts the first (here "a ticket is
 escalated at most once" becomes "at most twice, and by priority") leaves three places that must change together: the living spec's requirement, the architecture's decision behind
@@ -437,8 +438,48 @@ passes. The alternative is not independent of the reference beyond the count. On
 5. Planning reads the old rule: the step plans' `follows` or the test cases' `requirement` name at least one kept ID, where the three additive links named none.
 6. The leaks continue: `environment.md` gains 3 or more stray headings, and a new decision is born under `## Superseded` again.
 
-Result: not yet recorded. The run waits for E2: its launcher waits until the E2 driver has ended (not only until the port-4180 lease is free, which it briefly is between two E2 runs),
-then takes the lease.
+### Result of E3 (ran 2026-10-31 21:40:40 to about 21:57:19; the first live fourth pass; firm for one run, and one check of the case was wrong and is corrected)
+
+`ticket-sla` continued from the real third pass (`mp-codex-ticket-comments`, E1) on the published ShipLoop of the day (skill-craft 2.27.1, ShipLoop 1.26.1), Codex gpt-6.1-terra at xhigh: 993.3 s, 158 model calls,
+37.0 M tokens processed, engine done, committed. Evidence: [readout](experiments/multipass-20261031/round3-readout-output.txt) (`round3_readout.py`), [ledger](experiments/multipass-20261031/e3-ledger.json), the run under
+`~/e2e-runs-multipass/20261031/mp-codex-ticket-sla/` (its original `result.json` and `metrics.json` are kept beside the regraded ones as `*-original-grading.json`), and the baseline row in `test/shiploop_e2e/baselines.jsonl`.
+
+**The verdict, and why it is two.** Recorded: FAILED, 15 of 16 checks. The delivery was right: its own three checks pass, the three earlier links' regression passes, all 16 hidden acceptance checks pass (the three new ones
+included), and 4 of the 5 retention checks pass. The failing one is retention[3], "every earlier requirement ID kept and the spec records the feature" (`earlier ids: 8; missing: ; added: ; feature in spec: no`). The run kept all 8
+IDs and changed its escalation requirement R-7 in place, naming ESCALATE_HIGH_MINUTES in it, which is what a link that changes a rule should do. The check accepted a new ID or "the feature in the spec", and its feature word was
+`comment`, copied from ticket-comments' check; the prior spec already says "comments", so it could never be true here and the in-place route had no way to pass. Triage step 1 of the run's own mismatch note applies: the check is wrong.
+It is fixed in 9d5067f3d6b38ff0231e3e98835d78fb96e5a37a (the word is now ESCALATE_HIGH_MINUTES, which only this request introduces) with three tests that fail on the old case file. A regrade cannot apply that fix:
+`--resume-run --grade-only` replays the checks recorded at launch (`invocation.json`), so it re-graded the same wrong check; `round3_readout.py` instead runs the case's current commands on the saved work directory and shows both
+verdicts. The corrected check passes (`feature in spec: yes`). The recorded result stays FAILED in `result.json` and in the baseline row.
+
+**What the run did** (ledger, with the case's `may_change` patterns corrected to "escalat" because the third pass wrote the old rule as "enqueued once" under "Urgent escalation", not "at most once"):
+- Spec: R-7 changed in place (replaced 1 of 1 expected, left 0, unexplained 0); no new requirement, nothing retired. It now says urgent waits ESCALATE_AFTER_MINUTES (60), high ESCALATE_HIGH_MINUTES (240), nothing else escalates,
+  a ticket still open and unassigned twice its wait after its first escalation is escalated once more, never a third, and an intervening assignment prevents the second.
+- Tests: 137 node tests against the base's 117 (20 more); one earlier test file modified (`test/reassignment-escalation.test.js`; +143 and -1 lines across tests). Source: 5 files modified (+25, -12).
+- Architecture: the old escalation decision AD-3 left standing (expected 1, touched 0); a new AD-5 "Priority escalation and continuity" was added.
+
+**The leaks on an unfixed fourth pass.** Both recur: 9 stray headings added to `environment.md`, and the new decision AD-5 filed under `## Superseded` (born retired), behind AD-3 and AD-4 that E1's mislabel had already put there. In the prior file
+`## Superseded` was the last section, so the new decision was appended after it: the F1 mechanism, compounding. This is the second of two live later passes on published ShipLoop (E1 and E3) that filed a new decision as retired, against 0 of 6
+first and second passes of the E2 control, which suggests (exploratory, n=2) that the mislabel needs a trailing `Superseded` section, which exists only after an earlier pass has made one, and so grows with the pass number. The fix's notice
+caught exactly this once in E2 (B3 pass 2), in a file whose last section is `Superseded`; whether it holds from a prior that already carries the mislabel is not measured.
+
+**The predictions (written before the run).**
+
+| | prediction | observed | |
+|---|---|---|---|
+| P1 | it passes: the earlier links' checks, its three, the five retention checks and all 16 hidden checks | 1 check failing as recorded (the wrong one); 0 with it corrected; hidden 16 of 16 | held once the wrong check is corrected; missed as recorded |
+| P2 | the spec's old escalation requirement is touched | R-7 expected and changed in place | held |
+| P3 | the architecture's old escalation decision is left standing | AD-3 expected and untouched | held (but see below) |
+| P4 | at least one earlier test file is modified | `test/reassignment-escalation.test.js` | held |
+| P5 | planning names at least one kept ID | test cases cite 0 kept IDs, step plans 0 (delta IDs AD-5 and R-7 only; R-7, the rule it changed, counts as a delta ID) | missed |
+| P6 | the leaks continue: 3 or more stray headings and a new decision born under Superseded | 9 stray headings; AD-5 born retired | held |
+
+**What it shows and what it does not.**
+- The link does what it was built for on the spec side: a run given a request that replaces a rule edits the requirement in place, and the ledger now says so (`replaced 1/1`).
+- It cannot yet say whether a run retires and supersedes the old decision when it should. In E3 the old decision AD-3 was already filed under `Superseded` by E1's mislabel, so "AD-3 left standing" is the same whether the run saw it was already marked or ignored it.
+  A clean test needs a prior produced without the mislabel (a third pass with the fix, or an E1 rerun). That is the next measurement, and it needs the candidate on the earlier links first.
+- Method: the case was written from the request and a synthetic prior, and its first contact with a real prior found two wrong words in two places. For a chain B, write retention words and `may_change` patterns from a real prior pass, and give every check the in-place route as well as the new-ID route.
+- The correction was made after the result was seen. It is defined from the request alone (the variable the request introduces), the run had named that variable, and the recorded failure stays visible; but a reader should know the verdict changed after the fact.
 
 ## Decisions made without asking (routine, AGENTS.md "Decisions")
 
@@ -459,6 +500,6 @@ then takes the lease.
 
 - Pass 3 and 4 behaviour on a live run (Round 1 is the first).
 - Which part of the candidate (the notice, the packet line, the duty edits) does the work, and whether it holds on a third and a fourth pass: E2 shows the bundle on passes 1 and 2 only (F12).
-- A second chain on a smaller base (designed, not built; D5 builds it after E2). The modifying increment, `ticket-sla`, is built (Round 3); its live run E3 runs on published ShipLoop.
+- A second chain on a smaller base (designed, not built; D5 builds it after E2). The modifying increment, `ticket-sla`, is built and ran live once (E3, Round 3); whether a run retires and supersedes the old decision needs a prior without E1's mislabel.
 - An independent alternative delivery for `ticket-comments`, and a persistence check for the pass-4 link.
 - `knowledge_reads` on Codex is still empty; `delta.writes` is its heuristic replacement.
