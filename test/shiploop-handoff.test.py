@@ -2377,9 +2377,11 @@ class CaseRowCliTests(inner.RunDriver):
     def test_a_missing_requirement_is_refused_with_the_spec_ids_and_check_prints_the_coverage_notice(self) -> None:
         self.start()
         self.drive_to("step-plan")
+        # Each criterion the focused command names has an ID of its own, as step-plan requires (step-plan review,
+        # 2026-11-01); the fixture's cases both name the command's first criterion, so C2 is still left without one.
         self.complete(dict(inner.DONE, paths=list(self.PATHS),
                            criteria=[{"id": "C1", "text": "The change works (R-1)."}, {"id": "C2", "text": "Nothing else breaks."}],
-                           test_commands=[{"command": "true", "suite": "focused", "ids": ["TC-1"],
+                           test_commands=[{"command": "true", "suite": "focused", "ids": ["TC-1", "TC-2"],
                                            "criteria": ["C1", "C2"]}, {"command": "true", "suite": "check"}]))
         state = self.drive_to("test-spec")
         home = self.repo / knowledge.HOME
@@ -2390,7 +2392,7 @@ class CaseRowCliTests(inner.RunDriver):
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
         good = inner.prepare(self.run_dir, state, dict(inner.DONE))
-        self.assertEqual([row["id"] for row in good["test_cases"]], ["TC-1"])
+        self.assertEqual([(row["id"], row["criterion"]) for row in good["test_cases"]], [("TC-1", "C1"), ("TC-2", "C1")])
         # A row without its requirement: refused, and the second line lists the spec's IDs (R-3 is nowhere).
         bare = [{key: value for key, value in row.items() if key != "requirement"} for row in good["test_cases"]]
         store.write_record(path, dict(good, test_cases=bare), "result")
@@ -2400,7 +2402,7 @@ class CaseRowCliTests(inner.RunDriver):
         self.assertIn("test_cases[0] needs exactly id, criterion, requirement, oracle, red, green", lines[0])
         self.assertEqual(lines[1], str(home / "spec.md") + " lists R-1, R-2.")
         self.assertNotIn("R-3", refused.stderr)
-        # The fixed result: the check accepts it and counts C2, which no case and no recorded command confirms.
+        # The fixed result: the check accepts it and counts C2, which no case names and no non-focused command confirms.
         store.write_record(path, good, "result")
         checked = self.run_cli(self.command(action, path, verb="check"))
         self.assertEqual(checked.returncode, 0, checked.stdout + checked.stderr)

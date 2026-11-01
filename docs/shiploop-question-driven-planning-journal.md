@@ -409,6 +409,55 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   - E17's 6 misses that name the test by identifier or in prose remain.
 - Status: firm for the mechanism (tests, replay equivalence). Its benefit is the duty, not measured time.
 
+### E19 — 2026-11-01: the step-plan stage reviewed for effectiveness and efficiency (saved runs, no model run)
+
+- Question (the owner: "revisit the step planning stage and make sure it is as effective and efficient as
+  possible"): what does step-plan cost, which of its plans fail later and why, and what would stop that?
+- Method: `docs/experiments/step-plan-review-20261101/step_plan_review.py` and `replay_proofs.py` over 112 traced runs
+  (2026-10-25 to 11-01, ShipLoop 1.12.0-1.26.1, mostly Codex Terra 6.1): times from trace events, refusals, every
+  send-back to step-plan with its result, Improve passes; each send-back classified from its headline and summary;
+  candidate rules replayed on every accepted plan and step. Review: docs/shiploop-step-plan-review-2026-11-01.md.
+- Result:
+  - Cost: a median 11.3% of a run; on Terra 0.52 minutes to author and 0.47 to review (medians); the review is about
+    45% of the stage. Refusals in the loop fell from 57 in 53 plans (1.24.1-1.25.0) to 25 in 44 (1.25.1-1.26.1).
+  - 50 of 178 plans came back (implement 32, test-spec 12, test 6). On ShipLoop 1.25.0 and later, 19: focused IDs
+    fewer than the criteria a focused command names 8, Proof command defects 4, a Proof needing unwritten tests
+    without a file path 3, a Proof that cannot run twice 2, a check needing a later step 2. The named-path proof-order
+    class went from 13 to 0 with E5's refusal.
+  - The step-plan template has shown three criteria and two IDs whenever an open item is due (since 8dee00e0), and no
+    step-plan text stated test-spec's one-case-per-ID rule; 22 of the 24 short plans had an Improve review.
+  - A matching rule refuses 24 of 175 accepted plans: the 9 test-spec sent back and 15 test-spec folded (a criterion
+    with no case of its own); none whose every criterion had a case. Four rules for the no-path Proof form flag Proofs
+    that passed (N1 10/12/18 send-back/done/none, N4 7/30/11), so none is built.
+- Decision: build the rule as a step-plan refusal (`test_loop.criteria_without_ids`,
+  `navigator._check_focused_criteria_ids`), give the template one ID per criterion, and say it in duty 5 and the
+  Checked-by line. Routine under the owner's 2026-10-28 rule: it aligns step-plan with a contract test-spec already
+  enforces and limits no loop. The Improve review and a repeatable-Proof clause are left to the owner.
+- Status: firm (replay of every saved plan); the live check is pre-registered in the review's §7.
+- Evidence: `replay_ids.jsonl`, `sendbacks.jsonl`, `sendback_classes.jsonl`, `runs.jsonl`, `improve_passes.jsonl`,
+  `replay_proofs.jsonl` in docs/experiments/step-plan-review-20261101/.
+
+### E20 — 2026-11-01: the focused-ID rule live (SP1 deliveries, SP2 slice A/B, SP3) on Codex Terra 6.1 xhigh
+
+- Question: does b8d32033's rule hold live without cost, and what does it buy on the owner's runner? (The owner,
+  mid-round: "You can do side experiments as needed if that would help"; "For using a test harness and runner we want
+  to use codex Terra 6.1 at xhigh".)
+- Method: pre-registered in the review's §7 before each round (a38be89f, 3042b7aa, 1bf6430c): SP1 whole deliveries
+  (hello 1, csv-report 2; ticket-import 3 pending on port 4180), SP2 step-plan slices stopping after test-spec (arm B =
+  main e81fdb55, arm T = b8d32033; tickets-assign and stand-in-rules, 4 per arm per case), SP3 slices on 45153684
+  (stand-in-rules 4). Three SP1 runs made at high before the owner's word are a pilot.
+- Result (review §7a): SP1 3 of 3 PASS at xhigh (and 3 of 3 in the pilot), no test-spec send-back for IDs, no gate
+  refusal, no short plan; SP2 B 0 of 8 short, T 0 of 8 short with one test-spec send-back: b8d32033's "an ID for each
+  criterion it names" drew IDs for two searched criteria, which test-spec writes no case for; SP3 on 45153684 ("each
+  executed criterion") 0 send-backs in 4. Step-plan median minutes B 2.17, T 2.25, SP3 2.50. By effort in the saved
+  runs: Terra xhigh 7 of 67 plans short, 1 sent back; Terra high 8 of 75, 7 sent back.
+- Decision: keep the rule with 45153684's wording. The wording fix is a correction caught by the pre-registered
+  falsifier; the rule's gain at xhigh is test quality.
+- Status: firm (no cost, no ID send-back after the fix, on these runs); the template's open-item path live is pending
+  (ticket-import); F31 interim.
+- Evidence: sp2_scores.jsonl, sp3_scores.jsonl, the run folders under ~/e2e-runs-sp/20261101/, test/shiploop_e2e/
+  LEARNINGS.md (the round entry of 2026-11-01).
+
 ## Findings
 
 Each finding is stated in full, with its evidence, in §6.1 of the proposal document.
@@ -440,3 +489,10 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F23 | A refusal of a criterion whose Confirm by names an unwritten test does not pay. The registered no-path form catches 3 send-backs the shipped rule misses but would refuse 5 plans whose Proof tests the step directly; a proof-order send-back costs about 1 minute (n = 20), so the 9 misses are worth about 10 minutes in 365 plans; 6 of them name the test by identifier, not path. Superseded in part 2026-11-01 (E18): its narrow form, plain suite Proofs only, is built for the Proof duty, not for time | firm (replay, registered rule) | E17, E18 |
 | F24 | No step-plan stall under fix 1's wording in 14 runs with an open item due (0–23%), against 4 of 33 before fix 11 (12%); one-sided p 0.23. One stop was outside XI's case | observational | E17 |
 | F25 | A plain suite Proof (`npm test`) is refused when its step's criterion is confirmed by a test the base lacks (rule C of the proof-order refusal): 3 of 365 judged plans in-sample, 0 false; 0 of 42 held-out runs | firm (mechanism) | E18 |
+| F26 | Step-plan is a median 11% of a run; its Improve review is about 45% of the stage; refusals in its loop halved after c2da4604 | firm | E19 |
+| F27 | 28% of step plans come back to step-plan; on ShipLoop >= 1.25.0 the largest class (8 of 19) is a focused command with fewer IDs than its executed criteria, and the named-path proof-order class is gone (13 -> 0) | firm | E19 |
+| F28 | The shortage comes from step-plan's contract: test-spec's one-case-per-ID rule was never stated there, and the template has shown a short row since 8dee00e0; Improve missed it in 22 of 22 reviewed short plans | firm (mechanism); the template's own share unmeasured | E19 |
+| F29 | A matching rule refuses exactly the short plans: 9 sent back by test-spec, 15 folded, none fully covered (24 of 175) | firm (replay) | E19 |
+| F30 | No precise rule separates a Proof that runs unwritten tests without a file path from a legitimate one (N1-N4 all flag passed Proofs; rule S, the narrowest, 5 of 12 flags real; F25's narrow rule C covers the plain-suite form by path) | firm (replay) | E19 |
+| F31 | Implement reads a criterion's "Confirm by" test, which the test stage writes later, as due at implement (3 live cases); a done-when naming the Proof as implement's confirmation is the candidate | interim | E20 |
+| F32 | On Codex Terra 6.1 xhigh the ID shortage still occurs (10% of saved plans) but test-spec folds it; the rule's gain there is a case per executed criterion, and live it costs no step-plan time | firm (corpus); interim (live, n = 20 slices) | E19, E20 |

@@ -1279,9 +1279,9 @@ Change no product file in this stage.
      repository-local skill reused unchanged. `locator`: an existing SKILL.md or card; `stages`: implement (default),
      test, document, improve.
 5. **`test_commands`**, run from the repository root.
-   - focused: this item's cases with the IDs they carry and a runner flag that prints test names (Jest `--verbose`,
-     pytest `-v`, others: GUIDES/platforms/; never dot or junit); a hand-written check prints its ID and outcome on
-     every exit. """ + ID_WORD_RULE + """ `min_tests`
+   - focused: this item's cases, an ID for each executed criterion it names, and a runner flag that prints test names
+     (Jest `--verbose`, pytest `-v`, others: GUIDES/platforms/; never dot or junit); a hand-written check prints its ID
+     and outcome on every exit. """ + ID_WORD_RULE + """ `min_tests`
      where a command must run at least that many. A run that executed no test is refused, so check the filter.
    - regression: the retained suites the changed paths affect; only the fast one marked `"minimum": true` runs
      before the last step (none: `minimum_na`).
