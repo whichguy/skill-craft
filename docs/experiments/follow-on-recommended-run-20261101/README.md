@@ -10,15 +10,15 @@ shows that the path works and says nothing about how often it is used (M3) or wh
 **Conditions.** Codex gpt-6.1-terra at xhigh, `--source checkout` from a detached worktree at d2c6a5ff62a323a0f29c9d9b06c2f9bb5031a8a7 (the release record of
 skill-craft 2.30.0 / ShipLoop 1.29.0; every run loaded plugin tree 3efc9db89059, the published tree), planning review `stage`, custom `--prompt` runs with
 `--check` commands (`launch.sh`), outputs under `/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/`. No fixed port. The machine was shared with other
-sessions' cycles and calibration epochs (load average 56, 104 and 96 over 1, 5 and 15 minutes at 10:30; link2-b's runner printed 12.9 falling to 10.5 on 18 CPUs).
+sessions' cycles and calibration epochs (load average 56, 104 and 96 over 1, 5 and 15 minutes at 10:30, planning time; the runs' own 1-minute loads at start were 12 to 22;  link2-b's runner printed 12.9 falling to 10.5 on 18 CPUs).
 
-| Run | Started from | Turns | Minutes | Gates passed | Handoff | `follow_on` | `slug.py Café` |
+| Run | Started from | Turns | Minutes | Gates | Handoff | `follow_on` | `slug.py Café` |
 |---|---|---|---|---|---|---|---|
 | link1-a | `request.txt` | 172 | 11.5 | 6 of 6 | 1 attempt (exit 0) | one `decision`, source `lessons.open_next` | exit 2, "undecided: non-ASCII" |
 | link1-b | `request.txt` | 159 | 10.6 | 6 of 6 | 1 attempt (exit 0) | one `decision`, source `lessons.open_next` | exit 2, "undecided: non-ASCII" |
 | link2-a | link1-a's `follow-on-request.md` | 25 | 1.2 | 4 of 6 (`shiploop`, `committed`) | none: BLOCKED at spec | not reached | exit 2 (product unchanged) |
 | link2-b | link1-b's `follow-on-request.md` | 25 | 1.4 | 4 of 6 (`shiploop`, `committed`) | none: BLOCKED at spec | not reached | exit 2 (product unchanged) |
-| link3-a | link1-a's request file + `answer.txt` | 162 | 12.8 | 6 of 6 | 1 attempt (exit 0) | `[]` | `cafe`, exit 0 |
+| link3-a | link1-a's request file + `answer.txt` | 162 | 12.9 | 6 of 6 | 1 attempt (exit 0) | `[]` | `cafe`, exit 0 |
 | link3-b | link1-b's request file + `answer.txt` | 144 | 11.3 | 6 of 6 | 1 attempt (exit 0) | `[]` | `cafe`, exit 0 |
 
 **Rules.**
@@ -28,17 +28,20 @@ sessions' cycles and calibration epochs (load average 56, 104 and 96 over 1, 5 a
 - R3 holds: the printed command ran as printed on a copy of each checkout: exit 0, no traceback, one workspace record, the stored request equal to the file but for
   its last newline. Calibrated beforehand on an adversarial request (backticks, `$(touch marker)`, quotes): the marker was not created.
 - R4 as registered is **not met**: 0 of 2 link-2 runs reached `done`. Both ended BLOCKED at the spec stage, each accepting a blocked result that asks the requester
-  one question with options and a `no_default` reason that quotes the earlier "do not choose" (`blocked-questions.txt`). They found the finding, followed the request
+  one question with options and a `no_default` reason that cites the earlier request's reservation of the choice to the requester (link2-a: it "prohibits choosing on their behalf"; link2-b: it "reserves the policy choice"; neither quotes "do not choose"; `blocked-questions.txt`). They found the finding, followed the request
   file's pointer to the earlier request, and asked; they did not refuse or misread the request. The plan had registered the unanswered case and called its outcome
   "delivers"; that was the plan's mistake (a decision is delivered only once someone answers it), so the miss is recorded and the product is read as working.
 - R5: link 2 changed no file (`runs.json`: `files_changed_vs_prior_head` is empty), so nothing "landed" except the question. Link 3 changed `slug.py`, `test_slug.py`,
   `README.md` and the three living knowledge files (`link3-changes.txt`); both specs now carry the settled rule and say it supersedes the earlier pending decision.
+- Not in the original reading (found by the Round 8 audit): both link-3 runs read the answer's "any other character outside A to Z is treated like punctuation" literally, so digits became separators (`Hello2World`: `hello2world` before the
+  answer, `hello-world` after; `Route 66 Café`: `route-cafe`). The request did not reserve digits and no check covers them, so "delivers" here means the answered rule was implemented and the listed checks passed, not that
+  all earlier behaviour was kept. The wording was mine (`answer.txt`).
 - R6: link 2 never reached a handoff. R7 holds (2 of 2 link-3 runs done, every verdict). R8 holds (tests exercise the answered rule; the committed spec and architecture
   no longer describe the policy as undecided; the only remaining mentions say the interim error is removed or superseded). R9 holds (both handoffs accepted on the first
   `complete`; neither filed the decision again: `follow_on` is `[]`).
 
 **Predictions** (probability, written before the runs): P1 held (75%). P2 held, both runs (85%; 60% for both). P3 held (80%). P4 held (90%). **P5 missed** (65%: 0 of 2).
-P6 (70%) is vacuous for link 2 (no file changed) and held for link 3 (only the product, its tests, README and the knowledge files). P7 (45%) did not apply: link 2 never
+P6 (70%, registered for the link-2 runs) is vacuous for link 2 (no file changed); link 3 also changed README.md, which the registered list did not name. P7 (45%, registered unconditionally) missed as written: 0 of 2 link-2 runs filed a decision, since link 2 never
 reached a handoff. P8 held (80%). P9 held (85%). P10 held (70%).
 
 **Findings** (journal Round 6 has the numbered list and statuses).
