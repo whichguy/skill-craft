@@ -52,3 +52,26 @@ are.
 One case, one planted defect, one stated tolerance: it shows that this loop rejects this regression at this sample, not how
 often the tolerance misleads or that the loop rejects every regression. The prediction's token effect cannot be judged when
 the candidate has no successful attempt (cost per success is undefined), so the verdict rests on the guard.
+
+## Runs
+
+**Run 1 (2026-11-01, kit commit bba7561): UNDECIDED; four of six attempts were invalid evidence, from a defect in the
+parallel launch.** Codex `gpt-6.1-terra` at `high`, 3 attempts per arm, 2 at a time (the runner saw three or more other
+subject runs on the machine). `run-01/` holds the returned files byte for byte (the runner also pushed them at e5f0422
+on `results/closed-loop-pilot-20261101`; the raw run folders are on the owner's Mac under
+`~/e2e-runs/2026-11-01/closed-loop-pilot-01`). `epoch-status.json` ends with a traceback after its JSON: that was a
+separate defect in `epoch.py status`, since fixed.
+
+- Attempts: control-1 recorded; control-2 and control-3 `invalid_evidence`; candidate-1 and candidate-2
+  `invalid_evidence`; candidate-3 recorded. `cycle.py` exited 4: "registered attempts have no sealed run receipt ...
+  required quality evidence is unknown", so the decision is UNDECIDED and the pilot could not answer its question.
+- Cause: an attempt sealed while a parallel sibling was still writing; the receipt binds each overlapping run's
+  timeline, metrics and invocation files, so it read as changed the moment the sibling wrote again. Whichever attempt of
+  an overlapping set ends last stays valid. Fixed by making a finishing attempt wait for its siblings before sealing.
+- What the two valid attempts say, and no more: the control passed accuracy (1.0) and the candidate failed it (0.0), so
+  the prediction's accuracy guard read broken and its verdict `refuted`; the token effect is unjudgeable because the
+  candidate had no successful attempt (the control's processed tokens for its one success: 18,258,993). One attempt per
+  arm is not a rate.
+- The record's outcome in `run-01/cycle-result.json` is `admitted` (an undecided comparison). Its rows are in
+  `run-01/ledger.jsonl` and are merged into the repository ledger together with the rerun's, so the record is not left
+  reading admitted while the rerun is pending.
