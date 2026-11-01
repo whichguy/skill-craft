@@ -1,0 +1,4 @@
+{
+  "outcome": "done",
+  "summary": "I’ll add behavior checks in test/ with node:test. The package manifest and application code remain unchanged, including the current test helpers and service documentation. The permitted workflow knowledge record can go under docs/shiploop."
+}
