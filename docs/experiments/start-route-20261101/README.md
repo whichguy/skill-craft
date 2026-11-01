@@ -1,6 +1,6 @@
 # Start route: does rewording the card's start section stop the wrong first command?
 
-Status: **done 2026-11-01.** Pre-registered before the first scored trial; T2 meets the registered bar and ships (see "Results").
+Status: **done 2026-11-01.** Pre-registered before the first scored trial; T2 met the registered bar and shipped as skill-craft 2.27.3 / shiploop 1.26.3 (release f24746fa6193007235818f2d8b109408d70ca413); a published-build confirmation held (see "Results").
 Owner: Jim Wiese. Model and harness (owner, 2026-11-01: "Use terra at xhigh", "We should be using the codex harness"):
 the E2E harness `test/shiploop_e2e/run.py` on its Codex host, `gpt-6.1-terra` at `xhigh`.
 
@@ -229,10 +229,24 @@ Findings.
 - Limits as registered: first command only, Codex Terra xhigh only, one Salesforce request; Claude and Grok never chose `init`
   in the archive, so nothing is claimed for them; no minutes, tokens or loops saved are measured.
 
+## Published-build confirmation (registered 2026-11-01, before it runs)
+
+After the release, `start_probe.py confirm` runs 12 sessions of the `sf-ui` request on the build a user installs (the published
+marketplace build, `--source marketplace`, same model, effort, stop rule and detector). Prediction: at most 2 of 12 begin with
+`init` (T2 was 0 of 40; the published card before the change would give about 5 of 12). It gates nothing already published; 5 or
+more of 12 would mean the package differs from the tested arm in a way that matters, and the cause would be investigated before
+any further claim. The installed card's hash must equal the release package's card.
+
+**Confirmation result.** 12 of 12 sessions on the published 2.27.3 build began with `workspace start` (0 `init`); the installed
+card's hash equals the release package's card on every session and the harness recorded plugin 2.27.3 from the marketplace
+(`confirm-output.txt`, `confirm-compact.jsonl`). The prediction held. With 0 of 12 the interval reaches 24%, so this confirms the
+package, not the rate: the rate is the 0 of 40 above.
+
 ## Evidence
 
 - `arms.json`, `stimuli/sf-ui.txt`, `plan.json`, `start_probe.py`, `analyze.py`: the design. `start_probe.py reclassify` and
   `rescan` are the two detector corrections of "Deviations" 4 and 6.
+- `confirm-output.txt`, `confirm-compact.jsonl`: the published-build confirmation (`start_probe.py confirm`).
 - `analysis-output.txt`, `results-compact.jsonl`: the result (the compact rows trim each command; the raw rows are below).
 - `start_routes.py`, `recount.py`, `recount-output.txt`: the archive recount (run before any trial).
 - Raw run folders (not committed): `~/e2e-runs-startroute/20261101/` (`results.jsonl`, `baselines-probe.jsonl`,

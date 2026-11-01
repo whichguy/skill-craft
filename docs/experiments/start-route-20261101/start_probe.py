@@ -167,8 +167,10 @@ def run_trial(slot: dict, attempt: int, out: Path, expected: dict) -> dict:
     selector, _ = STIMULI[stimulus]
     if selector == ["--prompt-file"]:
         selector = ["--prompt", (HERE / "stimuli" / f"{stimulus}.txt").read_text()]
+    build = (["--source", "marketplace"] if arm == "PUB"   # the published build, as a user installs it
+             else ["--plugin-dir", str(out / "arms" / arm / "root" / "plugins" / "skill-craft")])
     argv = [sys.executable, str(RUN_PY), *selector, "--host", "codex", "--model", MODEL, "--effort", EFFORT,
-            "--plugin-dir", str(out / "arms" / arm / "root" / "plugins" / "skill-craft"), "--output", str(trial),
+            *build, "--output", str(trial),
             "--timeout", str(HOST_TIMEOUT_SECONDS), "--quiet", "--baseline", str(out / "baselines-probe.jsonl")]
     started = time.monotonic()
     proc = None
@@ -292,6 +294,29 @@ def rescan(out: Path, apply: bool) -> None:
           + ("" if apply else "  (dry run: nothing written)"))
 
 
+def run_confirm(out: Path, count: int, jobs: int) -> None:
+    """Fresh published confirmation: the Salesforce request on the published marketplace build (arm PUB), no plugin-dir."""
+    out.mkdir(parents=True, exist_ok=True)
+    card = ROOT / "plugins" / "skill-craft" / "skills" / "shiploop" / "SKILL.md"
+    expected = {"card_sha256": {"PUB": hashlib.sha256(card.read_bytes()).hexdigest()[:12]}}
+    results_path = out / "confirm.jsonl"
+    lock = threading.Lock()
+
+    def work(i: int) -> None:
+        slot = {"slot": i, "arm": "PUB", "stimulus": "sf-ui", "i": i}
+        for attempt in range(1, MAX_ATTEMPTS + 1):
+            row = run_trial(slot, attempt, out, expected)
+            with lock, results_path.open("a") as fh:
+                fh.write(json.dumps(row) + "\n")
+            print(f"confirm {i:2d} a{attempt} -> {row['start']:9s} valid={row['valid']} {row['seconds']}s {row['error'] or ''}",
+                  flush=True)
+            if row["valid"]:
+                return
+
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
+        list(pool.map(work, range(1, count + 1)))
+
+
 def prepare(out: Path) -> dict:
     arms = json.loads((HERE / "arms.json").read_text())
     return {"card_sha256": {arm: build_arm(arm, arms[arm], out / "arms" / arm / "root") for arm in ARMS}}
@@ -332,6 +357,10 @@ def main() -> None:
     p.add_argument("--arm", default="C", choices=ARMS)
     p.add_argument("--stimulus", default="sf-ui", choices=tuple(STIMULI))
     p.add_argument("--out", required=True)
+    p = sub.add_parser("confirm")
+    p.add_argument("--out", required=True)
+    p.add_argument("--count", type=int, default=12)
+    p.add_argument("--jobs", type=int, default=4)
     p = sub.add_parser("reclassify")
     p.add_argument("--out", required=True)
     p = sub.add_parser("rescan")
@@ -351,6 +380,8 @@ def main() -> None:
         expected = prepare(out)
         print(json.dumps(run_trial({"slot": 0, "arm": args.arm, "stimulus": args.stimulus, "i": 0}, 1, out, expected),
                          indent=1))
+    elif args.cmd == "confirm":
+        run_confirm(Path(args.out), args.count, args.jobs)
     elif args.cmd == "reclassify":
         reclassify(Path(args.out))
     elif args.cmd == "rescan":
