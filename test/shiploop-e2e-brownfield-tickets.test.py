@@ -215,6 +215,11 @@ def settle(result, agrees_now, grade_again, regrades: int = REGRADES):
     return result, regrades, True
 
 
+def agreed(flags, expected, grade_again):
+    """The pass flags of a check list: as they are when they are the declared ones, else graded again, alone, until they are (``settle``)."""
+    return flags if flags == expected else settle(flags, lambda grade: grade == expected, grade_again)[0]
+
+
 @functools.cache
 def graded() -> dict:
     """Every variant of both cases built, committed and graded: {"deliveries", "accepted", "pristine", "suite", "groups",
@@ -303,6 +308,22 @@ class SettleTest(unittest.TestCase):
         again, calls = self.graders(*["bad"] * REGRADES)
         final, done, repeated = settle("bad", lambda grade: grade == "ok", again)
         self.assertEqual((final, done, repeated, len(calls)), ("bad", REGRADES, True, REGRADES))
+
+    def test_flags_that_are_the_declared_ones_are_not_graded_again(self):
+        again, calls = self.graders()
+        self.assertEqual(agreed([False, True, False], [False, True, False], again), [False, True, False])
+        self.assertEqual(calls, [])
+
+    def test_a_middle_check_that_a_foreign_server_failed_is_graded_again_and_the_agreeing_flags_stand(self):
+        # The run through the harness failed the base's own node tests (the second check) once; the flags graded again agree.
+        again, calls = self.graders([False, True, False])
+        self.assertEqual(agreed([False, False, False], [False, True, False], again), [False, True, False])
+        self.assertEqual(len(calls), 1)
+
+    def test_a_middle_check_that_really_fails_is_still_reported_after_every_regrade(self):
+        again, calls = self.graders(*[[False, False, False]] * REGRADES)
+        self.assertEqual(agreed([False, False, False], [False, True, False], again), [False, False, False])
+        self.assertEqual(len(calls), REGRADES)
 
 
 class CaseDeclarationTest(unittest.TestCase):
@@ -582,7 +603,10 @@ class ThroughMainTest(e2e.CaseRunCase):
         self.assertEqual(result["base"]["fixture"], "node-tickets")
         self.assertEqual(json.loads((out / "invocation.json").read_text())["base"], result["base"])
         self.assertEqual(result["committed"]["start_head"], result["base"]["start_head"])
-        self.assertEqual([check["pass"] for check in result["checks"]], [False, True, False])
+        # The second check runs the base's own node tests, on ports that other work on the machine may hold, as the graded results do:
+        # flags that are not the declared ones are graded again, alone, until they are (CaseChecksTest.expect does the same for a built delivery).
+        again = lambda: [row["pass"] for row in run.run_checks(out / "work", ASSIGNMENT.entry["checks"], timeout=180)]  # noqa: E731
+        self.assertEqual(agreed([check["pass"] for check in result["checks"]], [False, True, False], again), [False, True, False])
         acceptance = result["quality"]["acceptance"]
         self.assertTrue(acceptance["observed"], acceptance)
         self.assertEqual({row["id"] for row in acceptance["checks"] if not row["pass"]}, ASSIGNMENT.fail_to_pass)

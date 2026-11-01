@@ -44,7 +44,7 @@ import environment  # noqa: E402
 import hosts  # noqa: E402
 import listeners  # noqa: E402
 import run  # noqa: E402
-# The fake hosts answer the Claude host's Anthropic route; an E2E run's default is Ollama (hosts.RUN_DEFAULT_BACKEND).
+# The fake hosts answer the Claude host's Anthropic route, which is also its default backend; the runs name it so they stay on it.
 ANTHROPIC_ROUTE = {"claude": ("--backend", "anthropic")}
 
 TOKEN = "FAKE-TOKEN-DO-NOT-LOG"

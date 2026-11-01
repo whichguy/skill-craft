@@ -1,0 +1,717 @@
+{
+  "case": "csv-report",
+  "host": "codex",
+  "backend": null,
+  "model": "gpt-6.1-terra",
+  "effort": "high",
+  "pass": true,
+  "invoked": {
+    "pass": true,
+    "skill": "skill-craft:shiploop",
+    "evidence": "ShipLoop CLI ran"
+  },
+  "plugin": {
+    "pass": true,
+    "loaded": [
+      "skill-craft@whichguy 2.27.4"
+    ],
+    "wanted": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-cycle-02/loop/explore-1/build/plugins/skill-craft",
+    "path": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-cycle-02/loop/explore-1/run/home/.codex/plugins/cache/whichguy/skill-craft/2.27.4",
+    "output": "guy` from /Users/dadleet/e2e-runs/2026-11-01/closed-loop-cycle-02/loop/explore-1/build.\nInstalled marketplace root: /Users/dadleet/e2e-runs/2026-11-01/closed-loop-cycle-02/loop/explore-1/build\nAdded plugin `skill-craft` from marketplace `whichguy`.\nInstalled plugin root: /Users/dadleet/e2e-runs/2026-11-01/closed-loop-cycle-02/loop/explore-1/run/home/.codex/plugins/cache/whichguy/skill-craft/2.27.4"
+  },
+  "versions": {
+    "source": "checkout",
+    "plugin_version": "2.27.4",
+    "shiploop_version": "1.26.4",
+    "plugin_sha256": "851847a33ff6",
+    "local_head": "27dedcff30f1ca05a0a541a4b4b1d21e3fe438d8"
+  },
+  "prompt_sha256": "05677a591460",
+  "boundary": {
+    "evaluator": "d85e084d9233",
+    "oracle": "e5f1b99753ac",
+    "case": "d0f6746769a0"
+  },
+  "host_build": "codex-cli 0.166.0",
+  "span": {
+    "started": 1793548437.374,
+    "ended": 1793549380.487
+  },
+  "identity_unmeasured": {},
+  "process": {
+    "status": "exited",
+    "returncode": 0,
+    "elapsed_seconds": 945.3,
+    "stop": "end_turn",
+    "sessions": [
+      {
+        "status": "exited",
+        "returncode": 0,
+        "elapsed_seconds": 945.3,
+        "stop": "end_turn",
+        "resumed": null,
+        "host": "codex"
+      }
+    ],
+    "resumes": 0,
+    "pass": true
+  },
+  "termination": {
+    "process_status": "exited",
+    "returncode": 0,
+    "sessions": 1,
+    "resumes": 0,
+    "session_stops": [
+      "end_turn"
+    ],
+    "resume_stop": "ShipLoop run is done",
+    "engine_status": "done",
+    "engine_stage": "done",
+    "engine_unaccepted_stage": null,
+    "engine_status_reason": null,
+    "engine_blocked_by": null,
+    "engine_awaiting_kind": null,
+    "engine_awaiting_no_default": null
+  },
+  "outcome_class": "PASS",
+  "outcome_basis": "every verdict passed",
+  "environment": {
+    "start": {
+      "observed": true,
+      "at": "2026-11-01T15:53:56Z",
+      "tools": {
+        "node": "v26.12.1",
+        "python3": "Python 3.15.1",
+        "git": "git version 2.54.0 (Apple Git-157)"
+      },
+      "cpus": 18,
+      "loadavg": [
+        66.57,
+        45.14,
+        37.85
+      ],
+      "display_hold": true,
+      "unread": {},
+      "browser": {
+        "declared": false,
+        "probed": false,
+        "reason": "no case or --need declares a browser"
+      }
+    },
+    "end": {
+      "observed": true,
+      "at": "2026-11-01T16:09:46Z",
+      "cpus": 18,
+      "loadavg": [
+        44.07,
+        55.4,
+        49.34
+      ],
+      "unread": {}
+    },
+    "hosts_used": [
+      "codex"
+    ],
+    "mixed_host": false,
+    "launches_unreadable": [],
+    "environments": [
+      {
+        "launch": "invocation.json",
+        "host": "codex",
+        "model": "gpt-6.1-terra",
+        "effort": "high",
+        "host_build": "codex-cli 0.166.0",
+        "identity_unmeasured": {},
+        "environment": {
+          "observed": true,
+          "at": "2026-11-01T15:53:56Z",
+          "tools": {
+            "node": "v26.12.1",
+            "python3": "Python 3.15.1",
+            "git": "git version 2.54.0 (Apple Git-157)"
+          },
+          "cpus": 18,
+          "loadavg": [
+            66.57,
+            45.14,
+            37.85
+          ],
+          "display_hold": true,
+          "unread": {},
+          "browser": {
+            "declared": false,
+            "probed": false,
+            "reason": "no case or --need declares a browser"
+          }
+        },
+        "environment_reason": null
+      }
+    ],
+    "overlap": {
+      "observed": true,
+      "basis": "the first and last host event of this run and of each run folder under the runs root (timeline.jsonl holds host events only): it counts a pause between sessions, and misses the setup before the first event and the checks and reap after the last, so the seconds are neither an upper nor a lower bound; a run outside the root is not seen",
+      "root": "~/e2e-runs/2026-11-01/closed-loop-cycle-02/loop",
+      "span": {
+        "first": 1793548437.374,
+        "last": 1793549380.487
+      },
+      "siblings_read": 0,
+      "siblings_unreadable": [],
+      "ended_before": 0,
+      "runs": []
+    }
+  },
+  "left_behind": {
+    "observed": true,
+    "reaped": [],
+    "survived": []
+  },
+  "resources": {
+    "ledger": "resources.jsonl",
+    "leases": [],
+    "contention": {
+      "observed": true,
+      "root": "~/e2e-runs/2026-11-01/closed-loop-cycle-02/loop",
+      "live_runs": [],
+      "same_host": [],
+      "same_model": []
+    },
+    "disk": {
+      "path": "~/e2e-runs/2026-11-01/closed-loop-cycle-02/loop/explore-1",
+      "free_bytes": 2658037792768,
+      "need_bytes": 2147483648,
+      "ok": true
+    },
+    "cleanup": {
+      "end": {
+        "observed": true,
+        "stopped": [],
+        "survived": [],
+        "gone": [],
+        "reused": [],
+        "unverified": [],
+        "protected": []
+      }
+    }
+  },
+  "keepalive": {
+    "installed": true,
+    "output": "the plugin's hooks/codex.json, run with the trust bypass",
+    "decisions": {
+      "allow": 1
+    }
+  },
+  "shiploop": {
+    "pass": true,
+    "run_dir": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-cycle-02/loop/explore-1/run/.shiploop-runs/work-20261101-155412-05d2fa/run",
+    "status": "done",
+    "stage": "done",
+    "revision": 34,
+    "report_html": true,
+    "runs": 1,
+    "identity": "recorded",
+    "worktree": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-cycle-02/loop/explore-1/run/.shiploop-runs/work-20261101-155412-05d2fa/worktree",
+    "knowledge": {
+      "spec": true,
+      "head": "b751bd9c5537fa741e5881c66eb5b6da80a0eb98",
+      "uncommitted": [],
+      "spec_tracked": true,
+      "requirement_ids": [
+        "R-1",
+        "R-2",
+        "R-3",
+        "R-4"
+      ],
+      "head_commits": 14,
+      "head_files": 7,
+      "untracked_files": 0,
+      "branches": [
+        "main",
+        "shiploop/run-d9a0f47567946d0c"
+      ]
+    }
+  },
+  "committed": {
+    "pass": true,
+    "start_head": null,
+    "head": "b751bd9c5537fa741e5881c66eb5b6da80a0eb98",
+    "head_files": 7,
+    "uncommitted": []
+  },
+  "checks": [
+    {
+      "command": "python3 \"$E2E_CHECKS/csv_report.py\" unit",
+      "pass": true,
+      "returncode": 0,
+      "output": "ok\n"
+    },
+    {
+      "command": "python3 \"$E2E_CHECKS/csv_report.py\" totals",
+      "pass": true,
+      "returncode": 0,
+      "output": "ok\n"
+    },
+    {
+      "command": "python3 \"$E2E_CHECKS/csv_report.py\" invalid",
+      "pass": true,
+      "returncode": 0,
+      "output": "ok\n"
+    },
+    {
+      "command": "python3 \"$E2E_CHECKS/csv_report.py\" missing",
+      "pass": true,
+      "returncode": 0,
+      "output": "ok\n"
+    },
+    {
+      "command": "python3 \"$E2E_CHECKS/csv_report.py\" empty",
+      "pass": true,
+      "returncode": 0,
+      "output": "ok\n"
+    }
+  ],
+  "cli": {
+    "sessions": [
+      {
+        "num_turns": 186,
+        "cost_usd": null,
+        "stop": "end_turn"
+      }
+    ],
+    "stop": "end_turn",
+    "num_turns": 186,
+    "cost_usd": null,
+    "truncated_outputs": null
+  },
+  "follow_on": null,
+  "base": null,
+  "delivery": {
+    "before": {
+      "observed": true,
+      "head": "b751bd9c5537fa741e5881c66eb5b6da80a0eb98",
+      "tree": "849dab25772e75e807339c6252d35fc5562dc45f",
+      "status": [],
+      "bundle": "delivery/work.bundle",
+      "bundle_bytes": 11781
+    },
+    "after": {
+      "observed": true,
+      "head": "b751bd9c5537fa741e5881c66eb5b6da80a0eb98",
+      "tree": "849dab25772e75e807339c6252d35fc5562dc45f",
+      "status": []
+    }
+  },
+  "resumed_run": null,
+  "seeded": null,
+  "budget": null,
+  "expectations": {
+    "checks": "the request: each check tests a sentence of the prompt"
+  },
+  "metrics": {
+    "claude_code_version": null,
+    "turns": 186,
+    "model_calls": 155,
+    "window_tokens": 475000,
+    "cost_usd": null,
+    "unreported_sessions": 0,
+    "compactions": 0,
+    "truncated_outputs": null,
+    "improve_children": 9,
+    "stages": [
+      {
+        "stage": "intake",
+        "outcome": "done",
+        "seconds": 31.6,
+        "turns": null,
+        "tool_calls": 5,
+        "context": {
+          "calls": 5,
+          "peak": 39414,
+          "peakPct": 8.3,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "discovery",
+        "outcome": "done",
+        "seconds": 14.0,
+        "turns": null,
+        "tool_calls": 3,
+        "context": {
+          "calls": 2,
+          "peak": 43929,
+          "peakPct": 9.2,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "research",
+        "outcome": "done",
+        "seconds": 10.0,
+        "turns": null,
+        "tool_calls": 1,
+        "context": {
+          "calls": 1,
+          "peak": 48409,
+          "peakPct": 10.2,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "spec",
+        "outcome": "done",
+        "seconds": 44.0,
+        "turns": null,
+        "tool_calls": 11,
+        "context": {
+          "calls": 8,
+          "peak": 75570,
+          "peakPct": 15.9,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "test-strategy",
+        "outcome": "done",
+        "seconds": 54.0,
+        "turns": null,
+        "tool_calls": 10,
+        "context": {
+          "calls": 10,
+          "peak": 103462,
+          "peakPct": 21.8,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "plan",
+        "outcome": "done",
+        "seconds": 48.0,
+        "turns": null,
+        "tool_calls": 8,
+        "context": {
+          "calls": 8,
+          "peak": 131354,
+          "peakPct": 27.7,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "prepare",
+        "outcome": "done",
+        "seconds": 12.0,
+        "turns": null,
+        "tool_calls": 2,
+        "context": {
+          "calls": 2,
+          "peak": 136411,
+          "peakPct": 28.7,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "step-plan",
+        "outcome": "done",
+        "seconds": 91.0,
+        "turns": null,
+        "tool_calls": 16,
+        "context": {
+          "calls": 16,
+          "peak": 175770,
+          "peakPct": 37.0,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "test-spec",
+        "outcome": "done",
+        "seconds": 29.0,
+        "turns": null,
+        "tool_calls": 4,
+        "context": {
+          "calls": 4,
+          "peak": 187391,
+          "peakPct": 39.5,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "validate-existing",
+        "outcome": "done",
+        "seconds": 0.0,
+        "turns": null,
+        "tool_calls": 0,
+        "context": {
+          "calls": 0,
+          "peak": null,
+          "peakPct": null,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "implement",
+        "outcome": "send-back",
+        "seconds": 41.0,
+        "turns": null,
+        "tool_calls": 6,
+        "context": {
+          "calls": 6,
+          "peak": 206276,
+          "peakPct": 43.4,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "step-plan",
+        "outcome": "done",
+        "seconds": 67.0,
+        "turns": null,
+        "tool_calls": 12,
+        "context": {
+          "calls": 12,
+          "peak": 235638,
+          "peakPct": 49.6,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "test-spec",
+        "outcome": "done",
+        "seconds": 22.0,
+        "turns": null,
+        "tool_calls": 4,
+        "context": {
+          "calls": 4,
+          "peak": 243469,
+          "peakPct": 51.3,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "validate-existing",
+        "outcome": "done",
+        "seconds": 0.0,
+        "turns": null,
+        "tool_calls": 0,
+        "context": {
+          "calls": 0,
+          "peak": null,
+          "peakPct": null,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "implement",
+        "outcome": "done",
+        "seconds": 27.0,
+        "turns": null,
+        "tool_calls": 5,
+        "context": {
+          "calls": 4,
+          "peak": 253784,
+          "peakPct": 53.4,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "test",
+        "outcome": "done",
+        "seconds": 52.0,
+        "turns": null,
+        "tool_calls": 10,
+        "context": {
+          "calls": 9,
+          "peak": 275476,
+          "peakPct": 58.0,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "document",
+        "outcome": "done",
+        "seconds": 75.0,
+        "turns": null,
+        "tool_calls": 14,
+        "context": {
+          "calls": 13,
+          "peak": 312168,
+          "peakPct": 65.7,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "carry-forward",
+        "outcome": "done",
+        "seconds": 87.0,
+        "turns": null,
+        "tool_calls": 12,
+        "context": {
+          "calls": 13,
+          "peak": 342590,
+          "peakPct": 72.1,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "system-test-author",
+        "outcome": "done",
+        "seconds": 49.0,
+        "turns": null,
+        "tool_calls": 9,
+        "context": {
+          "calls": 9,
+          "peak": 365332,
+          "peakPct": 76.9,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "system-test",
+        "outcome": "done",
+        "seconds": 13.0,
+        "turns": null,
+        "tool_calls": 1,
+        "context": {
+          "calls": 1,
+          "peak": 369274,
+          "peakPct": 77.7,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "product-acceptance",
+        "outcome": "done",
+        "seconds": 14.0,
+        "turns": null,
+        "tool_calls": 2,
+        "context": {
+          "calls": 3,
+          "peak": 375204,
+          "peakPct": 79.0,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "release-plan",
+        "outcome": "done",
+        "seconds": 42.0,
+        "turns": null,
+        "tool_calls": 8,
+        "context": {
+          "calls": 8,
+          "peak": 399106,
+          "peakPct": 84.0,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "release-check",
+        "outcome": "done",
+        "seconds": 27.0,
+        "turns": null,
+        "tool_calls": 4,
+        "context": {
+          "calls": 4,
+          "peak": 407598,
+          "peakPct": 85.8,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "release",
+        "outcome": "done",
+        "seconds": 26.0,
+        "turns": null,
+        "tool_calls": 4,
+        "context": {
+          "calls": 4,
+          "peak": 418348,
+          "peakPct": 88.1,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "release-verify",
+        "outcome": "done",
+        "seconds": 20.0,
+        "turns": null,
+        "tool_calls": 2,
+        "context": {
+          "calls": 2,
+          "peak": 425872,
+          "peakPct": 89.7,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "operations",
+        "outcome": "done",
+        "seconds": 17.0,
+        "turns": null,
+        "tool_calls": 2,
+        "context": {
+          "calls": 3,
+          "peak": 432102,
+          "peakPct": 91.0,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "handoff",
+        "outcome": "done",
+        "seconds": 22.0,
+        "turns": null,
+        "tool_calls": 2,
+        "context": {
+          "calls": 2,
+          "peak": 438081,
+          "peakPct": 92.2,
+          "compactions": 0
+        }
+      }
+    ],
+    "unmeasured": {
+      "stage_turns": "the host reports no per-call usage events (one total per session), so turns cannot be attributed to a stage",
+      "truncated_outputs": "only Grok's events carry this signal (rawOutput.truncated on a tool_call_update); this host's do not, so a count of 0 is a missing signal and not a measurement",
+      "cancelled_tool_calls": "only Grok's events carry this signal (a failed tool_call_update saying the user cancelled it, Grok's permission refusal); this host's do not, so a count of 0 is a missing signal and not a measurement",
+      "knowledge_reads": "only Grok's events carry this signal (a read tool call naming a file path); this host's do not, so a count of 0 is a missing signal and not a measurement"
+    },
+    "script_verifications": {
+      "records": 4,
+      "passed": 4,
+      "could_not_run": 0,
+      "commands": 8,
+      "red": 0
+    },
+    "planning_seconds": 317.0,
+    "model_glue": 0,
+    "tmp_writes": 0,
+    "asked_user": 0,
+    "narrative": {
+      "emitted": 27,
+      "shown": 14,
+      "verbatim": 14,
+      "results": 27,
+      "with_headline": 25
+    },
+    "shiploop_failures": 4,
+    "cancelled_tool_calls": null
+  },
+  "output": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-cycle-02/loop/explore-1/run",
+  "quality": {
+    "observed": false,
+    "declared": [],
+    "hosts_used": [
+      "codex"
+    ],
+    "mixed_host": false,
+    "reason": "the case declares no quality measures (no mutation command, no held-out acceptance)",
+    "memory_writes": null,
+    "held_out_seen": null,
+    "unmeasured": {
+      "memory_writes": "the detector reads Claude's file-write calls and this run's launch records show codex",
+      "held_out_seen": "the case declares no held-out acceptance, so nothing is held out"
+    },
+    "seconds": 0.0
+  }
+}

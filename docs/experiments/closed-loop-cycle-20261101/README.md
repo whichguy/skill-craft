@@ -52,6 +52,11 @@ attempts, most honest candidates will not. A PROMOTE is not a goal and nothing h
 bash docs/experiments/closed-loop-cycle-20261101/run.sh BASE_SHA /path/to/new/output/folder
 ```
 
+By default it explores `seat-reservations` and keeps `csv-report` unseen, the pair the stage 3 calibration kit also measures.
+`EXPOSING_CASE` and `GENERALITY_CASE` change that for one launch, to any two cases with no fixed port and no hosted platform; for
+example `EXPOSING_CASE=shared-expenses` explores a stateful Node service that another session added (47ed1804) and keeps
+`csv-report` unseen. The cases are the only thing the variables change.
+
 Expect 3 to 5 hours: the exploration run and its review (about 40 minutes), the improver (up to 45 minutes) and the purpose
 review, then 12 subject runs (8 to 25 minutes each, at most `PARALLEL` at once) and 12 sequential reviews and judgments (about 10
 minutes each; `review_all` holds the epoch lock for each). The script adds one detached worktree under the output folder and

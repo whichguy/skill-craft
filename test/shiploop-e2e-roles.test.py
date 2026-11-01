@@ -35,7 +35,7 @@ class RoleDefaultsTest(unittest.TestCase):
         self.assertEqual(hosts.resolve_role("reviewer", {"model": "custom-model", "effort": "high"}),
                          {"host": "codex", "model": "custom-model", "effort": "high"})
         self.assertEqual(hosts.resolve_role("subject", {"host": "claude"}),
-                         {"host": "claude", "model": hosts.OLLAMA_MODEL, "effort": None})
+                         {"host": "claude", "model": "claude-sonnet-5-5", "effort": None})
         self.assertEqual(hosts.resolve_role("reviewer", {"host": "claude"}),
                          {"host": "claude", "model": "claude-sonnet-5-5", "effort": None})
         self.assertEqual(hosts.resolve_role("subject", {"host": "claude", "model": "sonnet-override", "effort": "high"}),
@@ -79,8 +79,10 @@ class RoleDefaultsTest(unittest.TestCase):
     def test_explicit_claude_routes_and_recorded_resume_identity_survive_new_defaults(self):
         default_claude = run.the_host(run.parser().parse_args(["--host", "claude"]))
         anthropic_claude = run.the_host(run.parser().parse_args(["--host", "claude", "--backend", "anthropic"]))
-        self.assertEqual((default_claude.backend, default_claude.model), ("ollama", hosts.OLLAMA_MODEL))
+        ollama_claude = run.the_host(run.parser().parse_args(["--host", "claude", "--backend", "ollama"]))
+        self.assertEqual((default_claude.backend, default_claude.model), ("anthropic", "claude-sonnet-5-5"))
         self.assertEqual((anthropic_claude.backend, anthropic_claude.model), ("anthropic", "claude-sonnet-5-5"))
+        self.assertEqual((ollama_claude.backend, ollama_claude.model), ("ollama", hosts.OLLAMA_MODEL))
 
         argv = ["--resume-run", "/recorded/run"]
         args = run.parser().parse_args(argv)
