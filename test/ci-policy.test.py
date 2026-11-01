@@ -127,7 +127,10 @@ class CIPolicyTests(unittest.TestCase):
         self.assertIn("python-version: '3.x'", workflow)
         self.assertIn("node-version: 'latest'", workflow)
         self.assertEqual(workflow.count("check-latest: true"), 5)
-        self.assertNotIn("ubuntu-24.04", workflow)
+        # CI runs on the latest runner image. The one pin is the python-floor leg, which exists to run the oldest Python
+        # ShipLoop declares and setup-python has no build of it for ubuntu-latest.
+        self.assertEqual(workflow.count("ubuntu-24.04"), 1)
+        self.assertIn("matrix.group == 'python-floor' && 'ubuntu-24.04' || 'ubuntu-latest'", workflow)
         self.assertIn("fail-fast: false", workflow)
         self.assertIn('--output "$RUNNER_TEMP/hermetic-$TEST_GROUP"', workflow)
         # Stand-in host markers, so the state-home guard sees keepalive and Until Loop leaks on CI too.

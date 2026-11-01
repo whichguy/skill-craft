@@ -48,7 +48,8 @@ jobs:
   checks:
     name: ${{ needs.plan.outputs.tier }} / ${{ matrix.group }}
     needs: plan
-    runs-on: ubuntu-latest
+    # actions/setup-python has no CPython 3.9 build for ubuntu-latest (26.04 since 2026-11); 24.04 and 22.04 still do.
+    runs-on: ${{ matrix.group == 'python-floor' && 'ubuntu-24.04' || 'ubuntu-latest' }}
     timeout-minutes: 60
     strategy:
       fail-fast: false
