@@ -302,4 +302,5 @@ check; three cases in about thirty recent runs is too few to measure in one roun
    Update 2026-11-01 (added by the session that ran replication R3; the evidence is in docs/experiments/implement-send-back-class-20261101/):
    20 live runs of a greenfield Node case had this class in 5 runs (6 loops, 2.0 minutes each, all recovered). The Confirm-by reading is the cause of 1 of the 6
    loops; in the other 5 the Proof was the test runner on a base with no tests (5 of 5 such first attempts sent back, 0 of 15 direct-probe ones), which no
-   shipped rule sees. The recommendation there is not to pursue F31's wording; the decision stays the owner's.
+   shipped rule sees. The recommendation there is not to pursue F31's wording.
+   Decided 2026-11-01 by the owner ("Yes, leave it"): item 4 is closed without a change; F31's wording is not pursued and the class is left as it is.

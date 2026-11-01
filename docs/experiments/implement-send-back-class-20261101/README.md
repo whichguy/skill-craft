@@ -74,6 +74,10 @@ change note), with a live check that counts gate fires and any redraft that stal
 `npm test` or a supplied checker that passes. Not known: how often a direct-probe Proof would have been chosen under other prompts or models; whether the 4 of 10
 (arm A) against 1 of 10 (arm B) split is anything but chance (post hoc, one-sided p 0.15); the class on brownfield cases.
 
+## Decision
+
+The owner decided on 2026-11-01, answering "Leave the implement send-back as it is?" with "Yes, leave it": the class stays as it is. F31's wording change is not pursued, rule D is not built and no live check is run; nothing under `skills/` changes. Revisit if a case, stack or model shows the class costing materially more than the 4% seen here (the Proof-coverage replay's longest loop was 5.7 minutes against this study's 3.2), or a loop that does not recover at the next attempt.
+
 ## Reproduce
 
 ```
