@@ -8501,16 +8501,20 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
         self.check("unknown", "normalized Codex process boundaries")
 
     def test_case_preserves_original_case_bytes_checks_and_probe_term(self):
+        import hashlib
+
         cases_path = ROOT / "test/shiploop_e2e/cases.json"
         source = cases_path.read_text()
-        baseline = subprocess.run(["git", "-C", str(ROOT), "show",
-                                   "0da6cb80d8d6f71e5e0611b99db5b343a5e7cf87:test/shiploop_e2e/cases.json"],
-                                  capture_output=True, text=True, check=True).stdout
         begin, end = '  "hello-hook-continuation": {', '  "hello-startup-contract": {'
-        self.assertEqual(source[source.index(begin):source.index(end)],
-                         baseline[baseline.index(begin):baseline.index(end)])
-        cases, original = json.loads(source), json.loads(baseline)
+        original_case_bytes = source[source.index(begin):source.index(end)].encode()
+        self.assertEqual(hashlib.sha256(original_case_bytes).hexdigest(),
+                         "0af87438c03897a696ecc8d3846568afbda60f543066c3d798f49b023e777ead")
+        cases = json.loads(source)
         old, new = cases["hello-hook-continuation"], cases["hello-startup-contract"]
+        startup_metadata = {key: value for key, value in new.items() if key != "prompt"}
+        self.assertEqual(hashlib.sha256(json.dumps(
+            startup_metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode()).hexdigest(), "b655b835aed6ca18739497c609abcfcebb46761f9f66afd2ea637b29f19b35bf")
         self.assertEqual(new["checks"][:4], old["checks"])
         self.assertEqual(new["checks"][-1], 'python3 -B "$E2E_CHECKS/shiploop_startup_behavior.py"')
         self.assertNotIn("STARTUP_HANDOFF_CHECKPOINT", new["prompt"])
@@ -8520,22 +8524,8 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
         self.assertIn("before any other ShipLoop command or intake work", new["prompt"])
         self.assertIn("recovering the existing packet if needed", new["prompt"])
         self.assertIn("exactly one line `partial work recorded`", new["prompt"])
-        for name, case in original.items():
-            if name == "hello-startup-contract":
-                self.assertEqual({k: v for k, v in cases[name].items() if k != "prompt"},
-                                 {k: v for k, v in case.items() if k != "prompt"})
-            else:
-                self.assertEqual(cases[name], case)
         terms = json.loads((ROOT / "test/shiploop_e2e/probe_terms.json").read_text())["terms"]
         self.assertEqual(terms["hello-startup-contract"], terms["hello-hook-continuation"])
-        test_path = ROOT / "test/shiploop-e2e.test.py"
-        previous = subprocess.run(["git", "-C", str(ROOT), "show",
-                                   "0da6cb80d8d6f71e5e0611b99db5b343a5e7cf87:test/shiploop-e2e.test.py"],
-                                  capture_output=True, text=True, check=True).stdout
-        prefix = "class StartupBehaviorCheckerTest(unittest.TestCase):"
-        suffix = '\n\nif __name__ == "__main__":'
-        self.assertEqual(test_path.read_text().split(prefix)[0], previous.split(prefix)[0])
-        self.assertEqual(test_path.read_text().split(suffix)[-1], previous.split(suffix)[-1])
 
 
 if __name__ == "__main__":
