@@ -2,6 +2,11 @@
 
 Owner, 2026-11-01, answering "Take up F31 with a pre-registered live check?": "Yes, take it up".
 
+Decision record, before any run: at 13:48 another session recorded the owner's "Yes, leave it" for F31
+(a032bb167552bc867ae22a21f31847cdbd514554). Asked "Which of your two F31 answers should stand?", the owner answered "Run the live
+check". That session's evidence is in docs/experiments/implement-send-back-class-20261101/. In 20 runs of shared-expenses, the Confirm-by
+reading caused 1 of 6 implement loops, each loop cost about 2 minutes, and every loop recovered. The design below is unchanged.
+
 ## What F31 is
 
 Planning journal F31 (entry E20; docs/shiploop-step-plan-review-2026-11-01.md §7a and §8, item 4). Implement reads a

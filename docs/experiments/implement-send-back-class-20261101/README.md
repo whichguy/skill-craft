@@ -78,6 +78,12 @@ change note), with a live check that counts gate fires and any redraft that stal
 
 The owner decided on 2026-11-01, answering "Leave the implement send-back as it is?" with "Yes, leave it": the class stays as it is. F31's wording change is not pursued, rule D is not built and no live check is run; nothing under `skills/` changes. Revisit if a case, stack or model shows the class costing materially more than the 4% seen here (the Proof-coverage replay's longest loop was 5.7 minutes against this study's 3.2), or a loop that does not recover at the next attempt.
 
+Reopened 2026-11-01, later the same day, for F31's wording only (added by the session that registered the F31 live check). The owner had
+also answered "Take up F31 with a pre-registered live check?" with "Yes, take it up" (13:22) in that session. Asked "Which of your two F31
+answers should stand?", the owner answered "Run the live check". The check is registered in
+c2b854104e1b5f076e966e16adc3fa2a9ab63f9e (docs/experiments/f31-implement-proof-20261101/). The rest of this decision stands: rule D is not
+built, and the class is otherwise left as it is.
+
 ## Reproduce
 
 ```
