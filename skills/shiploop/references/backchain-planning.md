@@ -125,8 +125,9 @@ Split independently schedulable work when prerequisites or deliverables diverge;
 do not require a separate work item for every assertion or cosmetic
 improvement. Local checks come from each step's own completion criteria and
 their `Confirm by:` confirmations: `implement` (or a chain worker) loops until
-a command that observes each (the step's Proof where it exercises the criterion,
-else a command that runs the behaviour) confirms it as far as the environment allows, the test
+a command or file that observes each (for an executed criterion, the step's
+Proof if it exercises the criterion, else a command that runs the behaviour)
+confirms it as far as the environment allows, the test
 stage writes and runs the tests a `Confirm by:` names, and the step's `document`
 stage and its Improve review (or chain parent verification) rerun or inspect
 them. A criterion without a
