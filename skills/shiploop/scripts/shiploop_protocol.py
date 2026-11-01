@@ -229,6 +229,7 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
     start.add_argument("--exclude", action="append", default=[])
     start.add_argument("--delivery-contract", action="store_true")
     start.add_argument("--improve-skill", default="", help=IMPROVE_SKILL_HELP)
+    start.add_argument("--bound-plan", default="")
     start.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
                        help="new run: inline (default) or ask-agent delegation")
     start.add_argument("--lint", choices=navigator.LINT_MODES, default=None,
@@ -297,7 +298,9 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
             init = ["init", "--repo", record["worktree"],
                     "--run-dir", record["run_dir"],
                     "--execution-mode", "navigator-worktree", "--prompt=" + args.prompt,
-                    "--improve-skill", args.improve_skill]
+                    "--improve-skill=" + args.improve_skill]   # one word: a path that starts with a dash is not another option
+            if args.bound_plan:
+                init.append("--bound-plan=" + args.bound_plan)
             if args.delivery_contract:
                 init.append("--delivery-contract")
             if args.delegation:
@@ -583,6 +586,8 @@ def _carried_options(args: Any) -> list:
     carried = []
     if args.improve_skill:
         carried.append("--improve-skill=" + shlex.quote(str(args.improve_skill)))
+    if args.bound_plan:   # as `init` records it, so a command run from another folder reads the same file
+        carried.append("--bound-plan=" + shlex.quote(str(Path(args.bound_plan).resolve())))
     if args.delivery_contract:
         carried.append("--delivery-contract")
     for name in ("delegation", "lint", "backchain_passes", "planning_review"):

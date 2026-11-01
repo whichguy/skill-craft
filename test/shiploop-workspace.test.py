@@ -2955,6 +2955,43 @@ class DirectEntryGuardTests(unittest.TestCase):
             self.assertIn(value, text)
         self.assertIn("delivery_contract_version", text)
 
+    def test_an_improve_path_that_starts_with_a_dash_survives_the_recovery(self) -> None:
+        # Sol's review of the fix (2026-11-01): the refusal printed --improve-skill=-card/SKILL.md, which both commands accept, but
+        # workspace start handed init the two words `--improve-skill -card/SKILL.md`, and init read the value as another option.
+        refusal = self.init("--improve-skill=-card/SKILL.md")
+        self.assertEqual(refusal.returncode, 2, refusal.stdout + refusal.stderr)
+        self.assertIn("--improve-skill=-card/SKILL.md", refusal.stderr)
+        recovered = self.run_recovery(self.printed_recovery(refusal))
+        self.assertEqual(recovered.returncode, 0, recovered.stdout + recovered.stderr)
+        self.assertIn("-card/SKILL.md", (self.base / "recovered" / "run" / "state.md").read_text(encoding="utf-8"))
+
+    def test_a_bound_plan_is_in_the_command_the_refusal_prints_and_survives_the_recovery(self) -> None:
+        # Sol's review of the fix (2026-11-01): init takes --bound-plan, workspace start did not, so the printed command dropped it
+        # in silence and the recovered run recorded no plan.
+        plan = self.base / "plan.md"
+        plan.write_text("# Plan\n", encoding="utf-8")
+        refusal = self.init(f"--bound-plan={plan}")
+        self.assertEqual(refusal.returncode, 2, refusal.stdout + refusal.stderr)
+        self.assertIn(f"--bound-plan={shlex.quote(str(plan))}", refusal.stderr)
+        recovered = self.run_recovery(self.printed_recovery(refusal))
+        self.assertEqual(recovered.returncode, 0, recovered.stdout + recovered.stderr)
+        self.assertIn(str(plan), (self.base / "recovered" / "run" / "state.md").read_text(encoding="utf-8"))
+
+    def test_workspace_start_takes_every_option_init_does_except_the_two_it_sets_itself(self) -> None:
+        # The refusal prints a `workspace start` command in place of the refused `init`, so an `init` option that command lacked is
+        # dropped in silence: Astra's review of the first release found six, Sol's review of the fix found --bound-plan. A new
+        # `init` option fails here until `workspace start` takes it and the refusal carries it. (--run-dir is the workspace root's
+        # job and --execution-mode is set by workspace start itself.)
+        def options(*command: str) -> set:
+            helped = subprocess.run([sys.executable, "-B", str(CLI), *command, "--help"], cwd=self.base, text=True,
+                                    capture_output=True, timeout=60, env=self.env, check=False)
+            self.assertEqual(helped.returncode, 0, helped.stdout + helped.stderr)
+            return set(re.findall(r"^ {2}(--[a-z][a-z-]*)", helped.stdout, re.MULTILINE))
+
+        init, start = options("init"), options("workspace", "start")
+        self.assertIn("--improve-skill", init)  # the comparison reads the help it is meant to read
+        self.assertEqual(init - start - {"--run-dir", "--execution-mode"}, set())
+
     def test_the_command_for_a_refusal_with_no_options_is_the_one_the_probes_measured(self) -> None:
         # The second probe (docs/experiments/start-route-20261101) measured this exact wording; carrying options adds words
         # only when the refused command had options.
