@@ -45,3 +45,13 @@ The regular Salesforce cases route the model's `sf` through the guard wrapper (r
 
 Not measured: what "Reset To Defaults" does when the asking process has a throwaway HOME (Cancel is the safe answer; the CLI then
 fails at once).
+
+## The check, run live (2026-11-01, after the change)
+
+`keychain-dialog-check/check_dialog.py <checkout> <scratch dir holding windows_of.js>` builds the throwaway-HOME environment with
+the harness's own code and looks for a dialog with no permission (a SecurityAgent process, a waiting `security
+*-generic-password`, the windows SecurityAgent owns). Its output on 2026-11-01 is `keychain-dialog-check/output-2026-11-01.txt`:
+the control (old behaviour) raised the dialog in 2.2 s with its window on screen (425x172, layer 1000) and killing the command's
+process group dismissed it 11.1 s later; with the change none of the five commands the trials ran raised one; the guarded
+wrapper listed 2 orgs with no dialog; the installed Google Chrome launched through Playwright (the UI check's route) raised none
+in the real HOME or in a throwaway HOME. Rerun it against any harness checkout before trusting that a run will not raise the dialog.

@@ -1,0 +1,30 @@
+start: SecurityAgent [], waiting keychain writers []
+
+== control: the old behaviour (no variable), one command, fresh throwaway HOME
+  dialog process appeared after 2.2 s (SecurityAgent [63839], run by dadleet); sf still blocked: True
+  its window on screen: (2.6, [{'owner': 'SecurityAgent', 'pid': 63839, 'layer': 1000, 'onscreen': True, 'alpha': 1, 'size': '425x172'}])
+  process group killed (survivors after SIGTERM: 0); dialog gone 11.1 s later
+
+== fixed: the harness's own throwaway-HOME environment, the commands the trials ran
+  codex env carries SF_USE_GENERIC_UNIX_KEYCHAIN=true; grok env: true
+  sf --version                                 exit 0      1.9 s  @salesforce/cli/2.156.8 darwin-arm64 node-v26.12.1 dialog: NONE
+  sf alias list                                exit 0      3.2 s  No results                   dialog: NONE
+  sf data query --target-org                   exit 2      4.0 s  NamedOrgNotFoundError        dialog: NONE
+  sf org list metadata                         exit 2      3.4 s  NamedOrgNotFoundError        dialog: NONE
+  sf apex run test                             exit 2      2.7 s  NamedOrgNotFoundError        dialog: NONE
+  key kept in the throwaway HOME: True (mode 0o600)
+  4 s after the last command: NONE
+
+== wrapper: the guarded case's sf (sf_guard.py) called from the throwaway-HOME environment
+  wrapper sf org list: exit 0 in 2.5 s, 2 orgs, alias de: True; dialog: NONE
+  the wrapper script unsets the variable: True; the real HOME has no key file: True
+
+== chrome: headless through Playwright with the installed Google Chrome, as the UI check launches it
+  real HOME       exit 0 in 1.7 s: chrome 156.0.8078.79 ok; dialog: NONE
+  throwaway HOME  exit 0 in 1.1 s: chrome 156.0.8078.79 ok; dialog: NONE
+
+== verdict
+  control raised the dialog, so the check can see one: True; its window seen on screen: True
+  fixed environment raised none: True
+  guarded wrapper works and raised none: True
+  Chrome launched and raised none: True
