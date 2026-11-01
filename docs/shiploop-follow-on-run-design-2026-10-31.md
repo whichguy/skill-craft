@@ -1,7 +1,6 @@
 ---
 Status: design, revision 6, 2026-11-01. The recommend-only list of section 4 is built, on the owner's instruction (D4), and had a live check
-(journal Round 5, four Codex runs). As of the commit that holds this revision it is on a branch and not on origin/main, and nothing is released;
-the release that ships `changes/shiploop/follow-on-list.md` is the commit to look for. The auto-start chain (4.7) is not built. Execute: ask. Revision 2 folded in
+(journal Round 5, four Codex runs). It was released as skill-craft 2.30.0 / ShipLoop 1.29.0 in the release commit 41ee3d89d580fb715fc90994b2361348550698c7 (2026-11-01). The auto-start chain (4.7) is not built. Execute: ask. Revision 2 folded in
 the multipass work that landed after revision 1 and corrected one stale claim (section 6, the 589bc03e row). Revision 3
 brought up to date the multipass facts that moved after revision 2 (a live result, an owner decision, a built test case).
 Revision 4 folds in the two results that landed after revision 3's base: the A/B test of the multipass fix (E2) met its bar,
@@ -51,7 +50,7 @@ the whole loop again.
 
 ## 1. Answer in brief
 
-- Built (revision 6; as of the commit that holds it, on a branch and not yet on origin/main): the recommend-only list of option B, on the owner's
+- Built (revision 6; released as skill-craft 2.30.0 / ShipLoop 1.29.0 in 41ee3d89d580fb715fc90994b2361348550698c7): the recommend-only list of option B, on the owner's
   instruction of 2026-11-01. The handoff's done result carries `follow_on`; the script checks the shape and the citations, writes
   `RUN/follow-on-request.md` for a `gap` or a `decision` and prints the start command, and starts nothing and never blocks `done`. Four live Codex runs
   (journal Round 5) all passed, every handoff was accepted on its first try, and the lists held two notes and two empties: the mechanics hold and
@@ -540,7 +539,7 @@ f1a5868da64587610d6711105650caacb2d557fc: the feature 826c951ccfdecb8f48e406f8fb
 2da2d4f3d11b0f468c14ff48e6158a7bb334e8ee, the fix ba3297d707329a6500ac036577d3f211b2e6a352 (a missing workspace record), the test-only commit 12d293a83ab2c05d30bb575b3d0c5989604a3601, the evidence
 7c2ce6cb9345959292c38688106a4c8d16be865c and the LEARNINGS entry c593e8f27d65d7157438d9b14c2dd7c09f3bbc89. Not built: the auto-start chain (4.7), the E2E SPEC clause and the
 `follow_on` metric, an export of the list to the Run Review page, and any change to the skill card (the feature left SKILL.md alone: 30,011 bytes of 30500 when it was written, 30,115 after another session's release 2.29.0).
-As of the commit that holds this revision none of these commits is on origin/main. What the build found beyond the sketch: seven suites hand-build a
+They reached origin/main with the release commit 41ee3d89d580fb715fc90994b2361348550698c7. What the build found beyond the sketch: seven suites hand-build a
 handoff result and had to carry `follow_on: []` (callback-contract's helper, handoff, full-runtime, navigator-v4; found only by the quick tier, actual-improve-cli; found only by a
 sweep of the rest of the family, because the tier selects by changed files, workspace and return-review), the same effect the unverified restate had on a fixture (d84d30a977aa584ecc748fb34982f2bd7add21df); and a path that read an
 isolated run's workspace record caught the wrong error class, found by a test written for a gap the feature commit listed.
