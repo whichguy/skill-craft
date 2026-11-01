@@ -304,3 +304,7 @@ check; three cases in about thirty recent runs is too few to measure in one roun
    loops; in the other 5 the Proof was the test runner on a base with no tests (5 of 5 such first attempts sent back, 0 of 15 direct-probe ones), which no
    shipped rule sees. The recommendation there is not to pursue F31's wording.
    Decided 2026-11-01 by the owner ("Yes, leave it"): item 4 is closed without a change; F31's wording is not pursued and the class is left as it is.
+   Reopened 2026-11-01, later the same day, by the owner (added by the session that registered the F31 live check). Its two F31 answers
+   conflicted ("Yes, take it up" there at 13:22, "Yes, leave it" above), and asked "Which of your two F31 answers should stand?" the
+   owner answered "Run the live check". The check is registered in c2b854104e1b5f076e966e16adc3fa2a9ab63f9e
+   (docs/experiments/f31-implement-proof-20261101/); its result and decision land there and in the planning journal.
