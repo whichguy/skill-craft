@@ -5882,3 +5882,25 @@ the refusal is untested. 17 suites' fixtures needed a repository or `--in-place`
 
 **Not measured:** a full case end to end with the guard present; the guard's rate of firing on the current card (about 1 start in 80 on
 Codex, none seen on the other hosts).
+
+## Release preflight: a merge of main into a branch is listed as a ShipLoop change without a round (2026-11-01) — status: firm (seen twice in one release); the gate is unchanged and the owner decides whether to change it
+
+**What happened.** `scripts/release.py --dry-run` for 2.31.0 / 1.30.0 refused twice, each time naming one commit that is a merge:
+582fe176 (main merged into the guard branch) and, after other sessions pushed, 794c0b81 (main merged into `fix/sf-keychain-39fa3a`).
+`git log -- skills/shiploop changes/shiploop` keeps a merge that differs from both parents in those paths, which a merge of
+main into a branch that also changed them always does. A merge adds no change of its own, and the repository's rule is to merge
+main into branches (never rebase, so cited hashes survive), so the refusal recurs every time two sessions change ShipLoop in the
+same window.
+
+**What stands behind the changes this release ships** (the non-merge commits since 41ee3d89d580fb715fc90994b2361348550698c7 that touch
+`skills/shiploop/` or `changes/shiploop/`; checked one by one, not by the gate):
+- 9e39b146 (stages report where standing facts go): covered by the placement candidate's E2 round entry above it (a04ad7f5).
+- d8a8dce0 and f9f91667 (the `init` guard): each carries its own `No-E2E-Round:` trailer, and the entry before this one records the
+  two first-command probes that vouch for them.
+- 20a7f385 (a Salesforce platform guide section): carries its own `No-E2E-Round:` trailer (reference text only; the behaviour was
+  measured live for f9717c93).
+
+**Decision.** This entry follows both merges; it records that their non-merge commits were looked at, not that a round ran on the
+merges. The gate was not changed: it is the owner's rule. A smaller fix would list non-merge commits only
+(`git log --no-merges`), or accept a merge whose parents are all covered; until then a release that follows two sessions' merges
+needs an entry like this one after the last merge.
