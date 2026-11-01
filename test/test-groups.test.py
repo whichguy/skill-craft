@@ -120,9 +120,9 @@ class TestGroupTests(unittest.TestCase):
         # and the follow-on list's suite (2026-11-01).
         # Core gains backchain-graph (2026-11-01: Backchain's validator moved out of ShipLoop with its parity tests)
         # and backchain-toolkit (its command line).
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 123)
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 124)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 55)
-        self.assertEqual(len(suite_catalog.SUITES), 180)
+        self.assertEqual(len(suite_catalog.SUITES), 181)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -802,7 +802,7 @@ class E2EFamilySelectionTest(unittest.TestCase):
               "shiploop-e2e-scope-discovery", "shiploop-e2e-stage-oracle", "shiploop-e2e-stage-build", "shiploop-e2e-stages",
               "shiploop-e2e-stage-live", "shiploop-e2e-stage-report",
               "shiploop-e2e-run-trace", "shiploop-e2e-brownfield", "shiploop-e2e-brownfield-tickets", "shiploop-e2e-test-adequacy",
-              "shiploop-e2e-delta", "shiploop-e2e-ticket-comments", "shiploop-e2e-ticket-sla",
+              "shiploop-e2e-delta", "shiploop-e2e-ticket-comments", "shiploop-e2e-ticket-sla", "shiploop-e2e-user-directory",
               "shiploop-e2e-lifecycle", "shiploop-e2e-discovery", "shiploop-e2e-qualification",
               "shiploop-e2e-roles", "shiploop-e2e-epoch", "shiploop-e2e-learning-records", "shiploop-e2e-cycle"}
 
