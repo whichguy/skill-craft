@@ -77,6 +77,41 @@ evaluator digest. Run from the main checkout, the calibration epoch would refuse
 usable later only while the files that score an attempt are unchanged. `spread.py` records their digests, and `cycle.py`
 refuses a calibration whose digests differ from the epoch it is applied to.
 
+## How this program concludes (2026-11-01)
+
+Owner, 2026-11-01: "Determine how to conclude, plan out, and implement. Use Codex as the harness and Terra 6.1 Extra High as the
+model." Read as: the subject runs use Codex `gpt-6.1-terra` at `xhigh`. The reviewer, judge and improver keep their role defaults
+(Codex `gpt-6-astra` at `xhigh`, and `gpt-6.1-sol`), because a role change changes what an epoch's reviews mean; one flag per role
+changes them if the owner wants that. Two live jobs that were running at `high` when the instruction came were stopped and are
+rerun at `xhigh`. The stage 4 pilot, the only live run of this plan that finished before it, ran at `high` and stays as history.
+
+**Why the stage 5 cycle needs an end.** Two explorations on two cases (csv-report, seat-reservations) each stopped at "no admitted
+learning record after exploring": each produced one material ShipLoop finding, the judge's disposition was investigate, and the
+loop sends investigate to the owner. The same items were being fixed by hand in other sessions. So the improver, the purpose check
+and an epoch with reviews have not run live, and a blind third exploration has no measured reason to end differently.
+
+**Finish line.** The program is concluded when all of this is on `main` and true:
+1. Each decision path of the loop has live evidence, with its limits stated: a DROP with reviews skipped (stage 4, run 2), a PROMOTE
+   with every attempt reviewed (stage 4b), and the cycle's first steps, explore, review, judge, ingest and journal (stage 5).
+2. What no live run covered is named, with its cause: the improver and the purpose check, which need an admitted record.
+3. Every result, ledger row and journal entry is merged, and the docs say what ran and at what setting.
+4. A release happens only if a ShipLoop change promoted. None is expected: nothing here changes a skill.
+
+**Steps and stop rules.**
+- A. The restore pilot at `xhigh` (stage 4b), about 2 to 3 hours. Pass, inform and finding are defined there.
+- B. One more cycle launch at `xhigh` on `shared-expenses`, `csv-report` unseen (stage 5). If a record is admitted the cycle runs to
+  its decision, stopping early only on its stall rule (the same step unchanged for 90 minutes, or 9 hours in all). If none is, that
+  is the third designed stop, and the program concludes on it: no further blind explorations.
+- C. Land the results, update this plan's status, report.
+
+**Left to the owner.** This plan does not decide these.
+- An admission route for the improver half, if B admits nothing: accept one owner-held record (LR-20261101-bea142 or
+  LR-20261101-f8c562; both overlap work other sessions have shipped or are studying), or seed a record whose fix should move a
+  measure by at least the tolerance, or qualify a candidate another session built by the hand-built path of stage 4b, which is
+  where this loop is most useful today.
+- Whether the stage 3 calibration, which another session runs at `high`, should move to `xhigh` to match.
+- The hook's published-fidelity question (withdraw, accept or measure), held since 2026-10-31.
+
 ## Where it stands (2026-10-31)
 
 **Trying to achieve.** Every improvement to ShipLoop proven by its own comparison: one learning record, one candidate
@@ -436,7 +471,8 @@ The 10-29 plan's "prove the loop can say no", live. Built 2026-11-01 as `docs/ex
 The mirror of stage 4, added on 2026-11-01 when stage 5 could not get past its first step (below), in
 `docs/experiments/closed-loop-restore-20261101/`. The control is the tip without the qualified missing-completion hook (the
 reverse of the same delta), the candidate is the tip, the case is `hello-hook-continuation`, 3 attempts per arm, a stated
-tolerance of 0.25, Codex Terra high, and **every attempt is reviewed and judged**. The prediction says the share of attempts
+tolerance of 0.25, Codex Terra `xhigh` (the owner's setting from 2026-11-01; the kit first said `high`), and **every attempt is
+reviewed and judged**. The prediction says the share of attempts
 that pass accuracy rises by at least a half, which makes the case a capability case, so a rise in its quality can promote.
 - **Why:** the reviews of an epoch's attempts, a PROMOTE and the journal entry of a promoted cycle have never run live, and
   nothing else runs them until a record is admitted. The answer is known (0 of 3 against 3 of 3 in the pilot's second run),
@@ -449,7 +485,7 @@ that pass accuracy rises by at least a half, which makes the case a capability c
 
 ```sh
 python3 test/shiploop_e2e/iterate.py --qualify --case seat-reservations --generality-case csv-report \
-    --tolerance 0.25 --attempts 3 --host codex --model gpt-6.1-terra --effort high --iterations 1
+    --tolerance 0.25 --attempts 3 --host codex --model gpt-6.1-terra --effort xhigh --iterations 1
 ```
 
 (Corrected 2026-11-01: `iterate.py` has `--iterations`, not `--cycles`; one iteration first, since a cycle is the

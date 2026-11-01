@@ -190,10 +190,11 @@ Resolve the installed or checkout-local `scripts/shiploop` path as `CLI`, and
 use absolute repository and run-directory paths.
 
 Before any stage duty, choose exactly one entry route: `workspace start` for
-new Git-backed work, direct `init` for an explicitly selected in-place/non-Git
-run, or `next` for an existing run. For an existing run, verify the
-printed original goal and repository identity before acting. Do not replace a
-missing or relocated run with a new one.
+new work (it makes an empty starting directory a Git repository), direct `init`
+only for an in-place or non-Git run the user explicitly asked for (naming the
+current directory is not that), or `next` for an existing run. For an existing
+run, verify the printed original goal and repository identity before acting. Do
+not replace a missing or relocated run with a new one.
 
 A later feature is a different request: preserve the earlier run, select a fresh
 external workspace root (omit `--workspace-root` to get a new default one; an
@@ -209,7 +210,9 @@ a second source of traversal state.
 
 ```sh
 python3 "$CLI" workspace start --repo="$REPO" --prompt='requested outcome'
-# Explicit direct/non-Git mode, without automatic workspace-return protection:
+# Direct entry, only for an in-place or non-Git run the user explicitly asked for; no automatic workspace-return
+# protection. In an empty folder that is not a Git repository init refuses, names workspace start and says how to
+# override when the user did ask:
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --prompt='requested outcome'
 # Optional explicit selected actual Improve card for a new run:
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --improve-skill="$IMPROVE_SKILL" --prompt='requested outcome'

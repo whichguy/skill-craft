@@ -2852,6 +2852,7 @@ class CliBoundaryRegressionTests(unittest.TestCase):
                         ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".DS_Store"))
         repo = self.base / "ordinary repo ' with $literal"
         repo.mkdir()
+        subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True, env=self.env)  # not the guarded empty non-Git folder
         run_dir = self.base / "run ' $(touch recovery-shell-expanded) $literal [state]"
         unrelated = self.base / "unrelated cwd"
         unrelated.mkdir()

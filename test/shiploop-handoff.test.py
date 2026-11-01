@@ -3212,6 +3212,7 @@ class RequestIndexTests(unittest.TestCase):
             base = Path(temporary).resolve()
             repo, run = base / "repo", base / "run"
             repo.mkdir()
+            subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True)
             env = {**os.environ, "SHIPLOOP_PROGRESS": "off", "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}
             started = subprocess.run([sys.executable, "-B", str(CLI), "init", "--repo", str(repo), "--prompt",
                                       self.PROMPT, "--run-dir", str(run)], env=env, text=True, capture_output=True,

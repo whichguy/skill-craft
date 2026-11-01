@@ -396,6 +396,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
     def _start_direct(self, label: str, shiploop: Path, improve: Path) -> tuple[Path, Path]:
         repo = self.base / label / "ordinary repository"
         repo.mkdir(parents=True)
+        subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True)
         run = self.base / label / "run"
         self._run(
             self._script(shiploop),

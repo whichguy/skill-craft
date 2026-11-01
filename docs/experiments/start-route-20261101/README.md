@@ -530,6 +530,40 @@ always pay the extra command, which is a cost of the design, not a fault.
 **Command**: as above with `--package-root <build of the second commit>`, `--plan plan-guard2.json`, `--out
 ~/e2e-runs-startroute/20261101-guard2`.
 
+### Result of the second guard probe (104 sessions, 2026-11-01)
+
+One launch, no change while it ran, 104 valid sessions, no invalid attempt; installed cards equal to the builds' (G `9571cfb4b317`, GOLD
+`4e455a833e85`). Builds cut from f9f91667228c1ef719cfb916757cba015e9189c7 (`analysis-guard2-output.txt`, `results-guard2-compact.jsonl`).
+
+| request | build | sessions | `init` first | refused | ended on `workspace start` | ended on the direct entry | no run |
+|---|---|---|---|---|---|---|---|
+| `sf-ui` | GOLD (old wording) | 60 | 20 | 20 | 60 | 0 | 0 |
+| `sf-ui` | G (T2) | 20 | 0 | 0 | 20 | 0 | 0 |
+| `inplace-hello` | G | 12 | 12 | 12 | 0 | 12 | 0 |
+| `nogit-hello` | G | 12 | 12 | 12 | 0 | 12 | 0 |
+
+**Registered verdict: RELEASE.** E (the gate): 20 of 20 `sf-ui` sessions whose first start was `init` ended on `workspace start` (Wilson
+0.84-1.00), none of them carried `--in-place` on that first command (20 of 20 were refused), and none answered the refusal with it. H1 is
+the same 20 of 20. H2: 24 of 24 explicit sessions ended on the direct entry (Wilson 0.86-1.00). H3: 20 of 20 never-refused G sessions
+ended on `workspace start`. Every refused `sf-ui` session ran `init` once and then `workspace start` (20 of 20); every explicit session
+ran `init`, was refused, and ran `init --in-place` (24 of 24).
+
+**Against the first design.** The same old wording, the same request, the same model: first design 0 of 16 first-`init` sessions ended on
+`workspace start`, second design 20 of 20. The change was the visibility of the override: of the 20, 7 had run a `--help` before their
+first start (13 had not), and the flag was no longer in what `--help` printed. The prediction (E between 50% and 90%) was too cautious.
+
+**Costs, measured.** Every explicit in-place or non-Git session now pays one refused command (24 of 24; with the flag in `--help`
+it was 12 of 24). On the old wording the refused sessions took a median 50 s to reach their run against 44 s for the old-wording
+sessions that were not refused. On the T2 card nothing changed (0 of 20 began with `init`).
+
+**Limits.** Codex `gpt-6.1-terra` at `xhigh` only; Claude and Grok never began the Salesforce request with `init`, so their answer to
+the refusal text is untested (the text is plain and names the command to run); one Salesforce prompt and one pair of explicit requests.
+A user or script outside this repository that runs `init` in an empty non-Git folder now needs `--in-place` (the message says so).
+The guard's benefit on the current card is small by construction (T2 leaves about 1 wrong start in 80 on Codex); what the probe
+establishes is that it is safe and effective when a start is wrong, and that the old wording's failure would be caught.
+
+**Decision.** Released with the second design, as registered (E, H2 and H3 met). The first design is not released.
+
 ## Release CI
 
 The full CI run of the release commit f24746fa6193007235818f2d8b109408d70ca413 (run 41318115086) failed one job, `full /

@@ -40,6 +40,7 @@ class RunCase(unittest.TestCase):
         self.base = Path(self.temp.name).resolve()
         self.repo = self.base / "repo with spaces"
         self.repo.mkdir()
+        subprocess.run(["git", "init", "-q", str(self.repo)], check=True, capture_output=True)
         self.run = self.base / "run"
         self.run.mkdir()
         (self.run / ".lock").touch()

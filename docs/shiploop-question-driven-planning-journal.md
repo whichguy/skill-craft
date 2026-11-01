@@ -443,7 +443,7 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   mid-round: "You can do side experiments as needed if that would help"; "For using a test harness and runner we want
   to use codex Terra 6.1 at xhigh".)
 - Method: pre-registered in the review's §7 before each round (a38be89f, 3042b7aa, 1bf6430c): SP1 whole deliveries
-  (hello 1, csv-report 2; ticket-import 3 pending on port 4180), SP2 step-plan slices stopping after test-spec (arm B =
+  (hello 1, csv-report 2, ticket-import 3), SP2 step-plan slices stopping after test-spec (arm B =
   main e81fdb55, arm T = b8d32033; tickets-assign and stand-in-rules, 4 per arm per case), SP3 slices on 45153684
   (stand-in-rules 4). Three SP1 runs made at high before the owner's word are a pilot.
 - Result (review §7a): SP1 3 of 3 PASS at xhigh (and 3 of 3 in the pilot), no test-spec send-back for IDs, no gate
@@ -453,8 +453,9 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   runs: Terra xhigh 7 of 67 plans short, 1 sent back; Terra high 8 of 75, 7 sent back.
 - Decision: keep the rule with 45153684's wording. The wording fix is a correction caught by the pre-registered
   falsifier; the rule's gain at xhigh is test quality.
-- Status: firm (no cost, no ID send-back after the fix, on these runs); the template's open-item path live is pending
-  (ticket-import); F31 interim.
+- Status: firm (no cost, no ID send-back after the fix, on these runs); the template's open-item path held live
+  (ticket-import 3 of 3 PASS, 13 of 13 held-out checks each; one gate refusal, fixed by the next draft in 25 s); F31
+  interim. Released as skill-craft 2.29.0 / ShipLoop 1.28.0 (4224161b) at the owner's word.
 - Evidence: sp2_scores.jsonl, sp3_scores.jsonl, the run folders under ~/e2e-runs-sp/20261101/, test/shiploop_e2e/
   LEARNINGS.md (the round entry of 2026-11-01).
 
