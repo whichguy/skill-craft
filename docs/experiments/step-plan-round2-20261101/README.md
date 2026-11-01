@@ -246,6 +246,27 @@ run built at its own start.
   R3's shared-expenses had 20 of 20 pass at Terra high. The branch gives up nothing on either case.
 - Evidence: `release_scores.jsonl` (score_release.py); runs in `~/e2e-runs-sp/20261101/round2-release/` (outside git).
 
+## The owner's decisions after the review (2026-11-01)
+
+- A2a: "Ship A2a (Recommended)". It ships unmeasured, argued from the 3 Salesforce cases.
+- A2b: "Leave A2b reverted (Recommended)". Its whole-delivery A/B (shared-expenses, 6 a side at Terra xhigh) is a follow-up, not run.
+
+## Verification round on the final head (registered before its first delivery)
+
+The release round's evidence was weakened by A1's first-committed `itertools.pairwise`: five of its six deliveries crashed once and retried.
+This round reruns the same six deliveries on the final head, **fd6aaf19a1ddb8c3b78d1b5e676b3de548708e01**: A1 with the Python 3.9 fix and the false-refusal fix, A2a and D,
+merged with main. It uses `launch_release_round.sh` with `RUNS=~/e2e-runs-sp/20261101/round2-verify` and 3 lanes, Codex Terra 6.1
+xhigh.
+- **Predictions:**
+  - no AttributeError or other traceback from the ShipLoop CLI in any session log;
+  - no implement send-back of form 1, and no A1 refusal text unless a Proof of its form is written;
+  - no test-spec send-back for RED;
+  - 33 of 33 hidden checks pass.
+- **Responses:**
+  - a CLI traceback or a targeted send-back stops the release;
+  - an unexplained hidden-check failure stops it too;
+  - anything else is recorded.
+
 ## Not ruled here
 
 - **Proof command defects** (quoting, a wrong API, a wrong state transition) get no build. `bash -n` catches none of them, and a dry run can
