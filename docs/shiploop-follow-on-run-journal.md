@@ -473,3 +473,69 @@ to a seeded lineage.
 
 Superseded (marked 2026-11-01): the design's statements that M1 was a plan or that no second reader had classified the rows
 (sections 1, 3.C, 7, 10, 11); Round 3's "Open: the replay with a second reader" (done, Round 4).
+
+## Round 5 — 2026-11-01 — the build: the recommend-only follow-on list, and its live check
+
+### Plan (written and committed before any live run; the result follows below it)
+
+What happened. The owner replied to the Round 4 question "Keep D4 at 'do not build now'?" with "Rebase, Merge to main and publish,
+implement improvements" (2026-11-01, verbatim). I read it as: build the recommend-only list of the design (D1 a follow-on run, D2
+recommend-only, D3 no ceiling, D4 build), then rebase, merge to main and publish. That reading is mine; the feature commit says so
+and is the one to revert if it was not meant. The design's own rule N, fixed before the M1 replay, still says the list will
+recommend a run rarely (decision in 1.2% to 1.8% of finished runs, no gap), so this release is no new evidence of demand.
+
+Built (feature commit 826c951ccfdecb8f48e406f8fbdacb6a69daabbc, on origin/main d06e18a56ee43db8d04dc872e680d4efdd33f076, which holds
+skill-craft 2.28.1 and ShipLoop 1.27.0): `skills/shiploop/scripts/shiploop_follow_on.py` and its wiring; its message holds the
+shape decisions, the tests (14 new, fail first) and the packet-size figure. Two things of the design's draft changed at build, both
+recorded there: no per-entry `id` and no per-entry `evidence_refs` (the script resolves the cited record from `source`), and a fifth
+source kind, `result:<stage>`.
+
+Question for the live round (design U1, the unknown the offline replay cannot answer): given the built list, does a real model at
+the handoff write a list the gate accepts, with sources it can cite and classes a reader finds supported by the cited record?
+
+Conditions. Host Codex, model gpt-6.1-terra, effort xhigh, `--source checkout` (this checkout's build, the plugin tree recorded in
+each run's `invocation.json`), planning review `stage`, the harness's defaults otherwise, started with `test/shiploop_e2e/run.py` and
+nothing else, one run per output folder under `/Users/dadleet/e2e-runs/2026-11-01/follow-on-live-*`. Cases: `hello` (1 run: a
+trivial request, few leftovers), `csv-report` (2 runs: its saved runs gave the peek its F08 `decision`, "whether exponent notation
+and a leading + count as numeric", so it is the case where a decision is most likely) and `seat-reservations` (1 run). Those three
+need no fixed port: another session's pilots hold the lease of `user-listing`'s (ca85a372a8e79577ac01591d1d07e0ceaee4f0ed). Four runs in all, at most four
+at once. The machine's load average was 80 when this was written, from other sessions' work, so durations are not comparable with
+the baselines'.
+
+The owner's hold on new live E2E cycles, which other sessions record (d9fefb1144dea7f9a8d85b5897ad1275dbe08a07 and the commits that
+cite it), concerns improvement cycles. These four runs are the verification round the release preflight orders after a ShipLoop
+change, which AGENTS.md lists as routine ("launching verification runs") and the memory note "proactively run verification" asks
+for; they are not a cycle and decide nothing about the next one. If the owner objects, the runs are cheap to stop.
+
+Rules, fixed now (each is read from the run folders by `docs/experiments/follow-on-build-20261101/extract_follow_on.py`, which only
+reads):
+- R1. The gate holds. Every run reaches `done` with every verdict passing (invoked, plugin, process, shiploop, committed, checks). A
+  run that does not, for a reason traced to the list (a refusal loop, a template the model cannot fill), is a defect to fix before any
+  release; a run that fails for another reason is reported and does not decide R1.
+- R2. First-try shape. The refusals at the handoff that name `follow_on` are counted per run (each `complete` command that leaves the
+  cursor at the handoff). Mean at most 1 per run; none above 3.
+- R3. Support. Each accepted entry is read against the record its `source` names and called supported, partly supported or
+  unsupported; the reader is me, alone (exploratory, no second reader).
+- R4. No inflation, no silence. Entries per run are reported. A run whose list is `[]` while its release-verify `lessons.open_next`
+  or its unverified list holds an item that is not "none" is flagged as possible silence (a flag, not a defect).
+- R5. Recommendation. Each run that recommends a follow-on run is read: is the request file one a person would start?
+- R6. Size. The handoff packet's `chars` and `printed` in each run's trace, against the same figures in saved Codex hello runs
+  (2026-11-01: 18,957 and 15,375).
+
+Predictions (probability, written before any run):
+- P1. All four runs reach `done` with every verdict passing (80%).
+- P2. Mean refusals naming `follow_on` is at most 1 per run, and no run needs more than 3 (65%).
+- P3. At least 3 of the 4 runs file at least one entry; `hello` files none or one (60%).
+- P4. At least one of the two `csv-report` runs files a `decision` entry about numeric forms or arguments (40%).
+- P5. No run files a `gap` (85%).
+- P6. At least 90% of the entries are supported by their cited record (70%).
+
+Decision rule. The release goes ahead when R1 holds. The other results change the design note's revision 6 and the next measurement
+(U11, M3), not the release. If R1 fails for a reason in the list, I fix it, rerun the run that failed, and do not release before a run
+passes.
+
+Not concluded whatever the numbers: four lists are an existence check, not a rate; one reader judges support; the cases are the E2E
+corpus (small, saturated, every run completes); whether a person ever starts a recommended run is M3 and is not measured; entry-level
+agreement between readers (U11) is not measured.
+
+Files: `docs/experiments/follow-on-build-20261101/` (`extract_follow_on.py`, then the per-run extracts and the README).
