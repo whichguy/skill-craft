@@ -99,7 +99,7 @@
     "metric": "the killed fraction of js-1 rel-bound and logic-flip mutants on the product lines against the seed commit (the recorded implementation plus any product edit the test stage makes), under the case's mutation command; all-class ratio, titles per case ID and stage seconds beside it"
   },
   "AS1": {
-    "claim": "The Apps Script card's Testing section, which the test-strategy packet now points to once the environment notes name the card, makes test-strategy record the deployment as a target that keeps state (B, build c468b25c) more often than the build without the section (A, the build before it). The case is an Apps Script project whose code runs from a deployment; nothing in it says the deployment keeps state.",
+    "claim": "DEFERRED 2026-10-31 by the owner (docs/experiments/apps-script-deployed-target-20261031/README.md): do not run until its samples stop sharing one target folder, or the owner asks for a serial run. Was: The Apps Script card's Testing section, which the test-strategy packet now points to once the environment notes name the card, makes test-strategy record the deployment as a target that keeps state (B, build c468b25c) more often than the build without the section (A, the build before it). The case is an Apps Script project whose code runs from a deployment; nothing in it says the deployment keeps state.",
     "fix": "AS1", "case": "gas-deployed-target", "seed_at": "test-strategy", "stop_after": "test-strategy",
     "arms": {"A": {"ref": "55a2726d8f0983aa94c547f98a452360945c0bad"},
              "B": {"ref": "c468b25c62012b95dbe11fa199032719d0b34501"}},
