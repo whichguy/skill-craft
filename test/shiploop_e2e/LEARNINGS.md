@@ -5769,3 +5769,89 @@ Learning records: LR-20261101-f8c562, LR-20261101-35ad6a (test/shiploop_e2e/lear
 Next
 
 - no independently admitted ShipLoop finding to apply; retained challenges need disposition
+
+## E2E iteration 0 learnings (user-listing, codex xhigh)
+
+Iteration 0 ran ShipLoop built from 9bdd30ddc51cb76a0cea4e9bbfd0b95bb5bf57b7 with codex gpt-6.1-terra (effort xhigh) from an empty directory on the user-listing case.
+
+Outcome
+
+- run: PASS; host exited (rc 0) after 569.9 s, 134 turns, cost not reported
+- ShipLoop: status done, stage done, report True
+- checks in work/: 3/3 pass
+- ended as: PASS (every verdict passed)
+
+Reviewer outcome
+
+ShipLoop delivered a clean, committed user-listing extension that passed every public and held-out check, while retaining a known Backchain contract discrepancy and minor progress and command-handoff issues.
+
+Learnings
+
+- Reconcile the existing bound-command repair (minor, within current authority)
+  Evidence: S-4/S-5/S-12: events.jsonl:46,59,70,92,153,170,181,200 use handwritten Python to dispatch Improve packet next_argv values. Commit 6dbebfafe0cab0c6f3298f45e80106c95b26f9ba already prints validated, shell-quoted bound continuations but is absent from the tested build's ancestry. Its learning commit b1d4dab1924b54af6c6cb9089c3f7458f5a73e8d records eight wrappers before versus zero wrappers and nine literal continuations afterward, explicitly without establishing cold recovery.
+  Proposal: Use this run as corroboration for the existing repair, not grounds for another dispatcher. Reconcile its disposition and current compatibility, then test literal continuation and recovery with neutral receipt fixtures. Preserve binding, workspace, runtime and owned-path validation. Any qualified candidate must retain one learning record and prospective exposing-plus-generality evidence.
+  Premise: S-1/S-4: scripts continue choosing and validating the next command; the model copies it. The observed wrappers followed script-provided argv and do not establish model-owned navigation.
+  Files: skills/shiploop/scripts/shiploop_improve.py, skills/shiploop/references/improve-child.md
+
+Missing considerations
+
+- Align progress guidance with exact script display (minor, within current authority)
+  Evidence: S-3/S-15: events.jsonl:36,94,125,140 contain model-composed progress. SKILL.md:298-300,308-309,396-400 invites brief milestone or activity reporting, whereas references/status-display.md:3-6 assigns status and narrative composition to scripts. This repeats the unresolved wording investigation in f8ce110b6bba72e77d3a33cfb741dde9ade2bb6b and b1d4dab1924b54af6c6cb9089c3f7458f5a73e8d. The recorded release omission is separately a duplicate-emission accounting error.
+  Proposal: Continue the existing clarification investigation: make all progress instructions consistently require exact script-authored display while suppressing unchanged repetitions. Test hook-displayed output, real omissions and duplicate recovery output. Retain host communication requirements as an alternative explanation; wording has not been proved the sole cause.
+  Premise: S-15: scripts retain authorship of progress from saved state; no new status mechanism or model estimate is proposed.
+  Files: skills/shiploop/SKILL.md, skills/shiploop/references/status-display.md
+- Reconcile stale planning text in living knowledge (minor, within current authority)
+  Evidence: S-11: returned work/docs/shiploop/environment.md:19 still begins 'Planned'; :35 says 'New commands are planned until tests exist', while :39 records those tests passing. Commands appears twice. All three living files are committed and populated, so this is a clarity limitation, not missing delivery. The existing placement candidates 40640d48371691ffa7baa593b37409bfd8357c1c and 9e39b146db427c26f68c0e22d900e70c92be5011 are absent from this build.
+  Proposal: Reconcile the existing consumer-contract and placement work before changing guidance. Investigate updating current facts in their existing sections while retaining historical evidence in commits and run records. Use a cold follow-on to determine whether the conflicting wording causes rediscovery or an incorrect readiness decision. Do not add heading refusals or claim a material effect from duplication alone.
+  Premise: S-11: knowledge remains in the existing three living files, with stable IDs and script-owned acceptance; no new knowledge store or navigation rule is introduced.
+  Files: skills/shiploop/scripts/shiploop_prompts.py, skills/shiploop/references/inner-loop.md
+
+Optimizations
+
+- Investigate reuse of script-run proof evidence (minor, within current authority)
+  Evidence: S-4/S-5/S-12: events.jsonl:115 hand-builds a parser to extract and execute the implementation proof; :116 reports KeyError: 'steps', followed by successful lint and overall shell exit 0. Event 117 retries successfully using the inbox. Event 119 then invokes shiploop check, which executes the same proof authoritatively. The implement packet already names fields/nav-4107eb177620467ca75e2c83e63be957-S1-proof.md containing the complete literal command, so missing command access did not force the parser.
+  Proposal: Investigate whether the implement duty can use the existing script-run check evidence for preliminary assessment, preserving fresh execution after edits and completion-time identity validation. Contrast that route with copying the already-provided literal proof. Keep this investigation separate from the bound Improve-command repair. The observed recovery establishes avoidable work, not net E2E savings.
+  Premise: S-1/S-9: proof execution and acceptance remain script-owned. A model statement or successful later lint command must never substitute for the proof result.
+  Files: skills/shiploop/scripts/shiploop_prompts.py, skills/shiploop/scripts/shiploop_test_loop.py
+
+Discoveries and independent judgment
+
+- The remaining Backchain default conflicts with shipped optionality (material, requires separate disposition)
+  Evidence: [{'reference': '.shiploop-runs/work-20261101-183604-6f6d03/run/state.md:664', 'observation': 'The run records backchain_passes as one.', 'interpretation': 'The frozen S-10 default applies; this was not an explicitly selected none run.'}, {'reference': '.shiploop-runs/work-20261101-183604-6f6d03/run/results/nav-4678247c4b0b40a5898c0d5fb8d2f685.md:117', 'observation': "The accepted plan states 'No Backchain child needed for this single seam'; no Backchain child or structural check ran.", 'interpretation': 'A successful product delivery coexists with the unresolved frozen planning obligation.'}, {'reference': 'skills/shiploop/scripts/shiploop_prompts.py:2102-2107; commits 4c2a8a98453e4aa2e8b2397962f785221e19b20a and 453bb0ce37f0c66fffdcb4c267af64c9171ee956', 'observation': 'The prompt explicitly permits omission. Both commit messages distinguish this description of shipped behavior from adopted policy and leave requiring the child open.', 'interpretation': 'Historical optionality cannot silently amend frozen S-10. The other reconciled review-schedule decisions should not be reopened by association.'}]
+  Proposal: Continue the existing owner review without waiving S-10, automatically restoring an older schedule, or changing this run's original verdict.
+  Files: test/shiploop_e2e/SPEC.md
+  Mission relationship: {"challenge": "The one-pass default and shipped permission to omit the entire child remain inconsistent. Only prospective owner disposition can resolve this; passing delivery does not manufacture conformance.", "clause_id": "S-10", "relationship": "challenges"}
+  Confidence: high; next experiment: Attach this run's state, accepted plan and the full optionality decisions to LR-20261031-382fba. Establish the owner's prospective disposition before constructing a candidate or altering grading; preserve this run's frozen interpretation.
+- Manual proof dispatch failed before authoritative verification succeeded (minor, requires separate disposition)
+  Evidence: [{'reference': 'events.jsonl:115-118', 'observation': "A handwritten proof extractor read the accepted-result wrapper incorrectly, failed with KeyError, and was repaired in another call. Successful lint masked the first command's failure in the shell exit.", 'interpretation': 'Mechanical proof dispatch introduced avoidable recovery work, although the model noticed and repaired it.'}, {'reference': '.shiploop-runs/work-20261101-183604-6f6d03/run/fields/nav-4107eb177620467ca75e2c83e63be957-S1-proof.md', 'observation': "The full literal proof was already available at the packet's named location.", 'interpretation': 'The failure does not establish missing packet content; choosing an unnecessary parser is a plausible alternative explanation.'}, {'reference': 'events.jsonl:119-123; .shiploop-runs/work-20261101-183604-6f6d03/run/tests/nav-2662fd4271db467f94b71281e2d136fe-step-proof1.md', 'observation': 'The script ran the proof successfully and completion reused its recorded check.', 'interpretation': 'The authoritative safeguard worked. Existing evidence reuse offers a narrower investigation than adding another runner.'}]
+  Proposal: Investigate the smallest guidance change using the existing verification mechanism; preserve command evidence, recovery and completion-time freshness before considering implementation.
+  Files: skills/shiploop/scripts/shiploop_prompts.py, skills/shiploop/scripts/shiploop_test_loop.py
+  Mission relationship: {"challenge": "S-4/S-5/S-12 favor script-owned execution of recorded commands. The uncertainty is whether clearer use of the existing route removes wrapping without weakening S-9 freshness or S-6 grounding.", "clause_id": "S-5", "relationship": "supports"}
+  Confidence: high; next experiment: Compare existing guidance, literal-command guidance and existing-check reuse on a neutral long-proof fixture. Include a failing proof followed by successful lint, an unchanged successful check, and an edit after success. Require failed or stale evidence to prevent acceptance. A narrow replay cannot qualify E2E benefit.
+Judge: {"assessments": [{"disposition": "owner_review", "evidence": [".shiploop-runs/work-20261101-183604-6f6d03/run/state.md:664 records backchain_passes=one.", ".shiploop-runs/work-20261101-183604-6f6d03/run/results/nav-4678247c4b0b40a5898c0d5fb8d2f685.md:117 records a local dependency audit and deliberate child omission; run/trace.jsonl:23 records acceptance.", ".shiploop-runs/work-20261101-183604-6f6d03/run/packets/nav-4678247c4b0b40a5898c0d5fb8d2f685.md:149-166 explicitly permits choosing whether to request the child.", "test/shiploop_e2e/SPEC.md:203-218 at tested checkout 9bdd30ddc51cb76a0cea4e9bbfd0b95bb5bf57b7 defines one-pass child behavior and the none option, without an explicit universal invocation requirement.", "Full messages of commits 4c2a8a98453e4aa2e8b2397962f785221e19b20a and 453bb0ce37f0c66fffdcb4c267af64c9171ee956 distinguish observed optionality from adopted policy and leave requiring the child open."], "id": "D-BACKCHAIN-CONTRACT", "reason": "The omission is established, but the asserted incompatibility conflates default pass count with mandatory invocation. S-10 describes the child's pass contract without explicitly requiring every plan to instantiate it. Mandatory invocation remains an unresolved, material owner question; this evidence does not establish the claimed violation.", "status": "disputed"}, {"disposition": "investigate", "evidence": ["events.jsonl:115-118 shows the handwritten extractor failing with KeyError: 'steps', subsequent successful lint producing overall exit 0, and a successful retry using the inbox.", ".shiploop-runs/work-20261101-183604-6f6d03/run/results/nav-4107eb177620467ca75e2c83e63be957.md:7 nests the submitted data under result, explaining why direct top-level steps access failed.", ".shiploop-runs/work-20261101-183604-6f6d03/run/packets/nav-2662fd4271db467f94b71281e2d136fe.md:21 names fields/nav-4107eb177620467ca75e2c83e63be957-S1-proof.md; that file contains the complete literal command.", "events.jsonl:119-120 records shiploop check executing the proof successfully; events.jsonl:123-124 records successful completion.", ".shiploop-runs/work-20261101-183604-6f6d03/run/tests/nav-2662fd4271db467f94b71281e2d136fe-step-proof1.md:14-36 explicitly records reuse of the successful script-run check, exit 0, and candidate tree identity."], "id": "D-PROOF-EXECUTION-GLUE", "reason": "High-confidence evidence establishes minor, avoidable dispatch failure and recovery. The literal proof was available, and authoritative verification succeeded. Investigating existing-check reuse is justified; implementation benefit and net E2E savings remain unmeasured.", "status": "supported"}], "review_sha256": "c220db66f4bb0370418b2add8d81022dc025fe426aa50c58c9cc4e63e51fb625", "validity": {"reason": null, "status": "valid"}}
+
+Harness questions
+
+- learning retention: Keep the append-only learning ledger and full Git messages. This run needs history reconciliation and an operator-owned learning commit, not another state store; that commit remains pending because this review is read-only.
+  proposal: Record the exact checkout, plugin digest, requested driver, clean delivered identity, public and held-out results, measurements, known violations and unobserved coverage. Obtain a fresh independent judge assessment bound to these exact review bytes.
+  proposal: Under S-6/S-9, retain the matching focused IDs and self-contained proof as successful observations alongside LR-20261101-f8c562 and LR-20261101-bea142; do not silently close their remaining owner questions.
+  proposal: Under S-4/S-5/S-12, preserve the explicit dispositions of 6dbebfafe0cab0c6f3298f45e80106c95b26f9ba and b1d4dab1924b54af6c6cb9089c3f7458f5a73e8d. This run predates their application in its ancestry and does not show their repair failed.
+  proposal: Under S-11, carry forward 589bc03ebe4bb31759a371e10bbc261bb071aab3's three-file consumer contract and d2c55b90c321d8eff214deb398ef0a240e7f9ac4's rejection of heading gates before addressing stale knowledge text.
+- further learning: The useful remaining observations concern command handoffs, cold recovery and reuse of delivered knowledge. This single successful brownfield case does not establish broad qualification or exhausted learning.
+  proposal: Under S-6, exercise fresh context at a stage boundary and inside a stage; test missing-completion continuation separately because neither occurred here.
+  proposal: Under S-11, use a cold follow-on to distinguish harmless historical wording from rediscovery or incorrect decisions caused by environment.md's conflicting planned and completed descriptions.
+  proposal: Under S-8/S-13, qualify any retained candidate prospectively on the exposing case and another style, or state a narrower claim. Keep one learning record per candidate.
+  proposal: Under S-9/S-11, distinguish compatibility-preserving delivery from shared-helper repair: this run found the latent helper defect but implemented the requested behavior without changing that helper. A contrasting task requiring existing callers to share corrected semantics would investigate that separate capability.
+  proposal: Keep local cleanup observations scoped to recorded groups, leases and listeners. Remote cleanup, rollback execution and broader machine isolation were not established.
+- evaluation criteria: No new promotion floor is justified. Existing counters need calibrated interpretation before they support efficacy or efficiency claims.
+  proposal: S-15: preserve the original 21/20 narrative metric and append the reproduced 20/20 distinct-obligation interpretation. Replay the already-existing evaluator candidate 420018f1db8e93ec9f27d1c254a85e17d4b25004 rather than creating another deduplication mechanism.
+  proposal: S-9/S-12: reconcile six command keys versus four executed runs in the verification readers, and add calibrated reading of step-proof and baseline-red records in a separate evaluator experiment. The raw records show checks that the summaries omit.
+  proposal: S-4/S-5: retain concrete wrapper and shell-failure evidence beside model_glue=[]; do not treat that empty heuristic counter as proof of no mechanical glue.
+  proposal: S-9: keep the eight engine mutation samples separate from the 11 held-out acceptance results. Neither establishes complete oracle coverage, and held_out_seen=0 is not proof of isolation.
+  proposal: S-12/S-13: keep checkout exploration separate from release qualification, scoped overlap separate from isolation, requested identity separate from observed identity, and this run's timing separate from a registered comparative gain.
+
+Learning records: LR-20261031-382fba (test/shiploop_e2e/learning-records.jsonl)
+
+Next
+
+- no independently admitted ShipLoop finding to apply; retained challenges need disposition
