@@ -370,6 +370,85 @@ class EvidenceTest(LifecycleCase):
         result["delivery"] = snapshots
         (out / "result.json").write_text(json.dumps(result))
 
+    def hide_untracked(self, work: Path, scope: str) -> None:
+        """Set only this fixture's local or effective global Git config, never the user's config."""
+        config = ["--local"]
+        if scope == "global":
+            path = self.tmp / "global.gitconfig"
+            patch = mock.patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": str(path)})
+            patch.start()
+            self.addCleanup(patch.stop)
+            config = ["--file", str(path)]
+        subprocess.run(["git", "-C", str(work), "config", *config, "status.showUntrackedFiles", "no"], check=True)
+        effective = subprocess.run(["git", "-C", str(work), "config", "--show-scope", "--get", "status.showUntrackedFiles"],
+                                   capture_output=True, text=True, check=True)
+        self.assertEqual(effective.stdout.strip(), f"{scope}\tno")
+
+    def test_hidden_untracked_files_in_recorded_snapshots_refuse_disposal(self):
+        for scope in ("local", "global"):
+            with self.subTest(scope=scope):
+                out = self.delivered(scope)
+                work = out / "work"
+                self.hide_untracked(work, scope)
+                dirty = work / "returned" / "new-test.py"
+                dirty.parent.mkdir()
+                dirty.write_text("assert True\n")
+                snapshots = {"before": delivery.capture(work, out), "after": delivery.fingerprint(work)}
+                self.write_delivery(out, snapshots)
+
+                found = lifecycle.dispose(out)
+
+                self.assertFalse(found["disposed"], found)
+                self.assertEqual(found["removed"], [])
+                self.assertEqual(dirty.read_text(), "assert True\n", "unbundled bytes survive refusal")
+                for snapshot in snapshots.values():
+                    self.assertTrue(snapshot["observed"], snapshot)
+                    self.assertEqual(snapshot["status"], ["?? returned/"], "keep normal directory collapsing")
+
+    def test_hidden_untracked_files_after_clean_snapshots_refuse_disposal(self):
+        for scope in ("local", "global"):
+            with self.subTest(scope=scope):
+                out = self.delivered(scope)
+                work = out / "work"
+                self.hide_untracked(work, scope)
+                snapshots = {"before": delivery.capture(work, out), "after": delivery.fingerprint(work)}
+                self.write_delivery(out, snapshots)
+                self.assertEqual([snapshot["status"] for snapshot in snapshots.values()], [[], []])
+                dirty = work / "new-test.py"
+                dirty.write_text("assert True\n")
+                current = delivery.fingerprint(work)
+
+                found = lifecycle.dispose(out)
+
+                self.assertFalse(found["disposed"], found)
+                self.assertEqual(found["removed"], [])
+                self.assertEqual(dirty.read_text(), "assert True\n", "later unbundled bytes survive refusal")
+                self.assertTrue(current["observed"], current)
+                self.assertEqual(current["status"], ["?? new-test.py"])
+
+    def test_hidden_untracked_config_still_excludes_ignored_files_and_allows_clean_disposal(self):
+        for scope in ("local", "global"):
+            with self.subTest(scope=scope):
+                out = self.delivered(scope)
+                work = out / "work"
+                self.hide_untracked(work, scope)
+                (work / ".git" / "info" / "exclude").write_text("ignored.txt\n")
+                (work / "ignored.txt").write_text("ignored fixture bytes\n")
+                snapshots = {"before": delivery.capture(work, out), "after": delivery.fingerprint(work)}
+                self.write_delivery(out, snapshots)
+                self.assertTrue(all(snapshot["observed"] for snapshot in snapshots.values()), snapshots)
+                self.assertEqual([snapshot["status"] for snapshot in snapshots.values()], [[], []])
+
+                found = lifecycle.dispose(out)
+
+                self.assertTrue(found["disposed"], found)
+                self.assertEqual(sorted(found["removed"]), ["home", "work"])
+                restored = delivery.restore(out, self.tmp / f"restored-{scope}", snapshots["before"]["head"])
+                self.assertEqual((restored / "hello.py").read_text(), 'print("Hello, world!")\n')
+                self.assertEqual(delivery.fingerprint(restored)["tree"], snapshots["before"]["tree"])
+                self.assertFalse((restored / "ignored.txt").exists(), "ignored bytes remain outside the bundle promise")
+                self.assertEqual(lifecycle.dispose(out)["removed"], [], "clean disposal remains idempotent")
+
     def test_disposal_keeps_the_records_and_the_delivery_reproduces_from_the_bundle(self):
         out = self.delivered("case")
         head = json.loads((out / "result.json").read_text())["delivery"]["before"]["head"]

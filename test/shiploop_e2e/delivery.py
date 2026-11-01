@@ -29,7 +29,7 @@ def fingerprint(work: Path) -> dict:
     work = Path(work)
     if not (work / ".git").exists():
         return {"observed": False, "reason": "no work/ repository (torn down, or nothing was delivered)"}
-    status = _git(work, "status", "--porcelain")
+    status = _git(work, "status", "--porcelain", "--untracked-files=normal")
     if status.returncode != 0:
         return {"observed": False, "reason": "git status failed: " + (status.stderr.strip().splitlines() or ["no message"])[0][:160]}
     head = _git(work, "rev-parse", "--verify", "-q", "HEAD")
