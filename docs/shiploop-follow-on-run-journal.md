@@ -138,7 +138,9 @@ Findings:
 - F13 (interim). The leaks compound. `environment.md` gained 4.5 to 6.4 KiB in the second pass (32 of 36 stray headings are stage
   reports or second copies of the release procedure; 4 are the procedure the consumer contract intends). In 1 of 4 runs a live
   decision was filed under `## Superseded`. The 40-heading cap arithmetic puts the first cut at the fifth pass's packet. A chain of
-  follow-on runs would repeat this, so a chain waits for the multipass decisions D2 to D4.
+  follow-on runs would repeat this, so a chain waits for the multipass decisions D2 to D4. (Refined 2026-10-31, Round 2, F16 and
+  F17: the third pass repeated the leaks at a steady rate, and the chain now waits for the result of the A/B test of the fix,
+  not for a decision.)
 - F14 (firm). `--continue-from` and `follows` are test-harness features (`test/shiploop_e2e/run.py`, `cases.json`). The engine
   records no field for which run another follows. A chain would add one; the recommend-only list does not need it.
 - F15 (firm). The multipass apparatus (`chains.py`, `delta.py`, `ticket-comments`) is the fixture and the readout for a mechanics
@@ -153,4 +155,80 @@ Superseded: the Round 0 sketch of M2 as one live measurement (now two), and revi
 Routine decisions: rebased rather than merged; revision 2 is a second commit so the correction stays visible; nothing was pushed.
 
 Open: the live third pass of the multipass work (its E1) had no recorded result when this round was written. Read it before M2a is
-planned.
+planned. (Superseded 2026-10-31 by Round 2: E1 has a result, c55d0bc0ad21a2c477d024067378d0c3b1241959.)
+
+## Round 2 — 2026-10-31 (evening) — revision 3: the multipass facts that moved after revision 2
+
+Question: revision 2 stated three things about work that was still moving: the first live third pass as queued and without a
+recorded result, the modifying link as designed and not built, and a chain as waiting for the multipass decisions. Which are now
+stale, and does anything change a recommendation?
+
+Conditions: base df44fd30d19455515cc2434dd21b18520e2a5f48 (origin/main), in a fresh worktree on branch
+`docs/follow-on-rev3-dd7837`. The canonical checkout's local `main` was not the base: it holds two commits that are not on
+origin/main, so it had diverged from it, and it was left alone. No model call and no ShipLoop run. One reader, Claude Sonnet
+5.5, who also wrote the design.
+
+Read in full: 15ef676f7b20a95d60c8047b0a3fcdac82cb1d3f, c55d0bc0ad21a2c477d024067378d0c3b1241959,
+a86bf9b6e5289b28608682303b55faee7f39c134, c981605d36019f0036693883e838207e3edf348d,
+d1e5df376a2c883263caa81f2e1a53ae7f864d99 and bf68e9590a009e3087c7acfefa895d158d9b7034, and the multipass journal's summary
+table, Round 1, Round 3, routine decisions and unknowns. Its Round 2 (the candidate and the A/B design) was read for its status
+line only; the A/B's design and bar are taken from the message of 15ef676f. Read for relevance:
+6881e311e78eccaeb7e05644d747315bee9c534a (it matched "follow-on" but concerns the intake question bank) and the head of
+df44fd30d19455515cc2434dd21b18520e2a5f48 (the skill card's byte bound; the one fact taken from it is in the design's section 8).
+Searched: `git log --all -i --grep='follow-on'`, the history of the multipass documents, and
+`git log 4a75a13d052c994c3e855b9d556637fde05c0b58..origin/main -- skills/shiploop agents`, which lists two commits,
+7ca88df48f63631f55c8d9b16b27885f667b15a6 (a fix in `shiploop_test_loop.py`) and its release
+5de751eebfc58d049032c873365e18e3621c1c7a. No module this design cites changed (the diff of `skills/shiploop/scripts` is one
+file, `shiploop_test_loop.py`, 10 lines added), so the Round 0 reading of the engine still holds.
+
+Findings:
+
+- F16 (firm for one run). The first live third pass (E1) passed and repeated the leaks. `ticket-comments` continued from a saved
+  second pass on ShipLoop 1.26.0 and Codex gpt-6.1-terra at xhigh: 13 of 13 checks and 14 of 14 inherited hidden checks passed;
+  R-1 to R-7 were kept byte for byte, R-8 and AD-4 added, no earlier test touched; planning took 302 s (322 s and 328 s for the
+  two earlier passes of that lineage). `environment.md` gained 8 stray headings (+6.0 KiB, 10,531 to 16,637 bytes), and AD-4 was
+  filed after `## Superseded`, below the still-mislabelled AD-3, so it was born retired. The multipass journal reads this as
+  worse than the same lineage's second pass, which added 1 heading. Read against all four second passes (7, 1, 6 and 4 stray
+  headings; +4.5 to 6.4 KiB) it is one heading above the highest count and inside the byte range: the growth per pass looks
+  steady and not accelerating, and what builds up is the mislabel. This refines F13 and does not contradict it: a chain still
+  repeats the leak, and nothing here shows it growing faster than the pass number. Evidence: c55d0bc0 and the multipass journal's
+  Round 1.
+- F17 (firm). What a chain waits for moved from a decision to a measurement. The owner approved the multipass D1 to D5 ("Approve
+  all", 15ef676f). D2 to D4, the fix for what stages write, is one candidate kept off main until its A/B test (E2) meets a bar
+  written before the first run. E2 as last recorded on main (d1e5df37): started 17:33:58; held 41 min 41 s from 17:47:28 so another
+  session's two test-writing pilots could use the shared port-4180 lane first, 31 min 21 s of it with nobody holding the lane;
+  resumed 18:29:09 with chain A1's second case. No E2 result is on main at df44fd30. The multipass work's own offline replay found
+  a gap in the candidate: both entries filed as retired when new (AD-3, AD-4) were written by the plan stage, which the
+  candidate's packet line does not reach (c55d0bc0). So the born-retired entry may survive E2.
+- F18 (firm for what exists; hermetic). The modifying link is built. `ticket-sla` (bf68e959) asks a pass to replace "a ticket is
+  escalated at most once" with "at most twice, and by priority" and to change the requirement, the decision behind it and the
+  tests together. Its acceptance is its own (the second link's hidden check reads the very sentence it replaces, so a correct
+  delivery would fail it), its ledger says whether the old entries were changed or left standing, and 11 hand-written variants
+  each failed exactly the checks that read what they break. There is no live run: E3 waits for E2. Its request is hand-written;
+  none of the peek's three `decision` rows (csv-report numeric forms, a delivery route for `ticket.assigned`, person-level
+  delivery) concerns how often a ticket is escalated. So M2b still has no case that starts from a real leftover, and `ticket-sla`
+  is the fixture for U10, not a measurement of value.
+- F19 (firm, about this document). Revision 2 recorded moving status as fact. It was authored at 17:19:26 and committed, after a
+  rebase, at 18:43:03; the owner's approval (15ef676f, 17:29), E1's result (c55d0bc0, 17:40) and `ticket-sla` (bf68e959, 18:41)
+  are all ancestors of it, so three of its statements were already stale when it was published. This was known and disclosed to
+  the owner, who chose to merge it as written. Rule kept: a status that moves is written "as of <commit>" and points at the
+  journal that holds the live state; the design's header says so.
+- F20 (firm, from source). The skill card's byte bound limits a build: `card_max_bytes` is 30500 in
+  `test/fixtures/shiploop-card-ledger.json` and `skills/shiploop/SKILL.md` is 29,955 bytes, so about 545 bytes of card text; a
+  candidate for another change exceeded the bound on 2026-10-31 (df44fd30). Added to the design's section 8 and section 6.
+
+Changed in the design: the header, sections 1, 2, 3.B, 4.7, 5, 6, 7 (M2a and M2b), 8 (one bullet), 9 (one row), 10 (D2's
+condition) and 11 (U2, U9, U10). D1 to D4 keep their recommendations.
+
+Superseded (kept above, marked): Round 1's "Open:" line and F13's closing clause; revision 2's statements that E1 was queued and
+unrecorded, that `ticket-sla` was designed and not built, and that a chain waits for "the multipass decisions".
+
+Harness and test-case changes: none. No skill change, no change note, no release. Effect on earlier results: F13 is refined by
+F16 and Round 1's "Open:" line is superseded; nothing else changes.
+
+Routine decisions: revision 3 is a third commit on top of the published two and not an amendment of them (they are on
+origin/main); the base is origin/main because the canonical `main` had diverged; the candidate's own hash (another session's local
+branch, not on main) is not cited in the design; nothing is pushed until the owner says so; no release (documents only).
+
+Open: the replay with a second reader (design section 7, M1); a revision 4 when E2 reports; M2a after E2 and E3; the owner's D1 to
+D4.
