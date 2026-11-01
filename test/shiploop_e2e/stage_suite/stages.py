@@ -52,8 +52,8 @@ The tiers:
   not look at the host).
   The results root is ``--out DIR`` (a new folder) or a new folder under the harness's usual runs location (run.new_output_dir:
   ``$TMPDIR/shiploop-e2e/stages-live-<stamp>-<id>``); it holds ``<stage>/<scenario>/<n>/`` per sample, ``live-plan.json`` and
-  ``.logs/``. ``--host``, ``--backend``, ``--model`` and ``--effort`` default as slice.py's do (hosts.RUN_DEFAULT_HOST and its
-  backend, the host's model and effort).
+  ``.logs/``. ``--host``, ``--backend``, ``--model`` and ``--effort`` default as slice.py's do (hosts.RUN_DEFAULT_HOST, the
+  host's backend, model and effort).
 - ``grade OUTPUT`` regrades one live sample from its files alone (no host, no ShipLoop) and rewrites its stage-result.json.
 - ``report ROOT`` prints the matrix of a results root (stage_report) and ``--json`` the same data; ``--compare EARLIER_ROOT``
   adds the per-cell change, and refuses roots whose drivers (host, backend, model, effort) differ, naming both.
@@ -528,8 +528,7 @@ def resolve_driver(args: argparse.Namespace, sc: sb.Scenario | None = None) -> D
     name = args.host or hosts.RUN_DEFAULT_HOST
     if args.backend and "backends" not in vars(hosts.HOSTS[name]):
         raise UsageError(f"--backend {args.backend} is a Claude host option; the {name} host has one backend")
-    backend = args.backend or hosts.RUN_DEFAULT_BACKEND.get(name)
-    host = hosts.host(name, args.host_bin, backend)
+    host = hosts.host(name, args.host_bin, args.backend)
     return Driver(host, name, getattr(host, "backend", None), args.model or host.model, args.effort or host.effort)
 
 
@@ -974,7 +973,7 @@ def _driver_options(parser: argparse.ArgumentParser, timeout: float | None = Non
     parser.add_argument("--host", choices=sorted(hosts.HOSTS), default=None,
                         help=f"the host that follows the packet (default: {hosts.RUN_DEFAULT_HOST})")
     parser.add_argument("--backend", choices=("anthropic", "ollama"), default=None,
-                        help="claude only: ollama (the E2E default) or anthropic")
+                        help="claude only: anthropic (the default) or ollama")
     parser.add_argument("--model", default=None, help="default: the host's model, as slice.py")
     parser.add_argument("--effort", default=None, help="reasoning effort; default: the host's, as slice.py")
     parser.add_argument("--host-bin", metavar="PATH", default=None, help="the host's binary (default: its name, on PATH)")

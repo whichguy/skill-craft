@@ -172,7 +172,9 @@ gap below.
     reviews that were not usable.
 - A gap: `epoch.launch` builds the run's arguments from host, model and effort only and never passes `--backend`, and the
   harness's default backend for the Claude host is Ollama. A cycle on the Claude host therefore tries Ollama and is
-  refused wherever Ollama is not running (a cloud session). The Codex host has no such gap.
+  refused wherever Ollama is not running (a cloud session). The Codex host has no such gap. **Closed 2026-11-01:** the
+  Claude host's default backend is now Anthropic (`test/shiploop_e2e/LEARNINGS.md`, "the Claude host defaults to Anthropic's
+  Sonnet 5.5"), so a cycle on the Claude host takes the Anthropic route with no `--backend`.
 
 **Owner decision, 2026-10-31: stage 3 is skipped.** The owner declined the same-build calibration ("skip it; I don't
 want 2-3 hrs"). Its kit stays in `docs/experiments/e2e-calibration-20261031/` for anyone who wants the measurement
@@ -428,6 +430,21 @@ The 10-29 plan's "prove the loop can say no", live. Built 2026-11-01 as `docs/ex
   planted defect). Three attempts per arm under a stated, unmeasured tolerance: it shows this loop rejects this
   regression at this sample, not how often. Files: `docs/experiments/closed-loop-pilot-20261101/run-01`, `run-02` and
   its README.
+
+## Stage 4b: restore pilot
+
+The mirror of stage 4, added on 2026-11-01 when stage 5 could not get past its first step (below), in
+`docs/experiments/closed-loop-restore-20261101/`. The control is the tip without the qualified missing-completion hook (the
+reverse of the same delta), the candidate is the tip, the case is `hello-hook-continuation`, 3 attempts per arm, a stated
+tolerance of 0.25, Codex Terra high, and **every attempt is reviewed and judged**. The prediction says the share of attempts
+that pass accuracy rises by at least a half, which makes the case a capability case, so a rise in its quality can promote.
+- **Why:** the reviews of an epoch's attempts, a PROMOTE and the journal entry of a promoted cycle have never run live, and
+  nothing else runs them until a record is admitted. The answer is known (0 of 3 against 3 of 3 in the pilot's second run),
+  so a surprise is the loop's and not the change's.
+- **Pass:** PROMOTE, the prediction confirmed, the record `verified`, all six attempts `recorded` and then `reviewed`.
+  UNDECIDED with a stated reason says what the loop still needs; DROP or an `invalid_evidence` attempt is a finding.
+- **Does not cover:** the improver and the purpose check, which need an admitted record.
+
 ## Stage 5: first qualified cycles
 
 ```sh
@@ -453,6 +470,20 @@ exposing, and `seat-reservations`, the unseen generality case, and were swapped 
   `results/closed-loop-cycle-20261101-run2-loop` (f8ce110). The record went onto the ledger (8990029) before launch 3,
   which explores `seat-reservations` and keeps `csv-report` unseen: if its exploration re-finds that item it adds to the
   same record, which a cycle that keeps `csv-report` unseen cannot select, and the loop stops for the same stated reason.
+  Launch 3 (kit 6a6cb10172f78737b685a127c1c2f2be5c2aca52, `seat-reservations` exposing, PARALLEL=2): one exploration run
+  (PASS, 1255.4 s, 252 turns, 4 of 4 checks), two records opened, and the same designed stop. LR-20261101-f8c562 (ShipLoop,
+  S-6, reviewed criteria still exceeded the available focused test IDs) went to the owner: the judge calls it corroboration
+  of focused-ID work that is absent from the tested build, disposition investigate, not implementation-eligible.
+  LR-20261101-35ad6a (harness: epoch-local overlap records omit external contention) was deferred. Results on
+  `results/closed-loop-cycle-20261101-run3-files` (a4f9f80) and `results/closed-loop-cycle-20261101-run3-loop` (ffacc92).
+- **Why nothing has been admitted (2026-11-01).** Both explorations passed their case and found material ShipLoop items,
+  and the judge's disposition for each was investigate, which the loop routes to the owner. The same items are being worked
+  by hand in other sessions' A/B rounds: the focused-ID rule (b8d32033, 45153684) shipped in ShipLoop 1.28.0 (4224161b,
+  17:01Z), three minutes after launch 3 began on 1.27.0, and the proof-order rule has studies of its own (c614c532,
+  1bf6430c). The one admitted material record, LR-20261031-8d97e7, was found on the hosted gym case and appears to be what
+  7ca88df4 fixed on 2026-10-31 (the same refusal; not replayed), though the ledger still reads admitted. So no record exists
+  that a cycle on local cases could take, and a third blind exploration may meet the same owner-held items. Getting past
+  this is the owner's decision (an admission route), listed with the options in the stage 5 report.
 - **The first record:** from an exploration run on `seat-reservations`, or a seeded record whose reopen condition holds.
 - **Selection (2026-11-01):** `select` reads the cycle's cases (b3328b4). The one admitted record on the ledger,
   LR-20261031-8d97e7, was found on the hosted `gym-membership-salesforce` case, so a cycle on other cases would have

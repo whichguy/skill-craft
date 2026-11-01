@@ -1,5 +1,7 @@
 ---
-Status: design proposal, revision 5, 2026-11-01. Nothing is built, adopted or released. Execute: ask. Revision 2 folded in
+Status: design, revision 6, 2026-11-01. The recommend-only list of section 4 is built, on the owner's instruction (D4), and had a live check
+(journal Round 5, four Codex runs). As of the commit that holds this revision it is on a branch and not on origin/main, and nothing is released;
+the release that ships `changes/shiploop/follow-on-list.md` is the commit to look for. The auto-start chain (4.7) is not built. Execute: ask. Revision 2 folded in
 the multipass work that landed after revision 1 and corrected one stale claim (section 6, the 589bc03e row). Revision 3
 brought up to date the multipass facts that moved after revision 2 (a live result, an owner decision, a built test case).
 Revision 4 folds in the two results that landed after revision 3's base: the A/B test of the multipass fix (E2) met its bar,
@@ -8,12 +10,18 @@ is written "as of" a commit and points at the journal that keeps the live state;
 passage and not for every sentence, and revision 4 does it for each sentence that states one (journal F25). Revision 5 folds in the M1 replay (section 7): three other
 readers, blind to the first reader's labels, classified the same rows plus seven new ones. It also moves the multipass facts to
 3d5732d0, where the multipass work fixed its fourth experiment (E4) before any run. The replay applies this note's own reading
-rule, so D1 to D4 keep their recommendations, now settled where they waited for M1.
-Consumer: the owner, deciding D1 to D4 (section 10). Later: the session that builds the follow-on list (section 8), or reruns the peek and the replay on the owner's own features (section 7).
-Journal: docs/shiploop-follow-on-run-journal.md (Rounds 0 to 4).
-Evidence: docs/experiments/follow-on-peek-20261031/README.md and docs/experiments/follow-on-replay-20261101/README.md.
-Category: a proposed generic ShipLoop improvement and the exploratory evidence behind it. No E2E apparatus change, no skill change, no release.
-Base: 3d5732d017899a6d486b3249915284793af19d3a (origin/main when revision 5 was written). Revision 4 (published as
+rule, so D1 to D4 keep their recommendations, now settled where they waited for M1. Revision 6 records what happened next: the owner answered
+the D4 question with "Rebase, Merge to main and publish, implement improvements" (2026-11-01), which I read as D4 = build, and the
+recommend-only list was built and run live. The replay's advice to wait stands as evidence about demand, not as a rule that was kept.
+Consumer: the owner, who settled D4 by asking for the build and still decides D2 and D3 (section 10). Later: the session that builds the chain (4.7), or measures the list
+on the owner's own features (sections 7 and 8), or reruns the peek and the replay then.
+Journal: docs/shiploop-follow-on-run-journal.md (Rounds 0 to 5).
+Evidence: docs/experiments/follow-on-peek-20261031/README.md, docs/experiments/follow-on-replay-20261101/README.md and
+docs/experiments/follow-on-build-20261101/README.md.
+Category: a generic ShipLoop improvement (built in revision 6) and the evidence behind it. No E2E apparatus change; the skill change is the feature
+commit 826c951ccfdecb8f48e406f8fbdacb6a69daabbc; the release is made by `scripts/release.py` after this revision.
+Base: 726ef7184a3a2da212b614111af023f64b94b1ff (origin/main when revision 6 was written, merged into the build branch at f1a5868da64587610d6711105650caacb2d557fc). Revision 5
+(published as 46f3ac32b65ff2bb2a0ba4425d3445fef0aa642b) was written at 3d5732d017899a6d486b3249915284793af19d3a. Revision 4 (published as
 e81fdb55d58bdb0bcc8c1643d93d5973709100e4) was written at e13af240100c066489e83c028d97339845402b55,
 revision 3 (published as 7bb1c35683a18d37bd800df12a2f4c45c32ecc77) at df44fd30d19455515cc2434dd21b18520e2a5f48, revision 2 (published as
 671873bce787d9e9c25bbbe8ab64e7c7f7061db0) at 240594c9922c42ac0a761717671f93f220e31743 and revision 1 (published as
@@ -43,6 +51,11 @@ the whole loop again.
 
 ## 1. Answer in brief
 
+- Built (revision 6; as of the commit that holds it, on a branch and not yet on origin/main): the recommend-only list of option B, on the owner's
+  instruction of 2026-11-01. The handoff's done result carries `follow_on`; the script checks the shape and the citations, writes
+  `RUN/follow-on-request.md` for a `gap` or a `decision` and prints the start command, and starts nothing and never blocks `done`. Four live Codex runs
+  (journal Round 5) all passed, every handoff was accepted on its first try, and the lists held two notes and two empties: the mechanics hold and
+  the list had nothing to recommend. The replay's evidence about demand is unchanged.
 - ShipLoop already writes the reflection and already has two loop-backs. What it lacks is the decision that turns the
   reflection into a run, or into a question for the owner.
 - Shape (D1): a follow-on run, which is a new run on the delivered baseline, not an in-run back edge to spec or plan.
@@ -67,9 +80,10 @@ the whole loop again.
   the fix on passes 3 and 4, in six runs, each beside a run without the fix on the same prior) was fixed on 2026-11-01 before any run,
   cites this note's U9 as its open question, and had not started. So a chain of follow-on runs still waits for the fix's release,
   and whether it should also wait for E4's result is open (section 4.7).
-- Order: the replay with a second reader is done (revision 5) and does not support building now; build the recommend-only version only
-  when runs of the owner's own features show decisions or gaps (the peek and the replay rerun in minutes); consider chaining runs only
-  with new evidence and the owner's calls on D2 and D3.
+- Order: the recommend-only list is built and was checked live (revision 6); the replay (revision 5) had advised waiting for runs of the owner's own features,
+  and the owner asked for the build. The next measurements are the list on the owner's own features (M3) and a recommended run started from a
+  model-written request (M2a); the peek and the replay rerun in minutes. Consider chaining runs only with new evidence, the multipass fix's release
+  and the owner's calls on D2 and D3.
 
 ## 2. What ShipLoop already does (read at the base commit)
 
@@ -160,7 +174,8 @@ For each: the strongest case for, the strongest case against, a verdict.
   prints the lessons and the open items (8d51a8e9).
 - Against: the decision sits as free text inside a commit body (and, after a working-tree return, not on the branch at all);
   nothing classifies it, cites a record for it, or builds the request; the owner asked for the activity.
-- Verdict: the baseline to beat, and the right answer until runs of the owner's own features show more: the replay (section 7, done)
+- Verdict: the baseline the list is measured against. It was the right answer until runs of the owner's own features show more, by the replay (section 7, done);
+  the owner asked for the list anyway (revision 6). The replay
   found no gap and two decisions in 166 finished runs.
 
 ### D. A model-judged reflection stage with an Improve-style loop ("anything to improve?")
@@ -182,25 +197,33 @@ commit (written at release-verify) cannot. As with `unverified`, an empty list s
 none to act on; a result without the key says nothing (unmeasured is not zero). The stored shape stays loose and the exact
 shape is held at the CLI gate only, so a saved run is not refused for it.
 
-### 4.2 An entry (draft; the shape is fixed at build)
+### 4.2 An entry (the shape fixed at build, revision 6)
 
-An entry drawn from a real leftover (row 8 of the peek, a csv-report run; the JSON shape is this draft's, not a stored record):
+Five texts, all required (`request_sentence` may be empty except for a `gap`). An entry drawn from a real leftover (row 8 of the peek, a
+csv-report run):
 
 ```json
-{"id": "F-1", "class": "decision",
+{"class": "decision",
  "statement": "Whether exponent notation and a leading + count as numeric, and whether zero arguments exit 1.",
- "source": "lessons.open_next", "evidence_refs": ["RUN/results/<action>.md"], "request_sentence": null,
+ "source": "lessons.open_next", "request_sentence": "",
  "needs": "the requester's answer"}
 ```
 
 A constructed `gap`, for contrast (the archive has none):
 
 ```json
-{"id": "F-2", "class": "gap",
+{"class": "gap",
  "statement": "The delivered CLI exits 0 on an unreadable file although S2 asks for exit 1.",
- "source": "unverified:R-2", "evidence_refs": ["RUN/checks/<action>.md"], "request_sentence": "S2",
+ "source": "unverified:R-2", "request_sentence": "S2",
  "needs": "a work item that makes the exit code match"}
 ```
+
+Two fields of the draft were not built: `id` (a number nobody needs: the report numbers the rows and a repeated gap is matched by source and
+statement) and a per-entry `evidence_refs` (the script resolves the cited record from `source`, so a model cannot cite one it did not read).
+A `source` is one of five kinds, each resolved against the run: `unverified:R-<n>` (a row of the unverified list), `assumption:<id>`,
+`lessons.<learned|considerations|open_next>`, `result:<stage>` (a stage with an accepted done result; added at build, because the handoff
+sees what product-acceptance and operations learned, which the lessons commit written at release-verify cannot hold) and `commit:<hash>`
+(Git decides, through `shiploop_git.resolve_commit`; reachable from HEAD of the execution checkout).
 
 ### 4.3 Classes
 
@@ -224,8 +247,8 @@ The same discipline as `unverified`: refuse only mechanical faults, record and p
 refusal.
 
 - The list is present; each entry has its keys; `class` is in the vocabulary.
-- `source` resolves to a record in the run: an unverified row, an assumption id, the lessons text, or a commit that
-  `git cat-file` resolves. A hash typed by the model is never trusted.
+- `source` resolves to a record in the run: one of the five kinds of 4.2 (an unverified row, an assumption id, a lessons field, a stage's accepted
+  done result, or a commit Git resolves). A hash typed by the model is never trusted.
 - A `gap` cites a request sentence S<n> that exists in `request.md`.
 
 It does not judge whether an entry is true or the list complete. A model that files everything under `note` only
@@ -343,7 +366,7 @@ xhigh) twice, the second time with the class definitions in reverse order, and G
 - Every reader had the first reader's definitions, none of the 32 rows comes from the owner's own features, and the new rows are
   correlated.
 
-### What the multipass work adds (revisions 2 to 5)
+### What the multipass work adds (revisions 2 to 6)
 
 Read in full after rebasing: its [plan](shiploop-multipass-plan-2026-10-31.md), its [journal](shiploop-multipass-journal.md) and
 commits 03d046c6, aa601d37, 84b6bdd2, 1bdeac40 and 737640ca; revision 3 read 15ef676f, c55d0bc0, c981605d, d1e5df37 and bf68e959
@@ -352,6 +375,16 @@ is one run on the repository an earlier run left; a link is one test case that f
 kept beside each run of what it changed compared with the run before; E1, E2 and E3 are the multipass journal's names for its
 first live third pass, its A/B test of the fix for the leaks, and the live run of the fourth link. Most of it read eight saved
 runs and called no model; E1, E2 (twelve runs) and E3 are its live runs.
+
+Update, as of d71eaa7198772501b189dff76308d4ee7ac533cb (added to revision 6 before it was committed): the multipass work's E4 reported while this revision was being finished (its journal,
+"Result of Round 4"; six runs in three matched pairs, one run per cell, on a machine at load 30 to over 100). With the fix no later pass filed its new decision
+under `## Superseded` (0 of 3); the old ShipLoop did in 4 of 5 later passes, and stray headings fell from 8, 1, 0 to 2, 0, 0. Its bar B1 is recorded missed (one
+delivery failed one base test once, which it reads as a port collision, the environment) and B2 to B4 held. It reads the data as a per-run chance, high on these
+chains, and not as a rule tied to the pass number or the file's shape: R4b0 had a clean prior and still mislabelled, so this note's lineage reading (the mislabel
+persists once made) is not needed, and a prior that carries the mislabel did not force it (R4c0). The candidate is still not on main as of that commit and releasing it
+stays the owner's word, so D2's condition is unchanged: a chain waits for the fix's release. Cost is not shown to be nil (model calls 1.53 times in the pass-4 pair, one
+run per cell). Every statement below that says E4 had not started, or that U9 stays open for lack of it, is as of 3d5732d0 and is superseded by this paragraph; U9's
+own question (bound to a lineage, or growing with the pass number) now reads: neither pre-registered reading holds alone (E4, exploratory).
 
 - A second pass works: all 8 saved runs (four pairs) passed, and in the 4 second passes R-1 to R-5 were kept byte for byte, no
   earlier test was touched, and 0 of 19 planned test cases cite a requirement the run did not add. This is the best evidence for shape B.
@@ -394,8 +427,7 @@ runs and called no model; E1, E2 (twelve runs) and E3 are its live runs.
 
 Read in full before writing; hashes resolved with `git log -1 --format=%H`. Revision 2 corrected the `19c25538` row and added
 the rows from `589bc03e` on. Revision 3 added the rows from `15ef676f` on. Revision 4 added the rows from `6a6badb3` on and
-brought the `15ef676f`, `c981605d` and `bf68e959` rows up to date. Revision 5 added the row for `3d5732d0` and moved the as-of
-labels to it.
+brought the `15ef676f`, `c981605d` and `bf68e959` rows up to date. Revision 5 added the row for `3d5732d0` and moved the as-of labels to it. Revision 6 added the rows for `b3a8e3f1` and `d84d30a9` (the unverified list) and `85b788ea`.
 
 | Commit | What it decided or measured | Consequence here |
 |---|---|---|
@@ -428,6 +460,8 @@ labels to it.
 | 6a6badb3e6b8bd858015817c40ee216addf76ba6 (2026-10-31) | E2, the A/B test of the multipass fix: 12 of 12 runs passed and the bar written before the first run held; stray headings added to `environment.md` 0 in six fix passes against 2 to 8 in the control; second-pass time 1.02 times, tokens 49.1 M against 49.0 M; the notice caught the mislabel once live; the fix was tried on passes 1 and 2 only, is a bundle, and the item that no entry is filed as retired when new held untested; the candidate stays on a local branch and the release is the owner's call | a fix for the leaks exists and works where it was tried, so as of 3d5732d0 a chain waits for its release and not for a measurement; the passes it was not tried on are the ones a chain reaches (U9) |
 | 9d5067f3d6b38ff0231e3e98835d78fb96e5a37a (2026-10-31) | `ticket-sla`'s first live run was recorded FAILED on a retention word copied from the previous link, and its ledger pattern for the old rule came from the request and not from a real prior pass; the calibration had exercised one of two routes through the check; both fixed, with three tests that fail on the old file | a case's checks are written from a real prior pass and tried on each route; a case built for M2b must be (section 7) |
 | a232cf038789b532c8485c7583136177cb6be929 (2026-10-31) | E3, the first live fourth pass, on published ShipLoop with no fix: the delivery was right (16 of 16 hidden checks, R-7 changed in place, 8 IDs kept), recorded FAILED on the wrong check and passing with it corrected; 9 stray headings; AD-5 born retired behind AD-3 and AD-4, already under `Superseded` | the mislabel persists once a lineage has it (n=2, one lineage, exploratory); whether a pass retires the old decision needs a prior without the mislabel; `ticket-sla` supplies mechanics, not value |
+| b3a8e3f10e1f43238a2c86700eb6faf3611d2d75 and d84d30a977aa584ecc748fb34982f2bd7add21df (2026-10-08, 2026-10-26) | the `unverified` list: a result key the script gates at the CLI only, stores loose, prints and puts in the report; a later stage restates it, and a fixture without the key is refused | the follow-on list copies the pattern (revision 6); seven suites had to carry `follow_on: []` |
+| 85b788eaed0fd575791c4ce31e585f811517be6c (2026-10-26) | a refusal at the handoff named a later stage that cannot exist | the follow-on refusals name only exits that exist (replace the row, or `[]`); each named exit has a test through the real CLI |
 | 3d5732d017899a6d486b3249915284793af19d3a (2026-11-01) | E4 fixed before any run: the multipass fix on passes 3 and 4, six runs in three matched pairs (a seeded prior, a tidy prior that ends with `Superseded`, and a pass-4 `ticket-sla` from the tidy one), each fix run beside a run without the fix on the same prior; bar B1 to B4, control K and predictions P1 to P8 written first; it names this note's lineage reading and U9 as its question; not started | U9's question has a pre-registered test: a chain waits for the release, and the owner may want E4's result before deciding D2; E4's reading rule says what each outcome means for the lineage reading |
 
 ## 7. Measurement plan
@@ -496,12 +530,22 @@ wrong words in a case that had passed its calibration, 9d5067f3).
 
 ### M3. Watch it on real runs (report only)
 
-If D4 builds the recommend-only version, log the list on the owner's real runs without acting on it, and count how often a
+D4 built the recommend-only version (revision 6): log the list on the owner's real runs without acting on it, and count how often a
 recommended follow-on is started. This measures demand in the population the E2E corpus lacks.
 
-## 8. Build sketch (only if D4 says build)
+## 8. The build (revision 6), and the sketch it followed
 
-Touchpoints, by symbol; nothing here is designed in detail.
+Built on the owner's instruction of 2026-11-01 (D4; journal Round 5). The commits, with the branch `feat/follow-on-list-4f85f3` merged with origin/main at
+f1a5868da64587610d6711105650caacb2d557fc: the feature 826c951ccfdecb8f48e406f8fbdacb6a69daabbc (the module, its wiring, 14 hermetic tests written first), the plan of the live round
+2da2d4f3d11b0f468c14ff48e6158a7bb334e8ee, the fix ba3297d707329a6500ac036577d3f211b2e6a352 (a missing workspace record), the test-only commit 12d293a83ab2c05d30bb575b3d0c5989604a3601, the evidence
+7c2ce6cb9345959292c38688106a4c8d16be865c and the LEARNINGS entry c593e8f27d65d7157438d9b14c2dd7c09f3bbc89. Not built: the auto-start chain (4.7), the E2E SPEC clause and the
+`follow_on` metric, an export of the list to the Run Review page, and any change to the skill card (the feature left SKILL.md alone: 30,011 bytes of 30500 when it was written, 30,115 after another session's release 2.29.0).
+As of the commit that holds this revision none of these commits is on origin/main. What the build found beyond the sketch: seven suites hand-build a
+handoff result and had to carry `follow_on: []` (callback-contract's helper, handoff, full-runtime, navigator-v4; found only by the quick tier, actual-improve-cli; found only by a
+sweep of the rest of the family, because the tier selects by changed files, workspace and return-review), the same effect the unverified restate had on a fixture (d84d30a977aa584ecc748fb34982f2bd7add21df); and a path that read an
+isolated run's workspace record caught the wrong error class, found by a test written for a gap the feature commit listed.
+
+The sketch, kept as the record of what was planned (touchpoints by symbol):
 
 - `shiploop_stage_spec`: the `handoff` row (done-when and reads).
 - `shiploop_prompts`: the handoff duty and its result template.
@@ -540,9 +584,9 @@ the build plan.
 | weakens a clause | S-12: a second parser for requests or lessons | mitigated: reuse `shiploop_request` and `shiploop_knowledge_home` |
 | other style, host, platform | the printed command breaks under a host's quoting | mitigated: command substitution of a file; test on each host's adapter |
 | fails silently | the model files a real gap under `note` | accepted: same as today; M1 measured it: all four readers label the same 11 rows `note`, and none of them a gap |
-| passes tests, fails live | a list that validates but never recommends | open: M2 |
+| passes tests, fails live | a list that validates but never recommends | partly measured (revision 6): four live Codex runs were accepted on the first try with real sources and two supported notes; no run reached a recommendation, so the recommended-run path is still unmeasured live (M2a) |
 | model-written glue, dead ends | a malformed list refuses `complete` with no exit | mitigated: the refusal states the exit and a test submits it through the real CLI |
-| enlarges packets | the handoff head grows | open: measure against `head_table.json` |
+| enlarges packets | the handoff head grows | measured (revision 6): +1,475 printed characters in a real hello run (the head printed 16,850 to 17,462 of 20,000 in the four live runs); the handoff is not in `head_table.json` |
 | leaks, touches user work | the request file quotes result text | mitigated: it is written under `RUN`, outside the repository, through the existing privacy screens |
 | breaks saved runs, pins | a required key refuses a saved run at handoff | accepted: the stored shape is loose and the key is checked at the CLI gate only, as for `unverified`; no state version bump is expected |
 | costs more than it saves | a second prelude for a 1% to 2% case (the replay: 2 to 3 decisions in 166 runs) | open: D4; M3 |
@@ -557,19 +601,20 @@ limit changes.
 
 | | Question | Recommendation |
 |---|---|---|
-| D1 | Shape: follow-on run, in-run back edge, or stay manual | a follow-on run if one is built; stay manual until runs of the owner's own features show more (M1 reported: no gap, two to three decisions in 166 runs) |
+| D1 | Shape: follow-on run, in-run back edge, or stay manual | a follow-on run, as built (the list's request starts one; no back edge). Staying manual until runs of the owner's own features show more was the M1 advice and was not kept (M1 reported: no gap, two to three decisions in 166 runs) |
 | D2 | Recommend-only, or auto-start a chain for `gap` entries | recommend-only; auto-start only after M2b shows a use and the multipass fix for what stages write has met its A/B test (E2: met) and been merged (as of 3d5732d0: not yet; tried on passes 1 and 2 only, E4 on passes 3 and 4 fixed and not started, U9) |
 | D3 | A dollars or minutes ceiling on a chain | none proposed; yours if you want one, ending in a report |
-| D4 | Build the recommend-only list now, or measure first | M1 is done and says do not build now: build the recommend-only list only when runs of the owner's own features show decisions or gaps, and rerun the peek and the replay then (minutes, a few model calls) |
+| D4 | Build the recommend-only list now, or measure first | Decided: built, on the owner's "Rebase, Merge to main and publish, implement improvements" (2026-11-01), which I read as D4 = build. M1's advice to wait stands as evidence about demand: rerun the peek and the replay when runs of the owner's own features have finished (minutes, a few model calls) |
 
 Decided here as routine and reversible: the term "follow-on"; the list lives in the handoff result; no new verb or option; the
 start command uses command substitution of the request file.
 
 ## 11. Unknowns and rejected ideas
 
-- U1. Whether the producing model classifies as a second reader would. M1 measured it on saved text: three other readers
-  reproduce the first reader's classes on 28 of 32 rows (the producing model at handoff is still not measured).
-- U2. IN1 requires intake to cite every sentence of the request. A follow-on request that quotes the whole original would put
+- U1. Whether the producing model classifies as a second reader would. M1 measured it on saved text: three other readers reproduce the first reader's classes on 28 of 32 rows.
+  The live round (revision 6) measured the producing model at the handoff: four Codex runs filled the list on the first try with real sources, two notes supported by
+  the assumption they cite and two empty lists, no gap and no decision. Whether a second reader would class those entries alike is U11, not measured.
+- U2. (The request file exists since revision 6; no live run has started from one.) IN1 requires intake to cite every sentence of the request. A follow-on request that quotes the whole original would put
   those sentences under IN1. The draft passes the original by path, not by value; whether intake handles a quoted original
   is untested. The multipass cases pass a delta-only request and their runs planned only the delta (the live third pass too:
   0 kept IDs followed, 8 test cases citing no kept requirement; the fourth pass: 0 kept IDs in test cases and step plans, the

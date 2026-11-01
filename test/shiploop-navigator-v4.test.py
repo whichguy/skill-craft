@@ -269,7 +269,7 @@ class NavigatorV4Tests(unittest.TestCase):
         navigator.save(self.run, pending)
         action = navigator.current_action(pending)["id"]
         result_path = navigator._result_input_path(self.run, action)
-        result_path.write_text(store.dumps(self.result("handoff"), "ShipLoop navigator result"),
+        result_path.write_text(store.dumps(self.result("handoff", follow_on=[]), "ShipLoop navigator result"),
                                encoding="utf-8")
         args = SimpleNamespace(command="complete", action=action, result=str(result_path))
         report = self.run / "report.html"
@@ -374,7 +374,7 @@ class NavigatorV4Tests(unittest.TestCase):
         navigator.save(self.run, pending)
         action = navigator.current_action(pending)["id"]
         result_path = navigator._result_input_path(self.run, action)
-        result_path.write_text(store.dumps(self.result("handoff"), "ShipLoop navigator result"),
+        result_path.write_text(store.dumps(self.result("handoff", follow_on=[]), "ShipLoop navigator result"),
                                encoding="utf-8")
         args = SimpleNamespace(command="complete", action=action, result=str(result_path))
         report = self.run / "report.html"

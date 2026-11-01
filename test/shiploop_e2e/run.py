@@ -245,9 +245,8 @@ def stop_cause(stop_file: Path) -> str:
 # Grok does not namespace plugin skills; Claude prefixes them with the plugin name.
 def the_host(args) -> "hosts.Host":
     """The selected host, with the binary its --<host>-bin flag names and the backend --backend names (Claude only); with no
-    --backend, the E2E default for that host (hosts.RUN_DEFAULT_BACKEND: Claude on Ollama)."""
-    backend = getattr(args, "backend", None) or hosts.RUN_DEFAULT_BACKEND.get(args.host)
-    return hosts.host(args.host, getattr(args, args.host + "_bin"), backend)
+    --backend, the host's own default (the Claude host: Anthropic)."""
+    return hosts.host(args.host, getattr(args, args.host + "_bin"), getattr(args, "backend", None))
 
 
 def load_case(args) -> tuple[str, str, list[str], str | None]:
@@ -2583,11 +2582,11 @@ def parser() -> argparse.ArgumentParser:
                    help=f"the host that drives ShipLoop (default: {hosts.RUN_DEFAULT_HOST}); 'all' only with --preflight-only "
                         "(checks every host)")
     p.add_argument("--backend", choices=("anthropic", "ollama"), default=None,
-                   help="claude only: ollama (default), Claude Code on a model the local Ollama server serves, default "
-                        f"{hosts.OLLAMA_MODEL}, with the user's Anthropic credentials scrubbed (SPEC \"The Claude host can run "
-                        "on Ollama\"); or anthropic, Claude's own models. A resume keeps its run's backend")
-    p.add_argument("--model", help=f"default: gpt-6.1-terra (codex), {hosts.OLLAMA_MODEL} (claude), "
-                                   "claude-sonnet-5-5 (claude --backend anthropic), grok-4.7 (grok)")
+                   help="claude only: anthropic (default), Claude's own models; or ollama, Claude Code on a model the local "
+                        f"Ollama server serves, default {hosts.OLLAMA_MODEL}, with the user's Anthropic credentials scrubbed "
+                        "(SPEC \"The Claude host can run on Ollama\"). A resume keeps its run's backend")
+    p.add_argument("--model", help=f"default: gpt-6.1-terra (codex), claude-sonnet-5-5 (claude), "
+                                   f"{hosts.OLLAMA_MODEL} (claude --backend ollama), grok-4.7 (grok)")
     p.add_argument("--effort", help="reasoning effort; default: xhigh (codex), host default (claude), medium (grok)")
     p.add_argument("--skill", help="command that invokes ShipLoop; default: skill-craft:shiploop (claude, codex), shiploop (grok)")
     p.add_argument("--source", choices=("marketplace", "checkout"), default="marketplace",
