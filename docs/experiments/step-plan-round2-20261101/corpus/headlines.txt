@@ -1,0 +1,6 @@
+runs 229 step-plan actions 338
+authoring min median 0.59 mean 0.92; Improve min median 0.47 mean 0.78 (n 314); share of run median 11.1%
+checks 568 refusals 225
+send-backs to step-plan 91 {'implement': 48, 'test': 10, 'test-spec': 32, 'validate-existing': 1}
+focused-ID rule: {(False, 'done'): 285, (True, 'done'): 18, (False, 'send-back'): 9, (True, 'send-back'): 23}
+step-plan Improve reviews 312 passes 449 changed the plan 105

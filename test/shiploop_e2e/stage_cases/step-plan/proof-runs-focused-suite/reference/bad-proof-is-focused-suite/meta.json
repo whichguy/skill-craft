@@ -1,0 +1,1 @@
+{"fails": ["P1"], "why": "A-s9's own Proof: the focused suite, verbatim. On the empty base it finds no test at S1's done, exits 0 having run nothing, and implement sends the plan back."}

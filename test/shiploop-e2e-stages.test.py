@@ -687,7 +687,8 @@ class Shipped(unittest.TestCase):
     def test_the_selectors_of_the_guides_example_select_something_today(self):
         document = self.run_json("verify", "@inner", "-validate-existing/all-match", "+catch")
         self.assertEqual(sorted(row["id"] for row in document["scenarios"]),
-                         ["validate-existing/broken-works-small-fix", "validate-existing/wrong-check"])
+                         ["step-plan/proof-runs-focused-suite", "validate-existing/broken-works-small-fix",
+                          "validate-existing/wrong-check"])
         # and an exclude that selects nothing is the usage error the guide says it is
         done = process("verify", "@inner", "-implement", cwd=Path(tempfile.gettempdir()))
         self.assertEqual(done.returncode, 2)

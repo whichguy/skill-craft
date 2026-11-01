@@ -1,0 +1,106 @@
+{
+  "stage": "step-plan",
+  "about": "Replay (step-plan round 2) of Codex Terra high's A-shared-expenses-s9 at step-plan: an empty repository whose knowledge home records `node --test` as the requested verification and plans the tests for W1. The step plan must prove each step with a command that runs at that step's done, before its test stage writes any test: not the focused suite, not a test file the base lacks.",
+  "tags": [
+    "catch",
+    "proof-order",
+    "replay"
+  ],
+  "tiers": [
+    "verify",
+    "render",
+    "live"
+  ],
+  "fixture": "shared-expenses-at-step-plan",
+  "request_from": "shared-expenses-w1",
+  "options": {
+    "delegation": "inline",
+    "seed_home": false
+  },
+  "seed_records": {
+    "test-strategy": {
+      "test_layers": [
+        {
+          "code": "server.js",
+          "harness": "node:test",
+          "layer": "component",
+          "reason": "Node is installed; HTTP integration exercises actual process",
+          "status": "available"
+        }
+      ],
+      "targets": [
+        {
+          "base_state_route": "fresh temporary file and unimplemented server fail behavioural assertions",
+          "keeps_state": "no",
+          "target": "local child process and isolated data file"
+        }
+      ]
+    },
+    "plan": {
+      "assumptions": [
+        {
+          "assumption": "One process owns the data file",
+          "disposition": "open",
+          "due_item": "W1",
+          "id": "A2",
+          "reason": "No multi-process contract specified",
+          "settle": "Document and validate single-process concurrency"
+        }
+      ]
+    }
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "The knowledge home records `node --test` as the requested verification and no test exists yet: a step Proof that runs the focused suite, or names a test file the base lacks, runs nothing at implement's done",
+      "signature": "node --test is the requested verification"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "The plan still records a focused command for the test stage"
+    }
+  ],
+  "render": [
+    {
+      "packet_issued": true,
+      "why": "step-plan is the model's"
+    },
+    {
+      "current_stage": "step-plan"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "`proof`: the one command"
+    },
+    {
+      "proves": "C1",
+      "packet_contains": "focused: this item's cases"
+    }
+  ],
+  "oracle": [
+    {
+      "proves": "C1",
+      "outcome": [
+        "done"
+      ]
+    },
+    {
+      "proves": "P1",
+      "field": "steps[*].proof",
+      "matches": "^(?![\\s\\S]*(?:node\\s+--test|npm\\s+(?:run\\s+)?test\\b|test/[\\w./-]+\\.test\\.[cm]?js))",
+      "why": "coarse: no Proof runs node --test or npm test or names a test/*.test.js file; score_xa.py is the registered measure, with per-step availability"
+    },
+    {
+      "proves": "C1",
+      "field": "test_commands[*].suite",
+      "equals": "focused",
+      "any": true
+    }
+  ],
+  "live": {
+    "samples": 4,
+    "pass": "all"
+  }
+}
