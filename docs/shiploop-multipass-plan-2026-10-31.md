@@ -13,6 +13,7 @@ Status: **D1 to D5 approved as recommended (owner, 2026-10-31, "Approve all")**.
   Released the same morning as skill-craft 2.31.0 / ShipLoop 1.30.0 (release commit 5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a, 10:38 PT): another session cut it, with two other pending notes, before the owner's
   "Yes, release" reached this session, so no second release was cut. CI on the release commit was green in all nine jobs including the full tier, the Claude, Codex and Grok hosts were on 2.31.0, and a live Codex
   session from the published marketplace tree passed ([release-smoke-2.31.0-codex-20261101.txt](experiments/multipass-20261031/release-smoke-2.31.0-codex-20261101.txt)). The word "unreleased" above was true when it was written.
+  2026-11-01, evening: chain B (D5) is built, calibrated against seven real pass-1 deliveries and pre-registered (journal Round 5: bar B1 to B6, predictions P1 to P8, the readout, the gate and the driver); its four live passes run next on the published ShipLoop.
 Opened: 2026-10-31
 Consumer: the owner, who decides D1 to D5 in section 7; later whoever adds the fourth link or changes how a stage writes the
   living files, and reads the ledger as the before and after
@@ -125,8 +126,9 @@ so the right result is an edit or retirement of that requirement with its reason
 "escalated once" tests changed by the request. A case names the earlier sentences it changes
 (`delta.may_change`, built), so the ledger lists any other changed entry as unexplained and any named one left standing.
 
-**Chain B, a small base** (designed): `user-listing` on `fixtures/node-base` then three links of 30 to 60 lines each, kinds K2, K1 and K3.
-Cheap to run (minutes) and a second domain for S-8; built after E2 so it carries the new ledger's A/B.
+**Chain B, a small base** (built 2026-11-01, journal Round 5): `user-listing` on `fixtures/node-base` (174 lines, a user directory) then three links, kinds K2, K1 and K3:
+`user-roles` (a role on every user, a role filter that must combine with `name`), `user-team-listing` (`GET /teams` "the way `GET /users` lists users", reusing the first request's rules) and
+`user-page-size` (the default page size is `PAGE_SIZE`, 25, and the largest size 50, for both listings: the second link that changes an earlier rule). Cheap to run (8 to 29 minutes a pass) and a second domain for S-8.
 
 **What a link carries in `cases.json`.** `follows`; a delta prompt; its own checks (fail-to-pass for the new behaviour); retention (files kept,
 no dependency added, no fewer tests passing with the added tests naming the feature, requirement IDs and decision IDs kept); no `quality`
@@ -161,6 +163,7 @@ heuristics, and a ledger of a first pass on a fixture has nothing to compare an 
 | E2 | Does a counted notice plus named destinations (D2, D3, D4) reduce the leak without losing function? | done 2026-10-31 (17:33 to 21:40): 12 of 12 runs passed and B1 to B5 held; the fix added 0 stray headings in all six passes against 2 to 8 in the control, with no measurable cost (journal Round 2, Result) |
 | E3 | Does a modifying fourth link retire and supersede rather than duplicate? | done 2026-10-31 (21:40 to 21:57): delivery right (16 of 16 hidden checks), a wrong retention check in the case found and fixed, both leaks repeated on the unfixed fourth pass (journal Round 3, Result) |
 | E4 | Does the fix hold on passes 3 and 4, on a lineage that already has the mislabel and on one that ends with Superseded, and is it the fix that does it? | done 2026-11-01 (06:53 to 09:02; journal Round 4, Result): six runs, three matched pairs. With the fix 0 of 3 new decisions were filed under Superseded (old ShipLoop 2 of 3 here, 4 of 5 later passes in all), stray headings 2, 0, 0 against 8, 1, 0; B2 to B4 and P1 to P6 and P8 held, K held in pairs a and b; B1 missed as recorded (R4b, one flaky base test) |
+| E5 | Do the placement fix's outcomes and the ledger's reading hold on a second domain, a base twenty times smaller, over four passes (chain B)? | pre-registered 2026-11-01 (journal Round 5): four live passes on the published ShipLoop, bar B1 to B6, no control; result below when it ran |
 
 **E1 predictions** are in the journal before the run, and [round1_readout.py](experiments/multipass-20261031/round1_readout.py) scores them from the run's own files. **Decision rule for E1:** a lost retained check or inherited hidden check means the leftovers
 are harmful, and D2 to D4 become urgent. A pass with the same hygiene as pass 2 means they are cost and noise, and E2 decides the fix.
@@ -192,7 +195,8 @@ merged only when E2 meets its bar.
  done     rebased onto main's 3.9-floor release and again onto main of 2026-11-01 (patch-id unchanged) ─► [E4: the fix on passes 3 and 4, six runs with a control each; B1 missed as recorded, B2 to B4 held]
  done     tier on the rebased tree ─► merged to main (2026-11-01, unreleased; its E2E round entry follows the feature commit, so the preflight passes)
  done     owner's word ("Yes, release") ─► released as skill-craft 2.31.0 / ShipLoop 1.30.0 by another session at 10:38 PT ─► hosts on 2.31.0 ─► live Codex smoke on the published tree passed
- next     chain B (small base, a second domain)
+ done     chain B built, calibrated on real pass-1 priors and pre-registered (Round 5)
+ next     chain B's four live passes, gate between passes, then the readout
 ```
 
 ## 9. Risks and unknowns
