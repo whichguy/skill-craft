@@ -186,8 +186,11 @@ schedule list a stage the table does not, or when a symbol in this table no long
 
 ## Run it
 
-Resolve the installed or checkout-local `scripts/shiploop` path as `CLI`, and
-use absolute repository and run-directory paths.
+Follow the selected-package binding in `SKILL.md`. Replace `/selected/shiploop`
+below with that logical absolute root, never an ambient checkout or cache.
+Startup/recovery use literal CLI heads and full output for the hook's marker;
+`CLI` remains the selected locator for other commands. Use absolute repository
+and run-directory paths and preserve the incoming prompt verbatim.
 
 Before any stage duty, choose exactly one entry route: `workspace start` for
 new Git-backed work, direct `init` for an explicitly selected in-place/non-Git
@@ -208,18 +211,18 @@ documents at document/carry-forward/handoff. Shared knowledge is context, not
 a second source of traversal state.
 
 ```sh
-python3 "$CLI" workspace start --repo="$REPO" --prompt='requested outcome'
+python3 '/selected/shiploop/scripts/shiploop' workspace start --repo="$REPO" --prompt='requested outcome'
 # Explicit direct/non-Git mode, without automatic workspace-return protection:
-python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --prompt='requested outcome'
+python3 '/selected/shiploop/scripts/shiploop' init --repo="$REPO" --run-dir="$RUN_DIR" --prompt='requested outcome'
 # Optional explicit selected actual Improve card for a new run:
-python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --improve-skill="$IMPROVE_SKILL" --prompt='requested outcome'
+python3 '/selected/shiploop/scripts/shiploop' init --repo="$REPO" --run-dir="$RUN_DIR" --improve-skill="$IMPROVE_SKILL" --prompt='requested outcome'
 # Opt a new run in to Ask-Agent delegation (the default is inline):
-python3 "$CLI" workspace start --repo="$REPO" --delegation=ask-agent --prompt='requested outcome'
+python3 '/selected/shiploop/scripts/shiploop' workspace start --repo="$REPO" --delegation=ask-agent --prompt='requested outcome'
 # Change an existing run's delegation for its future assignments:
 python3 "$CLI" delegation --run-dir="$RUN_DIR" --set=inline
 # Choose how many passes the Backchain planning child may take (one is the default; fixed for the run):
-python3 "$CLI" workspace start --repo="$REPO" --backchain-passes=converge --prompt='requested outcome'
-python3 "$CLI" next --run-dir="$RUN_DIR"
+python3 '/selected/shiploop/scripts/shiploop' workspace start --repo="$REPO" --backchain-passes=converge --prompt='requested outcome'
+python3 '/selected/shiploop/scripts/shiploop' next --run-dir="$RUN_DIR"
 python3 "$CLI" complete --run-dir="$RUN_DIR" --action="$ACTION"   # reads $RUN_DIR/inbox/$ACTION.md; --result takes only that path
 ```
 

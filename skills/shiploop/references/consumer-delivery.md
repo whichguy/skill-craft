@@ -16,11 +16,13 @@ flowchart LR
 
 ## Enable and recover
 
-Bind `CLI` from the selected ShipLoop skill as described in `SKILL.md`, then:
+Follow the selected-package binding in `SKILL.md`: replace `/selected/shiploop`
+with that logical absolute root. Use literal CLI heads, the exact incoming
+prompt and full startup/recovery output so the marker reaches the host hook:
 
 ```sh
-python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --delivery-contract --prompt='requested outcome'
-python3 "$CLI" next --run-dir="$RUN_DIR"
+python3 '/selected/shiploop/scripts/shiploop' init --repo="$REPO" --run-dir="$RUN_DIR" --delivery-contract --prompt='requested outcome'
+python3 '/selected/shiploop/scripts/shiploop' next --run-dir="$RUN_DIR"
 ```
 
 New runs opt in with `--delivery-contract` on `workspace start` or `init`.
