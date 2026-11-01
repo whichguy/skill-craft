@@ -235,3 +235,11 @@ Corrected in place on this date:
 
 The same corrections are in the FX round entry of test/shiploop_e2e/LEARNINGS.md and in
 docs/shiploop-question-driven-planning-journal.md (E14, E15, E16, F22).
+
+## Closed (2026-11-01)
+
+The candidate this study left, a check that each step's Proof can run its own new criteria, was replayed and then built
+in its narrow form: rule C of the proof-order refusal, released in skill-craft 2.27.4 / ShipLoop 1.26.4
+(docs/experiments/proof-coverage-replay-20261101, journal E17 and E18). The study closes at journal E21. On the runs made
+since the release, rule C neither fired nor refused any of 147 judged plans. Fix 1 and rule C are kept, and XR and XI
+are still not adopted. Characterization tests stay on hold. The conditions for reopening are in that folder's README.

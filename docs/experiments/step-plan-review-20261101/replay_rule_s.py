@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Replay candidate rule S (a focused-command segment) over saved step plans, read-only (step-plan review 2026-11-01,
-side replay; renamed from "Rule C" once the proof-order refusal's own rule C shipped in ShipLoop 1.27.0).
+side replay; renamed from "Rule C" once the proof-order refusal's own rule C shipped in ShipLoop 1.26.4).
 
 Usage: python3 -I replay_rule_s.py TRACES.txt OUT.jsonl
 
