@@ -2,10 +2,14 @@
 from __future__ import annotations
 
 import contextlib
+import fcntl
 import io
 import json
+import os
 import sys
 import tempfile
+import threading
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -16,9 +20,11 @@ state_home.isolate()
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 import boundary
+import environment
 import epoch
 import hosts
 import judge
+import listeners
 import review
 import run as runner
 
@@ -361,6 +367,105 @@ class EpochLaunchAndPredictionTest(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual([row["status"] for row in epoch.state(self.root)["attempts"]], ["recorded", "recorded"])
         self.assertEqual([row["sequence"] for row in epoch.events(self.root)], list(range(1, len(epoch.events(self.root)) + 1)))
+
+    def test_an_attempt_that_ends_before_a_sibling_waits_for_it_so_its_seal_stays_valid(self):
+        """Found live in the stage 4 pilot: scorecard.run_receipt binds the timeline, metrics and invocation files of every run
+        that overlapped an attempt, so an attempt sealed while a sibling was still writing read as changed evidence the moment the
+        sibling wrote again. Four of five parallel attempts ended invalid_evidence."""
+        both_started, control_returned = threading.Barrier(2, timeout=20), threading.Event()
+        spans = {"control-hello": (1000.0, 1500.0), "candidate-hello": (1200.0, 1700.0)}
+
+        def timeline(output, first, last):
+            stamps = [first, first + (last - first) / 3, first + 2 * (last - first) / 3, last]
+            (output / "timeline.jsonl").write_text("".join(json.dumps({"line": n, "t": t}) + "\n"
+                                                           for n, t in enumerate(stamps)))
+
+        def fake(argv):
+            output = Path(argv[argv.index("--output") + 1])
+            output.mkdir()
+            timeline(output, *spans[output.name])
+            (output / "invocation.json").write_text(json.dumps({"case": "hello", "host": "codex", "versions": {}}))
+            both_started.wait()  # each timeline exists before either result records its overlap
+            descriptor = os.open(output / listeners.LOCK_NAME, os.O_CREAT | os.O_RDWR)
+            fcntl.flock(descriptor, fcntl.LOCK_EX)  # a harness holds the folder's lock for as long as its run lives
+            try:
+                if output.name == "candidate-hello":
+                    control_returned.wait(20)
+                    time.sleep(0.4)  # still running after its sibling returned, and still writing
+                    timeline(output, 1200.0, 1750.0)
+                (output / "result.json").write_text(json.dumps({"pass": True, "environment": {
+                    "overlap": environment.overlap(output)}}))
+            finally:
+                fcntl.flock(descriptor, fcntl.LOCK_UN)
+                os.close(descriptor)
+            if output.name == "control-hello":
+                control_returned.set()
+            return 0
+        errors = []
+
+        def launch(arm):
+            try:
+                epoch.launch(self.root, arm + "-hello", self.plugin)
+            except Exception as error:  # noqa: BLE001 - reported below
+                errors.append(error)
+        with mock.patch.object(runner, "main", side_effect=fake), mock.patch.object(epoch, "SIBLING_POLL", 0.05), \
+                mock.patch.object(epoch, "SIBLING_WAIT", 10.0):
+            threads = [threading.Thread(target=launch, args=(arm,)) for arm in ("control", "candidate")]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(60)
+        self.assertEqual(errors, [])
+        self.assertEqual([row["status"] for row in epoch.state(self.root)["attempts"]], ["recorded", "recorded"],
+                         "an attempt sealed beside a sibling that was still writing is invalid evidence")
+
+    def run_folder(self, name, first, last, inside=True):
+        folder = (self.root / "runs" if inside else self.temp / "elsewhere") / name
+        folder.mkdir(parents=True)
+        stamps = [first, first + (last - first) / 3, first + 2 * (last - first) / 3, last]
+        (folder / "timeline.jsonl").write_text("".join(json.dumps({"line": n, "t": t}) + "\n" for n, t in enumerate(stamps)))
+        (folder / "invocation.json").write_text(json.dumps({"case": "hello", "host": "codex", "versions": {}}))
+        return folder
+
+    def running(self, folder):
+        """A harness holding the folder's lock, as run.py does for as long as its run lives; returns the way to let go."""
+        descriptor = os.open(folder / listeners.LOCK_NAME, os.O_CREAT | os.O_RDWR)
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+
+        def release():
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+            os.close(descriptor)
+        return release
+
+    def test_only_a_sibling_of_this_epoch_that_overlapped_and_still_runs_is_waited_for(self):
+        mine = self.run_folder("mine", 1000.0, 2000.0)
+        overlapping = self.run_folder("overlapping", 1500.0, 2500.0)
+        earlier = self.run_folder("earlier", 100.0, 900.0)
+        elsewhere = self.run_folder("elsewhere-run", 1500.0, 2500.0, inside=False)
+        releases = [self.running(folder) for folder in (overlapping, earlier, elsewhere)]
+        self.addCleanup(lambda: [release() for release in releases if release])
+        with mock.patch.dict(os.environ, {environment.RUNS_ROOT_ENV: str(self.temp)}):
+            self.assertEqual(epoch.live_siblings(self.root, mine), [overlapping.resolve()],
+                             "a run that ended before this one began, and a run outside the epoch, are not waited for")
+            releases[0]()
+            releases[0] = None
+            self.assertEqual(epoch.live_siblings(self.root, mine), [])
+
+    def test_settling_gives_up_after_its_wait_and_the_seal_is_then_refused_not_made_unstable(self):
+        mine = self.run_folder("mine", 1000.0, 2000.0)
+        sibling = self.run_folder("sibling", 1500.0, 2500.0)
+        release = self.running(sibling)
+        self.addCleanup(release)
+        began = time.monotonic()
+        left = epoch.settle_siblings(self.root, mine, wait=0.3, poll=0.05)
+        self.assertEqual(left, [sibling.resolve()])
+        self.assertGreaterEqual(time.monotonic() - began, 0.25)
+        with mock.patch.object(epoch, "registration", return_value={}), mock.patch.object(epoch, "attempt_spec"), \
+                mock.patch.object(epoch, "events", return_value=[
+                    {"kind": "launch_intent", "attempt_id": "mine", "output": str(mine), "at": "t"}]):
+            (mine / "result.json").write_text("{}")
+            with self.assertRaisesRegex(ValueError, "still running.*sibling"):
+                epoch.record_run(self.root, "mine")
 
     def test_a_second_launch_of_a_running_attempt_is_refused(self):
         def fake(argv):
