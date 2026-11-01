@@ -1,0 +1,58 @@
+rows 32 (25 frozen, 7 new); readers present: first, sol-a, sol-b, grok
+
+== agreement (fine = seven classes; coarse = five groups) ==
+pair              fine all   fine F  fine N  coarse all  coarse F  coarse N  kappa(coarse)
+first vs sol-a       28/32    22/25     6/7       30/32     23/25       7/7           0.91  <- main
+first vs sol-b       28/32    22/25     6/7       28/32     22/25       6/7           0.83
+first vs grok        30/32    23/25     7/7       30/32     23/25       7/7           0.91
+sol-a vs sol-b       30/32    24/25     6/7       30/32     24/25       6/7           0.91
+sol-a vs grok        30/32    24/25     6/7       32/32     25/25       7/7           1.00
+sol-b vs grok        30/32    24/25     6/7       30/32     24/25       6/7           0.91
+
+== confusion: first (rows) vs sol-a (columns), seven classes ==
+              decis  perso  capab  exten   debt   note    gap
+decision          2      1      0      0      0      0      0
+person            0      5      2      0      0      0      0
+capability        0      0      4      0      0      0      0
+extension         0      1      0      5      0      0      0
+debt              0      0      0      0      1      0      0
+note              0      0      0      0      0     11      0
+gap               0      0      0      0      0      0      0
+
+== rows where first and sol-a differ (fine) ==
+F01: first person | sol-a capability (alt person) | sol-b gap; grok person
+F18: first extension | sol-a person (alt extension) | sol-b person; grok person
+F23: first decision | sol-a person (alt decision) | sol-b person; grok person
+N1: first person (arguable) | sol-a capability (alt person) | sol-b gap; grok person
+4 differ; 1 of them on rows the first reader marked arguable (7 of 32 rows are marked)
+
+== gap ==
+first: 0 row(s) labelled gap []
+sol-a: 0 row(s) labelled gap []
+sol-b: 2 row(s) labelled gap ['F01', 'N1']
+grok: 0 row(s) labelled gap []
+labelled gap by a second reader (sol-a or sol-b): ['F01', 'N1']; also by the third reader (grok): []
+
+== decision ==
+first: 3 ['F08', 'F22', 'F23']
+sol-a: 2 ['F08', 'F22']
+sol-b: 2 ['F08', 'F22']
+grok: 2 ['F08', 'F22']
+design test row F22: first decision, sol-a decision, sol-b decision, grok decision
+design test row F11: first note, sol-a note, sol-b note, grok note
+jaccard(first, sol-a) = 0.67  (threshold 0.67)
+jaccard(first, sol-b) = 0.67   (context)
+jaccard(first, grok) = 0.67   (context)
+
+== 2-of-3 majority (first, sol-a, grok) ==
+final classes: decision 2, person 9, capability 4, extension 5, debt 1, note 11, gap 0; unresolved 0
+decision rows after majority: ['F08', 'F22']
+gap rows after majority: []
+decision rate over finished runs: first reader 3 of 166 (1.8%); after majority 2 of 166 (1.2%); the 2026-10-31 snapshot was 3 of 122
+
+== predictions written before the run (journal, Round 4) ==
+P1 sol-a labels no row gap: held (0)
+P2 coarse agreement first vs sol-a at least 26 of 32: held (30/32)
+P3 jaccard(first, sol-a) on decision at least 0.67: held (0.67)
+P4 at least half of the fine disagreements fall on arguable rows: missed
+P5 sol-a vs sol-b fine agreement at least 85% (28 of 32): held (30/32)

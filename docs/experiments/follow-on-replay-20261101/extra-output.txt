@@ -1,0 +1,30 @@
+rows labelled alike by all 4 readers: 28 of 32
+... by all four at the coarse level: 28 of 32
+
+class totals per reader
+            first    sol-a    sol-b     grok
+decision        3        2        2        2
+person          7        7        7        9
+capability        4        6        4        4
+extension        6        5        5        5
+debt            1        1        1        1
+note           11       11       11       11
+gap             0        0        2        0
+
+rows on which any two readers differ (an asterisk marks a row the first reader called arguable)
+F01  first person  sol-a capability (alt person)  sol-b gap (alt person)  grok person (alt capability)
+      Confirm rendering and click-through in an authenticated browser.
+F18  first extension  sol-a person (alt extension)  sol-b person (alt extension)  grok person (alt extension)
+      Optional: a test for the page's fetch-failure message and dark colour scheme, an expiry for abandoned games if the server is ever left running long, a
+F23  first decision  sol-a person (alt decision)  sol-b person (alt debt)  grok person (alt decision)
+      At handoff: record the requesting user's answer to A1 (person-level delivery) and state where the post-release knowledge lives (A2 — the run branch ti
+N1* first person  sol-a capability (alt person)  sol-b gap (alt capability)  grok person (alt capability)
+      Observe the authenticated Lightning board in de and exercise play and restart; do not treat local mock checks as rendered UI evidence.
+
+unanimous rows by the first reader's class
+  decision    2 of 3
+  person      5 of 7
+  capability  4 of 4
+  extension   5 of 6
+  debt        1 of 1
+  note        11 of 11

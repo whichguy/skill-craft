@@ -410,3 +410,46 @@ corpus is E2E cases, small and saturated.
 Files: `docs/experiments/follow-on-replay-20261101/` (`build_set.py`, `make_prompts.py`, `parse_reader.py`, `compare.py`,
 `rows.json`, `first-reader-new-rows.json`, `prompts/`). The archives live outside the repository, so `build_set.py` reproduces only
 on the owner's machine.
+
+### Result (2026-11-01; exploratory; 32 rows, four readers, E2E cases only)
+
+The three calls ran in parallel from 05:57:33: sol-a returned at 06:01:02 (3 min 29 s), sol-b at 06:01:11 (3 min 38 s), grok at 06:03:00
+(5 min 27 s). sol-a and sol-b: `gpt-6.1-sol`, effort xhigh, fallback off, read-only sandbox, web search disabled (the envelope says so);
+grok: `grok-4.7` (served `grok-4.7-build`, verified), effort xhigh, `--no-tools`. The Codex CLI printed a warning that its version (0.166.0) differs
+from the runner's contract (0.144.5). The prompt hashes in the status files matched the plan. No reply needed a rerun and no log shows a tool or command
+call. Evidence: `docs/experiments/follow-on-replay-20261101/` (`README.md`, `compare-output.txt`, `extra-output.txt`, `third-look.txt`, `readers/`).
+
+Findings:
+
+- F27 (interim; 32 rows). The first reader's classes hold across readers. All four label 28 of the 32 rows alike. First against sol-a: 28 rows
+  alike on the seven classes, 30 on the five coarse groups (kappa 0.91); against sol-b 28 and 28 (0.83); against grok 30 and 30 (0.91). The three other
+  readers agree with one another on 30 to 32 rows. `note` (11 rows), `debt` (1) and `capability` as the first reader read it (4) are unanimous.
+- F28 (interim). No gap is confirmed. The first reader, sol-a and grok labelled none. sol-b, with the classes listed in reverse order, labelled F01 and
+  N1 `gap` (sol-a called both `capability`, grok `person`); grok did not agree, and both runs record the open item with a person as owner and no authenticated
+  browser as the reason (`third-look.txt`). The `person` / `capability` / `gap` line is where the definitions are least stable: the same reader moved
+  across it when their order changed.
+- F29 (interim). `decision` is the only live class, and it is smaller than the first reader said. F08 (csv-report numeric forms) and F22 (the delivery route
+  of `ticket.assigned`) are `decision` for all four readers; F23 (record the requesting user's answer to A1, among other handoff duties) is `person` for all
+  three others. By majority: 2 rows out of 166 finished runs (1.2%); the first reader alone: 3 (1.8%); the snapshot: 3 of 122 (2.5%). Rule D is met exactly:
+  Jaccard(first, sol-a) is 2/3, by one row. The design's two test rows agree across all four readers (F22 `decision`, F11 `note`).
+- F30 (interim). One class per text is lossy. The rows the readers split on that are not the gap line, F18 and F23, each mix items of different classes (F18:
+  three optional items and an unconditional "stop it by hand"; F23: an answer to record, a place where knowledge lives, a readiness check). The follow-on list in the
+  design would classify entries, not whole texts, so this split would not arise there; whether readers agree entry by entry is not measured.
+- F31 (firm, about the first reader). The `arguable` flags did not predict disagreement. Of the seven flagged rows (F03, F11, F16, F22, N1, N6, N7) six kept the
+  first reader's class in every reader; the other three rows readers moved (F01, F18, F23) were not flagged. Prediction P4 missed. On F18 the majority is the better class.
+
+Predictions (written before the run; `compare.py` scores them): P1 (70%) held; P2 (65%) held, 30 of 32; P3 (55%) held, at the threshold; P4 (60%) missed, 1 of 4;
+P5 (60%) held, 30 of 32. Four of five.
+
+Rules applied. G: no gap is confirmed. N: with no gap, `decision` is the only live class, 2 of 166 by majority (3 by the first reader); the recommendation stays not
+to build the follow-on list until runs of the owner's own features show more. D: `decision` is separable from `extension` and `note` on this evidence, by one row.
+
+Not concluded: the classes are not shown to be right (every reader had the first reader's definitions); nothing about the value of a follow-on run (design M2b) or
+about the owner's own features (none of the 32 rows is one); the new rows are correlated (the same few ticket cases).
+
+Routine decisions: the post-hoc statistics are in `extra_stats.py`, separate from the pre-registered `compare.py`, which was not changed after the readers were called;
+the raw replies are kept in `readers/` and the readers' thinking summaries are not; the third look at the two gap candidates was made even though rule G was already not met
+(Grok did not agree), to record why they are not gaps.
+
+Open: revision 5 of the design folds this result in (the next commit); the owner's D1 to D4; M2a and M2b as before; a rerun of `peek.py` and this replay when runs of the owner's
+own features have finished (the cost is a few minutes and a few model calls).
