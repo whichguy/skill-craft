@@ -6007,3 +6007,25 @@ same window.
 merges. The gate was not changed: it is the owner's rule. A smaller fix would list non-merge commits only
 (`git log --no-merges`), or accept a merge whose parents are all covered; until then a release that follows two sessions' merges
 needs an entry like this one after the last merge.
+
+## Release preflight for Backchain 0.7.0: two merges of main into the Backchain branch are listed as ShipLoop changes without a round (2026-11-01) — status: firm; no round ran on the merges, and the gate is unchanged
+
+**What happened.** `scripts/release.py` for the Backchain efficiency release refused, naming two commits, both merges of main into
+`backchain-eff-9aea18`: c28866a6 and 147f5749. As c8c50e68 recorded for 2.31.0, `git log -- skills/shiploop changes/shiploop`
+keeps a merge that differs from both parents in those paths. The branch changed ShipLoop and main did too, so each merge does.
+
+**What stands behind the ShipLoop changes this release ships** (the non-merge commits since 5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a
+that touch `skills/shiploop/` or `changes/shiploop/`; checked one by one, not by the gate):
+- 90b9ac99e02d89efa8102f8686321da9ccccf554: ShipLoop's `backchain-check` imports its validator from Backchain's package. It carries its
+  own `No-E2E-Round:` trailer: receipts byte-identical on 95 inputs, no packet text changed.
+- 39af8ce04222fb49aa6d612e08b4dbabd73e5db3: ShipLoop's `converge` plan packet prints `Backchain passes: converge`. It carries its own
+  `No-E2E-Round:` trailer: 7 of 207 ShipLoop Backchain renders changed, all in `converge` mode; `one` and `none` are byte-identical.
+
+**Hermetic checks on the merged tree.**
+- At 147f5749, base cb5c85190ea463dce52eb240f2ffa7014f9b0974: the quick tier (39 suites) and the prompt tier (12 suites) pass.
+- The last merge, f57a9be8, brought in docs and experiment files only.
+- The Backchain change was measured in its own 60-run cohort (`docs/backchain-efficiency-journal-2026-11.md`, Rounds 8 and 9). That
+  cohort does not exercise ShipLoop.
+
+**Decision.** This entry follows both merges. It records that their non-merge commits were checked, not that a round ran on the
+merges or on a ShipLoop `converge` run. The gate is the owner's rule and is unchanged here.
