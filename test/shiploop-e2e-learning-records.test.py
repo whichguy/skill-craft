@@ -165,6 +165,34 @@ class LearningRecordsTest(LedgerCase):
         self.assertIsNone(lr.select(self.ledger, "user-listing", "csv-report"))
         self.assertEqual(lr.select(self.ledger, "gym-membership-salesforce", None), hosted)
 
+    def test_select_offers_a_seeded_record_whose_materiality_reads_high_and_never_a_minor_one(self):
+        """The seeded LR-20261030-5dce01 says materiality high where reviewers and the judge say material or minor. It was
+        admitted by the owner and verified, and a re-find reopens it; select compared the field to the exact string material,
+        so a re-found, re-admitted record could never be taken by a cycle, with no error."""
+        seeded = self.open_record("seeded", materiality="high")
+        lr.append("admitted", seeded, self.ledger)
+        minor = self.open_record("minor", materiality="minor")
+        lr.append("admitted", minor, self.ledger)
+        self.assertEqual(lr.select(self.ledger), seeded)
+        lr.append("predicted", seeded, self.ledger, prediction={"record": seeded}, candidate="abc")
+        self.assertIsNone(lr.select(self.ledger), "a minor record is still never taken")
+        checked_in = lr.current()["LR-20261030-5dce01"]
+        self.assertEqual(checked_in["materiality"], "high", "the one real row this is about")
+
+    def test_a_material_sighting_makes_a_record_that_was_opened_minor_material_and_a_minor_one_never_lowers_it(self):
+        """The restore pilot's record was opened minor (a pilot, never to be taken by a loop). A later review that found a
+        clear defect in a build and set same_as to it was judged material, but the fold kept the first row's minor, so the
+        record could be admitted and still never selected. A record is as material as its most material sighting."""
+        pilot = self.open_record("opened minor", materiality="minor")
+        lr.append("admitted", pilot, self.ledger)
+        self.assertIsNone(lr.select(self.ledger))
+        lr.append("opened", pilot, self.ledger, materiality="material", source={"case": "hello", "exposure": "development"})
+        self.assertEqual(lr.current(self.ledger)[pilot]["materiality"], "material")
+        self.assertEqual(lr.select(self.ledger), pilot)
+        lr.append("opened", pilot, self.ledger, materiality="minor", source={"case": "hello", "exposure": "development"})
+        self.assertEqual(lr.current(self.ledger)[pilot]["materiality"], "material", "a later minor sighting does not lower it")
+        self.assertEqual(lr.select(self.ledger), pilot)
+
     def test_ingest_routes_findings_and_attaches_a_recurrence(self):
         known = self.open_record("known")
         finding = {"id": "D1", "title": "again", "materiality": "material", "confidence": "high", "target": "shiploop",

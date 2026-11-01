@@ -1,0 +1,69 @@
+{
+  "sequence": 39,
+  "at": 1793572139.0354471,
+  "kind": "reviewed",
+  "attempt_id": "candidate-hello-hook-continuation-3",
+  "receipt": "receipts/candidate-hello-hook-continuation-3-epoch-38.json",
+  "receipt_sha256": "cdc24a84e1230989481432aae068374790295fb501fc8b18df190296e0b6ddbe",
+  "routes": {
+    "implementation": [],
+    "owner_challenges": [
+      {
+        "id": "D-SAME-ACTION-CONTINUATION",
+        "title": "The live checkpoint preserved the unfinished action",
+        "evidence": [
+          {
+            "reference": "home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-13-01a1987a-e2d1-7393-b5a4-7e27b4222fcd.jsonl:380",
+            "observation": "The native assistant response has phase final_answer and contains exactly the requested checkpoint message.",
+            "interpretation": "The intended premature-turn condition was exercised in the live subject session."
+          },
+          {
+            "reference": "events.jsonl:128-140; .shiploop-runs/work-20261101-185925-58197e/run/trace.jsonl:36",
+            "observation": "The agent created the product and appended the checkpoint once, the hook recorded continue, and the agent then verified the preserved files and completed the existing loop action and original navigator action.",
+            "interpretation": "This corroborates successful same-context continuation without replay in this attempt; it does not establish cold-context or repeated-live-stop reliability."
+          },
+          {
+            "reference": "shiploop-hook-contract-receipt.json",
+            "observation": "The separate installed-package fixture passed invalid-report preservation, active-loop continuation, terminal-loop continuation and callback acceptance checks; its scope explicitly identifies synthetic prior stages.",
+            "interpretation": "Mechanism evidence complements the live sequence but cannot substitute for observing model behavior."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-2",
+          "relationship": "supports",
+          "challenge": "No amendment is requested. The actual callbacks remain authoritative under S-1 and S-10; S-6 cold-context equivalence remains unobserved."
+        },
+        "materiality": "material",
+        "confidence": "high",
+        "potential_impact": "Preserving partial work through a premature turn can determine whether an unattended request finishes without repeating a consequential write.",
+        "alternatives": [
+          "The deliberately instructed checkpoint may be easier to recover from than a natural premature stop.",
+          "Other pending states, especially saved Improve passes or lost context, may behave differently."
+        ],
+        "next_experiment": "For the next recovery coverage investigation, exercise a fresh session after a valid saved Improve pass and verify the exact pending callback and absence of repeated work. Keep that mechanism result separate from a full exposing-plus-contrasting-style qualification; this run alone supports only its observed smoke-case condition.",
+        "target": "shiploop",
+        "files": [],
+        "proposal": "Attach this corroborating observation to the existing continuation learning. Retain the current mechanism; defer broader reliability claims until the missing recovery conditions are observed.",
+        "implementation_eligible": false,
+        "proposed_disposition": "defer",
+        "same_as": "LR-20261030-5dce01",
+        "judge_assessment": {
+          "id": "D-SAME-ACTION-CONTINUATION",
+          "status": "supported",
+          "reason": "High-confidence support for this material observation: the live checkpoint resumed the same unfinished action and completed its actual callbacks without observed replay. Evidence is limited to one deliberately induced, same-context stop; cold-context and repeated-live-stop reliability remain unobserved. Corroboration and deferral are appropriate for this implementation-ineligible finding.",
+          "evidence": [
+            "prompt.txt specifies the first-write checkpoint and same-action continuation; home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-13-01a1987a-e2d1-7393-b5a4-7e27b4222fcd.jsonl:380 records exactly HOOK_CONTINUATION_CHECKPOINT with phase final_answer.",
+            "events.jsonl:126-141 records the existing loop start, successful product creation and checkpoint append, passing preserved-file verification, successful done for mBPqR36TOXgt26dEmJOZsB-Y:1, and successful complete for the original nav-fbdaef8786a54572ba41e60fe9fb52b0 action.",
+            ".shiploop-runs/work-20261101-185925-58197e/run/trace.jsonl:36 records the hook's continue decision; line 38 records acceptance of that same implementation action and advancement to test.",
+            "work/checkpoint.log contains exactly one requested line; work/hello.py and work/test_hello.py contain the delivered greeting and two tests. result.json records passing checks, one ShipLoop run and zero driver resumes.",
+            "shiploop-hook-contract-receipt.json records passing preservation and callback checks while explicitly limiting its scope to a synthetic fixture. Commit 07734b9f1f2fb14f921fe279115ad280e2b932d7, inspected in candidate-tree, identifies LR-20261030-5dce01 and preserves the same reliability limitations."
+          ],
+          "disposition": "defer"
+        },
+        "routing": "investigate"
+      }
+    ],
+    "harness": []
+  }
+}
+exit=0

@@ -1,0 +1,359 @@
+{
+  "review": {
+    "outcome": "The checkout candidate delivered the requested greeting, passing unittest coverage and a successful same-action checkpoint continuation, with minor documentation, interface and progress-display conformance gaps.",
+    "version": 2,
+    "learnings": [
+      {
+        "title": "Reconcile planned knowledge with observed results",
+        "evidence": "S-11: work/docs/shiploop/architecture.md:7 still says the product and hook sequence do not yet exist; work/docs/shiploop/environment.md:33 calls TC_1 the sole case, while line 47 describes both delivered tests. The document result results/nav-f82ac7815cd24319994f01f845b6a7d0.md declares architecture and environment need no change, and its Improve review found no issue. The delivered tests and return verification contradict those retained statements.",
+        "proposal": "Refine the existing document and carry-forward duties to reconcile affected planned, pending and not-replayed statements with current evidence. Preserve useful historical observations as explicitly dated baseline facts and retain requirement/decision IDs. First test whether a cold reader of the returned living files answers the current test inventory and verification status correctly; do not add a keyword-based semantic pass gate.",
+        "files": [
+          "skills/shiploop/scripts/shiploop_prompts.py",
+          "skills/shiploop/references/testing-and-documentation.md",
+          "skills/shiploop/references/carry-forward.md"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "S-1 and S-11 remain intact: the model reconciles knowledge, while scripts retain acceptance, commits and navigation."
+      }
+    ],
+    "missing_considerations": [],
+    "optimizations": [
+      {
+        "title": "Print the current Improve command directly",
+        "evidence": "S-4/S-5: events.jsonl tool-call rows 62, 80, 106, 181, 203, 220 and 241 construct Python wrappers that load packet.json and execute next_argv. shiploop_navigator.py:7965 and :8343 instruct the model to run that array rather than supplying a literal command there. metrics.json reports empty model_glue, so that diagnostic does not establish conformance. Commit 07734b9f1f2fb14f921fe279115ad280e2b932d7 already records this wrapper pattern as an investigation.",
+        "proposal": "Continue the existing investigation with a narrow candidate that renders the receipt's current next command through the existing command-rendering mechanism. Keep model-authored review judgment and all real runtime callbacks. First test active, terminal and invalid receipts plus paths containing shell metacharacters; verify that rendering changes no state and never advertises a stale command. Do not infer whole-run savings from seven observed wrappers.",
+        "files": [
+          "skills/shiploop/scripts/shiploop_navigator.py",
+          "skills/shiploop/references/improve-child.md"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "S-1, S-2, S-4 and S-12 are preserved by deriving the exact command from authoritative state; the model neither selects the next stage nor fabricates completion."
+      },
+      {
+        "title": "Make every progress update script-rendered",
+        "evidence": "S-15: events.jsonl rows 33, 77, 116, 133, 142, 168, 200 and 279 contain model-composed progress. metrics.json.narrative records 20 emitted narratives, 19 shown verbatim and a skipped handoff narrative. status-display.md:3-5 prohibits model-written status, but :231-232 and :349 describe owner one-line updates without consistently requiring script text.",
+        "proposal": "Clarify the existing display instructions so hosts without visible hook output show the exact saved-state status or narrative unchanged. Preserve milestone coverage and suppress additional authored progress summaries. Replay a milestone and a nonmilestone exchange to distinguish card ambiguity from host-level communication instructions before claiming an improvement.",
+        "files": [
+          "skills/shiploop/SKILL.md",
+          "skills/shiploop/references/status-display.md"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "S-15 rendering remains script-owned, and no stage, review, check or navigation responsibility moves to the model."
+      }
+    ],
+    "discoveries": [
+      {
+        "id": "D-SAME-ACTION-CONTINUATION",
+        "title": "The live checkpoint preserved the unfinished action",
+        "evidence": [
+          {
+            "reference": "home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-13-01a1987a-e2d1-7393-b5a4-7e27b4222fcd.jsonl:380",
+            "observation": "The native assistant response has phase final_answer and contains exactly the requested checkpoint message.",
+            "interpretation": "The intended premature-turn condition was exercised in the live subject session."
+          },
+          {
+            "reference": "events.jsonl:128-140; .shiploop-runs/work-20261101-185925-58197e/run/trace.jsonl:36",
+            "observation": "The agent created the product and appended the checkpoint once, the hook recorded continue, and the agent then verified the preserved files and completed the existing loop action and original navigator action.",
+            "interpretation": "This corroborates successful same-context continuation without replay in this attempt; it does not establish cold-context or repeated-live-stop reliability."
+          },
+          {
+            "reference": "shiploop-hook-contract-receipt.json",
+            "observation": "The separate installed-package fixture passed invalid-report preservation, active-loop continuation, terminal-loop continuation and callback acceptance checks; its scope explicitly identifies synthetic prior stages.",
+            "interpretation": "Mechanism evidence complements the live sequence but cannot substitute for observing model behavior."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-2",
+          "relationship": "supports",
+          "challenge": "No amendment is requested. The actual callbacks remain authoritative under S-1 and S-10; S-6 cold-context equivalence remains unobserved."
+        },
+        "materiality": "material",
+        "confidence": "high",
+        "potential_impact": "Preserving partial work through a premature turn can determine whether an unattended request finishes without repeating a consequential write.",
+        "alternatives": [
+          "The deliberately instructed checkpoint may be easier to recover from than a natural premature stop.",
+          "Other pending states, especially saved Improve passes or lost context, may behave differently."
+        ],
+        "next_experiment": "For the next recovery coverage investigation, exercise a fresh session after a valid saved Improve pass and verify the exact pending callback and absence of repeated work. Keep that mechanism result separate from a full exposing-plus-contrasting-style qualification; this run alone supports only its observed smoke-case condition.",
+        "target": "shiploop",
+        "files": [],
+        "proposal": "Attach this corroborating observation to the existing continuation learning. Retain the current mechanism; defer broader reliability claims until the missing recovery conditions are observed.",
+        "implementation_eligible": false,
+        "proposed_disposition": "defer",
+        "same_as": "LR-20261030-5dce01"
+      },
+      {
+        "id": "D-IMPROVE-COMMAND-WRAPPERS",
+        "title": "A passing run still requires protocol translation",
+        "evidence": [
+          {
+            "reference": "events.jsonl:62,80,106,181,203,220,241",
+            "observation": "Seven tool calls use model-written Python to read next_argv from an Improve packet and execute it.",
+            "interpretation": "The interface repeatedly leaves mechanical command translation to the model despite successful graph execution."
+          },
+          {
+            "reference": "skills/shiploop/scripts/shiploop_navigator.py:7965,8343; metrics.json.model_glue",
+            "observation": "The instructions name the next_argv array, while the glue diagnostic reports no entries.",
+            "interpretation": "The empty diagnostic misses this observed S-4/S-5 gap and cannot certify a copy-only interface."
+          },
+          {
+            "reference": "Git commit 07734b9f1f2fb14f921fe279115ad280e2b932d7",
+            "observation": "The earlier qualification message explicitly records recurring Python protocol wrappers and assigns investigation rather than an adopted fix.",
+            "interpretation": "This is recurrence of an unresolved investigation, not a newly established efficiency gain."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-4",
+          "relationship": "supports",
+          "challenge": "No clause relaxation is proposed. Exact script-rendered commands would also serve S-5, while S-12 requires reusing one rendering mechanism."
+        },
+        "materiality": "minor",
+        "confidence": "high",
+        "potential_impact": "Direct commands could reduce quoting and dispatch mistakes, but this attempt shows no wrapper failure or measured savings.",
+        "alternatives": [
+          "The host may prefer wrappers even when literal commands are available elsewhere.",
+          "A rendering-only adjustment may suffice without a new verb or report format."
+        ],
+        "next_experiment": "Inspect the initial active Improve handoff and replay neutral receipt states with difficult path quoting. Determine whether one existing renderer can supply the exact command without extra state reads, mutation, stale commands or duplicated instructions. A later E2E comparison is required for cost or reliability claims.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/scripts/shiploop_navigator.py",
+          "skills/shiploop/references/improve-child.md"
+        ],
+        "proposal": "Continue the prior command-rendering investigation before admitting a candidate; preserve callbacks, receipt validation and current recovery behavior.",
+        "implementation_eligible": false,
+        "proposed_disposition": "investigate"
+      }
+    ],
+    "harness": {
+      "learning_retention": {
+        "answer": "Keep the append-only ledger, full learning commits and raw external evidence. No different storage scheme is justified by this run. The operator's learning commit and any ledger append remain pending outside this read-only review.",
+        "proposals": [
+          "Retain the exact build, driver, review bytes, native checkpoint location, hook trace, delivery snapshots and measurement limits; attach continuation corroboration to LR-20261030-5dce01.",
+          "Carry forward the wrapper investigation from 07734b9f1f2fb14f921fe279115ad280e2b932d7 and its explicit lack of demonstrated savings.",
+          "Record the independent judge assessment against this review's exact bytes before treating it as discovery-qualified; preserve prior frozen interpretations."
+        ]
+      },
+      "further_learning": {
+        "answer": "The useful gaps are fresh-context recovery, other pending callback states and whether stale living knowledge misleads a subsequent run. This single smoke case does not establish S-6 equivalence or S-8/S-13 breadth.",
+        "proposals": [
+          "Use the smallest saved-pass and fresh-session probes first, then qualify any retained engine change with one learning record, a prospective promotion/5 comparison and exposing-plus-generality coverage or an explicitly narrower claim.",
+          "Give a cold reader only the returned living files and measure whether it identifies the current two-test inventory and completed boundary verification.",
+          "Keep live checkpoint observations separate from the synthetic installed-package contract receipt. The readable transcript coalesces adjacent text; native rollout phase data establishes the exact FINAL message."
+        ]
+      },
+      "evaluation_criteria": {
+        "answer": "No new promotion floor or loop limit is justified. Existing obligations expose the observed gaps; measurement repairs should be separate evaluator experiments under S-9 and S-12.",
+        "proposals": [
+          "Investigate the reported disagreement between verification readers: metrics counts 10 commands while fidelity's JSON reader counts 6 runs. Preserve original records and reconcile declarations versus executions before using aggregate counts.",
+          "Retain the zero-mutant outcome as skipped and unobserved discrimination, never a successful mutation test.",
+          "Calibrate any automated live-continuation check against omitted or wrong-channel checkpoints, repeated writes and restarted loops; missing native evidence must remain unknown.",
+          "Keep timing incomparable for this overlapped attempt, retain unavailable dollars as null, and treat empty model_glue as a detector result rather than S-4/S-5 conformance."
+        ]
+      }
+    },
+    "process": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 332.9
+    },
+    "driver": {
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "effort": "xhigh"
+    },
+    "validity": {
+      "status": "valid",
+      "reason": null,
+      "discovery_qualified": true
+    },
+    "skill_source": {
+      "roots": [
+        "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/candidate-build/plugins/skill-craft/skills/shiploop"
+      ],
+      "basis": "the run's launch records",
+      "reason": null
+    },
+    "review_receipt": {
+      "stage_dir": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3/review-epoch-38",
+      "review_json": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3/review-epoch-38.json",
+      "review_markdown": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3/review-epoch-38.md"
+    },
+    "actionable": []
+  },
+  "judge": {
+    "review_sha256": "fb2388d8916b22400aa60e880c0c586db62910e50717bdd40085bbab907d8411",
+    "assessments": [
+      {
+        "id": "D-SAME-ACTION-CONTINUATION",
+        "status": "supported",
+        "reason": "High-confidence support for this material observation: the live checkpoint resumed the same unfinished action and completed its actual callbacks without observed replay. Evidence is limited to one deliberately induced, same-context stop; cold-context and repeated-live-stop reliability remain unobserved. Corroboration and deferral are appropriate for this implementation-ineligible finding.",
+        "evidence": [
+          "prompt.txt specifies the first-write checkpoint and same-action continuation; home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-13-01a1987a-e2d1-7393-b5a4-7e27b4222fcd.jsonl:380 records exactly HOOK_CONTINUATION_CHECKPOINT with phase final_answer.",
+          "events.jsonl:126-141 records the existing loop start, successful product creation and checkpoint append, passing preserved-file verification, successful done for mBPqR36TOXgt26dEmJOZsB-Y:1, and successful complete for the original nav-fbdaef8786a54572ba41e60fe9fb52b0 action.",
+          ".shiploop-runs/work-20261101-185925-58197e/run/trace.jsonl:36 records the hook's continue decision; line 38 records acceptance of that same implementation action and advancement to test.",
+          "work/checkpoint.log contains exactly one requested line; work/hello.py and work/test_hello.py contain the delivered greeting and two tests. result.json records passing checks, one ShipLoop run and zero driver resumes.",
+          "shiploop-hook-contract-receipt.json records passing preservation and callback checks while explicitly limiting its scope to a synthetic fixture. Commit 07734b9f1f2fb14f921fe279115ad280e2b932d7, inspected in candidate-tree, identifies LR-20261030-5dce01 and preserves the same reliability limitations."
+        ],
+        "disposition": "defer"
+      },
+      {
+        "id": "D-IMPROVE-COMMAND-WRAPPERS",
+        "status": "supported",
+        "reason": "High-confidence support for a minor interface gap: seven successful calls perform model-authored translation from receipt argv to execution, consistent with the handoff instructions. This conflicts with S-4's copy-command expectation. A rendering change is a reasonable investigation, but reduced errors, eliminated wrappers and whole-run savings are unproven.",
+        "evidence": [
+          "events.jsonl:62,80,106,181,203,220,241 each loads an Improve packet.json and executes next_argv through Python subprocess.run; corresponding result rows 63,81,107,182,204,221,242 all report exit code 0.",
+          ".shiploop-runs/work-20261101-185925-58197e/worktree/.shiploop-improve/test-strategy-e07b8721/handoff.md:7,126 directs execution of the receipt's next_argv without supplying the literal recovery command there.",
+          "home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/scripts/shiploop_navigator.py:7965,8343 generates those instructions; existing command rendering at lines 5133-5136 and 7705 supports investigating reuse rather than assuming a new interface is necessary.",
+          "metrics.json.model_glue is empty despite the observed wrappers; review-epoch-38/prompt.txt:142-152 states the S-4/S-5 expectations for copied commands and script-owned mechanical work.",
+          "Commit 07734b9f1f2fb14f921fe279115ad280e2b932d7, inspected in candidate-tree, explicitly records recurring Python wrappers despite a zero glue counter and assigns investigation without claiming savings."
+        ],
+        "disposition": "investigate"
+      }
+    ],
+    "process": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 129.5
+    },
+    "validity": {
+      "status": "valid",
+      "reason": null
+    },
+    "driver": {
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "effort": "xhigh"
+    },
+    "admitted": {
+      "implementation": [],
+      "owner_challenges": [
+        {
+          "id": "D-SAME-ACTION-CONTINUATION",
+          "title": "The live checkpoint preserved the unfinished action",
+          "evidence": [
+            {
+              "reference": "home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-13-01a1987a-e2d1-7393-b5a4-7e27b4222fcd.jsonl:380",
+              "observation": "The native assistant response has phase final_answer and contains exactly the requested checkpoint message.",
+              "interpretation": "The intended premature-turn condition was exercised in the live subject session."
+            },
+            {
+              "reference": "events.jsonl:128-140; .shiploop-runs/work-20261101-185925-58197e/run/trace.jsonl:36",
+              "observation": "The agent created the product and appended the checkpoint once, the hook recorded continue, and the agent then verified the preserved files and completed the existing loop action and original navigator action.",
+              "interpretation": "This corroborates successful same-context continuation without replay in this attempt; it does not establish cold-context or repeated-live-stop reliability."
+            },
+            {
+              "reference": "shiploop-hook-contract-receipt.json",
+              "observation": "The separate installed-package fixture passed invalid-report preservation, active-loop continuation, terminal-loop continuation and callback acceptance checks; its scope explicitly identifies synthetic prior stages.",
+              "interpretation": "Mechanism evidence complements the live sequence but cannot substitute for observing model behavior."
+            }
+          ],
+          "mission_anchor": {
+            "clause_id": "S-2",
+            "relationship": "supports",
+            "challenge": "No amendment is requested. The actual callbacks remain authoritative under S-1 and S-10; S-6 cold-context equivalence remains unobserved."
+          },
+          "materiality": "material",
+          "confidence": "high",
+          "potential_impact": "Preserving partial work through a premature turn can determine whether an unattended request finishes without repeating a consequential write.",
+          "alternatives": [
+            "The deliberately instructed checkpoint may be easier to recover from than a natural premature stop.",
+            "Other pending states, especially saved Improve passes or lost context, may behave differently."
+          ],
+          "next_experiment": "For the next recovery coverage investigation, exercise a fresh session after a valid saved Improve pass and verify the exact pending callback and absence of repeated work. Keep that mechanism result separate from a full exposing-plus-contrasting-style qualification; this run alone supports only its observed smoke-case condition.",
+          "target": "shiploop",
+          "files": [],
+          "proposal": "Attach this corroborating observation to the existing continuation learning. Retain the current mechanism; defer broader reliability claims until the missing recovery conditions are observed.",
+          "implementation_eligible": false,
+          "proposed_disposition": "defer",
+          "same_as": "LR-20261030-5dce01",
+          "judge_assessment": {
+            "id": "D-SAME-ACTION-CONTINUATION",
+            "status": "supported",
+            "reason": "High-confidence support for this material observation: the live checkpoint resumed the same unfinished action and completed its actual callbacks without observed replay. Evidence is limited to one deliberately induced, same-context stop; cold-context and repeated-live-stop reliability remain unobserved. Corroboration and deferral are appropriate for this implementation-ineligible finding.",
+            "evidence": [
+              "prompt.txt specifies the first-write checkpoint and same-action continuation; home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-13-01a1987a-e2d1-7393-b5a4-7e27b4222fcd.jsonl:380 records exactly HOOK_CONTINUATION_CHECKPOINT with phase final_answer.",
+              "events.jsonl:126-141 records the existing loop start, successful product creation and checkpoint append, passing preserved-file verification, successful done for mBPqR36TOXgt26dEmJOZsB-Y:1, and successful complete for the original nav-fbdaef8786a54572ba41e60fe9fb52b0 action.",
+              ".shiploop-runs/work-20261101-185925-58197e/run/trace.jsonl:36 records the hook's continue decision; line 38 records acceptance of that same implementation action and advancement to test.",
+              "work/checkpoint.log contains exactly one requested line; work/hello.py and work/test_hello.py contain the delivered greeting and two tests. result.json records passing checks, one ShipLoop run and zero driver resumes.",
+              "shiploop-hook-contract-receipt.json records passing preservation and callback checks while explicitly limiting its scope to a synthetic fixture. Commit 07734b9f1f2fb14f921fe279115ad280e2b932d7, inspected in candidate-tree, identifies LR-20261030-5dce01 and preserves the same reliability limitations."
+            ],
+            "disposition": "defer"
+          },
+          "routing": "investigate"
+        }
+      ],
+      "harness": []
+    },
+    "judge_receipt": {
+      "stage_dir": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3/review-judge-epoch-38",
+      "prompt": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3/review-judge-epoch-38/prompt.txt",
+      "events": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3/review-judge-epoch-38/events.jsonl",
+      "stderr": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3/review-judge-epoch-38/stderr.txt",
+      "verdict": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3/review-judge-epoch-38/verdict.json"
+    }
+  },
+  "routes": {
+    "implementation": [],
+    "owner_challenges": [
+      {
+        "id": "D-SAME-ACTION-CONTINUATION",
+        "title": "The live checkpoint preserved the unfinished action",
+        "evidence": [
+          {
+            "reference": "home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-13-01a1987a-e2d1-7393-b5a4-7e27b4222fcd.jsonl:380",
+            "observation": "The native assistant response has phase final_answer and contains exactly the requested checkpoint message.",
+            "interpretation": "The intended premature-turn condition was exercised in the live subject session."
+          },
+          {
+            "reference": "events.jsonl:128-140; .shiploop-runs/work-20261101-185925-58197e/run/trace.jsonl:36",
+            "observation": "The agent created the product and appended the checkpoint once, the hook recorded continue, and the agent then verified the preserved files and completed the existing loop action and original navigator action.",
+            "interpretation": "This corroborates successful same-context continuation without replay in this attempt; it does not establish cold-context or repeated-live-stop reliability."
+          },
+          {
+            "reference": "shiploop-hook-contract-receipt.json",
+            "observation": "The separate installed-package fixture passed invalid-report preservation, active-loop continuation, terminal-loop continuation and callback acceptance checks; its scope explicitly identifies synthetic prior stages.",
+            "interpretation": "Mechanism evidence complements the live sequence but cannot substitute for observing model behavior."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-2",
+          "relationship": "supports",
+          "challenge": "No amendment is requested. The actual callbacks remain authoritative under S-1 and S-10; S-6 cold-context equivalence remains unobserved."
+        },
+        "materiality": "material",
+        "confidence": "high",
+        "potential_impact": "Preserving partial work through a premature turn can determine whether an unattended request finishes without repeating a consequential write.",
+        "alternatives": [
+          "The deliberately instructed checkpoint may be easier to recover from than a natural premature stop.",
+          "Other pending states, especially saved Improve passes or lost context, may behave differently."
+        ],
+        "next_experiment": "For the next recovery coverage investigation, exercise a fresh session after a valid saved Improve pass and verify the exact pending callback and absence of repeated work. Keep that mechanism result separate from a full exposing-plus-contrasting-style qualification; this run alone supports only its observed smoke-case condition.",
+        "target": "shiploop",
+        "files": [],
+        "proposal": "Attach this corroborating observation to the existing continuation learning. Retain the current mechanism; defer broader reliability claims until the missing recovery conditions are observed.",
+        "implementation_eligible": false,
+        "proposed_disposition": "defer",
+        "same_as": "LR-20261030-5dce01",
+        "judge_assessment": {
+          "id": "D-SAME-ACTION-CONTINUATION",
+          "status": "supported",
+          "reason": "High-confidence support for this material observation: the live checkpoint resumed the same unfinished action and completed its actual callbacks without observed replay. Evidence is limited to one deliberately induced, same-context stop; cold-context and repeated-live-stop reliability remain unobserved. Corroboration and deferral are appropriate for this implementation-ineligible finding.",
+          "evidence": [
+            "prompt.txt specifies the first-write checkpoint and same-action continuation; home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-13-01a1987a-e2d1-7393-b5a4-7e27b4222fcd.jsonl:380 records exactly HOOK_CONTINUATION_CHECKPOINT with phase final_answer.",
+            "events.jsonl:126-141 records the existing loop start, successful product creation and checkpoint append, passing preserved-file verification, successful done for mBPqR36TOXgt26dEmJOZsB-Y:1, and successful complete for the original nav-fbdaef8786a54572ba41e60fe9fb52b0 action.",
+            ".shiploop-runs/work-20261101-185925-58197e/run/trace.jsonl:36 records the hook's continue decision; line 38 records acceptance of that same implementation action and advancement to test.",
+            "work/checkpoint.log contains exactly one requested line; work/hello.py and work/test_hello.py contain the delivered greeting and two tests. result.json records passing checks, one ShipLoop run and zero driver resumes.",
+            "shiploop-hook-contract-receipt.json records passing preservation and callback checks while explicitly limiting its scope to a synthetic fixture. Commit 07734b9f1f2fb14f921fe279115ad280e2b932d7, inspected in candidate-tree, identifies LR-20261030-5dce01 and preserves the same reliability limitations."
+          ],
+          "disposition": "defer"
+        },
+        "routing": "investigate"
+      }
+    ],
+    "harness": []
+  }
+}

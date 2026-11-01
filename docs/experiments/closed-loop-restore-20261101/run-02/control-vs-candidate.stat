@@ -1,0 +1,8 @@
+ skills/shiploop/references/keepalive.md       |  67 ++-------
+ skills/shiploop/scripts/shiploop_keepalive.py |  21 ++-
+ skills/shiploop/scripts/shiploop_navigator.py |  95 ------------
+ skills/shiploop/scripts/shiploop_protocol.py  |   2 -
+ test/shiploop-actual-improve-cli.test.py      |  36 -----
+ test/shiploop-keepalive.test.py               | 117 +++------------
+ test/shiploop-loops.test.py                   | 206 +-------------------------
+ 7 files changed, 43 insertions(+), 501 deletions(-)

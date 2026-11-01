@@ -20,6 +20,7 @@ import boundary
 import cycle
 import epoch
 import iterate
+import judge
 import learning_records as lr
 import prediction as predictions
 import purpose_check
@@ -664,6 +665,77 @@ class CycleTest(unittest.TestCase):
         self.assertTrue(any(case == "csv-report" for case, _running in beside) or
                         any("ticket-assignment" in {case, *running} for case, running in beside))
 
+    def sealed_epoch(self, name):
+        """A real epoch whose four attempts (hello and csv-report, both arms) are recorded and not yet reviewed."""
+        root, plugins = self.scheduler_epoch(name, {"hello": 1, "csv-report": 1})
+        self.run_scheduler(root, plugins)
+        self.assertEqual({row["status"] for row in epoch.state(root)["attempts"]}, {"recorded"})
+        return root
+
+    def assessments(self, root, attempt):
+        return len([row for row in epoch.events(root) if row["kind"] == "exposure" and row["attempt_id"] == attempt])
+
+    def fixture_review(self):
+        payload = {"version": 2, "outcome": "Fixture observation", "learnings": [], "missing_considerations": [],
+                   "optimizations": [], "harness": {}, "discoveries": []}
+        payload["validity"] = reviewer.validity(payload, {"status": "exited", "returncode": 0})
+        return payload
+
+    def run_review_all(self, root, judge_valid):
+        """cycle.review_all over a real epoch, a fake reviewer, and a fake judge whose answer fails the harness's own
+        consistency check (as two of six did live) whenever judge_valid(<run folder>) is false. Returns the judge's call count."""
+        def fake_judge(output, _review, **_kwargs):
+            return {"validity": {"status": "valid" if judge_valid(str(output)) else "failed"}, "assessments": []}
+
+        with mock.patch.object(reviewer, "review", return_value=self.fixture_review()), \
+                mock.patch.object(judge, "judge", side_effect=fake_judge) as independent:
+            cycle.review_all(root, root.parent / f"{root.name}-ledger.jsonl", "csv-report")
+        return independent.call_count
+
+    def test_review_all_assesses_an_incomplete_review_again_until_it_is_complete(self):
+        """Live, two of six judge answers failed the harness's validator; each attempt became review_incomplete and the epoch,
+        otherwise a PROMOTE, was downgraded to UNDECIDED, because review_all never looked at an incomplete attempt again."""
+        root = self.sealed_epoch("review-retry")
+        answers = iter([False, True, True, True, True])  # the first judgment is invalid, every later one is valid
+
+        calls = self.run_review_all(root, lambda _output: next(answers))
+
+        states = {row["id"]: row["status"] for row in epoch.state(root)["attempts"]}
+        self.assertEqual(set(states.values()), {"reviewed"})
+        self.assertEqual(calls, 5)
+        self.assertEqual(sorted(self.assessments(root, attempt) for attempt in states), [1, 1, 1, 2],
+                         "only the attempt whose judgment was invalid was assessed again, and with a new exposure")
+
+    def test_review_all_stops_at_its_bound_and_leaves_the_attempt_incomplete(self):
+        root = self.sealed_epoch("review-bound")
+
+        calls = self.run_review_all(root, lambda output: "control-hello-1" not in output)
+
+        self.assertEqual(self.assessments(root, "control-hello-1"), cycle.REVIEW_ASSESSMENTS)
+        self.assertEqual(calls, cycle.REVIEW_ASSESSMENTS + 3, "the three other attempts get one judgment each")
+        states = {row["id"]: row["status"] for row in epoch.state(root)["attempts"]}
+        self.assertEqual(states["control-hello-1"], "recorded", "epoch.state keeps an attempt recorded until a review completes")
+        last = [row for row in epoch.events(root) if row.get("attempt_id") == "control-hello-1"][-1]
+        self.assertEqual(last["kind"], "review_incomplete")
+        self.assertEqual({status for attempt, status in states.items() if attempt != "control-hello-1"}, {"reviewed"})
+        action = epoch.next_action(root)
+        self.assertEqual((action["action"], action["attempt_id"]), ("review", "control-hello-1"),
+                         "the epoch still wants this attempt reviewed, so a PROMOTE cannot be claimed without it")
+
+    def test_review_all_counts_assessments_made_before_it_was_called(self):
+        """A resumed cycle meets an attempt that is already incomplete: it picks it up, and the bound counts what was spent."""
+        root = self.sealed_epoch("review-resume")
+        failing = {"validity": {"status": "failed"}, "assessments": []}
+        with mock.patch.object(reviewer, "review", return_value=self.fixture_review()), \
+                mock.patch.object(judge, "judge", return_value=failing):
+            self.assertEqual(epoch.review_attempt(root, "control-hello-1")["kind"], "review_incomplete")
+            self.assertEqual(epoch.review_attempt(root, "control-hello-1")["kind"], "review_incomplete")
+
+        self.run_review_all(root, lambda output: "control-hello-1" not in output)
+
+        self.assertEqual(self.assessments(root, "control-hello-1"), cycle.REVIEW_ASSESSMENTS,
+                         "two assessments before the call plus one more, not three more")
+
     def test_launch_all_leaves_unclean_targets_queued_while_other_targets_and_local_runs_complete(self):
         cases = {"chess-salesforce": 2, "battleship-salesforce": 2, "csv-report": 2, "hello": 1}
         root, plugins = self.scheduler_epoch("blocked-target-queue", cases)
@@ -1070,6 +1142,54 @@ class RestoreKitTest(unittest.TestCase):
         refused = subprocess.run(["bash", str(script), "0" * 40, str(used)], capture_output=True, text=True, check=False)
         self.assertEqual(refused.returncode, 2, refused.stderr)
         self.assertIn("exists", refused.stderr)
+
+
+class PlantedKitTest(unittest.TestCase):
+    """The stage 5b planted-fault kit (docs/experiments/closed-loop-planted-20261101): checked without a model."""
+    KIT = ROOT / "docs" / "experiments" / "closed-loop-planted-20261101"
+
+    def test_the_script_plants_the_fault_in_a_local_commit_pushes_nothing_and_keeps_reviews_on(self):
+        script = self.KIT / "run.sh"
+        self.assertEqual(subprocess.run(["bash", "-n", str(script)], capture_output=True, text=True, check=False).returncode, 0)
+        text = script.read_text()
+        self.assertIn("\nhook_before=779980629a81ce0e740f7c196e83e000dd582d99\n", text)
+        self.assertIn("\nhook_after=7f25acff8dab239485f262249ec70773ba906aad\n", text)
+        self.assertIn('apply -R "$out/hook-delta.patch"', text)
+        self.assertIn("commit -q -F -", text, "one local commit holds the fault")
+        self.assertNotRegex(text, r"\bpush\b", "nothing here pushes, whatever the spelling of the command")
+        self.assertNotIn("--skip-reviews", text, "every attempt is reviewed")
+        self.assertIn("EFFORT:-xhigh", text, "the owner asked for Terra 6.1 at Extra High on 2026-11-01")
+        self.assertIn('--effort "$effort"', text)
+        self.assertIn("--case hello-hook-continuation --generality-case csv-report", text)
+        self.assertIn("unset SHIPLOOP_E2E_RUNS_ROOT", text)
+        catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
+        for case in ("hello-hook-continuation", "csv-report"):
+            self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
+            self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"), f"{case} declares a fixed port")
+        with tempfile.TemporaryDirectory() as used:
+            refused = subprocess.run(["bash", str(script), "0" * 40, used], capture_output=True, text=True, check=False)
+        self.assertEqual(refused.returncode, 2, refused.stderr)
+        self.assertIn("exists", refused.stderr)
+
+    def test_the_readme_says_the_loop_branch_is_never_merged_and_every_returned_file_is_collected(self):
+        readme = (self.KIT / "README.md").read_text()
+        text = (self.KIT / "run.sh").read_text()
+        self.assertIn("must never be merged", readme)
+        self.assertIn("instrument test", readme)
+        for returned in ("iterate-exit-status.txt", "loop-stdout.txt", "LOOP.md", "branches.txt", "planted-fault.stat",
+                         "planted-commit.txt", "epoch-events.jsonl", "receipts", "epoch-status.json", "cycle-result.json"):
+            self.assertIn(returned, text)
+            self.assertIn(returned, readme)
+
+    def test_the_fault_is_the_same_reverse_the_pilots_use(self):
+        pilot = (ROOT / "docs" / "experiments" / "closed-loop-pilot-20261101" / "run.sh").read_text()
+        text = (self.KIT / "run.sh").read_text()
+        for assignment in ("\nhook_before=779980629a81ce0e740f7c196e83e000dd582d99\n",
+                           "\nhook_after=7f25acff8dab239485f262249ec70773ba906aad\n"):
+            self.assertIn(assignment, pilot)
+            self.assertIn(assignment, text)
+        self.assertIn("':!changes'", pilot)
+        self.assertIn("':!changes'", text)
 
 
 class CycleKitTest(unittest.TestCase):

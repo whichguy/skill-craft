@@ -1,0 +1,395 @@
+{
+  "review": {
+    "outcome": "ShipLoop delivered and committed the requested greeting, unittest and preserved checkpoint, but the E2E run failed its independent missing-completion contract check.",
+    "version": 2,
+    "learnings": [
+      {
+        "title": "Restore continuation while the required completion is missing",
+        "evidence": "S-2 and S-10: shiploop-hook-contract-receipt.json records three allow/no-progress decisions for active_loop_missing_done, with unchanged product, state, receipt and loop-state hashes; each response omitted the current action and done command. The tested scripts/shiploop_keepalive.py:577-582 explicitly allows stopping on unchanged progress. Contrary evidence: the live run's trace.jsonl:39 continued at implement revision 13, and :86 allowed stopping only after done.",
+        "proposal": "Carry this evidence into LR-20261101-58f651 and its existing restoration candidate. Keep a valid active action awaiting its required completion under script control, and return its exact recovery/completion instructions without restarting the loop or replaying writes. Preserve explicit stop, blocked, terminal and ownership handling. This run alone does not qualify the candidate.",
+        "files": [
+          "skills/shiploop/scripts/shiploop_keepalive.py"
+        ],
+        "severity": "material",
+        "preserves_premise": true,
+        "premise_note": "S-1, S-2 and S-10 remain authoritative: scripts determine continuation and acceptance; neither elapsed effort nor the model's final message completes the action."
+      }
+    ],
+    "missing_considerations": [],
+    "optimizations": [
+      {
+        "title": "Print executable loop recovery and reporting commands",
+        "evidence": "S-4 and S-5: events.jsonl:189 parses a receipt and executes next_argv through model-written Python. Similar wrappers recur at events 63, 90, 120, 156, 246, 273, 294 and 325. Event 225 extracts an action value from done_argv using command substitution and assembles the completion command. scripts/shiploop_loops.py:497-501 and :521-540 instruct the model to run those arrays. metrics.model_glue is zero despite these directly observed wrappers.",
+        "proposal": "Investigate a thin ShipLoop adapter that prints or executes exact receipt-bound recovery and reporting commands through the existing Until Loop runtime. Keep judgments model-authored, but move argument extraction and command assembly into scripts. Measure any savings separately from the hook-restoration candidate.",
+        "files": [
+          "skills/shiploop/scripts/shiploop_loops.py"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "S-1 and S-12 require reuse of the existing runtime's action identity, validation and acceptance logic; the adapter must not create another navigator or loop implementation."
+      },
+      {
+        "title": "Remove instructions to compose progress updates",
+        "evidence": "S-15: scripts/shiploop_prompts.py:357-359 asks for one line 'of your own', and :512 asks for a line per stage. Transcript lines 39, 99, 117, 176 and 199 contain model-composed progress. metrics.narrative records 23 emitted narratives, 19 shown, 18 verbatim and 22 of 23 accepted results with headlines.",
+        "proposal": "Align the shared progress instruction and SKILL.md with script-rendered status: show the script's text unchanged when the host has not displayed it, once per milestone, without adding a composed substitute. Preserve host display handling and suppress unchanged repeats.",
+        "files": [
+          "skills/shiploop/scripts/shiploop_prompts.py",
+          "skills/shiploop/SKILL.md"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "S-15 assigns status rendering to scripts. This wording correction preserves script navigation and the grounding required by S-6 and S-7."
+      }
+    ],
+    "discoveries": [
+      {
+        "id": "D-01",
+        "title": "One successful live continuation does not exercise unchanged-progress completion",
+        "evidence": [
+          {
+            "reference": "shiploop-hook-contract-receipt.json: phases.active_loop_missing_done",
+            "observation": "All three repeated fixture decisions allowed stopping with no progress; current-action and done-command instructions were absent. Recorded snapshots remained unchanged.",
+            "interpretation": "The installed build retains a reproducible completion-contract defect even though this particular live action recovered."
+          },
+          {
+            "reference": ".shiploop-runs/work-20261101-184650-64e8cd/run/trace.jsonl:39,86; events.jsonl:181-191",
+            "observation": "The live hook continued once, recovery returned the same action and loop, and the final allow decision followed engine completion.",
+            "interpretation": "The live result is useful contrary evidence against a blanket claim that continuation is broken, but it does not refute the narrower unchanged-progress failure."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-2",
+          "relationship": "supports",
+          "challenge": "No amendment is proposed. S-1 and S-10 also require the unfinished action to remain under script control."
+        },
+        "materiality": "material",
+        "confidence": "high",
+        "potential_impact": "An unattended attempt can end before its required callback; the independent check already changed this run's overall verdict to failed.",
+        "alternatives": [
+          "The existing progress-based continuation suffices when the first premature stop follows recorded progress, as it did live here.",
+          "The fixture establishes the narrow mechanism failure; its frequency in ordinary model behavior is unknown."
+        ],
+        "next_experiment": "First replay an active action with unchanged progress and a missing done against the existing restoration candidate, checking exact action identity and unchanged product/loop state. Then exercise repeated premature finals live. A replay cannot qualify E2E benefit: retain prospective promotion/5, one learning record per candidate, and exposing-plus-another-style coverage or an explicitly narrower claim.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/scripts/shiploop_keepalive.py"
+        ],
+        "proposal": "Attach this recurrence and its live-success counterexample to the existing restoration investigation and candidate; do not open or bundle a second hook fix.",
+        "implementation_eligible": true,
+        "proposed_disposition": "implement",
+        "same_as": "LR-20261101-58f651"
+      },
+      {
+        "id": "D-02",
+        "title": "Receipt arrays leave mechanical command assembly to the model",
+        "evidence": [
+          {
+            "reference": "events.jsonl:189,225; tested scripts/shiploop_loops.py:497-540",
+            "observation": "The model parsed next_argv for recovery and extracted an action argument from done_argv for reporting; the printed instructions direct it to those arrays.",
+            "interpretation": "The runtime supplies authoritative values, but the handoff still requires mechanical glue rather than a command the model can copy."
+          },
+          {
+            "reference": "metrics.json: model_glue and fidelity.refusals",
+            "observation": "Both counters are zero despite the observed wrappers, and the run completed.",
+            "interpretation": "The interface burden is demonstrated; a reliability or efficiency gain from removing it has not yet been measured. The frozen glue counter is not exhaustive."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-4",
+          "relationship": "supports",
+          "challenge": "No amendment is proposed. S-5 assigns the assembly to scripts, while S-12 forbids duplicating the runtime."
+        },
+        "materiality": "minor",
+        "confidence": "high",
+        "potential_impact": "Copy-ready commands could reduce quoting mistakes and repeated wrapper construction; this run establishes no saved turns or avoided failure.",
+        "alternatives": [
+          "A host with direct argv execution may consume the existing arrays without shell glue.",
+          "Rendering exact commands may suffice without adding a dispatch adapter."
+        ],
+        "next_experiment": "Give a cold consumer only an active-loop recovery packet and then a reporting packet. Compare exact command rendering with the current arrays, including spaces in paths and stale action IDs. Require identical runtime acceptance and no restart; qualify any broader gain separately from hook restoration.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/scripts/shiploop_loops.py"
+        ],
+        "proposal": "Investigate command rendering before adding an adapter, preserving the existing loop runtime and script-issued identities.",
+        "implementation_eligible": false,
+        "proposed_disposition": "investigate"
+      },
+      {
+        "id": "D-03",
+        "title": "Progress guidance contradicts the script-rendered reporting contract",
+        "evidence": [
+          {
+            "reference": "tested scripts/shiploop_prompts.py:353-365,510-514; SKILL.md:294-308",
+            "observation": "The guidance combines exact narrative display with instructions to provide model-authored progress.",
+            "interpretation": "The engine supplies conflicting reporting duties rather than consistently enforcing S-15."
+          },
+          {
+            "reference": "transcript.md:39,99,117,176,199; metrics.json:narrative",
+            "observation": "Authored updates occurred; only 18 of 23 emitted narratives were recorded as shown verbatim.",
+            "interpretation": "The contradiction was accompanied by reporting deviations, although its causal contribution has not been isolated."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-15",
+          "relationship": "supports",
+          "challenge": "No amendment is proposed; retain script-rendered status and existing host display routes."
+        },
+        "materiality": "minor",
+        "confidence": "high",
+        "potential_impact": "Users may receive omitted or paraphrased progress despite an available saved-state narrative; delivery correctness was unaffected here.",
+        "alternatives": [
+          "Some omissions may be host-display or narrative-detection limitations.",
+          "Model attention may also contribute independently of the contradictory wording."
+        ],
+        "next_experiment": "Check emitted instructions for host-displayed and model-displayed status, then run a focused live milestone sequence. Verify exact text, no duplicate display and no composed substitute. Treat any full-run efficiency claim as requiring separate qualification.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/scripts/shiploop_prompts.py",
+          "skills/shiploop/SKILL.md"
+        ],
+        "proposal": "Remove the model-composition directive and state one consistent script-display rule while retaining all stage grounding.",
+        "implementation_eligible": true,
+        "proposed_disposition": "implement"
+      }
+    ],
+    "harness": {
+      "learning_retention": {
+        "answer": "Keep the existing append-only learning records and verbose operator-owned learning commits. Record this failed attempt even though its product passed. This read-only review does not create that commit or establish the required independent judge assessment.",
+        "proposals": [
+          "Append this recurrence to LR-20261101-58f651, retaining both the fixture failure and successful live continuation with their distinct evidence scopes.",
+          "Preserve the raw rollout: transcript.md:159 combines the checkpoint and subsequent commentary, while rollout line 505 establishes that the checkpoint itself was an exact final-channel message.",
+          "The operator should inspect full relevant source history before admitting separate changes, record the required learning commit, and obtain a fresh judge assessment bound to this review's exact bytes. Those actions remain pending outside this review."
+        ]
+      },
+      "further_learning": {
+        "answer": "The useful remaining distinction is between recovery after recorded progress and recovery when completion is still missing without new progress. Cold-context behavior and other task styles remain unobserved.",
+        "proposals": [
+          "Exercise repeated premature endings during the same active action, checking that completed writes are not replayed and loops are not restarted (S-2, S-6, S-10).",
+          "Use a contrasting non-smoke task family for qualification; preserve independent product checks and owned-resource cleanup (S-8, S-9, S-13).",
+          "Do not use this overlapped attempt for a wall-time improvement claim. Keep token totals, unknown dollar cost and timing validity distinct."
+        ]
+      },
+      "evaluation_criteria": {
+        "answer": "The existing criteria correctly failed this run. No relaxed floor or new universal metric is justified; improve the precision of evidence attribution and exercise the missing conditions.",
+        "proposals": [
+          "Continue distinguishing live checkpoint behavior from the selected-package synthetic contract receipt; neither substitutes for the other (S-9).",
+          "Retain explicit observations for action identity, missing done, preserved writes and loop continuity; do not treat final checkpoint bytes alone as proof of recovery (S-1, S-2, S-6).",
+          "Keep heuristic zero counts from being interpreted as full conformance: observed command glue and authored status remain reviewable facts despite counters (S-4, S-5, S-15).",
+          "Leave mutation discrimination, fresh-context equivalence and cross-style generality unobserved until exercised; packet size and review counts are diagnostics, not optimization targets (S-6, S-7, S-9, S-10, S-13)."
+        ]
+      }
+    },
+    "process": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 319.6
+    },
+    "driver": {
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "effort": "xhigh"
+    },
+    "validity": {
+      "status": "valid",
+      "reason": null,
+      "discovery_qualified": true
+    },
+    "skill_source": {
+      "roots": [
+        "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/control-build/plugins/skill-craft/skills/shiploop"
+      ],
+      "basis": "the run's launch records",
+      "reason": null
+    },
+    "review_receipt": {
+      "stage_dir": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/control-hello-hook-continuation-3/review-epoch-25",
+      "review_json": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/control-hello-hook-continuation-3/review-epoch-25.json",
+      "review_markdown": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/control-hello-hook-continuation-3/review-epoch-25.md"
+    },
+    "actionable": [
+      {
+        "title": "Restore continuation while the required completion is missing",
+        "evidence": "S-2 and S-10: shiploop-hook-contract-receipt.json records three allow/no-progress decisions for active_loop_missing_done, with unchanged product, state, receipt and loop-state hashes; each response omitted the current action and done command. The tested scripts/shiploop_keepalive.py:577-582 explicitly allows stopping on unchanged progress. Contrary evidence: the live run's trace.jsonl:39 continued at implement revision 13, and :86 allowed stopping only after done.",
+        "proposal": "Carry this evidence into LR-20261101-58f651 and its existing restoration candidate. Keep a valid active action awaiting its required completion under script control, and return its exact recovery/completion instructions without restarting the loop or replaying writes. Preserve explicit stop, blocked, terminal and ownership handling. This run alone does not qualify the candidate.",
+        "files": [
+          "skills/shiploop/scripts/shiploop_keepalive.py"
+        ],
+        "severity": "material",
+        "preserves_premise": true,
+        "premise_note": "S-1, S-2 and S-10 remain authoritative: scripts determine continuation and acceptance; neither elapsed effort nor the model's final message completes the action.",
+        "category": "learnings"
+      }
+    ]
+  },
+  "judge": {
+    "review_sha256": "955e892272250f1b1a4c5a44a948ffef40f4bf8247da7ef59ae1b8d04d41277c",
+    "assessments": [
+      {
+        "id": "D-01",
+        "status": "supported",
+        "reason": "The fixture and installed source establish a material missing-completion defect aligned with S-2 and S-10. The successful live continuation does not exercise unchanged-progress stopping. Implementation is eligible through the existing restoration candidate; this run does not establish its qualification or ordinary failure frequency.",
+        "evidence": [
+          "shiploop-hook-contract-receipt.json: active_loop_missing_done records three allow/no-progress decisions, missing action and done-command instructions, and identical before/after product, state, receipt and loop-state hashes.",
+          "home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/scripts/shiploop_keepalive.py:558-582 allows an owned active run to stop solely because progress is unchanged, without checking outstanding completion.",
+          ".shiploop-runs/work-20261101-184650-64e8cd/run/trace.jsonl:39-44,86 shows continuation at revision 13, recovery of the same action, subsequent acceptance, and final stopping after engine completion.",
+          "events.jsonl:182,190 preserves the same loop state and done action across recovery; result.json records passing greeting, unittest and checkpoint checks but a failed independent hook-contract check."
+        ],
+        "disposition": "implement"
+      },
+      {
+        "id": "D-02",
+        "status": "supported",
+        "reason": "Mechanical command assembly is directly demonstrated and conflicts with S-4/S-5. This is a minor, non-eligible finding: command rendering warrants investigation, while reliability gains, efficiency gains and adapter necessity remain unmeasured.",
+        "evidence": [
+          "events.jsonl:189 loads a receipt and executes next_argv through model-written Python; :225 extracts the action from done_argv and assembles a shell command. Both calls succeeded at :190 and :226.",
+          "home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/scripts/shiploop_loops.py:497-540 directs recovery and reporting through receipt arrays.",
+          "metrics.json contains an empty model_glue list and zero fidelity.refusals; these measurements do not negate the observed wrappers."
+        ],
+        "disposition": "investigate"
+      },
+      {
+        "id": "D-03",
+        "status": "supported",
+        "reason": "The source explicitly mixes script-rendered reporting with model-composed updates, supporting the S-15 mismatch. Causation of every omission and sufficiency of the proposed wording change remain unproven. Its minor materiality excludes implementation under the supplied routing rule.",
+        "evidence": [
+          "home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/scripts/shiploop_prompts.py:353-365,510-514 requests a line 'of your own' alongside unchanged narrative display; SKILL.md:294-308 repeats mixed reporting duties.",
+          "events.jsonl:51,117,137,205,231 contains authored progress updates corresponding to the cited transcript lines. Event :136 emits a step-plan narrative, while :137 supplies a composed update.",
+          "metrics.json:narrative records 23 emitted, 19 shown and 18 verbatim narratives. These counts establish reporting deviations without identifying each deviation's cause."
+        ],
+        "disposition": "investigate"
+      }
+    ],
+    "process": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 145.9
+    },
+    "validity": {
+      "status": "valid",
+      "reason": null
+    },
+    "driver": {
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "effort": "xhigh"
+    },
+    "admitted": {
+      "implementation": [
+        {
+          "id": "D-01",
+          "title": "One successful live continuation does not exercise unchanged-progress completion",
+          "evidence": [
+            {
+              "reference": "shiploop-hook-contract-receipt.json: phases.active_loop_missing_done",
+              "observation": "All three repeated fixture decisions allowed stopping with no progress; current-action and done-command instructions were absent. Recorded snapshots remained unchanged.",
+              "interpretation": "The installed build retains a reproducible completion-contract defect even though this particular live action recovered."
+            },
+            {
+              "reference": ".shiploop-runs/work-20261101-184650-64e8cd/run/trace.jsonl:39,86; events.jsonl:181-191",
+              "observation": "The live hook continued once, recovery returned the same action and loop, and the final allow decision followed engine completion.",
+              "interpretation": "The live result is useful contrary evidence against a blanket claim that continuation is broken, but it does not refute the narrower unchanged-progress failure."
+            }
+          ],
+          "mission_anchor": {
+            "clause_id": "S-2",
+            "relationship": "supports",
+            "challenge": "No amendment is proposed. S-1 and S-10 also require the unfinished action to remain under script control."
+          },
+          "materiality": "material",
+          "confidence": "high",
+          "potential_impact": "An unattended attempt can end before its required callback; the independent check already changed this run's overall verdict to failed.",
+          "alternatives": [
+            "The existing progress-based continuation suffices when the first premature stop follows recorded progress, as it did live here.",
+            "The fixture establishes the narrow mechanism failure; its frequency in ordinary model behavior is unknown."
+          ],
+          "next_experiment": "First replay an active action with unchanged progress and a missing done against the existing restoration candidate, checking exact action identity and unchanged product/loop state. Then exercise repeated premature finals live. A replay cannot qualify E2E benefit: retain prospective promotion/5, one learning record per candidate, and exposing-plus-another-style coverage or an explicitly narrower claim.",
+          "target": "shiploop",
+          "files": [
+            "skills/shiploop/scripts/shiploop_keepalive.py"
+          ],
+          "proposal": "Attach this recurrence and its live-success counterexample to the existing restoration investigation and candidate; do not open or bundle a second hook fix.",
+          "implementation_eligible": true,
+          "proposed_disposition": "implement",
+          "same_as": "LR-20261101-58f651",
+          "judge_assessment": {
+            "id": "D-01",
+            "status": "supported",
+            "reason": "The fixture and installed source establish a material missing-completion defect aligned with S-2 and S-10. The successful live continuation does not exercise unchanged-progress stopping. Implementation is eligible through the existing restoration candidate; this run does not establish its qualification or ordinary failure frequency.",
+            "evidence": [
+              "shiploop-hook-contract-receipt.json: active_loop_missing_done records three allow/no-progress decisions, missing action and done-command instructions, and identical before/after product, state, receipt and loop-state hashes.",
+              "home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/scripts/shiploop_keepalive.py:558-582 allows an owned active run to stop solely because progress is unchanged, without checking outstanding completion.",
+              ".shiploop-runs/work-20261101-184650-64e8cd/run/trace.jsonl:39-44,86 shows continuation at revision 13, recovery of the same action, subsequent acceptance, and final stopping after engine completion.",
+              "events.jsonl:182,190 preserves the same loop state and done action across recovery; result.json records passing greeting, unittest and checkpoint checks but a failed independent hook-contract check."
+            ],
+            "disposition": "implement"
+          }
+        }
+      ],
+      "owner_challenges": [],
+      "harness": []
+    },
+    "judge_receipt": {
+      "stage_dir": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/control-hello-hook-continuation-3/review-judge-epoch-25",
+      "prompt": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/control-hello-hook-continuation-3/review-judge-epoch-25/prompt.txt",
+      "events": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/control-hello-hook-continuation-3/review-judge-epoch-25/events.jsonl",
+      "stderr": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/control-hello-hook-continuation-3/review-judge-epoch-25/stderr.txt",
+      "verdict": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/control-hello-hook-continuation-3/review-judge-epoch-25/verdict.json"
+    }
+  },
+  "routes": {
+    "implementation": [
+      {
+        "id": "D-01",
+        "title": "One successful live continuation does not exercise unchanged-progress completion",
+        "evidence": [
+          {
+            "reference": "shiploop-hook-contract-receipt.json: phases.active_loop_missing_done",
+            "observation": "All three repeated fixture decisions allowed stopping with no progress; current-action and done-command instructions were absent. Recorded snapshots remained unchanged.",
+            "interpretation": "The installed build retains a reproducible completion-contract defect even though this particular live action recovered."
+          },
+          {
+            "reference": ".shiploop-runs/work-20261101-184650-64e8cd/run/trace.jsonl:39,86; events.jsonl:181-191",
+            "observation": "The live hook continued once, recovery returned the same action and loop, and the final allow decision followed engine completion.",
+            "interpretation": "The live result is useful contrary evidence against a blanket claim that continuation is broken, but it does not refute the narrower unchanged-progress failure."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-2",
+          "relationship": "supports",
+          "challenge": "No amendment is proposed. S-1 and S-10 also require the unfinished action to remain under script control."
+        },
+        "materiality": "material",
+        "confidence": "high",
+        "potential_impact": "An unattended attempt can end before its required callback; the independent check already changed this run's overall verdict to failed.",
+        "alternatives": [
+          "The existing progress-based continuation suffices when the first premature stop follows recorded progress, as it did live here.",
+          "The fixture establishes the narrow mechanism failure; its frequency in ordinary model behavior is unknown."
+        ],
+        "next_experiment": "First replay an active action with unchanged progress and a missing done against the existing restoration candidate, checking exact action identity and unchanged product/loop state. Then exercise repeated premature finals live. A replay cannot qualify E2E benefit: retain prospective promotion/5, one learning record per candidate, and exposing-plus-another-style coverage or an explicitly narrower claim.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/scripts/shiploop_keepalive.py"
+        ],
+        "proposal": "Attach this recurrence and its live-success counterexample to the existing restoration investigation and candidate; do not open or bundle a second hook fix.",
+        "implementation_eligible": true,
+        "proposed_disposition": "implement",
+        "same_as": "LR-20261101-58f651",
+        "judge_assessment": {
+          "id": "D-01",
+          "status": "supported",
+          "reason": "The fixture and installed source establish a material missing-completion defect aligned with S-2 and S-10. The successful live continuation does not exercise unchanged-progress stopping. Implementation is eligible through the existing restoration candidate; this run does not establish its qualification or ordinary failure frequency.",
+          "evidence": [
+            "shiploop-hook-contract-receipt.json: active_loop_missing_done records three allow/no-progress decisions, missing action and done-command instructions, and identical before/after product, state, receipt and loop-state hashes.",
+            "home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/scripts/shiploop_keepalive.py:558-582 allows an owned active run to stop solely because progress is unchanged, without checking outstanding completion.",
+            ".shiploop-runs/work-20261101-184650-64e8cd/run/trace.jsonl:39-44,86 shows continuation at revision 13, recovery of the same action, subsequent acceptance, and final stopping after engine completion.",
+            "events.jsonl:182,190 preserves the same loop state and done action across recovery; result.json records passing greeting, unittest and checkpoint checks but a failed independent hook-contract check."
+          ],
+          "disposition": "implement"
+        }
+      }
+    ],
+    "owner_challenges": [],
+    "harness": []
+  }
+}

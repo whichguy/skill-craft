@@ -1,0 +1,768 @@
+{
+  "case": "user-listing",
+  "host": "codex",
+  "backend": null,
+  "model": "gpt-6.1-terra",
+  "effort": "xhigh",
+  "pass": true,
+  "invoked": {
+    "pass": true,
+    "skill": "skill-craft:shiploop",
+    "evidence": "ShipLoop CLI ran"
+  },
+  "plugin": {
+    "pass": true,
+    "loaded": [
+      "skill-craft@whichguy 2.30.0"
+    ],
+    "wanted": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-cycle-06/loop/explore-1/build/plugins/skill-craft",
+    "path": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-cycle-06/loop/explore-1/run/home/.codex/plugins/cache/whichguy/skill-craft/2.30.0",
+    "output": "guy` from /Users/dadleet/e2e-runs/2026-11-01/closed-loop-cycle-06/loop/explore-1/build.\nInstalled marketplace root: /Users/dadleet/e2e-runs/2026-11-01/closed-loop-cycle-06/loop/explore-1/build\nAdded plugin `skill-craft` from marketplace `whichguy`.\nInstalled plugin root: /Users/dadleet/e2e-runs/2026-11-01/closed-loop-cycle-06/loop/explore-1/run/home/.codex/plugins/cache/whichguy/skill-craft/2.30.0"
+  },
+  "versions": {
+    "source": "checkout",
+    "plugin_version": "2.30.0",
+    "shiploop_version": "1.29.0",
+    "plugin_sha256": "852d67ee5006",
+    "local_head": "9bdd30ddc51cb76a0cea4e9bbfd0b95bb5bf57b7"
+  },
+  "prompt_sha256": "cad74b753941",
+  "start_route": "workspace",
+  "boundary": {
+    "evaluator": "dbb34edffdfa",
+    "oracle": "d22bbc2a78b3",
+    "case": "de5304d70fdb"
+  },
+  "host_build": "codex-cli 0.166.0",
+  "span": {
+    "started": 1793558149.263,
+    "ended": 1793558717.399
+  },
+  "identity_unmeasured": {},
+  "process": {
+    "status": "exited",
+    "returncode": 0,
+    "elapsed_seconds": 569.9,
+    "stop": "end_turn",
+    "sessions": [
+      {
+        "status": "exited",
+        "returncode": 0,
+        "elapsed_seconds": 569.9,
+        "stop": "end_turn",
+        "resumed": null,
+        "host": "codex"
+      }
+    ],
+    "resumes": 0,
+    "pass": true
+  },
+  "termination": {
+    "process_status": "exited",
+    "returncode": 0,
+    "sessions": 1,
+    "resumes": 0,
+    "session_stops": [
+      "end_turn"
+    ],
+    "resume_stop": "ShipLoop run is done",
+    "engine_status": "done",
+    "engine_stage": "done",
+    "engine_unaccepted_stage": null,
+    "engine_status_reason": null,
+    "engine_blocked_by": null,
+    "engine_awaiting_kind": null,
+    "engine_awaiting_no_default": null
+  },
+  "outcome_class": "PASS",
+  "outcome_basis": "every verdict passed",
+  "environment": {
+    "start": {
+      "observed": true,
+      "at": "2026-11-01T18:35:48Z",
+      "tools": {
+        "node": "v26.12.1",
+        "python3": "Python 3.15.1",
+        "git": "git version 2.54.0 (Apple Git-157)"
+      },
+      "cpus": 18,
+      "loadavg": [
+        20.63,
+        48.73,
+        72.2
+      ],
+      "display_hold": true,
+      "unread": {},
+      "browser": {
+        "declared": false,
+        "probed": false,
+        "reason": "no case or --need declares a browser"
+      }
+    },
+    "end": {
+      "observed": true,
+      "at": "2026-11-01T18:45:22Z",
+      "cpus": 18,
+      "loadavg": [
+        9.36,
+        17.01,
+        42.99
+      ],
+      "unread": {}
+    },
+    "hosts_used": [
+      "codex"
+    ],
+    "mixed_host": false,
+    "launches_unreadable": [],
+    "environments": [
+      {
+        "launch": "invocation.json",
+        "host": "codex",
+        "model": "gpt-6.1-terra",
+        "effort": "xhigh",
+        "host_build": "codex-cli 0.166.0",
+        "identity_unmeasured": {},
+        "environment": {
+          "observed": true,
+          "at": "2026-11-01T18:35:48Z",
+          "tools": {
+            "node": "v26.12.1",
+            "python3": "Python 3.15.1",
+            "git": "git version 2.54.0 (Apple Git-157)"
+          },
+          "cpus": 18,
+          "loadavg": [
+            20.63,
+            48.73,
+            72.2
+          ],
+          "display_hold": true,
+          "unread": {},
+          "browser": {
+            "declared": false,
+            "probed": false,
+            "reason": "no case or --need declares a browser"
+          }
+        },
+        "environment_reason": null
+      }
+    ],
+    "overlap": {
+      "observed": true,
+      "basis": "the first and last host event of this run and of each run folder under the runs root (timeline.jsonl holds host events only): it counts a pause between sessions, and misses the setup before the first event and the checks and reap after the last, so the seconds are neither an upper nor a lower bound; a run outside the root is not seen",
+      "root": "~/e2e-runs/2026-11-01/closed-loop-cycle-06/loop",
+      "span": {
+        "first": 1793558149.263,
+        "last": 1793558717.399
+      },
+      "siblings_read": 0,
+      "siblings_unreadable": [],
+      "ended_before": 0,
+      "runs": []
+    }
+  },
+  "left_behind": {
+    "observed": true,
+    "reaped": [],
+    "survived": []
+  },
+  "resources": {
+    "ledger": "resources.jsonl",
+    "leases": [
+      "port-3000"
+    ],
+    "contention": {
+      "observed": true,
+      "root": "~/e2e-runs/2026-11-01/closed-loop-cycle-06/loop",
+      "live_runs": [],
+      "same_host": [],
+      "same_model": []
+    },
+    "disk": {
+      "path": "~/e2e-runs/2026-11-01/closed-loop-cycle-06/loop/explore-1",
+      "free_bytes": 2643833118720,
+      "need_bytes": 2147483648,
+      "ok": true
+    },
+    "cleanup": {
+      "end": {
+        "observed": true,
+        "stopped": [],
+        "survived": [],
+        "gone": [],
+        "reused": [],
+        "unverified": [],
+        "protected": []
+      }
+    }
+  },
+  "keepalive": {
+    "installed": true,
+    "output": "the plugin's hooks/codex.json, run with the trust bypass",
+    "decisions": {
+      "allow": 1
+    }
+  },
+  "shiploop": {
+    "pass": true,
+    "run_dir": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-cycle-06/loop/explore-1/run/.shiploop-runs/work-20261101-183604-6f6d03/run",
+    "status": "done",
+    "stage": "done",
+    "revision": 30,
+    "report_html": true,
+    "runs": 1,
+    "identity": "recorded",
+    "worktree": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-cycle-06/loop/explore-1/run/.shiploop-runs/work-20261101-183604-6f6d03/worktree",
+    "knowledge": {
+      "spec": true,
+      "head": "834baaddd22570847432d1e00cadab0f35ca6f02",
+      "uncommitted": [],
+      "spec_tracked": true,
+      "requirement_ids": [
+        "R-1",
+        "R-2",
+        "R-3",
+        "R-4"
+      ],
+      "head_commits": 13,
+      "head_files": 15,
+      "untracked_files": 0,
+      "branches": [
+        "master",
+        "shiploop/run-d7d171a39dae9ffd"
+      ]
+    }
+  },
+  "committed": {
+    "pass": true,
+    "start_head": "fe93a1dec46de720e4a89b4b3ff1e0c08f3d53a1",
+    "head": "834baaddd22570847432d1e00cadab0f35ca6f02",
+    "head_files": 15,
+    "uncommitted": []
+  },
+  "checks": [
+    {
+      "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-base",
+      "pass": true,
+      "returncode": 0,
+      "output": "the delivery's own node --test passes 10 tests, the base's 7 and 3 more\n"
+    },
+    {
+      "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-base",
+      "pass": true,
+      "returncode": 0,
+      "output": "the base's 4 pristine test files pass against the delivered source: 7 of 7 tests\n"
+    },
+    {
+      "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;(async()=>{const all=await fetch(base+'/users').then(r=>r.json()); if(!Array.isArray(all)||all.length!==3) process.exit(2); const page=await fetch(base+'/users?page=1&size=2').then(r=>r.json()); const ok=page&&!Array.isArray(page)&&page.total===3&&page.pages===2&&Array.isArray(page.items)&&page.items.length===2; process.exit(ok?0:3);})().catch(()=>process.exit(6))\"",
+      "pass": true,
+      "returncode": 0,
+      "output": ""
+    }
+  ],
+  "cli": {
+    "sessions": [
+      {
+        "num_turns": 134,
+        "cost_usd": null,
+        "stop": "end_turn"
+      }
+    ],
+    "stop": "end_turn",
+    "num_turns": 134,
+    "cost_usd": null,
+    "truncated_outputs": null
+  },
+  "follow_on": null,
+  "base": {
+    "fixture": "node-base",
+    "digest": "8f445d24ed3c",
+    "start_head": "fe93a1dec46de720e4a89b4b3ff1e0c08f3d53a1",
+    "files": 11
+  },
+  "delivery": {
+    "before": {
+      "observed": true,
+      "head": "834baaddd22570847432d1e00cadab0f35ca6f02",
+      "tree": "580f1665134370c707a99ab1059bbe39373b8769",
+      "status": [],
+      "bundle": "delivery/work.bundle",
+      "bundle_bytes": 15610
+    },
+    "after": {
+      "observed": true,
+      "head": "834baaddd22570847432d1e00cadab0f35ca6f02",
+      "tree": "580f1665134370c707a99ab1059bbe39373b8769",
+      "status": []
+    }
+  },
+  "resumed_run": null,
+  "seeded": null,
+  "budget": null,
+  "expectations": {
+    "checks": "the request: the suite check reads 'Add node:test tests under test/ for the new behaviour' (more tests pass than the base's own); the pristine check reads 'its existing tests must still pass as they are', with the base's tests at their pristine bytes and apart from the delivery's own (SPEC: A brownfield case, pass-to-pass); the HTTP check reads the array GET /users still answers and the page object of one request"
+  },
+  "metrics": {
+    "claude_code_version": null,
+    "turns": 134,
+    "model_calls": 98,
+    "window_tokens": 475000,
+    "cost_usd": null,
+    "unreported_sessions": 0,
+    "compactions": 0,
+    "truncated_outputs": null,
+    "improve_children": 8,
+    "stages": [
+      {
+        "stage": "intake",
+        "outcome": "done",
+        "seconds": 27.7,
+        "turns": null,
+        "tool_calls": 6,
+        "context": {
+          "calls": 5,
+          "peak": 44169,
+          "peakPct": 9.3,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "discovery",
+        "outcome": "done",
+        "seconds": 21.0,
+        "turns": null,
+        "tool_calls": 5,
+        "context": {
+          "calls": 3,
+          "peak": 51968,
+          "peakPct": 10.9,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "research",
+        "outcome": "done",
+        "seconds": 9.0,
+        "turns": null,
+        "tool_calls": 0,
+        "context": {
+          "calls": 1,
+          "peak": 56470,
+          "peakPct": 11.9,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "spec",
+        "outcome": "done",
+        "seconds": 37.0,
+        "turns": null,
+        "tool_calls": 10,
+        "context": {
+          "calls": 7,
+          "peak": 84346,
+          "peakPct": 17.8,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "test-strategy",
+        "outcome": "done",
+        "seconds": 29.0,
+        "turns": null,
+        "tool_calls": 5,
+        "context": {
+          "calls": 4,
+          "peak": 97677,
+          "peakPct": 20.6,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "plan",
+        "outcome": "done",
+        "seconds": 30.0,
+        "turns": null,
+        "tool_calls": 6,
+        "context": {
+          "calls": 6,
+          "peak": 110673,
+          "peakPct": 23.3,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "prepare",
+        "outcome": "done",
+        "seconds": 8.0,
+        "turns": null,
+        "tool_calls": 1,
+        "context": {
+          "calls": 1,
+          "peak": 115098,
+          "peakPct": 24.2,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "step-plan",
+        "outcome": "done",
+        "seconds": 52.0,
+        "turns": null,
+        "tool_calls": 8,
+        "context": {
+          "calls": 9,
+          "peak": 132216,
+          "peakPct": 27.8,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "test-spec",
+        "outcome": "done",
+        "seconds": 25.0,
+        "turns": null,
+        "tool_calls": 6,
+        "context": {
+          "calls": 4,
+          "peak": 141631,
+          "peakPct": 29.8,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "validate-existing",
+        "outcome": "done",
+        "seconds": 0.0,
+        "turns": null,
+        "tool_calls": 0,
+        "context": {
+          "calls": 0,
+          "peak": null,
+          "peakPct": null,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "implement",
+        "outcome": "done",
+        "seconds": 36.0,
+        "turns": null,
+        "tool_calls": 6,
+        "context": {
+          "calls": 6,
+          "peak": 152358,
+          "peakPct": 32.1,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "test",
+        "outcome": "done",
+        "seconds": 40.0,
+        "turns": null,
+        "tool_calls": 7,
+        "context": {
+          "calls": 6,
+          "peak": 163639,
+          "peakPct": 34.5,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "document",
+        "outcome": "done",
+        "seconds": 47.0,
+        "turns": null,
+        "tool_calls": 10,
+        "context": {
+          "calls": 9,
+          "peak": 181041,
+          "peakPct": 38.1,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "carry-forward",
+        "outcome": "done",
+        "seconds": 37.0,
+        "turns": null,
+        "tool_calls": 8,
+        "context": {
+          "calls": 8,
+          "peak": 192116,
+          "peakPct": 40.4,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "system-test-author",
+        "outcome": "done",
+        "seconds": 24.0,
+        "turns": null,
+        "tool_calls": 4,
+        "context": {
+          "calls": 4,
+          "peak": 200059,
+          "peakPct": 42.1,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "system-test",
+        "outcome": "done",
+        "seconds": 7.0,
+        "turns": null,
+        "tool_calls": 2,
+        "context": {
+          "calls": 2,
+          "peak": 204819,
+          "peakPct": 43.1,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "product-acceptance",
+        "outcome": "done",
+        "seconds": 12.0,
+        "turns": null,
+        "tool_calls": 1,
+        "context": {
+          "calls": 1,
+          "peak": 209598,
+          "peakPct": 44.1,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "release-plan",
+        "outcome": "done",
+        "seconds": 30.0,
+        "turns": null,
+        "tool_calls": 5,
+        "context": {
+          "calls": 5,
+          "peak": 218797,
+          "peakPct": 46.1,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "release-check",
+        "outcome": "done",
+        "seconds": 26.0,
+        "turns": null,
+        "tool_calls": 5,
+        "context": {
+          "calls": 5,
+          "peak": 225565,
+          "peakPct": 47.5,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "release",
+        "outcome": "done",
+        "seconds": 17.0,
+        "turns": null,
+        "tool_calls": 4,
+        "context": {
+          "calls": 4,
+          "peak": 232968,
+          "peakPct": 49.0,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "release-verify",
+        "outcome": "done",
+        "seconds": 19.0,
+        "turns": null,
+        "tool_calls": 3,
+        "context": {
+          "calls": 3,
+          "peak": 238550,
+          "peakPct": 50.2,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "operations",
+        "outcome": "done",
+        "seconds": 11.0,
+        "turns": null,
+        "tool_calls": 1,
+        "context": {
+          "calls": 1,
+          "peak": 239681,
+          "peakPct": 50.5,
+          "compactions": 0
+        }
+      },
+      {
+        "stage": "handoff",
+        "outcome": "done",
+        "seconds": 15.0,
+        "turns": null,
+        "tool_calls": 3,
+        "context": {
+          "calls": 3,
+          "peak": 250413,
+          "peakPct": 52.7,
+          "compactions": 0
+        }
+      }
+    ],
+    "unmeasured": {
+      "stage_turns": "the host reports no per-call usage events (one total per session), so turns cannot be attributed to a stage",
+      "truncated_outputs": "only Grok's events carry this signal (rawOutput.truncated on a tool_call_update); this host's do not, so a count of 0 is a missing signal and not a measurement",
+      "cancelled_tool_calls": "only Grok's events carry this signal (a failed tool_call_update saying the user cancelled it, Grok's permission refusal); this host's do not, so a count of 0 is a missing signal and not a measurement",
+      "knowledge_reads": "only Grok's events carry this signal (a read tool call naming a file path); this host's do not, so a count of 0 is a missing signal and not a measurement"
+    },
+    "script_verifications": {
+      "records": 3,
+      "passed": 3,
+      "could_not_run": 0,
+      "commands": 6,
+      "red": 0
+    },
+    "planning_seconds": 223.0,
+    "model_glue": 0,
+    "tmp_writes": 0,
+    "asked_user": 0,
+    "narrative": {
+      "emitted": 21,
+      "shown": 20,
+      "verbatim": 20,
+      "results": 23,
+      "with_headline": 22
+    },
+    "shiploop_failures": 0,
+    "cancelled_tool_calls": null
+  },
+  "output": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-cycle-06/loop/explore-1/run",
+  "quality": {
+    "observed": true,
+    "declared": [
+      "acceptance"
+    ],
+    "hosts_used": [
+      "codex"
+    ],
+    "mixed_host": false,
+    "delivered_files": 15,
+    "acceptance": {
+      "observed": true,
+      "source": "hand-written from the request, never shown to the model, run in the harness process after the host ended (SPEC: Delivered quality is recorded, never judged); graded fail-to-pass and pass-to-pass against the base, and calibrated against the base, the reference, an alternative and targeted defects in test/fixtures/quality/reference_user_listing.py (SPEC: A brownfield case)",
+      "ids": [
+        "list-unchanged",
+        "user-by-id-unchanged",
+        "name-filter",
+        "name-plain-text",
+        "page-envelope",
+        "partial-last-page",
+        "page-past-end",
+        "page-defaults",
+        "filter-then-page",
+        "size-bounds",
+        "bad-page-or-size"
+      ],
+      "passed": [
+        "list-unchanged",
+        "user-by-id-unchanged",
+        "name-filter",
+        "name-plain-text",
+        "page-envelope",
+        "partial-last-page",
+        "page-past-end",
+        "page-defaults",
+        "filter-then-page",
+        "size-bounds",
+        "bad-page-or-size"
+      ],
+      "checks": [
+        {
+          "id": "list-unchanged",
+          "source": "the request: 'without `page` and `size`, GET /users still answers a JSON array of users in id order (every user unless `name` is given), any other query parameter is ignored'",
+          "pass": true,
+          "note": "2 listings answered with the expected users"
+        },
+        {
+          "id": "user-by-id-unchanged",
+          "source": "the request: 'and GET /users/:id is unchanged'",
+          "pass": true,
+          "note": "/users/2: HTTP 200 {\"id\": 2, \"name\": \"Grace Hopper\", \"email\": \"grace@example.com\"}; /users/42: HTTP 404"
+        },
+        {
+          "id": "name-filter",
+          "source": "the request: 'The `name` query parameter keeps only the users whose name contains it as plain text, ignoring case; an empty `name` keeps every user', read with 'without `page` and `size`, GET /users still answers a JSON array'",
+          "pass": true,
+          "note": "6 listings answered with the expected users"
+        },
+        {
+          "id": "name-plain-text",
+          "source": "the same sentence's 'as plain text', read for a name holding a pattern's characters (`a.a`, `.`, `(`): it matches only names that hold those characters, which a regular expression would not",
+          "pass": true,
+          "note": "3 listings answered with the expected users"
+        },
+        {
+          "id": "page-envelope",
+          "source": "the request: 'When either is given, the answer is a JSON object with \"page\", \"size\", \"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched) and \"items\" (the users on that page)'",
+          "pass": true,
+          "note": "1 pages answered as expected"
+        },
+        {
+          "id": "partial-last-page",
+          "source": "the request: 'page 1 holding the first `size` of them' and '\"pages\" (how many pages they fill)', read for users that do not fill the last page; the base's paginate drops that page",
+          "pass": true,
+          "note": "3 pages answered as expected"
+        },
+        {
+          "id": "page-past-end",
+          "source": "the request: 'a page after the last one answers an empty \"items\"'",
+          "pass": true,
+          "note": "1 pages answered as expected"
+        },
+        {
+          "id": "page-defaults",
+          "source": "the request: '`size` is 10 when only `page` is given and `page` is 1 when only `size` is given'",
+          "pass": true,
+          "note": "2 pages answered as expected"
+        },
+        {
+          "id": "filter-then-page",
+          "source": "the request: 'ask for one page of those users' and '\"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched)', read with a `name`",
+          "pass": true,
+          "note": "2 pages answered as expected"
+        },
+        {
+          "id": "size-bounds",
+          "source": "the request: '`size` a whole number from 1 to 100', read at both ends",
+          "pass": true,
+          "note": "2 pages answered as expected"
+        },
+        {
+          "id": "bad-page-or-size",
+          "source": "the request: '`page` must be a whole number of at least 1 and `size` a whole number from 1 to 100: any other value, an empty one included, answers HTTP 400 with a JSON object whose \"error\" says what is wrong'",
+          "pass": true,
+          "note": "every bad page or size answered 400 with an error and no users"
+        }
+      ]
+    },
+    "left_behind": {
+      "observed": true,
+      "reaped": [],
+      "survived": []
+    },
+    "memory_writes": null,
+    "held_out_seen": 0,
+    "notes": [
+      "held_out_seen counts event lines that name a held-out script, a calibration file, the checks folder or E2E_CHECKS; 0 is not proof the model never read the script: the harness prints the path of checks/ in its own command line and resume prompt"
+    ],
+    "unmeasured": {
+      "memory_writes": "the detector reads Claude's file-write calls and this run's launch records show codex"
+    },
+    "seconds": 0.9
+  }
+}
