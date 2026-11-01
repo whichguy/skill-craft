@@ -543,6 +543,15 @@ class RunTests(unittest.TestCase):
         _, accepted = self.caller_run(without_one_edge, "within-bounds", bounds)
         self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
 
+    def test_a_protected_fact_the_plan_never_stated_is_not_required(self):
+        """Pilot, 2026-11-01 (bounded-source-edge-repair): a caller's accepted fact outside the inherited initial_state
+        is protected from contradiction, not a fact the plan must add; an authorized repair freezes."""
+        bounds = {"provisional_step_ids": ["S2"], "provisional_edge_keys": ["S2<-S1"],
+                  "running_or_completed_step_ids": ["S1"],
+                  "protected_facts": ["S1 is already complete and its header map is recorded in artifacts/map.json"]}
+        _, frozen = self.caller_run(without_one_edge, "accepted-fact", bounds)
+        self.assertEqual(frozen.returncode, 0, frozen.stdout + frozen.stderr)
+
     def test_a_provisional_edge_gains_inputs_only_with_allow_new_edges(self):
         """Round 2's F4: a provisional edge may change, but one that ends with more inputs gained dependencies."""
         produce = "The importer logs each header it cannot map."

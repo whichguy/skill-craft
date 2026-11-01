@@ -1,0 +1,426 @@
+{
+ "schema": "backchain-efficiency-pilot-export/v1",
+ "campaign": "pilot-1",
+ "candidate_revision": "a0178072f8298be3276580544101a8b528434d89",
+ "model": "gpt-6-astra",
+ "effort": "medium",
+ "cli_version": "codex-cli 0.166.0",
+ "source": "/Users/dadleet/src/backchain/results/backchain-efficiency-20261101/cohort/pilot-1",
+ "attempts": [
+  {
+   "label": "bounded-source-edge-repair-candidate-r1",
+   "case": "bounded-source-edge-repair",
+   "outcome_ok": false,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "fail",
+    "loop_terminal": "fail",
+    "loop_gate": "fail",
+    "result_record": "fail",
+    "result_claim": "n/a",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [
+    {
+     "check": "loop_ran",
+     "detail": "no initial Until Loop packet in successful tool output"
+    },
+    {
+     "check": "loop_terminal",
+     "detail": "no terminal Until Loop packet in successful tool output"
+    },
+    {
+     "check": "loop_gate",
+     "detail": "gate None, expected 0 for the candidate arm"
+    },
+    {
+     "check": "result_record",
+     "detail": "artifacts/result.json holds no convergence or review.convergence record"
+    }
+   ],
+   "loop": {
+    "terminal_status": null,
+    "gate": null,
+    "expected_gate": 0,
+    "packets": 0
+   },
+   "cost": {
+    "wall_seconds": 93.425,
+    "input_tokens": 512942,
+    "cached_input_tokens": 462848,
+    "uncached_input_tokens": 50094,
+    "output_tokens": 2530,
+    "input_plus_output_tokens": 515472,
+    "commands": 12,
+    "code_blocks": 2,
+    "code_block_kinds": {
+     "python-stdin": 2
+    }
+   },
+   "conformance": {
+    "route": "partial toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "finish": 2,
+     "check": 2,
+     "package": 2
+    },
+    "runtime_commands": {},
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 0,
+    "binding_marker_in_loop": false,
+    "passes_marker_in_loop": false
+   },
+   "plan": {
+    "present": true,
+    "sha256": "64a75c56ef4fb5891595ab9f931c6d0c3ced60459ac9f658417b7bdb8bf95882",
+    "structure_ok": true,
+    "completion": "complete",
+    "unconfirmed_produces": 0
+   },
+   "result_shape": null,
+   "served_model": null
+  },
+  {
+   "label": "independent-inspection-scopes-candidate-r1",
+   "case": "independent-inspection-scopes",
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 1,
+    "expected_gate": 1,
+    "packets": 2
+   },
+   "cost": {
+    "wall_seconds": 137.346,
+    "input_tokens": 690082,
+    "cached_input_tokens": 622208,
+    "uncached_input_tokens": 67874,
+    "output_tokens": 4346,
+    "input_plus_output_tokens": 694428,
+    "commands": 14,
+    "code_blocks": 3,
+    "code_block_kinds": {
+     "python-stdin": 3
+    }
+   },
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 3,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   },
+   "plan": {
+    "present": true,
+    "sha256": "30be32df728cf9bac35a98bb1f80f20d701a7dbf817c352244a39a76e0ede9f7",
+    "structure_ok": true,
+    "completion": "complete",
+    "unconfirmed_produces": 0
+   },
+   "result_shape": "convergence",
+   "served_model": null
+  },
+  {
+   "label": "known-external-approval-blocker-candidate-r1",
+   "case": "known-external-approval-blocker",
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 1,
+    "expected_gate": 1,
+    "packets": 2
+   },
+   "cost": {
+    "wall_seconds": 107.801,
+    "input_tokens": 689601,
+    "cached_input_tokens": 624896,
+    "uncached_input_tokens": 64705,
+    "output_tokens": 3511,
+    "input_plus_output_tokens": 693112,
+    "commands": 14,
+    "code_blocks": 3,
+    "code_block_kinds": {
+     "script-file": 1,
+     "python-stdin": 2
+    }
+   },
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 3,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": null
+   },
+   "plan": {
+    "present": true,
+    "sha256": "af36b87a3a405ffd22ce751f309ee05c64bdbfc8a06d4804e34355c0be713feb",
+    "structure_ok": true,
+    "completion": "incomplete",
+    "unconfirmed_produces": 0
+   },
+   "result_shape": "convergence",
+   "served_model": null
+  },
+  {
+   "label": "legacy-draft-discovers-mapping-candidate-r1",
+   "case": "legacy-draft-discovers-mapping",
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "pass",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "cost": {
+    "wall_seconds": 117.484,
+    "input_tokens": 715743,
+    "cached_input_tokens": 655360,
+    "uncached_input_tokens": 60383,
+    "output_tokens": 3518,
+    "input_plus_output_tokens": 719261,
+    "commands": 15,
+    "code_blocks": 3,
+    "code_block_kinds": {
+     "python-stdin": 3
+    }
+   },
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 3,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   },
+   "plan": {
+    "present": true,
+    "sha256": "04a63edb7f19c17e9c3f7a1d328f8a72f81f16cc61e4850f4aec3c482e03fcc2",
+    "structure_ok": true,
+    "completion": "complete",
+    "unconfirmed_produces": 0
+   },
+   "result_shape": "convergence",
+   "served_model": null
+  },
+  {
+   "label": "missing-normative-redaction-source-candidate-r1",
+   "case": "missing-normative-redaction-source",
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "pass"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "stopped",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "cost": {
+    "wall_seconds": 101.737,
+    "input_tokens": 539222,
+    "cached_input_tokens": 466688,
+    "uncached_input_tokens": 72534,
+    "output_tokens": 3921,
+    "input_plus_output_tokens": 543143,
+    "commands": 18,
+    "code_blocks": 5,
+    "code_block_kinds": {
+     "python-stdin": 5
+    }
+   },
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "record": 1,
+     "check": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   },
+   "plan": {
+    "present": true,
+    "sha256": "8c3a90f8c1af7722a318eb55e5221b3f5d192d95b40de99592a2434a1b006ca5",
+    "structure_ok": true,
+    "completion": "incomplete",
+    "unconfirmed_produces": 0
+   },
+   "result_shape": "review.convergence",
+   "served_model": null
+  },
+  {
+   "label": "stale-build-receipt-identity-candidate-r1",
+   "case": "stale-build-receipt-identity",
+   "outcome_ok": true,
+   "checks": {
+    "process": "pass",
+    "input_drift": "pass",
+    "plan_structure": "pass",
+    "plan_completion": "pass",
+    "loop_ran": "pass",
+    "loop_terminal": "pass",
+    "loop_gate": "pass",
+    "result_record": "pass",
+    "result_claim": "pass",
+    "inherited_content": "n/a",
+    "protected_bounds": "n/a"
+   },
+   "errors": [],
+   "loop": {
+    "terminal_status": "complete",
+    "gate": 0,
+    "expected_gate": 0,
+    "packets": 2
+   },
+   "cost": {
+    "wall_seconds": 158.596,
+    "input_tokens": 571150,
+    "cached_input_tokens": 508288,
+    "uncached_input_tokens": 62862,
+    "output_tokens": 5068,
+    "input_plus_output_tokens": 576218,
+    "commands": 14,
+    "code_blocks": 3,
+    "code_block_kinds": {
+     "python-stdin": 3
+    }
+   },
+   "conformance": {
+    "route": "toolkit",
+    "toolkit_commands": {
+     "prepare": 1,
+     "freeze": 1,
+     "check": 2,
+     "record": 1,
+     "verify": 1,
+     "finish": 1
+    },
+    "runtime_commands": {
+     "start": 1,
+     "record": 1,
+     "done": 1
+    },
+    "done_argv_wrappers": 0,
+    "verify_script_runs": 1,
+    "binding_marker_in_loop": true,
+    "passes_marker_in_loop": true
+   },
+   "plan": {
+    "present": true,
+    "sha256": "7d09da5f0fcef8220b9672439d3f3149c9a1189e61a8fa930e2b186158d73da7",
+    "structure_ok": true,
+    "completion": "complete",
+    "unconfirmed_produces": 0
+   },
+   "result_shape": "convergence",
+   "served_model": null
+  }
+ ]
+}

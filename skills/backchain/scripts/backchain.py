@@ -305,10 +305,16 @@ def bound_errors(inherited: Any, candidate: Any, bounds: Dict[str, Any]) -> List
         # with more inputs than it had gained new dependencies, which only allow_new_edges grants.
         if len(after) > len(before) and not bounds.get("allow_new_edges"):
             errors.append(f"edge {key} gains an input without allow_new_edges")
-    facts = {graph.normalize_need_string(fact) for fact in candidate.get("initial_state", [])
-             if isinstance(fact, str)} if isinstance(candidate, dict) else set()
+    # A protected fact is an accepted fact: the plan must keep one it states in initial_state, but need not state one
+    # it never did (pilot, 2026-11-01: requiring "S1 is already complete ..." in initial_state refused a correct repair).
+    def facts(plan: Any) -> set:
+        return {graph.normalize_need_string(fact) for fact in plan.get("initial_state", [])
+                if isinstance(fact, str)} if isinstance(plan, dict) else set()
+
+    stated, kept = facts(inherited), facts(candidate)
     for fact in bounds.get("protected_facts") or []:
-        if isinstance(fact, str) and graph.normalize_need_string(fact) not in facts:
+        normalized = graph.normalize_need_string(fact) if isinstance(fact, str) else None
+        if normalized in stated and normalized not in kept:
             errors.append(f"protected fact removed from initial_state: {fact}")
     return errors
 

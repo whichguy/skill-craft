@@ -236,3 +236,38 @@ Two card fixes came from the runner's pilot watch-list:
   generated ID. `prepare --binding ID` now carries it.
 
 Neither card fix is measured yet; the pilot is their first live use.
+
+Round 5 landed as a0178072f8298be3276580544101a8b528434d89.
+
+Decision D3 (owner, 2026-11-01): this cohort keeps its own runner, `cohort.py` (the 2026-10-16 study's design), with
+gpt-6-astra medium, and does not use `test/shiploop_e2e/run.py` on Terra xhigh. I asked because the approved plan
+conflicts with a standing rule, recorded earlier that day, that every live-model measurement goes through `run.py`.
+
+## Round 6 — the pilot: six live runs of the candidate (2026-11-01)
+
+Conditions: `cohort.py freeze --pilot-only` at a0178072, then `cohort.py pilot`. The candidate arm ran on the six
+2026-10-16 cases, one repetition each, two at a time: gpt-6-astra medium through Codex CLI 0.166.0, a 30-minute
+deadline, no retries. The backend did not report the served model. The pilot is excluded from the cohort. Evidence:
+[`experiments/backchain-efficiency-20261101/pilot-1/pilot.json`](experiments/backchain-efficiency-20261101/pilot-1/pilot.json)
+(the six attempt summaries); raw run folders under
+`/Users/dadleet/src/backchain/results/backchain-efficiency-20261101/cohort/pilot-1/`.
+
+| Case | Outcome checks | Wall s | Tokens (in + out) | Uncached in | Commands | Code blocks | Loop end |
+|------|----------------|-------:|------------------:|------------:|---------:|------------:|----------|
+| stale-build-receipt-identity | pass | 158.6 | 576,218 | 62,862 | 14 | 3 | complete |
+| bounded-source-edge-repair | fail: the loop never ran | 93.4 | 515,472 | 50,094 | 12 | 2 | none |
+| known-external-approval-blocker | pass | 107.8 | 693,112 | 64,705 | 14 | 3 | complete |
+| legacy-draft-discovers-mapping | pass | 117.5 | 719,261 | 60,383 | 15 | 3 | complete |
+| missing-normative-redaction-source | pass (an honest stop) | 101.7 | 543,143 | 72,534 | 18 | 5 | stopped |
+| independent-inspection-scopes | pass | 137.3 | 694,428 | 67,874 | 14 | 3 | complete |
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R6-1 | Live models follow the scripted route. All six ran prepare and freeze; the five that froze ran record, verify, the loop's start and done, and finish. None hand-built a contract, receipt or identity check. Their 2–5 code blocks write the plan, assessment or review JSON, make a repair edit, or run the runtime's own `verify_script`. | firm (n = 6) | `pilot.json` `conformance`; event logs |
+| R6-2 | The new card lines took. 6 of 6 put the run directory under `artifacts/`, and 6 of 6 passed `--binding cohort-<case>`, so the caller's binding marker reached the loop. | firm (n = 6) | prepare commands in the event logs; `conformance.binding_marker_in_loop` |
+| R6-3 | A workflow-stopping defect, mine, from Round 4's F3 fix: the bounds check required every caller protected fact to be in `initial_state`. The bounded-repair case protects an accepted fact the inherited plan never stated ("S1 is already complete and its accepted article inventory is recorded in artifacts/article-inventory.json"), so `freeze` refused a correct, authorized repair. The model then refused to go beyond its edit bounds and stopped honestly. Fixed: a protected fact the inherited plan states must stay; one it never stated is not added. | firm (live, then test) | that attempt's events; `test_a_protected_fact_the_plan_never_stated_is_not_required` (fails on a0178072) |
+| R6-4 | Every attempt still read the Until Loop runtime document (28 KB), which the card no longer asks for; the Until Loop card points to it. The Until Loop tree must be identical in both arms, so this is out of scope here; it costs both arms alike. | exploratory | event logs |
+| R6-5 | Cost, descriptive only, with no control in the pilot. The five passing attempts' medians are 117.5 s, 689,601 input tokens (64,705 uncached), 3,921 output tokens and 14 commands. The 2026-10-16 control medians were 168 s, 967,778 input tokens (84,170 uncached), 7,507 output and 16.5 commands. The cohort's control arm is the comparison that counts. | exploratory | `pilot.json`; Round 0 R0-1 |
+
+Next: rerun the pilot at the fix's commit. The first pilot's folder moves to `cohort/pilot-1/`, because `freeze`
+refuses to overwrite a campaign.
