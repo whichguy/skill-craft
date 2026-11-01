@@ -29,7 +29,8 @@ not repeat old decisions and inherits some of them.
 | F8 A third pass works and repeats both leaks: 13 of 13 checks and 14 of 14 hidden checks passed and R-1 to R-7 were kept, but it added 8 stage-report headings (+6.0 KiB) to `environment.md` and filed AD-4 under `## Superseded`, below the mislabelled AD-3; a fourth pass has never run | firm for one run (E1) | Round 1 below |
 | F10 The candidate's notice, replayed over 58 real (commit, file) pairs, would have spoken in 57 of them at a knowledge commit and flagged nothing that was standing content beyond the release section X11 allows; both entries filed as retired when new (AD-3, AD-4) were written by `plan`, a stage the candidate's packet line does not reach | interim (offline replay, one case pair) | Round 2, [replay output](experiments/multipass-20261031/replay-placement-output.txt) |
 | F11 A request that replaces an earlier rule breaks two things the additive links never met: the nearest-declaration rule hands the new link a hidden check (the second link's at-most-once) that a correct delivery fails by design, and the ledger cannot tell a run that changed the old rule from one that left it standing unless the case names the entries it may change | firm (hermetic: `ModifiedRuleTest`, `MayChangeTest`) | Round 3 |
-| F9 The owner approved D1 to D5 as recommended (2026-10-31, "Approve all"); D2 to D4 are built as one candidate off main and wait for E2 | decision | Round 2 below |
+| F12 The candidate met its pre-registered bar in the A/B (E2): 12 of 12 runs passed and B1 to B5 held. The fix added 0 stray headings to `environment.md` in all six passes against 2 to 8 in the control (second passes: 0, 0, 0 against 7, 6, 8), its architecture file kept every decision under `Decisions`, and time and tokens did not differ (second-pass time 1.02 times, mean tokens 49.1 M against 49.0 M). B1 held without being tested (the control never filed a decision as retired in six passes); the notice caught that mislabel once live (B3 pass 2) | firm for three chains per arm, one case pair, Codex Terra, passes 1 and 2 only | [readout](experiments/multipass-20261031/round2-readout-output.txt), [cost and file views](experiments/multipass-20261031/round2-cost-output.txt), [ledgers](experiments/multipass-20261031/round2-ledgers.json), Round 2 result below |
+| F9 The owner approved D1 to D5 as recommended (2026-10-31, "Approve all"); D2 to D4 were built as one candidate off main; E2 met its bar (F12) and the release is the owner's decision | decision | Round 2 below |
 
 ## Round 0: eight saved runs read for what a second pass leaves (2026-10-31)
 
@@ -279,7 +280,7 @@ release procedure in environment.md under the run's heading, so the first releas
   rest held: the duty edits pull too little, so the notice is the only lever left and its effect is P4's survival count.
 - Limits. Three chains per arm, one case pair, one host and model. The saved runs come from four engine states, so arm A is run again here and not borrowed. The
   candidate has not run live: B1's first pass is its first live use, and a breakage there is a finding, not an excuse.
-- Status: running, then held (an external scheduling pause, below). E2 started at 17:33:58, when E1 ended; its first case, `A1-ticket-assignment`, was running at 17:47. The pause lifted at 18:29:09 and `A1-ticket-escalation` was running at 18:35.
+- Status: done at 21:40:17; the result is at the end of this round. E2 started at 17:33:58, when E1 ended; an external scheduling pause (below) sat between the two passes of chain A1, 17:47:28 to 18:29:09.
 
 **An external scheduling pause (not part of any measurement).** At about 17:45 the owner chose, for the shared port-4180 lane, the test-writing pilots of another session
 (relayed from its Codex chat "Review ShipLoop E2E improvement loop"): finish the active case, dispatch nothing more, let that session's two pilots run, resume E2 after the
@@ -313,6 +314,67 @@ first chain at 17:33:58, the moment E1 ended.
   of the eight that get the packet line, so for `plan` the notice (printed after the stage, to the next stage's model) is the only lever. B1 depends on a later stage moving
   the entry, and the ledger reads the final file. If B1 misses, `plan` is the first place to look, and arm A's six runs stay valid for a second candidate.
 - The candidate is not changed now: the design stands as registered, and a second candidate costs only new B runs because arm A is the same base.
+
+### Result of E2 (ran 2026-10-31 17:33:58 to 21:40:17; all 12 runs passed; firm for three chains per arm, one case pair, Codex gpt-6.1-terra at xhigh)
+
+The A/B met the bar it fixed before any run. Evidence: [readout](experiments/multipass-20261031/round2-readout-output.txt) (`round2_readout.py`),
+[cost and file views](experiments/multipass-20261031/round2-cost-output.txt) (`round2_cost.py`, written after the first B run to read why a time bar missed on a single pair),
+[the 12 run ledgers](experiments/multipass-20261031/round2-ledgers.json), the runs under `~/e2e-runs-multipass/20261031/e2/`, and the baseline rows of both arms in
+`test/shiploop_e2e/baselines.jsonl`. The external pause (17:47:28 to 18:29:09, above) sits between the two passes of chain A1 and no measure reads it.
+
+**The bar (the reading rule's five items).**
+
+| | bar | observed | |
+|---|---|---|---|
+| B1 | no entry filed as retired when new, in any fix pass | 0 of 6 fix passes (the control had 0 of 6 too) | held, but not tested: see below |
+| B2 | median stray headings added to `environment.md` in pass 2: fix at most 2, control at least 4 | fix 0, 0, 0 (median 0); control 7, 6, 8 (median 7) | held |
+| B3 | a fix pass that added a decision changed a live section of `architecture.md` | 6 of 6 fix passes; control 3 of 6 | held |
+| B4 | every run passes and no inherited hidden check is lost | 12 of 12 pass; none lost | held |
+| B5 | fix median pass-2 time at most 1.2 times the control's | 1,121.9 s against 1,105.2 s, 1.02 times (pass 1: 958.0 s against 924.7 s, 1.04 times) | held |
+
+The reading rule says that when B1 to B5 all hold, the release is recommended; the E2E round and `release.py` still apply, and the owner decides.
+
+**The predictions (written before any run).** P1 held. P2 missed, in the good direction: the fix's pass-2 median was 0, not 2 (1 to 3). P3 missed: the control's median was 7
+(at least 4), but it filed no new entry as retired in any of its six passes. P4: the notice printed in 6 of 6 fix passes (held); the readout counts two flagged items that
+survive to the end, but both are the legitimate `Commands` heading, and no final file of the 12 holds a repeated level-2 heading (the new file view), so I do not count a
+surviving flag as shown. P5 held (12 of 12). P6 held (1,121.9 s is within 15 percent of 1,105.2 s).
+
+**What the fix did, run by run** (stray = level-2 headings added to `environment.md` that match no named section).
+- Stray headings per pass: control 7, 7, 2, 6, 5, 8 (mean 5.8); fix 0 in all six. `environment.md` growth per pass: control 5.9 KB on average, fix 3.7 KB.
+- `environment.md` after pass 2: control 10.7, 13.3 and 11.5 KB, of which 8.1, 9.8 and 7.2 KB sit under stray headings; fix 7.0, 7.3 and 8.1 KB with none. The named sections hold
+  2.6 to 4.3 KB in the control and 7.0 to 8.1 KB in the fix, so the fix's file is smaller because the stage reports are gone, and it holds more under the sections it names. This is size
+  evidence only; I have not compared the facts one by one, and a stage report under a named heading would count as named.
+- `architecture.md` after pass 2: control 3.9, 3.8 and 3.3 KB, with 2.1, 1.7 and 1.7 KB under 4, 3 and 3 stray headings (A1's AD-4 and AD-5 sit under headings of their own); fix 2.7, 2.7 and 3.2 KB,
+  no stray heading, every decision under `Decisions`. In chain B2 the file holds 3 of its 7 named sections (Decisions, Real-boundary checks, Structure) with the same volume of text, and B3's second pass changed
+  only `Decisions`: the fix's runs sometimes write fewer sections. Whether that loses anything a later pass needs is not measured.
+- The notice printed once in each of the 6 fix passes. In pass 1 of every chain it came after `test-strategy` (printed in the packet of `plan`) and flagged a new `environment.md` heading that matches no named
+  section or repeats one (`Commands` in B1 and B3, "Focused and full commands" in B2); in pass 2 it came after `discovery` in B1 and B2 ("Bulk reassignment and escalation discovery", "Current request discovery") and
+  after `plan` in B3, where it flagged `AD-3` filed under `Superseded`. None of the five heading flags survives as a separate heading in the final files. The B3 flag is the mislabel of E1 and of 1 of 4 saved runs,
+  printed in the packet of `prepare`, which is the route the replay above predicted (`plan` writes the entry, the next stage is the only lever); the run moved it under `Decisions` and the final ledger has no entry
+  born retired. It is the first live catch of that leak. The control did not show the leak in six passes, so this A/B cannot say how often it would have happened without the fix.
+
+**What it cost.**
+- Time and tokens: mean tokens processed 49.1 M a run for the fix against 49.0 M for the control; model calls 200 against 206; mutation-check rounds (ShipLoop's test-quality gate, the main source of slow
+  runs) 2.7 against 2.8 a run. The control's own second passes span 13.3 to 21.5 minutes (A3 pass 2: six rounds of that gate), the fix's 18.1 to 19.0.
+- The seven stages whose wording the candidate changed: median 264 s for the fix against 205 s for the control in pass 1, and 221 s against 251 s in pass 2. The control's own spread over those stages
+  (192 to 307 s in pass 2) covers both, so no cost of the wording is shown. An earlier card of this session that read 80 s on three stages from the first pair was inside that spread and was withdrawn.
+
+**Limits and contrary evidence.**
+- Three chains per arm; one case pair (assignment then escalation); one host and model; one day on a shared machine. This session's own test suites ran between 18:27 and 18:41, overlapping the start of
+  A1 pass 2 (the fastest run, 795.9 s), and other sessions' runs were on the machine at other times.
+- The candidate is a bundle (the notice, the packet line, the six duty edits, the spec wording). The A/B cannot say which part does the work. The notice fired after `test-strategy` or `discovery` in five of the six passes,
+  stages that carry the packet line but no duty edit, and the passes still ended at 0 stray headings, which points at the notice and the packet line more than at the duty edits, but no arm lacks either.
+- B1 held without being tested, and the "survive" count of P4 is an upper bound (above). The fix runs ran from the frozen checkout of the candidate; arm A is the 1.26.0 tree, and main has since
+  released 1.26.1 (a fix in `shiploop_test_loop.py` that the candidate does not touch).
+- No fix run is a third or fourth pass: the leak compounds with the pass number (E1 added 8 stray headings in a third pass on published ShipLoop), and the fix has been seen only on passes 1 and 2. E3 (below) runs published ShipLoop,
+  so it shows the unfixed fourth pass, not the fix's.
+- `shiploop-e2e-brownfield-tickets` fails two of its calibration tests on this tree and on the unchanged parent commit (87d3da8e: 11 pairs re-graded against a limit of 4). Another session's learning commit
+  b1891ab4656613467a75427a6d57e902e94c3067 lists the same suite with two calibration failures on its own integrated candidate tree and says not to waive them. It looks like base-test flakiness under load,
+  not an effect of either change, and it is not investigated here.
+
+**Recommendation (for the owner).** The rule is met and the cost is not measurable, so the release is recommended. Before it: rebase the candidate on current main and rerun its tier on a quiet machine (its earlier tier runs
+failed two suites under a load average above 100; one of them, brownfield-tickets, fails on the parent too, and the other, lifecycle, passes alone), add the E2E round entry (this A/B is the round for the candidate; `release.py` reads commit order), then `release.py`, push and the host refresh.
+A fix-arm third or fourth pass (the candidate on a chain's later links, or chain B on a small base) is the next measurement and not a condition.
 
 ## Round 3: the fourth link, `ticket-sla`, the first that changes an earlier rule (built and calibrated 2026-10-31; the live run E3 is pending)
 
@@ -396,8 +458,7 @@ then takes the lease.
 ## Not done, and unknowns
 
 - Pass 3 and 4 behaviour on a live run (Round 1 is the first).
-- Whether naming the target heading in the reporting stages' duties, or a counted notice at each knowledge close, reduces
-  `stray_added`. The owner approved building it (2026-10-31); Round 2 is the A/B, and the ledger is its readout.
-- A modifying increment (a request that changes or retires an earlier requirement) and a second chain on a smaller base.
+- Which part of the candidate (the notice, the packet line, the duty edits) does the work, and whether it holds on a third and a fourth pass: E2 shows the bundle on passes 1 and 2 only (F12).
+- A second chain on a smaller base (designed, not built; D5 builds it after E2). The modifying increment, `ticket-sla`, is built (Round 3); its live run E3 runs on published ShipLoop.
 - An independent alternative delivery for `ticket-comments`, and a persistence check for the pass-4 link.
 - `knowledge_reads` on Codex is still empty; `delta.writes` is its heuristic replacement.
