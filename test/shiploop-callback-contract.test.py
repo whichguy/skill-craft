@@ -275,6 +275,7 @@ class RealCliCase(unittest.TestCase):
             "assumptions": [{"id": "A1", "assumption": "x holds", "disposition": "evidenced",
                              "evidence": [str(self.evidence)]}],
             "unverified": [],
+            "follow_on": [],
             "primary": ["R-1"],   # the spec's primary requirements (run-5 batch F6); fill_done writes R-1's entry
             # Intake's key-question ledger (duty 9): every catalog category once, and one routed question.
             "question_categories": [{"id": f"K{n}", "applies": "no", "reason": "Synthetic fixture."} for n in range(1, 13)],

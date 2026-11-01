@@ -5480,3 +5480,61 @@ other models (DeepSeek flash 3 of 21 plans short, Sonnet 3 of 7, Grok 3 of 5) it
 - Baseline rows appended to test/shiploop_e2e/baselines.jsonl: SP1's 3 xhigh runs and the 3 pilot runs at high (their
   effort is in each row).
 - Journal docs/shiploop-question-driven-planning-journal.md, E19 and E20.
+
+## Follow-on list at the handoff: E2E round on the Codex harness, Terra 6.1 xhigh (2026-11-01) — status: firm that a real model fills the list and the gate accepts it on the first try on four small requests (4 of 4 passed, 0 handoff refusals); the list found almost nothing to recommend (no gap, no decision) and the recommended-run path was not reached live
+
+**Change under test.** 826c951ccfdecb8f48e406f8fbdacb6a69daabbc, on origin/main d06e18a56ee43db8d04dc872e680d4efdd33f076 (release skill-craft 2.28.1 / ShipLoop
+1.27.0). The handoff's done result carries `follow_on`, a list of entries {class, statement, source, request_sentence, needs} with classes gap,
+decision, person, capability, extension, debt, note; the script refuses only mechanical faults (a missing list, an incomplete entry, a placeholder,
+a class outside the list, a source the run does not hold, a gap with no request sentence); a gap or a decision makes it write
+`follow-on-request.md` and print the command that starts a follow-on run, which it never starts. The design is
+docs/shiploop-follow-on-run-design-2026-10-31.md; the hermetic evidence (14 new tests, fail first) is in the feature commit's message. The runs
+started from 2da2d4f3d11b0f468c14ff48e6158a7bb334e8ee (the plan, journal Round 5, committed before any run), whose skill files are the feature's; every
+run loaded plugin tree bf3be9d89072. The tree to be released also holds ba3297d707329a6500ac036577d3f211b2e6a352 (one `except` clause for a workspace record
+that is missing, which a real isolated run always has) and test-only commits; the runs did not run those.
+
+**Runs.**
+- Command: `run.py --case <case> --host codex --model gpt-6.1-terra --effort xhigh --source checkout --timeout 5400 --output <folder>`, four at once
+  from this worktree, planning review `stage`. Output in `~/e2e-runs/2026-11-01/follow-on-live-436258/`. Pre-registered in 2da2d4f3d11b0f468c14ff48e6158a7bb334e8ee
+  (rules R1-R6, predictions P1-P6).
+- Cases: hello (1), csv-report (2: its saved runs gave the replay's `decision` row F08), seat-reservations (1). `user-listing` and the ticket cases were left out
+  because another session's pilots hold their port leases.
+- The machine's load was 51 at the start and 60 to 87 at the ends on 18 CPUs; each run overlapped five others (its siblings and two of another
+  session's calibration runs).
+
+**Result.** All four runs passed every verdict; each loaded plugin tree bf3be9d89072.
+
+| Case | Runs | Passed | Turns | Minutes | ShipLoop command failures | Handoff attempts (exit) | `follow_on` | Handoff head printed (whole) |
+|---|---|---|---|---|---|---|---|---|
+| hello | 1 | 1 | 143 | 12.4 | 0 | 1 (0) | `[]` | 16,850 (20,653) |
+| csv-report | 2 | 2 | 178, 185 | 17.5, 18.9 | 0, 1 | 1 (0), 1 (0) | one note each | 17,068 (20,762), 17,101 (20,855) |
+| seat-reservations | 1 | 1 | 216 | 20.0 | 5 | 1 (0) | `[]` | 17,462 (21,245) |
+
+- R1 holds (4 of 4 done, every verdict). R2 holds (0 refusals naming `follow_on`; every handoff accepted on its first `complete`). R3 holds on n = 2: both
+  entries (csv-report, class note, source `assumption:A2`) are supported by the assumption they cite. R4: entries 0, 1, 1, 0; one flag, not a defect
+  (seat-reservations filed `[]` while its `lessons.open_next` holds a revalidation condition and its considerations say the server has no authentication;
+  by the duty's words a note, and its summary says no follow-on is required). R5 not exercised (no gap, no decision, so no request file and no start
+  command). R6 holds: the handoff head printed 16,850 to 17,462 against the 20,000 cut; hello is +1,475 printed and +1,696 whole against the saved
+  Codex hello run (shiploop-hello-codex-floor-2c31ea: 15,375 and 18,957).
+- Predictions: P1, P2, P5, P6 held; P3 (at least 3 of 4 file an entry) missed, 2 of 4 did; P4 (a csv-report run files a decision) missed, neither did.
+- The model took the default for the open tie rule and header in both csv-report runs (plan assumption A2, which the ledger still shows `open` because it
+  never updates a disposition) and said so in a `note`; hello and seat-reservations had the same kind of A2, say a passing test settled it and filed
+  nothing.
+
+**Contrary evidence and unexplained.**
+- The list found almost nothing, as the design's own numbers predicted (decision in 1.2% to 1.8% of finished runs, no gap), so this round says the
+  mechanics hold and says nothing about whether the list finds what a person would want. The four requests are small and fully specified.
+- The `decision` the replay found in saved csv-report runs did not recur: both runs recorded a default. Whether that is the list or the model's
+  usual unattended behaviour (S-14) is not separable here: there is no arm without the list.
+- The one R4 flag (seat-reservations) shows the list can stay silent about a revalidation condition the model itself wrote in its lessons.
+- The ShipLoop command failures in seat-reservations (5) and csv-report-2 (1) are earlier-stage `shiploop check` refusals; no run was refused at the
+  handoff, so nothing here ties them to the change.
+
+**Not measured.** A recommended run live (the request file, the start command from a model-written list, intake's handling of a request that quotes
+findings, design U2); entry-level agreement between readers (U11); the owner's own features; the Claude and Grok hosts; efforts other than xhigh;
+`user-listing` and the ticket cases; cost (Codex reports none). Four lists are an existence check, not a rate.
+
+**Evidence.**
+- docs/experiments/follow-on-build-20261101/: README.md (the write-up), runs.json, readings.txt, verdicts.txt, extract_follow_on.py, read_records.py.
+- The four baseline rows are in test/shiploop_e2e/baselines.jsonl (`local_head` 2da2d4f3d11b0f468c14ff48e6158a7bb334e8ee); the evidence commit is 7c2ce6cb9345959292c38688106a4c8d16be865c.
+- Journal docs/shiploop-follow-on-run-journal.md, Round 5.

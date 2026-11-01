@@ -51,6 +51,9 @@ PRIMARY_ROW = dict(contract.UNVERIFIED_ENTRY, requirement="R-1", outcome="a pers
 PREREQUISITE_RUN = {"test-strategy": {"test_layers": [
     dict(contract.RESULTS["test-strategy"]["test_layers"][0], status="prerequisite",
          reason="prepare sets up the shell harness")]}}
+# A follow-on entry the handoff cites to the release-verify lessons, which every positioned run holds.
+FOLLOW_ON_ENTRY = {"class": "gap", "statement": "The export exits 0 on an unreadable file.",
+                   "source": "lessons.open_next", "request_sentence": "", "needs": "a work item that fixes the exit code"}
 ADD_TEST = {"outcome": "add-work", "summary": "Add the unit test that shows R-1's logic works.",
             "headline": "R-1 needs a lower-layer test.",
             "work_items": [{"id": "W2", "title": "Add a unit test of R-1's logic",
@@ -121,6 +124,16 @@ DODGES = [
      lambda block: {key: value for key, value in block.items() if key != "unverified"},
      "a done release-verify result restates unverified",
      lambda block: {**block, "unverified": []}),    # the named exit: drop the entry it observed; [] once none is open
+    # The follow-on list (design 4.4): not seen in a live run yet, so the rows name the design's mechanical checks.
+    ("a follow-on gap that maps to no sentence of the request", "the follow-on design, 4.4 (no live run yet)",
+     "handoff", None, lambda block: {**block, "follow_on": [FOLLOW_ON_ENTRY]},
+     "a gap maps to a sentence of the request",
+     lambda block: {**block, "follow_on": [dict(FOLLOW_ON_ENTRY, **{"class": "decision"})]}),   # a leftover that maps to none is a decision
+    ("a follow-on entry whose source is a commit typed from memory", "the follow-on design, 4.4 (no live run yet)",
+     "handoff", None, lambda block: {**block, "follow_on": [dict(FOLLOW_ON_ENTRY, **{"class": "note"},
+                                                                 source="commit:0123abc")]},
+     "names no commit in this repository",
+     lambda block: {**block, "follow_on": [dict(FOLLOW_ON_ENTRY, **{"class": "note"})]}),       # cite a record the run holds
 ]
 
 # improve-commit dodges (F5): (label, where it was seen, the files the fix touches, the message, refusal fragment, the
