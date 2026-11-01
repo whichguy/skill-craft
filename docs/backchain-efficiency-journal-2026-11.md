@@ -296,3 +296,25 @@ raw run folders under `/Users/dadleet/src/backchain/results/backchain-efficiency
 
 No workflow-stopping defect remains, so the cohort is frozen next, on this commit. Its skill trees are b655b804's;
 this commit changes only docs.
+
+## Round 8 — the cohort is frozen and running; amendment A1 before any grade (2026-11-01)
+
+The cohort was frozen at 1e77f30b1006ab95e24dc476d0151370ee296f53: 30 jobs, 60 attempts, control e81fdb55, Until Loop
+trees identical in both arms; `cohort.py verify` passes. Copies of the frozen protocol and of `freeze.json` are in
+[`experiments/backchain-efficiency-20261101/cohort/`](experiments/backchain-efficiency-20261101/cohort/).
+
+Two conditions of the run:
+- The branch merged `origin/main` (c28866a6) while the first attempts ran; the attempts run from frozen snapshots
+  and are unaffected.
+- `test/test-groups.test.py` (249 s) ran on the same machine during the first two attempts, so their wall times
+  carry that extra load. The quick tier was deferred until the runs end, for the same reason.
+
+Amendment A1, decided at about 09:50, before any grade or analysis (`AMENDMENTS.md` beside the protocol copy):
+- The first control attempt failed the registered structure check on invariant 6. Its plan keeps
+  `parallel_groups: []`, exactly as 0.6.6's card instructs when no validator receipt exists. 0.6.6 ships no
+  validator, and this cohort's prompt, unlike the 2026-10-16 study's, supplies no `check-plan.js`. That is R0-6,
+  observed live.
+- The registered checks stand. A packaging-normalized structure check and qualification are added, and the
+  candidate-win blocks fire under either definition, which is stricter on the candidate.
+- The quality comparison is also reported without `dependency-logic`, the one universal criterion that mentions
+  parallelism.
