@@ -493,3 +493,9 @@ and names skills and slang, graded on what the run does with them, to measure K1
   figures are too unbalanced by case and too spread (ticket-assignment 26M to 67M) to claim a saving or a cost (exploratory); F35 (process) the
   harness refuses a launch while a stray listener of another session's ended case is bound, and a machine-wide lease on a port can hold a
   second session out for hours behind a multi-run round of the first: lane planning for port-leased cases must allow for that.
+- 2026-11-01, landing: `origin/main` moved five times during the work (two releases, 2.27.3 and 2.27.4, among them rule C of the proof-order
+  refusal); the change was merged, not rebased, so the hashes cited here stand (d2bee85c28219c48fa16afbf9ea270e649f6b38e, a32b4402b74e4002495c8fa182b2653df0ef9b44). Checks on the merged tree:
+  quick and prompt tiers 42 suites OK in 473.3 s; one live run each of hello and user-listing on it, both passed with a 12-category ledger. The
+  release preflight asked for a learnings entry after the merged-in releases; the entry now carries a merged-tree check. F38: the implement
+  send-back for a criterion that needs a test the test stage writes later also appears on the merged tree (user-listing, one run), which
+  already has rule C, so that fault family is not specific to arm B (exploratory, n = 1).
