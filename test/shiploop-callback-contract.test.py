@@ -1360,6 +1360,15 @@ class StepSizingRouteTests(RealCliCase):
             ("node -e \"require('../run/scratch/check.js')\"", []),
             ("node --test test/a.test.js", []),
             ("node -e \"process.exit(0)\" && node --test test/b.test.js", []),
+            # A quoted absolute path or URL is not a repository path, whatever it holds (round 2's review: a space in the
+            # path, or the colon before a port, made its tail read as one, and rule A refused a Proof that ran an
+            # existing test or fetched a local server).
+            ("node -e \"require('child_process').execFileSync(process.execPath,['--test','/Users/me/My Projects/app/"
+             "test/existing.test.js'])\"", []),
+            ("python3 -c \"import runpy; runpy.run_path('/Users/me/My Projects/app/tests/test_existing.py')\"", []),
+            ("node -e \"fetch('http://127.0.0.1:3000/spec/openapi.json').then(r=>process.exit(r.ok?0:1))\"", []),
+            ("python3 -c \"import urllib.request as u; u.urlopen('http://localhost:8000/tests/1.json')\"", []),
+            ("node -e \"require(`~/work/test/helper.test.js`)\"", []),
         ]
         for command, paths in cases:
             with self.subTest(command):

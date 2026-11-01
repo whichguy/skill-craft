@@ -33,6 +33,9 @@ INLINE = frozenset(("-e", "-c", "--eval", "-p"))
 OPERATORS = frozenset(("&&", "||", ";", "|", "&"))
 # A relative path inside inline code: not preceded by a path character, so the tail of an absolute path is not one.
 PATHISH = re.compile(r"(?<![\w./@+-])[\w.@+-]+(?:/[\w.@+-]+)+")
+# As the shipped reader (shiploop_item_scope._QUOTED_ELSEWHERE, after round 2's review): a quoted absolute or home path or
+# URL is removed whole before PATHISH reads the code, so a space or a port inside it leaves no tail.
+QUOTED_ELSEWHERE = re.compile(r"([\"'`])(?:/|~|[A-Za-z][\w+.-]*://)[^\"'`]*\1")
 SEARCHED = ("code", "test")
 
 
@@ -68,7 +71,7 @@ def named_paths(proof: str) -> list[str]:
     split = words(proof)
     for index, word in enumerate(split[:-1]):
         if word in INLINE:
-            for match in PATHISH.findall(split[index + 1]):
+            for match in PATHISH.findall(QUOTED_ELSEWHERE.sub(" ", split[index + 1])):
                 path = match[2:] if match.startswith("./") else match
                 if "../" not in path and scope._EXTENSION.search(path):
                     paths.append(path)
