@@ -83,3 +83,25 @@ needs true and false positive counts first.
 Baseline before any change (e81fdb55): `test/backchain-chunks.test.py` 49 tests,
 `test/shiploop-backchain-check.test.py` 21, `test/marketplace-package.test.py` 30,
 `test/until-loop-vendor.test.py` 10; all pass.
+
+## Round 1 — the deterministic toolkit (2026-11-01)
+
+Conditions: no model run; every result below is a script-run test or a direct comparison.
+
+Changes:
+- 90b9ac99e02d89efa8102f8686321da9ccccf554 moves the lib.js port from ShipLoop to
+  `skills/backchain/scripts/backchain_graph.py`; ShipLoop's `backchain-check` imports it from the sibling package.
+  Its parity tests move with it to `test/backchain-graph.test.py`.
+- 44d30f052c4648f5727202922a269327579d506f adds `scripts/backchain.py` `check`, `package` and `export`.
+- The next commit adds the run commands `prepare`, `freeze`, `record`, `verify` and `finish` (this entry is
+  committed with it).
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R1-1 | The move changed nothing ShipLoop prints: old and new modules gave byte-identical receipts on all 95 inputs tried (88 corpus plans, 7 chunk fixtures). The quick tier for those paths (21 suites) passed. | firm | 90b9ac99 message |
+| R1-2 | The Python export agrees with the checkout's JS exporter: the same accept/refuse verdict on all 88 packaged corpus plans and identical graphs for the 33 both export. Plan Dispatcher's `validate-graph` accepts all 33. | firm | `test/fixtures/backchain-export/` (three goldens and MANIFEST.json); `test/backchain-toolkit.test.py` `ExportTests` |
+| R1-3 | A script-written contract binds every resource whose absence disqualified runs in the study (R0-3): the request, `references/convergence.md`, the Until Loop card and runtime, and the latest packet, which the runtime itself writes to `--receipt`. | firm (by construction and test); interim (that live runs then qualify) | `RunTests.test_a_fresh_run_converges_on_its_first_trivial_review` |
+| R1-4 | The loop classification is measured, not claimed: a cycle whose packaged plan changed is reported non-trivial even when its assessment says trivial, and gets a fresh review under every gate. | firm (test) | `RunTests.test_a_changed_plan_is_never_trivial_and_gets_a_fresh_review` |
+| R1-5 | Generated and inherited content are separated mechanically: freezing a plan that dropped an inherited input edge fails; the same removal of an edge the run generated is recorded as a non-trivial repair (the R0-8 defect). | firm (test) | `RunTests.test_inherited_edges_stay_while_generated_edges_may_go` |
+
+Live use is untested: no model has yet run the toolkit. That is the pilot's question (Phase 5).

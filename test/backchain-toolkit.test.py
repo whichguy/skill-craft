@@ -180,5 +180,250 @@ class ExportTests(unittest.TestCase):
         self.assertIn("Backchain plan is incomplete", json.loads(done.stderr)["error"])
 
 
+LOOP_RUNTIME = ROOT / "skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
+CONFIRMED = GOLDENS / "confirmed.plan.json"
+
+
+def assessment(change_class: str = "none", gaps=(), blockers=(), findings=()) -> dict:
+    """The convergence review prompt's JSON, as a cycle saves it."""
+    return {"candidate_identity": "inspected", "context_identity": "inspected", "change_class": change_class,
+            "findings": list(findings), "checks": ["traced every outcome backward; screened every lens category"],
+            "planning_gaps": list(gaps), "execution_blockers": list(blockers)}
+
+
+def without_one_edge(plan: dict) -> dict:
+    """The confirmed plan with S2's second input from S1 removed: still valid, still complete."""
+    edited = json.loads(json.dumps(plan))
+    edited["steps"][1]["inputs"] = edited["steps"][1]["inputs"][:1]
+    return edited
+
+
+class RunTests(unittest.TestCase):
+    """A planning run through the real bundled Until Loop runtime, with scripted assessments."""
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory(prefix="backchain-run-")
+        self.addCleanup(temp.cleanup)
+        self.base = Path(temp.name)
+        self.request = self.base / "request.md"
+        self.request.write_text("Planning only: make the CSV importer report rejected rows with line numbers.\n")
+        self.plan = json.loads(CONFIRMED.read_text(encoding="utf-8"))
+        self.reviews = 0
+
+    def prepare(self, *extra: str, name: str = "run") -> Path:
+        run_dir = self.base / name
+        done = run("prepare", "--run", str(run_dir), "--request", str(self.request), *extra)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        return run_dir
+
+    def frozen(self, *extra: str, plan=None, draft=True, name: str = "run") -> Path:
+        run_dir = self.prepare(*extra, name=name)
+        text = json.dumps(plan if plan is not None else self.plan, indent=2)
+        if draft and not (run_dir / "input/draft.json").exists():
+            (run_dir / "draft.json").write_text(text)
+        (run_dir / "plan.json").write_text(text)
+        done = run("freeze", "--run", str(run_dir))
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        return run_dir
+
+    def start(self, run_dir: Path) -> dict:
+        with open(run_dir / "loop/contract.json", "rb") as contract:
+            started = subprocess.run([sys.executable, "-B", str(LOOP_RUNTIME), "start", "--receipt",
+                                      str(run_dir / "loop/receipt.json")], stdin=contract, capture_output=True,
+                                     text=True, timeout=60)
+        self.assertEqual(started.returncode, 0, started.stderr)
+        return json.loads(started.stdout)
+
+    def record(self, run_dir: Path, review: dict, exit_assessment="satisfied", continuation="allowed"):
+        self.reviews += 1
+        path = self.base / f"assessment-{self.reviews}.json"
+        path.write_text(json.dumps(review))
+        return run("record", "--run", str(run_dir), "--review", str(path), "--exit", exit_assessment,
+                   "--continuation", continuation)
+
+    def cycle(self, run_dir: Path, packet: dict, review: dict, edit=None, **report) -> dict:
+        """One callback as the card asks: edit, record, run the packet's verify_script, submit record's report."""
+        if edit is not None:
+            plan = json.loads((run_dir / "plan.json").read_text(encoding="utf-8"))
+            (run_dir / "plan.json").write_text(json.dumps(edit(plan), indent=2))
+        recorded = self.record(run_dir, review, **report)
+        self.assertEqual(recorded.returncode, 0, recorded.stdout + recorded.stderr)
+        report_path = Path(recorded.stdout.splitlines()[0].removeprefix("Report: "))
+        verified = subprocess.run(packet["verify_script"], shell=True, executable="/bin/sh", cwd=str(run_dir),
+                                  capture_output=True, text=True, timeout=120)
+        self.assertIn("all passed", verified.stdout, verified.stdout[-2000:])
+        submitted = subprocess.run(packet["done_argv"], input=report_path.read_text(encoding="utf-8"),
+                                   capture_output=True, text=True, timeout=60)
+        self.assertEqual(submitted.returncode, 0, submitted.stderr)
+        return json.loads(submitted.stdout)
+
+    def test_a_fresh_run_converges_on_its_first_trivial_review(self):
+        run_dir = self.frozen()
+        contract = json.loads((run_dir / "loop/contract.json").read_text(encoding="utf-8"))
+        self.assertEqual(contract["required_trivial_reviews"], 1)
+        self.assertEqual([check["id"] for check in contract["exit_checks"]], ["backchain-check", "backchain-evidence"])
+        self.assertTrue(contract["context"]["request"].startswith("Backchain standalone Until Loop binding: "))
+        self.assertNotIn("Backchain passes:", contract["context"]["request"])
+        bound = {resource["purpose"] for resource in contract["context"]["resources"]}
+        # The resources the 2026-10-16 study found missing from hand-written contracts are always bound.
+        for purpose in ("Backchain references/convergence.md", "Until Loop runtime", "latest packet (receipt)",
+                        "original request", "Until Loop card", "candidate plan"):
+            self.assertIn(purpose, bound)
+        locators = [resource["locator"] for resource in contract["context"]["resources"]]
+        self.assertTrue(all(Path(locator).is_absolute() for locator in locators))
+        packet = self.start(run_dir)
+        self.assertEqual(packet["status"], "active")
+        final = self.cycle(run_dir, packet, assessment("none"))
+        self.assertEqual(final["status"], "complete")
+        finished = run("finish", "--run", str(run_dir))
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+        result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
+        self.assertEqual(result["status"], "converged")
+        self.assertEqual(result["convergence"]["terminal_receipt"]["status"], "complete")
+        self.assertEqual(result["convergence"]["planning_gaps"], [])
+        self.assertEqual(result["plan"], json.loads((run_dir / "plan.json").read_text(encoding="utf-8")))
+        self.assertIn(" export ", finished.stdout)
+        self.assertEqual(run("export", str(run_dir / "plan.json")).returncode, 0)
+
+    def test_a_changed_plan_is_never_trivial_and_gets_a_fresh_review(self):
+        run_dir = self.frozen()
+        packet = self.start(run_dir)
+        # The assessment calls it trivial, but the cycle removed an edge this run generated: measured, non-trivial.
+        after = self.cycle(run_dir, packet, assessment("trivial"), edit=without_one_edge)
+        report = json.loads((run_dir / "cycles/01/report.json").read_text(encoding="utf-8"))
+        self.assertEqual(report["classification"], "non-trivial")
+        self.assertEqual(after["status"], "active")
+        final = self.cycle(run_dir, after, assessment("none"))
+        self.assertEqual(final["status"], "complete")
+        evidence = json.loads((run_dir / "evidence.json").read_text(encoding="utf-8"))
+        self.assertEqual([(c["cycle"], c["classification"], c["changed"]) for c in evidence["cycles"]],
+                         [(1, "non-trivial", True), (2, "trivial", False)])
+        self.assertEqual(run("finish", "--run", str(run_dir)).returncode, 0)
+
+    def test_one_pass_completes_after_one_repairing_cycle(self):
+        run_dir = self.frozen("--passes", "one")
+        contract = json.loads((run_dir / "loop/contract.json").read_text(encoding="utf-8"))
+        self.assertEqual(contract["required_trivial_reviews"], 0)
+        self.assertIn("\nBackchain passes: one\n", contract["context"]["request"])
+        final = self.cycle(run_dir, self.start(run_dir), assessment("material"), edit=without_one_edge)
+        self.assertEqual(final["status"], "complete")
+        self.assertEqual(run("finish", "--run", str(run_dir)).returncode, 0)
+
+    def test_converge_needs_two_consecutive_trivial_reviews(self):
+        run_dir = self.frozen("--passes", "converge")
+        contract = json.loads((run_dir / "loop/contract.json").read_text(encoding="utf-8"))
+        self.assertEqual(contract["required_trivial_reviews"], 2)
+        self.assertIn("\nBackchain passes: converge\n", contract["context"]["request"])
+        first = self.cycle(run_dir, self.start(run_dir), assessment("none"))
+        self.assertEqual(first["status"], "active")
+        self.assertEqual(self.cycle(run_dir, first, assessment("none"))["status"], "complete")
+
+    def test_record_refuses_lost_obligations_bad_plans_and_inconsistent_reports(self):
+        run_dir = self.frozen()
+        self.start(run_dir)
+        good = (run_dir / "plan.json").read_text(encoding="utf-8")
+        lost_goal = json.loads(good)
+        lost_goal["goal_needs"] = []
+        orphan = json.loads(good)
+        orphan["steps"].append({"id": "D1", "statement": "A helper exists.", "produces": ["A helper exists."],
+                                "inputs": [], "origin": "discovered"})
+        for label, plan, review, exit_assessment, expected in (
+                ("goal_needs dropped", lost_goal, assessment("material"), "unsatisfied", "goal_needs"),
+                ("orphan discovered step", orphan, assessment("material"), "unsatisfied", "invariant 4"),
+                ("malformed assessment", None, {"change_class": "fine"}, "satisfied", "change_class"),
+                ("unresolved but satisfied", None, assessment("unknown"), "satisfied", "unresolved cycle")):
+            with self.subTest(label):
+                (run_dir / "plan.json").write_text(json.dumps(plan) if plan is not None else good)
+                refused = self.record(run_dir, review, exit_assessment=exit_assessment)
+                self.assertEqual(refused.returncode, 1, refused.stderr)
+                self.assertIn(expected, refused.stdout)
+                self.assertEqual(list((run_dir / "cycles").iterdir()), [])
+                self.assertFalse((run_dir / "evidence.json").exists())
+
+    def test_inherited_edges_stay_while_generated_edges_may_go(self):
+        inherited = self.base / "inherited.json"
+        inherited.write_text(json.dumps(self.plan))
+        refused_dir = self.prepare("--draft", str(inherited), name="inherited")
+        (refused_dir / "plan.json").write_text(json.dumps(without_one_edge(self.plan)))
+        refused = run("freeze", "--run", str(refused_dir))
+        self.assertEqual(refused.returncode, 1)
+        self.assertIn("inherited draft: input edge removed: S2 <- S1", refused.stdout)
+        self.assertFalse((refused_dir / "loop/contract.json").exists())
+        # The same removal is a reviewed repair when this run generated the edge (fresh route): recorded, non-trivial.
+        run_dir = self.frozen(name="fresh")
+        self.start(run_dir)
+        (run_dir / "plan.json").write_text(json.dumps(without_one_edge(self.plan)))
+        recorded = self.record(run_dir, assessment("material"), exit_assessment="unsatisfied")
+        self.assertEqual(recorded.returncode, 0, recorded.stdout + recorded.stderr)
+        self.assertIn("non-trivial", recorded.stdout)
+
+    def test_verify_rejects_a_late_edit_and_a_changed_record(self):
+        run_dir = self.frozen()
+        self.start(run_dir)
+        self.assertEqual(self.record(run_dir, assessment("none")).returncode, 0)
+        self.assertEqual(run("verify", "--run", str(run_dir)).returncode, 0)
+        plan_path = run_dir / "plan.json"
+        good = plan_path.read_bytes()
+        plan_path.write_text(json.dumps(without_one_edge(json.loads(good))))
+        late = run("verify", "--run", str(run_dir))
+        self.assertEqual(late.returncode, 1)
+        self.assertIn("changed after cycle 1 was recorded", late.stdout)
+        plan_path.write_bytes(good)
+        review = run_dir / "cycles/01/review.json"
+        review.write_text(review.read_text(encoding="utf-8").replace('"none"', '"trivial"'))
+        tampered = run("verify", "--run", str(run_dir))
+        self.assertEqual(tampered.returncode, 1)
+        self.assertIn("review record", tampered.stdout)
+
+    def test_finish_reports_an_honest_stop_and_refuses_an_active_loop(self):
+        run_dir = self.frozen()
+        self.assertEqual(run("finish", "--run", str(run_dir)).returncode, 3)
+        packet = self.start(run_dir)
+        still = run("finish", "--run", str(run_dir))
+        self.assertEqual(still.returncode, 3)
+        self.assertIn("still active", still.stderr)
+        gap = "The normative redaction policy docs/redaction.md is not in the repository."
+        stopped = self.cycle(run_dir, packet, dict(assessment("material", gaps=[gap]), next_action="Supply docs/redaction.md."),
+                             exit_assessment="unsatisfied", continuation="blocked")
+        self.assertEqual(stopped["status"], "stopped")
+        finished = run("finish", "--run", str(run_dir))
+        self.assertEqual(finished.returncode, 1)
+        result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
+        self.assertEqual((result["status"], result["convergence"]["planning_gaps"]), ("incomplete", [gap]))
+        self.assertEqual(result["convergence"]["next_action"], "Supply docs/redaction.md.")
+
+    def test_prepare_and_freeze_fail_closed(self):
+        run_dir = self.prepare()
+        self.assertEqual(run("prepare", "--run", str(run_dir), "--request", str(self.request)).returncode, 3)
+        missing = run("prepare", "--run", str(self.base / "other"), "--request", str(self.request),
+                      "--until-loop", str(self.base / "nowhere/ADAPTER.md"))
+        self.assertEqual(missing.returncode, 3)
+        self.assertIn("MISSING: Until Loop card", missing.stderr)
+        self.assertEqual(run("record", "--run", str(run_dir), "--review", str(self.request), "--exit", "satisfied",
+                             "--continuation", "allowed").returncode, 3)
+        # A generated draft's goal_needs survive elaboration.
+        draft = json.loads(json.dumps(self.plan))
+        draft["goal_needs"] = ["Rejected rows are reported with their line numbers.", "Accepted rows are imported."]
+        (run_dir / "draft.json").write_text(json.dumps(draft))
+        (run_dir / "plan.json").write_text(json.dumps(self.plan))
+        lost = run("freeze", "--run", str(run_dir))
+        self.assertEqual(lost.returncode, 1)
+        self.assertIn("generated draft: goal_needs presence/value changed", lost.stdout)
+        (run_dir / "draft.json").write_text(json.dumps(self.plan))
+        self.assertEqual(run("freeze", "--run", str(run_dir)).returncode, 0)
+        self.assertEqual(run("freeze", "--run", str(run_dir)).returncode, 3)
+        meta = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
+        self.assertTrue(all(len(entry["sha256"]) == 64 for entry in meta["resources"]))
+        self.assertEqual(meta["route"], "fresh")
+
+    def test_the_one_pass_exit_text_is_the_convergence_references(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("backchain_cli", CLI)
+        cli = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cli)
+        reference = " ".join((ROOT / "skills/backchain/references/convergence.md").read_text(encoding="utf-8").split())
+        self.assertIn("this exit condition: " + cli.EXIT_CONDITIONS["one"], reference)
+
+
 if __name__ == "__main__":
     unittest.main()

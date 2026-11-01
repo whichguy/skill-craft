@@ -201,6 +201,9 @@ _DURATION_SECONDS = {
     # so it belongs to the full tier (measured locally 2026-09-27).
     "test/plan-dispatcher-mutants.test.py": 420.0,
     "test/plan-dispatcher-scenarios.test.js": 50.0,
+    # measured locally 2026-11-01: 20 tests, 85 s serial (88 check and 88 export subprocesses, 33 validate-graph
+    # calls, eight runs through the real Until Loop runtime); light, so it stays in quick.
+    "test/backchain-toolkit.test.py": 85.0,
     "test/shiploop-stage-spec.test.py": 1.0,
     "test/shiploop-send-back.test.py": 1.0,
     # measured locally 2026-10-28: 4 tests through the real complete CLI (design T §9.1 step 4's edges), 51 s while three
