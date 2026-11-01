@@ -9,8 +9,9 @@ two stopped runs (2026-10-18, chess run 5 on 2026-10-24) until it was ended by h
 * ``cleanup`` stops the recorded groups that are still alive, each only while its leader keeps the creation identity the
   ledger holds (pid, group and ``ps`` start time), never by name. It first adopts ShipLoop's progress observer by the pid its
   own record names. It is idempotent and deletes no file.
-* ``dispose`` removes the heavy folders, and only once the evidence is in place: the delivery's identity, the logs and a
-  bundle git verifies that holds the delivered head.
+* ``dispose`` removes the heavy folders only with clean recorded before/after fingerprints that match on HEAD/tree and, when
+  ``work/`` still exists as a real directory, after its live clean fingerprint matches the recorded after state. The logs
+  and a verified bundle stay.
 
 A lease (``take``) is an exclusive ``flock`` on a file in one folder for the machine, so two runs never hold one platform or
 one fixed port at once, and the kernel gives it back on any death. ``orphans`` and ``disk`` are refusals made before a host
@@ -41,6 +42,7 @@ import threading
 import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import delivery  # noqa: E402
 import environment  # noqa: E402
 import listeners  # noqa: E402
 import runrecord  # noqa: E402
@@ -554,12 +556,21 @@ def take(keys, about: dict, ports=()) -> Lease:
 
 # ---------------------------------------------------------------- evidence and disposal
 
+def _clean_fingerprint(found) -> bool:
+    if not isinstance(found, dict) or found.get("observed") is not True:
+        return False
+    if any(not isinstance(found.get(key), str) or not found[key].strip() for key in ("head", "tree")):
+        return False
+    status = found.get("status")
+    return isinstance(status, list) and all(isinstance(line, str) for line in status) and not status
+
+
 def _git(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(["git", *args], capture_output=True, text=True, stdin=subprocess.DEVNULL)
 
 
 def evidence(out) -> dict:
-    """What disposal needs kept, and whether it is there: ``{complete, head, missing: [...]}``."""
+    """What disposal needs kept, and whether it is there: ``{complete, head, after, missing: [...]}``."""
     out = Path(out)
     missing = []
     try:
@@ -567,18 +578,33 @@ def evidence(out) -> dict:
     except (OSError, ValueError):
         result = {}
         missing.append("result.json")
-    head = ((result.get("delivery") or {}).get("before") or {}).get("head")
-    if result and not head:
+    if not isinstance(result, dict):
+        result = {}
+        if "result.json" not in missing:
+            missing.append("result.json")
+    snapshots = result.get("delivery")
+    snapshots = snapshots if isinstance(snapshots, dict) else {}
+    before = snapshots.get("before")
+    after = snapshots.get("after")
+    head = before.get("head") if isinstance(before, dict) else None
+    if not isinstance(head, str) or not head.strip():
         missing.append("result.json delivery.before.head (the delivery's identity)")
+    if not _clean_fingerprint(before):
+        missing.append("result.json delivery.before (must be observed and clean)")
+    if not _clean_fingerprint(after):
+        missing.append("result.json delivery.after (must be observed and clean)")
+    if _clean_fingerprint(before) and _clean_fingerprint(after) and (before["head"] != after["head"] or
+                                                                       before["tree"] != after["tree"]):
+        missing.append("result.json delivery.before and after HEAD/tree differ")
     missing += [name for name in LOGS if not (out / name).is_file()]
     bundle = out / "delivery" / "work.bundle"
     if not bundle.is_file():
         missing.append("delivery/work.bundle")
     elif _git("bundle", "verify", "-q", str(bundle)).returncode != 0:
         missing.append("delivery/work.bundle (git bundle verify failed)")
-    elif head and not _bundle_holds(bundle, head):
+    elif isinstance(head, str) and head.strip() and not _bundle_holds(bundle, head):
         missing.append(f"delivery/work.bundle with the delivered head {head[:12]}")
-    return {"complete": not missing, "head": head, "missing": missing}
+    return {"complete": not missing, "head": head, "after": after, "missing": missing}
 
 
 def _bundle_holds(bundle: Path, head: str) -> bool:
@@ -610,6 +636,17 @@ def dispose(out, parts=HEAVY) -> dict:
         kept = evidence(out)
         if not kept["complete"]:
             return {"disposed": False, "removed": [], "refused": "the evidence is not complete", "missing": kept["missing"]}
+        work = out / "work"
+        if not work.is_symlink() and work.exists():
+            if not work.is_dir():
+                return {"disposed": False, "removed": [], "refused": "work/ exists but is not a real directory: cannot verify it"}
+            current = delivery.fingerprint(work)
+            after = kept["after"]
+            if not _clean_fingerprint(current):
+                reason = current.get("reason", "Git status is dirty or malformed") if isinstance(current, dict) else "malformed fingerprint"
+                return {"disposed": False, "removed": [], "refused": f"work/ does not have an observed clean Git fingerprint ({reason})"}
+            if current["head"] != after["head"] or current["tree"] != after["tree"]:
+                return {"disposed": False, "removed": [], "refused": "work/ no longer matches the recorded delivery.after HEAD/tree"}
         removed = []
         for name in parts:
             target = out / name
