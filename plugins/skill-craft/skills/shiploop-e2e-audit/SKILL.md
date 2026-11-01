@@ -8,7 +8,7 @@ description: >-
   Google Apps Script and Salesforce game cases require an authorized test deployment and hosted
   behavior evidence.
   Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.
-version: 0.7.15
+version: 0.7.16
 license: MIT
 platforms:
   - linux
@@ -411,6 +411,16 @@ continue while material actionable ideas remain. A single audit stays within
 its requested scope. Script stops, budgets and missing prerequisites remain
 effective; they do not prove that learning is exhausted. Carry forward existing
 authorisation for covered work and report incomplete work honestly.
+
+Make each checkpoint a decision: state what the experiment established, what
+remains unknown, and the next falsifiable experiment or concrete stopping reason.
+Calibrate the checks with correct and faulty behavior before paying for a live
+comparison. Credit a review repair only when retained before/after evidence
+shows a defect present at review entry and corrected by that review; a learning
+commit or clean final tree alone is insufficient. Repeat from the accepted
+baseline with the next useful hypothesis, preserving failed attempts. For a
+campaign requiring publication between improvements, use one qualified
+iteration per invocation, then publish, refresh and verify before continuing.
 
 A suite is a selection plan, not permission to launch a batch before reviewing
 it. Resolve its cases, then invoke exactly one `run` or one `suite --only` case
