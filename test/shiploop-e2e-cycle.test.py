@@ -1144,6 +1144,54 @@ class RestoreKitTest(unittest.TestCase):
         self.assertIn("exists", refused.stderr)
 
 
+class PlantedKitTest(unittest.TestCase):
+    """The stage 5b planted-fault kit (docs/experiments/closed-loop-planted-20261101): checked without a model."""
+    KIT = ROOT / "docs" / "experiments" / "closed-loop-planted-20261101"
+
+    def test_the_script_plants_the_fault_in_a_local_commit_pushes_nothing_and_keeps_reviews_on(self):
+        script = self.KIT / "run.sh"
+        self.assertEqual(subprocess.run(["bash", "-n", str(script)], capture_output=True, text=True, check=False).returncode, 0)
+        text = script.read_text()
+        self.assertIn("\nhook_before=779980629a81ce0e740f7c196e83e000dd582d99\n", text)
+        self.assertIn("\nhook_after=7f25acff8dab239485f262249ec70773ba906aad\n", text)
+        self.assertIn('apply -R "$out/hook-delta.patch"', text)
+        self.assertIn("commit -q -F -", text, "one local commit holds the fault")
+        self.assertNotRegex(text, r"\bpush\b", "nothing here pushes, whatever the spelling of the command")
+        self.assertNotIn("--skip-reviews", text, "every attempt is reviewed")
+        self.assertIn("EFFORT:-xhigh", text, "the owner asked for Terra 6.1 at Extra High on 2026-11-01")
+        self.assertIn('--effort "$effort"', text)
+        self.assertIn("--case hello-hook-continuation --generality-case csv-report", text)
+        self.assertIn("unset SHIPLOOP_E2E_RUNS_ROOT", text)
+        catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
+        for case in ("hello-hook-continuation", "csv-report"):
+            self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
+            self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"), f"{case} declares a fixed port")
+        with tempfile.TemporaryDirectory() as used:
+            refused = subprocess.run(["bash", str(script), "0" * 40, used], capture_output=True, text=True, check=False)
+        self.assertEqual(refused.returncode, 2, refused.stderr)
+        self.assertIn("exists", refused.stderr)
+
+    def test_the_readme_says_the_loop_branch_is_never_merged_and_every_returned_file_is_collected(self):
+        readme = (self.KIT / "README.md").read_text()
+        text = (self.KIT / "run.sh").read_text()
+        self.assertIn("must never be merged", readme)
+        self.assertIn("instrument test", readme)
+        for returned in ("iterate-exit-status.txt", "loop-stdout.txt", "LOOP.md", "branches.txt", "planted-fault.stat",
+                         "planted-commit.txt", "epoch-events.jsonl", "receipts", "epoch-status.json", "cycle-result.json"):
+            self.assertIn(returned, text)
+            self.assertIn(returned, readme)
+
+    def test_the_fault_is_the_same_reverse_the_pilots_use(self):
+        pilot = (ROOT / "docs" / "experiments" / "closed-loop-pilot-20261101" / "run.sh").read_text()
+        text = (self.KIT / "run.sh").read_text()
+        for assignment in ("\nhook_before=779980629a81ce0e740f7c196e83e000dd582d99\n",
+                           "\nhook_after=7f25acff8dab239485f262249ec70773ba906aad\n"):
+            self.assertIn(assignment, pilot)
+            self.assertIn(assignment, text)
+        self.assertIn("':!changes'", pilot)
+        self.assertIn("':!changes'", text)
+
+
 class CycleKitTest(unittest.TestCase):
     """The stage 5 full-cycle kit (docs/experiments/closed-loop-cycle-20261101): what its script runs is checked here."""
     KIT = ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101"
