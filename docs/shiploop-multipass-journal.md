@@ -279,7 +279,7 @@ release procedure in environment.md under the run's heading, so the first releas
   rest held: the duty edits pull too little, so the notice is the only lever left and its effect is P4's survival count.
 - Limits. Three chains per arm, one case pair, one host and model. The saved runs come from four engine states, so arm A is run again here and not borrowed. The
   candidate has not run live: B1's first pass is its first live use, and a breakage there is a finding, not an excuse.
-- Status: running, then held (an external scheduling pause, below). E2 started at 17:33:58, when E1 ended; its first case, `A1-ticket-assignment`, was running at 17:47.
+- Status: running, then held (an external scheduling pause, below). E2 started at 17:33:58, when E1 ended; its first case, `A1-ticket-assignment`, was running at 17:47. The pause lifted at 18:29:09 and `A1-ticket-escalation` was running at 18:35.
 
 **An external scheduling pause (not part of any measurement).** At about 17:45 the owner chose, for the shared port-4180 lane, the test-writing pilots of another session
 (relayed from its Codex chat "Review ShipLoop E2E improvement loop"): finish the active case, dispatch nothing more, let that session's two pilots run, resume E2 after the
@@ -288,6 +288,15 @@ free for the pilots the moment it ends. Builds, arm order, the bar, the predicti
 already has a result, once two pilot cases (lease holders named `ticket-tests-*` under that session's `model-runs` folder) have each held and released the lease and it has
 been free for two minutes. The pause moves wall-clock time only: pass 2 of a chain reads the folder pass 1 left, so the gap between `A1-ticket-assignment` and
 `A1-ticket-escalation` changes nothing they measure. The pause's start and end are recorded here when it lifts.
+
+**The pause lifted at 18:29:09 and lasted 41 min 41 s (17:47:28 to 18:29:09).** `A1-ticket-assignment` had finished at 17:49:47 (its `result.json`), so the lane was free from
+then. The other session's first pilot (`ticket-tests-published-01`) held the lease from 18:02:28 and finished about 18:05:28; its second (`ticket-tests-published-02`) held it from
+about 18:22:08 and finished at 18:27:09. The watcher saw the lease free for two minutes and restarted the driver at 18:29:09; the driver skipped `A1-ticket-assignment` (it has a
+result) and began `A1-ticket-escalation` (lease pid 99928). The gap between the two passes of chain A1 is therefore 39 min 22 s of wall clock (17:49:47 to 18:29:09), and
+no run measure is affected: bar B5 reads each run's own process seconds, and pass 2 reads the folder pass 1 left. The watcher recognised both pilots by their lease-holder folder
+names, as designed, and nothing of the other session's was touched. The other session's own record of the same lane is its commit
+`806064425e0649a5bb5ab36409ef5f5ec96aac26`, which states that external queue and CI waiting is excluded from its subject time and that this candidate stays unmerged and is not
+policy for its run. The hold marker (`e2-hold.json`), the watcher's log (`e2-hold-watcher-log.txt`) and the driver's log (`e2-driver-log.txt`) are kept in `docs/experiments/multipass-20261031/`.
 
 **Main moved while E2 was being set up.** `origin/main` has since released skill-craft 2.27.1 and ShipLoop 1.26.1 (a fix in `shiploop_test_loop.py` that is unrelated to the
 knowledge home). Both arms run the 1.26.0 tree at `87d3da8e`, so the A/B is internally consistent; the candidate does not touch the files that release changed, but it must be
