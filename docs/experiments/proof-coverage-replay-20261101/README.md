@@ -86,3 +86,24 @@ of fix 1's benefit, which would need about 25 runs a side.
 
 Outputs in this folder: `replay.py`, `labels.jsonl`, `plans.jsonl`, `stalls.jsonl`, `scores.json`. Results are appended
 below after the run.
+
+### Amendment, 2026-11-01, before any score (found while building the reader)
+
+Building the reader exposed a flaw in Q1's classes, not in its data. A criterion's Confirm by often names the focused test
+the test stage writes, while the step's Proof proves the criterion another way: a probe script, or an existing test. FX F
+s1's revised plan is one such case, `node ../run/scratch/import-probe.js && npm test`. Under the registered `hollow`, a
+Proof like that "names neither the criterion's file nor its Confirm-by command", so it would count as hollow. It is not:
+the probe exercises the criterion. That would inflate `hollow`, and with it decision item 3.
+
+So, before anything is scored:
+- **Rule C′ is the primary candidate.** It is rule C restricted to steps whose Proof names no repository path at all
+  (`command_paths(proof)` is empty, as with `npm test` or `pytest`). This is the exact "other form" that verdicts §4
+  names, and all three known instances have it.
+- **For C′, `hollow`** means implement passed with that generic Proof, so the step's done ran nothing specific to the
+  criterion.
+- **`caught`, `breach`, `unjudged`, the costs and the three decision items are unchanged**, applied to C′.
+- **`false` is near-empty by construction.** A Proof that names no path cannot exercise an unwritten test unless implement
+  wrote it, and that is `breach`. Decision item 2 therefore checks the reader: for example, a Confirm by misread, or a
+  "test" path that classify misplaces. It cannot check the rule.
+- **Rule C, unrestricted, is reported beside C′ as descriptive only.** No decision rests on it.
+
