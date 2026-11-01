@@ -83,15 +83,17 @@ def send_back_target(stage: str) -> str:
     return OUTER_SEND_BACK_TO.get(stage, SEND_BACK_TO)
 # The implement step's first exit condition (the owner's D4 words, made binding by D7): its criteria are the unit
 # of completion and the item's other requirements stay binding.  The loop appends the step's criterion IDs to it.
-# What shows a criterion at implement is a command or file that observes it: the step's Proof where it exercises the
-# criterion, else a scratch check. The criterion's own tests are the test stage's, which implement may not write
-# (planning journal F31: implement read them as due here and sent good plans back). The condition names no result field
-# (84d4d9da: an item without tests has no criteria and no Confirm-by text), and a Proof that exercises nothing is not
-# a witness (the 2026-11-01 review of F31's first wording).
+# What shows a criterion at implement is a command or file that observes it. For an executed criterion that is the step's
+# Proof where it exercises the criterion, else a command implement runs itself: the criterion's own tests are the test
+# stage's, which implement may not write (planning journal F31: implement read them as due here and sent good plans
+# back). The condition names no result field (84d4d9da: an item without tests has no criteria and no Confirm-by text),
+# holds no "; " (loop_contract.stage_exit joins conditions with it), and a Proof that exercises nothing is no witness
+# (the 2026-11-01 reviews of F31's earlier wordings).
 STEP_CRITERIA_CONDITION = ("each criterion assigned to this step is satisfied and none of the others is broken, shown "
-                           "after the last edit by a command or file that observes it (the step's Proof where it "
-                           "exercises the criterion, else a check in RUN/scratch; a criterion's own tests are written "
-                           "and run at the test stage), and no later step's work is in the change")
+                           "after the last edit by a command or file that observes it (for an executed criterion, the "
+                           "step's Proof where it exercises the criterion, else a command of your own that runs the "
+                           "behaviour, since a criterion's own tests are written and run at the test stage), and no later "
+                           "step's work is in the change")
 # Implement's second exit condition on every route: the step's Proof is its step plan `proof`.  ShipLoop runs it at done
 # (``complete_runs`` step-proof).
 STEP_PROOF_CONDITION = "after the last edit, the Proof of each step this action builds (its `proof` in the step plan) exited 0"

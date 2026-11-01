@@ -2756,10 +2756,11 @@ class TestLoopTests(unittest.TestCase):
                                                   "tests/test_change.py; pass when TC-1 passes."}]
         self.drive_to("implement", step_plan=plan)
         condition = stage_spec.STEP_CRITERIA_CONDITION
-        self.assertIn("by a command or file that observes it (the step's Proof where it exercises the criterion, else "
-                      "a check in RUN/scratch", condition)
+        self.assertIn("by a command or file that observes it (for an executed criterion, the step's Proof where it "
+                      "exercises the criterion, else a command of your own that runs the behaviour", condition)
         self.assertIn("a criterion's own tests are written and run at the test stage", condition)
         self.assertNotIn("Confirm by", condition)   # the condition names no result field (84d4d9da)
+        self.assertNotIn(";", condition)            # loop_contract.stage_exit joins conditions with "; "
         contract = json.loads((self.run_dir / loops.contract_path(self.action())).read_text())
         self.assertIn(condition + " (assigned: C1)", contract["exit_condition"])
         (self.repo / "proof.txt").write_text("proved\n")
