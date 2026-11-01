@@ -59,6 +59,7 @@ class NavigatorV4Tests(unittest.TestCase):
         self.run = self.temp_root / "run"
         self.repo.mkdir()
         self.run.mkdir()
+        subprocess.run(["git", "init", "-q", str(self.repo)], check=True, capture_output=True)  # not the guarded empty non-Git folder
         self.skill = bridge.resolve_skill(str(ROOT / "skills" / "improve" / "SKILL.md"))
 
     def state(self) -> dict:

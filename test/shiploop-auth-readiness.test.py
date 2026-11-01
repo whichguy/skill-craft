@@ -83,6 +83,7 @@ class AuthReadinessNavigatorTests(unittest.TestCase):
         ).resolve()
         self.repo = self.base / "ordinary repository"
         self.repo.mkdir()
+        subprocess.run(["git", "init", "-q", str(self.repo)], check=True, capture_output=True)
         self.unrelated_cwd = self.base / "unrelated cwd"
         self.unrelated_cwd.mkdir()
         self.environment = {

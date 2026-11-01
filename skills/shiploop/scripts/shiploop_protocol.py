@@ -14,6 +14,7 @@ import json
 import os
 import secrets
 import shlex
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -537,6 +538,39 @@ _TRACE: dict[str, Any] = {}
 _DEPTH = [0]
 
 
+def _in_place_refusal(core: Any, repo: Path, run_dir: Path, in_place: bool) -> Optional[str]:
+    """Why a new direct-entry run is refused here, or None. `init` works in the folder itself, with no isolated worktree and no
+    return protection; in an empty folder that is not a Git repository that is almost always the wrong entry, because
+    `workspace start` makes the folder a Git repository, works in a separate worktree and returns the finished work to the
+    folder (docs/experiments/start-route-20261101: a request that named the current directory began with `init` there in
+    about one session in three on the 2.27.2 card). The user's own request for an in-place or non-Git run is stated with
+    --in-place. Git being unusable here (not installed, an ownership refusal) is not the empty-folder case: nothing is
+    refused."""
+    if in_place or not repo.is_dir() or repo == run_dir:  # a run directory that is the folder itself is refused later, in its own words
+        return None
+    try:
+        if run_dir.is_dir() and any(entry.name != ".lock" for entry in run_dir.iterdir()):
+            return None  # a run directory that is not empty is refused later: nothing here starts a new run
+        if any(entry.resolve() != run_dir for entry in repo.iterdir()):
+            return None  # the run directory may sit inside the folder (<repo>/.shiploop); anything else makes it non-empty
+    except OSError:
+        return None
+    try:
+        probe = subprocess.run(["git", "-C", str(repo), "rev-parse", "--is-inside-work-tree"], capture_output=True, text=True,
+                               check=False, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if probe.returncode == 0 or "not a git repository" not in probe.stderr.lower():
+        return None
+    cli = shlex.quote(str(core.PACKAGE_ROOT / "scripts" / "shiploop"))
+    return (f"{repo} is an empty folder that is not a Git repository, and `init` is the direct entry: it works in the folder "
+            f"itself, with no isolated worktree and no return protection. Start this request with the isolated entry, which "
+            f"makes the folder a Git repository, works in a separate worktree and returns the finished work to this folder: "
+            f"python3 {cli} workspace start --repo {shlex.quote(str(repo))} --prompt='<user request>'. Only if the user "
+            f"explicitly asked for an in-place or non-Git run, run this same `init` command again with --in-place. "
+            f"No run was started.")
+
+
 def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     """Dispatch one ShipLoop command line and record it in the run trace; returns the process exit code."""
     import shiploop_trace
@@ -667,6 +701,9 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             sub.add_argument("--improve-skill", default="", help=IMPROVE_SKILL_HELP)
             sub.add_argument("--delivery-contract", action="store_true",
                              help="opt a new run in to consumer-delivery declaration checks")
+            sub.add_argument("--in-place", action="store_true",
+                             help="the user explicitly asked for an in-place or non-Git run: allow init in an empty folder "
+                                  "that is not a Git repository (otherwise workspace start is the entry for it)")
             sub.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
                              help="new run: inline (default) or ask-agent delegation")
             sub.add_argument("--lint", choices=navigator.LINT_MODES, default=None,
@@ -750,6 +787,12 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         refused = _grant_refusal(core, raw_argv, root)
         if refused is not None:
             return refused
+    if (args.command == "init" and args.execution_mode != "navigator-worktree" and (args.prompt or "").strip()
+            and not (root / "state.md").exists()):
+        refused = _in_place_refusal(core, Path(args.repo or os.getcwd()).resolve(), root, args.in_place)
+        if refused:
+            print(f"ShipLoop blocked: {refused}", file=sys.stderr)
+            return 2
     progress_ready = False
     try:
         with core.run_lock(root):

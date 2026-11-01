@@ -217,6 +217,7 @@ class TimelineAndPacketTests(unittest.TestCase):
         self.base = Path(temp.name).resolve()
         self.repo = self.base / "repo"
         self.repo.mkdir()
+        subprocess.run(["git", "init", "-q", str(self.repo)], check=True, capture_output=True)
         self.run_dir = self.base / "run"
         self.cli = str(SCRIPTS / "shiploop")
 

@@ -89,8 +89,8 @@ def traced_output(base: Path) -> Path:
         assert done.returncode == 0, done.stdout + done.stderr
         return done
 
-    ok(f"{cli} init --run-dir {run} --repo {repo} --prompt 'Add a greeting script.'",
-       ["init", "--run-dir", str(run), "--repo", str(repo), "--prompt", "Add a greeting script."])
+    ok(f"{cli} init --run-dir {run} --repo {repo} --prompt 'Add a greeting script.' --in-place",
+       ["init", "--run-dir", str(run), "--repo", str(repo), "--prompt", "Add a greeting script.", "--in-place"])
     intake = navigator.current_action(store.read_record(run / "state.md"))["id"]
     ok(f"{cli} next --run-dir {run}", ["next", "--run-dir", str(run)])
     (run / "inbox" / f"{intake}.md").write_text("no record here\n", encoding="utf-8")
@@ -475,7 +475,7 @@ class OwnerNoteMidStep(unittest.TestCase):
 
             self.assertIsNone(owner_note.due(run, "intake"))  # no run yet
             # init prints the intake packet: the step has started, so a note now is mid-step.
-            self.assertEqual(cli("init", "--run-dir", str(run), "--repo", str(repo), "--prompt", "Add a greeting script.")
+            self.assertEqual(cli("init", "--run-dir", str(run), "--repo", str(repo), "--prompt", "Add a greeting script.", "--in-place")
                              .returncode, 0)
             intake = navigator.current_action(store.read_record(run / "state.md"))["id"]
             self.assertEqual(owner_note.due(run, "intake"), {"stage": "intake", "action": intake})

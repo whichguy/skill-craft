@@ -146,6 +146,9 @@ class ShipLoopNoModelLaunchTests(unittest.TestCase):
             "PYTHONDONTWRITEBYTECODE": "1",
             "SHIPLOOP_MODEL_LAUNCH_TRIPWIRE": str(self.tripwire),
         }
+        # An ordinary repository is a Git repository: init in an empty folder that is not one is the direct entry's
+        # guarded case (a refusal naming workspace start), not the ordinary run these tests follow.
+        subprocess.run(["git", "init", "-q", str(self.repo)], check=True, capture_output=True, env=self.env)
 
     def run_cli(self, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(

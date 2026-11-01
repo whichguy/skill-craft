@@ -2849,5 +2849,117 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         self.assertFalse(destination.exists())
         self.assertEqual([p.name for p in root.iterdir() if p.name.startswith(".workspace-index-")], [])
 
+
+class DirectEntryGuardTests(unittest.TestCase):
+    """``init`` is the direct entry. In an empty folder that is not a Git repository it is almost always the wrong one
+    (docs/experiments/start-route-20261101), so it is refused there unless the user's own request for an in-place run is
+    stated with ``--in-place``. Every other folder, and a run that already exists, is unchanged."""
+
+    def setUp(self) -> None:
+        if GIT is None:
+            self.fail("Git must be available on PATH for the direct-entry guard")
+        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-direct-entry-")
+        self.addCleanup(self.temp.cleanup)
+        self.base = Path(self.temp.name).resolve()
+        self.folder = self.base / "folder"
+        self.folder.mkdir()
+        self.env = {
+            **os.environ,
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "PYTHONNOUSERSITE": "1",
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "SHIPLOOP_PROGRESS": "off",
+        }
+
+    def init(self, *extra: str, folder: Path | None = None, name: str = "run",
+             run_dir: Path | None = None) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [sys.executable, "-B", str(CLI), "init", "--repo", str(folder or self.folder),
+             "--run-dir", str(run_dir or self.base / name), "--prompt=build the thing", *extra],
+            cwd=self.base, text=True, capture_output=True, timeout=60, env=self.env,
+        )
+
+    def assert_started(self, result: subprocess.CompletedProcess[str], name: str = "run") -> None:
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("No run was started.", result.stderr)
+        self.assertTrue((self.base / name / "state.md").is_file(), "the run was not started")
+
+    def test_an_empty_folder_that_is_not_a_repository_is_refused_naming_the_isolated_entry_and_nothing_is_created(self) -> None:
+        result = self.init()
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("ShipLoop blocked: ", result.stderr)
+        self.assertIn("empty folder that is not a Git repository", result.stderr)
+        self.assertIn(f"{shlex.quote(str(CLI))} workspace start --repo {shlex.quote(str(self.folder))} --prompt=", result.stderr)
+        self.assertIn("--in-place", result.stderr)
+        self.assertIn("No run was started.", result.stderr)
+        self.assertFalse((self.base / "run").exists())
+        self.assertEqual(list(self.folder.iterdir()), [])
+
+    def test_the_run_directory_inside_the_empty_folder_does_not_make_it_non_empty(self) -> None:
+        inside = self.folder / ".shiploop"
+        inside.mkdir()
+        result = subprocess.run(
+            [sys.executable, "-B", str(CLI), "init", "--repo", str(self.folder), "--run-dir", str(inside), "--prompt=build the thing"],
+            cwd=self.base, text=True, capture_output=True, timeout=60, env=self.env,
+        )
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("No run was started.", result.stderr)
+        self.assertEqual([p.name for p in self.folder.iterdir()], [".shiploop"])
+        self.assertEqual(list(inside.iterdir()), [])
+
+    def test_a_run_directory_that_is_the_folder_or_not_empty_is_refused_in_its_own_words(self) -> None:
+        same = self.init(run_dir=self.folder)
+        self.assertEqual(same.returncode, 2, same.stdout + same.stderr)
+        self.assertIn("run directory cannot be the product repository root", same.stderr)
+        self.assertNotIn("not a Git repository", same.stderr)
+        taken = self.base / "taken"
+        taken.mkdir()
+        (taken / "notes.md").write_text("mine\n", encoding="utf-8")
+        refused = self.init(run_dir=taken)
+        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+        self.assertIn("new run directory must be dedicated and empty", refused.stderr)
+        self.assertNotIn("not a Git repository", refused.stderr)
+        self.assertEqual([p.name for p in taken.iterdir() if p.name != ".lock"], ["notes.md"])  # init's own lock aside
+
+    def test_the_users_explicit_in_place_request_starts_the_direct_run(self) -> None:
+        self.assert_started(self.init("--in-place"))
+
+    def test_a_repeated_init_of_a_run_that_exists_is_not_refused(self) -> None:
+        self.assert_started(self.init("--in-place"))
+        again = self.init()
+        self.assert_started(again)
+        self.assertIn("ShipLoop navigator", again.stdout)
+
+    def test_a_repository_a_folder_inside_one_a_folder_with_content_and_a_missing_folder_are_not_refused(self) -> None:
+        repository = self.base / "repository"
+        repository.mkdir()
+        subprocess.run([str(GIT), "-C", str(repository), "init", "-q"], check=True, capture_output=True, env=self.env)
+        nested = repository / "nested"
+        nested.mkdir()
+        filled = self.base / "filled"
+        filled.mkdir()
+        (filled / "notes.txt").write_text("keep me\n", encoding="utf-8")
+        for label, folder in (
+            ("empty-repository", repository),
+            ("inside-a-repository", nested),
+            ("with-content", filled),
+            ("not-yet-made", self.base / "later"),
+        ):
+            with self.subTest(label):
+                name = f"run-{label}"
+                self.assert_started(self.init(folder=folder, name=name), name)
+
+    def test_workspace_start_still_begins_in_an_empty_non_git_folder(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "-B", str(CLI), "workspace", "start", "--repo", str(self.folder), "--prompt=build the thing",
+             "--workspace-root", str(self.base / "workspace")],
+            cwd=self.base, text=True, capture_output=True, timeout=120, env=self.env,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("No run was started.", result.stderr)
+        self.assertTrue((self.folder / ".git").exists(), "workspace start makes the empty folder a Git repository")
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
