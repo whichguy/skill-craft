@@ -5,8 +5,20 @@ Status: **approved 2026-10-30 as recommended (D1–D8)**: owner, "Recommend and 
     replay tool. Its verdict needs the owner's saved runs.
   - SG2 is declared in PR #27, which moves the harness digests, so merge it between epochs. It waits for a Codex Terra
     host: this container has no Codex CLI, and the Ollama route is at its monthly limit.
-  - SG2 ran a five-slice smoke on 2026-10-31 and the owner closed it the same day ("Close SG2"): docs/experiments/
-    sdlc-gates-20261030/sg2-smoke-20261031.md. D3b has no result.
+  - SG2 ran a smoke on 2026-10-31 and the owner closed it the same day ("Close SG2"): docs/experiments/
+    sdlc-gates-20261030/sg2-smoke-20261031.md. D3b has no result. (The plan was five slices; the smoke ran nine, as
+    39bb5d5da1cb1e36716d0ecacabcfc1725fbb3af records.)
+  - Where it stands, 2026-11-01 (supersedes the bullets above where they differ):
+    - Track A reader (P1, P2, P3, P5-P7): built, and corrected after an independent review
+      (69c6bb33d5ad8dbdc2c19ff02cf417e311976304); never run on a real run, because it needs the owner's saved runs. P4 is
+      not built.
+    - SG1 replay: built and corrected in the same commit; never run on saved plans, for the same reason. Its bar decides
+      D6, the proof-order refusal at step-plan. Until it reports, D6 is not built.
+    - SG2: closed by the owner after the nine-slice smoke (the producer wrote the specified behaviour, so the review had
+      nothing to catch).
+    - AS1: built; deferred by the owner until its samples stop sharing one target folder (its guide, "Known limitations").
+    - Shipped: the Apps Script card's Testing section (ShipLoop 1.24.0) and its correction (1.24.1). No ShipLoop gate or
+      stage came out of this proposal; the one rule it kept is that a gate waits for a live run that shows the failure.
 Opened: 2026-10-30
 Consumer: the owner, who approves, strikes or re-scopes each decision in §7 before anything is built or run; later,
   whoever proposes a ShipLoop gate from outside research and needs the bar it must meet
