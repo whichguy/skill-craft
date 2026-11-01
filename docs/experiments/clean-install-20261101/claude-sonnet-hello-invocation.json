@@ -1,0 +1,85 @@
+{
+  "case": "hello",
+  "host": "claude",
+  "backend": "anthropic",
+  "model": "claude-sonnet-5-5",
+  "effort": null,
+  "argv": [
+    "claude",
+    "-p",
+    "/skill-craft:shiploop Create hello.py that prints exactly \"Hello, world!\" when run, plus a unittest test in test_hello.py that verifies that output.",
+    "--model",
+    "claude-sonnet-5-5",
+    "--max-budget-usd",
+    "25.0",
+    "--permission-mode",
+    "auto",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--no-session-persistence",
+    "--setting-sources",
+    "project,local",
+    "--strict-mcp-config",
+    "--plugin-dir",
+    "/Users/dadleet/e2e-runs/2026-11-01/shiploop-hello-sonnet-floor-ab59f8/marketplace/plugins/skill-craft"
+  ],
+  "cwd": "/Users/dadleet/e2e-runs/2026-11-01/shiploop-hello-sonnet-floor-ab59f8/work",
+  "plugin_dir": "/Users/dadleet/e2e-runs/2026-11-01/shiploop-hello-sonnet-floor-ab59f8/marketplace/plugins/skill-craft",
+  "plugin": null,
+  "versions": {
+    "source": "marketplace",
+    "installed_by": "origin/main export",
+    "plugin_version": "2.27.3",
+    "shiploop_version": "1.26.3",
+    "plugin_sha256": "833f89b3cce4",
+    "released": {
+      "origin_main": "8493c5b9fc3b4fa6bac67588521e90912ff71592",
+      "local_head": "8493c5b9fc3b4fa6bac67588521e90912ff71592",
+      "local_behind_main": true,
+      "catalog_version": "2.27.3",
+      "shiploop_version": "1.26.3",
+      "unreleased": [],
+      "ci": "pending"
+    },
+    "gate": []
+  },
+  "host_build": null,
+  "checks": [
+    "test \"$(python3 hello.py)\" = 'Hello, world!'",
+    "python3 -m unittest -q"
+  ],
+  "follow_on": null,
+  "base": null,
+  "resumed_run": null,
+  "seeded": null,
+  "owner_note_at": null,
+  "needs": [],
+  "environment": {
+    "observed": true,
+    "at": "2026-11-01T14:54:18Z",
+    "tools": {
+      "node": "v26.12.1",
+      "python3": "Python 3.15.1",
+      "git": "git version 2.54.0 (Apple Git-157)"
+    },
+    "cpus": 18,
+    "loadavg": [
+      167.14,
+      142.42,
+      114.1
+    ],
+    "display_hold": true,
+    "unread": {},
+    "browser": {
+      "declared": false,
+      "probed": false,
+      "reason": "no case or --need declares a browser"
+    }
+  },
+  "planning_review": null,
+  "improve_skill": null,
+  "identity_unmeasured": {
+    "host_build": "Claude: read from the init event after the run"
+  }
+}

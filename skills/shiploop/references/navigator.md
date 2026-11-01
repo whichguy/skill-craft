@@ -491,7 +491,7 @@ Each term in these fields, the packets and the refusals has one meaning, defined
 which also lists the retired terms.
 
 Stage results add their own fields where the stage needs them: `intake` may record its key-question ledger,
-`question_categories` (each of K1-K11, applies or not with a reason) and `questions` (id, category, question, what it
+`question_categories` (each of K1-K12, applies or not with a reason) and `questions` (id, category, question, what it
 changes, route, default, what it blocks); `spec` records
 `primary`, the R-<n> that carry the request's primary outcomes, and each
 `product-acceptance` `unverified` row names its `requirement` and `lower_layer_check`

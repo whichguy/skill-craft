@@ -277,7 +277,7 @@ class RealCliCase(unittest.TestCase):
             "unverified": [],
             "primary": ["R-1"],   # the spec's primary requirements (run-5 batch F6); fill_done writes R-1's entry
             # Intake's key-question ledger (duty 9): every catalog category once, and one routed question.
-            "question_categories": [{"id": f"K{n}", "applies": "no", "reason": "Synthetic fixture."} for n in range(1, 12)],
+            "question_categories": [{"id": f"K{n}", "applies": "no", "reason": "Synthetic fixture."} for n in range(1, 13)],
             "questions": [{"id": "Q1", "category": "K3", "question": "Which file name does the build write?",
                            "changes": "R-1's acceptance line", "route": "default", "default": "built.txt",
                            "blocks": "nothing: the default proceeds"}],
@@ -1343,10 +1343,15 @@ class StepSizingRouteTests(RealCliCase):
         template = store.loads(head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0])
         self.assertEqual(template["questions"], [nav.QUESTION_ROW])          # the template prints the ledger's shape
         self.assertIn("9. Key questions.", full_packet_text(head))          # and the duty that asks for it
+        self.assertIn("K12 Terms and references", full_packet_text(head))   # with the terms category (2026-11-01, QB5)
+        self.assertIn("settle each by looking", full_packet_text(head))     # and the order it is settled in
         broken = [
             ("a category named twice and one missing",
-             {"question_categories": [*good["question_categories"][:10], dict(good["question_categories"][0])]},
+             {"question_categories": [*good["question_categories"][:11], dict(good["question_categories"][0])]},
              "question_categories names each of K1"),
+            ("a ledger that stops at K11 and leaves the terms category out",
+             {"question_categories": good["question_categories"][:11]},
+             "K12 exactly once (found: K1, K2, K3, K4, K5, K6, K7, K8, K9, K10, K11)"),
             ("a category that does not apply without a reason",
              {"question_categories": [dict(row, reason="") for row in good["question_categories"]]},
              "does not apply: give its reason"),
@@ -1362,7 +1367,7 @@ class StepSizingRouteTests(RealCliCase):
         write_block(path, good)
         self.accepted(command)
         kept = self.recorded(run, action)
-        self.assertEqual((len(kept["question_categories"]), kept["questions"]), (11, good["questions"]))
+        self.assertEqual((len(kept["question_categories"]), kept["questions"]), (12, good["questions"]))
         with self.subTest("an intake without the ledger"):
             run, head = self.new_run("intake")
             command, path, _ = printed_callback(head)

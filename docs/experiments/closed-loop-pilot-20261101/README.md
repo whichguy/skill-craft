@@ -67,5 +67,21 @@ separate defect in `epoch.py status`, since fixed.
   candidate had no successful attempt (the control's processed tokens for its one success: 18,258,993). One attempt per
   arm is not a rate.
 - The record's outcome in `run-01/cycle-result.json` is `admitted` (an undecided comparison). Its rows are in
-  `run-01/ledger.jsonl` and are merged into the repository ledger together with the rerun's, so the record is not left
-  reading admitted while the rerun is pending.
+  `run-01/ledger.jsonl` and are in the repository ledger together with run 2's, in time order.
+
+**Run 2 (2026-11-01, kit commit 1a47885, with the sibling wait and the status fix): DROP; all six attempts valid.** The
+same settings (2 at a time again: the runner saw five other subject runs). `run-02/` holds the returned files byte for
+byte (also pushed at bd66269 on `results/closed-loop-pilot-20261101-run2`; the raw run folders are on the owner's Mac
+under `~/e2e-runs/2026-11-01/closed-loop-pilot-02`).
+
+- Attempts: all six read `recorded` at the end and none was ever `invalid_evidence` (while running they read
+  `unknown_launch`, as expected). `epoch-status.json` is clean JSON this time.
+- Decision DROP, `cycle.py` exit 3: "an established requirement fell: hello-hook-continuation". The control had 3 of 3
+  successes (accuracy share 1.0), the candidate 0 of 3 (0.0), none unknown.
+- Prediction refuted: the accuracy guard broke (1.0 to 0.0); the token effect is unknown because the candidate had no
+  successful attempt (the control's mean processed tokens per success were 18,203,931). The record `LR-20261101-1b4675`
+  reads `refuted` in the repository ledger.
+- What it shows: the loop rejected a build that is cheaper by design and wrong by construction, on the one case built to
+  expose it, through `cycle.py`'s own path on a live model. What it does not: how often it rejects other regressions,
+  how the tolerance behaves (stated, unmeasured, three attempts per arm), or what the same path does with reviews (that
+  is the full cycle, `docs/experiments/closed-loop-cycle-20261101`).
