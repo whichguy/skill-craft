@@ -2546,6 +2546,8 @@ candidate, one decision: the loop tip advances only on PROMOTE.
   `rejected` decision visible to that checkout; neither is automatically admitted or deferred. New owner-routed evidence
   may return a rejected record to owner review. An existing hold keeps its reason; a withheld route is recorded in
   `source.held`, and `source.routing` retains the judge's owner-review/investigation distinction when supplied.
+  A harness-routed sighting never moves a settled record (`verified`, `refuted`, `no_effect`, `unexplained_gain`,
+  `deferred`, `rejected`) and never rewrites its reason or reopening condition; it is recorded in `source.held`.
   An `opened` row's `materiality` must be `material` or `minor` (`append` refuses another word; only `material` is ever
   offered to a cycle); one older row says `high` and `select` reads it (`MATERIAL`).
   Records already in a candidate also retain their state. Explicit owner acceptance or reopening can release the hold. This also applies to investigation findings routed to

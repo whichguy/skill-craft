@@ -329,6 +329,59 @@ class LearningRecordsTest(LedgerCase):
                 lr.ingest({}, {"implementation": [{"same_as": record}]}, {}, self.ledger)
                 self.assertEqual(lr.current(self.ledger)[record]["status"], "admitted")
 
+    SETTLED_BY = {
+        "verified": lambda self, record: lr.append("verdict", record, self.ledger, verdict="confirmed", outcome="verified",
+                                                   reason="promoted", reopen_when="the effect is lost"),
+        "refuted": lambda self, record: lr.append("verdict", record, self.ledger, verdict="refuted", outcome="refuted",
+                                                  reason="tokens rose", reopen_when="new evidence that the measure can move"),
+        "no_effect": lambda self, record: lr.append("verdict", record, self.ledger, verdict="no_effect", outcome="no_effect",
+                                                    reason="inside the tolerance", reopen_when="a larger effect is predicted"),
+        "unexplained_gain": lambda self, record: lr.append("verdict", record, self.ledger, verdict="unexplained",
+                                                           outcome="unexplained_gain", reason="a gain nobody predicted"),
+        "deferred": lambda self, record: lr.append("deferred", record, self.ledger, reason="n = 1",
+                                                   reopen_when="the pause recurs on any case or model"),
+        "rejected": lambda self, record: lr.append("owner", record, self.ledger, outcome="reject", reason="not this"),
+    }
+
+    def settled(self, status, title=None):
+        """A record that has been admitted, then settled the way the fold reaches `status`."""
+        record = self.open_record(title or status)
+        lr.append("admitted", record, self.ledger)
+        self.SETTLED_BY[status](self, record)
+        self.assertEqual(lr.current(self.ledger)[record]["status"], status)
+        return record
+
+    def test_a_harness_sighting_never_moves_a_settled_record_or_rewrites_its_reason(self):
+        """A harness finding is a measurement defect for a separate evaluator experiment, not a claim about the record's
+        fix. Following its route used to append `deferred` with ingest's own text: a verified, refuted or unexplained record
+        became deferred, and a deferred one lost its reason and reopening condition to the default."""
+        for status in self.SETTLED_BY:
+            with self.subTest(status=status):
+                self.ledger = self.temp / f"harness-{status}.jsonl"
+                record = self.settled(status)
+                before = lr.current(self.ledger)[record]
+                rows_before = len(lr.rows(self.ledger))
+                self.assertEqual(self.refound(record, "harness"), [record])
+                state = lr.current(self.ledger)[record]
+                self.assertEqual((state["status"], state["seen"]), (status, 2))
+                self.assertEqual((state["reason"], state["reopen_when"]), (before["reason"], before["reopen_when"]))
+                self.assertEqual(len(lr.rows(self.ledger)), rows_before + 1, "only the observation is appended")
+                self.assertEqual((state["sources"][-1]["held"], state["sources"][-1]["route"]), (status, "harness"))
+                self.assertIsNone(lr.select(self.ledger))
+
+    def test_a_settled_record_can_still_be_taken_to_the_owner_by_a_sighting(self):
+        """What a sighting may do to a settled record is ask: an owner-routed one moves it to the owner, who decides.
+        It adopts nothing. This is what 916a2c2b did for a rejected record, applied to the other settled statuses."""
+        for status in self.SETTLED_BY:
+            with self.subTest(status=status):
+                self.ledger = self.temp / f"ask-{status}.jsonl"
+                record = self.settled(status)
+                self.assertEqual(self.refound(record, "owner_challenges"), [record])
+                state = lr.current(self.ledger)[record]
+                self.assertEqual((state["status"], state["seen"]), ("owner", 2))
+                self.assertNotIn("held", state["sources"][-1])
+                self.assertIsNone(lr.select(self.ledger))
+
     def test_unmarked_historical_route_events_keep_their_existing_meaning(self):
         record = self.open_record()
         lr.append("owner", record, self.ledger, outcome="reject")

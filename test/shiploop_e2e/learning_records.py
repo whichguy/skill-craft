@@ -12,8 +12,9 @@ A record's ``event`` rows fold into one status (``current``):
     decided (the promotion decision) then verdict (the prediction's verdict and the record's outcome);
     deferred -> deferred; reopened -> admitted (or open, never admitted); owner -> owner, or its outcome
 
-Automatic rediscovery cannot admit or defer a visible owner rejection. New owner-routed evidence may return it to
-owner review; explicit owner acceptance and reopening retain their existing meaning.
+Automatic rediscovery cannot admit or defer a visible owner rejection, and a harness finding cannot defer or rewrite any
+settled record. New owner-routed evidence may return a rejected record to owner review; explicit owner acceptance and
+reopening retain their existing meaning.
 
 Materiality is ``material`` or ``minor`` (``MATERIALITY``): an `opened` row with another word is refused, because only a
 ``material`` record is ever offered to a cycle. One older row says "high"; ``select`` reads it (``MATERIAL``).
@@ -61,6 +62,8 @@ def _check_materiality(value) -> None:
         raise ValueError(f"materiality {value!r} is not one of {', '.join(MATERIALITY)}; select() could never offer the record")
 # A new sighting adds its evidence to a record in these and never moves it: the owner decides an `owner` record, and an
 # `in_candidate` one belongs to a registered epoch.
+# A harness-routed sighting never moves a record in SETTLED either: its follow-up is `deferred`, which would turn a verified,
+# refuted or unexplained record into a deferred one and give a deferred one ingest's own text in place of its reason.
 HELD = ("owner", "in_candidate")
 OUTCOMES = ("verified", "unexplained_gain", "refuted", "no_effect", "deferred", "admitted")
 CONFIDENCE = {"high": 0, "medium": 1, "low": 2}
@@ -255,7 +258,8 @@ def ingest(review: dict, routes: dict, source: dict, path: Path = LEDGER) -> lis
     a separate evaluator experiment. A discovery whose ``same_as`` names a known record adds to it; an unknown one opens
     a new record and keeps the claimed id as ``same_as_unknown``. Adding to a record the owner holds, or one in a
     candidate (``HELD``), records the evidence and leaves the record where it is, whatever the route. A rejected record
-    may return to owner review, but cannot be automatically admitted or deferred. ``source.held`` marks a withheld route.
+    may return to owner review, but cannot be automatically admitted or deferred. A harness-routed sighting leaves every
+    settled record (``SETTLED``) as it is, with its reason and reopening condition. ``source.held`` marks a withheld route.
     This guards visible decisions, not unseen decisions on another branch; historical folding is unchanged."""
     for route in ("implementation", "owner_challenges", "harness"):
         for finding in routes.get(route) or []:
@@ -285,7 +289,7 @@ def ingest(review: dict, routes: dict, source: dict, path: Path = LEDGER) -> lis
             if claimed and record != claimed:
                 fields["same_as_unknown"] = claimed
             status = current(path)[record]["status"] if record in known else None
-            held = status in HELD or (status == "rejected" and follow != "owner")
+            held = status in HELD or (status == "rejected" and follow != "owner") or (status in SETTLED and follow == "deferred")
             if held:
                 fields["source"]["held"] = status
             append("opened", record, path, **fields)

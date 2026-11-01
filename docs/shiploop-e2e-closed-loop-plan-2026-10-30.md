@@ -545,6 +545,11 @@ exposing, and `seat-reservations`, the unseen generality case, and were swapped 
 - **A vocabulary gap closed (2026-11-01).** `append` accepted any `materiality` word and `select` reads `material` (and, since
   8af00f799a77ba8b349aee32eaeb8f75c1973d04, the one seeded `high`), so a record written with another word would have been
   admitted and never offered. `append` now refuses another word and `ingest` checks a batch before it writes.
+- **A harness finding does not move a settled record (2026-11-01).** `ingest` followed the harness route's `deferred` even for a
+  verified, refuted or unexplained record, turning it into a deferred one, and for a deferred one replaced its own reason and
+  reopening condition (LR-20261030-355e5e's "the pause recurs on any case or model", LR-20261031-b5d300's) with its default
+  text. A settled record now takes the evidence and stays as it is. The implementation route is unchanged here: whether a
+  sighting may reopen a verified, refuted or deferred record is the owner's call (see the commit message).
 - **The first record:** from an exploration run on `seat-reservations`, or a seeded record whose reopen condition holds.
 - **Selection (2026-11-01):** `select` reads the cycle's cases (b3328b4). The one admitted record on the ledger,
   LR-20261031-8d97e7, was found on the hosted `gym-membership-salesforce` case, so a cycle on other cases would have
