@@ -550,7 +550,8 @@ def main(argv=None) -> int:
                     else:
                         result = review_attempt(root, args.attempt)
         print(json.dumps(result, indent=2))
-        return promotion.EXIT.get(result.get("decision"), 0)
+        decision = result.get("decision")  # a string from `decide`; the whole decision event from `status` and `next`
+        return promotion.EXIT.get(decision, 0) if isinstance(decision, str) else 0
     except (ValueError, OSError) as exc:
         print(f"epoch: {exc}", file=sys.stderr)
         return 1

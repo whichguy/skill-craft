@@ -336,6 +336,20 @@ class EpochTest(unittest.TestCase):
         self.assertEqual((self.root / epoch.LEDGER).read_bytes(), original)
 
 
+    def test_status_after_a_decision_prints_the_state_and_exits_cleanly(self):
+        """Found live in the stage 4 pilot: state() carries the whole decision event under "decision", and main() used that
+        dict as a key into promotion.EXIT, so epoch.py status raised TypeError after printing, once any decision existed."""
+        epoch.append(self.root, "decision", result={"decision": "DROP", "reasons": ["a stated reason"]})
+        for command in ("status", "next"):
+            with contextlib.redirect_stdout(io.StringIO()) as captured:
+                code = epoch.main([command, "--output", str(self.root)])
+            self.assertEqual(code, 0, command)
+            self.assertTrue(captured.getvalue().strip().startswith("{"), command)
+        with mock.patch.object(epoch, "decide", return_value={"decision": "DROP", "reasons": []}), \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(epoch.main(["decide", "--output", str(self.root)]), 3, "decide still exits with the decision's code")
+
+
 class EpochLaunchAndPredictionTest(unittest.TestCase):
     """Launches hold the lock only around their intent and seal; a prediction is bound before any attempt."""
 
