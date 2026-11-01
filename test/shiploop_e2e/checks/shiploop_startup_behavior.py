@@ -238,14 +238,22 @@ def possible_binder(command, output):
             or observer.command_run_dir(payload) is not None)
 
 
-def additional_startup(work, out, selected, start, end):
+def additional_startup(work, out, selected, start, end, report):
     """Find a second archived fresh startup in the trial's known run layouts."""
     candidates = set()
-    for base in (work, out / ".shiploop-runs", selected.parent):
+    workspace = selected.parent.parent
+    managed = workspace if (workspace / "workspace.md").is_file() else selected.parent
+    bases = (work, out, managed)
+    observation(report, "startup_scan", out, bases=[str(base) for base in bases],
+                excluded=[str(out / name) for name in ("home", "build")],
+                scope="trial inventory and selected workspace; unselected external roots are not searched")
+    for base in bases:
         if base.is_symlink():
             continue
         for directory, folders, files in os.walk(base, followlinks=False):
-            folders[:] = [name for name in folders if not (Path(directory) / name).is_symlink()]
+            folders[:] = [name for name in folders
+                          if not (Path(directory) / name).is_symlink()
+                          and not (Path(directory) == out and name in {"home", "build"})]
             path = Path(directory) / "trace.jsonl"
             if "trace.jsonl" in files and not path.is_symlink():
                 candidates.add(path.resolve())
@@ -360,7 +368,7 @@ def evaluate(work, out, invocation, report):
                 "first stop trace and decision cannot be uniquely correlated")
     require(hook, "first stop trace is missing")
     observation(report, "continue_hook", trace_path, (hook_index,), session_hash=session_hash)
-    extra = additional_startup(work, out, trace_path, start, end)
+    extra = additional_startup(work, out, trace_path, start, end, report)
     if extra is not None:
         observation(report, "additional_startup", extra)
     require(extra is None, "additional fresh startup trace in the original session")
@@ -456,7 +464,8 @@ def evaluate(work, out, invocation, report):
                 require(pair[1] == value, "pending intake state advanced or reset before acceptance", "fail")
         if i < accepted_index:
             require(command.get("verb") not in {"init", "workspace", "resume", "restart", "reinit", "reset"},
-                    "restart/reset/new startup before original intake acceptance", "fail")
+                    "prohibited entry command before original intake acceptance: "
+                    + command["verb"], "fail")
             require(not command.get("accepted"), "other work accepted before original intake", "fail")
             if command.get("verb") == "next":
                 recovery.append(i)

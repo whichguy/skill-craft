@@ -8384,7 +8384,7 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
         for verb in ("init", "workspace", "resume", "restart", "reinit", "reset"):
             with self.subTest(verb=verb):
                 attempt = self.add_attempt(verb, 125)
-                self.check("fail", "restart/reset/new startup")
+                self.check("fail", "prohibited entry command before original intake acceptance: " + verb)
                 self.trace.remove(attempt)
 
     def test_pending_state_advance_cannot_pass(self):
@@ -8506,11 +8506,11 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
             "basis": "the only run that was not there before the invocation",
         }))
 
-    def managed_root(self):
+    def managed_root(self, workspace=None):
         from run_choice import store
 
         old = self.root
-        self.root = self.out / ".shiploop-runs/work-neutral/run"
+        self.root = (workspace or self.out / ".shiploop-runs/work-neutral") / "run"
         self.root.parent.mkdir(parents=True)
         old.rename(self.root)
         self.trace[0], self.first_text = self.packet(self.action, "intake", 0, 110)
@@ -8682,16 +8682,23 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
         self.check("unknown", "multiple candidate run traces")
 
     def test_selected_identity_cannot_hide_a_second_fresh_startup(self):
-        for route in ("direct", "managed", "nested"):
+        for route in ("direct", "managed", "nested", "trial-sibling", "custom-managed", "nested-build", "managed-home"):
             for keep_acceptance in (True, False):
                 with self.subTest(route=route, accepted=keep_acceptance):
                     self.setUp()
-                    if route == "managed":
-                        self.managed_root()
-                        extra = self.out / ".shiploop-runs/second/run"
+                    if route in ("managed", "custom-managed", "managed-home"):
+                        workspace = None
+                        if route == "custom-managed":
+                            external = tempfile.TemporaryDirectory(prefix="startup-external-")
+                            self.addCleanup(external.cleanup)
+                            workspace = Path(external.name) / "workspace"
+                        self.managed_root(workspace)
+                        extra = self.root.parent / ("home/second/run" if route == "managed-home" else "second/run")
                     else:
                         self.select_root()
-                        extra = (self.root / "second-run" if route == "nested"
+                        extra = (self.out / "run2" if route == "trial-sibling"
+                                 else self.work / "build/second-run" if route == "nested-build"
+                                 else self.root / "second-run" if route == "nested"
                                  else self.work / ".shiploop/second-run")
                     original = self.root
                     self.root = extra
@@ -8708,6 +8715,24 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
                     if not keep_acceptance:
                         self.trace = [row for row in self.trace if not row.get("accepted")]
                     self.check("unknown", "additional fresh startup trace")
+
+    def test_fresh_traces_in_home_and_build_are_not_trial_runs(self):
+        self.select_root()
+        original = self.root
+        for excluded in ("home", "build"):
+            self.root = self.out / excluded / "unrelated-run"
+            self.root.mkdir(parents=True, exist_ok=True)
+            packet, _ = self.packet("nav-excluded-intake", "intake", 0, 125)
+            command = self.command("init", 126, fresh=True)
+            command["cursor"] = [None, packet["action"]]
+            (self.root / "trace.jsonl").write_text(
+                "".join(json.dumps(row) + "\n" for row in (packet, command)))
+        self.root = original
+        receipt = self.check("pass")
+        scan = receipt["observations"]["startup_scan"]
+        self.assertEqual(scan["bases"], [str(path.resolve()) for path in (self.work, self.out, self.root)])
+        self.assertEqual(scan["excluded"], [str((self.out / name).resolve()) for name in ("home", "build")])
+        self.assertIn("unselected external roots are not searched", scan["scope"])
 
     def test_stale_trace_does_not_override_valid_selected_identity(self):
         self.select_root()
