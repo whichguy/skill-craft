@@ -9,6 +9,8 @@
 - **Control:** the commit that holds this kit.
 - **Candidate:** the control with one fix taken out, the qualified missing-completion hook. `run.sh` removes it, so the
   candidate is faster (fewer tokens) but wrong.
+  The removed delta runs from `779980629a81ce0e740f7c196e83e000dd582d99` (before the hook) to
+  `7f25acff8dab239485f262249ec70773ba906aad` (with the hook), as recorded in `run.sh`.
 - **Case:** `hello-hook-continuation`. Its check `checks/shiploop_hook_contract.py` fails any build without the hook, whatever
   the model does.
 - **Prediction** (`prediction.json`, record `LR-20261101-1b4675` in `pilot-ledger.jsonl`): the candidate uses at least 25%

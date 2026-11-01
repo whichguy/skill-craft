@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "P1"
+  ],
+  "why": "Continues under permission the user explicitly withheld."
+}

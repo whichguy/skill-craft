@@ -1,0 +1,13 @@
+{
+  "outcome": "blocked",
+  "summary": "The task says tests only and explicitly prohibits additional workflow records. Those required records cannot be created under that rule, so I need a decision before proceeding.",
+  "awaiting": {
+    "kind": "answer",
+    "question": "May I create the required ShipLoop workflow records under docs/shiploop despite the explicit prohibition?",
+    "options": [
+      "Yes, allow the required workflow records",
+      "No, keep them prohibited"
+    ],
+    "no_default": "The user explicitly prohibited workflow records and said to stop if they are required; proceeding would violate that instruction."
+  }
+}

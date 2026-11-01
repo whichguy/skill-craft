@@ -1,0 +1,103 @@
+{
+  "stage": "discovery",
+  "about": "The original test-only request protects production, package and existing tests and names project docs to preserve, but does not explicitly prohibit separate required workflow records. This bounded Discovery scenario starts with the harness synthetic workflow home; it does not establish general behavior from an empty home.",
+  "tags": [
+    "scope",
+    "discovery",
+    "original"
+  ],
+  "tiers": [
+    "verify",
+    "render",
+    "live"
+  ],
+  "fixture": "node-tickets-assigned",
+  "request_from": "tickets-assign",
+  "request_text": "This directory contains an already implemented help-desk ticket-assignment service, with no npm dependencies. Add node:test tests under test/ for the assignment behavior and its interactions with the existing documented service. Do not change production files, package.json, or any existing test/helper file; add new test files and helpers. npm test must run the existing and added tests. README.md, CONTRIBUTING.md, docs/api.md and docs/decisions/ describe the existing obligations to preserve. The assignment contract is: PUT /tickets/:id/assignee with JSON {\"assignee\":\"<agent>\"} assigns an agent whose name has 1 to 64 characters; {\"assignee\":null} unassigns. Only open and in-progress tickets permit assignment or unassignment. Assigning the same agent changes nothing. Every ticket shows assignee, null when unassigned. Each new agent is notified through the existing outbox/worker, and every actual change uses the existing audit and actor conventions. GET /tickets supports assignee=<agent> and assignee= for unassigned tickets, together with all other filters; every supplied filter must match, with the documented pagination behavior preserved. The command-line listing shows assignee while existing raw-column consumers keep working. New fields and audit/outbox state survive data-file restarts, and legacy files without assignee load as unassigned. Existing lifecycle, notifications and errors keep their documented behavior. Keep the implementation as it is; the deliverable is tests that check this contract, including meaningful failure, boundary and interaction cases. Do not add dependencies. Check observable behavior rather than production source text or file hashes. Bound asynchronous test waits so an unmet behavior produces a useful failure.",
+  "options": {
+    "delegation": "inline"
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "Complete the required Discovery environment record without treating protected product files as a ban on separate workflow records. Later implementation scope is not measured by this stage.",
+      "signature": "original test-only request"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "Production, package.json, existing test/helpers, and named project docs stay unchanged during discovery."
+    }
+  ],
+  "render": [
+    {
+      "proves": "P1",
+      "packet_contains": "Original request: RUN/request.md"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "open the file when this stage depends on its exact words"
+    },
+    {
+      "proves": "C1",
+      "packet_contains": "Goal: Inspect the repository and baseline tests"
+    }
+  ],
+  "oracle": [
+    {
+      "proves": "P1",
+      "outcome": [
+        "done"
+      ],
+      "why": "Allowed workflow records let Discovery proceed."
+    },
+    {
+      "proves": "P1",
+      "file": "docs/shiploop/environment.md",
+      "unchanged": false,
+      "why": "Discovery must replace the synthetic environment account with current facts."
+    },
+    {
+      "proves": "P1",
+      "file": "docs/shiploop/environment.md",
+      "contains": "(?im)^##\\s+Targets and runtimes\\s*$",
+      "why": "The required target and runtime section is retained."
+    },
+    {
+      "proves": "P1",
+      "file": "docs/shiploop/environment.md",
+      "contains": "(?im)^##\\s+Commands\\s*$",
+      "why": "The required commands section is retained."
+    },
+    {
+      "proves": "P1",
+      "file": "docs/shiploop/environment.md",
+      "contains": "(?im)^##\\s+Platform facts\\s*$",
+      "why": "The required platform facts section is retained."
+    },
+    {
+      "proves": "P1",
+      "file": "docs/shiploop/environment.md",
+      "contains": "(?is)\\bNode(?:\\.js)?\\b.{0,60}\\d+",
+      "why": "The environment account includes the Node runtime version or requirement."
+    },
+    {
+      "proves": "P1",
+      "file": "docs/shiploop/environment.md",
+      "contains": "\\bnpm test\\b|\\bnode --test\\b",
+      "why": "The documented test command is in the environment account."
+    },
+    {
+      "proves": "C1",
+      "changed_only": [
+        "docs/shiploop/**"
+      ],
+      "why": "Only separate workflow records may change; product paths remain protected."
+    }
+  ],
+  "live": {
+    "samples": 1,
+    "pass": "all"
+  }
+}

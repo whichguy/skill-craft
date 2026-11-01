@@ -289,6 +289,24 @@ and retested before anything else is built on it, and is reported to the owner.
 
 **Prediction.** C begins with `init` in 70% to 100% of sessions on each request, and T2 is within 15 points of C on each.
 
+### Result of the opposite-direction probe
+
+Run 2026-11-01 07:54 to 08:07, one launch, 96 slots in 96 attempts (no invalid attempt, no fault), on the published 2.27.4
+package; `analysis-i1-output.txt`, `results-i1-compact.jsonl`. The first start was `init` (the right one here) in **every**
+session: 16 of 16 on each request on each card, 48 of 48 per card. The route read from the command and the route read from the
+disk agree in all 96. No session in `nogit-hello` ran its own `git init`, `git config` or `git commit`.
+
+| request | old wording | published card (T2) |
+|---|---|---|
+| inplace-hello | 16 of 16 `init` | 16 of 16 |
+| nogit-hello | 16 of 16 | 16 of 16 |
+| inplace-sf | 16 of 16 | 16 of 16 |
+
+**Verdict: no harm found.** The pooled `init` share on T2 is 48 of 48 (95% interval 93% to 100%), so a drop of 20 points, the registered
+harm, is excluded; so is any drop larger than about 7 points on these requests. Prediction held (C at 100%, T2 within 15 points of
+it). Because the old wording already honored the explicit request every time, this shows T2 broke nothing, not that it improved
+anything. Cost: 260 model calls (mean input peak 35,398 tokens), about 5M to 9M tokens (an estimate).
+
 ## Published-build confirmation (registered 2026-11-01, before it runs)
 
 After the release, `start_probe.py confirm` runs 12 sessions of the `sf-ui` request on the build a user installs (the published
@@ -350,6 +368,7 @@ f48df6587d78cf3e958120382128e072cfa948f4 (isolate ephemeral fixtures from progre
   `rescan` are the two detector corrections of "Deviations" 4 and 6.
 - `confirm-output.txt`, `confirm-compact.jsonl`: the published-build confirmation (`start_probe.py confirm`).
 - `analysis-r2-output.txt`, `results-r2-compact.jsonl`: the replication's result. Raw rows: `~/e2e-runs-startroute/20261101-r2/`.
+- `analysis-i1-output.txt`, `results-i1-compact.jsonl`: the opposite-direction result. Raw rows: `~/e2e-runs-startroute/20261101-i1/`.
 - `analysis-output.txt`, `results-compact.jsonl`: the result (the compact rows trim each command; the raw rows are below).
 - `start_routes.py`, `recount.py`, `recount-output.txt`: the archive recount (run before any trial).
 - Raw run folders (not committed): `~/e2e-runs-startroute/20261101/` (`results.jsonl`, `baselines-probe.jsonl`,

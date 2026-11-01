@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "P1"
+  ],
+  "why": "A reassuring summary without the required environment record is not a completed handoff."
+}
