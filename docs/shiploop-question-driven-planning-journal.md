@@ -377,8 +377,29 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   Checked-by line. Routine under the owner's 2026-10-28 rule: it aligns step-plan with a contract test-spec already
   enforces and limits no loop. The Improve review and a repeatable-Proof clause are left to the owner.
 - Status: firm (replay of every saved plan); the live check is pre-registered in the review's §7.
-- Evidence: `replay_ids.jsonl`, `sendback_classes.jsonl`, `sendbacks.jsonl`, `runs.jsonl`, `improve_passes.jsonl`,
+- Evidence: `replay_ids.jsonl`, `sendbacks.jsonl`, `sendback_classes.jsonl`, `runs.jsonl`, `improve_passes.jsonl`,
   `replay_proofs.jsonl` in docs/experiments/step-plan-review-20261101/.
+
+### E18 — 2026-11-01: the focused-ID rule live (SP1 deliveries, SP2 slice A/B, SP3) on Codex Terra 6.1 xhigh
+
+- Question: does b8d32033's rule hold live without cost, and what does it buy on the owner's runner? (The owner,
+  mid-round: "You can do side experiments as needed if that would help"; "For using a test harness and runner we want
+  to use codex Terra 6.1 at xhigh".)
+- Method: pre-registered in the review's §7 before each round (a38be89f, 3042b7aa, 1bf6430c): SP1 whole deliveries
+  (hello 1, csv-report 2; ticket-import 3 pending on port 4180), SP2 step-plan slices stopping after test-spec (arm B =
+  main e81fdb55, arm T = b8d32033; tickets-assign and stand-in-rules, 4 per arm per case), SP3 slices on 45153684
+  (stand-in-rules 4). Three SP1 runs made at high before the owner's word are a pilot.
+- Result (review §7a): SP1 3 of 3 PASS at xhigh (and 3 of 3 in the pilot), no test-spec send-back for IDs, no gate
+  refusal, no short plan; SP2 B 0 of 8 short, T 0 of 8 short with one test-spec send-back: b8d32033's "an ID for each
+  criterion it names" drew IDs for two searched criteria, which test-spec writes no case for; SP3 on 45153684 ("each
+  executed criterion") 0 send-backs in 4. Step-plan median minutes B 2.17, T 2.25, SP3 2.50. By effort in the saved
+  runs: Terra xhigh 7 of 67 plans short, 1 sent back; Terra high 8 of 75, 7 sent back.
+- Decision: keep the rule with 45153684's wording. The wording fix is a correction caught by the pre-registered
+  falsifier; the rule's gain at xhigh is test quality.
+- Status: firm (no cost, no ID send-back after the fix, on these runs); the template's open-item path live is pending
+  (ticket-import); F28 interim.
+- Evidence: sp2_scores.jsonl, sp3_scores.jsonl, the run folders under ~/e2e-runs-sp/20261101/, test/shiploop_e2e/
+  LEARNINGS.md (the round entry of 2026-11-01).
 
 ## Findings
 
@@ -412,4 +433,6 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F24 | 28% of step plans come back to step-plan; on ShipLoop >= 1.25.0 the largest class (8 of 19) is a focused command with fewer IDs than its executed criteria, and the named-path proof-order class is gone (13 -> 0) | firm | E17 |
 | F25 | The shortage comes from step-plan's contract: test-spec's one-case-per-ID rule was never stated there, and the template has shown a short row since 8dee00e0; Improve missed it in 22 of 22 reviewed short plans | firm (mechanism); the template's own share unmeasured | E17 |
 | F26 | A matching rule refuses exactly the short plans: 9 sent back by test-spec, 15 folded, none fully covered (24 of 175) | firm (replay) | E17 |
-| F27 | No precise rule separates a Proof that runs unwritten tests without a file path from a legitimate one (N1-N4 all flag passed Proofs) | firm (replay) | E17 |
+| F27 | No precise rule separates a Proof that runs unwritten tests without a file path from a legitimate one (N1-N4 all flag passed Proofs; Rule C, the narrowest, 5 of 12 flags real) | firm (replay) | E17 |
+| F28 | Implement reads a criterion's "Confirm by" test, which the test stage writes later, as due at implement (3 live cases); a done-when naming the Proof as implement's confirmation is the candidate | interim | E18 |
+| F29 | On Codex Terra 6.1 xhigh the ID shortage still occurs (10% of saved plans) but test-spec folds it; the rule's gain there is a case per executed criterion, and live it costs no step-plan time | firm (corpus); interim (live, n = 20 slices) | E17, E18 |
