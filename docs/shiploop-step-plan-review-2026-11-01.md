@@ -206,6 +206,14 @@ The 2026-10-31 study reached the same answer for the prompt route (X4, journal E
   for IDs; arm B some short plans (14% of saved plans overall); arm T's median step-plan minutes within one minute of
   B's. A test-spec send-back for IDs in arm T falsifies the change, as in SP1. SP2 is descriptive at 8 slices per arm;
   SP1 stays the release round.
+- Amendment, 2026-11-01 07:47 (the owner: "For using a test harness and runner we want to use codex Terra 6.1 at
+  xhigh"): SP1 and SP2 run on Codex Terra 6.1 xhigh, with the designs, predictions and scorers above unchanged, into
+  `~/e2e-runs-sp/20261101/sp1-xhigh` and `sp2-xhigh`. Made at high before the amendment and kept as a pilot, not
+  pooled: SP1 hello s1, csv-report s1 and s2 (all PASS, 9.0, 11.6 and 15.0 minutes; no test-spec send-back for IDs,
+  no refusal by the new gate, every accepted plan giving each executed criterion an ID; csv-report s2's one send-back
+  was test-spec reading a module that fails to load on the empty base as no behaviour-specific RED, and step-plan
+  resubmitted unchanged, citing the test-loop guide). SP2's first four high slices were stopped about two minutes
+  in, before any step plan was accepted, and are not scored. SP1's ticket-import samples had not started.
 - The 15 folded plans gain cases, so test-spec and the test stage write more tests; the time that adds is unmeasured.
 - DeepSeek flash and Grok are a small share of the corpus; their send-back costs are means of 5.
 
