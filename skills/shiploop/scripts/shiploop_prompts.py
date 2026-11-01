@@ -875,6 +875,12 @@ DUTIES = {
    - K9 Delivery: where the result must run or be delivered, and the access that needs.
    - K10 Quality attributes: performance, security, accessibility, interface polish or other bounds.
    - K11 Risks: what would most likely make this work fail or be rejected, and what would show it early.
+   - K12 Terms and references: the names, skills, commands, products and community phrases in the request, and the
+     phrases that point at something it does not state ("the usual", "as before"); what each means here and where that
+     was settled (the skills your host lists, the repository, or a search), else the best reading and how sure it is.
+   Terms and references: settle each by looking, in this order: the skills and commands your host lists, the
+   repository and its documents, then a search (`research`). When nothing settles it, record the best reading and how
+   sure you are as the `default`; use `person` only when two readings remain that lead to different work.
 """,
     "discovery": """\
 1. Baseline first (Initial repository baseline guide): find the starting directory, its instructions and a safe
@@ -1273,9 +1279,9 @@ Change no product file in this stage.
      repository-local skill reused unchanged. `locator`: an existing SKILL.md or card; `stages`: implement (default),
      test, document, improve.
 5. **`test_commands`**, run from the repository root.
-   - focused: this item's cases with the IDs they carry and a runner flag that prints test names (Jest `--verbose`,
-     pytest `-v`, others: GUIDES/platforms/; never dot or junit); a hand-written check prints its ID and outcome on
-     every exit. """ + ID_WORD_RULE + """ `min_tests`
+   - focused: this item's cases, an ID for each executed criterion it names, and a runner flag that prints test names
+     (Jest `--verbose`, pytest `-v`, others: GUIDES/platforms/; never dot or junit); a hand-written check prints its ID
+     and outcome on every exit. """ + ID_WORD_RULE + """ `min_tests`
      where a command must run at least that many. A run that executed no test is refused, so check the filter.
    - regression: the retained suites the changed paths affect; only the fast one marked `"minimum": true` runs
      before the last step (none: `minimum_na`).

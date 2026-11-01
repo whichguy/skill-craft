@@ -1,0 +1,41 @@
+=================== R4b0-comments-tidy-old (commits are in the run's own work repository: git -C <run>/work show <commit>:docs/shiploop/architecture.md)
+-- headings at 07bb01f (after test-strategy)
+3:## Decisions
+8:## Real-boundary checks
+13:## Structure
+16:## Stack
+19:## Conventions
+22:## Interfaces and boundaries
+25:## Superseded
+28:### Comments real-boundary checks (planned)
+-- headings at c889e25 (after plan)
+3:## Decisions
+8:## Real-boundary checks
+13:## Structure
+16:## Stack
+19:## Conventions
+22:## Interfaces and boundaries
+25:## Superseded
+28:### Comments real-boundary checks (planned)
+32:### AD-4 Comment state and delivery
+=================== R4b-comments-tidy-fix (commits are in the run's own work repository: git -C <run>/work show <commit>:docs/shiploop/architecture.md)
+-- headings at fac77e2 (after test-strategy)
+3:## Decisions
+8:## Real-boundary checks
+16:## Structure
+19:## Stack
+22:## Conventions
+25:## Interfaces and boundaries
+28:## Superseded
+-- headings at 06d1e93 (after plan)
+3:## Decisions
+8:## Real-boundary checks
+18:## Structure
+21:## Stack
+24:## Conventions
+27:## Interfaces and boundaries
+30:## Superseded
+
+=================== pair a: the commit after which AD-4 first appears, and the heading above it
+R4a0-comments-seeded-old: AD-4 first appears at e9aca40 (after plan) under: Superseded
+R4a-comments-seeded-fix: AD-4 first appears at 3715821 (after plan) under: Decisions

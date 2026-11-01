@@ -74,7 +74,8 @@ is on. Every other key has a default.
 | `tiers` | A subset of `verify`, `render`, `live`. Default: all three. |
 | `fixture` | A folder under `test/shiploop_e2e/fixtures/` (the repository the run starts from). |
 | `request_from` | A key of `test/shiploop_e2e/step_cases.json`; supplies the prompt, the work item and the checks. |
-| `options` | `{"delegation": "inline" \| "ask-agent"}`, default `inline`. |
+| `request_text` | Optional nonblank prompt override for matched scenarios. `request_from` remains required for render/live and still supplies the work item and checks. |
+| `options` | `{"delegation": "inline" \| "ask-agent", "seed_home": boolean}`. `seed_home` defaults to `true`; `false` skips the synthetic `docs/shiploop/spec.md` and `environment.md` seed. Files in a scenario's `repo/` overlay are still included. |
 | `seed_records` | `{stage: fields}` merged into that earlier stage's synthetic result. The engine validates them, so a record that drifts from its contract fails at seed time. |
 | `worktree_mode` | `committed` or `uncommitted` (default). Reserved: `committed` validates and the builder refuses it. |
 | `planted` | `[{"id": "P1", "what": ..., "signature": ...}]`: what the stage must catch, and the token, id, exit code or path a script can see. |

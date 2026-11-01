@@ -1,0 +1,36 @@
+## install into a disposable config
+✔ Successfully added marketplace: whichguy (declared in user settings)
+Installing plugin "skill-craft@whichguy"...✔ Successfully installed plugin: skill-craft@whichguy (scope: user)
+skill-craft@whichguy 2.27.2 enabled
+## installed tree vs the published tree (git archive of origin/main plugins/skill-craft); no output = identical
+## entry modes
+-rwxr-xr-x shiploop
+-rwxr-xr-x shiploop-drive
+-rwxr-xr-x shiploop-hook
+-rwxr-xr-x shiploop-keepalive-observe
+-rwxr-xr-x shiploop-keepalive-stop
+-rwxr-xr-x shiploop-keepalive-session-end
+-rwxr-xr-x shiploop-skill-call
+-rwxr-xr-x shiploop-status-hook
+10:FLOOR = (3, 9)
+needs `python3` 3.9 or newer and `git` on PATH
+## stock Python, clean environment (env -i)
+python: Python 3.9.6
+shiploop --help exit=0
+workspace start exit=0 packet_bytes=15772
+## hooks with python3 absent from PATH (coreutils only)
+shiploop-keepalive-observe exit=0 out=[]
+shiploop-keepalive-stop exit=0 out=[]
+shiploop-keepalive-session-end exit=0 out=[]
+shiploop-skill-call exit=0 out=[]
+shiploop-status-hook exit=0 out=[]
+## Python 3.7.3 (node:14 image) with the installed tree
+Python 3.7.3
+shiploop-keepalive-observe exit=0 out=[]
+shiploop-keepalive-stop exit=0 out=[]
+shiploop-keepalive-session-end exit=0 out=[]
+shiploop-skill-call exit=0 out=[]
+shiploop-status-hook exit=0 out=[]
+error: ShipLoop needs Python 3.9 or newer; this python3 is 3.7.3. Put a newer python3 first on PATH.
+shiploop --help exit=2
+shiploop-hook observe exit=0

@@ -113,9 +113,12 @@ host checkout into a tree that is bind-mounted into the container as `/opt/data`
   build instead.
 - CI: `.github/workflows/ci.yml` (**implemented**); `test/ci_policy.py` selects
   the tier. Pull requests, ordinary `main` pushes and unclassified events run
-  quick against their changed files; only a push containing a release commit runs full. Manual
-  dispatch requires an explicit `tier=quick` or `tier=full`. Full runs `core`,
-  three deterministic ShipLoop shards and `e2e-apparatus`, one job per group. The
+  quick against their changed files; a push containing a release commit and a weekly
+  scheduled run (Mondays 14:23 UTC, a drift canary for the floating runtimes and runner
+  image) run full. Manual dispatch requires an explicit `tier=quick` or `tier=full`.
+  Full runs `core`, three deterministic ShipLoop shards, `python-floor` (the ShipLoop
+  suites on Python 3.9, on `ubuntu-24.04` because `ubuntu-latest` has no 3.9 build)
+  and `e2e-apparatus`, one job per group. The
   fail-closed `hermetic` status is the aggregate gate; its summary states the
   tier and tested SHA. After its suites, including failed suites, each job's
   guard rejects a moved HEAD, staged or unstaged tracked changes, and untracked

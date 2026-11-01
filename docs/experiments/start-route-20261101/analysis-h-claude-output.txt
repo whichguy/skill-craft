@@ -1,0 +1,20 @@
+96 valid slots; slots with no valid attempt: none
+request       arm   n workspace direct none    init share (95% CI) bootstrap read run-start median s
+inplace-hello C    12         0     12    0       1.00 (0.76-1.00)         0              3     16.1
+inplace-hello T2   12         0     12    0       1.00 (0.76-1.00)         0              2     14.1
+nogit-hello   C    12         0     12    0       1.00 (0.76-1.00)         0              1     17.1
+nogit-hello   T2   12         0     12    0       1.00 (0.76-1.00)         0              1     16.1
+repo          C     8         8      0    0       0.00 (0.00-0.32)         0              0     17.1
+repo          T2    8         8      0    0       0.00 (0.00-0.32)         0              0     18.1
+sf-ui         C    16        16      0    0       0.00 (0.00-0.19)         0              1     18.2
+sf-ui         T2   16        16      0    0       0.00 (0.00-0.19)         0              4     16.1
+
+inplace-hello: init as the first start, C 12/12, T2 12/12; no start: C 0, T2 0
+nogit-hello: init as the first start, C 12/12, T2 12/12; no start: C 0, T2 0
+repo: init as the first start, C 0/8, T2 0/8; no start: C 0, T2 0
+sf-ui: init as the first start, C 0/16, T2 0/16; no start: C 0, T2 0
+explicit in-place and non-Git requests pooled: C 24/24 (1.00), T2 24/24 (1.00); drop +0.00; one-sided p (T2 lower) 1.0000
+
+VERDICT: NO REGRESSION FOUND
+
+route from the command against route from what the start left on disk: 96 sessions; both readable 83, agree 83, differ 0; command only (start stopped before it wrote anything, or wrote outside the folder) 13

@@ -697,7 +697,7 @@ def _run_sample(sc: sb.Scenario, out: Path, *, host: Any, model: str, effort: st
                          "has nothing to follow. Nothing was started.")
     action_id = built.seeded["action"]
     seed_counts = snapshot(built.worktree, out / SEED_EXPORT)  # before the host starts: what the stage starts from
-    case = sb.step_cases()[sc.data["request_from"]]
+    case = sb._buildable(sc)
     delegation = (sc.data.get("options") or {}).get("delegation", "inline")
     run_dir = Path(built.seeded["run_dir"])
     opening = host.invoke(host.skill, run.seed_prompt(cli, str(run_dir), case["prompt"], delegation, sb.base_stage(sc.stage)))

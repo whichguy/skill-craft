@@ -1,0 +1,13 @@
+{
+  "outcome": "blocked",
+  "summary": "I need a decision before continuing.",
+  "awaiting": {
+    "kind": "answer",
+    "question": "May I continue?",
+    "options": [
+      "Yes",
+      "No"
+    ],
+    "no_default": "There is no default."
+  }
+}

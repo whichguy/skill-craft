@@ -1,0 +1,677 @@
+{
+  "case": "hello",
+  "host": "claude",
+  "backend": "anthropic",
+  "model": "claude-sonnet-5-5",
+  "effort": null,
+  "pass": true,
+  "invoked": {
+    "pass": true,
+    "skill": "skill-craft:shiploop"
+  },
+  "plugin": {
+    "pass": true,
+    "loaded": [
+      "/Users/dadleet/e2e-runs/2026-11-01/shiploop-hello-sonnet-floor-ab59f8/marketplace/plugins/skill-craft"
+    ],
+    "wanted": "/Users/dadleet/e2e-runs/2026-11-01/shiploop-hello-sonnet-floor-ab59f8/marketplace/plugins/skill-craft"
+  },
+  "versions": {
+    "source": "marketplace",
+    "installed_by": "origin/main export",
+    "plugin_version": "2.27.3",
+    "shiploop_version": "1.26.3",
+    "plugin_sha256": "833f89b3cce4",
+    "released": {
+      "origin_main": "8493c5b9fc3b4fa6bac67588521e90912ff71592",
+      "local_head": "8493c5b9fc3b4fa6bac67588521e90912ff71592",
+      "local_behind_main": true,
+      "catalog_version": "2.27.3",
+      "shiploop_version": "1.26.3",
+      "unreleased": [],
+      "ci": "pending"
+    },
+    "gate": []
+  },
+  "prompt_sha256": "d2d7e2dabeeb",
+  "boundary": {
+    "evaluator": "d85e084d9233",
+    "oracle": "e5f1b99753ac",
+    "case": "313993af1a13"
+  },
+  "host_build": "2.1.316",
+  "span": {
+    "started": 1793544882.061,
+    "ended": 1793545848.313
+  },
+  "identity_unmeasured": {},
+  "process": {
+    "status": "exited",
+    "returncode": 0,
+    "elapsed_seconds": 969.2,
+    "stop": "success",
+    "sessions": [
+      {
+        "status": "exited",
+        "returncode": 0,
+        "elapsed_seconds": 969.2,
+        "stop": "success",
+        "resumed": null,
+        "host": "claude"
+      }
+    ],
+    "resumes": 0,
+    "pass": true
+  },
+  "termination": {
+    "process_status": "exited",
+    "returncode": 0,
+    "sessions": 1,
+    "resumes": 0,
+    "session_stops": [
+      "success"
+    ],
+    "resume_stop": "host is not resumable",
+    "engine_status": "done",
+    "engine_stage": "done",
+    "engine_unaccepted_stage": null,
+    "engine_status_reason": null,
+    "engine_blocked_by": null,
+    "engine_awaiting_kind": null,
+    "engine_awaiting_no_default": null
+  },
+  "outcome_class": "PASS",
+  "outcome_basis": "every verdict passed",
+  "environment": {
+    "start": {
+      "observed": true,
+      "at": "2026-11-01T14:54:18Z",
+      "tools": {
+        "node": "v26.12.1",
+        "python3": "Python 3.15.1",
+        "git": "git version 2.54.0 (Apple Git-157)"
+      },
+      "cpus": 18,
+      "loadavg": [
+        167.14,
+        142.42,
+        114.1
+      ],
+      "display_hold": true,
+      "unread": {},
+      "browser": {
+        "declared": false,
+        "probed": false,
+        "reason": "no case or --need declares a browser"
+      }
+    },
+    "end": {
+      "observed": true,
+      "at": "2026-11-01T15:10:51Z",
+      "cpus": 18,
+      "loadavg": [
+        28.84,
+        48.13,
+        76.56
+      ],
+      "unread": {}
+    },
+    "hosts_used": [
+      "claude"
+    ],
+    "mixed_host": false,
+    "launches_unreadable": [],
+    "environments": [
+      {
+        "launch": "invocation.json",
+        "host": "claude",
+        "model": "claude-sonnet-5-5",
+        "effort": null,
+        "host_build": null,
+        "identity_unmeasured": {
+          "host_build": "Claude: read from the init event after the run"
+        },
+        "environment": {
+          "observed": true,
+          "at": "2026-11-01T14:54:18Z",
+          "tools": {
+            "node": "v26.12.1",
+            "python3": "Python 3.15.1",
+            "git": "git version 2.54.0 (Apple Git-157)"
+          },
+          "cpus": 18,
+          "loadavg": [
+            167.14,
+            142.42,
+            114.1
+          ],
+          "display_hold": true,
+          "unread": {},
+          "browser": {
+            "declared": false,
+            "probed": false,
+            "reason": "no case or --need declares a browser"
+          }
+        },
+        "environment_reason": null
+      }
+    ],
+    "overlap": {
+      "observed": true,
+      "basis": "the first and last host event of this run and of each run folder under the runs root (timeline.jsonl holds host events only): it counts a pause between sessions, and misses the setup before the first event and the checks and reap after the last, so the seconds are neither an upper nor a lower bound; a run outside the root is not seen",
+      "root": "~/e2e-runs",
+      "span": {
+        "first": 1793544882.061,
+        "last": 1793545848.313
+      },
+      "siblings_read": 147,
+      "siblings_unreadable": [],
+      "ended_before": 3027,
+      "runs": [
+        {
+          "folder": "2026-11-01/closed-loop-pilot-02/cycle/epoch/runs/candidate-hello-hook-continuation-1",
+          "case": "hello-hook-continuation",
+          "hosts": [
+            "codex"
+          ],
+          "hosts_reason": null,
+          "overlapped_seconds": 100.6,
+          "started_offset_seconds": 865.7
+        },
+        {
+          "folder": "2026-11-01/closed-loop-pilot-02/cycle/epoch/runs/control-hello-hook-continuation-1",
+          "case": "hello-hook-continuation",
+          "hosts": [
+            "codex"
+          ],
+          "hosts_reason": null,
+          "overlapped_seconds": 738.6,
+          "started_offset_seconds": 97.3
+        },
+        {
+          "folder": "2026-11-01/closed-loop-pilot-02/cycle/epoch/runs/control-hello-hook-continuation-2",
+          "case": "hello-hook-continuation",
+          "hosts": [
+            "codex"
+          ],
+          "hosts_reason": null,
+          "overlapped_seconds": 714.6,
+          "started_offset_seconds": 99.1
+        },
+        {
+          "folder": "2026-11-01/closed-loop-pilot-02/cycle/epoch/runs/control-hello-hook-continuation-3",
+          "case": "hello-hook-continuation",
+          "hosts": [
+            "codex"
+          ],
+          "hosts_reason": null,
+          "overlapped_seconds": 103.1,
+          "started_offset_seconds": 863.1
+        },
+        {
+          "folder": "2026-11-01/shiploop-e2e-cycle-45dd21/scope-live-03-original-no-home/discovery/original-test-only/1",
+          "case": null,
+          "hosts": [
+            "codex"
+          ],
+          "hosts_reason": null,
+          "overlapped_seconds": 34.8,
+          "started_offset_seconds": -4.8
+        }
+      ]
+    }
+  },
+  "left_behind": {
+    "observed": true,
+    "reaped": [],
+    "survived": []
+  },
+  "resources": {
+    "ledger": "resources.jsonl",
+    "leases": [],
+    "contention": {
+      "observed": true,
+      "root": "~/e2e-runs",
+      "live_runs": [
+        {
+          "folder": "2026-11-01/shiploop-e2e-cycle-45dd21/scope-live-03-original-no-home/discovery/original-test-only/1",
+          "host": null,
+          "model": null
+        }
+      ],
+      "same_host": [],
+      "same_model": []
+    },
+    "disk": {
+      "path": "~/e2e-runs/2026-11-01",
+      "free_bytes": 2664254173184,
+      "need_bytes": 2147483648,
+      "ok": true
+    },
+    "cleanup": {
+      "end": {
+        "observed": true,
+        "stopped": [],
+        "survived": [],
+        "gone": [],
+        "reused": [],
+        "unverified": [],
+        "protected": []
+      }
+    }
+  },
+  "keepalive": null,
+  "shiploop": {
+    "pass": true,
+    "run_dir": "/Users/dadleet/e2e-runs/2026-11-01/shiploop-hello-sonnet-floor-ab59f8/.shiploop-runs/work-20261101-145456-62f91d/run",
+    "status": "done",
+    "stage": "done",
+    "revision": 30,
+    "report_html": true,
+    "runs": 1,
+    "identity": "recorded",
+    "worktree": "/Users/dadleet/e2e-runs/2026-11-01/shiploop-hello-sonnet-floor-ab59f8/.shiploop-runs/work-20261101-145456-62f91d/worktree",
+    "knowledge": {
+      "spec": true,
+      "head": "4ee72d9ff80efe16b1952842f42f4eb4445b3019",
+      "uncommitted": [],
+      "spec_tracked": true,
+      "requirement_ids": [
+        "R-1",
+        "R-2"
+      ],
+      "head_commits": 12,
+      "head_files": 5,
+      "untracked_files": 0,
+      "branches": [
+        "main",
+        "shiploop/run-e4c7b462379d83f0"
+      ]
+    }
+  },
+  "committed": {
+    "pass": true,
+    "start_head": null,
+    "head": "4ee72d9ff80efe16b1952842f42f4eb4445b3019",
+    "head_files": 5,
+    "uncommitted": []
+  },
+  "checks": [
+    {
+      "command": "test \"$(python3 hello.py)\" = 'Hello, world!'",
+      "pass": true,
+      "returncode": 0,
+      "output": ""
+    },
+    {
+      "command": "python3 -m unittest -q",
+      "pass": true,
+      "returncode": 0,
+      "output": "----------------------------------------------------------------------\nRan 3 tests in 0.062s\n\nOK\n"
+    }
+  ],
+  "cli": {
+    "model": "claude-sonnet-5-5",
+    "sessions": [
+      {
+        "num_turns": 129,
+        "cost_usd": 4.130198799999999,
+        "stop": "success"
+      }
+    ],
+    "stop": "success",
+    "num_turns": 129,
+    "cost_usd": 4.1302,
+    "truncated_outputs": null
+  },
+  "follow_on": null,
+  "base": null,
+  "delivery": {
+    "before": {
+      "observed": true,
+      "head": "4ee72d9ff80efe16b1952842f42f4eb4445b3019",
+      "tree": "6479b1a912758ea7b31ce399c70d157d629f96c8",
+      "status": [],
+      "bundle": "delivery/work.bundle",
+      "bundle_bytes": 11447
+    },
+    "after": {
+      "observed": true,
+      "head": "4ee72d9ff80efe16b1952842f42f4eb4445b3019",
+      "tree": "6479b1a912758ea7b31ce399c70d157d629f96c8",
+      "status": []
+    }
+  },
+  "resumed_run": null,
+  "seeded": null,
+  "budget": null,
+  "expectations": {
+    "checks": "the request: each check tests a sentence of the prompt"
+  },
+  "metrics": {
+    "claude_code_version": "2.1.316",
+    "turns": 188,
+    "model_calls": 109,
+    "window_tokens": 1000000,
+    "cost_usd": 4.1302,
+    "unreported_sessions": 0,
+    "compactions": null,
+    "truncated_outputs": null,
+    "improve_children": 8,
+    "stages": [
+      {
+        "stage": "intake",
+        "outcome": "done",
+        "seconds": 46.9,
+        "turns": 10,
+        "tool_calls": 6,
+        "context": {
+          "calls": 5,
+          "peak": 59633,
+          "peakPct": 6.0
+        }
+      },
+      {
+        "stage": "discovery",
+        "outcome": "done",
+        "seconds": 22.0,
+        "turns": 5,
+        "tool_calls": 4,
+        "context": {
+          "calls": 3,
+          "peak": 66351,
+          "peakPct": 6.6
+        }
+      },
+      {
+        "stage": "research",
+        "outcome": "done",
+        "seconds": 19.0,
+        "turns": 4,
+        "tool_calls": 2,
+        "context": {
+          "calls": 2,
+          "peak": 73814,
+          "peakPct": 7.4
+        }
+      },
+      {
+        "stage": "spec",
+        "outcome": "done",
+        "seconds": 61.0,
+        "turns": 15,
+        "tool_calls": 10,
+        "context": {
+          "calls": 8,
+          "peak": 109404,
+          "peakPct": 10.9
+        }
+      },
+      {
+        "stage": "test-strategy",
+        "outcome": "done",
+        "seconds": 84.0,
+        "turns": 14,
+        "tool_calls": 8,
+        "context": {
+          "calls": 7,
+          "peak": 128655,
+          "peakPct": 12.9
+        }
+      },
+      {
+        "stage": "plan",
+        "outcome": "done",
+        "seconds": 56.0,
+        "turns": 11,
+        "tool_calls": 6,
+        "context": {
+          "calls": 6,
+          "peak": 146243,
+          "peakPct": 14.6
+        }
+      },
+      {
+        "stage": "prepare",
+        "outcome": "done",
+        "seconds": 16.0,
+        "turns": 2,
+        "tool_calls": 2,
+        "context": {
+          "calls": 2,
+          "peak": 153367,
+          "peakPct": 15.3
+        }
+      },
+      {
+        "stage": "step-plan",
+        "outcome": "done",
+        "seconds": 66.0,
+        "turns": 14,
+        "tool_calls": 8,
+        "context": {
+          "calls": 8,
+          "peak": 174838,
+          "peakPct": 17.5
+        }
+      },
+      {
+        "stage": "test-spec",
+        "outcome": "done",
+        "seconds": 31.0,
+        "turns": 4,
+        "tool_calls": 3,
+        "context": {
+          "calls": 3,
+          "peak": 186451,
+          "peakPct": 18.6
+        }
+      },
+      {
+        "stage": "validate-existing",
+        "outcome": "done",
+        "seconds": 0.0,
+        "turns": 0,
+        "tool_calls": 0
+      },
+      {
+        "stage": "implement",
+        "outcome": "done",
+        "seconds": 31.0,
+        "turns": 6,
+        "tool_calls": 3,
+        "context": {
+          "calls": 3,
+          "peak": 197326,
+          "peakPct": 19.7
+        }
+      },
+      {
+        "stage": "test",
+        "outcome": "done",
+        "seconds": 78.0,
+        "turns": 9,
+        "tool_calls": 5,
+        "context": {
+          "calls": 5,
+          "peak": 213816,
+          "peakPct": 21.4
+        }
+      },
+      {
+        "stage": "document",
+        "outcome": "done",
+        "seconds": 100.0,
+        "turns": 16,
+        "tool_calls": 10,
+        "context": {
+          "calls": 10,
+          "peak": 235409,
+          "peakPct": 23.5
+        }
+      },
+      {
+        "stage": "carry-forward",
+        "outcome": "done",
+        "seconds": 66.0,
+        "turns": 14,
+        "tool_calls": 8,
+        "context": {
+          "calls": 8,
+          "peak": 253129,
+          "peakPct": 25.3
+        }
+      },
+      {
+        "stage": "system-test-author",
+        "outcome": "done",
+        "seconds": 50.0,
+        "turns": 12,
+        "tool_calls": 7,
+        "context": {
+          "calls": 7,
+          "peak": 267725,
+          "peakPct": 26.8
+        }
+      },
+      {
+        "stage": "system-test",
+        "outcome": "done",
+        "seconds": 13.0,
+        "turns": 2,
+        "tool_calls": 2,
+        "context": {
+          "calls": 2,
+          "peak": 271947,
+          "peakPct": 27.2
+        }
+      },
+      {
+        "stage": "product-acceptance",
+        "outcome": "done",
+        "seconds": 12.0,
+        "turns": 3,
+        "tool_calls": 2,
+        "context": {
+          "calls": 2,
+          "peak": 276571,
+          "peakPct": 27.7
+        }
+      },
+      {
+        "stage": "release-plan",
+        "outcome": "done",
+        "seconds": 58.0,
+        "turns": 13,
+        "tool_calls": 8,
+        "context": {
+          "calls": 8,
+          "peak": 291406,
+          "peakPct": 29.1
+        }
+      },
+      {
+        "stage": "release-check",
+        "outcome": "done",
+        "seconds": 50.0,
+        "turns": 13,
+        "tool_calls": 7,
+        "context": {
+          "calls": 7,
+          "peak": 299309,
+          "peakPct": 29.9
+        }
+      },
+      {
+        "stage": "release",
+        "outcome": "done",
+        "seconds": 22.0,
+        "turns": 6,
+        "tool_calls": 4,
+        "context": {
+          "calls": 4,
+          "peak": 305137,
+          "peakPct": 30.5
+        }
+      },
+      {
+        "stage": "release-verify",
+        "outcome": "done",
+        "seconds": 32.0,
+        "turns": 5,
+        "tool_calls": 3,
+        "context": {
+          "calls": 3,
+          "peak": 309658,
+          "peakPct": 31.0
+        }
+      },
+      {
+        "stage": "operations",
+        "outcome": "done",
+        "seconds": 17.0,
+        "turns": 3,
+        "tool_calls": 2,
+        "context": {
+          "calls": 2,
+          "peak": 312604,
+          "peakPct": 31.3
+        }
+      },
+      {
+        "stage": "handoff",
+        "outcome": "done",
+        "seconds": 26.0,
+        "turns": 6,
+        "tool_calls": 3,
+        "context": {
+          "calls": 3,
+          "peak": 316533,
+          "peakPct": 31.7
+        }
+      }
+    ],
+    "unmeasured": {
+      "compactions": "only Grok's events carry this signal (an auto_compact_completed event); this host's do not, so a count of 0 is a missing signal and not a measurement",
+      "truncated_outputs": "only Grok's events carry this signal (rawOutput.truncated on a tool_call_update); this host's do not, so a count of 0 is a missing signal and not a measurement",
+      "cancelled_tool_calls": "only Grok's events carry this signal (a failed tool_call_update saying the user cancelled it, Grok's permission refusal); this host's do not, so a count of 0 is a missing signal and not a measurement",
+      "knowledge_reads": "only Grok's events carry this signal (a read tool call naming a file path); this host's do not, so a count of 0 is a missing signal and not a measurement"
+    },
+    "script_verifications": {
+      "records": 5,
+      "passed": 5,
+      "could_not_run": 0,
+      "commands": 9,
+      "red": 0
+    },
+    "planning_seconds": 385.0,
+    "model_glue": 0,
+    "tmp_writes": 0,
+    "asked_user": 0,
+    "narrative": {
+      "emitted": 11,
+      "shown": 0,
+      "verbatim": 0,
+      "results": 23,
+      "with_headline": 22
+    },
+    "shiploop_failures": 3,
+    "cancelled_tool_calls": null
+  },
+  "output": "/Users/dadleet/e2e-runs/2026-11-01/shiploop-hello-sonnet-floor-ab59f8",
+  "quality": {
+    "observed": false,
+    "declared": [],
+    "hosts_used": [
+      "claude"
+    ],
+    "mixed_host": false,
+    "reason": "the case declares no quality measures (no mutation command, no held-out acceptance)",
+    "memory_writes": [],
+    "held_out_seen": null,
+    "unmeasured": {
+      "held_out_seen": "the case declares no held-out acceptance, so nothing is held out"
+    },
+    "seconds": 0.0
+  }
+}

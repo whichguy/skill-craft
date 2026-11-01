@@ -8,6 +8,7 @@ bundled Until Loop runtime, and ShipLoop really runs the recorded commands
 from __future__ import annotations
 
 import contextlib
+import errno
 import io
 import json
 import os
@@ -17,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import types
 import unittest
 from pathlib import Path
@@ -56,9 +58,11 @@ TRIVIAL = {"classification": "trivial", "exit_assessment": "satisfied", "continu
            "evidence": "Synthetic iteration: every command exited 0.", "handoff": "Synthetic; nothing remains."}
 MATERIAL = dict(TRIVIAL, classification="non-trivial", exit_assessment="unsatisfied",
                 evidence="Synthetic iteration: a command failed and the code was fixed.")
-# A one-test runner: prints a unittest summary, fails while its file is missing.
-CHECK = ('echo "Ran 1 test in 0.001s"\n'
-         'if test -f "$1"; then echo OK; else echo "FAILED (failures=1)"; exit 1; fi\n')
+# A one-test runner: prints its test's ID and a unittest summary, fails while its file is missing.  It lists TC-1 because
+# a focused command gives each executed criterion it names an ID of its own (step-plan review, 2026-11-01).
+CHECK = ('if test -f "$1"; then echo "\u2714 TC-1 makes the fixed file"; echo "Ran 1 test in 0.001s"; echo OK; '
+         'else echo "\u2716 TC-1 makes the fixed file"; echo "Ran 1 test in 0.001s"; echo "FAILED (failures=1)"; '
+         'exit 1; fi\n')
 def one_step(result: dict) -> dict:
     """The one implement step of a synthetic step plan, sized as the submit gate requires: it changes all of the
     item's paths and satisfies all of its criteria."""
@@ -68,7 +72,7 @@ def one_step(result: dict) -> dict:
     return step
 
 
-COMMANDS = [{"command": "sh check.sh fixed.txt", "suite": "focused"},
+COMMANDS = [{"command": "sh check.sh fixed.txt", "suite": "focused", "ids": ["TC-1"]},
             {"command": "test -f retained.txt", "suite": "regression"}]
 # A test file that loads something this item creates dies before any test runs while that file is missing.  LOADER is
 # a neutral one-test runner that does so; NODE_LOAD_FAILURE and NODE_ONE_FAILING are real node:test outputs (v25, a
@@ -152,6 +156,33 @@ def git(repo: Path, *args: str) -> str:
     return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True).stdout
 
 
+def remove_tree(path: Path, *, attempts: int = 5, pause: float = 0.2) -> None:
+    """Remove a fixture tree, trying again when something is still being written into it.
+
+    A teardown once failed with ``OSError: [Errno 39] Directory not empty: '.../repo/.git/objects'`` (CI run
+    41318115086, attempt 1, job full / shiploop-3, in test_a_document_rerun_is_held_to_the_count_the_test_stage_accepted,
+    Python 3.15.2): an entry appeared in a directory ``shutil.rmtree`` was emptying. No writer was found in this suite, and
+    the test passed every time it was run alone, so the removal is repeated after a short pause; the last error is raised.
+    """
+    for attempt in range(1, attempts + 1):
+        try:
+            shutil.rmtree(path)
+            return
+        except FileNotFoundError:
+            return
+        except OSError:
+            if attempt == attempts:
+                raise
+            time.sleep(pause * attempt)
+
+
+def fixture_directory(case: unittest.TestCase, prefix: str) -> Path:
+    """A new temporary directory, removed with ``remove_tree`` when the test ends."""
+    path = Path(tempfile.mkdtemp(prefix=prefix))
+    case.addCleanup(remove_tree, path)
+    return path
+
+
 class TestLoopTests(unittest.TestCase):
     def setUp(self) -> None:
         # Real-git tests must not read the machine's Git configuration (a CI runner's global config carries git-lfs
@@ -159,9 +190,7 @@ class TestLoopTests(unittest.TestCase):
         isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
         isolated.start()
         self.addCleanup(isolated.stop)
-        temp = tempfile.TemporaryDirectory(prefix="shiploop-test-loop-")
-        self.addCleanup(temp.cleanup)
-        base = Path(temp.name).resolve()
+        base = fixture_directory(self, "shiploop-test-loop-").resolve()
         self.repo = base / "repo"
         self.run_dir = base / "run"
         self.repo.mkdir()
@@ -266,8 +295,12 @@ class TestLoopTests(unittest.TestCase):
                      "criteria": [{"id": "C1", "text": "The item's focused check passes."}]}
                     if step_plan is None else step_plan)
         if recorded.get("test_commands") and "criteria" not in recorded:
-            recorded = dict(recorded, test_commands=[dict(recorded["test_commands"][0], criteria=["C1"]),
-                                                     *recorded["test_commands"][1:]],
+            # C1 goes on the first command that can confirm it: a focused command that lists no IDs cannot, as a
+            # focused command gives each executed criterion it names an ID of its own (step-plan review, 2026-11-01).
+            rows = list(recorded["test_commands"])
+            at = next((index for index, row in enumerate(rows) if row.get("suite") != "focused" or row.get("ids")), 0)
+            rows[at] = dict(rows[at], criteria=["C1"])
+            recorded = dict(recorded, test_commands=rows,
                             criteria=[{"id": "C1", "text": "The item's focused check passes."}])
         recorded = {"steps": [one_step(recorded)], **recorded}
         for _ in range(200):
@@ -422,15 +455,15 @@ class TestLoopTests(unittest.TestCase):
         self.start()
         self.drive_to("test")
         contract = json.loads((self.run_dir / loops.contract_path(self.action())).read_text())
-        self.assertIn("\n" + loops.COMMANDS_HEAD + "\n1. [focused] sh check.sh fixed.txt\n2. [regression] test -f "
-                      "retained.txt", contract["work"])
+        self.assertIn("\n" + loops.COMMANDS_HEAD + "\n1. [focused] sh check.sh fixed.txt (must run: TC-1)\n"
+                      "2. [regression] test -f retained.txt", contract["work"])
         self.assertEqual(contract["exit_condition"], loops.exit_condition("test"))
         self.assertEqual(contract["required_trivial_reviews"], 0)
         packet = self.packet()
         # The commands are part of the Work field, between the argument's marker lines.
         argument = support.LoopBlock(packet).argument
         self.assertEqual(argument[argument.index(loops.COMMANDS_HEAD) + 1:][:2],
-                         ["1. [focused] sh check.sh fixed.txt", "2. [regression] test -f retained.txt"])
+                         ["1. [focused] sh check.sh fixed.txt (must run: TC-1)", "2. [regression] test -f retained.txt"])
         self.assertIn(loops.INVOKE_LINE, packet)
         self.pass_loop()
         self.assertNotEqual(nav.current_stage(self.settle()), "test")
@@ -1922,6 +1955,44 @@ class TestLoopTests(unittest.TestCase):
                          [{"command": "npm test", "suite": "regression", "minimum": True}])
         self.assertIn("(minimum regression: every step)", test_loop._listing(smoke))
 
+    def test_each_executed_criterion_a_focused_command_names_needs_an_id_of_its_own(self):
+        """Step-plan review (2026-11-01): test-spec writes one case per focused ID and a case names one criterion, so a
+        focused command naming more executed criteria than IDs leaves one with no case; 9 of the 24 saved plans that had
+        one came back from test-spec.  The check matches criteria to the IDs of the focused rows that name them."""
+        def criteria(*names, confirm="executed"):
+            return [{"id": name, "text": name + " holds", "confirm": confirm} for name in names]
+        focused = {"command": "node --test test/import.test.js", "suite": "focused"}
+        cases = [
+            ("one ID per criterion", [dict(focused, ids=["TC-1", "TC-2"], criteria=["C1", "C2"])], criteria("C1", "C2"),
+             []),
+            ("one ID for two criteria (ticket-import, 2026-10-31)",
+             [dict(focused, ids=["TC_1"], criteria=["C1", "C2"])], criteria("C1", "C2"), ["C2"]),
+            ("no IDs at all", [dict(focused, criteria=["C1", "C2"])], criteria("C1", "C2"), ["C1", "C2"]),
+            ("five criteria, four IDs", [dict(focused, ids=["TC_1", "TC_2", "TC_3", "TC_4"],
+                                             criteria=["C1", "C2", "C3", "C4", "C5"])],
+             criteria("C1", "C2", "C3", "C4", "C5"), ["C5"]),
+            ("a spare ID of another row serves", [dict(focused, ids=["TC-1"], criteria=["C1", "C2"]),
+                                                   dict(focused, command="npm run e2e", ids=["TC-2"], criteria=["C2"])],
+             criteria("C1", "C2"), []),
+            ("an ID serves only a row that names the criterion",
+             [dict(focused, ids=["TC-1"], criteria=["C1", "C2"]), dict(focused, command="npm run e2e", ids=["TC-2"],
+                                                                       criteria=["C3"])],
+             criteria("C1", "C2", "C3"), ["C2"]),
+            ("searched and inspected criteria take no case", [dict(focused, ids=["TC-1"], criteria=["C1", "C2"])],
+             criteria("C1") + criteria("C2", confirm="searched"), []),
+            ("a regression or check row needs no ID", [{"command": "npm test", "suite": "regression", "criteria": ["C1"]},
+                                                       {"command": "npm run lint", "suite": "check", "criteria": ["C1"]}],
+             criteria("C1"), []),
+            ("an ID listed twice counts once", [dict(focused, ids=["TC-1"], criteria=["C1"]),
+                                                dict(focused, command="npm run e2e", ids=["TC-1"], criteria=["C2"])],
+             criteria("C1", "C2"), ["C2"]),
+        ]
+        for label, commands, rows, missing in cases:
+            with self.subTest(label):
+                self.assertEqual(test_loop.criteria_without_ids(commands, rows), missing)
+        self.assertEqual(test_loop.criteria_without_ids([{"suite": "focused", "ids": "TC-1", "criteria": None}, "x"],
+                                                        [None, {"id": "C1"}]), [], "malformed rows are the shape gate's")
+
     def test_a_command_on_a_target_that_keeps_state_is_left_out_of_the_base_and_the_mutant_runs(self):
         """Run-5 batch F3: on any platform, a command naming a test-strategy target that keeps state is remote, so the
         base run does not read the target's already-changed state as the item's base."""
@@ -2435,16 +2506,17 @@ class TestLoopTests(unittest.TestCase):
         """D-1: the chess step plan copied the Focused and Full-suite fences, so rows 7-9 were rows 1-3 again and every
         run deployed and ran them twice.  A regression row that repeats a focused row folds into it, and document's
         rerun runs it once."""
-        twice = [{"command": "sh check.sh fixed.txt", "suite": "focused", "criteria": ["C1"]},
+        twice = [{"command": "sh check.sh fixed.txt", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
                  {"command": "test -f retained.txt", "suite": "regression"},
                  {"command": "sh check.sh fixed.txt", "suite": "regression"}]
         self.start()
         self.drive_to("document", step_plan={"test_commands": twice, "paths": ["a.py"],
                                              "criteria": [{"id": "C1", "text": "The item's focused check passes."}]})
         self.assertEqual(test_loop.stage_commands(self.state(), "document", self.item())[0],
-                         [{"command": "sh check.sh fixed.txt", "suite": "focused", "criteria": ["C1"], "regression": True},
+                         [{"command": "sh check.sh fixed.txt", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"],
+                           "regression": True},
                           {"command": "test -f retained.txt", "suite": "regression"}])
-        self.assertIn("1. [focused] sh check.sh fixed.txt (also recorded as regression)", self.packet())
+        self.assertIn("1. [focused] sh check.sh fixed.txt (must run: TC-1) (also recorded as regression)", self.packet())
         calls: list = []
         (self.repo / "a.py").write_text("x = 3\n")  # document's own code edit: its rerun runs every command
         self.run_loop([TRIVIAL])
@@ -2743,8 +2815,10 @@ class TestLoopTests(unittest.TestCase):
         `added_tests`, and from its own import on every rerun of that command must show it.  A registered test is no
         new case, so the RED rule never asks it to fail on a base."""
         self.start()
-        plan = {"test_commands": [{"command": self.REGISTERED, "suite": "focused", "criteria": ["C1"]}, COMMANDS[1]],
-                "paths": ["a.py"], "criteria": [{"id": "C1", "text": "The item's focused check passes."}]}
+        # The focused command lists no IDs until the review registers one, so C1 rests on the regression command (a
+        # focused command gives each executed criterion it names an ID of its own, step-plan review 2026-11-01).
+        plan = {"test_commands": [{"command": self.REGISTERED, "suite": "focused"}, dict(COMMANDS[1], criteria=["C1"])],
+                "paths": ["a.py"], "criteria": [{"id": "C1", "text": "The item's retained file stays."}]}
         def change(state):
             if nav.current_stage(state) == "implement":
                 (self.repo / "a.py").write_text("import os\n")
@@ -2925,9 +2999,8 @@ class SharedBaseTests(unittest.TestCase):
         isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
         isolated.start()
         self.addCleanup(isolated.stop)
-        temp = tempfile.TemporaryDirectory(prefix="shiploop-shared-base-")
-        self.addCleanup(temp.cleanup)
-        self.repo, self.run_dir = Path(temp.name) / "repo", Path(temp.name) / "run"
+        temp = fixture_directory(self, "shiploop-shared-base-")
+        self.repo, self.run_dir = temp / "repo", temp / "run"
         self.repo.mkdir()
         self.run_dir.mkdir()
         git(self.repo, "init", "-q")
@@ -2987,9 +3060,7 @@ class ReleaseVerifyReturnedResultTests(unittest.TestCase):
         isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
         isolated.start()
         self.addCleanup(isolated.stop)
-        temp = tempfile.TemporaryDirectory(prefix="shiploop-release-verify-")
-        self.addCleanup(temp.cleanup)
-        base = Path(temp.name).resolve()
+        base = fixture_directory(self, "shiploop-release-verify-").resolve()
         self.source = base / "source"
         self.source.mkdir()
         git(self.source, "init", "-q")
@@ -3102,9 +3173,7 @@ class WorktreeItemCommitTests(unittest.TestCase):
         isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
         isolated.start()
         self.addCleanup(isolated.stop)
-        temp = tempfile.TemporaryDirectory(prefix="shiploop-item-commit-")
-        self.addCleanup(temp.cleanup)
-        base = Path(temp.name).resolve()
+        base = fixture_directory(self, "shiploop-item-commit-").resolve()
         self.source = base / "source"
         self.source.mkdir()
         git(self.source, "init", "-q")
@@ -4065,6 +4134,51 @@ class RefusedRunTallyTests(unittest.TestCase):
             writes, refusal = test_loop.verify(root, self.state(root, "printf 'Ran 1 test in 0.001s\\n\\nOK\\n'"), "W1", "A1", "test")
             self.assertTrue(writes)
             self.assertEqual(refusal, "")
+
+
+
+class FixtureCleanupTests(unittest.TestCase):
+    """The fixture teardown that CI once failed on (``remove_tree``)."""
+
+    def test_a_directory_that_gains_an_entry_during_removal_is_removed_on_the_next_attempt(self) -> None:
+        base = Path(tempfile.mkdtemp(prefix="shiploop-cleanup-test-"))
+        self.addCleanup(shutil.rmtree, base, True)
+        (base / "objects").mkdir()
+        real, calls = shutil.rmtree, []
+
+        def fails_once(path, *args, **kwargs):
+            calls.append(path)
+            if len(calls) == 1:
+                raise OSError(errno.ENOTEMPTY, "Directory not empty", str(path))
+            return real(path, *args, **kwargs)
+
+        with mock.patch.object(shutil, "rmtree", fails_once), mock.patch.object(time, "sleep") as slept:
+            remove_tree(base)
+        self.assertEqual(len(calls), 2)
+        self.assertFalse(base.exists())
+        slept.assert_called_once()
+
+    def test_a_directory_that_keeps_failing_raises_the_last_error_after_the_attempts(self) -> None:
+        failure = OSError(errno.ENOTEMPTY, "Directory not empty")
+        with mock.patch.object(shutil, "rmtree", side_effect=failure) as rmtree, mock.patch.object(time, "sleep"):
+            with self.assertRaises(OSError) as raised:
+                remove_tree(Path("/nonexistent/fixture"), attempts=3)
+        self.assertEqual(rmtree.call_count, 3)
+        self.assertEqual(raised.exception.errno, errno.ENOTEMPTY)
+
+    def test_a_directory_that_is_already_gone_is_not_an_error(self) -> None:
+        remove_tree(Path(tempfile.gettempdir()) / "shiploop-cleanup-never-made")
+
+    def test_a_fixture_directory_is_removed_when_its_test_ends(self) -> None:
+        class Probe(unittest.TestCase):
+            def runTest(self) -> None:
+                self.made = fixture_directory(self, "shiploop-cleanup-probe-")
+                (self.made / "file").write_text("x\n")
+
+        probe, result = Probe(), unittest.TestResult()
+        probe.run(result)
+        self.assertTrue(result.wasSuccessful(), result.errors)
+        self.assertFalse(probe.made.exists())
 
 
 if __name__ == "__main__":

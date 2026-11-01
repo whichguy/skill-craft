@@ -277,3 +277,28 @@ is no Windows support). The floor is `shiploop_pyfloor.FLOOR`; the `python-floor
 requirement, and a host hook event does nothing; with no `python3`, the hook entries exit 0 silently. Setting
 `SHIPLOOP_KEEPALIVE=off` turns the hooks off whatever the interpreter. Evidence:
 [the portability audit](shiploop-portability-audit-journal.md).
+
+### Smoke checks after a release
+
+A release is not proven by CI alone: CI runs the source and the built package, not what a stranger installs. After
+`scripts/release-push.py`, run these from a checkout at `origin/main` (about 20 minutes, one machine):
+
+```sh
+# 1. No model: install the published plugin into a disposable Claude config and probe it (needs the claude CLI, network;
+#    docker is optional and adds the Python 3.7 check). The scratch directory must not exist yet.
+git fetch origin && SKILL_CRAFT_CHECKOUT="$PWD" sh docs/experiments/clean-install-20261101/probes.sh /tmp/skill-craft-probes-$(date +%s)
+
+# 2. A live ShipLoop session on the Claude host, on an Anthropic model (about 16 minutes, about $4 on Sonnet 5.5):
+python3 test/shiploop_e2e/run.py --case hello --host claude --backend anthropic --model claude-sonnet-5-5 \
+  --source marketplace --max-budget-usd 25
+
+# 3. Optional, the Codex host from a fresh-profile marketplace install (no Anthropic spend):
+python3 test/shiploop_e2e/run.py --case hello --host codex --source marketplace
+```
+
+Read `PASS ... every verdict passed` and the `versions` line, which names the skill-craft and ShipLoop versions the run
+installed; it must match the release. What each one proves: step 1 the released tree, its modes, the 3.9 floor and the
+hooks without Python; step 2 a real session on the Claude host, but through `--plugin-dir` on an export of the published
+tree, not a native Claude install; step 3 a real session from a native Codex marketplace install. The harness's default
+Claude backend is Ollama, whose usage cap has blocked runs (2026-10-29, 2026-11-01), so name `--backend anthropic`.
+Evidence from the 2.27.x release: [clean-install-20261101](experiments/clean-install-20261101/README.md).

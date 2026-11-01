@@ -1,0 +1,16 @@
+# lsof -nP -iTCP -sTCP:LISTEN, grouped by command, address family and bind address (2026-11-01 06:13, during probe n3; one snapshot, not a series)
+ 557 node IPv6 *
+  14 Python IPv4 127.0.0.1
+  11 node IPv4 127.0.0.1
+   2 Python IPv4 192.168.1.187
+   2 OrbStack IPv4 127.0.0.1
+   2 ControlCe IPv6 *
+   2 ControlCe IPv4 *
+   1 rapportd IPv6 *
+   1 rapportd IPv4 *
+   1 ollama IPv4 127.0.0.1
+   1 Ollama IPv4 127.0.0.1
+   1 logioptio IPv4 *
+   1 OrbStack IPv6 [::1]
+   1 LogiMgrDa IPv4 *
+# by family and kind of bind: 560 IPv6 wildcard, 32 IPv4 specific address, 5 IPv4 wildcard, 1 IPv6 specific address

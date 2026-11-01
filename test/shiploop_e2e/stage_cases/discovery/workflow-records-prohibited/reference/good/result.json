@@ -1,0 +1,13 @@
+{
+  "outcome": "blocked",
+  "summary": "The workflow requires an environment documentation record under docs/shiploop. The request prohibits changing the returned project's documentation, so this work is blocked pending your permission.",
+  "awaiting": {
+    "kind": "answer",
+    "question": "May I add the required workflow documentation record at docs/shiploop/environment.md despite the project-documentation restriction?",
+    "options": [
+      "Yes, allow the required documentation",
+      "No, keep the documentation prohibited"
+    ],
+    "no_default": "The request requires blocked status until permission and does not authorize changing project documentation."
+  }
+}

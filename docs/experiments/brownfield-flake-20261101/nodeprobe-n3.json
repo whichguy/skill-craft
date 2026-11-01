@@ -1,0 +1,185 @@
+{
+ "tag": "n3",
+ "concurrency": 16,
+ "rounds": 40,
+ "runs": 640,
+ "failures": 23,
+ "seconds": 155.5,
+ "load": 227.50048828125,
+ "signatures": {
+  "socket hang up/ECONNRESET": 14,
+  "other": 9
+ },
+ "failing": [
+  {
+   "rc": 1,
+   "seconds": 3.5,
+   "failed_tests": [
+    "answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist",
+    "POST /tickets/:id/transition",
+    "answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist"
+   ],
+   "error_lines": [
+    "Error: socket hang up",
+    "code: 'ECONNRESET'"
+   ],
+   "block": "failing tests:\n\ntest at test/api.test.js:82:3\n\u2716 answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist (3.828834ms)\n  Error: socket hang up\n    code: 'ECONNRESET'\n  }\n\n"
+  },
+  {
+   "rc": 1,
+   "seconds": 3.5,
+   "failed_tests": [
+    "answers 404 not_found for an unknown route or method",
+    "everything else",
+    "answers 404 not_found for an unknown route or method"
+   ],
+   "error_lines": [
+    "code: 'ERR_ASSERTION',"
+   ],
+   "block": "failing tests:\n\ntest at test/api.test.js:190:3\n\u2716 answers 404 not_found for an unknown route or method (21.431708ms)\n  AssertionError [ERR_ASSERTION]: {\"game\":\"g\"}\n  \n  200 !== 404\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 200,\n    expected: 404,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n\n"
+  },
+  {
+   "rc": 1,
+   "seconds": 3.5,
+   "failed_tests": [
+    "filters by status",
+    "GET /tickets",
+    "filters by status"
+   ],
+   "error_lines": [
+    "Error: socket hang up",
+    "code: 'ECONNRESET'"
+   ],
+   "block": "failing tests:\n\ntest at test/api.test.js:116:3\n\u2716 filters by status (1.994042ms)\n  Error: socket hang up\n    code: 'ECONNRESET'\n  }\n\n"
+  },
+  {
+   "rc": 1,
+   "seconds": 3.5,
+   "failed_tests": [
+    "shows what changes enqueued, pending while the worker is off",
+    "GET /admin/outbox",
+    "shows what changes enqueued, pending while the worker is off"
+   ],
+   "error_lines": [
+    "Error: socket hang up",
+    "code: 'ECONNRESET'"
+   ],
+   "block": "failing tests:\n\ntest at test/api.test.js:174:3\n\u2716 shows what changes enqueued, pending while the worker is off (4.283625ms)\n  Error: socket hang up\n    code: 'ECONNRESET'\n  }\n\n"
+  },
+  {
+   "rc": 1,
+   "seconds": 3.4,
+   "failed_tests": [
+    "shows what changes enqueued, pending while the worker is off",
+    "GET /admin/outbox",
+    "shows what changes enqueued, pending while the worker is off"
+   ],
+   "error_lines": [
+    "Error: socket hang up",
+    "code: 'ECONNRESET'"
+   ],
+   "block": "failing tests:\n\ntest at test/api.test.js:174:3\n\u2716 shows what changes enqueued, pending while the worker is off (1.726917ms)\n  Error: socket hang up\n    code: 'ECONNRESET'\n  }\n\n"
+  },
+  {
+   "rc": 1,
+   "seconds": 3.7,
+   "failed_tests": [
+    "changes the priority and records who did it",
+    "PATCH /tickets/:id",
+    "changes the priority and records who did it"
+   ],
+   "error_lines": [
+    "code: 'ERR_ASSERTION',"
+   ],
+   "block": "failing tests:\n\ntest at test/api.test.js:51:3\n\u2716 changes the priority and records who did it (23.665084ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  404 !== 200\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 404,\n    expected: 200,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n\n"
+  },
+  {
+   "rc": 1,
+   "seconds": 3.2,
+   "failed_tests": [
+    "moves the ticket and answers it",
+    "POST /tickets/:id/transition",
+    "answers a bad filter, limit or cursor with 400 invalid",
+    "GET /tickets",
+    "moves the ticket and answers it",
+    "answers a bad filter, limit or cursor with 400 invalid"
+   ],
+   "error_lines": [
+    "Error: socket hang up",
+    "code: 'ECONNRESET'",
+    "code: 'ERR_ASSERTION',"
+   ],
+   "block": "failing tests:\n\ntest at test/api.test.js:73:3\n\u2716 moves the ticket and answers it (6.358542ms)\n  Error: socket hang up\n    code: 'ECONNRESET'\n  }\n\ntest at test/api.test.js:142:3\n\u2716 answers a bad filter, limit or cursor with 400 invalid (210.067125ms)\n  AssertionError [ERR_ASSERTION]: {\"gameId\":\"x2\",\"size\":10}\n  \n  200 !== 400\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 200,\n    expected: 400,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n\n"
+  },
+  {
+   "rc": 1,
+   "seconds": 3.6,
+   "failed_tests": [
+    "filters by priority",
+    "GET /tickets",
+    "refuses an X-Actor over 64 characters",
+    "GET /tickets/:id/audit",
+    "filters by priority",
+    "refuses an X-Actor over 64 characters"
+   ],
+   "error_lines": [
+    "code: 'ERR_ASSERTION',"
+   ],
+   "block": "failing tests:\n\ntest at test/api.test.js:124:3\n\u2716 filters by priority (52.339834ms)\n  TypeError [Error]: Cannot read properties of null (reading 'id')\n\ntest at test/api.test.js:166:3\n\u2716 refuses an X-Actor over 64 characters (4.213709ms)\n  AssertionError [ERR_ASSERTION]: null\n  \n  404 !== 400\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 404,\n    expected: 400,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n\n"
+  },
+  {
+   "rc": 1,
+   "seconds": 3.8,
+   "failed_tests": [
+    "answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist",
+    "POST /tickets/:id/transition",
+    "answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist"
+   ],
+   "error_lines": [
+    "code: 'ERR_ASSERTION',"
+   ],
+   "block": "failing tests:\n\ntest at test/api.test.js:82:3\n\u2716 answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist (6.252584ms)\n  AssertionError [ERR_ASSERTION]: null\n  \n  404 !== 409\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 404,\n    expected: 409,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n\n"
+  },
+  {
+   "rc": 1,
+   "seconds": 3.3,
+   "failed_tests": [
+    "filters by priority",
+    "GET /tickets",
+    "filters by priority"
+   ],
+   "error_lines": [
+    "Error: socket hang up",
+    "code: 'ECONNRESET'"
+   ],
+   "block": "failing tests:\n\ntest at test/api.test.js:124:3\n\u2716 filters by priority (2.539125ms)\n  Error: socket hang up\n    code: 'ECONNRESET'\n  }\n\n"
+  },
+  {
+   "rc": 1,
+   "seconds": 3.8,
+   "failed_tests": [
+    "answers a bad body with 400 invalid",
+    "POST /tickets",
+    "answers a bad body with 400 invalid"
+   ],
+   "error_lines": [
+    "code: 'ERR_ASSERTION',"
+   ],
+   "block": "failing tests:\n\ntest at test/api.test.js:25:3\n\u2716 answers a bad body with 400 invalid (1.8615ms)\n  AssertionError [ERR_ASSERTION]: null\n  \n  404 !== 400\n    generatedMessage: false,\n    code: 'ERR_ASSERTION',\n    actual: 404,\n    expected: 400,\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n\n"
+  },
+  {
+   "rc": 1,
+   "seconds": 3.7,
+   "failed_tests": [
+    "creates an open ticket and answers 201 with it",
+    "POST /tickets",
+    "creates an open ticket and answers 201 with it"
+   ],
+   "error_lines": [
+    "Error: socket hang up",
+    "code: 'ECONNRESET'"
+   ],
+   "block": "failing tests:\n\ntest at test/api.test.js:14:3\n\u2716 creates an open ticket and answers 201 with it (284.594833ms)\n  Error: socket hang up\n    code: 'ECONNRESET'\n  }\n\n"
+  }
+ ]
+}

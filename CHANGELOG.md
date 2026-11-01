@@ -4,6 +4,66 @@ Written by scripts/release.py.
 
 ## 2026-11-01
 
+### skill-craft 2.29.0
+
+- Skills: shiploop 1.28.0
+
+### shiploop 1.28.0
+
+- Step-plan now refuses a plan in which an executed criterion that a focused command names has no focused test ID of its
+  own. Test-spec writes one case per focused ID, and each case names one criterion, so such a plan left a criterion
+  without a case. In the saved runs of 2026-10-25 to 11-01, 24 of 175 step plans did this: 9 came back from test-spec as a
+  send-back, and 15 folded the criterion into another criterion's case. The refusal names the criteria and the IDs listed.
+  The step-plan result template now lists one ID per criterion its focused row names; with an open item due at the item,
+  it had shown three criteria and two IDs. The duty asks for an ID for each executed criterion a focused command names
+  (a searched criterion gets none: test-spec writes it no case), and the Checked-by line names the refusal.
+
+### skill-craft 2.28.1
+
+- Skills: shiploop-e2e-audit 0.7.16
+
+### shiploop-e2e-audit 0.7.16
+
+- Make improvement checkpoints record conclusions, unknowns and the next useful
+  experiment. Calibrate behavioral checks before live comparisons and require
+  review-boundary evidence before crediting a repair. Clarify how campaigns that
+  publish between improvements use the existing one-iteration option.
+
+### skill-craft 2.28.0
+
+- Skills: shiploop 1.27.0
+
+### shiploop 1.27.0
+
+- Intake looks up the names, skills, commands, products and community phrases in a request before it guesses or asks a
+  person. The key-question catalog gains K12 (terms and references: what each means here and where that was settled),
+  and a sentence orders the lookup: the skills and commands the host lists, then the repository and its documents, then a
+  search (`research`); when nothing settles a term, the best reading and how sure the run is become the `default`, and
+  `person` is for two readings that lead to different work. On three new requests the share of the request's items
+  answered right rose from 0.52 to 0.67 (exact one-sided p 0.008, ahead in every request) for 8% more output tokens on
+  Codex Terra 6.1 xhigh. The ledger's shape check now names K1-K12, so an intake ledger that stops at K11 is refused and
+  corrected in the same callback.
+
+### skill-craft 2.27.4
+
+- Skills: shiploop 1.26.4
+
+### shiploop 1.26.4
+
+- Step-plan's proof-order refusal now also refuses a step whose Proof is a plain suite command, such as `npm test`, when
+  one of its executed criteria is confirmed by a test file the item base does not have and no earlier step declares. That
+  Proof runs only the tests that already exist, so it cannot confirm the criterion when implement reports done. The
+  refusal asks for a Proof that runs the step's behaviour directly. Proofs that name a script or run inline code are not
+  affected.
+
+### skill-craft 2.27.3
+
+- Skills: shiploop 1.26.3
+
+### shiploop 1.26.3
+
+- The card's start section now says when the direct entry (`init`) applies: only when the user explicitly asks for an in-place or non-Git run, and naming the current directory is not such a request, because `workspace start` returns the finished work there. A session that starts in an empty directory and is asked to build "in the current directory" read the old sentence as permission to work in place and began with `init` (no Git repository, nothing committed). In a 40-session check on Codex Terra at xhigh with such a request, the published card began with `init` in 17 sessions and this wording in none; a request without that wording, and an existing Git repository, began with `workspace start` on every card tried (60 of 60).
+
 ### skill-craft 2.27.2
 
 - Skills: shiploop 1.26.2

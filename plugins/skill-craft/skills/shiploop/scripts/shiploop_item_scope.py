@@ -92,6 +92,34 @@ def command_paths(command: str) -> List[str]:
     return list(dict.fromkeys(paths))
 
 
+_CONFIRM_BY = re.compile(r"confirm by:\s*(.+?)(?:;\s*pass when|;|$)", re.I | re.S)
+_INLINE_CODE = frozenset(("-e", "-c", "--eval", "-p"))
+
+
+def confirm_by_command(text: Any) -> str:
+    """The command a criterion's text names after ``Confirm by:``, up to ``; pass when`` or the first ``;``, or ""."""
+    match = _CONFIRM_BY.search(str(text or ""))
+    return match.group(1).strip() if match else ""
+
+
+def generic_command(command: str) -> bool:
+    """True for a suite command that runs nothing specific to a step (``npm test``, ``pytest``, ``python3 -m unittest
+    -v``): no script or test path in any form (absolute, ``../`` or repository-relative) and no inline code.
+
+    An empty ``command_paths`` is not enough: it skips absolute, ``../`` and inline-code words, and those are direct
+    proofs (a scratch script, ``node -e`` assertions).  Treating them as generic would have refused 5 plans whose Proof
+    tests the step (docs/experiments/proof-coverage-replay-20261101, Q1).
+    """
+    try:
+        words = shlex.split(command)
+    except ValueError:
+        words = command.split()
+    if not words or _INLINE_CODE.intersection(words):
+        return False
+    return not any(("/" in word or _EXTENSION.search(word)) and "://" not in word
+                   for word in words if not word.startswith("-"))
+
+
 def proof_order_refusal(plan: Mapping[str, Any], exists: Callable[[str], bool]) -> str:
     """Why a step plan has a step whose Proof cannot pass when that step's implement reports done, or "" (SDLC gates D6,
     docs/shiploop-sdlc-gates-proposal-2026-10-30.md §5 SG1; replay evidence docs/experiments/question-record-20261031).
@@ -101,8 +129,14 @@ def proof_order_refusal(plan: Mapping[str, Any], exists: Callable[[str], bool]) 
     cannot pass unless an earlier step declares that path in its ``paths`` (that step's test stage has written it by
     then), or the whole item is tests.  Rule B: a Proof that names a path the base lacks which only a later step declares
     needs that later step.  Paths are read from the Proof by ``command_paths``.  In the saved runs of 2026-10-03 to 10-31,
-    9 of the 12 implement send-backs were this fault (8 on Codex Terra xhigh, 1 on DeepSeek flash), each found only after
-    a whole implement Until Loop.
+    9 of the 12 implement send-backs were this fault (8 on Codex Terra xhigh, 1 on DeepSeek flash).
+
+    Rule C: a Proof that is a generic suite command (``generic_command``, such as ``npm test``) cannot confirm an
+    executed criterion of its step whose Confirm by (``confirm_by_command``) names a test-class path the base lacks and no
+    earlier step declares.  Rule A's exemptions hold.  The step-plan duty says the Proof proves the step's criteria at its
+    done.  A suite of the tests the base already has proves nothing about such a criterion: implement sends the plan back,
+    or passes without proving it.  Replay evidence is in docs/experiments/proof-coverage-replay-20261101: rule C refused
+    3 of 365 judged plans (2 later sent back, 1 passed unproven) and no plan whose Proof tests the step directly.
     """
     item_paths = [str(path) for path in plan.get("paths") or ()]
     if item_paths and all(classify(path) == "test" for path in item_paths):
@@ -113,6 +147,7 @@ def proof_order_refusal(plan: Mapping[str, Any], exists: Callable[[str], bool]) 
     for step in steps:
         for path in step.get("paths") or ():
             declared.setdefault(str(path), []).append(str(step.get("id")))
+    criteria = {str(row.get("id")): row for row in plan.get("criteria") or () if isinstance(row, Mapping)}
     for index, step in enumerate(steps):
         proof = step.get("proof")
         if not isinstance(proof, str):
@@ -134,6 +169,21 @@ def proof_order_refusal(plan: Mapping[str, Any], exists: Callable[[str], bool]) 
                         "later step (" + ", ".join(owner for owner in owners if owner in later) + ") declares: the "
                         "Proof needs that later step's work. Move that work into " + name + " or an earlier step, or "
                         "prove " + name + " without it, then run the same callback again.")
+        if not generic_command(proof):
+            continue
+        for ident in step.get("criteria") or ():
+            row = criteria.get(str(ident)) or {}
+            if row.get("confirm") != "executed":
+                continue
+            for path in command_paths(confirm_by_command(row.get("text"))):
+                if exists(path) or classify(path) != "test" or earlier.intersection(declared.get(path, [])):
+                    continue
+                return ("step " + name + "'s Proof `" + proof + "` runs only the tests the item base has, but "
+                        + str(ident) + " is confirmed by " + path + ", which the item base does not have and no earlier "
+                        "step declares: implement writes no tests, so this Proof cannot confirm " + str(ident) + " when "
+                        + name + "'s implement reports done. Prove " + name + " with a command that runs its behaviour "
+                        "directly (a short script with assertions, an existing test or a recorded command), keep " + path
+                        + " in the focused command for the test stage, then run the same callback again.")
     return ""
 
 
@@ -360,6 +410,6 @@ def scope_refusal(run_dir: Path, state: Mapping[str, Any], work_item: str) -> st
 __all__ = ("DOCUMENT_STAGE", "LEFT_OUT_STAGES", "NOT_APPLICABLE", "TEST_STAGES", "ItemScopeError",
            "NO_BASE", "UNREADABLE",
            "behavioural", "behavioural_paths", "changed_paths", "changed_paths_or_reason", "changed_since", "classify",
-           "command_paths", "commit_item", "proof_order_refusal",
+           "command_paths", "commit_item", "confirm_by_command", "generic_command", "proof_order_refusal",
            "commit_scope", "declared", "left_out", "no_document_item", "no_test_item", "normalise_paths", "outside",
            "scope_refusal", "withheld")

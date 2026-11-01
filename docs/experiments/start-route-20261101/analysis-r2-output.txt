@@ -1,0 +1,38 @@
+180 valid slots; slots with no valid attempt: none
+request arm   n workspace direct none    wrong rate (95% CI) bootstrap read run-start median s
+sf-ui   C    40        32      8    0       0.20 (0.10-0.35)         0             40     31.2
+sf-ui   T1   40        39      1    0       0.03 (0.00-0.13)         0             40     31.2
+sf-ui   T2   40        39      1    0       0.03 (0.00-0.13)         0             40     31.2
+hello   C    10        10      0    0       0.00 (0.00-0.28)         0             10     15.1
+hello   T1   10        10      0    0       0.00 (0.00-0.28)         0             10     15.1
+hello   T2   10        10      0    0       0.00 (0.00-0.28)         0             10     14.1
+repo    C    10        10      0    0       0.00 (0.00-0.28)         0             10     18.1
+repo    T1   10        10      0    0       0.00 (0.00-0.28)         0             10     21.1
+repo    T2   10        10      0    0       0.00 (0.00-0.28)         0             10     18.2
+
+control (sf-ui): 8 wrong of 40 started (precondition: at least 5 wrong): met
+T1: 1 wrong of 40 started, 0 without a start -> MEETS THE BAR
+    ok  control can discriminate
+    ok  one-sided Fisher p 0.0144 < 0.025
+    ok  wrong rate at most half the control's
+    ok  no more sessions without a start
+    ok  regression guard (0 vs control 0, margin 1)
+    ok  card 30033 bytes <= 30500
+T2: 1 wrong of 40 started, 0 without a start -> MEETS THE BAR
+    ok  control can discriminate
+    ok  one-sided Fisher p 0.0144 < 0.025
+    ok  wrong rate at most half the control's
+    ok  no more sessions without a start
+    ok  regression guard (0 vs control 0, margin 1)
+    ok  card 30115 bytes <= 30500
+
+DECISION: ship T1
+
+route from the command against route from what the start left on disk: 180 sessions; both readable 176, agree 176, differ 0; command only (start stopped before it wrote anything, or wrote outside the folder) 4
+
+pooled over both batches (descriptive, not a decision): sf-ui wrong / started
+   C    25 /  80  0.312 (0.222-0.421)  none 0
+   T1    5 /  80  0.062 (0.027-0.138)  none 0
+   T2    1 /  80  0.013 (0.002-0.067)  none 0
+   T2 against C, one-sided Fisher p = 5.09e-08
+wrote results-r2-compact.jsonl

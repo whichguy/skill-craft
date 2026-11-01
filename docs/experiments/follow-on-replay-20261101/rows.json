@@ -1,0 +1,1503 @@
+{
+ "frozen_rows": 25,
+ "new_rows": 7,
+ "requests": {
+  "R01": [
+   {
+    "s": 1,
+    "text": "Build a single-player Battleship game in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias `de`."
+   },
+   {
+    "s": 2,
+    "text": "Use `--target-org de` on every `sf` command that talks to the org; the CLI is already logged in, so never ask for, print or store credentials, and never run `sf org display` (it prints an access token)."
+   },
+   {
+    "s": 3,
+    "text": "Name every Apex class `SLBtl589079...` (for example `SLBtl589079Engine`) and the component `slBtl589079Board`."
+   },
+   {
+    "s": 4,
+    "text": "Besides the Apex classes and the component, create exactly these kinds of metadata, all named with the prefix `SLBtl589079`, so that the board opens in the org for the user the CLI is logged in as and the work can still be removed afterwards: a custom tab `tabs/SLBtl589079_Board.tab-meta.xml` that is a Lightning component tab (`<lwcComponent>slBtl589079Board</lwcComponent>`; the component's meta file exposes the `lightning__Tab` target), a Lightning app `applications/SLBtl589079.app-meta.xml` (standard navigation, containing that tab) and a permission set `permissionsets/SLBtl589079_Access.permissionset-meta.xml` that grants the app (`<applicationVisibilities>` with `<visible>true</visible>`), the tab (`<tabSettings>` with `<visibility>Visible</visibility>`) and the `SLBtl589079Engine` and `SLBtl589079Controller` classes (`<classAccesses>` with `<enabled>true</enabled>`)."
+   },
+   {
+    "s": 5,
+    "text": "A new tab is hidden from every user until a permission set or profile grants it, so after you deploy, assign the permission set to the logged-in user with `sf org assign permset --name SLBtl589079_Access --target-org de`."
+   },
+   {
+    "s": 6,
+    "text": "Create no other metadata (no custom objects, fields, other permission sets, static resources, triggers, profiles, labels, flows or app pages), and do not change profiles or any other permission set."
+   },
+   {
+    "s": 7,
+    "text": "The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself, not a subfolder."
+   },
+   {
+    "s": 8,
+    "text": "The game: the computer places a fleet on a 10x10 grid (rows and columns 0 to 9) and the player fires at it."
+   },
+   {
+    "s": 9,
+    "text": "The fleet is the standard one: `carrier` (5 cells), `battleship` (4), `cruiser` (3), `submarine` (3) and `destroyer` (2); every ship lies straight along one row or one column, entirely inside the grid, and no two ships share a cell."
+   },
+   {
+    "s": 10,
+    "text": "A ship is sunk when all of its cells have been hit, and the game is over when the last ship is sunk."
+   },
+   {
+    "s": 11,
+    "text": "`SLBtl589079Engine` is a public class with static methods only; a game is a JSON string."
+   },
+   {
+    "s": 12,
+    "text": "`newGame(Integer seed)` returns a new game whose fleet is placed at random from the seed: the same seed always gives the same fleet, in any transaction and however many games came before, and two different seeds give different fleets (Apex has no seeded random number generator, so write a small one)."
+   },
+   {
+    "s": 13,
+    "text": "`fire(String game, Integer row, Integer col)` returns the game after one shot at that cell."
+   },
+   {
+    "s": 14,
+    "text": "The game JSON is an object with at least these keys: `shots` (the number of shots fired so far), `shipsLeft` (the number of ships not yet sunk), `gameOver` (`false` until the shot that sinks the last ship, `true` from that shot on) and `lastShot`, which is `null` in a new game and after a shot is an object `{\"row\": r, \"col\": c, \"result\": \"miss\" | \"hit\" | \"sunk\", \"ship\": name, \"size\": cells}`: `result` is `sunk` (not `hit`) for the shot that sinks a ship, and `ship` and `size` give that ship's name and number of cells on that shot only (they are `null` on a miss or a hit)."
+   },
+   {
+    "s": 15,
+    "text": "Where the ships are and which cells were fired at is up to you; the board must not show a ship cell before it is hit."
+   },
+   {
+    "s": 16,
+    "text": "A shot at a cell that was already fired at, or with a row or a column outside 0 to 9, throws `SLBtl589079Engine.InvalidShotException` (a public exception class you define inside `SLBtl589079Engine`)."
+   },
+   {
+    "s": 17,
+    "text": "After the game is over, a shot at a cell not yet fired at is still accepted: it is a `miss` and `gameOver` stays `true`."
+   },
+   {
+    "s": 18,
+    "text": "`SLBtl589079Controller` has `@AuraEnabled public static` methods `newGame(Integer seed)` and `fire(String game, Integer row, Integer col)`, each returning the game JSON as a `String`, so that the board and the grader can call them."
+   },
+   {
+    "s": 19,
+    "text": "The grader calls `SLBtl589079Controller` only with valid shots and calls `SLBtl589079Engine.fire` directly for an invalid one, so the controller may report an invalid shot however suits the board (for example by throwing an `AuraHandledException`)."
+   },
+   {
+    "s": 20,
+    "text": "The component `slBtl589079Board` renders the 10x10 grid, fires at a cell when a person clicks it, shows hits, misses and sunk ships, the number of shots fired and of ships left, says when the game is over and has a New game button."
+   },
+   {
+    "s": 21,
+    "text": "It calls `SLBtl589079Controller` and renders what comes back."
+   },
+   {
+    "s": 22,
+    "text": "The work will be graded by playing whole games through `SLBtl589079Controller`: `newGame` with a seed, then `fire` once at each of the 100 cells, each game in one anonymous Apex run."
+   },
+   {
+    "s": 23,
+    "text": "Cover the rules with Apex tests in classes named `SLBtl589079...Test` that run in the org, at least 8 Apex test methods in all: include the fleet (names, sizes, straight, inside the grid, no shared cell, the same seed twice), a miss, a hit, a sink, game over, a shot after game over and both kinds of invalid shot."
+   },
+   {
+    "s": 24,
+    "text": "Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time, with `sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage` (a synchronous run takes one class)."
+   },
+   {
+    "s": 25,
+    "text": "Keep the engine efficient enough that a whole game of 100 shots played through `SLBtl589079Controller` (`newGame`, then `fire` at every cell) runs inside one transaction."
+   },
+   {
+    "s": 26,
+    "text": "Do not stop until the tests pass in the org."
+   }
+  ],
+  "R02": [
+   {
+    "s": 1,
+    "text": "$skill-craft:shiploop Build a single-player Battleship game in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias `de`."
+   },
+   {
+    "s": 2,
+    "text": "Use `--target-org de` on every `sf` command that talks to the org; the CLI is already logged in, so never ask for, print or store credentials, and never run `sf org display` (it prints an access token)."
+   },
+   {
+    "s": 3,
+    "text": "Name every Apex class `SLBtlFull654...` (for example `SLBtlFull654Engine`) and the component `slBtlFull654Board`."
+   },
+   {
+    "s": 4,
+    "text": "Besides the Apex classes and the component, create exactly these kinds of metadata, all named with the prefix `SLBtlFull654`, so that the board opens in the org for the user the CLI is logged in as and the work can still be removed afterwards: a custom tab `tabs/SLBtlFull654_Board.tab-meta.xml` that is a Lightning component tab (`<lwcComponent>slBtlFull654Board</lwcComponent>`; the component's meta file exposes the `lightning__Tab` target), a Lightning app `applications/SLBtlFull654.app-meta.xml` (standard navigation, containing that tab) and a permission set `permissionsets/SLBtlFull654_Access.permissionset-meta.xml` that grants the app (`<applicationVisibilities>` with `<visible>true</visible>`), the tab (`<tabSettings>` with `<visibility>Visible</visibility>`) and the `SLBtlFull654Engine` and `SLBtlFull654Controller` classes (`<classAccesses>` with `<enabled>true</enabled>`)."
+   },
+   {
+    "s": 5,
+    "text": "A new tab is hidden from every user until a permission set or profile grants it, so after you deploy, assign the permission set to the logged-in user with `sf org assign permset --name SLBtlFull654_Access --target-org de`."
+   },
+   {
+    "s": 6,
+    "text": "Create no other metadata (no custom objects, fields, other permission sets, static resources, triggers, profiles, labels, flows or app pages), and do not change profiles or any other permission set."
+   },
+   {
+    "s": 7,
+    "text": "The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself, not a subfolder."
+   },
+   {
+    "s": 8,
+    "text": "The game: the computer places a fleet on a 10x10 grid (rows and columns 0 to 9) and the player fires at it."
+   },
+   {
+    "s": 9,
+    "text": "The fleet is the standard one: `carrier` (5 cells), `battleship` (4), `cruiser` (3), `submarine` (3) and `destroyer` (2); every ship lies straight along one row or one column, entirely inside the grid, and no two ships share a cell."
+   },
+   {
+    "s": 10,
+    "text": "A ship is sunk when all of its cells have been hit, and the game is over when the last ship is sunk."
+   },
+   {
+    "s": 11,
+    "text": "`SLBtlFull654Engine` is a public class with static methods only; a game is a JSON string."
+   },
+   {
+    "s": 12,
+    "text": "`newGame(Integer seed)` returns a new game whose fleet is placed at random from the seed: the same seed always gives the same fleet, in any transaction and however many games came before, and two different seeds give different fleets (Apex has no seeded random number generator, so write a small one)."
+   },
+   {
+    "s": 13,
+    "text": "`fire(String game, Integer row, Integer col)` returns the game after one shot at that cell."
+   },
+   {
+    "s": 14,
+    "text": "The game JSON is an object with at least these keys: `shots` (the number of shots fired so far), `shipsLeft` (the number of ships not yet sunk), `gameOver` (`false` until the shot that sinks the last ship, `true` from that shot on) and `lastShot`, which is `null` in a new game and after a shot is an object `{\"row\": r, \"col\": c, \"result\": \"miss\" | \"hit\" | \"sunk\", \"ship\": name, \"size\": cells}`: `result` is `sunk` (not `hit`) for the shot that sinks a ship, and `ship` and `size` give that ship's name and number of cells on that shot only (they are `null` on a miss or a hit)."
+   },
+   {
+    "s": 15,
+    "text": "Where the ships are and which cells were fired at is up to you; the board must not show a ship cell before it is hit."
+   },
+   {
+    "s": 16,
+    "text": "A shot at a cell that was already fired at, or with a row or a column outside 0 to 9, throws `SLBtlFull654Engine.InvalidShotException` (a public exception class you define inside `SLBtlFull654Engine`)."
+   },
+   {
+    "s": 17,
+    "text": "After the game is over, a shot at a cell not yet fired at is still accepted: it is a `miss` and `gameOver` stays `true`."
+   },
+   {
+    "s": 18,
+    "text": "`SLBtlFull654Controller` has `@AuraEnabled public static` methods `newGame(Integer seed)` and `fire(String game, Integer row, Integer col)`, each returning the game JSON as a `String`, so that the board and the grader can call them."
+   },
+   {
+    "s": 19,
+    "text": "The grader calls `SLBtlFull654Controller` only with valid shots and calls `SLBtlFull654Engine.fire` directly for an invalid one, so the controller may report an invalid shot however suits the board (for example by throwing an `AuraHandledException`)."
+   },
+   {
+    "s": 20,
+    "text": "The component `slBtlFull654Board` renders the 10x10 grid, fires at a cell when a person clicks it, shows hits, misses and sunk ships, the number of shots fired and of ships left, says when the game is over and has a New game button."
+   },
+   {
+    "s": 21,
+    "text": "It calls `SLBtlFull654Controller` and renders what comes back."
+   },
+   {
+    "s": 22,
+    "text": "The work will be graded by playing whole games through `SLBtlFull654Controller`: `newGame` with a seed, then `fire` once at each of the 100 cells, each game in one anonymous Apex run."
+   },
+   {
+    "s": 23,
+    "text": "Cover the rules with Apex tests in classes named `SLBtlFull654...Test` that run in the org, at least 8 Apex test methods in all: include the fleet (names, sizes, straight, inside the grid, no shared cell, the same seed twice), a miss, a hit, a sink, game over, a shot after game over and both kinds of invalid shot."
+   },
+   {
+    "s": 24,
+    "text": "Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time, with `sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage` (a synchronous run takes one class)."
+   },
+   {
+    "s": 25,
+    "text": "Keep the engine efficient enough that a whole game of 100 shots played through `SLBtlFull654Controller` (`newGame`, then `fire` at every cell) runs inside one transaction."
+   },
+   {
+    "s": 26,
+    "text": "Do not stop until the tests pass in the org."
+   },
+   {
+    "s": 27,
+    "text": "Define stable accessible names for the board: each cell is a button named `Battle cell row <row> column <column>: <state>`, where state starts as `unfired` and becomes `hit`, `miss`, or `sunk`; expose visible text exactly `Shots: <n>`, `Ships left: <n>`, and `Shot result: <result>`; provide a button named `New game`."
+   },
+   {
+    "s": 28,
+    "text": "All unfired cells must be enabled when the game opens and after New game."
+   },
+   {
+    "s": 29,
+    "text": "The provided UI command reports one unittest named `test_deployed_open_fire_reset`."
+   },
+   {
+    "s": 30,
+    "text": "Before declaring completion, run the provided `battleship-ui` command from the shell and fix any UI failure it reports."
+   },
+   {
+    "s": 31,
+    "text": "This command checks the deployed Lightning screen in a fresh authenticated browser session: it plays a complete game through distinct cell buttons, checks each shot and cell state, five sinks and 17 hit-or-sunk shots, Ships left: 0, a newly visible game-over message, then New game reset."
+   },
+   {
+    "s": 32,
+    "text": "Show a distinct affirmative completion heading or sentence/clause: Game over, Game is over, You win, You won, or Victory, followed by punctuation or the end of that phrase."
+   },
+   {
+    "s": 33,
+    "text": "A future or conditional description is not a completion announcement; the check does not infer victory from a counter alone."
+   },
+   {
+    "s": 34,
+    "text": "The existing unittest name test_deployed_open_fire_reset is retained."
+   },
+   {
+    "s": 35,
+    "text": "Do not stop until the Apex tests and complete-game UI command pass."
+   }
+  ],
+  "R03": [
+   {
+    "s": 1,
+    "text": "Build a single-player Battleship game in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias `de`."
+   },
+   {
+    "s": 2,
+    "text": "Use `--target-org de` on every `sf` command that talks to the org; the CLI is already logged in, so never ask for, print or store credentials, and never run `sf org display` (it prints an access token)."
+   },
+   {
+    "s": 3,
+    "text": "Name every Apex class `SLNavUi...` (for example `SLNavUiEngine`) and the component `slNavUiBoard`."
+   },
+   {
+    "s": 4,
+    "text": "Besides the Apex classes and the component, create exactly these kinds of metadata, all named with the prefix `SLNavUi`, so that the board opens in the org for the user the CLI is logged in as and the work can still be removed afterwards: a custom tab `tabs/SLNavUi_Board.tab-meta.xml` that is a Lightning component tab (`<lwcComponent>slNavUiBoard</lwcComponent>`; the component's meta file exposes the `lightning__Tab` target), a Lightning app `applications/SLNavUi.app-meta.xml` (standard navigation, containing that tab) and a permission set `permissionsets/SLNavUi_Access.permissionset-meta.xml` that grants the app (`<applicationVisibilities>` with `<visible>true</visible>`), the tab (`<tabSettings>` with `<visibility>Visible</visibility>`) and the `SLNavUiEngine` and `SLNavUiController` classes (`<classAccesses>` with `<enabled>true</enabled>`)."
+   },
+   {
+    "s": 5,
+    "text": "A new tab is hidden from every user until a permission set or profile grants it, so after you deploy, assign the permission set to the logged-in user with `sf org assign permset --name SLNavUi_Access --target-org de`."
+   },
+   {
+    "s": 6,
+    "text": "Create no other metadata (no custom objects, fields, other permission sets, static resources, triggers, profiles, labels, flows or app pages), and do not change profiles or any other permission set."
+   },
+   {
+    "s": 7,
+    "text": "The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself, not a subfolder."
+   },
+   {
+    "s": 8,
+    "text": "The game: the computer places a fleet on a 10x10 grid (rows and columns 0 to 9) and the player fires at it."
+   },
+   {
+    "s": 9,
+    "text": "The fleet is the standard one: `carrier` (5 cells), `battleship` (4), `cruiser` (3), `submarine` (3) and `destroyer` (2); every ship lies straight along one row or one column, entirely inside the grid, and no two ships share a cell."
+   },
+   {
+    "s": 10,
+    "text": "A ship is sunk when all of its cells have been hit, and the game is over when the last ship is sunk."
+   },
+   {
+    "s": 11,
+    "text": "`SLNavUiEngine` is a public class with static methods only; a game is a JSON string."
+   },
+   {
+    "s": 12,
+    "text": "`newGame(Integer seed)` returns a new game whose fleet is placed at random from the seed: the same seed always gives the same fleet, in any transaction and however many games came before, and two different seeds give different fleets (Apex has no seeded random number generator, so write a small one)."
+   },
+   {
+    "s": 13,
+    "text": "`fire(String game, Integer row, Integer col)` returns the game after one shot at that cell."
+   },
+   {
+    "s": 14,
+    "text": "The game JSON is an object with at least these keys: `shots` (the number of shots fired so far), `shipsLeft` (the number of ships not yet sunk), `gameOver` (`false` until the shot that sinks the last ship, `true` from that shot on) and `lastShot`, which is `null` in a new game and after a shot is an object {\"row\": r, \"col\": c, \"result\": \"miss\" | \"hit\" | \"sunk\", \"ship\": name, \"size\": cells}: `result` is `sunk` (not `hit`) for the shot that sinks a ship, and `ship` and `size` give that ship's name and number of cells on that shot only (they are `null` on a miss or a hit)."
+   },
+   {
+    "s": 15,
+    "text": "Where the ships are and which cells were fired at is up to you; the board must not show a ship cell before it is hit."
+   },
+   {
+    "s": 16,
+    "text": "A shot at a cell that was already fired at, or with a row or a column outside 0 to 9, throws `SLNavUiEngine.InvalidShotException` (a public exception class you define inside `SLNavUiEngine`)."
+   },
+   {
+    "s": 17,
+    "text": "After the game is over, a shot at a cell not yet fired at is still accepted: it is a `miss` and `gameOver` stays `true`."
+   },
+   {
+    "s": 18,
+    "text": "`SLNavUiController` has `@AuraEnabled public static` methods `newGame(Integer seed)` and `fire(String game, Integer row, Integer col)`, each returning the game JSON as a `String`, so that the board and the grader can call them."
+   },
+   {
+    "s": 19,
+    "text": "The grader calls `SLNavUiController` only with valid shots and calls `SLNavUiEngine.fire` directly for an invalid one, so the controller may report an invalid shot however suits the board (for example by throwing an `AuraHandledException`)."
+   },
+   {
+    "s": 20,
+    "text": "The component `slNavUiBoard` renders the 10x10 grid, fires at a cell when a person clicks it, shows hits, misses and sunk ships, the number of shots fired and of ships left, says when the game is over and has a New game button."
+   },
+   {
+    "s": 21,
+    "text": "It calls `SLNavUiController` and renders what comes back."
+   },
+   {
+    "s": 22,
+    "text": "The work will be graded by playing whole games through `SLNavUiController`: `newGame` with a seed, then `fire` once at each of the 100 cells, each game in one anonymous Apex run."
+   },
+   {
+    "s": 23,
+    "text": "Cover the rules with Apex tests in classes named `SLNavUi...Test` that run in the org, at least 8 Apex test methods in all: include the fleet (names, sizes, straight, inside the grid, no shared cell, the same seed twice), a miss, a hit, a sink, game over, a shot after game over and both kinds of invalid shot."
+   },
+   {
+    "s": 24,
+    "text": "Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time, with `sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage` (a synchronous run takes one class)."
+   },
+   {
+    "s": 25,
+    "text": "Keep the engine efficient enough that a whole game of 100 shots played through `SLNavUiController` (`newGame`, then `fire` at every cell) runs inside one transaction."
+   },
+   {
+    "s": 26,
+    "text": "Do not stop until the tests pass in the org."
+   },
+   {
+    "s": 27,
+    "text": "Define stable accessible names for the board: each cell is a button named `Battle cell row <row> column <column>: <state>`, where state starts as `unfired` and becomes `hit`, `miss`, or `sunk`; expose visible text exactly `Shots: <n>`, `Ships left: <n>`, and `Shot result: <result>`; provide a button named `New game`."
+   },
+   {
+    "s": 28,
+    "text": "All unfired cells must be enabled when the game opens and after New game."
+   },
+   {
+    "s": 29,
+    "text": "The provided UI command reports one unittest named `test_deployed_open_fire_reset`."
+   },
+   {
+    "s": 30,
+    "text": "Before declaring completion, run the provided `battleship-ui` command from the shell and fix any UI failure it reports."
+   },
+   {
+    "s": 31,
+    "text": "This command checks the deployed Lightning screen in a fresh authenticated browser session: it plays a complete game through distinct cell buttons, checks each shot and cell state, five sinks and 17 hit-or-sunk shots, Ships left: 0, a newly visible game-over message, then New game reset."
+   },
+   {
+    "s": 32,
+    "text": "Show a distinct affirmative completion heading or sentence/clause: Game over, Game is over, You win, You won, or Victory, followed by punctuation or the end of that phrase."
+   },
+   {
+    "s": 33,
+    "text": "A future or conditional description is not a completion announcement; the check does not infer victory from a counter alone."
+   },
+   {
+    "s": 34,
+    "text": "The existing unittest name test_deployed_open_fire_reset is retained."
+   },
+   {
+    "s": 35,
+    "text": "Do not stop until the Apex tests and complete-game UI command pass."
+   }
+  ],
+  "R04": [
+   {
+    "s": 1,
+    "text": "Use ShipLoop to build and deliver an internal gym membership application in a Salesforce DX project rooted in the current directory, deploying to the already-authenticated Developer Edition org alias de."
+   },
+   {
+    "s": 2,
+    "text": "This is a fresh development task: implement the application yourself through ShipLoop."
+   },
+   {
+    "s": 3,
+    "text": "Every org-talking sf command must specify --target-org de."
+   },
+   {
+    "s": 4,
+    "text": "Never request, print or store credentials; do not run sf org display or sf org open."
+   },
+   {
+    "s": 5,
+    "text": "The provided gym-ui command handles its own fresh authenticated browser."
+   },
+   {
+    "s": 6,
+    "text": "Keep all changes within the reserved SLGym/slGym namespace and the owned objects below; preserve other applications and records."
+   },
+   {
+    "s": 7,
+    "text": "Use API version 60.0 and no external integrations, payments, public portals, persistent users, jobs, flows, triggers, profiles or extra permission sets."
+   },
+   {
+    "s": 8,
+    "text": "Build four usable journeys: member self-service, administrative membership management, member 360, and a coaching check-in kiosk."
+   },
+   {
+    "s": 9,
+    "text": "The product is small: membership/profile plus visit history."
+   },
+   {
+    "s": 10,
+    "text": "Create exactly two custom objects, SLGymMember__c and SLGymVisit__c."
+   },
+   {
+    "s": 11,
+    "text": "Both use an AutoNumber Name."
+   },
+   {
+    "s": 12,
+    "text": "SLGymMember__c has Private sharing and fields LoginUserId__c (unique nullable Text18), FullName__c (Text80), Email__c (Email), Goal__c (Text80), Plan__c (restricted picklist Basic/Coached), Status__c (restricted picklist Active/Frozen/Cancelled)."
+   },
+   {
+    "s": 13,
+    "text": "SLGymVisit__c has ControlledByParent sharing, Member__c (MasterDetail to SLGymMember__c only), CheckedInAt__c (DateTime), Coaching__c (TextArea)."
+   },
+   {
+    "s": 14,
+    "text": "Do not mark other fields required at metadata level: validate required values in the controller."
+   },
+   {
+    "s": 15,
+    "text": "Add no fields on other objects."
+   },
+   {
+    "s": 16,
+    "text": "All sample/test addresses and usernames end in @example.invalid."
+   },
+   {
+    "s": 17,
+    "text": "Expose @AuraEnabled public static methods on SLGymController, returning JSON Strings with this contract."
+   },
+   {
+    "s": 18,
+    "text": "Successful single-member methods return the member DTO; listMembers returns a DTO array and absent getMyMembership returns the JSON string null."
+   },
+   {
+    "s": 19,
+    "text": "A member DTO contains id, fullName, email, goal, plan, status, loginUserId, visitCount, coaching (latest stored coaching, null/empty with no visits)."
+   },
+   {
+    "s": 20,
+    "text": "getMyMembership() returns that DTO or the JSON string \"null\"."
+   },
+   {
+    "s": 21,
+    "text": "saveMyMembership(String fullName,String email,String goal,String plan) creates or edits only the caller's own linked member, binding LoginUserId__c to UserInfo.getUserId(); first enrollment is Active, and later profile/plan edits preserve the status, including Frozen or Cancelled."
+   },
+   {
+    "s": 22,
+    "text": "setMyStatus(String status) supports Active/Frozen for the caller's own membership, but refuses any self-service status change from Cancelled, even when the caller is an admin."
+   },
+   {
+    "s": 23,
+    "text": "adminSave(String memberId,String fullName,String email,String goal,String plan,String status) is admin-only; a null/empty memberId creates an unlinked member and an update preserves the existing LoginUserId__c."
+   },
+   {
+    "s": 24,
+    "text": "listMembers() is an admin-only DTO array."
+   },
+   {
+    "s": 25,
+    "text": "member360(String memberId) is restricted to that linked member or an admin and includes the persisted visit count and latest stored coaching."
+   },
+   {
+    "s": 26,
+    "text": "checkIn(String memberId) has the same ownership rule and returns the member DTO plus visitId."
+   },
+   {
+    "s": 27,
+    "text": "Identify admin authority server-side using the current user's Profile.PermissionsModifyAllData; never trust a client role flag."
+   },
+   {
+    "s": 28,
+    "text": "Declare sharing explicitly and enforce CRUD/FLS as well as logical authorization (user-mode operations or equivalent)."
+   },
+   {
+    "s": 29,
+    "text": "The state/action rules are: profile save preserves Active, Frozen or Cancelled; self freeze/resume supports Active/Frozen and refuses Cancelled; admin may set any of the three statuses; check-in checks status FIRST and only Active is eligible."
+   },
+   {
+    "s": 30,
+    "text": "Repeated sequential check-in on the same Date.today() in the running user's time zone returns the same persisted visitId without another visit."
+   },
+   {
+    "s": 31,
+    "text": "After freezing/cancelling an already checked-in member, another check-in still refuses."
+   },
+   {
+    "s": 32,
+    "text": "This is sequential idempotency; no concurrent-call guarantee is requested."
+   },
+   {
+    "s": 33,
+    "text": "A later calendar day creates a new visit."
+   },
+   {
+    "s": 34,
+    "text": "Basic coaching contains \"independent training\" case-insensitively; Coached coaching contains the saved goal case-insensitively."
+   },
+   {
+    "s": 35,
+    "text": "History reports stored coaching, not recomputed text after a profile change; latest visit is ordered by CheckedInAt__c then Id."
+   },
+   {
+    "s": 36,
+    "text": "Invalid/foreign/missing IDs, plans, statuses or required fullName/email/goal refuse."
+   },
+   {
+    "s": 37,
+    "text": "Refusal means AuraHandledException (Aura ERROR) with no persisted state change, not SUCCESS with an error payload."
+   },
+   {
+    "s": 38,
+    "text": "Full names and goals must be nonblank and within field length; use syntactically valid email addresses."
+   },
+   {
+    "s": 39,
+    "text": "Build slGymApp as the LWC exposed to lightning__Tab; SLGym_Members is its Lightning component tab, SLGym is its standard-navigation Lightning app containing that tab."
+   },
+   {
+    "s": 40,
+    "text": "SLGym_Access is the only permission set: grants app visibility, Visible tab access and controller/class access; read/create/edit on the two objects, delete=false, viewAllRecords=false and modifyAllRecords=false."
+   },
+   {
+    "s": 41,
+    "text": "Grant read/edit FLS for every nonrequired custom field; omit fieldPermissions for the inherent required MasterDetail Member__c."
+   },
+   {
+    "s": 42,
+    "text": "Add no userPermissions."
+   },
+   {
+    "s": 43,
+    "text": "After deploy, assign it only to the current existing CLI user with sf org assign permset --name SLGym_Access --target-org de."
+   },
+   {
+    "s": 44,
+    "text": "Apex classes must start SLGym and test class names must end in Test (SLGym...Test); no SLGymOracleTest product class (independent verification uses that name in a check-only validation after your session)."
+   },
+   {
+    "s": 45,
+    "text": "No extra metadata types or schema."
+   },
+   {
+    "s": 46,
+    "text": "The guarded CLI refuses interactive schema generation; write the declared metadata files directly."
+   },
+   {
+    "s": 47,
+    "text": "Use these stable accessible labels so a person and independent checker can exercise the same app."
+   },
+   {
+    "s": 48,
+    "text": "Self-service inputs/comboboxes: My full name, My email, My goal, My plan."
+   },
+   {
+    "s": 49,
+    "text": "Buttons: Save my membership, Freeze my membership, Resume my membership."
+   },
+   {
+    "s": 50,
+    "text": "Show visible My status: <status>."
+   },
+   {
+    "s": 51,
+    "text": "Admin inputs: Admin full name, Admin email, Admin goal, Admin plan, Admin status."
+   },
+   {
+    "s": 52,
+    "text": "Buttons: Create member and Save member."
+   },
+   {
+    "s": 53,
+    "text": "Member list buttons: Manage member <fullName> (loads admin form) and View member <fullName> (opens 360)."
+   },
+   {
+    "s": 54,
+    "text": "The selected 360 shows Selected member: <name>, Selected email: <email>, Selected goal: <goal>, Selected plan: <plan>, Selected status: <status>, Visit count: <n>."
+   },
+   {
+    "s": 55,
+    "text": "The kiosk has Check in selected member and visible Coaching: <text>."
+   },
+   {
+    "s": 56,
+    "text": "Keep that button enabled to exercise server refusals; a refused check-in visibly says Check-in refused."
+   },
+   {
+    "s": 57,
+    "text": "Native selects or lightning-combobox are both acceptable."
+   },
+   {
+    "s": 58,
+    "text": "Render saved controller results and refresh them after mutations/reload."
+   },
+   {
+    "s": 59,
+    "text": "The existing org user is an admin who can also enroll as a member; self-service rules still apply to that identity."
+   },
+   {
+    "s": 60,
+    "text": "Do not provision another browser user."
+   },
+   {
+    "s": 61,
+    "text": "Deploy, assign access and run your Apex tests in the org, at least eight passing methods with isolated data and no SeeAllData."
+   },
+   {
+    "s": 62,
+    "text": "Cover self binding, member/admin authorization, validation, profile edits while frozen/cancelled, status-before-dedup, active/repeated/yesterday check-in and both coaching plans."
+   },
+   {
+    "s": 63,
+    "text": "Test-created users may be used only inside isolated Apex tests, not as permanent accounts."
+   },
+   {
+    "s": 64,
+    "text": "Run each test class synchronously with sf apex run test --target-org de --class-names <Class> --synchronous --result-format human --code-coverage."
+   },
+   {
+    "s": 65,
+    "text": "Before declaring completion, run the supplied gym-ui command and fix any failures it reports."
+   },
+   {
+    "s": 66,
+    "text": "It independently exercises self/admin/360/kiosk in a fresh browser, correlates controller mutations with UI results, reloads, and checks persisted records."
+   },
+   {
+    "s": 67,
+    "text": "It uses fresh synthetic admin-created members for check-ins so repeated builder/final checks do not collide."
+   },
+   {
+    "s": 68,
+    "text": "Do not stop until Apex and gym-ui pass."
+   },
+   {
+    "s": 69,
+    "text": "Document how to deploy and use the app."
+   }
+  ],
+  "R05": [
+   {
+    "s": 1,
+    "text": "Build a single-player Battleship game in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias `de`."
+   },
+   {
+    "s": 2,
+    "text": "Use `--target-org de` on every `sf` command that talks to the org; the CLI is already logged in, so never ask for, print or store credentials, and never run `sf org display` (it prints an access token)."
+   },
+   {
+    "s": 3,
+    "text": "Name every Apex class `SLBattle...` (for example `SLBattleEngine`) and the component `slBattleBoard`."
+   },
+   {
+    "s": 4,
+    "text": "Besides the Apex classes and the component, create exactly these kinds of metadata, all named with the prefix `SLBattle`, so that the board opens in the org for the user the CLI is logged in as and the work can still be removed afterwards: a custom tab `tabs/SLBattle_Board.tab-meta.xml` that is a Lightning component tab (`<lwcComponent>slBattleBoard</lwcComponent>`; the component's meta file exposes the `lightning__Tab` target), a Lightning app `applications/SLBattle.app-meta.xml` (standard navigation, containing that tab) and a permission set `permissionsets/SLBattle_Access.permissionset-meta.xml` that grants the app (`<applicationVisibilities>` with `<visible>true</visible>`), the tab (`<tabSettings>` with `<visibility>Visible</visibility>`) and the `SLBattleEngine` and `SLBattleController` classes (`<classAccesses>` with `<enabled>true</enabled>`)."
+   },
+   {
+    "s": 5,
+    "text": "A new tab is hidden from every user until a permission set or profile grants it, so after you deploy, assign the permission set to the logged-in user with `sf org assign permset --name SLBattle_Access --target-org de`."
+   },
+   {
+    "s": 6,
+    "text": "Create no other metadata (no custom objects, fields, other permission sets, static resources, triggers, profiles, labels, flows or app pages), and do not change profiles or any other permission set."
+   },
+   {
+    "s": 7,
+    "text": "The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself, not a subfolder."
+   },
+   {
+    "s": 8,
+    "text": "The game: the computer places a fleet on a 10x10 grid (rows and columns 0 to 9) and the player fires at it."
+   },
+   {
+    "s": 9,
+    "text": "The fleet is the standard one: `carrier` (5 cells), `battleship` (4), `cruiser` (3), `submarine` (3) and `destroyer` (2); every ship lies straight along one row or one column, entirely inside the grid, and no two ships share a cell."
+   },
+   {
+    "s": 10,
+    "text": "A ship is sunk when all of its cells have been hit, and the game is over when the last ship is sunk."
+   },
+   {
+    "s": 11,
+    "text": "`SLBattleEngine` is a public class with static methods only; a game is a JSON string."
+   },
+   {
+    "s": 12,
+    "text": "`newGame(Integer seed)` returns a new game whose fleet is placed at random from the seed: the same seed always gives the same fleet, in any transaction and however many games came before, and two different seeds give different fleets (Apex has no seeded random number generator, so write a small one)."
+   },
+   {
+    "s": 13,
+    "text": "`fire(String game, Integer row, Integer col)` returns the game after one shot at that cell."
+   },
+   {
+    "s": 14,
+    "text": "The game JSON is an object with at least these keys: `shots` (the number of shots fired so far), `shipsLeft` (the number of ships not yet sunk), `gameOver` (`false` until the shot that sinks the last ship, `true` from that shot on) and `lastShot`, which is `null` in a new game and after a shot is an object `{\"row\": r, \"col\": c, \"result\": \"miss\" | \"hit\" | \"sunk\", \"ship\": name, \"size\": cells}`: `result` is `sunk` (not `hit`) for the shot that sinks a ship, and `ship` and `size` give that ship's name and number of cells on that shot only (they are `null` on a miss or a hit)."
+   },
+   {
+    "s": 15,
+    "text": "Where the ships are and which cells were fired at is up to you; the board must not show a ship cell before it is hit."
+   },
+   {
+    "s": 16,
+    "text": "A shot at a cell that was already fired at, or with a row or a column outside 0 to 9, throws `SLBattleEngine.InvalidShotException` (a public exception class you define inside `SLBattleEngine`)."
+   },
+   {
+    "s": 17,
+    "text": "After the game is over, a shot at a cell not yet fired at is still accepted: it is a `miss` and `gameOver` stays `true`."
+   },
+   {
+    "s": 18,
+    "text": "`SLBattleController` has `@AuraEnabled public static` methods `newGame(Integer seed)` and `fire(String game, Integer row, Integer col)`, each returning the game JSON as a `String`, so that the board and the grader can call them."
+   },
+   {
+    "s": 19,
+    "text": "The grader calls `SLBattleController` only with valid shots and calls `SLBattleEngine.fire` directly for an invalid one, so the controller may report an invalid shot however suits the board (for example by throwing an `AuraHandledException`)."
+   },
+   {
+    "s": 20,
+    "text": "The component `slBattleBoard` renders the 10x10 grid, fires at a cell when a person clicks it, shows hits, misses and sunk ships, the number of shots fired and of ships left, says when the game is over and has a New game button."
+   },
+   {
+    "s": 21,
+    "text": "It calls `SLBattleController` and renders what comes back."
+   },
+   {
+    "s": 22,
+    "text": "The work will be graded by playing whole games through `SLBattleController`: `newGame` with a seed, then `fire` once at each of the 100 cells, each game in one anonymous Apex run."
+   },
+   {
+    "s": 23,
+    "text": "Cover the rules with Apex tests in classes named `SLBattle...Test` that run in the org, at least 8 Apex test methods in all: include the fleet (names, sizes, straight, inside the grid, no shared cell, the same seed twice), a miss, a hit, a sink, game over, a shot after game over and both kinds of invalid shot."
+   },
+   {
+    "s": 24,
+    "text": "Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time, with `sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage` (a synchronous run takes one class)."
+   },
+   {
+    "s": 25,
+    "text": "Keep the engine efficient enough that a whole game of 100 shots played through `SLBattleController` (`newGame`, then `fire` at every cell) runs inside one transaction."
+   },
+   {
+    "s": 26,
+    "text": "Do not stop until the tests pass in the org."
+   }
+  ],
+  "R06": [
+   {
+    "s": 1,
+    "text": "Build a chess rules engine in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias `de`."
+   },
+   {
+    "s": 2,
+    "text": "Use `--target-org de` on every `sf` command that talks to the org; the CLI is already logged in, so never ask for, print or store credentials, and never run `sf org display` (it prints an access token)."
+   },
+   {
+    "s": 3,
+    "text": "Name every Apex class `SLChess...` (for example `SLChessEngine`) and the component `slChessBoard`."
+   },
+   {
+    "s": 4,
+    "text": "Besides the Apex classes and the component, create exactly these kinds of metadata, all named with the prefix `SLChess`, so that the board opens in the org and the work can still be removed afterwards: a custom tab `tabs/SLChess_Board.tab-meta.xml` that is a Lightning component tab (`<lwcComponent>slChessBoard</lwcComponent>`; the component's meta file exposes the `lightning__Tab` target), a Lightning app `applications/SLChess.app-meta.xml` (standard navigation, containing that tab) and, if you want one, a Lightning app page `flexipages/SLChess_<Name>.flexipage-meta.xml` (then the component's meta file also exposes `lightning__AppPage`)."
+   },
+   {
+    "s": 5,
+    "text": "Create no other metadata (no custom objects, fields, permission sets, static resources, triggers, profiles, labels or flows), and do not change profiles or permission sets."
+   },
+   {
+    "s": 6,
+    "text": "The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself, not a subfolder."
+   },
+   {
+    "s": 7,
+    "text": "`SLChessEngine` is a public class with static methods only; a position is a FEN string."
+   },
+   {
+    "s": 8,
+    "text": "`startFen()` returns the standard start position."
+   },
+   {
+    "s": 9,
+    "text": "`legalMoves(String fen)` returns a `List<String>` of every legal move for the side to move in UCI form (for example `e2e4`, and `e7e8q` for a promotion), sorted alphabetically."
+   },
+   {
+    "s": 10,
+    "text": "`applyMove(String fen, String move)` returns the FEN after the move, with correct castling rights, en-passant square, halfmove clock and fullmove number, or throws `SLChessEngine.IllegalMoveException` (a public exception class you define inside `SLChessEngine`) when the move is not legal."
+   },
+   {
+    "s": 11,
+    "text": "The en-passant target square is set after every two-square pawn push, whether or not a capture is possible (the FEN-spec convention)."
+   },
+   {
+    "s": 12,
+    "text": "`status(String fen)` returns `ongoing`, `check`, `checkmate` or `stalemate` for the side to move."
+   },
+   {
+    "s": 13,
+    "text": "Implement all piece moves, castling on both sides (never out of, through or into check; in UCI it is the king's two-square move: `e1g1`, `e1c1`, `e8g8`, `e8c8`), en passant, promotion to q, r, b or n, check, checkmate and stalemate."
+   },
+   {
+    "s": 14,
+    "text": "The component `slChessBoard` renders a FEN as an 8x8 board and is a game two people can play by turns on one screen: a person picks a piece and then a destination, the board shows whose turn it is and the game status (check, checkmate, stalemate), refuses an illegal destination, lets a pawn promote (queen is acceptable as the default) and has a New game button."
+   },
+   {
+    "s": 15,
+    "text": "It calls `SLChessController` and renders what comes back."
+   },
+   {
+    "s": 16,
+    "text": "`SLChessController` has `@AuraEnabled public static` methods `legalMoves(String fen)`, returning a `List<String>`, `applyMove(String fen, String move)`, returning the new FEN as a `String`, and `status(String fen)`, returning `ongoing`, `check`, `checkmate` or `stalemate` as a `String`, so that the grader can call them."
+   },
+   {
+    "s": 17,
+    "text": "The grader calls `SLChessController` only with legal moves and calls `SLChessEngine.applyMove` directly for an illegal one, so the controller may report an illegal move however suits the board (for example by throwing an `AuraHandledException`)."
+   },
+   {
+    "s": 18,
+    "text": "The work will be graded by playing complete games, ply by ply, through `SLChessController` (`legalMoves`, `applyMove` and `status`), each game in one anonymous Apex run."
+   },
+   {
+    "s": 19,
+    "text": "Cover the rules with Apex tests in classes named `SLChess...Test` that run in the org, at least 8 Apex test methods in all: include known games (fool's mate, scholar's mate), castling, en passant, promotion, stalemate and move counts from standard test positions."
+   },
+   {
+    "s": 20,
+    "text": "Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time, with `sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage` (a synchronous run takes one class)."
+   },
+   {
+    "s": 21,
+    "text": "Keep the engine efficient enough that `legalMoves` on a middlegame position finishes well inside the synchronous Apex CPU limit, and so that a whole depth-2 legal-move enumeration (every legal reply to every legal move of a position, counted) runs inside one transaction, and so that a whole game of about 35 plies played through `SLChessController` (`legalMoves`, `applyMove` and `status` for every ply) does too."
+   },
+   {
+    "s": 22,
+    "text": "Do not stop until the tests pass in the org."
+   }
+  ],
+  "R07": [
+   {
+    "s": 1,
+    "text": "Build a command-line tool report.py (Python 3, standard library only) that summarises sales records."
+   },
+   {
+    "s": 2,
+    "text": "Usage: `python3 report.py FILE [FILE ...]`."
+   },
+   {
+    "s": 3,
+    "text": "Each FILE is CSV with the header row `date,region,product,units,unit_price`; units is a non-negative integer and unit_price a non-negative decimal."
+   },
+   {
+    "s": 4,
+    "text": "Print one JSON object to stdout: {\"rows\": the number of valid rows, \"revenue\": the sum of units * unit_price rounded to 2 decimals, \"by_region\": revenue per region rounded to 2 decimals, \"by_product\": total units per product}."
+   },
+   {
+    "s": 5,
+    "text": "A row with the wrong number of columns, or a non-numeric or negative units or unit_price, is skipped and reported on stderr as `FILE:LINE: <reason>` (the header is line 1), and the exit code is then 2; otherwise it is 0."
+   },
+   {
+    "s": 6,
+    "text": "A file that cannot be read prints an error on stderr without a traceback, prints nothing on stdout and exits 1."
+   },
+   {
+    "s": 7,
+    "text": "A file with only a header contributes nothing."
+   },
+   {
+    "s": 8,
+    "text": "Cover the behaviour with unittest tests that run with `python3 -m unittest`."
+   }
+  ],
+  "R08": [
+   {
+    "s": 1,
+    "text": "Create hello.py that prints exactly \"Hello, world!\" when run, plus a unittest test in test_hello.py that verifies that output."
+   }
+  ],
+  "R09": [
+   {
+    "s": 1,
+    "text": "Build a small single-player Battleship game served by a Node.js HTTP server with no npm dependencies."
+   },
+   {
+    "s": 2,
+    "text": "server.js starts the server on the port in the PORT environment variable (default 3000)."
+   },
+   {
+    "s": 3,
+    "text": "GET / serves a playable HTML page titled \"Battleship\" where the player fires at a computer-placed fleet on a 10x10 grid."
+   },
+   {
+    "s": 4,
+    "text": "GET /api/new starts a game and returns JSON with a game id; POST /api/fire with JSON {\"game\": id, \"row\": r, \"col\": c} returns JSON with \"result\" set to \"miss\", \"hit\" or \"sunk\" and \"gameOver\" true once every ship is sunk."
+   },
+   {
+    "s": 5,
+    "text": "Keep the game rules in a module the server uses, and cover them with node:test tests under test/ that run with `node --test`."
+   }
+  ],
+  "R10": [
+   {
+    "s": 1,
+    "text": "Add scoring to the existing Battleship game."
+   },
+   {
+    "s": 2,
+    "text": "When a shot sinks a ship, the POST /api/fire response also includes \"ship\" with the name of the ship that sank."
+   },
+   {
+    "s": 3,
+    "text": "Every /api/fire response includes \"shots\" (shots fired so far in this game) and \"hits\" (shots that hit, including sinking shots)."
+   },
+   {
+    "s": 4,
+    "text": "The page shows shots, hits and accuracy (hits divided by shots, as a percentage) and names each ship as it sinks."
+   },
+   {
+    "s": 5,
+    "text": "Everything the game already does keeps working."
+   }
+  ],
+  "R11": [
+   {
+    "s": 1,
+    "text": "This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/."
+   },
+   {
+    "s": 2,
+    "text": "Add ticket assignment."
+   },
+   {
+    "s": 3,
+    "text": "`PUT /tickets/:id/assignee` with a JSON body `{\"assignee\": \"<agent>\"}` assigns the ticket to that agent, and `{\"assignee\": null}` unassigns it; an agent is a non-empty name of at most 64 characters."
+   },
+   {
+    "s": 4,
+    "text": "Only open and in-progress tickets can be assigned or unassigned."
+   },
+   {
+    "s": 5,
+    "text": "Assigning a ticket to the agent it already has changes nothing."
+   },
+   {
+    "s": 6,
+    "text": "Every ticket shows its `assignee` (null when unassigned)."
+   },
+   {
+    "s": 7,
+    "text": "The agent a ticket is assigned to is notified that it was assigned to them."
+   },
+   {
+    "s": 8,
+    "text": "`GET /tickets` gains an `assignee` filter: `assignee=<agent>` keeps that agent's tickets and an empty `assignee=` keeps the unassigned ones; a ticket must match every filter given."
+   },
+   {
+    "s": 9,
+    "text": "The command-line listing shows each ticket's assignee."
+   },
+   {
+    "s": 10,
+    "text": "Everything the service already does keeps working, and its existing tests must still pass as they are."
+   },
+   {
+    "s": 11,
+    "text": "Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones."
+   }
+  ],
+  "R12": [
+   {
+    "s": 1,
+    "text": "Extend the ticket service with bulk reassignment and escalation."
+   },
+   {
+    "s": 2,
+    "text": "`POST /tickets/reassign` with `{\"from\": \"<agent>\", \"to\": \"<agent>\"}` moves every open or in-progress ticket assigned to `from` over to `to` and answers `{\"moved\": <how many>, \"ids\": [<their ids in id order>]}`; `from` and `to` must be two different agents."
+   },
+   {
+    "s": 3,
+    "text": "Each moved ticket's new agent is notified as for a single assignment."
+   },
+   {
+    "s": 4,
+    "text": "Urgent tickets must not wait unassigned: when an open, unassigned, urgent ticket is older than ESCALATE_AFTER_MINUTES minutes (an environment variable, default 60), the agent named in the ONCALL environment variable is notified that the ticket was escalated; without ONCALL nothing is escalated."
+   },
+   {
+    "s": 5,
+    "text": "A ticket is escalated at most once, even across restarts of the service."
+   },
+   {
+    "s": 6,
+    "text": "Everything the service already does keeps working, assignment included, and the existing tests must still pass."
+   },
+   {
+    "s": 7,
+    "text": "Add node:test tests for the new behaviour."
+   }
+  ],
+  "R13": [
+   {
+    "s": 1,
+    "text": "Extend the ticket service with bulk reassignment and escalation."
+   },
+   {
+    "s": 2,
+    "text": "`POST /tickets/reassign` with `{\"from\": \"<agent>\", \"to\": \"<agent>\"}` moves every open or in-progress ticket assigned to `from` over to `to` and answers `{\"moved\": <how many>, \"ids\": [<their ids in id order>]}`; `from` and `to` must be two different agents."
+   },
+   {
+    "s": 3,
+    "text": "Each moved ticket\\x27s new agent is notified as for a single assignment."
+   },
+   {
+    "s": 4,
+    "text": "Urgent tickets must not wait unassigned: when an open, unassigned, urgent ticket is older than ESCALATE_AFTER_MINUTES minutes (an environment variable, default 60), the agent named in the ONCALL environment variable is notified that the ticket was escalated; without ONCALL nothing is escalated."
+   },
+   {
+    "s": 5,
+    "text": "A ticket is escalated at most once, even across restarts of the service."
+   },
+   {
+    "s": 6,
+    "text": "Everything the service already does keeps working, assignment included, and the existing tests must still pass."
+   },
+   {
+    "s": 7,
+    "text": "Add node:test tests for the new behaviour."
+   }
+  ],
+  "R14": [
+   {
+    "s": 1,
+    "text": "Build a single-player Battleship game in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias `de`."
+   },
+   {
+    "s": 2,
+    "text": "Use `--target-org de` on every `sf` command that talks to the org; the CLI is already logged in, so never ask for, print or store credentials, and never run `sf org display` (it prints an access token)."
+   },
+   {
+    "s": 3,
+    "text": "Name every Apex class `SLBtlHo9a87...` (for example `SLBtlHo9a87Engine`) and the component `slBtlHo9a87Board`."
+   },
+   {
+    "s": 4,
+    "text": "Besides the Apex classes and the component, create exactly these kinds of metadata, all named with the prefix `SLBtlHo9a87`, so that the board opens in the org for the user the CLI is logged in as and the work can still be removed afterwards: a custom tab `tabs/SLBtlHo9a87_Board.tab-meta.xml` that is a Lightning component tab (`<lwcComponent>slBtlHo9a87Board</lwcComponent>`; the component's meta file exposes the `lightning__Tab` target), a Lightning app `applications/SLBtlHo9a87.app-meta.xml` (standard navigation, containing that tab) and a permission set `permissionsets/SLBtlHo9a87_Access.permissionset-meta.xml` that grants the app (`<applicationVisibilities>` with `<visible>true</visible>`), the tab (`<tabSettings>` with `<visibility>Visible</visibility>`) and the `SLBtlHo9a87Engine` and `SLBtlHo9a87Controller` classes (`<classAccesses>` with `<enabled>true</enabled>`)."
+   },
+   {
+    "s": 5,
+    "text": "A new tab is hidden from every user until a permission set or profile grants it, so after you deploy, assign the permission set to the logged-in user with `sf org assign permset --name SLBtlHo9a87_Access --target-org de`."
+   },
+   {
+    "s": 6,
+    "text": "Create no other metadata (no custom objects, fields, other permission sets, static resources, triggers, profiles, labels, flows or app pages), and do not change profiles or any other permission set."
+   },
+   {
+    "s": 7,
+    "text": "The Salesforce DX project root (`sfdx-project.json` and `force-app/`) is the current directory itself, not a subfolder."
+   },
+   {
+    "s": 8,
+    "text": "The game: the computer places a fleet on a 10x10 grid (rows and columns 0 to 9) and the player fires at it."
+   },
+   {
+    "s": 9,
+    "text": "The fleet is the standard one: `carrier` (5 cells), `battleship` (4), `cruiser` (3), `submarine` (3) and `destroyer` (2); every ship lies straight along one row or one column, entirely inside the grid, and no two ships share a cell."
+   },
+   {
+    "s": 10,
+    "text": "A ship is sunk when all of its cells have been hit, and the game is over when the last ship is sunk."
+   },
+   {
+    "s": 11,
+    "text": "`SLBtlHo9a87Engine` is a public class with static methods only; a game is a JSON string."
+   },
+   {
+    "s": 12,
+    "text": "`newGame(Integer seed)` returns a new game whose fleet is placed at random from the seed: the same seed always gives the same fleet, in any transaction and however many games came before, and two different seeds give different fleets (Apex has no seeded random number generator, so write a small one)."
+   },
+   {
+    "s": 13,
+    "text": "`fire(String game, Integer row, Integer col)` returns the game after one shot at that cell."
+   },
+   {
+    "s": 14,
+    "text": "The game JSON is an object with at least these keys: `shots` (the number of shots fired so far), `shipsLeft` (the number of ships not yet sunk), `gameOver` (`false` until the shot that sinks the last ship, `true` from that shot on) and `lastShot`, which is `null` in a new game and after a shot is an object {\"row\": r, \"col\": c, \"result\": \"miss\" | \"hit\" | \"sunk\", \"ship\": name, \"size\": cells}: `result` is `sunk` (not `hit`) for the shot that sinks a ship, and `ship` and `size` give that ship's name and number of cells on that shot only (they are `null` on a miss or a hit)."
+   },
+   {
+    "s": 15,
+    "text": "Where the ships are and which cells were fired at is up to you; the board must not show a ship cell before it is hit."
+   },
+   {
+    "s": 16,
+    "text": "A shot at a cell that was already fired at, or with a row or a column outside 0 to 9, throws `SLBtlHo9a87Engine.InvalidShotException` (a public exception class you define inside `SLBtlHo9a87Engine`)."
+   },
+   {
+    "s": 17,
+    "text": "After the game is over, a shot at a cell not yet fired at is still accepted: it is a `miss` and `gameOver` stays `true`."
+   },
+   {
+    "s": 18,
+    "text": "`SLBtlHo9a87Controller` has `@AuraEnabled public static` methods `newGame(Integer seed)` and `fire(String game, Integer row, Integer col)`, each returning the game JSON as a `String`, so that the board and the grader can call them."
+   },
+   {
+    "s": 19,
+    "text": "The grader calls `SLBtlHo9a87Controller` only with valid shots and calls `SLBtlHo9a87Engine.fire` directly for an invalid one, so the controller may report an invalid shot however suits the board (for example by throwing an `AuraHandledException`)."
+   },
+   {
+    "s": 20,
+    "text": "The component `slBtlHo9a87Board` renders the 10x10 grid, fires at a cell when a person clicks it, shows hits, misses and sunk ships, the number of shots fired and of ships left, says when the game is over and has a New game button."
+   },
+   {
+    "s": 21,
+    "text": "It calls `SLBtlHo9a87Controller` and renders what comes back."
+   },
+   {
+    "s": 22,
+    "text": "The work will be graded by playing whole games through `SLBtlHo9a87Controller`: `newGame` with a seed, then `fire` once at each of the 100 cells, each game in one anonymous Apex run."
+   },
+   {
+    "s": 23,
+    "text": "Cover the rules with Apex tests in classes named `SLBtlHo9a87...Test` that run in the org, at least 8 Apex test methods in all: include the fleet (names, sizes, straight, inside the grid, no shared cell, the same seed twice), a miss, a hit, a sink, game over, a shot after game over and both kinds of invalid shot."
+   },
+   {
+    "s": 24,
+    "text": "Deploy with `sf project deploy start --target-org de` and run the tests in the org, one test class at a time, with `sf apex run test --target-org de --class-names <TestClass> --synchronous --result-format human --code-coverage` (a synchronous run takes one class)."
+   },
+   {
+    "s": 25,
+    "text": "Keep the engine efficient enough that a whole game of 100 shots played through `SLBtlHo9a87Controller` (`newGame`, then `fire` at every cell) runs inside one transaction."
+   },
+   {
+    "s": 26,
+    "text": "Do not stop until the tests pass in the org."
+   }
+  ],
+  "R15": [
+   {
+    "s": 1,
+    "text": "Build a single-player Battleship game in Apex with a simple Lightning web component board, in a Salesforce DX project in the current directory, and deploy and test it in the Salesforce Developer Edition org with alias de."
+   },
+   {
+    "s": 2,
+    "text": "Follow the full user specification in the invoking conversation."
+   }
+  ],
+  "R16": [
+   {
+    "s": 1,
+    "text": "Change how escalation waits on the ticket service."
+   },
+   {
+    "s": 2,
+    "text": "Today an open, unassigned, urgent ticket that is older than ESCALATE_AFTER_MINUTES minutes is escalated to the on-call agent, and a ticket is escalated at most once."
+   },
+   {
+    "s": 3,
+    "text": "Make the wait depend on the ticket's priority: urgent tickets keep ESCALATE_AFTER_MINUTES (default 60), and high tickets are escalated too, after ESCALATE_HIGH_MINUTES minutes (an environment variable, default 240); tickets of any other priority are never escalated."
+   },
+   {
+    "s": 4,
+    "text": "A ticket that was escalated and has stayed open and unassigned for twice its wait since its first escalation is escalated a second time, and that is the last: a ticket is escalated at most twice, even across restarts of the service."
+   },
+   {
+    "s": 5,
+    "text": "Each escalation notifies the agent named in the ONCALL environment variable as before, and without ONCALL nothing is escalated."
+   },
+   {
+    "s": 6,
+    "text": "This replaces the rule that a ticket is escalated at most once: change that requirement, the decision behind it and the tests that state it."
+   },
+   {
+    "s": 7,
+    "text": "Everything else the service already does keeps working, and its other tests must still pass as they are."
+   },
+   {
+    "s": 8,
+    "text": "Add node:test tests for the new behaviour."
+   }
+  ],
+  "R17": [
+   {
+    "s": 1,
+    "text": "This directory is an existing Node.js service with no npm dependencies (README.md describes it): a help-desk ticket API, src/server.js, which `npm start` runs on the port in the PORT environment variable, with a command-line tool in bin/."
+   },
+   {
+    "s": 2,
+    "text": "Add a bulk import for the help desk’s move from its old tracker."
+   },
+   {
+    "s": 3,
+    "text": "`POST /tickets/import` takes a JSON body `{\"tickets\": [...]}` whose items are what `POST /tickets` takes, at most 5000 of them, and creates them in the given order: all of them, or none when any item is invalid, in which case it answers 400 with an error whose message names the first invalid item by its index in the array (0 for the first)."
+   },
+   {
+    "s": 4,
+    "text": "On success it answers 201 with `{\"created\": <how many>, \"ids\": [<the new ids in order>]}`."
+   },
+   {
+    "s": 5,
+    "text": "Each imported ticket is recorded and its requester is notified just as when one ticket is created."
+   },
+   {
+    "s": 6,
+    "text": "An import of 5000 tickets must be answered within 10 seconds."
+   },
+   {
+    "s": 7,
+    "text": "Everything the service already does keeps working, and its existing tests must still pass as they are."
+   },
+   {
+    "s": 8,
+    "text": "Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones."
+   }
+  ]
+ },
+ "rows": [
+  {
+   "handoff": true,
+   "id": "F01",
+   "request": "R01",
+   "run": "~/e2e-runs/2026-10-30/shiploop-salesforce-battleship-zbcb4i5d/run/.shiploop-runs/work-20261030-134151-bce807/run",
+   "stratum": "frozen",
+   "text": "Confirm rendering and click-through in an authenticated browser."
+  },
+  {
+   "handoff": true,
+   "id": "F02",
+   "request": "R02",
+   "run": "~/e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp/qualification-full-ui/runs/battleship-candidate/.shiploop-runs/work-20261030-192802-b18b24/run",
+   "stratum": "frozen",
+   "text": "If promoting beyond this Developer Edition, add coverage for additional seed layout families and rerun production-style validation."
+  },
+  {
+   "handoff": true,
+   "id": "F03",
+   "request": "R03",
+   "run": "~/e2e-runs/2026-10-30/shiploop-sf-qualified-pv9hf_8a/development-01/run/.shiploop-runs/work-20261031-030317-734f4e/run",
+   "stratum": "frozen",
+   "text": "A full visual theme and viewport audit was not performed."
+  },
+  {
+   "handoff": true,
+   "id": "F04",
+   "request": "R04",
+   "run": "~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-03/.shiploop-runs/work-20261031-122739-3e2dae/run",
+   "stratum": "frozen",
+   "text": "If responsive dark-theme support is required, validate those viewports and theme separately."
+  },
+  {
+   "handoff": true,
+   "id": "F05",
+   "request": "R05",
+   "run": "~/e2e-runs/20261017/bs-sf-int-b7c77f/.shiploop-runs/work-20261018-040601-5105d5/run",
+   "stratum": "frozen",
+   "text": "A later run should open app SLBattle on tab SLBattle Board in headed Chrome and run boardClick from docs/shiploop/architecture.md. Report a miss, a hit, a sunk cell, the shot count, ships left, and the game-over line. Do not run sf org open. The owner is the operator of this machine when the CLI session cannot open Lightning without a new login."
+  },
+  {
+   "handoff": true,
+   "id": "F06",
+   "request": "R05",
+   "run": "~/e2e-runs/20261018/bs-release-update-436528/.shiploop-runs/seed/run",
+   "stratum": "frozen",
+   "text": "A person still has to open App Launcher entry SL Battleship and /lightning/n/SLBattle_Board and confirm the 10x10 board, the shot count, ships left and the New game button. The knowledge commit aea74ad983dd9869ebe7964eb93a42e2d95175b0 is on the run branch and was not returned to master, because release-verify cannot return."
+  },
+  {
+   "handoff": true,
+   "id": "F07",
+   "request": "R06",
+   "run": "~/e2e-runs/20261024/chess-sf-full-12a23d/.shiploop-runs/work-20261025-020942-4061a0/run",
+   "stratum": "frozen",
+   "text": "A later run that can open Lightning app SLChess at path /lightning/n/SLChess_Board should play the board procedure and record whether the tab is hidden and whether an illegal Lightning call shows AuraHandledException. Until then those three items stay open."
+  },
+  {
+   "handoff": true,
+   "id": "F08",
+   "request": "R07",
+   "run": "~/e2e-runs/20261024/gate-290-b60ed7-claude-csv-report/.shiploop-runs/work-20261025-023951-c1c6f6/run",
+   "stratum": "frozen",
+   "text": "Ask the requester whether exponent notation and a leading '+' should count as numeric and whether zero arguments should exit 1; otherwise none."
+  },
+  {
+   "handoff": true,
+   "id": "F09",
+   "request": "R08",
+   "run": "~/e2e-runs/20261024/gate-290-b60ed7-codex-hello/.shiploop-runs/work-20261025-020711-a0aed0/run",
+   "stratum": "frozen",
+   "text": "No product follow-up is open. If a later change touches this script or its tests, retain the exact stdout contract and rerun focused and full unittest discovery against the returned result."
+  },
+  {
+   "handoff": true,
+   "id": "F10",
+   "request": "R09",
+   "run": "~/e2e-runs/20261025/gate-2100-96810d-claude-web/battleship/.shiploop-runs/work-20261025-201613-0bd28f/run",
+   "stratum": "frozen",
+   "text": "Retain the browser click-through as a BROWSER=1 test (currently a throwaway script in the run's scratch). No other open items."
+  },
+  {
+   "handoff": true,
+   "id": "F11",
+   "request": "R10",
+   "run": "~/e2e-runs/20261025/gate-2100-96810d-claude-web/battleship-scoring/.shiploop-runs/work-20261025-204415-a86b45/run",
+   "stratum": "frozen",
+   "text": "Ship names are a recorded default (the request named none); change SHIP_NAMES in game.js if different names are wanted. Chrome cases remain opt-in (BROWSER=1). Nothing else."
+  },
+  {
+   "handoff": true,
+   "id": "F12",
+   "request": "R08",
+   "run": "~/e2e-runs/20261025/gate-2132-f7ba78-grok-hello/.shiploop-runs/work-20261026-034535-857137/run",
+   "stratum": "frozen",
+   "text": "A later run inherits the two Commands and the three rollback recipes. No remote, service, or pending grant. A greeting change must keep the method name TC_1 and the 14-byte stdout."
+  },
+  {
+   "handoff": true,
+   "id": "F13",
+   "request": "R09",
+   "run": "~/e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship/.shiploop-runs/work-20261026-045417-6440d1/run",
+   "stratum": "frozen",
+   "text": "A later run with a runner that can activate a control and hold a response should run the architecture TC-3 procedure on server.js at a free port and report the visible cell text. Do not add Playwright or test/browser-page.test.js to the default suite."
+  },
+  {
+   "handoff": true,
+   "id": "F14",
+   "request": "R10",
+   "run": "~/e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship-scoring/.shiploop-runs/work-20261026-082022-fb1de8/run",
+   "stratum": "frozen",
+   "text": "SYS-CLICK stays with the local player at handoff: click one cell on server.js and read #score, #sunk, and the cell text. A later run should keep that gap out of the default suite."
+  },
+  {
+   "handoff": true,
+   "id": "F15",
+   "request": "R08",
+   "run": "~/e2e-runs/20261026/pilot-ollama-dsflash-993a9d-hello/.shiploop-runs/work-20261026-181830-936fda/run",
+   "stratum": "frozen",
+   "text": "If a later run changes the delivered files, it must start from `a8be4ce` on `main` in `…/hello/work` and return again through the workspace route; the rollback recipes remain valid (`3ba3354a64fff776d16bfdfe21a48923b1d3d3e5` and `shiploop/run-be3ff1621c7a2782` both exist). When a run's post-release checkout is the same local repository, prefer recording the receipt and the file hashes beside the consumer output, as here — that is what shows the files reached the source checkout rather than a work-area copy."
+  },
+  {
+   "handoff": true,
+   "id": "F16",
+   "request": "R09",
+   "run": "~/e2e-runs/20261027/v2170-ds-battleship-759a03/.shiploop-runs/work-20261027-150517-62d689/run",
+   "stratum": "frozen",
+   "text": "Carry the manual consumer pass to the user: play the returned game with a screen reader and a second browser, and report the announcements, the visible ring and any wording that does not make sense. Fix README.md:175's AD-1...AD-17 so it matches the knowledge home's AD-1...AD-19 (A2, due handoff). For a later run of this harness: keep the explicit keep list in the release procedure, expect the follow-up return after any late knowledge edit, and treat the row census in the return plan as something that grows with each Improve pass rather than a fixed number."
+  },
+  {
+   "handoff": true,
+   "id": "F17",
+   "request": "R09",
+   "run": "~/e2e-runs/20261027/v2170-sonnet-battleship-491d9a/.shiploop-runs/work-20261027-103928-803b48/run",
+   "stratum": "frozen",
+   "text": "A5: a person opens http://localhost:3000/ after node server.js and confirms hit/miss marks, status text and game over message, or a later run adds a browser driver."
+  },
+  {
+   "handoff": true,
+   "id": "F18",
+   "request": "R09",
+   "run": "~/e2e-runs/20261027/v2180-sonnet-battleship-36036c/.shiploop-runs/work-20261027-234612-373c7c/run",
+   "stratum": "frozen",
+   "text": "Optional: a test for the page's fetch-failure message and dark colour scheme, an expiry for abandoned games if the server is ever left running long, and a README note on stopping a server left on a custom port. A node server.js started on port 34567 during documentation (PID 20304) was still running at release-verify; stop it by hand."
+  },
+  {
+   "handoff": true,
+   "id": "F19",
+   "request": "R09",
+   "run": "~/e2e-runs/20261028/pa-ds-battleship-4ed4e3/.shiploop-runs/work-20261028-173217-a07d74/run",
+   "stratum": "frozen",
+   "text": "A person still has to play one game in a real browser from the returned tree (A12/RB-9, handoff): run node server.js in /Users/dadleet/e2e-runs/20261028/pa-ds-battleship-4ed4e3/work, open http://127.0.0.1:3000/ and play to `Game over — all five ships sunk.` Also worth picking up: AD-3's 1,000-redraw placement cap and two of test-support/browser.js's launch-failure branches remain unexercised, recorded in KNOWLEDGE/architecture.md and KNOWLEDGE/environment.md ### Facilities rather than tested."
+  },
+  {
+   "handoff": true,
+   "id": "F20",
+   "request": "R08",
+   "run": "~/e2e-runs/effort-eeff1/control-hello/.shiploop-runs/work-20261025-183611-483768/run",
+   "stratum": "frozen",
+   "text": "The six kept files are uncommitted on main. A later run should treat that working tree as the product. The consumer entry stays python3 hello.py from the repository root."
+  },
+  {
+   "handoff": true,
+   "id": "F21",
+   "request": "R08",
+   "run": "~/e2e-runs/effort-eeff1-r1/control-hello/.shiploop-runs/work-20261024-214332-7afe50/run",
+   "stratum": "frozen",
+   "text": "If a later run wants a fast-forward, do not let plan-return commit a file the return will exclude."
+  },
+  {
+   "handoff": true,
+   "id": "F22",
+   "request": "R11",
+   "run": "~/e2e-runs-brownfield/20261028/bf-ds-ticket-assignment-09c33b/.shiploop-runs/work-20261028-230157-1584ba/run",
+   "stratum": "frozen",
+   "text": "Whoever picks this up next should decide whether the ticket.assigned line gets a real delivery route — a relay that tails NOTIFY_FILE plus an address per agent — and if so, add it as a new work item with its own boundary case; until then R-8 is 'the agent is told through the notification file' and A1 remains open. The service still has no authentication, so any exposure beyond loopback needs a decision first."
+  },
+  {
+   "handoff": true,
+   "id": "F23",
+   "request": "R12",
+   "run": "~/e2e-runs-brownfield/20261028/bf-ds-ticket-escalation-09c33b/.shiploop-runs/work-20261029-005315-5834f6/run",
+   "stratum": "frozen",
+   "text": "At handoff: record the requesting user's answer to A1 (person-level delivery) and state where the post-release knowledge lives (A2 — the run branch tip, not the delivered master at 85116c0). Operations should confirm readiness against the delivered checkout and its receipt, not the run worktree, and must not re-release. If a later change touches src/, test/ or package.json, the delivered-tree observation and the no-history copy probe must be rerun."
+  },
+  {
+   "handoff": true,
+   "id": "F24",
+   "request": "R13",
+   "run": "~/e2e-runs-brownfield/20261029/hooks-after-ticket-escalation/.shiploop-runs/work-20261030-004732-321bfd/run",
+   "stratum": "frozen",
+   "text": "No feature work remains; future service or fixture changes should revalidate the system test and full suite."
+  },
+  {
+   "handoff": true,
+   "id": "F25",
+   "request": "R08",
+   "run": "~/e2e-runs-owner-note/20261028/pc-ds-hello-note-b45e87/.shiploop-runs/work-20261028-194550-435718/run",
+   "stratum": "frozen",
+   "text": "Only A1 travels onward: a Windows host should confirm hello.py's output bytes there, since print translates \\n to \\r\\n and TC_1's exact-tuple assertion is written for this target's terminator. Everything else is closed — the two product files and the knowledge home are delivered at a87db0cb with every selected case green on the delivered surface."
+  },
+  {
+   "handoff": true,
+   "id": "N1",
+   "request": "R14",
+   "run": "~/e2e-runs-hostonly/20261031/sf-live-2/.shiploop-runs/work-20261101-014507-ffd2a3/run",
+   "stratum": "new:e2e-runs-hostonly",
+   "text": "Observe the authenticated Lightning board in de and exercise play and restart; do not treat local mock checks as rendered UI evidence."
+  },
+  {
+   "handoff": true,
+   "id": "N2",
+   "request": "R15",
+   "run": "~/e2e-runs-hostonly/20261031/ui-live-3/.shiploop-runs/work-20261101-030945-ceb81c/run",
+   "stratum": "new:e2e-runs-hostonly",
+   "text": "No product work remains; preserve the prefixed metadata inventory and existing permission grant for any later removal."
+  },
+  {
+   "handoff": true,
+   "id": "N3",
+   "request": "R12",
+   "run": "~/e2e-runs-multipass/20261031/e2/A2-ticket-escalation/.shiploop-runs/work-20261101-023359-d23524/run",
+   "stratum": "new:e2e-runs-multipass",
+   "text": "Consider an idempotent delivery receiver if both retries and duplicate-free external delivery are required."
+  },
+  {
+   "handoff": true,
+   "id": "N4",
+   "request": "R11",
+   "run": "~/e2e-runs-multipass/20261031/e2/B3-ticket-assignment/.shiploop-runs/work-20261101-040207-dc0361/run",
+   "stratum": "new:e2e-runs-multipass",
+   "text": "No pending task; future changes should preserve legacy file loading and notification retry behavior."
+  },
+  {
+   "handoff": true,
+   "id": "N5",
+   "request": "R16",
+   "run": "~/e2e-runs-multipass/20261031/mp-codex-ticket-sla/.shiploop-runs/work-20261101-044047-2e7ccc/run",
+   "stratum": "new:e2e-runs-multipass",
+   "text": "No requested local behavior remains; external relay integration was outside scope."
+  },
+  {
+   "handoff": true,
+   "id": "N6",
+   "request": "R17",
+   "run": "~/e2e-runs-xr/20261031/B-ticket-import-s2/.shiploop-runs/work-20261031-211522-3216a1/run",
+   "stratum": "new:e2e-runs-xr",
+   "text": "Revalidate performance for substantially larger existing outboxes if those workloads arise."
+  },
+  {
+   "handoff": true,
+   "id": "N7",
+   "request": "R11",
+   "run": "~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/model-runs/ticket-assignment-published-discovery-01/.shiploop-runs/work-20261101-094725-c35aa5/run",
+   "stratum": "new:e2e-runs",
+   "text": "For a future PR follow the repository version and changelog convention."
+  }
+ ],
+ "snapshot": "docs/experiments/follow-on-peek-20261031/peek.json (125 runs, 2026-10-31)"
+}

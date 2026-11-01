@@ -1,0 +1,6 @@
+published-build confirmation, 2026-11-01 (start_probe.py confirm; harness run.py --source marketplace, Codex gpt-6.1-terra xhigh)
+sessions: 12; valid: 12; first start: workspace 12, init 0, none 0
+installed card hash 9588268edbe9 equals the release package's card on every session; the harness records plugin 2.27.3 from the marketplace
+read run-start.md first: 12 of 12; own git init/config/commit: 0
+seconds to the start: median 66.5, range 57.5 to 113.1 (the marketplace install is slower than a --plugin-dir install)
+prediction (at most 2 of 12 begin with init): held, 0 of 12

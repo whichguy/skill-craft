@@ -352,6 +352,112 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   above were corrected in place with this date, and README "Calibration (2026-11-01)" holds the numbers.
 - Status: firm (a recomputation over the committed evidence).
 
+### E17 — 2026-11-01: does a refusal of a criterion whose Confirm by needs an unwritten test pay, and do runs stall under fix 1? (saved runs, no model run)
+
+- Question: the owner's go, "Yes, rebase and run", to the top item left after E16. It covers verdicts §4's "other form"
+  of the proof-order fault, and E16's unmeasured stall benefit.
+- Method: pre-registered in docs/experiments/proof-coverage-replay-20261101/README.md, then amended before any score.
+  - replay.py reads every saved run under `~/e2e-runs*/` that the current state reader reads: 1,863 accepted step plans
+    in 246 run folders, 365 judged.
+  - Its base rule is sg1/replay_d6.py's.
+  - labels.jsonl labels 35 implement send-backs from their summaries alone: 20 are proof-order.
+- Result, Q1:
+  - The shipped rule comes before 11 of the 20 proof-order send-backs.
+  - The registered candidate C′ (rule A on each executed criterion's Confirm by, for Proofs naming no repository path)
+    catches 3 more, but 5 of its 10 refusals are plans whose Proof tests the step directly. `command_paths` skips
+    absolute, `../` and inline-code Proofs. So registered item 2 fails, and C′ is not built.
+  - A post-hoc variant on generic suite Proofs only catches 2, with 0 false refusals. It was defined after seeing the
+    data, so it is not adopted.
+  - The other 6 misses name the test by identifier or in prose: a unittest name, an Apex class, "focused and full tests".
+  - A proof-order send-back costs about 1 minute of wall time (median, n = 20), and a step-plan refusal 7 seconds (n =
+    100). So the 9 misses come to about 10 minutes in 365 plans.
+- Result, Q2, observational. Runs stopped at step-plan with an open item due, by the duty wording they ran:
+  - before fix 11: 4 of 33, 12% (3.4–28.2%);
+  - fix 11: 0 of 6;
+  - fix 1: 0 of 14 (0–23.2%).
+  Against "before fix 11", one-sided p is 0.23 for fix 1 and 0.14 for both fixes together. One of the four stops is
+  outside XI's case (hooks-before-ticket-escalation, 2026-10-29).
+- Decision:
+  - No new proof-order rule. Reopen it only if this send-back starts costing a run minutes.
+  - Fix 1 stays. No controlled stall measurement (E16).
+- Contrary evidence:
+  - ffea2956 described each proof-order send-back as "found only after a whole implement Until Loop and an Improve
+    review". Measured in wall time, the implement stops within about a minute, in 19 of 20 cases.
+  - Q2 cannot separate the wordings from the cases, models and hosts that ran them.
+- Status: firm for Q1 (a replay over the saved runs, by its registered rule); observational for Q2.
+
+### E18 — 2026-11-01: the narrow second proof check, built for the Proof duty (saved runs, no model run)
+
+- Question: the owner asked "Do we need to do the second proof check? Propose and implement a plan".
+- Answer:
+  - Not for time. E17 puts every miss at about 10 minutes in 365 plans.
+  - For the Proof duty. The duty says a step's Proof proves its criteria at its done, and a plain suite Proof cannot
+    prove a criterion whose confirming test is unwritten. In A-ticket-assignment-s1, implement passed exactly that way.
+  - Plan: build E17's post-hoc variant as rule C of the shipped proof-order refusal. Freeze it, and pre-register a
+    held-out check before scoring (README "Follow-up").
+- Result:
+  - 0 mismatches between the shipped function and the replay, on 374 judged plans.
+  - 0 refusals on 42 held-out runs.
+  - The new tests fail on the old code and pass on the new.
+- Decision:
+  - Shipped in ShipLoop as a patch, with the packet text unchanged. Checked-by already names "a Proof needing an
+    unwritten test".
+  - No E2E round: the rule fires in about 1 plan in 120.
+- Contrary evidence:
+  - The in-sample case rests on 3 plans, and was chosen after seeing them.
+  - The held-out runs hold no catch.
+  - E17's 6 misses that name the test by identifier or in prose remain.
+- Status: firm for the mechanism (tests, replay equivalence). Its benefit is the duty, not measured time.
+
+### E19 — 2026-11-01: the step-plan stage reviewed for effectiveness and efficiency (saved runs, no model run)
+
+- Question (the owner: "revisit the step planning stage and make sure it is as effective and efficient as
+  possible"): what does step-plan cost, which of its plans fail later and why, and what would stop that?
+- Method: `docs/experiments/step-plan-review-20261101/step_plan_review.py` and `replay_proofs.py` over 112 traced runs
+  (2026-10-25 to 11-01, ShipLoop 1.12.0-1.26.1, mostly Codex Terra 6.1): times from trace events, refusals, every
+  send-back to step-plan with its result, Improve passes; each send-back classified from its headline and summary;
+  candidate rules replayed on every accepted plan and step. Review: docs/shiploop-step-plan-review-2026-11-01.md.
+- Result:
+  - Cost: a median 11.3% of a run; on Terra 0.52 minutes to author and 0.47 to review (medians); the review is about
+    45% of the stage. Refusals in the loop fell from 57 in 53 plans (1.24.1-1.25.0) to 25 in 44 (1.25.1-1.26.1).
+  - 50 of 178 plans came back (implement 32, test-spec 12, test 6). On ShipLoop 1.25.0 and later, 19: focused IDs
+    fewer than the criteria a focused command names 8, Proof command defects 4, a Proof needing unwritten tests
+    without a file path 3, a Proof that cannot run twice 2, a check needing a later step 2. The named-path proof-order
+    class went from 13 to 0 with E5's refusal.
+  - The step-plan template has shown three criteria and two IDs whenever an open item is due (since 8dee00e0), and no
+    step-plan text stated test-spec's one-case-per-ID rule; 22 of the 24 short plans had an Improve review.
+  - A matching rule refuses 24 of 175 accepted plans: the 9 test-spec sent back and 15 test-spec folded (a criterion
+    with no case of its own); none whose every criterion had a case. Four rules for the no-path Proof form flag Proofs
+    that passed (N1 10/12/18 send-back/done/none, N4 7/30/11), so none is built.
+- Decision: build the rule as a step-plan refusal (`test_loop.criteria_without_ids`,
+  `navigator._check_focused_criteria_ids`), give the template one ID per criterion, and say it in duty 5 and the
+  Checked-by line. Routine under the owner's 2026-10-28 rule: it aligns step-plan with a contract test-spec already
+  enforces and limits no loop. The Improve review and a repeatable-Proof clause are left to the owner.
+- Status: firm (replay of every saved plan); the live check is pre-registered in the review's §7.
+- Evidence: `replay_ids.jsonl`, `sendbacks.jsonl`, `sendback_classes.jsonl`, `runs.jsonl`, `improve_passes.jsonl`,
+  `replay_proofs.jsonl` in docs/experiments/step-plan-review-20261101/.
+
+### E20 — 2026-11-01: the focused-ID rule live (SP1 deliveries, SP2 slice A/B, SP3) on Codex Terra 6.1 xhigh
+
+- Question: does b8d32033's rule hold live without cost, and what does it buy on the owner's runner? (The owner,
+  mid-round: "You can do side experiments as needed if that would help"; "For using a test harness and runner we want
+  to use codex Terra 6.1 at xhigh".)
+- Method: pre-registered in the review's §7 before each round (a38be89f, 3042b7aa, 1bf6430c): SP1 whole deliveries
+  (hello 1, csv-report 2; ticket-import 3 pending on port 4180), SP2 step-plan slices stopping after test-spec (arm B =
+  main e81fdb55, arm T = b8d32033; tickets-assign and stand-in-rules, 4 per arm per case), SP3 slices on 45153684
+  (stand-in-rules 4). Three SP1 runs made at high before the owner's word are a pilot.
+- Result (review §7a): SP1 3 of 3 PASS at xhigh (and 3 of 3 in the pilot), no test-spec send-back for IDs, no gate
+  refusal, no short plan; SP2 B 0 of 8 short, T 0 of 8 short with one test-spec send-back: b8d32033's "an ID for each
+  criterion it names" drew IDs for two searched criteria, which test-spec writes no case for; SP3 on 45153684 ("each
+  executed criterion") 0 send-backs in 4. Step-plan median minutes B 2.17, T 2.25, SP3 2.50. By effort in the saved
+  runs: Terra xhigh 7 of 67 plans short, 1 sent back; Terra high 8 of 75, 7 sent back.
+- Decision: keep the rule with 45153684's wording. The wording fix is a correction caught by the pre-registered
+  falsifier; the rule's gain at xhigh is test quality.
+- Status: firm (no cost, no ID send-back after the fix, on these runs); the template's open-item path live is pending
+  (ticket-import); F31 interim.
+- Evidence: sp2_scores.jsonl, sp3_scores.jsonl, the run folders under ~/e2e-runs-sp/20261101/, test/shiploop_e2e/
+  LEARNINGS.md (the round entry of 2026-11-01).
+
 ## Findings
 
 Each finding is stated in full, with its evidence, in §6.1 of the proposal document.
@@ -380,3 +486,13 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F20 | One sentence on the `experiment` route moves runtime questions there (10% -> 33%, p 0.0035) without over-routing, below the +1.0 bar; a prompt shifts what intake proposes, not what the run probes | firm (no-tool) | E13 |
 | F21 | A research duty that probes each `experiment` question rarely probes live (1 of 6 runs); every baseline failure on ticket-import was a step-plan stall, not a missed runtime fact | firm (mechanism), interim (stall rate) | E14 |
 | F22 | An executed criterion settling an open plan item holds live: used in 4 of 4 runs, all pass, and it replaces checks that time nothing (`node --version`, a 404 from the unbuilt route) with the item's own timed tests | firm (mechanism); no harm seen at 4 runs a side, not ruled out; unmeasured (stall rate, so the benefit). Corrected 2026-11-01 (E16); was "firm (mechanism, no harm)" | E15, E16 |
+| F23 | A refusal of a criterion whose Confirm by names an unwritten test does not pay. The registered no-path form catches 3 send-backs the shipped rule misses but would refuse 5 plans whose Proof tests the step directly; a proof-order send-back costs about 1 minute (n = 20), so the 9 misses are worth about 10 minutes in 365 plans; 6 of them name the test by identifier, not path. Superseded in part 2026-11-01 (E18): its narrow form, plain suite Proofs only, is built for the Proof duty, not for time | firm (replay, registered rule) | E17, E18 |
+| F24 | No step-plan stall under fix 1's wording in 14 runs with an open item due (0–23%), against 4 of 33 before fix 11 (12%); one-sided p 0.23. One stop was outside XI's case | observational | E17 |
+| F25 | A plain suite Proof (`npm test`) is refused when its step's criterion is confirmed by a test the base lacks (rule C of the proof-order refusal): 3 of 365 judged plans in-sample, 0 false; 0 of 42 held-out runs | firm (mechanism) | E18 |
+| F26 | Step-plan is a median 11% of a run; its Improve review is about 45% of the stage; refusals in its loop halved after c2da4604 | firm | E19 |
+| F27 | 28% of step plans come back to step-plan; on ShipLoop >= 1.25.0 the largest class (8 of 19) is a focused command with fewer IDs than its executed criteria, and the named-path proof-order class is gone (13 -> 0) | firm | E19 |
+| F28 | The shortage comes from step-plan's contract: test-spec's one-case-per-ID rule was never stated there, and the template has shown a short row since 8dee00e0; Improve missed it in 22 of 22 reviewed short plans | firm (mechanism); the template's own share unmeasured | E19 |
+| F29 | A matching rule refuses exactly the short plans: 9 sent back by test-spec, 15 folded, none fully covered (24 of 175) | firm (replay) | E19 |
+| F30 | No precise rule separates a Proof that runs unwritten tests without a file path from a legitimate one (N1-N4 all flag passed Proofs; rule S, the narrowest, 5 of 12 flags real; F25's narrow rule C covers the plain-suite form by path) | firm (replay) | E19 |
+| F31 | Implement reads a criterion's "Confirm by" test, which the test stage writes later, as due at implement (3 live cases); a done-when naming the Proof as implement's confirmation is the candidate | interim | E20 |
+| F32 | On Codex Terra 6.1 xhigh the ID shortage still occurs (10% of saved plans) but test-spec folds it; the rule's gain there is a case per executed criterion, and live it costs no step-plan time | firm (corpus); interim (live, n = 20 slices) | E19, E20 |

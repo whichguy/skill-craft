@@ -1,0 +1,30 @@
+180 valid slots; slots with no valid attempt: none
+request arm   n workspace direct none    wrong rate (95% CI) bootstrap read run-start median s
+sf-ui   C    40        23     17    0       0.42 (0.29-0.58)         0             40     31.2
+sf-ui   T1   40        36      4    0       0.10 (0.04-0.23)         0             40     30.3
+sf-ui   T2   40        40      0    0       0.00 (0.00-0.09)         0             40     30.2
+hello   C    10        10      0    0       0.00 (0.00-0.28)         0             10     16.1
+hello   T1   10        10      0    0       0.00 (0.00-0.28)         0             10     14.1
+hello   T2   10        10      0    0       0.00 (0.00-0.28)         0             10     16.1
+repo    C    10        10      0    0       0.00 (0.00-0.28)         0             10     19.2
+repo    T1   10        10      0    0       0.00 (0.00-0.28)         0             10     21.1
+repo    T2   10        10      0    0       0.00 (0.00-0.28)         0             10     19.1
+
+control (sf-ui): 17 wrong of 40 started (precondition: at least 5 wrong): met
+T1: 4 wrong of 40 started, 0 without a start -> MEETS THE BAR
+    ok  control can discriminate
+    ok  one-sided Fisher p 0.0009 < 0.025
+    ok  wrong rate at most half the control's
+    ok  no more sessions without a start
+    ok  regression guard (0 vs control 0, margin 1)
+    ok  card 30033 bytes <= 30500
+T2: 0 wrong of 40 started, 0 without a start -> MEETS THE BAR
+    ok  control can discriminate
+    ok  one-sided Fisher p 0.0000 < 0.025
+    ok  wrong rate at most half the control's
+    ok  no more sessions without a start
+    ok  regression guard (0 vs control 0, margin 1)
+    ok  card 30115 bytes <= 30500
+
+DECISION: ship T2
+wrote results-compact.jsonl

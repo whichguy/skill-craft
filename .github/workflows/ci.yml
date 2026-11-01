@@ -5,6 +5,10 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Weekly full run (Mondays 14:23 UTC, off the hour where GitHub delays schedules): CI floats on the latest runtimes
+  # and runner image, which can break it with no commit; a push is otherwise the only thing that finds out.
+  schedule:
+    - cron: '23 14 * * 1'
   workflow_dispatch:
     inputs:
       tier:

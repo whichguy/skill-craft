@@ -1,0 +1,162 @@
+{
+ "F01": {
+  "alt": "person",
+  "class": "gap",
+  "reason": "Rendering and interaction verification remain open for the requested board; browser automation could supply them, though click-through can imply a manual check."
+ },
+ "F02": {
+  "alt": null,
+  "class": "extension",
+  "reason": "Additional seed coverage and production validation are conditional on promotion beyond the requested Developer Edition deployment."
+ },
+ "F03": {
+  "alt": null,
+  "class": "extension",
+  "reason": "A full theme and viewport audit exceeds the requested simple board and specified UI checks."
+ },
+ "F04": {
+  "alt": null,
+  "class": "extension",
+  "reason": "Responsive dark-theme validation is conditional scope absent from the membership application request."
+ },
+ "F05": {
+  "alt": "person",
+  "class": "capability",
+  "reason": "The check needs headed, authenticated Lightning access; the machine operator becomes responsible when the CLI session cannot provide it without another login."
+ },
+ "F06": {
+  "alt": null,
+  "class": "person",
+  "reason": "A person explicitly owns the remaining deployed-board confirmation; the unreturned knowledge commit records its location without requesting another action."
+ },
+ "F07": {
+  "alt": null,
+  "class": "capability",
+  "reason": "The open checks are explicitly reserved for a later run able to access the deployed Lightning app."
+ },
+ "F08": {
+  "alt": null,
+  "class": "decision",
+  "reason": "The requester must resolve numeric syntax and zero-argument exit semantics before those cases can be implemented conclusively."
+ },
+ "F09": {
+  "alt": null,
+  "class": "note",
+  "reason": "No follow-up is open; the text preserves the output contract and verification procedure for later edits."
+ },
+ "F10": {
+  "alt": null,
+  "class": "debt",
+  "reason": "Preserving an existing browser check as an opt-in test is a small test hygiene task."
+ },
+ "F11": {
+  "alt": null,
+  "class": "note",
+  "reason": "Ship names and optional Chrome execution are recorded defaults, with nothing else left open."
+ },
+ "F12": {
+  "alt": null,
+  "class": "note",
+  "reason": "This records inherited commands, rollback procedures, and the output contract without leaving an action open."
+ },
+ "F13": {
+  "alt": null,
+  "class": "capability",
+  "reason": "The procedure awaits a runner capable of activating controls and holding responses, rather than another implementation change."
+ },
+ "F14": {
+  "alt": null,
+  "class": "person",
+  "reason": "The local player explicitly owns the remaining click and visible scoring check at handoff."
+ },
+ "F15": {
+  "alt": null,
+  "class": "note",
+  "reason": "This records the starting revision, return route, rollback references, and delivery evidence practice for future changes."
+ },
+ "F16": {
+  "alt": "debt",
+  "class": "person",
+  "reason": "The user must perform accessibility and browser checks; a separate README mismatch also leaves a small documentation repair."
+ },
+ "F17": {
+  "alt": "capability",
+  "class": "person",
+  "reason": "A person is assigned the browser confirmation, with a later browser driver offered as an alternative way to close it."
+ },
+ "F18": {
+  "alt": "extension",
+  "class": "person",
+  "reason": "Stopping the leftover server is explicitly assigned to someone by hand; the other suggestions are optional improvements."
+ },
+ "F19": {
+  "alt": "debt",
+  "class": "person",
+  "reason": "A person is explicitly required to play a complete browser game; unexercised placement and launch branches also leave test coverage work."
+ },
+ "F20": {
+  "alt": null,
+  "class": "note",
+  "reason": "The working tree and consumer command are recorded as the delivered product; committing is not requested."
+ },
+ "F21": {
+  "alt": null,
+  "class": "note",
+  "reason": "This records a conditional return-workflow precaution without identifying unfinished product work."
+ },
+ "F22": {
+  "alt": "extension",
+  "class": "decision",
+  "reason": "The next owner must choose whether to build a delivery relay, and broader network exposure also explicitly requires a decision."
+ },
+ "F23": {
+  "alt": "debt",
+  "class": "person",
+  "reason": "The handoff requires a requester answer and operational readiness confirmation, alongside recording delivery and knowledge locations."
+ },
+ "F24": {
+  "alt": null,
+  "class": "note",
+  "reason": "No work remains; revalidation applies only when future service or fixture changes occur."
+ },
+ "F25": {
+  "alt": "extension",
+  "class": "capability",
+  "reason": "Verification needs a Windows host unavailable here; Windows portability could alternatively be read as additional scope beyond the simple greeting request."
+ },
+ "N1": {
+  "alt": "capability",
+  "class": "gap",
+  "reason": "Deployed play and restart behavior still need direct UI evidence; a missing authenticated Lightning browser could instead make this a capability limitation."
+ },
+ "N2": {
+  "alt": null,
+  "class": "note",
+  "reason": "Nothing remains open; the metadata inventory and permission grant are retained as removal knowledge."
+ },
+ "N3": {
+  "alt": null,
+  "class": "extension",
+  "reason": "An idempotent external receiver is conditional on delivery guarantees the request does not require."
+ },
+ "N4": {
+  "alt": null,
+  "class": "note",
+  "reason": "There is explicitly no pending task; legacy loading and retry behavior are constraints for future changes."
+ },
+ "N5": {
+  "alt": null,
+  "class": "note",
+  "reason": "The requested behavior is complete, and the relay exclusion merely records the scope boundary."
+ },
+ "N6": {
+  "alt": null,
+  "class": "extension",
+  "reason": "Performance revalidation is conditional on substantially larger outbox workloads arising later."
+ },
+ "N7": {
+  "alt": null,
+  "class": "note",
+  "reason": "The repository convention is guidance for a future PR, not an unfinished task."
+ }
+}
