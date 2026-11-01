@@ -1,0 +1,42 @@
+R4a0-comments-seeded-old   pass True · 1248.8 s · stray +8 · born retired ['AD-4'] · decisions added ['AD-4'] · notices 0 (flagged that survive 0) · still retired at the end ['AD-3', 'AD-4']
+                           follow-on | R +1 ~0 -0 retired 0 born-retired 0 | AD +1 ~0 -0 retired 0 born-retired 1 | stray+ spec 0 env 8 arch 0 | appends spec 0 env 0 arch 0 | prior tests modified 0 src 6/27 | follows d2/p0 tests d3/p0 | lessons f7b5cc0082a8
+R4a-comments-seeded-fix    pass True · 857.0 s · stray +2 · born retired [] · decisions added ['AD-4'] · notices 3 (flagged that survive 4) · still retired at the end ['AD-3']
+                           follow-on | R +1 ~0 -0 retired 0 born-retired 0 | AD +1 ~0 -0 retired 0 born-retired 0 | stray+ spec 0 env 2 arch 0 | appends spec 0 env 0 arch 0 | prior tests modified 0 src 6/27 | follows d2/p0 tests d4/p0 | lessons fb0781c187e6
+R4b0-comments-tidy-old     pass True · 1111.4 s · stray +1 · born retired ['AD-4'] · decisions added ['AD-4'] · notices 0 (flagged that survive 0) · still retired at the end ['AD-4']
+                           follow-on | R +1 ~0 -0 retired 0 born-retired 0 | AD +1 ~0 -0 retired 0 born-retired 1 | stray+ spec 0 env 1 arch 0 | appends spec 0 env 0 arch 0 | prior tests modified 0 src 6/27 | follows d2/p0 tests d3/p0 | lessons f1df8cc185ab
+R4b-comments-tidy-fix      pass False · 1091.1 s · stray +0 · born retired [] · decisions added ['AD-4'] · notices 1 (flagged that survive 0) · still retired at the end []
+                           follow-on | R +1 ~0 -0 retired 0 born-retired 0 | AD +1 ~0 -0 retired 0 born-retired 0 | stray+ spec 0 env 0 arch 0 | appends spec 0 env 0 arch 0 | prior tests modified 0 src 5/27 | follows d2/p0 tests d1/p0 | lessons 5d4334beaaca
+R4c0-sla-tidy-old          pass True · 1458.2 s · stray +0 · born retired [] · decisions added ['AD-5'] · notices 0 (flagged that survive 0) · still retired at the end ['AD-4']
+                           follow-on | R +0 ~2 -0 retired 0 born-retired 0 replaced 1/2 left 1 unexplained 1 | AD +1 ~1 -0 retired 0 born-retired 0 replaced 1/1 left 0 unexplained 0 | stray+ spec 0 env 0 arch 0 | appends spec 0 env 7 arch 1 | prior tests modified 1 src 6/27 | follows d3/p0 tests d3/p0 | lessons 52acc00fd6ae
+R4c-sla-tidy-fix           pass True · 1713.1 s · stray +0 · born retired [] · decisions added ['AD-5'] · notices 0 (flagged that survive 0) · still retired at the end []
+                           follow-on | R +0 ~1 -0 retired 0 born-retired 0 replaced 1/2 left 1 unexplained 0 | AD +1 ~1 -0 retired 0 born-retired 0 replaced 1/1 left 0 unexplained 0 | stray+ spec 0 env 0 arch 0 | appends spec 0 env 0 arch 0 | prior tests modified 1 src 6/27 | follows d2/p0 tests d3/p0 | lessons 3d248686107b
+
+Bar, fixed before the runs (the three fix runs)
+B1 missed   every fix run passes and loses no hidden check
+B2 held     every fix run adds at most 2 stray headings to environment.md
+B3 held     no fix run files a new decision as retired
+B4 held     pass 4 with the fix: no earlier entry changed that the request did not name (unexplained is empty in spec and architecture)
+
+Control, fixed before the runs (what the fix is credited with)
+Ka held     the run without the fix leaks on the seeded pass 3: at least 4 stray headings added, or a new decision filed as retired
+Kb held     the run without the fix leaks on the tidy pass 3: at least 4 stray headings added, or a new decision filed as retired
+Kc missed   the run without the fix leaks on the tidy pass 4: at least 4 stray headings added, or a new decision filed as retired
+   pairs where the fix is credited (the old run leaks, the fix run does not): ['a', 'b']
+
+Predictions, fixed before the runs
+P1 held     R4a prints at least one placement notice and its new decision is not filed as retired
+P2 held     R4b prints at least one placement notice
+P3 held     R4b adds at most 2 stray headings and files nothing as retired
+P4 held     R4c adds at most 2 stray headings and passes with all 16 hidden checks
+P5 held     R4c touches the old escalation decision (changed in place or moved under Superseded) rather than leaving it standing
+P6 held     R4a leaves the prior's mislabel alone: AD-3 is still filed as retired at the end
+P7a held     R4a0 repeats E1: at least 4 stray headings and a new decision filed as retired
+P7b missed   R4b0 adds at least 4 stray headings
+P7c missed   R4c0 adds at least 4 stray headings
+P8 held     time: each fix run is within 1.3 times its pair's old run (the fix costs nothing we can measure)
+
+reference E1 (old ShipLoop, seeded, pass 3): 1125.4 s, stray +8, born retired ['AD-4']
+
+reference E3 (old ShipLoop, seeded, pass 4): 993.3 s, stray +9, born retired ['AD-5']
+
+{"R4a0-comments-seeded-old": {"pass": true, "seconds": 1248.8, "decisions_added": ["AD-4"], "born_retired": ["AD-4"]}, "R4a-comments-seeded-fix": {"pass": true, "seconds": 857.0, "decisions_added": ["AD-4"], "born_retired": []}, "R4b0-comments-tidy-old": {"pass": true, "seconds": 1111.4, "decisions_added": ["AD-4"], "born_retired": ["AD-4"]}, "R4b-comments-tidy-fix": {"pass": false, "seconds": 1091.1, "decisions_added": ["AD-4"], "born_retired": []}, "R4c0-sla-tidy-old": {"pass": true, "seconds": 1458.2, "decisions_added": ["AD-5"], "born_retired": []}, "R4c-sla-tidy-fix": {"pass": true, "seconds": 1713.1, "decisions_added": ["AD-5"], "born_retired": []}}

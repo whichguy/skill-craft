@@ -4,8 +4,10 @@ Status: **D1 to D5 approved as recommended (owner, 2026-10-31, "Approve all")**.
   pushed to main. The ShipLoop behaviour changes (D2 to D4) are built as one candidate on a branch. The A/B (E2) ran on 2026-10-31 and met the bar the journal's Round 2 fixed
   before any run (12 of 12 runs passed, B1 to B5 held), so the candidate waits only for its rebase, a quiet-machine tier run and the owner's word on the release. The fourth
   link's live run (E3) ran on published ShipLoop: the delivery was right, a wrong check in the new case was found and fixed, and the unfixed fourth pass repeated both leaks; chain B (small base) is next.
-  2026-11-01: the candidate was rebased onto main's Python 3.9-floor release (its patch-id is unchanged); a fourth experiment (E4, journal Round 4) tries the fix on passes 3 and 4 with a
-  control without the fix for each, and was fixed before any run. It informs the owner's word on the release; it does not replace it.
+  2026-11-01: the candidate was rebased onto main's Python 3.9-floor release and, later the same day, onto a main that had moved by 22 commits (its patch-id is unchanged each time); a fourth experiment (E4, journal Round 4)
+  tried the fix on passes 3 and 4 with a control without the fix for each, and was fixed before any run. It ran (six runs, 06:53 to 09:02): no fix run filed its new decision under Superseded (0 of 3; the old ShipLoop did in 4 of 5
+  later passes), stray headings fell from 8, 1, 0 to 2, 0, 0, pass 4 with the fix was clean; B2 to B4 held, K held in two pairs, and B1 is missed as recorded because one base test of one delivery (R4b) failed once (on rerun the failed
+  check passes 15 of 15 and the failing test's file 24 of 24). It informs the owner's word on the release; it does not replace it.
 Opened: 2026-10-31
 Consumer: the owner, who decides D1 to D5 in section 7; later whoever adds the fourth link or changes how a stage writes the
   living files, and reads the ledger as the before and after
@@ -153,7 +155,7 @@ heuristics, and a ledger of a first pass on a fixture has nothing to compare an 
 | E1 | Does a third pass inherit and is it harmed by the second's leftovers? | done 2026-10-31: `ticket-comments` from the saved `bf-codex-r2` pass 2, Codex Terra `xhigh`, ShipLoop 1.26.0: passed, nothing lost, both leaks repeated (journal Round 1) |
 | E2 | Does a counted notice plus named destinations (D2, D3, D4) reduce the leak without losing function? | done 2026-10-31 (17:33 to 21:40): 12 of 12 runs passed and B1 to B5 held; the fix added 0 stray headings in all six passes against 2 to 8 in the control, with no measurable cost (journal Round 2, Result) |
 | E3 | Does a modifying fourth link retire and supersede rather than duplicate? | done 2026-10-31 (21:40 to 21:57): delivery right (16 of 16 hidden checks), a wrong retention check in the case found and fixed, both leaks repeated on the unfixed fourth pass (journal Round 3, Result) |
-| E4 | Does the fix hold on passes 3 and 4, on a lineage that already has the mislabel and on one that ends with Superseded, and is it the fix that does it? | fixed 2026-11-01 before any run (journal Round 4): six runs, three matched pairs, each fix run beside a run without the fix on the same prior; not started |
+| E4 | Does the fix hold on passes 3 and 4, on a lineage that already has the mislabel and on one that ends with Superseded, and is it the fix that does it? | done 2026-11-01 (06:53 to 09:02; journal Round 4, Result): six runs, three matched pairs. With the fix 0 of 3 new decisions were filed under Superseded (old ShipLoop 2 of 3 here, 4 of 5 later passes in all), stray headings 2, 0, 0 against 8, 1, 0; B2 to B4 and P1 to P6 and P8 held, K held in pairs a and b; B1 missed as recorded (R4b, one flaky base test) |
 
 **E1 predictions** are in the journal before the run, and [round1_readout.py](experiments/multipass-20261031/round1_readout.py) scores them from the run's own files. **Decision rule for E1:** a lost retained check or inherited hidden check means the leftovers
 are harmful, and D2 to D4 become urgent. A pass with the same hygiene as pass 2 means they are cost and noise, and E2 decides the fix.
@@ -182,8 +184,8 @@ merged only when E2 meets its bar.
 ```
  done     [E0: 8 saved runs] ─► [chains.py + delta.py + ticket-comments + calibration] ─► [journal, plan, SPEC/README]
  done     [E1: live third pass] ─► D1..D5 approved ─► candidate built ─► [E2: A/B, 12 of 12 passed, bar met] ─► ticket-sla built, calibrated and run live once (E3)
- running  rebased onto main's 3.9-floor release (patch-id unchanged) ─► [E4: the fix on passes 3 and 4, six runs with a control each]
- next     quiet-machine tier ─► merge to main ─► owner's word ─► release (preflight + E2E round) ─► hosts
+ done     rebased onto main's 3.9-floor release and again onto main of 2026-11-01 (patch-id unchanged) ─► [E4: the fix on passes 3 and 4, six runs with a control each; B1 missed as recorded, B2 to B4 held]
+ next     tier on the rebased tree ─► merge to main ─► owner's word ─► release (preflight + E2E round) ─► hosts
           chain B (small base, a second domain)
 ```
 
