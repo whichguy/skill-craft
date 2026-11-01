@@ -519,6 +519,73 @@ class HostDependentDriftTests(unittest.TestCase):
         self.assertEqual(calls, [self.SYSTEM["command"], "node --test"])
         self.assertIn("host-dependent", refusal)
 
+    # A hosted runtime: the test-strategy target that keeps state (no platform knowledge needed), and the command a platform
+    # card lists under Remote tests (the Salesforce card lists `sf apex run test`).
+    HOSTED = {"command": "hosted-runner --suite all", "suite": "regression", "min_tests": 1, "target": "hosted-runtime"}
+    PLATFORM = "sf apex run test --target-org de --class-names GymTest --synchronous"
+    SHOWS_MARKED = "✔ TC-4 runs on the hosted runtime (30ms)\nℹ tests 1\nℹ pass 1\nℹ fail 0\nℹ cancelled 0\n"
+
+    def hosted_state(self, repo: Path, regression: list, system: dict | None = None) -> dict:
+        state = self.state(repo)
+        state["history"].insert(0, {"action": "a-ts", "stage": "test-strategy", "workitem": None, "outcome": "done"})
+        state["accepted"]["a-ts"] = {"outcome": "done", "targets": [
+            {"target": "hosted-runtime", "keeps_state": "yes", "base_state_route": "redeploy the base"}]}
+        state["accepted"]["a-plan"]["test_commands"] = regression
+        if system is not None:
+            state["accepted"]["a-sys"]["system_commands"] = [system]
+        return state
+
+    def system_verify(self, make_state, outputs: dict):
+        """(commands run, refusal) for a system-test verify whose runner answers ``outputs[command]``."""
+        import tempfile
+        calls = []
+
+        def runner(argv, cwd, timeout, input_bytes=b"", env=None):
+            calls.append(argv[-1])
+            return "ok", 0, outputs[argv[-1]].encode(), b""
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / "tests").mkdir()
+            _writes, refusal = test_loop.verify(root, make_state(root), "", "a-run", "system-test", runner=runner)
+        return calls, refusal
+
+    def system_output(self) -> str:
+        return node("pass-spec.txt").replace("TC-1 ", "TC-4 ").replace("TC-2 ", "TC-15 ")
+
+    def test_a_regression_command_on_a_target_that_keeps_state_is_not_default_suite_drift(self) -> None:
+        """Stage-prompt review (2026-10-31): in 3 of 3 Salesforce runs the project's own platform test command was both a
+        recorded regression command and a marked system row, so every run took a send-back and then dropped the mark or
+        demoted the suite.  A command that tests a hosted runtime is the project's default runtime, not an optional tool
+        the default suite could do without: it is neither run nor read as drift, and the mark stays true."""
+        system = dict(self.SYSTEM, command=self.HOSTED["command"])
+        calls, refusal = self.system_verify(
+            lambda root: self.hosted_state(root, [dict(self.HOSTED)], system),
+            {self.HOSTED["command"]: self.system_output()})
+        self.assertEqual(calls, [self.HOSTED["command"]])  # once, as the system row; never again as the default suite
+        self.assertEqual(refusal, "")
+
+    def test_a_platform_cards_remote_test_command_is_not_default_suite_drift(self) -> None:
+        """The six archived refusals (chess, gym, development, battleship candidate) were all `sf apex run test`: a command
+        the Salesforce card lists under Remote tests, which ShipLoop already refuses to run on a base."""
+        system = dict(self.SYSTEM, command=self.PLATFORM)
+        regression = {"command": self.PLATFORM, "suite": "regression", "min_tests": 1}
+        calls, refusal = self.system_verify(
+            lambda root: self.hosted_state(root, [regression], system), {self.PLATFORM: self.system_output()})
+        self.assertEqual(calls, [self.PLATFORM])
+        self.assertEqual(refusal, "")
+
+    def test_a_local_default_suite_beside_a_hosted_one_is_still_checked_for_the_marked_ids(self) -> None:
+        """The isolation the gate exists for stays: a browser case in a plain local suite is refused even when the project
+        also has a hosted regression command."""
+        outputs = {self.SYSTEM["command"]: self.system_output(), self.REGRESSION["command"]: self.SHOWS_MARKED,
+                   self.HOSTED["command"]: self.SHOWS_MARKED}
+        calls, refusal = self.system_verify(
+            lambda root: self.hosted_state(root, [dict(self.HOSTED), dict(self.REGRESSION)]), outputs)
+        self.assertEqual(calls, [self.SYSTEM["command"], self.REGRESSION["command"]])  # the hosted one is not run
+        self.assertIn("host-dependent", refusal)
+        self.assertIn("TC-4", refusal)
+
     def test_host_dependent_is_a_boolean_true_and_nothing_else(self) -> None:
         row = {"command": "x", "suite": "focused", "ids": ["TC-1"], "host_dependent": True}
         self.assertTrue(test_loop.normalise_commands([row])[0]["host_dependent"])

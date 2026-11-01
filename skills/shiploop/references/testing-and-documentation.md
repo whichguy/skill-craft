@@ -167,8 +167,11 @@ needs a fixed count to be held to a floor; and the base run sees only tracked fi
 there, not on the base.
 A system command row marked `"host_dependent": true` (its cases need a host tool: a browser, a device,
 an account, a service) is also checked for drift at `system-test`: ShipLoop runs the accepted
-regression commands and refuses when any of that row's `ids` is shown, run or failed, in their
-output, because the project's default suite must pass without the host tool.
+regression commands that run on this machine and refuses when any of that row's `ids` is shown, run or
+failed, in their output, because the project's default suite must pass without the host tool. A regression
+command that tests a hosted runtime (a platform card lists it under Remote tests, or its `target` keeps
+state between runs) is neither run nor read for this: that runtime is the project's own default, so the
+mark on its cases stays and is not drift.
 
 ### Stages not applicable to an item
 

@@ -1249,18 +1249,28 @@ def default_suite_drift(state: Mapping[str, Any], rows: List[Dict[str, Any]], ru
     A system row marked ``host_dependent`` names cases that need a host tool (a browser, a device, an account).  The
     project's default suite must pass without that tool, so none of those ids may be shown, run or failed, by a
     regression command.  ``run_one(command)`` returns ``(exit, output)`` or ``None`` when the command did not start.
+
+    A regression command that tests a hosted runtime (a platform card lists it under Remote tests, or its target keeps
+    state: ``_remote_base``) is neither run nor read: that runtime is the project's own default, not a tool the default
+    suite could do without, so the mark on its cases is the truth and not drift.  The check fired in 6 archived test
+    records, all against one hosted platform's test runner, and each time the run took a send-back and then dropped
+    the mark or demoted the suite to a check, which lost the record (stage-prompt review, 2026-10-31; owner_review
+    item D1 of 06a7473d).
     """
     marked = [test_id for row in rows if row.get("host_dependent") for test_id in row.get("ids") or ()]
     if not marked:
         return []
     seen: List[str] = []
     drift: List[Dict[str, Any]] = []
+    stateful = stateful_targets(state)
     for item in state.get("work_items", ()):
         _action, result = _step_plan(state, str(item.get("id")))
         for row in result.get("test_commands") or ():
             if not (row["suite"] == "regression" or row.get("regression")) or row["command"] in seen:
                 continue
             seen.append(row["command"])
+            if _remote_base(row, stateful) is not None:
+                continue
             ran = run_one(row["command"])
             if ran is None:
                 continue
