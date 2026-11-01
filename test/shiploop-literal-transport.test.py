@@ -39,7 +39,7 @@ class LiteralTransportTests(unittest.TestCase):
                 with self.subTest(value=value):
                     repo = root / f"repo {index}"
                     repo.mkdir()
-                    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+                    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", SHIPLOOP_PROGRESS="off")
                     for args in (
                         ("init", "-q"),
                         ("-c", "user.name=Literal Test", "-c", "user.email=literal@example.invalid",
