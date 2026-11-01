@@ -696,3 +696,42 @@ Not concluded whatever the numbers: two primed runs are a mechanics check, not a
 request on the same base is not run; one host and one model; the person who answers a decision is not simulated (link 2 gets the request as ShipLoop wrote it); U11 is not measured.
 
 Files: `docs/experiments/follow-on-recommended-run-20261101/` (`request.txt`, `launch.sh`, `calibrate_checks.py`, `check_printed_command.py`, then the extracts and the README).
+
+### Addendum 1 (written after the link-2 runs ended and before any further run)
+
+What happened. Link 1 ran twice and link 2 once for each (the result section follows with the figures). Both link-2 runs ended BLOCKED at the spec stage, after 25 turns and about 1.3
+minutes (`link2-a`, `link2-b` under the output root): the baseline tests passed, the earlier request was read, and each run accepted a blocked result that asks the requester one
+question, with options and a `no_default` reason that quotes the earlier "do not choose":
+- link2-a asked "How should non-ASCII letters be handled in slugs? For example, should café become cafe or remain café?" with the options "Convert letters to plain ASCII where
+  possible" and "Keep non-ASCII letters"; its reason: the prior request says the requester decides and prohibits choosing on their behalf.
+- link2-b asked "What policy should slug.py use for non-ASCII letters?" with the options "Keep non-ASCII letters in the slug", "Convert non-ASCII letters to plain letters" and "Keep
+  the interim error for now"; its reason: the original request reserves the policy choice to the requester, and the interim error does not settle the finding.
+The harness graded both FAIL on `shiploop` (not done) and `committed` (HEAD unchanged) and classed them BLOCKED ("awaits a person (answer), and states why no default would do");
+their checks passed (the earlier behaviour was kept, the product unchanged).
+
+Reading against the registered rules. R4 (each link-2 run reaches `done`) is not met, 0 of 2, and P5 (65%) missed. The plan said a failure is read before it is called a defect of
+the request. These runs neither refused nor misread it: they found the finding, read the earlier request through the pointer the request file carries, and asked the requester the
+one question the finding leaves open, which is what SPEC S-14 prescribes when no default can proceed. I read the unanswered case as the product working, and as a gap in my plan: it
+registered a decision nobody answers and called the outcome "delivers", when a decision can be delivered only once someone answers it. The harness will not resume a blocked run
+as if answered (`run.py --resume-run`: a blocked run waits for a person), so the answered half cannot be driven by resuming link 2.
+
+What is added to the plan, registered now, before any further run. Link 3: the same request file with the requester's answer appended (`answer.txt`, verbatim below), in a copy of the
+same link-1 checkout, one run for each link-1 run, with the same host, model, effort and tree, started by `launch.sh link3`. The answer is what a person would type when ShipLoop
+asked; the harness has no other way to supply it.
+
+> The requester's answer to the decision above: the SEO team has decided that a letter with an accent is changed to its plain letter (é becomes e, ü becomes u), and any other
+> character outside A to Z is treated like punctuation. Make that the rule and remove the interim error.
+
+Checks: the first two and the unit tests as before, plus "Café Über" gives cafe-uber and "Café" exits 0 (calibrated with the others: all statuses as expected on the three variants).
+- R7. A run started from the request and its answer delivers. Each link-3 run reaches `done` with every verdict passing.
+- R8. The finding is closed in the records (descriptive, with the lines quoted): the unit tests exercise the answered rule; the committed spec, architecture and README no longer say the
+  policy is undecided or describe the interim error as current.
+- R9. Its own list. The handoff is accepted on its first `complete`; a `decision` about the same policy is not filed again (it would mean the list does not see an answered finding as
+  closed).
+
+Predictions (written before the link-3 runs): P8, both link-3 runs reach `done` with every verdict passing (80%). P9, neither files a decision again (85%). P10, in both, the committed
+knowledge files stop describing the policy as undecided (70%).
+
+Decision rule. R7 and R9 hold: the whole path (a recommendation, a request, a command, a run that asks, an answered run that delivers) is shown live on a primed request; the design note
+records it; no code change. A mechanical defect in the answered run or its list (a re-filed decision for a closed finding, a refusal loop at the gate): fix it generically with the test first
+and rerun. Still not concluded: as the plan says above, and the person is simulated by one fixed answer, so what a person does when asked is not measured.

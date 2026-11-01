@@ -24,6 +24,9 @@ C_TESTS='python3 -m unittest -q'
 C_RESERVED='out=$(python3 slug.py "Café" 2>&1 >/dev/null); rc=$?; test "$rc" -eq 2 && printf "%s" "$out" | grep -q "undecided: non-ASCII"'
 # Link 2 only: whichever way the finding is settled, a non-ASCII title is handled and does not crash with a traceback (status 1).
 C_NO_CRASH='python3 slug.py "Café" >/dev/null 2>&1; test $? -ne 1'
+# Link 3 only (the same request and the requester's answer.txt): the answer is implemented.
+C_ANSWER='test "$(python3 slug.py "Café Über")" = "cafe-uber"'
+C_ANSWER_EXIT='python3 slug.py "Café" >/dev/null 2>&1'
 
 common=(--host codex --model gpt-6.1-terra --effort xhigh --source checkout --output "$OUT/$name")
 case "$mode" in
@@ -38,8 +41,17 @@ case "$mode" in
     exec python3 -I "$TREE/test/shiploop_e2e/run.py" --prompt "$(cat "$request")" --continue-from "$prior" \
       --check "$C_HELLO" --check "$C_SPACES" --check "$C_NO_CRASH" --check "$C_TESTS" "${common[@]}"
     ;;
+  link3)
+    # Link 2 ended BLOCKED at spec, awaiting the requester (journal Round 6, addendum 1): the harness never resumes a blocked run as
+    # if answered, so link 3 is the same request with the requester's answer appended, in a copy of the same link-1 checkout.
+    prior="${3:?PRIOR: the link-1 output folder}"
+    request=$(ls "$prior"/.shiploop-runs/*/run/follow-on-request.md 2>/dev/null | head -1)
+    [ -n "$request" ] || { echo "no follow-on-request.md under $prior: link 1 recommended nothing" >&2; exit 3; }
+    exec python3 -I "$TREE/test/shiploop_e2e/run.py" --prompt "$(cat "$request" "$here/answer.txt")" --continue-from "$prior" \
+      --check "$C_HELLO" --check "$C_SPACES" --check "$C_ANSWER" --check "$C_ANSWER_EXIT" --check "$C_TESTS" "${common[@]}"
+    ;;
   *)
-    echo "usage: launch.sh link1 NAME | link2 NAME PRIOR" >&2
+    echo "usage: launch.sh link1 NAME | link2 NAME PRIOR | link3 NAME PRIOR" >&2
     exit 2
     ;;
 esac

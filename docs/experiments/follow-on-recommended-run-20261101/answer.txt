@@ -1,0 +1,1 @@
+The requester's answer to the decision above: the SEO team has decided that a letter with an accent is changed to its plain letter (é becomes e, ü becomes u), and any other character outside A to Z is treated like punctuation. Make that the rule and remove the interim error.

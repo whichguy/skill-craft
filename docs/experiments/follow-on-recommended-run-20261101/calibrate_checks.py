@@ -55,9 +55,9 @@ if __name__ == "__main__":
 '''
 # status of each check (0 passes) on each variant
 EXPECT = {
-    "reserved": {"C_HELLO": 0, "C_SPACES": 0, "C_TESTS": 0, "C_RESERVED": 0, "C_NO_CRASH": 0},
-    "transliterating": {"C_HELLO": 0, "C_SPACES": 0, "C_TESTS": 0, "C_RESERVED": 1, "C_NO_CRASH": 0},
-    "crashing": {"C_HELLO": 0, "C_SPACES": 0, "C_TESTS": 0, "C_RESERVED": 1, "C_NO_CRASH": 1},
+    "reserved": {"C_HELLO": 0, "C_SPACES": 0, "C_TESTS": 0, "C_RESERVED": 0, "C_NO_CRASH": 0, "C_ANSWER": 1, "C_ANSWER_EXIT": 1},
+    "transliterating": {"C_HELLO": 0, "C_SPACES": 0, "C_TESTS": 0, "C_RESERVED": 1, "C_NO_CRASH": 0, "C_ANSWER": 0, "C_ANSWER_EXIT": 0},
+    "crashing": {"C_HELLO": 0, "C_SPACES": 0, "C_TESTS": 0, "C_RESERVED": 1, "C_NO_CRASH": 1, "C_ANSWER": 1, "C_ANSWER_EXIT": 1},
 }
 
 
