@@ -15,7 +15,6 @@ of 2026-10-10.  When the diff cannot be read, document is issued.
 from __future__ import annotations
 
 import fnmatch
-import itertools
 import json
 import re
 import shlex
@@ -104,8 +103,8 @@ def inline_code_paths(command: str) -> List[str]:
     ``-p``), in order and without repeats.
 
     ``command_paths`` skips that word whole, so a Proof whose code runs ``node --test`` on a test file named inside it
-    (R3's A-shared-expenses-s1: ``node -e '...execFileSync(process.execPath,["--test","test/service.test.js"])...'``)
-    hid the path from rule A.  A path needs a slash and a file extension; an absolute path (a run's scratch script) and
+    (a live run's S1: ``node -e '...execFileSync(process.execPath,["--test","test/service.test.js"])...'``) hid the
+    path from rule A.  A path needs a slash and a file extension; an absolute path (a run's scratch script) and
     one that leaves the repository (``../``) are skipped, as ``command_paths`` skips them.
     """
     try:
@@ -113,7 +112,7 @@ def inline_code_paths(command: str) -> List[str]:
     except ValueError:
         words = command.split()
     paths = []
-    for flag, code in itertools.pairwise(words):
+    for flag, code in zip(words, words[1:]):  # not itertools.pairwise: the floor is Python 3.9
         if flag not in _INLINE_CODE:
             continue
         for match in _INLINE_PATH.findall(code):
