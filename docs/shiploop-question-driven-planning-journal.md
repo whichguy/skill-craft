@@ -500,19 +500,32 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
 - **Method.** Registered in docs/experiments/step-plan-round2-20261101/README.md (cdbeea71), with an amendment before any arm T sample
   (552dd3d3).
   - A corpus refresh: 229 runs.
-  - A1's replay: 363 plans, each judged at the commit it was accepted on.
+  - A1's replay: 363 plans, 352 judged at the commit each was accepted on and 11 at their item's last lint tree.
   - X-A: a stage-suite replay of R3's A-shared-expenses-s9 at step-plan, 12 per arm. Arm B is main 49d21bc5; arm T is c7679685.
   - A rule B replay over the `minimum` regression command.
   - A release round of whole deliveries, shared-expenses and csv-report ×3 on the merged branch.
 - **Result.**
   - A1 flags 2 of 363, both real.
-  - X-A: B 1 of 12, T 0 of 12, p = 0.50. No harm or refusal in T. The one fault was a new, filtered form of the suite Proof.
-  - Rule B over the minimum command: 0 of 363.
-  - Corpus, ShipLoop 1.27.0 and later: 12 of 30 send-backs are a Proof needing unwritten tests, and 4 of 30 are test-spec refusing RED on
-    an empty base.
-- **Decision.** A1, A2a (the Proof safe to repeat) and D (RED may be a load failure) ship. A2b (never the focused command or a filtered
-  copy) missed its rule and was reverted (68985caf).
-- **Status.** Firm for A1's precision and X-A's arm rates; interim for D and A2a until the release round; F31 is the F31 session's.
+  - X-A: B 1 of 12, T 0 of 12, p = 0.50. No plan fault or refused completion in T.
+    - The one fault was a new, filtered form of the suite Proof.
+    - Post hoc: node's runner appears in a Proof in 6 of 12 B plans and 0 of 12 T plans.
+    - Every T sample crashed once at its first `check` on A1's Python 3.10-only `itertools.pairwise` (the runner's python3 is the system
+      3.9.6) and recovered on Homebrew Python. The fix is b6b8f52a.
+  - Rule B over the minimum command: 1 of 363, after a filter fix; neither known case.
+  - Corpus, ShipLoop 1.27.0 and later: 12 of 30 send-backs are a Proof needing unwritten tests, and 5 of 30 are test-spec refusing RED on
+    an empty base (3 of them beside missing IDs).
+  - Release round: 6 of 6 pass, 33 of 33 hidden checks, no targeted send-back. Five were built before b6b8f52a and crashed and recovered the
+    same way.
+  - Review workflow: 117 agents, 26 of 37 findings confirmed. Among them was an A1 false refusal for a quoted absolute path with a space, or a
+    URL with a port, inside inline code (fixed in fd7223e8). The rest are write-up corrections, made in place.
+- **Decision.**
+  - A1 and D ship, after a verification round on the final head.
+  - A2b (never the focused command or a filtered copy) missed its rule and was reverted (68985caf).
+  - A2a (the Proof safe to repeat) was registered inside A2 and has no rule of its own, so whether it ships is the owner's.
+- **Status.** Firm for A1's precision on the corpus and X-A's arm rates. Interim for D (no RED send-back in six empty-base deliveries) and
+  A2a (unmeasured). F31 is the F31 session's.
+- **Correction.** The D commit (e47c8d32) lists SP1's pilot csv-report s2 among the RED send-backs on 1.27.0 and later. That run was on 1.26.2,
+  so it is an earlier example, outside the 30.
 - **Evidence.** The README's Results, xa_scores.jsonl, replay_a1.jsonl, replay_rule_b_minimum.jsonl, corpus/; the run folders under
   ~/e2e-runs-sp/20261101/round2/.
 
@@ -555,7 +568,7 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F31 | Implement reads a criterion's "Confirm by" test, which the test stage writes later, as due at implement (3 live cases); a done-when naming the Proof as implement's confirmation is the candidate | interim | E20 |
 | F32 | On Codex Terra 6.1 xhigh the ID shortage still occurs (10% of saved plans) but test-spec folds it; the rule's gain there is a case per executed criterion, and live it costs no step-plan time | firm (corpus); interim (live, n = 20 slices) | E19, E20 |
 | F33 | Rule A misses a test path inside a Proof's inline code (`node -e` running `node --test` on test/service.test.js); reading inline code for test-class paths flags 2 of 363 saved plans, both real, none that passed implement | firm (replay) | E22 |
-| F34 | On Codex Terra 6.1 xhigh, a replay of R3's A-s9 step-plan state writes a Proof that finds no test in 1 of 12 plans (a filtered copy of the focused suite); R3 at Terra high had 5 of 20 runs. "Never the focused command or a filtered copy" (A2b) showed no measurable gain there (0 of 12, p 0.50) and was not shipped | firm (12 per arm) | E22 |
-| F35 | Test-spec's RED placeholder ("not because a file is") contradicted the base run, which accepts a load failure of the item's new code; 4 of the 30 send-backs on ShipLoop 1.27.0 and later were test-spec refusing that on an empty base | firm (corpus), interim (fix) | E22 |
-| F36 | A rule B extension to the `minimum` regression command flags 0 of 363 plans: the needs-later-step cases import a later file or assign a case to the wrong step, which no path rule sees | firm (replay) | E22 |
+| F34 | On Codex Terra 6.1 xhigh, a replay of R3's A-s9 step-plan state writes a Proof that finds no test in 1 of 12 plans (a filtered copy of the focused suite); R3 at Terra high had 5 of 20 runs. "Never the focused command or a filtered copy" (A2b) moved Proof choice off node's runner (6 of 12 to 0 of 12, post hoc) but showed no measurable gain on the scored fault (0 of 12, p 0.50), and was not shipped | firm (12 per arm) | E22 |
+| F35 | Test-spec's RED placeholder ("not because a file is") contradicted the base run, which accepts a load failure of the item's new code; 5 of the 30 send-backs on ShipLoop 1.27.0 and later were test-spec refusing that on an empty base | firm (corpus), interim (fix) | E22 |
+| F36 | A rule B extension to the `minimum` regression command flags 1 of 363 plans (0 before its filter took in focused rows marked regression), neither of the known cases: the needs-later-step cases import a later file or assign a case to the wrong step, which no path rule sees | firm (replay) | E22 |
 | F37 | The repeatable-Proof clause fits the step-plan head when the tests-are-not-a-step line drops the clause its refusal already states (heads -20) | firm (measure) | E22 |

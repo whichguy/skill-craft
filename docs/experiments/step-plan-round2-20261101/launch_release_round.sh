@@ -1,7 +1,8 @@
 #!/bin/bash
 # The round's release round (README.md, "Release round"): whole deliveries of ShipLoop from the checkout in SP_CHECKOUT (the
 # branch with every change that met its rule), Codex Terra 6.1 xhigh (the owner's runner), the run.py line SP1 used.
-# shared-expenses and csv-report start from an empty base and hold no fixed port, so they reach A1, A2a, A2b and D at once.
+# shared-expenses and csv-report start from an empty base and hold no fixed port, so they reach A1, A2a and D at once
+# (A2b was reverted in 68985caf, before the release round).
 # A sample whose result.json exists is skipped, so a rerun resumes. At most LANES deliveries at once (default 3).
 set -u
 : "${SP_CHECKOUT:?the checkout to run}"

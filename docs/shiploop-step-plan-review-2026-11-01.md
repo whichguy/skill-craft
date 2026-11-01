@@ -40,6 +40,10 @@ what the stage costs, and changes what the evidence supports.
 - **Not built.** A gate for a Proof that runs unwritten tests without naming a test file: four candidate rules each
   flag Proofs that passed (§6.1), and so does the narrowest, rule S (5 of 12 flags were real); since ShipLoop 1.26.4 another session's narrow rule C refuses the plain-suite form by path. A Proof dry run, a
   repeatable-Proof line and changes to the step-plan Improve review are listed for the owner (§8).
+- **Round 2 (§9, the same afternoon).** The owner reopened the class of a Proof that runs this item's unwritten tests.
+  - Built: A1, a step-plan gate that reads test paths inside a Proof's inline code; D, test-spec accepts a load failure of new code as RED.
+  - Also built: A2a, "make it safe to repeat". It has no registered rule of its own, so whether it ships is the owner's call.
+  - A2b ("never the focused command") missed its rule and was reverted.
 - **Live (§7a, Codex Terra 6.1 xhigh).** Nine deliveries passed with no test-spec send-back for IDs (ticket-import's three
   through the open-item template path, the gate firing once and the next draft passing); 16 step-plan
   slices (A/B) and 4 more showed no extra step-plan time and no short plan. They also caught one regression: the first
@@ -311,8 +315,8 @@ check; three cases in about thirty recent runs is too few to measure in one roun
    owner answered "Run the live check". The check is registered in c2b854104e1b5f076e966e16adc3fa2a9ab63f9e
    (docs/experiments/f31-implement-proof-20261101/); its result and decision land there and in the planning journal.
    Third answer, 2026-11-01 about 14:05, in the step-plan review's round 2 session. The session's approved plan overlapped both
-   decisions above, and the owner was asked which should stand. The answer: "Reopen the class, leave F31". The option text: "build A1 and A2 only
-   if they meet their pre-registered rules. That reverses your 13:48 'leave it' for this class, backed by new evidence. F31 stays
+   decisions above, and the owner was asked which should stand. The answer: "Reopen the class, leave F31". The option text: "Run my step-plan replay experiment (X-A) and build A1 and A2
+   only if they meet their pre-registered rules. That reverses your 13:48 'leave it' for this class, backed by new evidence. F31 stays
    with its own session; C1 is dropped here." The class (a Proof that runs this item's unwritten tests) was reopened under registered rules
    (§9). F31's wording stays with its own session's check.
 
@@ -324,25 +328,31 @@ leave F31" (§8 item 4). Registration, rules and results: docs/experiments/step-
 
 | Item | What was done | Result |
 |---|---|---|
-| Corpus refresh | the review's tool on 229 runs (338 step-plan actions, 91 send-backs) | Of the 30 send-backs on ShipLoop 1.27.0 and later: 12 a Proof that runs this item's unwritten tests, 11 focused IDs short (1.27.0, gated since 1.28.0), 4 test-spec refusing RED on an empty base, 3 runner or command kind, 1 F31, 1 needs a later step, 1 wrong expectation |
-| A1: rule A reads test paths inside inline code | `shiploop_item_scope.inline_code_paths`, a route test and a reader test, both fail-first | Its replay over 363 saved plans flags 2, both real faults; 0 false. Shipped |
-| A2a: the Proof must be safe to repeat (§8 item 3) | "ShipLoop reruns it at the step's done, so make it safe to repeat"; the tests-are-not-a-step line loses the clause its refusal states | Heads -20. Not measured live (its cases are Salesforce). Shipped |
-| A2b: never the focused command or a filtered copy | proof bullet and review focus | X-A, a replay of R3's A-s9 state at step-plan, 12 per arm on Terra xhigh: B 1 of 12, T 0 of 12, p = 0.50. Missed its rule; reverted (68985caf) |
+| Corpus refresh | the review's tool on 229 runs (338 step-plan actions, 91 send-backs) | Of the 30 send-backs on ShipLoop 1.27.0 and later, by main class (30 in all): 11 a Proof that runs this item's unwritten tests, 11 focused IDs short (1.27.0, gated since 1.28.0), 2 test-spec refusing RED on an empty base, 3 runner or command kind, 1 F31, 1 needs a later step, 1 wrong expectation. Counting the send-backs that hold a second class too: 12 unwritten-test Proofs and 5 RED refusals |
+| A1: rule A reads test paths inside inline code | `shiploop_item_scope.inline_code_paths`, a route test and a reader test, both fail-first | Its replay over 363 saved plans (352 at their acceptance commit, 11 at the lint tree) flags 2, both real faults; 0 false. The review found a false refusal for a quoted absolute path with a space, or a URL with a port, fixed in fd7223e8; a Python 3.10-only call, fixed in b6b8f52a, was found by the quick tier. Built |
+| A2a: the Proof must be safe to repeat (§8 item 3) | "ShipLoop reruns it at the step's done, so make it safe to repeat"; the tests-are-not-a-step line loses the clause its refusal states | Heads -20. Not measured live (its cases are Salesforce). Registered inside A2, whose rule failed; it has no rule of its own, so it ships only at the owner's word |
+| A2b: never the focused command or a filtered copy | proof bullet and review focus | X-A, a replay of R3's A-s9 state at step-plan, 12 per arm on Terra xhigh: B 1 of 12 faulty, T 0 of 12, p = 0.50. Missed its rule; reverted (68985caf). Post hoc, A2b did move Proof choice: node's runner appears in a Proof in 6 of 12 B plans and 0 of 12 T plans. Every T sample also crashed once on A1's 3.10-only call |
 | D: RED may be a load failure | test-spec duty 3, the template's RED placeholder ("not because a file is" removed), glossary | Aligns test-spec with the base run's rule. Its live check is the release round |
-| Needs-later-step | rule B over the `minimum` regression command's paths, replayed | 0 of 363 flagged. Not built |
+| Needs-later-step | rule B over the `minimum` regression command's paths, replayed | 1 of 363 flagged, after a filter fix (a Salesforce plan sent back earlier for another reason); neither known case. Not built |
 | Proof command defects | none | No precise rule (§6.2) |
 | §8 item 2, the review per item | numbers sent to F1's owner | Unchanged |
 
 What round 2 learned:
-- **The class's rate depends on the runner and the context.** At Terra high in whole deliveries it was 5 of 20 runs (R3). In the replay at xhigh
-  it was 1 of 12, where 11 plans prove each step with a scratch script. The wording change therefore could not be shown to help on the owner's
-  runner, and it did not ship.
+- **The class's rate differed between R3 and the replay, and the round cannot say why.** R3 (Terra high, whole deliveries) had it in 5 of 20
+  runs. The replay (xhigh, one seeded state) had it in 1 of 12, where 11 plans prove each step with a scratch script. The two differ in both
+  effort and context, so the round cannot say which factor accounts for the gap. The wording change could not be shown to help, and it did
+  not ship.
 - **A third form.** A filtered copy of the focused suite with no file (`node --test --test-name-pattern=...`) runs no test at a step's done, just
   as the suite does.
 - **Two wordings worked against ShipLoop's own rules.**
-  - Test-spec's RED placeholder, "not because a file is", contradicts the base run's rule. It led to 4 send-backs in 30.
+  - Test-spec's RED placeholder, "not because a file is", contradicts the base run's rule. It led to 5 send-backs in 30, 3 of them beside
+    missing IDs.
   - The step-plan duty's "reuse a recorded command that proves them" points at the focused suite, against the duty's own "no unwritten
     test". It is kept, because its fix did not meet its rule.
 
-The release round (whole deliveries on the branch, merged with main, at Terra xhigh) is in the README's Results.
+The release round (six whole deliveries on the branch, merged with main, at Terra xhigh) passed 6 of 6, with 33 of 33 hidden checks and no
+targeted send-back.
+- Five of the six were built before b6b8f52a. Their first step-plan `check` crashed on Python 3.9 and recovered on Homebrew Python, so they
+  exercised a crash and retry the shipped code does not have.
+- A verification round on the final head follows. Both are in the README's Results.
 

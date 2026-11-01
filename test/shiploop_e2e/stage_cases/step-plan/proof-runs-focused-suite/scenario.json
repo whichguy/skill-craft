@@ -89,8 +89,8 @@
     {
       "proves": "P1",
       "field": "steps[*].proof",
-      "matches": "^(?![\\s\\S]*(?:node\\s+--test|npm\\s+(?:run\\s+)?test\\b|test/[\\w./-]+\\.test\\.[cm]?js))",
-      "why": "coarse: no Proof runs node --test or npm test or names a test/*.test.js file; score_xa.py is the registered measure, with per-step availability"
+      "matches": "\\A(?![\\s\\S]*(?:node\\s+--test(?![^&|;\\n]*\\s['\\\"]?(?:/|\\.\\./))|npm\\s+(?:run\\s+)?test\\b|(?<![\\w/])test/[\\w./-]+\\.test\\.[cm]?js))",
+      "why": "coarse: no Proof runs node's runner with no file outside the repository (a scratch script it runs is fine), npm test, or a repository test/*.test.js file; score_xa.py is the registered measure, with per-step availability"
     },
     {
       "proves": "C1",

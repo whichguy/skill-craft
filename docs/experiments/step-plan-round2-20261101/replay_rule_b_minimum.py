@@ -34,7 +34,9 @@ def flags(plan: dict, toplevel: str, tree: str) -> list[dict]:
             later.setdefault(str(path), str(step.get("id")))
     found = []
     for row in plan.get("test_commands") or ():
-        if not isinstance(row, dict) or row.get("suite") != "regression" or not row.get("minimum"):
+        # The minimum regression may sit on a regression row or on a focused row marked "regression": true
+        # (shiploop_test_loop: a focused command that is also the regression command).
+        if not isinstance(row, dict) or not row.get("minimum") or not (row.get("suite") == "regression" or row.get("regression") is True):
             continue
         command = str(row.get("command") or "")
         for path in dict.fromkeys(list(scope.command_paths(command)) + proofscore.named_paths(command)):

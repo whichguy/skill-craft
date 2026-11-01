@@ -57,7 +57,8 @@ The study's numbers are the class's measured base and cost here: 20 R3 runs of s
   - 12 are a Proof that runs this item's unwritten tests, 11 as the main class and 1 beside another. They take a path, identifier
     (`test_hello.C1`) or plain-suite form.
   - 11 are a focused command short of IDs, all on 1.27.0, which the 1.28.0 gate now refuses.
-  - 4 are test-spec refusing RED on an empty base, 2 as the main class and 2 beside missing IDs. Example: "the empty base has no executable, so the
+  - 5 are test-spec refusing RED on an empty base, 2 as the main class and 3 beside missing IDs (first written as 4, 2 beside; the
+    review of 2026-11-01 found the third). Example: "the empty base has no executable, so the
     required behavioral RED cannot be observed without treating a missing file as failure".
   - 3 are a runner or command kind, 1 is F31, 1 needs a later step, and 1 is a wrong expectation.
   - The RED class is D's target. It is wider than the one pilot case the review had, and the test-spec template's own RED placeholder reads
@@ -124,7 +125,7 @@ It passes the suite's verify and render tiers (no model).
     `run.py --case shared-expenses`, 6 per arm, with the same measure on each run's first accepted step plan.
 - **A2's rule counts form 2 only.**
   - A2 ships if T has form 2 in at most 1 of its samples and B's excess over T is significant: exact one-sided Fisher p at most 0.10.
-    At 12 per arm that needs, for example, B at least 4 with T 0, or B at least 6 with T 1. At a true 25% against 0%, B reaches 4 of 12
+    At 12 per arm that needs, for example, B at least 4 with T 0, or B at least 5 with T 1. At a true 25% against 0%, B reaches 4 of 12
     about 35% of the time, so "not shipped" at this size is weak evidence against A2.
   - Form 1 belongs to A1. A1 is judged by its replay below. In arm T it shows as `check` refusals in the sample's trace, and no accepted T plan
     should hold form 1.
@@ -144,8 +145,10 @@ Rule A with inline code is replayed over every saved accepted step plan that has
 
 ### Needs-later-step replay
 
-(Result: `replay_rule_b_minimum.py` on the same 843 traces, 363 plans with a base: 0 flags. #32's later file is imported, not named, and
-#49 is a case assigned to the wrong step, so no path rule reaches either. Not built.)
+(Result: `replay_rule_b_minimum.py` on the same 843 traces, 363 plans with a base. It first read 0 flags, but its filter skipped a minimum
+regression on a focused row marked `"regression": true`, which the engine allows. Corrected, it flags 1: a Salesforce gym plan whose minimum
+command reads README.md, which only S2 writes. That plan was sent back at test-spec for another reason before any test stage. #32's later
+file is imported, not named, and #49 is a case assigned to the wrong step, so the rule reaches neither. Not built.)
 
 
 A rule B extension is replayed on the same corpus. It covers paths named by the `minimum` regression command that the base lacks and only a later
@@ -195,16 +198,22 @@ It runs `shared-expenses` s1 to s3 and `csv-report` s1 to s3 into `~/e2e-runs-sp
   - every other send-back.
 - **Responses:**
   - a form-1 or RED send-back means A1 or D does not work: stop, find why, and do not release that change;
-  - a hidden-check failure is compared with the cases' rows on main (SP1 xhigh csv-report 3 of 3 pass; R3 shared-expenses 20 of 20 at
+  - a hidden-check failure is compared with the cases' rows on main (SP1 xhigh csv-report 2 of 2 pass; R3 shared-expenses 20 of 20 at
     high). If it is not explained, there is no release.
 - **The scorer** is `score_release.py`. It reads each run's `result.json`, its hidden checks, and every send-back with its stage and
   summary. Classes come from the same reading as `corpus/sendback_classes_127plus.jsonl`.
 
 ### Release round results (2026-11-01, 14:48 to 15:28 PST)
 
-All six ran from the branch head 2651317f. Each run built its plugin from the committed tree, so every build holds A1's
-`itertools.pairwise`. b6b8f52a later replaced it for Python 3.9, a fix found by the quick tier. The deliveries' ShipLoop CLI ran on a
-newer interpreter, so the behaviour they exercised is the one that ships.
+Provenance, corrected after round 2's review; the first text here was wrong. `--source checkout` builds from the working tree, and each
+run built at its own start.
+- Three runs were built at 2651317f (csv-report s1, shared-expenses s1 and s2).
+- Two were built at a113e876 (csv-report s2, shared-expenses s3), which differs from 2651317f in docs only.
+- csv-report s3 was built from a working tree that already held b6b8f52a's Python 3.9 fix. Its recorded local_head, a113e876, does not say so.
+- In the five pre-fix runs, the first step-plan `check` crashed in A1's `itertools.pairwise` (AttributeError) on the runner's default
+  python3, the system Python 3.9.6. The model then reran the CLI with Homebrew Python first on PATH, and the run went on.
+- So these runs exercised A1's logic, and also a crash and retry that the shipped code (zip, b6b8f52a) does not have. The shipped form ran
+  live in csv-report s3 only. A verification round on the final head follows (below).
 
 | Run | Verdict | Hidden checks | Minutes | Turns | Send-backs (stage: class) |
 |---|---|---|---|---|---|
@@ -216,7 +225,9 @@ newer interpreter, so the behaviour they exercised is the one that ships.
 | shared-expenses s3 | pass | 6 of 6 | 23.0 | 242 | none |
 
 - **Predictions.** All three held.
-  - No implement send-back of form 1, and no step-plan refusal at all, so A1 never fired.
+  - No implement send-back of form 1, and A1's refusal text appears in no run, so A1 never fired. (First written as "no step-plan
+    refusal at all", which was wrong. The trace shows a refused (exit 2) step-plan `check` in five runs. The session logs name a Proof on
+    two lines in three runs and an empty test-ID list in one.)
   - No test-spec send-back for RED on six empty bases (D).
   - 33 of 33 hidden checks pass.
 - **First step plans.** `proofscore.classify` finds no form 1, form 2 or filtered form in any of the six. On the owner's runner,
@@ -230,7 +241,8 @@ newer interpreter, so the behaviour they exercised is the one that ships.
   - A step-plan refusal of a focused command that names only searched criteria. It is precise by construction: the test gate needs
     a focused command to print test IDs.
   - After a send-back, the re-plan's expectations must describe the item base, not the working checkout.
-- **Comparison with main.** SP1 xhigh's csv-report had 3 of 3 pass, one of them with two implement send-backs of the class and F31.
+- **Comparison with main.** SP1 xhigh's csv-report had 2 of 2 pass (SP1's third xhigh delivery was hello), one of them with two implement
+  send-backs, of the class and F31.
   R3's shared-expenses had 20 of 20 pass at Terra high. The branch gives up nothing on either case.
 - Evidence: `release_scores.jsonl` (score_release.py); runs in `~/e2e-runs-sp/20261101/round2-release/` (outside git).
 
@@ -271,7 +283,13 @@ not count.
 - **What follows from the amendment.**
   - The pilot reads 1 of 4 under the amended measure (sample 4) and 0 of 4 under the registered one.
   - The amended branch is taken: 12 per arm. B's pilot is its first 4, so 8 more B samples run.
-  - The registered branch would have run 4 more B samples, so B gets those either way.
+  - The registered branch would have run 4 more B samples, so B gets those either way. Correction (round 2's review): under the
+    registered reading B reads 0 of 8 after those, and the registered design sends that to whole deliveries, `run.py --case
+    shared-expenses`, 6 per arm. The amendment replaced that branch. A2b's verdict below therefore rests on the amended design, and the
+    whole-delivery A/B is the registered design's own next step, not an optional extra.
+  - Not recorded at the time (round 2's review): A2b's wording as run in arm T was also changed after B's data. The registration said
+    "never the focused command, whose tests the test stage writes after implement". The pilot's filtered form led to "so never the focused
+    command or a filtered copy of it", and the clause about the test stage was cut for head room. So arm T tests that later wording.
 - **A2's rule, amended.** T has form 2 (verbatim or filtered) in at most 1 of 12, and B's excess over T is significant: exact one-sided
   Fisher p at most 0.10. The verdict under the registered reading is reported too. This amendment is made after seeing arm B's data and
   before any arm T sample; it widens what counts as the fault, not what counts as a success.
@@ -287,7 +305,7 @@ not count.
 
 Arm B, read before any T sample:
 - **The fault in the replay.** 1 of 12. The other 11 plans prove each step with a scratch script the step plan wrote in RUN/scratch,
-  which exists at the step's done. Eight of them run it with `node`, and three run it through node's runner with a name filter.
+  which exists at the step's done. Six of them run it with `node`, and five run it through node's runner with a name filter (first written as eight and three; corrected).
 - **Comparison with R3.** R3 had 5 of 20 at Terra high in whole deliveries. At xhigh, in this replay of A-s9's state, the fault is rare.
 - **Consequence for A2b.** With B at 1 of 12, even T at 0 of 12 gives one-sided Fisher p = 0.50. A2b's rule cannot be met at this size and
   this rate, so the rule's verdict on A2b will be "not shipped" whatever T shows.
@@ -299,14 +317,26 @@ Arm B, read before any T sample:
 - **Counts.** T 0 of 12, B 1 of 12. The exact one-sided Fisher p for B above T is 0.50. Under the registered reading it is 0 of 12 each.
 - **Controls.** No sample in either arm ends other than done, leaves an executed criterion without its ID, or drops the focused command. T's
   control failures (0) are within B's (0) plus 1.
-- **Cost.** Step-plan host time: median 1.04 minutes in B, 1.10 in T. No refusal in either arm, so A1's gate never fired: no plan wrote the
-  inline-wrapper form.
+- **Cost.** Step-plan host time: median 1.04 minutes in B, 1.10 in T. A1's refusal never fired: no plan wrote the inline-wrapper form.
+  Correction (round 2's review): all 12 T samples crashed once at their first `check` on A1's `itertools.pairwise` under Python 3.9.6, and
+  recovered by rerunning the CLI on Homebrew Python. B's plugin has no A1, so it never crashed. T's minutes include that retry, and the arms
+  differ by it.
+  - The Proofs were written before the crash.
+  - The fix is b6b8f52a.
 - **A2b does not meet its rule.** T is at most 1 of 12, but B's excess is not significant: p = 0.50 against the registered 0.10. A2b is
   therefore reverted from the branch before merge, as registered. Its change is the proof bullet's "so never the focused command or a
   filtered copy of it" and the review focus's "or an unwritten test".
-- **What the verdict means.** On the owner's runner the replay rarely shows the fault, so there was nothing for A2b to remove. That says the
-  fault is rare in this state at xhigh. It does not say A2b is useless or harmful: R3's whole deliveries at Terra high had 5 of 20.
-- **What ships from X-A's side.** A1 rests on its own replay (0 false flags in 363 plans) and adds no refusal here. A2a (safe to repeat) and D
-  (RED) were never ruled by X-A, and they ship to the release round.
+- **What the verdict means.** Corrected after round 2's review; the first text said "there was nothing for A2b to remove".
+  - On the owner's runner the replay rarely produced the scored fault, so the registered rule could not be met.
+  - A2b did move Proof choice. Node's runner appears in a Proof in 6 of 12 B plans and 0 of 12 T plans. That is post hoc and descriptive,
+    one-sided Fisher p about 0.007. Five of B's six ran a scratch file and were legitimate; only one was the fault.
+  - So A2b steers plans away from the runner, at no measured cost, but its registered benefit could not be shown here.
+  - R3's whole deliveries at Terra high had 5 of 20.
+- **What ships from X-A's side.** Corrected after round 2's review.
+  - A1 rests on its own replay (0 false flags in 363 plans) and adds no refusal here. Its false refusal on a quoted absolute path or URL in
+    inline code was found by the review and fixed in fd7223e8.
+  - D (RED) was registered without a live rule of its own, and its check is the release round.
+  - A2a (safe to repeat) was registered as part of A2, whose one live rule failed. It was split out after registration and has no rule of
+    its own, so whether it ships is the owner's call.
 
 Evidence: `xa_scores.jsonl` (score_xa.py); the runs in `~/e2e-runs-sp/20261101/round2/xa-B/` `xa-B2/` and `xa-T/` (outside git).
