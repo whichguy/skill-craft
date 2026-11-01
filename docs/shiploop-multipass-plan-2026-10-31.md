@@ -8,6 +8,8 @@ Status: **D1 to D5 approved as recommended (owner, 2026-10-31, "Approve all")**.
   tried the fix on passes 3 and 4 with a control without the fix for each, and was fixed before any run. It ran (six runs, 06:53 to 09:02): no fix run filed its new decision under Superseded (0 of 3; the old ShipLoop did in 4 of 5
   later passes), stray headings fell from 8, 1, 0 to 2, 0, 0, pass 4 with the fix was clean; B2 to B4 held, K held in two pairs, and B1 is missed as recorded because one base test of one delivery (R4b) failed once (on rerun the failed
   check passes 15 of 15 and the failing test's file 24 of 24). It informs the owner's word on the release; it does not replace it.
+  2026-11-01, later: the candidate is merged to main and unreleased. Feature commit 9e39b146db427c26f68c0e22d900e70c92be5011 and its E2E round entry a04ad7f50327155aebc364738195ba1165c32634 (the patch-id moved from
+  8cf39729c9b94711faf1b7b2030b7a4adb7f8456 to 9fe0d24b6aca6493b7f74f3b5867d060fc0b8d00 only because main edited the head-size table). A release cut from main now carries it, and publishing it is the owner's word.
 Opened: 2026-10-31
 Consumer: the owner, who decides D1 to D5 in section 7; later whoever adds the fourth link or changes how a stage writes the
   living files, and reads the ledger as the before and after
@@ -185,7 +187,8 @@ merged only when E2 meets its bar.
  done     [E0: 8 saved runs] ─► [chains.py + delta.py + ticket-comments + calibration] ─► [journal, plan, SPEC/README]
  done     [E1: live third pass] ─► D1..D5 approved ─► candidate built ─► [E2: A/B, 12 of 12 passed, bar met] ─► ticket-sla built, calibrated and run live once (E3)
  done     rebased onto main's 3.9-floor release and again onto main of 2026-11-01 (patch-id unchanged) ─► [E4: the fix on passes 3 and 4, six runs with a control each; B1 missed as recorded, B2 to B4 held]
- next     tier on the rebased tree ─► merge to main ─► owner's word ─► release (preflight + E2E round) ─► hosts
+ done     tier on the rebased tree ─► merged to main (2026-11-01, unreleased; its E2E round entry follows the feature commit, so the preflight passes)
+ next     owner's word ─► release ─► hosts
           chain B (small base, a second domain)
 ```
 

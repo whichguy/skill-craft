@@ -682,6 +682,9 @@ The branch "K missed in the tidy pairs" does not apply either: K held in the tid
   before anything else was concluded (the mismatch note's step 3). No retry was added to `base_tests.py`, and R4b was not run again: a replicate is a new experiment. The candidate's own quick tier ran at nice 10 beside the live runs; after R4b's final
   check lost a base test while it ran, its process tree was paused (SIGSTOP, only that tree) for the last 16 minutes of R4c and the pause was not repeated for R4c0, whose verdict does not enter the bar. The pause made two suites time out by
   wall clock and one time-budgeted mutation test count fewer sites; all three pass alone. Each is routine (launching verification runs, managing my own processes) and none changes a default earlier evidence relied on.
+- The merge (2026-11-01, about 10:36): the candidate went to main after Round 4's readout and its own tier, not before them. The plan's order puts the merge before the owner's word, and the owner's approval of D2 to D4 was
+  conditional on E2, which met its bar. Merging makes any session's next release carry it (another session released ShipLoop four times that day), so no release was cut here: the plan, the Round 4 reading rule
+  and the missed B1 all leave the release to the owner. Feature commit 9e39b146db427c26f68c0e22d900e70c92be5011, E2E round entry a04ad7f50327155aebc364738195ba1165c32634.
 
 ## Not done, and unknowns
 
