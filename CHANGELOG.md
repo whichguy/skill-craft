@@ -4,6 +4,18 @@ Written by scripts/release.py.
 
 ## 2026-11-01
 
+### skill-craft 2.27.4
+
+- Skills: shiploop 1.26.4
+
+### shiploop 1.26.4
+
+- Step-plan's proof-order refusal now also refuses a step whose Proof is a plain suite command, such as `npm test`, when
+  one of its executed criteria is confirmed by a test file the item base does not have and no earlier step declares. That
+  Proof runs only the tests that already exist, so it cannot confirm the criterion when implement reports done. The
+  refusal asks for a Proof that runs the step's behaviour directly. Proofs that name a script or run inline code are not
+  affected.
+
 ### skill-craft 2.27.3
 
 - Skills: shiploop 1.26.3
