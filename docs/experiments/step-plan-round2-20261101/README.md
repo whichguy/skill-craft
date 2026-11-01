@@ -144,6 +144,10 @@ Rule A with inline code is replayed over every saved accepted step plan that has
 
 ### Needs-later-step replay
 
+(Result: `replay_rule_b_minimum.py` on the same 843 traces, 363 plans with a base: 0 flags. #32's later file is imported, not named, and
+#49 is a case assigned to the wrong step, so no path rule reaches either. Not built.)
+
+
 A rule B extension is replayed on the same corpus. It covers paths named by the `minimum` regression command that the base lacks and only a later
 step declares. It ships only if it flags #32 or #49 of the corpus and nothing that passed. The expectation is that it is not built: #32's later
 file is imported, not named.
@@ -224,6 +228,7 @@ not count.
 | pilot | B (49d21bc5) | 4 | 1 (sample 4) | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
 | rest | B (49d21bc5) | 8 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | **B total** | B | **12** | **1** | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
+| **T total** | T (c7679685) | **12** | **0** | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 
 Arm B, read before any T sample:
 - **The fault in the replay.** 1 of 12. The other 11 plans prove each step with a scratch script the step plan wrote in RUN/scratch,
@@ -235,4 +240,18 @@ Arm B, read before any T sample:
   command kept. They also show whether arm T's gate (A1) or wording (A2a, A2b) adds refusals or new faults.
 - **Arm T** = **c767968528e3db301da38bd4e821f923ac440563** (branch `stepplan2-cf7d87`: A1 b8ad4478, D e47c8d32, A2a 211fe61b, A2b c7679685).
 
-Evidence: `xa_scores.jsonl` (score_xa.py); the runs in `~/e2e-runs-sp/20261101/round2/xa-B/` and `xa-B2/` (outside git).
+**X-A verdict (registered rule, amended measure).**
+- **Counts.** T 0 of 12, B 1 of 12. The exact one-sided Fisher p for B above T is 0.50. Under the registered reading it is 0 of 12 each.
+- **Controls.** No sample in either arm ends other than done, leaves an executed criterion without its ID, or drops the focused command. T's
+  control failures (0) are within B's (0) plus 1.
+- **Cost.** Step-plan host time: median 1.04 minutes in B, 1.10 in T. No refusal in either arm, so A1's gate never fired: no plan wrote the
+  inline-wrapper form.
+- **A2b does not meet its rule.** T is at most 1 of 12, but B's excess is not significant: p = 0.50 against the registered 0.10. A2b is
+  therefore reverted from the branch before merge, as registered. Its change is the proof bullet's "so never the focused command or a
+  filtered copy of it" and the review focus's "or an unwritten test".
+- **What the verdict means.** On the owner's runner the replay rarely shows the fault, so there was nothing for A2b to remove. That says the
+  fault is rare in this state at xhigh. It does not say A2b is useless or harmful: R3's whole deliveries at Terra high had 5 of 20.
+- **What ships from X-A's side.** A1 rests on its own replay (0 false flags in 363 plans) and adds no refusal here. A2a (safe to repeat) and D
+  (RED) were never ruled by X-A, and they ship to the release round.
+
+Evidence: `xa_scores.jsonl` (score_xa.py); the runs in `~/e2e-runs-sp/20261101/round2/xa-B/` `xa-B2/` and `xa-T/` (outside git).
