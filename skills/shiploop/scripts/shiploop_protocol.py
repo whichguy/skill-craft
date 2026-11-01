@@ -567,7 +567,8 @@ def _in_place_refusal(core: Any, repo: Path, run_dir: Path, in_place: bool) -> O
             f"itself, with no isolated worktree and no return protection. Start this request with the isolated entry, which "
             f"makes the folder a Git repository, works in a separate worktree and returns the finished work to this folder: "
             f"python3 {cli} workspace start --repo {shlex.quote(str(repo))} --prompt='<user request>'. Only if the user "
-            f"explicitly asked for an in-place or non-Git run, run this same `init` command again with --in-place. "
+            f"explicitly asked for an in-place or non-Git run (a request that names the current directory is not that: "
+            f"`workspace start` returns the finished work there), run this same `init` command again with --in-place. "
             f"No run was started.")
 
 
@@ -701,9 +702,9 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             sub.add_argument("--improve-skill", default="", help=IMPROVE_SKILL_HELP)
             sub.add_argument("--delivery-contract", action="store_true",
                              help="opt a new run in to consumer-delivery declaration checks")
-            sub.add_argument("--in-place", action="store_true",
-                             help="the user explicitly asked for an in-place or non-Git run: allow init in an empty folder "
-                                  "that is not a Git repository (otherwise workspace start is the entry for it)")
+            # Named by the refusal, not by --help: a session that has chosen the direct entry by mistake reads --help first
+            # and would pass the flag in advance, so the refusal that asks "did the user ask for this?" would never be seen.
+            sub.add_argument("--in-place", action="store_true", help=argparse.SUPPRESS)
             sub.add_argument("--delegation", choices=navigator.DELEGATIONS, default=None,
                              help="new run: inline (default) or ask-agent delegation")
             sub.add_argument("--lint", choices=navigator.LINT_MODES, default=None,

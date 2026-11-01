@@ -211,8 +211,8 @@ a second source of traversal state.
 ```sh
 python3 "$CLI" workspace start --repo="$REPO" --prompt='requested outcome'
 # Direct entry, only for an in-place or non-Git run the user explicitly asked for; no automatic workspace-return
-# protection. In an empty folder that is not a Git repository init refuses (and names workspace start) unless the
-# user's request is stated with --in-place:
+# protection. In an empty folder that is not a Git repository init refuses, names workspace start and says how to
+# override when the user did ask:
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --prompt='requested outcome'
 # Optional explicit selected actual Improve card for a new run:
 python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --improve-skill="$IMPROVE_SKILL" --prompt='requested outcome'

@@ -2893,9 +2893,17 @@ class DirectEntryGuardTests(unittest.TestCase):
         self.assertIn("empty folder that is not a Git repository", result.stderr)
         self.assertIn(f"{shlex.quote(str(CLI))} workspace start --repo {shlex.quote(str(self.folder))} --prompt=", result.stderr)
         self.assertIn("--in-place", result.stderr)
+        self.assertIn("names the current directory is not that", result.stderr)  # the cue a session needs at the moment it decides
         self.assertIn("No run was started.", result.stderr)
         self.assertFalse((self.base / "run").exists())
         self.assertEqual(list(self.folder.iterdir()), [])
+
+    def test_the_override_is_named_by_the_refusal_and_not_by_help(self) -> None:
+        helped = subprocess.run([sys.executable, "-B", str(CLI), "init", "--help"], cwd=self.base, text=True,
+                                capture_output=True, timeout=60, env=self.env)
+        self.assertEqual(helped.returncode, 0, helped.stdout + helped.stderr)
+        self.assertNotIn("--in-place", helped.stdout + helped.stderr)  # a session that read it would pass it in advance
+        self.assertIn("--in-place", self.init().stderr)
 
     def test_the_run_directory_inside_the_empty_folder_does_not_make_it_non_empty(self) -> None:
         inside = self.folder / ".shiploop"
