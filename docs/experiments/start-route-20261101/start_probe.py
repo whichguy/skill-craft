@@ -65,7 +65,7 @@ PLAN_SETS = {"start": {"arms": ("C", "T1", "T2"), "counts": {"sf-ui": 40, "hello
              "inplace": {"arms": ("C", "T2"), "counts": {"inplace-hello": 16, "nogit-hello": 16, "inplace-sf": 16}},
              "hosts": {"arms": ("C", "T2"), "counts": {"sf-ui": 16, "repo": 8, "inplace-hello": 12, "nogit-hello": 12}},
              # the guard probe: what a session does after `init` is refused in an empty non-Git folder (a dict gives each arm its own count)
-             "guard": {"arms": ("GOLD", "G"), "counts": {"sf-ui": {"GOLD": 40, "G": 20}, "inplace-hello": {"G": 12},
+             "guard": {"arms": ("GOLD", "G"), "counts": {"sf-ui": {"GOLD": 60, "G": 20}, "inplace-hello": {"G": 12},
                                                          "nogit-hello": {"G": 12}}}}
 SEED = 20261101
 ARMS_FILE = HERE / "arms.json"   # --arms picks another; the replication uses arms-r2.json

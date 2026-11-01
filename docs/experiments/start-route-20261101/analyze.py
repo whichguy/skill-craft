@@ -133,6 +133,75 @@ def evaluate_hosts(cells: dict) -> tuple[list[str], str]:
     return lines, ("REGRESSION: " + "; ".join(problems)) if problems else "NO REGRESSION FOUND"
 
 
+GUARD_MIN_REFUSED = 8        # refused sf-ui sessions needed before the recovery rate can be judged at all
+GUARD_SHARE = 0.80           # the share that must end on the right route, with the Wilson lower bound below
+GUARD_LOWER = 0.50
+GUARD_QUIET_MAX_WRONG = 1    # G sessions that were never refused may end off `workspace` at most this often
+
+
+def tally_guard(rows: list[dict]) -> dict:
+    cells: dict = {}
+    for stimulus in sorted({r["stimulus"] for r in rows}):
+        for arm in sorted({r["arm"] for r in rows if r["stimulus"] == stimulus}):
+            mine = [r for r in rows if r["stimulus"] == stimulus and r["arm"] == arm]
+            cells[(stimulus, arm)] = {
+                "n": len(mine), "refused": sum(bool(r.get("refused")) for r in mine),
+                "first_direct": sum(r["start"] == "direct" for r in mine),
+                "final_workspace": sum(r.get("final_route") == "workspace" for r in mine),
+                "final_direct": sum(r.get("final_route") == "direct" for r in mine),
+                "final_none": sum(r.get("final_route") is None for r in mine),
+                "in_place": sum(any(st.get("in_place") for st in r.get("starts", [])) for r in mine)}
+    return cells
+
+
+def evaluate_guard(rows: list[dict]) -> tuple[list[str], str]:
+    """The registered rule of the guard probe: do sessions recover to the isolated entry after a refusal (H1), are explicit
+    in-place requests still honored (H2), and do sessions that start right stay right (H3)."""
+    lines: list[str] = []
+    sf = [r for r in rows if r["stimulus"] == "sf-ui"]
+    refused = [r for r in sf if r.get("refused")]
+    ws = sum(r.get("final_route") == "workspace" for r in refused)
+    n = len(refused)
+    lo, hi = wilson(ws, n) if n else (0.0, 0.0)
+    if n < GUARD_MIN_REFUSED:
+        h1 = None
+        lines.append(f"H1 recovery: {ws} of {n} refused sf-ui sessions ended on workspace start: INSUFFICIENT "
+                     f"(at least {GUARD_MIN_REFUSED} refused sessions are needed)")
+    else:
+        h1 = ws / n >= GUARD_SHARE and lo >= GUARD_LOWER
+        lines.append(f"H1 recovery: {ws} of {n} refused sf-ui sessions ended on workspace start ({ws / n:.2f}, Wilson "
+                     f"{lo:.2f}-{hi:.2f}; needs {GUARD_SHARE:.2f} and a lower bound of {GUARD_LOWER:.2f}): {'MET' if h1 else 'NOT MET'}")
+    by_arm = {a: [r for r in refused if r["arm"] == a] for a in sorted({r["arm"] for r in sf})}
+    lines.append("    refused sessions by build: " + ", ".join(f"{a} {len(v)}" for a, v in by_arm.items()))
+    bypass = [r for r in refused if any(st.get("in_place") for st in r.get("starts", []))]
+    lines.append(f"    of the refused sessions, {len(bypass)} then ran init with --in-place without the user's request "
+                 f"(final routes: workspace {ws}, direct {sum(r.get('final_route') == 'direct' for r in refused)}, "
+                 f"no run {sum(r.get('final_route') is None for r in refused)})")
+    explicit = [r for r in rows if r["stimulus"] in ("inplace-hello", "nogit-hello")]
+    direct = sum(r.get("final_route") == "direct" for r in explicit)
+    m = len(explicit)
+    lo2, hi2 = wilson(direct, m) if m else (0.0, 0.0)
+    h2 = m > 0 and direct / m >= GUARD_SHARE and lo2 >= GUARD_LOWER
+    lines.append(f"H2 explicit requests: {direct} of {m} ended on the direct entry ({direct / m if m else 0:.2f}, Wilson "
+                 f"{lo2:.2f}-{hi2:.2f}; needs {GUARD_SHARE:.2f} and {GUARD_LOWER:.2f}): {'MET' if h2 else 'NOT MET'}")
+    sees = sum(bool(r.get("refused")) for r in explicit)
+    lines.append(f"    explicit sessions the guard refused first: {sees} (they then needed --in-place; final direct counted above)")
+    quiet = [r for r in sf if r["arm"] == "G" and not r.get("refused")]
+    off = sum(r.get("final_route") != "workspace" for r in quiet)
+    h3 = off <= GUARD_QUIET_MAX_WRONG
+    lines.append(f"H3 sessions that start right: {len(quiet) - off} of {len(quiet)} unrefused G sf-ui sessions ended on workspace "
+                 f"start (at most {GUARD_QUIET_MAX_WRONG} off allowed): {'MET' if h3 else 'NOT MET'}")
+    nostart = sum(r.get("final_route") is None for r in rows)
+    lines.append(f"not gated: sessions that never made a run: {nostart} of {len(rows)}")
+    if h1 is False or not h2 or not h3:
+        verdict = "DO NOT RELEASE the guard as it stands (a registered condition is not met)"
+    elif h1 is None:
+        verdict = "INSUFFICIENT: H2 and H3 hold but too few sessions were refused to judge H1; add old-wording sessions"
+    else:
+        verdict = "RELEASE: H1, H2 and H3 are met"
+    return lines, verdict
+
+
 def card_sizes(arms_file: Path) -> dict:
     card = (ROOT / "skills" / "shiploop" / "SKILL.md").read_text()
     arms = json.loads(arms_file.read_text())
@@ -209,7 +278,8 @@ def compact(row: dict) -> dict:
         text = re.sub(r"/Users/[^ '\"]*?/trials/[^/ '\"]+/", "<trial>/", text)
         return text[:limit]
     keys = ("slot", "attempt", "stimulus", "arm", "i", "start", "end", "valid", "error", "seconds_to_start",
-            "read_run_start", "self_bootstrap", "skill_seen", "installed_card_sha256", "effect_route")
+            "read_run_start", "self_bootstrap", "skill_seen", "installed_card_sha256", "effect_route",
+            "final_route", "refused", "starts")
     out = {k: row.get(k) for k in keys}
     out["start_command"] = short(row.get("start_command"), 200)
     out["pre_start"] = [short(c, 110) for c in row.get("pre_start", [])[:6]]
@@ -221,9 +291,9 @@ def main() -> None:
     ap.add_argument("results", type=Path)
     ap.add_argument("--export", type=Path)
     ap.add_argument("--arms", type=Path, default=HERE / "arms.json", help="the arms file the batch used (sizes)")
-    ap.add_argument("--mode", choices=("start", "inplace", "hosts"), default="start",
+    ap.add_argument("--mode", choices=("start", "inplace", "hosts", "guard"), default="start",
                     help="start: init is wrong (the bar and tie-break); inplace: init is right (is T2 harmless?); "
-                         "hosts: one other host, both directions")
+                         "hosts: one other host, both directions; guard: what a session does after init is refused")
     ap.add_argument("--also", type=Path, help="another batch's results: add a pooled table (descriptive only)")
     ap.add_argument("--replicates", type=Path,
                     help="another batch of the same experiment: judge it alone by the same rules and print whether the "
@@ -231,6 +301,22 @@ def main() -> None:
     ap.add_argument("--replicates-arms", type=Path, help="the arms file that batch used (default: --arms)")
     args = ap.parse_args()
     rows, dropped = load(args.results)
+    if args.mode == "guard":
+        print(f"{len(rows)} valid slots; slots with no valid attempt: {dropped or 'none'}")
+        print(f"{'request':13s} {'build':5s} {'n':>3s} {'refused':>7s} {'first init':>10s} {'final ws':>8s} {'final direct':>12s} "
+              f"{'no run':>6s} {'--in-place':>10s}")
+        for (stimulus, arm), c in tally_guard(rows).items():
+            print(f"{stimulus:13s} {arm:5s} {c['n']:3d} {c['refused']:7d} {c['first_direct']:10d} {c['final_workspace']:8d} "
+                  f"{c['final_direct']:12d} {c['final_none']:6d} {c['in_place']:10d}")
+        lines, verdict = evaluate_guard(rows)
+        print()
+        print("\n".join(lines))
+        print()
+        print(f"VERDICT: {verdict}")
+        if args.export:
+            args.export.write_text("".join(json.dumps(compact(r)) + "\n" for r in rows))
+            print(f"wrote {args.export}")
+        return
     cells = tally(rows)
     print(f"{len(rows)} valid slots; slots with no valid attempt: {dropped or 'none'}")
     label = "wrong rate (95% CI)" if args.mode == "start" else "init share (95% CI)"

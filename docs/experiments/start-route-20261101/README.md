@@ -410,6 +410,57 @@ the route agree wherever both are readable.
 
 **Cost.** About 18M tokens and 15 to 35 minutes, as the first batch (estimate; a stopped session reports no totals).
 
+## The `init` guard: what does a session do after `init` is refused? (registered 2026-11-01, before its first trial)
+
+**Why.** T2 fixed the wording (0 of 80 Salesforce-request sessions began with `init` against 25 of 80 on the old wording, pooled over
+the first batch and R2), and the other-hosts probe showed no effect either way on Claude or Grok. One of 80 sessions on T2 still
+began with `init` in an empty non-Git folder, which leaves a run whose product is never committed (the live run that started this
+experiment). The owner asked for a script guard as well (2026-11-01, "All of them"): `init` in an empty folder that is not a Git
+repository is refused with the `workspace start` command to run instead, unless the user's own request for an in-place or non-Git
+run is stated with `--in-place` (commit d8a8dce097368ae349ba051ec76c83d036e7f2ef, on a branch not yet pushed). A refusal only helps if the session then takes the isolated entry; it harms if
+sessions add `--in-place` reflexively, or if it blocks an explicit in-place request.
+
+**Design.** Codex `gpt-6.1-terra` at `xhigh` through `run.py` with `--stop-after-start` (the harness ends the host once a run
+exists on disk, so the recovery after a refusal is observed to its end; 288f35c59dd56f65aee82e27ae80630bfcc6ef22). Two builds cut
+with `scripts/build-packages.py` from the guard commit (`--package-root`): **G**, the build as it stands (T2 wording plus the guard),
+and **GOLD**, G with T2's sentence reversed (the old wording, so that wrong first attempts are frequent enough to observe: 8 to 17
+of 40 `sf-ui` sessions on the old wording). Requests (`plan --set guard`, seed 20261105, `plan-guard.json`): `sf-ui` 60 sessions on
+GOLD and 20 on G; `inplace-hello` 12 and `nogit-hello` 12 on G: 104 sessions (60 old-wording sessions give at
+least 8 refusals with probability 93% at a first-start `init` rate of 20%, the lowest the old wording showed, and above 99.9% at
+the pooled 31%). G: card `9571cfb4b317 (30,115 bytes)`, `shiploop_protocol.py`
+`7caafc6adf1a`; GOLD: card `4e455a833e85 (30,011 bytes)`.
+
+**Measured per session.** The first ShipLoop start command and its route; whether the guard's refusal appeared (as rendered, with a
+path); every start command and whether it carried `--in-place`; the route of the run that exists on disk at the end (`start_route`).
+
+**Rule** (`analyze.py --mode guard`, one launch, no change while it runs, a fault restarts the batch):
+- *H1, recovery.* Among `sf-ui` sessions where the guard refused an `init`, at least 80% end on the isolated entry
+  (`workspace start`) with a Wilson lower bound of at least 0.50, from at least 8 such sessions. Fewer than 8: "insufficient";
+  more old-wording sessions are added to the same batch, not a restart.
+- *H2, explicit requests honored.* Over `inplace-hello` and `nogit-hello` (G), at least 80% end on the direct entry, lower bound at
+  least 0.50.
+- *H3, right starts stay right.* Of the G `sf-ui` sessions that were never refused, at most 1 ends off `workspace start`.
+- Reported, not gated: sessions that never made a run; refused sessions that then used `--in-place` without the user's request.
+If H1, H2 and H3 are met the guard is released; if H2 fails the message or the flag is reworked; if H1 fails (sessions answer the
+refusal with `--in-place`) the guard is not released as it stands. Whatever the result, it is reported in full.
+
+**Prediction.** GOLD begins with `init` in 15% to 45% of `sf-ui` sessions and G in 5% or fewer; of the refused sessions at least 90%
+end on `workspace start`; at least 90% of the explicit sessions end `direct` (those that begin with `init` are refused once and
+then rerun it with `--in-place`).
+
+**Limits.** One model at one setting, one Salesforce prompt, one pair of explicit requests; the sessions that begin with
+`workspace start` never see the guard, so G only measures the guard's cost on right starts through H3. The benefit on the current
+card is small by construction (T2 leaves about 1 wrong start in 80); the probe asks whether the guard is safe and effective, not how
+often it will fire.
+
+**Cost.** About 104 sessions at roughly a minute and 0.2M tokens each (an estimate from the earlier probes plus one recovery step).
+
+**Command** (one launch, no change while it runs):
+`python3 start_probe.py run --host codex --arms arms-guard.json --package-root <build-packages.py output of the guard commit>
+--effect-stop --plan plan-guard.json --out ~/e2e-runs-startroute/20261101-guard --jobs 4`; analysis
+`python3 analyze.py <out>/results.jsonl --mode guard --export results-guard-compact.jsonl`.
+
+
 ## Release CI
 
 The full CI run of the release commit f24746fa6193007235818f2d8b109408d70ca413 (run 41318115086) failed one job, `full /
