@@ -1,0 +1,33 @@
+A1-pass1   pass 942.8s  env stray +7 (5396 B)  decisions ['AD-1', 'AD-2', 'AD-3']  born_retired []  live sections ['Conventions', 'Decisions', 'Interfaces and boundaries', 'Real-boundary checks', 'Stack', 'Structure']  notices 0 (survive 0)
+A1-pass2   pass 795.9s  env stray +7 (5328 B)  decisions ['AD-4', 'AD-5']  born_retired []  live sections []  notices 0 (survive 0)
+A2-pass1   pass 924.7s  env stray +2 (6977 B)  decisions ['AD-1', 'AD-2', 'AD-3']  born_retired []  live sections ['Conventions', 'Decisions', 'Interfaces and boundaries', 'Real-boundary checks', 'Stack', 'Structure']  notices 0 (survive 0)
+A2-pass2   pass 1105.2s  env stray +6 (6358 B)  decisions ['AD-4']  born_retired []  live sections []  notices 0 (survive 0)
+A3-pass1   pass 861.7s  env stray +5 (5789 B)  decisions ['AD-1', 'AD-2']  born_retired []  live sections ['Conventions', 'Decisions', 'Interfaces and boundaries', 'Real-boundary checks', 'Stack', 'Structure']  notices 0 (survive 0)
+A3-pass2   pass 1290.9s  env stray +8 (5727 B)  decisions ['AD-3']  born_retired []  live sections []  notices 0 (survive 0)
+B1-pass1   pass 958.0s  env stray +0 (3802 B)  decisions ['AD-1', 'AD-2']  born_retired []  live sections ['Conventions', 'Decisions', 'Interfaces and boundaries', 'Real-boundary checks', 'Stack', 'Structure']  notices 1 (survive 1)
+B1-pass2   pass 1121.9s  env stray +0 (3169 B)  decisions ['AD-3']  born_retired []  live sections ['Decisions', 'Real-boundary checks']  notices 1 (survive 0)
+B2-pass1   pass 856.0s  env stray +0 (4464 B)  decisions ['AD-1', 'AD-2', 'AD-3']  born_retired []  live sections ['Decisions', 'Real-boundary checks', 'Structure']  notices 1 (survive 0)
+B2-pass2   pass 1083.6s  env stray +0 (2831 B)  decisions ['AD-4', 'AD-5']  born_retired []  live sections ['Decisions', 'Real-boundary checks', 'Structure']  notices 1 (survive 0)
+B3-pass1   pass 1129.5s  env stray +0 (4544 B)  decisions ['AD-1', 'AD-2']  born_retired []  live sections ['Conventions', 'Decisions', 'Interfaces and boundaries', 'Real-boundary checks', 'Stack', 'Structure']  notices 1 (survive 1)
+B3-pass2   pass 1140.9s  env stray +0 (3524 B)  decisions ['AD-3']  born_retired []  live sections ['Decisions']  notices 1 (survive 0)
+B1 held     no entry is filed as retired when new in any of B's passes
+     observed: B born_retired per pass [0, 0, 0, 0, 0, 0]; A [0, 0, 0, 0, 0, 0]
+B2 held     median stray headings added to environment.md in pass 2: B at most 2, A at least 4
+     observed: B [0, 0, 0] (median 0); A [7, 6, 8] (median 7)
+B3 held     in B, a pass that added a decision changed a live section of architecture.md
+     observed: B passes with a decision: 6; with a live section changed: 6; A: 3 of 6
+B4 held     every run passes and no inherited hidden check is lost, in both arms
+     observed: 12 of 12 pass; hidden lost []
+B5 held     B's median pass-2 elapsed time is at most 1.2 times A's
+     observed: B 1121.9 s, A 1105.2 s
+P1 held     B1 holds
+P2 missed   B's median pass-2 stray_added is 2 (1 to 3)
+     observed: 0
+P3 missed   A's median is at least 4 and A files at least one new entry as retired
+     observed: median 7; born_retired [0, 0, 0, 0, 0, 0]
+P4 held     B prints a placement notice in at least 4 of its 6 passes and at least one flagged item survives to the end
+     observed: notices per B pass [1, 1, 1, 1, 1, 1]; flagged that survive 2
+P5 held     all 12 runs pass
+     observed: 12 of 12
+P6 held     B's median pass-2 elapsed time is within 15 percent of A's
+     observed: B 1121.9 s, A 1105.2 s
