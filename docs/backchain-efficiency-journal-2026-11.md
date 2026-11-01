@@ -105,3 +105,36 @@ Changes:
 | R1-5 | Generated and inherited content are separated mechanically: freezing a plan that dropped an inherited input edge fails; the same removal of an edge the run generated is recorded as a non-trivial repair (the R0-8 defect). | firm (test) | `RunTests.test_inherited_edges_stay_while_generated_edges_may_go` |
 
 Live use is untested: no model has yet run the toolkit. That is the pilot's question (Phase 5).
+
+The run commands landed as 1f2d7ae31f752c0027c199fd808112763ed10108.
+
+## Round 2 — the card uses the toolkit; the first trivial review completes (2026-11-01)
+
+Conditions: no model run. Byte counts are static UTF-8 sizes of the files a fresh-request run is told to read in
+full, at e81fdb55 (0.6.6) and in this commit; they are not token measurements.
+
+Changes (one commit, because ShipLoop's gate-document pins read Backchain's text and the gate must change in both
+together):
+- `SKILL.md` is the native procedure only: prepare, plan, freeze, loop, finish on `scripts/backchain.py`, plus the
+  unchanged plan contract and invariants; the development-checkout material moved to `references/harness.md`.
+- `references/convergence.md` describes the scripted binding: the markers and the three gates, the contract
+  `freeze` writes for Until Loop's parent-written route, the obligations table (generated vs inherited), each
+  cycle's duties and the terminal evidence per gate. Every semantic review rule is kept; the bookkeeping prose the
+  scripts now own is gone.
+- `backchain.py lenses ID…` prints only the named lens cards; the review prompt and the lens index use it.
+- Owner decision D1: by default the first trivial review completes (gate 1); `Backchain passes: one` is unchanged;
+  `Backchain passes: converge` keeps two consecutive trivial reviews. ShipLoop's `converge` packets now print that
+  marker so a ShipLoop `converge` run keeps two reviews; of 207 rendered ShipLoop Backchain texts (every stage,
+  delegation and mode) only the 7 `converge` ones changed.
+- `references/caller-contract.md`, the review prompt, `agents/backchain.md` (stale install line) and the evals follow
+  (eval 15 is now the converge case; two new evals: the default gate and generated-edge removal).
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R2-1 | A fresh request's full reads fall from 231,784 to 140,574 bytes (−39.4 %): `SKILL.md` 28,636 → 13,503, `convergence.md` 19,006 → 16,529, the Until Loop runtime document (27,913) and the lens cards (36,412) and interactions (9,608) no longer read whole; the review prompt and lens index grow by 333 bytes. The generator and elaborator (70,305) are now the largest block. | firm (bytes) | sizes from `git cat-file -s` at e81fdb55 and the work tree |
+| R2-2 | ShipLoop's default packets are byte-identical: 200 of 207 renders unchanged, the 7 changed all in `converge` mode. | firm | render comparison over `prompts.prompt` and `_backchain_guidance` for every stage, delegation and mode |
+
+Held-out cases for Phase 5, frozen before the candidate: designed blind by a separate agent (it reported only paths,
+digests and counts), 4 cases with 7, 10, 7 and 10 mechanical keys, at
+`/Users/dadleet/src/backchain/results/backchain-efficiency-20261101/heldout/`, MANIFEST.json SHA-256
+`7c81681f9a1e558dfd5a4b0a06786943744abc07ce2d7b5fb02d7665b115e07a` (17 files); its `validate.sh` passes. Not opened.

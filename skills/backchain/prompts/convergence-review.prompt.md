@@ -40,19 +40,22 @@ coverage.
    and whether the required repair is authorized. When assessing a repaired candidate,
    inspect its resulting chunks and affected consumers under the same rules; the active
    callback owns the post-repair check before submitting the cycle.
-3. Actually load `references/technical-lenses.md`, screen all categories, and load
-   applicable or uncertain cards/interactions. Record the observed locator in checks.
+3. Actually load `references/technical-lenses.md`, screen all categories, and load the
+   applicable or uncertain cards (`backchain.py lenses ID…` prints them) and the relevant
+   sections of `references/technical-interactions.md`. Record the screen and the cards read in
+   checks.
 4. Revisit effects of prior repairs across shared prerequisites, independent tracks,
    verification, sources, and protected work; this is not last-diff confirmation.
 5. Check source authority/currentness/identity and experiment condition, consumer, target,
    criterion, receipt scope/fidelity, and plan disposition. Planned or observed execution
    is not a passing result.
-6. Without an actual deterministic receipt for this exact candidate, structural status is
-   unknown and `parallel_groups` remains empty.
+6. Structural status is the `backchain.py check` verdict on this exact candidate, never your
+   judgment; `record` packages the candidate and computes `parallel_groups`.
 7. Classify this complete cycle as material, trivial, none, or unknown under the binding rules. Semantic changes of any size are material. Separate planning gaps from future
    execution blockers.
 
-Return only this assessment:
+Return only this assessment (save it as the file `record --review` reads; add `"next_action"`
+when a gap needs a specific recovery):
 ```json
 {
   "candidate_identity": "supplied identity actually inspected",

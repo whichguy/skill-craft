@@ -82,17 +82,18 @@ frozen candidate to the selected actual Until Loop card under
 Backchain standalone Until Loop binding: <binding-id>
 ```
 
-A caller that wants one review cycle instead of the default two consecutive reviews adds the line
-`Backchain passes: one` beside it, as `references/convergence.md` defines.
+By default the first trivial review completes the loop. A caller that wants one review cycle adds
+the line `Backchain passes: one` beside the marker, and one that wants two consecutive trivial
+reviews adds `Backchain passes: converge`, as `references/convergence.md` defines.
 
-Resolve and read in full the selected Until Loop card (`SKILL.md`, or a bundled
-`ADAPTER.md` explicitly selected by the caller) and `references/runtime-ephemeral.md`
-relative to that card's directory, then retain absolute observed locators for them and the
-ephemeral runtime script. The child scope is plan artifacts and their permitted companion evidence only:
-preserve original request, sources, lenses, action/action ID/owner/workflow stage,
-candidate identity, all edit bounds, and parent request/latest-packet/return-route/printed
-terminal-receipt locators in `context.resources`; do not commit, push, merge, execute the
-project, or broaden scope. Until Loop is the sole counter,
+`scripts/backchain.py prepare --caller PACKET.json` freezes this packet and resolves the selected
+Until Loop card (the bundled `ADAPTER.md` beside the skill, or the card the caller names with
+`--until-loop`), and `freeze` writes the contract for that card's parent-written route; read the
+card once before starting it. The child scope is plan artifacts and their permitted companion
+evidence only: `freeze` binds the original request, this packet (sources, lenses,
+action/action ID/owner/workflow stage, candidate identity, all edit bounds), the latest packet
+(the receipt), the domain evidence and the result destination in `context.resources`; do not
+commit, push, merge, execute the project, or broaden scope. Until Loop is the sole counter,
 resume/recovery, resource/stop, and terminal authority. Authorized in-scope revisions and
 new evidence are recorded in reports/handoffs and remain in the same run; their material
 classification resets Until Loop's gate. Only an external/unapproved baseline substitution,
@@ -112,18 +113,20 @@ Until Loop terminal `complete` receipt plus candidate-specific domain evidence. 
 stale selection/candidate/source/bounds resources, `blocked`/`stopped`/cancelled Until Loop,
 or absent domain evidence is incomplete. Do not infer terminal state from copied text,
 structural validity, or a model-written count.
-By default, preserve access to both original qualifying review records since the run began or
-latest reset, whichever is later, and their observed identities in the final handoff/domain
-evidence under `references/convergence.md`; a terminal receipt with only the latest review
-recoverable is incomplete planning. The caller selects the gate: with `Backchain passes: one`
-beside the binding marker in the child request, one cycle runs and the evidence set is its one
-review record plus the `backchain-check` receipt on the final candidate, as `references/convergence.md` states.
+The caller selects the gate, and with it the evidence set `finish` reopens before it reports
+converged planning (`backchain.py record` keeps every cycle's original review record and its
+observed identities). By default it is the completing cycle's trivial review record. With
+`Backchain passes: one` beside the binding marker in the child request, one cycle runs and the
+evidence set is its one review record plus the `backchain-check` receipt on the final candidate.
+With `Backchain passes: converge`, it is both original qualifying review records since the run began
+or latest reset, whichever is later; a terminal receipt with only the latest review recoverable is
+incomplete planning, as `references/convergence.md` states.
 
 ## Operations
 
 ### `plan` / `draft`
 
-The host gives the generator the original request plus selected source snapshots as `RAW_PROMPT` data and retains the same packet/lens findings for dependency review and elaboration. Return `{ "plan": <existing Backchain plan>, "review": <review object> }`. Backchain always binds the enriched candidate to selected Until Loop and returns the final source assessment with its opaque `review.convergence` record, or an honest incomplete result. It does not self-certify execution or structural validity.
+The host gives the generator the original request plus selected source snapshots as `RAW_PROMPT` data and retains the same packet/lens findings for dependency review and elaboration. Return `{ "plan": <existing Backchain plan>, "review": <review object> }`. Backchain always binds the enriched candidate to selected Until Loop and returns the final source assessment with its opaque `review.convergence` record, or an honest incomplete result. It does not self-certify execution, and its structural status is the `backchain.py check` verdict on the exact candidate, never a model's claim.
 
 ### `review` / `audit`
 
@@ -135,7 +138,7 @@ This is separate from legacy elaboration. Legacy elaboration continues to preser
 
 Running/completed steps are always protected. Accepted facts/evidence and listed protected items remain protected. Existing items may change only if their exact ID/key is provisional. New steps require `allow_new_steps: true`; new edges require `allow_new_edges: true`; adding/changing an edge to an existing consumer also requires that consumer to be provisional and not running/completed. Each removal, split, replacement, or rewire needs an old-to-new mapping and source-linked reason. An active selected Until Loop callback may apply authorized revisions through the one-revision `prompts/revise.prompt.md`; Until Loop classifies cycles and owns recurrence. A blocked or out-of-bounds necessary repair stays incomplete.
 
-A revised plan must emit `parallel_groups: []`. Set `structural_plan_status: "unknown"` until an actual deterministic packaging/validation receipt for this exact `output_sha256` is recorded; never carry stale waves or structural status forward.
+A revised plan emits `parallel_groups: []`; `backchain.py record` packages each revision and checks its structure, so `parallel_groups` and `structural_plan_status` always come from the receipt for this exact `output_sha256`. Until that receipt exists, `structural_plan_status` is `"unknown"`; never carry stale waves or structural status forward.
 
 ## Review object
 

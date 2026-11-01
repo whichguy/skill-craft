@@ -130,7 +130,7 @@
       "expectations": [
         "The bounded revise changes only explicitly provisional entries and preserves goal_needs and protected work; legacy elaboration still preserves seed/null inputs.",
         "No nested Backchain or Until Loop invocation, homemade streak, or caller pass budget is created.",
-        "A graph change clears parallel groups and requires a new candidate-specific structural receipt before any valid structural claim."
+        "A graph change is repackaged by `backchain.py record`, so parallel groups and any structural claim come from the receipt for that exact revised candidate, never from a stale or model-written status."
       ]
     },
     {
@@ -185,11 +185,11 @@
     {
       "id": 15,
       "name": "until-loop-binding-missing-review-history",
-      "prompt": "Recover a completed source-aware Backchain planning result without starting another loop. The exact selected Until Loop terminal stdout records complete with two accepted trivial reviews; its ephemeral state is deleted. The current candidate and final source/bounds/validation evidence match. The final handoff names review-one and review-two, but only the second original review record is readable. Review-one is missing; a copied clean verdict and the numeric streak are all that remain. Decide whether planning convergence is established and how to recover.",
+      "prompt": "Recover a completed source-aware Backchain planning result without starting another loop. The caller stated `Backchain passes: converge`. The exact selected Until Loop terminal stdout records complete with two accepted trivial reviews; its ephemeral state is deleted. The current candidate and final source/bounds/validation evidence match. The final handoff names review-one and review-two, but only the second original review record is readable. Review-one is missing; a copied clean verdict and the numeric streak are all that remain. Decide whether planning convergence is established and how to recover.",
       "expected_output": "Incomplete planning until the original earlier qualifying review record and its identity can be recovered and assessed. Runtime completion remains recorded honestly, without inventing review observations or replaying terminal callbacks.",
       "files": [],
       "expectations": [
-        "Both original qualifying review records since the run began or latest reset, whichever is later, and their observed candidate/context identities must remain recoverable through the final handoff and domain evidence.",
+        "With `Backchain passes: converge`, both original qualifying review records since the run began or latest reset, whichever is later, and their observed candidate/context identities must remain recoverable through the final handoff and domain evidence.",
         "A matching candidate, exact terminal complete packet, numeric streak, or copied verdict cannot replace the missing earlier review observations.",
         "Preserve the real terminal receipt, name the unavailable evidence and recovery action, and do not fabricate a record, replay done, or silently restart the completed run."
       ]
@@ -201,7 +201,7 @@
       "expected_output": "A plan-only Until Loop child whose start contract carries required_trivial_reviews 0 and the one-cycle exit condition, completed by the first report that assesses that exit as satisfied even though the cycle repaired the candidate. Converged planning needs the exact terminal complete receipt, the one review record and the backchain-check receipt on the final candidate.",
       "files": [],
       "expectations": [
-        "The start contract carries `required_trivial_reviews: 0` and the exit condition of one complete review/fix/check cycle because the caller stated `Backchain passes: one`; the two-review gate of the standalone default is not copied.",
+        "The start contract carries `required_trivial_reviews: 0` and the exit condition of one complete review/fix/check cycle because the caller stated `Backchain passes: one`; the standalone default gate is not copied.",
         "The cycle that repaired the candidate reports `exit_assessment: satisfied` when its exit holds; the host runs no second review to confirm the repair and adds no pass ceiling or counter. A cycle with an open gap is still reported unsatisfied and the loop continues.",
         "The terminal evidence set is the exact opaque terminal complete receipt, the one review record with its observed identity and the backchain-check receipt on the final candidate; a copied verdict or a numeric count cannot replace them.",
         "Without the marker line the default applies: two consecutive distinct complete trivial/no-change reviews, and both original qualifying review records stay recoverable."
@@ -282,6 +282,30 @@
         "A replacement draft is returned to the caller for a new Until Loop binding, not silently substituted in the frozen run.",
         "Source-aware revise without edit_bounds remains unauthorized; the reviewer does not infer permission for new steps, edges, or consumer rewrites from the review-scope fallback.",
         "The unresolved necessary split remains a planning gap with a concrete recovery route, not a retry loop or convergence claim."
+      ]
+    },
+    {
+      "id": 23,
+      "name": "until-loop-binding-default-first-trivial",
+      "prompt": "Use standalone native Backchain, with no `Backchain passes` marker, to plan adding a --json flag to an existing CLI command with its tests. The first review/fix/check cycle repairs a missing test-fixture supplier; the second cycle finds nothing to repair. Decide the start contract's gate and when the loop completes.",
+      "expected_output": "A contract written by `backchain.py freeze` with `required_trivial_reviews: 1`; the repairing cycle is non-trivial, so a fresh review follows it, and the loop completes on that first trivial review without a third confirming review.",
+      "files": [],
+      "expectations": [
+        "The host writes no contract by hand: `freeze` writes it, with the binding marker, the gate and every bound resource.",
+        "The repairing cycle is recorded non-trivial (its plan changed), so the loop does not complete on it.",
+        "The loop completes on the first trivial review that follows; the host runs no additional confirming review and adds no counter."
+      ]
+    },
+    {
+      "id": 24,
+      "name": "generated-edge-removal",
+      "prompt": "In a fresh-request Backchain run, the first review finds that the elaborator gave two steps null-origin inputs on repository facts that they do not need, which serializes two independent branches. No caller draft was supplied. Decide whether the review may remove those inputs and how the cycle is classified.",
+      "expected_output": "The review removes the unjustified generated inputs as a material repair with its reason, keeps the branches independent, and the cycle is non-trivial; a later review confirms the repaired graph.",
+      "files": [],
+      "expectations": [
+        "Edges this run generated may be removed when the review finds them unjustified; only inherited edges stay.",
+        "The removal is recorded with its reason as a material repair, not left as an advisory note while the false ordering remains.",
+        "The cycle that removed them is non-trivial, so it is not the completing review."
       ]
     }
   ]

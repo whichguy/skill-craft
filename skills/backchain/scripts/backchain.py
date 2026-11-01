@@ -19,6 +19,9 @@ A planning run (one directory; Until Loop owns the loop, this script owns the re
   verify --run DIR            the contract's evidence check (read-only)
   finish --run DIR            after the loop ends: write DIR/result.json, {plan, convergence}
 
+Review aids:
+  lenses ID...                print only the named technical lens cards (T01 to T42)
+
 Exit codes: 0 ok; 1 the plan or run fails what the command requires; 3 the command could not run (unreadable
 input, not JSON, wrong state, bad arguments). A could-not-run is never a finding about the plan.
 """
@@ -93,9 +96,9 @@ REVISING = (("prompts/audit.prompt.md", "audit {run}/input/draft.json against th
 CALLER = (("references/caller-contract.md", "the caller packet {run}/input/caller.json"),)
 REVIEWING = (("references/convergence.md", "the review rules each cycle applies"),
              ("prompts/convergence-review.prompt.md", "each cycle's assessment and its JSON"),
-             ("references/technical-lenses.md", "the lens screen; read the applicable or uncertain cards in "
-                                                "references/technical-lens-cards.md and references/"
-                                                "technical-interactions.md"))
+             ("references/technical-lenses.md", "the lens screen; print the applicable or uncertain cards with "
+                                                "`lenses ID...` and read the relevant sections of "
+                                                "references/technical-interactions.md"))
 
 
 class Unavailable(Exception):
@@ -730,6 +733,35 @@ def command_finish(args: argparse.Namespace) -> int:
     return EXIT_FAILS
 
 
+# ---------------------------------------------------------------- lenses
+
+_LENS_CARD = re.compile(r"^## (T\d{2}) — ", re.M)
+
+
+def lens_cards() -> Dict[str, str]:
+    """Each card of references/technical-lens-cards.md by its ID, heading included."""
+    text = resolve("references/technical-lens-cards.md").read_text(encoding="utf-8")
+    starts = [(match.group(1), match.start()) for match in _LENS_CARD.finditer(text)]
+    return {identifier: text[start:(starts[index + 1][1] if index + 1 < len(starts) else len(text))].rstrip() + "\n"
+            for index, (identifier, start) in enumerate(starts)}
+
+
+def lens_id(text: str) -> str:
+    """T07, t07, T7 and 7 all name card T07."""
+    digits = text.upper().removeprefix("T")
+    return f"T{int(digits):02d}" if digits.isdigit() else text
+
+
+def command_lenses(args: argparse.Namespace) -> int:
+    cards = lens_cards()
+    wanted = unique([lens_id(text) for text in args.ids])
+    unknown = [identifier for identifier in wanted if identifier not in cards]
+    if unknown:
+        raise Unavailable(f"no lens card {', '.join(unknown)}; the cards are {min(cards)} to {max(cards)}")
+    sys.stdout.write("\n".join(cards[identifier] for identifier in wanted))
+    return EXIT_OK
+
+
 # ---------------------------------------------------------------- plan commands
 
 def command_check(args: argparse.Namespace) -> int:
@@ -811,6 +843,9 @@ def parser() -> argparse.ArgumentParser:
     finish = commands.add_parser("finish", help="write the run's result after the loop ends")
     finish.add_argument("--run", type=Path, required=True)
     finish.set_defaults(run_command=command_finish)
+    lenses = commands.add_parser("lenses", help="print the named technical lens cards (T01 to T42)")
+    lenses.add_argument("ids", nargs="+")
+    lenses.set_defaults(run_command=command_lenses)
     return top
 
 

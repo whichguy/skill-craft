@@ -632,7 +632,10 @@ class BackchainStageTextTests(unittest.TestCase):
         flat = " ".join(guidance._backchain_guidance(self.LOOP_STAGE, backchain_passes="converge").split())
         self.assertIn("required_trivial_reviews: 2", flat)
         self.assertIn("two consecutive distinct complete trivial/no-change dependency reviews", flat)
-        for one_pass in ("required_trivial_reviews: 0", "Backchain passes", "One complete dependency"):
+        # Backchain's own default became the first trivial review (owner decision D1, 2026-11-01), so a converge run
+        # names its two-review gate with the converge marker line.
+        self.assertIn("Put the line `Backchain passes: converge` beside the binding marker in the child request", flat)
+        for one_pass in ("required_trivial_reviews: 0", "Backchain passes: one", "One complete dependency"):
             with self.subTest(one_pass=one_pass):
                 self.assertNotIn(one_pass, flat)
 
@@ -675,18 +678,24 @@ class BackchainStageTextTests(unittest.TestCase):
 
     POINTER = ("A repair/revise child runs one review/fix/check cycle: put the line `Backchain passes: one` "
                "beside the binding marker in the child request, as Backchain's convergence reference defines it")
+    # Since Backchain's default became the first trivial review (owner decision D1, 2026-11-01), a converge run's
+    # repair/revise child names its two-review gate with the converge marker line.
+    CONVERGE_POINTER = ("A repair/revise child runs the two-review gate: put the line `Backchain passes: converge` "
+                        "beside the binding marker in the child request, as Backchain's convergence reference defines it")
 
-    def test_audit_stages_carry_the_one_pass_pointer_in_mode_one_and_nothing_in_converge(self):
+    def test_audit_stages_carry_the_one_pass_pointer_in_mode_one_and_the_converge_pointer_in_converge(self):
         for stage in self.AUDIT_STAGES:
             one = " ".join(guidance._backchain_guidance(stage, backchain_passes="one").split())
             converge = " ".join(guidance._backchain_guidance(stage, backchain_passes="converge").split())
             with self.subTest(stage=stage):
                 self.assertEqual(one.count(self.POINTER), 1)
-                self.assertNotIn("Backchain passes", converge)
+                self.assertEqual(converge.count(self.CONVERGE_POINTER), 1)
+                self.assertNotIn("Backchain passes: one", converge)
+                self.assertNotIn("Backchain passes: converge", one)
                 # the pointer names no literal gate field in either mode (see the audit-text pin above)
                 self.assertNotIn("required_trivial_reviews", one + converge)
-                # a pointer is all mode one adds: the rest of the audit text is the converge text
-                self.assertEqual(one.replace(self.POINTER + ". ", ""), converge)
+                # a pointer is all each mode adds: the rest of the audit text is the same
+                self.assertEqual(one.replace(self.POINTER + ". ", ""), converge.replace(self.CONVERGE_POINTER + ". ", ""))
 
 
     # Batch 1009 BC1: the one-pass plan packet said "may request" and, a few lines later, "Write the child's start

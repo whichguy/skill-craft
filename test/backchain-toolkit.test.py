@@ -416,13 +416,39 @@ class RunTests(unittest.TestCase):
         self.assertTrue(all(len(entry["sha256"]) == 64 for entry in meta["resources"]))
         self.assertEqual(meta["route"], "fresh")
 
-    def test_the_one_pass_exit_text_is_the_convergence_references(self):
+    def test_the_gate_texts_are_the_convergence_references(self):
         import importlib.util
         spec = importlib.util.spec_from_file_location("backchain_cli", CLI)
         cli = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cli)
+        # Owner decision D1 (2026-11-01): the default gate is the first trivial review.
+        self.assertEqual(cli.GATES, {"default": 1, "one": 0, "converge": 2})
         reference = " ".join((ROOT / "skills/backchain/references/convergence.md").read_text(encoding="utf-8").split())
+        # ShipLoop's plan packet prints the one-pass text; test/shiploop-navigator-contract.test.py pins it there.
         self.assertIn("this exit condition: " + cli.EXIT_CONDITIONS["one"], reference)
+        for passes in ("default", "converge"):
+            with self.subTest(passes):
+                self.assertIn("Its exit condition: " + cli.EXIT_CONDITIONS[passes], reference)
+
+
+class LensTests(unittest.TestCase):
+    def test_every_card_parses_and_only_the_named_cards_print(self):
+        done = run("lenses", "T07", "35", "t07")
+        self.assertEqual(done.returncode, 0, done.stderr)
+        headings = [line for line in done.stdout.splitlines() if line.startswith("## T")]
+        self.assertEqual([heading.split(" — ")[0] for heading in headings], ["## T07", "## T35"])
+        cards = (ROOT / "skills/backchain/references/technical-lens-cards.md").read_text(encoding="utf-8")
+        self.assertIn(done.stdout.split("\n## T35")[0].rstrip(), cards)
+        index = (ROOT / "skills/backchain/references/technical-lenses.md").read_text(encoding="utf-8")
+        every = run("lenses", *[f"T{n:02d}" for n in range(1, 43)])
+        self.assertEqual(every.returncode, 0, every.stderr)
+        self.assertEqual(sum(line.startswith("## T") for line in every.stdout.splitlines()), 42)
+        self.assertEqual(sum(f"| T{n:02d} |" in index for n in range(1, 43)), 42)
+
+    def test_an_unknown_card_could_not_run(self):
+        done = run("lenses", "T99")
+        self.assertEqual((done.returncode, done.stdout), (3, ""))
+        self.assertIn("no lens card T99; the cards are T01 to T42", done.stderr)
 
 
 if __name__ == "__main__":

@@ -3905,14 +3905,15 @@ class BackchainGateDocumentsTest(unittest.TestCase):
     BACKCHAIN = ROOT / "skills" / "backchain"
     SHIPLOOP = ROOT / "skills" / "shiploop"
     ONE = "`Backchain passes: one`"
-    # A statement of the two-review gate counts as scoped when its paragraph names one of these.
-    SCOPE = ("by default", "the default", "`converge`", "Backchain passes: one", "packet's printed gate")
+    CONVERGE = "`Backchain passes: converge`"
+    # A statement of the two-review gate counts as scoped when its paragraph names one of these.  Since 2026-11-01
+    # two reviews are no longer Backchain's default (owner decision D1): only the converge marker or mode asks for them.
+    SCOPE = ("by default", "the default", "`converge`", "Backchain passes: converge", "Backchain passes: one",
+             "packet's printed gate")
     TWO_REVIEW = re.compile(r"two consecutive|two-consecutive|both original qualifying|two clean|two reviews|"
                             r"two trivial|required_trivial_reviews: 2")
-    # Mentions that are not a Backchain gate statement, each with its reason.
-    NOT_A_GATE = {
-        "skills/backchain/references/harness.md": "says direct harness commands do not perform the reviews; no gate",
-    }
+    # Mentions that are not a Backchain gate statement, each with its reason (none since harness.md states the gate).
+    NOT_A_GATE: dict = {}
 
     @staticmethod
     def flat(path: Path) -> str:
@@ -3945,11 +3946,13 @@ class BackchainGateDocumentsTest(unittest.TestCase):
                          "reports `exit_assessment: satisfied` even when it repaired the candidate"):
             with self.subTest(required=required):
                 self.assertIn(required, convergence)
-        # the default stays two consecutive reviews, and says it is the default
-        for default in ("by default", "`required_trivial_reviews: 2`",
+        # the default is the first trivial review (owner decision D1, 2026-11-01) and says it is the default; two
+        # consecutive reviews belong to the converge marker, which ShipLoop's converge packets print
+        for default in ("by default", "`required_trivial_reviews: 1`", self.CONVERGE, "`required_trivial_reviews: 2`",
                         "two consecutive distinct complete trivial/no-change dependency reviews"):
             with self.subTest(default=default):
                 self.assertIn(default, convergence)
+        self.assertIn("Backchain passes: converge", " ".join(prompts._backchain_guidance("plan", backchain_passes="converge").split()))
 
     def test_the_confirm_by_clause_is_scoped_to_the_steps_the_cycle_may_change(self) -> None:
         """An exit clause on every step could not be met where the cycle may not repair: that finding is advisory."""
@@ -4018,21 +4021,24 @@ class BackchainGateDocumentsTest(unittest.TestCase):
                          "the one review record of the cycle and the `backchain-check` receipt on the final candidate"):
             with self.subTest(required=required):
                 self.assertIn(required, evidence)
-        # the caller contract's two-record rule is the default only, and names the marker and the check receipt
+        # the caller contract's two-record rule is the converge marker's only, and names the default, the one-pass
+        # marker and its check receipt
         contract = (self.BACKCHAIN / "references" / "caller-contract.md").read_text(encoding="utf-8")
         rule = next(paragraph for paragraph in re.split(r"\n\s*\n", contract)
                     if "both original qualifying review records" in paragraph)
-        for required in ("By default", self.ONE, "`backchain-check` receipt"):
+        for required in ("By default", self.ONE, "`backchain-check` receipt", self.CONVERGE):
             with self.subTest(required=required):
                 self.assertIn(required, " ".join(rule.split()))
 
     def test_the_backchain_skill_names_the_marker_in_its_description_and_the_gate_step(self) -> None:
         text = (self.BACKCHAIN / "SKILL.md").read_text(encoding="utf-8")
         description = " ".join(text.split("---", 2)[1].split())
-        self.assertIn("by default until two consecutive trivial/no-change reviews", description)
+        self.assertIn("by default until the first trivial/no-change review", description)
         self.assertIn(self.ONE, description)
-        step = " ".join(text.split("4. Bind the frozen candidate, source/lens context", 1)[1].split("\n5.", 1)[0].split())
-        for required in ("by default two consecutive trivial reviews", self.ONE, "references/convergence.md"):
+        self.assertIn(self.CONVERGE, description)
+        step = " ".join(text.split("4. **Loop.**", 1)[1].split("\n5.", 1)[0].split())
+        for required in ("by default the first trivial review completes", self.ONE, self.CONVERGE,
+                         "references/convergence.md"):
             with self.subTest(required=required):
                 self.assertIn(required, step)
 
@@ -4075,8 +4081,12 @@ class BackchainGateDocumentsTest(unittest.TestCase):
         ids = [case["id"] for case in cases]
         self.assertEqual(len(ids), len(set(ids)))
         by_name = {case.get("name"): case for case in cases}
-        default = " ".join(json.dumps(by_name["until-loop-binding-missing-review-history"]).split())
-        self.assertIn("Both original qualifying review records", default)  # standalone default keeps two
+        default = " ".join(json.dumps(by_name["until-loop-binding-default-first-trivial"]).split())
+        self.assertIn("required_trivial_reviews: 1", default)  # the standalone default: the first trivial review
+        converge = " ".join(json.dumps(by_name["until-loop-binding-missing-review-history"]).split())
+        for required in ("Backchain passes: converge", "both original qualifying review records"):
+            with self.subTest(required=required):
+                self.assertIn(required, converge)  # the converge marker keeps two
         marker = " ".join(json.dumps(by_name["until-loop-binding-one-pass-marker"]).split())
         for required in ("Backchain passes: one", "required_trivial_reviews", "backchain-check"):
             with self.subTest(required=required):
