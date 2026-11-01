@@ -1,0 +1,28 @@
+{
+  "contract": "prediction-verdict/1",
+  "record": "LR-20261101-1b4675",
+  "verdict": "refuted",
+  "effects": [
+    {
+      "case": "hello-hook-continuation",
+      "measure": "tokens",
+      "control": 18203931.333333332,
+      "candidate": null,
+      "unknown": "no successful case to divide the all-attempt total by",
+      "direction": "down",
+      "at_least": 0.25,
+      "verdict": "unknown"
+    }
+  ],
+  "guards": [
+    {
+      "case": "hello-hook-continuation",
+      "measure": "accuracy",
+      "control": 1.0,
+      "candidate": 0.0,
+      "change": -1.0,
+      "direction": "not_down",
+      "held": false
+    }
+  ]
+}
