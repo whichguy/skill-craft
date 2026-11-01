@@ -21,10 +21,32 @@ import shiploop_store as store  # noqa: E402
 class LiteralTransportTests(unittest.TestCase):
     def test_documented_entry_round_trips_literal_requests(self):
         card = (SKILL / "SKILL.md").read_text()
-        example = next(
-            line for line in card.splitlines()
-            if line.startswith('python3 "$CLI" init ')
+        entry = re.search(
+            r"^python3 (?P<head>\"[^\"]+\"|'[^']+'|\S+) init .+$", card, re.MULTILINE
         )
+        self.assertIsNotNone(entry, "card has no direct python3 init example")
+        example = entry.group(0)
+        head = shlex.split(entry["head"])[0]
+        if head != "$CLI":
+            binding = re.search(
+                r"^# (?P<instruction>[^\n]+)\nSKILL_ROOT=(?P<root>[^\n]+)$",
+                card, re.MULTILINE,
+            )
+            self.assertIsNotNone(binding, "literal entry needs an illustrative SKILL_ROOT")
+            illustrative_root = shlex.split(binding["root"])[0]
+            instruction = binding["instruction"]
+            self.assertTrue(
+                re.search(r"\billustrative\b", instruction, re.IGNORECASE)
+                or (re.search(r"\breplace\b", instruction, re.IGNORECASE)
+                    and illustrative_root in instruction),
+                "SKILL_ROOT must be explicitly illustrative before rendering it",
+            )
+            self.assertTrue(Path(illustrative_root).is_absolute())
+            self.assertEqual(head, f"{illustrative_root}/scripts/shiploop")
+            # Render only the declared example head; preserve the verb and every option.
+            example = example.replace(
+                entry["head"], shlex.quote(str(SKILL / "scripts/shiploop")), 1
+            )
         with tempfile.TemporaryDirectory(prefix="shiploop-literal-") as temporary:
             root = Path(temporary).resolve()
             sentinel = root / "must-not-exist"
