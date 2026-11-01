@@ -151,6 +151,12 @@ class ScopeDiscoveryCalibration(unittest.TestCase):
                     if reference_seed.is_file():
                         self.assertEqual(live_seed.read_bytes(), reference_seed.read_bytes(), relative)
                     self.assertEqual(reference_seed.is_file(), expects_home, f"{scenario_id}: {relative}")
+                    if expects_home and relative.endswith("/spec.md"):
+                        self.assertIn(
+                            " ".join(sc.data["request_text"].split()),
+                            " ".join(live_seed.read_text(encoding="utf-8").split()),
+                            f"{scenario_id}: the synthetic spec must preserve the selected request",
+                        )
 
     def test_seed_home_option_is_optional_and_strictly_boolean(self) -> None:
         sc = sb.load(SCENARIOS[0])
