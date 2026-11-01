@@ -1,0 +1,4 @@
+06:39:36 old 1: exit 0 in 305 s · Ran 24 tests in 304.007s OK  · load 86.90 96.96 84.36 · failing:
+06:45:11 new 1: exit 0 in 335 s · Ran 28 tests in 333.903s OK  · load 81.71 103.37 91.91 · failing:
+06:48:47 old 2: exit 1 in 216 s · Ran 24 tests in 214.511s FAILED (failures=3)  · load 86.16 100.65 93.22 · failing: FAIL: test_the_follow_on_passes_its_regression_feature_and_retention_checks_only_when_it_builds_on_the_first_run,FAIL: test_the_follow_on_passes_its_regression_feature_and_retention_checks_only_when_i
+06:57:12 new 2: exit 0 in 505 s · Ran 28 tests in 503.146s OK  · load 96.80 120.22 109.92 · failing:

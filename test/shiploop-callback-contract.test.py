@@ -35,6 +35,7 @@ CLI = SCRIPTS / "shiploop"
 CARD = ROOT / "skills" / "improve" / "SKILL.md"
 sys.path.insert(0, str(SCRIPTS))
 
+import shiploop_item_scope as scope  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
@@ -461,6 +462,13 @@ class RefusalRouteTests(RealCliCase):
             ("a step whose Proof runs a test file the item base lacks", "step-plan",
              lambda block: {**block, "steps": [dict(block["steps"][0], proof="node --test test/built.test.js")]},
              "which the item base does not have and no earlier step declares"),
+            # Rule C (2026-11-01): the same line's "a Proof needing an unwritten test" covers a plain suite Proof whose
+            # criterion only an unwritten test confirms.
+            ("a plain suite Proof for a criterion an unwritten test confirms", "step-plan",
+             lambda block: {**block, "criteria": [dict(block["criteria"][0], text="built.txt exists. Confirm by: node "
+                                                       "--test test/built.test.js; pass when TC-1 passes")],
+                            "steps": [dict(block["steps"][0], proof="npm test")]},
+             "so this Proof cannot confirm C1"),
             ("an open assumption whose due_item is not in the plan", "plan",
              lambda block: {**block, "assumptions": [{"id": "A2", "assumption": "y holds", "disposition": "open",
                                                       "settle": "run y", "reason": "later", "due_item": "W9"}]},
@@ -1270,6 +1278,59 @@ class StepSizingRouteTests(RealCliCase):
                 self.accepted(command)
                 self.assertEqual([step["id"] for step in self.recorded(run, action)["steps"]],
                                  [step["id"] for step in change["steps"]])
+
+    def test_a_plain_suite_proof_for_a_criterion_an_unwritten_test_confirms_is_refused_then_a_direct_one_accepted(
+            self) -> None:
+        """Rule C of the proof-order refusal (2026-11-01; owner: "Do we need to do the second proof check? Propose and
+        implement a plan"; evidence docs/experiments/proof-coverage-replay-20261101). A step whose Proof is a generic
+        suite command (`npm test`) cannot confirm a criterion whose Confirm by runs a test the base lacks. In the saved runs
+        such plans were sent back (bf-codex-r1-user-listing, FX F s1), or passed with nothing proved about the criterion
+        (A-ticket-assignment-s1).
+
+        The route: refused, then the same callback accepts the plan with a Proof that runs the behaviour directly. A plain
+        suite Proof is accepted when the criterion's test is one the base already has."""
+        confirm = "built.txt exists. Confirm by: node --test test/built.test.js; pass when TC-1 passes"
+        direct = "node -e \"require('fs').statSync('built.txt')\""
+
+        def plan(proof: str) -> dict:
+            return {"criteria": [{"id": "C1", "text": confirm, "confirm": "executed"}],
+                    "steps": [{"id": "S1", "task": "Create built.txt", "deps": [], "criteria": ["C1"], "proof": proof,
+                               "skills": [], "paths": ["built.txt"]}]}
+
+        run, head = self.new_run("step-plan")
+        command, path, action = printed_callback(head)
+        write_block(path, {**self.fill_done(head), **plan("npm test")})
+        refusal = self.refused(command, run)
+        self.assertIn("step S1's Proof `npm test` runs only the tests the item base has, but C1 is confirmed by "
+                      "test/built.test.js", refusal)
+        self.assertIn("then run the same callback again", refusal)
+        write_block(path, {**self.fill_done(head), **plan(direct)})      # the refusal's own exit, same callback
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["steps"][0]["proof"], direct)
+
+        run, head = self.new_run("step-plan")
+        command, path, action = printed_callback(head)
+        (self.repo_of(run) / "test").mkdir(parents=True, exist_ok=True)
+        (self.repo_of(run) / "test" / "built.test.js").write_text("// an existing test\n", encoding="utf-8")
+        write_block(path, {**self.fill_done(head), **plan("npm test")})
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["steps"][0]["proof"], "npm test")
+
+    def test_generic_command_and_confirm_by_command_read_what_rule_c_needs(self) -> None:
+        """Rule C's two readers (shiploop_item_scope).
+        - generic_command: a suite command is generic; a script path in any form (absolute, ../, relative) or inline
+          code is a direct proof. An empty command_paths is not enough, as the replay's 5 false refusals showed.
+        - confirm_by_command: reads the command after "Confirm by:"."""
+        for command in ("npm test", "pytest -q", "python3 -m unittest -v", "npm test -- --grep TC_1", "make test"):
+            self.assertTrue(scope.generic_command(command), command)
+        for command in ("node /tmp/run/scratch/w1-s1-proof.js", "node --test ../run/scratch/proofs/W1-S1.test.js",
+                        "node -e \"const a=require('node:assert');a.ok(1)\"", "node --test test/built.test.js",
+                        "python3 -c 'print(1)'", "node ../run/scratch/probe.js && npm test", ""):
+            self.assertFalse(scope.generic_command(command), command)
+        self.assertEqual(scope.confirm_by_command("x holds. Confirm by: node --test test/a.test.js; pass when it passes."),
+                         "node --test test/a.test.js")
+        self.assertEqual(scope.confirm_by_command("x holds. confirm by: npm test"), "npm test")
+        self.assertEqual(scope.confirm_by_command("no clause here"), "")
 
     def test_the_key_question_ledger_is_kept_when_given_refused_when_malformed_and_optional(self) -> None:
         """Intake duty 9 (2026-10-31, X1-T on Codex Terra 6.1 high: recall 0.49 without the ledger, 0.91 with it).  The

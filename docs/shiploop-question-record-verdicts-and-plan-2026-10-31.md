@@ -116,6 +116,8 @@ other 8. Full table and reading: test/shiploop_e2e/LEARNINGS.md (the entry of 20
   - *The registered second rule catches 3 more, but would refuse 5 plans whose Proof tests the step directly.*
   - *6 misses name the test by identifier, not path.*
   - *Each send-back costs about a minute, so no rule is added.*
+  - *Superseded in part the same day (journal E18). The narrow form, for plain suite Proofs only, is built as rule C
+    of the shipped refusal, for the Proof duty rather than for time.*
 - **A proof-command dry run.** One baseline send-back on Terra high was a Proof with unescaped shell quotes (a
   SyntaxError before any assertion); no gate reads that today. *2026-11-01: 3 of the 35 implement send-backs in the
   saved runs are a Proof's shell quoting (`labels.jsonl` in the folder above). They are counted only; their cost was not
