@@ -120,3 +120,110 @@ hours), the same command, subject, effort, arms and reader as round 1 (`lane-r2.
 R2 cannot say whether the brownfield implement send-backs (two of the four) repeat, because the ticket case is behind another session's
 lease and user-listing would take an hour on its own port; it cannot tell a small effect from none (4 runs a side); and it is a second
 look at an outcome chosen after the first look.
+
+## Results (19 runs of Codex gpt-6.1-terra at high; every run passed; `scores.json`, `results-tables.md`)
+
+The reader (`e2e_ab.py`) gained, after the registration commits, the `plugin_sha256` field, the send-back columns, the markdown tables
+and `replication()`, which applies R2-1 as registered in `9c2bf16a0264edc7d8b682ded7dc9a8292e8a838`; no rule changed. Runs:
+`~/e2e-runs-tl/20261101/` (outside git, like the earlier rounds); the harness rows are in `test/shiploop_e2e/baselines.jsonl`.
+**Identity.** All 10 arm A runs loaded the plugin tree `b665a3fac1d7`, built from origin/main
+`e13af240100c066489e83c028d97339845402b55`; all 9 arm B runs loaded `b054e60d0e03`, built from `60dc376881d397d770874af16c8a6a8ed60956b2`. The
+B build contains "K12 Terms and references" and the A build does not.
+
+### Every run
+
+| Run | pass | minutes | tokens (M) | refused callbacks | send-backs | ledger categories | K12 | intake questions | intake s / tool calls |
+|---|---|---|---|---|---|---|---|---|---|
+| A-hello-s1 | True | 9.2 | 18.2 | 0 | - | 11 | n/a | 0 | 22.9 / 5 |
+| A-hello-s2 | True | 14.6 | 24.0 | 1 | - | 11 | n/a | 3 | 21.0 / 5 |
+| A-hello-s3 | True | 9.5 | 16.8 | 0 | - | 11 | n/a | 2 | 24.8 / 6 |
+| A-hello-s4 | True | 9.9 | 16.8 | 0 | - | 11 | n/a | 1 | 26.8 / 6 |
+| A-hello-s5 | True | 8.5 | 17.2 | 0 | - | 11 | n/a | 2 | 19.3 / 5 |
+| A-hello-s6 | True | 9.9 | 17.6 | 1 | - | 11 | n/a | 6 | 21.8 / 6 |
+| A-ticket-assignment-s1 | True | 22.0 | 60.9 | 2 | - | 11 | n/a | 11 | 28.2 / 6 |
+| A-ticket-assignment-s2 | True | 29.0 | 66.7 | 2 | - | 11 | n/a | 10 | 24.6 / 6 |
+| A-user-listing-s1 | True | 10.8 | 15.5 | 1 | - | 11 | n/a | 2 | 31.3 / 4 |
+| A-user-listing-s2 | True | 13.3 | 21.1 | 0 | - | 11 | n/a | 6 | 32.4 / 7 |
+| B-hello-s1 | True | 11.1 | 19.2 | 0 | test-spec | 12 | yes | 3 | 24.1 / 5 |
+| B-hello-s2 | True | 13.1 | 19.8 | 2 | test-spec | 12 | no | 0 | 18.6 / 3 |
+| B-hello-s3 | True | 12.4 | 25.4 | 0 | - | 12 | no | 1 | 30.9 / 6 |
+| B-hello-s4 | True | 10.8 | 17.1 | 0 | - | 12 | no | 3 | 28.0 / 6 |
+| B-hello-s5 | True | 10.4 | 20.3 | 2 | test-spec | 12 | yes | 1 | 22.4 / 5 |
+| B-hello-s6 | True | 9.6 | 15.4 | 0 | - | 12 | no | 4 | 25.7 / 5 |
+| B-ticket-assignment-s1 | True | 17.1 | 26.1 | 2 | implement | 12 | yes | 12 | 28.7 / 5 |
+| B-user-listing-s1 | True | 11.1 | 17.9 | 1 | - | 12 | yes | 2 | 27.5 / 7 |
+| B-user-listing-s2 | True | 16.2 | 25.9 | 2 | implement | 12 | yes | 5 | 27.1 / 6 |
+
+### Arms
+
+Round 1, the registered 12-run design (samples 1 and 2; 11 finished):
+
+| Arm | runs | passed | minutes | tokens (M) | refused callbacks | runs with a send-back | intake questions | intake seconds | intake tool calls | K12 applies yes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| A | 6 | 6 | 16.5 | 34.4 | 1.00 | 0 | 5.3 | 26.7 | 5.5 | 0 |
+| B | 5 | 5 | 13.7 | 21.8 | 1.40 | 4 | 4.4 | 25.2 | 5.2 | 4 |
+
+All runs, round 1 and R2 (samples 1 to 6):
+
+| Arm | runs | passed | minutes | tokens (M) | refused callbacks | runs with a send-back | intake questions | intake seconds | intake tool calls | K12 applies yes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| A | 10 | 10 | 13.7 | 27.5 | 0.70 | 0 | 4.3 | 25.3 | 5.6 | 0 |
+| B | 9 | 9 | 12.4 | 20.8 | 1.00 | 5 | 3.4 | 25.9 | 5.3 | 5 |
+
+### Round 1, the registered rules (samples 1 and 2)
+
+Eleven of the 12 registered runs finished. The twelfth, B ticket-assignment run 2, was refused by the harness at launch with no model
+started (`b-ticket-s2-refusals/attempt-1-refused-at-launch.txt`: a listener of another session's ended case was still bound). The
+registered rerun was then queued for 29 minutes, 78 attempts, and every attempt was refused because another session's Round 4 holds the
+machine-wide lease on port 4180 (`b-ticket-s2-refusals/retry-attempts.txt`); I stopped it when the decision no longer depended on it.
+That run was not made.
+
+| Rule | Registered | Result | |
+|---|---|---|---|
+| L1 works live | at least 5 of 6 B ledgers name K1-K12; at most 1 B run with an intake refusal that names `question_categories` | 5 of 5 B ledgers hold 12 categories, as submitted and as stored; 0 intake refusals in any B run | holds |
+| L2 no harm | B passes at least 5 of 6 and at least A minus 1 | A 6 of 6, B 5 of 5 | holds |
+| L3 refusals | B's refused callbacks per run at most A's plus 1.5 | A 1.00, B 1.40 | holds |
+| L4 cost | B's mean processed tokens at most 1.25 times A's | 21.8M against 34.4M, ratio 0.63 | holds, with the caution below |
+| L5 no stop | no blocked B run; B asks a person no more than A | 0 blocked; both arms asked a person 0 times | holds |
+
+With the missing run counted as a total failure, L1 and L2 still hold at their thresholds (5 of 6); L3 would fail only if it refused 9
+callbacks, and L4 only if it used more than 149 million processed tokens, against a maximum of 67 million in any run.
+
+**Caution on L4.** The arms are unbalanced by case: B has one ticket-assignment run, A has two, and the two A runs are the two most
+expensive of the eleven, so the arm means flatter B. By case, round 1 only (B against A): hello 19.5M against 21.1M, ratio 0.92;
+user-listing 21.9M against 18.3M, ratio 1.19; ticket-assignment 26.1M (one run) against 63.8M (two runs), ratio 0.41; the mean of the three
+ratios is 0.84. The rule holds either way, but these runs show no saving: tokens per run ranged from 15M to 67M, and ticket-assignment alone from 26M to 67M.
+
+### R2, the replication (new runs only: hello, samples 3 to 6)
+
+| Arm | runs | passed | runs with a send-back |
+|---|---|---|---|
+| A | 4 | 4 | 0 |
+| B | 4 | 4 | 1 (B-hello-s5, at test-spec) |
+
+R2-1 needs B to have at least 2 more runs with a send-back than A. B minus A is 1, so **the excess did not replicate by the registered
+rule.** Descriptively, pooled over every run: A 0 of 10 runs with a send-back; B 5 of 9 (test-spec 3, implement 2); hello alone A 0 of 6,
+B 3 of 6. R2 alone, B 1 of 4 against A 0 of 4, is nowhere near the round-1 split but points the same way.
+
+### Decision
+
+Under the registration: L1 to L5 hold and R2-1 did not replicate, so **the change ships.** The round-1 send-back imbalance is recorded
+as unexplained and compatible with chance, not as disproved.
+
+### What these runs show, and do not
+
+- **Shown (for these three cases, one subject and effort):** the shipped wording runs in the real packet with the host's own skill
+  list; every B intake wrote all 12 categories, nobody had to be corrected, nobody stopped for a person, and all 19 runs passed. K12 is
+  used: 5 of 9 B ledgers mark it "yes", the other 4 mark it "no" with a reason ("Python unittest has standard meaning", "Terms and named
+  skill are clear"), and one filed a question under it (B ticket-assignment run 1, Q12, route inspect: "How does the repository define
+  notification and ticket status?"). Intake cost did not rise: seconds 25.9 against 25.3 and tool calls 5.3 against 5.6 per intake.
+  No `research` route and no `person` route was used in either arm.
+- **Not shown:** the benefit. These requests are fully specified, so K12 had little to settle; the benefit is QB5's, at exercise level.
+- **Pass rate:** 19 of 19 rules out only true pass rates below about 85% (one-sided 95%); B's 9 of 9 alone, below about 72%.
+- **Send-backs remain the open point.** Pooled B 5 of 9 against A 0 of 10 (exact one-sided p 0.011, but round 1 was picked because it was
+  odd, so that figure is biased toward an effect and is not used for the decision). A moderate real effect (say 40% against 5%) would give
+  R2-1 a 46% chance of firing at 4 runs a side, so R2 cannot rule one out. The cost seen is small: on hello, minutes 11.2 against 10.3 and
+  tokens 19.5M against 18.4M for B against A, within the spread of one arm. A comparison of about 10 hello runs a side (about 40 minutes)
+  would settle whether the K12 packet raises test-spec send-backs on hello; it was not run because the registered decision did not need it.
+- **Not tested:** the ticket-assignment second run; user-listing and ticket-assignment replications; any other subject or effort; the
+  `research` route with a real search tool; a loosely worded live request.

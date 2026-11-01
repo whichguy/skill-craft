@@ -45,6 +45,7 @@ def read(out):
     result = json.loads((out / "result.json").read_text()) if (out / "result.json").is_file() else {}
     row["pass"] = result.get("pass")
     row["local_head"] = (result.get("versions") or {}).get("local_head")
+    row["plugin_sha256"] = (result.get("versions") or {}).get("plugin_sha256")      # the tree the host loaded
     metrics = json.loads((out / "metrics.json").read_text()) if (out / "metrics.json").is_file() else {}
     row["tokens"] = (metrics.get("tokens") or {}).get("processed")
     row["turns"] = metrics.get("turns")
@@ -128,11 +129,60 @@ def rules(rows):
     return out
 
 
+def replication(rows):
+    """R2-1 (README.md, "Round 1 as read"): over the new hello runs s3 to s6, B has at least 2 more runs with a send-back than A.
+    Also the pooled send-back counts over every run, descriptive only."""
+    new = [r for r in rows if r["case"] == "hello" and 3 <= r["sample"] <= 6]
+    runs = lambda rs, arm: [r for r in rs if r["arm"] == arm]  # noqa: E731
+    with_sb = lambda rs: sum(1 for r in rs if r.get("send_backs"))  # noqa: E731
+    out = {"R2 runs": {"A": len(runs(new, "A")), "B": len(runs(new, "B"))},
+           "R2 runs with a send-back": {"A": with_sb(runs(new, "A")), "B": with_sb(runs(new, "B"))}}
+    out["B minus A"] = out["R2 runs with a send-back"]["B"] - out["R2 runs with a send-back"]["A"]
+    out["complete (4 runs a side)"] = out["R2 runs"] == {"A": 4, "B": 4}
+    out["replicates"] = out["B minus A"] >= 2
+    stages = {}
+    for r in rows:
+        for sb in r.get("send_backs") or []:
+            stages.setdefault(r["arm"], {}).setdefault(sb["stage"], 0)
+            stages[r["arm"]][sb["stage"]] += 1
+    out["pooled (descriptive)"] = {arm: {"runs": len(runs(rows, arm)), "runs with a send-back": with_sb(runs(rows, arm)),
+                                         "send-backs by stage": stages.get(arm, {})} for arm in ("A", "B")}
+    return out
+
+
+def markdown(rows, verdict):
+    """The tables of README.md "Results": every run, then each arm's means."""
+    fmt = lambda v, nd=1: "n/a" if v is None else (f"{v:.{nd}f}" if isinstance(v, float) else str(v))  # noqa: E731
+    out = ["| Run | pass | minutes | tokens (M) | refused callbacks | send-backs | ledger categories | K12 | intake questions | intake s / tool calls |",
+           "|---|---|---|---|---|---|---|---|---|---|"]
+    for r in rows:
+        tokens = None if r.get("tokens") is None else r["tokens"] / 1e6
+        out.append(f"| {r['run']} | {fmt(r.get('pass'))} | {fmt(r.get('minutes'))} | {fmt(tokens)} | {fmt(r.get('refusals'))} | "
+                   f"{', '.join(sb['stage'] for sb in r.get('send_backs') or []) or '-'} | {r.get('ledger_categories')} | {fmt(r.get('k12_applies'))} | {r.get('intake_questions')} | "
+                   f"{fmt(r.get('intake_seconds'))} / {fmt(r.get('intake_tool_calls'))} |")
+    for title, subset in (("Round 1, the registered 12-run design (samples 1 and 2; 11 finished)", [r for r in rows if r["sample"] <= 2]),
+                          ("All runs, round 1 and R2 (samples 1 to 6)", rows)):
+        out += ["", f"{title}:", "",
+                "| Arm | runs | passed | minutes | tokens (M) | refused callbacks | runs with a send-back | intake questions | intake seconds | intake tool calls | K12 applies yes |",
+                "|---|---|---|---|---|---|---|---|---|---|---|"]
+        for arm in ("A", "B"):
+            rs = [r for r in subset if r["arm"] == arm]
+            tokens = mean([r.get("tokens") for r in rs])
+            out.append(f"| {arm} | {len(rs)} | {sum(1 for r in rs if r.get('pass'))} | {fmt(mean([r.get('minutes') for r in rs]))} | "
+                       f"{fmt(None if tokens is None else tokens / 1e6)} | {fmt(mean([r.get('refusals') for r in rs]), 2)} | "
+                       f"{sum(1 for r in rs if r.get('send_backs'))} | {fmt(mean([r.get('intake_questions') for r in rs]))} | "
+                       f"{fmt(mean([r.get('intake_seconds') for r in rs]))} | {fmt(mean([r.get('intake_tool_calls') for r in rs]))} | "
+                       f"{sum(1 for r in rs if r.get('k12_applies') == 'yes')} |")
+    return "\n".join(out)
+
+
 def main():
     pattern = sys.argv[1] if len(sys.argv) > 1 else "~/e2e-runs-tl/20261101/[AB]-*"
     rows = [read(Path(p)) for p in sorted(glob.glob(os.path.expanduser(pattern))) if Path(p).is_dir()]
-    verdict = rules(rows)
+    verdict = rules([r for r in rows if r["sample"] <= 2])      # L1-L5 are registered over the 12-run design, not over R2's runs
+    verdict["R2"] = replication(rows)
     (HERE / "scores.json").write_text(json.dumps({"rows": rows, "rules": verdict}, indent=2) + "\n")
+    (HERE / "results-tables.md").write_text(markdown(rows, verdict) + "\n")
     for r in rows:
         print(f"{r['run']:26} pass={r.get('pass')} min={r.get('minutes')} status={r.get('status')} tokens={r.get('tokens')} "
               f"refusals={r.get('refusals')} cats={r.get('ledger_categories')}/{r.get('submitted_categories')} "

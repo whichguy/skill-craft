@@ -1,6 +1,7 @@
 ---
 Execute: inline
-Status: research done; QB1 to QB4 run and scored; nothing under skills/ changed; recommendation in §0 and §8
+Status: research done; QB1 to QB5 run and scored; the terms-and-references category (K12) built and live-tested on 2026-11-01 (§5.6) and
+  released after this entry (its version is in CHANGELOG.md); recommendation in §0 and §8
 Opened: 2026-10-31
 Consumer: the owner, who asked how harnesses enrich a prompt, whether questions beat statements and cost fewer tokens, and
   whether a question bank belongs in ShipLoop's intake; later, a session that changes intake duty item 9 or adds term and
@@ -62,10 +63,12 @@ jargon, which should be resolved by looking before anyone is asked.
   because the request's premise was false and no default is safe. It defaulted and recorded the rest. An explicit look-it-up order made
   the model read more (10 to 14 shell commands against 7.6), while earlier tests found models rarely run a probe merely because it is
   allowed (§5.4).
-- **Recommendation (nothing under skills/ changed).** Keep intake item 9 as shipped; do not build the bank, the 12-word cap or a
-  rewording of the catalog. The evidence supports one addition, a terms-and-references category with the look-it-up-first sentence: it replicated on
-  three more requests (QB5) on the main measure, but one registered condition failed (silent assertions, p 0.115), so by the rules' letter it
-  is not confirmed. The next step, a live A/B and then the change itself, needs the owner's go (§5.5, §8).
+- **Recommendation and outcome (updated 2026-11-01).** Keep intake item 9 as shipped and do not build the bank, the 12-word cap or a
+  rewording of the catalog. The evidence supported one addition, a terms-and-references category (K12) with the look-it-up-first sentence:
+  it replicated on three more requests (QB5) on the main measure, one registered condition failed (silent assertions, p 0.115), and the
+  owner said "Yes test all this then Commit and merge everything to main and publish". It was built, run live on the Codex harness (19
+  runs, all passed, all five registered rules held, one unregistered excess of send-backs did not replicate) and released (§5.6, §8, §9).
+  What the live runs do not show is the benefit: their requests are fully specified.
 
 ## 1. How I read the request's own terms
 
@@ -285,6 +288,28 @@ only C3 fails; that gap is recorded in the README and not filled in afterwards. 
 +0.103 (p 0.069); the data cannot separate their contributions. One intake call stalled for six minutes and was retried by the runner.
 Evidence: docs/experiments/terms-line-confirmation-20261031/ (README.md, scores.json, intake/, judge/).
 
+### 5.6 The live A/B of the shipped change (2026-11-01)
+
+Question: does the change as shipped, in the real packet with the host's own skill list (the wording differs from QB5's in two places: "the
+skills and commands your host lists" for "the installed skills listed above"), run on a real ShipLoop without harm? Setup (pre-registered in
+e48993e307b401a669257e7c699e61a067a3c9d3): origin/main e13af240100c066489e83c028d97339845402b55 (release 2.27.2 / 1.26.2) as arm A against
+the same plus the change, 60dc376881d397d770874af16c8a6a8ed60956b2, as arm B; Codex gpt-6.1-terra at high, all tools, hooks on, `--source
+checkout`; hello, user-listing and ticket-assignment, 2 runs per arm per case, three lanes; five rules L1 to L5 decided beforehand. Eleven of the
+12 runs finished: the twelfth was refused by the harness at launch (a stray listener of another session) and its rerun was then held out for
+29 minutes, 78 attempts, by another session's Round 4 on the machine-wide lease of port 4180. After reading the eleven, an excess the rules
+did not look at (stage send-backs: A 0 of 6 runs, B 4 of 5) led to a replication R2, registered in 9c2bf16a0264edc7d8b682ded7dc9a8292e8a838
+before its runs: hello, 4 more runs per arm, rule R2-1 (B has at least 2 more runs with a send-back than A).
+
+Result (status: firm for these three cases at one subject and effort; the benefit is not measured here): all 19 runs passed; L1 to L5 hold
+(every B ledger holds K1-K12, no ledger refusal, refused callbacks per run A 1.00 and B 1.40, tokens within the bar, nobody stopped for a person);
+with the missing run counted as a failure L1 and L2 still hold at their thresholds. R2-1 did not replicate: A 0 of 4 runs with a send-back, B 1
+of 4. Pooled over all 19 runs (descriptive only) A 0 of 10, B 5 of 9 (test-spec 3, implement 2), hello alone A 0 of 6, B 3 of 6; the cost seen is
+small (hello minutes 11.2 against 10.3, tokens 19.5M against 18.4M) and every run passed. K12 was used: 5 of 9 B ledgers mark it "yes", 4 "no"
+with a reason, one filed a question under it (inspect: how the repository defines notification and ticket status). Intake seconds and tool calls
+did not rise (25.9 and 5.3 against 25.3 and 5.6). Evidence: docs/experiments/terms-line-live-ab-20261101/ (README.md with the rules, the
+Results and the limits; scores.json; results-tables.md; e2e_ab.py; lane.sh and lane-r2.sh; b-ticket-s2-refusals/), runs in
+~/e2e-runs-tl/20261101/.
+
 ## 6. What a change to intake has to beat
 
 - **Coverage and cost of the shipped catalog on vague requests** (QB1, Terra xhigh): recall 0.935, agreement 0.74, noise share 0.36,
@@ -380,12 +405,16 @@ down.
 
 ## 8. Decisions for the owner, unknowns, and better tests
 
-**Decisions** (nothing here is built; the owner's go is needed for the second):
+**Decisions** (D2 was decided on 2026-11-01, see D2' below):
 - D1. Keep intake item 9 as shipped. No bank, no 12-word cap, no rewording of the catalog (recommended; §5.1, §5.2).
 - D2. The exercise-level confirmation is done (§5.5): the resolution gain replicated (C1, C2 and C4 hold), the silent-assertion rule C3
   missed (p 0.115). What remains is the live A/B and the change itself: the K12 line, the sentence, the ledger's shape check extended from
   K1-K11 to K12, a change note and tests. It needs the owner's go: it changes a shipped and live-validated prompt, costs about 8% to 12% more
   intake output tokens, uses a live cycle on the shared Terra account, and whether the C3 miss is acceptable is the owner's call.
+- D2'. Decided 2026-11-01. The owner answered "Yes test all this then Commit and merge everything to main and publish" to "Run the live A/B and
+  make the terms-line change?", which covers QB5's missed rule C3. Built (K12 line, sentence, shape check K1-K12, change note, tests) as
+  60dc376881d397d770874af16c8a6a8ed60956b2; live-tested under rules registered first (§5.6); shipped because L1 to L5 held and the replication of
+  the send-back excess did not fire. The excess stays an open point (see the unknowns).
 - D3. Leave S-14 as it is (unattended by default). QB4 shows what a rule that asks would send to a person (one question), if the owner
   ever wants it.
 
@@ -398,6 +427,10 @@ down.
   2.6 to 4.8 points between batches. The E2E default subject (DeepSeek flash) was not run (its Ollama limit); Sonnet, a stronger
   intake, may already catch most of what Terra misses (X1: Sonnet at 0.93 without the catalog).
 - The `research` route (a web search) was not exercised; internet jargon was read from the model's own knowledge.
+- Whether the K12 packet raises test-spec or implement send-backs (2026-11-01): round 1 had A 0 of 6 runs with one against B 4 of 5; the
+  replication R2 had A 0 of 4 against B 1 of 4, below its registered bar of a gap of 2. Pooled (biased: round 1 was picked for being odd) A 0 of
+  10, B 5 of 9. A moderate real effect (40% against 5%) would fire R2-1 only 46% of the time at 4 runs a side. No mechanism is known.
+- The live benefit of K12 on a loosely worded request: all three live cases are fully specified, so K12 had little to settle.
 - Real intake leaves repository facts to discovery; QB2 lets it read, which is not what ShipLoop does.
 - Host-supplied answers (60-second auto-resolve) and the survey agents' readings of the repositories are not verified beyond the star
   counts, push dates and a sample of cited issues and posts.
@@ -406,6 +439,9 @@ down.
 them; (2) a bank-to-spec test like X2b before any bank is considered again; (3) a pruned bank (the ten rows that earned the coverage)
 on held-out requests, since a bank pruned on these four would overfit them; (4) the attended probe with a looser asking rule and a
 simulated answerer, to see what comes after the question.
+
+(5) a hello comparison of about 10 runs a side (about 40 minutes) to settle the send-back question; (6) a live case whose request is dictated
+and names skills and slang, graded on what the run does with them, to measure K12's benefit end to end.
 
 ## 9. Journal
 
@@ -440,3 +476,20 @@ simulated answerer, to see what comes after the question.
   assertions is not significant at 15 outputs per arm (p 0.115; same direction as QB2); F29 the line and the sentence each carry most of
   the gain and cannot be separated here (exploratory). Landing: the first study was merged into main by merge commits, not a rebase, so the
   hashes this journal cites stand (dbbf945b); this QB5 work is on its own branch.
+- 2026-11-01, the owner's go and the build: read first the full messages of ffea29563ecab5415de88e68f9cb9b3e2f0b555f (the ledger),
+  e7e0bc3c0e347845e8ee4f99ee318175d280c9db (keep it in the stored result; read the submitted block, not the stored one),
+  45f9752eee7d4fe3450b9ac88843cc1da0fbb980 (the live A/B that shipped it, Terra high), c2da4604a0916a21280f3a25aa4c7572f0694ea1 (the stage-prompt round),
+  17cbbd9b830e8e95385617f0c1c9fb68dd850546, d9dd7443a210e419a9dbc139cdc929c9f56f3527 and the owner's note on jargon. Built the change
+  (commit message 60dc376881d397d770874af16c8a6a8ed60956b2); `origin/main` moved twice during the work (a docs commit, then the Python 3.9 floor release
+  e13af240100c066489e83c028d97339845402b55, 46 files including the hook scripts), so the change was rebased once onto the release before anything cited its hash.
+  Checks: test/shiploop-callback-contract.test.py 96 tests OK; quick and prompt tiers 38 suites OK in 402 s. Registered the live A/B
+  (e48993e307b401a669257e7c699e61a067a3c9d3), ran 11 of its 12 runs, registered R2 (9c2bf16a0264edc7d8b682ded7dc9a8292e8a838) after reading them, ran its 8
+  runs, applied the rules, shipped.
+- Findings (status in brackets): F30 the shipped K12 wording runs live: 9 of 9 B intakes wrote all 12 categories, none was refused, none used a
+  person route, all 19 runs passed (firm for these three cases, one subject and effort); F31 K12 is used: 5 "yes", 4 "no" with a reason, one
+  question filed under it, routed to inspect (exploratory: the requests are fully specified); F32 L1 to L5 hold on 11 of 12 round-1 runs and
+  also with the missing run counted as a failure (firm); F33 the send-back excess of round 1 (A 0 of 6, B 4 of 5) did not replicate by R2-1 (A 0 of
+  4, B 1 of 4) and remains unexplained; pooled A 0 of 10, B 5 of 9 (interim, descriptive, biased toward an effect); F34 token and time
+  figures are too unbalanced by case and too spread (ticket-assignment 26M to 67M) to claim a saving or a cost (exploratory); F35 (process) the
+  harness refuses a launch while a stray listener of another session's ended case is bound, and a machine-wide lease on a port can hold a
+  second session out for hours behind a multi-run round of the first: lane planning for port-leased cases must allow for that.

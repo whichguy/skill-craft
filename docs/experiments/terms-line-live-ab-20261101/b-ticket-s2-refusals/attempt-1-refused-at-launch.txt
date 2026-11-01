@@ -1,0 +1,3 @@
+a listener an ended case left is still bound, so no host is started (no override: stop it by pid):
+  pid 27966 node listens on port 56183 (working directory /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpa0ux2auo/ticket-assignment/quality/copy), left by /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpa0ux2auo/ticket-assignment, whose harness is not running: stop it by pid with `kill 27966`
+  pid 28743 node listens on port 57013 (working directory /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpa0ux2auo/ticket-assignment/quality/copy), left by /private/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/tmpa0ux2auo/ticket-assignment, whose harness is not running: stop it by pid with `kill 28743`

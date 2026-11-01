@@ -5340,3 +5340,63 @@ docs/experiments/experiment-route-20261031/README.md "Calibration (2026-11-01)" 
 - Baseline rows appended to test/shiploop_e2e/baselines.jsonl: FX's 8 and XI arm A's 6. XI arm B, the rejected
   candidate, is not appended.
 - Journal docs/shiploop-question-driven-planning-journal.md, E14 and E15.
+
+
+## Intake terms and references (K12): E2E round on the Codex harness, Terra 6.1 high (2026-11-01) — status: firm for these runs that the shipped wording runs live without a ledger refusal, a stop for a person or a failed delivery (19 of 19 passed); the benefit is not measured here, and an excess of stage send-backs in arm B is unexplained (R2 did not reproduce it by its registered rule)
+
+**Change under test.** 60dc376881d397d770874af16c8a6a8ed60956b2, on origin/main e13af240100c066489e83c028d97339845402b55 (release skill-craft
+2.27.2 / ShipLoop 1.26.2). Intake duty 9 gains the catalog line K12 (terms and references) and a sentence that orders the lookup: the skills and
+commands the host lists, then the repository and its documents, then a search (`research`); when nothing settles a term, the best reading and
+the run's confidence become the `default`, and `person` is for two readings that lead to different work. The ledger's shape check names
+K1-K12. Evidence behind it: docs/experiments/terms-line-confirmation-20261031/ (QB5, exercise level: items right 0.52 to 0.67, exact one-sided
+p 0.0083, +8% output tokens; its silent-assertion rule missed at p 0.115 and the owner's go of 2026-11-01 covers that).
+
+**Runs.**
+- Command: `run.py --case <case> --host codex --model gpt-6.1-terra --effort high --source checkout`, from each arm's own detached worktree: A =
+  e13af240 (main), B = 60dc3768 (A plus five files). Pre-registered in e48993e307b401a669257e7c699e61a067a3c9d3 (rules L1-L5, decided before
+  any run).
+- Round 1: three lanes in parallel (hello, user-listing, ticket-assignment; declared ports none, 3000, 4180), each lane A1, B1, A2, B2.
+  Eleven of 12 runs finished; B ticket-assignment run 2 was refused at launch (no model started) and then held out for 29 minutes, 78
+  attempts, by another session's Round 4 on the machine-wide lease of port 4180.
+- R2: after reading round 1 an excess the rules did not count (stage send-backs) was replicated on new runs, registered in
+  9c2bf16a0264edc7d8b682ded7dc9a8292e8a838 before they ran: hello, 4 more runs per arm, four lanes started together.
+- Output in `~/e2e-runs-tl/20261101/`. Reader: docs/experiments/terms-line-live-ab-20261101/e2e_ab.py.
+
+**Result.** All 19 runs passed; arm A loaded plugin tree b665a3fac1d7 in all 10 runs, arm B b054e60d0e03 in all 9.
+
+| Case | Arm | Runs | Passed | Minutes (mean) | Processed tokens, millions (mean) | Refused callbacks per run | Runs with a send-back |
+|---|---|---|---|---|---|---|---|
+| hello | A | 6 | 6 | 10.3 | 18.4 | 0.33 | 0 |
+| hello | B | 6 | 6 | 11.2 | 19.5 | 0.67 | 3 |
+| user-listing | A | 2 | 2 | 12.1 | 18.3 | 0.50 | 0 |
+| user-listing | B | 2 | 2 | 13.6 | 21.9 | 1.50 | 1 |
+| ticket-assignment | A | 2 | 2 | 25.5 | 63.8 | 2.00 | 0 |
+| ticket-assignment | B | 1 | 1 | 17.1 | 26.1 | 2.00 | 1 |
+
+- Round 1 rules: L1 holds (5 of 5 B ledgers name K1-K12; 0 intake refusals in B), L2 holds (A 6 of 6, B 5 of 5), L3 holds (refused callbacks per
+  run A 1.00, B 1.40), L4 holds (mean tokens 21.8M against 34.4M; unbalanced by case, by case the ratios are 0.92, 1.19 and 0.41), L5 holds
+  (nobody blocked, nobody asked a person). With the missing run counted as a failure L1 and L2 still hold at 5 of 6.
+- R2-1 did not fire: B had 1 run with a send-back (B hello s5, test-spec), A had 0 (a gap of 2 was needed).
+- K12 was used. B ledgers: 5 of 9 mark it "yes", 4 "no" with a reason; one filed a question under it (B ticket-assignment s1, route inspect:
+  "How does the repository define notification and ticket status?"). No `research` and no `person` route in either arm. Intake seconds 25.9
+  against 25.3 and tool calls 5.3 against 5.6.
+
+**Contrary evidence and unexplained.**
+- Stage send-backs: round 1 had A 0 of 6 runs, B 4 of 5 (hello s1 and s2 at test-spec, a step plan whose focused command listed no test ID;
+  ticket-assignment s1 and user-listing s2 at implement, a criterion needing tests the test stage writes later). R2: A 0 of 4, B 1 of 4. Pooled,
+  descriptive, biased toward an effect because round 1 was picked for being odd: A 0 of 10, B 5 of 9 (exact one-sided p 0.011). Earlier rounds on
+  this subject and effort with the proof-order refusal in the product had 2 runs with a send-back in 18. No mechanism is known by which intake's
+  ledger changes step-plan five stages later. A moderate real effect (40% against 5%) would fire R2-1 46% of the time at 4 runs a side, so R2
+  cannot rule one out. The cost seen is small: hello minutes 11.2 against 10.3, tokens 19.5M against 18.4M, every run passed.
+- The arms are unbalanced by case in the registered rounds (A has two ticket-assignment runs, B one) and run-to-run tokens vary from 15M to 67M,
+  so no cost or saving is claimed.
+
+**Not measured.** The benefit of K12 (all three requests are fully specified); the ticket-assignment second B run; replications on
+user-listing or ticket-assignment; other subjects and efforts; the `research` route with a real search tool; a loosely worded live request.
+Pass rate: 19 of 19 rules out only true rates below about 85% (one-sided 95%).
+
+**Evidence.**
+- Runs: `~/e2e-runs-tl/20261101/[AB]-<case>-s<n>`; the 19 rows are in test/shiploop_e2e/baselines.jsonl.
+- docs/experiments/terms-line-live-ab-20261101/: README.md (rules, Results, limits), e2e_ab.py, lane.sh, lane-r2.sh, scores.json,
+  results-tables.md, b-ticket-s2-refusals/.
+- Journal docs/shiploop-intake-question-bank-journal.md, §5.6 and §9 (F30-F35).
