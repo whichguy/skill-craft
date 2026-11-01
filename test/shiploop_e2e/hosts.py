@@ -233,6 +233,14 @@ def run_agent(argv: list[str], cwd: Path, env: dict, events_path: Path, stderr_p
 
 # ---------------------------------------------------------------- hosts
 
+# A throwaway HOME has no login keychain, so a CLI that stores a secret in the keychain makes macOS show a modal "Keychain Not
+# Found" dialog on the owner's screen and blocks until someone answers it. The Salesforce CLI does this on its first org command
+# in a new HOME (it creates its key: service `sfdx`, account `local`, so the dialog says it cannot store "local"); this variable
+# makes it keep the key in <HOME>/.sfdx/key.json instead, and the command fails at once for want of a login. A command that runs
+# with the real HOME (platform.model_bin) unsets it, so the real CLI keeps reading its key from the real keychain.
+THROWAWAY_HOME_ENV = {"SF_USE_GENERIC_UNIX_KEYCHAIN": "true"}
+
+
 def _isolated_env(home: Path, git_config: Path | None, strip: tuple, extra: dict) -> dict:
     """The environment of a throwaway profile at ``home`` with its own git identity."""
     if git_config is None:
@@ -242,7 +250,7 @@ def _isolated_env(home: Path, git_config: Path | None, strip: tuple, extra: dict
     env.update(HOME=str(home), XDG_CONFIG_HOME=str(home / ".config"),
                XDG_DATA_HOME=str(home / ".local/share"), XDG_CACHE_HOME=str(home / ".cache"),
                XDG_STATE_HOME=str(home / ".local/state"),
-               GIT_CONFIG_GLOBAL=str(git_config), GIT_TERMINAL_PROMPT="0", NO_COLOR="1", **extra)
+               GIT_CONFIG_GLOBAL=str(git_config), GIT_TERMINAL_PROMPT="0", NO_COLOR="1", **THROWAWAY_HOME_ENV, **extra)
     return env
 
 

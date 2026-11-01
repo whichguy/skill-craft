@@ -70,7 +70,8 @@ run showed. Judge a run by ShipLoop's SDLC fidelity, not by the chess app (see t
 
 Under the throwaway HOME that Grok and Codex use, `sf org list --json` hangs even with `~/.sfdx` and `~/.sf` symlinked into it. The CLI
 keeps its decryption key in the macOS keychain (an item named `sfdx` exists), and a different HOME hides it (measured: the hang; the keychain cause is the
-main session's reading, not separately proven). The same command works with the real HOME. Evidence: the main session's run of the command under the isolated HOME and under
+main session's reading, not separately proven; proven 2026-11-01, see F13: the hang is the modal "Keychain Not Found" dialog the CLI raises when it
+tries to store a new key in a HOME without a keychain). The same command works with the real HOME. Evidence: the main session's run of the command under the isolated HOME and under
 the real one, and the passing `selftest` rehearsal below (real HOME).
 
 ### F2. The rehearsal passed on the real org (firm, 2026-10-16)
@@ -452,3 +453,31 @@ gained a parameter whose default keeps this case's behaviour (`destructive_xml` 
 `destructive_deploy`, which now also names a refused destructive deploy's component failures); the chess suite is unchanged at 192
 tests and passes. The guard's permission-set scope and `org assign permset` exist only behind `sf_guard.py --permission-sets`, which
 this case's wrapper does not pass. Design, oracle and open items: `docs/e2e-salesforce-battleship-journal.md`.
+
+### F13. The F1 hang is macOS's "Keychain Not Found" dialog; a throwaway HOME now keeps the CLI's key in a file (firm, 2026-11-01)
+
+The owner kept seeing a modal dialog, "A keychain cannot be found to store "local"", during E2E runs and suspected the Chromium
+UI checks. `local` is the Salesforce CLI's key (keychain service `sfdx`, account `local`; `@salesforce/core` 9.4.1 `ACCOUNT = 'local'`).
+In a throwaway HOME the CLI finds no key, makes a new one and asks `/usr/bin/security` to store it; with no login keychain under
+that HOME macOS shows the dialog and the command blocks until someone answers. That is F1's hang. Chromium is not involved:
+Playwright 1.62.1 launches it with `--use-mock-keychain` and `--password-store=basic`.
+
+Where it happened: the start-route probe's `sf-ui` trials run Codex in a throwaway HOME without the guard wrapper, and the model
+ran the real CLI (`sf data` in 7 trials, `sf org` in 5, `sf apex` in 3, `sf alias` in 1 on 2026-11-01); `sf data query` sat for
+about a minute and ended with exit 130. The guarded cases' model commands go through the wrapper (real HOME; 0 direct `sf`
+commands in the three 2026-10-31 runs), so they never raised it.
+
+Decision: `hosts.THROWAWAY_HOME_ENV` sets `SF_USE_GENERIC_UNIX_KEYCHAIN=true` in every throwaway-HOME host environment (Codex,
+Grok), the CLI's documented switch for automation users: a command that reaches the real CLI outside the wrapper writes its key to
+`<throwaway home>/.sfdx/key.json` and fails at once for want of a login. `platform.model_bin` wrappers unset it (`env -u`) as they
+restore the real HOME, so the guarded real CLI keeps reading the real keychain. Measured: exit 2 in 2 s with
+`NamedOrgNotFoundError` in a fresh HOME; `org list` through the unset path lists `de` as Connected; no `key.json` in the real
+`~/.sfdx`. Rejected: linking `~/Library/Keychains` into the throwaway HOME (it would hand the model the login and bypass the guard,
+F3); creating an empty keychain per run (writes keychain search-list state, which is not ours to change).
+
+Unknowns: what "Reset To Defaults" does for a process with a throwaway HOME (answer Cancel); a case that `home_links` `.sfdx`
+would now let the key file land in the real `~/.sfdx` (no case does); other throwaway-HOME builders (`stage_suite/stage_oracle.py`,
+`probes/ticket_semantics.py`) run product tests, not the CLI, and are unchanged. Runs already in flight use the harness of the
+tree they started from and keep raising the dialog until they move to a tree with this change.
+
+Evidence: `docs/e2e-salesforce-chess-evidence/2026-11-01-keychain-dialog.md` and the owner's screenshot beside it.
