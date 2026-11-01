@@ -1,0 +1,23 @@
+files link2-b changed against link1-b's head:
+ README.md                     |  7 +++++++
+ SHIPLOOP.md                   |  6 ++++++
+ docs/shiploop/architecture.md |  8 ++++++--
+ docs/shiploop/environment.md  | 18 +++++++++++++++++-
+ docs/shiploop/spec.md         |  7 ++++++-
+ slug.py                       | 11 ++++++++++-
+ test_slug.py                  | 42 +++++++++++++++++++++++++++++++++++++++++-
+ 7 files changed, 93 insertions(+), 6 deletions(-)
+
+SHIPLOOP.md (the knowledge index ShipLoop has committed with docs/shiploop/ since 2026-09-27, commit 2cd8f33b; link 2 committed it and neither link-1 run of this round nor any Round 6 run did; which condition triggers it is not examined here, and it is not a change of the 1.30.1 build):
+# Project knowledge
+
+- [Living spec](docs/shiploop/spec.md) — requirements and acceptance.
+- [Architecture](docs/shiploop/architecture.md) — decisions and CLI boundaries.
+- [Environment](docs/shiploop/environment.md) — runtime, test command and local return.
+- [README](README.md) — consumer usage.
+
+spec.md lines naming the option:
+  Basis: user requests 2026-11-01, original S4 and follow-up S3-S7. The formerly deferred --max-length is now a supported option (R-4); all other unknown options still yield exit status 2 and no slug on stdout. Missing title also yields status 2. Confirm by subprocess unittest.
+  Basis: original request 2026-11-01 S3, follow-up finding S3-S5. `--max-length N` limits the generated slug to N Unicode characters, then removes trailing hyphens. For `Hello, World`, N=8 prints `hello-wo` and N=6 prints `hello`. Without the option behavior remains R-1. Confirm each via CLI subproces
+
+test names: test_titles, test_argument_errors, test_max_length, test_max_length_errors, test_unknown_option_prefix

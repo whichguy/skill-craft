@@ -1,0 +1,119 @@
+===== link1-a (runner output, from the verdict line on)
+PASS  shiploop e2e case=custom host=codex  output=/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-a
+  versions  marketplace: skill-craft 2.31.0, ShipLoop 1.30.0
+  invoked   PASS  /skill-craft:shiploop
+  plugin    PASS  skill-craft@whichguy 2.31.0
+  process   PASS  exited rc=0 512.6s cost=not reported sessions=1
+  keepalive installed; decisions {'allow': 1}
+  shiploop  PASS  done
+  trace checks  keepalive text not exercised; packet copies pass (31 prints (0 reprints), each with its kept copy); owner note not exercised; session end not exercised
+  stopped   host exited rc=0; session stops end_turn; no further resume: ShipLoop run is done; engine done
+  outcome   PASS  every verdict passed
+  environment  load 14.1 -> 11.2 on 18 cpus; display held
+  environment  overlap: follow-on-gap-d79bc3/link1-b (codex) 502.1 s, began 9.1 s after this run started
+  committed PASS  HEAD 2fd4c4fb (started at no commit); 6 files in HEAD, 0 uncommitted product paths
+  knowledge docs/shiploop/spec.md present, tracked; 3 requirement ids; HEAD has 11 commits, 0 untracked files
+  metrics   turns 141, cost not reported, sessions 1 (end_turn), compactions 0, truncated outputs not measured, cancelled tool calls not measured, ShipLoop command failures 2, script verifications 3/3 passed, model glue 0, asked a person 0, Improve children 8 (9 review passes, at most 2 in one child)
+  metrics   ShipLoop gates: mutation_not_done 1 (caught 1), other 1 (caught 1)
+  metrics   Test-quality dodges: 0 over 1 step plan (grep-only on code for an executed criterion 0; guarded RED 0; surviving mutants 0); inspected criteria 0; context: 0 searched greps, 0 greps with no criterion
+  metrics   Retired terms in ShipLoop's output: expected-RED (a baseline repair) 6
+  metrics   planning window closed at test-spec: 3.5 min engine / 3.8 min host; Improve 1.6 min in 4 children, other 1.9 min; output tokens 19,851 (6% reasoning, host clock)
+  metrics   narrative shown 19/20 (verbatim 19), skipped at step-plan; headlines 22/23 results
+  metrics   costliest stages: step-plan 1.1m, test 0.9m, document 0.6m, spec 0.6m, plan 0.6m (by minutes: this host reports no per-stage turns)
+  fidelity  evidence 23 accepted: script 9, loop 5, file 9, note 0, sentence 0, skipped 0, unclassified 0 (records: verify 3, lint 3, loop 6, expectation 1, backchain 0, improve 8); declared script-run without a record: validate-existing, document
+  fidelity  validation 3 records / 4 runs / 2 commands: test counts unmeasured 1, zero-ran 0 of 3 counted, red 0, accepted_ran at 1 stages; release-verify record: returned-result, passed true
+  fidelity  edits (heuristic, no hit is not proof): script-owned edits 0, name-pattern kills 0, model commit commands 0
+  fidelity  refusals (heuristic, no repeat flagged is not proof) 2, repeated 0
+  fidelity  end state done, unverified 0
+  failed    shiploop complete exit 2: step S1's proof must be one nonblank command line, run from the repository root; join steps with && or ; on that line (a \n written inside the JSON string is decoded to a newline before this check run
+  failed    shiploop check exit 2, a --check-only check: ShipLoop mutation check: test is not done. 1 of 2 mutants of this item's changed product lines survived the focused tests, with no disposition:
+  checks    expected from the --check arguments given with --prompt
+  check     PASS  test "$(python3 slug.py "Hello, World!")" = "hello-world"
+  check     PASS  test "$(python3 slug.py "  Many   spaces here ")" = "many-spaces-here"
+  check     PASS  python3 slug.py "Hello World" --max-length 5 >/dev/null 2>&1; test $? -eq 2
+  check     PASS  python3 -m unittest -q
+  review export: /Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-a/review-export; page /Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-a/review-export/run-review.html
+  baseline  nothing compared: no earlier row for custom from this source
+  quality   not observed: the case declares no quality measures (no mutation command, no held-out acceptance)
+
+[exited with code 0]
+
+===== link1-b (runner output, from the verdict line on)
+PASS  shiploop e2e case=custom host=codex  output=/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-b
+  versions  marketplace: skill-craft 2.31.0, ShipLoop 1.30.0
+  invoked   PASS  /skill-craft:shiploop
+  plugin    PASS  skill-craft@whichguy 2.31.0
+  process   PASS  exited rc=0 580.2s cost=not reported sessions=1
+  keepalive installed; decisions {'allow': 1}
+  shiploop  PASS  done
+  trace checks  keepalive text not exercised; packet copies pass (32 prints (0 reprints), each with its kept copy); owner note not exercised; session end not exercised
+  stopped   host exited rc=0; session stops end_turn; no further resume: ShipLoop run is done; engine done
+  outcome   PASS  every verdict passed
+  environment  load 14.52 -> 11.37 on 18 cpus; display held
+  environment  overlap: follow-on-gap-d79bc3/link1-a (codex) 502.1 s, began 9.1 s before this run started
+  committed PASS  HEAD 1bd9185c (started at no commit); 7 files in HEAD, 0 uncommitted product paths
+  knowledge docs/shiploop/spec.md present, tracked; 3 requirement ids; HEAD has 13 commits, 0 untracked files
+  metrics   turns 146, cost not reported, sessions 1 (end_turn), compactions 0, truncated outputs not measured, cancelled tool calls not measured, ShipLoop command failures 0, script verifications 4/4 passed, model glue 0, asked a person 0, Improve children 8 (10 review passes, at most 2 in one child)
+  metrics   Test-quality dodges: 0 over 1 step plan (grep-only on code for an executed criterion 0; guarded RED 0; surviving mutants 0); inspected criteria 0; context: 1 searched greps, 0 greps with no criterion
+  metrics   Retired terms in ShipLoop's output: acceptance criteria (inside a requirement) 3
+  metrics   planning window closed at test-spec: 4.0 min engine / 4.2 min host; Improve 2.0 min in 4 children, other 2.0 min; output tokens 20,239 (6% reasoning, host clock)
+  metrics   narrative shown 20/21 (verbatim 20), skipped at release; headlines 22/23 results
+  metrics   costliest stages: step-plan 1.2m, document 0.7m, test-strategy 0.7m, test 0.7m, carry-forward 0.7m (by minutes: this host reports no per-stage turns)
+  fidelity  evidence 23 accepted: script 9, loop 5, file 8, note 1, sentence 0, skipped 0, unclassified 0 (records: verify 4, lint 3, loop 6, expectation 1, backchain 0, improve 8); declared script-run without a record: validate-existing
+  fidelity  validation 4 records / 7 runs / 3 commands: test counts unmeasured 0, zero-ran 0 of 3 counted, red 0, accepted_ran at 1 stages; release-verify record: returned-result, passed true
+  fidelity  edits (heuristic, no hit is not proof): script-owned edits 0, name-pattern kills 0, model commit commands 0
+  fidelity  refusals (heuristic, no repeat flagged is not proof) 0, repeated 0
+  fidelity  end state done, unverified 0
+  checks    expected from the --check arguments given with --prompt
+  check     PASS  test "$(python3 slug.py "Hello, World!")" = "hello-world"
+  check     PASS  test "$(python3 slug.py "  Many   spaces here ")" = "many-spaces-here"
+  check     PASS  python3 slug.py "Hello World" --max-length 5 >/dev/null 2>&1; test $? -eq 2
+  check     PASS  python3 -m unittest -q
+  review export: /Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-b/review-export; page /Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-b/review-export/run-review.html
+  baseline  vs 2026-11-01 (ShipLoop 1.30.0, same codex/gpt-6.1-terra/xhigh, planning_review stage): turns 141 -> 146, cost not reported -> not reported, sessions 1 -> 1, glue 0 -> 0, narrative shown 19/20 -> 20/21
+            sample: plugin tree same (b604dade538e); codex build codex-cli 0.166.0 (same); 1 earlier row(s) in this cell on 1 recorded build(s)
+            stage minutes (this host reports no per-stage turns): implement 0.3->0.6, test-strategy 0.5->0.7, test 0.9->0.7, release 0.2->0.4, carry-forward 0.5->0.7
+  quality   not observed: the case declares no quality measures (no mutation command, no held-out acceptance)
+
+[exited with code 0]
+
+===== link2-b (runner output, from the verdict line on)
+PASS  shiploop e2e case=custom host=codex  output=/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link2-b
+  versions  marketplace: skill-craft 2.32.0, ShipLoop 1.30.1
+  invoked   PASS  /skill-craft:shiploop
+  plugin    PASS  skill-craft@whichguy 2.32.0
+  process   PASS  exited rc=0 543.3s cost=not reported sessions=1
+  keepalive installed; decisions {'allow': 1}
+  shiploop  PASS  done
+  trace checks  keepalive text not exercised; packet copies pass (32 prints (0 reprints), each with its kept copy); owner note not exercised; session end not exercised
+  stopped   host exited rc=0; session stops end_turn; no further resume: ShipLoop run is done; engine done
+  outcome   PASS  every verdict passed
+  environment  load 13.29 -> 5.58 on 18 cpus; display held
+  environment  overlap: none (0 neighbouring runs read under ~/e2e-runs/2026-11-01)
+  committed PASS  HEAD 1f162214 (started at 1bd9185c); 8 files in HEAD, 0 uncommitted product paths
+  knowledge docs/shiploop/spec.md present, tracked; 4 requirement ids; HEAD has 25 commits, 0 untracked files
+  metrics   turns 167, cost not reported, sessions 1 (end_turn), compactions 0, truncated outputs not measured, cancelled tool calls not measured, ShipLoop command failures 1, script verifications 5/5 passed, model glue 0, asked a person 0, Improve children 8 (11 review passes, at most 2 in one child)
+  metrics   ShipLoop gates: other 1
+  metrics   Test-quality dodges: 0 over 1 step plan (grep-only on code for an executed criterion 0; guarded RED 0; surviving mutants 0); inspected criteria 0; context: 0 searched greps, 0 greps with no criterion
+  metrics   planning window closed at test-spec: 3.7 min engine / 3.9 min host; Improve 1.7 min in 4 children, other 2.0 min; output tokens 21,756 (4% reasoning, host clock)
+  metrics   narrative shown 18/21 (verbatim 18), skipped at test-strategy, plan, release; headlines 22/23 results
+  metrics   costliest stages: step-plan 1.0m, document 0.9m, spec 0.7m, test 0.7m, carry-forward 0.6m (by minutes: this host reports no per-stage turns)
+  fidelity  evidence 23 accepted: script 9, loop 5, file 9, note 0, sentence 0, skipped 0, unclassified 0 (records: verify 4, lint 3, loop 6, expectation 1, backchain 0, improve 8); declared script-run without a record: validate-existing
+  fidelity  validation 5 records / 7 runs / 2 commands: test counts unmeasured 0, zero-ran 0 of 4 counted, red 0, accepted_ran at 2 stages; release-verify record: returned-result, passed true
+  fidelity  edits (heuristic, no hit is not proof): script-owned edits 0, name-pattern kills 0, model commit commands 0
+  fidelity  refusals (heuristic, no repeat flagged is not proof) 1, repeated 0
+  fidelity  end state done, unverified 0
+  failed    shiploop unknown exit 3: ShipLoop red-check could not run: red-check runs only for the current test action
+  follow-on of custom (/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-b): turns 167 vs 146, cost not reported vs not reported
+  checks    expected from the --check arguments given with --prompt
+  check     PASS  test "$(python3 slug.py "Hello, World!")" = "hello-world"
+  check     PASS  test "$(python3 slug.py "  Many   spaces here ")" = "many-spaces-here"
+  check     PASS  test "$(python3 slug.py "Hello, World" --max-length 8)" = "hello-wo"
+  check     PASS  test "$(python3 slug.py "Hello, World" --max-length 6)" = "hello"
+  check     PASS  python3 -m unittest -q
+  review export: /Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link2-b/review-export; page /Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link2-b/review-export/run-review.html
+  baseline  nothing compared: 2 earlier row(s) for custom, none comparable with this run (2 another prompt)
+  quality   not observed: the case declares no quality measures (no mutation command, no held-out acceptance)
+
+[exited with code 0]
+

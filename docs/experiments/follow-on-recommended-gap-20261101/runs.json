@@ -1,0 +1,266 @@
+[
+  {
+    "folder": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-a",
+    "name": "link1-a",
+    "result_json": true,
+    "pass": true,
+    "gates": {
+      "invoked": true,
+      "plugin": true,
+      "process": true,
+      "shiploop": true,
+      "committed": true,
+      "checks": true
+    },
+    "turns": 141,
+    "span": {
+      "started": 1793566359.37,
+      "ended": 1793566870.558
+    },
+    "plugin_sha256": "b604dade538e",
+    "follow_on_extract": [
+      {
+        "run": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-a/.shiploop-runs/work-20261101-205250-945db4/run",
+        "status": "done",
+        "stage": "done",
+        "handoff_attempts": [
+          {
+            "exit": 0,
+            "moved_to": "done"
+          }
+        ],
+        "packets": [
+          {
+            "chars": 20868,
+            "printed": 16951,
+            "whole": false
+          }
+        ],
+        "follow_on": [
+          {
+            "class": "note",
+            "needs": "A later run can implement the requested length option and its examples when the user asks.",
+            "request_sentence": "",
+            "source": "lessons.open_next",
+            "statement": "The user explicitly deferred --max-length to a later run."
+          }
+        ],
+        "handoff_accepted": true,
+        "request_file": false,
+        "report_has_section": true,
+        "unverified_at_handoff": []
+      }
+    ],
+    "work": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-a/work",
+    "files": [
+      "README.md",
+      "docs/shiploop/architecture.md",
+      "docs/shiploop/environment.md",
+      "docs/shiploop/spec.md",
+      "slug.py",
+      "test_slug.py"
+    ],
+    "finding_mentions": {
+      "docs/shiploop/architecture.md": 1,
+      "docs/shiploop/environment.md": 1,
+      "docs/shiploop/spec.md": 1
+    },
+    "behaviour": {
+      "plain": {
+        "exit": 0,
+        "stdout": "hello-world",
+        "stderr": ""
+      },
+      "max 8": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "usage: slug.py [-h] title\nslug.py: error: unrecognized arguments: --max-length 8"
+      },
+      "max 6": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "usage: slug.py [-h] title\nslug.py: error: unrecognized arguments: --max-length 6"
+      },
+      "unknown option": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "usage: slug.py [-h] title\nslug.py: error: unrecognized arguments: --bogus 1"
+      }
+    }
+  },
+  {
+    "folder": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-b",
+    "name": "link1-b",
+    "result_json": true,
+    "pass": true,
+    "gates": {
+      "invoked": true,
+      "plugin": true,
+      "process": true,
+      "shiploop": true,
+      "committed": true,
+      "checks": true
+    },
+    "turns": 146,
+    "span": {
+      "started": 1793566368.438,
+      "ended": 1793566946.976
+    },
+    "plugin_sha256": "b604dade538e",
+    "follow_on_extract": [
+      {
+        "run": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-b/.shiploop-runs/work-20261101-205300-31cbd8/run",
+        "status": "done",
+        "stage": "done",
+        "handoff_attempts": [
+          {
+            "exit": 0,
+            "moved_to": "done"
+          }
+        ],
+        "packets": [
+          {
+            "chars": 20066,
+            "printed": 16561,
+            "whole": false
+          }
+        ],
+        "follow_on": [
+          {
+            "class": "gap",
+            "needs": "Later run implements truncation, trims trailing hyphens, and updates tests.",
+            "request_sentence": "S3",
+            "source": "lessons.open_next",
+            "statement": "Implement --max-length in the later run the user requested; this run intentionally rejects it."
+          }
+        ],
+        "handoff_accepted": true,
+        "request_file": true,
+        "report_has_section": true,
+        "unverified_at_handoff": []
+      }
+    ],
+    "work": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-b/work",
+    "files": [
+      ".gitignore",
+      "README.md",
+      "docs/shiploop/architecture.md",
+      "docs/shiploop/environment.md",
+      "docs/shiploop/spec.md",
+      "slug.py",
+      "test_slug.py"
+    ],
+    "finding_mentions": {
+      "docs/shiploop/architecture.md": 1,
+      "docs/shiploop/environment.md": 0,
+      "docs/shiploop/spec.md": 1
+    },
+    "behaviour": {
+      "plain": {
+        "exit": 0,
+        "stdout": "hello-world",
+        "stderr": ""
+      },
+      "max 8": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "usage: slug.py [-h] title\nslug.py: error: unrecognized arguments: --max-length 8"
+      },
+      "max 6": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "usage: slug.py [-h] title\nslug.py: error: unrecognized arguments: --max-length 6"
+      },
+      "unknown option": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "usage: slug.py [-h] title\nslug.py: error: unrecognized arguments: --bogus 1"
+      }
+    }
+  },
+  {
+    "folder": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link2-b",
+    "name": "link2-b",
+    "result_json": true,
+    "pass": true,
+    "gates": {
+      "invoked": true,
+      "plugin": true,
+      "process": true,
+      "shiploop": true,
+      "committed": true,
+      "checks": true
+    },
+    "turns": 167,
+    "span": {
+      "started": 1793566992.682,
+      "ended": 1793567534.319
+    },
+    "plugin_sha256": "6aa0a67b2ac0",
+    "follow_on_extract": [
+      {
+        "run": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link2-b/.shiploop-runs/work-20261101-210325-d4f6b3/run",
+        "status": "done",
+        "stage": "done",
+        "handoff_attempts": [
+          {
+            "exit": 0,
+            "moved_to": "done"
+          }
+        ],
+        "packets": [
+          {
+            "chars": 20137,
+            "printed": 16531,
+            "whole": false
+          }
+        ],
+        "follow_on": [],
+        "handoff_accepted": true,
+        "request_file": false,
+        "report_has_section": true,
+        "unverified_at_handoff": []
+      }
+    ],
+    "work": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link2-b/work",
+    "prompt_is_prior_request_file": true,
+    "prior_request_text": "Follow up an earlier ShipLoop run of this project: it left the findings below for a later run.\nClose each finding, using the earlier run's record where one is named.\n- Gap, S3 of the earlier request: Implement --max-length in the later run the user requested; this run intentionally rejects it. Needs: Later run implements truncation, trims trailing hyphens, and updates tests.. Recorded in lessons.open_next.\nEverything the project already does must keep working. Keep the decisions in the living spec and architecture unless a finding above says otherwise, and run the existing tests first.\nThe earlier run's request is in /Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-b/.shiploop-runs/work-20261101-205300-31cbd8/run/request.md; its lessons commit is 'docs(shiploop): record skill-craft-shiploop-write-slug-py-91b6b4 knowledge at release-verify'.\n",
+    "start_head": "1bd9185c29856408654066d027bd63223813f368",
+    "files_changed_vs_prior_head": [
+      "README.md",
+      "SHIPLOOP.md",
+      "docs/shiploop/architecture.md",
+      "docs/shiploop/environment.md",
+      "docs/shiploop/spec.md",
+      "slug.py",
+      "test_slug.py"
+    ],
+    "finding_mentions": {
+      "docs/shiploop/architecture.md": 2,
+      "docs/shiploop/environment.md": 0,
+      "docs/shiploop/spec.md": 2
+    },
+    "behaviour": {
+      "plain": {
+        "exit": 0,
+        "stdout": "hello-world",
+        "stderr": ""
+      },
+      "max 8": {
+        "exit": 0,
+        "stdout": "hello-wo",
+        "stderr": ""
+      },
+      "max 6": {
+        "exit": 0,
+        "stdout": "hello",
+        "stderr": ""
+      },
+      "unknown option": {
+        "exit": 2,
+        "stdout": "",
+        "stderr": "usage: slug.py [-h] [--max-length N] title\nslug.py: error: unrecognized argument"
+      }
+    }
+  }
+]

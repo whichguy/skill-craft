@@ -1,0 +1,15 @@
+{
+  "output": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-b",
+  "request_file": true,
+  "printed_in": {
+    "packets": 1,
+    "report": 1
+  },
+  "printed": "python3 /Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-b/home/.codex/plugins/cache/whichguy/skill-craft/2.31.0/skills/shiploop/scripts/shiploop workspace start --repo /Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-b/work --prompt=\"$(cat /Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/link1-b/.shiploop-runs/work-20261101-205300-31cbd8/run/follow-on-request.md)\"",
+  "exit": 0,
+  "traceback": false,
+  "workspace_records": 1,
+  "stored_equals_file_but_last_newline": true,
+  "stored_equals_file_exactly": false,
+  "verdict": "works as printed"
+}

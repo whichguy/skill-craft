@@ -1,0 +1,40 @@
+====================================================================================================
+link1-a | pass True | turns 141 | plugin b604dade538e | gates {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True, 'checks': True}
+  span: {'started': 1793566359.37, 'ended': 1793566870.558}
+  handoff attempts: [{'exit': 0, 'moved_to': 'done'}] | status done | request file False | report section True
+  follow_on: 1 entries
+    - note | lessons.open_next | request_sentence -
+        statement: The user explicitly deferred --max-length to a later run.
+        needs:     A later run can implement the requested length option and its examples when the user asks.
+  files in HEAD: ['README.md', 'docs/shiploop/architecture.md', 'docs/shiploop/environment.md', 'docs/shiploop/spec.md', 'slug.py', 'test_slug.py']
+  knowledge lines naming the option: {'docs/shiploop/architecture.md': 1, 'docs/shiploop/environment.md': 1, 'docs/shiploop/spec.md': 1}
+  slug.py [plain]: {'exit': 0, 'stdout': 'hello-world', 'stderr': ''}
+  slug.py [max 8]: {'exit': 2, 'stdout': '', 'stderr': 'usage: slug.py [-h] title\nslug.py: error: unrecognized arguments: --max-length 8'}
+  slug.py [max 6]: {'exit': 2, 'stdout': '', 'stderr': 'usage: slug.py [-h] title\nslug.py: error: unrecognized arguments: --max-length 6'}
+  slug.py [unknown option]: {'exit': 2, 'stdout': '', 'stderr': 'usage: slug.py [-h] title\nslug.py: error: unrecognized arguments: --bogus 1'}
+====================================================================================================
+link1-b | pass True | turns 146 | plugin b604dade538e | gates {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True, 'checks': True}
+  span: {'started': 1793566368.438, 'ended': 1793566946.976}
+  handoff attempts: [{'exit': 0, 'moved_to': 'done'}] | status done | request file True | report section True
+  follow_on: 1 entries
+    - gap | lessons.open_next | request_sentence S3
+        statement: Implement --max-length in the later run the user requested; this run intentionally rejects it.
+        needs:     Later run implements truncation, trims trailing hyphens, and updates tests.
+  files in HEAD: ['.gitignore', 'README.md', 'docs/shiploop/architecture.md', 'docs/shiploop/environment.md', 'docs/shiploop/spec.md', 'slug.py', 'test_slug.py']
+  knowledge lines naming the option: {'docs/shiploop/architecture.md': 1, 'docs/shiploop/environment.md': 0, 'docs/shiploop/spec.md': 1}
+  slug.py [plain]: {'exit': 0, 'stdout': 'hello-world', 'stderr': ''}
+  slug.py [max 8]: {'exit': 2, 'stdout': '', 'stderr': 'usage: slug.py [-h] title\nslug.py: error: unrecognized arguments: --max-length 8'}
+  slug.py [max 6]: {'exit': 2, 'stdout': '', 'stderr': 'usage: slug.py [-h] title\nslug.py: error: unrecognized arguments: --max-length 6'}
+  slug.py [unknown option]: {'exit': 2, 'stdout': '', 'stderr': 'usage: slug.py [-h] title\nslug.py: error: unrecognized arguments: --bogus 1'}
+====================================================================================================
+link2-b | pass True | turns 167 | plugin 6aa0a67b2ac0 | gates {'invoked': True, 'plugin': True, 'process': True, 'shiploop': True, 'committed': True, 'checks': True}
+  span: {'started': 1793566992.682, 'ended': 1793567534.319}
+  handoff attempts: [{'exit': 0, 'moved_to': 'done'}] | status done | request file False | report section True
+  follow_on: 0 entries
+  prompt is the prior request file: True
+  files changed against the prior head: ['README.md', 'SHIPLOOP.md', 'docs/shiploop/architecture.md', 'docs/shiploop/environment.md', 'docs/shiploop/spec.md', 'slug.py', 'test_slug.py']
+  knowledge lines naming the option: {'docs/shiploop/architecture.md': 2, 'docs/shiploop/environment.md': 0, 'docs/shiploop/spec.md': 2}
+  slug.py [plain]: {'exit': 0, 'stdout': 'hello-world', 'stderr': ''}
+  slug.py [max 8]: {'exit': 0, 'stdout': 'hello-wo', 'stderr': ''}
+  slug.py [max 6]: {'exit': 0, 'stdout': 'hello', 'stderr': ''}
+  slug.py [unknown option]: {'exit': 2, 'stdout': '', 'stderr': 'usage: slug.py [-h] [--max-length N] title\nslug.py: error: unrecognized argument'}
