@@ -8,6 +8,9 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import shiploop_pyfloor  # noqa: E402
+
+shiploop_pyfloor.require()
 import shiploop_keepalive  # noqa: E402
 
 if __name__ == "__main__":

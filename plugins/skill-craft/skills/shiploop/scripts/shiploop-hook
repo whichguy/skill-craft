@@ -9,6 +9,10 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import shiploop_pyfloor  # noqa: E402
+
+# A host event does nothing below the floor; install, uninstall and status say why they cannot run.
+shiploop_pyfloor.require(hook_event=sys.argv[1:2] in (["observe"], ["stop"], ["skill"], ["session-end"]))
 import shiploop_keepalive  # noqa: E402
 
 if __name__ == "__main__":

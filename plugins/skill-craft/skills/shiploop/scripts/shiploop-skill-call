@@ -1,16 +1,8 @@
-#!/usr/bin/env python3
-"""Plugin hook entry: record a Skill-tool call of a bound Claude Code session in its run.
-
-Generated host hook files may only run an argument-free script from scripts/,
-so this is `shiploop-hook skill --host claude` in that shape.  It never blocks
-the Skill call; see references/keepalive.md.
-"""
-
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import shiploop_keepalive  # noqa: E402
-
-if __name__ == "__main__":
-    sys.exit(shiploop_keepalive.hook_main(["skill", "--host", "claude"]))
+#!/bin/sh
+# Plugin hook entry: record a Skill-tool call of a bound Claude Code session in its run. It never blocks
+# the Skill call; see references/keepalive.md.
+# Generated host hook files may only run an argument-free script from scripts/, so this is
+# `shiploop-hook skill --host claude` in that shape. It fails open: without python3 the hook does nothing, where a
+# Python entry would print an error on every tool call; shiploop-hook checks the Python floor itself.
+command -v python3 >/dev/null 2>&1 || exit 0
+exec python3 "$(dirname "$0")/shiploop-hook" skill --host claude
