@@ -42,7 +42,10 @@ inventory and `CHANGELOG.md`.
    `changes/shiploop/` comes before the latest commit touching
    `test/shiploop_e2e/LEARNINGS.md` (the E2E round's lessons), or carries its
    own `No-E2E-Round: <reason>` trailer; the refusal names those commits and
-   both fixes, and appears in the dry run too.
+   both fixes, and appears in the dry run too. Merge commits are not counted
+   (a merge of main into a branch adds no change of its own, and the commits
+   it brings in are each read); what a conflict resolution itself wrote is
+   the one thing not read.
 3. **Cut:** `python3 scripts/release.py`. It bumps versions, writes
    `CHANGELOG.md`, deletes the consumed notes, regenerates `plugins/`, the
    catalogs and the README inventory, checks them, and makes one commit with a

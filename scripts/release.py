@@ -38,8 +38,10 @@ every change it ships. Since the last release (every commit, before the first
 one), each commit that changes skills/shiploop/ or changes/shiploop/ must come
 before the latest commit touching test/shiploop_e2e/LEARNINGS.md, or carry a
 `No-E2E-Round: <reason>` trailer (final message paragraph, non-empty reason).
-Otherwise the run and --dry-run both refuse, name those commits, and write
-nothing. Other releases are not asked.
+Merge commits are not counted: a merge of main into a branch adds no change of
+its own, and every non-merge commit it brings in is read. Otherwise the run and
+--dry-run both refuse, name those commits, and write nothing. Other releases
+are not asked.
 
 It never pushes. Publish the commit with scripts/release-push.py.
 
@@ -198,14 +200,19 @@ def e2e_round_missing(releases):
     The range runs from the last release commit to HEAD, or is all of history before the first release. Each commit in
     it that changes the skill (skills/shiploop/ or changes/shiploop/) must come before the range's latest journal commit,
     or carry a No-E2E-Round trailer with a reason (git reads trailers only in the final paragraph). A round recorded
-    before a change does not vouch for it: 1.18.0 shipped three changes committed after the range's last journal entry."""
+    before a change does not vouch for it: 1.18.0 shipped three changes committed after the range's last journal entry.
+
+    Merge commits are not read (--no-merges): `git log -- <paths>` keeps a merge whose result differs from both parents
+    in those paths, which a merge of main into a branch that also changed them always does, and the repository merges main
+    into branches instead of rebasing. 2.31.0 was refused twice for such merges although every change they brought in was
+    covered. The commits a merge brings in are still read one by one; only what a conflict resolution itself wrote is not."""
     if E2E_LEAF not in releases:
         return None
     last = next((sha for sha, _ in release_commits()), None)
     span = f"{last}..HEAD" if last else "HEAD"
     journal = git("log", "-1", "--format=%H", span, "--", E2E_JOURNAL).strip()
     after = f"{journal}..HEAD" if journal else span
-    rows = git("log", f"--format=%x1e%h %s%x00%(trailers:key={NO_ROUND},valueonly,unfold)", after, "--",
+    rows = git("log", "--no-merges", f"--format=%x1e%h %s%x00%(trailers:key={NO_ROUND},valueonly,unfold)", after, "--",
                f"skills/{E2E_LEAF}/", f"changes/{E2E_LEAF}/")
     uncovered = [head for head, _, reasons in (row.partition("\0") for row in rows.split("\x1e") if row.strip())
                  if not reasons.strip()]
