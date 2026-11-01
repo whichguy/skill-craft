@@ -31,6 +31,7 @@ import environment
 import hosts
 import lifecycle
 import listeners
+import metrics
 import prediction as predictions
 import promotion
 import scorecard
@@ -272,28 +273,39 @@ def launch_intent(root: Path, attempt_id: str, plugin: Path) -> dict:
                   registration_sha256=digest(root / "registration.json"))
 
 
-def live_siblings(root: Path, output: Path) -> list[Path]:
-    """Run folders of this epoch that overlapped ``output`` and whose harness is still running.
+def unsettled_siblings(root: Path, output: Path) -> list[Path]:
+    """Other run folders of this epoch whose harness is still running and that began before ``output`` ended or have not
+    stamped their timeline yet.
 
-    ``scorecard.run_receipt`` binds the timeline, metrics and invocation files of every run that overlapped the one it seals.
-    A neighbour still running changes them, so an attempt sealed beside it reads as changed evidence the moment that
-    neighbour writes again (the stage 4 pilot: four of five parallel attempts ended invalid_evidence). Only runs inside the
-    epoch's own folder are looked at: the epoch cannot wait for other sessions' runs, and they are not its siblings."""
-    overlap_root = environment.runs_root(output).resolve()
-    inside = root.resolve()
-    folders = {(overlap_root / row["folder"]).resolve() for row in environment.overlap(output).get("runs") or []
-               if isinstance(row, dict) and isinstance(row.get("folder"), str)}
-    return sorted(folder for folder in folders if folder.is_relative_to(inside) and listeners.case_alive(folder))
+    ``scorecard.run_receipt`` binds the timeline, metrics and invocation files of every run that overlapped the one it seals,
+    and the names of siblings whose timeline cannot be read yet. A sibling still running changes all of that, so an attempt
+    sealed beside it reads as changed evidence the moment that sibling writes again (the stage 4 pilot: four of five
+    parallel attempts ended invalid_evidence). A running sibling that began before this run ended will overlap it however
+    quiet it has been, so this does not ask the overlap record, which skips a sibling silent through the whole run. One that
+    began after this run ended never overlaps it and is not waited for. Only runs inside the epoch's own folder are looked
+    at: the epoch cannot wait for other sessions' runs, and they are not its siblings."""
+    mine = Path(output).resolve()
+    ended = metrics.span(mine / "timeline.jsonl")["ended"]
+    found = []
+    for folder in environment.run_folders(Path(root).resolve()):
+        folder = folder.resolve()
+        if folder == mine or not listeners.case_alive(folder):
+            continue
+        began = metrics.span(folder / "timeline.jsonl")["started"]
+        if began is None or ended is None or began < ended:
+            found.append(folder)
+    return sorted(found)
 
 
 def settle_siblings(root: Path, output: Path, wait: float | None = None, poll: float | None = None) -> list[Path]:
-    """Wait until no overlapping sibling is still running, then return the ones that still are (none unless ``wait`` ran out).
+    """Wait until no sibling is unsettled (see ``unsettled_siblings``), then return the ones that still are (none unless
+    ``wait`` ran out).
 
     It does not hold the epoch's lock: a sibling needs it to seal itself when it ends."""
     wait, poll = SIBLING_WAIT if wait is None else wait, SIBLING_POLL if poll is None else poll
     deadline = time.monotonic() + wait
     while True:
-        alive = live_siblings(root, output)
+        alive = unsettled_siblings(root, output)
         if not alive or time.monotonic() >= deadline:
             return alive
         time.sleep(min(poll, max(0.0, deadline - time.monotonic())))
@@ -311,9 +323,10 @@ def record_run(root: Path, attempt_id: str) -> dict:
     output = Path(launches[-1]["output"])
     if listeners.case_alive(output):
         raise ValueError("the harness is still running; do not seal partial quality results")
-    beside = live_siblings(root, output)
+    beside = unsettled_siblings(root, output)
     if beside:
-        raise ValueError("a run that overlapped this one is still running (" + ", ".join(folder.name for folder in beside)
+        raise ValueError("a run that overlapped this one, or is starting, is still running ("
+                         + ", ".join(folder.name for folder in beside)
                          + "); sealing now would not be stable evidence: reconcile it once that run ends")
     if not (output / "result.json").is_file():
         raise ValueError("no result receipt; launch remains unknown")

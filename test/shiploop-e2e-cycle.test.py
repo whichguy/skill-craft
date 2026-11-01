@@ -786,6 +786,20 @@ class CycleTest(unittest.TestCase):
         cycle.apply_decision(self.worktree, "loop-test", self.record, self.tip, candidates[1], "KEEP_AS_REF")
         self.assertEqual(len(self.git("for-each-ref", "refs/shiploop-loop/loop-test").splitlines()), 2)
 
+    def test_a_record_found_by_the_plain_iterate_loop_names_its_case_so_a_cycle_can_tell_whose_it_is(self):
+        """iterate.py's own ingest left the case out, so such a record counted as seeded and any cycle could take it, a cycle
+        whose unseen generality case produced it included."""
+        source = iterate.ingest_source(self.temp / "run", {"review_sha256": "abc"}, "csv-report")
+        self.assertEqual((source["case"], source["exposure"], source["review_sha256"]), ("csv-report", "development", "abc"))
+        found = lr.new_id()
+        lr.append("opened", found, self.ledger, title="a finding", anchor={"clause_id": "S-14"}, materiality="material",
+                  confidence="high", target="shiploop", files=[], proposal="p", source=source)
+        lr.append("admitted", found, self.ledger)
+        lr.append("predicted", self.record, self.ledger)  # the seeded record of setUp is taken: only `found` is left
+        self.assertEqual(lr.select(self.ledger, "csv-report", "seat-reservations"), found)
+        self.assertIsNone(lr.select(self.ledger, "seat-reservations", "csv-report"),
+                          "a record found on the generality case is not offered to a cycle that keeps that case unseen")
+
     def test_the_loop_selects_its_record_for_its_own_cases_both_before_and_after_exploring(self):
         args = argparse.Namespace(case="user-listing", generality_case="csv-report", calibration=None, tolerance=0.25,
                                   attempts=3, output=self.temp / "loop-out", iterations=1, host="codex", model=None,
@@ -943,7 +957,7 @@ class CycleKitTest(unittest.TestCase):
         """The first launch was refused: user-listing declares port 3000 and another session's run held that lease."""
         text = (self.KIT / "run.sh").read_text()
         catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
-        self.assertIn("--case csv-report --generality-case seat-reservations", text)
+        self.assertIn("--case seat-reservations --generality-case csv-report", text)
         for case in ("csv-report", "seat-reservations"):
             self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
             self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"),
@@ -985,7 +999,7 @@ class CalibrationKitTest(unittest.TestCase):
         cycle_script = (ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101" / "run.sh").read_text()
         catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
         self.assertEqual(set(template["cases"]), {"csv-report", "seat-reservations"})
-        self.assertIn("--case csv-report --generality-case seat-reservations", cycle_script)
+        self.assertIn("--case seat-reservations --generality-case csv-report", cycle_script)
         for case in template["cases"]:
             self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
             self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"), f"{case} declares a fixed port")

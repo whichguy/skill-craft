@@ -58,9 +58,11 @@ TRIVIAL = {"classification": "trivial", "exit_assessment": "satisfied", "continu
            "evidence": "Synthetic iteration: every command exited 0.", "handoff": "Synthetic; nothing remains."}
 MATERIAL = dict(TRIVIAL, classification="non-trivial", exit_assessment="unsatisfied",
                 evidence="Synthetic iteration: a command failed and the code was fixed.")
-# A one-test runner: prints a unittest summary, fails while its file is missing.
-CHECK = ('echo "Ran 1 test in 0.001s"\n'
-         'if test -f "$1"; then echo OK; else echo "FAILED (failures=1)"; exit 1; fi\n')
+# A one-test runner: prints its test's ID and a unittest summary, fails while its file is missing.  It lists TC-1 because
+# a focused command gives each executed criterion it names an ID of its own (step-plan review, 2026-11-01).
+CHECK = ('if test -f "$1"; then echo "\u2714 TC-1 makes the fixed file"; echo "Ran 1 test in 0.001s"; echo OK; '
+         'else echo "\u2716 TC-1 makes the fixed file"; echo "Ran 1 test in 0.001s"; echo "FAILED (failures=1)"; '
+         'exit 1; fi\n')
 def one_step(result: dict) -> dict:
     """The one implement step of a synthetic step plan, sized as the submit gate requires: it changes all of the
     item's paths and satisfies all of its criteria."""
@@ -70,7 +72,7 @@ def one_step(result: dict) -> dict:
     return step
 
 
-COMMANDS = [{"command": "sh check.sh fixed.txt", "suite": "focused"},
+COMMANDS = [{"command": "sh check.sh fixed.txt", "suite": "focused", "ids": ["TC-1"]},
             {"command": "test -f retained.txt", "suite": "regression"}]
 # A test file that loads something this item creates dies before any test runs while that file is missing.  LOADER is
 # a neutral one-test runner that does so; NODE_LOAD_FAILURE and NODE_ONE_FAILING are real node:test outputs (v25, a
@@ -293,8 +295,12 @@ class TestLoopTests(unittest.TestCase):
                      "criteria": [{"id": "C1", "text": "The item's focused check passes."}]}
                     if step_plan is None else step_plan)
         if recorded.get("test_commands") and "criteria" not in recorded:
-            recorded = dict(recorded, test_commands=[dict(recorded["test_commands"][0], criteria=["C1"]),
-                                                     *recorded["test_commands"][1:]],
+            # C1 goes on the first command that can confirm it: a focused command that lists no IDs cannot, as a
+            # focused command gives each executed criterion it names an ID of its own (step-plan review, 2026-11-01).
+            rows = list(recorded["test_commands"])
+            at = next((index for index, row in enumerate(rows) if row.get("suite") != "focused" or row.get("ids")), 0)
+            rows[at] = dict(rows[at], criteria=["C1"])
+            recorded = dict(recorded, test_commands=rows,
                             criteria=[{"id": "C1", "text": "The item's focused check passes."}])
         recorded = {"steps": [one_step(recorded)], **recorded}
         for _ in range(200):
@@ -449,15 +455,15 @@ class TestLoopTests(unittest.TestCase):
         self.start()
         self.drive_to("test")
         contract = json.loads((self.run_dir / loops.contract_path(self.action())).read_text())
-        self.assertIn("\n" + loops.COMMANDS_HEAD + "\n1. [focused] sh check.sh fixed.txt\n2. [regression] test -f "
-                      "retained.txt", contract["work"])
+        self.assertIn("\n" + loops.COMMANDS_HEAD + "\n1. [focused] sh check.sh fixed.txt (must run: TC-1)\n"
+                      "2. [regression] test -f retained.txt", contract["work"])
         self.assertEqual(contract["exit_condition"], loops.exit_condition("test"))
         self.assertEqual(contract["required_trivial_reviews"], 0)
         packet = self.packet()
         # The commands are part of the Work field, between the argument's marker lines.
         argument = support.LoopBlock(packet).argument
         self.assertEqual(argument[argument.index(loops.COMMANDS_HEAD) + 1:][:2],
-                         ["1. [focused] sh check.sh fixed.txt", "2. [regression] test -f retained.txt"])
+                         ["1. [focused] sh check.sh fixed.txt (must run: TC-1)", "2. [regression] test -f retained.txt"])
         self.assertIn(loops.INVOKE_LINE, packet)
         self.pass_loop()
         self.assertNotEqual(nav.current_stage(self.settle()), "test")
@@ -1949,6 +1955,44 @@ class TestLoopTests(unittest.TestCase):
                          [{"command": "npm test", "suite": "regression", "minimum": True}])
         self.assertIn("(minimum regression: every step)", test_loop._listing(smoke))
 
+    def test_each_executed_criterion_a_focused_command_names_needs_an_id_of_its_own(self):
+        """Step-plan review (2026-11-01): test-spec writes one case per focused ID and a case names one criterion, so a
+        focused command naming more executed criteria than IDs leaves one with no case; 9 of the 24 saved plans that had
+        one came back from test-spec.  The check matches criteria to the IDs of the focused rows that name them."""
+        def criteria(*names, confirm="executed"):
+            return [{"id": name, "text": name + " holds", "confirm": confirm} for name in names]
+        focused = {"command": "node --test test/import.test.js", "suite": "focused"}
+        cases = [
+            ("one ID per criterion", [dict(focused, ids=["TC-1", "TC-2"], criteria=["C1", "C2"])], criteria("C1", "C2"),
+             []),
+            ("one ID for two criteria (ticket-import, 2026-10-31)",
+             [dict(focused, ids=["TC_1"], criteria=["C1", "C2"])], criteria("C1", "C2"), ["C2"]),
+            ("no IDs at all", [dict(focused, criteria=["C1", "C2"])], criteria("C1", "C2"), ["C1", "C2"]),
+            ("five criteria, four IDs", [dict(focused, ids=["TC_1", "TC_2", "TC_3", "TC_4"],
+                                             criteria=["C1", "C2", "C3", "C4", "C5"])],
+             criteria("C1", "C2", "C3", "C4", "C5"), ["C5"]),
+            ("a spare ID of another row serves", [dict(focused, ids=["TC-1"], criteria=["C1", "C2"]),
+                                                   dict(focused, command="npm run e2e", ids=["TC-2"], criteria=["C2"])],
+             criteria("C1", "C2"), []),
+            ("an ID serves only a row that names the criterion",
+             [dict(focused, ids=["TC-1"], criteria=["C1", "C2"]), dict(focused, command="npm run e2e", ids=["TC-2"],
+                                                                       criteria=["C3"])],
+             criteria("C1", "C2", "C3"), ["C2"]),
+            ("searched and inspected criteria take no case", [dict(focused, ids=["TC-1"], criteria=["C1", "C2"])],
+             criteria("C1") + criteria("C2", confirm="searched"), []),
+            ("a regression or check row needs no ID", [{"command": "npm test", "suite": "regression", "criteria": ["C1"]},
+                                                       {"command": "npm run lint", "suite": "check", "criteria": ["C1"]}],
+             criteria("C1"), []),
+            ("an ID listed twice counts once", [dict(focused, ids=["TC-1"], criteria=["C1"]),
+                                                dict(focused, command="npm run e2e", ids=["TC-1"], criteria=["C2"])],
+             criteria("C1", "C2"), ["C2"]),
+        ]
+        for label, commands, rows, missing in cases:
+            with self.subTest(label):
+                self.assertEqual(test_loop.criteria_without_ids(commands, rows), missing)
+        self.assertEqual(test_loop.criteria_without_ids([{"suite": "focused", "ids": "TC-1", "criteria": None}, "x"],
+                                                        [None, {"id": "C1"}]), [], "malformed rows are the shape gate's")
+
     def test_a_command_on_a_target_that_keeps_state_is_left_out_of_the_base_and_the_mutant_runs(self):
         """Run-5 batch F3: on any platform, a command naming a test-strategy target that keeps state is remote, so the
         base run does not read the target's already-changed state as the item's base."""
@@ -2462,16 +2506,17 @@ class TestLoopTests(unittest.TestCase):
         """D-1: the chess step plan copied the Focused and Full-suite fences, so rows 7-9 were rows 1-3 again and every
         run deployed and ran them twice.  A regression row that repeats a focused row folds into it, and document's
         rerun runs it once."""
-        twice = [{"command": "sh check.sh fixed.txt", "suite": "focused", "criteria": ["C1"]},
+        twice = [{"command": "sh check.sh fixed.txt", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
                  {"command": "test -f retained.txt", "suite": "regression"},
                  {"command": "sh check.sh fixed.txt", "suite": "regression"}]
         self.start()
         self.drive_to("document", step_plan={"test_commands": twice, "paths": ["a.py"],
                                              "criteria": [{"id": "C1", "text": "The item's focused check passes."}]})
         self.assertEqual(test_loop.stage_commands(self.state(), "document", self.item())[0],
-                         [{"command": "sh check.sh fixed.txt", "suite": "focused", "criteria": ["C1"], "regression": True},
+                         [{"command": "sh check.sh fixed.txt", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"],
+                           "regression": True},
                           {"command": "test -f retained.txt", "suite": "regression"}])
-        self.assertIn("1. [focused] sh check.sh fixed.txt (also recorded as regression)", self.packet())
+        self.assertIn("1. [focused] sh check.sh fixed.txt (must run: TC-1) (also recorded as regression)", self.packet())
         calls: list = []
         (self.repo / "a.py").write_text("x = 3\n")  # document's own code edit: its rerun runs every command
         self.run_loop([TRIVIAL])
@@ -2770,8 +2815,10 @@ class TestLoopTests(unittest.TestCase):
         `added_tests`, and from its own import on every rerun of that command must show it.  A registered test is no
         new case, so the RED rule never asks it to fail on a base."""
         self.start()
-        plan = {"test_commands": [{"command": self.REGISTERED, "suite": "focused", "criteria": ["C1"]}, COMMANDS[1]],
-                "paths": ["a.py"], "criteria": [{"id": "C1", "text": "The item's focused check passes."}]}
+        # The focused command lists no IDs until the review registers one, so C1 rests on the regression command (a
+        # focused command gives each executed criterion it names an ID of its own, step-plan review 2026-11-01).
+        plan = {"test_commands": [{"command": self.REGISTERED, "suite": "focused"}, dict(COMMANDS[1], criteria=["C1"])],
+                "paths": ["a.py"], "criteria": [{"id": "C1", "text": "The item's retained file stays."}]}
         def change(state):
             if nav.current_stage(state) == "implement":
                 (self.repo / "a.py").write_text("import os\n")

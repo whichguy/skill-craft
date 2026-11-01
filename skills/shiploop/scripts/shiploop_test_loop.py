@@ -317,6 +317,44 @@ def _fold(first: Mapping[str, Any], row: Mapping[str, Any]) -> Optional[Dict[str
     return merged
 
 
+def criteria_without_ids(commands: Sequence[Any], criteria: Sequence[Any]) -> List[str]:
+    """The executed criteria that a focused command names but that cannot each have a focused test ID of their own,
+    in plan order; [] when every one can.
+
+    Test-spec writes one case per ID the focused commands list, and a case names one criterion
+    (``expectations.check_test_cases``), so a focused command naming more executed criteria than it lists IDs leaves
+    one criterion with no case.  Test-spec then sends the item back or folds that criterion into another's case: in
+    the saved runs of 2026-10-25 to 11-01, 24 of 175 step plans had such a criterion, 9 of them came back from
+    test-spec and the other 15 had a criterion with no case of its own.  Each such criterion is matched to a distinct
+    ID of a focused command that names it (a bipartite matching, so a row's spare ID serves another row's
+    criterion).  Searched and inspected criteria take no case.  Malformed rows are left to the shape checks.
+    """
+    executed = {str(row.get("id")) for row in criteria if isinstance(row, Mapping) and row.get("confirm") == "executed"}
+    offered: Dict[str, List[str]] = {}
+    for row in commands:
+        if not isinstance(row, Mapping) or row.get("suite") != "focused":
+            continue
+        ids = row.get("ids") if isinstance(row.get("ids"), list) else []
+        named = row.get("criteria") if isinstance(row.get("criteria"), list) else []
+        for name in named:
+            if isinstance(name, str) and name in executed:
+                options = offered.setdefault(name, [])
+                options.extend(ident for ident in ids if isinstance(ident, str) and ident not in options)
+    holder: Dict[str, str] = {}
+
+    def place(name: str, tried: set) -> bool:
+        for ident in offered[name]:
+            if ident not in tried:
+                tried.add(ident)
+                if ident not in holder or place(holder[ident], tried):
+                    holder[ident] = name
+                    return True
+        return False
+
+    missing = {name for name in offered if not place(name, set())}
+    return [str(row.get("id")) for row in criteria if isinstance(row, Mapping) and str(row.get("id")) in missing]
+
+
 def _step_plan(state: Mapping[str, Any], work_item: str) -> Tuple[Optional[str], Mapping[str, Any]]:
     """The work item's latest accepted step-plan action and its result."""
     actions = [row["action"] for row in state.get("history", ())
@@ -2155,6 +2193,7 @@ __all__ = (
     "check_path",
     "check_paths",
     "check_result_fields",
+    "criteria_without_ids",
     "default_suite_drift",
     "floor_detail",
     "floors",

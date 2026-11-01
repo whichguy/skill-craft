@@ -5,6 +5,9 @@ build step 7; R19 and R20 of the final verdict).
 Build step 7 is done when, by script-run checks: a conflicting lease is refused; crash-and-retry cleanup works without
 touching unrelated processes (a decoy with the orphan's very command line must survive); the evidence survives cleanup.
 
+It also covers the start probe (start_route.py, `--stop-after-start`): the route a run began with, read from what its start
+left on disk, and the host ended at the first start.
+
 Every process a test signals is one it started: the in-process tests refuse any group signal outside them (``guard``), and the
 harness subprocess sees an empty listener table (a fake ``lsof`` first on PATH). Leases live in each test's own folder
 (``SHIPLOOP_E2E_LEASES``), and the runs root is the test's folder, so no other session's run or lease can change a result.
@@ -39,6 +42,7 @@ import delivery  # noqa: E402
 import lifecycle  # noqa: E402
 import listeners  # noqa: E402
 import run  # noqa: E402
+import start_route  # noqa: E402
 
 # A Claude-shaped fake host. FAKE_MODE: done (the hello product, committed, and a done run), hang-active (an active run, then
 # sleeps), leave-in-group (ends at once, leaving a worker in its own process group). Every mode but done starts that worker, as a
@@ -79,10 +83,18 @@ else:
     if mode == "hang-active":
         Path(".shiploop").mkdir(exist_ok=True)
         store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
+    if mode in ("start-direct", "start-workspace"):
+        # `init --run-dir ../shiploop-run`, or `workspace start` (a workspace.md beside the run), then the model works on.
+        root = Path("..") / (".shiploop-runs/work-1" if mode == "start-workspace" else "shiploop-run")
+        run_dir = root / "run" if mode == "start-workspace" else root
+        run_dir.mkdir(parents=True, exist_ok=True)
+        if mode == "start-workspace":
+            (root / "workspace.md").write_text("workspace\\n")
+        store.write_record(run_dir / "state.md", {{"status": "active", "stage": "intake", "revision": 0}})
     worker = subprocess.Popen(["sleep", "300"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     with open(os.environ["FAKE_LOG"] + ".children", "a") as log:
         log.write(f"{{worker.pid}}\\n")
-    if mode == "hang-active":
+    if mode in ("hang-active", "start-direct", "start-workspace"):
         time.sleep(600)
 print(json.dumps({{"type": "result", "subtype": "success", "num_turns": 1, "total_cost_usd": 0.0, "result": "done"}}))
 """
@@ -339,6 +351,61 @@ class StopTest(LifecycleCase):
         self.assertEqual([(item["role"], item["pgid"]) for item in found["stopped"]], [("observer", observer)], found)
         self.assertTrue(gone(observer))
         self.assertTrue(alive(lookalike), "same command, another instance id: not this run's observer")
+
+
+    def observer_under(self, run_dir: Path, instance: str, starter_seconds: float):
+        """An observer-shaped process (its own session; the run directory and instance id on its command line) started by a
+        starter that lives ``starter_seconds`` longer, as shiploop_progress.start leaves it while the ShipLoop command that
+        started it is still running. Returns the observer's pid and the starter."""
+        script = ("import subprocess, sys, time\n"
+                  "p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(300)', '--run-dir', sys.argv[1], "
+                  "'--watch', '--instance', sys.argv[2]], start_new_session=True, stdin=subprocess.DEVNULL, "
+                  "stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n"
+                  "print(p.pid, flush=True)\n"
+                  "time.sleep(float(sys.argv[3]))\n")
+        starter = subprocess.Popen([sys.executable, "-c", script, str(run_dir), instance, str(starter_seconds)],
+                                   stdout=subprocess.PIPE, text=True)
+        self.addCleanup(starter.wait)
+        pid = int(starter.stdout.readline())
+        self.spawned.add(pid)
+        self.addCleanup(kill_group, pid)
+        return pid, starter
+
+    def test_an_observer_whose_starter_is_still_running_is_stopped_once_the_starter_has_exited(self):
+        """A start command that was still running when the host was ended has not yet left its observer an orphan. Cleanup
+        used to adopt only orphans, so that observer outlived the run and the harness refused every later launch."""
+        out = self.run_folder("case")
+        run_dir = out / ".shiploop-runs" / "work-1" / "run"
+        run_dir.mkdir(parents=True)
+        observer, starter = self.observer_under(run_dir, "instance-a", 1.0)
+        (run_dir / lifecycle.OBSERVER_RECORD).write_text(json.dumps({"instance": "instance-a", "pid": observer}))
+        if lifecycle.table([observer])[observer]["ppid"] != starter.pid:
+            self.skipTest("the observer's parent is not its starter here")
+        found = lifecycle.cleanup(out)  # asked while the starter is alive: the observer is no orphan yet
+        self.assertEqual([(item["role"], item["pgid"]) for item in found["stopped"]], [("observer", observer)], found)
+        self.assertTrue(gone(observer))
+
+    def test_an_observer_of_a_run_directory_the_model_chose_is_found_by_its_state(self):
+        """`init --run-dir <out>/shiploop-run` lies outside the two default layouts; the run's own cleanup still finds its
+        observer through the state.md beside the record."""
+        out = self.run_folder("case")
+        run_dir = out / "shiploop-run"
+        run_dir.mkdir()
+        (run_dir / "state.md").write_text("status: active\n")
+        observer, starter = self.observer_under(run_dir, "instance-a", 0.0)
+        starter.wait()
+        (run_dir / lifecycle.OBSERVER_RECORD).write_text(json.dumps({"instance": "instance-a", "pid": observer}))
+        if lifecycle.table([observer])[observer]["ppid"] != 1:
+            self.skipTest("an orphan is reparented to a subreaper here, not to pid 1")
+        found = lifecycle.cleanup(out)
+        self.assertEqual([(item["role"], item["pgid"]) for item in found["stopped"]], [("observer", observer)], found)
+        self.assertTrue(gone(observer))
+
+    def test_cleanup_does_not_wait_when_no_observer_is_pending(self):
+        out = self.run_folder("case")
+        begun = time.monotonic()
+        lifecycle.cleanup(out)
+        self.assertLess(time.monotonic() - begun, 2.0)
 
 
 class EvidenceTest(LifecycleCase):
@@ -708,6 +775,102 @@ class ThroughMainTest(HarnessCase):
         self.assertTrue(by_case["hello"]["pass"], by_case)
         self.assertIn("port-3000 is leased", by_case["battleship"]["refused"])
         self.assertEqual(code, 1)
+
+
+class StartRouteTest(unittest.TestCase):
+    """start_route.route reads which entry a run began with; the watcher ends the host when one has started."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.out = Path(tmp.name).resolve()
+
+    def state(self, folder: Path) -> None:
+        folder.mkdir(parents=True, exist_ok=True)
+        run.run_choice.store.write_record(folder / "state.md", {"status": "active", "stage": "intake", "revision": 0})
+
+    def test_a_folder_with_no_run_has_no_route(self):
+        self.assertIsNone(start_route.route(self.out))
+        (self.out / "work").mkdir()
+        (self.out / "work" / "state.md").write_text("not a run's state\n")  # a product file of that name is no run
+        self.assertIsNone(start_route.route(self.out))
+
+    def test_a_run_made_by_init_reads_direct_wherever_the_model_put_it(self):
+        self.state(self.out / "shiploop-run")
+        self.assertEqual(start_route.route(self.out), "direct")
+
+    def test_a_workspace_reads_workspace_and_outranks_the_state_inside_it(self):
+        root = self.out / ".shiploop-runs" / "work-1"
+        self.state(root / "run")
+        (root / "workspace.md").write_text("workspace\n")
+        self.assertEqual(start_route.route(self.out), "workspace")
+
+    def test_a_workspace_md_that_is_no_workspace_root_is_not_one(self):
+        (self.out / "work").mkdir()
+        (self.out / "work" / "workspace.md").write_text("a product file\n")
+        self.assertIsNone(start_route.route(self.out))
+
+    def test_the_throwaway_home_is_not_searched(self):
+        self.state(self.out / "home" / ".codex" / "somewhere")
+        (self.out / "home" / "workspace.md").write_text("x\n")
+        self.assertIsNone(start_route.route(self.out))
+
+    def test_the_watcher_creates_the_stop_file_once_a_run_has_started_and_not_before(self):
+        stop = self.out / "stop"
+        watcher = start_route.StartWatcher(self.out, stop, poll=0.05).start()
+        self.addCleanup(watcher.stop)
+        time.sleep(0.3)
+        self.assertFalse(stop.exists(), "nothing has started")
+        self.state(self.out / "shiploop-run")
+        end = time.monotonic() + 5
+        while not stop.exists() and time.monotonic() < end:
+            time.sleep(0.05)
+        self.assertTrue(stop.exists())
+        self.assertEqual(watcher.route, "direct")
+
+    def test_a_watcher_that_is_stopped_first_creates_nothing(self):
+        stop = self.out / "stop"
+        watcher = start_route.StartWatcher(self.out, stop, poll=0.05).start()
+        watcher.stop()
+        self.state(self.out / "shiploop-run")
+        time.sleep(0.3)
+        self.assertFalse(stop.exists())
+
+
+class StartProbeThroughMainTest(HarnessCase):
+    """`--stop-after-start` through run.main with the fake host: the host ends at its first start, no port is taken, the route is
+    recorded; an ordinary run records its route too."""
+
+    def test_a_probe_ends_the_host_at_its_first_start_takes_no_port_and_records_the_route(self):
+        self.hold("port-3000")  # another session's run of the case holds its port: a probe never asks for it
+        out = self.tmp / "battleship"
+        begun = time.monotonic()
+        code, printed = self.main(*self.argv(out, "--case", "battleship", "--stop-after-start", "--timeout", "120"),
+                                  mode="start-direct")
+        self.assertLess(time.monotonic() - begun, 90, "the host was not left to run to its sleep")
+        result = json.loads((out / "result.json").read_text())
+        self.assertEqual(result["start_route"], "direct")
+        self.assertEqual(result["process"]["status"], "stopped", result["process"])
+        self.assertEqual(result["resources"]["leases"], [], "a probe holds no port lease")
+        self.assertEqual(len(self.sessions()), 1, "ended, not resumed")
+        self.assertFalse(self.baselines.exists(), "a run the harness ended is no baseline: the probe writes no row")
+
+    def test_a_probe_of_the_isolated_entry_reads_workspace(self):
+        out = self.tmp / "hello"
+        self.main(*self.argv(out, "--stop-after-start", "--timeout", "120"), mode="start-workspace")
+        self.assertEqual(json.loads((out / "result.json").read_text())["start_route"], "workspace")
+
+    def test_a_probe_does_not_go_with_a_platform_a_suite_or_a_seed(self):
+        for extra in (["--suite", "pair"], ["--seed-at", "step-plan"], ["--resume-run", str(self.tmp / "x")]):
+            with self.assertRaises(SystemExit) as refused:
+                self.main(*self.argv(self.tmp / "o"), "--stop-after-start", *extra)
+            self.assertIn("--stop-after-start", str(refused.exception))
+
+    def test_an_ordinary_run_records_the_route_it_began_with(self):
+        out = self.tmp / "hello"
+        self.main(*self.argv(out))
+        self.assertEqual(json.loads((out / "result.json").read_text())["start_route"], "direct")
+        self.assertEqual(json.loads(self.baselines.read_text().splitlines()[-1])["start_route"], "direct")
 
 
 class CrashAndRetryTest(HarnessCase):

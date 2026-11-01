@@ -1657,6 +1657,52 @@ the cleanup would then refuse to delete anything. A resume reuses its run's fold
   cleanup failed, the keep is refused (`an earlier cleanup of this run failed: run the printed command first`) and the regrade cleans, as
   any regrade of such a run does; a regrade with no cleanup record at all, or only the pending one (a harness killed after the delivery finished), can still keep.
 
+### A first-command probe (`--stop-after-start`)
+
+Some questions are about a run's first command, not its outcome: which entry a session picks to begin (`workspace start`, the
+isolated entry, or `init`, the direct entry), or whether a wording in the skill card changes that. `--stop-after-start` ends the
+host as soon as its ShipLoop run exists, so a trial costs about twenty seconds instead of a run:
+
+```sh
+python3 test/shiploop_e2e/run.py --prompt "<request>" --host codex --plugin-dir <build> --output <new folder> \
+  --stop-after-start --timeout 240 --quiet
+```
+
+`start_route.py` reads the output folder once a second: a `workspace.md` in a workspace root means the isolated entry, a ShipLoop
+`state.md` without one means the direct entry. The first one found creates the folder's `stop` file, the harness's own stop
+(status `stopped`: no resume, the records are written). Reading the disk instead of the host's commands needs no pattern for the
+ways a model writes a command (a shell line, a variable, a Python argument list with escaped quotes), and a refused `init`
+writes nothing, so it reads as no start. `result.json` carries `start_route` (`workspace`, `direct`, or null before ShipLoop
+started a run) for every run, and a finished run's baseline row carries it too; a probe is a run the harness ended, so it
+writes no baseline row.
+
+A probe takes no fixed-port lease (nothing is served, so another session's run of the same case does not refuse it) and it
+refuses a case with a platform (use `--prompt`), `--suite`, `--seed-at`, `--resume-run`, `--continue-from` and `--keep-platform`.
+The progress observer a start launches can still be starting when the host is ended; the run's cleanup waits up to
+`lifecycle.OBSERVER_SETTLE_SECONDS` for such an observer to become an orphan and stops it, so it cannot make the next launch
+refuse, and it finds the observer of a run directory the model chose (`--run-dir <out>/shiploop-run`) as well as the two default
+layouts. A driver for a whole A/B, with a plugin build per arm, is `docs/experiments/start-route-20261101/start_probe.py`.
+
+**Before launching an A/B on a first command.** The start-route probe (`docs/experiments/start-route-20261101/README.md`) learned
+each of these after the fact, at the cost of a relaunch or a re-read of stored runs:
+
+1. *Replay the reader over stored runs before any trial.* Run the start detector over events whose first command is known, in
+   every form a model writes it: a shell line, a variable (`"$CLI" ...`), a Python argument list with escaped quotes
+   (`python3 -c "... \"workspace\" ..."`), and a help request that is not a start (`init --help`). The probe's detector counted help
+   requests as starts (14 of the first 40 rows) and missed the escaped form (9 sessions), found only after the trials.
+   `--stop-after-start` reads the disk and needs none of these patterns, so prefer it, and report the sessions where the command
+   and the disk disagree.
+2. *Run the control twice in the first batch* (two arms with the same text). The old wording began with `init` in 17 of 40
+   sessions in one batch and 8 of 40 in the next (p 0.053): one control cannot size the run-to-run spread, and a bar set on one
+   batch's control can be met by chance.
+3. *Register before the first trial, and push it:* the stimulus bytes, the decision rule, the sample sizes, and the fault policy
+   (what stops a batch, what restarts it from scratch).
+4. *A selection from one batch is not a result.* `analyze.py --replicates <second batch>` prints REPLICATED apart from the
+   decision; "REPLICATED: NO" means the selection rests on one batch.
+5. *Stop a batch on a run of invalid attempts* (the driver's `MAX_INVALID_STREAK`) instead of looping, and count attempts per
+   launch, not per slot. A host refused in a second or two with no model call is a harness fault (a leased port, a stray
+   observer), not an outcome.
+
 ### Launching long runs
 
 Launch a run as a Claude Desktop background task (`run_in_background`) so it can be tracked. A task is killed at the

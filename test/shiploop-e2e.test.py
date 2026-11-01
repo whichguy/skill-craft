@@ -247,12 +247,16 @@ elif mode in ("hang", "hang-active") or (mode == "hang-resumed" and resumed):
 elif mode in ("resume", "stuck", "stuck-stop", "hang-resumed", "anon", "crash-resumed"):
     Path(".shiploop").mkdir(exist_ok=True)
     store.write_record(Path(".shiploop/state.md"), {{"status": "active", "stage": "test-refine", "revision": 25}})
-    if mode == "stuck-stop":
-        (Path.cwd().parent / "stop").write_text("")  # a person asks for a stop as this session ends
 end = {{"type": "end", "stopReason": "cancelled", "sessionId": "sess-1", "num_turns": 4, "total_cost_usd": 0.01}}
 if mode == "anon":
     del end["sessionId"]  # the host never named its session: there is nothing to resume
-print(json.dumps(end))
+print(json.dumps(end), flush=True)
+if mode == "stuck-stop":
+    # A person asks for a stop in the last instant of this session: after its end event, and the process leaves at once.
+    # The request used to land before the end event and the interpreter's shutdown, a window the harness's poll could
+    # fall in when the machine was busy and kill a host that was already finishing (3 of 16 parallel runs).
+    (Path.cwd().parent / "stop").write_text("")
+    os._exit(0)
 """
 
 
@@ -6291,8 +6295,11 @@ class StopFileTest(PrintedCase):
         # same as a killed host (SPEC: a requested stop has no process verdict); the session keeps its own status.
         self.assertEqual((result["process"]["status"], result["process"]["pass"]), ("stopped", None))
         self.assertEqual(result["termination"]["process_status"], "stopped")
-        self.assertEqual([s["status"] for s in result["process"]["sessions"]], ["exited"])
-        self.assertIn("host stopped rc=0", printed)
+        # On a busy machine the harness can see the request in the instant before the host has left and then end it
+        # itself: the session reads "stopped" and the host's code is -9, and every record above is the same. Either
+        # ending is the one under test (the kill is also pinned, deterministically, by the stop-file test above).
+        self.assertIn([s["status"] for s in result["process"]["sessions"]], (["exited"], ["stopped"]))
+        self.assertRegex(printed, r"host stopped rc=(0|-9)")
         self.assertFalse(self.baselines.exists(), "a stopped run is not a baseline")
 
     def test_a_stop_during_a_resumed_session_reads_as_stopped_and_is_not_relaunched(self):

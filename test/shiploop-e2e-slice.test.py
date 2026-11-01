@@ -328,8 +328,10 @@ LOOP = load_test_loop_driver()
 # test_loop suite's own (`test -f retained.txt`).
 # python3 -B and an ignored __pycache__: a bytecode file written while the base and candidate ran would be copied into a mutant's
 # checkout beside its changed source and could load instead of it.
-CHECK_A = ('echo "Ran 1 test in 0.001s"\n'
-           'if python3 -B -c "import a; assert a.x == 3"; then echo OK; else echo "FAILED (failures=1)"; exit 1; fi\n')
+# The test-loop driver's focused command lists TC-1 (a focused command gives each executed criterion it names an ID of
+# its own, step-plan review 2026-11-01), so the check prints that ID on pass and fail, as that driver's own CHECK does.
+CHECK_A = ('if python3 -B -c "import a; assert a.x == 3"; then echo "✔ TC-1 sets a.x"; echo "Ran 1 test in 0.001s"; '
+           'echo OK; else echo "✖ TC-1 sets a.x"; echo "Ran 1 test in 0.001s"; echo "FAILED (failures=1)"; exit 1; fi\n')
 
 
 class RealCompleteDriver(SliceCase):
