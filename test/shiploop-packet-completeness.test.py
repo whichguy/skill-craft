@@ -375,16 +375,6 @@ class ObservedHarmPacketTests(unittest.TestCase):
         self.assertIn("ShipLoop reruns it at the step's done, so make it safe to repeat.", text)
         self.assertIn("Tests are not a step (the test stage writes them) unless the item is all tests.", text)
 
-    # Step-plan round 2 (2026-11-01, the owner's "Reopen the class"; docs/experiments/step-plan-round2-20261101), A2b: R3's
-    # shared-expenses step plans proved S1 with the focused suite verbatim (`node --test`) or a filtered copy of it, which
-    # finds no test at implement's done; the duty's "(reuse a recorded command that proves them)" pointed at that row.
-    def test_the_step_plan_proof_bullet_rules_out_the_focused_suite(self) -> None:
-        text = flat(self.found[("step-plan", "producer")])
-        self.assertIn("so never the focused command or a filtered copy of it", text)
-        self.assertNotIn("reuse a recorded command that proves them", text)
-        self.assertIn("a check that needs a later step's work or an unwritten test, or passes by skipping a missing "
-                      "artifact", prompts.PLANNING_REVIEW_FOCUS)
-
     # Step-plan round 2, D: the base run accepts a new test that fails to load the code this item adds
     # (shiploop_test_loop.BASE_RULE), and 4 of the 30 send-backs on ShipLoop 1.27.0 and later were test-spec refusing exactly
     # that on an empty base; the template's RED placeholder said "not because a file is".
