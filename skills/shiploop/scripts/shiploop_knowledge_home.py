@@ -17,7 +17,9 @@ stage's knowledge commit, which the next run's intake and discovery quote (``las
 An older repository's ``README.md``, ``test-strategy.md`` and ``features/`` folders are left in place: nothing
 requires, writes or names them.  A repository index at the root is the
 host's file: ShipLoop reads it if present and never commits it.  At each close ShipLoop also prints one counted notice line
-per living file that lacks a named section (``section_notices``); it is a notice, never a refusal.
+per living file that lacks a named section (``section_notices``); it is a notice, never a refusal.  After any accepted stage that
+changed the home it prints one counted placement line per file whose edit filed a new entry under Retired or Superseded or added a
+level-2 heading that matches no named section or repeats one (``placement_notices``); also a notice, never a refusal.
 """
 
 from __future__ import annotations
@@ -77,7 +79,8 @@ CLOSES: Dict[str, Tuple[str, ...]] = {
 # (an AD-<n>); each step's document reflects on what the step showed in all three (design T §9.1 2b-3, option C:
 # requirement lines, decisions, commands and facts); carry-forward records the run's decisions and what they superseded; system-test-author keeps the system-test
 # catalog and release-plan the standing release procedure in environment.md, which release-check corrects when the rollback
-# differs (D2).  A key that is no stage of the graph is
+# differs (D2); operations keeps the log and audit retrieval and recovery locators there (its duty 5; the saved ticket runs
+# committed its edits as "knowledge after operations", so it is a writer).  A key that is no stage of the graph is
 # a stale entry: a test pins every key to ``stage_spec.STAGES``.
 STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "discovery": ("environment.md",),
@@ -96,6 +99,7 @@ STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "release-plan": ("environment.md",),
     "release-check": ("environment.md",),
     "release-verify": ("environment.md",),
+    "operations": ("environment.md",),
 }
 
 # The living files each stage's packet lists by contents (consumer contract 0A; owner decisions D1 2026-10-11 and D1
@@ -210,6 +214,28 @@ def _filled(path: Path) -> bool:
         return False
 
 
+# The stages the level-2 headings that matched no named section came from on the eight saved ticket runs (all 36 of them; the other
+# stages that keep these files added none).  Only they are told the rule below: it is about 360 bytes of every packet it is in.
+_REPORTING_STAGES = ("discovery", "test-strategy", "prepare", "carry-forward", "system-test-author", "release-plan",
+                     "release-verify", "operations")
+
+
+def _destination_line(stage: str, written: Sequence[str]) -> str:
+    """The packet line that says where a reporting stage's facts go in environment.md and architecture.md ('' for any other stage).
+
+    Standing facts under the named sections; a stage's own report is no heading, date or 'this run' in the file, it goes in the
+    result (multipass plan 2026-10-31, D3: on the eight saved ticket runs 30 of the 36 level-2 headings that matched no named
+    section were such reports).  ``placement_notices`` counts what this line did not prevent.
+    """
+    files = [name for name in written if name in _HEADING_FILES]
+    if stage not in _REPORTING_STAGES or not files:
+        return ""
+    sections = "; ".join(name + ": " + ", ".join("'" + heading + "'" for heading in SECTIONS[name]) for name in files)
+    return ("Keep " + " and ".join(files) + " to standing facts, each under the section it belongs to (" + sections + "); a ### "
+            "subsection there is fine. Add no ## heading for this stage's report and no date or 'this run' wording: the report "
+            "goes in your result.")
+
+
 def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
     """Packet lines: where the knowledge home is and what this stage keeps up to date there."""
     repo = Path(str(state["repo"]))
@@ -220,6 +246,9 @@ def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
     if written:
         lines.append("This stage keeps these up to date (create them if missing): "
                      + ", ".join(str(repo / path) for path in _expand(written, state)) + ".")
+    destination = _destination_line(stage, written)
+    if destination:
+        lines.append(destination)
     if earlier:
         lines.append("Written by earlier stages; ShipLoop refuses " + stage + " if any is missing or empty: "
                      + ", ".join(str(repo / path) for path in _expand(earlier, state)) + ".")
@@ -716,6 +745,101 @@ def outline(text: str, name: str) -> List[Section]:
     return sections
 
 
+# --- the placement check: a counted notice about where a stage's edit landed (multipass plan 2026-10-31, D2) -----------------
+
+# Every placement line starts with this.  The section notice's prefix is not reused: a count of "ShipLoop knowledge notice: " lines
+# keeps the meaning earlier rounds gave it (a line is a file that lacks a named section).
+PLACEMENT_PREFIX = "ShipLoop placement notice: "
+_STAGE_ACCEPTED = "(this stage is accepted)"
+# The files whose new level-2 headings the notice counts: the two whose sections are all named.  A spec's headings are its author's.
+_HEADING_FILES = ("environment.md", ARCHITECTURE)
+# Where a new requirement or decision that still holds belongs, and the heading an entry there is read as no longer holding.
+_LIVE_SECTION = {"spec.md": "Requirements", ARCHITECTURE: "Decisions"}
+_MOVED_SECTION = {name: section for name, _, _, _, section in _RETAINED}
+
+
+def _quoted(titles: Sequence[str]) -> str:
+    """Titles as the notice quotes them: the counts read the names between quotes, before a line's first semicolon."""
+    return ", ".join("'" + title.replace("'", "’").replace(";", ",") + "'" for title in titles)
+
+
+def _born_retired(name: str, before: str, now: str) -> List[str]:
+    """The entries ``now`` holds that ``before`` did not and that sit under Retired (spec.md) or Superseded (architecture.md)."""
+    prefix = next(key for key, (file, _) in _ENTRY_FILES.items() if file == name)
+    old = _entries(before, prefix) if before.strip() else {}
+    return sorted((ident for ident, entry in _entries(now, prefix).items() if entry.retired and ident not in old),
+                  key=lambda ident: int(ident.split("-")[1]))
+
+
+def _added_headings(name: str, before: str, now: str) -> List[str]:
+    """The level-2 headings ``now`` added to ``name`` that match no named section or repeat one, in file order.
+
+    Added means a title ``before`` did not hold (a second copy of a title it held is added).  A heading repeats a named section
+    when another level-2 heading matches the same name (the section notice's prefix rule) and either held before or comes
+    first; a rename in place is no repeat.
+    """
+    named = SECTIONS[name]
+    kept = [title for _, level, title in _outline(before.splitlines()) if level == 2]
+    headings: List[Tuple[str, bool, Optional[str]]] = []   # (title, added, the named section it matches)
+    for _, level, title in _outline(now.splitlines()):
+        if level != 2:
+            continue
+        added = title not in kept
+        if not added:
+            kept.remove(title)
+        headings.append((title, added, next((word for word in named if title.lower().startswith(word.lower())), None)))
+    flagged = {at for at, (_, added, word) in enumerate(headings) if added and word is None}
+    for word in named:
+        same = [at for at, (_, _, matched) in enumerate(headings) if matched == word]
+        if len(same) > 1:
+            held = any(not headings[at][1] for at in same)
+            flagged |= {at for position, at in enumerate(same) if headings[at][1] and (held or position > 0)}
+    return [headings[at][0] for at in sorted(flagged)]
+
+
+def placement_notices(state: Mapping[str, Any]) -> List[str]:
+    """Notice lines for where a stage's uncommitted edit of the living files put an entry or a heading; [] when it misplaced none.
+
+    A counted notice, not a refusal (consumer contract X11: a count, never a refusal): on the eight saved ticket runs a second
+    pass filed a live decision under ``## Superseded`` in one of four and added 1 to 7 level-2 headings that are stage reports to
+    ``environment.md`` in every one of eight (docs/shiploop-multipass-journal.md, F1 and F2).  One line per file that has
+    something to report, in ``LIVING`` order: ``PLACEMENT_PREFIX``, the file's absolute path, ``gained`` and its clauses joined
+    by ``and`` (``<IDs> under '<Retired or Superseded>'`` for entries new in this edit that sit there, ``new headings '<A>', '<B>'
+    that match no named section or repeat one`` for level-2 headings of environment.md and architecture.md), that the stage is
+    accepted, and one fix per clause kind after the first semicolon.  The edit is the working tree against HEAD, so call it
+    before the stage's commit; a first write is read against nothing.  It never raises: outside a checkout, or for a file that
+    cannot be read, it gives no line.
+    """
+    repo = Path(str(state["repo"]))
+    if _git(repo, "rev-parse", "--is-inside-work-tree").returncode != 0:
+        return []
+    notices: List[str] = []
+    for name in LIVING:
+        path = repo / HOME / name
+        try:
+            now = path.read_text(encoding="utf-8-sig", errors="replace") if path.is_file() else ""
+        except OSError:
+            continue
+        before = _committed(repo, name)
+        if not now.strip() or before == now:
+            continue
+        clauses: List[str] = []
+        fixes: List[str] = []
+        born = _born_retired(name, before, now) if name in _LIVE_SECTION else []
+        if born:
+            clauses.append(", ".join(born) + " under '" + _MOVED_SECTION[name] + "'")
+            fixes.append("move each under '" + _LIVE_SECTION[name] + "' unless it never held, and then say why in its text")
+        added = _added_headings(name, before, now) if name in _HEADING_FILES else []
+        if added:
+            clauses.append("new headings " + _quoted(added) + " that match no named section or repeat one")
+            fixes.append("put each fact under the named section it belongs to (" + _quoted(SECTIONS[name]) + ") or in your "
+                         "result, and keep a new heading only for standing content that fits none")
+        if clauses:
+            notices.append(PLACEMENT_PREFIX + str(path) + " gained " + " and ".join(clauses) + " " + _STAGE_ACCEPTED + "; "
+                           + "; ".join(fixes) + ".")
+    return notices
+
+
 def knowledge_subject(state: Mapping[str, Any], stage: str) -> str:
     """The subject of the commit that records this run's knowledge at (a close) or after (any other) ``stage``."""
     return ("docs(shiploop): record " + run_label(state) + " knowledge "
@@ -901,6 +1025,7 @@ __all__ = ("ARCHITECTURE",
            "LIVING",
            "Lessons",
            "NOTICE_PREFIX",
+           "PLACEMENT_PREFIX",
            "Quote",
            "READS",
            "RUN_BASELINE",
@@ -920,6 +1045,7 @@ __all__ = ("ARCHITECTURE",
            "lessons_lines",
            "next_close",
            "outline",
+           "placement_notices",
            "reads_quotes",
            "recent_commits",
            "record_baseline",
