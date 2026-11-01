@@ -102,3 +102,15 @@ reference sentence); CI runs the quick tier on the pushed tree.
 - `replay.py`, `replay-output.txt` (this directory).
 - 06a7473d910bc8b75c0ff247ce0dd6f0a27dbc5c (D1), ba908889db845f7dbccf8091071f2e7f2561e205 (the check),
   227f6ce0d5a2af1afacab619d25d65bfc83fbdb0 and `reviews/E-close.md` (the finding).
+
+## Shipped
+
+Added after publication, 2026-10-31. The findings above keep their status: F1, F2 and F5 firm, F3 interim, F4 unobserved.
+
+| what | value |
+|---|---|
+| fix commit | 7ca88df48f63631f55c8d9b16b27885f667b15a6, pushed to main at 17:41; rebased first onto four documentation commits that landed while the suites ran |
+| release | 5de751eebfc58d049032c873365e18e3621c1c7a: skill-craft 2.27.1 and shiploop 1.26.1, published at 17:43 by `scripts/release-push.py` after four checks (sync-plugin-views, marketplace packages, release boundary against the fix commit, test-groups). Another session had published 2.27.0 and 1.26.0 first |
+| hosts | Claude and Grok updated from 2.27.0 to 2.27.1, Codex marketplace upgraded; each installed copy of shiploop_test_loop.py was checked for the new docstring: Claude cache 2.27.1, Codex (codex plugin list shows skill-craft@whichguy 2.27.1) and Grok installed plugin all hold it; Cursor not refreshed (its app) |
+| CI on main | both passed. The fix commit's run 41257845999 passed plan, release-boundary and the quick tests (the quick job took about 11 minutes); the release commit's run 41257977788 passed the full tier (core, shiploop-1, shiploop-2, shiploop-3, e2e-apparatus), release-boundary and plan |
+| live check | open: the next live Salesforce run, which needs the owner's go to deploy to the org |
