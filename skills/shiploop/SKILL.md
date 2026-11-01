@@ -156,9 +156,11 @@ repository or changing sandbox settings yourself. See
 An empty starting directory needs no setup: `workspace start` makes it a Git
 repository on `main` with one empty baseline commit, so do not run `git init` or
 change Git configuration yourself. For a non-empty non-Git directory, bootstrap
-Git within scope first if appropriate, then use the workspace route. An explicitly selected
-in-place/non-Git run may instead use the direct entry, documenting why
-isolation is not used; it has no automatic workspace-return protection:
+Git within scope first if appropriate, then use the workspace route. Use the direct
+entry only when the user explicitly asks for an in-place or non-Git run (naming the
+current directory is not that: `workspace start` returns the finished work there),
+documenting why isolation is not used; it has no automatic workspace-return
+protection:
 
 ```sh
 python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'
