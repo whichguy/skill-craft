@@ -1,0 +1,75 @@
+{
+  "case": "hello",
+  "host": "claude",
+  "backend": "anthropic",
+  "model": "claude-sonnet-5-5",
+  "effort": null,
+  "argv": [
+    "claude",
+    "-p",
+    "/skill-craft:shiploop Create hello.py that prints exactly \"Hello, world!\" when run, plus a unittest test in test_hello.py that verifies that output.",
+    "--model",
+    "claude-sonnet-5-5",
+    "--max-budget-usd",
+    "25.0",
+    "--permission-mode",
+    "auto",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--no-session-persistence",
+    "--setting-sources",
+    "project,local",
+    "--strict-mcp-config",
+    "--plugin-dir",
+    "/Users/dadleet/e2e-runs/20261101/smoke-2.30.0-0f125e/pub/plugins/skill-craft"
+  ],
+  "cwd": "/Users/dadleet/e2e-runs/20261101/smoke-2.30.0-0f125e/claude-hello/work",
+  "plugin_dir": "/Users/dadleet/e2e-runs/20261101/smoke-2.30.0-0f125e/pub/plugins/skill-craft",
+  "plugin": null,
+  "versions": {
+    "source": "checkout",
+    "plugin_version": "2.30.0",
+    "shiploop_version": "1.29.0",
+    "plugin_sha256": "3efc9db89059",
+    "local_head": "d70cbcb912eeb26e232e3e01932a8bf0570c1042"
+  },
+  "host_build": null,
+  "checks": [
+    "test \"$(python3 hello.py)\" = 'Hello, world!'",
+    "python3 -m unittest -q"
+  ],
+  "follow_on": null,
+  "base": null,
+  "resumed_run": null,
+  "seeded": null,
+  "owner_note_at": null,
+  "needs": [],
+  "environment": {
+    "observed": true,
+    "at": "2026-11-01T18:27:29Z",
+    "tools": {
+      "node": "v26.12.1",
+      "python3": "Python 3.15.1",
+      "git": "git version 2.54.0 (Apple Git-157)"
+    },
+    "cpus": 18,
+    "loadavg": [
+      106.2,
+      121.09,
+      98.22
+    ],
+    "display_hold": true,
+    "unread": {},
+    "browser": {
+      "declared": false,
+      "probed": false,
+      "reason": "no case or --need declares a browser"
+    }
+  },
+  "planning_review": null,
+  "improve_skill": null,
+  "identity_unmeasured": {
+    "host_build": "Claude: read from the init event after the run"
+  }
+}

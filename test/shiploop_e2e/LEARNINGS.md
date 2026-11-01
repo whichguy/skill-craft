@@ -3672,7 +3672,7 @@ the baseline row is in this commit).
 - The improve-skill skip (6 of 22) is a candidate packet fix: the Improve packet could put the Skill call first and
   make it unmissable.
 
-## Harness change: an E2E run defaults to DeepSeek flash on Ollama (2026-10-26) — status: superseded 2026-11-01 (the Claude host now defaults to Anthropic's Sonnet 5.5; see the entry at the end of this file); was firm (a default, not a finding), until the Grok reset on Thursday 2026-10-29
+## Harness change: an E2E run defaults to DeepSeek flash on Ollama (2026-10-26) — status: superseded 2026-11-01 (the Claude host now defaults to Anthropic's Sonnet 5.5; see the entry "the Claude host defaults to Anthropic's Sonnet 5.5" further down this file); was firm (a default, not a finding), until the Grok reset on Thursday 2026-10-29
 
 **Scope in time.** The switch holds until Grok's credits reset on Thursday 2026-10-29. Then the owner decides whether
 to go back.
@@ -5598,8 +5598,20 @@ Anthropic default and name `--backend ollama` for the Ollama cases; the suite re
 were not run against the old default, so they are not fail-first; the other 60 suites were not rerun after them, because the fix
 touches only that test file.
 
-**Not measured.** No live run has used the new default yet; the first one is the next post-release smoke check
-(`docs/distribution.md`, "Smoke checks after a release"), where `--backend anthropic --model claude-sonnet-5-5` is no longer needed.
+**Not measured when this was committed (2e1f89a8fbb671d150a85ab0ebb9f13bf0f0f02b):** whether a live run works on the new default.
+Superseded the same day by the next paragraph.
+
+**First live run on the new default (2026-11-01, 10:27 to 10:48 PT) — status: firm for this run (n = 1).** `run.py --case hello
+--host claude --plugin-dir <export of origin/main plugins/skill-craft> --max-budget-usd 25`, with no `--backend` and no `--model`:
+`result.json` records `backend: anthropic`, `model: claude-sonnet-5-5`. Every verdict passed on skill-craft 2.30.0 / ShipLoop 1.29.0
+(tree digest 3efc9db89059): process rc 0 in 1239.8 s, 280 turns, $5.6854, 23 of 23 stages accepted, HEAD with 6 files and 0
+uncommitted, both request checks. Four ShipLoop commands exited 2 (three `--check-only` gates and one `improve-pass` on an
+already-imported stage); the run went on to `done` after each. The run used `--plugin-dir`, not `--source marketplace`, because
+the gate refused: `origin/main` held one unreleased change note from another session (the payload was still byte-identical to the
+2.30.0 release commit). Across the last six `hello` rows of this cell the turns are 197, 364, 230, 193, 188 and 280 and the cost
+$4.18, $7.65, $4.39, $3.88, $4.13 and $5.69, so 280 turns and $5.69 are inside the range and no cost change is claimed. The same
+folder shows the documented command passing its gate on 2.31.0 once the note was released. Evidence:
+`docs/experiments/release-smoke-20261101/`.
 
 ## E2E iteration 0 learnings (csv-report, codex high)
 

@@ -1,0 +1,1 @@
+marketplace preflight: origin/main 4a6c06c4 publishes skill-craft 2.31.0 / ShipLoop 1.30.0; origin/main export got skill-craft 2.31.0 / ShipLoop 1.30.0; unreleased notes: 0; main CI: success; OK

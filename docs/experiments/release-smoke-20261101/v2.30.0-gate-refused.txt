@@ -1,0 +1,1 @@
+marketplace preflight: origin/main 9bdd30dd publishes skill-craft 2.30.0 / ShipLoop 1.29.0; origin/main export got skill-craft 2.30.0 / ShipLoop 1.29.0; unreleased notes: 1; main CI: pending; REFUSED: origin/main has unreleased changes (changes/shiploop/init-refuses-an-empty-non-git-folder.md): run scripts/release.py and push so the marketplace serves them
