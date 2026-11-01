@@ -252,3 +252,39 @@ Ship iff all three hold:
 Decision: shipped in ShipLoop as a patch (`changes/shiploop/proof-order-plain-suite-proof.md`).
 - The packet text is unchanged. Step-plan's Checked-by line already names "a Proof needing an unwritten test".
 - The commit carries a No-E2E-Round reason. Rule C fires in about 1 plan in 120, so a live round would not exercise it.
+
+## Closing check (registered 2026-11-01, before it ran)
+
+Owner, 2026-11-01: "Determine how to conclude, plan out, and implement."
+
+The study closes on this check. Rule C shipped with two open limits (journal E18). Its in-sample case is 3 plans chosen
+after they were seen, and the 42 held-out runs held no catch. Other sessions have made many runs since: 1,194 run folders
+have a `state.md` created after the snapshot, 981 of them after the release (26123c9e, 07:13 PST).
+
+Done before this was written (a count; no rule scored):
+- No run record under `~/e2e-runs*/` holds rule C's refusal text, "runs only the tests the item base has".
+- Its 21 hits are copies of `test/shiploop-callback-contract.test.py` inside run trees, and one code review's transcripts.
+- A run's trace does keep a refused check's message, in the row's `error`. The focused-ID gate's refusal is in the trace
+  of sp1-xhigh ticket-import-s3.
+
+Method: `replay.py closing SCRIPTS ~/e2e-runs*`, on every run whose `state.md` was created after the snapshot. Each run is
+one of three kinds:
+- **live**: its ShipLoop had rule C. Either its checkout's `local_head` (in `invocation.json`) descends from 9870c6f6,
+  or its `shiploop_version` is 1.26.4 or later. A rule-C refusal in its trace is a live fire.
+- **replayed**: an older ShipLoop.
+- **unknown**: neither is recorded.
+
+The shipped rule runs on every kind's accepted step plans, after rules A and B pass, as in `shipped`. On a live run an
+accepted plan has already passed the gate. A replayed refusal there would mean the gate did not run on that plan's route,
+and that is reported as a defect.
+
+Each live fire and each replayed refusal is read and classed by ship check 2's definition. It is genuine when the step's
+Proof is a generic suite command and the cited criterion's confirming test is absent at the base. A reader error counts
+as false.
+
+Decision rule:
+- **Any false one, or a live-run refusal:** fix rule C or the gate in a patch, with the case as a test, before the study
+  closes.
+- **None:** rule C stands, and the study closes. Its rate is stated as an exact interval over all judged plans. If the
+  in-sample rate held (about 1 plan in 120), the live plans would hold about one fire per 120. The result states the
+  chance of seeing none at that rate.

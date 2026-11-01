@@ -3,6 +3,8 @@
 
     replay.py sendbacks SHIPLOOP_SCRIPTS ROOT [ROOT ...]   # every implement send-back, before any rule is scored
     replay.py score SHIPLOOP_SCRIPTS ROOT [ROOT ...]       # Q1 (rules A/B, C, C') and Q2 (stalls by wording)
+    replay.py shipped SHIPLOOP_SCRIPTS ROOT [ROOT ...]     # the follow-up's ship checks 1 and 2
+    replay.py closing SHIPLOOP_SCRIPTS ROOT [ROOT ...]     # the closing check: live fires and held-out refusals
 
 Q1 reads each accepted step plan as ``sg1/replay_d6.py`` does (the same run layouts and base rule) and asks three rules:
 the shipped ``shiploop_item_scope.proof_order_refusal`` (rules A and B, on each step's Proof); rule C, rule A on each
@@ -414,5 +416,89 @@ def shipped(roots) -> None:
     print(json.dumps(report, indent=1))
 
 
+# Rule C's refusal as proof_order_refusal words it (a refused check's message is the trace row's ``error``), and the
+# commit that added rule C.
+RULE_C_TEXT = "runs only the tests the item base has"
+RULE_C_COMMIT = "9870c6f68bfbd9375340c0e91ffdf4abfd76bd85"
+
+
+def invocation(run: Path) -> dict:
+    """The ``versions`` of the nearest ``invocation.json`` above a run, as step-plan-review-20261101 reads them."""
+    for folder in run.parents:
+        path = folder / "invocation.json"
+        if path.is_file():
+            try:
+                return json.loads(path.read_text()).get("versions") or {}
+            except (OSError, ValueError, AttributeError):
+                return {}
+    return {}
+
+
+def rule_c_live(run: Path):
+    """Whether the run's ShipLoop had rule C: its checkout's ``local_head`` descends from RULE_C_COMMIT, else its
+    ``shiploop_version`` is 1.26.4 or later (the release that shipped it). None when neither is recorded."""
+    versions, repo = invocation(run), str(HERE.parents[2])
+    head = versions.get("local_head")
+    if head and subprocess.run(["git", "-C", repo, "cat-file", "-e", f"{head}^{{commit}}"],
+                               capture_output=True).returncode == 0:
+        return subprocess.run(["git", "-C", repo, "merge-base", "--is-ancestor", RULE_C_COMMIT, head],
+                              capture_output=True).returncode == 0
+    try:
+        return tuple(int(part) for part in str(versions.get("shiploop_version")).split(".")[:3]) >= (1, 26, 4)
+    except ValueError:
+        return None
+
+
+def closing(roots) -> None:
+    """The closing check (README, "Closing check"): on every run whose ``state.md`` was created after the snapshot, the
+    rule-C refusals its trace records, and the shipped rule replayed on its accepted step plans after rules A and B pass
+    (as ``shipped`` does), split by whether the run's ShipLoop had rule C. Writes closing-check.json."""
+    snapshot = 1793542440  # 2026-11-01 06:14:00 PST
+    kinds, fires, refusals, without_base = [], [], [], 0
+    judged = {"live": 0, "replayed": 0, "unknown": 0}
+    for run in runs(roots):
+        if (run / "state.md").stat().st_birthtime <= snapshot:
+            continue
+        state = read(run)
+        if not state:
+            continue
+        kind = {True: "live", False: "replayed", None: "unknown"}[rule_c_live(run)]
+        kinds.append(kind)
+        for row in trace_rows(run):
+            if RULE_C_TEXT in str(row.get("error") or ""):
+                fires.append({"run": label_of(run), "kind": kind, "at": row.get("at"), "verb": row.get("verb"),
+                              "error": str(row.get("error"))[:600]})
+        repo, history, accepted = state.get("repo"), state.get("history") or [], state.get("accepted") or {}
+        items = [str(w.get("id")) for w in state.get("work_items") or () if isinstance(w, dict)]
+        for index, row in enumerate(history):
+            plan = accepted.get(row.get("action"))
+            if row.get("stage") != "step-plan" or row.get("outcome") != "done" or not isinstance(plan, dict) or not repo:
+                continue
+            base = base_for(run, repo, row["action"], bool(items) and row.get("workitem") == items[0])
+            if not base or subprocess.run(["git", "-C", repo, "cat-file", "-e", f"{base}^{{commit}}"],
+                                          capture_output=True).returncode != 0:
+                without_base += 1
+                continue
+            judged[kind] += 1
+
+            def exists(path, base=base, repo=repo):
+                return subprocess.run(["git", "-C", repo, "cat-file", "-e", f"{base}:{path}"],
+                                      capture_output=True).returncode == 0
+            if scope.proof_order_refusal(dict(plan, steps=[dict(s, criteria=[]) for s in plan.get("steps") or ()
+                                                          if isinstance(s, dict)]), exists):
+                continue
+            refusal = scope.proof_order_refusal(plan, exists)
+            if refusal:
+                outcomes = [later.get("outcome") for later in history[index + 1:]
+                            if later.get("workitem") == row.get("workitem") and later.get("stage") == "implement"]
+                refusals.append({"run": label_of(run), "kind": kind, "item": row.get("workitem"), "refusal": refusal,
+                                 "hits": confirm_by_hits(plan, exists, no_path_only=True, generic_only=True),
+                                 "implement_outcomes": outcomes})
+    report = {"snapshot": snapshot, "runs": len(kinds), "runs_by_kind": {kind: kinds.count(kind) for kind in judged},
+              "judged_plans": judged, "plans_without_base": without_base, "live_fires": fires, "refusals": refusals}
+    (HERE / "closing-check.json").write_text(json.dumps(report, indent=2) + "\n")
+    print(json.dumps(report, indent=1))
+
+
 if __name__ == "__main__":
-    {"sendbacks": sendbacks, "score": score, "shipped": shipped}[sys.argv[1]](sys.argv[3:])
+    {"sendbacks": sendbacks, "score": score, "shipped": shipped, "closing": closing}[sys.argv[1]](sys.argv[3:])
