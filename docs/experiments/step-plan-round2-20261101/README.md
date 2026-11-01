@@ -222,5 +222,17 @@ not count.
 | Run | Arm | Samples | Faulty (amended) | Form 1 | Form 2 verbatim | Form 2 filtered only | Faulty (registered) | Short of IDs | Not done | Refusals |
 |---|---|---|---|---|---|---|---|---|---|---|
 | pilot | B (49d21bc5) | 4 | 1 (sample 4) | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
+| rest | B (49d21bc5) | 8 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| **B total** | B | **12** | **1** | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
 
-Evidence: `xa_scores.jsonl` (score_xa.py); the runs in `~/e2e-runs-sp/20261101/round2/xa-B/` (outside git).
+Arm B, read before any T sample:
+- **The fault in the replay.** 1 of 12. The other 11 plans prove each step with a scratch script the step plan wrote in RUN/scratch,
+  which exists at the step's done. Eight of them run it with `node`, and three run it through node's runner with a name filter.
+- **Comparison with R3.** R3 had 5 of 20 at Terra high in whole deliveries. At xhigh, in this replay of A-s9's state, the fault is rare.
+- **Consequence for A2b.** With B at 1 of 12, even T at 0 of 12 gives one-sided Fisher p = 0.50. A2b's rule cannot be met at this size and
+  this rate, so the rule's verdict on A2b will be "not shipped" whatever T shows.
+- **Why T still runs.** T's 12 samples run as registered, for the controls: outcome done, an ID for each executed criterion, a focused
+  command kept. They also show whether arm T's gate (A1) or wording (A2a, A2b) adds refusals or new faults.
+- **Arm T** = **c767968528e3db301da38bd4e821f923ac440563** (branch `stepplan2-cf7d87`: A1 b8ad4478, D e47c8d32, A2a 211fe61b, A2b c7679685).
+
+Evidence: `xa_scores.jsonl` (score_xa.py); the runs in `~/e2e-runs-sp/20261101/round2/xa-B/` and `xa-B2/` (outside git).
