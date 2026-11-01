@@ -1,12 +1,14 @@
 ---
 Status: one change built, tested hermetically (§5) and live on Codex Terra 6.1 xhigh (§7a: 9 deliveries, 20 step-plan slices; a
-  wording fix, 45153684, came out of it); released as skill-craft 2.29.0 / ShipLoop 1.28.0 (4224161b, CI green); §8 is the owner's
+  wording fix, 45153684, came out of it); released as skill-craft 2.29.0 / ShipLoop 1.28.0 (4224161b, CI green); §8 is the owner's;
+  round 2 (§9, the same afternoon) built A1, A2a and D and reverted A2b on its registered rule
 Opened: 2026-11-01
 Consumer: the owner, who asked to make step planning as effective and efficient as possible; later, a session that changes
   the step-plan stage reads §3 for what it costs and what goes wrong, and §6 for what was considered and not built.
-Journal: docs/shiploop-question-driven-planning-journal.md, E19 (findings F26-F30) and E20 (F31, F32); E17 and E18 there are
-  another session's concurrent proof-coverage study
-Evidence: docs/experiments/step-plan-review-20261101/ (corpus, scripts, JSON lines; README there)
+Journal: docs/shiploop-question-driven-planning-journal.md, E19 (findings F26-F30), E20 (F31, F32) and E22 (round 2, F33-F37); E17,
+  E18 and E21 there are another session's proof-coverage study
+Evidence: docs/experiments/step-plan-review-20261101/ (corpus, scripts, JSON lines; README there); round 2:
+  docs/experiments/step-plan-round2-20261101/
 ---
 
 # Step planning: how effective and efficient it is, and what changed (2026-11-01)
@@ -294,9 +296,9 @@ check; three cases in about thirty recent runs is too few to measure in one roun
 1. Done: released at the owner's word ("Merge and publish now"), skill-craft 2.29.0 / ShipLoop 1.28.0, 4224161b, CI 9 of 9 jobs
    green, Claude, Codex and Grok refreshed (Cursor is the owner's app).
 2. Whether the step-plan Improve review should keep running for every first and sent-back item, given F26 and §3.5
-   (held for F1's three-arm measurement).
+   (held for F1's three-arm measurement). Round 2 (§9) sent F1's owner the refreshed numbers and changed nothing.
 3. Whether to add the repeatable-Proof clause (§6.2), which would take the step-plan head past its print bound unless
-   another line is cut.
+   another line is cut. Done in round 2 (§9): A2a, with another line cut, so the heads fall by 20.
 4. Whether to pursue F31 (§7a): implement's done-when naming the step's Proof as its confirmation, so a criterion's
    Confirm-by test (written at the test stage) no longer reads as due at implement; it would need its own live check.
    Update 2026-11-01 (added by the session that ran replication R3; the evidence is in docs/experiments/implement-send-back-class-20261101/):
@@ -308,3 +310,39 @@ check; three cases in about thirty recent runs is too few to measure in one roun
    conflicted ("Yes, take it up" there at 13:22, "Yes, leave it" above), and asked "Which of your two F31 answers should stand?" the
    owner answered "Run the live check". The check is registered in c2b854104e1b5f076e966e16adc3fa2a9ab63f9e
    (docs/experiments/f31-implement-proof-20261101/); its result and decision land there and in the planning journal.
+   Third answer, 2026-11-01 about 14:05, in the step-plan review's round 2 session. The session's approved plan overlapped both
+   decisions above, and the owner was asked which should stand. The answer: "Reopen the class, leave F31". The option text: "build A1 and A2 only
+   if they meet their pre-registered rules. That reverses your 13:48 'leave it' for this class, backed by new evidence. F31 stays
+   with its own session; C1 is dropped here." The class (a Proof that runs this item's unwritten tests) was reopened under registered rules
+   (§9). F31's wording stays with its own session's check.
+
+## 9. Round 2 (2026-11-01, afternoon)
+
+The owner asked: "I want to plan out all of these, rerun as needed, and re-implement or implement new tests. Pursue F31-side experiment on
+Terra XAI if needed". "Terra XAI" was read as Codex Terra 6.1 xhigh. The plan was approved; then the owner chose "Reopen the class,
+leave F31" (§8 item 4). Registration, rules and results: docs/experiments/step-plan-round2-20261101/README.md.
+
+| Item | What was done | Result |
+|---|---|---|
+| Corpus refresh | the review's tool on 229 runs (338 step-plan actions, 91 send-backs) | Of the 30 send-backs on ShipLoop 1.27.0 and later: 12 a Proof that runs this item's unwritten tests, 11 focused IDs short (1.27.0, gated since 1.28.0), 4 test-spec refusing RED on an empty base, 3 runner or command kind, 1 F31, 1 needs a later step, 1 wrong expectation |
+| A1: rule A reads test paths inside inline code | `shiploop_item_scope.inline_code_paths`, a route test and a reader test, both fail-first | Its replay over 363 saved plans flags 2, both real faults; 0 false. Shipped |
+| A2a: the Proof must be safe to repeat (§8 item 3) | "ShipLoop reruns it at the step's done, so make it safe to repeat"; the tests-are-not-a-step line loses the clause its refusal states | Heads -20. Not measured live (its cases are Salesforce). Shipped |
+| A2b: never the focused command or a filtered copy | proof bullet and review focus | X-A, a replay of R3's A-s9 state at step-plan, 12 per arm on Terra xhigh: B 1 of 12, T 0 of 12, p = 0.50. Missed its rule; reverted (68985caf) |
+| D: RED may be a load failure | test-spec duty 3, the template's RED placeholder ("not because a file is" removed), glossary | Aligns test-spec with the base run's rule. Its live check is the release round |
+| Needs-later-step | rule B over the `minimum` regression command's paths, replayed | 0 of 363 flagged. Not built |
+| Proof command defects | none | No precise rule (§6.2) |
+| §8 item 2, the review per item | numbers sent to F1's owner | Unchanged |
+
+What round 2 learned:
+- **The class's rate depends on the runner and the context.** At Terra high in whole deliveries it was 5 of 20 runs (R3). In the replay at xhigh
+  it was 1 of 12, where 11 plans prove each step with a scratch script. The wording change therefore could not be shown to help on the owner's
+  runner, and it did not ship.
+- **A third form.** A filtered copy of the focused suite with no file (`node --test --test-name-pattern=...`) runs no test at a step's done, just
+  as the suite does.
+- **Two wordings worked against ShipLoop's own rules.**
+  - Test-spec's RED placeholder, "not because a file is", contradicts the base run's rule. It led to 4 send-backs in 30.
+  - The step-plan duty's "reuse a recorded command that proves them" points at the focused suite, against the duty's own "no unwritten
+    test". It is kept, because its fix did not meet its rule.
+
+The release round (whole deliveries on the branch, merged with main, at Terra xhigh) is in the README's Results.
+

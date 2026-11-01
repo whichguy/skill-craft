@@ -492,6 +492,30 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
 - Evidence: `closing-check.json`, `closing-check-pass1.json` and `replay.py closing`, in
   docs/experiments/proof-coverage-replay-20261101/.
 
+### E22 — 2026-11-01: step-plan round 2: the unwritten-test Proof reopened, A1 and D built, A2b missed its rule (Codex Terra 6.1 xhigh)
+
+- **Question.** The owner: "I want to plan out all of these, rerun as needed, and re-implement or implement new tests. Pursue F31-side
+  experiment on Terra XAI if needed". Then, asked which of three overlapping decisions should stand: "Reopen the class, leave F31".
+  The question became: which of the step-plan review's open items can be fixed under a registered rule?
+- **Method.** Registered in docs/experiments/step-plan-round2-20261101/README.md (cdbeea71), with an amendment before any arm T sample
+  (552dd3d3).
+  - A corpus refresh: 229 runs.
+  - A1's replay: 363 plans, each judged at the commit it was accepted on.
+  - X-A: a stage-suite replay of R3's A-shared-expenses-s9 at step-plan, 12 per arm. Arm B is main 49d21bc5; arm T is c7679685.
+  - A rule B replay over the `minimum` regression command.
+  - A release round of whole deliveries, shared-expenses and csv-report ×3 on the merged branch.
+- **Result.**
+  - A1 flags 2 of 363, both real.
+  - X-A: B 1 of 12, T 0 of 12, p = 0.50. No harm or refusal in T. The one fault was a new, filtered form of the suite Proof.
+  - Rule B over the minimum command: 0 of 363.
+  - Corpus, ShipLoop 1.27.0 and later: 12 of 30 send-backs are a Proof needing unwritten tests, and 4 of 30 are test-spec refusing RED on
+    an empty base.
+- **Decision.** A1, A2a (the Proof safe to repeat) and D (RED may be a load failure) ship. A2b (never the focused command or a filtered
+  copy) missed its rule and was reverted (68985caf).
+- **Status.** Firm for A1's precision and X-A's arm rates; interim for D and A2a until the release round; F31 is the F31 session's.
+- **Evidence.** The README's Results, xa_scores.jsonl, replay_a1.jsonl, replay_rule_b_minimum.jsonl, corpus/; the run folders under
+  ~/e2e-runs-sp/20261101/round2/.
+
 ## Findings
 
 Each finding is stated in full, with its evidence, in §6.1 of the proposal document.
@@ -530,3 +554,8 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F30 | No precise rule separates a Proof that runs unwritten tests without a file path from a legitimate one (N1-N4 all flag passed Proofs; rule S, the narrowest, 5 of 12 flags real; F25's narrow rule C covers the plain-suite form by path) | firm (replay) | E19 |
 | F31 | Implement reads a criterion's "Confirm by" test, which the test stage writes later, as due at implement (3 live cases); a done-when naming the Proof as implement's confirmation is the candidate | interim | E20 |
 | F32 | On Codex Terra 6.1 xhigh the ID shortage still occurs (10% of saved plans) but test-spec folds it; the rule's gain there is a case per executed criterion, and live it costs no step-plan time | firm (corpus); interim (live, n = 20 slices) | E19, E20 |
+| F33 | Rule A misses a test path inside a Proof's inline code (`node -e` running `node --test` on test/service.test.js); reading inline code for test-class paths flags 2 of 363 saved plans, both real, none that passed implement | firm (replay) | E22 |
+| F34 | On Codex Terra 6.1 xhigh, a replay of R3's A-s9 step-plan state writes a Proof that finds no test in 1 of 12 plans (a filtered copy of the focused suite); R3 at Terra high had 5 of 20 runs. "Never the focused command or a filtered copy" (A2b) showed no measurable gain there (0 of 12, p 0.50) and was not shipped | firm (12 per arm) | E22 |
+| F35 | Test-spec's RED placeholder ("not because a file is") contradicted the base run, which accepts a load failure of the item's new code; 4 of the 30 send-backs on ShipLoop 1.27.0 and later were test-spec refusing that on an empty base | firm (corpus), interim (fix) | E22 |
+| F36 | A rule B extension to the `minimum` regression command flags 0 of 363 plans: the needs-later-step cases import a later file or assign a case to the wrong step, which no path rule sees | firm (replay) | E22 |
+| F37 | The repeatable-Proof clause fits the step-plan head when the tests-are-not-a-step line drops the clause its refusal already states (heads -20) | firm (measure) | E22 |
