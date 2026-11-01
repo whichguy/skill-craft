@@ -1,0 +1,381 @@
+[
+  {
+    "folder": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link1-a",
+    "name": "link1-a",
+    "result_json": true,
+    "pass": true,
+    "gates": {
+      "invoked": true,
+      "plugin": true,
+      "process": true,
+      "shiploop": true,
+      "committed": true,
+      "checks": true
+    },
+    "turns": 172,
+    "span": {
+      "started": 1793558288.487,
+      "ended": 1793558977.613
+    },
+    "follow_on_extract": [
+      {
+        "run": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link1-a/.shiploop-runs/work-20261101-183822-3be739/run",
+        "status": "done",
+        "stage": "done",
+        "handoff_attempts": [
+          {
+            "exit": 0,
+            "moved_to": "done"
+          }
+        ],
+        "packets": [
+          {
+            "chars": 20158,
+            "printed": 16683,
+            "whole": false
+          }
+        ],
+        "follow_on": [
+          {
+            "class": "decision",
+            "needs": "The user supplies the SEO decision; a later change implements it and updates tests.",
+            "request_sentence": "",
+            "source": "lessons.open_next",
+            "statement": "Final non-ASCII letter treatment remains for the user to decide."
+          }
+        ],
+        "handoff_accepted": true,
+        "request_file": true,
+        "report_has_section": true,
+        "unverified_at_handoff": []
+      }
+    ],
+    "work": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link1-a/work",
+    "files": [
+      ".gitignore",
+      "README.md",
+      "docs/shiploop/architecture.md",
+      "docs/shiploop/environment.md",
+      "docs/shiploop/spec.md",
+      "slug.py",
+      "test_slug.py"
+    ],
+    "finding_mentions": {
+      "docs/shiploop/architecture.md": 1,
+      "docs/shiploop/environment.md": 1,
+      "docs/shiploop/spec.md": 3
+    },
+    "cafe": {
+      "exit": 2,
+      "stdout": "",
+      "stderr": "undecided: non-ASCII",
+      "behaviour": "kept the reserved error"
+    }
+  },
+  {
+    "folder": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link1-b",
+    "name": "link1-b",
+    "result_json": true,
+    "pass": true,
+    "gates": {
+      "invoked": true,
+      "plugin": true,
+      "process": true,
+      "shiploop": true,
+      "committed": true,
+      "checks": true
+    },
+    "turns": 159,
+    "span": {
+      "started": 1793558296.484,
+      "ended": 1793558931.104
+    },
+    "follow_on_extract": [
+      {
+        "run": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link1-b/.shiploop-runs/work-20261101-183829-6fe13a/run",
+        "status": "done",
+        "stage": "done",
+        "handoff_attempts": [
+          {
+            "exit": 0,
+            "moved_to": "done"
+          }
+        ],
+        "packets": [
+          {
+            "chars": 20226,
+            "printed": 16639,
+            "whole": false
+          }
+        ],
+        "follow_on": [
+          {
+            "class": "decision",
+            "needs": "The user will provide the SEO decision when ready; a later change can then implement and test it.",
+            "request_sentence": "",
+            "source": "lessons.open_next",
+            "statement": "Future handling of non-ASCII letters is undecided; keep the interim error until the user supplies the policy."
+          }
+        ],
+        "handoff_accepted": true,
+        "request_file": true,
+        "report_has_section": true,
+        "unverified_at_handoff": []
+      }
+    ],
+    "work": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link1-b/work",
+    "files": [
+      "README.md",
+      "docs/shiploop/architecture.md",
+      "docs/shiploop/environment.md",
+      "docs/shiploop/spec.md",
+      "slug.py",
+      "test_slug.py"
+    ],
+    "finding_mentions": {
+      "docs/shiploop/architecture.md": 1,
+      "docs/shiploop/environment.md": 1,
+      "docs/shiploop/spec.md": 2
+    },
+    "cafe": {
+      "exit": 2,
+      "stdout": "",
+      "stderr": "undecided: non-ASCII",
+      "behaviour": "kept the reserved error"
+    }
+  },
+  {
+    "folder": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link2-a",
+    "name": "link2-a",
+    "result_json": true,
+    "pass": false,
+    "gates": {
+      "invoked": true,
+      "plugin": true,
+      "process": true,
+      "shiploop": false,
+      "committed": false,
+      "checks": true
+    },
+    "turns": 25,
+    "span": {
+      "started": 1793559014.049,
+      "ended": 1793559084.826
+    },
+    "follow_on_extract": [
+      {
+        "run": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link2-a/.shiploop-runs/work-20261101-185028-d88ba3/run",
+        "status": "blocked",
+        "stage": "spec",
+        "handoff_attempts": [],
+        "packets": [],
+        "follow_on": null,
+        "handoff_accepted": false,
+        "request_file": false,
+        "report_has_section": false,
+        "unverified_at_handoff": null
+      }
+    ],
+    "work": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link2-a/work",
+    "prompt_is_prior_request_file": true,
+    "prior_request_text": "Follow up an earlier ShipLoop run of this project: it left the findings below for a later run.\nClose each finding, using the earlier run's record where one is named.\n- Decision to settle with the requester: Final non-ASCII letter treatment remains for the user to decide. Needs: The user supplies the SEO decision; a later change implements it and updates tests.. Recorded in lessons.open_next.\nEverything the project already does must keep working. Keep the decisions in the living spec and architecture unless a finding above says otherwise, and run the existing tests first.\nThe earlier run's request is in /Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link1-a/.shiploop-runs/work-20261101-183822-3be739/run/request.md; its lessons commit is 'docs(shiploop): record write-slug-py-a-small-command-9f73ff knowledge at release-verify'.\n",
+    "start_head": "c2dc5638208faa9d12ecf66335c520fabae19cd1",
+    "files_changed_vs_prior_head": [],
+    "finding_mentions": {
+      "docs/shiploop/architecture.md": 1,
+      "docs/shiploop/environment.md": 1,
+      "docs/shiploop/spec.md": 3
+    },
+    "cafe": {
+      "exit": 2,
+      "stdout": "",
+      "stderr": "undecided: non-ASCII",
+      "behaviour": "kept the reserved error"
+    }
+  },
+  {
+    "folder": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link2-b",
+    "name": "link2-b",
+    "result_json": true,
+    "pass": false,
+    "gates": {
+      "invoked": true,
+      "plugin": true,
+      "process": true,
+      "shiploop": false,
+      "committed": false,
+      "checks": true
+    },
+    "turns": 25,
+    "span": {
+      "started": 1793558986.431,
+      "ended": 1793559069.637
+    },
+    "follow_on_extract": [
+      {
+        "run": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link2-b/.shiploop-runs/work-20261101-185003-dc24a1/run",
+        "status": "blocked",
+        "stage": "spec",
+        "handoff_attempts": [],
+        "packets": [],
+        "follow_on": null,
+        "handoff_accepted": false,
+        "request_file": false,
+        "report_has_section": false,
+        "unverified_at_handoff": null
+      }
+    ],
+    "work": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link2-b/work",
+    "prompt_is_prior_request_file": true,
+    "prior_request_text": "Follow up an earlier ShipLoop run of this project: it left the findings below for a later run.\nClose each finding, using the earlier run's record where one is named.\n- Decision to settle with the requester: Future handling of non-ASCII letters is undecided; keep the interim error until the user supplies the policy. Needs: The user will provide the SEO decision when ready; a later change can then implement and test it.. Recorded in lessons.open_next.\nEverything the project already does must keep working. Keep the decisions in the living spec and architecture unless a finding above says otherwise, and run the existing tests first.\nThe earlier run's request is in /Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link1-b/.shiploop-runs/work-20261101-183829-6fe13a/run/request.md; its lessons commit is 'docs(shiploop): record write-slug-py-a-small-command-b9c970 knowledge at release-verify'.\n",
+    "start_head": "4ecdd302f1c7acbdfdd7a83e12eac2988751f068",
+    "files_changed_vs_prior_head": [],
+    "finding_mentions": {
+      "docs/shiploop/architecture.md": 1,
+      "docs/shiploop/environment.md": 1,
+      "docs/shiploop/spec.md": 2
+    },
+    "cafe": {
+      "exit": 2,
+      "stdout": "",
+      "stderr": "undecided: non-ASCII",
+      "behaviour": "kept the reserved error"
+    }
+  },
+  {
+    "folder": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link3-a",
+    "name": "link3-a",
+    "result_json": true,
+    "pass": true,
+    "gates": {
+      "invoked": true,
+      "plugin": true,
+      "process": true,
+      "shiploop": true,
+      "committed": true,
+      "checks": true
+    },
+    "turns": 162,
+    "span": {
+      "started": 1793559267.158,
+      "ended": 1793560037.999
+    },
+    "follow_on_extract": [
+      {
+        "run": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link3-a/.shiploop-runs/work-20261101-185441-1471dc/run",
+        "status": "done",
+        "stage": "done",
+        "handoff_attempts": [
+          {
+            "exit": 0,
+            "moved_to": "done"
+          }
+        ],
+        "packets": [
+          {
+            "chars": 20200,
+            "printed": 16701,
+            "whole": false
+          }
+        ],
+        "follow_on": [],
+        "handoff_accepted": true,
+        "request_file": false,
+        "report_has_section": true,
+        "unverified_at_handoff": []
+      }
+    ],
+    "work": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link3-a/work",
+    "prompt_is_prior_request_file": false,
+    "prompt_is_request_plus_answer": true,
+    "prior_request_text": "Follow up an earlier ShipLoop run of this project: it left the findings below for a later run.\nClose each finding, using the earlier run's record where one is named.\n- Decision to settle with the requester: Final non-ASCII letter treatment remains for the user to decide. Needs: The user supplies the SEO decision; a later change implements it and updates tests.. Recorded in lessons.open_next.\nEverything the project already does must keep working. Keep the decisions in the living spec and architecture unless a finding above says otherwise, and run the existing tests first.\nThe earlier run's request is in /Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link1-a/.shiploop-runs/work-20261101-183822-3be739/run/request.md; its lessons commit is 'docs(shiploop): record write-slug-py-a-small-command-9f73ff knowledge at release-verify'.\n",
+    "start_head": "c2dc5638208faa9d12ecf66335c520fabae19cd1",
+    "files_changed_vs_prior_head": [
+      "README.md",
+      "docs/shiploop/architecture.md",
+      "docs/shiploop/environment.md",
+      "docs/shiploop/spec.md",
+      "slug.py",
+      "test_slug.py"
+    ],
+    "finding_mentions": {
+      "docs/shiploop/architecture.md": 2,
+      "docs/shiploop/environment.md": 5,
+      "docs/shiploop/spec.md": 4
+    },
+    "cafe": {
+      "exit": 0,
+      "stdout": "cafe",
+      "stderr": "",
+      "behaviour": "transliterated"
+    }
+  },
+  {
+    "folder": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link3-b",
+    "name": "link3-b",
+    "result_json": true,
+    "pass": true,
+    "gates": {
+      "invoked": true,
+      "plugin": true,
+      "process": true,
+      "shiploop": true,
+      "committed": true,
+      "checks": true
+    },
+    "turns": 144,
+    "span": {
+      "started": 1793559273.664,
+      "ended": 1793559952.52
+    },
+    "follow_on_extract": [
+      {
+        "run": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link3-b/.shiploop-runs/work-20261101-185449-55dbcb/run",
+        "status": "done",
+        "stage": "done",
+        "handoff_attempts": [
+          {
+            "exit": 0,
+            "moved_to": "done"
+          }
+        ],
+        "packets": [
+          {
+            "chars": 20310,
+            "printed": 16694,
+            "whole": false
+          }
+        ],
+        "follow_on": [],
+        "handoff_accepted": true,
+        "request_file": false,
+        "report_has_section": true,
+        "unverified_at_handoff": []
+      }
+    ],
+    "work": "/Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link3-b/work",
+    "prompt_is_prior_request_file": false,
+    "prompt_is_request_plus_answer": true,
+    "prior_request_text": "Follow up an earlier ShipLoop run of this project: it left the findings below for a later run.\nClose each finding, using the earlier run's record where one is named.\n- Decision to settle with the requester: Future handling of non-ASCII letters is undecided; keep the interim error until the user supplies the policy. Needs: The user will provide the SEO decision when ready; a later change can then implement and test it.. Recorded in lessons.open_next.\nEverything the project already does must keep working. Keep the decisions in the living spec and architecture unless a finding above says otherwise, and run the existing tests first.\nThe earlier run's request is in /Users/dadleet/e2e-runs/2026-11-01/follow-on-live2-dacc9b/link1-b/.shiploop-runs/work-20261101-183829-6fe13a/run/request.md; its lessons commit is 'docs(shiploop): record write-slug-py-a-small-command-b9c970 knowledge at release-verify'.\n",
+    "start_head": "4ecdd302f1c7acbdfdd7a83e12eac2988751f068",
+    "files_changed_vs_prior_head": [
+      "README.md",
+      "docs/shiploop/architecture.md",
+      "docs/shiploop/environment.md",
+      "docs/shiploop/spec.md",
+      "slug.py",
+      "test_slug.py"
+    ],
+    "finding_mentions": {
+      "docs/shiploop/architecture.md": 3,
+      "docs/shiploop/environment.md": 3,
+      "docs/shiploop/spec.md": 6
+    },
+    "cafe": {
+      "exit": 0,
+      "stdout": "cafe",
+      "stderr": "",
+      "behaviour": "transliterated"
+    }
+  }
+]
