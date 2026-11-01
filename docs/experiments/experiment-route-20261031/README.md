@@ -143,3 +143,50 @@ running settles.
   owner's word ("Merge to main and publish") before FX ran, with a No-E2E-Round trailer on its two commits; FX is its live
   check. Release eeb433d5, published 15:13 over main 2bfe9334 after CI passed there.
 
+
+## XI final and FX result (2026-10-31 17:15)
+
+XI final (score_xi.py on the rejected candidate's branch; empty learning commit 2ae6200e): A 3 of 6 pass every held-out
+check, B 6 of 6 (B s7 replaced the infrastructure stop B s6), exact one-sided p = 0.0909; probe commands are in the
+host's event stream in 1 of 6 B runs (s7). Not adopted. All three A failures are the step-plan stall this study's fix 1
+removes (s1, s4, s6).
+
+FX (scores-fx.json; 8 of 8 runs scored, in run order):
+
+| Run | Held-out checks | End | Minutes | Open item: route and the command that settles it | Refusals of the rule | Send-backs |
+|---|---|---|---|---|---|---|
+| P s1 | 13/13 | PASS | 11.9 | A2 expectation: `node --version` | 0 | test-spec |
+| F s1 | 13/13 | PASS | 10.4 | A2 criterion: `node ../run/scratch/import-probe.js` | 0 | implement |
+| F s2 | 13/13 | PASS | 11.5 | A2 criterion: `focused and regression suite` | 0 | none |
+| P s2 | 13/13 | PASS | 16.1 | A2 expectation: `node -e "const … assert.equal(r.status,404)}).catch(e=>{c` | 1 | test |
+| P s3 | 13/13 | PASS | 12.9 | A2 expectation: `node --test test/store.test.js` | 0 | implement |
+| F s3 | 13/13 | PASS | 11.0 | A2 criterion: `timed HTTP test and npm test` | 0 | none |
+| F s4 | 13/13 | PASS | 14.4 | A2 criterion: `timed node:test` | 0 | none |
+| P s4 | 13/13 | PASS | 15.3 | A2 expectation: `node -e "require('./src/store')"` | 0 | none |
+
+- Rule: (1) no harm: F passes 4 of 4 against P's 4 of 4: met; (2) mechanism: every F plan leaves the timing item (A2)
+  open and every F step plan cites it through an executed criterion (4 of 4; 3 needed): met; (3) the fix's one
+  quick-tier failure (package integrity) was fixed in 035b3a41, and the full CI tier passed on the release commit
+  eeb433d5 (run 41247212349): met. **Fix 1 is adopted**; it shipped in 2.27.0, so nothing is reverted and no release
+  follows. The rule was settled after F s4 (F 4 of 4 cannot be beaten); P s4 ran to complete the pre-registered
+  record.
+- What settles the item: every P step plan meets the rule with an expectation that times nothing (`node --version`; the
+  import route answers 404 on the base; the existing store's tests; a check that the store module loads), and P s2 needed one refusal of the rule to
+  get there. Every F step plan cites a criterion its own tests confirm after the build: a scratch probe timing 5000
+  persisted imports at implement (s1), or the focused suite's timed 5000-ticket test (s2, s3, s4).
+- Refusals of the rule: P 1, F 0. No run stalled in either arm. Mean minutes P 14.1,
+  F 11.8 (exact one-sided p 0.086) (descriptive; the rule claims nothing about time).
+
+Contrary evidence:
+- The test stage writes a timed 5000-ticket test in both arms (P s1 `TC_SCALE`, F s1 `TC-2`, F s2 `TC_4`), because the
+  spec carries the 10-second requirement: the route changes what the step plan records as settling the item, and removes
+  the stall path, not what gets tested.
+- XI's stall (3 of 6 runs of 02a215e9) did not recur in P (7f565994), whose step-plan `from` sentence c2da4604 had
+  reworded (fix 11 of the stage-prompt review), so this round shows no stall rate either way.
+- F s1's one send-back (implement: "C1 and C2 require a new test file which the implementation contract forbids
+  writing until test stage") came from a step whose Proof, `npm test`, cannot run the item's new criteria at implement.
+  C1, which has no `from`, had the same fault; the proof-order refusal reads only test paths a Proof names, so it does
+  not see a Proof that names none. It is a step-plan gap of its own, not a cost of fix 1.
+
+Unknowns: one case on one base, one subject and effort, 4 runs a side; how often the stall occurs on 2.27.0's baseline
+wording at all.
