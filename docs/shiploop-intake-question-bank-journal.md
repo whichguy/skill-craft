@@ -46,7 +46,7 @@ jargon, which should be resolved by looking before anyone is asked.
   11 points of recall. The pre-registered bar for replacing the shipped ledger was missed, so it stays (§5.1, §5.2).
 - **The token cost is small and sits elsewhere.** A whole intake is 2k to 4k output tokens; reading the repository costs 26k to 35k
   uncached input tokens. Both are small beside a run. The shipped ledger paid off downstream (0 of 6 proof-order send-backs against 4
-  of 6 in its live A/B), which no experiment here re-measures.
+  of 6 in its live A/B), which no experiment here re-measures. Correction 2026-11-01 (Astra review, F50): that live A/B tested the proof-order refusal and the ledger together, and the refusal explains the drop (it refused exactly the 4 control plans that went on to the send-back, 45f9752eee7d4fe3450b9ac88843cc1da0fbb980); the ledger's own downstream effect is not measured.
 - **Skills and jargon (the owner's note).** On a long dictated request, a terms-and-references category with a look-it-up-first
   sentence raised the share of items answered right from 0.56 to 0.73 (the same plus the bank: 0.74 and 0.80; exact p 0.004 to 0.012,
   five outputs each). Installed skills named in the request were tied to the host's list 0.73 to 0.93 of the time instead of 0.33; an unknown
@@ -59,7 +59,7 @@ jargon, which should be resolved by looking before anyone is asked.
   cost of the change: no template for closed tickets, a dedupe that holds only while a notification is pending, a data file saved on
   every change.
 - **Ask, probe or default.** With a person available and a rule to ask only what the repository and the skills cannot settle and where
-  two readings lead to different work, intake asked one question per output, the same one every time: which weekly-report window,
+  two readings lead to different work, intake asked one question in six of eight outputs (correction 2026-11-01, F51: Bp 4 of 4, Qp 2 of 4), the same one every time: which weekly-report window,
   because the request's premise was false and no default is safe. It defaulted and recorded the rest. An explicit look-it-up order made
   the model read more (10 to 14 shell commands against 7.6), while earlier tests found models rarely run a probe merely because it is
   allowed (§5.4).
@@ -542,3 +542,10 @@ and names skills and slang, graded on what the run does with them, to measure K1
   about 4% in this case (interim); F49 F31's Confirm-by wording is the cause of 1 of the 6 loops, and no candidate rule is clean on both corpora: rule D 9 send-backs to 4 plans that
   passed, rule S with the folder left out 13 to 6 (interim). F43 stands as the rate; its cause is F46. Recommendation recorded there: leave it; the decision is the owner's.
 - 2026-11-01, the owner's decision on the implement send-back class (F43, F46 to F49): "Yes, leave it", answering the recommendation to leave it. F31's wording is not pursued (step-plan review section 8 item 4 is closed without a change), rule D is not built, no live check is run, and nothing under skills/ changes. Reopen if the class costs materially more elsewhere or a loop fails to recover; the study is docs/experiments/implement-send-back-class-20261101/.
+- 2026-11-01, Astra at max effort reviewed the intake enrichment (docs/experiments/astra-review-intake-20261101/: brief, verbatim review, the checks). Findings (status in brackets): F50 the journal
+  credited the shipped ledger with the live A/B's drop in proof-order send-backs; the A/B tested the refusal and the ledger together and the refusal explains the drop; corrected in section 0
+  (firm, verified in 45f9752eee7d4fe3450b9ac88843cc1da0fbb980); F51 QB4's "one question per output" was six of eight outputs; corrected in section 0 (firm, README QB4); F52 the shape check requires only id, question and route per
+  question while the template and its error text list category, changes, default and blocks (firm, `_check_intake_questions`); F53 QB5's registered test pooled 15 against 15 outputs; Astra's paired
+  sign-flip sensitivity keeps the items-right gain (p 0.00012, its figure, not recomputed here), leaves silent assertions inconclusive (0.125), and shows that three requests are three units of task
+  diversity (interim); F54 its five recommendations, none adopted: a lookup-dependent delivery screen of about 10 runs, Q-ID carry-forward with provenance, context-sensitive term resolution, relevance
+  and person-routing wording, and a decision-relevant evaluation contract (exploratory; the first is the one gap both live studies state).
