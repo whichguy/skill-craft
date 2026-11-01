@@ -1,0 +1,75 @@
+{
+  "contract": "shiploop-cycle/1",
+  "decision": "UNDECIDED",
+  "reasons": [
+    "required discovery review incomplete: candidate-hello-hook-continuation-2, candidate-hello-hook-continuation-3"
+  ],
+  "verdict": {
+    "contract": "prediction-verdict/1",
+    "record": "LR-20261101-58f651",
+    "verdict": "confirmed",
+    "effects": [
+      {
+        "case": "hello-hook-continuation",
+        "measure": "accuracy",
+        "control": 0.0,
+        "candidate": 1.0,
+        "change": 1.0,
+        "direction": "up",
+        "at_least": 0.5,
+        "verdict": "confirmed"
+      }
+    ],
+    "guards": [
+      {
+        "case": "hello-hook-continuation",
+        "measure": "accuracy",
+        "control": 0.0,
+        "candidate": 1.0,
+        "change": 1.0,
+        "direction": "not_down",
+        "held": true
+      }
+    ]
+  },
+  "outcome": {
+    "outcome": "admitted",
+    "reason": "undecided: required discovery review incomplete: candidate-hello-hook-continuation-2, candidate-hello-hook-continuation-3 [tolerance and attempts stated, not measured]",
+    "reopen_when": null,
+    "calibration": "stated, not measured"
+  },
+  "cases": {
+    "hello-hook-continuation": {
+      "role": "capability",
+      "control": {
+        "attempts": 3,
+        "registered_attempts": 3,
+        "successes": 0,
+        "unknown": 0,
+        "share": 0.0
+      },
+      "candidate": {
+        "attempts": 3,
+        "registered_attempts": 3,
+        "successes": 3,
+        "unknown": 0,
+        "share": 1.0
+      },
+      "cost_per_success": {
+        "tokens": {
+          "control": null,
+          "candidate": 24783433.333333332
+        }
+      }
+    }
+  },
+  "opened": [
+    "LR-20261101-58f651",
+    "LR-20261101-58f651",
+    "LR-20261101-94533c",
+    "LR-20261101-58f651",
+    "LR-20261101-e982b8"
+  ],
+  "control_build": "54fdec0e37a9",
+  "candidate_build": "852d67ee5006"
+}
