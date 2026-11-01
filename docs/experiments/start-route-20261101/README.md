@@ -1,6 +1,9 @@
 # Start route: does rewording the card's start section stop the wrong first command?
 
-Status: **done 2026-11-01.** Pre-registered before the first scored trial; T2 met the registered bar and shipped as skill-craft 2.27.3 / shiploop 1.26.3 (release f24746fa6193007235818f2d8b109408d70ca413); a published-build confirmation held and a clean replication (R2) held too (see "Results" and "Replication R2: result").
+Status: **done 2026-11-01.** Pre-registered before the first scored trial; T2 met the registered bar and shipped as skill-craft 2.27.3 / shiploop 1.26.3 (release f24746fa6193007235818f2d8b109408d70ca413); a published-build confirmation held and a clean replication (R2) held too (see "Results" and "Replication R2: result"). Follow-ups the same day, in the order
+they ran: the explicit in-place requests still start with `init` (48 of 48); T2 does nothing either way on Claude or Grok (no regression); a script guard
+that refuses `init` in an empty non-Git folder failed its first design (0 of 16 mistaken starts refused, the override was in `--help`) and met every
+registered condition in its second (20 of 20), released as skill-craft 2.31.0 / shiploop 1.30.0 (5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a).
 Owner: Jim Wiese. Model and harness (owner, 2026-11-01: "Use terra at xhigh", "We should be using the codex harness"):
 the E2E harness `test/shiploop_e2e/run.py` on its Codex host, `gpt-6.1-terra` at `xhigh`.
 
@@ -574,6 +577,21 @@ fix for the harness is f9717c93631ae068bec75c6dc9238a2f878cc8ec (`SF_USE_GENERIC
 `reap` now also matches the working directory. No measure here changed: every route is read at or after the run's first start, there
 was no invalid attempt in either guard launch, and the medians (44 to 50 s) show no session waited on a dialog; the cost was to the owner's screen.
 
+### Post-release checks of the published build (2.31.0 / 1.30.0, 2026-11-01)
+
+- *The published bytes, no model.* `init --repo <empty folder> --run-dir <beside it>` from the marketplace copy of the plugin exits 2 with the
+  refusal and creates nothing; `init --help` does not mention `--in-place`; with `--in-place` the run starts. `docs/distribution.md`'s
+  clean-install probes (`docs/experiments/clean-install-20261101/probes.sh`, a disposable Claude config, Python 3.9 and 3.7) printed output
+  identical to the committed 2.27.x output once paths, version and packet size are normalized, and the install reported
+  `skill-craft@whichguy 2.31.0 enabled`.
+- *A live case from the published build.* `run.py --case hello --host codex --source marketplace` (a fresh Codex profile, Terra 6.1 at
+  `xhigh`): `PASS every verdict passed`, marketplace versions skill-craft 2.31.0 / ShipLoop 1.30.0, `shiploop PASS done`, exited rc=0 in
+  569.8 s, both product checks passed, no refusal in the stream (it began with `workspace start`, recorded as `"start_route": "workspace"`
+  in `result.json`: the harness field of this series, read from the disk in a real full run). n = 1: it shows the guard does not get in the
+  way of an ordinary run, not a rate. Output: `~/e2e-runs-startroute/20261101-release-smoke-codex`.
+- *Hosts.* `claude plugin update skill-craft@whichguy` took Claude's install from 2.30.0 to 2.31.0 (a restart applies it); the Codex and Grok
+  marketplace refreshes show skill-craft 2.31.0 / ShipLoop 1.30.0 with the guard in their copies. Cursor is the owner's, in its app.
+
 ## Release CI
 
 The full CI run of the release commit f24746fa6193007235818f2d8b109408d70ca413 (run 41318115086) failed one job, `full /
@@ -600,5 +618,11 @@ https://github.com/whichguy/skill-craft/actions/runs/41318115086.
 - `analysis-i1-output.txt`, `results-i1-compact.jsonl`: the opposite-direction result. Raw rows: `~/e2e-runs-startroute/20261101-i1/`.
 - `analysis-output.txt`, `results-compact.jsonl`: the result (the compact rows trim each command; the raw rows are below).
 - `start_routes.py`, `recount.py`, `recount-output.txt`: the archive recount (run before any trial).
+- Other hosts: `analysis-h-claude-output.txt`, `analysis-h-grok-output.txt`, `results-h-claude-compact.jsonl`, `results-h-grok-compact.jsonl`.
+  The guard probes: `arms-guard.json`, `plan-guard.json` and `plan-guard2.json` (`plan --set guard`), `analysis-guard-output.txt` and
+  `results-guard-compact.jsonl` (first design), `analysis-guard2-output.txt` and `results-guard2-compact.jsonl` (second design);
+  `start_probe.py run --effect-stop --package-root <build>` and `analyze.py --mode guard --gate e` are the instruments, and
+  `analyze.py --replicates` prints whether a second batch repeats a selection.
+- Raw run folders for the follow-ups (not committed): `~/e2e-runs-startroute/20261101-h-claude`, `-h-grok`, `-guard`, `-guard2`.
 - Raw run folders (not committed): `~/e2e-runs-startroute/20261101/` (`results.jsonl`, `baselines-probe.jsonl`,
   `trials/<slot>-<arm>-<request>-<n>-a<attempt>/` with `events.jsonl`, `invocation.json`, `result.json`, `metrics.json`).

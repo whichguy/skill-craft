@@ -5883,6 +5883,12 @@ the refusal is untested. 17 suites' fixtures needed a repository or `--in-place`
 **Not measured:** a full case end to end with the guard present; the guard's rate of firing on the current card (about 1 start in 80 on
 Codex, none seen on the other hosts).
 
+**Addendum, after the release (2026-11-01).** A full case with the guard present was then run from the published build: `hello` on
+the Codex host (`--source marketplace`, a fresh profile, Terra 6.1 xhigh), `PASS every verdict passed`, skill-craft 2.31.0 /
+ShipLoop 1.30.0, `shiploop PASS done`, rc=0 in 569.8 s, no refusal in the stream (it began with `workspace start`; `start_route`
+`workspace` in `result.json`). n = 1; it supersedes "not measured" above for that one case and says nothing about a rate. The
+no-model clean-install probes printed the committed output. Details: `docs/experiments/start-route-20261101/README.md`.
+
 ## Release preflight: a merge of main into a branch is listed as a ShipLoop change without a round (2026-11-01) — status: firm (seen twice in one release); the gate is unchanged and the owner decides whether to change it
 
 **What happened.** `scripts/release.py --dry-run` for 2.31.0 / 1.30.0 refused twice, each time naming one commit that is a merge:
