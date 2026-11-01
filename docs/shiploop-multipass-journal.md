@@ -685,6 +685,11 @@ The branch "K missed in the tidy pairs" does not apply either: K held in the tid
 - The merge (2026-11-01, about 10:36): the candidate went to main after Round 4's readout and its own tier, not before them. The plan's order puts the merge before the owner's word, and the owner's approval of D2 to D4 was
   conditional on E2, which met its bar. Merging makes any session's next release carry it (another session released ShipLoop four times that day), so no release was cut here: the plan, the Round 4 reading rule
   and the missed B1 all leave the release to the owner. Feature commit 9e39b146db427c26f68c0e22d900e70c92be5011, E2E round entry a04ad7f50327155aebc364738195ba1165c32634.
+- The release (2026-11-01): the owner answered "Yes, release" after another session had already published the fix in skill-craft 2.31.0 / ShipLoop 1.30.0 (release commit
+  5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a, 10:38 PT, with two other notes). I cut no second release (`scripts/release.py` reports nothing pending), checked that the release commit's nine CI jobs are green, that the
+  installed Claude plugin carries `placement_notices` and that Claude, Codex and Grok are on 2.31.0, and ran a live Codex session from the published marketplace tree: it passed, 534 s
+  ([release-smoke-2.31.0-codex-20261101.txt](experiments/multipass-20261031/release-smoke-2.31.0-codex-20261101.txt)). That session is the `hello` case, which does not exercise the placement notice; what exercised it
+  are E2 and Round 4.
 
 ## Not done, and unknowns
 

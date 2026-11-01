@@ -10,6 +10,9 @@ Status: **D1 to D5 approved as recommended (owner, 2026-10-31, "Approve all")**.
   check passes 15 of 15 and the failing test's file 24 of 24). It informs the owner's word on the release; it does not replace it.
   2026-11-01, later: the candidate is merged to main and unreleased. Feature commit 9e39b146db427c26f68c0e22d900e70c92be5011 and its E2E round entry a04ad7f50327155aebc364738195ba1165c32634 (the patch-id moved from
   8cf39729c9b94711faf1b7b2030b7a4adb7f8456 to 9fe0d24b6aca6493b7f74f3b5867d060fc0b8d00 only because main edited the head-size table). A release cut from main now carries it, and publishing it is the owner's word.
+  Released the same morning as skill-craft 2.31.0 / ShipLoop 1.30.0 (release commit 5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a, 10:38 PT): another session cut it, with two other pending notes, before the owner's
+  "Yes, release" reached this session, so no second release was cut. CI on the release commit was green in all nine jobs including the full tier, the Claude, Codex and Grok hosts were on 2.31.0, and a live Codex
+  session from the published marketplace tree passed ([release-smoke-2.31.0-codex-20261101.txt](experiments/multipass-20261031/release-smoke-2.31.0-codex-20261101.txt)). The word "unreleased" above was true when it was written.
 Opened: 2026-10-31
 Consumer: the owner, who decides D1 to D5 in section 7; later whoever adds the fourth link or changes how a stage writes the
   living files, and reads the ledger as the before and after
@@ -188,8 +191,8 @@ merged only when E2 meets its bar.
  done     [E1: live third pass] ─► D1..D5 approved ─► candidate built ─► [E2: A/B, 12 of 12 passed, bar met] ─► ticket-sla built, calibrated and run live once (E3)
  done     rebased onto main's 3.9-floor release and again onto main of 2026-11-01 (patch-id unchanged) ─► [E4: the fix on passes 3 and 4, six runs with a control each; B1 missed as recorded, B2 to B4 held]
  done     tier on the rebased tree ─► merged to main (2026-11-01, unreleased; its E2E round entry follows the feature commit, so the preflight passes)
- next     owner's word ─► release ─► hosts
-          chain B (small base, a second domain)
+ done     owner's word ("Yes, release") ─► released as skill-craft 2.31.0 / ShipLoop 1.30.0 by another session at 10:38 PT ─► hosts on 2.31.0 ─► live Codex smoke on the published tree passed
+ next     chain B (small base, a second domain)
 ```
 
 ## 9. Risks and unknowns
