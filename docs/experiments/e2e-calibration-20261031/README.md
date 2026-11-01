@@ -6,14 +6,21 @@ changes ShipLoop or the harness.
 
 ## What runs
 
-| Case | Style | Attempts (both arms, one build) | Minutes each (Terra, 29 Oct) |
-|---|---|---|---|
-| `battleship` | web service | 4 | never run on Terra |
-| `user-listing` | brownfield | 8 | 10 to 14 |
-| `ticket-assignment` | brownfield | 8 | 16 to 20 |
+| Case | Style | Attempts (both arms, one build) |
+|---|---|---|
+| `csv-report` | command-line tool | 8 (4 + 4) |
+| `seat-reservations` | small HTTP service | 8 (4 + 4) |
 
-Subject: Codex `gpt-6.1-terra` at `xhigh`, the subject of every Terra round since 2026-10-29. At most three runs at once,
-no reviews or judgments. About 2 to 3½ hours on the brownfield cases, plus battleship's unknown time.
+These are the two cases of the [stage 5 cycle](../closed-loop-cycle-20261101/README.md), so the figure measures the noise
+of the comparison it would replace. Subject: Codex `gpt-6.1-terra` at `high`, the cycle's subject. No reviews or
+judgments. `E2E_CALIBRATION_PARALLEL` sets how many run at once (default 3; use 2 beside other sessions' runs). 16 runs of
+8 to 25 minutes each: about 1½ to 2½ hours.
+
+**Why not the first design (2026-11-01).** It ran `battleship`, `user-listing` and `ticket-assignment`. Each declares a
+fixed port (`quality.refuse_ports`: 3000, 3000 and 4180), which `run.py` leases machine-wide and `cycle.launch_all`
+does not serialise, so its own parallel attempts would have refused one another, and another session's run held port
+3000 when the cycle's first launch tried it. `battleship` has also never run on Terra. The kit had not run, so no
+evidence changed.
 
 ## How to run it
 

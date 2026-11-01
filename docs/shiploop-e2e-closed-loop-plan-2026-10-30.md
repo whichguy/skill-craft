@@ -391,6 +391,13 @@ Around it:
 - **If battleship's median exceeds 60 minutes:** the generality case moves to each batch's breadth run, and every cycle
   entry says its claim is scoped to brownfield.
 
+- **Changed 2026-11-01.** The kit now measures the stage 5 cycle's own cases, `csv-report` and `seat-reservations`, 4 attempts
+  per arm each (16 runs), at Terra `high`, so its figure is the noise of the comparison a cycle makes. The cases above each
+  declare a fixed port (3000, 3000, 4180), which `run.py` leases machine-wide and `launch_all` does not serialise: the kit's own
+  parallel attempts would have refused one another, and another session's run held port 3000. The kit had not run. The owner's
+  "all of them" (2026-11-01), read as putting stage 3 back on the list after the 2026-10-31 skip, started it beside the stage 5
+  cycle; it uses its own epoch folder, so it cannot be a neighbour of that cycle's attempts.
+
 ## Stage 4: known-bad pilot
 
 The 10-29 plan's "prove the loop can say no", live. Built 2026-11-01 as `docs/experiments/closed-loop-pilot-20261101/`
@@ -424,7 +431,7 @@ The 10-29 plan's "prove the loop can say no", live. Built 2026-11-01 as `docs/ex
 ## Stage 5: first qualified cycles
 
 ```sh
-python3 test/shiploop_e2e/iterate.py --qualify --case csv-report --generality-case seat-reservations \
+python3 test/shiploop_e2e/iterate.py --qualify --case seat-reservations --generality-case csv-report \
     --tolerance 0.25 --attempts 3 --host codex --model gpt-6.1-terra --effort high --iterations 1
 ```
 
@@ -435,10 +442,18 @@ measured. `user-listing` was then used for the first launch and refused: it decl
 harness holds it, and another session's `user-listing` run did. `battleship` and `checkers` declare 3000 too, the
 `ticket-*` cases 4180. A cycle on such a case would also fail its own parallel attempts, because `launch_all` serialises
 attempts that share a hosted platform but not attempts that share a fixed port; that gap is not fixed. The cycle
-therefore uses two cases with no fixed port and no hosted platform, of different styles: `csv-report`, exposing, and
-`seat-reservations`, the unseen generality case.)
+therefore uses two cases with no fixed port and no hosted platform, of different styles. They were first `csv-report`,
+exposing, and `seat-reservations`, the unseen generality case, and were swapped after the second launch (below).)
 
-- **The first record:** from an exploration run on `csv-report`, or a seeded record whose reopen condition holds.
+- **Launches (2026-11-01).** Launch 1 (kit a32b4402b74e4002495c8fa182b2653df0ef9b44, `user-listing`): refused at once by
+  another session's port-3000 lease; ran nothing; not a result. Launch 2 (kit 27dedcff30f1ca05a0a541a4b4b1d21e3fe438d8,
+  `csv-report` exposing): one exploration run, one material discovery, opened as LR-20261101-bea142 and routed to the owner
+  by the loop; "no admitted learning record after exploring", so no improver, purpose check or epoch ran; a designed stop,
+  not a defect and not a pass. Its results are on `results/closed-loop-cycle-20261101-run2-files` (2093fef) and
+  `results/closed-loop-cycle-20261101-run2-loop` (f8ce110). The record went onto the ledger (8990029) before launch 3,
+  which explores `seat-reservations` and keeps `csv-report` unseen: if its exploration re-finds that item it adds to the
+  same record, which a cycle that keeps `csv-report` unseen cannot select, and the loop stops for the same stated reason.
+- **The first record:** from an exploration run on `seat-reservations`, or a seeded record whose reopen condition holds.
 - **Selection (2026-11-01):** `select` reads the cycle's cases (b3328b4). The one admitted record on the ledger,
   LR-20261031-8d97e7, was found on the hosted `gym-membership-salesforce` case, so a cycle on other cases would have
   taken it and measured it on two cases that cannot show it; it now explores first. If exploring leaves no admitted

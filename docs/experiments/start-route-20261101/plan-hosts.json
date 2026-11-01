@@ -1,0 +1,578 @@
+[
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 10,
+  "slot": 1
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 7,
+  "slot": 2
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 5,
+  "slot": 3
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 3,
+  "slot": 4
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "C",
+  "i": 8,
+  "slot": 5
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 9,
+  "slot": 6
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "T2",
+  "i": 4,
+  "slot": 7
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "C",
+  "i": 7,
+  "slot": 8
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 1,
+  "slot": 9
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "T2",
+  "i": 3,
+  "slot": 10
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 1,
+  "slot": 11
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 3,
+  "slot": 12
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "T2",
+  "i": 8,
+  "slot": 13
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "C",
+  "i": 6,
+  "slot": 14
+ },
+ {
+  "stimulus": "repo",
+  "arm": "T2",
+  "i": 3,
+  "slot": 15
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "C",
+  "i": 9,
+  "slot": 16
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 7,
+  "slot": 17
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "C",
+  "i": 5,
+  "slot": 18
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "T2",
+  "i": 10,
+  "slot": 19
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "C",
+  "i": 11,
+  "slot": 20
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 9,
+  "slot": 21
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "T2",
+  "i": 1,
+  "slot": 22
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 6,
+  "slot": 23
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "C",
+  "i": 2,
+  "slot": 24
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 8,
+  "slot": 25
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 7,
+  "slot": 26
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 2,
+  "slot": 27
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "T2",
+  "i": 6,
+  "slot": 28
+ },
+ {
+  "stimulus": "repo",
+  "arm": "C",
+  "i": 8,
+  "slot": 29
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 6,
+  "slot": 30
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "T2",
+  "i": 2,
+  "slot": 31
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 4,
+  "slot": 32
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 4,
+  "slot": 33
+ },
+ {
+  "stimulus": "repo",
+  "arm": "C",
+  "i": 4,
+  "slot": 34
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 3,
+  "slot": 35
+ },
+ {
+  "stimulus": "repo",
+  "arm": "T2",
+  "i": 5,
+  "slot": 36
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "C",
+  "i": 16,
+  "slot": 37
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "C",
+  "i": 13,
+  "slot": 38
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 9,
+  "slot": 39
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 3,
+  "slot": 40
+ },
+ {
+  "stimulus": "repo",
+  "arm": "T2",
+  "i": 6,
+  "slot": 41
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "T2",
+  "i": 7,
+  "slot": 42
+ },
+ {
+  "stimulus": "repo",
+  "arm": "C",
+  "i": 1,
+  "slot": 43
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 2,
+  "slot": 44
+ },
+ {
+  "stimulus": "repo",
+  "arm": "C",
+  "i": 2,
+  "slot": 45
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "T2",
+  "i": 16,
+  "slot": 46
+ },
+ {
+  "stimulus": "repo",
+  "arm": "T2",
+  "i": 7,
+  "slot": 47
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 12,
+  "slot": 48
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 2,
+  "slot": 49
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 5,
+  "slot": 50
+ },
+ {
+  "stimulus": "repo",
+  "arm": "T2",
+  "i": 4,
+  "slot": 51
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 8,
+  "slot": 52
+ },
+ {
+  "stimulus": "repo",
+  "arm": "C",
+  "i": 7,
+  "slot": 53
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 12,
+  "slot": 54
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "C",
+  "i": 14,
+  "slot": 55
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 5,
+  "slot": 56
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 10,
+  "slot": 57
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 8,
+  "slot": 58
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "C",
+  "i": 12,
+  "slot": 59
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 11,
+  "slot": 60
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "T2",
+  "i": 13,
+  "slot": 61
+ },
+ {
+  "stimulus": "repo",
+  "arm": "C",
+  "i": 3,
+  "slot": 62
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "T2",
+  "i": 9,
+  "slot": 63
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 6,
+  "slot": 64
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 7,
+  "slot": 65
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 5,
+  "slot": 66
+ },
+ {
+  "stimulus": "repo",
+  "arm": "T2",
+  "i": 1,
+  "slot": 67
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 12,
+  "slot": 68
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "T2",
+  "i": 12,
+  "slot": 69
+ },
+ {
+  "stimulus": "repo",
+  "arm": "C",
+  "i": 6,
+  "slot": 70
+ },
+ {
+  "stimulus": "repo",
+  "arm": "C",
+  "i": 5,
+  "slot": 71
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "C",
+  "i": 15,
+  "slot": 72
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "T2",
+  "i": 15,
+  "slot": 73
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 1,
+  "slot": 74
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 11,
+  "slot": 75
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "T2",
+  "i": 5,
+  "slot": 76
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 10,
+  "slot": 77
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "C",
+  "i": 4,
+  "slot": 78
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 1,
+  "slot": 79
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 11,
+  "slot": 80
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "C",
+  "i": 10,
+  "slot": 81
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 8,
+  "slot": 82
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 6,
+  "slot": 83
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 10,
+  "slot": 84
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 12,
+  "slot": 85
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "C",
+  "i": 1,
+  "slot": 86
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "C",
+  "i": 2,
+  "slot": 87
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "T2",
+  "i": 14,
+  "slot": 88
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "C",
+  "i": 3,
+  "slot": 89
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 4,
+  "slot": 90
+ },
+ {
+  "stimulus": "inplace-hello",
+  "arm": "T2",
+  "i": 4,
+  "slot": 91
+ },
+ {
+  "stimulus": "repo",
+  "arm": "T2",
+  "i": 8,
+  "slot": 92
+ },
+ {
+  "stimulus": "repo",
+  "arm": "T2",
+  "i": 2,
+  "slot": 93
+ },
+ {
+  "stimulus": "sf-ui",
+  "arm": "T2",
+  "i": 11,
+  "slot": 94
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "C",
+  "i": 9,
+  "slot": 95
+ },
+ {
+  "stimulus": "nogit-hello",
+  "arm": "T2",
+  "i": 11,
+  "slot": 96
+ }
+]

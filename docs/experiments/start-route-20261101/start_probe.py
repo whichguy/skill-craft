@@ -34,7 +34,20 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
 RUN_PY = ROOT / "test" / "shiploop_e2e" / "run.py"
 
-MODEL, EFFORT = "gpt-6.1-terra", "xhigh"
+# The harness's own defaults for each host (hosts.py); --host picks one. Claude runs on its own models (--backend anthropic),
+# never the Ollama default.
+HOSTS = {"codex": {"model": "gpt-6.1-terra", "effort": "xhigh", "args": []},
+         "claude": {"model": "claude-sonnet-5-5", "effort": None, "args": ["--backend", "anthropic"]},
+         "grok": {"model": "grok-4.7", "effort": "medium", "args": []}}
+HOST = "codex"
+MODEL, EFFORT = HOSTS[HOST]["model"], HOSTS[HOST]["effort"]
+
+
+def use_host(name: str) -> None:
+    global HOST, MODEL, EFFORT
+    HOST, MODEL, EFFORT = name, HOSTS[name]["model"], HOSTS[name]["effort"]
+
+
 HOST_TIMEOUT_SECONDS = 240   # the harness ends a host that never starts ShipLoop; the driver's own stop usually comes first
 HARD_LIMIT_SECONDS = 420     # the driver kills a run folder's process group when the harness itself has not exited
 STOP_GRACE_SECONDS = 120     # after the stop file, the harness is given this long to write its records
@@ -49,7 +62,8 @@ SELECTORS = {"sf-ui": ["--prompt-file"], "hello": ["--case", "hello"], "repo": [
              "inplace-hello": ["--prompt-file"], "nogit-hello": ["--prompt-file"], "inplace-sf": ["--prompt-file"]}
 # a plan set: which cards run, and how many sessions per card for each request
 PLAN_SETS = {"start": {"arms": ("C", "T1", "T2"), "counts": {"sf-ui": 40, "hello": 10, "repo": 10}},
-             "inplace": {"arms": ("C", "T2"), "counts": {"inplace-hello": 16, "nogit-hello": 16, "inplace-sf": 16}}}
+             "inplace": {"arms": ("C", "T2"), "counts": {"inplace-hello": 16, "nogit-hello": 16, "inplace-sf": 16}},
+             "hosts": {"arms": ("C", "T2"), "counts": {"sf-ui": 16, "repo": 8, "inplace-hello": 12, "nogit-hello": 12}}}
 SEED = 20261101
 ARMS_FILE = HERE / "arms.json"   # --arms picks another; the replication uses arms-r2.json
 
@@ -105,14 +119,19 @@ def build_arm(arm: str, edits: list, dest: Path) -> str:
     return hashlib.sha256(card.read_bytes()).hexdigest()[:12]
 
 
-def call_text(event: dict) -> str | None:
-    """The command of a translated tool_call event (the harness writes every host's stream in one shape)."""
+def commands_of(event: dict) -> list[str]:
+    """The shell commands an event carries: a tool_call event (Grok's stream, and Codex's translated into it) holds one, a
+    Claude assistant event holds one per Bash tool_use block."""
     if event.get("type") == "tool_call":
         command = (event.get("rawInput") or {}).get("command")
         if isinstance(command, list):
             command = " ".join(map(str, command))
-        return command if isinstance(command, str) else None
-    return None
+        return [command] if isinstance(command, str) else []
+    if event.get("type") == "assistant":
+        blocks = (event.get("message") or {}).get("content") or []
+        return [blk["input"]["command"] for blk in blocks
+                if isinstance(blk, dict) and blk.get("type") == "tool_use" and isinstance((blk.get("input") or {}).get("command"), str)]
+    return []
 
 
 def scan(events_path: Path) -> dict:
@@ -130,14 +149,12 @@ def scan(events_path: Path) -> dict:
                 continue
             if event.get("type") == "text" and len(found["messages"]) < 4:
                 found["messages"].append(str(event.get("data"))[:240])
-            command = call_text(event)
-            if command is None:
-                continue
-            start = detect_start(command)
-            if start:
-                found.update(start=start, start_command=command[:400], event_n=number)
-                return found
-            found["commands"].append(command)
+            for command in commands_of(event):
+                start = detect_start(command)
+                if start:
+                    found.update(start=start, start_command=command[:400], event_n=number)
+                    return found
+                found["commands"].append(command)
     return found
 
 
@@ -175,6 +192,20 @@ def effects(trial: Path) -> dict:
                                               "workspace_md": workspace[:2], "state_md": state[:2]}}
 
 
+def installed_cards(trial: Path, result: dict) -> list[Path]:
+    """The skill card the host loaded: Codex's plugin cache, Grok's installed plugins, or (Claude, which loads --plugin-dir in
+    place) the plugin directory the harness recorded."""
+    home = trial / "home"
+    found = sorted((home / ".codex" / "plugins" / "cache" / "whichguy" / "skill-craft").glob("*/skills/shiploop/SKILL.md"))
+    found += sorted((home / ".grok" / "installed-plugins").glob("skill-craft*/skills/shiploop/SKILL.md"))
+    if not found:
+        for loaded in (result.get("plugin") or {}).get("loaded") or []:
+            card = Path(str(loaded).split()[-1]) / "skills" / "shiploop" / "SKILL.md"
+            if card.is_file():
+                found.append(card)
+    return found
+
+
 def run_trial(slot: dict, attempt: int, out: Path, expected: dict) -> dict:
     arm, stimulus = slot["arm"], slot["stimulus"]
     trial = out / "trials" / f"{slot['slot']:03d}-{arm}-{stimulus}-{slot['i']:02d}-a{attempt}"
@@ -182,7 +213,7 @@ def run_trial(slot: dict, attempt: int, out: Path, expected: dict) -> dict:
         shutil.rmtree(trial)
     trial.parent.mkdir(parents=True, exist_ok=True)
     row = {"slot": slot["slot"], "attempt": attempt, "stimulus": stimulus, "arm": arm, "i": slot["i"],
-           "model": MODEL, "effort": EFFORT, "start": "none", "end": None, "error": None, "valid": False,
+           "host": HOST, "model": MODEL, "effort": EFFORT, "start": "none", "end": None, "error": None, "valid": False,
            "card_sha256": expected["card_sha256"][arm], "pre_start": [], "start_command": None,
            "skill_seen": False, "read_run_start": False, "self_bootstrap": False,
            "start_dir": "git-repository" if stimulus == "repo" else "empty-not-git",
@@ -192,7 +223,8 @@ def run_trial(slot: dict, attempt: int, out: Path, expected: dict) -> dict:
         selector = ["--prompt", (HERE / "stimuli" / f"{stimulus}.txt").read_text()]
     build = (["--source", "marketplace"] if arm == "PUB"   # the published build, as a user installs it
              else ["--plugin-dir", str(out / "arms" / arm / "root" / "plugins" / "skill-craft")])
-    argv = [sys.executable, str(RUN_PY), *selector, "--host", "codex", "--model", MODEL, "--effort", EFFORT,
+    argv = [sys.executable, str(RUN_PY), *selector, "--host", HOST, "--model", MODEL,
+            *(["--effort", EFFORT] if EFFORT else []), *HOSTS[HOST]["args"],
             *build, "--output", str(trial),
             "--timeout", str(HOST_TIMEOUT_SECONDS), "--quiet", "--baseline", str(out / "baselines-probe.jsonl")]
     started = time.monotonic()
@@ -234,13 +266,12 @@ def run_trial(slot: dict, attempt: int, out: Path, expected: dict) -> dict:
         except (OSError, ValueError) as exc:
             row["error"] = f"no run record: {exc}"
             return row
-        installed = sorted((trial / "home" / ".codex" / "plugins" / "cache" / "whichguy" / "skill-craft").glob(
-            "*/skills/shiploop/SKILL.md"))
+        installed = installed_cards(trial, result)
         sha = hashlib.sha256(installed[0].read_bytes()).hexdigest()[:12] if len(installed) == 1 else None
         row["installed_card_sha256"] = sha
         row["host_record"] = [invocation.get("host"), invocation.get("model"), invocation.get("effort")]
         row["plugin_verdict"] = (result.get("plugin") or {}).get("pass")
-        if row["host_record"] != ["codex", MODEL, EFFORT]:
+        if row["host_record"] != [HOST, MODEL, EFFORT]:
             row["error"] = f"the harness ran {row['host_record']}"
         elif sha != expected["card_sha256"][arm]:
             row["error"] = f"the installed card ({sha}) is not the arm's card"
@@ -390,6 +421,7 @@ def main() -> None:
     p.add_argument("--seed", type=int, default=SEED)
     p.add_argument("--set", dest="plan_set", default="start", choices=tuple(PLAN_SETS))
     p = sub.add_parser("smoke")
+    p.add_argument("--host", default="codex", choices=tuple(HOSTS))
     p.add_argument("--arms", default=None)
     p.add_argument("--arm", default="C", choices=ARMS)
     p.add_argument("--stimulus", default="sf-ui", choices=tuple(SELECTORS))
@@ -404,6 +436,7 @@ def main() -> None:
     p.add_argument("--out", required=True)
     p.add_argument("--apply", action="store_true")
     p = sub.add_parser("run")
+    p.add_argument("--host", default="codex", choices=tuple(HOSTS))
     p.add_argument("--arms", default=None)
     p.add_argument("--plan", required=True)
     p.add_argument("--out", required=True)
@@ -412,6 +445,8 @@ def main() -> None:
     if getattr(args, "arms", None):
         global ARMS_FILE
         ARMS_FILE = Path(args.arms).resolve()
+    if getattr(args, "host", None):
+        use_host(args.host)
     if args.cmd == "plan":
         Path(args.out).write_text(json.dumps(make_plan(args.seed, args.plan_set), indent=1) + "\n")
         print(f"{len(make_plan(args.seed, args.plan_set))} slots, set {args.plan_set}, seed {args.seed} -> {args.out}")
