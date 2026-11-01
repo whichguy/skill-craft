@@ -900,7 +900,7 @@ Findings (status; citation).
   A `gap` surfaces the next step with a ready command; a `note` leaves it to be asked for; nothing auto-starts either way, so the cost of the split is small, and two runs are no ground for a prompt change.
 - F47 (firm; practice). `--source marketplace` is a moving target during a round: the harness prints the build it installs at each launch and `result.json` records it per run (`versions`). A round that needs one build
   throughout should pin it (`--source checkout` from the release commit) or say so, as this one does.
-- F48 (observed again; the fix is a separate commit, hash cited when it lands). The unfixed build wrote "...updates tests.. Recorded in lessons.open_next." again in the gap's request file (Round 6, F41).
+- F48 (observed again; fixed, unreleased: c01c9663a33cb3da30181b9026a8611f22dffc17 on main, written test first, the quick tier on its files passed, 18 suites in 219.6 s; its change note ships with the next release). The unfixed build wrote "...updates tests.. Recorded in lessons.open_next." again in the gap's request file (Round 6, F41).
 - F49 (reading, not a measurement). Across the work so far a `gap` has appeared only when the occasion was arranged: the replay found none in 166 runs (Round 4), the four live runs of Round 5 none, Round 6's primed request
   produced a decision, Round 7's primed deferral produced one gap and one note. Unprimed runs complete their requests, so the leftovers are decisions, persons, capabilities and notes. Auto-start for gaps (design D2) therefore
   has little to start in practice, and the evidence that it would work if one appeared is F45.
