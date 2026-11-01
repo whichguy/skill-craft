@@ -1,0 +1,64 @@
+{
+  "sequence": 36,
+  "at": 1793571631.1155882,
+  "kind": "reviewed",
+  "attempt_id": "candidate-hello-hook-continuation-2",
+  "receipt": "receipts/candidate-hello-hook-continuation-2-epoch-35.json",
+  "receipt_sha256": "c433b04b03c5603c9042252bd9e92e8859eac7d3185ac2226cfe7cb9e635f433",
+  "routes": {
+    "implementation": [],
+    "owner_challenges": [],
+    "harness": [
+      {
+        "id": "D-LIVE-CONTINUATION-EVIDENCE",
+        "title": "Live continuation requires evidence outside the automated case checks",
+        "evidence": [
+          {
+            "reference": "home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-11-01a1987a-db06-7b12-9662-579e2cfd41b9.jsonl:391,394; events.jsonl:155-169",
+            "observation": "The raw rollout identifies the premature final and injected hook continuation. Subsequent events show completion of the same action without repeating its writes.",
+            "interpretation": "This run satisfies the live sequence on inspection, corroborating the existing recovery learning."
+          },
+          {
+            "reference": "transcript.md:134; shiploop-hook-contract-receipt.json:scope; test/shiploop_e2e/checks/shiploop_hook_contract.py:419-459; test/shiploop_e2e/scorecard.py:277-301",
+            "observation": "The readable transcript merges the checkpoint and later commentary. Normalized text events omit channel information. The contract check explicitly tests synthetic fixture mechanics; the other checks verify application behavior and final checkpoint bytes.",
+            "interpretation": "The scripted accuracy result alone cannot establish that the live interruption, continuation and no-replay sequence occurred. A run omitting that sequence might still pass these checks; that false-positive hypothesis needs calibration."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-9",
+          "relationship": "supports",
+          "challenge": "The evaluator needs discriminating evidence for the requested S-2 behavior. This does not invalidate the successful sequence observed here or authorize changing frozen verdicts."
+        },
+        "materiality": "material",
+        "confidence": "medium",
+        "potential_impact": "Automated qualification could credit an unexercised live recovery behavior, overstating the engine's supported capability.",
+        "alternatives": [
+          "Retain explicit manual raw-rollout inspection and label the automated check as package mechanics only.",
+          "Add a calibrated case-adapter check for the live sequence while preserving raw host evidence."
+        ],
+        "next_experiment": "In a separate evaluator experiment, test preserved event fixtures with the final omitted, moved to commentary, followed by a loop restart, or accompanied by a repeated write later erased. Include this valid trace and incomplete evidence controls. Require known violations to fail and missing evidence to remain unknown.",
+        "target": "harness",
+        "files": [
+          "test/shiploop_e2e/cases.json",
+          "test/shiploop_e2e/checks/shiploop_hook_contract.py"
+        ],
+        "proposal": "Investigate a separately labeled live-sequence check and preservation of channel/hook boundaries. Freeze any evaluator change between comparisons; do not bundle it with a ShipLoop candidate.",
+        "implementation_eligible": false,
+        "proposed_disposition": "investigate",
+        "judge_assessment": {
+          "id": "D-LIVE-CONTINUATION-EVIDENCE",
+          "status": "supported",
+          "reason": "The live sequence and automated coverage limitation are supported. Potential qualification impact is material, while the proposed false-positive scenarios remain uncalibrated. This warrants a separate harness investigation, not a ShipLoop implementation or revision of the recorded verdict.",
+          "evidence": [
+            "home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-11-01a1987a-db06-7b12-9662-579e2cfd41b9.jsonl:390-395 records the exact checkpoint with phase final_answer followed by the injected hook continuation for the pending implementation action.",
+            "events.jsonl:153-170 shows one loop start, the product write and checkpoint append, then proof, lint, completion of the same loop iteration and its parent callback without repeating those writes.",
+            "transcript.md:134 merges checkpoint and subsequent commentary; events.jsonl:157-158 retains separate text events but omits their channel and hook boundary.",
+            "shiploop-hook-contract-receipt.json:scope explicitly limits the passing probe to synthetic fixture mechanics. result.json:checks otherwise verifies application behavior, unittest success and final checkpoint bytes, without checking the live interruption sequence."
+          ],
+          "disposition": "investigate"
+        }
+      }
+    ]
+  }
+}
+exit=0

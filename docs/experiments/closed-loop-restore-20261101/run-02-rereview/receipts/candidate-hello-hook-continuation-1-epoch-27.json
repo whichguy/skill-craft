@@ -1,0 +1,424 @@
+{
+  "review": {
+    "outcome": "The run delivered the exact greeting, passing unittest and single checkpoint through successful same-action continuation, while exposing planning rework and several contract-conformance gaps.",
+    "version": 2,
+    "learnings": [
+      {
+        "title": "Investigate proof availability before accepting the step plan",
+        "evidence": "S-9, S-10, S-6: .shiploop-runs/work-20261101-184657-bb61e2/run/improve/nav-3c53bc2c472a4b8c91b966700f9f5aec/evidence/01-review-1.md:7,15 explicitly requires the later test stage to create the unittest before implementation S1, yet classifies the review as trivial/satisfied. The subsequent results/nav-924fe7b856744dcc9c2b166c4aeabc87.md:12 sends the plan back because its proof requires that future artifact. metrics.json records 18 seconds in that test-spec visit and 44 seconds in replanning. shiploop_stage_spec.py:339-341 already states the availability obligation.",
+        "proposal": "Investigate whether placing the existing stage-order and proof-availability rule beside the proof and review focus prevents this error. Preserve the later send-back gate and all reviews. First compare cold readings of this invalid dependency with valid checks supplied by existing tests, generated checkers and remote runtimes. Do not introduce a broad filename or test-command prohibition: prior history found false refusals. The observed 62 seconds is not a savings prediction.",
+        "files": [
+          "skills/shiploop/scripts/shiploop_stage_spec.py",
+          "skills/shiploop/scripts/shiploop_navigator.py"
+        ],
+        "severity": "material",
+        "preserves_premise": true,
+        "premise_note": "S-1 and S-10 remain intact: scripts retain stage order, acceptance and send-back; the investigation concerns whether the model understands an existing obligation."
+      }
+    ],
+    "missing_considerations": [
+      {
+        "title": "Make authority guidance agree with the scripts",
+        "evidence": "S-3, S-9, S-15: the tested SKILL.md:424-429 says the navigator does not run tests, while shiploop_navigator.py:4770-4795 invokes baseline, candidate and mutation checks. SKILL.md:396-405 and references/navigator.md:585-589 invite owner-composed progress. events.jsonl:194,207 contain composed progress summaries; metrics.json reports 21 of 23 milestone narratives shown verbatim, with implement and release skipped.",
+        "proposal": "Correct the entry card's testing description and investigate the conflicting progress instructions against the script's paste-or-hook directive. Preserve the distinction between script-recorded execution and semantic judgment. Treat testing-authority wording and progress rendering as separate candidate records if both are pursued; do not qualify a bundled cleanup.",
+        "files": [
+          "skills/shiploop/SKILL.md",
+          "skills/shiploop/references/navigator.md",
+          "skills/shiploop/references/status-display.md"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "S-3 and S-15 require the card to describe script authority accurately and progress to come from saved state; neither correction transfers navigation to the model."
+      },
+      {
+        "title": "Reconcile living knowledge after delivery",
+        "evidence": "S-11: work/docs/shiploop/spec.md:6,11 still says final source return remains pending, although result.json records a clean returned delivery and accepted release verification. work/docs/shiploop/environment.md:50 records that return completed. The three living files and stable IDs are present and committed; the defect is contradictory current-state prose.",
+        "proposal": "Investigate a focused addition to existing knowledge-close duties that reconciles current delivery statements with accepted receipts, while retaining requirements, decisions and useful historical observations. First test whether a fresh follow-on reader actually misinterprets these statements. Do not create a keyword-based refusal for words such as pending or planned, or turn duplicate headings into a new verdict.",
+        "files": [
+          "skills/shiploop/scripts/shiploop_prompts.py",
+          "skills/shiploop/scripts/shiploop_stage_spec.py"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "S-11 knowledge is updated from script-owned evidence; S-1 navigation and the existing notice-only section checks remain unchanged."
+      }
+    ],
+    "optimizations": [
+      {
+        "title": "Print the exact Improve continuation command",
+        "evidence": "S-4, S-5: shiploop_navigator.py:7965 and :8343 instruct the model to execute packet.json.next_argv without printing the concrete runtime command. events.jsonl:77,97,132,166,256,282,301,332 construct Python wrappers to read that array and invoke subprocess.run. These wrappers print stdout without propagating the child return code. No concealed failure was observed, but metrics.json model_glue being empty does not establish glue-free execution.",
+        "proposal": "Render the validated receipt's next_argv as an exact quoted command through one shared formatter, alongside its locator. Preserve the bound runtime, action identity and terminal-state handling. Validate quoting, nonzero exits, missing receipts and active versus completed children with neutral fixtures; check that the longer command does not obscure mandatory handoff content. This removes repeated mechanical translation without introducing a second continuation mechanism.",
+        "files": [
+          "skills/shiploop/scripts/shiploop_navigator.py",
+          "test/shiploop-actual-improve-cli.test.py",
+          "test/shiploop-improve-route.test.py"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "S-1, S-4, S-5 and S-12 are preserved: the existing receipt still determines the action, and the model copies a script-rendered command."
+      }
+    ],
+    "discoveries": [
+      {
+        "id": "D1",
+        "title": "The restored hook preserved live partial progress",
+        "evidence": [
+          {
+            "reference": "events.jsonl:189-205; .shiploop-runs/work-20261101-184657-bb61e2/run/trace.jsonl:44,46,88",
+            "observation": "The implementation loop starts once, the product write and checkpoint append occur once, the hook continues revision 16, and the same loop token and navigator action complete before final stopping is allowed.",
+            "interpretation": "The existing candidate handled the deliberate premature turn without replaying the completed side effect or substituting another action."
+          },
+          {
+            "reference": "shiploop-hook-contract-receipt.json:scope,fixture_scope,phases",
+            "observation": "The receipt separately tests active-loop and terminal-loop missing-completion states using synthetic fixtures and explicitly excludes live model-behavior claims.",
+            "interpretation": "Synthetic mechanism evidence and live behavior corroborate different claims and must remain separately attributed."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-2",
+          "relationship": "supports",
+          "challenge": "No amendment is proposed. This is additional evidence for the existing restoration record, bounded by S-1, S-6 and S-10."
+        },
+        "materiality": "minor",
+        "confidence": "high",
+        "potential_impact": "Supports the existing candidate's continuation claim without establishing its epoch-level promotion, fresh-context behavior or cross-style generality.",
+        "alternatives": [
+          "Retained conversation context may have helped avoid replay.",
+          "The explicitly instructed checkpoint may be easier to recover than an accidental interruption.",
+          "Synthetic terminal-loop coverage does not establish live behavior at every stage."
+        ],
+        "next_experiment": "Inspect the remaining registered attempts under their frozen obligations rather than rerunning this pass. Any broader qualification should prospectively include another style; S-6 claims require separate boundary and inside-stage clear-context observations.",
+        "target": "shiploop",
+        "files": [],
+        "proposal": "Attach this successful live observation to the existing candidate record and let the registered promotion rule decide the comparison.",
+        "implementation_eligible": false,
+        "proposed_disposition": "investigate",
+        "same_as": "LR-20261101-58f651"
+      },
+      {
+        "id": "D2",
+        "title": "Review recognized a dependency but accepted its impossible timing",
+        "evidence": [
+          {
+            "reference": ".shiploop-runs/work-20261101-184657-bb61e2/run/improve/nav-3c53bc2c472a4b8c91b966700f9f5aec/evidence/01-review-1.md:7,15; run/results/nav-924fe7b856744dcc9c2b166c4aeabc87.md:12",
+            "observation": "Improve explicitly described the future test artifact as a prerequisite, accepted the plan, and the next stage rejected that ordering.",
+            "interpretation": "The failure concerns applying the stage-order rule during review, rather than a wholly absent requirement or an escaped product defect."
+          },
+          {
+            "reference": "metrics.json:planning.stages; Git commits 12151c49783a262595c83ff0ec92e0222379dfd3, 1bf6430c7f7e02d8f50fda969afcf69b2a48c3b6, 865571325a5d7a16de4ad82f6f2500f1896cf70e",
+            "observation": "This recovery occupies 62 recorded stage seconds. The original proof feature already required availability; subsequent studies rejected broader identifier and compound-command rules because they also flagged valid proofs.",
+            "interpretation": "This is new recurrence evidence for a known limitation, not justification to revive an imprecise mechanical gate."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-9",
+          "relationship": "supports",
+          "challenge": "The existing proof must be executable at its declared stage. S-6 and S-10 must remain intact; no requirement or review is removed."
+        },
+        "materiality": "material",
+        "confidence": "high",
+        "potential_impact": "A reliable clarification could prevent an extra planning and review cycle in runs like this one; its effect and net token cost remain unmeasured.",
+        "alternatives": [
+          "This may be a stochastic review miss despite adequate wording.",
+          "Additional prose may increase context without improving judgment.",
+          "A broad availability detector could reject valid generated or remotely supplied checks."
+        ],
+        "next_experiment": "Cold-review the original invalid plan and contrasting valid plans with and without an adjacent stage-availability annotation. Measure correct rejection, false rejection and added text. Only a successful mechanism study should lead to a separately registered candidate and full exposing-plus-generality E2E comparison.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/scripts/shiploop_stage_spec.py",
+          "skills/shiploop/scripts/shiploop_navigator.py"
+        ],
+        "proposal": "Investigate a narrow presentation change while carrying forward the prior rejection of broad proof heuristics. This is not the failure-reporting lesson LR-20261101-94533c.",
+        "implementation_eligible": false,
+        "proposed_disposition": "investigate"
+      },
+      {
+        "id": "D3",
+        "title": "A machine-readable continuation still requires model-written glue",
+        "evidence": [
+          {
+            "reference": "events.jsonl:77,97,132,166,256,282,301,332; tested shiploop_navigator.py:7965,8343",
+            "observation": "The handoff supplies next_argv indirectly, and the model repeatedly writes an adapter to execute it.",
+            "interpretation": "Script ownership of argument values is insufficient for S-4 when the host must construct the execution bridge."
+          },
+          {
+            "reference": "metrics.json:model_glue",
+            "observation": "The recorded glue list is empty despite those visible wrappers.",
+            "interpretation": "The heuristic counter cannot certify a copy-only interface; direct event inspection remains necessary."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-4",
+          "relationship": "supports",
+          "challenge": "S-4 and S-5 already require exact commands and script-owned mechanics. No new authority is required."
+        },
+        "materiality": "minor",
+        "confidence": "high",
+        "potential_impact": "Removes repeated adapter construction and its potential to conceal command failures; no actual masked failure or measured savings occurred here.",
+        "alternatives": [
+          "A host with native argv execution may not need shell rendering.",
+          "An existing shared formatter may already provide the required quoting and should be reused.",
+          "Long absolute commands can enlarge handoffs and must preserve S-6 and S-7 grounding."
+        ],
+        "next_experiment": "Use a neutral bound-child fixture to verify that one shared renderer produces a directly executable command, preserves nonzero exits and refuses missing or invalid state without restarting anything. Then observe ordinary live handoffs; the fixture alone cannot qualify end-to-end benefit.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/scripts/shiploop_navigator.py",
+          "test/shiploop-actual-improve-cli.test.py",
+          "test/shiploop-improve-route.test.py"
+        ],
+        "proposal": "Print the exact command derived from the existing validated receipt, retaining one continuation implementation and the existing callbacks.",
+        "implementation_eligible": true,
+        "proposed_disposition": "implement"
+      }
+    ],
+    "harness": {
+      "learning_retention": {
+        "answer": "Keep the existing append-only learning records and verbose operator-owned learning commits. This read-only review should not write into the product, installed package or sealed evidence.",
+        "proposals": [
+          "After review and judgment stop, record this attempt's identities, measurements, contrary evidence and dispositions; link the successful continuation to LR-20261101-58f651.",
+          "Retain the substantive proof-order decisions from 12151c49783a262595c83ff0ec92e0222379dfd3, 1bf6430c7f7e02d8f50fda969afcf69b2a48c3b6 and 865571325a5d7a16de4ad82f6f2500f1896cf70e, not merely their hashes.",
+          "Keep each eventual qualified candidate tied to one learning record; admission, implementation, promotion and publication remain separate milestones."
+        ]
+      },
+      "further_learning": {
+        "answer": "The strongest remaining gaps concern cold recovery, contrasting task styles and whether the observed planning miss is repeatable.",
+        "proposals": [
+          "Preserve the distinction between live checkpoint evidence and the synthetic hook-contract receipt; the readable transcript merges messages, so use the rollout's channel records when checking the premature FINAL.",
+          "For S-6, prospectively probe context loss at a stage boundary and inside an action with preserved partial effects.",
+          "For S-8 and S-13, use contrasting-style qualification or retain an explicitly smoke-only claim; this one passing attempt does not establish generality.",
+          "For S-11, defer a material knowledge-retention claim until a fresh follow-on reader demonstrates whether the stale pending statements cause rework."
+        ]
+      },
+      "evaluation_criteria": {
+        "answer": "No new promotion floor or relaxed clause is warranted. Existing obligations and evidence distinctions suffice; some diagnostic readers need separate evaluator investigation.",
+        "proposals": [
+          "Under S-4 and S-5, retain raw wrapper examples beside model_glue rather than interpreting an empty heuristic list as conformance.",
+          "Under S-9 and S-12, investigate fidelity's unmapped step-proof declaration, unread verification record and 9-versus-6 command-reader disagreement in a separate evaluator experiment; preserve current unknowns and original evidence.",
+          "Do not score packet bytes, review counts, duplicate headings or planning duration as failures. Preserve S-6 grounding, S-7 print policy and S-10 review obligations.",
+          "Use only usable measurements in promotion/5: report requested model identity separately from unavailable served identity, leave dollars unknown, and exclude this overlapped run from comparative wall-time claims.",
+          "Obtain the required separate judge assessment bound to this version-2 review's exact bytes before treating it as discovery-qualified."
+        ]
+      }
+    },
+    "process": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 350.2
+    },
+    "driver": {
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "effort": "xhigh"
+    },
+    "validity": {
+      "status": "valid",
+      "reason": null,
+      "discovery_qualified": true
+    },
+    "skill_source": {
+      "roots": [
+        "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/candidate-build/plugins/skill-craft/skills/shiploop"
+      ],
+      "basis": "the run's launch records",
+      "reason": null
+    },
+    "review_receipt": {
+      "stage_dir": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-1/review-epoch-27",
+      "review_json": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-1/review-epoch-27.json",
+      "review_markdown": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-1/review-epoch-27.md"
+    },
+    "actionable": [
+      {
+        "title": "Investigate proof availability before accepting the step plan",
+        "evidence": "S-9, S-10, S-6: .shiploop-runs/work-20261101-184657-bb61e2/run/improve/nav-3c53bc2c472a4b8c91b966700f9f5aec/evidence/01-review-1.md:7,15 explicitly requires the later test stage to create the unittest before implementation S1, yet classifies the review as trivial/satisfied. The subsequent results/nav-924fe7b856744dcc9c2b166c4aeabc87.md:12 sends the plan back because its proof requires that future artifact. metrics.json records 18 seconds in that test-spec visit and 44 seconds in replanning. shiploop_stage_spec.py:339-341 already states the availability obligation.",
+        "proposal": "Investigate whether placing the existing stage-order and proof-availability rule beside the proof and review focus prevents this error. Preserve the later send-back gate and all reviews. First compare cold readings of this invalid dependency with valid checks supplied by existing tests, generated checkers and remote runtimes. Do not introduce a broad filename or test-command prohibition: prior history found false refusals. The observed 62 seconds is not a savings prediction.",
+        "files": [
+          "skills/shiploop/scripts/shiploop_stage_spec.py",
+          "skills/shiploop/scripts/shiploop_navigator.py"
+        ],
+        "severity": "material",
+        "preserves_premise": true,
+        "premise_note": "S-1 and S-10 remain intact: scripts retain stage order, acceptance and send-back; the investigation concerns whether the model understands an existing obligation.",
+        "category": "learnings"
+      }
+    ]
+  },
+  "judge": {
+    "review_sha256": "21707334916a6058f64d1dcb9e410614932e40cd3682f255d4ea3218b08d3825",
+    "assessments": [
+      {
+        "id": "D1",
+        "status": "supported",
+        "reason": "The artifacts support successful same-action continuation without replaying the recorded product write or checkpoint append. This is a bounded, minor success observation, not evidence of fresh-context recovery or broader qualification. The discovery is not implementation-eligible.",
+        "evidence": [
+          "prompt.txt specifies the deliberate premature FINAL and prohibits replay; home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-46-43-01a1986f-70a7-76d2-9566-e5ad3d58ca13.jsonl:494 records the exact marker with phase final_answer.",
+          "events.jsonl:189-205 records one implementation-loop start, the product creation and checkpoint append, inspection of preserved bytes, and completion using the original loop token 2I6qKCZYoOWH2KG-STu2ev-C:1.",
+          ".shiploop-runs/work-20261101-184657-bb61e2/run/trace.jsonl:44,46,88 records continuation at revision 16, acceptance of the same implementation action, and permission to stop only after the run reached done.",
+          "work/checkpoint.log contains exactly one recorded line; result.json records passing greeting, unittest and checkpoint checks. shiploop-hook-contract-receipt.json explicitly limits its separate active-loop and terminal-loop probes to synthetic mechanism coverage."
+        ],
+        "disposition": "investigate"
+      },
+      {
+        "id": "D2",
+        "status": "supported",
+        "reason": "The original plan genuinely depended on a test authored after implementation, and its review explicitly recognized yet accepted that dependency. The subsequent send-back establishes material planning rework. An adjacent clarification remains an untested remedy; this non-eligible discovery warrants investigation rather than implementation.",
+        "evidence": [
+          ".shiploop-runs/work-20261101-184657-bb61e2/run/results/nav-3c53bc2c472a4b8c91b966700f9f5aec.md assigns S1 only hello.py and checkpoint.log while its proof invokes test_hello.C1.",
+          ".shiploop-runs/work-20261101-184657-bb61e2/run/improve/nav-3c53bc2c472a4b8c91b966700f9f5aec/evidence/01-review-1.md:2-15 marks the review trivial/satisfied while requiring the later test stage to create the unittest before S1.",
+          ".shiploop-runs/work-20261101-184657-bb61e2/run/results/nav-924fe7b856744dcc9c2b166c4aeabc87.md:12 identifies the unavailable future artifact; trace.jsonl:32,34 confirms acceptance followed by send-back. metrics.json:planning.stages records 18 and 44 seconds, not demonstrated savings.",
+          "The tested home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/scripts/shiploop_stage_spec.py:326-341 establishes implementation-before-test ordering and the existing proof-availability obligation. The cited Git history retains the rejection of broader identifier and compound-proof heuristics."
+        ],
+        "disposition": "investigate"
+      },
+      {
+        "id": "D3",
+        "status": "supported",
+        "reason": "The handoff leaves execution of its argv array to model-written adapters, and those adapters do not propagate child failures. An exact command renderer is consistent with the cited S-4/S-5 obligations. However, no concealed failure or measured benefit occurred: this supported finding remains minor and does not meet the materiality requirement for an implement disposition.",
+        "evidence": [
+          "The tested home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/scripts/shiploop_navigator.py:7965-7967,8341-8344 directs execution of receipt next_argv without rendering its concrete command.",
+          "events.jsonl:77,97,132,166,256,282,301,332 contains Python adapters that load next_argv, call subprocess.run with captured output, and print stdout without checking or propagating returncode.",
+          "metrics.json:model_glue is empty despite those adapters, so it cannot establish a copy-only interface.",
+          "The preserved step-plan child packet.json is terminal with next_argv null, confirming that any renderer must distinguish active continuation from completed-child handling."
+        ],
+        "disposition": "investigate"
+      }
+    ],
+    "process": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 143.9
+    },
+    "validity": {
+      "status": "valid",
+      "reason": null
+    },
+    "driver": {
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "effort": "xhigh"
+    },
+    "admitted": {
+      "implementation": [],
+      "owner_challenges": [
+        {
+          "id": "D2",
+          "title": "Review recognized a dependency but accepted its impossible timing",
+          "evidence": [
+            {
+              "reference": ".shiploop-runs/work-20261101-184657-bb61e2/run/improve/nav-3c53bc2c472a4b8c91b966700f9f5aec/evidence/01-review-1.md:7,15; run/results/nav-924fe7b856744dcc9c2b166c4aeabc87.md:12",
+              "observation": "Improve explicitly described the future test artifact as a prerequisite, accepted the plan, and the next stage rejected that ordering.",
+              "interpretation": "The failure concerns applying the stage-order rule during review, rather than a wholly absent requirement or an escaped product defect."
+            },
+            {
+              "reference": "metrics.json:planning.stages; Git commits 12151c49783a262595c83ff0ec92e0222379dfd3, 1bf6430c7f7e02d8f50fda969afcf69b2a48c3b6, 865571325a5d7a16de4ad82f6f2500f1896cf70e",
+              "observation": "This recovery occupies 62 recorded stage seconds. The original proof feature already required availability; subsequent studies rejected broader identifier and compound-command rules because they also flagged valid proofs.",
+              "interpretation": "This is new recurrence evidence for a known limitation, not justification to revive an imprecise mechanical gate."
+            }
+          ],
+          "mission_anchor": {
+            "clause_id": "S-9",
+            "relationship": "supports",
+            "challenge": "The existing proof must be executable at its declared stage. S-6 and S-10 must remain intact; no requirement or review is removed."
+          },
+          "materiality": "material",
+          "confidence": "high",
+          "potential_impact": "A reliable clarification could prevent an extra planning and review cycle in runs like this one; its effect and net token cost remain unmeasured.",
+          "alternatives": [
+            "This may be a stochastic review miss despite adequate wording.",
+            "Additional prose may increase context without improving judgment.",
+            "A broad availability detector could reject valid generated or remotely supplied checks."
+          ],
+          "next_experiment": "Cold-review the original invalid plan and contrasting valid plans with and without an adjacent stage-availability annotation. Measure correct rejection, false rejection and added text. Only a successful mechanism study should lead to a separately registered candidate and full exposing-plus-generality E2E comparison.",
+          "target": "shiploop",
+          "files": [
+            "skills/shiploop/scripts/shiploop_stage_spec.py",
+            "skills/shiploop/scripts/shiploop_navigator.py"
+          ],
+          "proposal": "Investigate a narrow presentation change while carrying forward the prior rejection of broad proof heuristics. This is not the failure-reporting lesson LR-20261101-94533c.",
+          "implementation_eligible": false,
+          "proposed_disposition": "investigate",
+          "judge_assessment": {
+            "id": "D2",
+            "status": "supported",
+            "reason": "The original plan genuinely depended on a test authored after implementation, and its review explicitly recognized yet accepted that dependency. The subsequent send-back establishes material planning rework. An adjacent clarification remains an untested remedy; this non-eligible discovery warrants investigation rather than implementation.",
+            "evidence": [
+              ".shiploop-runs/work-20261101-184657-bb61e2/run/results/nav-3c53bc2c472a4b8c91b966700f9f5aec.md assigns S1 only hello.py and checkpoint.log while its proof invokes test_hello.C1.",
+              ".shiploop-runs/work-20261101-184657-bb61e2/run/improve/nav-3c53bc2c472a4b8c91b966700f9f5aec/evidence/01-review-1.md:2-15 marks the review trivial/satisfied while requiring the later test stage to create the unittest before S1.",
+              ".shiploop-runs/work-20261101-184657-bb61e2/run/results/nav-924fe7b856744dcc9c2b166c4aeabc87.md:12 identifies the unavailable future artifact; trace.jsonl:32,34 confirms acceptance followed by send-back. metrics.json:planning.stages records 18 and 44 seconds, not demonstrated savings.",
+              "The tested home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/scripts/shiploop_stage_spec.py:326-341 establishes implementation-before-test ordering and the existing proof-availability obligation. The cited Git history retains the rejection of broader identifier and compound-proof heuristics."
+            ],
+            "disposition": "investigate"
+          },
+          "routing": "investigate"
+        }
+      ],
+      "harness": []
+    },
+    "judge_receipt": {
+      "stage_dir": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-1/review-judge-epoch-27",
+      "prompt": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-1/review-judge-epoch-27/prompt.txt",
+      "events": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-1/review-judge-epoch-27/events.jsonl",
+      "stderr": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-1/review-judge-epoch-27/stderr.txt",
+      "verdict": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-1/review-judge-epoch-27/verdict.json"
+    }
+  },
+  "routes": {
+    "implementation": [],
+    "owner_challenges": [
+      {
+        "id": "D2",
+        "title": "Review recognized a dependency but accepted its impossible timing",
+        "evidence": [
+          {
+            "reference": ".shiploop-runs/work-20261101-184657-bb61e2/run/improve/nav-3c53bc2c472a4b8c91b966700f9f5aec/evidence/01-review-1.md:7,15; run/results/nav-924fe7b856744dcc9c2b166c4aeabc87.md:12",
+            "observation": "Improve explicitly described the future test artifact as a prerequisite, accepted the plan, and the next stage rejected that ordering.",
+            "interpretation": "The failure concerns applying the stage-order rule during review, rather than a wholly absent requirement or an escaped product defect."
+          },
+          {
+            "reference": "metrics.json:planning.stages; Git commits 12151c49783a262595c83ff0ec92e0222379dfd3, 1bf6430c7f7e02d8f50fda969afcf69b2a48c3b6, 865571325a5d7a16de4ad82f6f2500f1896cf70e",
+            "observation": "This recovery occupies 62 recorded stage seconds. The original proof feature already required availability; subsequent studies rejected broader identifier and compound-command rules because they also flagged valid proofs.",
+            "interpretation": "This is new recurrence evidence for a known limitation, not justification to revive an imprecise mechanical gate."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-9",
+          "relationship": "supports",
+          "challenge": "The existing proof must be executable at its declared stage. S-6 and S-10 must remain intact; no requirement or review is removed."
+        },
+        "materiality": "material",
+        "confidence": "high",
+        "potential_impact": "A reliable clarification could prevent an extra planning and review cycle in runs like this one; its effect and net token cost remain unmeasured.",
+        "alternatives": [
+          "This may be a stochastic review miss despite adequate wording.",
+          "Additional prose may increase context without improving judgment.",
+          "A broad availability detector could reject valid generated or remotely supplied checks."
+        ],
+        "next_experiment": "Cold-review the original invalid plan and contrasting valid plans with and without an adjacent stage-availability annotation. Measure correct rejection, false rejection and added text. Only a successful mechanism study should lead to a separately registered candidate and full exposing-plus-generality E2E comparison.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/scripts/shiploop_stage_spec.py",
+          "skills/shiploop/scripts/shiploop_navigator.py"
+        ],
+        "proposal": "Investigate a narrow presentation change while carrying forward the prior rejection of broad proof heuristics. This is not the failure-reporting lesson LR-20261101-94533c.",
+        "implementation_eligible": false,
+        "proposed_disposition": "investigate",
+        "judge_assessment": {
+          "id": "D2",
+          "status": "supported",
+          "reason": "The original plan genuinely depended on a test authored after implementation, and its review explicitly recognized yet accepted that dependency. The subsequent send-back establishes material planning rework. An adjacent clarification remains an untested remedy; this non-eligible discovery warrants investigation rather than implementation.",
+          "evidence": [
+            ".shiploop-runs/work-20261101-184657-bb61e2/run/results/nav-3c53bc2c472a4b8c91b966700f9f5aec.md assigns S1 only hello.py and checkpoint.log while its proof invokes test_hello.C1.",
+            ".shiploop-runs/work-20261101-184657-bb61e2/run/improve/nav-3c53bc2c472a4b8c91b966700f9f5aec/evidence/01-review-1.md:2-15 marks the review trivial/satisfied while requiring the later test stage to create the unittest before S1.",
+            ".shiploop-runs/work-20261101-184657-bb61e2/run/results/nav-924fe7b856744dcc9c2b166c4aeabc87.md:12 identifies the unavailable future artifact; trace.jsonl:32,34 confirms acceptance followed by send-back. metrics.json:planning.stages records 18 and 44 seconds, not demonstrated savings.",
+            "The tested home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/scripts/shiploop_stage_spec.py:326-341 establishes implementation-before-test ordering and the existing proof-availability obligation. The cited Git history retains the rejection of broader identifier and compound-proof heuristics."
+          ],
+          "disposition": "investigate"
+        },
+        "routing": "investigate"
+      }
+    ],
+    "harness": []
+  }
+}

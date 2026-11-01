@@ -1,0 +1,316 @@
+{
+  "contract": "shiploop-epoch/2",
+  "purpose": "product_change",
+  "attempts": [
+    {
+      "id": "control-hello-hook-continuation-1",
+      "arm": "control",
+      "case": "hello-hook-continuation",
+      "status": "reviewed"
+    },
+    {
+      "id": "control-hello-hook-continuation-2",
+      "arm": "control",
+      "case": "hello-hook-continuation",
+      "status": "reviewed"
+    },
+    {
+      "id": "control-hello-hook-continuation-3",
+      "arm": "control",
+      "case": "hello-hook-continuation",
+      "status": "reviewed"
+    },
+    {
+      "id": "candidate-hello-hook-continuation-1",
+      "arm": "candidate",
+      "case": "hello-hook-continuation",
+      "status": "reviewed"
+    },
+    {
+      "id": "candidate-hello-hook-continuation-2",
+      "arm": "candidate",
+      "case": "hello-hook-continuation",
+      "status": "reviewed"
+    },
+    {
+      "id": "candidate-hello-hook-continuation-3",
+      "arm": "candidate",
+      "case": "hello-hook-continuation",
+      "status": "reviewed"
+    }
+  ],
+  "decision": {
+    "sequence": 41,
+    "at": 1793572181.074343,
+    "kind": "decision",
+    "result": {
+      "contract": "promotion/5",
+      "registration": "86575902c3c6decfcfcd90f2aea915922d47c83a06554e60c2a25f9ba8de2ff4",
+      "purpose": "product_change",
+      "decision": "PROMOTE",
+      "reasons": [
+        "quality rose on hello-hook-continuation; measured budget evidence passed"
+      ],
+      "cases": {
+        "hello-hook-continuation": {
+          "role": "capability",
+          "control": {
+            "attempts": 3,
+            "registered_attempts": 3,
+            "successes": 0,
+            "unknown": 0,
+            "share": 0.0
+          },
+          "candidate": {
+            "attempts": 3,
+            "registered_attempts": 3,
+            "successes": 3,
+            "unknown": 0,
+            "share": 1.0
+          },
+          "cost_per_success": {
+            "tokens": {
+              "control": null,
+              "candidate": 24783433.333333332
+            }
+          }
+        }
+      },
+      "attempts": [
+        {
+          "id": "control-hello-hook-continuation-1",
+          "arm": "control",
+          "case": "hello-hook-continuation",
+          "started": 1793558071.108,
+          "product": {
+            "observed": true,
+            "head": "49b710f7a490af9ae2c9674f9276bbd5be542374",
+            "tree": "9974a4665013305ccda87f814ec7302f15e74c5e",
+            "after_head": "49b710f7a490af9ae2c9674f9276bbd5be542374",
+            "after_tree": "9974a4665013305ccda87f814ec7302f15e74c5e",
+            "unchanged_during_checks": true
+          },
+          "scorecard": "scorecard/6",
+          "evidence_valid": true,
+          "evidence_errors": [],
+          "reported_outcome": "failure",
+          "outcome": "failure",
+          "hard_floor_failures": [
+            "accuracy"
+          ],
+          "unknown_floors": []
+        },
+        {
+          "id": "control-hello-hook-continuation-2",
+          "arm": "control",
+          "case": "hello-hook-continuation",
+          "started": 1793558072.939,
+          "product": {
+            "observed": true,
+            "head": "d34a6253b62b57449fb8ac044bbe7217ec724fae",
+            "tree": "bcdf5ce240f7d5c787333125313388bd065be606",
+            "after_head": "d34a6253b62b57449fb8ac044bbe7217ec724fae",
+            "after_tree": "bcdf5ce240f7d5c787333125313388bd065be606",
+            "unchanged_during_checks": true
+          },
+          "scorecard": "scorecard/6",
+          "evidence_valid": true,
+          "evidence_errors": [],
+          "reported_outcome": "failure",
+          "outcome": "failure",
+          "hard_floor_failures": [
+            "accuracy"
+          ],
+          "unknown_floors": []
+        },
+        {
+          "id": "control-hello-hook-continuation-3",
+          "arm": "control",
+          "case": "hello-hook-continuation",
+          "started": 1793558795.926,
+          "product": {
+            "observed": true,
+            "head": "2b18b0d72f16341883d9cc180a9609ee91bffc8c",
+            "tree": "1ca725be0158ae83a01a720ddec0001300508c93",
+            "after_head": "2b18b0d72f16341883d9cc180a9609ee91bffc8c",
+            "after_tree": "1ca725be0158ae83a01a720ddec0001300508c93",
+            "unchanged_during_checks": true
+          },
+          "scorecard": "scorecard/6",
+          "evidence_valid": true,
+          "evidence_errors": [],
+          "reported_outcome": "failure",
+          "outcome": "failure",
+          "hard_floor_failures": [
+            "accuracy"
+          ],
+          "unknown_floors": []
+        },
+        {
+          "id": "candidate-hello-hook-continuation-1",
+          "arm": "candidate",
+          "case": "hello-hook-continuation",
+          "started": 1793558803.202,
+          "product": {
+            "observed": true,
+            "head": "49f2542c48eb2ead1139d8a49d5d317cb7253491",
+            "tree": "eb4306859b10448a4542c1b1b312965d9de05759",
+            "after_head": "49f2542c48eb2ead1139d8a49d5d317cb7253491",
+            "after_tree": "eb4306859b10448a4542c1b1b312965d9de05759",
+            "unchanged_during_checks": true
+          },
+          "scorecard": "scorecard/6",
+          "evidence_valid": true,
+          "evidence_errors": [],
+          "reported_outcome": "success",
+          "outcome": "success",
+          "hard_floor_failures": [],
+          "unknown_floors": []
+        },
+        {
+          "id": "candidate-hello-hook-continuation-2",
+          "arm": "candidate",
+          "case": "hello-hook-continuation",
+          "started": 1793559551.204,
+          "product": {
+            "observed": true,
+            "head": "551cd5417cfc54618c1d304ce1b22b87be8e9d10",
+            "tree": "87a2c9db92e4e77b89e3ebad84c2e0dbe0e124d3",
+            "after_head": "551cd5417cfc54618c1d304ce1b22b87be8e9d10",
+            "after_tree": "87a2c9db92e4e77b89e3ebad84c2e0dbe0e124d3",
+            "unchanged_during_checks": true
+          },
+          "scorecard": "scorecard/6",
+          "evidence_valid": true,
+          "evidence_errors": [],
+          "reported_outcome": "success",
+          "outcome": "success",
+          "hard_floor_failures": [],
+          "unknown_floors": []
+        },
+        {
+          "id": "candidate-hello-hook-continuation-3",
+          "arm": "candidate",
+          "case": "hello-hook-continuation",
+          "started": 1793559553.303,
+          "product": {
+            "observed": true,
+            "head": "e108d287b0eca4085b3f119d46a1a56bcd6fea65",
+            "tree": "a96db0b871c590b0f9d54e31e63ef82409e0a4b2",
+            "after_head": "e108d287b0eca4085b3f119d46a1a56bcd6fea65",
+            "after_tree": "a96db0b871c590b0f9d54e31e63ef82409e0a4b2",
+            "unchanged_during_checks": true
+          },
+          "scorecard": "scorecard/6",
+          "evidence_valid": true,
+          "evidence_errors": [],
+          "reported_outcome": "success",
+          "outcome": "success",
+          "hard_floor_failures": [],
+          "unknown_floors": []
+        }
+      ],
+      "known_floor_failures": [
+        {
+          "id": "control-hello-hook-continuation-1",
+          "arm": "control",
+          "case": "hello-hook-continuation",
+          "floors": [
+            "accuracy"
+          ],
+          "evidence_valid": true
+        },
+        {
+          "id": "control-hello-hook-continuation-2",
+          "arm": "control",
+          "case": "hello-hook-continuation",
+          "floors": [
+            "accuracy"
+          ],
+          "evidence_valid": true
+        },
+        {
+          "id": "control-hello-hook-continuation-3",
+          "arm": "control",
+          "case": "hello-hook-continuation",
+          "floors": [
+            "accuracy"
+          ],
+          "evidence_valid": true
+        }
+      ],
+      "hard_floor_failures": [],
+      "unknown_floor_evidence": [],
+      "notes": [],
+      "global_errors": [],
+      "evidence_issues": [],
+      "qualification": {
+        "claim": "product_change",
+        "scorecard": "scorecard/6",
+        "snapshot": "bf1817e447e4b4430084dd9749706c3d834c709134718f3a89e09340c4ac4b70",
+        "attribution": "ShipLoop build change"
+      }
+    }
+  },
+  "prediction": {
+    "contract": "prediction/1",
+    "record": "LR-20261101-58f651",
+    "anchor": "S-2",
+    "because": "The control lacks the same-action continuation, so a deliberate premature FINAL message ends the action with the completion contract unmet and the case's own hook check fails (the stage 4 pilot's second run: 0 of 3 on a build without it, 3 of 3 with it). The candidate has it, so the share of attempts that pass accuracy on hello-hook-continuation should rise by at least half.",
+    "effects": [
+      {
+        "case": "hello-hook-continuation",
+        "measure": "accuracy",
+        "direction": "up",
+        "at_least": 0.5
+      }
+    ],
+    "guards": [
+      {
+        "case": "*",
+        "measure": "accuracy",
+        "direction": "not_down"
+      }
+    ]
+  },
+  "discoveries": [
+    {
+      "sequence": 24,
+      "at": 1793561116.439103,
+      "kind": "discovery_disposition",
+      "attempt_id": "control-hello-hook-continuation-2",
+      "finding_id": "D2",
+      "disposition": "owner_decision",
+      "implementation": "pending"
+    },
+    {
+      "sequence": 29,
+      "at": 1793562077.294602,
+      "kind": "discovery_disposition",
+      "attempt_id": "candidate-hello-hook-continuation-1",
+      "finding_id": "D2",
+      "disposition": "owner_decision",
+      "implementation": "pending"
+    },
+    {
+      "sequence": 37,
+      "at": 1793571631.116579,
+      "kind": "discovery_disposition",
+      "attempt_id": "candidate-hello-hook-continuation-2",
+      "finding_id": "D-LIVE-CONTINUATION-EVIDENCE",
+      "disposition": "separate_evaluator_experiment",
+      "implementation": "pending"
+    },
+    {
+      "sequence": 40,
+      "at": 1793572139.0363789,
+      "kind": "discovery_disposition",
+      "attempt_id": "candidate-hello-hook-continuation-3",
+      "finding_id": "D-SAME-ACTION-CONTINUATION",
+      "disposition": "owner_decision",
+      "implementation": "pending"
+    }
+  ],
+  "publication": "not_performed",
+  "generalisation": "unobserved unless independently qualified by the registered coverage"
+}
