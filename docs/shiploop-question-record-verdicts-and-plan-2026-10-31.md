@@ -105,6 +105,9 @@ other 8. Full table and reading: test/shiploop_e2e/LEARNINGS.md (the entry of 20
 
 - **The duty line at spec (goal 6).** A consistent +5 on a no-tool exercise. The test that would settle it is the live
   measure it aims at: defaulted decisions a later stage changes or a send-back blames on spec, counted from run traces.
+  *Closed 2026-10-31 (owner, answer "3" to "apply the three defaults"): the stage-prompt review found no signal in 39 of 39
+  outcomes (docs/experiments/prompt-template-review-20261031/README.md, section 3), so the live measure is not run. The +5 no-tool
+  exercise stays the only evidence for the duty line.*
 - **The proof-order fault's other form.** Two of the nine faults name no test path (`npm test`, or criteria that demand
   the test file). A replay of the criteria's Confirm-by commands against the same rule would measure whether a second
   rule pays.
