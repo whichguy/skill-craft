@@ -130,6 +130,8 @@ class FloorIsStatedWhereItIsEnforcedTest(unittest.TestCase):
         self.assertIn(f"needs `python3` {FLOOR} or newer and `git` on PATH", card)
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         self.assertIn(f"matrix.group == 'python-floor' && '{FLOOR}'", workflow)
+        # setup-python has no build of the floor for ubuntu-latest, so the leg names a runner image that has one.
+        self.assertIn("matrix.group == 'python-floor' && 'ubuntu-24.04'", workflow)
 
 
 if __name__ == "__main__":

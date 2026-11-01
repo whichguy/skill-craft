@@ -1,5 +1,5 @@
 ---
-Status: measured 2026-10-31; exploratory. One reader (Claude Sonnet 5.5) classified the 25 texts and no second reader has; E2E cases only; no model was run and nothing in ShipLoop changed.
+Status: measured 2026-10-31; exploratory. One reader (Claude Sonnet 5.5) classified the 25 texts; a second and a third reader replayed them on 2026-11-01 (superseding "no second reader has": [the replay](../follow-on-replay-20261101/README.md)); E2E cases only; no model was run for the peek itself and nothing in ShipLoop changed.
 Consumer: the owner, deciding whether ShipLoop should surface a post-delivery follow-on run (docs/shiploop-follow-on-run-design-2026-10-31.md, sections 4, 5 and 10). Later: whoever runs the replay (design section 7, M1) and needs this base rate and this classification to compare a second reader against.
 Journal: docs/shiploop-follow-on-run-journal.md (Round 0).
 ---
@@ -121,7 +121,8 @@ the same place.
 ## 5. Limits and unknowns
 
 - One reader, Claude Sonnet 5.5, who also wrote the design note that cites these numbers. A second, distinct reader, blind to
-  these labels, is the first step of the design's replay (section 7, M1). Moving the four arguable rows, each to the other
+  these labels, was the first step of the design's replay (section 7, M1), done 2026-11-01 ([the replay](../follow-on-replay-20261101/README.md)):
+  Sol twice and Grok kept the class of all four arguable rows and moved three others (F01, F18, F23); `gap` stayed 0 for every reader but one Sol run, on two rows that are not gaps. Moving the four arguable rows, each to the other
   class named in section 2, would give at most decision 2 to 4, extension 3 to 5, person 5 to 6, capability 4 to 5, debt 1 to 2
   and note 6 to 7; `gap` stays 0 unless a reader finds a system-closable row that this reader did not.
 - The run set is `ledger.find_runs()`'s five roots (`~/e2e-runs`, `-brownfield`, `-qr`, `-x4`, `-owner-note`). The output roots

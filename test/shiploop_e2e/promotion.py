@@ -474,7 +474,7 @@ def _strict_comparable(card: dict, metric: str) -> bool:
 
 def _strict_per_success(cards: list[dict], metric: str, successes: int) -> tuple[float | None, str | None]:
     if successes <= 0:
-        return None, "no successful case to divide the all-attempt total by"
+        return None, "no attempt succeeded, so there is no per-success token figure"
     values = []
     for card in cards:
         if not _strict_comparable(card, metric):
@@ -641,15 +641,15 @@ def _strict_decide(reg: dict, control, candidate, harness_root: Path | None = No
                         missing_files = sorted(set(fresh_receipt.get("missing") or [])
                                                 | (required_files - set(receipt_files)))
                         if missing_files:
-                            add_evidence_error(row, f"{attempt_id}: sealed run receipt is incomplete: " + ", ".join(missing_files))
+                            add_evidence_error(row, f"{attempt_id}: its sealed evidence is missing files: " + ", ".join(missing_files))
                         if fresh_receipt.get("observed") is not True or fresh_receipt.get("unsafe_symlinks"):
-                            add_evidence_error(row, f"{attempt_id}: sealed run receipt has unsafe or unobserved evidence")
+                            add_evidence_error(row, f"{attempt_id}: its sealed evidence includes unsafe or unobserved files")
                         product_receipt = fresh_receipt.get("product")
                         if not isinstance(product_receipt, dict) or product_receipt.get("observed") is not True:
                             add_evidence_error(row, f"{attempt_id}: live work-tree fingerprint is not observed")
                         if (not isinstance(fresh_receipt.get("sha256"), str) or len(fresh_receipt["sha256"]) != 64
                                 or card.get("run_receipt") != fresh_receipt):
-                            add_evidence_error(row, f"{attempt_id}: sealed run receipt is missing or changed")
+                            add_evidence_error(row, f"{attempt_id}: its sealed evidence is missing or changed after sealing")
                     # The receipt also binds ambient overlap inputs. Derived diagnostics must agree with a fresh score;
                     # deleting a neighbour or changing the runs root cannot erase previously observed interference.
                     derived = ("attempt_id", "started", "run_receipt")
@@ -714,7 +714,7 @@ def _strict_decide(reg: dict, control, candidate, harness_root: Path | None = No
                                                            "floors": hard})
     missing_ids = sorted(set(expected) - seen_ids)
     if missing_ids:
-        add_evidence_error(None, "registered attempts have no sealed run receipt: " + ", ".join(missing_ids))
+        add_evidence_error(None, "these attempts have no sealed evidence, so they cannot be counted: " + ", ".join(missing_ids))
     extra_ids = sorted(seen_ids - set(expected))
     if extra_ids:
         add_evidence_error(None, "run receipts include unregistered attempt IDs: " + ", ".join(extra_ids))
@@ -776,7 +776,7 @@ def _strict_decide(reg: dict, control, candidate, harness_root: Path | None = No
         labels = [f"{item['case']} ({', '.join(item['floors'])})" for item in candidate_hard_failures]
         return finish("DROP", "a registered hard floor failed: " + ", ".join(labels))
     if unknown_quality:
-        return undecided("required quality evidence is unknown for " + ", ".join(unknown_quality))
+        return undecided("cannot tell whether quality held, for lack of usable evidence: " + ", ".join(unknown_quality))
 
     budget_unknown = []
     over_budget = []

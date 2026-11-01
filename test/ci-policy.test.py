@@ -51,6 +51,11 @@ class CIPolicyTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 policy.select(self.root, "workflow_dispatch", {}, tier)
 
+    def test_a_scheduled_run_is_the_full_tier(self):
+        tier, reason, base = policy.select(self.root, "schedule", {}, "")
+        self.assertEqual((tier, base), ("full", ""))
+        self.assertIn("scheduled", reason)
+
     def test_only_a_release_commit_push_runs_full(self):
         self.write("code.py", "changed\n")
         change = self.commit()
@@ -127,7 +132,10 @@ class CIPolicyTests(unittest.TestCase):
         self.assertIn("python-version: '3.x'", workflow)
         self.assertIn("node-version: 'latest'", workflow)
         self.assertEqual(workflow.count("check-latest: true"), 5)
-        self.assertNotIn("ubuntu-24.04", workflow)
+        # CI runs on the latest runner image. The one pin is the python-floor leg, which exists to run the oldest Python
+        # ShipLoop declares and setup-python has no build of it for ubuntu-latest.
+        self.assertEqual(workflow.count("ubuntu-24.04"), 1)
+        self.assertIn("matrix.group == 'python-floor' && 'ubuntu-24.04' || 'ubuntu-latest'", workflow)
         self.assertIn("fail-fast: false", workflow)
         self.assertIn('--output "$RUNNER_TEMP/hermetic-$TEST_GROUP"', workflow)
         # Stand-in host markers, so the state-home guard sees keepalive and Until Loop leaks on CI too.
@@ -136,6 +144,10 @@ class CIPolicyTests(unittest.TestCase):
         self.assertIn("if-no-files-found: error", workflow)
         self.assertIn("uses: actions/upload-artifact@v7", workflow)
         self.assertIn("cancel-in-progress: ${{ github.event_name == 'pull_request' }}", workflow)
+        # One weekly drift canary: a floating runtime or runner image (python 3.x, node latest, ubuntu-latest) can break
+        # CI with no commit, and a push is otherwise the only thing that finds out. Off the hour, on one weekday.
+        self.assertEqual(workflow.count("cron:"), 1)
+        self.assertRegex(workflow, r"(?m)^  schedule:\n    - cron: '([1-9]|[1-5][0-9]) \d{1,2} \* \* [0-6]'$")
         self.assertNotIn("secrets.", workflow)
         self.assertNotIn("run-integration", workflow)
         self.assertNotIn("--release-sync", workflow)

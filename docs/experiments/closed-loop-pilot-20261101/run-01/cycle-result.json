@@ -1,0 +1,45 @@
+{
+  "contract": "shiploop-cycle/1",
+  "decision": "UNDECIDED",
+  "reasons": [
+    "registered attempts have no sealed run receipt: candidate-hello-hook-continuation-1, candidate-hello-hook-continuation-2, control-hello-hook-continuation-2, control-hello-hook-continuation-3",
+    "required quality evidence is unknown for hello-hook-continuation (control), hello-hook-continuation (candidate)"
+  ],
+  "verdict": {
+    "contract": "prediction-verdict/1",
+    "record": "LR-20261101-1b4675",
+    "verdict": "refuted",
+    "effects": [
+      {
+        "case": "hello-hook-continuation",
+        "measure": "tokens",
+        "control": 18258993.0,
+        "candidate": null,
+        "unknown": "no successful case to divide the all-attempt total by",
+        "direction": "down",
+        "at_least": 0.25,
+        "verdict": "unknown"
+      }
+    ],
+    "guards": [
+      {
+        "case": "hello-hook-continuation",
+        "measure": "accuracy",
+        "control": 1.0,
+        "candidate": 0.0,
+        "change": -1.0,
+        "direction": "not_down",
+        "held": false
+      }
+    ]
+  },
+  "outcome": {
+    "outcome": "admitted",
+    "reason": "undecided: registered attempts have no sealed run receipt: candidate-hello-hook-continuation-1, candidate-hello-hook-continuation-2, control-hello-hook-continuation-2, control-hello-hook-continuation-3; required quality evidence is unknown for hello-hook-continuation (control), hello-hook-continuation (candidate) [tolerance and attempts stated, not measured]",
+    "reopen_when": null,
+    "calibration": "stated, not measured"
+  },
+  "opened": [],
+  "control_build": "b665a3fac1d7",
+  "candidate_build": "1e2fb1631288"
+}

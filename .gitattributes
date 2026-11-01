@@ -6,3 +6,6 @@ plugins/backchain/** -text -whitespace
 
 # Learning records are append-only rows with unique ids; two branches that append merge by keeping both.
 test/shiploop_e2e/learning-records.jsonl merge=union
+
+# Results returned from a live run are kept byte for byte, a trailing blank line included.
+docs/experiments/closed-loop-pilot-20261101/run-*/** -text -whitespace

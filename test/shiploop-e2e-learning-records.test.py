@@ -121,6 +121,29 @@ class LearningRecordsTest(LedgerCase):
         lr.append("predicted", high, self.ledger)
         self.assertEqual(lr.select(self.ledger), low)
 
+    def test_select_for_a_cycle_takes_only_a_record_that_cycle_can_measure_and_has_not_seen(self):
+        """A cycle measures its exposing case and keeps its generality case unseen: a record found on a hosted case it
+        will not run, or with evidence from its generality case, is not its record."""
+        hosted = self.open_record("hosted", confidence="high",
+                                  source={"case": "gym-membership-salesforce", "exposure": "development"})
+        seeded = self.open_record("seeded", confidence="low", source={"learnings": "Wave A", "commit": "008feae"})
+        ours = self.open_record("ours", confidence="medium", source={"case": "user-listing", "exposure": "development"})
+        both = self.open_record("both", confidence="high", source={"case": "user-listing", "exposure": "development"})
+        lr.append("opened", both, self.ledger, source={"case": "csv-report", "exposure": "development"})
+        for record in (hosted, seeded, ours, both):
+            lr.append("admitted", record, self.ledger)
+        self.assertEqual(lr.select(self.ledger), hosted, "without a cycle's cases the rule is as it was: the oldest of the highest")
+        self.assertEqual(lr.select(self.ledger, "user-listing", "csv-report"), ours,
+                         "not the hosted record, and not the one with evidence from the unseen generality case")
+        self.assertEqual(lr.select(self.ledger, "user-listing", None), both)
+        lr.append("predicted", ours, self.ledger)
+        lr.append("predicted", both, self.ledger)
+        self.assertEqual(lr.select(self.ledger, "user-listing", "csv-report"), seeded,
+                         "a seeded record names no case, so any cycle may take it")
+        lr.append("predicted", seeded, self.ledger)
+        self.assertIsNone(lr.select(self.ledger, "user-listing", "csv-report"))
+        self.assertEqual(lr.select(self.ledger, "gym-membership-salesforce", None), hosted)
+
     def test_ingest_routes_findings_and_attaches_a_recurrence(self):
         known = self.open_record("known")
         finding = {"id": "D1", "title": "again", "materiality": "material", "confidence": "high", "target": "shiploop",

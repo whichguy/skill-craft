@@ -140,7 +140,8 @@ Findings:
   decision was filed under `## Superseded`. The 40-heading cap arithmetic puts the first cut at the fifth pass's packet. A chain of
   follow-on runs would repeat this, so a chain waits for the multipass decisions D2 to D4. (Refined 2026-10-31, Round 2, F16 and
   F17: the third pass repeated the leaks at a steady rate, and the chain now waits for the result of the A/B test of the fix,
-  not for a decision.)
+  not for a decision. Refined again 2026-11-01, Round 3, F21, F22, F24 and F26: the A/B test met its bar, so the chain now waits
+  for the fix's release; the mislabel persists once a lineage has it, on one lineage; the fifth pass's cut is now counted.)
 - F14 (firm). `--continue-from` and `follows` are test-harness features (`test/shiploop_e2e/run.py`, `cases.json`). The engine
   records no field for which run another follows. A chain would add one; the recommend-only list does not need it.
 - F15 (firm). The multipass apparatus (`chains.py`, `delta.py`, `ticket-comments`) is the fixture and the readout for a mechanics
@@ -195,19 +196,20 @@ Findings:
   Round 1.
 - F17 (firm). What a chain waits for moved from a decision to a measurement. The owner approved the multipass D1 to D5 ("Approve
   all", 15ef676f). D2 to D4, the fix for what stages write, is one candidate kept off main until its A/B test (E2) meets a bar
-  written before the first run. E2 as last recorded on main (d1e5df37): started 17:33:58; held 41 min 41 s from 17:47:28 so another
-  session's two test-writing pilots could use the shared port-4180 lane first, 31 min 21 s of it with nobody holding the lane;
-  resumed 18:29:09 with chain A1's second case. No E2 result is on main at df44fd30. The multipass work's own offline replay found
-  a gap in the candidate: both entries filed as retired when new (AD-3, AD-4) were written by the plan stage, which the
-  candidate's packet line does not reach (c55d0bc0). So the born-retired entry may survive E2.
+  written before the first run. E2 as last recorded on main (d1e5df37): started 17:33:58; held 41 min 41 s from 17:47:28 so
+  another session's two test-writing pilots could use the shared port-4180 lane first, 31 min 21 s of it with nobody holding the
+  lane; resumed 18:29:09 with chain A1's second case. No E2 result is on main at df44fd30 (superseded 2026-11-01 by Round 3,
+  F21: E2 reported, 6a6badb3). The multipass work's own offline replay found a gap in the candidate: both entries filed as
+  retired when new (AD-3, AD-4) were written by the plan stage, which the candidate's packet line does not reach (c55d0bc0). So
+  the born-retired entry may survive E2.
 - F18 (firm for what exists; hermetic). The modifying link is built. `ticket-sla` (bf68e959) asks a pass to replace "a ticket is
   escalated at most once" with "at most twice, and by priority" and to change the requirement, the decision behind it and the
   tests together. Its acceptance is its own (the second link's hidden check reads the very sentence it replaces, so a correct
   delivery would fail it), its ledger says whether the old entries were changed or left standing, and 11 hand-written variants
-  each failed exactly the checks that read what they break. There is no live run: E3 waits for E2. Its request is hand-written;
-  none of the peek's three `decision` rows (csv-report numeric forms, a delivery route for `ticket.assigned`, person-level
-  delivery) concerns how often a ticket is escalated. So M2b still has no case that starts from a real leftover, and `ticket-sla`
-  is the fixture for U10, not a measurement of value.
+  each failed exactly the checks that read what they break. There is no live run: E3 waits for E2 (superseded 2026-11-01 by
+  Round 3, F22: E3 ran, a232cf03). Its request is hand-written; none of the peek's three `decision` rows (csv-report numeric
+  forms, a delivery route for `ticket.assigned`, person-level delivery) concerns how often a ticket is escalated. So M2b still
+  has no case that starts from a real leftover, and `ticket-sla` is the fixture for U10, not a measurement of value.
 - F19 (firm, about this document). Revision 2 recorded moving status as fact. It was authored at 17:19:26 and committed, after a
   rebase, at 18:43:03; the owner's approval (15ef676f, 17:29), E1's result (c55d0bc0, 17:40) and `ticket-sla` (bf68e959, 18:41)
   are all ancestors of it, so three of its statements were already stale when it was published. This was known and disclosed to
@@ -215,7 +217,8 @@ Findings:
   journal that holds the live state; the design's header says so.
 - F20 (firm, from source). The skill card's byte bound limits a build: `card_max_bytes` is 30500 in
   `test/fixtures/shiploop-card-ledger.json` and `skills/shiploop/SKILL.md` is 29,955 bytes, so about 545 bytes of card text; a
-  candidate for another change exceeded the bound on 2026-10-31 (df44fd30). Added to the design's section 8 and section 6.
+  candidate for another change exceeded the bound on 2026-10-31 (df44fd30). Added to the design's section 8 and section 6. (Figure superseded 2026-11-01 by Round 3: 30,011 bytes and about 489 bytes of card
+  text as of e13af240; the bound and the reading stand.)
 
 Changed in the design: the header, sections 1, 2, 3.B, 4.7, 5, 6, 7 (M2a and M2b), 8 (one bullet), 9 (one row), 10 (D2's
 condition) and 11 (U2, U9, U10). D1 to D4 keep their recommendations.
@@ -231,4 +234,242 @@ origin/main); the base is origin/main because the canonical `main` had diverged;
 branch, not on main) is not cited in the design; nothing is pushed until the owner says so; no release (documents only).
 
 Open: the replay with a second reader (design section 7, M1); a revision 4 when E2 reports; M2a after E2 and E3; the owner's D1 to
-D4.
+D4. (Superseded 2026-11-01 by Round 3: revision 4 is written, and E2 and E3 have reported.)
+
+## Round 3 — 2026-11-01 — revision 4: E2 and E3 reported
+
+Question: revision 3 was published with its moving statements written "as of" its base, df44fd30. Two multipass results landed
+on main after that base: the A/B test of the fix for the leaks (E2) and the first live fourth pass (E3). Which statements of
+the design do they overtake, and does either change a recommendation?
+
+Conditions: base e13af240100c066489e83c028d97339845402b55 (origin/main), in the worktree and on the branch of revision 3
+(`docs/follow-on-rev3-dd7837`). Revision 3 was rebased onto 17cbbd9b830e8e95385617f0c1c9fb68dd850546, tested (the quick tier, pinned to that base)
+and pushed first, as published 7bb1c35683a18d37bd800df12a2f4c45c32ecc77, at the owner's word. Main then moved by five commits (a Python 3.9
+floor, release skill-craft 2.27.2 and shiploop 1.26.2, two documents); revision 4, the second commit, was rebased onto the last of them and its
+facts were re-checked against it. No model call and no ShipLoop run. One reader, Claude Sonnet 5.5, who also wrote the design.
+
+Read in full: 6a6badb3e6b8bd858015817c40ee216addf76ba6 (E2), a232cf038789b532c8485c7583136177cb6be929 (E3) and
+9d5067f3d6b38ff0231e3e98835d78fb96e5a37a (the fix to the fourth link's case); the multipass journal's summary table, the results
+of E2 and E3, its routine decisions and its unknowns; the multipass plan's diff from df44fd30 to the base; the E3 readout and
+the `environment.md` figures of `e3-ledger.json`. Read in part: the first 40 lines of ed2f0a34 (another session's learning
+commit, which cites a candidate for another change measured at 30,440 bytes against the card bound; that candidate is not on
+main). Searched: a keyword pass (follow-on, multipass, ticket-sla, chain, superseded, SKILL.md, card, port-4180, lease) over the
+messages of the 19 commits between df44fd30 and 17cbbd9b found the multipass commits above and nothing else that bears on the
+design; the others, judged by subject and by the lines of six of them that mention the card or bytes, are other sessions' E2E
+apparatus, retention and Salesforce work. `git diff --stat` over that range lists 23 files, none under `skills/`, `agents/`,
+`plugins/`, `changes/` or the card ledger. The five commits after it, up to the base, were checked the same way and by the diff of
+the card: the multipass plan, journal, readouts and cases are unchanged; no module the design cites changed (the diff names the CLI
+entry scripts, the hook scripts, the README and a new `shiploop_pyfloor.py`); the one fact of the design they move is the card's
+size, which release 2.27.2 raised from 29,955 to 30,011 bytes against the unchanged bound of 30500 (94bccf23 added one sentence naming
+the Python 3.9 floor), so Round 2's F20 stands in its reading and its figure of about 545 bytes becomes about 489 (marked in F20
+above). The candidate branch was rebased again onto the base while this was written, and still does not touch the card. The Round 0
+reading of the engine holds.
+
+Findings:
+
+- F21 (firm for three chains per arm, one pair of cases, passes 1 and 2, Codex gpt-6.1-terra at xhigh). The fix for the leaks met
+  its bar. E2 ran 2026-10-31 17:33:58 to 21:40:17: three chains of two passes on the 1.26.0 tree and three on the candidate. 12 of
+  12 runs passed and B1 to B5 all held. Stray headings added to `environment.md`: 0 in all six fix passes, 7, 7, 2, 6, 5 and 8 in the
+  control (second passes 0, 0, 0 against 7, 6, 8). A pass that added a decision changed a live section of `architecture.md` in 6
+  of 6 fix passes against 3 of 6. Second-pass time was 1.02 times the control's (limit 1.2); tokens 49.1 M a run against 49.0 M.
+  B1 (no entry filed as retired when new) held without being tested: the control never did it in six passes. The notice caught
+  the mislabel once live (B3 pass 2), printed in the packet of a stage after `plan`, the route the offline replay had predicted;
+  it is the first live catch. Limits: the candidate is a bundle, the passes are 1 and 2, the machine was shared. The candidate is
+  not on main; the release is recommended and is the owner's call. Evidence: 6a6badb3 and the multipass journal's Round 2 result.
+- F22 (firm for one run; the persistence of the mislabel is exploratory, n=2, one lineage). The first live fourth pass (E3)
+  delivered what it was asked and repeated both leaks. `ticket-sla` continued from E1's output on published ShipLoop
+  (skill-craft 2.27.1, ShipLoop 1.26.1, no fix), Codex gpt-6.1-terra at xhigh: 993 s, 37.0 M tokens, 158 model calls. All 16
+  hidden checks passed, requirement R-7 was changed in place, all 8 IDs were kept and one earlier test file was modified. It is
+  recorded FAILED, 15 of 16 checks, on one check of the new case that was wrong (F23). `environment.md` gained 9 stray headings
+  (+6.4 KiB, 16,637 to 23,175 bytes), and the new decision AD-5 was filed under `## Superseded` behind AD-3 (mislabelled since
+  the lineage's saved second pass) and AD-4 (E1's). Two of two later passes (E1, E3) filed their new decision as retired. Both
+  continue the lineage whose saved second pass (bf-codex-r2) made the mislabel; one of the four saved second passes made it and
+  none of E2's six control passes did. This extends F13 and F16. The multipass commit reads it as the mislabel compounding with
+  the pass number (it needs a trailing `Superseded` section, which exists only after an earlier pass has made one). I read it
+  more narrowly: the evidence is one lineage, so it shows the mislabel persisting once made, and the pass number is not
+  separated from the lineage. It also leaves open what F16 could not say, whether a pass retires or supersedes an old decision,
+  because AD-3 was already marked. Evidence: a232cf03, the multipass journal's Round 3 result, `round3-readout-output.txt` and
+  `e3-ledger.json` under `docs/experiments/multipass-20261031/`.
+- F23 (firm). A case written from the request and a synthetic prior had two wrong words at its first contact with a real prior.
+  Its retention check looked for the word `comment`, copied from the previous link; the prior spec already contained it, so the
+  in-place route could not pass. The ledger's pattern for the old rule used the request's wording ("at most once") where the third
+  pass had written "enqueued once". The calibration passed because its synthetic delivery added a requirement ID, taking the other
+  of the two routes through the check, and the pattern had been written from the request. Both are fixed (9d5067f3), with three
+  tests that fail on the old case file; the verdict was corrected after the result was seen and both verdicts are kept. For M2b:
+  a case that tests a follow-on request takes its checks from a real prior pass and exercises each route. Evidence: 9d5067f3, a232cf03.
+- F24 (firm, from the saved file; one run). After the fourth pass `environment.md` holds 40 headings (1 title, 33 level-2, 6
+  level-3; 23,175 bytes), exactly the listing cap (`_CONTENTS_LINES` is 40 in `shiploop_navigator.py`), where aa601d37 had put the
+  first cut at the fifth pass's packet by arithmetic. Counted by a short script over
+  `~/e2e-runs-multipass/20261031/mp-codex-ticket-sla/work/docs/shiploop/environment.md` (outside the repository), skipping fenced
+  code; the rendered listing was not printed. As of the base, the fifth pass has not run.
+- F25 (firm, about this document). F19's rule reached the headline of a passage and not every sentence. By my count of the
+  revision 3 text, 15 sentences state a status that E2 or E3 overtook ("waits for E2", "has not run", "queues behind"); 3 carry
+  "as of" and 12 do not, mostly in table rows and bullets. Revision 3 landed with E2 and E3 already on main (they were pushed while
+  it waited for the owner's word), so those 12 were stale from the day it landed. Revision 4 corrects them and labels each moving
+  statement it keeps. A search of a draft for "waits", "not run", "queues", "pending", "running" and "next" finds them.
+- F26 (firm for the reasoning; no recommendation changes). What a chain waits for moved a third time: from a decision (revision
+  2) to a measurement (revision 3) to a release (revision 4: the fix met its bar and is not on main). Beyond the release, one
+  question the A/B does not answer applies to a chain and not to a person-started pass: the fix was tried on passes 1 and 2, and
+  a chain reaches the later passes, where a mislabel, once made, persists. It is stated in 4.7 and U9 and not in D2's wording.
+  D2's condition keeps its text, with its two parts marked (met; not yet merged). Whether to add "seen on a third pass" is the
+  owner's call.
+
+Changed in the design: the header, sections 1, 2, 3.B, 4.7, 5, 6 (three rows updated and three added), 7 (M2a and M2b), 8 (one
+clause), 9 (one row), 10 (D2's parenthesis) and 11 (U2, U9, U10). D1 to D4 keep their recommendations.
+
+Superseded (kept above, marked 2026-11-01): Round 2's F17 sentence "No E2 result is on main at df44fd30" (true as of that base), F18's
+"There is no live run: E3 waits for E2", Round 2's "Open:" line and F20's byte figure (29,955 bytes, about 545 of headroom); revision 3's
+statements counted in F25.
+
+Harness and test-case changes: none. No skill change, no change note, no release. Effect on earlier results: F13 and F16 are extended
+by F22 (the later-pass mislabel is now two of two); F17's gate moved (F26).
+
+Routine decisions: revision 3 was pushed first, unchanged except for the rebase (its hash changed when it was rebased onto the base),
+and revision 4 is a second commit on top of it, so the stale statements and their correction both stay visible in history (the owner's
+order: merge, then E2 as revision 4); E3 is folded in with E2 although the owner's words named E2, because the design says in several
+places that a fourth pass has not run and E3 landed within hours of E2; the candidate's branch is named and its hashes are not
+(another session's local branch, rebased since the A/B); a moving statement is labelled "as of" the base and the candidate's state "as
+read for this revision"; no release (documents only); main moved while revision 4 was being checked, so it was rebased a
+second time and the card figure it stated was corrected before the push.
+
+Open: the replay with a second reader (design section 7, M1), which could now include the runs under `~/e2e-runs-multipass` (whether
+they reached handoff is not checked); M2a, after whatever the owner orders on port 4180 next (the multipass plan names a smaller second
+chain); the fix's release and a fix-arm third or fourth pass (the multipass journal's next measurements); the owner's D1 to D4; a revision 5 when the fix is released or a fix-arm later pass reports. (Superseded 2026-11-01 by Round 4: the replay is done and its set included the
+`-multipass` runs, 14 of which reached handoff; revision 5 folds in the replay and E4's pre-registration, so the next revision waits for the fix's release or an
+E4 result.)
+
+## Round 4 — 2026-11-01 — the replay with a second reader (design section 7, M1)
+
+### Plan (written and committed before any reader was called; the result follows below it)
+
+Question (design section 7, M1): do readers other than the first agree with the first reader's classes of what finished runs
+leave under `Open for the next run`, on `gap` and `decision` in particular? The first reader (Claude Sonnet 5.5, who also wrote
+the design) found 0 gaps and 3 decisions (F08, F22, F23) in 25 rows from 122 finished runs, and marked four rows arguable (F03,
+F11, F16, F22). The owner answered "Yes" to "Should I run the M1 replay with a second reader next?" (2026-11-01). The replay is
+offline: it calls models on short texts, runs no ShipLoop and respects the owner's hold on live E2E cycles
+(d9fefb1144dea7f9a8d85b5897ad1275dbe08a07).
+
+Conditions: base e81fdb55d58bdb0bcc8c1643d93d5973709100e4 (origin/main), in a fresh worktree on branch
+`docs/follow-on-m1-replay-8e83c2`. Read for the plan: design section 7 and the peek's README, `classification.json`, `peek.py`
+and `peek.json` (17cb4e4ad859f89bbc578c06abf974e47e0933e3 created them and 671873bce787d9e9c25bbbe8ab64e7c7f7061db0 touched
+them); `ledger.find_runs()` of the coverage ledger (6c6265747116b6ba2ca2a8dd11a2f28bb0551b3b). The commits behind the new rows
+were read in Round 3.
+
+Set. 32 rows, one per run. F01..F25 are the 25 frozen strict rows of the peek (their texts are `peek.json`'s, their labels are
+`classification.json`'s). N1..N7 are the strict rows of runs that are not in the snapshot: a scan of every `~/e2e-runs*` root, the
+way `ledger.find_runs()` reads them, found 44 runs finished since the snapshot (so 166 finished runs now against the snapshot's
+122) and 7 with real text under `Open for the next run`: `-hostonly` 2, `-multipass` 3 (E2's A2 and B3, E3), `-xr` 1 and `~/e2e-runs`
+1. The other new runs' text is "none" or opens with a "none" phrase, or the run had not reached handoff (`-tl` 1). `build_set.py`
+builds the set (`rows.json`, sha256 3b4c67b18f9dfe7a5fb6b98263b38c1bbef22cd7b6740222f4e4d879a7c827be): full text, and the
+request of each run as its numbered sentences (17 distinct requests). The first reader labelled N1..N7 before any other reader was
+called (`first-reader-new-rows.json`, sha256 a7e424970ed18602fc9fb2b00cff5bd8e2e105283e0adb7fefb6df64c2bd97a9): N1 person
+(arguable: capability), N2 note, N3 extension, N4 note, N5 note, N6 extension (arguable: note), N7 note (arguable: debt); no gap.
+
+Readers, all blind to every label, note and arguable flag, to case and run names, and to each other. The prompt holds the seven
+class definitions of `classification.json` verbatim, each row's full text and its request (home directory prefix redacted);
+rows are shuffled and renamed r01..r32 and requests lettered by first appearance (`make_prompts.py`).
+- sol-a, the second reader and the main comparison: Codex GPT-6.1 Sol (gpt-6.1-sol, fallback disabled) through
+  `ask.sh sol --json --effort xhigh --profile ask` in an empty temporary directory (read-only sandbox, web search off). Class
+  order as in the file, shuffle seed 20261101, prompt sha256 a71e3d77ebd38637fe837eb0477c3bf6b502a5a2e1220c9b008632fdf58251ab.
+- sol-b, the retest of sol-a (its own noise): the same model and effort, class order reversed, seed 20261102, prompt sha256
+  1b13815bf30be49b79174d4276b5bca90e62080cf5a154cd3967ce77fa15ff07.
+- grok, the third reader: `ask.sh grok --json --no-tools` in an empty temporary directory, file class order, seed 20261103,
+  prompt sha256 d985061da8648dd58f463a21f0f6f8fc208b58f3ba9c34b2476a207115c60ed1. It classifies all 32 rows blind, which is the
+  design's "third reader" for every disagreement, and makes a 2-of-3 majority possible.
+A reply that is not one JSON array with all 32 ids and valid class names is rerun once with the same prompt; a second failure is
+reported as a failed reader. `parse_reader.py` reads a reply; `compare.py` computes everything below (its self-test passes).
+
+Measures: fine agreement over the seven classes and coarse agreement over the five groups of `classification.json` (person and
+capability; extension and debt; note; decision; gap) for every pair of readers, over all 32 rows and over the 25 frozen and the 7
+new; Cohen's kappa on the coarse groups (descriptive, n is small); the gap and decision analyses; the 2-of-3 majority of first,
+sol-a and grok.
+
+Reading, the design's three rules made precise before the run:
+- G. A row that sol-a or sol-b labels `gap` is a candidate. It is confirmed if grok also labels it `gap` and, on my reading of the
+  row, its run's request and its state, a request sentence is unmet or an assumption was refuted in a way that needs no person.
+  A confirmed gap means D2 has a real use: record the run. A candidate that is not confirmed is listed and not counted.
+- N. If no gap is confirmed, `decision` is the only live class. Its count is the 2-of-3 majority over the 166 finished runs
+  (the first reader's was 3 of 122). Building a field for it stays the owner's call (D4), and the recommendation stays not to build
+  until runs of the owner's own features show more.
+- D. The `decision` class is separable from `extension` and `note` if the Jaccard overlap of the sets of rows that first and sol-a
+  label `decision` is at least 2/3. Below that, readers cannot agree on it and it cannot be script-routed: show the non-note
+  leftovers unclassified. The design's two test rows, F22 (decision or extension) and F11 (note or decision), are reported for
+  every reader; the rule uses the whole set.
+- Rows with three different majority votes are unresolved and go to the owner.
+
+Predictions (probability, written before any reader was called; `compare.py` scores them):
+- P1. sol-a labels no row `gap` (70%).
+- P2. Coarse agreement between first and sol-a is at least 26 of 32 (65%).
+- P3. Jaccard(first, sol-a) on `decision` is at least 0.67 (55%).
+- P4. At least half of the fine disagreements between first and sol-a fall on rows the first reader marked arguable (60%).
+- P5. sol-a and sol-b agree on at least 28 of 32 rows (60%).
+
+Not concluded whatever the numbers: agreement between readers does not make a label true; it says nothing about the value of a
+follow-on run (design M2b) or about the owner's own features; the readers share the first reader's class definitions; the
+corpus is E2E cases, small and saturated.
+
+Files: `docs/experiments/follow-on-replay-20261101/` (`build_set.py`, `make_prompts.py`, `parse_reader.py`, `compare.py`,
+`rows.json`, `first-reader-new-rows.json`, `prompts/`). The archives live outside the repository, so `build_set.py` reproduces only
+on the owner's machine.
+
+### Result (2026-11-01; exploratory; 32 rows, four readers, E2E cases only)
+
+The three calls ran in parallel from 05:57:33: sol-a returned at 06:01:02 (3 min 29 s), sol-b at 06:01:11 (3 min 38 s), grok at 06:03:00
+(5 min 27 s). sol-a and sol-b: `gpt-6.1-sol`, effort xhigh, fallback off, read-only sandbox, web search disabled (the envelope says so);
+grok: `grok-4.7` (served `grok-4.7-build`, verified), effort xhigh, `--no-tools`. The Codex CLI printed a warning that its version (0.166.0) differs
+from the runner's contract (0.144.5). The prompt hashes in the status files matched the plan. No reply needed a rerun and no log shows a tool or command
+call. Evidence: `docs/experiments/follow-on-replay-20261101/` (`README.md`, `compare-output.txt`, `extra-output.txt`, `third-look.txt`, `readers/`).
+
+Findings:
+
+- F27 (interim; 32 rows). The first reader's classes hold across readers. All four label 28 of the 32 rows alike. First against sol-a: 28 rows
+  alike on the seven classes, 30 on the five coarse groups (kappa 0.91); against sol-b 28 and 28 (0.83); against grok 30 and 30 (0.91). The three other
+  readers agree with one another on 30 to 32 rows. `note` (11 rows), `debt` (1) and `capability` as the first reader read it (4) are unanimous.
+- F28 (interim). No gap is confirmed. The first reader, sol-a and grok labelled none. sol-b, with the classes listed in reverse order, labelled F01 and
+  N1 `gap` (sol-a called both `capability`, grok `person`); grok did not agree, and both runs record the open item with a person as owner and no authenticated
+  browser as the reason (`third-look.txt`). The `person` / `capability` / `gap` line is where the definitions are least stable: the same reader moved
+  across it when their order changed.
+- F29 (interim). `decision` is the only live class, and it is smaller than the first reader said. F08 (csv-report numeric forms) and F22 (the delivery route
+  of `ticket.assigned`) are `decision` for all four readers; F23 (record the requesting user's answer to A1, among other handoff duties) is `person` for all
+  three others. By majority: 2 rows out of 166 finished runs (1.2%); the first reader alone: 3 (1.8%); the snapshot: 3 of 122 (2.5%). Rule D is met exactly:
+  Jaccard(first, sol-a) is 2/3, by one row. The design's two test rows agree across all four readers (F22 `decision`, F11 `note`).
+- F30 (interim). One class per text is lossy. The rows the readers split on that are not the gap line, F18 and F23, each mix items of different classes (F18:
+  three optional items and an unconditional "stop it by hand"; F23: an answer to record, a place where knowledge lives, a readiness check). The follow-on list in the
+  design would classify entries, not whole texts, so this split would not arise there; whether readers agree entry by entry is not measured.
+- F31 (firm, about the first reader). The `arguable` flags did not predict disagreement. Of the seven flagged rows (F03, F11, F16, F22, N1, N6, N7) six kept the
+  first reader's class in every reader; the other three rows readers moved (F01, F18, F23) were not flagged. Prediction P4 missed. On F18 the majority is the better class.
+
+Predictions (written before the run; `compare.py` scores them): P1 (70%) held; P2 (65%) held, 30 of 32; P3 (55%) held, at the threshold; P4 (60%) missed, 1 of 4;
+P5 (60%) held, 30 of 32. Four of five.
+
+Rules applied. G: no gap is confirmed. N: with no gap, `decision` is the only live class, 2 of 166 by majority (3 by the first reader); the recommendation stays not
+to build the follow-on list until runs of the owner's own features show more. D: `decision` is separable from `extension` and `note` on this evidence, by one row.
+
+Not concluded: the classes are not shown to be right (every reader had the first reader's definitions); nothing about the value of a follow-on run (design M2b) or
+about the owner's own features (none of the 32 rows is one); the new rows are correlated (the same few ticket cases).
+
+Routine decisions: the post-hoc statistics are in `extra_stats.py`, separate from the pre-registered `compare.py`, which was not changed after the readers were called;
+the raw replies are kept in `readers/` and the readers' thinking summaries are not; the third look at the two gap candidates was made even though rule G was already not met
+(Grok did not agree), to record why they are not gaps.
+
+Open: revision 5 of the design folds this result in (the commit after this result, described below); the owner's D1 to D4; M2a
+and M2b as before; a rerun of `peek.py` and this replay when runs of the owner's own features have finished (the cost is a few
+minutes and a few model calls).
+
+Changed in the design (revision 5, the commit after this result): the header, sections 1, 2, 3.B, 3.C, 4.7, 5 (a subsection for
+the replay; the multipass bullets), 6 (the row for 3d5732d0, the as-of labels), 7 (M1 done with its result; M2a's lane), 8 (the
+card figure's as-of), 9 (three rows), 10 (D1, D2, D4) and 11 (U1, U6, U9 and a new U11). D1 to D4 keep their recommendations:
+the replay applies the design's own reading rule, so D1 and D4 lose the wait for M1 and now say what to wait for instead (runs
+of the owner's own features). The peek's README marks its "one reader" claims as superseded.
+
+Facts re-checked against 3d5732d0 (main moved while the replay ran, and the multipass work pre-registered its Round 4 there):
+the multipass plan and journal changed (E4 fixed on 2026-11-01 before any run: six runs in three matched pairs on passes 3 and
+4, each fix run beside a run without the fix on the same prior, bar B1 to B4, control K, predictions P1 to P8; not started);
+`skills/shiploop/SKILL.md` is still 30,011 bytes against 30500 and the card ledger is unchanged; the candidate is still only on
+the other session's local branch, rebased onto 3d5732d0. The multipass Round 4 names this journal's F21 to F26 reading (the
+mislabel persists once a lineage has it) as one of the two readings E4 separates, and U9 as the open question. Its reading rule
+says what each outcome would mean: a run without the fix that does not leak on the tidy prior would read as the mislabel bound
+to a seeded lineage.
+
+Superseded (marked 2026-11-01): the design's statements that M1 was a plan or that no second reader had classified the rows
+(sections 1, 3.C, 7, 10, 11); Round 3's "Open: the replay with a second reader" (done, Round 4).

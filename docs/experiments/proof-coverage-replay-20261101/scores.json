@@ -1,0 +1,403 @@
+{
+  "plans": 1863,
+  "judged": 365,
+  "proof_order_send_backs": [
+    {
+      "run": "live/run",
+      "item": "W1",
+      "send_back": "nav-0033f00a52f24877bb38bd2a1b18381e",
+      "judged": true,
+      "shipped": false,
+      "rule_c": false,
+      "rule_c_prime": false
+    },
+    {
+      "run": "shiploop-hook-missing-done-c0rbhqfg/published-verification-02",
+      "item": "W2",
+      "send_back": "nav-c5d7e2f28a824267a9f6761639139c77",
+      "judged": true,
+      "shipped": false,
+      "rule_c": false,
+      "rule_c_prime": false
+    },
+    {
+      "run": "runs/battleship-candidate",
+      "item": "W1",
+      "send_back": "nav-0c706f0f54474fbe9007e1160263da96",
+      "judged": true,
+      "shipped": false,
+      "rule_c": false,
+      "rule_c_prime": false
+    },
+    {
+      "run": "control/run",
+      "item": "W1",
+      "send_back": "nav-82ef18f27c564090b056dbee4fa1eb6b",
+      "judged": true,
+      "shipped": true,
+      "rule_c": false,
+      "rule_c_prime": false
+    },
+    {
+      "run": "shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-03",
+      "item": "W1",
+      "send_back": "nav-5798188317e54127b49efd95e27988da",
+      "judged": true,
+      "shipped": false,
+      "rule_c": false,
+      "rule_c_prime": false
+    },
+    {
+      "run": "model-runs/csv-published-discovery-01",
+      "item": "W1",
+      "send_back": "nav-11e0cdaa21ad4b61905185643283cc7e",
+      "judged": true,
+      "shipped": false,
+      "rule_c": false,
+      "rule_c_prime": false
+    },
+    {
+      "run": "20261026/ds-flash-978478-battleship",
+      "item": "W1",
+      "send_back": "nav-1b95e2b1930343f390207988f79725c1",
+      "judged": true,
+      "shipped": true,
+      "rule_c": false,
+      "rule_c_prime": false
+    },
+    {
+      "run": "20261029/bf-codex-r1-ticket-assignment",
+      "item": "W1",
+      "send_back": "nav-ba593d5c230244029627304e0b1e431a",
+      "judged": true,
+      "shipped": true,
+      "rule_c": false,
+      "rule_c_prime": false
+    },
+    {
+      "run": "20261029/bf-codex-r1-ticket-escalation",
+      "item": "W1",
+      "send_back": "nav-aa537a3e426741f7aa87859b6256b51c",
+      "judged": true,
+      "shipped": true,
+      "rule_c": true,
+      "rule_c_prime": false
+    },
+    {
+      "run": "20261029/bf-codex-r1-user-listing",
+      "item": "W1",
+      "send_back": "nav-4d7e1f2618ca4a4c89857d69e7b72cc1",
+      "judged": true,
+      "shipped": false,
+      "rule_c": true,
+      "rule_c_prime": true
+    },
+    {
+      "run": "20261029/bf-codex-r1-user-listing",
+      "item": "W1",
+      "send_back": "nav-497a2646d12941cc9c41e1cf8ada6f1e",
+      "judged": true,
+      "shipped": false,
+      "rule_c": true,
+      "rule_c_prime": true
+    },
+    {
+      "run": "20261029/bf-codex-r2-ticket-assignment",
+      "item": "W1",
+      "send_back": "nav-fe39aca2e40a4892b06e1fee1f4571f0",
+      "judged": true,
+      "shipped": true,
+      "rule_c": false,
+      "rule_c_prime": false
+    },
+    {
+      "run": "20261029/hooks-after-ticket-assignment",
+      "item": "W1",
+      "send_back": "nav-5c59079c55bc47d5956953016610489c",
+      "judged": true,
+      "shipped": true,
+      "rule_c": false,
+      "rule_c_prime": false
+    },
+    {
+      "run": "20261029/hooks-after-user-listing",
+      "item": "W1",
+      "send_back": "nav-fc92556266014354b69caf685a5873e7",
+      "judged": true,
+      "shipped": true,
+      "rule_c": false,
+      "rule_c_prime": false
+    },
+    {
+      "run": "20261029/hooks-before-ticket-assignment",
+      "item": "W1",
+      "send_back": "nav-938ff082cb48408e973425cd737eaf16",
+      "judged": true,
+      "shipped": true,
+      "rule_c": false,
+      "rule_c_prime": false
+    },
+    {
+      "run": "20261031/A-ticket-assignment-s3",
+      "item": "W1",
+      "send_back": "nav-7283dab054904c0ea7bedbb29352e4c6",
+      "judged": true,
+      "shipped": true,
+      "rule_c": false,
+      "rule_c_prime": false
+    },
+    {
+      "run": "20261031/A-user-listing-s1",
+      "item": "W1",
+      "send_back": "nav-4e4d7c5a05714f1e90a502d59186d283",
+      "judged": true,
+      "shipped": true,
+      "rule_c": false,
+      "rule_c_prime": false
+    },
+    {
+      "run": "20261031/A-user-listing-s2",
+      "item": "W1",
+      "send_back": "nav-88571bca10cd42bca4b3e3f1a9206045",
+      "judged": true,
+      "shipped": true,
+      "rule_c": false,
+      "rule_c_prime": false
+    },
+    {
+      "run": "20261031/B-ticket-import-s4",
+      "item": "W1",
+      "send_back": "nav-3990c965139d47a0a368256145f6f3e3",
+      "judged": true,
+      "shipped": false,
+      "rule_c": false,
+      "rule_c_prime": false
+    },
+    {
+      "run": "20261031/F-ticket-import-s1",
+      "item": "W1",
+      "send_back": "nav-b1f3df4d4c6c426d8a80e84e2e2e986a",
+      "judged": true,
+      "shipped": false,
+      "rule_c": true,
+      "rule_c_prime": true
+    }
+  ],
+  "sendback_cost_rows": [
+    {
+      "run": "live/run",
+      "item": "W1",
+      "action": "nav-0033f00a52f24877bb38bd2a1b18381e",
+      "minutes": 0.82,
+      "improve_review_after": null
+    },
+    {
+      "run": "shiploop-hook-missing-done-c0rbhqfg/published-verification-02",
+      "item": "W2",
+      "action": "nav-c5d7e2f28a824267a9f6761639139c77",
+      "minutes": 0.6,
+      "improve_review_after": null
+    },
+    {
+      "run": "runs/battleship-candidate",
+      "item": "W1",
+      "action": "nav-0c706f0f54474fbe9007e1160263da96",
+      "minutes": 1.13,
+      "improve_review_after": null
+    },
+    {
+      "run": "control/run",
+      "item": "W1",
+      "action": "nav-82ef18f27c564090b056dbee4fa1eb6b",
+      "minutes": 1.11,
+      "improve_review_after": null
+    },
+    {
+      "run": "shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-03",
+      "item": "W1",
+      "action": "nav-5798188317e54127b49efd95e27988da",
+      "minutes": 0.71,
+      "improve_review_after": null
+    },
+    {
+      "run": "model-runs/csv-published-discovery-01",
+      "item": "W1",
+      "action": "nav-11e0cdaa21ad4b61905185643283cc7e",
+      "minutes": 0.78,
+      "improve_review_after": null
+    },
+    {
+      "run": "20261026/ds-flash-978478-battleship",
+      "item": "W1",
+      "action": "nav-1b95e2b1930343f390207988f79725c1",
+      "minutes": 5.67,
+      "improve_review_after": 7.43
+    },
+    {
+      "run": "20261029/bf-codex-r1-ticket-assignment",
+      "item": "W1",
+      "action": "nav-ba593d5c230244029627304e0b1e431a",
+      "minutes": 1.12,
+      "improve_review_after": 0.98
+    },
+    {
+      "run": "20261029/bf-codex-r1-ticket-escalation",
+      "item": "W1",
+      "action": "nav-aa537a3e426741f7aa87859b6256b51c",
+      "minutes": 0.84,
+      "improve_review_after": 1.43
+    },
+    {
+      "run": "20261029/bf-codex-r1-user-listing",
+      "item": "W1",
+      "action": "nav-4d7e1f2618ca4a4c89857d69e7b72cc1",
+      "minutes": 1.66,
+      "improve_review_after": 0.46
+    },
+    {
+      "run": "20261029/bf-codex-r1-user-listing",
+      "item": "W1",
+      "action": "nav-497a2646d12941cc9c41e1cf8ada6f1e",
+      "minutes": 1.48,
+      "improve_review_after": 0.38
+    },
+    {
+      "run": "20261029/bf-codex-r2-ticket-assignment",
+      "item": "W1",
+      "action": "nav-fe39aca2e40a4892b06e1fee1f4571f0",
+      "minutes": 1.56,
+      "improve_review_after": null
+    },
+    {
+      "run": "20261029/hooks-after-ticket-assignment",
+      "item": "W1",
+      "action": "nav-5c59079c55bc47d5956953016610489c",
+      "minutes": 0.96,
+      "improve_review_after": null
+    },
+    {
+      "run": "20261029/hooks-after-user-listing",
+      "item": "W1",
+      "action": "nav-fc92556266014354b69caf685a5873e7",
+      "minutes": 0.83,
+      "improve_review_after": null
+    },
+    {
+      "run": "20261029/hooks-before-ticket-assignment",
+      "item": "W1",
+      "action": "nav-938ff082cb48408e973425cd737eaf16",
+      "minutes": 1.03,
+      "improve_review_after": null
+    },
+    {
+      "run": "20261031/A-ticket-assignment-s3",
+      "item": "W1",
+      "action": "nav-7283dab054904c0ea7bedbb29352e4c6",
+      "minutes": 0.74,
+      "improve_review_after": null
+    },
+    {
+      "run": "20261031/A-user-listing-s1",
+      "item": "W1",
+      "action": "nav-4e4d7c5a05714f1e90a502d59186d283",
+      "minutes": 0.61,
+      "improve_review_after": null
+    },
+    {
+      "run": "20261031/A-user-listing-s2",
+      "item": "W1",
+      "action": "nav-88571bca10cd42bca4b3e3f1a9206045",
+      "minutes": 0.74,
+      "improve_review_after": null
+    },
+    {
+      "run": "20261031/B-ticket-import-s4",
+      "item": "W1",
+      "action": "nav-3990c965139d47a0a368256145f6f3e3",
+      "minutes": 1.04,
+      "improve_review_after": null
+    },
+    {
+      "run": "20261031/F-ticket-import-s1",
+      "item": "W1",
+      "action": "nav-b1f3df4d4c6c426d8a80e84e2e2e986a",
+      "minutes": 1.09,
+      "improve_review_after": null
+    }
+  ],
+  "shipped_refused": 14,
+  "rule_c_classes": {
+    "false": 6,
+    "unjudged": 1,
+    "caught": 4,
+    "hollow": 1
+  },
+  "rule_c_prime_classes": {
+    "false": 5,
+    "unjudged": 1,
+    "caught": 3,
+    "hollow": 1
+  },
+  "post_hoc_rule_c_generic": {
+    "classes": {
+      "caught": 2,
+      "hollow": 1
+    },
+    "caught_beyond_shipped": 2,
+    "net_saving_minutes": 1.65
+  },
+  "rule_c_prime_caught_beyond_shipped": [
+    "20261029/bf-codex-r1-user-listing W1",
+    "20261029/bf-codex-r1-user-listing W1",
+    "20261031/F-ticket-import-s1 W1"
+  ],
+  "T_refusal_minutes": {
+    "median": 0.11301666895548503,
+    "n": 101
+  },
+  "T_sendback_minutes": {
+    "median": 0.9967083354791005,
+    "n": 20
+  },
+  "decision": {
+    "1_caught_beyond_shipped_ge_2": true,
+    "2_false_is_0": false,
+    "3_net_saving_minutes": 2.54,
+    "build": false
+  },
+  "stalls_by_wording": {
+    "w0": {
+      "runs": 125,
+      "open_due": 33,
+      "with_refusal": 34,
+      "stopped": 4,
+      "stopped_with_open_due": 4,
+      "stop_rate_with_open_due_ci95": [
+        0.034,
+        0.282
+      ]
+    },
+    "w11": {
+      "runs": 11,
+      "open_due": 6,
+      "with_refusal": 3,
+      "stopped": 0,
+      "stopped_with_open_due": 0,
+      "stop_rate_with_open_due_ci95": [
+        0.0,
+        0.459
+      ]
+    },
+    "w1": {
+      "runs": 38,
+      "open_due": 14,
+      "with_refusal": 4,
+      "stopped": 0,
+      "stopped_with_open_due": 0,
+      "stop_rate_with_open_due_ci95": [
+        0.0,
+        0.232
+      ]
+    }
+  }
+}

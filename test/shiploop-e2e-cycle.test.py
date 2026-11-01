@@ -21,6 +21,7 @@ import cycle
 import epoch
 import iterate
 import learning_records as lr
+import prediction as predictions
 import purpose_check
 import review as reviewer
 import run as runner
@@ -785,11 +786,137 @@ class CycleTest(unittest.TestCase):
         cycle.apply_decision(self.worktree, "loop-test", self.record, self.tip, candidates[1], "KEEP_AS_REF")
         self.assertEqual(len(self.git("for-each-ref", "refs/shiploop-loop/loop-test").splitlines()), 2)
 
+    def test_the_loop_selects_its_record_for_its_own_cases_both_before_and_after_exploring(self):
+        args = argparse.Namespace(case="user-listing", generality_case="csv-report", calibration=None, tolerance=0.25,
+                                  attempts=3, output=self.temp / "loop-out", iterations=1, host="codex", model=None,
+                                  effort=None, permission_mode="auto")
+        calls = []
+
+        def select(ledger, case=None, generality=None):
+            calls.append((case, generality))
+
+        with mock.patch.object(iterate, "new_worktree", return_value=(self.worktree, "auto/test")), \
+                mock.patch.object(cycle.learning_records, "select", select), \
+                mock.patch.object(cycle, "explore", return_value=[]):
+            cycle.loop(args)
+        self.assertEqual(calls, [("user-listing", "csv-report")] * 2)
+
     def test_a_malformed_calibration_report_is_a_refusal_not_a_traceback(self):
         path = self.temp / "bad.json"
         path.write_text(json.dumps({"contract": spread.CONTRACT, "cases": {case: {} for case in CASES}}))
         with self.assertRaisesRegex(ValueError, "malformed"):
             cycle.load_calibration(path, list(CASES))
+
+
+class PilotKitTest(unittest.TestCase):
+    """The stage 4 pilot kit (docs/experiments/closed-loop-pilot-20261101): a live run is only as good as its inputs, so
+    every input it needs is checked here without a model."""
+    KIT = ROOT / "docs" / "experiments" / "closed-loop-pilot-20261101"
+    CASE = "hello-hook-continuation"
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.temp = Path(temp.name)
+        self.prediction_file = self.KIT / "prediction.json"
+        self.prediction = json.loads(self.prediction_file.read_text())
+        self.ledger = self.KIT / "pilot-ledger.jsonl"
+
+    def plugin(self, name):
+        plugin = self.temp / name
+        (plugin / "skills" / "shiploop").mkdir(parents=True)
+        (plugin / "skills" / "shiploop" / "SKILL.md").write_text(name)
+        return plugin
+
+    def test_the_prediction_registers_with_the_stated_basis_the_run_uses(self):
+        driver = {"host": "codex", "model": "gpt-6.1-terra", "effort": "high"}
+        calibration = cycle.stated_calibration(3, 0.25)
+        template = self.temp / "registration.json"
+        template.write_text(json.dumps(cycle.registration_template(
+            cycle.roles_for(self.prediction, self.CASE, None), runner.tree_digest(self.plugin("control")),
+            runner.tree_digest(self.plugin("candidate")), driver, calibration["attempts"], calibration["tolerance"],
+            calibration["metric"])))
+        root = self.temp / "epoch"
+        epoch.initialise(root, template, self.prediction_file)
+        self.assertEqual(epoch.state(root)["prediction"]["record"], self.prediction["record"])
+        attempts = epoch.registration(root)["attempts"]
+        self.assertEqual(({row["case"] for row in attempts}, len(attempts)), ({self.CASE}, 6))
+
+    def test_a_prediction_below_the_stated_tolerance_would_have_been_refused_at_registration(self):
+        driver = {"host": "codex", "model": "gpt-6.1-terra", "effort": "high"}
+        weak = self.temp / "weak.json"
+        weak.write_text(json.dumps({**self.prediction, "effects": [{**self.prediction["effects"][0], "at_least": 0.10}]}))
+        template = self.temp / "registration.json"
+        template.write_text(json.dumps(cycle.registration_template(
+            {self.CASE: "regression"}, runner.tree_digest(self.plugin("control")),
+            runner.tree_digest(self.plugin("candidate")), driver, 3, 0.25, "tokens")))
+        with self.assertRaisesRegex(ValueError, "below the registered tolerance"):
+            epoch.initialise(self.temp / "epoch", template, weak)
+
+    def test_the_pilots_case_is_a_regression_case_so_a_quality_fall_decides_first(self):
+        self.assertEqual(cycle.roles_for(self.prediction, self.CASE, None), {self.CASE: "regression"})
+
+    def test_the_pilot_record_resolves_and_no_loop_can_select_it(self):
+        view = lr.improver_view(self.prediction["record"], self.ledger)
+        self.assertIn("reverted", view["title"])
+        self.assertIsNone(lr.select(self.ledger), "a pilot record is an input, never a record a loop takes")
+
+    def test_a_reverted_build_that_fails_the_case_is_refuted_while_a_cheaper_pass_would_be_confirmed(self):
+        control = [card(self.CASE, 10_000_000) for _ in range(3)]
+        registration = {"cases": {self.CASE: {"role": "regression", "attempts": 3}}, "tolerance": 0.25}
+        failing = [card(self.CASE, 6_000_000, ok=False) for _ in range(3)]
+        judged = predictions.verdict(self.prediction, registration, control, failing)
+        self.assertEqual(judged["verdict"], "refuted")
+        self.assertIs(judged["guards"][0]["held"], False)
+        self.assertEqual(predictions.outcome("DROP", judged, ["accuracy fell"])["outcome"], "refuted")
+        passing = [card(self.CASE, 6_000_000) for _ in range(3)]
+        self.assertEqual(predictions.verdict(self.prediction, registration, control, passing)["verdict"], "confirmed",
+                         "the same tokens at the same quality confirm it: the guard, not the numbers, rejects the failure")
+
+    def test_the_run_script_parses_pins_the_hook_commits_and_refuses_a_used_folder(self):
+        script = self.KIT / "run.sh"
+        self.assertEqual(subprocess.run(["bash", "-n", str(script)], capture_output=True, text=True, check=False).returncode, 0)
+        text, readme = script.read_text(), (self.KIT / "README.md").read_text()
+        for pinned in ("779980629a81ce0e740f7c196e83e000dd582d99", "7f25acff8dab239485f262249ec70773ba906aad"):
+            self.assertIn(pinned, text)
+            self.assertIn(pinned, readme)
+        for name in ("prediction.json", "pilot-ledger.jsonl"):
+            self.assertIn(name, text)
+            self.assertTrue((self.KIT / name).is_file())
+        used = self.temp / "used"
+        used.mkdir()
+        refused = subprocess.run(["bash", str(script), "0" * 40, str(used)], capture_output=True, text=True, check=False)
+        self.assertEqual(refused.returncode, 2, refused.stderr)
+        self.assertIn("exists", refused.stderr)
+
+
+class CycleKitTest(unittest.TestCase):
+    """The stage 5 full-cycle kit (docs/experiments/closed-loop-cycle-20261101): what its script runs is checked here."""
+    KIT = ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101"
+
+    def test_the_cycle_uses_no_hosted_platform_and_no_shared_lane_and_reads_its_own_cases(self):
+        text = (self.KIT / "run.sh").read_text()
+        catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
+        for case in ("user-listing", "csv-report"):
+            self.assertIn(case, text)
+            self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
+            self.assertNotIn("4180", json.dumps(catalog[case]), f"{case} must not take the shared port-4180 lane")
+        for flag in ("--tolerance 0.25", "--attempts 3", "--effort high", "--model gpt-6.1-terra", "--iterations 1"):
+            self.assertIn(flag, text)
+        self.assertNotIn("--skip-reviews", text, "the full cycle reviews every attempt")
+        self.assertIn("unset SHIPLOOP_E2E_RUNS_ROOT", text, "only the epoch's own attempts may be neighbours of a sealed attempt")
+
+    def test_the_run_script_parses_names_what_it_returns_and_refuses_a_used_folder(self):
+        script = self.KIT / "run.sh"
+        self.assertEqual(subprocess.run(["bash", "-n", str(script)], capture_output=True, text=True, check=False).returncode, 0)
+        text = script.read_text()
+        for returned in ("iterate-exit-status.txt", "LOOP.md", "branches.txt", "cycle-result.json", "epoch-verdict.json"):
+            self.assertIn(returned, text)
+            self.assertIn(returned, (self.KIT / "README.md").read_text())
+        with tempfile.TemporaryDirectory() as used:
+            refused = subprocess.run(["bash", str(script), "0" * 40, used], capture_output=True, text=True, check=False)
+        self.assertEqual(refused.returncode, 2, refused.stderr)
+        self.assertIn("exists", refused.stderr)
 
 
 if __name__ == "__main__":

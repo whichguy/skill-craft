@@ -1,0 +1,28 @@
+{
+ "tag": "n2",
+ "concurrency": 16,
+ "rounds": 10,
+ "runs": 160,
+ "failures": 1,
+ "seconds": 36.4,
+ "load": 129.98779296875,
+ "signatures": {
+  "socket hang up/ECONNRESET": 1
+ },
+ "failing": [
+  {
+   "rc": 1,
+   "seconds": 3.2,
+   "failed_tests": [
+    "answers a bad body with 400 invalid",
+    "POST /tickets",
+    "answers a bad body with 400 invalid"
+   ],
+   "error_lines": [
+    "Error: socket hang up",
+    "code: 'ECONNRESET'"
+   ],
+   "block": "failing tests:\n\ntest at test/api.test.js:25:3\n\u2716 answers a bad body with 400 invalid (3.6775ms)\n  Error: socket hang up\n    code: 'ECONNRESET'\n  }\n\n"
+  }
+ ]
+}

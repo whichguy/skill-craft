@@ -281,7 +281,7 @@ class QualificationTest(unittest.TestCase):
         shutil.rmtree(neighbour)
         cleaned = self.decide(reg, *arms)
         self.assertEqual(cleaned["decision"], "UNDECIDED")
-        self.assertTrue(any("sealed run receipt" in issue["reason"] for issue in cleaned["evidence_issues"]))
+        self.assertTrue(any("sealed evidence" in issue["reason"] for issue in cleaned["evidence_issues"]))
         with mock.patch.dict(os.environ, {"SHIPLOOP_E2E_RUNS_ROOT": str(self.runs)}):
             fresh = scorecard.score(candidate["run"], required_case=reg["qualification"]["cases"]["hello"])
         self.assertEqual(fresh["validity"]["overlapped_runs"], 1, "cleanup cannot erase the recorded neighbour")
