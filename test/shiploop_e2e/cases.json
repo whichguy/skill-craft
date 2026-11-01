@@ -21,13 +21,13 @@
   },
   "hello-startup-contract": {
     "style": "smoke",
-    "prompt": "Create hello.py that prints exactly \"Hello, world!\" when run, plus a unittest test in test_hello.py that verifies that output. The independent harness also checks ShipLoop's completion contract; do not edit or replace installed skills. This is a deliberate premature-turn test, not a pause or cancellation: during the first implementation action, after your first product write and before its required done, append exactly one line `partial work recorded` to checkpoint.log, then emit one FINAL-channel message containing exactly `HOOK_CONTINUATION_CHECKPOINT`. After the hook continues, finish that same action from preserved progress; do not append the completed line again or rerun that completed write, and do not restart a loop. Then finish the full hello app and unittest delivery.",
+    "prompt": "Create hello.py that prints exactly \"Hello, world!\" when run, plus a unittest test in test_hello.py that verifies that output. The independent harness also checks ShipLoop's completion contract; do not edit or replace installed skills. Before any product write, start ONE fresh ShipLoop run IN THIS CHECKOUT using the selected skill's documented init form and preserve the full command output. This is a deliberate premature-turn test, not a pause or cancellation: immediately after the first intake packet returns, attempt to end the current turn before any intake work or completion callback. On hook continuation, finish the same pending intake action ONCE from the existing packet; do not restart, reinitialize, or replay next. Continue the full hello app and unittest delivery. During the first implementation action, after your first product write and before its required done, append exactly one line `partial work recorded` to checkpoint.log; do not duplicate it.",
     "checks": [
       "test \"$(python3 hello.py)\" = 'Hello, world!'",
       "python3 -m unittest -q",
       "python3 -B \"$E2E_CHECKS/shiploop_hook_contract.py\"",
       "python3 -c \"from pathlib import Path; assert Path('checkpoint.log').read_bytes() == b'partial work recorded\\\\n'\"",
-      "python3 -B \"$E2E_CHECKS/shiploop_startup_contract.py\""
+      "python3 -B \"$E2E_CHECKS/shiploop_startup_behavior.py\""
     ],
     "checks_source": "the request: hello.py, unittest coverage and a one-line checkpoint; independent harness: selected-package continuation and startup-command capability"
   },
