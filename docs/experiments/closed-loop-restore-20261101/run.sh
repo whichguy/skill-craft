@@ -17,7 +17,8 @@
 # defaults (Codex gpt-6-astra at xhigh), one after another under the epoch lock.
 #
 # Environment: SKILL_CRAFT_REPO (default ~/src/skill-craft) only supplies git objects; PARALLEL (default 3) is the number
-# of subject runs at once; DRY_RUN=1 stops after the two builds are made and shown to differ, before any model call.
+# of subject runs at once; EFFORT (default xhigh) is the subject's reasoning effort, Codex with Terra 6.1 at Extra High as the
+# owner asked on 2026-11-01; DRY_RUN=1 stops after the two builds are made and shown to differ, before any model call.
 # See README.md for what to expect and what to return.
 set -euo pipefail
 export PYTHONDONTWRITEBYTECODE=1
@@ -31,6 +32,7 @@ repo=${SKILL_CRAFT_REPO:-$HOME/src/skill-craft}
 kit=docs/experiments/closed-loop-restore-20261101
 hook_before=779980629a81ce0e740f7c196e83e000dd582d99
 hook_after=7f25acff8dab239485f262249ec70773ba906aad
+effort=${EFFORT:-xhigh}
 
 if [ -e "$out" ]; then
   echo "run.sh: $out exists; choose a folder that does not" >&2
@@ -70,7 +72,7 @@ if [ "${DRY_RUN:-}" = 1 ]; then
 fi
 status=0
 python3 -B test/shiploop_e2e/cycle.py --record "$record" --case hello-hook-continuation \
-  --tolerance 0.25 --attempts 3 --host codex --model gpt-6.1-terra --effort high --parallel "${PARALLEL:-3}" \
+  --tolerance 0.25 --attempts 3 --host codex --model gpt-6.1-terra --effort "$effort" --parallel "${PARALLEL:-3}" \
   --control-plugin "$out/control-build/plugins/skill-craft" \
   --candidate-plugin "$out/candidate-build/plugins/skill-craft" \
   --prediction "$kit/prediction.json" --ledger "$out/ledger.jsonl" --output "$out/cycle" || status=$?
