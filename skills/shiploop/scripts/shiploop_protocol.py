@@ -538,38 +538,58 @@ _TRACE: dict[str, Any] = {}
 _DEPTH = [0]
 
 
-def _in_place_refusal(core: Any, repo: Path, run_dir: Path, in_place: bool) -> Optional[str]:
+def _in_place_refusal(core: Any, repo: Path, run_dir: Path, in_place: bool, carry: Sequence[str] = ()) -> Optional[str]:
     """Why a new direct-entry run is refused here, or None. `init` works in the folder itself, with no isolated worktree and no
     return protection; in an empty folder that is not a Git repository that is almost always the wrong entry, because
     `workspace start` makes the folder a Git repository, works in a separate worktree and returns the finished work to the
     folder (docs/experiments/start-route-20261101: a request that named the current directory began with `init` there in
     about one session in three on the 2.27.2 card). The user's own request for an in-place or non-Git run is stated with
     --in-place. Git being unusable here (not installed, an ownership refusal) is not the empty-folder case: nothing is
-    refused."""
+    refused. ``carry`` is the options the refused command carried that `workspace start` also takes (--delivery-contract,
+    --delegation, ...): the printed command repeats them, so following it does not drop what the user asked for."""
     if in_place or not repo.is_dir() or repo == run_dir:  # a run directory that is the folder itself is refused later, in its own words
         return None
     try:
         if run_dir.is_dir() and any(entry.name != ".lock" for entry in run_dir.iterdir()):
             return None  # a run directory that is not empty is refused later: nothing here starts a new run
-        if any(entry.resolve() != run_dir for entry in repo.iterdir()):
-            return None  # the run directory may sit inside the folder (<repo>/.shiploop); anything else makes it non-empty
+        if any(repo.iterdir()):
+            # The folder must be empty in the sense `workspace start` bootstraps (workspace.bootstrap_empty: no entry at all).
+            # A run directory made beforehand inside it counts: the printed recovery would not bootstrap such a folder and
+            # would fail (checked on 2.31.0 with an empty .shiploop), and a refusal must not point at a command that cannot work.
+            return None
     except OSError:
         return None
     try:
+        # A neutral locale: the refusal reads Git's "not a git repository" diagnostic, which a translation would change.
         probe = subprocess.run(["git", "-C", str(repo), "rev-parse", "--is-inside-work-tree"], capture_output=True, text=True,
-                               check=False, timeout=30)
+                               check=False, timeout=30, env={**os.environ, "LC_ALL": "C", "LANGUAGE": "C"})
     except (OSError, subprocess.SubprocessError):
         return None
     if probe.returncode == 0 or "not a git repository" not in probe.stderr.lower():
         return None
     cli = shlex.quote(str(core.PACKAGE_ROOT / "scripts" / "shiploop"))
+    options = "".join(" " + option for option in carry)
     return (f"{repo} is an empty folder that is not a Git repository, and `init` is the direct entry: it works in the folder "
             f"itself, with no isolated worktree and no return protection. Start this request with the isolated entry, which "
             f"makes the folder a Git repository, works in a separate worktree and returns the finished work to this folder: "
-            f"python3 {cli} workspace start --repo {shlex.quote(str(repo))} --prompt='<user request>'. Only if the user "
+            f"python3 {cli} workspace start --repo {shlex.quote(str(repo))}{options} --prompt='<user request>'. Only if the user "
             f"explicitly asked for an in-place or non-Git run (a request that names the current directory is not that: "
             f"`workspace start` returns the finished work there), run this same `init` command again with --in-place. "
             f"No run was started.")
+
+
+def _carried_options(args: Any) -> list:
+    """The options of an `init` that `workspace start` also takes, as words for the command a refusal prints."""
+    carried = []
+    if args.improve_skill:
+        carried.append("--improve-skill=" + shlex.quote(str(args.improve_skill)))
+    if args.delivery_contract:
+        carried.append("--delivery-contract")
+    for name in ("delegation", "lint", "backchain_passes", "planning_review"):
+        value = getattr(args, name, None)
+        if value:
+            carried.append("--" + name.replace("_", "-") + "=" + shlex.quote(str(value)))
+    return carried
 
 
 def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
@@ -790,7 +810,8 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
             return refused
     if (args.command == "init" and args.execution_mode != "navigator-worktree" and (args.prompt or "").strip()
             and not (root / "state.md").exists()):
-        refused = _in_place_refusal(core, Path(args.repo or os.getcwd()).resolve(), root, args.in_place)
+        carry = _carried_options(args)
+        refused = _in_place_refusal(core, Path(args.repo or os.getcwd()).resolve(), root, args.in_place, carry)
         if refused:
             print(f"ShipLoop blocked: {refused}", file=sys.stderr)
             return 2
