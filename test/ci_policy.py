@@ -50,13 +50,16 @@ def parent(root):
 def select(root, event_name, event, requested):
     """Return (tier, reason, base).  Quick runs the suites matching base..HEAD; full ignores base.
 
-    Ordinary pushes and pull requests run quick.  Only release commits and an
-    explicit manual full run the complete inventory.
+    Ordinary pushes and pull requests run quick.  Release commits, an explicit
+    manual full and the weekly scheduled run (a drift canary: CI floats on the
+    latest runtimes and runner image) run the complete inventory.
     """
     if event_name == "workflow_dispatch":
         if requested not in {"quick", "full"}:
             raise ValueError("manual CI requires an explicit quick or full tier")
         return requested, "explicit manual selection", parent(root) if requested == "quick" else ""
+    if event_name == "schedule":
+        return "full", "scheduled weekly full run", ""
     if event_name == "push" and pushes_release(
             root, event.get("before", "") if isinstance(event, dict) else ""):
         return "full", "release commit", ""
