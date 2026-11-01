@@ -204,11 +204,22 @@ def improver_view(record: str, path: Path = LEDGER) -> dict:
             "next_experiment": state.get("next_experiment")}
 
 
-def select(path: Path = LEDGER) -> str | None:
+def _source_cases(state: dict) -> set[str]:
+    return {source["case"] for source in state["sources"] if isinstance(source, dict) and isinstance(source.get("case"), str)}
+
+
+def select(path: Path = LEDGER, case: str | None = None, generality: str | None = None) -> str | None:
     """The next record a qualified cycle takes: admitted, material, not confirmation-exposed; highest confidence, then
-    oldest. None when no record qualifies."""
+    oldest. None when no record qualifies.
+
+    With ``case``, the cycle's exposing case, a record must be one that cycle can measure and has not seen: it was found
+    on that case, or names no case at all (a seeded record); and none of its evidence came from ``generality``, the case
+    the cycle keeps unseen to confirm with. A record found on a hosted case the cycle will not run is another cycle's."""
     candidates = [s for s in current(path).values() if s["status"] == "admitted" and s.get("materiality") == "material"
                   and s["exposure"] != "confirmation" and s.get("target", "shiploop") == "shiploop"]
+    if case is not None:
+        candidates = [s for s in candidates
+                      if (not _source_cases(s) or case in _source_cases(s)) and (generality is None or generality not in _source_cases(s))]
     if not candidates:
         return None
     candidates.sort(key=lambda s: (CONFIDENCE.get(s.get("confidence"), 3), s["first_at"]))

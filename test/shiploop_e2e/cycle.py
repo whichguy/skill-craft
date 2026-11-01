@@ -838,11 +838,11 @@ def loop(args) -> int:
         if boundary.qualification_snapshot(HERE, cases) != frozen:
             stop = "the evaluator changed: start a new loop"
             break
-        record = learning_records.select(ledger)
+        record = learning_records.select(ledger, args.case, args.generality_case)
         if record is None:
             opened = explore(worktree, out / f"explore-{index}", args)
             iterate.journal(journal, [f"## Exploration {index}", "", f"- records opened: {', '.join(opened) or 'none'}"])
-            record = learning_records.select(ledger)
+            record = learning_records.select(ledger, args.case, args.generality_case)
             if record is None:
                 stop = "no admitted learning record after exploring"
                 break

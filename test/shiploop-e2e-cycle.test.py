@@ -786,6 +786,21 @@ class CycleTest(unittest.TestCase):
         cycle.apply_decision(self.worktree, "loop-test", self.record, self.tip, candidates[1], "KEEP_AS_REF")
         self.assertEqual(len(self.git("for-each-ref", "refs/shiploop-loop/loop-test").splitlines()), 2)
 
+    def test_the_loop_selects_its_record_for_its_own_cases_both_before_and_after_exploring(self):
+        args = argparse.Namespace(case="user-listing", generality_case="csv-report", calibration=None, tolerance=0.25,
+                                  attempts=3, output=self.temp / "loop-out", iterations=1, host="codex", model=None,
+                                  effort=None, permission_mode="auto")
+        calls = []
+
+        def select(ledger, case=None, generality=None):
+            calls.append((case, generality))
+
+        with mock.patch.object(iterate, "new_worktree", return_value=(self.worktree, "auto/test")), \
+                mock.patch.object(cycle.learning_records, "select", select), \
+                mock.patch.object(cycle, "explore", return_value=[]):
+            cycle.loop(args)
+        self.assertEqual(calls, [("user-listing", "csv-report")] * 2)
+
     def test_a_malformed_calibration_report_is_a_refusal_not_a_traceback(self):
         path = self.temp / "bad.json"
         path.write_text(json.dumps({"contract": spread.CONTRACT, "cases": {case: {} for case in CASES}}))
