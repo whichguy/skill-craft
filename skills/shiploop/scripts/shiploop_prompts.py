@@ -726,7 +726,7 @@ _REVIEW_FOCUS_ITEMS = (
 )
 # One line (the completeness test reads a bullet's first line): the steps condition, with the step check's two faults.
 _REVIEW_FOCUS_STEPS = ("a missing prerequisite, wrong order or unowned verification, or a check that needs a later step's "
-                       "work or passes by skipping a missing artifact, in the steps")
+                       "work or an unwritten test, or passes by skipping a missing artifact, in the steps")
 
 
 def _focus_list(items: tuple) -> str:
@@ -1272,9 +1272,10 @@ Change no product file in this stage.
      some step. Its `paths` (inside the item's) name every file it changes.
    - `proof`: the one command, from the repository root, that proves the step's criteria with only this step and
      accepted earlier ones; ShipLoop reruns it at the step's done, so make it safe to repeat. It needs no later step,
-     unwritten test or release artifact (reuse a recorded command that proves them); skipping a missing file, or
-     asserting only that a file exists where behaviour is asked, proves nothing. Remote-only target: the recorded test
-     route only; steps share one proof script. None runs now: change the step boundary.
+     unwritten test or release artifact, so never the focused command or a filtered copy of it;
+     skipping a missing file, or asserting only that a file exists where behaviour is asked, proves nothing.
+     Remote-only target: the recorded test route only; steps share one proof script. None runs now: change the step
+     boundary.
    - `skills`: reread the host's skills and the repository's skill index (an earlier item may have added one). List
      `{"name", "why", "locator", "stages"}` for each with a concrete use in the step, else []. Prefer a
      repository-local skill reused unchanged. `locator`: an existing SKILL.md or card; `stages`: implement (default),

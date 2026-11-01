@@ -1656,7 +1656,8 @@ class StepSizingRouteTests(RealCliCase):
         self.assertEqual(self.recorded(run, action)["steps"][0]["proof"], "test -f built.txt")
         guarded = "test ! -e later.txt || grep -q hello later.txt"
         focus = " ".join(nav.guidance.PLANNING_REVIEW_FOCUS.split())
-        self.assertIn("a check that needs a later step's work or passes by skipping a missing artifact", focus)
+        self.assertIn("a check that needs a later step's work or an unwritten test, or passes by skipping a missing artifact",
+                      focus)
         for check, accepted in (("test -f later.txt", False), (guarded, True)):
             with self.subTest(check=check):
                 plan = dict(STEP_PLAN, paths=["built.txt", "later.txt"],
