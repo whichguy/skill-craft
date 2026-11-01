@@ -360,6 +360,67 @@ class IdsTest(unittest.TestCase):
         self.assertEqual(block["born_retired"], ["AD-2"])
 
 
+RULE_BEFORE = ("# Spec\n\n## Requirements\n### R-1 Assignment\nA ticket is assigned.\n### R-2 Escalation\nUrgent tickets are escalated at most once.\n"
+               "### R-3 Comments\nA ticket takes comments.\n")
+
+
+class MayChangeTest(unittest.TestCase):
+    """A request that replaces an earlier rule names what it may change (cases.json, ``delta.may_change``); the ledger then says whether
+    the run changed the rule, left it standing where the new code may contradict it, or touched something else."""
+
+    KEYS = ("expected", "expected_touched", "expected_untouched", "unexplained")
+
+    def test_without_a_list_the_block_has_none_of_the_keys_so_an_ordinary_case_is_unchanged(self) -> None:
+        block = delta.ids_block(RULE_BEFORE, RULE_BEFORE, "R")
+        for key in self.KEYS:
+            self.assertNotIn(key, block)
+
+    def test_the_entries_a_request_replaces_are_found_by_their_prior_text_and_are_touched_or_left_standing(self) -> None:
+        changed = RULE_BEFORE.replace("at most once", "at most twice") + "### R-4 Waits by priority\nUrgent waits 60 minutes.\n"
+        block = delta.ids_block(RULE_BEFORE, changed, "R", ["AT MOST ONCE"])   # a pattern is read without regard to case
+        self.assertEqual([block[key] for key in self.KEYS], [["R-2"], ["R-2"], [], []])
+        standing = delta.ids_block(RULE_BEFORE, RULE_BEFORE + "### R-4 Waits by priority\nx\n", "R", ["at most once"])
+        self.assertEqual([standing[key] for key in self.KEYS], [["R-2"], [], ["R-2"], []])  # the old rule stands: the code may contradict it
+
+    def test_retiring_the_rule_touches_it_and_changing_another_entry_is_unexplained(self) -> None:
+        after = ("# Spec\n\n## Requirements\n### R-1 Assignment\nA ticket is assigned to anyone now.\n### R-3 Comments\nA ticket takes comments.\n"
+                 "### R-4 Waits by priority\nx\n\n## Retired\n### R-2 Escalation\nUrgent tickets are escalated at most once.\nReplaced by R-4.\n")
+        block = delta.ids_block(RULE_BEFORE, after, "R", ["at most once"])
+        self.assertEqual(block["retired_by_run"], ["R-2"])
+        self.assertEqual([block[key] for key in self.KEYS], [["R-2"], ["R-2"], [], ["R-1"]])
+
+    def test_a_dropped_entry_counts_as_touched_and_a_pattern_that_matches_nothing_expects_nothing(self) -> None:
+        after = RULE_BEFORE.replace("### R-2 Escalation\nUrgent tickets are escalated at most once.\n", "")
+        self.assertEqual(delta.ids_block(RULE_BEFORE, after, "R", ["at most once"])["expected_touched"], ["R-2"])
+        self.assertEqual(delta.ids_block(RULE_BEFORE, after, "R", ["no such rule"])["expected"], [])
+
+    def test_the_case_list_is_found_from_the_runs_invocation_record(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            self.assertIsNone(delta._may_change(out))                                      # no record
+            (out / "invocation.json").write_text(json.dumps({"case": "ticket-comments"}))
+            self.assertIsNone(delta._may_change(out))                                      # a case that names nothing it replaces
+            (out / "invocation.json").write_text(json.dumps({"case": "ticket-sla"}))
+            self.assertEqual(set(delta._may_change(out)), {"spec.md", "architecture.md"})
+            (out / "invocation.json").write_text("not json")
+            self.assertIsNone(delta._may_change(out))
+
+    def test_build_and_the_one_line_carry_it_only_for_a_case_that_names_what_it_replaces(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            out, _head = synthetic_run(Path(tmp))
+            plain = delta.build(out, None, Tools())
+            for key in self.KEYS:
+                self.assertNotIn(key, plain["delta"]["ids"]["spec.md"])
+            self.assertNotIn(" replaced ", delta.line("run", plain))
+            record = json.loads((out / "invocation.json").read_text())
+            (out / "invocation.json").write_text(json.dumps({**record, "case": "ticket-sla"}))
+            named = delta.build(out, None, Tools())
+            spec = named["delta"]["ids"]["spec.md"]
+            self.assertEqual(spec["expected"], [])      # the synthetic spec says nothing of "at most once"
+            self.assertEqual(spec["unexplained"], ["R-2", "R-5"])  # R-2 reworded and R-5 moved under Retired, neither named by the case
+            self.assertRegex(delta.line("run", named), r"R \+\d+ ~\d+ -\d+ retired \d+ born-retired \d+ replaced 0/0 left 0 unexplained \d+ \| AD ")
+
+
 class PlacementTest(unittest.TestCase):
     def test_spec_placement(self) -> None:
         block = delta.placement_block("spec.md", SPEC_BEFORE, SPEC_AFTER)

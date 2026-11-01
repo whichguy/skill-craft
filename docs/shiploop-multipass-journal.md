@@ -28,6 +28,7 @@ not repeat old decisions and inherits some of them.
 | F7 No harm to function: all eight runs passed, 14 of 14 on the follow-on, every earlier requirement and decision kept | firm (negative result) | [brownfield journal](shiploop-brownfield-baseline-journal.md), [ba45b9d2](https://github.com/whichguy/skill-craft/commit/ba45b9d2ada380d6f2aafe4e628f62eef5b29356) |
 | F8 A third pass works and repeats both leaks: 13 of 13 checks and 14 of 14 hidden checks passed and R-1 to R-7 were kept, but it added 8 stage-report headings (+6.0 KiB) to `environment.md` and filed AD-4 under `## Superseded`, below the mislabelled AD-3; a fourth pass has never run | firm for one run (E1) | Round 1 below |
 | F10 The candidate's notice, replayed over 58 real (commit, file) pairs, would have spoken in 57 of them at a knowledge commit and flagged nothing that was standing content beyond the release section X11 allows; both entries filed as retired when new (AD-3, AD-4) were written by `plan`, a stage the candidate's packet line does not reach | interim (offline replay, one case pair) | Round 2, [replay output](experiments/multipass-20261031/replay-placement-output.txt) |
+| F11 A request that replaces an earlier rule breaks two things the additive links never met: the nearest-declaration rule hands the new link a hidden check (the second link's at-most-once) that a correct delivery fails by design, and the ledger cannot tell a run that changed the old rule from one that left it standing unless the case names the entries it may change | firm (hermetic: `ModifiedRuleTest`, `MayChangeTest`) | Round 3 |
 | F9 The owner approved D1 to D5 as recommended (2026-10-31, "Approve all"); D2 to D4 are built as one candidate off main and wait for E2 | decision | Round 2 below |
 
 ## Round 0: eight saved runs read for what a second pass leaves (2026-10-31)
@@ -303,6 +304,70 @@ first chain at 17:33:58, the moment E1 ended.
   of the eight that get the packet line, so for `plan` the notice (printed after the stage, to the next stage's model) is the only lever. B1 depends on a later stage moving
   the entry, and the ledger reads the final file. If B1 misses, `plan` is the first place to look, and arm A's six runs stay valid for a second candidate.
 - The candidate is not changed now: the design stands as registered, and a second candidate costs only new B runs because arm A is the same base.
+
+## Round 3: the fourth link, `ticket-sla`, the first that changes an earlier rule (built and calibrated 2026-10-31; the live run E3 is pending)
+
+**Why this link.** The first three links add behaviour. A real product also changes a rule it set earlier, and a second request that contradicts the first (here "a ticket is
+escalated at most once" becomes "at most twice, and by priority") leaves three places that must change together: the living spec's requirement, the architecture's decision behind
+it, and the tests that state it. A run that adds the new behaviour and leaves the old requirement standing has a spec that contradicts its code, and nothing in the three earlier
+links can show it. The link asks the question mechanically: did the run change those entries or leave them standing?
+
+**The request** (cases.json `ticket-sla`; delta only, but it names what it replaces, because the old rule is written in three places the run must find). Escalation waits by
+priority: urgent tickets keep ESCALATE_AFTER_MINUTES (default 60), high tickets are escalated too after the new ESCALATE_HIGH_MINUTES (default 240), no other priority is
+escalated; a ticket still open and unassigned twice its wait after its first escalation is escalated a second time and never a third, also across restarts; "this replaces the
+rule that a ticket is escalated at most once: change that requirement, the decision behind it and the tests that state it".
+
+**What was built** (harness only, nothing under skills/):
+- `test/fixtures/quality/reference_ticket_sla.py`: the base (the third link's reference), the reference, an alternative and eight defects. The reference keeps the count in the
+  outbox's history (a second key per ticket), the alternative on the ticket record (`escalations`, saved in the data file); both change the test that said "escalated once".
+- Three own checks run through a small probe (`checks/ticket_sla_probe.py`, stdlib HTTP, so no JavaScript quoting): the waits by priority in two servers, "exactly two and no third"
+  with both waits at 0, and the same across a restart over one data file.
+- `checks/ticket_sla_accept.py`: the link's hidden acceptance, an acceptance of its own. The second link's `escalation-at-most-once` reads the sentence this request replaces, so a
+  correct delivery fails it by design (`ModifiedRuleTest` pins both halves); the nearest-declaration rule would have inherited it. The new module is the second link's other thirteen
+  checks plus `sla-waits-by-priority` (own variables, minutes not seconds, no other priority), `sla-second-then-stop` (exactly two, also across a restart, also for a ticket made after
+  it) and `sla-second-not-immediate` (a data file written by hand in the base's format with an urgent ticket three hours old: escalated once at the default wait and not again within
+  seconds).
+- `delta.may_change` in cases.json and in the ledger: per living file, patterns for the earlier entries the request replaces (`"at most once"` in the spec, `"escalat"` in the
+  architecture). For such a case the block adds `expected`, `expected_touched`, `expected_untouched` (the old rule stands: the new code may now contradict it) and `unexplained`
+  (earlier entries touched that the request did not name), and the one-line form adds `replaced 1/1 left 0 unexplained 0`. A case without the list gets none of the keys, so the eight
+  saved pairs' ledgers are unchanged (a test pins that).
+- Registrations as for the third link: the suite `shiploop-e2e-ticket-sla` (20 tests), the family and count pins (117 ShipLoop suites, 172 in all), the S-13 probe terms, the breadth
+  note, SPEC S-11 and the README.
+
+**Calibration (firm, hermetic; the first run, 227 s).** Every variant failed exactly the checks that read what it breaks:
+
+| variant | own checks failed | new hidden checks failed |
+|---|---|---|
+| base (the third link's reference) | waits, twice, persisted | waits-by-priority, second-then-stop |
+| reference, alternative | none | none (and the other thirteen pass) |
+| high-never-escalated, high-uses-urgent-wait, normal-escalated | waits | waits-by-priority |
+| escalated-once-only, third-escalation | twice, persisted | second-then-stop |
+| count-lost-on-restart | persisted | second-then-stop |
+| second-immediate | none | second-not-immediate |
+| high-unit-seconds | none | waits-by-priority |
+
+Two defects are seen only by the hidden acceptance (`second-immediate`, `high-unit-seconds`): the own checks use a wait of 0, which neither touches. That is what the hidden
+module is for. The chain tests pass too: the reference passes the three earlier links' checks, the new rule's checks and all five retention checks; the run before it, unchanged,
+passes the regression and fails the new rule, the tests and the spec; and an old requirement moved under Retired and an old decision under Superseded keep their IDs and pass
+retention.
+
+**Decisions made without asking (routine).** ESCALATE_AFTER_MINUTES keeps meaning the urgent wait, so the second link's own escalation check stays valid regression and the request
+adds one variable, not two. The link declares its own acceptance (above). The alternative shares the config, worker, template and test edits with the reference and differs in where
+the count lives, which is the part a hidden check could fit. `ticket_sla_probe.py` replaces JavaScript one-liners for the own checks.
+
+**Limits.** "Twice the wait" is observed only as "not immediately": a wait of 1 minute would need more than 2 minutes of watching, so a delivery that waits once the wait instead of twice
+passes. The alternative is not independent of the reference beyond the count. One case, one base.
+
+**Predictions for E3, written before the run.** E3 is `ticket-sla` continuing from the real third pass (`mp-codex-ticket-comments`), on the published ShipLoop of the day.
+1. It passes: the earlier links' checks, its three, the five retention checks and all 16 hidden checks.
+2. The spec's old escalation requirement is touched (changed in place or moved under Retired): `expected_touched` of spec.md is not empty.
+3. The architecture's old escalation decision is left standing: `expected_untouched` of architecture.md is not empty (the run adds a decision and does not supersede the old one).
+4. At least one earlier test file is modified (`prior_tests_modified` is not empty): the request says to change the tests that state the old rule.
+5. Planning reads the old rule: the step plans' `follows` or the test cases' `requirement` name at least one kept ID, where the three additive links named none.
+6. The leaks continue: `environment.md` gains 3 or more stray headings, and a new decision is born under `## Superseded` again.
+
+Result: not yet recorded. The run waits for E2: its launcher waits until the E2 driver has ended (not only until the port-4180 lease is free, which it briefly is between two E2 runs),
+then takes the lease.
 
 ## Decisions made without asking (routine, AGENTS.md "Decisions")
 

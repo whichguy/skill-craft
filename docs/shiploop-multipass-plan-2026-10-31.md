@@ -27,8 +27,8 @@ Journal: [shiploop-multipass-journal.md](shiploop-multipass-journal.md); evidenc
    `chains.py`, with the scorecard reading the same chain (F5).
 5. **The case set is built as a chain.** `ticket-comments` is the third link of the ticket chain (assignment, escalation, comments), a request
    that is the delta alone, held to both earlier links' checks and to the hidden acceptance it inherits, with a retention check on
-   decision IDs and a calibration (base, reference, seven defects). The fourth link, a request that changes an earlier requirement,
-   and a second chain on a small base are designed here and not built (section 4).
+   decision IDs and a calibration (base, reference, seven defects). The fourth link, `ticket-sla`, a request that changes an earlier
+   requirement, is built and calibrated (journal Round 3); a second chain on a small base is designed here and not built (section 4).
 6. **The delta is now recorded.** Every run's `metrics.json` carries a `delta` block: what changed against the head the run started from,
    where new knowledge landed, how much of the plan was about the new feature, and what the next pass finds. It is a record, not a verdict.
 7. **Decided (owner, 2026-10-31, "Approve all"):** D1 to D5 as recommended. D2 to D4 change what ShipLoop's stages write (a counted notice, duty
@@ -104,16 +104,16 @@ increment; (6) chains rotate domains so a fix cannot overfit one probe (SPEC S-8
 |---|---|---|
 | K1. Additive, must reuse an inherited rule | a decision recorded earlier is respected, not re-derived: the outbox key rule, the data file's record functions | **ticket-comments** (built) |
 | K2. Cross-cutting field | a field that flows through API, persistence, CLI, audit and filters keeps every convention | designed |
-| K3. Modifying | a request that changes or retires an earlier requirement: `Retired` or in-place rewrite, an earlier decision moved to `Superseded` with its reason, old tests that must change named by the request | **pass 4**, designed |
+| K3. Modifying | a request that changes or retires an earlier requirement: `Retired` or in-place rewrite, an earlier decision moved to `Superseded` with its reason, old tests that must change named by the request | **ticket-sla**, built 2026-10-31 |
 | K4. Silent conflict | the request says nothing about an earlier rule its obvious implementation breaks | folded into K1 and K3 |
 | K5. Changes how the product is built | `architecture.md` is updated in place (`changed_sections` names Structure, Interfaces or Decisions) and gains an `AD` | `ticket-escalation` already; the ledger reads it |
 
 **Chain A, the ticket service** (medium base, [fixtures/node-tickets](../test/shiploop_e2e/fixtures/node-tickets/)): assignment, escalation, comments (built),
-then **ticket-sla**, the modifying link (designed): escalation waits per priority (urgent 60 minutes, high 240) and an escalated, still
+then **ticket-sla**, the modifying link (built and calibrated 2026-10-31): escalation waits per priority (urgent 60 minutes, high 240) and an escalated, still
 unassigned ticket is escalated once more after twice the wait. That changes the earlier "at most once" requirement and the decision behind it,
 so the right result is an edit or retirement of that requirement with its reason, a new `AD` that supersedes the old one, and the old
-"escalated once" tests changed by the request. It needs a way for a case to name the earlier sentence it changes
-(`delta.may_change`), so the ledger lists any other changed entry as unexplained.
+"escalated once" tests changed by the request. A case names the earlier sentences it changes
+(`delta.may_change`, built), so the ledger lists any other changed entry as unexplained and any named one left standing.
 
 **Chain B, a small base** (designed): `user-listing` on `fixtures/node-base` then three links of 30 to 60 lines each, kinds K2, K1 and K3.
 Cheap to run (minutes) and a second domain for S-8; built after E2 so it carries the new ledger's A/B.
@@ -132,6 +132,7 @@ All on `main` (03d046c6, aa601d37); nothing under `skills/`, `agents/` or `chang
 | Chains read to their end for regression, quality and the scorecard | [chains.py](../test/shiploop_e2e/chains.py), [run.py](../test/shiploop_e2e/run.py), [scorecard.py](../test/shiploop_e2e/scorecard.py) | [shiploop-e2e-delta.test.py](../test/shiploop-e2e-delta.test.py) `ChainTest` (17) |
 | The `delta` block and `delta.py OUTPUT...` | [delta.py](../test/shiploop_e2e/delta.py) | same file, 49 more tests, 11 of them on the eight saved runs and one through `run.main` with the three fake hosts |
 | The third link | [cases.json](../test/shiploop_e2e/cases.json) `ticket-comments`, [reference_ticket_comments.py](../test/fixtures/quality/reference_ticket_comments.py) | [shiploop-e2e-ticket-comments.test.py](../test/shiploop-e2e-ticket-comments.test.py) (17) |
+| The fourth link, a request that changes an earlier rule, with its own hidden acceptance and the ledger's `may_change` | [cases.json](../test/shiploop_e2e/cases.json) `ticket-sla`, [reference_ticket_sla.py](../test/fixtures/quality/reference_ticket_sla.py), [ticket_sla_accept.py](../test/shiploop_e2e/checks/ticket_sla_accept.py), [delta.py](../test/shiploop_e2e/delta.py) | [shiploop-e2e-ticket-sla.test.py](../test/shiploop-e2e-ticket-sla.test.py) (20), `MayChangeTest` (6) |
 | Evidence and its regeneration | [experiments/multipass-20261031/](experiments/multipass-20261031/) | pinned by `SavedPairsTest` |
 | SPEC S-11 rows and the README section | [SPEC.md](../test/shiploop_e2e/SPEC.md), [README.md](../test/shiploop_e2e/README.md) | `test-groups` (50) |
 
@@ -148,7 +149,7 @@ heuristics, and a ledger of a first pass on a fixture has nothing to compare an 
 | E0 | What does a second pass leave in the three files? | done: 8 saved runs, [journal Round 0](shiploop-multipass-journal.md) |
 | E1 | Does a third pass inherit and is it harmed by the second's leftovers? | done 2026-10-31: `ticket-comments` from the saved `bf-codex-r2` pass 2, Codex Terra `xhigh`, ShipLoop 1.26.0: passed, nothing lost, both leaks repeated (journal Round 1) |
 | E2 | Does a counted notice plus named destinations (D2, D3, D4) reduce the leak without losing function? | candidate built; arms, bar and predictions fixed in the journal's Round 2; runs after E1 |
-| E3 | Does a modifying fourth link retire and supersede rather than duplicate? | proposed, after E1 |
+| E3 | Does a modifying fourth link retire and supersede rather than duplicate? | link built and calibrated; the live run follows E2, on the real third pass (predictions in the journal's Round 3) |
 
 **E1 predictions** are in the journal before the run, and [round1_readout.py](experiments/multipass-20261031/round1_readout.py) scores them from the run's own files. **Decision rule for E1:** a lost retained check or inherited hidden check means the leftovers
 are harmful, and D2 to D4 become urgent. A pass with the same hygiene as pass 2 means they are cost and noise, and E2 decides the fix.

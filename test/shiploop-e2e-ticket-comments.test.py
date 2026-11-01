@@ -185,7 +185,16 @@ class ChainRunTest(Isolated):
     """The whole chain's checks, as the harness runs them after a delivery, with the second link's reference as the run before."""
 
     def checks(self, work: Path, commands: list[str], prior: Path) -> list[bool]:
-        return [row["pass"] for row in run.run_checks(work, commands, timeout=240, env={"PRIOR_WORK": str(prior)})]
+        """Each command's verdict, a failed one tried once more: the base's own node tests drop a connection now and then ("socket hang
+        up", seen on the parent tree too, load or no load), and a chain runs them in the pristine check and in two retention counts.
+        A check that is really broken fails twice."""
+        env = {"PRIOR_WORK": str(prior)}
+        rows = run.run_checks(work, commands, timeout=240, env=env)
+        failed = [index for index, row in enumerate(rows) if not row["pass"]]
+        if failed:
+            for index, row in zip(failed, run.run_checks(work, [commands[index] for index in failed], timeout=240, env=env)):
+                rows[index] = row
+        return [row["pass"] for row in rows]
 
     def setUp(self) -> None:
         super().setUp()

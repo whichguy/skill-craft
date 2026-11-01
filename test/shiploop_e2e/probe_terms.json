@@ -83,6 +83,11 @@
     "ticket-assignment-tests": [
       "\\bhelp[- ]?desk\\b",
       "\\bticket[- ]assignment[- ]tests\\b"
+    ],
+    "ticket-sla": [
+      "\\bhelp[- ]?desk\\b",
+      "\\bESCALATE_HIGH_MINUTES\\b",
+      "\\bticket[- ]sla\\b"
     ]
   },
   "exempt": [
