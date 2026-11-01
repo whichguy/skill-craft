@@ -1,0 +1,562 @@
+{
+  "summary": {
+    "A": {
+      "slices": 8,
+      "deliveries": 3,
+      "f31": 0,
+      "f31_unread": 0,
+      "implement_sendbacks": 0,
+      "slices_writing_tests": 0,
+      "slices_checks_pass": 8,
+      "slices_first_try_done": 8,
+      "deliveries_pass": 3,
+      "hollow_slices": 0,
+      "hollow_bare": 0,
+      "hollow_unread": 0,
+      "hollow_tests_written": 0,
+      "unfinished": 0
+    },
+    "B": {
+      "slices": 8,
+      "deliveries": 3,
+      "f31": 0,
+      "f31_unread": 0,
+      "implement_sendbacks": 1,
+      "slices_writing_tests": 0,
+      "slices_checks_pass": 8,
+      "slices_first_try_done": 8,
+      "deliveries_pass": 3,
+      "hollow_slices": 0,
+      "hollow_bare": 0,
+      "hollow_unread": 0,
+      "hollow_tests_written": 0,
+      "unfinished": 0
+    },
+    "V": {
+      "slices": 0,
+      "deliveries": 0,
+      "f31": 0,
+      "f31_unread": 0,
+      "implement_sendbacks": 0,
+      "slices_writing_tests": 0,
+      "slices_checks_pass": 0,
+      "slices_first_try_done": 0,
+      "deliveries_pass": 0,
+      "hollow_slices": 0,
+      "hollow_bare": 0,
+      "hollow_unread": 0,
+      "hollow_tests_written": 0,
+      "unfinished": 0
+    }
+  },
+  "rule": {
+    "1_no_f31_in_B": true,
+    "2_no_tests_written_in_B": true,
+    "3_no_harm": true,
+    "complete": true
+  },
+  "decision": "adopt",
+  "benefit": "arm A F31 send-backs: 0 (mechanism unexercised; benefit unmeasured)",
+  "runs": [
+    {
+      "run": "A-csv-report-s1",
+      "arm": "A",
+      "case": "csv-report",
+      "sample": "1",
+      "kind": "delivery",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "passed": true,
+      "outcome_class": "PASS",
+      "minutes": 10.0
+    },
+    {
+      "run": "A-csv-report-s2",
+      "arm": "A",
+      "case": "csv-report",
+      "sample": "2",
+      "kind": "delivery",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "passed": true,
+      "outcome_class": "PASS",
+      "minutes": 11.5
+    },
+    {
+      "run": "A-csv-report-s3",
+      "arm": "A",
+      "case": "csv-report",
+      "sample": "3",
+      "kind": "delivery",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "passed": true,
+      "outcome_class": "PASS",
+      "minutes": 13.7
+    },
+    {
+      "run": "A-stand-in-rules-s1",
+      "arm": "A",
+      "case": "stand-in-rules",
+      "sample": "1",
+      "kind": "slice",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "tests_written": [],
+      "changed": [
+        "src/orders.js"
+      ],
+      "checks_pass": true,
+      "implement_done": true,
+      "first_try_done": true,
+      "minutes": 1.2
+    },
+    {
+      "run": "A-stand-in-rules-s2",
+      "arm": "A",
+      "case": "stand-in-rules",
+      "sample": "2",
+      "kind": "slice",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "tests_written": [],
+      "changed": [
+        "src/orders.js"
+      ],
+      "checks_pass": true,
+      "implement_done": true,
+      "first_try_done": true,
+      "minutes": 1.2
+    },
+    {
+      "run": "A-stand-in-rules-s3",
+      "arm": "A",
+      "case": "stand-in-rules",
+      "sample": "3",
+      "kind": "slice",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "tests_written": [],
+      "changed": [
+        "src/orders.js"
+      ],
+      "checks_pass": true,
+      "implement_done": true,
+      "first_try_done": true,
+      "minutes": 1.2
+    },
+    {
+      "run": "A-stand-in-rules-s4",
+      "arm": "A",
+      "case": "stand-in-rules",
+      "sample": "4",
+      "kind": "slice",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "tests_written": [],
+      "changed": [
+        "src/orders.js"
+      ],
+      "checks_pass": true,
+      "implement_done": true,
+      "first_try_done": true,
+      "minutes": 1.1
+    },
+    {
+      "run": "A-tickets-assign-s1",
+      "arm": "A",
+      "case": "tickets-assign",
+      "sample": "1",
+      "kind": "slice",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "tests_written": [],
+      "changed": [
+        "src/app.js",
+        "src/store.js",
+        "src/templates.js",
+        "src/tickets/validate.js"
+      ],
+      "checks_pass": true,
+      "implement_done": true,
+      "first_try_done": true,
+      "minutes": 1.2
+    },
+    {
+      "run": "A-tickets-assign-s2",
+      "arm": "A",
+      "case": "tickets-assign",
+      "sample": "2",
+      "kind": "slice",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "tests_written": [],
+      "changed": [
+        "src/app.js",
+        "src/persistence.js",
+        "src/store.js",
+        "src/templates.js",
+        "src/tickets/validate.js"
+      ],
+      "checks_pass": true,
+      "implement_done": true,
+      "first_try_done": true,
+      "minutes": 1.3
+    },
+    {
+      "run": "A-tickets-assign-s3",
+      "arm": "A",
+      "case": "tickets-assign",
+      "sample": "3",
+      "kind": "slice",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "tests_written": [],
+      "changed": [
+        "src/app.js",
+        "src/persistence.js",
+        "src/store.js",
+        "src/templates.js",
+        "src/tickets/validate.js"
+      ],
+      "checks_pass": true,
+      "implement_done": true,
+      "first_try_done": true,
+      "minutes": 1.3
+    },
+    {
+      "run": "A-tickets-assign-s4",
+      "arm": "A",
+      "case": "tickets-assign",
+      "sample": "4",
+      "kind": "slice",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "tests_written": [],
+      "changed": [
+        "src/app.js",
+        "src/persistence.js",
+        "src/store.js",
+        "src/templates.js",
+        "src/tickets/validate.js"
+      ],
+      "checks_pass": true,
+      "implement_done": true,
+      "first_try_done": true,
+      "minutes": 2.1
+    },
+    {
+      "run": "B-csv-report-s1",
+      "arm": "B",
+      "case": "csv-report",
+      "sample": "1",
+      "kind": "delivery",
+      "hollow": [],
+      "implement_outcomes": [
+        "done",
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "passed": true,
+      "outcome_class": "PASS",
+      "minutes": 13.4
+    },
+    {
+      "run": "B-csv-report-s2",
+      "arm": "B",
+      "case": "csv-report",
+      "sample": "2",
+      "kind": "delivery",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "passed": true,
+      "outcome_class": "PASS",
+      "minutes": 10.2
+    },
+    {
+      "run": "B-csv-report-s3",
+      "arm": "B",
+      "case": "csv-report",
+      "sample": "3",
+      "kind": "delivery",
+      "hollow": [],
+      "implement_outcomes": [
+        "send-back",
+        "done"
+      ],
+      "sendbacks": [
+        {
+          "key": "8243780f9e",
+          "action": "nav-67c40260a9fd4f0697cb6239d83d6b59",
+          "headline": "",
+          "summary": "S1 proof runs unittest before any test exists, while implement forbids writing tests. Baseline proves it executes zero cases, so it cannot demonstrate the requested behavior. Replace proof with a meaningful standalone CLI check available before the test stage; preserve planned unit tests for later.",
+          "proofs": [
+            "S1: python3 -m unittest -v"
+          ],
+          "pattern": true,
+          "f31": false,
+          "reading": "Three blind labellers, 3 of 3 proof-order (workflow wf_a1a6868f-25f): the send-back blames only the step's Proof, \"S1 proof runs unittest before any test exists, while implement forbids writing tests\", asks to \"Replace proof with a meaningful standalone CLI check\", and names no criterion's Confirm by; the Proof in force is `python3 -m unittest -v` on a base with no tests."
+        }
+      ],
+      "f31": 0,
+      "f31_unread": 0,
+      "passed": true,
+      "outcome_class": "PASS",
+      "minutes": 13.9
+    },
+    {
+      "run": "B-stand-in-rules-s1",
+      "arm": "B",
+      "case": "stand-in-rules",
+      "sample": "1",
+      "kind": "slice",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "tests_written": [],
+      "changed": [
+        "src/orders.js"
+      ],
+      "checks_pass": true,
+      "implement_done": true,
+      "first_try_done": true,
+      "minutes": 1.1
+    },
+    {
+      "run": "B-stand-in-rules-s2",
+      "arm": "B",
+      "case": "stand-in-rules",
+      "sample": "2",
+      "kind": "slice",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "tests_written": [],
+      "changed": [
+        "src/orders.js"
+      ],
+      "checks_pass": true,
+      "implement_done": true,
+      "first_try_done": true,
+      "minutes": 1.2
+    },
+    {
+      "run": "B-stand-in-rules-s3",
+      "arm": "B",
+      "case": "stand-in-rules",
+      "sample": "3",
+      "kind": "slice",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "tests_written": [],
+      "changed": [
+        "src/orders.js"
+      ],
+      "checks_pass": true,
+      "implement_done": true,
+      "first_try_done": true,
+      "minutes": 1.2
+    },
+    {
+      "run": "B-stand-in-rules-s4",
+      "arm": "B",
+      "case": "stand-in-rules",
+      "sample": "4",
+      "kind": "slice",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "tests_written": [],
+      "changed": [
+        "src/orders.js"
+      ],
+      "checks_pass": true,
+      "implement_done": true,
+      "first_try_done": true,
+      "minutes": 1.0
+    },
+    {
+      "run": "B-tickets-assign-s1",
+      "arm": "B",
+      "case": "tickets-assign",
+      "sample": "1",
+      "kind": "slice",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "tests_written": [],
+      "changed": [
+        "src/app.js",
+        "src/persistence.js",
+        "src/store.js",
+        "src/templates.js",
+        "src/tickets/validate.js"
+      ],
+      "checks_pass": true,
+      "implement_done": true,
+      "first_try_done": true,
+      "minutes": 1.2
+    },
+    {
+      "run": "B-tickets-assign-s2",
+      "arm": "B",
+      "case": "tickets-assign",
+      "sample": "2",
+      "kind": "slice",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "tests_written": [],
+      "changed": [
+        "src/app.js",
+        "src/persistence.js",
+        "src/store.js",
+        "src/templates.js",
+        "src/tickets/validate.js"
+      ],
+      "checks_pass": true,
+      "implement_done": true,
+      "first_try_done": true,
+      "minutes": 1.2
+    },
+    {
+      "run": "B-tickets-assign-s3",
+      "arm": "B",
+      "case": "tickets-assign",
+      "sample": "3",
+      "kind": "slice",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "tests_written": [],
+      "changed": [
+        "src/app.js",
+        "src/persistence.js",
+        "src/store.js",
+        "src/templates.js",
+        "src/tickets/validate.js"
+      ],
+      "checks_pass": true,
+      "implement_done": true,
+      "first_try_done": true,
+      "minutes": 2.1
+    },
+    {
+      "run": "B-tickets-assign-s4",
+      "arm": "B",
+      "case": "tickets-assign",
+      "sample": "4",
+      "kind": "slice",
+      "hollow": [],
+      "implement_outcomes": [
+        "done"
+      ],
+      "sendbacks": [],
+      "f31": 0,
+      "f31_unread": 0,
+      "tests_written": [],
+      "changed": [
+        "src/app.js",
+        "src/persistence.js",
+        "src/store.js",
+        "src/templates.js",
+        "src/tickets/validate.js"
+      ],
+      "checks_pass": true,
+      "implement_done": true,
+      "first_try_done": true,
+      "minutes": 1.5
+    }
+  ]
+}

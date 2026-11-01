@@ -113,6 +113,91 @@ had finished and nothing was scored. The definition of an F31 send-back and the 
 - **Cost anchors:** a loop averaged 2.0 minutes (1.1 to 3.2, n = 6), and F31 was 1 of the 6 loops, about 0.1 minutes a
   run in that case. The no-harm rules weigh more than the benefit.
 
-## Result
+## Result of round 1 (2026-11-01): adopt by its rule, but the first wording is not merged
+
+All 22 runs finished (`scores.json`, `labels.jsonl`; runs in `~/e2e-runs-f31/20261101`).
+- **Slices.** A 8 of 8 and B 8 of 8 had implement done on the first try, every case check passing and no test file
+  written.
+- **Deliveries.** csv-report passed every hidden check in A 3 of 3 (10.0, 11.5, 13.7 minutes) and B 3 of 3 (13.4,
+  10.2, 13.9).
+- **Send-backs.** There was one implement send-back in 22 runs, in B csv-report s3: "S1 proof runs unittest before any
+  test exists ... Replace proof with a meaningful standalone CLI check". Its step's Proof was `python3 -m unittest -v`
+  on a base with no tests. Three independent labellers, shown only the text and the Proof, labelled it proof-order,
+  3 of 3, so it is not F31. The labelling was not blind at the arm level: this session had already seen the unlabelled
+  scores.
+- **The rule.** Arm A had no F31 send-back, so the mechanism was not exercised and the benefit is unmeasured. The
+  amendment had named that the likeliest outcome. Rules 1 to 4 hold, so by its rule round 1 says adopt.
+- **Apparatus.** The first launch's six deliveries were refused before starting: the finished slices' observers were
+  still running, and run.py's lifecycle check refuses a launch while they do. `lifecycle.py cleanup` on each slice
+  folder stopped them. The six relaunched in the registered order four minutes later, with no delivery started before
+  the refusal and no slice rerun. The refused logs are kept as `*.refused-1.log`, and the first launch log as
+  `launch-1.log`.
+- **Scorer bug, fixed.** The first scorer counted an unread arm-B candidate as a rule-1 failure, where the registered
+  rule calls the result incomplete. `score.py` now reports incomplete until every candidate is labelled.
+
+The first wording is not merged. An adversarial review of the candidate and the decision (workflow wf_a1a6868f-25f:
+three lenses, each material finding put to a skeptic) found three problems that no verifier could refute:
+1. **It breaks a full-tier test.** `test/shiploop-callback-contract.test.py`,
+   `RefusalRouteTests.test_the_implement_packet_does_not_ask_for_a_field_the_accepted_plan_does_not_hold`, asserts that
+   implement's Done-when never names `Confirm by`. That is 84d4d9da664dfb21b9f842179489ad32a03fefca: an item without
+   tests has no criteria and no Confirm-by text. The quick tier with `--changed-from` does not select that suite for an
+   edit to `shiploop_stage_spec.py`.
+2. **It lets a Proof that exercises nothing stand as the witness.** Rule C accepts a plain suite Proof whose Confirm by
+   names its test by ID, or in an existing file. At implement no script checks the first condition, and the first
+   wording told implement that "the step's Proof" shows the criterion. The old wording did not require an observing
+   command either.
+3. **SKILL.md still contradicts it.** Its procedure item 2 still said "confirm each by its stated method ... route to
+   planning", the reading behind F31, and an inline implement has the card in context.
+
+## Amendment 2 (2026-11-01): the revised wording and round 2, registered before any run of it
+
+Arm V, the revised candidate, is commit cb558e6367c2a4b1d05268afa70f5ff0bad46ef5 on `exp/f31-implement-proof-bda511`,
+patch-id d15a5b730c444a149ac8fe0264b3efdf6eda380f. It is the third commit on the branch:
+- 97667d22 is the first wording, which round 1 ran.
+- 2e2240dd revised it after the first review.
+- cb558e63 fixed what a second review of 2e2240dd found:
+  - a "; " inside a done_when entry, which shiploop-stage-spec forbids;
+  - "a check in RUN/scratch", which names a symbol the contract does not define and a location outside implement's
+    scope;
+  - no route for an inspected criterion;
+  - a stale change note and an unjournaled table.
+  2e2240dd never ran live.
+
+V's first exit condition reads "... shown after the last edit by a command or file that observes it (for an executed
+criterion, the step's Proof where it exercises the criterion, else a command of your own that runs the behaviour, since
+a criterion's own tests are written and run at the test stage), ...".
+- It names no result field and holds no "; ".
+- SKILL.md item 2 and references/backchain-planning.md say the same.
+- Implement's head and whole grow 217 characters against main, on both routes.
+- The route test pins the wording, and stage-spec and callback-contract pass on it. The full shiploop, core and
+  e2e-apparatus groups run locally before merge.
+
+Round 2 uses the same subject, the same settings and arm A (this folder's registration commit), and runs `launch2.sh`
+into `~/e2e-runs-f31/20261101-r2`. It stops each run's observers when the run ends.
+- **Part 3, the hollow Proof: 12 slices.** tickets-assign, seeded at test-spec and stopped after implement, with
+  `--seed-records hollow-proof-seed.json`. That file replaces S1's Proof with `npm test`, which passes on the base's
+  existing tests and exercises none of the step's criteria; the criteria and the rest of the seed are unchanged. 4 per
+  arm for A, B (the first wording, 97667d22) and V, in the rotated order the launcher lists.
+- **Part 4, V's no-harm runs: 11.** Arm V on the round-1 seeds (4 tickets-assign, 4 stand-in-rules) and 3 csv-report
+  deliveries. They are compared with round 1's arm A.
+- **The hollow measure.** For each implement action of a hollow slice, `score.py --blind` shows the notes implement
+  wrote (RUN/notes/<action>.md), the Proofs in force and the outcome, shuffled, without run or arm. Each is labelled
+  `observed` or bare.
+  - Observed: the notes record a passing check, beyond the Proof and lint, that exercises one of the step's criteria
+    (an HTTP or assertion check, or a RUN/scratch script), or implement sent the hollow Proof back.
+  - Bare: done with only the Proof (or the existing suite) and lint recorded.
+  - Labels go in `labels.jsonl`, keyed as `score.py` prints them, made by three independent labellers shown only that
+    list.
+- **Rule (`score.py --round 2`).** Merge the two candidate commits and release only when all five hold:
+  1. V has no F31 send-back.
+  2. V writes no test at implement, in any slice.
+  3. No harm: V's original-seed slices and deliveries pass at least as often as round 1's arm A, with as many runs.
+  4. On the hollow Proof, V has no more bare dones than A.
+  5. Every run finished and every send-back and hollow note is labelled.
+
+  B's hollow count is reported as a test of the review's concern, not a rule. If 1, 2 or 4 fails, neither wording is
+  merged. If 3 fails, each failing run is read, as round 1 registered.
+
+## Result of round 2
 
 Not yet run.

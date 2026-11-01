@@ -1,0 +1,18 @@
+{
+ "step-plan": {
+  "steps": [
+   {
+    "id": "S1",
+    "task": "Add ticket assignment: the assignee field in the store and its data file, PUT /tickets/:id/assignee with its validation, and the assignment notification (C1-C3).",
+    "deps": [],
+    "criteria": [
+     "C1",
+     "C2",
+     "C3"
+    ],
+    "proof": "npm test",
+    "skills": []
+   }
+  ]
+ }
+}
