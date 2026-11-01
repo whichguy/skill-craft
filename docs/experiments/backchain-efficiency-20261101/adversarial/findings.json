@@ -1,0 +1,110 @@
+{
+ "change": "Backchain 2026-11: shipped toolkit, scripted Until Loop binding, native card, first-trivial gate, lean synthesis prompts",
+ "reviewer": "codex:gpt-6.1-sol@medium",
+ "findings": [
+  {
+   "id": "F1",
+   "claim": "finish can certify convergence from an unrelated or fabricated terminal receipt; it checks only status == complete, without binding the receipt to this contract, candidate, reports, or selected runtime.",
+   "severity": "high",
+   "category": "regression",
+   "evidence": "command_finish reads packet.get(\"status\") and combines it with local verification. Neither verification nor finish validates receipt identity, accepted reports, or the selected review gate. A locally recorded trivial review plus {\"status\":\"complete\"} appears sufficient, including for passes=converge.",
+   "testable": true,
+   "experiment": {
+    "type": "scenario",
+    "description": "Freeze a converge run, record one unchanged review, and place a complete receipt from another run at its receipt path. Run finish.",
+    "success": "finish refuses convergence because the receipt belongs to another binding and does not establish this run's required reviews."
+   }
+  },
+  {
+   "id": "F2",
+   "claim": "The supposedly frozen request, caller bounds, baseline, contract, and runtime resources can change without invalidating verify or finish.",
+   "severity": "high",
+   "category": "regression",
+   "evidence": "prepare and freeze store hashes, but verification never compares current inputs, baseline, contract, or resources against those hashes. compare_obligations reads the current baseline and inherited files. Changing those files can therefore change what preservation means while retaining the original binding.",
+   "testable": true,
+   "experiment": {
+    "type": "scenario",
+    "description": "After freezing and recording a valid cycle, separately mutate the frozen request, caller packet, baseline, contract, and selected runtime; invoke verify after each mutation.",
+    "success": "Every mutation is rejected as a changed binding before convergence can be reported."
+   }
+  },
+  {
+   "id": "F3",
+   "claim": "Source-aware edits outside caller bounds can pass the toolkit's claimed obligation checks, including removal of protected work.",
+   "severity": "high",
+   "category": "overreach",
+   "evidence": "mode_for treats any non-null edit_bounds as source-aware. compare_obligations then reports removed inherited steps and edges as differences, while record rejects only errors. No code checks provisional IDs, running/completed status, allow_new_steps, allow_new_edges, or source-linked mappings, and differences need no corresponding finding.",
+   "testable": true,
+   "experiment": {
+    "type": "scenario",
+    "description": "Supply bounds protecting an existing step and forbidding new edges. Remove that step or add a forbidden edge while keeping the graph structurally valid; submit an assessment with empty findings.",
+    "success": "record refuses the edit and identifies the violated bound; it cannot be accepted merely by reporting a difference."
+   }
+  },
+  {
+   "id": "F4",
+   "claim": "The toolkit can record a stale or empty assessment as a qualifying trivial review without establishing that the reviewer inspected the candidate or performed the required lens and source checks.",
+   "severity": "high",
+   "category": "untested-case",
+   "evidence": "review_problems does not require or validate candidate_identity. Empty findings and checks arrays are accepted. record and verification do not establish the required applicability screen, read evidence, source disposition, or correspondence between observations and the reviewed candidate. This weakens the claimed candidate-specific evidence guarantee.",
+   "testable": true,
+   "experiment": {
+    "type": "scenario",
+    "description": "Submit an unchanged candidate with change_class=trivial, empty checks/findings/gaps/blockers, and a missing or stale candidate_identity; request a satisfied exit.",
+    "success": "record rejects the assessment until candidate identity and required review evidence are supplied."
+   }
+  },
+  {
+   "id": "F5",
+   "claim": "Source-aware callers receive the wrong result contract and can lose the final source assessment.",
+   "severity": "high",
+   "category": "regression",
+   "evidence": "caller-contract.md and convergence.md require {plan, review} with review.convergence for source-aware work. command_finish unconditionally emits {plan, convergence, structure, status}; it never constructs review or returns a final source assessment. The native card instructs callers to return that result.",
+   "testable": true,
+   "experiment": {
+    "type": "scenario",
+    "description": "Complete a source-aware run through finish and pass result.json directly to a consumer enforcing the documented source-aware response shape.",
+    "success": "The consumer receives the required review object, final source disposition, and review.convergence without a host inventing an undocumented transformation."
+   }
+  },
+  {
+   "id": "F6",
+   "claim": "Dropping the confirming review is supported by too little and too correlated evidence to establish that it preserves defect detection across standalone uses.",
+   "severity": "medium",
+   "category": "measurement",
+   "evidence": "Only 11 confirming reviews were observed, all from six synthetic case families using one subject configuration. Zero changes in 11 observations still permits an approximately 24% one-sided 95% upper bound on the change probability under an independence assumption. An unchanged digest also does not establish that an independent reviewer would find no defect.",
+   "testable": true,
+   "experiment": {
+    "type": "arm",
+    "description": "On blind held-out cases, continue runs after their first trivial review with an independently contextualized confirming reviewer. Blindly adjudicate any additional findings against the request.",
+    "success": "A prespecified adequately powered sample bounds additional material defect detection below an agreed acceptable rate, with no consequential regression from stopping early."
+   }
+  },
+  {
+   "id": "F7",
+   "claim": "The candidate adopts lean synthesis before the owner's required quality cohort, and the old study does not establish the combined candidate's behavior.",
+   "severity": "high",
+   "category": "measurement",
+   "evidence": "D2 requires six prior cases plus four blind held-out cases, three repetitions per arm, before prompt adoption. The diff nevertheless switches fresh requests to direct.v1.md and replaces the elaborator. No live toolkit run exists, the study control was 0.6.3 rather than 0.6.6, and lean previously qualified less often in three families. Attributing those losses to transport does not prove this toolkit fixes them.",
+   "testable": true,
+   "experiment": {
+    "type": "arm",
+    "description": "Run the specified cohort against the actual 0.6.6 control and the exact combined candidate, retaining all attempts and adjudicating semantic and workflow outcomes separately.",
+    "success": "The candidate meets a prespecified quality-first adoption threshold overall and in the previously losing families before token or time savings determine adoption."
+   }
+  },
+  {
+   "id": "F8",
+   "claim": "The generated contract forbids evidence gathering that some supported planning tasks require, potentially turning recoverable source questions into blocked runs.",
+   "severity": "medium",
+   "category": "overreach",
+   "evidence": "AUTHORITY newly prohibits all network access and contact with services. The procedure otherwise supports source currentness checks and newly gathered in-scope evidence. A read-only fetch of a normative specification or service configuration is forbidden even when the original planning request authorizes it, and no contract option preserves that authorization.",
+   "testable": true,
+   "experiment": {
+    "type": "scenario",
+    "description": "Use a source-aware request explicitly authorizing a read-only fetch of a normative source whose current revision is necessary to resolve a planning gap.",
+    "success": "The run obtains the authorized evidence and completes without violating its frozen authority or requiring a replacement binding solely because the toolkit imposed a blanket prohibition."
+   }
+  }
+ ]
+}

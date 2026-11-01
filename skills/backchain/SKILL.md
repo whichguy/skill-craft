@@ -64,20 +64,24 @@ absolute paths and the next command. Choose a new run directory outside the proj
    a caller packet, audited and revised) directly. Resolve only evidenced facts: an unevidenced
    world-state is not `initial_state`. Leave `parallel_groups` as `[]`; the script computes them.
 3. **Freeze.** `freeze --run DIR` checks the candidate (the seven invariants, the draft's
-   `goal_needs` and confirmations, an inherited draft's steps and edges), packages it and writes
-   the Until Loop contract. Fix what it reports and run it again.
+   `goal_needs` and confirmations, an inherited draft's steps and edges, a caller's edit bounds),
+   packages it and writes the Until Loop contract. Fix what it reports and run it again.
 4. **Loop.** Read the Until Loop card once and start it by its "Start from a parent-written
    contract" route with the printed `Contract:` and `Receipt:`. The caller selects the review
    gate: by default the first trivial review completes, `Backchain passes: one` runs one
    review/fix/check cycle, and `Backchain passes: converge` needs two consecutive trivial
    reviews ([references/convergence.md](references/convergence.md)). Each callback is one cycle:
    assess with [prompts/convergence-review.prompt.md](prompts/convergence-review.prompt.md),
-   repair `DIR/plan.json` within the edit bounds, save the assessment JSON, run `record`, run the
-   packet's `verify_script`, and submit the report `record` wrote through the packet's `done_argv`.
+   repair `DIR/plan.json` within the edit bounds, save the assessment JSON (its
+   `candidate_identity` is the sha256 `freeze` or the last `record` printed), run `record`, run
+   the packet's `verify_script`, and submit the report `record` wrote through the packet's
+   `done_argv`.
 5. **Finish.** After the loop ends, `finish --run DIR` writes `DIR/result.json`,
-   `{plan, convergence}`. Return it; say converged only when `finish` does, and otherwise report
-   its next action. `export DIR/plan.json` gives Plan Dispatcher the execution graph of a
-   complete plan.
+   `{plan, convergence}`; with a caller packet, write the final review object
+   ([references/caller-contract.md](references/caller-contract.md)) and pass it with
+   `--review FILE` to get `{plan, review}`. Return it; say converged only when `finish` does, and
+   otherwise report its next action. `export DIR/plan.json` gives Plan Dispatcher the execution
+   graph of a complete plan.
 
 A `backchain-caller/v1` action `review` (stage `audit`) is a read-only one-pass diagnostic with
 [prompts/audit.prompt.md](prompts/audit.prompt.md): it changes no candidate, starts no loop and

@@ -64,15 +64,16 @@ receipt. The contract binds:
   (`blocked`) on a planning gap no authorized repair can close; no pass ceiling;
 - the context: the request with both markers; the scope (the plan artifact and its planning
   companions only, the edit bounds, and read-only inputs, contract and cycle records); the authority
-  (no commit, push, merge, project execution, installation, network access or contact with people
-  or services, and no broadened scope); the environment; and every resource by its observed
+  (no commit, push, merge or project execution, and no broadened scope; any other access is only
+  what the request and the caller packet grant); the environment; and every resource by its observed
   absolute locator: the original request and any inherited draft or caller packet, this skill's
   card, references and prompts, the Until Loop card and runtime, the candidate, the latest packet
   (the receipt), the domain evidence and the result destination;
 - two frozen exit checks: `backchain-check` (the structural check on the final candidate) and
-  `backchain-evidence` (`backchain.py verify`: every cycle record intact, no edit after the last
-  record, obligations kept). A caller adds its own with `freeze --exit-check`. No exit check is
-  ever repaired.
+  `backchain-evidence` (`backchain.py verify`: the binding unchanged, which is the digest of every
+  frozen input, the baseline, the contract and every resolved resource; every cycle record intact;
+  no edit after the last record; obligations kept). A caller adds its own with
+  `freeze --exit-check`. No exit check is ever repaired.
 
 The frozen inputs and baseline, the authorized scope and bounds, the original request and the
 governing source criteria stay fixed for the run. An authorized in-scope repair, its output
@@ -94,12 +95,12 @@ verification obligation.
 | --- | --- | --- |
 | A generated draft, at `freeze` (draft → enriched) | `legacy` | `goal_needs` exactly; an unchanged produce on its original step keeps its whole confirmation |
 | An inherited draft or plan, without caller `edit_bounds` | `legacy` | the same, plus every inherited step ID and input edge |
-| An inherited plan, with explicit caller `edit_bounds` | `source-aware` | `goal_needs` exactly; every other difference reported |
+| An inherited plan, with explicit caller `edit_bounds` | `source-aware` | `goal_needs` exactly; the edit bounds ([caller-contract.md](caller-contract.md)); every other difference reported |
 | The frozen baseline, every cycle | `source-aware` | `goal_needs` exactly; every confirmation difference reported |
 
 `scripts/check_preservation.py` performs the confirmation and `goal_needs` comparison (exit 0
 holds, 1 fails, 2 the baseline binding changed, 3 could not run); `backchain.py` adds the
-inherited step IDs and input edges. Exit 0 cannot establish that a difference is justified:
+inherited step IDs and input edges, or with `edit_bounds` the bounds. Exit 0 cannot establish that a difference is justified:
 account for every reported difference in the assessment (`moved_unchanged`, `added`,
 `unchanged_produce_confirmation_changed`, `produce_text_absent`, multi-owner produces), or restore
 it. A legitimate in-place produce rewrite or move grants no permission to narrow a seed or move its
@@ -199,11 +200,16 @@ prove chunk suitability.
 After the loop ends, `backchain.py finish` writes `DIR/result.json`. It reports converged planning
 only with both the exact selected Until Loop terminal `complete` packet (the receipt) and
 candidate-specific domain evidence: every cycle record intact and matching, the final output
-identity, a structurally valid candidate, and no planning gap. The adapter validates callback shape
-and transitions, not that semantic evidence is true.
+identity, a structurally valid candidate, and no planning gap. The receipt must be this run's own:
+it repeats the frozen contract's workspace, work, conditions, context and exit checks, names this
+receipt path and gate, counts no more actions than recorded cycles (each callback submits a report
+`record` wrote), carries the last cycle's report and,
+when `complete`, shows every frozen exit check passing. The adapter validates callback shape and
+transitions, not that semantic evidence is true.
 
 `record` keeps every cycle's original review record with its observed candidate identity, and
-`finish` reopens them all; the evidence set that converged planning needs depends on the gate. By
+refuses an assessment whose `candidate_identity` is not the sha256 of the candidate the cycle began
+with, or whose `checks` are empty; `finish` reopens them all; the evidence set that converged planning needs depends on the gate. By
 default it is the completing cycle's trivial review record, with every earlier cycle's. With
 `Backchain passes: one`, the evidence set is the one review record of the cycle and the
 `backchain-check` receipt on the final candidate. With `Backchain passes: converge`, it is both
@@ -218,8 +224,9 @@ action. For cold recovery, the receipt holds the latest packet (an `active` one 
 success from copied text, structural validity alone, or a model-written counter.
 
 Return `{plan, convergence}` for compatibility-native planning and `{plan, review}` with
-`review.convergence` for source-aware planning. This is a binding record, never a new plan
-schema field or homemade pass history; `finish` writes it:
+`review.convergence` for source-aware planning (`finish --review FILE` with the final review
+object). This is a binding record, never a new plan schema field or homemade pass history;
+`finish` writes it:
 
 ```json
 {

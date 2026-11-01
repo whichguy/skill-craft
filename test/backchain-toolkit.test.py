@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -185,10 +186,15 @@ CONFIRMED = GOLDENS / "confirmed.plan.json"
 
 
 def assessment(change_class: str = "none", gaps=(), blockers=(), findings=()) -> dict:
-    """The convergence review prompt's JSON, as a cycle saves it."""
-    return {"candidate_identity": "inspected", "context_identity": "inspected", "change_class": change_class,
+    """The convergence review prompt's JSON, as a cycle saves it. RunTests.record fills in candidate_identity, the
+    reviewed candidate's SHA-256, unless a test sets that key itself."""
+    return {"context_identity": "inspected", "change_class": change_class,
             "findings": list(findings), "checks": ["traced every outcome backward; screened every lens category"],
             "planning_gaps": list(gaps), "execution_blockers": list(blockers)}
+
+
+def file_digest(path: Path) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def without_one_edge(plan: dict) -> dict:
@@ -224,6 +230,7 @@ class RunTests(unittest.TestCase):
         (run_dir / "plan.json").write_text(text)
         done = run("freeze", "--run", str(run_dir))
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.freeze_output = done.stdout
         return run_dir
 
     def start(self, run_dir: Path) -> dict:
@@ -234,9 +241,19 @@ class RunTests(unittest.TestCase):
         self.assertEqual(started.returncode, 0, started.stderr)
         return json.loads(started.stdout)
 
+    @staticmethod
+    def reviewed_identity(run_dir: Path) -> str:
+        """The candidate a cycle reviews: the last recorded plan, or the frozen baseline before the first cycle."""
+        evidence = run_dir / "evidence.json"
+        if evidence.is_file():
+            return json.loads(evidence.read_text(encoding="utf-8"))["cycles"][-1]["plan"]["sha256"]
+        return file_digest(run_dir / "loop/baseline.json")
+
     def record(self, run_dir: Path, review: dict, exit_assessment="satisfied", continuation="allowed"):
         self.reviews += 1
         path = self.base / f"assessment-{self.reviews}.json"
+        if "candidate_identity" not in review:
+            review = dict(review, candidate_identity=self.reviewed_identity(run_dir))
         path.write_text(json.dumps(review))
         return run("record", "--run", str(run_dir), "--review", str(path), "--exit", exit_assessment,
                    "--continuation", continuation)
@@ -434,6 +451,181 @@ class RunTests(unittest.TestCase):
                          ["dependency-review.prompt.md", "elaborator.v1.md"])
         for route in (fresh, draft):
             self.assertFalse(any("generator.v1.md" in line for line in route))  # the checkout's one-shot pipeline only
+
+    # The adversarial review of 2026-11-01 (Sol, medium; findings F1-F5 and F8). Each test is the refuting result the
+    # reviewer named; each failed on the code it reviewed.
+
+    def test_finish_refuses_a_receipt_that_is_not_this_runs(self):
+        """F1: a fabricated or foreign complete receipt cannot make a run converge."""
+        run_dir = self.frozen()
+        self.assertEqual(self.cycle(run_dir, self.start(run_dir), assessment("none"))["status"], "complete")
+        genuine = (run_dir / "loop/receipt.json").read_text(encoding="utf-8")
+        other = self.frozen(name="other")
+        self.assertEqual(self.cycle(other, self.start(other), assessment("none"))["status"], "complete")
+        for label, receipt in (("fabricated", json.dumps({"status": "complete"})),
+                               ("another run's", (other / "loop/receipt.json").read_text(encoding="utf-8"))):
+            with self.subTest(label):
+                (run_dir / "loop/receipt.json").write_text(receipt)
+                done = run("finish", "--run", str(run_dir))
+                self.assertEqual(done.returncode, 1, done.stdout + done.stderr)
+                result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
+                self.assertEqual(result["status"], "incomplete")
+                self.assertIn("receipt", result["convergence"]["next_action"])
+        (run_dir / "loop/receipt.json").write_text(genuine)
+        self.assertEqual(run("finish", "--run", str(run_dir)).returncode, 0)
+
+    def test_verify_rejects_a_changed_binding(self):
+        """F2: the frozen request, caller packet, baseline, contract and selected resources cannot change under a run."""
+        card = self.base / "until-loop" / "ADAPTER.md"
+        shutil.copytree(LOOP_RUNTIME.parents[1], card.parent)
+        run_dir, frozen = self.caller_run(lambda plan: plan, "binding", {}, "--until-loop", str(card))
+        self.assertEqual(frozen.returncode, 0, frozen.stdout + frozen.stderr)
+        self.start(run_dir)
+        self.assertEqual(self.record(run_dir, assessment("none")).returncode, 0)
+        self.assertEqual(run("verify", "--run", str(run_dir)).returncode, 0)
+        for target in (run_dir / "input/request.md", run_dir / "input/caller.json", run_dir / "loop/baseline.json",
+                       run_dir / "loop/contract.json", card, card.parent / "scripts/until_loop_ephemeral.py"):
+            with self.subTest(target.name):
+                original = target.read_bytes()
+                target.write_bytes(original + b"\n")
+                changed = run("verify", "--run", str(run_dir))
+                self.assertEqual(changed.returncode, 1, changed.stdout)
+                self.assertIn("changed", changed.stdout)
+                target.write_bytes(original)
+                self.assertEqual(run("verify", "--run", str(run_dir)).returncode, 0)
+
+    def caller_run(self, edit, name: str, bounds: dict, *extra: str):
+        """A source-aware run over the confirmed plan with these edit bounds, its candidate edited by ``edit``."""
+        inherited = self.base / f"{name}-inherited.json"
+        inherited.write_text(json.dumps(self.plan))
+        packet = self.base / f"{name}-caller.json"
+        packet.write_text(json.dumps({"interface": "backchain-caller/v1", "action": "repair", "stage": "revise",
+                                      "action_id": "bounds-test", "owner": "test", "edit_bounds": bounds}))
+        run_dir = self.prepare("--draft", str(inherited), "--caller", str(packet), *extra, name=name)
+        (run_dir / "plan.json").write_text(json.dumps(edit(json.loads(json.dumps(self.plan)))))
+        return run_dir, run("freeze", "--run", str(run_dir))
+
+    def test_caller_edit_bounds_are_enforced(self):
+        """F3: an edit outside the caller's bounds is refused and names the bound; one inside them is accepted."""
+        fact = self.plan["initial_state"][0]
+        bounds = {"provisional_step_ids": ["S2"], "provisional_edge_keys": ["S2<-S1"], "allow_new_steps": False,
+                  "allow_new_edges": False, "protected_step_ids": ["S1"], "protected_edge_keys": [],
+                  "protected_facts": [fact], "running_or_completed_step_ids": []}
+
+        def protected_step(plan):
+            plan["steps"][0]["statement"] += " Also logged."
+            return plan
+
+        def new_step(plan):
+            plan["steps"].append({"id": "S3", "statement": "A changelog entry exists.",
+                                  "produces": ["A changelog entry exists."], "inputs": [], "origin": "seed"})
+            plan["goal_needs"] = plan["goal_needs"] + ["A changelog entry exists."]
+            return plan
+
+        def new_edge(plan):
+            plan["steps"][1]["inputs"].append({"need": fact, "from": None})
+            return plan
+
+        def lost_fact(plan):
+            plan["steps"][0]["inputs"] = []
+            plan["initial_state"] = []
+            return plan
+
+        for label, edit, expected in (("protected step", protected_step, "protected step S1"),
+                                      ("new step", new_step, "new step S3"),
+                                      ("new edge", new_edge, "new edge S2<-null"),
+                                      ("protected fact", lost_fact, "protected fact")):
+            with self.subTest(label):
+                _, refused = self.caller_run(edit, label.replace(" ", "-"), bounds)
+                self.assertEqual(refused.returncode, 1, refused.stdout + refused.stderr)
+                self.assertIn(expected, refused.stdout)
+        # Within the bounds: S2 is provisional and S2<-S1 a provisional edge, so dropping one of its inputs is allowed.
+        _, accepted = self.caller_run(without_one_edge, "within-bounds", bounds)
+        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+
+    def test_record_binds_the_assessment_to_the_candidate_it_reviewed(self):
+        """F4: a missing or stale candidate identity, or an assessment that records no checks, is refused."""
+        run_dir = self.frozen()
+        # The identity record expects is the one freeze printed for cycle 1.
+        self.assertIn(f"Cycle 1's candidate_identity: {self.reviewed_identity(run_dir)}", self.freeze_output)
+        self.start(run_dir)
+        stale = "0" * 64
+        for label, review, expected in (
+                ("missing identity", dict(assessment("none"), candidate_identity=None), "candidate_identity"),
+                ("stale identity", dict(assessment("none"), candidate_identity=stale), "candidate_identity"),
+                ("no checks", dict(assessment("none"), checks=[]), "checks")):
+            with self.subTest(label):
+                refused = self.record(run_dir, review)
+                self.assertEqual(refused.returncode, 1, refused.stdout)
+                self.assertIn(expected, refused.stdout)
+                self.assertFalse((run_dir / "evidence.json").exists())
+        recorded = self.record(run_dir, assessment("none"))
+        self.assertEqual(recorded.returncode, 0, recorded.stdout + recorded.stderr)
+        # ... and record prints, and its report's handoff repeats, the next cycle's.
+        identity = self.reviewed_identity(run_dir)
+        self.assertIn(f"Next cycle's candidate_identity: {identity}", recorded.stdout)
+        report = json.loads((run_dir / "cycles/01/report.json").read_text(encoding="utf-8"))
+        self.assertIn(identity, report["handoff"])
+
+    def test_a_cycle_recorded_twice_in_one_callback_still_finishes(self):
+        """An edit after record within one callback needs a second record; the first stays unsubmitted, and the
+        run's receipt still binds (F1's check refuses only an action with no record behind it)."""
+        run_dir = self.frozen()
+        packet = self.start(run_dir)
+        self.assertEqual(self.record(run_dir, assessment("none")).returncode, 0)
+        after = self.cycle(run_dir, packet, assessment("material"), edit=without_one_edge, exit_assessment="unsatisfied")
+        self.assertEqual(after["status"], "active")
+        self.assertEqual(self.cycle(run_dir, after, assessment("none"))["status"], "complete")
+        finished = run("finish", "--run", str(run_dir))
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+
+    def test_finish_refuses_a_callback_submitted_without_record(self):
+        """F1: a report written by hand and submitted without record leaves an action no record covers."""
+        run_dir = self.frozen()
+        packet = self.start(run_dir)
+        hand = {"classification": "non-trivial", "exit_assessment": "unsatisfied", "continuation_assessment": "allowed",
+                "evidence": "A hand-written report.", "handoff": "A hand-written handoff."}
+        submitted = subprocess.run(packet["done_argv"], input=json.dumps(hand), capture_output=True, text=True,
+                                   timeout=60)
+        self.assertEqual(submitted.returncode, 0, submitted.stderr)
+        self.assertEqual(self.cycle(run_dir, json.loads(submitted.stdout), assessment("none"))["status"], "complete")
+        done = run("finish", "--run", str(run_dir))
+        self.assertEqual(done.returncode, 1, done.stdout + done.stderr)
+        result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
+        self.assertIn("2 action(s) where 1 cycle(s) are recorded", result["convergence"]["next_action"])
+
+    def test_a_source_aware_run_returns_plan_and_review(self):
+        """F5: a source-aware result is {plan, review} with review.convergence, built from the caller's own review."""
+        bounds = {"provisional_step_ids": [], "provisional_edge_keys": [], "allow_new_steps": False,
+                  "allow_new_edges": False, "protected_step_ids": [], "protected_edge_keys": [], "protected_facts": [],
+                  "running_or_completed_step_ids": []}
+        run_dir, frozen = self.caller_run(lambda plan: plan, "source-aware", bounds)
+        self.assertEqual(frozen.returncode, 0, frozen.stdout + frozen.stderr)
+        self.assertEqual(self.cycle(run_dir, self.start(run_dir), assessment("none"))["status"], "complete")
+        missing = run("finish", "--run", str(run_dir))
+        self.assertEqual(missing.returncode, 3)
+        self.assertIn("--review", missing.stderr)
+        review = self.base / "final-review.json"
+        review.write_text(json.dumps({"interface": "backchain-caller/v1", "action": "repair", "stage": "revise",
+                                      "action_id": "bounds-test", "findings": [], "planning_gaps": [],
+                                      "execution_blockers": [], "coverage": {"source_review_status": "complete"}}))
+        finished = run("finish", "--run", str(run_dir), "--review", str(review))
+        self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
+        result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
+        self.assertEqual(sorted(result), ["plan", "review", "status", "structure"])
+        self.assertEqual(result["review"]["convergence"]["terminal_receipt"]["status"], "complete")
+        self.assertEqual(result["review"]["candidate"]["output_sha256"], file_digest(run_dir / "plan.json"))
+        self.assertEqual(result["review"]["coverage"]["structural_plan_status"], "valid")
+        self.assertEqual(result["review"]["coverage"]["source_review_status"], "complete")
+
+    def test_the_contract_grants_only_the_callers_authority(self):
+        """F8: the contract forbids what 0.6.6 forbade, not network access or contact a request may authorize."""
+        contract = json.loads((self.frozen() / "loop/contract.json").read_text(encoding="utf-8"))
+        authority = contract["context"]["authority"]
+        for kept in ("commit", "push", "merge", "project execution", "broadened scope"):
+            self.assertIn(kept, authority)
+        for dropped in ("network", "contact", "installation"):
+            self.assertNotIn(dropped, authority)
 
     def test_the_gate_texts_are_the_convergence_references(self):
         import importlib.util

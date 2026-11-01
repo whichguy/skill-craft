@@ -54,8 +54,9 @@ coverage.
 7. Classify this complete cycle as material, trivial, none, or unknown under the binding rules. Semantic changes of any size are material. Separate planning gaps from future
    execution blockers.
 
-Return only this assessment (save it as the file `record --review` reads; add `"next_action"`
-when a gap needs a specific recovery):
+Return only this assessment (save it as the file `record --review` reads; `candidate_identity`
+is the sha256 `freeze` or the previous `record` printed for this cycle's candidate; add
+`"next_action"` when a gap needs a specific recovery):
 ```json
 {
   "candidate_identity": "supplied identity actually inspected",

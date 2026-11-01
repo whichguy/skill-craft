@@ -17,7 +17,9 @@ A planning run (one directory; Until Loop owns the loop, this script owns the re
   record --run DIR --review FILE --exit E --continuation C
                               after a cycle's last edit: record the cycle and write its Until Loop report
   verify --run DIR            the contract's evidence check (read-only)
-  finish --run DIR            after the loop ends: write DIR/result.json, {plan, convergence}
+  finish --run DIR [--review FILE]
+                              after the loop ends: write DIR/result.json, {plan, convergence}; a run with a
+                              caller packet passes its final review object and gets {plan, review}
 
 Review aids:
   lenses ID...                print only the named technical lens cards (T01 to T42)
@@ -79,8 +81,12 @@ REPEAT_CONDITION = ("Repeat while an authorized in-scope repair or a required di
                     "incomplete (blocked) when a planning gap no authorized repair can close remains: a missing or "
                     "stale normative source, a necessary repair outside the edit bounds, or a change that needs a "
                     "new binding. There is no pass ceiling.")
-AUTHORITY = ("Plan only: no commit, push, merge, project execution, installation, network access or contact with "
-             "people or services, and no broadened scope.")
+# The child's scope as references/convergence.md states it; any further access is what the request and the caller
+# grant (adversarial review F8, 2026-11-01: a blanket network ban would block an authorized read of a source).
+AUTHORITY = ("Plan only: no commit, push, merge or project execution, and no broadened scope; any other access is "
+             "only what the request and the caller packet grant.")
+BOUND_LISTS = ("provisional_step_ids", "provisional_edge_keys", "protected_step_ids", "protected_edge_keys",
+               "protected_facts", "running_or_completed_step_ids")
 CHANGE_CLASSES = ("material", "trivial", "none", "unknown")
 EXIT_ASSESSMENTS = ("satisfied", "unsatisfied", "unknown")
 CONTINUATIONS = ("allowed", "blocked", "cancelled")
@@ -236,6 +242,73 @@ def inherited_edges_removed(inherited: Any, candidate: Any) -> List[str]:
     return [text for key, text in edges(inherited).items() if key not in kept]
 
 
+def edge_key(step_id: Any, source: Any) -> str:
+    """A caller edge key, consumer<-supplier; a null-origin edge's supplier is written null."""
+    return f"{step_id}<-{'null' if source is None else source}"
+
+
+def edges_by_key(plan: Any) -> Dict[str, List[str]]:
+    """Each consumer<-supplier edge's input objects, canonical and sorted, so any change to an edge shows."""
+    found: Dict[str, List[str]] = {}
+    for step in plan.get("steps", []) if isinstance(plan, dict) else []:
+        if not isinstance(step, dict) or not isinstance(step.get("inputs"), list):
+            continue
+        for entry in step["inputs"]:
+            if isinstance(entry, dict):
+                found.setdefault(edge_key(step.get("id"), entry.get("from")), []).append(
+                    json.dumps(entry, sort_keys=True))
+    return {key: sorted(values) for key, values in found.items()}
+
+
+def bound_errors(inherited: Any, candidate: Any, bounds: Dict[str, Any]) -> List[str]:
+    """Edits outside a caller's edit_bounds (references/caller-contract.md, repair/revise): running, completed and
+    protected steps are unchanged; another existing step changes only if provisional; a new step needs
+    allow_new_steps; an existing edge changes only if its key is provisional on a provisional consumer, and a new edge
+    needs allow_new_edges on a provisional or new consumer; protected edges and facts stay."""
+    def steps(plan: Any) -> Dict[str, Any]:
+        return {s["id"]: s for s in plan.get("steps", []) if isinstance(s, dict) and isinstance(s.get("id"), str)}
+
+    def without_inputs(step: Dict[str, Any]) -> Dict[str, Any]:
+        return {key: value for key, value in step.items() if key != "inputs"}
+
+    old, new = steps(inherited), steps(candidate)
+    frozen = set(bounds.get("protected_step_ids") or []) | set(bounds.get("running_or_completed_step_ids") or [])
+    provisional = set(bounds.get("provisional_step_ids") or []) - frozen
+    errors = []
+    for identifier, step in old.items():
+        if identifier not in new:
+            if identifier not in provisional:
+                errors.append(f"step {identifier} removed outside the edit bounds")
+        elif identifier in frozen and new[identifier] != step:
+            errors.append(f"protected step {identifier} changed")
+        elif identifier not in provisional and without_inputs(new[identifier]) != without_inputs(step):
+            errors.append(f"step {identifier} changed outside the edit bounds (not provisional)")
+    added_steps = [identifier for identifier in new if identifier not in old]
+    if added_steps and not bounds.get("allow_new_steps"):
+        errors += [f"new step {identifier} without allow_new_steps" for identifier in added_steps]
+    protected_edges = set(bounds.get("protected_edge_keys") or [])
+    provisional_edges = set(bounds.get("provisional_edge_keys") or []) - protected_edges
+    old_edges, new_edges = edges_by_key(inherited), edges_by_key(candidate)
+    for key, entries in old_edges.items():
+        if new_edges.get(key) == entries:
+            continue
+        consumer = key.split("<-", 1)[0]
+        if key in protected_edges or key not in provisional_edges or consumer not in provisional:
+            errors.append(f"edge {key} changed outside the edit bounds")
+    for key in new_edges:
+        if key in old_edges:
+            continue
+        consumer = key.split("<-", 1)[0]
+        if not bounds.get("allow_new_edges") or (consumer in old and consumer not in provisional):
+            errors.append(f"new edge {key} outside the edit bounds")
+    facts = {graph.normalize_need_string(fact) for fact in candidate.get("initial_state", [])
+             if isinstance(fact, str)} if isinstance(candidate, dict) else set()
+    for fact in bounds.get("protected_facts") or []:
+        if isinstance(fact, str) and graph.normalize_need_string(fact) not in facts:
+            errors.append(f"protected fact removed from initial_state: {fact}")
+    return errors
+
+
 def inherited_ids_removed(inherited: Any, candidate: Any) -> List[str]:
     def ids(plan: Any) -> List[str]:
         steps = plan.get("steps", []) if isinstance(plan, dict) else []
@@ -366,31 +439,50 @@ def mode_for(meta: Dict[str, Any]) -> str:
     return "source-aware" if meta.get("edit_bounds") else "legacy"
 
 
+def caller_bounds(run: Run) -> Dict[str, Any]:
+    """The caller packet's edit_bounds (prepare checked their shape); empty without them."""
+    if not run.caller.is_file():
+        return {}
+    bounds = read_json(run.caller).get("edit_bounds")
+    return bounds if isinstance(bounds, dict) else {}
+
+
+def inherited_obligations(run: Run, meta: Dict[str, Any], plan: Any) -> Optional[Dict[str, Any]]:
+    """What the candidate owes an inherited input plan; None without one. Errors fail; differences need a review
+    finding. Legacy elaboration keeps every inherited step ID, input edge and unchanged confirmation; a caller's
+    edit_bounds decide instead which inherited steps, edges and facts may change (adversarial review F3,
+    2026-11-01: the bounds were bound into the contract but no command enforced them)."""
+    if not run.inherited.is_file():
+        return None
+    inherited = read_json(run.inherited)
+    mode = mode_for(meta)
+    compared = preservation.compare(inherited, plan, mode)
+    errors = list(compared["errors"])
+    differences = list(compared["confirmation_differences"])
+    removed, missing_ids = inherited_edges_removed(inherited, plan), inherited_ids_removed(inherited, plan)
+    if mode == "legacy":
+        errors += [f"input edge removed: {edge}" for edge in removed]
+        errors += [f"step removed: {identifier}" for identifier in missing_ids]
+    else:
+        errors += [f"edit bounds: {error}" for error in bound_errors(inherited, plan, caller_bounds(run))]
+        differences += [{"kind": "inherited_edge_absent", "edge": edge} for edge in removed]
+        differences += [{"kind": "inherited_step_absent", "step_id": identifier} for identifier in missing_ids]
+    return {"mode": mode, "errors": [f"inherited draft: {error}" for error in errors], "differences": differences}
+
+
 def compare_obligations(run: Run, meta: Dict[str, Any], plan: Any) -> Dict[str, Any]:
     """Obligations the candidate must keep. Against the loop baseline: goal_needs exactly, and every confirmation
-    difference reported for the review. Against an inherited input: also its step IDs, input edges and (legacy)
-    unchanged confirmations. Errors fail; differences need a review finding."""
+    difference reported for the review. Against an inherited input: what inherited_obligations says."""
     baseline = read_json(run.baseline)
     generated = preservation.compare(baseline, plan, "source-aware")
     errors = list(generated["errors"])
     differences = list(generated["confirmation_differences"])
-    inherited_result = None
-    if run.inherited.is_file():
-        inherited = read_json(run.inherited)
-        mode = mode_for(meta)
-        inherited_result = preservation.compare(inherited, plan, mode)
-        errors += [e for e in inherited_result["errors"] if e not in errors]
-        differences += inherited_result["confirmation_differences"]
-        removed = inherited_edges_removed(inherited, plan)
-        missing_ids = inherited_ids_removed(inherited, plan)
-        if mode == "legacy":
-            errors += [f"inherited input edge removed: {edge}" for edge in removed]
-            errors += [f"inherited step removed: {identifier}" for identifier in missing_ids]
-        else:
-            differences += [{"kind": "inherited_edge_absent", "edge": edge} for edge in removed]
-            differences += [{"kind": "inherited_step_absent", "step_id": identifier} for identifier in missing_ids]
+    inherited = inherited_obligations(run, meta, plan)
+    if inherited is not None:
+        errors += inherited["errors"]
+        differences += inherited["differences"]
     return {"errors": errors, "differences": differences, "goal_needs_preserved": generated["goal_needs_preserved"],
-            "inherited_mode": mode_for(meta) if inherited_result is not None else None}
+            "inherited_mode": inherited["mode"] if inherited is not None else None}
 
 
 def contract_for(run: Run, meta: Dict[str, Any], exit_checks: List[Dict[str, str]]) -> Dict[str, Any]:
@@ -414,8 +506,10 @@ def contract_for(run: Run, meta: Dict[str, Any], exit_checks: List[Dict[str, str
             "applicable or uncertain, check sources and bounds, and review implementable chunks. Repair every "
             f"finding the edit bounds allow by editing {run.plan}; a review may remove an edge or step this run "
             "generated when it finds it unjustified, never an inherited one. Save the assessment (the review "
-            f"prompt's JSON) to a new file, run `{record}`, then the packet's verify_script, then submit the report "
-            "file that record prints through done_argv on stdin.")
+            "prompt's JSON; its candidate_identity is the sha256 of the candidate the cycle began with, which freeze "
+            "printed for cycle 1 and each record prints, and last_report.handoff repeats, for the next) to a new "
+            f"file, run `{record}`, then the packet's verify_script, then submit the report file that record prints "
+            "through done_argv on stdin.")
     inputs = [("original request", run.request), ("inherited draft", run.inherited), ("caller packet", run.caller)]
     resources = [{"purpose": purpose, "locator": str(path)} for purpose, path in inputs if path.is_file()]
     resources += [{"purpose": entry["purpose"], "locator": entry["locator"]} for entry in meta["resources"]]
@@ -461,7 +555,16 @@ def command_prepare(args: argparse.Namespace) -> int:
     for value, name in ((draft, "--draft"), (caller, "--caller")):
         if value is not None and not isinstance(value, dict):
             raise Unavailable(f"{name} is not a JSON object")
-    route = "source-aware" if caller is not None else ("draft" if draft is not None else "fresh")
+    bounds = caller.get("edit_bounds") if caller is not None else None
+    if bounds is not None:
+        shaped = isinstance(bounds, dict) and all(
+            isinstance(bounds.get(key, []), list) and all(isinstance(item, str) for item in bounds.get(key, []))
+            for key in BOUND_LISTS) and all(isinstance(bounds.get(key, False), bool)
+                                            for key in ("allow_new_steps", "allow_new_edges"))
+        if not shaped:
+            raise Unavailable("--caller edit_bounds is an object whose " + ", ".join(BOUND_LISTS) + " are lists of "
+                              "strings and whose allow_new_steps and allow_new_edges are true or false")
+    route ="source-aware" if caller is not None else ("draft" if draft is not None else "fresh")
     reads = list(CALLER if route == "source-aware" else ())
     reads += list(DRAFTING if draft is None else (REVISING if route == "source-aware" else ELABORATING))
     resources = [("Backchain card", "SKILL.md")]
@@ -523,14 +626,11 @@ def command_freeze(args: argparse.Namespace) -> int:
             raise Unavailable("an --exit-check file holds one {id, clause, command} object")
     problems = []
     # The draft's obligations survive enrichment: goal_needs exactly, and an unchanged produce keeps its confirmation.
-    for baseline, label in ((run.draft, "generated draft"), (run.inherited, "inherited draft")):
-        if baseline.is_file():
-            before = read_json(baseline)
-            mode = "legacy" if label == "generated draft" else mode_for(meta)
-            problems += [f"{label}: {error}" for error in preservation.compare(before, plan, mode)["errors"]]
-            if label == "inherited draft" and mode == "legacy":
-                problems += [f"inherited draft: input edge removed: {e}" for e in inherited_edges_removed(before, plan)]
-                problems += [f"inherited draft: step removed: {i}" for i in inherited_ids_removed(before, plan)]
+    if run.draft.is_file():
+        problems += [f"generated draft: {error}"
+                     for error in preservation.compare(read_json(run.draft), plan, "legacy")["errors"]]
+    inherited = inherited_obligations(run, meta, plan)
+    problems += inherited["errors"] if inherited is not None else []
     packaged = graph.package(plan)
     receipt = check_receipt(data, plan, str(run.plan))
     if not receipt["ok"]:
@@ -566,7 +666,9 @@ def command_freeze(args: argparse.Namespace) -> int:
         print(f"  {number}. {SKILL_ROOT / relative}: {text}")
     print("Each cycle: review and repair " + str(run.plan) + "; save the assessment JSON; run "
           + run.command("record") + " --review FILE --exit E --continuation C; run the packet's verify_script; "
-          "submit the report record wrote through done_argv on stdin. After the loop ends: " + run.command("finish"))
+          "submit the report record wrote through done_argv on stdin. After the loop ends: " + run.command("finish")
+          + (" --review FILE (the final review object, references/caller-contract.md)" if run.caller.is_file() else ""))
+    print(f"Cycle 1's candidate_identity: {meta['frozen']['baseline']['sha256']}")
     return EXIT_OK
 
 
@@ -578,15 +680,26 @@ def classify(change_class: str, changed: bool) -> str:
     return "non-trivial" if changed or change_class == "material" else "trivial"
 
 
-def review_problems(review: Any) -> List[str]:
+def reviewed_identity(run: Run, meta: Dict[str, Any], cycles: List[Dict[str, Any]]) -> str:
+    """The sha256 of the candidate a new cycle reviews: the last recorded cycle's plan, or the frozen baseline."""
+    return cycles[-1]["plan"]["sha256"] if cycles else meta["frozen"]["baseline"]["sha256"]
+
+
+def review_problems(review: Any, identity: str) -> List[str]:
+    """Why an assessment cannot be recorded. It names the candidate it reviewed and what it inspected (adversarial
+    review F4, 2026-11-01: a stale or empty assessment was recorded as a qualifying review)."""
     if not isinstance(review, dict):
         return ["the assessment is a JSON object"]
     problems = []
     if review.get("change_class") not in CHANGE_CLASSES:
         problems.append("change_class is one of " + ", ".join(CHANGE_CLASSES))
-    for key in ("findings", "checks"):
-        if not isinstance(review.get(key), list):
-            problems.append(f"{key} is a list")
+    if review.get("candidate_identity") != identity:
+        problems.append(f"candidate_identity is the sha256 of the candidate this cycle reviewed, {identity} (freeze "
+                        "or the previous record printed it)")
+    if not isinstance(review.get("findings"), list):
+        problems.append("findings is a list")
+    if not isinstance(review.get("checks"), list) or not review["checks"]:
+        problems.append("checks lists what this cycle inspected (at least one entry)")
     for key in ("planning_gaps", "execution_blockers"):
         if not isinstance(review.get(key), list) or not all(isinstance(item, str) for item in review.get(key, [])):
             problems.append(f"{key} is a list of strings")
@@ -599,14 +712,14 @@ def command_record(args: argparse.Namespace) -> int:
     run = Run(args.run)
     meta = run.frozen()
     review = read_json(args.review)
-    problems = review_problems(review)
+    cycles = run.recorded()
+    problems = binding_problems(run, meta) + review_problems(review, reviewed_identity(run, meta, cycles))
     data, plan = read_plan(run.plan)
     receipt = check_receipt(data, plan, str(run.plan))
     if not receipt["ok"]:
         problems += [f"the candidate fails invariant {f['invariant']}: {f['message']}" for f in receipt["failures"]]
     obligations = compare_obligations(run, meta, plan)
     problems += obligations["errors"]
-    cycles = run.recorded()
     previous = cycles[-1]["plan"]["packaged_sha256"] if cycles else meta["frozen"]["packaged_sha256"]
     current = packaged_digest(plan)
     classification = classify(review.get("change_class", "unknown") if isinstance(review, dict) else "unknown",
@@ -642,10 +755,11 @@ def command_record(args: argparse.Namespace) -> int:
                      f"{'ok' if receipt['ok'] else 'invalid'}, completion {receipt['completion']}; obligations kept "
                      f"({len(obligations['differences'])} difference(s) for the review); planning gaps "
                      f"{len(gaps)}, execution blockers {len(blockers)}.")
-    handoff = (f"Backchain run {run.dir}, binding {meta['binding_id']}. Candidate {run.plan} (packaged sha256 "
-               f"{current}); cycles 1-{number} recorded in {run.evidence}, each with its assessment, plan, check and "
-               f"comparison under {run.cycles}. Planning gaps: {gaps or 'none'}. Execution blockers: "
-               f"{blockers or 'none'}." + (f" Next: {review['next_action']}" if review.get("next_action") else ""))
+    handoff = (f"Backchain run {run.dir}, binding {meta['binding_id']}. Candidate {run.plan}, sha256 "
+               f"{entry['plan']['sha256']} (the next cycle's candidate_identity); cycles 1-{number} recorded in "
+               f"{run.evidence}, each with its assessment, plan, check and comparison under {run.cycles}. Planning "
+               f"gaps: {gaps or 'none'}. Execution blockers: {blockers or 'none'}."
+               + (f" Next: {review['next_action']}" if review.get("next_action") else ""))
     report = {"classification": classification, "exit_assessment": args.exit,
               "continuation_assessment": args.continuation, "evidence": evidence_text, "handoff": handoff}
     write_once(directory / "report.json", json_text(report))
@@ -662,16 +776,33 @@ def command_record(args: argparse.Namespace) -> int:
     print(f"Report: {directory / 'report.json'}")
     print(f"cycle {number} recorded: {classification}{note}; next run the packet's verify_script, then submit the "
           "report through done_argv on stdin")
+    print(f"Next cycle's candidate_identity: {entry['plan']['sha256']}")
     return EXIT_OK
+
+
+def binding_problems(run: Run, meta: Dict[str, Any]) -> List[str]:
+    """What changed under the run's binding: its frozen inputs, baseline and contract, and every resource prepare
+    resolved (Backchain's card, prompts and command line, the Until Loop card and runtime). Adversarial review F2,
+    2026-11-01: these digests were recorded but never checked again."""
+    frozen = meta.get("frozen", {})
+    records = [(f"input {name}", entry) for name, entry in meta["inputs"].items()]
+    records += [(f"frozen {name}", frozen[name]) for name in ("baseline", "contract") if name in frozen]
+    records += [(f"resource {entry['purpose']}", entry) for entry in meta["resources"]]
+    problems = []
+    for label, entry in records:
+        path = Path(entry.get("path") or entry["locator"])
+        if not path.is_file() or file_sha256(path) != entry["sha256"]:
+            problems.append(f"the {label} {path} is missing or changed; a changed binding needs a new run")
+    return problems
 
 
 def verification(run: Run) -> List[str]:
     """Why the run's evidence does not hold for the current candidate; empty when it does."""
     meta = run.frozen()
+    problems = binding_problems(run, meta)
     cycles = run.recorded()
     if not cycles:
-        return ["no cycle is recorded; run record after the cycle's last edit"]
-    problems = []
+        return problems + ["no cycle is recorded; run record after the cycle's last edit"]
     for entry in cycles:
         for name in ("review", "plan", "check", "comparison", "report"):
             path = Path(entry[name]["path"])
@@ -690,6 +821,62 @@ def command_verify(args: argparse.Namespace) -> int:
     return EXIT_OK if not problems else EXIT_FAILS
 
 
+def receipt_problems(run: Run, packet: Any, cycles: List[Dict[str, Any]]) -> List[str]:
+    """Why the terminal packet at the run's receipt is not this run's own (adversarial review F1, 2026-11-01: any
+    file saying complete made a run converge). It repeats the frozen contract, counts no more actions than recorded
+    cycles and carries the last cycle's report; a complete one shows every frozen exit check passing."""
+    if not isinstance(packet, dict):
+        return [f"the receipt {run.receipt} is not an Until Loop packet"]
+    contract = read_json(run.contract)
+    expected = {"workspace": contract["workspace"], "receipt": str(run.receipt), "work": contract["work"],
+                "conditions": {"exit": contract["exit_condition"], "repeat": contract["repeat_condition"]},
+                "context": contract["context"], "exit_checks": contract["exit_checks"]}
+    problems = [f"the receipt's {key} is not this run's" for key, value in expected.items() if packet.get(key) != value]
+    progress = packet.get("progress") if isinstance(packet.get("progress"), dict) else {}
+    if progress.get("required_trivial_reviews") != contract["required_trivial_reviews"]:
+        problems.append("the receipt's review gate is not this run's")
+    # Each callback submits a report record wrote. Recording twice in one callback (an edit after record) leaves one
+    # record unsubmitted, which is harmless; an action with no record behind it was a hand-written report.
+    actions = progress.get("action_number")
+    if isinstance(actions, bool) or not isinstance(actions, int) or not 1 <= actions <= len(cycles):
+        problems.append(f"the receipt counts {actions} action(s) where {len(cycles)} cycle(s) are recorded; each "
+                        "callback submits the report record wrote")
+    if cycles and packet.get("last_report") != read_json(Path(cycles[-1]["report"]["path"])):
+        problems.append("the receipt's last_report is not the last recorded cycle's report")
+    status = packet.get("status")
+    if status == "complete":
+        results = packet.get("last_check_results")
+        passed = {result.get("id") for result in results if isinstance(result, dict) and result.get("passed") is True
+                  } if isinstance(results, list) else set()
+        failing = [check["id"] for check in contract["exit_checks"] if check["id"] not in passed]
+        if failing:
+            problems.append(f"the complete receipt does not show these exit checks passing: {', '.join(failing)}")
+    elif status != "stopped":
+        problems.append(f"the receipt's status {status!r} is not a terminal Until Loop status")
+    return problems
+
+
+def caller_review(review: Dict[str, Any], caller: Dict[str, Any], run: Run, meta: Dict[str, Any],
+                  convergence: Dict[str, Any], receipt: Dict[str, Any]) -> Dict[str, Any]:
+    """The review of a source-aware run's final {plan, review} (references/caller-contract.md): the final source
+    assessment with the caller's action identity and original input identity restored, the observed output digest,
+    the structural status of the check receipt, and the opaque convergence record."""
+    out = dict(review)
+    for key in ("interface", "action", "stage", "action_id", "owner", "workflow_stage"):
+        if key in caller:
+            out[key] = caller[key]
+    supplied = caller.get("candidate") if isinstance(caller.get("candidate"), dict) else {}
+    candidate = dict(review["candidate"]) if isinstance(review.get("candidate"), dict) else {}
+    candidate.update({key: value for key, value in supplied.items() if key != "output_sha256"})
+    candidate["input_sha256"] = supplied.get(
+        "input_sha256", meta["inputs"]["draft"]["sha256"] if "draft" in meta["inputs"] else "unavailable")
+    candidate["output_sha256"] = file_sha256(run.plan)
+    coverage = dict(review["coverage"]) if isinstance(review.get("coverage"), dict) else {}
+    coverage["structural_plan_status"] = "valid" if receipt["ok"] else "invalid"
+    out.update(candidate=candidate, coverage=coverage, convergence=convergence)
+    return out
+
+
 def command_finish(args: argparse.Namespace) -> int:
     run = Run(args.run)
     meta = run.frozen()
@@ -699,34 +886,52 @@ def command_finish(args: argparse.Namespace) -> int:
     status = packet.get("status") if isinstance(packet, dict) else None
     if status == "active":
         raise Unavailable(f"the loop is still active; continue it with the receipt's next_argv ({run.receipt})")
-    problems = verification(run)
+    # A run with a caller packet returns {plan, review} (adversarial review F5, 2026-11-01): the final review object
+    # is the model's, written after the loop as references/caller-contract.md shapes it.
+    caller = read_json(run.caller) if run.caller.is_file() else None
+    review = None
+    if caller is not None:
+        if args.review is None:
+            raise Unavailable("this run has a caller packet, so it returns {plan, review}: write the final review "
+                              "object (references/caller-contract.md) and pass it with --review FILE")
+        review = read_json(args.review)
+        if not isinstance(review, dict):
+            raise Unavailable(f"--review {args.review} is not a JSON object")
+        mismatched = [f"{key} {review.get(key)!r} (the caller packet's is {caller.get(key)!r})"
+                      for key in ("interface", "action", "stage", "action_id") if review.get(key) != caller.get(key)]
+        if mismatched:
+            raise Unavailable("--review is not this caller action's review: " + "; ".join(mismatched))
+        if not all(isinstance(gap, str) for gap in review.get("planning_gaps") or []):
+            raise Unavailable("--review planning_gaps is a list of strings")
+    cycles = run.recorded()
+    problems = verification(run) + receipt_problems(run, packet, cycles)
     data, plan = read_plan(run.plan)
     receipt = check_receipt(data, plan, str(run.plan))
     evidence = read_json(run.evidence) if run.evidence.is_file() else {}
-    gaps = evidence.get("planning_gaps", [])
+    gaps = unique(evidence.get("planning_gaps", []) + (review.get("planning_gaps") or [] if review else []))
     converged = status == "complete" and not problems and not gaps and receipt["ok"]
-    next_action = evidence.get("next_action") or ""
-    if not converged and not next_action:
-        next_action = ("; ".join(problems) if problems else
-                       f"the loop ended {status}" + (f" with planning gaps: {gaps}" if gaps else ""))
-    result = {
-        "plan": graph.package(plan),
-        "convergence": {
-            "binding_id": meta["binding_id"],
-            "owner": "selected Until Loop binding",
-            "candidate": {"input_sha256": meta["frozen"]["baseline"]["sha256"], "output_sha256": file_sha256(run.plan)},
-            "resources": [{"purpose": e["purpose"], "resolved_locator": e["locator"]} for e in meta["resources"]],
-            "terminal_receipt": {"resolved_locator": str(run.receipt), "status": status, "opaque": True},
-            "domain_evidence": [str(run.evidence)] + [str(Path(c["review"]["path"]).parent) for c in evidence.get(
-                "cycles", [])],
-            "planning_gaps": gaps,
-            "execution_blockers": evidence.get("execution_blockers", []),
-            "next_action": "" if converged else next_action,
-        },
-        "structure": {"ok": receipt["ok"], "completion": receipt["completion"],
-                      "parallel_groups": receipt["parallel_groups"]},
-        "status": "converged" if converged else "incomplete",
+    # The run's own records come first: a model's next action never hides a receipt or binding that does not hold.
+    next_action = "" if converged else ("; ".join(problems) or evidence.get("next_action") or (
+        f"the loop ended {status}" + (f" with planning gaps: {gaps}" if gaps else "")))
+    convergence = {
+        "binding_id": meta["binding_id"],
+        "owner": "selected Until Loop binding",
+        "candidate": {"input_sha256": meta["frozen"]["baseline"]["sha256"], "output_sha256": file_sha256(run.plan)},
+        "resources": [{"purpose": e["purpose"], "resolved_locator": e["locator"]} for e in meta["resources"]],
+        "terminal_receipt": {"resolved_locator": str(run.receipt), "status": status, "opaque": True},
+        "domain_evidence": [str(run.evidence)] + [str(Path(c["review"]["path"]).parent) for c in cycles],
+        "planning_gaps": gaps,
+        "execution_blockers": evidence.get("execution_blockers", []),
+        "next_action": next_action,
     }
+    result = {"plan": graph.package(plan)}
+    if review is None:
+        result["convergence"] = convergence
+    else:
+        result["review"] = caller_review(review, caller, run, meta, convergence, receipt)
+    result["structure"] = {"ok": receipt["ok"], "completion": receipt["completion"],
+                           "parallel_groups": receipt["parallel_groups"]}
+    result["status"] = "converged" if converged else "incomplete"
     write_atomically(run.result, json_text(result))
     print(f"Result: {run.result}")
     if converged:
@@ -847,6 +1052,8 @@ def parser() -> argparse.ArgumentParser:
     verify.set_defaults(run_command=command_verify)
     finish = commands.add_parser("finish", help="write the run's result after the loop ends")
     finish.add_argument("--run", type=Path, required=True)
+    finish.add_argument("--review", type=Path,
+                        help="a run with a caller packet: the final review object (references/caller-contract.md)")
     finish.set_defaults(run_command=command_finish)
     lenses = commands.add_parser("lenses", help="print the named technical lens cards (T01 to T42)")
     lenses.add_argument("ids", nargs="+")

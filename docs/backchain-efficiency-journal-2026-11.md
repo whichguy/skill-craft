@@ -159,3 +159,44 @@ compact one keeps the same four placeholders the checkout's harness renders.
 Risk carried into the cohort: the 2026-10-16 adversarial review's false-edge hazard of direct synthesis is now
 mitigated by the generated-vs-inherited rule (a review may remove an edge its own run generated); its frequency is
 unmeasured, and the held-out `inherited-edges` and `seeded-defect` cases are where it would show.
+
+## Round 4 — adversarial review of the candidate, and its fixes (2026-11-01)
+
+Conditions: one adversarial review (the adversarial-review skill) by `codex:gpt-6.1-sol` at medium effort of the
+candidate as it stood at 07:16: 39af8ce04222fb49aa6d612e08b4dbabd73e5db3 plus the lean-prompt step that landed as
+090e37f5b222486c258e39c88a2d8e7557b939ef. The reviewer had a 238 KB change packet (17 source-file diffs against
+e81fdb55, tests and the byte-for-byte validator move left out) and an evidence brief. It returned eight findings,
+each with a refutation condition. Evidence:
+[`experiments/backchain-efficiency-20261101/adversarial/`](experiments/backchain-efficiency-20261101/adversarial/)
+(`findings.json`, `findings.md`, `evidence.md`, `dispositions.md`).
+
+Method: each code finding became a test in `test/backchain-toolkit.test.py`, written from the reviewer's refutation
+condition before its fix; the fixes followed. F6 and F7 are measurement findings and became pre-registered measures of
+the cohort before its freeze (`/Users/dadleet/src/backchain/results/backchain-efficiency-20261101/cohort/PROTOCOL.md`).
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R4-1 (F1) | `finish` certified convergence from any receipt reading `complete`, a fabricated one or another run's. It now accepts only the run's own terminal packet: the frozen contract's workspace, work, conditions, context and exit checks, this receipt path and gate, no more actions than recorded cycles, the last cycle's report, and, when complete, every frozen exit check passing. A genuine run's terminal packet matched on every one of those fields. | firm (test) | `test_finish_refuses_a_receipt_that_is_not_this_runs`, `test_finish_refuses_a_callback_submitted_without_record`; `backchain.py` `receipt_problems` |
+| R4-2 (F2) | The run's frozen request, caller packet, baseline, contract and resolved resources could change unnoticed. `verify` (the `backchain-evidence` exit check), `record` and `finish` now recheck every digest. | firm (test) | `test_verify_rejects_a_changed_binding` (6 targets); `binding_problems` |
+| R4-3 (F3) | A caller's `edit_bounds` were bound into the contract but no command enforced them. `freeze`, `record` and `verify` now do, as `references/caller-contract.md` states them; the edge-key form (`consumer<-supplier`, `null` for an `initial_state` input) is now documented there. One deliberate difference from the 2026-10-16 study's own check: that check keyed edges per input object, this one per consumer/supplier pair. | firm (test) | `test_caller_edit_bounds_are_enforced`; `bound_errors`; the study's `study.py` bounds block |
+| R4-4 (F4) | A stale or empty assessment was recorded as a qualifying review. `record` now requires `candidate_identity` to be the sha256 of the candidate the cycle began with (`freeze` prints cycle 1's, each `record` prints the next, and its report's handoff repeats it), and a non-empty `checks`. On 090e37f5 all three bad assessments were recorded, as cycles 1 to 3. | firm (test) | `test_record_binds_the_assessment_to_the_candidate_it_reviewed`; `review_problems` |
+| R4-5 (F5) | A source-aware run returned `{plan, convergence}`, not the documented `{plan, review}`. `finish --review FILE` is now required with a caller packet. It checks the review's interface, action, stage and action ID against the packet, restores the caller's identities, records the output digest, takes `structural_plan_status` from the check receipt and adds `review.convergence`. A final review's planning gaps also prevent converged. | firm (test) | `test_a_source_aware_run_returns_plan_and_review`; `caller_review` |
+| R4-6 (F8) | The contract forbade network access, installation and contact that a request or caller may grant, and that 0.6.6 had not forbidden. Its authority is 0.6.6's scope again (no commit, push, merge or project execution, no broadened scope), plus "any other access is only what the request and the caller packet grant". | firm (test) | `test_the_contract_grants_only_the_callers_authority`; `AUTHORITY` |
+| R4-7 (F6) | Dropping the confirming review rests on 0 changes in 11 confirming reviews, from one study. D1 stands as the owner's decision. The cohort now reports the control arm's confirming-review yield, and a real material defect that only a confirming review found goes to the owner. | open (cohort) | PROTOCOL.md, secondary measures |
+| R4-8 (F7) | The lean prompts are adopted before their quality cohort. That cohort (D2) is the experiment the finding asks for. Added before the freeze: per-case reporting, a pooled report over the three cases where lean qualified less on 2026-10-16, and that pooled qualification as a block on a candidate win. | open (cohort) | PROTOCOL.md, measures and blocks |
+
+Fail-first, and after: the final test file run against 090e37f5 fails 16 times in 8 tests, each in the finding it
+targets: F1 3, F2 6, F3 4, F4 1, F5 1, F8 1. F4's first failure is the new printed-identity assertion; without that
+assertion, its three substantive subtests fail. With the fixes, all 31 toolkit tests pass (29.7 s). Before the last
+correction below, the quick tier for the changed paths (17 suites) passed in 322.5 s; after it, the toolkit,
+`BackchainGateDocumentsTest` (9 tests) and `shiploop-navigator-dry-run` (36 tests) pass.
+
+A correction made while fixing, kept by a test: the first F1 fix required exactly one loop action per recorded cycle.
+That would refuse a normal run in which the model edits after `record`, records again and submits the second report
+in the same callback. The rule is now "no more actions than recorded cycles": an action with no record behind it
+still means a hand-written report, and is refused. `test_a_cycle_recorded_twice_in_one_callback_still_finishes`
+passes on 090e37f5 and after; it is a guard, not a fail-first test.
+
+Not defended, by the KISS rule (fix what breaks a normal run, document the rest): a hand-edited `run.json` can
+change what the binding check compares against, and a deliberately forged packet that copies every contract field
+and the last report would pass `receipt_problems`. The 2026-10-16 failures were hand-built bindings, not tampering.
