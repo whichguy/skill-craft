@@ -46,9 +46,17 @@ an explicit future requirement and scope boundary. A decision being accepted doe
 its implementation into the current delivery: the request expressly defers it.
 At link 2 it becomes current work. Record and assess that scope boundary.
 
-Observe the existing handoff's `follow_on` classification too: the approved later
-delivery is an `extension`, not an unanswered `decision` or a gap in the requested
-base. If a primary-requirement gate precedes premature implementation, retain the
+Record the handoff's actual `follow_on` class, statement, source and rationale.
+`extension` is a prediction, not a required label: the current vocabulary also
+allows a `note` for knowledge retained for a later change. Judge whether the run
+preserves the settled rule, marks implementation as deferred and fulfills this
+delivery's recording obligation. A label alone neither proves nor disproves those
+facts. If it says `gap` or `decision`, inspect which outcome or choice it describes;
+do not fail the base merely because a deferred future feature got that label, or
+accept a claim that the already-settled matching rule needs another owner answer.
+Retain any disagreement with the class definitions as a separate classification
+finding. A recommended follow-on command never bypasses the checkpoint review.
+If a primary-requirement gate precedes premature implementation, retain the
 refusal and subsequent actions in `shiploop_failures`/events. That is a possible
 scope-handling defect to diagnose, not automatic proof the model ignored the user.
 
@@ -242,6 +250,7 @@ Reviewed source contracts: [copy and predecessor metadata](../../../test/shiploo
 [inherited checks](../../../test/shiploop_e2e/chains.py#L37),
 [follow-on case-writing rules](../../../test/shiploop_e2e/SPEC.md#L705),
 [accepted intent versus implementation](../../../skills/shiploop/references/project-knowledge.md#L329),
+[handoff class definitions](../../../skills/shiploop/scripts/shiploop_prompts.py#L1861),
 [primary requirement verification](../../../skills/shiploop/scripts/shiploop_primary.py#L1)
 and [qualification input boundary](../../../test/shiploop_e2e/boundary.py#L88).
 These links describe the reviewed source revision; line positions can move later.
@@ -263,6 +272,11 @@ These links describe the reviewed source revision; line positions can move later
   evaluator-digest mismatch make a universal efficiency threshold unjustified.
 - `916a2c2b32e451f3748a1b8be4675b88cbcb113b`: the E2E learning-owner safeguard
   protects harness decisions; this plan tests decisions inside the generated app.
+- `e7c05e6875679ad0a617923c41e1f9fd5c57079e`: the separately registered
+  recommended-gap experiment treats the class of intentionally deferred work as
+  an open question. This is a plan, not a result. It prompted removal of this
+  pilot's categorical `extension` expectation without weakening its scope or
+  accepted-decision requirements.
 
 Opus reviewed the frozen brief read-only: `claude-opus-5-5`, xhigh, verified served
 model, no fallback, exit 0. Adopted its warnings about negative-check inheritance,
