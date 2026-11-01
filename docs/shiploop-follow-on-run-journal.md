@@ -594,6 +594,12 @@ Facts re-checked against origin/main 6a6cb10172f78737b685a127c1c2f2be5c2aca52 (t
 still off main (its branch tip moved to 065a73f0a4ec); E4 was not re-read; SKILL.md is 30,011 bytes against the 30500 bound and the feature commit did not
 change it. The build branch was merged with origin/main at f1a5868da64587610d6711105650caacb2d557fc (a merge, not a rebase: the plan, the evidence and the LEARNINGS entry cite the hashes).
 
+Third merge (9f07ba40a2beeacf9d51b936c55d4177d7dcbe18): origin/main moved to 4224161b095792825befe2a384075fab5660ae05 while the release candidate was being cut, because another session released skill-craft 2.29.0 and ShipLoop 1.28.0 (the
+step-plan focused-ID rule) at 09:01. The pending note therefore ships as ShipLoop 1.29.0 and skill-craft 2.30.0 (`release.py --dry-run` on the merged tree; the first candidate's
+2.29.0 / 1.28.0 was discarded unpublished). The merge conflicted only in the append-only `LEARNINGS.md` and `baselines.jsonl`, resolved by keeping both sides (the other session's
+entry and rows first). SKILL.md is 30,115 bytes against the bound of 30500 (their release added 104; the feature added none). Their step-plan and prompt changes were not in the tree
+the four live runs tested, so the merged tree was verified again by the quick tier before the release (the line below).
+
 Superseded (marked 2026-11-01): Round 4's "the recommendation stays not to build until runs of the owner's own features show more" was not kept: the owner asked for
 the build (see the plan above). Its evidence about demand stands. The design's "Nothing is built, adopted or released" (revision 5's status line) is replaced
 by revision 6's.

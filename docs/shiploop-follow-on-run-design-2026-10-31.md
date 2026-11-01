@@ -529,7 +529,7 @@ Built on the owner's instruction of 2026-11-01 (D4; journal Round 5). The commit
 f1a5868da64587610d6711105650caacb2d557fc: the feature 826c951ccfdecb8f48e406f8fbdacb6a69daabbc (the module, its wiring, 14 hermetic tests written first), the plan of the live round
 2da2d4f3d11b0f468c14ff48e6158a7bb334e8ee, the fix ba3297d707329a6500ac036577d3f211b2e6a352 (a missing workspace record), the test-only commit 12d293a83ab2c05d30bb575b3d0c5989604a3601, the evidence
 7c2ce6cb9345959292c38688106a4c8d16be865c and the LEARNINGS entry c593e8f27d65d7157438d9b14c2dd7c09f3bbc89. Not built: the auto-start chain (4.7), the E2E SPEC clause and the
-`follow_on` metric, an export of the list to the Run Review page, and any change to the skill card (SKILL.md is unchanged at 30,011 bytes of 30500).
+`follow_on` metric, an export of the list to the Run Review page, and any change to the skill card (the feature left SKILL.md alone: 30,011 bytes of 30500 when it was written, 30,115 after another session's release 2.29.0).
 As of the commit that holds this revision none of these commits is on origin/main. What the build found beyond the sketch: five suites hand-build a
 handoff result and had to carry `follow_on: []` (callback-contract's helper, handoff, full-runtime, navigator-v4 and, found only by the quick tier,
 actual-improve-cli), the same effect the unverified restate had on a fixture (d84d30a977aa584ecc748fb34982f2bd7add21df); and a path that read an
