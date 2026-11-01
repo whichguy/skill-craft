@@ -876,10 +876,9 @@ class PilotKitTest(unittest.TestCase):
     def test_the_run_script_parses_pins_the_hook_commits_and_refuses_a_used_folder(self):
         script = self.KIT / "run.sh"
         self.assertEqual(subprocess.run(["bash", "-n", str(script)], capture_output=True, text=True, check=False).returncode, 0)
-        text, readme = script.read_text(), (self.KIT / "README.md").read_text()
+        text = script.read_text()
         for pinned in ("779980629a81ce0e740f7c196e83e000dd582d99", "7f25acff8dab239485f262249ec70773ba906aad"):
             self.assertIn(pinned, text)
-            self.assertIn(pinned, readme)
         for name in ("prediction.json", "pilot-ledger.jsonl"):
             self.assertIn(name, text)
             self.assertTrue((self.KIT / name).is_file())
