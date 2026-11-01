@@ -331,6 +331,40 @@ at least 80% of the explicit sessions on both cards.
 **Limits.** Each host is one model at one setting; Claude loads the owner's global instructions, as the harness's Claude host
 always does. Small base rates mean this checks for harm, not benefit.
 
+### Result of the other-hosts probe
+
+Both hosts ran the registered plan to the end on 2026-11-01 (`plan-hosts.json`, seed 20261104, one launch per host, `run.py`, the
+final driver, no change while they ran): 96 valid sessions each, every slot valid, the installed card equal to the arm's card in
+every session (C `dd1a2ebf1d5d`, T2 `fe70f7b8e3b8`; the package the host probe was cut from was 2.28.1, three releases after the R2
+build's 2.27.3). Claude `claude-sonnet-5-5` on its own models, Grok `grok-4.7` at medium. `analyze.py --mode hosts`
+(`analysis-h-claude-output.txt`, `analysis-h-grok-output.txt`; sessions in `results-h-claude-compact.jsonl`,
+`results-h-grok-compact.jsonl`):
+
+| request | card | Claude: first start `init` | Grok: first start `init` |
+|---|---|---|---|
+| `sf-ui` (the failing prompt) | C, old wording | 0 of 16 | 0 of 16 |
+| `sf-ui` | T2, published | 0 of 16 | 0 of 16 |
+| `repo` (an existing Git repository) | C | 0 of 8 | 0 of 8 |
+| `repo` | T2 | 0 of 8 | 0 of 8 |
+| `inplace-hello` (explicit in-place) | C | 12 of 12 | 12 of 12 |
+| `inplace-hello` | T2 | 12 of 12 | 12 of 12 |
+| `nogit-hello` (explicit non-Git) | C | 12 of 12 | 12 of 12 |
+| `nogit-hello` | T2 | 12 of 12 | 12 of 12 |
+
+**Verdict, both hosts: no regression found.** The rule's two triggers were not near: on `sf-ui` and `repo` T2 started with `init`
+0 times against 0 for C, and over the two explicit requests the `init` share was 24 of 24 for both cards (drop 0). The prediction held
+on both hosts (2 or fewer `init` per card on `sf-ui` and `repo`; at least 80% `init` on the explicit requests, here 100%).
+
+**What it shows and what it cannot.** T2 does not move either host in either direction on these requests, and neither host ever
+started the Salesforce request with `init` on the old wording either (0 of 16 each), as the archive said (Claude 0 of 56 starts, Grok 0
+of 111). So there is a floor: T2 cannot be shown to help on these hosts, only not to hurt, and with 16 sessions a rate under
+about 17% (Wilson upper bound 0.19) could still be hidden in each cell. The sentence's benefit is Codex Terra's.
+
+**Faults.** Claude: 4 invalid attempts (three had no run record, one ended without a skill call), each retried to a valid session
+by the driver; they are in `results.jsonl` and are not outcomes. Grok: none. Route readings: Claude's command route and the route
+on disk agreed in all 83 sessions where both were readable (13 command only); Grok's stop precedes any write, so all 96 rest on the
+command alone, as registered. Median time to the start: Claude 24 s, Grok 65 s.
+
 ## Published-build confirmation (registered 2026-11-01, before it runs)
 
 After the release, `start_probe.py confirm` runs 12 sessions of the `sf-ui` request on the build a user installs (the published
@@ -383,7 +417,13 @@ shiploop-3`, on `test_a_document_rerun_is_held_to_the_count_the_test_stage_accep
 Directory not empty: '.../repo/.git/objects'` raised by `tempfile` while it removed the test's temporary Git repository, a cleanup
 race, not an assertion about the card. The test passes alone (3 of 3 locally), every other job of the run passed, and rerunning the
 failed job passed, so the run ended green. The same class of race was fixed for another fixture in
-f48df6587d78cf3e958120382128e072cfa948f4 (isolate ephemeral fixtures from progress writers); this test's temporary repository is not yet isolated that way.
+f48df6587d78cf3e958120382128e072cfa948f4 (isolate ephemeral fixtures from progress writers); this test's temporary repository is not isolated that way.
+
+**Follow-up (2026-11-01).** No writer was found: the suite starts no thread or process, `run_suites.py` already sets
+`SHIPLOOP_PROGRESS=off`, the named test passed 150 of 150 runs alone and the whole class 8 of 8 times (4 at a time) under a load above 80.
+fbcbf0d53345b3e65f24b316a3df1125bfc2ec20 repeats the fixtures' directory removal (up to 5 passes, the last error raised) in the four
+real-Git fixtures of that file instead; whether the failure returns is the test of it. The CI run that failed:
+https://github.com/whichguy/skill-craft/actions/runs/41318115086.
 
 ## Evidence
 

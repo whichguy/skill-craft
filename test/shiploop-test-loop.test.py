@@ -8,6 +8,7 @@ bundled Until Loop runtime, and ShipLoop really runs the recorded commands
 from __future__ import annotations
 
 import contextlib
+import errno
 import io
 import json
 import os
@@ -17,6 +18,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import types
 import unittest
 from pathlib import Path
@@ -154,6 +156,33 @@ def git(repo: Path, *args: str) -> str:
     return subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True, text=True).stdout
 
 
+def remove_tree(path: Path, *, attempts: int = 5, pause: float = 0.2) -> None:
+    """Remove a fixture tree, trying again when something is still being written into it.
+
+    A teardown once failed with ``OSError: [Errno 39] Directory not empty: '.../repo/.git/objects'`` (CI run
+    41318115086, attempt 1, job full / shiploop-3, in test_a_document_rerun_is_held_to_the_count_the_test_stage_accepted,
+    Python 3.15.2): an entry appeared in a directory ``shutil.rmtree`` was emptying. No writer was found in this suite, and
+    the test passed every time it was run alone, so the removal is repeated after a short pause; the last error is raised.
+    """
+    for attempt in range(1, attempts + 1):
+        try:
+            shutil.rmtree(path)
+            return
+        except FileNotFoundError:
+            return
+        except OSError:
+            if attempt == attempts:
+                raise
+            time.sleep(pause * attempt)
+
+
+def fixture_directory(case: unittest.TestCase, prefix: str) -> Path:
+    """A new temporary directory, removed with ``remove_tree`` when the test ends."""
+    path = Path(tempfile.mkdtemp(prefix=prefix))
+    case.addCleanup(remove_tree, path)
+    return path
+
+
 class TestLoopTests(unittest.TestCase):
     def setUp(self) -> None:
         # Real-git tests must not read the machine's Git configuration (a CI runner's global config carries git-lfs
@@ -161,9 +190,7 @@ class TestLoopTests(unittest.TestCase):
         isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
         isolated.start()
         self.addCleanup(isolated.stop)
-        temp = tempfile.TemporaryDirectory(prefix="shiploop-test-loop-")
-        self.addCleanup(temp.cleanup)
-        base = Path(temp.name).resolve()
+        base = fixture_directory(self, "shiploop-test-loop-").resolve()
         self.repo = base / "repo"
         self.run_dir = base / "run"
         self.repo.mkdir()
@@ -2972,9 +2999,8 @@ class SharedBaseTests(unittest.TestCase):
         isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
         isolated.start()
         self.addCleanup(isolated.stop)
-        temp = tempfile.TemporaryDirectory(prefix="shiploop-shared-base-")
-        self.addCleanup(temp.cleanup)
-        self.repo, self.run_dir = Path(temp.name) / "repo", Path(temp.name) / "run"
+        temp = fixture_directory(self, "shiploop-shared-base-")
+        self.repo, self.run_dir = temp / "repo", temp / "run"
         self.repo.mkdir()
         self.run_dir.mkdir()
         git(self.repo, "init", "-q")
@@ -3034,9 +3060,7 @@ class ReleaseVerifyReturnedResultTests(unittest.TestCase):
         isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
         isolated.start()
         self.addCleanup(isolated.stop)
-        temp = tempfile.TemporaryDirectory(prefix="shiploop-release-verify-")
-        self.addCleanup(temp.cleanup)
-        base = Path(temp.name).resolve()
+        base = fixture_directory(self, "shiploop-release-verify-").resolve()
         self.source = base / "source"
         self.source.mkdir()
         git(self.source, "init", "-q")
@@ -3149,9 +3173,7 @@ class WorktreeItemCommitTests(unittest.TestCase):
         isolated = mock.patch.dict(os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
         isolated.start()
         self.addCleanup(isolated.stop)
-        temp = tempfile.TemporaryDirectory(prefix="shiploop-item-commit-")
-        self.addCleanup(temp.cleanup)
-        base = Path(temp.name).resolve()
+        base = fixture_directory(self, "shiploop-item-commit-").resolve()
         self.source = base / "source"
         self.source.mkdir()
         git(self.source, "init", "-q")
@@ -4112,6 +4134,51 @@ class RefusedRunTallyTests(unittest.TestCase):
             writes, refusal = test_loop.verify(root, self.state(root, "printf 'Ran 1 test in 0.001s\\n\\nOK\\n'"), "W1", "A1", "test")
             self.assertTrue(writes)
             self.assertEqual(refusal, "")
+
+
+
+class FixtureCleanupTests(unittest.TestCase):
+    """The fixture teardown that CI once failed on (``remove_tree``)."""
+
+    def test_a_directory_that_gains_an_entry_during_removal_is_removed_on_the_next_attempt(self) -> None:
+        base = Path(tempfile.mkdtemp(prefix="shiploop-cleanup-test-"))
+        self.addCleanup(shutil.rmtree, base, True)
+        (base / "objects").mkdir()
+        real, calls = shutil.rmtree, []
+
+        def fails_once(path, *args, **kwargs):
+            calls.append(path)
+            if len(calls) == 1:
+                raise OSError(errno.ENOTEMPTY, "Directory not empty", str(path))
+            return real(path, *args, **kwargs)
+
+        with mock.patch.object(shutil, "rmtree", fails_once), mock.patch.object(time, "sleep") as slept:
+            remove_tree(base)
+        self.assertEqual(len(calls), 2)
+        self.assertFalse(base.exists())
+        slept.assert_called_once()
+
+    def test_a_directory_that_keeps_failing_raises_the_last_error_after_the_attempts(self) -> None:
+        failure = OSError(errno.ENOTEMPTY, "Directory not empty")
+        with mock.patch.object(shutil, "rmtree", side_effect=failure) as rmtree, mock.patch.object(time, "sleep"):
+            with self.assertRaises(OSError) as raised:
+                remove_tree(Path("/nonexistent/fixture"), attempts=3)
+        self.assertEqual(rmtree.call_count, 3)
+        self.assertEqual(raised.exception.errno, errno.ENOTEMPTY)
+
+    def test_a_directory_that_is_already_gone_is_not_an_error(self) -> None:
+        remove_tree(Path(tempfile.gettempdir()) / "shiploop-cleanup-never-made")
+
+    def test_a_fixture_directory_is_removed_when_its_test_ends(self) -> None:
+        class Probe(unittest.TestCase):
+            def runTest(self) -> None:
+                self.made = fixture_directory(self, "shiploop-cleanup-probe-")
+                (self.made / "file").write_text("x\n")
+
+        probe, result = Probe(), unittest.TestResult()
+        probe.run(result)
+        self.assertTrue(result.wasSuccessful(), result.errors)
+        self.assertFalse(probe.made.exists())
 
 
 if __name__ == "__main__":

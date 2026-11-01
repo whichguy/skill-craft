@@ -1,0 +1,1902 @@
+{
+ "R4a-comments-seeded-fix": {
+  "checks": [
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-tickets",
+    "output": "the delivery's own node --test passes 129 tests, the base's 117 and 12 more\n",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-tickets",
+    "output": "the base's 18 pristine test files pass against the delivered source: 117 of 117 tests\n",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check assignment',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const put=await call('PUT','/tickets/'+id+'/assignee',{assignee:'check.agent'});if(put.status<200||put.status>299) process.exit(3);const got=(await call('GET','/tickets/'+id)).body;const list=(await call('GET','/tickets?assignee=check.agent')).body;const ok=got&&got.assignee==='check.agent'&&list&&Array.isArray(list.items)&&list.items.some(t=>t.id===id)&&list.items.every(t=>t.assignee==='check.agent');process.exit(ok?0:4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const ids=[];for(const title of ['Check reassign 1','Check reassign 2']){const made=await call('POST','/tickets',{title,requester:'check@example.com'});if(made.status!==201) process.exit(2);ids.push(made.body.id);const put=await call('PUT','/tickets/'+made.body.id+'/assignee',{assignee:'check.from'});if(put.status<200||put.status>299) process.exit(3);}const moved=await call('POST','/tickets/reassign',{from:'check.from',to:'check.to'});const after=(await call('GET','/tickets/'+ids[1])).body;const ok=moved.status===200&&moved.body&&moved.body.moved===2&&JSON.stringify(moved.body.ids)===JSON.stringify(ids)&&after&&after.assignee==='check.to';process.exit(ok?0:4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "ONCALL=check.oncall ESCALATE_AFTER_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check escalation',requester:'check@example.com',priority:'urgent'});if(made.status!==201) process.exit(2);const id=made.body.id;for(let i=0;i<100;i++){const box=(await call('GET','/admin/outbox')).body||{};const all=[...(box.pending||[]),...(box.sent||[]),...(box.dead||[])];if(all.some(e=>e&&e.to==='check.oncall'&&JSON.stringify(e).includes(id))) process.exit(0);await new Promise(r=>setTimeout(r,50));}process.exit(4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check comments',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const first=await call('POST','/tickets/'+id+'/comments',{author:'check.author',body:'first note'});const c=first.body;if(first.status!==201||!c||c.author!=='check.author'||c.body!=='first note'||!c.id||!c.created) process.exit(3);const second=await call('POST','/tickets/'+id+'/comments',{author:'check.author',body:'second note'});if(second.status!==201) process.exit(4);const shown=(await call('GET','/tickets/'+id)).body;if(!shown||!Array.isArray(shown.comments)||shown.comments.length!==2||shown.comments[0].body!=='first note'||shown.comments[1].body!=='second note') process.exit(5);const bad=await call('POST','/tickets/'+id+'/comments',{author:'',body:'x'});if(bad.status!==400) process.exit(6);const missing=await call('POST','/tickets/T-9999/comments',{author:'a',body:'b'});if(missing.status!==404) process.exit(7);for(const to of ['in_progress','resolved','closed']){const moved=await call('POST','/tickets/'+id+'/transition',{to});if(moved.status!==200) process.exit(8);}const closed=await call('POST','/tickets/'+id+'/comments',{author:'a',body:'b'});process.exit(closed.status===409?0:9);})().catch(()=>process.exit(10))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check comment notices',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const put=await call('PUT','/tickets/'+id+'/assignee',{assignee:'check.agent'});if(put.status<200||put.status>299) process.exit(3);const told=async()=>{const box=(await call('GET','/admin/outbox')).body||{};return [...(box.pending||[]),...(box.sent||[]),...(box.dead||[])].filter(e=>e&&e.to==='check.agent').length;};const before=await told();for(const note of ['one','two']){const r=await call('POST','/tickets/'+id+'/comments',{author:'someone.else',body:note});if(r.status!==201) process.exit(4);}if(await told()!==before+2) process.exit(5);const own=await call('POST','/tickets/'+id+'/comments',{author:'check.agent',body:'mine'});if(own.status!==201) process.exit(6);process.exit(await told()===before+2?0:7);})().catch(()=>process.exit(10))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "f=\"${TMPDIR:-/tmp}/e2e-comments-$$.json\"; printf '%s' '{\"version\":1,\"savedAt\":\"2025-01-01T00:00:00.000Z\",\"nextNumber\":2,\"tickets\":[{\"id\":\"T-0001\",\"title\":\"Old ticket\",\"priority\":\"normal\",\"requester\":\"old@example.com\",\"status\":\"open\",\"assignee\":null,\"created\":\"2025-01-01T00:00:00.000Z\",\"updated\":\"2025-01-01T00:00:00.000Z\"}],\"audit\":[{\"seq\":1,\"ticket\":\"T-0001\",\"action\":\"ticket.created\",\"actor\":\"system\",\"at\":\"2025-01-01T00:00:00.000Z\",\"changes\":{\"title\":{\"from\":null,\"to\":\"Old ticket\"}}}],\"outbox\":{\"nextId\":1,\"events\":[]}}' > \"$f\" && DATA_FILE=\"$f\" WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const got=await call('GET','/tickets/T-0001');if(got.status!==200||!got.body||got.body.id!=='T-0001') process.exit(2);if(!Array.isArray(got.body.comments)||got.body.comments.length!==0) process.exit(3);const made=await call('POST','/tickets/T-0001/comments',{author:'check.author',body:'kept across a restart'});if(made.status!==201) process.exit(4);})().catch(()=>process.exit(10))\" && DATA_FILE=\"$f\" WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const got=await call('GET','/tickets/T-0001');const c=got.body&&got.body.comments;process.exit(got.status===200&&Array.isArray(c)&&c.length===1&&c[0].author==='check.author'&&c[0].body==='kept across a restart'?0:2);})().catch(()=>process.exit(10))\"; rc=$?; rm -f \"$f\" \"$f\".*.tmp; exit $rc",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard | grep -v '\\.log$' | while IFS= read -r f; do [ -e \"$f\" ] || { echo \"missing $f\"; exit 1; }; done",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stringify(Object.keys({...p.dependencies,...p.devDependencies}).sort())}catch{return \"[]\"}};process.exit(deps(\".\")===deps(process.env.PRIOR_WORK)?0:1)'",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "count() { (cd \"$1\" && node --test 2>&1) | sed -nE 's/^(\u2139|#) pass ([0-9]+).*/\\2/p' | tail -1; }; before=$(count \"$PRIOR_WORK\"); after=$(count .); echo \"tests $before -> $after\"; [ -n \"$after\" ] && [ \"${after:-0}\" -ge \"${before:-0}\" ] || { echo \"fewer tests pass than in the followed run\"; exit 1; }; added=$(diff -rN \"$PRIOR_WORK/test\" test 2>/dev/null | grep \"^>\"); [ -n \"$added\" ] || { echo \"the test files are unchanged since the followed run\"; exit 1; }; for word in comment; do printf \"%s\\n\" \"$added\" | grep -qi \"$word\" || { echo \"no added test line names $word\"; exit 1; }; done; echo \"no fewer tests pass, and the added test lines name comments\"",
+    "output": "tests 124 -> 129\nno fewer tests pass, and the added test lines name comments\n",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bR-[0-9]+\\b' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); added=$(comm -13 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; covered=no; grep -qi comment docs/shiploop/spec.md && ! grep -qi comment \"$PRIOR_WORK/docs/shiploop/spec.md\" && covered=yes; echo \"earlier ids: $earlier; missing: $missing; added: $added; feature in spec: $covered\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ] && { [ -n \"$added\" ] || [ \"$covered\" = yes ]; }",
+    "output": "earlier ids:        7; missing: ; added: R-8 ; feature in spec: yes\n",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bAD-[0-9]+\\b' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; echo \"earlier decision ids: $earlier; missing: $missing\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ]",
+    "output": "earlier decision ids:        3; missing: \n",
+    "pass": true
+   }
+  ],
+  "delta": {
+   "basis": {
+    "followed_case": "ticket-escalation",
+    "head": "fb0781c187e637682dc24a35f826e15e166c4226",
+    "kind": "follow-on",
+    "start_head": "eb01bde4f3846a432bd3604c859a5e92cc6f13e3"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 2,
+      "insertions": 36,
+      "modified": 3
+     },
+     "living": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 1,
+      "insertions": 61,
+      "modified": 3
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 11,
+      "insertions": 71,
+      "modified": 6
+     },
+     "tests": {
+      "added": 2,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 168,
+      "modified": 0
+     }
+    },
+    "prior_source_files": 27,
+    "prior_source_modified": 6,
+    "prior_tests_modified": []
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 104,
+     "learned": 99,
+     "open_next": 33
+    },
+    "lessons_commit": "fb0781c187e6",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": []
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-4"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 4,
+     "prefix": "AD",
+     "prior": 3,
+     "retired_by_run": [],
+     "unchanged": 3
+    },
+    "spec.md": {
+     "added": [
+      "R-8"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 8,
+     "prefix": "R",
+     "prior": 7,
+     "retired_by_run": [],
+     "unchanged": 7
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 4635,
+      "prior": 3439
+     },
+     "changed_sections": [
+      "Real-boundary checks",
+      "Decisions"
+     ],
+     "duplicate": [
+      "Real-boundary checks"
+     ],
+     "level2": 8,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Architecture",
+      "prior": "Architecture"
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 13971,
+      "prior": 10531
+     },
+     "changed_sections": [
+      "Targets and runtimes",
+      "Commands",
+      "Harnesses and suites",
+      "ID convention"
+     ],
+     "duplicate": [
+      "Commands",
+      "Harnesses and suites"
+     ],
+     "level2": 19,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [
+      "Comment test commands",
+      "Prepared environment",
+      "Verified assignment checks",
+      "Integrated suite",
+      "Local return and verification",
+      "Returned result",
+      "Operational observations",
+      "Bulk reassignment and escalation discovery (2026-10-29)",
+      "Comment feature discovery (2026-11-01)"
+     ],
+     "stray_added": [
+      "Comment test commands",
+      "Comment feature discovery (2026-11-01)"
+     ],
+     "title": {
+      "final": "Environment",
+      "prior": "Environment"
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 6116,
+      "prior": 4161
+     },
+     "changed_sections": [
+      "Requirements"
+     ],
+     "duplicate": [],
+     "level2": 3,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Ticket service specification",
+      "prior": "Ticket assignment specification"
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-4",
+     "R-8"
+    ],
+    "primary": {
+     "delta": 1,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 2,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 4,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 0,
+     "other_writes": 5,
+     "reads": 1
+    },
+    "environment.md": {
+     "appends": 0,
+     "other_writes": 11,
+     "reads": 1
+    },
+    "spec.md": {
+     "appends": 0,
+     "other_writes": 10,
+     "reads": 2
+    }
+   }
+  },
+  "elapsed_seconds": 857.0,
+  "model_calls": 132,
+  "outcome_class": "PASS",
+  "pass": true,
+  "turns": 178
+ },
+ "R4a0-comments-seeded-old": {
+  "checks": [
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-tickets",
+    "output": "the delivery's own node --test passes 129 tests, the base's 117 and 12 more\n",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-tickets",
+    "output": "the base's 18 pristine test files pass against the delivered source: 117 of 117 tests\n",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check assignment',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const put=await call('PUT','/tickets/'+id+'/assignee',{assignee:'check.agent'});if(put.status<200||put.status>299) process.exit(3);const got=(await call('GET','/tickets/'+id)).body;const list=(await call('GET','/tickets?assignee=check.agent')).body;const ok=got&&got.assignee==='check.agent'&&list&&Array.isArray(list.items)&&list.items.some(t=>t.id===id)&&list.items.every(t=>t.assignee==='check.agent');process.exit(ok?0:4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const ids=[];for(const title of ['Check reassign 1','Check reassign 2']){const made=await call('POST','/tickets',{title,requester:'check@example.com'});if(made.status!==201) process.exit(2);ids.push(made.body.id);const put=await call('PUT','/tickets/'+made.body.id+'/assignee',{assignee:'check.from'});if(put.status<200||put.status>299) process.exit(3);}const moved=await call('POST','/tickets/reassign',{from:'check.from',to:'check.to'});const after=(await call('GET','/tickets/'+ids[1])).body;const ok=moved.status===200&&moved.body&&moved.body.moved===2&&JSON.stringify(moved.body.ids)===JSON.stringify(ids)&&after&&after.assignee==='check.to';process.exit(ok?0:4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "ONCALL=check.oncall ESCALATE_AFTER_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check escalation',requester:'check@example.com',priority:'urgent'});if(made.status!==201) process.exit(2);const id=made.body.id;for(let i=0;i<100;i++){const box=(await call('GET','/admin/outbox')).body||{};const all=[...(box.pending||[]),...(box.sent||[]),...(box.dead||[])];if(all.some(e=>e&&e.to==='check.oncall'&&JSON.stringify(e).includes(id))) process.exit(0);await new Promise(r=>setTimeout(r,50));}process.exit(4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check comments',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const first=await call('POST','/tickets/'+id+'/comments',{author:'check.author',body:'first note'});const c=first.body;if(first.status!==201||!c||c.author!=='check.author'||c.body!=='first note'||!c.id||!c.created) process.exit(3);const second=await call('POST','/tickets/'+id+'/comments',{author:'check.author',body:'second note'});if(second.status!==201) process.exit(4);const shown=(await call('GET','/tickets/'+id)).body;if(!shown||!Array.isArray(shown.comments)||shown.comments.length!==2||shown.comments[0].body!=='first note'||shown.comments[1].body!=='second note') process.exit(5);const bad=await call('POST','/tickets/'+id+'/comments',{author:'',body:'x'});if(bad.status!==400) process.exit(6);const missing=await call('POST','/tickets/T-9999/comments',{author:'a',body:'b'});if(missing.status!==404) process.exit(7);for(const to of ['in_progress','resolved','closed']){const moved=await call('POST','/tickets/'+id+'/transition',{to});if(moved.status!==200) process.exit(8);}const closed=await call('POST','/tickets/'+id+'/comments',{author:'a',body:'b'});process.exit(closed.status===409?0:9);})().catch(()=>process.exit(10))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check comment notices',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const put=await call('PUT','/tickets/'+id+'/assignee',{assignee:'check.agent'});if(put.status<200||put.status>299) process.exit(3);const told=async()=>{const box=(await call('GET','/admin/outbox')).body||{};return [...(box.pending||[]),...(box.sent||[]),...(box.dead||[])].filter(e=>e&&e.to==='check.agent').length;};const before=await told();for(const note of ['one','two']){const r=await call('POST','/tickets/'+id+'/comments',{author:'someone.else',body:note});if(r.status!==201) process.exit(4);}if(await told()!==before+2) process.exit(5);const own=await call('POST','/tickets/'+id+'/comments',{author:'check.agent',body:'mine'});if(own.status!==201) process.exit(6);process.exit(await told()===before+2?0:7);})().catch(()=>process.exit(10))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "f=\"${TMPDIR:-/tmp}/e2e-comments-$$.json\"; printf '%s' '{\"version\":1,\"savedAt\":\"2025-01-01T00:00:00.000Z\",\"nextNumber\":2,\"tickets\":[{\"id\":\"T-0001\",\"title\":\"Old ticket\",\"priority\":\"normal\",\"requester\":\"old@example.com\",\"status\":\"open\",\"assignee\":null,\"created\":\"2025-01-01T00:00:00.000Z\",\"updated\":\"2025-01-01T00:00:00.000Z\"}],\"audit\":[{\"seq\":1,\"ticket\":\"T-0001\",\"action\":\"ticket.created\",\"actor\":\"system\",\"at\":\"2025-01-01T00:00:00.000Z\",\"changes\":{\"title\":{\"from\":null,\"to\":\"Old ticket\"}}}],\"outbox\":{\"nextId\":1,\"events\":[]}}' > \"$f\" && DATA_FILE=\"$f\" WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const got=await call('GET','/tickets/T-0001');if(got.status!==200||!got.body||got.body.id!=='T-0001') process.exit(2);if(!Array.isArray(got.body.comments)||got.body.comments.length!==0) process.exit(3);const made=await call('POST','/tickets/T-0001/comments',{author:'check.author',body:'kept across a restart'});if(made.status!==201) process.exit(4);})().catch(()=>process.exit(10))\" && DATA_FILE=\"$f\" WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const got=await call('GET','/tickets/T-0001');const c=got.body&&got.body.comments;process.exit(got.status===200&&Array.isArray(c)&&c.length===1&&c[0].author==='check.author'&&c[0].body==='kept across a restart'?0:2);})().catch(()=>process.exit(10))\"; rc=$?; rm -f \"$f\" \"$f\".*.tmp; exit $rc",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard | grep -v '\\.log$' | while IFS= read -r f; do [ -e \"$f\" ] || { echo \"missing $f\"; exit 1; }; done",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stringify(Object.keys({...p.dependencies,...p.devDependencies}).sort())}catch{return \"[]\"}};process.exit(deps(\".\")===deps(process.env.PRIOR_WORK)?0:1)'",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "count() { (cd \"$1\" && node --test 2>&1) | sed -nE 's/^(\u2139|#) pass ([0-9]+).*/\\2/p' | tail -1; }; before=$(count \"$PRIOR_WORK\"); after=$(count .); echo \"tests $before -> $after\"; [ -n \"$after\" ] && [ \"${after:-0}\" -ge \"${before:-0}\" ] || { echo \"fewer tests pass than in the followed run\"; exit 1; }; added=$(diff -rN \"$PRIOR_WORK/test\" test 2>/dev/null | grep \"^>\"); [ -n \"$added\" ] || { echo \"the test files are unchanged since the followed run\"; exit 1; }; for word in comment; do printf \"%s\\n\" \"$added\" | grep -qi \"$word\" || { echo \"no added test line names $word\"; exit 1; }; done; echo \"no fewer tests pass, and the added test lines name comments\"",
+    "output": "tests 124 -> 129\nno fewer tests pass, and the added test lines name comments\n",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bR-[0-9]+\\b' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); added=$(comm -13 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; covered=no; grep -qi comment docs/shiploop/spec.md && ! grep -qi comment \"$PRIOR_WORK/docs/shiploop/spec.md\" && covered=yes; echo \"earlier ids: $earlier; missing: $missing; added: $added; feature in spec: $covered\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ] && { [ -n \"$added\" ] || [ \"$covered\" = yes ]; }",
+    "output": "earlier ids:        7; missing: ; added: R-8 ; feature in spec: yes\n",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bAD-[0-9]+\\b' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; echo \"earlier decision ids: $earlier; missing: $missing\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ]",
+    "output": "earlier decision ids:        3; missing: \n",
+    "pass": true
+   }
+  ],
+  "delta": {
+   "basis": {
+    "followed_case": "ticket-escalation",
+    "head": "fd328c3f4421cf40adba2e5ffecd61113f4f59e8",
+    "kind": "follow-on",
+    "start_head": "eb01bde4f3846a432bd3604c859a5e92cc6f13e3"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 1,
+      "insertions": 13,
+      "modified": 2
+     },
+     "living": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 111,
+      "modified": 3
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 11,
+      "insertions": 67,
+      "modified": 6
+     },
+     "tests": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 142,
+      "modified": 0
+     }
+    },
+    "prior_source_files": 27,
+    "prior_source_modified": 6,
+    "prior_tests_modified": []
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 169,
+     "learned": 124,
+     "open_next": 33
+    },
+    "lessons_commit": "f7b5cc0082a8",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": []
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-4"
+     ],
+     "born_retired": [
+      "AD-4"
+     ],
+     "changed": [],
+     "dropped": [],
+     "final": 4,
+     "prefix": "AD",
+     "prior": 3,
+     "retired_by_run": [],
+     "unchanged": 3
+    },
+    "spec.md": {
+     "added": [
+      "R-8"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 8,
+     "prefix": "R",
+     "prior": 7,
+     "retired_by_run": [],
+     "unchanged": 7
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [
+      "Comments real-boundary checks",
+      "AD-4 Comment storage and delivery (implemented)"
+     ],
+     "bytes": {
+      "final": 5039,
+      "prior": 3439
+     },
+     "changed_sections": [
+      "Superseded"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [
+       "this request"
+      ],
+      "n": 1
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Architecture",
+      "prior": "Architecture"
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 17506,
+      "prior": 10531
+     },
+     "changed_sections": [],
+     "duplicate": [
+      "Commands",
+      "Harnesses and suites"
+     ],
+     "level2": 26,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [
+      "Prepared environment",
+      "Verified assignment checks",
+      "Integrated suite",
+      "Local return and verification",
+      "Returned result",
+      "Operational observations",
+      "Bulk reassignment and escalation discovery (2026-10-29)",
+      "Comments discovery (2026-11-01)",
+      "Comments harnesses and suites plan",
+      "Comments commands",
+      "Comments preparation",
+      "Comments verified commands",
+      "Comments release route",
+      "Comments returned verification",
+      "Comments operational handoff (2026-11-01)"
+     ],
+     "stray_added": [
+      "Comments discovery (2026-11-01)",
+      "Comments harnesses and suites plan",
+      "Comments commands",
+      "Comments preparation",
+      "Comments verified commands",
+      "Comments release route",
+      "Comments returned verification",
+      "Comments operational handoff (2026-11-01)"
+     ],
+     "title": {
+      "final": "Environment",
+      "prior": "Environment"
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 6316,
+      "prior": 4161
+     },
+     "changed_sections": [
+      "Requirements"
+     ],
+     "duplicate": [],
+     "level2": 3,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [
+       "current request"
+      ],
+      "n": 1
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Ticket assignment specification",
+      "prior": "Ticket assignment specification"
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-4",
+     "R-8"
+    ],
+    "primary": {
+     "delta": 1,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 2,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 3,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 0,
+     "other_writes": 6,
+     "reads": 2
+    },
+    "environment.md": {
+     "appends": 0,
+     "other_writes": 17,
+     "reads": 2
+    },
+    "spec.md": {
+     "appends": 0,
+     "other_writes": 13,
+     "reads": 3
+    }
+   }
+  },
+  "elapsed_seconds": 1248.8,
+  "model_calls": 176,
+  "outcome_class": "PASS",
+  "pass": true,
+  "turns": 245
+ },
+ "R4b-comments-tidy-fix": {
+  "checks": [
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-tickets",
+    "output": "FAIL: the delivery's own node --test: 130 pass, 1 fail (rc 1); failing: the worker delivers each notification once to the notification file, and the outbox shows it sent (3.028333ms)\n",
+    "pass": false
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-tickets",
+    "output": "the base's 18 pristine test files pass against the delivered source: 117 of 117 tests\n",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check assignment',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const put=await call('PUT','/tickets/'+id+'/assignee',{assignee:'check.agent'});if(put.status<200||put.status>299) process.exit(3);const got=(await call('GET','/tickets/'+id)).body;const list=(await call('GET','/tickets?assignee=check.agent')).body;const ok=got&&got.assignee==='check.agent'&&list&&Array.isArray(list.items)&&list.items.some(t=>t.id===id)&&list.items.every(t=>t.assignee==='check.agent');process.exit(ok?0:4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const ids=[];for(const title of ['Check reassign 1','Check reassign 2']){const made=await call('POST','/tickets',{title,requester:'check@example.com'});if(made.status!==201) process.exit(2);ids.push(made.body.id);const put=await call('PUT','/tickets/'+made.body.id+'/assignee',{assignee:'check.from'});if(put.status<200||put.status>299) process.exit(3);}const moved=await call('POST','/tickets/reassign',{from:'check.from',to:'check.to'});const after=(await call('GET','/tickets/'+ids[1])).body;const ok=moved.status===200&&moved.body&&moved.body.moved===2&&JSON.stringify(moved.body.ids)===JSON.stringify(ids)&&after&&after.assignee==='check.to';process.exit(ok?0:4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "ONCALL=check.oncall ESCALATE_AFTER_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check escalation',requester:'check@example.com',priority:'urgent'});if(made.status!==201) process.exit(2);const id=made.body.id;for(let i=0;i<100;i++){const box=(await call('GET','/admin/outbox')).body||{};const all=[...(box.pending||[]),...(box.sent||[]),...(box.dead||[])];if(all.some(e=>e&&e.to==='check.oncall'&&JSON.stringify(e).includes(id))) process.exit(0);await new Promise(r=>setTimeout(r,50));}process.exit(4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check comments',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const first=await call('POST','/tickets/'+id+'/comments',{author:'check.author',body:'first note'});const c=first.body;if(first.status!==201||!c||c.author!=='check.author'||c.body!=='first note'||!c.id||!c.created) process.exit(3);const second=await call('POST','/tickets/'+id+'/comments',{author:'check.author',body:'second note'});if(second.status!==201) process.exit(4);const shown=(await call('GET','/tickets/'+id)).body;if(!shown||!Array.isArray(shown.comments)||shown.comments.length!==2||shown.comments[0].body!=='first note'||shown.comments[1].body!=='second note') process.exit(5);const bad=await call('POST','/tickets/'+id+'/comments',{author:'',body:'x'});if(bad.status!==400) process.exit(6);const missing=await call('POST','/tickets/T-9999/comments',{author:'a',body:'b'});if(missing.status!==404) process.exit(7);for(const to of ['in_progress','resolved','closed']){const moved=await call('POST','/tickets/'+id+'/transition',{to});if(moved.status!==200) process.exit(8);}const closed=await call('POST','/tickets/'+id+'/comments',{author:'a',body:'b'});process.exit(closed.status===409?0:9);})().catch(()=>process.exit(10))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check comment notices',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const put=await call('PUT','/tickets/'+id+'/assignee',{assignee:'check.agent'});if(put.status<200||put.status>299) process.exit(3);const told=async()=>{const box=(await call('GET','/admin/outbox')).body||{};return [...(box.pending||[]),...(box.sent||[]),...(box.dead||[])].filter(e=>e&&e.to==='check.agent').length;};const before=await told();for(const note of ['one','two']){const r=await call('POST','/tickets/'+id+'/comments',{author:'someone.else',body:note});if(r.status!==201) process.exit(4);}if(await told()!==before+2) process.exit(5);const own=await call('POST','/tickets/'+id+'/comments',{author:'check.agent',body:'mine'});if(own.status!==201) process.exit(6);process.exit(await told()===before+2?0:7);})().catch(()=>process.exit(10))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "f=\"${TMPDIR:-/tmp}/e2e-comments-$$.json\"; printf '%s' '{\"version\":1,\"savedAt\":\"2025-01-01T00:00:00.000Z\",\"nextNumber\":2,\"tickets\":[{\"id\":\"T-0001\",\"title\":\"Old ticket\",\"priority\":\"normal\",\"requester\":\"old@example.com\",\"status\":\"open\",\"assignee\":null,\"created\":\"2025-01-01T00:00:00.000Z\",\"updated\":\"2025-01-01T00:00:00.000Z\"}],\"audit\":[{\"seq\":1,\"ticket\":\"T-0001\",\"action\":\"ticket.created\",\"actor\":\"system\",\"at\":\"2025-01-01T00:00:00.000Z\",\"changes\":{\"title\":{\"from\":null,\"to\":\"Old ticket\"}}}],\"outbox\":{\"nextId\":1,\"events\":[]}}' > \"$f\" && DATA_FILE=\"$f\" WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const got=await call('GET','/tickets/T-0001');if(got.status!==200||!got.body||got.body.id!=='T-0001') process.exit(2);if(!Array.isArray(got.body.comments)||got.body.comments.length!==0) process.exit(3);const made=await call('POST','/tickets/T-0001/comments',{author:'check.author',body:'kept across a restart'});if(made.status!==201) process.exit(4);})().catch(()=>process.exit(10))\" && DATA_FILE=\"$f\" WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const got=await call('GET','/tickets/T-0001');const c=got.body&&got.body.comments;process.exit(got.status===200&&Array.isArray(c)&&c.length===1&&c[0].author==='check.author'&&c[0].body==='kept across a restart'?0:2);})().catch(()=>process.exit(10))\"; rc=$?; rm -f \"$f\" \"$f\".*.tmp; exit $rc",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard | grep -v '\\.log$' | while IFS= read -r f; do [ -e \"$f\" ] || { echo \"missing $f\"; exit 1; }; done",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stringify(Object.keys({...p.dependencies,...p.devDependencies}).sort())}catch{return \"[]\"}};process.exit(deps(\".\")===deps(process.env.PRIOR_WORK)?0:1)'",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "count() { (cd \"$1\" && node --test 2>&1) | sed -nE 's/^(\u2139|#) pass ([0-9]+).*/\\2/p' | tail -1; }; before=$(count \"$PRIOR_WORK\"); after=$(count .); echo \"tests $before -> $after\"; [ -n \"$after\" ] && [ \"${after:-0}\" -ge \"${before:-0}\" ] || { echo \"fewer tests pass than in the followed run\"; exit 1; }; added=$(diff -rN \"$PRIOR_WORK/test\" test 2>/dev/null | grep \"^>\"); [ -n \"$added\" ] || { echo \"the test files are unchanged since the followed run\"; exit 1; }; for word in comment; do printf \"%s\\n\" \"$added\" | grep -qi \"$word\" || { echo \"no added test line names $word\"; exit 1; }; done; echo \"no fewer tests pass, and the added test lines name comments\"",
+    "output": "tests 127 -> 130\nno fewer tests pass, and the added test lines name comments\n",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bR-[0-9]+\\b' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); added=$(comm -13 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; covered=no; grep -qi comment docs/shiploop/spec.md && ! grep -qi comment \"$PRIOR_WORK/docs/shiploop/spec.md\" && covered=yes; echo \"earlier ids: $earlier; missing: $missing; added: $added; feature in spec: $covered\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ] && { [ -n \"$added\" ] || [ \"$covered\" = yes ]; }",
+    "output": "earlier ids:        6; missing: ; added: R-7 ; feature in spec: yes\n",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bAD-[0-9]+\\b' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; echo \"earlier decision ids: $earlier; missing: $missing\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ]",
+    "output": "earlier decision ids:        3; missing: \n",
+    "pass": true
+   }
+  ],
+  "delta": {
+   "basis": {
+    "followed_case": "ticket-escalation",
+    "head": "5d4334beaacab8a0286ed9ff8b0652d0b35b4b3b",
+    "kind": "follow-on",
+    "start_head": "853de70535d190ef0c99275a08a327a79e03fd3d"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 1,
+      "insertions": 17,
+      "modified": 2
+     },
+     "living": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 2,
+      "insertions": 44,
+      "modified": 3
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 11,
+      "insertions": 62,
+      "modified": 5
+     },
+     "tests": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 137,
+      "modified": 0
+     }
+    },
+    "prior_source_files": 27,
+    "prior_source_modified": 5,
+    "prior_tests_modified": []
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 130,
+     "learned": 95,
+     "open_next": 11
+    },
+    "lessons_commit": "5d4334beaaca",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": [
+       "Retired"
+      ]
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-4"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 4,
+     "prefix": "AD",
+     "prior": 3,
+     "retired_by_run": [],
+     "unchanged": 3
+    },
+    "spec.md": {
+     "added": [
+      "R-7"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 7,
+     "prefix": "R",
+     "prior": 6,
+     "retired_by_run": [],
+     "unchanged": 6
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 3746,
+      "prior": 2687
+     },
+     "changed_sections": [
+      "Real-boundary checks"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Architecture",
+      "prior": "Architecture"
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 9645,
+      "prior": 6971
+     },
+     "changed_sections": [
+      "Targets and runtimes",
+      "Commands",
+      "Harnesses and suites",
+      "ID convention"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Environment",
+      "prior": "Environment"
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 7229,
+      "prior": 5484
+     },
+     "changed_sections": [
+      "Requirements"
+     ],
+     "duplicate": [],
+     "level2": 2,
+     "named_empty": [],
+     "named_missing": [
+      "Retired"
+     ],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Help desk tickets specification",
+      "prior": "Help desk tickets specification"
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-4",
+     "R-7"
+    ],
+    "primary": {
+     "delta": 1,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 2,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 1,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 0,
+     "other_writes": 4,
+     "reads": 2
+    },
+    "environment.md": {
+     "appends": 0,
+     "other_writes": 13,
+     "reads": 2
+    },
+    "spec.md": {
+     "appends": 0,
+     "other_writes": 11,
+     "reads": 2
+    }
+   }
+  },
+  "elapsed_seconds": 1091.1,
+  "model_calls": 184,
+  "outcome_class": "FAILED",
+  "pass": false,
+  "turns": 211
+ },
+ "R4b0-comments-tidy-old": {
+  "checks": [
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-tickets",
+    "output": "the delivery's own node --test passes 133 tests, the base's 117 and 16 more\n",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-tickets",
+    "output": "the base's 18 pristine test files pass against the delivered source: 117 of 117 tests\n",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check assignment',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const put=await call('PUT','/tickets/'+id+'/assignee',{assignee:'check.agent'});if(put.status<200||put.status>299) process.exit(3);const got=(await call('GET','/tickets/'+id)).body;const list=(await call('GET','/tickets?assignee=check.agent')).body;const ok=got&&got.assignee==='check.agent'&&list&&Array.isArray(list.items)&&list.items.some(t=>t.id===id)&&list.items.every(t=>t.assignee==='check.agent');process.exit(ok?0:4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const ids=[];for(const title of ['Check reassign 1','Check reassign 2']){const made=await call('POST','/tickets',{title,requester:'check@example.com'});if(made.status!==201) process.exit(2);ids.push(made.body.id);const put=await call('PUT','/tickets/'+made.body.id+'/assignee',{assignee:'check.from'});if(put.status<200||put.status>299) process.exit(3);}const moved=await call('POST','/tickets/reassign',{from:'check.from',to:'check.to'});const after=(await call('GET','/tickets/'+ids[1])).body;const ok=moved.status===200&&moved.body&&moved.body.moved===2&&JSON.stringify(moved.body.ids)===JSON.stringify(ids)&&after&&after.assignee==='check.to';process.exit(ok?0:4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "ONCALL=check.oncall ESCALATE_AFTER_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check escalation',requester:'check@example.com',priority:'urgent'});if(made.status!==201) process.exit(2);const id=made.body.id;for(let i=0;i<100;i++){const box=(await call('GET','/admin/outbox')).body||{};const all=[...(box.pending||[]),...(box.sent||[]),...(box.dead||[])];if(all.some(e=>e&&e.to==='check.oncall'&&JSON.stringify(e).includes(id))) process.exit(0);await new Promise(r=>setTimeout(r,50));}process.exit(4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check comments',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const first=await call('POST','/tickets/'+id+'/comments',{author:'check.author',body:'first note'});const c=first.body;if(first.status!==201||!c||c.author!=='check.author'||c.body!=='first note'||!c.id||!c.created) process.exit(3);const second=await call('POST','/tickets/'+id+'/comments',{author:'check.author',body:'second note'});if(second.status!==201) process.exit(4);const shown=(await call('GET','/tickets/'+id)).body;if(!shown||!Array.isArray(shown.comments)||shown.comments.length!==2||shown.comments[0].body!=='first note'||shown.comments[1].body!=='second note') process.exit(5);const bad=await call('POST','/tickets/'+id+'/comments',{author:'',body:'x'});if(bad.status!==400) process.exit(6);const missing=await call('POST','/tickets/T-9999/comments',{author:'a',body:'b'});if(missing.status!==404) process.exit(7);for(const to of ['in_progress','resolved','closed']){const moved=await call('POST','/tickets/'+id+'/transition',{to});if(moved.status!==200) process.exit(8);}const closed=await call('POST','/tickets/'+id+'/comments',{author:'a',body:'b'});process.exit(closed.status===409?0:9);})().catch(()=>process.exit(10))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check comment notices',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const put=await call('PUT','/tickets/'+id+'/assignee',{assignee:'check.agent'});if(put.status<200||put.status>299) process.exit(3);const told=async()=>{const box=(await call('GET','/admin/outbox')).body||{};return [...(box.pending||[]),...(box.sent||[]),...(box.dead||[])].filter(e=>e&&e.to==='check.agent').length;};const before=await told();for(const note of ['one','two']){const r=await call('POST','/tickets/'+id+'/comments',{author:'someone.else',body:note});if(r.status!==201) process.exit(4);}if(await told()!==before+2) process.exit(5);const own=await call('POST','/tickets/'+id+'/comments',{author:'check.agent',body:'mine'});if(own.status!==201) process.exit(6);process.exit(await told()===before+2?0:7);})().catch(()=>process.exit(10))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "f=\"${TMPDIR:-/tmp}/e2e-comments-$$.json\"; printf '%s' '{\"version\":1,\"savedAt\":\"2025-01-01T00:00:00.000Z\",\"nextNumber\":2,\"tickets\":[{\"id\":\"T-0001\",\"title\":\"Old ticket\",\"priority\":\"normal\",\"requester\":\"old@example.com\",\"status\":\"open\",\"assignee\":null,\"created\":\"2025-01-01T00:00:00.000Z\",\"updated\":\"2025-01-01T00:00:00.000Z\"}],\"audit\":[{\"seq\":1,\"ticket\":\"T-0001\",\"action\":\"ticket.created\",\"actor\":\"system\",\"at\":\"2025-01-01T00:00:00.000Z\",\"changes\":{\"title\":{\"from\":null,\"to\":\"Old ticket\"}}}],\"outbox\":{\"nextId\":1,\"events\":[]}}' > \"$f\" && DATA_FILE=\"$f\" WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const got=await call('GET','/tickets/T-0001');if(got.status!==200||!got.body||got.body.id!=='T-0001') process.exit(2);if(!Array.isArray(got.body.comments)||got.body.comments.length!==0) process.exit(3);const made=await call('POST','/tickets/T-0001/comments',{author:'check.author',body:'kept across a restart'});if(made.status!==201) process.exit(4);})().catch(()=>process.exit(10))\" && DATA_FILE=\"$f\" WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const got=await call('GET','/tickets/T-0001');const c=got.body&&got.body.comments;process.exit(got.status===200&&Array.isArray(c)&&c.length===1&&c[0].author==='check.author'&&c[0].body==='kept across a restart'?0:2);})().catch(()=>process.exit(10))\"; rc=$?; rm -f \"$f\" \"$f\".*.tmp; exit $rc",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard | grep -v '\\.log$' | while IFS= read -r f; do [ -e \"$f\" ] || { echo \"missing $f\"; exit 1; }; done",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stringify(Object.keys({...p.dependencies,...p.devDependencies}).sort())}catch{return \"[]\"}};process.exit(deps(\".\")===deps(process.env.PRIOR_WORK)?0:1)'",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "count() { (cd \"$1\" && node --test 2>&1) | sed -nE 's/^(\u2139|#) pass ([0-9]+).*/\\2/p' | tail -1; }; before=$(count \"$PRIOR_WORK\"); after=$(count .); echo \"tests $before -> $after\"; [ -n \"$after\" ] && [ \"${after:-0}\" -ge \"${before:-0}\" ] || { echo \"fewer tests pass than in the followed run\"; exit 1; }; added=$(diff -rN \"$PRIOR_WORK/test\" test 2>/dev/null | grep \"^>\"); [ -n \"$added\" ] || { echo \"the test files are unchanged since the followed run\"; exit 1; }; for word in comment; do printf \"%s\\n\" \"$added\" | grep -qi \"$word\" || { echo \"no added test line names $word\"; exit 1; }; done; echo \"no fewer tests pass, and the added test lines name comments\"",
+    "output": "tests 127 -> 133\nno fewer tests pass, and the added test lines name comments\n",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bR-[0-9]+\\b' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); added=$(comm -13 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; covered=no; grep -qi comment docs/shiploop/spec.md && ! grep -qi comment \"$PRIOR_WORK/docs/shiploop/spec.md\" && covered=yes; echo \"earlier ids: $earlier; missing: $missing; added: $added; feature in spec: $covered\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ] && { [ -n \"$added\" ] || [ \"$covered\" = yes ]; }",
+    "output": "earlier ids:        6; missing: ; added: R-7 ; feature in spec: yes\n",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bAD-[0-9]+\\b' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; echo \"earlier decision ids: $earlier; missing: $missing\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ]",
+    "output": "earlier decision ids:        3; missing: \n",
+    "pass": true
+   }
+  ],
+  "delta": {
+   "basis": {
+    "followed_case": "ticket-escalation",
+    "head": "98c01557ae43b6dc5d5bc9d0fbcc2a2e73773e6a",
+    "kind": "follow-on",
+    "start_head": "853de70535d190ef0c99275a08a327a79e03fd3d"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 1,
+      "insertions": 30,
+      "modified": 3
+     },
+     "living": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 95,
+      "modified": 3
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 10,
+      "insertions": 73,
+      "modified": 6
+     },
+     "tests": {
+      "added": 2,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 199,
+      "modified": 0
+     }
+    },
+    "prior_source_files": 27,
+    "prior_source_modified": 6,
+    "prior_tests_modified": []
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 135,
+     "learned": 85,
+     "open_next": 5
+    },
+    "lessons_commit": "f1df8cc185ab",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": [
+       "Retired"
+      ]
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-4"
+     ],
+     "born_retired": [
+      "AD-4"
+     ],
+     "changed": [],
+     "dropped": [],
+     "final": 4,
+     "prefix": "AD",
+     "prior": 3,
+     "retired_by_run": [],
+     "unchanged": 3
+    },
+    "spec.md": {
+     "added": [
+      "R-7"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 7,
+     "prefix": "R",
+     "prior": 6,
+     "retired_by_run": [],
+     "unchanged": 6
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [
+      "Comments real-boundary checks (planned)",
+      "AD-4 Comment state and delivery",
+      "Comments assembled evidence"
+     ],
+     "bytes": {
+      "final": 3926,
+      "prior": 2687
+     },
+     "changed_sections": [
+      "Superseded"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Architecture",
+      "prior": "Architecture"
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 12205,
+      "prior": 6971
+     },
+     "changed_sections": [
+      "Targets and runtimes",
+      "Commands",
+      "Harnesses and suites"
+     ],
+     "duplicate": [],
+     "level2": 8,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [
+      "Comments discovery (2026-11-01)"
+     ],
+     "stray_added": [
+      "Comments discovery (2026-11-01)"
+     ],
+     "title": {
+      "final": "Environment",
+      "prior": "Environment"
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 7251,
+      "prior": 5484
+     },
+     "changed_sections": [
+      "Requirements"
+     ],
+     "duplicate": [],
+     "level2": 2,
+     "named_empty": [],
+     "named_missing": [
+      "Retired"
+     ],
+     "relative_wording": {
+      "examples": [
+       "current request"
+      ],
+      "n": 1
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Help desk tickets specification",
+      "prior": "Help desk tickets specification"
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-4",
+     "R-7"
+    ],
+    "primary": {
+     "delta": 1,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 2,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 3,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 0,
+     "other_writes": 6,
+     "reads": 1
+    },
+    "environment.md": {
+     "appends": 0,
+     "other_writes": 13,
+     "reads": 1
+    },
+    "spec.md": {
+     "appends": 0,
+     "other_writes": 9,
+     "reads": 2
+    }
+   }
+  },
+  "elapsed_seconds": 1111.4,
+  "model_calls": 193,
+  "outcome_class": "PASS",
+  "pass": true,
+  "turns": 265
+ },
+ "R4c-sla-tidy-fix": {
+  "checks": [
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-tickets",
+    "output": "the delivery's own node --test passes 135 tests, the base's 117 and 18 more\n",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-tickets",
+    "output": "the base's 18 pristine test files pass against the delivered source: 117 of 117 tests\n",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check assignment',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const put=await call('PUT','/tickets/'+id+'/assignee',{assignee:'check.agent'});if(put.status<200||put.status>299) process.exit(3);const got=(await call('GET','/tickets/'+id)).body;const list=(await call('GET','/tickets?assignee=check.agent')).body;const ok=got&&got.assignee==='check.agent'&&list&&Array.isArray(list.items)&&list.items.some(t=>t.id===id)&&list.items.every(t=>t.assignee==='check.agent');process.exit(ok?0:4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const ids=[];for(const title of ['Check reassign 1','Check reassign 2']){const made=await call('POST','/tickets',{title,requester:'check@example.com'});if(made.status!==201) process.exit(2);ids.push(made.body.id);const put=await call('PUT','/tickets/'+made.body.id+'/assignee',{assignee:'check.from'});if(put.status<200||put.status>299) process.exit(3);}const moved=await call('POST','/tickets/reassign',{from:'check.from',to:'check.to'});const after=(await call('GET','/tickets/'+ids[1])).body;const ok=moved.status===200&&moved.body&&moved.body.moved===2&&JSON.stringify(moved.body.ids)===JSON.stringify(ids)&&after&&after.assignee==='check.to';process.exit(ok?0:4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "ONCALL=check.oncall ESCALATE_AFTER_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check escalation',requester:'check@example.com',priority:'urgent'});if(made.status!==201) process.exit(2);const id=made.body.id;for(let i=0;i<100;i++){const box=(await call('GET','/admin/outbox')).body||{};const all=[...(box.pending||[]),...(box.sent||[]),...(box.dead||[])];if(all.some(e=>e&&e.to==='check.oncall'&&JSON.stringify(e).includes(id))) process.exit(0);await new Promise(r=>setTimeout(r,50));}process.exit(4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check comments',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const first=await call('POST','/tickets/'+id+'/comments',{author:'check.author',body:'first note'});const c=first.body;if(first.status!==201||!c||c.author!=='check.author'||c.body!=='first note'||!c.id||!c.created) process.exit(3);const second=await call('POST','/tickets/'+id+'/comments',{author:'check.author',body:'second note'});if(second.status!==201) process.exit(4);const shown=(await call('GET','/tickets/'+id)).body;if(!shown||!Array.isArray(shown.comments)||shown.comments.length!==2||shown.comments[0].body!=='first note'||shown.comments[1].body!=='second note') process.exit(5);const bad=await call('POST','/tickets/'+id+'/comments',{author:'',body:'x'});if(bad.status!==400) process.exit(6);const missing=await call('POST','/tickets/T-9999/comments',{author:'a',body:'b'});if(missing.status!==404) process.exit(7);for(const to of ['in_progress','resolved','closed']){const moved=await call('POST','/tickets/'+id+'/transition',{to});if(moved.status!==200) process.exit(8);}const closed=await call('POST','/tickets/'+id+'/comments',{author:'a',body:'b'});process.exit(closed.status===409?0:9);})().catch(()=>process.exit(10))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check comment notices',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const put=await call('PUT','/tickets/'+id+'/assignee',{assignee:'check.agent'});if(put.status<200||put.status>299) process.exit(3);const told=async()=>{const box=(await call('GET','/admin/outbox')).body||{};return [...(box.pending||[]),...(box.sent||[]),...(box.dead||[])].filter(e=>e&&e.to==='check.agent').length;};const before=await told();for(const note of ['one','two']){const r=await call('POST','/tickets/'+id+'/comments',{author:'someone.else',body:note});if(r.status!==201) process.exit(4);}if(await told()!==before+2) process.exit(5);const own=await call('POST','/tickets/'+id+'/comments',{author:'check.agent',body:'mine'});if(own.status!==201) process.exit(6);process.exit(await told()===before+2?0:7);})().catch(()=>process.exit(10))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "f=\"${TMPDIR:-/tmp}/e2e-comments-$$.json\"; printf '%s' '{\"version\":1,\"savedAt\":\"2025-01-01T00:00:00.000Z\",\"nextNumber\":2,\"tickets\":[{\"id\":\"T-0001\",\"title\":\"Old ticket\",\"priority\":\"normal\",\"requester\":\"old@example.com\",\"status\":\"open\",\"assignee\":null,\"created\":\"2025-01-01T00:00:00.000Z\",\"updated\":\"2025-01-01T00:00:00.000Z\"}],\"audit\":[{\"seq\":1,\"ticket\":\"T-0001\",\"action\":\"ticket.created\",\"actor\":\"system\",\"at\":\"2025-01-01T00:00:00.000Z\",\"changes\":{\"title\":{\"from\":null,\"to\":\"Old ticket\"}}}],\"outbox\":{\"nextId\":1,\"events\":[]}}' > \"$f\" && DATA_FILE=\"$f\" WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const got=await call('GET','/tickets/T-0001');if(got.status!==200||!got.body||got.body.id!=='T-0001') process.exit(2);if(!Array.isArray(got.body.comments)||got.body.comments.length!==0) process.exit(3);const made=await call('POST','/tickets/T-0001/comments',{author:'check.author',body:'kept across a restart'});if(made.status!==201) process.exit(4);})().catch(()=>process.exit(10))\" && DATA_FILE=\"$f\" WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const got=await call('GET','/tickets/T-0001');const c=got.body&&got.body.comments;process.exit(got.status===200&&Array.isArray(c)&&c.length===1&&c[0].author==='check.author'&&c[0].body==='kept across a restart'?0:2);})().catch(()=>process.exit(10))\"; rc=$?; rm -f \"$f\" \"$f\".*.tmp; exit $rc",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "ONCALL=check.oncall ESCALATE_AFTER_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/ticket_sla_probe.py\" urgent && ONCALL=check.oncall ESCALATE_AFTER_MINUTES=240 ESCALATE_HIGH_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/ticket_sla_probe.py\" high",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "ONCALL=check.oncall ESCALATE_AFTER_MINUTES=0 ESCALATE_HIGH_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/ticket_sla_probe.py\" twice",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "f=\"${TMPDIR:-/tmp}/e2e-sla-$$.json\"; rm -f \"$f\"; DATA_FILE=\"$f\" ONCALL=check.oncall ESCALATE_AFTER_MINUTES=0 ESCALATE_HIGH_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/ticket_sla_probe.py\" twice && DATA_FILE=\"$f\" ONCALL=check.oncall ESCALATE_AFTER_MINUTES=0 ESCALATE_HIGH_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/ticket_sla_probe.py\" still T-0001",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard | grep -v '\\.log$' | while IFS= read -r f; do [ -e \"$f\" ] || { echo \"missing $f\"; exit 1; }; done",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stringify(Object.keys({...p.dependencies,...p.devDependencies}).sort())}catch{return \"[]\"}};process.exit(deps(\".\")===deps(process.env.PRIOR_WORK)?0:1)'",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "count() { (cd \"$1\" && node --test 2>&1) | sed -nE 's/^(\u2139|#) pass ([0-9]+).*/\\2/p' | tail -1; }; before=$(count \"$PRIOR_WORK\"); after=$(count .); echo \"tests $before -> $after\"; [ -n \"$after\" ] && [ \"${after:-0}\" -ge \"${before:-0}\" ] || { echo \"fewer tests pass than in the followed run\"; exit 1; }; added=$(diff -rN \"$PRIOR_WORK/test\" test 2>/dev/null | grep \"^>\"); [ -n \"$added\" ] || { echo \"the test files are unchanged since the followed run\"; exit 1; }; for word in high; do printf \"%s\\n\" \"$added\" | grep -qi \"$word\" || { echo \"no added test line names $word\"; exit 1; }; done; echo \"no fewer tests pass, and the added test lines name the high priority\"",
+    "output": "tests 131 -> 135\nno fewer tests pass, and the added test lines name the high priority\n",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bR-[0-9]+\\b' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); added=$(comm -13 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; covered=no; grep -qi ESCALATE_HIGH_MINUTES docs/shiploop/spec.md && ! grep -qi ESCALATE_HIGH_MINUTES \"$PRIOR_WORK/docs/shiploop/spec.md\" && covered=yes; echo \"earlier ids: $earlier; missing: $missing; added: $added; feature in spec: $covered\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ] && { [ -n \"$added\" ] || [ \"$covered\" = yes ]; }",
+    "output": "earlier ids:        7; missing: ; added: ; feature in spec: yes\n",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bAD-[0-9]+\\b' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; echo \"earlier decision ids: $earlier; missing: $missing\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ]",
+    "output": "earlier decision ids:        4; missing: \n",
+    "pass": true
+   }
+  ],
+  "delta": {
+   "basis": {
+    "followed_case": "ticket-comments",
+    "head": "3d248686107b5938bad5297465ddb059c0887683",
+    "kind": "follow-on",
+    "start_head": "5d4334beaacab8a0286ed9ff8b0652d0b35b4b3b"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 5,
+      "insertions": 27,
+      "modified": 5
+     },
+     "living": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 9,
+      "insertions": 49,
+      "modified": 3
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 15,
+      "insertions": 40,
+      "modified": 6
+     },
+     "tests": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 2,
+      "insertions": 168,
+      "modified": 1
+     }
+    },
+    "prior_source_files": 27,
+    "prior_source_modified": 6,
+    "prior_tests_modified": [
+     "test/bulk-escalation.test.js"
+    ]
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 144,
+     "learned": 156,
+     "open_next": 5
+    },
+    "lessons_commit": "3d248686107b",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": [
+       "Retired"
+      ]
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-5"
+     ],
+     "born_retired": [],
+     "changed": [
+      "AD-3"
+     ],
+     "dropped": [],
+     "expected": [
+      "AD-3"
+     ],
+     "expected_touched": [
+      "AD-3"
+     ],
+     "expected_untouched": [],
+     "final": 5,
+     "prefix": "AD",
+     "prior": 4,
+     "retired_by_run": [],
+     "unchanged": 3,
+     "unexplained": []
+    },
+    "spec.md": {
+     "added": [],
+     "born_retired": [],
+     "changed": [
+      "R-6"
+     ],
+     "dropped": [],
+     "expected": [
+      "R-5",
+      "R-6"
+     ],
+     "expected_touched": [
+      "R-6"
+     ],
+     "expected_untouched": [
+      "R-5"
+     ],
+     "final": 7,
+     "prefix": "R",
+     "prior": 7,
+     "retired_by_run": [],
+     "unchanged": 6,
+     "unexplained": []
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 4933,
+      "prior": 3746
+     },
+     "changed_sections": [
+      "Structure",
+      "Real-boundary checks",
+      "Decisions"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Architecture",
+      "prior": "Architecture"
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 13226,
+      "prior": 9645
+     },
+     "changed_sections": [
+      "Commands",
+      "Harnesses and suites",
+      "ID convention"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Environment",
+      "prior": "Environment"
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 7890,
+      "prior": 7229
+     },
+     "changed_sections": [
+      "Requirements"
+     ],
+     "duplicate": [],
+     "level2": 2,
+     "named_empty": [],
+     "named_missing": [
+      "Retired"
+     ],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Help desk tickets specification",
+      "prior": "Help desk tickets specification"
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-3",
+     "AD-5",
+     "R-6"
+    ],
+    "primary": {
+     "delta": 1,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 2,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 3,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 0,
+     "other_writes": 8,
+     "reads": 2
+    },
+    "environment.md": {
+     "appends": 0,
+     "other_writes": 19,
+     "reads": 3
+    },
+    "spec.md": {
+     "appends": 0,
+     "other_writes": 17,
+     "reads": 2
+    }
+   }
+  },
+  "elapsed_seconds": 1713.1,
+  "model_calls": 293,
+  "outcome_class": "PASS",
+  "pass": true,
+  "turns": 351
+ },
+ "R4c0-sla-tidy-old": {
+  "checks": [
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-tickets",
+    "output": "the delivery's own node --test passes 142 tests, the base's 117 and 25 more\n",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-tickets",
+    "output": "the base's 18 pristine test files pass against the delivered source: 117 of 117 tests\n",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check assignment',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const put=await call('PUT','/tickets/'+id+'/assignee',{assignee:'check.agent'});if(put.status<200||put.status>299) process.exit(3);const got=(await call('GET','/tickets/'+id)).body;const list=(await call('GET','/tickets?assignee=check.agent')).body;const ok=got&&got.assignee==='check.agent'&&list&&Array.isArray(list.items)&&list.items.some(t=>t.id===id)&&list.items.every(t=>t.assignee==='check.agent');process.exit(ok?0:4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const ids=[];for(const title of ['Check reassign 1','Check reassign 2']){const made=await call('POST','/tickets',{title,requester:'check@example.com'});if(made.status!==201) process.exit(2);ids.push(made.body.id);const put=await call('PUT','/tickets/'+made.body.id+'/assignee',{assignee:'check.from'});if(put.status<200||put.status>299) process.exit(3);}const moved=await call('POST','/tickets/reassign',{from:'check.from',to:'check.to'});const after=(await call('GET','/tickets/'+ids[1])).body;const ok=moved.status===200&&moved.body&&moved.body.moved===2&&JSON.stringify(moved.body.ids)===JSON.stringify(ids)&&after&&after.assignee==='check.to';process.exit(ok?0:4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "ONCALL=check.oncall ESCALATE_AFTER_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check escalation',requester:'check@example.com',priority:'urgent'});if(made.status!==201) process.exit(2);const id=made.body.id;for(let i=0;i<100;i++){const box=(await call('GET','/admin/outbox')).body||{};const all=[...(box.pending||[]),...(box.sent||[]),...(box.dead||[])];if(all.some(e=>e&&e.to==='check.oncall'&&JSON.stringify(e).includes(id))) process.exit(0);await new Promise(r=>setTimeout(r,50));}process.exit(4);})().catch(()=>process.exit(6))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check comments',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const first=await call('POST','/tickets/'+id+'/comments',{author:'check.author',body:'first note'});const c=first.body;if(first.status!==201||!c||c.author!=='check.author'||c.body!=='first note'||!c.id||!c.created) process.exit(3);const second=await call('POST','/tickets/'+id+'/comments',{author:'check.author',body:'second note'});if(second.status!==201) process.exit(4);const shown=(await call('GET','/tickets/'+id)).body;if(!shown||!Array.isArray(shown.comments)||shown.comments.length!==2||shown.comments[0].body!=='first note'||shown.comments[1].body!=='second note') process.exit(5);const bad=await call('POST','/tickets/'+id+'/comments',{author:'',body:'x'});if(bad.status!==400) process.exit(6);const missing=await call('POST','/tickets/T-9999/comments',{author:'a',body:'b'});if(missing.status!==404) process.exit(7);for(const to of ['in_progress','resolved','closed']){const moved=await call('POST','/tickets/'+id+'/transition',{to});if(moved.status!==200) process.exit(8);}const closed=await call('POST','/tickets/'+id+'/comments',{author:'a',body:'b'});process.exit(closed.status===409?0:9);})().catch(()=>process.exit(10))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check comment notices',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const put=await call('PUT','/tickets/'+id+'/assignee',{assignee:'check.agent'});if(put.status<200||put.status>299) process.exit(3);const told=async()=>{const box=(await call('GET','/admin/outbox')).body||{};return [...(box.pending||[]),...(box.sent||[]),...(box.dead||[])].filter(e=>e&&e.to==='check.agent').length;};const before=await told();for(const note of ['one','two']){const r=await call('POST','/tickets/'+id+'/comments',{author:'someone.else',body:note});if(r.status!==201) process.exit(4);}if(await told()!==before+2) process.exit(5);const own=await call('POST','/tickets/'+id+'/comments',{author:'check.agent',body:'mine'});if(own.status!==201) process.exit(6);process.exit(await told()===before+2?0:7);})().catch(()=>process.exit(10))\"",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "f=\"${TMPDIR:-/tmp}/e2e-comments-$$.json\"; printf '%s' '{\"version\":1,\"savedAt\":\"2025-01-01T00:00:00.000Z\",\"nextNumber\":2,\"tickets\":[{\"id\":\"T-0001\",\"title\":\"Old ticket\",\"priority\":\"normal\",\"requester\":\"old@example.com\",\"status\":\"open\",\"assignee\":null,\"created\":\"2025-01-01T00:00:00.000Z\",\"updated\":\"2025-01-01T00:00:00.000Z\"}],\"audit\":[{\"seq\":1,\"ticket\":\"T-0001\",\"action\":\"ticket.created\",\"actor\":\"system\",\"at\":\"2025-01-01T00:00:00.000Z\",\"changes\":{\"title\":{\"from\":null,\"to\":\"Old ticket\"}}}],\"outbox\":{\"nextId\":1,\"events\":[]}}' > \"$f\" && DATA_FILE=\"$f\" WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const got=await call('GET','/tickets/T-0001');if(got.status!==200||!got.body||got.body.id!=='T-0001') process.exit(2);if(!Array.isArray(got.body.comments)||got.body.comments.length!==0) process.exit(3);const made=await call('POST','/tickets/T-0001/comments',{author:'check.author',body:'kept across a restart'});if(made.status!==201) process.exit(4);})().catch(()=>process.exit(10))\" && DATA_FILE=\"$f\" WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const got=await call('GET','/tickets/T-0001');const c=got.body&&got.body.comments;process.exit(got.status===200&&Array.isArray(c)&&c.length===1&&c[0].author==='check.author'&&c[0].body==='kept across a restart'?0:2);})().catch(()=>process.exit(10))\"; rc=$?; rm -f \"$f\" \"$f\".*.tmp; exit $rc",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "ONCALL=check.oncall ESCALATE_AFTER_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/ticket_sla_probe.py\" urgent && ONCALL=check.oncall ESCALATE_AFTER_MINUTES=240 ESCALATE_HIGH_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/ticket_sla_probe.py\" high",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "ONCALL=check.oncall ESCALATE_AFTER_MINUTES=0 ESCALATE_HIGH_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/ticket_sla_probe.py\" twice",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "f=\"${TMPDIR:-/tmp}/e2e-sla-$$.json\"; rm -f \"$f\"; DATA_FILE=\"$f\" ONCALL=check.oncall ESCALATE_AFTER_MINUTES=0 ESCALATE_HIGH_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/ticket_sla_probe.py\" twice && DATA_FILE=\"$f\" ONCALL=check.oncall ESCALATE_AFTER_MINUTES=0 ESCALATE_HIGH_MINUTES=0 WORKER_INTERVAL_MS=50 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/ticket_sla_probe.py\" still T-0001",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard | grep -v '\\.log$' | while IFS= read -r f; do [ -e \"$f\" ] || { echo \"missing $f\"; exit 1; }; done",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stringify(Object.keys({...p.dependencies,...p.devDependencies}).sort())}catch{return \"[]\"}};process.exit(deps(\".\")===deps(process.env.PRIOR_WORK)?0:1)'",
+    "output": "",
+    "pass": true
+   },
+   {
+    "command": "count() { (cd \"$1\" && node --test 2>&1) | sed -nE 's/^(\u2139|#) pass ([0-9]+).*/\\2/p' | tail -1; }; before=$(count \"$PRIOR_WORK\"); after=$(count .); echo \"tests $before -> $after\"; [ -n \"$after\" ] && [ \"${after:-0}\" -ge \"${before:-0}\" ] || { echo \"fewer tests pass than in the followed run\"; exit 1; }; added=$(diff -rN \"$PRIOR_WORK/test\" test 2>/dev/null | grep \"^>\"); [ -n \"$added\" ] || { echo \"the test files are unchanged since the followed run\"; exit 1; }; for word in high; do printf \"%s\\n\" \"$added\" | grep -qi \"$word\" || { echo \"no added test line names $word\"; exit 1; }; done; echo \"no fewer tests pass, and the added test lines name the high priority\"",
+    "output": "tests 133 -> 142\nno fewer tests pass, and the added test lines name the high priority\n",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bR-[0-9]+\\b' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); added=$(comm -13 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; covered=no; grep -qi ESCALATE_HIGH_MINUTES docs/shiploop/spec.md && ! grep -qi ESCALATE_HIGH_MINUTES \"$PRIOR_WORK/docs/shiploop/spec.md\" && covered=yes; echo \"earlier ids: $earlier; missing: $missing; added: $added; feature in spec: $covered\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ] && { [ -n \"$added\" ] || [ \"$covered\" = yes ]; }",
+    "output": "earlier ids:        7; missing: ; added: ; feature in spec: yes\n",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bAD-[0-9]+\\b' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; echo \"earlier decision ids: $earlier; missing: $missing\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ]",
+    "output": "earlier decision ids:        4; missing: \n",
+    "pass": true
+   }
+  ],
+  "delta": {
+   "basis": {
+    "followed_case": "ticket-comments",
+    "head": "dbee575dd3f328292f2cf18b9eb0773214d65904",
+    "kind": "follow-on",
+    "start_head": "98c01557ae43b6dc5d5bc9d0fbcc2a2e73773e6a"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 5,
+      "insertions": 27,
+      "modified": 5
+     },
+     "living": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 5,
+      "insertions": 77,
+      "modified": 3
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 15,
+      "insertions": 46,
+      "modified": 6
+     },
+     "tests": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 2,
+      "insertions": 243,
+      "modified": 1
+     }
+    },
+    "prior_source_files": 27,
+    "prior_source_modified": 6,
+    "prior_tests_modified": [
+     "test/bulk-escalation.test.js"
+    ]
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 174,
+     "learned": 131,
+     "open_next": 89
+    },
+    "lessons_commit": "52acc00fd6ae",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": [
+       "Retired"
+      ]
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-5"
+     ],
+     "born_retired": [],
+     "changed": [
+      "AD-3"
+     ],
+     "dropped": [],
+     "expected": [
+      "AD-3"
+     ],
+     "expected_touched": [
+      "AD-3"
+     ],
+     "expected_untouched": [],
+     "final": 5,
+     "prefix": "AD",
+     "prior": 4,
+     "retired_by_run": [],
+     "unchanged": 3,
+     "unexplained": []
+    },
+    "spec.md": {
+     "added": [],
+     "born_retired": [],
+     "changed": [
+      "R-4",
+      "R-6"
+     ],
+     "dropped": [],
+     "expected": [
+      "R-5",
+      "R-6"
+     ],
+     "expected_touched": [
+      "R-6"
+     ],
+     "expected_untouched": [
+      "R-5"
+     ],
+     "final": 7,
+     "prefix": "R",
+     "prior": 7,
+     "retired_by_run": [],
+     "unchanged": 5,
+     "unexplained": [
+      "R-4"
+     ]
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [
+      "Priority escalation real-boundary checks (planned)"
+     ],
+     "bytes": {
+      "final": 4951,
+      "prior": 3926
+     },
+     "changed_sections": [
+      "Decisions",
+      "Superseded"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Architecture",
+      "prior": "Architecture"
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 19147,
+      "prior": 12205
+     },
+     "changed_sections": [
+      "Commands"
+     ],
+     "duplicate": [],
+     "level2": 8,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [
+       "this run",
+       "this run"
+      ],
+      "n": 2
+     },
+     "stray": [
+      "Comments discovery (2026-11-01)"
+     ],
+     "stray_added": [],
+     "title": {
+      "final": "Environment",
+      "prior": "Environment"
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 8524,
+      "prior": 7251
+     },
+     "changed_sections": [
+      "Requirements"
+     ],
+     "duplicate": [],
+     "level2": 2,
+     "named_empty": [],
+     "named_missing": [
+      "Retired"
+     ],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Help desk tickets specification",
+      "prior": "Help desk tickets specification"
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-3",
+     "AD-5",
+     "R-4",
+     "R-6"
+    ],
+    "primary": {
+     "delta": 1,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 3,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 3,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 1,
+     "other_writes": 4,
+     "reads": 1
+    },
+    "environment.md": {
+     "appends": 7,
+     "other_writes": 9,
+     "reads": 1
+    },
+    "spec.md": {
+     "appends": 0,
+     "other_writes": 9,
+     "reads": 4
+    }
+   }
+  },
+  "elapsed_seconds": 1458.2,
+  "model_calls": 191,
+  "outcome_class": "PASS",
+  "pass": true,
+  "turns": 228
+ }
+}
