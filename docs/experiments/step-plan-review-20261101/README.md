@@ -31,6 +31,10 @@ this review adds, replayed on every accepted step plan.
 | `replay_ids.jsonl` | 175 | every accepted step plan: the criteria left without a focused ID, and the next test-spec's outcome |
 | `replay_proofs.jsonl` | 376 | every step: which candidate Proof rule (N1-N4) flags it, and its implement outcome |
 | `improve_passes.jsonl` | 239 | every step-plan Improve pass (label, whether it changed the plan, seconds) |
+| `replay_rule_c.jsonl` | 171 | side replay (`replay_rule_c.py`): plans with a recorded lint item base, whether Rule C flags the first step's Proof (a whole segment that is a focused command whose IDs no tracked base file holds), and S1's implement outcome |
+
+Live checks: `launch_sp1.sh` and `score_sp1.py` (SP1, whole deliveries), `launch_sp2.sh` and `score_sp2.py` (SP2, step-plan
+slices, arm B against arm T); both pre-registered in the review's §7 and run on Codex Terra 6.1 xhigh.
 
 Send-back classes: `proof-test-path` (the Proof runs a test file the test stage writes later; refused at step-plan since
 ShipLoop 1.25.0), `proof-test-no-path` (the same need without a file path: `npm test`, unittest discovery, an Apex class

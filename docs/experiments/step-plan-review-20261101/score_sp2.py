@@ -118,7 +118,7 @@ def main():
               f"test-spec send-backs={sends} author={r['author_min']} review={r['review_min']} "
               f"criteria={r.get('criteria')} ids={r.get('focused_ids')} cases/crit={r['cases_per_criterion']}")
     for arm in ("B", "T"):
-        rows = [r for r in records if r.get("arm") == arm and "note" not in r]
+        rows = [r for r in records if r.get("arm") == arm and "note" not in r and r.get("plans")]
         if not rows:
             continue
         minutes = [r["author_min"] + r["review_min"] for r in rows]

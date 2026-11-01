@@ -168,6 +168,15 @@ names the stem of a new test file, 7/30/11. Limited to the first step, N1 is 8/5
 ones (a supplied browser checker, an anonymous Apex script that prints its IDs), so no rule is precise enough to gate on.
 The 2026-10-31 study reached the same answer for the prompt route (X4, journal E8).
 
+Side replay (2026-11-01, after SP1's xhigh csv-report s1 hit the class live: S1's Proof `python3 -m unittest -v && rg -n
+"CSV" report.py`, unittest exiting 0 on zero tests): Rule C, the narrowest generic form, flags a first step whose Proof
+holds, as one whole shell segment, a focused command none of whose IDs any tracked file of the item base holds
+(`git grep -w -F` in the recorded lint item-base tree; `replay_rule_c.py`). Over the 171 plans with a recorded base it
+flags 12: 5 went on to a proof-order send-back (2 of them Rule A already refuses), 5 passed implement, 1 blocked and 1
+was sent back for another reason (`grep -P`). Exempting a command whose own text holds its IDs moves nothing: the
+passing ones are supplied checkers (`gym-ui`, `battleship-ui`), a script in the run folder and Salesforce test runs,
+which print IDs no tracked file holds. Not built (F27).
+
 ### 6.2 Others
 
 - A Proof dry run at step-plan: the 4 current Proof defects are a JavaScript syntax error inside shell quotes, wrong
@@ -214,6 +223,13 @@ The 2026-10-31 study reached the same answer for the prompt route (X4, journal E
   was test-spec reading a module that fails to load on the empty base as no behaviour-specific RED, and step-plan
   resubmitted unchanged, citing the test-loop guide). SP2's first four high slices were stopped about two minutes
   in, before any step plan was accepted, and are not scored. SP1's ticket-import samples had not started.
+- SP3 (pre-registered here before any slice, 2026-11-01): SP2's arm T stand-in-rules s2 named two searched
+  documentation criteria on the focused command with IDs, and test-spec sent it back (it writes no case for a searched
+  criterion); b8d32033's duty line said "an ID for each criterion it names". 45153684 says "each executed criterion".
+  SP3 runs that commit alone: stand-in-rules, 4 slices, the SP2 slice line (Codex Terra 6.1 xhigh, `--stop-after
+  test-spec`), `launch_sp3.sh` into `~/e2e-runs-sp/20261101/sp3-xhigh`, read by `score_sp2.py`. Predictions: no
+  test-spec send-back about IDs or a searched criterion's case; no accepted plan short of IDs. A repeat of the
+  searched-criterion send-back means the wording fix does not hold.
 - The 15 folded plans gain cases, so test-spec and the test stage write more tests; the time that adds is unmeasured.
 - DeepSeek flash and Grok are a small share of the corpus; their send-back costs are means of 5.
 
