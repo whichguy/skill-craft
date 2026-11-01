@@ -210,7 +210,7 @@ def source_repo(state: Mapping[str, Any], root: Path | None) -> str:
     if root is not None and state.get("execution_mode") == "navigator-worktree":
         try:
             found = store.read_record(Path(root).parent / "workspace.md").get("source_repo")
-        except (OSError, ValueError):
+        except (OSError, ValueError, store.StorageError):
             found = None
         if isinstance(found, str) and found:
             return found

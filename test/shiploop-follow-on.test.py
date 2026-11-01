@@ -16,9 +16,12 @@ from __future__ import annotations
 import html
 import importlib
 import importlib.util
+import json
+import os
 import re
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -95,6 +98,42 @@ class ShapeTests(unittest.TestCase):
         for bad in ("gap", {"class": "gap"}, [["gap"]], [{"class": 3}]):
             with self.subTest(bad=bad), self.assertRaisesRegex(module.FollowOnError, r"follow_on(\[0\])? must be"):
                 module.canonical(bad)
+
+
+    def test_an_isolated_run_starts_from_the_original_checkout_and_a_direct_run_from_its_own(self) -> None:
+        module = follow_on_module()
+        with tempfile.TemporaryDirectory() as temp:
+            workspace = Path(temp)
+            store.write_record(workspace / "workspace.md", {"source_repo": "/the/original/checkout"}, "ShipLoop workspace")
+            isolated = {"execution_mode": "navigator-worktree", "repo": "/the/isolated/worktree"}
+            self.assertEqual(module.source_repo(isolated, workspace / "run"), "/the/original/checkout")
+            self.assertEqual(module.source_repo(dict(isolated, execution_mode="navigator"), workspace / "run"),
+                             "/the/isolated/worktree")
+            # An isolated run whose workspace record is gone falls back to its own checkout rather than failing.
+            self.assertEqual(module.source_repo(isolated, workspace / "missing" / "run"), "/the/isolated/worktree")
+
+    def test_a_request_with_shell_syntax_reaches_the_start_command_as_plain_text(self) -> None:
+        # The design's safety claim: nothing the model wrote is parsed by the shell, whatever the request file holds
+        # and whatever the paths are called.  The stand-in for the CLI records the argv it receives.
+        module = follow_on_module()
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp) / "a dir with spaces"
+            base.mkdir()
+            request = base / module.FILE
+            text = "Fix `touch pwned` and $(touch pwned2) and \"double\" and 'single' and $HOME and ; touch pwned3.\nNext line.\n"
+            request.write_text(text, encoding="utf-8")
+            echo = Path(temp) / "echo_argv.py"
+            echo.write_text("import json, os, sys\nopen(os.environ['FO_OUT'], 'w').write(json.dumps(sys.argv[1:]))\n",
+                            encoding="utf-8")
+            out = Path(temp) / "argv.json"
+            repo = str(Path(temp) / "it's a repo")
+            command = module.start_command('"$CLI"', repo, request)
+            done = subprocess.run(command, shell=True, cwd=temp, env={**os.environ, "CLI": str(echo), "FO_OUT": str(out)},
+                                  capture_output=True, text=True, check=False)
+            self.assertEqual(done.returncode, 0, done.stderr)
+            self.assertEqual(json.loads(out.read_text(encoding="utf-8")),
+                             ["workspace", "start", "--repo", repo, "--prompt=" + text.rstrip("\n")])
+            self.assertEqual([path.name for path in Path(temp).iterdir() if path.name.startswith("pwned")], [])
 
 
 class RouteTests(FollowOnCase):
