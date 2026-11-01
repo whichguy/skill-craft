@@ -8068,15 +8068,45 @@ class StartupContractEvaluatorTest(unittest.TestCase):
     def test_literal_shell_heads_are_extracted_from_external_card_text(self):
         package = ROOT / "plugins" / "skill-craft"
         cli = package / "skills" / "shiploop" / "scripts" / "shiploop"
-        single = "'" + str(cli) + "'"
-        double = '"' + str(cli) + '"'
-        first = f"""python3 {single} workspace start --repo "$REPO" --prompt='<user request>'"""
-        second = f"""python3 {double} init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'"""
+        first = """python3 '/absolute/.../scripts/shiploop' workspace start --repo "$REPO" --prompt='<user request>'"""
+        second = """python3 "/selected/.../scripts/shiploop" workspace start --repo "$REPO" --prompt='<user request>'"""
+        third = f"""python3 "{cli}" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'"""
         fence = chr(96) * 3
-        card = f"{fence}sh\n{first}\n{fence}\n{fence}bash\n{second}\n{fence}\n"
+        card = (f"{fence}sh\n{first}\n{fence}\n{fence}bash\n{second}\n{fence}\n"
+                f"{fence}sh\n{third}\n{fence}\n")
         checker = self._load_checker(ROOT / "test" / "shiploop_e2e" / "checks")
         examples = checker.startup_commands_from_text(card, str(cli))
-        self.assertEqual(examples, [("workspace_start", first), ("init", second)])
+        self.assertEqual(examples, [("workspace_start", first), ("workspace_start", second), ("init", third)])
+
+    def test_registered_literal_head_substitutes_selected_path_and_preserves_quotes(self):
+        package = ROOT / "plugins" / "skill-craft"
+        cli = package / "skills" / "shiploop" / "scripts" / "shiploop"
+        checker = self._load_checker(ROOT / "test" / "shiploop_e2e" / "checks")
+        source = """python3 '/absolute/.../scripts/shiploop' workspace start --repo "$REPO" --prompt='<user request>'"""
+        rendered = checker.render_example(source, selected_cli=str(cli), repo="/tmp/repo path",
+                                          run_dir="/tmp/run path", request="request's\n")
+        source_head = checker._quoted_head(source)
+        rendered_head = checker._quoted_head(rendered)
+        self.assertEqual((source_head[1], source_head[2]), ("/absolute/.../scripts/shiploop", "'"))
+        self.assertEqual((rendered_head[1], rendered_head[2]), (str(cli), "'"))
+        self.assertIn("--prompt=" + checker.shell_single("request's\n"), rendered)
+
+        exact = f"""python3 "{cli}" workspace start --repo "$REPO" --prompt='<user request>'"""
+        exact_rendered = checker.render_example(exact, selected_cli=str(cli), repo="/tmp/repo",
+                                                run_dir="/tmp/run", request="request")
+        self.assertEqual(checker._quoted_head(exact_rendered)[1:], checker._quoted_head(exact)[1:])
+        self.assertEqual(checker._quoted_head(exact_rendered)[0].group("word"),
+                         checker._quoted_head(exact)[0].group("word"))
+
+    def test_unregistered_foreign_absolute_head_is_rejected(self):
+        package = ROOT / "plugins" / "skill-craft"
+        cli = package / "skills" / "shiploop" / "scripts" / "shiploop"
+        checker = self._load_checker(ROOT / "test" / "shiploop_e2e" / "checks")
+        foreign = """python3 '/foreign/unknown/scripts/shiploop' workspace start --repo "$REPO" --prompt='<user request>'"""
+        fence = chr(96) * 3
+        card = f"{fence}sh\n{foreign}\n{fence}\n"
+        with self.assertRaisesRegex(checker.ContractFailure, "unsupported absolute"):
+            checker.startup_commands_from_text(card, str(cli))
 
     def test_selected_package_startup_observer_calibration(self):
         package = (ROOT / "plugins" / "skill-craft").resolve()
@@ -8113,8 +8143,11 @@ class StartupContractEvaluatorTest(unittest.TestCase):
             self.assertEqual(receipt.get("schema"), "shiploop-startup-contract/v2")
             self.assertEqual(receipt.get("verdict"), "fail")
             self.assertEqual(receipt.get("calibration_verdict"), "pass")
+            self.assertEqual(
+                receipt["selected_documentation"]["observer_head_policy"],
+                "preserve $CLI and exact selected literal; substitute only the two registered illustrative heads")
             probes = {row["id"]: row for row in receipt.get("probes", [])}
-            self.assertEqual(len(probes), 14)
+            self.assertEqual(len(probes), 17)
             expected_doc_failures = {"documented_workspace_start", "documented_init"}
             self.assertEqual({key for key, row in probes.items() if row["status"] == "fail"},
                              expected_doc_failures, receipt)
@@ -8126,10 +8159,28 @@ class StartupContractEvaluatorTest(unittest.TestCase):
                 self.assertFalse(row["observed"]["bound"], receipt)
                 self.assertIn("$CLI", row["source_command"])
                 self.assertIn("$CLI", row["command"])
-            self.assertTrue(probes["literal_workspace_start_single"]["observed"]["bound"])
-            self.assertTrue(probes["literal_workspace_start_double"]["observed"]["bound"])
-            self.assertTrue(probes["literal_workspace_start_single"]["observed"]["bound_run_id_matches"])
-            self.assertTrue(probes["literal_workspace_start_double"]["observed"]["bound_run_id_matches"])
+            checker_module = self._load_checker(checks)
+            selected_cli = str(package / "skills" / "shiploop" / "scripts" / "shiploop")
+            literal_specs = {
+                "literal_absolute_placeholder_single": ("/absolute/.../scripts/shiploop", "'"),
+                "literal_selected_placeholder_double": ("/selected/.../scripts/shiploop", '"'),
+                "literal_exact_selected_double": (selected_cli, '"'),
+            }
+            for probe_id, (raw_head, quote) in literal_specs.items():
+                row = probes[probe_id]
+                self.assertTrue(row["observed"]["bound"], receipt)
+                self.assertTrue(row["observed"]["bound_run_id_matches"], receipt)
+                source_head = checker_module._quoted_head(row["source_command"])
+                rendered_head = checker_module._quoted_head(row["command"])
+                self.assertEqual((source_head[1], source_head[2]), (raw_head, quote))
+                self.assertEqual((rendered_head[1], rendered_head[2]), (selected_cli, quote))
+            self.assertTrue(probes["unsupported_foreign_literal"]["observed"]["rejected"])
+            self.assertFalse(probes["unsupported_foreign_literal"]["observed"]["observer_called"])
+            self.assertIsNone(probes["unsupported_foreign_literal"]["observed"]["rendered_command"])
+            self.assertIn("/foreign/unknown/scripts/shiploop",
+                          probes["unsupported_foreign_literal"]["source_command"])
+            self.assertIn("unsupported absolute",
+                          probes["unsupported_foreign_literal"]["observed"]["reason"])
             self.assertFalse(probes["variable_head"]["observed"]["bound"])
             self.assertFalse(probes["read_packet"]["observed"]["bound"])
             self.assertFalse(probes["read_status"]["observed"]["bound"])
@@ -8137,7 +8188,8 @@ class StartupContractEvaluatorTest(unittest.TestCase):
             self.assertFalse(probes["corrupt_state"]["observed"]["bound"])
             self.assertEqual(probes["foreign_owner"]["observed"]["decision"], "allow")
             for probe_id in ("argv_documented_workspace_start", "argv_documented_init",
-                             "argv_literal_single", "argv_literal_double"):
+                             "argv_literal_absolute_single", "argv_literal_selected_double",
+                             "argv_literal_exact_double"):
                 self.assertTrue(probes[probe_id]["observed"]["argv_match"], probes[probe_id])
             self.assertTrue(receipt["package_unchanged"])
             self.assertTrue(receipt["package_signature_before_sha256"])
@@ -8146,8 +8198,12 @@ class StartupContractEvaluatorTest(unittest.TestCase):
             self.assertEqual(receipt["synthetic_card"]["source"],
                              "temporary external synthetic card text")
             self.assertTrue(receipt["synthetic_card"]["sha256"])
-            self.assertEqual(len(receipt["synthetic_card"]["commands"]), 2)
-            self.assertEqual(receipt["synthetic_card"]["text"].count(chr(96) * 3), 4)
+            self.assertEqual(len(receipt["synthetic_card"]["commands"]), 3)
+            self.assertEqual(receipt["synthetic_card"]["text"].count(chr(96) * 3), 6)
+            foreign = receipt["foreign_literal_card"]
+            self.assertEqual(foreign["source"], "temporary external unsupported-head card text")
+            self.assertTrue(foreign["sha256"])
+            self.assertIn("/foreign/unknown/scripts/shiploop", foreign["text"])
             argv_fixture = receipt["argv_fixture"]
             self.assertTrue(argv_fixture["paths_are_synthetic"])
             self.assertTrue(argv_fixture["stub_cli_path"].endswith("\n"))
