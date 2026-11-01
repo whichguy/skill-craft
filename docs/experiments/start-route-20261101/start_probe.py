@@ -189,16 +189,30 @@ def starts_in(events_path: Path) -> dict:
 
 
 def reap(trial: Path) -> None:
-    """Kill anything still running that names the trial folder. A start command spawns a progress observer that can outlive
-    the harness; the harness then refuses every later launch as long as such an orphan lives."""
+    """Kill anything still running that names the trial folder, on its command line or as its working directory. A start
+    command spawns a progress observer that can outlive the harness; the harness then refuses every later launch as long as
+    such an orphan lives. A child that names no folder escapes the command-line match: the Salesforce CLI's first org command in
+    a throwaway HOME makes macOS raise a "Keychain Not Found" dialog and leaves `security add-generic-password` waiting with the
+    trial's work folder as its working directory (found by another session, 2026-11-01), so the working directory is matched too."""
+    victims: set[int] = set()
     listing = subprocess.run(["ps", "-axo", "pid=,command="], capture_output=True, text=True, check=False).stdout
     for line in listing.splitlines():
         pid, _, command = line.strip().partition(" ")
-        if str(trial) in command and pid.isdigit() and int(pid) != os.getpid():
-            try:
-                os.kill(int(pid), signal.SIGKILL)
-            except OSError:
-                pass
+        if str(trial) in command and pid.isdigit():
+            victims.add(int(pid))
+    cwds = subprocess.run(["lsof", "-d", "cwd", "-Fpn"], capture_output=True, text=True, check=False).stdout
+    roots = (str(trial), str(trial.resolve()))   # lsof prints the resolved path (/private/var for /var)
+    owner = ""
+    for line in cwds.splitlines():
+        if line.startswith("p"):
+            owner = line[1:]
+        elif line.startswith("n") and owner.isdigit() and line[1:].startswith(roots):
+            victims.add(int(owner))
+    for pid in victims - {os.getpid()}:
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except OSError:
+            pass
 
 
 def stop_group(proc: subprocess.Popen) -> None:

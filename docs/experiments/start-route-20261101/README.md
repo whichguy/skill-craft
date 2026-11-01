@@ -562,7 +562,17 @@ A user or script outside this repository that runs `init` in an empty non-Git fo
 The guard's benefit on the current card is small by construction (T2 leaves about 1 wrong start in 80 on Codex); what the probe
 establishes is that it is safe and effective when a start is wrong, and that the old wording's failure would be caught.
 
-**Decision.** Released with the second design, as registered (E, H2 and H3 met). The first design is not released.
+**Decision.** Released with the second design, as registered (E, H2 and H3 met). The first design is not released. Published as
+skill-craft 2.31.0 / shiploop 1.30.0 in 5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a (the guard d8a8dce097368ae349ba051ec76c83d036e7f2ef and its second
+design f9f91667228c1ef719cfb916757cba015e9189c7; the journal entries behind the release gate are in `test/shiploop_e2e/LEARNINGS.md`).
+
+**A side effect of the probes, found by another session.** The Salesforce prompt makes a session run the real `sf` in the trial's
+throwaway HOME before its run exists. On macOS the CLI's first org command there raised a "Keychain Not Found" dialog on the owner's
+screen and left a `security add-generic-password` child (parent 1, working directory in the trial's work folder, for example
+`20261101-guard/trials/098-GOLD-sf-ui-13-a1/work`) that the driver's per-trial cleanup, which matched command lines, did not reach. The
+fix for the harness is f9717c93631ae068bec75c6dc9238a2f878cc8ec (`SF_USE_GENERIC_UNIX_KEYCHAIN` in every throwaway HOME); the driver's
+`reap` now also matches the working directory. No measure here changed: every route is read at or after the run's first start, there
+was no invalid attempt in either guard launch, and the medians (44 to 50 s) show no session waited on a dialog; the cost was to the owner's screen.
 
 ## Release CI
 
