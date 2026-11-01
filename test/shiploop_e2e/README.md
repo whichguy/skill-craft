@@ -1265,7 +1265,7 @@ checks as well as the second's and is measured by the nearest quality declaratio
 checks see only the pass just before it as `$PRIOR_WORK`, and a suite runs the links in order, each continuing from the one
 before (SPEC, "Follow-on chains and the delta ledger"). The request of a link names only the new behaviour. The earlier
 links' tests are the standing assumption: ShipLoop runs them as the project's suite, and the harness runs the earlier links'
-checks again after the run. A link that changes an earlier rule (`ticket-sla`, the fourth ticket link) declares an acceptance of its own,
+checks again after the run. A link that changes an earlier rule (`ticket-sla`, the fourth ticket link, and `user-page-size`, the fourth link of the chain on `node-base`) declares an acceptance of its own,
 since the one it would inherit reads the sentence it replaces, and lists the earlier entries it may change (`delta.may_change`, below).
 
 #### The delta ledger (`delta`)
@@ -2563,6 +2563,10 @@ candidate, one decision: the loop tip advances only on PROMOTE.
   `rejected` decision visible to that checkout; neither is automatically admitted or deferred. New owner-routed evidence
   may return a rejected record to owner review. An existing hold keeps its reason; a withheld route is recorded in
   `source.held`, and `source.routing` retains the judge's owner-review/investigation distinction when supplied.
+  A harness-routed sighting never moves a settled record (`verified`, `refuted`, `no_effect`, `unexplained_gain`,
+  `deferred`, `rejected`) and never rewrites its reason or reopening condition; it is recorded in `source.held`.
+  An `opened` row's `materiality` must be `material` or `minor` (`append` refuses another word; only `material` is ever
+  offered to a cycle); one older row says `high` and `select` reads it (`MATERIAL`).
   Records already in a candidate also retain their state. Explicit owner acceptance or reopening can release the hold. This also applies to investigation findings routed to
   `owner`: the loop may stop with no admitted record, rather than wait for a person. The returned ids still include
   these observations. Unseen branch decisions and later epoch verdicts require separate reconciliation; the ledger test

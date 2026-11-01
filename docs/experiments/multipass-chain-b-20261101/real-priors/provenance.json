@@ -1,0 +1,72 @@
+{
+ "bf-codex-r1": {
+  "effort": "xhigh",
+  "folder": "bf-codex-r1-user-listing",
+  "host": "codex",
+  "model": "gpt-6.1-terra",
+  "pass": true,
+  "shiploop": "1.20.0",
+  "skill_craft": "2.21.0",
+  "source": "checkout"
+ },
+ "bf-codex-r2": {
+  "effort": "xhigh",
+  "folder": "bf-codex-r2-user-listing",
+  "host": "codex",
+  "model": "gpt-6.1-terra",
+  "pass": true,
+  "shiploop": "1.21.0",
+  "skill_craft": "2.22.0",
+  "source": "checkout"
+ },
+ "hooks-after": {
+  "effort": "xhigh",
+  "folder": "hooks-after-user-listing",
+  "host": "codex",
+  "model": "gpt-6.1-terra",
+  "pass": true,
+  "shiploop": "1.22.0",
+  "skill_craft": "2.23.0",
+  "source": "checkout"
+ },
+ "hooks-before": {
+  "effort": "xhigh",
+  "folder": "hooks-before-user-listing",
+  "host": "codex",
+  "model": "gpt-6.1-terra",
+  "pass": true,
+  "shiploop": "1.22.0",
+  "skill_craft": "2.23.0",
+  "source": "checkout"
+ },
+ "qr-A-s3": {
+  "effort": "high",
+  "folder": "A-user-listing-s3",
+  "host": "codex",
+  "model": "gpt-6.1-terra",
+  "pass": true,
+  "shiploop": "1.24.1",
+  "skill_craft": "2.25.1",
+  "source": "checkout"
+ },
+ "qr-B-s1": {
+  "effort": "high",
+  "folder": "B-user-listing-s1",
+  "host": "codex",
+  "model": "gpt-6.1-terra",
+  "pass": true,
+  "shiploop": "1.24.1",
+  "skill_craft": "2.25.1",
+  "source": "checkout"
+ },
+ "tl-M-s1": {
+  "effort": "high",
+  "folder": "M-user-listing-s1",
+  "host": "codex",
+  "model": "gpt-6.1-terra",
+  "pass": true,
+  "shiploop": "1.26.4",
+  "skill_craft": "2.27.4",
+  "source": "checkout"
+ }
+}

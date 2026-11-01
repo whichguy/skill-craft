@@ -12,8 +12,12 @@ A record's ``event`` rows fold into one status (``current``):
     decided (the promotion decision) then verdict (the prediction's verdict and the record's outcome);
     deferred -> deferred; reopened -> admitted (or open, never admitted); owner -> owner, or its outcome
 
-Automatic rediscovery cannot admit or defer a visible owner rejection. New owner-routed evidence may return it to
-owner review; explicit owner acceptance and reopening retain their existing meaning.
+Automatic rediscovery cannot admit or defer a visible owner rejection, and a harness finding cannot defer or rewrite any
+settled record. New owner-routed evidence may return a rejected record to owner review; explicit owner acceptance and
+reopening retain their existing meaning.
+
+Materiality is ``material`` or ``minor`` (``MATERIALITY``): an `opened` row with another word is refused, because only a
+``material`` record is ever offered to a cycle. One older row says "high"; ``select`` reads it (``MATERIAL``).
 
 Ids carry a timestamp and a random suffix and there is no global sequence, so two branches that append at once merge
 by union (``.gitattributes``) and the fold accepts any line order. ``reviewer_view`` is what a reviewer reads: titles,
@@ -48,8 +52,18 @@ SETTLED = ("refuted", "no_effect", "deferred", "rejected", "unexplained_gain", "
 # What select reads as material. Reviewers and the judge write material or minor; the one record seeded by hand,
 # LR-20261030-5dce01, says high, and a spelling select did not know made it impossible to take with no error.
 MATERIAL = ("material", "high")
+# What a reviewer or the judge may say (review.py refuses anything else) and what ``append`` accepts. "high" is in MATERIAL
+# only for that one row, which ``append`` would now refuse: no new row can say it, so no other record is ever read that way.
+MATERIALITY = ("material", "minor")
+
+
+def _check_materiality(value) -> None:
+    if value not in MATERIALITY:
+        raise ValueError(f"materiality {value!r} is not one of {', '.join(MATERIALITY)}; select() could never offer the record")
 # A new sighting adds its evidence to a record in these and never moves it: the owner decides an `owner` record, and an
 # `in_candidate` one belongs to a registered epoch.
+# A harness-routed sighting never moves a record in SETTLED either: its follow-up is `deferred`, which would turn a verified,
+# refuted or unexplained record into a deferred one and give a deferred one ingest's own text in place of its reason.
 HELD = ("owner", "in_candidate")
 OUTCOMES = ("verified", "unexplained_gain", "refuted", "no_effect", "deferred", "admitted")
 CONFIDENCE = {"high": 0, "medium": 1, "low": 2}
@@ -66,8 +80,8 @@ def new_id(now: datetime.datetime | None = None) -> str:
 
 
 def append(event: str, record: str, path: Path = LEDGER, **fields) -> dict:
-    """Append one event row and return it. Refuses an unknown event, a malformed id, or a field that would overwrite
-    the row's own keys."""
+    """Append one event row and return it. Refuses an unknown event, a malformed id, a field that would overwrite the
+    row's own keys, and an `opened` row whose materiality is not ``MATERIALITY`` (a row that makes no claim omits it)."""
     if event not in EVENTS:
         raise ValueError(f"unknown learning-record event {event!r}")
     if not RECORD_ID.fullmatch(record or ""):
@@ -75,6 +89,8 @@ def append(event: str, record: str, path: Path = LEDGER, **fields) -> dict:
     reserved = {"contract", "event_id", "at", "record", "event"} & set(fields)
     if reserved:
         raise ValueError("fields may not set " + ", ".join(sorted(reserved)))
+    if event == "opened" and "materiality" in fields:
+        _check_materiality(fields["materiality"])
     at = _now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     row = {"contract": CONTRACT, "event_id": f"{at}-{secrets.token_hex(3)}", "at": at, "record": record,
            "event": event, **fields}
@@ -244,8 +260,18 @@ def ingest(review: dict, routes: dict, source: dict, path: Path = LEDGER) -> lis
     a separate evaluator experiment. A discovery whose ``same_as`` names a known record adds to it; an unknown one opens
     a new record and keeps the claimed id as ``same_as_unknown``. Adding to a record the owner holds, or one in a
     candidate (``HELD``), records the evidence and leaves the record where it is, whatever the route. A rejected record
-    may return to owner review, but cannot be automatically admitted or deferred. ``source.held`` marks a withheld route.
+    may return to owner review, but cannot be automatically admitted or deferred. A harness-routed sighting leaves every
+    settled record (``SETTLED``) as it is, with its reason and reopening condition. ``source.held`` marks a withheld route.
     This guards visible decisions, not unseen decisions on another branch; historical folding is unchanged."""
+    for route in ("implementation", "owner_challenges", "harness"):
+        for finding in routes.get(route) or []:
+            # All or nothing: judge.admitted passes only "material" findings, so this cannot fire from a judged review; a
+            # finding that reaches here with another word fails before the batch is half written.
+            if isinstance(finding, dict) and finding.get("materiality") is not None:
+                try:
+                    _check_materiality(finding["materiality"])
+                except ValueError as error:
+                    raise ValueError(f"finding {finding.get('id')!r} ({route}): {error}; nothing was recorded") from None
     known = set(current(path))
     recorded = []
     for route, follow in (("implementation", "admitted"), ("owner_challenges", "owner"), ("harness", "deferred")):
@@ -256,6 +282,8 @@ def ingest(review: dict, routes: dict, source: dict, path: Path = LEDGER) -> lis
             record = claimed if isinstance(claimed, str) and claimed in known else new_id()
             fields = {key: finding.get(key) for key in ("title", "materiality", "confidence", "target", "files",
                                                          "proposal", "next_experiment")}
+            if fields["materiality"] is None:
+                del fields["materiality"]  # a sighting that makes no claim writes none, rather than a null append refuses
             fields["anchor"] = finding.get("mission_anchor")
             fields["source"] = {**source, "finding_id": finding.get("id"), "route": route}
             if finding.get("routing"):
@@ -263,7 +291,7 @@ def ingest(review: dict, routes: dict, source: dict, path: Path = LEDGER) -> lis
             if claimed and record != claimed:
                 fields["same_as_unknown"] = claimed
             status = current(path)[record]["status"] if record in known else None
-            held = status in HELD or (status == "rejected" and follow != "owner")
+            held = status in HELD or (status == "rejected" and follow != "owner") or (status in SETTLED and follow == "deferred")
             if held:
                 fields["source"]["held"] = status
             append("opened", record, path, **fields)

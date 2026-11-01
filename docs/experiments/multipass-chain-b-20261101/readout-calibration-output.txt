@@ -1,0 +1,59 @@
+# chain_b_readout.py fed saved runs with known numbers (no model call), 2026-11-01. The stand-ins are NOT chain B runs; the bar and prediction lines below
+# are the instrument's reading of them (e.g. B2 and B3 'missed' because E1 and E3 are old-ShipLoop passes with the leaks). Known numbers it must reproduce:
+#   E1 (pass-3 slot): 1,125.4 s, 8 stray headings, AD-4 born retired, AD-3 and AD-4 still retired at the end;
+#   E3 (pass-4 slot): 993.3 s, 9 stray headings, AD-5 born retired, spec 'replaced 1/1 left 0 unexplained 0', recorded FAILED 15 of 16.
+# python3 chain_b_readout.py --as B1-user-listing=bf-codex-r2-user-listing --as B2-user-roles=e2/B1-ticket-escalation --as B3-user-team-listing=mp-codex-ticket-comments --as B4-user-page-size=mp-codex-ticket-sla
+B1 B1-user-listing      pass · 16.8 min · 130 calls · checks 3/3 · hidden 11/11 · stray +1 · decisions added ['AD-1', 'AD-2'] · born retired [] · notices 0 (flagged that survive 0) · ShipLoop 1.21.0 (skill-craft 2.22.0, checkout)
+                          base | R +4 ~0 -0 retired 0 born-retired 0 | AD +2 ~0 -0 retired 0 born-retired 0 | stray+ spec 0 env 1 arch 0 | appends spec 1 env 6 arch 2 | prior tests modified 1 src 2/6 | follows d6/p0 tests d4/p0 | lessons 41c15afd2fd0
+                          earlier tests modified ['test/paginate.test.js'] · source files modified 2 of 6 · earlier requirements cited by the plan 0 · still retired at the end [] · live sections of architecture.md changed ['Conventions', 'Decisions', 'Interfaces and boundaries', 'Real-boundary checks', 'Stack', 'Structure']
+B2 B2-user-roles        pass · 18.7 min · 182 calls · checks 9/9 · hidden 14/14 · stray +0 · decisions added ['AD-3'] · born retired [] · notices 1 (flagged that survive 0) · ShipLoop 1.26.0 (skill-craft 2.27.0, checkout)
+                          follow-on | R +2 ~0 -0 retired 0 born-retired 0 | AD +1 ~0 -0 retired 0 born-retired 0 | stray+ spec 0 env 0 arch 0 | appends spec 0 env 0 arch 0 | prior tests modified 0 src 8/27 | follows d3/p1 tests d4/p0 | lessons 853de70535d1
+                          earlier tests modified [] · source files modified 8 of 27 · earlier requirements cited by the plan 1 · still retired at the end [] · live sections of architecture.md changed ['Decisions', 'Real-boundary checks']
+B3 B3-user-team-listing pass · 18.8 min · 288 calls · checks 13/13 · hidden 14/14 · stray +8 · decisions added ['AD-4'] · born retired ['AD-4'] · notices 0 (flagged that survive 0) · ShipLoop 1.26.0 (skill-craft 2.27.0, marketplace)
+                          follow-on | R +1 ~0 -0 retired 0 born-retired 0 | AD +1 ~0 -0 retired 0 born-retired 1 | stray+ spec 0 env 8 arch 0 | appends spec 0 env 0 arch 0 | prior tests modified 0 src 6/27 | follows d2/p0 tests d8/p0 | lessons dd378d4749cd
+                          earlier tests modified [] · source files modified 6 of 27 · earlier requirements cited by the plan 0 · still retired at the end ['AD-3', 'AD-4'] · live sections of architecture.md changed []
+B4 B4-user-page-size    FAILED · 16.6 min · 158 calls · checks 15/16 · hidden 16/16 · stray +9 · decisions added ['AD-5'] · born retired ['AD-5'] · notices 0 (flagged that survive 0) · ShipLoop 1.26.1 (skill-craft 2.27.1, marketplace)
+                          follow-on | R +0 ~1 -0 retired 0 born-retired 0 replaced 1/1 left 0 unexplained 0 | AD +1 ~0 -0 retired 0 born-retired 1 replaced 0/1 left 1 unexplained 0 | stray+ spec 0 env 9 arch 0 | appends spec 0 env 0 arch 0 | prior tests modified 1 src 5/27 | follows d2/p0 tests d5/p0 | lessons d0b6eea1e624
+                          earlier tests modified ['test/reassignment-escalation.test.js'] · source files modified 5 of 27 · earlier requirements cited by the plan 0 · still retired at the end ['AD-3', 'AD-4', 'AD-5'] · live sections of architecture.md changed []
+                          failed checks ['ids() { grep -oE \'\\bR-[0-9]+\\b\' "$1/docs/shiploop/spec.md" 2'] · hidden failed []
+
+Pass 2 (read, not barred): earlier test files modified []
+
+Bar, fixed before the runs
+B1 missed   every pass passes and loses no hidden check (a FAILED pass whose only failing check is a base test is rerun five times first; see the journal)
+B2 missed   every pass adds at most 2 stray headings to environment.md
+B3 missed   no pass files a new decision or requirement as retired
+B4 held     pass 4: no earlier entry changed that the request did not name (unexplained is empty in the spec and in the architecture)
+B5 held     pass 4 changed the old rules: at least one of the requirements that state the old default and largest size was edited or retired
+B6 held     pass 3 modifies no earlier test file and pass 4 modifies at least one (its request names the tests that state the old rules); pass 2 is read, not barred
+
+Predictions, fixed before the runs
+P1 held     pass 1 (user-listing) passes all its checks
+P2 missed   passes 2 to 4 each pass every check, the hidden ones included
+P3 missed   passes 2 and 3 cite no earlier requirement in their step plans and test cases (the plan is the delta alone)
+P4 held     pass 3 respects the five rules it inherits (name matching, pages, defaults, bounds, refusals): its five checks that read them pass
+P5 held     pass 4 leaves the architecture's pagination decision (AD-1) standing: it is about the page count, not the sizes, and a new decision carries the new rule
+P6 held     the placement notice is printed in at least one of the four passes
+P7 held     every pass runs in at most 25 minutes and the chain in at most 100
+P8 missed   all four passes ran on one ShipLoop version
+
+total 70.8 min; model calls [130, 182, 288, 158]; tokens processed [27020531, 46758113, 69706783, 37042518]
+
+{"B1": {"pass": true, "seconds": 1005.6, "decisions_added": ["AD-1", "AD-2"], "born_retired": [], "model_calls": 130, "versions": ["2.22.0", "1.21.0", "checkout"]}, "B2": {"pass": true, "seconds": 1121.9, "decisions_added": ["AD-3"], "born_retired": [], "model_calls": 182, "versions": ["2.27.0", "1.26.0", "checkout"]}, "B3": {"pass": true, "seconds": 1125.4, "decisions_added": ["AD-4"], "born_retired": ["AD-4"], "model_calls": 288, "versions": ["2.27.0", "1.26.0", "marketplace"]}, "B4": {"pass": false, "seconds": 993.3, "decisions_added": ["AD-5"], "born_retired": ["AD-5"], "model_calls": 158, "versions": ["2.27.1", "1.26.1", "marketplace"]}}
+
+# the same with only pass 1 present: every line that needs another run reads unknown
+B1 B1-user-listing      pass · 16.8 min · 130 calls · checks 3/3 · hidden 11/11 · stray +1 · decisions added ['AD-1', 'AD-2'] · born retired [] · notices 0 (flagged that survive 0) · ShipLoop 1.21.0 (skill-craft 2.22.0, checkout)
+                          base | R +4 ~0 -0 retired 0 born-retired 0 | AD +2 ~0 -0 retired 0 born-retired 0 | stray+ spec 0 env 1 arch 0 | appends spec 1 env 6 arch 2 | prior tests modified 1 src 2/6 | follows d6/p0 tests d4/p0 | lessons 41c15afd2fd0
+                          earlier tests modified ['test/paginate.test.js'] · source files modified 2 of 6 · earlier requirements cited by the plan 0 · still retired at the end [] · live sections of architecture.md changed ['Conventions', 'Decisions', 'Interfaces and boundaries', 'Real-boundary checks', 'Stack', 'Structure']
+B3 B3-user-team-listing (no result yet)
+B4 B4-user-page-size    (no result yet)
+
+Pass 2 (read, not barred): earlier test files modified None
+
+Bar, fixed before the runs
+B1 unknown  every pass passes and loses no hidden check (a FAILED pass whose only failing check is a base test is rerun five times first; see the journal)
+B2 unknown  every pass adds at most 2 stray headings to environment.md
+B3 unknown  no pass files a new decision or requirement as retired
+B4 unknown  pass 4: no earlier entry changed that the request did not name (unexplained is empty in the spec and in the architecture)
+B5 unknown  pass 4 changed the old rules: at least one of the requirements that state the old default and largest size was edited or retired
+B6 unknown  pass 3 modifies no earlier test file and pass 4 modifies at least one (its request names the tests that state the old rules); pass 2 is read, not barred

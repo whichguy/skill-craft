@@ -460,6 +460,432 @@
       "refuse_ports_source": "the base: src/server.js listens on the port in PORT and defaults to 3000. The held-out checks start the delivered server with PORT set, and a delivery that ignored it would meet the refusal"
     }
   },
+  "user-roles": {
+    "style": "brownfield",
+    "follows": "user-listing",
+    "prompt": "Give the users roles. Every user has a `role`, which is `admin`, `member` or `viewer`: Ada Lovelace is an admin, Grace Hopper a member and Alan Turing a viewer. A user's role is shown wherever the user is: in GET /users/:id and in every user GET /users answers, whether as an array or in the items of a page. GET /users gains a `role` filter: `role=<role>` keeps only the users with that role, and a user must match every filter given. A `role` that is none of the three roles, an empty one included, answers HTTP 400 with a JSON object whose \"error\" says what is wrong. Everything the project already does keeps working, and its existing tests must still pass as they are, except that a test comparing a whole user may be changed to include the role. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.",
+    "checks": [
+      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_directory_probe.py\" roles",
+      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_directory_probe.py\" combine",
+      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_directory_probe.py\" badrole"
+    ],
+    "checks_source": "the request: the first check reads 'a user's role is shown wherever the user is' (by id, in the array and in the items of a page) and '`role=<role>` keeps only the users with that role'; the second reads 'a user must match every filter given' with a page, so `total` and `pages` count the users that matched both; the third reads 'a `role` that is none of the three roles, an empty one included, answers HTTP 400' and the first request's page and size refusals beside a role. None reads the default page size or the largest size, which a later link replaces. The first link's checks run again as regression (SPEC: Follow-on chains)",
+    "retention": [
+      "git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard | grep -v '\\.log$' | while IFS= read -r f; do [ -e \"$f\" ] || { echo \"missing $f\"; exit 1; }; done",
+      "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stringify(Object.keys({...p.dependencies,...p.devDependencies}).sort())}catch{return \"[]\"}};process.exit(deps(\".\")===deps(process.env.PRIOR_WORK)?0:1)'",
+      "count() { (cd \"$1\" && node --test 2>&1) | sed -nE 's/^(ℹ|#) pass ([0-9]+).*/\\2/p' | tail -1; }; before=$(count \"$PRIOR_WORK\"); after=$(count .); echo \"tests $before -> $after\"; [ -n \"$after\" ] && [ \"${after:-0}\" -ge \"${before:-0}\" ] || { echo \"fewer tests pass than in the followed run\"; exit 1; }; added=$(diff -rN \"$PRIOR_WORK/test\" test 2>/dev/null | grep \"^>\"); [ -n \"$added\" ] || { echo \"the test files are unchanged since the followed run\"; exit 1; }; for word in role; do printf \"%s\\n\" \"$added\" | grep -qi \"$word\" || { echo \"no added test line names $word\"; exit 1; }; done; echo \"no fewer tests pass, and the added test lines name roles\"",
+      "ids() { grep -oE '\\bR-[0-9]+\\b' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); added=$(comm -13 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; covered=no; grep -qi viewer docs/shiploop/spec.md && ! grep -qi viewer \"$PRIOR_WORK/docs/shiploop/spec.md\" && covered=yes; echo \"earlier ids: $earlier; missing: $missing; added: $added; feature in spec: $covered\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ] && { [ -n \"$added\" ] || [ \"$covered\" = yes ]; }",
+      "ids() { grep -oE '\\bAD-[0-9]+\\b' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; echo \"earlier decision ids: $earlier; missing: $missing\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ]"
+    ],
+    "retention_source": "SPEC S-11: knowledge from the followed run is retained in the repository and built on, as in ticket-comments: every earlier file kept, no dependency added, no fewer tests passing with the added test lines naming roles, the living spec keeping every earlier requirement ID while it records the roles (a new requirement, or an earlier one edited in place that names the `viewer` role: the word is the request's own and no real pass-1 spec holds it), and the architecture keeping every earlier decision ID (a pass that changes nothing about how the product is built adds none)",
+    "quality": {
+      "acceptance": {
+        "module": "user_roles_accept",
+        "calibration": [
+          "test/fixtures/quality/reference_user_roles.py",
+          "test/fixtures/quality/reference_user_listing.py"
+        ],
+        "start": "node src/server.js",
+        "source": "hand-written from the request, never shown to the model, run in the harness process after the host ended (SPEC: Delivered quality is recorded, never judged). Graded against the followed run's delivery: the pass-to-pass checks are checks/user_listing_accept.py's, shown every answer without its `role` (the first request's rules are read as they were written), and ask whether this run kept what the first built; the five fail-to-pass checks read the request. Calibrated with test/fixtures/quality/reference_user_roles.py, whose base is reference_user_listing.py's reference (SPEC: A brownfield case)",
+        "checks": [
+          {
+            "id": "list-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's list-unchanged reads its sentence"
+          },
+          {
+            "id": "user-by-id-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's user-by-id-unchanged reads its sentence"
+          },
+          {
+            "id": "name-filter",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's name-filter reads its sentence"
+          },
+          {
+            "id": "name-plain-text",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's name-plain-text reads its sentence"
+          },
+          {
+            "id": "page-envelope",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's page-envelope reads its sentence"
+          },
+          {
+            "id": "partial-last-page",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's partial-last-page reads its sentence"
+          },
+          {
+            "id": "page-past-end",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's page-past-end reads its sentence"
+          },
+          {
+            "id": "page-defaults",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's page-defaults reads its sentence"
+          },
+          {
+            "id": "filter-then-page",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's filter-then-page reads its sentence"
+          },
+          {
+            "id": "size-bounds",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's size-bounds reads its sentence"
+          },
+          {
+            "id": "bad-page-or-size",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's bad-page-or-size reads its sentence"
+          },
+          {
+            "id": "role-shown",
+            "grade": "fail-to-pass",
+            "source": "the request: 'A user's role is shown wherever the user is: in GET /users/:id and in every user GET /users answers, whether as an array or in the items of a page', with Ada Lovelace an admin, Grace Hopper a member and Alan Turing a viewer"
+          },
+          {
+            "id": "role-filter",
+            "grade": "fail-to-pass",
+            "source": "the request: 'GET /users gains a `role` filter: `role=<role>` keeps only the users with that role', read with the first request's 'without `page` and `size`, GET /users still answers a JSON array' and 'any other query parameter is ignored'"
+          },
+          {
+            "id": "filters-combine",
+            "grade": "fail-to-pass",
+            "source": "the request: 'a user must match every filter given', read for `name` beside `role` (the first request's `name` filter), an empty `name` included"
+          },
+          {
+            "id": "role-then-page",
+            "grade": "fail-to-pass",
+            "source": "the request's `role` filter read with the first request's '\"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched)' and 'a page after the last one answers an empty \"items\"': the counts are those of the users that matched every filter"
+          },
+          {
+            "id": "bad-role",
+            "grade": "fail-to-pass",
+            "source": "the request: 'A `role` that is none of the three roles, an empty one included, answers HTTP 400 with a JSON object whose \"error\" says what is wrong', read with the first request's page and size refusals, which still apply beside a role"
+          }
+        ]
+      },
+      "refuse_ports": [
+        3000
+      ],
+      "refuse_ports_source": "the base: src/server.js listens on the port in PORT and defaults to 3000, as user-listing declares; the held-out checks start the delivered server with PORT set"
+    }
+  },
+  "user-team-listing": {
+    "style": "brownfield",
+    "follows": "user-roles",
+    "prompt": "Add teams. There are five teams, each with an `id`, a `name` and its `members`, the ids of the users in it: 1 Analytical Engine (member 1), 2 Compilers (member 2), 3 Computing Machinery (member 3), 4 Cryptanalysis (member 3) and 5 Data Systems (members 1 and 2). `GET /teams` lists the teams the way `GET /users` lists users: filtered by `name`, and paged by `page` and `size`, with the same answers, errors included. `GET /teams/:id` answers one team, or 404 the way `GET /users/:id` does for a user that does not exist. Everything the project already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.",
+    "checks": [
+      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_directory_probe.py\" teams",
+      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_directory_probe.py\" teamsfilter",
+      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_directory_probe.py\" teamspage"
+    ],
+    "checks_source": "the request: the first check reads 'five teams, each with an `id`, a `name` and its `members`', '`GET /teams` lists the teams' in id order and '`GET /teams/:id` answers one team, or 404'; the second reads 'filtered by `name`' the way the users are (case ignored, plain text, an empty name keeps every team, any other parameter ignored); the third reads 'paged by `page` and `size`, with the same answers, errors included' with explicit sizes only (the default page size and the largest size are read by the hidden checks, and a later link replaces them). The earlier links' checks run again as regression (SPEC: Follow-on chains)",
+    "retention": [
+      "git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard | grep -v '\\.log$' | while IFS= read -r f; do [ -e \"$f\" ] || { echo \"missing $f\"; exit 1; }; done",
+      "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stringify(Object.keys({...p.dependencies,...p.devDependencies}).sort())}catch{return \"[]\"}};process.exit(deps(\".\")===deps(process.env.PRIOR_WORK)?0:1)'",
+      "count() { (cd \"$1\" && node --test 2>&1) | sed -nE 's/^(ℹ|#) pass ([0-9]+).*/\\2/p' | tail -1; }; before=$(count \"$PRIOR_WORK\"); after=$(count .); echo \"tests $before -> $after\"; [ -n \"$after\" ] && [ \"${after:-0}\" -ge \"${before:-0}\" ] || { echo \"fewer tests pass than in the followed run\"; exit 1; }; added=$(diff -rN \"$PRIOR_WORK/test\" test 2>/dev/null | grep \"^>\"); [ -n \"$added\" ] || { echo \"the test files are unchanged since the followed run\"; exit 1; }; for word in team; do printf \"%s\\n\" \"$added\" | grep -qi \"$word\" || { echo \"no added test line names $word\"; exit 1; }; done; echo \"no fewer tests pass, and the added test lines name teams\"",
+      "ids() { grep -oE '\\bR-[0-9]+\\b' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); added=$(comm -13 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; covered=no; grep -qi team docs/shiploop/spec.md && ! grep -qi team \"$PRIOR_WORK/docs/shiploop/spec.md\" && covered=yes; echo \"earlier ids: $earlier; missing: $missing; added: $added; feature in spec: $covered\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ] && { [ -n \"$added\" ] || [ \"$covered\" = yes ]; }",
+      "ids() { grep -oE '\\bAD-[0-9]+\\b' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; echo \"earlier decision ids: $earlier; missing: $missing\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ]"
+    ],
+    "retention_source": "SPEC S-11: knowledge from the followed run is retained in the repository and built on, as in ticket-comments: every earlier file kept, no dependency added, no fewer tests passing with the added test lines naming teams, the living spec keeping every earlier requirement ID while it records teams (a new requirement, or an earlier one edited in place that names teams: the word is the request's own and no earlier request holds it), and the architecture keeping every earlier decision ID (a pass that changes nothing about how the product is built adds none)",
+    "quality": {
+      "acceptance": {
+        "module": "user_team_listing_accept",
+        "calibration": [
+          "test/fixtures/quality/reference_user_team_listing.py",
+          "test/fixtures/quality/reference_user_roles.py"
+        ],
+        "start": "node src/server.js",
+        "source": "hand-written from the request, never shown to the model, run in the harness process after the host ended (SPEC: Delivered quality is recorded, never judged). Graded against the followed run's delivery: the pass-to-pass checks are checks/user_roles_accept.py's (the first request's eleven and the second's five), and ask whether this run kept what the earlier two built; the seven fail-to-pass checks read the request, and five of them read the rules the users listing already had, which the request asks for by name ('the way GET /users lists users'): a run that reads them from what the earlier passes left reuses them, and one that derives them again may not. Calibrated with test/fixtures/quality/reference_user_team_listing.py, whose base is reference_user_roles.py's reference (SPEC: A brownfield case)",
+        "checks": [
+          {
+            "id": "list-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's list-unchanged reads its sentence"
+          },
+          {
+            "id": "user-by-id-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's user-by-id-unchanged reads its sentence"
+          },
+          {
+            "id": "name-filter",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's name-filter reads its sentence"
+          },
+          {
+            "id": "name-plain-text",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's name-plain-text reads its sentence"
+          },
+          {
+            "id": "page-envelope",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's page-envelope reads its sentence"
+          },
+          {
+            "id": "partial-last-page",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's partial-last-page reads its sentence"
+          },
+          {
+            "id": "page-past-end",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's page-past-end reads its sentence"
+          },
+          {
+            "id": "page-defaults",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's page-defaults reads its sentence"
+          },
+          {
+            "id": "filter-then-page",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's filter-then-page reads its sentence"
+          },
+          {
+            "id": "size-bounds",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's size-bounds reads its sentence"
+          },
+          {
+            "id": "bad-page-or-size",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's bad-page-or-size reads its sentence"
+          },
+          {
+            "id": "role-shown",
+            "grade": "pass-to-pass",
+            "source": "the request: 'A user's role is shown wherever the user is: in GET /users/:id and in every user GET /users answers, whether as an array or in the items of a page', with Ada Lovelace an admin, Grace Hopper a member and Alan Turing a viewer"
+          },
+          {
+            "id": "role-filter",
+            "grade": "pass-to-pass",
+            "source": "the request: 'GET /users gains a `role` filter: `role=<role>` keeps only the users with that role', read with the first request's 'without `page` and `size`, GET /users still answers a JSON array' and 'any other query parameter is ignored'"
+          },
+          {
+            "id": "filters-combine",
+            "grade": "pass-to-pass",
+            "source": "the request: 'a user must match every filter given', read for `name` beside `role` (the first request's `name` filter), an empty `name` included"
+          },
+          {
+            "id": "role-then-page",
+            "grade": "pass-to-pass",
+            "source": "the request's `role` filter read with the first request's '\"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched)' and 'a page after the last one answers an empty \"items\"': the counts are those of the users that matched every filter"
+          },
+          {
+            "id": "bad-role",
+            "grade": "pass-to-pass",
+            "source": "the request: 'A `role` that is none of the three roles, an empty one included, answers HTTP 400 with a JSON object whose \"error\" says what is wrong', read with the first request's page and size refusals, which still apply beside a role"
+          },
+          {
+            "id": "teams-listing",
+            "grade": "fail-to-pass",
+            "source": "the request: 'five teams, each with an `id`, a `name` and its `members`' and '`GET /teams` lists the teams the way `GET /users` lists users', read with the first request's 'without `page` and `size`, GET /users still answers a JSON array of users in id order' and 'any other query parameter is ignored'"
+          },
+          {
+            "id": "team-by-id",
+            "grade": "fail-to-pass",
+            "source": "the request: '`GET /teams/:id` answers one team, or 404 the way `GET /users/:id` does for a user that does not exist': the first request's 404 answers a JSON object whose \"error\" is a text"
+          },
+          {
+            "id": "teams-name-filter",
+            "grade": "fail-to-pass",
+            "source": "the request: 'filtered by `name`' the way `GET /users` is, which is the first request's 'keeps only the users whose name contains it as plain text, ignoring case; an empty `name` keeps every user', read for a name holding a pattern's characters (`a.a`, `.`, `(`)"
+          },
+          {
+            "id": "teams-pages",
+            "grade": "fail-to-pass",
+            "source": "the request: 'paged by `page` and `size`, with the same answers' as the first request's \"page\", \"size\", \"total\", \"pages\" and \"items\", 'page 1 holding the first `size` of them', pages that count a partly filled last page, 'a page after the last one answers an empty \"items\"', and a `name` filtered before the paging"
+          },
+          {
+            "id": "teams-page-defaults",
+            "grade": "fail-to-pass",
+            "source": "the request: 'with the same answers' as the first request's '`size` is 10 when only `page` is given and `page` is 1 when only `size` is given'"
+          },
+          {
+            "id": "teams-size-bounds",
+            "grade": "fail-to-pass",
+            "source": "the request: 'with the same answers' as the first request's '`size` a whole number from 1 to 100', read at both ends"
+          },
+          {
+            "id": "teams-bad-page-or-size",
+            "grade": "fail-to-pass",
+            "source": "the request: 'errors included', the first request's 'any other value, an empty one included, answers HTTP 400 with a JSON object whose \"error\" says what is wrong' for `page` and `size`"
+          }
+        ]
+      },
+      "refuse_ports": [
+        3000
+      ],
+      "refuse_ports_source": "the base: src/server.js listens on the port in PORT and defaults to 3000, as user-listing declares"
+    }
+  },
+  "user-page-size": {
+    "style": "brownfield",
+    "follows": "user-team-listing",
+    "prompt": "Change how the listings page. Today GET /users and GET /teams answer a page of 10 when `size` is not given, and take a `size` of up to 100. Make the default page size the `PAGE_SIZE` environment variable (default 25) and the largest `size` 50, for both listings. A `size` above 50 answers HTTP 400 as any other bad `size` does. This replaces the rules that a page holds 10 when `size` is not given and that `size` goes up to 100: change those requirements, the decisions behind them and the tests that state them. Everything else the project already does keeps working, and its other tests must still pass as they are. Add node:test tests for the new behaviour.",
+    "checks": [
+      "env -u PAGE_SIZE python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_directory_probe.py\" sizedefault",
+      "PAGE_SIZE=2 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_directory_probe.py\" sizesetting",
+      "env -u PAGE_SIZE python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_directory_probe.py\" sizelargest"
+    ],
+    "checks_source": "the request: the first check reads 'the default page size ... (default 25)' with PAGE_SIZE unset, for both listings, and a given `size` winning; the second reads 'the default page size the `PAGE_SIZE` environment variable' with PAGE_SIZE=2, and that the plain array is not paged; the third reads 'the largest `size` 50' and 'a `size` above 50 answers HTTP 400', for both listings. The earlier links' checks run again as regression (SPEC: Follow-on chains); the earlier links' own checks use explicit sizes only, so a correct delivery passes them",
+    "retention": [
+      "git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard | grep -v '\\.log$' | while IFS= read -r f; do [ -e \"$f\" ] || { echo \"missing $f\"; exit 1; }; done",
+      "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stringify(Object.keys({...p.dependencies,...p.devDependencies}).sort())}catch{return \"[]\"}};process.exit(deps(\".\")===deps(process.env.PRIOR_WORK)?0:1)'",
+      "count() { (cd \"$1\" && node --test 2>&1) | sed -nE 's/^(ℹ|#) pass ([0-9]+).*/\\2/p' | tail -1; }; before=$(count \"$PRIOR_WORK\"); after=$(count .); echo \"tests $before -> $after\"; [ -n \"$after\" ] && [ \"${after:-0}\" -ge \"${before:-0}\" ] || { echo \"fewer tests pass than in the followed run\"; exit 1; }; added=$(diff -rN \"$PRIOR_WORK/test\" test 2>/dev/null | grep \"^>\"); [ -n \"$added\" ] || { echo \"the test files are unchanged since the followed run\"; exit 1; }; for word in page_size; do printf \"%s\\n\" \"$added\" | grep -qi \"$word\" || { echo \"no added test line names $word\"; exit 1; }; done; echo \"no fewer tests pass, and the added test lines name the page size\"",
+      "ids() { grep -oE '\\bR-[0-9]+\\b' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); added=$(comm -13 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; covered=no; grep -qi PAGE_SIZE docs/shiploop/spec.md && ! grep -qi PAGE_SIZE \"$PRIOR_WORK/docs/shiploop/spec.md\" && covered=yes; echo \"earlier ids: $earlier; missing: $missing; added: $added; feature in spec: $covered\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ] && { [ -n \"$added\" ] || [ \"$covered\" = yes ]; }",
+      "ids() { grep -oE '\\bAD-[0-9]+\\b' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\" | tr '\\n' ' '); earlier=$(wc -l < \"$before\"); rm -f \"$before\" \"$after\"; echo \"earlier decision ids: $earlier; missing: $missing\"; [ \"$earlier\" -gt 0 ] && [ -z \"$missing\" ]"
+    ],
+    "retention_source": "SPEC S-11: knowledge from the followed run is retained in the repository and built on, as in ticket-sla: every earlier file kept, no dependency added, no fewer tests passing with the added test lines naming the page size, the living spec keeping every earlier requirement ID while it records the new rule (the requirements that state the old default and the old largest size may move under Retired, which keeps their IDs, or be edited in place, which names PAGE_SIZE: the word is the request's own and no real pass-1 spec holds it), and the architecture keeping every earlier decision ID (the decisions behind the old rules may move under Superseded)",
+    "quality": {
+      "acceptance": {
+        "module": "user_page_size_accept",
+        "calibration": [
+          "test/fixtures/quality/reference_user_page_size.py",
+          "test/fixtures/quality/reference_user_team_listing.py"
+        ],
+        "start": "node src/server.js",
+        "source": "hand-written from the request, never shown to the model, run in the harness process after the host ended (SPEC: Delivered quality is recorded, never judged). Graded against the followed run's delivery: the pass-to-pass checks are the third link's except four that read the sentences this request replaces (the first request's `page-defaults` and `size-bounds` and the third's `teams-page-defaults` and `teams-size-bounds`: a correct delivery fails them by design, which is why this case declares an acceptance of its own and does not inherit the third link's), and the three fail-to-pass checks read the request. Calibrated with test/fixtures/quality/reference_user_page_size.py, whose base is reference_user_team_listing.py's reference (SPEC: A brownfield case)",
+        "checks": [
+          {
+            "id": "list-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's list-unchanged reads its sentence"
+          },
+          {
+            "id": "user-by-id-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's user-by-id-unchanged reads its sentence"
+          },
+          {
+            "id": "name-filter",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's name-filter reads its sentence"
+          },
+          {
+            "id": "name-plain-text",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's name-plain-text reads its sentence"
+          },
+          {
+            "id": "page-envelope",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's page-envelope reads its sentence"
+          },
+          {
+            "id": "partial-last-page",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's partial-last-page reads its sentence"
+          },
+          {
+            "id": "page-past-end",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's page-past-end reads its sentence"
+          },
+          {
+            "id": "filter-then-page",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's filter-then-page reads its sentence"
+          },
+          {
+            "id": "bad-page-or-size",
+            "grade": "pass-to-pass",
+            "source": "the request: 'Everything the project already does keeps working', read as user-listing's bad-page-or-size reads its sentence"
+          },
+          {
+            "id": "role-shown",
+            "grade": "pass-to-pass",
+            "source": "the request: 'A user's role is shown wherever the user is: in GET /users/:id and in every user GET /users answers, whether as an array or in the items of a page', with Ada Lovelace an admin, Grace Hopper a member and Alan Turing a viewer"
+          },
+          {
+            "id": "role-filter",
+            "grade": "pass-to-pass",
+            "source": "the request: 'GET /users gains a `role` filter: `role=<role>` keeps only the users with that role', read with the first request's 'without `page` and `size`, GET /users still answers a JSON array' and 'any other query parameter is ignored'"
+          },
+          {
+            "id": "filters-combine",
+            "grade": "pass-to-pass",
+            "source": "the request: 'a user must match every filter given', read for `name` beside `role` (the first request's `name` filter), an empty `name` included"
+          },
+          {
+            "id": "role-then-page",
+            "grade": "pass-to-pass",
+            "source": "the request's `role` filter read with the first request's '\"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched)' and 'a page after the last one answers an empty \"items\"': the counts are those of the users that matched every filter"
+          },
+          {
+            "id": "bad-role",
+            "grade": "pass-to-pass",
+            "source": "the request: 'A `role` that is none of the three roles, an empty one included, answers HTTP 400 with a JSON object whose \"error\" says what is wrong', read with the first request's page and size refusals, which still apply beside a role"
+          },
+          {
+            "id": "teams-listing",
+            "grade": "pass-to-pass",
+            "source": "the request: 'five teams, each with an `id`, a `name` and its `members`' and '`GET /teams` lists the teams the way `GET /users` lists users', read with the first request's 'without `page` and `size`, GET /users still answers a JSON array of users in id order' and 'any other query parameter is ignored'"
+          },
+          {
+            "id": "team-by-id",
+            "grade": "pass-to-pass",
+            "source": "the request: '`GET /teams/:id` answers one team, or 404 the way `GET /users/:id` does for a user that does not exist': the first request's 404 answers a JSON object whose \"error\" is a text"
+          },
+          {
+            "id": "teams-name-filter",
+            "grade": "pass-to-pass",
+            "source": "the request: 'filtered by `name`' the way `GET /users` is, which is the first request's 'keeps only the users whose name contains it as plain text, ignoring case; an empty `name` keeps every user', read for a name holding a pattern's characters (`a.a`, `.`, `(`)"
+          },
+          {
+            "id": "teams-pages",
+            "grade": "pass-to-pass",
+            "source": "the request: 'paged by `page` and `size`, with the same answers' as the first request's \"page\", \"size\", \"total\", \"pages\" and \"items\", 'page 1 holding the first `size` of them', pages that count a partly filled last page, 'a page after the last one answers an empty \"items\"', and a `name` filtered before the paging"
+          },
+          {
+            "id": "teams-bad-page-or-size",
+            "grade": "pass-to-pass",
+            "source": "the request: 'errors included', the first request's 'any other value, an empty one included, answers HTTP 400 with a JSON object whose \"error\" says what is wrong' for `page` and `size`"
+          },
+          {
+            "id": "page-size-default",
+            "grade": "fail-to-pass",
+            "source": "the request: 'Make the default page size the `PAGE_SIZE` environment variable (default 25) ... for both listings': with PAGE_SIZE unset a page without `size` holds 25, for the users and for the teams, and a `size` that is given still wins"
+          },
+          {
+            "id": "page-size-setting",
+            "grade": "fail-to-pass",
+            "source": "the request: 'the default page size the `PAGE_SIZE` environment variable', read with PAGE_SIZE set to 2: both listings page by 2 when `size` is not given, the plain array (no `page`, no `size`) is still the whole list (the first request's rule, which this one does not replace), and a `size` that is given beats the setting"
+          },
+          {
+            "id": "page-size-largest",
+            "grade": "fail-to-pass",
+            "source": "the request: 'the largest `size` 50, for both listings. A `size` above 50 answers HTTP 400 as any other bad `size` does': 50 is accepted, 51 and 100 are refused with an error and no records, for the users and for the teams"
+          }
+        ]
+      },
+      "refuse_ports": [
+        3000
+      ],
+      "refuse_ports_source": "the base: src/server.js listens on the port in PORT and defaults to 3000, as user-listing declares"
+    },
+    "delta": {
+      "may_change": {
+        "spec.md": [
+          "\\bdefault\\w*\\b[^.]{0,40}\\b10\\b",
+          "\\b100\\b"
+        ],
+        "architecture.md": [
+          "pagina",
+          "page size"
+        ]
+      },
+      "source": "the request replaces the rules 'a page holds 10 when `size` is not given' and '`size` goes up to 100': the requirements that state them and the decisions behind them are what it may change. The patterns are written from seven real pass-1 specs and architectures (docs/experiments/multipass-chain-b-20261101/real-priors/): the default is worded 'defaults page 1 and size 10', 'page defaults to 1 and size to 10' or 'defaults 1 and 10' and the bounds 'size 1..100' or 'size 1 through 100', so the spec patterns are a default within 40 characters of a 10, and 100; they match R-2 and R-3 in all seven. The decision is recorded as the pagination helper's: 'pagina' matches AD-1 in all seven"
+    }
+  },
   "ticket-assignment": {
     "style": "brownfield",
     "base": {
@@ -1168,5 +1594,424 @@
       "python3 \"$E2E_CHECKS/expense_service.py\" concurrency"
     ],
     "checks_source": "the request: each check tests a sentence of the prompt"
+  },
+  "user-teams": {
+    "style": "brownfield",
+    "follows": "user-listing",
+    "prompt": "Add a `team` to each user in the in-memory store: Ada Lovelace and Grace Hopper belong to `Engineering`, and Alan Turing belongs to `Support`. GET /users may filter by `team`: a user must match both `name` (when given) and `team` (when given); the existing name matching keeps its behavior, and team matching uses the exact, case-sensitive team name. An empty or unknown `team` selects no users. Apply both filters before pagination. `include=team` (exactly that value) adds `team` to every user returned by GET /users or GET /users/:id, including paged items; any other include value changes nothing. Without it, the existing user object shape is unchanged. Keep the existing pagination and all other behavior. Everything the project already does keeps working, and its existing tests must still pass as they are. Add node:test tests for the new behavior.",
+    "checks": [
+      "node --test",
+      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const b=process.env.BASE;(async()=>{const p=await fetch(b+'/users?name=e&team=Engineering&page=2&size=1').then(r=>r.json());const s=await fetch(b+'/users?team=Support').then(r=>r.json());const ok=p.total===2&&p.pages===2&&p.items.length===1&&p.items[0].id===2&&s.length===1&&s[0].id===3;process.exit(ok?0:3);})().catch(()=>process.exit(4))\"",
+      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const b=process.env.BASE;(async()=>{const one=await fetch(b+'/users/1?include=team').then(r=>r.json());const page=await fetch(b+'/users?page=1&size=2&include=team').then(r=>r.json());const other=await fetch(b+'/users/1?include=TEAM').then(r=>r.json());const ok=one.team==='Engineering'&&page.items[0].team==='Engineering'&&other.team===undefined;process.exit(ok?0:3);})().catch(()=>process.exit(4))\""
+    ],
+    "checks_source": "the request: 'Add node:test tests for the new behavior' is read by node --test; the HTTP checks read the exact Engineering and Support filters, the combined name and team filters before pagination, and the exact include=team opt-in on list, page items and by-id answers",
+    "retention": [
+      "files_path=$(mktemp) || exit 1; git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard > \"$files_path\" || { rm -f \"$files_path\"; exit 1; }; while IFS= read -r prior_file; do case \"$prior_file\" in *.log) continue ;; esac; [ -e \"$prior_file\" ] || { echo \"missing prior file $prior_file\"; rm -f \"$files_path\"; exit 1; }; done < \"$files_path\"; rm -f \"$files_path\"; for living_file in docs/shiploop/spec.md docs/shiploop/environment.md docs/shiploop/architecture.md; do [ -f \"$living_file\" ] || { echo \"missing living file $living_file\"; exit 1; }; done",
+      "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stringify(Object.keys({...p.dependencies,...p.devDependencies}).sort())}catch{return \"[]\"}};process.exit(deps(\".\")===deps(process.env.PRIOR_WORK)?0:1)'",
+      "ids() { grep -oE 'R-[0-9]+' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\"); echo \"earlier requirement IDs: $(wc -l < \"$before\"); missing: $missing\"; rm -f \"$before\" \"$after\"; [ -z \"$missing\" ]",
+      "ids() { grep -oE 'AD-[0-9]+' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\"); echo \"earlier decision IDs: $(wc -l < \"$before\"); missing: $missing\"; rm -f \"$before\" \"$after\"; [ -z \"$missing\" ]"
+    ],
+    "retention_source": "For this pilot, the file check preserves prior project files and requires all three living files; this is not a general rule about allowed file organization. Dependencies stay unchanged and every prior requirement and decision ID remains, including entries under Retired or Superseded; zero prior AD IDs is valid. These checks do not require new IDs, new words, new files or a larger test count. The delta ledger is a locator; reviewers inspect requirement meaning and retirement manually.",
+    "quality": {
+      "acceptance": {
+        "module": "user_teams_accept",
+        "calibration": [
+          "test/fixtures/quality/reference_user_listing.py",
+          "test/fixtures/quality/reference_user_teams.py",
+          "test/shiploop-e2e-user-chain.test.py"
+        ],
+        "start": "node src/server.js",
+        "source": "hand-written from the request, never shown to the model, run in the harness process after the host ended; calibrated on two lineages, the current user-listing reference and its alternative, plus targeted defects",
+        "checks": [
+          {
+            "id": "list-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'without `page` and `size`, GET /users still answers a JSON array of users in id order (every user unless `name` is given), any other query parameter is ignored'"
+          },
+          {
+            "id": "user-by-id-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'and GET /users/:id is unchanged'"
+          },
+          {
+            "id": "name-filter",
+            "grade": "fail-to-pass",
+            "source": "the request: 'The `name` query parameter keeps only the users whose name contains it as plain text, ignoring case; an empty `name` keeps every user', read with 'without `page` and `size`, GET /users still answers a JSON array'"
+          },
+          {
+            "id": "name-plain-text",
+            "grade": "fail-to-pass",
+            "source": "the same sentence's 'as plain text', read for a name holding a pattern's characters (`a.a`, `.`, `(`): it matches only names that hold those characters, which a regular expression would not"
+          },
+          {
+            "id": "page-envelope",
+            "grade": "fail-to-pass",
+            "source": "the request: 'When either is given, the answer is a JSON object with \"page\", \"size\", \"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched) and \"items\" (the users on that page)'"
+          },
+          {
+            "id": "partial-last-page",
+            "grade": "fail-to-pass",
+            "source": "the request: 'page 1 holding the first `size` of them' and '\"pages\" (how many pages they fill)', read for users that do not fill the last page; the base's paginate drops that page"
+          },
+          {
+            "id": "page-past-end",
+            "grade": "fail-to-pass",
+            "source": "the request: 'a page after the last one answers an empty \"items\"'"
+          },
+          {
+            "id": "page-defaults",
+            "grade": "fail-to-pass",
+            "source": "the request: '`size` is 10 when only `page` is given and `page` is 1 when only `size` is given'"
+          },
+          {
+            "id": "filter-then-page",
+            "grade": "fail-to-pass",
+            "source": "the request: 'ask for one page of those users' and '\"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched)', read with a `name`"
+          },
+          {
+            "id": "size-bounds",
+            "grade": "fail-to-pass",
+            "source": "the request: '`size` a whole number from 1 to 100', read at both ends"
+          },
+          {
+            "id": "bad-page-or-size",
+            "grade": "fail-to-pass",
+            "source": "the request: '`page` must be a whole number of at least 1 and `size` a whole number from 1 to 100: any other value, an empty one included, answers HTTP 400 with a JSON object whose \"error\" says what is wrong'"
+          },
+          {
+            "id": "team-filter-exact",
+            "grade": "fail-to-pass",
+            "source": "the request: '`team` matches an exact team name; an empty or unknown `team` selects no users', read as user-listing's name filter reads its sentence"
+          },
+          {
+            "id": "team-filter-case-sensitive",
+            "grade": "fail-to-pass",
+            "source": "the request: '`team` matches an exact name and is case-sensitive': `team=engineering` returns no users while stored names use their stated capitalization"
+          },
+          {
+            "id": "team-filters-combine-before-page",
+            "grade": "fail-to-pass",
+            "source": "the request: 'a user must match both `name` (when given) and `team` (when given); apply both filters before pagination'"
+          },
+          {
+            "id": "team-include-opt-in",
+            "grade": "fail-to-pass",
+            "source": "the request: '`include=team` (exactly that value) adds `team` to every user GET /users or GET /users/:id answers, including paged items; any other include value changes nothing. Without it the existing user object shape is unchanged'"
+          }
+        ]
+      },
+      "refuse_ports": [
+        3000
+      ],
+      "refuse_ports_source": "the node-base server listens on PORT and defaults to 3000; held-out checks set PORT and refuse a delivery that ignores it"
+    },
+    "delta": {
+      "may_change": {
+        "spec.md": [
+          "any other query parameter is ignored",
+          "GET /users/:id is unchanged"
+        ]
+      },
+      "source": "the request narrows the earlier user-listing clauses 'any other query parameter is ignored' and 'GET /users/:id is unchanged': include=team is now recognized on both routes, while other include values remain ignored"
+    }
+  },
+  "user-summary": {
+    "style": "brownfield",
+    "follows": "user-teams",
+    "prompt": "Add GET /users/summary. It returns a JSON object with `total`, the number of all matching users, and `by_team`, a map from each matching user's stored team name to its count; omit groups with no matching users. It counts all matches without pagination. Use the same `name` and `team` filters GET /users applies. Ignore `page`, `size`, `include` and other query parameters on this summary route; do not validate them for this route. Other response keys may be present. No matches return total 0 and an empty by_team object. Everything the project already does keeps working, and its existing tests must still pass as they are. Add node:test tests for the summary.",
+    "checks": [
+      "node --test",
+      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const b=process.env.BASE;(async()=>{const a=await fetch(b+'/users/summary?name=e&team=Engineering&page=2&size=1').then(r=>r.json());const z=await fetch(b+'/users/summary?page=bad&size=0').then(r=>r.json());const ok=a.total===2&&a.by_team.Engineering===2&&z.total===3&&z.by_team.Support===1;process.exit(ok?0:3);})().catch(()=>process.exit(4))\""
+    ],
+    "checks_source": "the request: 'Add node:test tests for the summary' is read by node --test; the HTTP check reads an unpaginated summary under valid and invalid page/size parameters, with a correctly cased team value",
+    "retention": [
+      "files_path=$(mktemp) || exit 1; git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard > \"$files_path\" || { rm -f \"$files_path\"; exit 1; }; while IFS= read -r prior_file; do case \"$prior_file\" in *.log) continue ;; esac; [ -e \"$prior_file\" ] || { echo \"missing prior file $prior_file\"; rm -f \"$files_path\"; exit 1; }; done < \"$files_path\"; rm -f \"$files_path\"; for living_file in docs/shiploop/spec.md docs/shiploop/environment.md docs/shiploop/architecture.md; do [ -f \"$living_file\" ] || { echo \"missing living file $living_file\"; exit 1; }; done",
+      "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stringify(Object.keys({...p.dependencies,...p.devDependencies}).sort())}catch{return \"[]\"}};process.exit(deps(\".\")===deps(process.env.PRIOR_WORK)?0:1)'",
+      "ids() { grep -oE 'R-[0-9]+' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\"); echo \"earlier requirement IDs: $(wc -l < \"$before\"); missing: $missing\"; rm -f \"$before\" \"$after\"; [ -z \"$missing\" ]",
+      "ids() { grep -oE 'AD-[0-9]+' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\"); echo \"earlier decision IDs: $(wc -l < \"$before\"); missing: $missing\"; rm -f \"$before\" \"$after\"; [ -z \"$missing\" ]"
+    ],
+    "retention_source": "For this pilot, the file check preserves prior project files and requires all three living files; this is not a general rule about allowed file organization. Dependencies stay unchanged and every prior requirement and decision ID remains, including entries under Retired or Superseded; zero prior AD IDs is valid. These checks do not require new IDs, new words, new files or a larger test count. The delta ledger is a locator; reviewers inspect requirement meaning and retirement manually.",
+    "quality": {
+      "acceptance": {
+        "module": "user_summary_accept",
+        "calibration": [
+          "test/fixtures/quality/reference_user_listing.py",
+          "test/fixtures/quality/reference_user_summary.py",
+          "test/fixtures/quality/reference_user_teams.py",
+          "test/shiploop-e2e-user-chain.test.py"
+        ],
+        "start": "node src/server.js",
+        "source": "hand-written from the request and its explicit inherited-rule sentence, 'Use the same `name` and `team` filters GET /users applies.', never shown to the model; the dated SPEC clarification permits quoted clauses from predecessor prompts, which these source mappings name",
+        "checks": [
+          {
+            "id": "list-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'without `page` and `size`, GET /users still answers a JSON array of users in id order (every user unless `name` is given), any other query parameter is ignored'"
+          },
+          {
+            "id": "user-by-id-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'and GET /users/:id is unchanged'"
+          },
+          {
+            "id": "name-filter",
+            "grade": "fail-to-pass",
+            "source": "the request: 'The `name` query parameter keeps only the users whose name contains it as plain text, ignoring case; an empty `name` keeps every user', read with 'without `page` and `size`, GET /users still answers a JSON array'"
+          },
+          {
+            "id": "name-plain-text",
+            "grade": "fail-to-pass",
+            "source": "the same sentence's 'as plain text', read for a name holding a pattern's characters (`a.a`, `.`, `(`): it matches only names that hold those characters, which a regular expression would not"
+          },
+          {
+            "id": "page-envelope",
+            "grade": "fail-to-pass",
+            "source": "the request: 'When either is given, the answer is a JSON object with \"page\", \"size\", \"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched) and \"items\" (the users on that page)'"
+          },
+          {
+            "id": "partial-last-page",
+            "grade": "fail-to-pass",
+            "source": "the request: 'page 1 holding the first `size` of them' and '\"pages\" (how many pages they fill)', read for users that do not fill the last page; the base's paginate drops that page"
+          },
+          {
+            "id": "page-past-end",
+            "grade": "fail-to-pass",
+            "source": "the request: 'a page after the last one answers an empty \"items\"'"
+          },
+          {
+            "id": "page-defaults",
+            "grade": "fail-to-pass",
+            "source": "the request: '`size` is 10 when only `page` is given and `page` is 1 when only `size` is given'"
+          },
+          {
+            "id": "filter-then-page",
+            "grade": "fail-to-pass",
+            "source": "the request: 'ask for one page of those users' and '\"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched)', read with a `name`"
+          },
+          {
+            "id": "size-bounds",
+            "grade": "fail-to-pass",
+            "source": "the request: '`size` a whole number from 1 to 100', read at both ends"
+          },
+          {
+            "id": "bad-page-or-size",
+            "grade": "fail-to-pass",
+            "source": "the request: '`page` must be a whole number of at least 1 and `size` a whole number from 1 to 100: any other value, an empty one included, answers HTTP 400 with a JSON object whose \"error\" says what is wrong'"
+          },
+          {
+            "id": "team-filter-exact",
+            "grade": "fail-to-pass",
+            "source": "the request: '`team` matches an exact team name; an empty or unknown `team` selects no users', read as user-listing's name filter reads its sentence"
+          },
+          {
+            "id": "team-filter-case-sensitive",
+            "grade": "fail-to-pass",
+            "source": "the request: '`team` matches an exact name and is case-sensitive': `team=engineering` returns no users while stored names use their stated capitalization"
+          },
+          {
+            "id": "team-filters-combine-before-page",
+            "grade": "fail-to-pass",
+            "source": "the request: 'a user must match both `name` (when given) and `team` (when given); apply both filters before pagination'"
+          },
+          {
+            "id": "team-include-opt-in",
+            "grade": "fail-to-pass",
+            "source": "the request: '`include=team` (exactly that value) adds `team` to every user GET /users or GET /users/:id answers, including paged items; any other include value changes nothing. Without it the existing user object shape is unchanged'"
+          },
+          {
+            "id": "summary-total-by-team",
+            "grade": "fail-to-pass",
+            "source": "the request: 'GET /users/summary returns {total, by_team} for all matching users'; `by_team` has exact stored-name keys and counts, and missing groups are omitted"
+          },
+          {
+            "id": "summary-uses-user-filters",
+            "grade": "fail-to-pass",
+            "source": "the request: 'Use the same `name` and `team` filters GET /users applies.', read as user-teams' `team-filter-exact` and `team-filters-combine-before-page` checks read it"
+          },
+          {
+            "id": "summary-unpaginated-ignores",
+            "grade": "fail-to-pass",
+            "source": "the request: 'counts are unpaginated; page, size, include and other queries are ignored on summary', read with 'all matching users'"
+          },
+          {
+            "id": "summary-no-matches",
+            "grade": "fail-to-pass",
+            "source": "the request: 'no match returns total 0 and {}'; read with the same filters GET /users applies, including an empty team selecting no users"
+          },
+          {
+            "id": "summary-team-case-sensitive",
+            "grade": "fail-to-pass",
+            "source": "the request: 'Use the same `name` and `team` filters GET /users applies.', read as user-teams' `team-filter-case-sensitive` check reads it"
+          }
+        ]
+      },
+      "refuse_ports": [
+        3000
+      ],
+      "refuse_ports_source": "the node-base server listens on PORT and defaults to 3000; held-out checks set PORT and refuse a delivery that ignores it"
+    }
+  },
+  "user-team-casefold": {
+    "style": "brownfield",
+    "follows": "user-summary",
+    "prompt": "Change team matching in both GET /users and GET /users/summary to ignore case: values that differ only in letter case match the same team. Team matching still requires the exact team name after ignoring case. The team's stored and returned spelling stays unchanged. This replaces the rule that team matching is case-sensitive: change that requirement, any decision behind it and the tests that state it. Everything else the project already does keeps working, and its other tests must still pass as they are. Add node:test tests for the new behavior.",
+    "checks": [
+      "node --test",
+      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const b=process.env.BASE;(async()=>{const a=await fetch(b+'/users?team=engineering&include=team').then(r=>r.json());const s=await fetch(b+'/users/summary?team=ENGINEERING').then(r=>r.json());const exact=await fetch(b+'/users?team=Eng').then(r=>r.json());const ok=a.length===2&&a[0].team==='Engineering'&&s.total===2&&s.by_team.Engineering===2&&exact.length===0;process.exit(ok?0:3);})().catch(()=>process.exit(4))\""
+    ],
+    "checks_source": "the request: 'Add node:test tests for the new behavior' is read by node --test; the HTTP check reads positive case-insensitive listing and summary matches with unchanged spelling and an abbreviated value that remains an exact-match miss",
+    "retention": [
+      "files_path=$(mktemp) || exit 1; git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard > \"$files_path\" || { rm -f \"$files_path\"; exit 1; }; while IFS= read -r prior_file; do case \"$prior_file\" in *.log) continue ;; esac; [ -e \"$prior_file\" ] || { echo \"missing prior file $prior_file\"; rm -f \"$files_path\"; exit 1; }; done < \"$files_path\"; rm -f \"$files_path\"; for living_file in docs/shiploop/spec.md docs/shiploop/environment.md docs/shiploop/architecture.md; do [ -f \"$living_file\" ] || { echo \"missing living file $living_file\"; exit 1; }; done",
+      "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stringify(Object.keys({...p.dependencies,...p.devDependencies}).sort())}catch{return \"[]\"}};process.exit(deps(\".\")===deps(process.env.PRIOR_WORK)?0:1)'",
+      "ids() { grep -oE 'R-[0-9]+' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\"); echo \"earlier requirement IDs: $(wc -l < \"$before\"); missing: $missing\"; rm -f \"$before\" \"$after\"; [ -z \"$missing\" ]",
+      "ids() { grep -oE 'AD-[0-9]+' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\"); echo \"earlier decision IDs: $(wc -l < \"$before\"); missing: $missing\"; rm -f \"$before\" \"$after\"; [ -z \"$missing\" ]"
+    ],
+    "retention_source": "For this pilot, the file check preserves prior project files and requires all three living files; this is not a general rule about allowed file organization. Dependencies stay unchanged and every prior requirement and decision ID remains, including entries under Retired or Superseded; zero prior AD IDs is valid. These checks do not require new IDs, new words, new files or a larger test count. The delta ledger is a locator; reviewers inspect requirement meaning and retirement manually.",
+    "quality": {
+      "acceptance": {
+        "module": "user_team_casefold_accept",
+        "calibration": [
+          "test/fixtures/quality/reference_user_listing.py",
+          "test/fixtures/quality/reference_user_summary.py",
+          "test/fixtures/quality/reference_user_team_casefold.py",
+          "test/fixtures/quality/reference_user_teams.py",
+          "test/shiploop-e2e-user-chain.test.py"
+        ],
+        "start": "node src/server.js",
+        "source": "hand-written from the request and its explicit replacement clause, never shown to the model; the acceptance retains every K1 check except the two isolated strict-case checks this request replaces, plus the five casefold and spelling checks",
+        "checks": [
+          {
+            "id": "list-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'without `page` and `size`, GET /users still answers a JSON array of users in id order (every user unless `name` is given), any other query parameter is ignored'"
+          },
+          {
+            "id": "user-by-id-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'and GET /users/:id is unchanged'"
+          },
+          {
+            "id": "name-filter",
+            "grade": "fail-to-pass",
+            "source": "the request: 'The `name` query parameter keeps only the users whose name contains it as plain text, ignoring case; an empty `name` keeps every user', read with 'without `page` and `size`, GET /users still answers a JSON array'"
+          },
+          {
+            "id": "name-plain-text",
+            "grade": "fail-to-pass",
+            "source": "the same sentence's 'as plain text', read for a name holding a pattern's characters (`a.a`, `.`, `(`): it matches only names that hold those characters, which a regular expression would not"
+          },
+          {
+            "id": "page-envelope",
+            "grade": "fail-to-pass",
+            "source": "the request: 'When either is given, the answer is a JSON object with \"page\", \"size\", \"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched) and \"items\" (the users on that page)'"
+          },
+          {
+            "id": "partial-last-page",
+            "grade": "fail-to-pass",
+            "source": "the request: 'page 1 holding the first `size` of them' and '\"pages\" (how many pages they fill)', read for users that do not fill the last page; the base's paginate drops that page"
+          },
+          {
+            "id": "page-past-end",
+            "grade": "fail-to-pass",
+            "source": "the request: 'a page after the last one answers an empty \"items\"'"
+          },
+          {
+            "id": "page-defaults",
+            "grade": "fail-to-pass",
+            "source": "the request: '`size` is 10 when only `page` is given and `page` is 1 when only `size` is given'"
+          },
+          {
+            "id": "filter-then-page",
+            "grade": "fail-to-pass",
+            "source": "the request: 'ask for one page of those users' and '\"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched)', read with a `name`"
+          },
+          {
+            "id": "size-bounds",
+            "grade": "fail-to-pass",
+            "source": "the request: '`size` a whole number from 1 to 100', read at both ends"
+          },
+          {
+            "id": "bad-page-or-size",
+            "grade": "fail-to-pass",
+            "source": "the request: '`page` must be a whole number of at least 1 and `size` a whole number from 1 to 100: any other value, an empty one included, answers HTTP 400 with a JSON object whose \"error\" says what is wrong'"
+          },
+          {
+            "id": "team-filter-exact",
+            "grade": "fail-to-pass",
+            "source": "the request: '`team` matches an exact team name; an empty or unknown `team` selects no users', read as user-listing's name filter reads its sentence"
+          },
+          {
+            "id": "team-filters-combine-before-page",
+            "grade": "fail-to-pass",
+            "source": "the request: 'a user must match both `name` (when given) and `team` (when given); apply both filters before pagination'"
+          },
+          {
+            "id": "team-include-opt-in",
+            "grade": "fail-to-pass",
+            "source": "the request: '`include=team` (exactly that value) adds `team` to every user GET /users or GET /users/:id answers, including paged items; any other include value changes nothing. Without it the existing user object shape is unchanged'"
+          },
+          {
+            "id": "summary-total-by-team",
+            "grade": "fail-to-pass",
+            "source": "the request: 'GET /users/summary returns {total, by_team} for all matching users'; `by_team` has exact stored-name keys and counts, and missing groups are omitted"
+          },
+          {
+            "id": "summary-uses-user-filters",
+            "grade": "fail-to-pass",
+            "source": "the request: 'with the same `name` and `team` filters GET /users applies', read as user-teams' `team-filter-exact` and `team-filters-combine-before-page` checks read it"
+          },
+          {
+            "id": "summary-unpaginated-ignores",
+            "grade": "fail-to-pass",
+            "source": "the request: 'counts are unpaginated; page, size, include and other queries are ignored on summary', read with 'all matching users'"
+          },
+          {
+            "id": "summary-no-matches",
+            "grade": "fail-to-pass",
+            "source": "the request: 'no match returns total 0 and {}'; read with the same filters GET /users applies, including an empty team selecting no users"
+          },
+          {
+            "id": "team-filter-casefold-listing",
+            "grade": "fail-to-pass",
+            "source": "the request: 'team matching in both GET /users and GET /users/summary ignores case'; listing matches Engineering with lowercase and uppercase query values"
+          },
+          {
+            "id": "summary-team-casefold",
+            "grade": "fail-to-pass",
+            "source": "the request: 'team matching in both GET /users and GET /users/summary ignores case', read on the summary route"
+          },
+          {
+            "id": "team-casefold-exact-match",
+            "grade": "fail-to-pass",
+            "source": "the request: 'team matching still requires the exact team name after ignoring case'"
+          },
+          {
+            "id": "team-response-spelling-preserved",
+            "grade": "fail-to-pass",
+            "source": "the request: 'the team's stored and returned spelling stays unchanged', read for the opt-in team field"
+          },
+          {
+            "id": "summary-group-spelling-preserved",
+            "grade": "fail-to-pass",
+            "source": "the request: 'the team's stored and returned spelling stays unchanged', read for by_team keys"
+          }
+        ]
+      },
+      "refuse_ports": [
+        3000
+      ],
+      "refuse_ports_source": "the node-base server listens on PORT and defaults to 3000; held-out checks set PORT and refuse a delivery that ignores it"
+    },
+    "delta": {
+      "may_change": {
+        "spec.md": [
+          "team"
+        ],
+        "architecture.md": [
+          "team"
+        ]
+      },
+      "source": "the request replaces only the earlier case-sensitive team-matching rule in either living file; team is the measured locator pattern, and the ledger remains evidence for manual semantic review"
+    }
   }
 }

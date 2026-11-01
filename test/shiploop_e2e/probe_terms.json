@@ -53,6 +53,19 @@
     "user-listing": [
       "\\buser[- ]listing\\b"
     ],
+    "user-roles": [
+      "\\broles? filter\\b",
+      "\\badmin\\W+member\\W+(or\\W+)?viewer\\b"
+    ],
+    "user-team-listing": [
+      "\\buser[- ]teams?\\b",
+      "\\bcomputing machinery\\b",
+      "\\bdata systems\\b"
+    ],
+    "user-page-size": [
+      "\\buser[- ]page[- ]size\\b",
+      "\\bPAGE_SIZE\\b"
+    ],
     "ticket-assignment": [
       "\\bhelp[- ]?desk\\b",
       "\\bticket[- ]assignment\\b"
@@ -92,6 +105,18 @@
     "shared-expenses": [
       "\\bshared[- ]expenses?\\b",
       "\\bexpense[- ]split\\b"
+    ],
+    "user-teams": [
+      "\\buser[- ]teams?\\b",
+      "\\binclude=team\\b"
+    ],
+    "user-summary": [
+      "\\buser[- ]summary\\b",
+      "\\bby_team\\b"
+    ],
+    "user-team-casefold": [
+      "\\bteam[- ]casefold\\b",
+      "\\bby_team\\b"
     ]
   },
   "exempt": [

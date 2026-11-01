@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 """Score the F31 live check (README.md in this folder), read-only, over the run folders launch.sh made.
 
-    python3 -I score.py SHIPLOOP_SCRIPTS RUNS_ROOT --blind            # every implement send-back, shuffled, no run names
-    python3 -I score.py SHIPLOOP_SCRIPTS RUNS_ROOT [--labels labels.jsonl] [--out scores.json]
+    python3 -I score.py SHIPLOOP_SCRIPTS RUNS_ROOT [RUNS_ROOT ...] --blind     # what to label, shuffled, no run names
+    python3 -I score.py SHIPLOOP_SCRIPTS RUNS_ROOT [RUNS_ROOT ...] [--labels labels.jsonl] [--out scores.json] [--round 2]
+
+Round 2 (README, amendment 2) adds arm V (the revised wording) and hollow-Proof slices (<arm>-hollow-<case>-s<n>): for
+each, the notes implement wrote for each of its actions are shown blind and labelled observed (a passing check that
+exercises a criterion, beyond the Proof and lint, or a send-back of the hollow Proof) or bare. ``--round 2`` applies
+round 2's rule to arm V against arm A.
 
 Each folder RUNS_ROOT/<arm>-<case>-s<n> is a slice (slice-result.json) or a csv-report delivery (result.json). Per run it
 records the item's implement results in order, and for each implement send-back its headline, its summary and whether
@@ -28,7 +33,7 @@ SAYS_WHY = re.compile(r"(not exist|does not exist|doesn'?t exist|unwritten|not y
                       r"write|cannot write|can'?t write|not allowed to write|later stage|test stage|written later|"
                       r"before the test)", re.IGNORECASE)
 TEST_FILE = re.compile(r"(^|/)(test|tests|__tests__)/|\.test\.[a-z]+$|(^|/)test_[^/]+\.py$")
-NAME = re.compile(r"^(?P<arm>[AB])-(?P<case>.+)-s(?P<sample>\d+)$")
+NAME = re.compile(r"^(?P<arm>[ABV])-(?P<case>.+)-s(?P<sample>\d+)$")
 
 
 def state_dirs(out: Path):
@@ -68,8 +73,10 @@ def implement_results(store, run: Path, item: str | None):
         plan = plan_of.get(row.get("workitem")) or {}
         proofs = [str(step.get("id")) + ": " + str(step.get("proof") or "")[:400]
                   for step in plan.get("steps") or () if isinstance(step, dict)]
+        notes = run / "notes" / (str(row.get("action")) + ".md")
         rows.append({"action": row.get("action"), "outcome": row.get("outcome"), "headline": headline,
-                     "summary": str(row.get("summary") or ""), "proofs": proofs})
+                     "summary": str(row.get("summary") or ""), "proofs": proofs,
+                     "notes": notes.read_text(errors="ignore")[:2000] if notes.is_file() else ""})
     return rows
 
 
@@ -80,10 +87,11 @@ def key_of(run: str, action: str) -> str:
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("scripts")
-    p.add_argument("runs", type=Path)
+    p.add_argument("runs", type=Path, nargs="+")
     p.add_argument("--labels", type=Path, default=Path(__file__).resolve().parent / "labels.jsonl")
     p.add_argument("--out", type=Path, default=Path(__file__).resolve().parent / "scores.json")
     p.add_argument("--blind", action="store_true", help="print every implement send-back to label, without its run")
+    p.add_argument("--round", type=int, default=1, help="2: apply round 2's rule to arm V against arm A")
     args = p.parse_args()
     sys.path.insert(0, args.scripts)
     import shiploop_store as store  # noqa: E402
@@ -95,7 +103,7 @@ def main() -> None:
                 row = json.loads(line)
                 labels[row["key"]] = row
     runs = []
-    for out in sorted(path for path in args.runs.iterdir() if path.is_dir()):
+    for out in sorted(path for root in args.runs for path in root.iterdir() if path.is_dir()):
         name = NAME.match(out.name)
         if not name:
             continue
@@ -117,7 +125,15 @@ def main() -> None:
                               "headline": row["headline"], "summary": row["summary"][:600], "proofs": row["proofs"],
                               "pattern": bool(NAMES_TEST.search(text) and SAYS_WHY.search(text)),
                               "f31": label["f31"] if label else None, "reading": label.get("reading") if label else None})
-        entry = {"run": out.name, **name.groupdict(), "kind": kind,
+        hollow = []
+        if kind == "slice" and name.group("case").startswith("hollow-"):
+            for row in implements:
+                key = key_of(out.name, "notes:" + str(row["action"]))
+                label = labels.get(key)
+                hollow.append({"key": key, "outcome": row["outcome"], "proofs": row["proofs"], "notes": row["notes"],
+                               "summary": row["summary"][:600], "observed": label.get("observed") if label else None,
+                               "reading": label.get("reading") if label else None})
+        entry = {"run": out.name, **name.groupdict(), "kind": kind, "hollow": hollow,
                  "implement_outcomes": [row["outcome"] for row in implements], "sendbacks": sendbacks,
                  "f31": sum(1 for s in sendbacks if s["f31"] is True),
                  "f31_unread": sum(1 for s in sendbacks if s["f31"] is None and s["pattern"])}
@@ -137,14 +153,20 @@ def main() -> None:
         shown = [{"key": s["key"], "headline": s["headline"], "summary": s["summary"], "proofs": s["proofs"]}
                  for r in runs for s in r.get("sendbacks") or ()]
         random.Random(20261101).shuffle(shown)
-        print(json.dumps(shown, indent=1))
+        notes = [{"key": h["key"], "outcome": h["outcome"], "proofs": h["proofs"], "notes": h["notes"],
+                  "summary": h["summary"]} for r in runs for h in r.get("hollow") or ()]
+        random.Random(20261102).shuffle(notes)
+        print(json.dumps({"sendbacks": shown, "hollow_notes": notes}, indent=1))
         return
 
     def arm(a, kind=None):
         return [r for r in runs if r.get("arm") == a and (kind is None or r["kind"] == kind)]
     summary = {}
-    for a in ("A", "B"):
-        slices, deliveries = arm(a, "slice"), arm(a, "delivery")
+    for a in ("A", "B", "V"):
+        slices = [r for r in arm(a, "slice") if not r["case"].startswith("hollow-")]
+        deliveries = arm(a, "delivery")
+        hollow = [h for r in arm(a, "slice") for h in r.get("hollow") or ()]
+        hollow_runs = [r for r in arm(a, "slice") if r["case"].startswith("hollow-")]
         summary[a] = {"slices": len(slices), "deliveries": len(deliveries),
                       "f31": sum(r["f31"] for r in arm(a) if "f31" in r),
                       "f31_unread": sum(r["f31_unread"] for r in arm(a) if "f31_unread" in r),
@@ -153,15 +175,33 @@ def main() -> None:
                       "slices_checks_pass": sum(1 for r in slices if r["checks_pass"]),
                       "slices_first_try_done": sum(1 for r in slices if r["first_try_done"]),
                       "deliveries_pass": sum(1 for r in deliveries if r["passed"]),
+                      "hollow_slices": len(hollow_runs),
+                      "hollow_bare": sum(1 for r in hollow_runs if any(h["observed"] is False for h in r["hollow"]
+                                                                       if h["outcome"] == "done")),
+                      "hollow_unread": sum(1 for h in hollow if h["observed"] is None),
+                      "hollow_tests_written": sum(1 for r in hollow_runs if r["tests_written"]),
                       "unfinished": len([r for r in arm(a) if r["kind"] == "unfinished"])}
-    A, B = summary["A"], summary["B"]
-    rule = {"1_no_f31_in_B": B["f31"] == 0 and B["f31_unread"] == 0,
-            "2_no_tests_written_in_B": B["slices_writing_tests"] == 0,
-            "3_no_harm": B["slices_checks_pass"] >= A["slices_checks_pass"] and B["deliveries_pass"] >= A["deliveries_pass"],
-            "complete": A["unfinished"] == 0 and B["unfinished"] == 0 and A["f31_unread"] == 0}
+    A, B, V = summary["A"], summary["B"], summary["V"]
+    complete = all(summary[a]["unfinished"] == 0 and summary[a]["f31_unread"] == 0 and summary[a]["hollow_unread"] == 0
+                   for a in summary)
+    if args.round == 2:
+        rule = {"1_no_f31_in_V": V["f31"] == 0,
+                "2_no_tests_written_in_V": V["slices_writing_tests"] == 0 and V["hollow_tests_written"] == 0,
+                "3_no_harm": V["slices_checks_pass"] >= A["slices_checks_pass"] and V["deliveries_pass"] >= A["deliveries_pass"]
+                             and V["slices"] >= A["slices"] and V["deliveries"] >= A["deliveries"],
+                "4_hollow_no_worse": V["hollow_bare"] <= A["hollow_bare"] and V["hollow_slices"] == A["hollow_slices"],
+                "complete": complete}
+    else:
+        # Round 1's rule. An unread candidate makes the result incomplete, not a failure (fixed 2026-11-01 after the
+        # adversarial review: the first version counted B's unread send-back against rule 1).
+        rule = {"1_no_f31_in_B": B["f31"] == 0,
+                "2_no_tests_written_in_B": B["slices_writing_tests"] == 0,
+                "3_no_harm": B["slices_checks_pass"] >= A["slices_checks_pass"] and B["deliveries_pass"] >= A["deliveries_pass"],
+                "complete": complete}
+    first_two = [value for key, value in rule.items() if key.startswith(("1_", "2_"))]
     decision = ("adopt" if all(rule.values()) else "incomplete: score again when every run is finished and every candidate is read"
-                if not rule["complete"] else "not adopted (rule 1 or 2 failed)" if not (rule["1_no_f31_in_B"] and
-                rule["2_no_tests_written_in_B"]) else "read every failing run before deciding (rule 3)")
+                if not rule["complete"] else "not adopted (rule 1 or 2 failed)" if not all(first_two)
+                else "read every failing run before deciding (rules 3 and 4)")
     report = {"summary": summary, "rule": rule, "decision": decision,
               "benefit": f"arm A F31 send-backs: {A['f31']}" + ("" if A["f31"] else " (mechanism unexercised; benefit unmeasured)"),
               "runs": runs}

@@ -1,0 +1,153 @@
+"""Procedural/manual-parser calibration implementation; placeholders are frozen by calibrate_checks.py."""
+from collections import defaultdict
+from decimal import Decimal
+import csv
+import json
+import sys
+
+STAGE = "@@STAGE@@"
+BUG = "@@BUG@@"
+CENT = Decimal("0.01")
+
+
+def usage(message=""):
+    print("usage: report.py [--region REGION] [--format json|csv] FILE [FILE ...]", file=sys.stderr)
+    if message:
+        print(message, file=sys.stderr)
+    raise SystemExit(2)
+
+
+def parse_args(argv):
+    region = None
+    output_format = "csv" if BUG == "wrong-default" and STAGE == "full" else "json"
+    seen = set()
+    index = 0
+    while index < len(argv):
+        option = argv[index]
+        if not option.startswith("--"):
+            break
+        if option == "--region" and STAGE in ("filter", "full"):
+            if option in seen or index + 1 == len(argv):
+                usage("--region requires one value")
+            seen.add(option)
+            region = argv[index + 1]
+            index += 2
+        elif option == "--format" and STAGE == "full":
+            if option in seen or index + 1 == len(argv):
+                usage("--format requires one value")
+            seen.add(option)
+            output_format = argv[index + 1]
+            if output_format not in ("json", "csv"):
+                usage("unsupported format")
+            index += 2
+        else:
+            usage("unsupported option")
+    paths = argv[index:]
+    if not paths:
+        usage("at least one input file is required")
+    return region, output_format, paths
+
+
+def selected(region, actual):
+    if region is None:
+        return True
+    if BUG == "noop-selector":
+        return True
+    if BUG == "case-insensitive":
+        return actual.casefold() == region.casefold()
+    if BUG == "substring":
+        return region in actual
+    return actual == region
+
+
+def build_report(paths, region):
+    valid = []
+    errors = []
+    for filename in paths:
+        try:
+            with open(filename, encoding="utf-8", newline="") as stream:
+                reader = csv.reader(stream)
+                next(reader, None)
+                for row in reader:
+                    line = reader.line_num
+                    if row == []:
+                        continue
+                    if BUG == "hide-negative-unselected" and region is not None and len(row) == 5 and not selected(region, row[1]):
+                        try:
+                            if int(row[3]) < 0:
+                                continue
+                        except ValueError:
+                            pass
+                    if BUG == "hide-invalid" and region is not None and not selected(region, row[1] if len(row) > 1 else ""):
+                        continue
+                    if len(row) != 5:
+                        errors.append(f"{filename}:{line}: wrong number of columns")
+                        continue
+                    try:
+                        units = int(row[3])
+                    except ValueError:
+                        errors.append(f"{filename}:{line}: units must be a non-negative integer")
+                        continue
+                    if units < 0:
+                        errors.append(f"{filename}:{line}: units must be a non-negative integer")
+                        continue
+                    try:
+                        price = Decimal(row[4])
+                    except Exception:
+                        errors.append(f"{filename}:{line}: unit_price must be a non-negative decimal")
+                        continue
+                    if not price.is_finite() or price < 0:
+                        errors.append(f"{filename}:{line}: unit_price must be a non-negative decimal")
+                        continue
+                    if region is not None and not selected(region, row[1]):
+                        continue
+                    valid.append((row[1], row[2], units, price))
+        except OSError as exc:
+            print(f"{filename}: {exc}", file=sys.stderr)
+            return None, 1
+    for message in errors:
+        print(message, file=sys.stderr)
+
+    revenue = Decimal("0")
+    by_region = defaultdict(Decimal)
+    by_product = defaultdict(int)
+    for region_name, product, units, price in valid:
+        amount = units * price
+        revenue += amount
+        by_region[region_name] += amount
+        by_product[product] += 1 if BUG == "lost-base" else units
+    result = {
+        "rows": len(valid),
+        "revenue": float(revenue.quantize(CENT)),
+        "by_region": {name: float(value.quantize(CENT)) for name, value in by_region.items()},
+        "by_product": dict(by_product),
+    }
+    return result, 2 if errors else 0
+
+
+def main():
+    region, output_format, paths = parse_args(sys.argv[1:])
+    result, status = build_report(paths, region)
+    if result is None:
+        return status
+    report_region = None if BUG == "csv-ignores-filter" and output_format == "csv" else region
+    if report_region is not region:
+        result, csv_status = build_report(paths, report_region)
+        if result is None:
+            return csv_status
+        status = max(status, csv_status)
+    if output_format == "json":
+        print(json.dumps(result, ensure_ascii=False))
+    else:
+        writer = csv.writer(sys.stdout, lineterminator="\n")
+        writer.writerow(("region", "revenue"))
+        for name in sorted(result["by_region"]):
+            if BUG == "one-column-csv":
+                writer.writerow((name,))
+            else:
+                writer.writerow((name, f"{result['by_region'][name]:.2f}"))
+    return status
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

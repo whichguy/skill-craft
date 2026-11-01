@@ -663,6 +663,125 @@ The branch "K missed in the tidy pairs" does not apply either: K held in the tid
 - The apparatus has a live exposure: a base test of the delivery can fail a live run's final check through the machine's port space, as R4b's did. The calibration suite that shares the mechanism is fixed (26728eddd587930f5da3f6600e5d7ab4017d8acc);
   the live check `base_tests.py suite node-tickets` is not changed. A retry there could hide a delivery whose own server resets, and the fixture is pinned, so both are the owner's call.
 
+## Round 5: chain B, the same questions on a smaller base in another domain (R5; fixed 2026-11-01, before any run)
+
+**Why.** Everything measured so far is one product (a 3,600-line help-desk ticket service), one host and one model. The plan's D5, approved by the owner on 2026-10-31,
+asked for a second chain on a smaller base in a different domain, "so the placement fix and the delta ledger are tested beyond one product". Round 4 closed with the
+fix holding on passes 3 and 4 of the ticket chain (0 of 3 new decisions filed under Superseded; the old ShipLoop did in 4 of 5 later passes) and named chain B as the
+open item. The fix is published (skill-craft 2.31.0 / ShipLoop 1.30.0, with the notice, the destination line and the duty edits); this round runs ShipLoop as the
+marketplace serves it, and no change under test is held back on a branch.
+
+**Another chain B exists.** While this one was built, another session (branch `codex/incremental-chain-b-6vr1vrbo`, commit 0826efe27fc3a62ad8f6f952d9615e5984fe56ca, for the incremental-implementation study) built a different chain on the same
+`user-listing` base from the same plan item: `user-teams` (a team on every user and an opt-in `include=team`), `user-summary` (additive reuse of the filters) and `user-team-casefold` (an explicit replacement of case-sensitive team matching). It was not on
+`origin/main` when this was written and holds the port-3000 lease for its own live pass 1. This round's first drafts collided with its names (`user-teams`, `reference_user_teams.py`, `user_teams_accept.py` and `shiploop-e2e-user-chain`), so they were renamed here
+before anything was pushed (`user-team-listing`, `reference_user_team_listing.py`, `user_team_listing_accept.py`, `shiploop-e2e-user-directory`); this round read that session's commit message and case prompts to avoid the collision, not its checks, and runs none of its cases.
+The subjects differ (its plan: a frozen plugin and Terra at `high`; this round: the marketplace and `xhigh`) and so do the methods (it retains no feature word; this round's retention words come from real priors). Two chains on one base answer one question twice. Whether both should run is the owner's call; this round goes ahead because the brief asks for it, a pass only waits for the lease the other chain holds
+(a lease is how the harness shares the lane), and nothing about the other chain is touched. The question is put to the session that asked for this round in its report.
+
+**The question.** Do the second, third and fourth passes of a chain on `fixtures/node-base` (174 lines, a user directory) inherit what the earlier passes left, put their
+new facts in the named sections of the three living files, and repeat nothing, with ShipLoop as published? And does the fourth, which changes an earlier rule, change that rule
+(in place or by retiring it) without touching what its request did not name?
+
+**The chain** (plan section 4: "`user-listing` on `fixtures/node-base` then three links ... kinds K2, K1 and K3"). Pass 1 is the existing `user-listing`, which has 17 baseline rows on
+Codex Terra (4 at `xhigh`, 13 at `high`), all passes, and has its own hidden acceptance (11 checks). The three links are new:
+
+| pass | case | kind | request (the delta alone) | own checks | hidden checks (new, all) |
+|---|---|---|---|---|---|
+| B1 | `user-listing` | first pass | filter `GET /users` by `name`, page it with `page` and `size` | 3 | 11 |
+| B2 | `user-roles` | K2, a field through every answer | every user has a role (admin, member or viewer, named for Ada, Grace and Alan), shown by id, in the array and in the items of a page; a `role` filter that must combine with `name`; a bad or empty role answers 400 | 3 | 5 new, 16 |
+| B3 | `user-team-listing` | K1, an additive link that must reuse inherited rules | five teams; `GET /teams` lists "the way `GET /users` lists users", errors included; `GET /teams/:id` | 3 | 7 new, 23 |
+| B4 | `user-page-size` | K3, a link that changes an earlier rule | the default page size is the `PAGE_SIZE` setting (25) and the largest `size` 50, for both listings; "this replaces the rules ... change those requirements, the decisions behind them and the tests that state them" | 3 | 3 new, 22 |
+
+What each link tests besides its feature. B2: the first request's rules survive a new filter: `total` and `pages` count the users that matched both filters, a page past the end of them is empty,
+an unrelated parameter beside `role` is still ignored, and the first pass's page and size refusals still apply beside a role. B3: five of its seven new checks read rules the first request set and
+the first pass wrote down (the name matched as plain text and ignoring case; a page count that counts a partly filled last page, which the base's own `paginate` floors; the default of 10 and the
+largest of 100; the refusal of anything else): a run that reads them from the living files and the code reuses them, one that works them out again may not (10 of the 12 `user-team-listing` defects re-derive
+one rule). B4: four earlier hidden checks (the first request's `page-defaults` and `size-bounds`, the third link's `teams-page-defaults` and `teams-size-bounds`) read the sentences it replaces, so a
+correct delivery fails them by design and the case declares an acceptance of its own (22 checks), as `ticket-sla` does; a run that changes the code and leaves two tests saying a page holds 10 fails the
+delivery's own suite; the plain array must stay whole when `PAGE_SIZE` is set (a silent conflict the request does not mention).
+
+**Built (harness only; nothing under `skills/`, `agents/`, `plugins/` or `changes/` moves).** Cases in `cases.json`; `reference_user_roles.py`, `reference_user_team_listing.py`, `reference_user_page_size.py`
+(each: base, reference, an independently written alternative, 9 to 12 defects); `checks/user_roles_accept.py`, `user_team_listing_accept.py`, `user_page_size_accept.py` (each loads the one before and adds
+its checks; the roles module shows the first pass's checks every answer without its `role`, because they compare whole user records); `checks/user_directory_probe.py` (the own checks); the suite
+`test/shiploop-e2e-user-directory.test.py` (41 tests, 124 to 133 s at load average about 20, registered in `suite_catalog.py`, `test-groups`, the family pin, `suites.json`, `probe_terms.json`, SPEC S-11 and the README); seven real pass-1
+living files in `docs/experiments/multipass-chain-b-20261101/real-priors/` and the script that cut them; the readout, the gate and the driver (below).
+
+**Calibration (hermetic, no model).** 41 deliveries (13, 16 and 12 variants) each graded on the case's own checks and the whole hidden acceptance: the base fails every check of its link; the reference and
+the independently written alternative pass every one (16, 23 and 22 hidden checks); each defect fails exactly the checks that read what it breaks and every check is failed by some defect; four defects are
+seen only by the hidden acceptance or an inherited check (`teams-default-size-20`, `teams-size-cap-99`, `unknown-param-400`, `role-filter-lost`); one (`old-tests-left-standing`) only by the delivery's
+own suite in the regression. The spec check of each retention set is tested on both routes (a requirement added; an earlier requirement edited in place, naming the request's own word) and fails the
+silent edit; a requirement moved under Retired and a decision under Superseded keep their IDs and pass; a deleted file, a dropped requirement and a dropped decision fail theirs. Seven mutation checks (a hidden check made vacuous, the roles projection
+removed, a boundary row removed, a ledger pattern widened, a retention word swapped for the earlier request's, a spec check shown one route only) were each noticed by the suite; the boundary one was first not noticed (the 100 rows made the 51 rows redundant), which added the defect `largest-51`.
+
+**Method learning applied (Round 3).** (1) Words and patterns come from real pass-1 deliveries, not from the request: the retention words are `viewer`, `team` and `PAGE_SIZE`, found in none of seven
+saved real specs (Codex Terra, ShipLoop 1.20.0 to 1.26.4; the first draft's `role` is in one of 19 saved specs, as prose). The B4 ledger patterns (`delta.may_change`) find R-2 and R-3 (the default and the bounds) and
+AD-1 (the pagination decision) in all seven, whatever the wording ("defaults page 1 and size 10", "page defaults to 1 and size to 10", "defaults 1 and 10"; "size 1..100", "size 1 through 100"), and
+never R-1 or R-4. (2) Every spec check is tested on the in-place and the new-ID route. (3) The own checks of B2 and B3 read no rule B4 replaces (the default page size and the largest size are the hidden
+checks' to read), so a correct fourth pass does not fail them as regression: the reference of B4 passes all 17 checks of its chain.
+A limit found while testing: the ID retention checks read every mention of an ID in the file, so a dropped requirement that another requirement still cites ("cover R-1 through R-4" in a real spec) passes; the
+test drops every mention. The check is shared by every chain and is not changed here.
+
+**Run protocol.**
+- ShipLoop as the marketplace serves it: `--source marketplace` (the harness refuses a marketplace run when this checkout holds commits `origin/main` lacks, so the apparatus and this entry are pushed first), Codex `gpt-6.1-terra` at `xhigh`, hooks on, the harness defaults; published skill-craft
+  2.32.1 / ShipLoop 1.30.2 at this writing (2.32.1 changed only the wording of a follow-on request in `shiploop_follow_on.py`; the placement fix is from 2.31.0). Each pass records the versions it ran on
+  (prediction P8).
+- Four passes, one at a time, B1 to B4, each continuing from the folder the pass before it left: `python3 chain_b_driver.py PASS ROOT` (one pass per call, retrying while another session holds the lease). The runs go
+  under `~/e2e-runs-multipass/20261101/chain-b/`. The lease is port 3000 (`user-listing` declares it; the ticket cases' 4180 is a different lease), so the chain waits for other sessions' `node-base` runs only.
+- **The gate between passes.** Before pass B2, B3 and B4, `chain_b_gate.py LINK PRIOR` reads the link against the real prior the pass before it left: the link's spec word is absent from the prior's spec (the in-place route is
+  open), the B4 patterns find the rules they stand for, the link's own and new hidden checks FAIL on the prior and the earlier passes' checks pass on it. A word or pattern wrong by construction is fixed, with a test,
+  in its own commit before that link runs; nothing about a case is changed after its pass has run, and the first pass's result cannot be changed by anything here. (The gate ran on a real saved pass-1 run for B2 and on references for B3 and B4 while this was written; all clear.)
+- **Triage of a FAILED pass** in the mismatch note's order, with the Round 4 rule: if its only failing check is a base test (`base_tests.py`), that check is rerun five times on the saved work before the bar is read, and the failing test's file five times;
+  the recorded verdict stays as recorded. No retry is added to the live check (the owner's call). A pass that failed for another reason is read before the chain goes on; the next link continues from the delivery as it stands only
+  when the failure is not a defect of the delivery.
+- No test tier runs beside a run (memory: `no-tier-beside-live-runs`); the quick tier of this change ran before the first pass started. Another session's runs on the machine are not controlled.
+
+**Readout** (written and checked before any run): [chain_b_readout.py](experiments/multipass-chain-b-20261101/chain_b_readout.py), through the ledger ([delta.py](../test/shiploop_e2e/delta.py)) and `round4_readout.read_run`. Fed saved runs with known numbers
+(`--as`, [calibration output](experiments/multipass-chain-b-20261101/readout-calibration-output.txt)): E2's `B1-ticket-escalation` as pass 2, E1 as pass 3 and E3 as pass 4 it reproduces E1 (1,125.4 s, 8 stray headings, AD-4 born retired, still retired at the end AD-3 and AD-4)
+and E3 (993.3 s, 9 stray, AD-5 born retired, `replaced 1/1 left 0 unexplained 0` in the spec, FAILED 15 of 16 as recorded), a saved `user-listing` run as pass 1 (16.8 min, 11 of 11 hidden), and reports `unknown` for every line whose run is absent.
+
+**Bar, fixed before the runs** (on the four passes; there is no control, see below).
+- B1: every pass passes (as recorded) and loses no hidden check. (Triage as above; B1 is read as missed when a pass is recorded FAILED, and the triage is told beside it, as in Round 4.)
+- B2: every pass adds at most 2 stray headings to `environment.md` (the fix: 0 in all six E2 passes, 2, 0, 0 in Round 4; the old ShipLoop: 0 to 9).
+- B3: no pass files a new decision or requirement as retired (the fix: 0 of 9 passes in E2 and Round 4; the old ShipLoop: 4 of 5 later passes).
+- B4: pass 4: no earlier entry changed that the request did not name (`unexplained` empty in the spec and in the architecture).
+- B5: pass 4 changed the old rules: at least one of the requirements that state the old default and the old largest size was edited in place or retired (`expected_touched` of the spec is not empty).
+- B6: pass 3 modifies no earlier test file, and pass 4 modifies at least one (its request names the tests that state the old rules). Pass 2 is read, not barred: four of the seven saved real pass-1 deliveries pin whole user records in
+  their tests, so a role on every user may force the second pass to change them, which its request allows ("a test comparing a whole user may be changed to include the role"); the files it changes and whether the diffs are confined to the role field are told in the result.
+
+**No control.** This chain has no arm without the fix: it cannot credit the fix, only show whether the outcomes the fix produced on the ticket chain (B2, B3) and the cases' own measures (B1, B4 to B6) hold in another domain
+on a smaller base. The reference rates (E1, E3, Round 4 and E2) are context and not a contrast: they come from another product, other priors and other days. A matched control (the same chain on arm X, a checkout
+without the fix) costs about another 70 minutes of Terra and is the obvious next experiment if this round's B2 or B3 holds.
+
+**Predictions, written before the runs** (with the reason; a prediction is not a bar).
+1. P1 (about 95%): pass 1 passes all its checks. Seventeen of 17 earlier Codex Terra runs of `user-listing` passed.
+2. P2 (about 55%): passes 2 to 4 each pass every check, the hidden ones included. The three links are at their first contact with a real model; a check wrong by construction or a request read another way is the likely miss,
+   and the gate narrows the first and not the second.
+3. P3 (about 45%): passes 2 and 3 cite no earlier requirement in their step plans and test cases (the plan is the delta alone). E1 and E3 cited none; a saved second pass cited one.
+4. P4 (about 70%): pass 3 passes the five checks that read the rules it inherits. It is told to list "the way `GET /users` lists users", and the first pass's spec and code say how.
+5. P5 (about 65%): pass 4 leaves at least one pagination decision standing as written (`expected_untouched` of the architecture is not empty): AD-1 is about the page count, not the sizes, and a new decision carries the new rule,
+   as E3 left AD-3 and added AD-5.
+6. P6 (about 85%): the placement notice is printed in at least one of the four passes (E2: 6 of 6; Round 4: 2 of 3).
+7. P7 (about 65%): every pass runs in at most 25 minutes and the chain in at most 100 (the ticket passes took 14 to 29 minutes; `user-listing` 8 to 19).
+8. P8 (about 70%): all four passes run on one ShipLoop version. Releases land on `main` several times a day; a release between two passes would change the subject mid-chain.
+
+**Reading rule.**
+- B1 to B6 held: the fix's outcomes hold on a second domain and a base twenty times smaller; consistent with the fix, not credited to it (no control), and the next step is the matched control if the owner wants the credit.
+- B1 missed: read the run's mismatch note first (is a check wrong? E3's lesson), then the base-test rerun rule, before blaming ShipLoop. A wrong check found this way is fixed with a test and the record stays as recorded.
+- B2 or B3 missed: the finding the study exists to find: the leak appears with the fix in another domain. Read which stage wrote the stray heading or the entry (the run's commit history of the file, as Round 4 did); do not release or merge
+  anything; the question goes to the owner with the stage named.
+- B4 or B5 missed: read the run's edits to the spec and the architecture before concluding: the link may have changed what it should not (B4), or left an old rule standing that the new code contradicts (B5). Either is a result about the
+  modifying increment on this base.
+- B6 missed in pass 3: a run touched an earlier test it was told to leave as it was; read the diff.
+
+**Limits (in advance).** One run per cell and one chain: a miss or a hold is one draw, not a rate. Three new cases at their first contact with a real model (a hidden check can be wrong by construction; the gate reduces that risk and cannot remove it).
+One host and model. No control. A base-test collision can fail a final check (R4b). The versions can change between passes. The machine is shared (load average 15 to 100 on other days), so minutes are noisy.
+
+**Decisions made without asking (routine, AGENTS.md "Decisions").** Chain B is `user-listing` plus the three links of the plan's section 4 (kinds K2, K1, K3), so it is four passes and `user-listing` is not rebuilt. Domain and base: the existing `node-base`, 174 lines. The new
+cases use the existing mechanisms only (follow-on cases, a hidden acceptance of their own, `delta.may_change`); no ShipLoop text moves. The live subject is the harness default (Codex Terra at `xhigh`, hooks on) from the marketplace, as the plan and the brief require. No shakedown
+chain is run; the gate against the real prior of each link takes its place at a fraction of the cost. A pass is run from the driver one at a time so the gate and the triage sit between passes.
+
+**Status: pre-registered; no run has started.** The apparatus is commit 7bffac840ed957d88dafbeb3eab85e21f7975da5 (on `origin/main`); the pre-registration commit is the one that adds this section, and the runs start after it is on `origin/main`.
+
 ## Decisions made without asking (routine, AGENTS.md "Decisions")
 
 - Work in an isolated worktree (`feat/multipass-c5fc75`), because three other sessions commit to `main` in the canonical checkout.
@@ -697,6 +816,6 @@ The branch "K missed in the tidy pairs" does not apply either: K held in the tid
 - Which part of the candidate (the notice, the packet line, the duty edits) does the work: not split. Round 4 shows it holds on a third and a fourth pass for these chains, and that the notice's retired-entry clause never fired in a fix run, so the packet line and the duty edits explain the difference there.
 - A destination line for the `plan` stage (the new decision landed in Real-boundary checks in R4b, which no notice flags), a replicate of the tidy pair with its TAP kept, and whether the pass-4 appends under an inherited stray heading (R4c0) are the leak the fix prevents: each is a new experiment, none is started.
 - The live check `base_tests.py suite node-tickets` can fail a run through the machine's port space (R4b). The calibration suite with the same mechanism is fixed; the live check is not, and a retry or a pinned bind address there is the owner's call.
-- A second chain on a smaller base (designed, not built; D5 builds it after E2). The modifying increment, `ticket-sla`, is built and ran live once (E3, Round 3); whether a run retires and supersedes the old decision needs a prior without E1's mislabel.
+- A second chain on a smaller base: built, calibrated and pre-registered 2026-11-01 (Round 5, `user-listing` plus `user-roles`, `user-team-listing` and `user-page-size`); its live result is recorded in that round. The modifying increment, `ticket-sla`, ran live twice more in Round 4 (pass 4); whether a run retires and supersedes the old decision still needs a prior without a mislabel, which the fix's lineages supply.
 - An independent alternative delivery for `ticket-comments`, and a persistence check for the pass-4 link.
 - `knowledge_reads` on Codex is still empty; `delta.writes` is its heuristic replacement.

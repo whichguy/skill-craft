@@ -169,7 +169,8 @@ class LearningRecordsTest(LedgerCase):
         """The seeded LR-20261030-5dce01 says materiality high where reviewers and the judge say material or minor. It was
         admitted by the owner and verified, and a re-find reopens it; select compared the field to the exact string material,
         so a re-found, re-admitted record could never be taken by a cycle, with no error."""
-        seeded = self.open_record("seeded", materiality="high")
+        seeded = lr.new_id()
+        self.raw_row(seeded, "opened", title="seeded", materiality="high", confidence="high", target="shiploop")
         lr.append("admitted", seeded, self.ledger)
         minor = self.open_record("minor", materiality="minor")
         lr.append("admitted", minor, self.ledger)
@@ -342,6 +343,59 @@ class LearningRecordsTest(LedgerCase):
                 lr.ingest({}, {"implementation": [{"same_as": record}]}, {}, self.ledger)
                 self.assertEqual(lr.current(self.ledger)[record]["status"], "admitted")
 
+    SETTLED_BY = {
+        "verified": lambda self, record: lr.append("verdict", record, self.ledger, verdict="confirmed", outcome="verified",
+                                                   reason="promoted", reopen_when="the effect is lost"),
+        "refuted": lambda self, record: lr.append("verdict", record, self.ledger, verdict="refuted", outcome="refuted",
+                                                  reason="tokens rose", reopen_when="new evidence that the measure can move"),
+        "no_effect": lambda self, record: lr.append("verdict", record, self.ledger, verdict="no_effect", outcome="no_effect",
+                                                    reason="inside the tolerance", reopen_when="a larger effect is predicted"),
+        "unexplained_gain": lambda self, record: lr.append("verdict", record, self.ledger, verdict="unexplained",
+                                                           outcome="unexplained_gain", reason="a gain nobody predicted"),
+        "deferred": lambda self, record: lr.append("deferred", record, self.ledger, reason="n = 1",
+                                                   reopen_when="the pause recurs on any case or model"),
+        "rejected": lambda self, record: lr.append("owner", record, self.ledger, outcome="reject", reason="not this"),
+    }
+
+    def settled(self, status, title=None):
+        """A record that has been admitted, then settled the way the fold reaches `status`."""
+        record = self.open_record(title or status)
+        lr.append("admitted", record, self.ledger)
+        self.SETTLED_BY[status](self, record)
+        self.assertEqual(lr.current(self.ledger)[record]["status"], status)
+        return record
+
+    def test_a_harness_sighting_never_moves_a_settled_record_or_rewrites_its_reason(self):
+        """A harness finding is a measurement defect for a separate evaluator experiment, not a claim about the record's
+        fix. Following its route used to append `deferred` with ingest's own text: a verified, refuted or unexplained record
+        became deferred, and a deferred one lost its reason and reopening condition to the default."""
+        for status in self.SETTLED_BY:
+            with self.subTest(status=status):
+                self.ledger = self.temp / f"harness-{status}.jsonl"
+                record = self.settled(status)
+                before = lr.current(self.ledger)[record]
+                rows_before = len(lr.rows(self.ledger))
+                self.assertEqual(self.refound(record, "harness"), [record])
+                state = lr.current(self.ledger)[record]
+                self.assertEqual((state["status"], state["seen"]), (status, 2))
+                self.assertEqual((state["reason"], state["reopen_when"]), (before["reason"], before["reopen_when"]))
+                self.assertEqual(len(lr.rows(self.ledger)), rows_before + 1, "only the observation is appended")
+                self.assertEqual((state["sources"][-1]["held"], state["sources"][-1]["route"]), (status, "harness"))
+                self.assertIsNone(lr.select(self.ledger))
+
+    def test_a_settled_record_can_still_be_taken_to_the_owner_by_a_sighting(self):
+        """What a sighting may do to a settled record is ask: an owner-routed one moves it to the owner, who decides.
+        It adopts nothing. This is what 916a2c2b did for a rejected record, applied to the other settled statuses."""
+        for status in self.SETTLED_BY:
+            with self.subTest(status=status):
+                self.ledger = self.temp / f"ask-{status}.jsonl"
+                record = self.settled(status)
+                self.assertEqual(self.refound(record, "owner_challenges"), [record])
+                state = lr.current(self.ledger)[record]
+                self.assertEqual((state["status"], state["seen"]), ("owner", 2))
+                self.assertNotIn("held", state["sources"][-1])
+                self.assertIsNone(lr.select(self.ledger))
+
     def test_unmarked_historical_route_events_keep_their_existing_meaning(self):
         record = self.open_record()
         lr.append("owner", record, self.ledger, outcome="reject")
@@ -390,6 +444,59 @@ class LearningRecordsTest(LedgerCase):
         self.assertEqual(review._discovery_problems({**finding, "same_as": None}, 0), [])
         self.assertEqual(review._discovery_problems({**finding, "same_as": "LR-20261030-abcdef"}, 0), [])
         self.assertIn("same_as", " ".join(review._discovery_problems({**finding, "same_as": "none"}, 0)))
+
+    # Materiality vocabulary. review.py accepts `material` or `minor` and nothing else, and select() takes `material` (and,
+    # for the one seeded row, `high`), so an admitted record carrying any other word is never offered and nothing says so.
+    LEGACY = "LR-20261030-5dce01"
+
+    def raw_row(self, record, event, at="2020-01-01T00:00:00.000000Z", **fields):
+        """A row as an older append() could write it, which the current one may refuse."""
+        row = {"contract": lr.CONTRACT, "event_id": f"{at}-{event[:3]}000", "at": at, "record": record, "event": event, **fields}
+        with self.ledger.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(row) + "\n")
+
+    def test_append_refuses_a_materiality_that_select_could_never_read(self):
+        for value in ("high", "low", "critical", "Material", "material ", "", None, 3, ["material"]):
+            with self.subTest(value=value):
+                record = lr.new_id()
+                with self.assertRaisesRegex(ValueError, "materiality"):
+                    lr.append("opened", record, self.ledger, title="t", materiality=value)
+                self.assertFalse(self.ledger.exists() and self.ledger.read_text(), "a refused row is not written")
+        for value in ("material", "minor"):
+            with self.subTest(value=value):
+                lr.append("opened", lr.new_id(), self.ledger, title="t", materiality=value)
+        lr.append("opened", lr.new_id(), self.ledger, source={"run": "/runs/y"})
+        self.assertEqual(len(lr.rows(self.ledger)), 3, "a sighting that makes no claim about materiality is not refused")
+
+    def test_the_checked_in_ledger_has_one_unreadable_materiality_and_it_is_the_named_one(self):
+        """A history check, as for owner decisions: a union merge from a branch that predates the check in append() can
+        bring in a word the vocabulary does not have. This fails then, instead of a record being skipped without a sound.
+        The one row that says "high" (LR-20261030-5dce01, event_id 2026-10-31T05:14:11.983143Z-5f757d) is the exception
+        select() reads (MATERIAL); it is not edited, the ledger being append-only."""
+        odd = {(row["record"], row["materiality"]) for row in lr.rows(lr.LEDGER)
+               if row["event"] == "opened" and "materiality" in row and row["materiality"] not in lr.MATERIALITY}
+        self.assertEqual(odd, {(self.LEGACY, "high")})
+        self.assertIn("high", lr.MATERIAL, "select reads the one unreadable word the ledger holds")
+
+    def test_ingest_refuses_an_unreadable_materiality_before_it_writes_anything(self):
+        good = {"id": "D1", "title": "fine", "materiality": "material", "confidence": "high", "target": "shiploop"}
+        bad = {"id": "D2", "title": "odd", "materiality": "high", "confidence": "high", "target": "harness"}
+        for route in ("implementation", "owner_challenges", "harness"):
+            with self.subTest(route=route):
+                ledger = self.temp / f"bad-{route}.jsonl"
+                # The good finding goes on the route ingest handles first, or last when the bad one is on the first.
+                good_route = "harness" if route == "implementation" else "implementation"
+                with self.assertRaisesRegex(ValueError, "D2.*materiality"):
+                    lr.ingest({}, {good_route: [good], route: [bad]}, {"run": "/runs/r"}, ledger)
+                self.assertFalse(ledger.exists() and ledger.read_text(), "a half-recorded batch is not left behind")
+
+    def test_a_sighting_with_no_materiality_writes_none_rather_than_a_null(self):
+        known = self.open_record("known")
+        lr.ingest({}, {"owner_challenges": [{"same_as": known}]}, {"run": "/runs/r"}, self.ledger)
+        sighting = [row for row in lr.rows(self.ledger) if row["event"] == "opened"][-1]
+        self.assertNotIn("materiality", sighting)
+        self.assertEqual(lr.current(self.ledger)[known]["materiality"], "material", "the first claim stands")
+
 
 
 

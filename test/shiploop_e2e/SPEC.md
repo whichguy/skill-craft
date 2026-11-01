@@ -668,7 +668,7 @@ and two decisions are compared only under the same id.
   - *The medium pair (added 2026-10-28; D7 of docs/shiploop-brownfield-baseline-design-2026-10-28.md).* `ticket-assignment`
     extends `fixtures/node-tickets`, a help-desk ticket service of about 3,600 lines (1,700 of source) with eight decision
     records, and `ticket-escalation` follows it, so it starts from the first run's delivery and runs the first case's checks
-    again beside its retention checks. A third link, `ticket-comments`, and a fourth, `ticket-sla` (both 2026-10-31; the fourth is the first that changes an earlier rule), follow that ("Follow-on chains", below). The pair measures what D7 asks: whether a run keeps behaviour and team decisions its
+    again beside its retention checks. A third link, `ticket-comments`, and a fourth, `ticket-sla` (both 2026-10-31; the fourth is the first that changes an earlier rule), follow that ("Follow-on chains", below). A second chain on the small base (2026-11-01, docs/shiploop-multipass-journal.md, Round 5) puts the same questions to another domain: `user-listing`, then `user-roles` (a field through every answer), `user-team-listing` (a listing that must reuse the first request's rules) and `user-page-size` (the second link that changes an earlier rule). The pair measures what D7 asks: whether a run keeps behaviour and team decisions its
     request does not name, and whether the follow-on keeps what the first run had to learn. As node-base does, its base holds a
     latent defect in the flow the request touches, which the request depends on and does not name.
     - *Checks that start the product themselves.* A held-out check may take a second parameter, the delivered copy
@@ -708,7 +708,20 @@ and two decisions are compared only under the same id.
   - *The request is the delta.* A link's prompt names the new behaviour and says that everything the project already does
     keeps working; it does not restate or ask for an earlier link's behaviour. The earlier links' tests are the standing
     assumption: they exist, ShipLoop runs them as the project's suite, and the harness runs the earlier links' checks again
-    (below). A link's own checks and held-out acceptance read only the sentences of its prompt, as every case's do (S-9).
+    (below). A link's own checks and held-out acceptance read the sentences of its prompt, including an explicit reference
+    to an earlier accepted rule under the dated clarification below, as every case's do (S-9).
+  - *An explicit reference may carry an inherited rule* (clarified 2026-11-01; incremental CSV pilot and user-listing Chain B).
+    A request such as "use the same name and team filters GET /users applies" deliberately asks the fresh run to recover
+    accepted behavior from its predecessor's repository knowledge. A check's source must quote that reference and the
+    particular earlier request clauses it incorporates; test-fixture behavior and unstated conventions grant no authority.
+    Pin the intended predecessor, request/check identities and graded checkout before advancing. An absent or failed
+    predecessor, missing accepted knowledge, or an unexplained post-review edit blocks the dependent run; the operator
+    does not inject the missing answer to rescue the chain. This is distinct from launching an independent clean repetition.
+    Review current authority and implementation evidence separately. Valid reconciliation can update a requirement in
+    place or explicitly retire it in favor of a replacement; no new ID, file, keyword or test-count increase is required.
+    The delta ledger remains a locator for this semantic review. Correct output alone does not establish which source the
+    subject retrieved: report that source as unknown when the access evidence is incomplete. This clarification permits
+    source-mapped incorporation by reference; it does not make an exploratory chain a promotion/5 qualification.
   - *A chain is read to its end* (`chains.py`). A link's regression is every earlier link's own checks, oldest first; a
     check an earlier link already contributed runs once, and a case's own list is never thinned. Its quality measures are the
     nearest declaration among the cases it follows, key by key. Its retention checks see only the link just before it as
@@ -720,7 +733,7 @@ and two decisions are compared only under the same id.
   - *The delta ledger* (`delta` in metrics.json; the table above). It measures what the retention checks cannot: not only that
     nothing was lost but where the new knowledge landed. It is a record. Placement, appends and relative wording become
     retention checks only after an engine change that enforces them has a baseline.
-  - *A link may change an earlier rule* (the fourth ticket link, `ticket-sla`). Its request must name what it replaces, because
+  - *A link may change an earlier rule* (the fourth ticket link, `ticket-sla`, and the fourth link of the second chain, `user-page-size`). Its request must name what it replaces, because
     the old rule is written in the living spec, in a decision and in a hidden check of an earlier link. Such a link declares an
     acceptance of its own: the earlier link's hidden checks except the one that reads the replaced sentence (a correct delivery fails
     that one by design, and the nearest-declaration rule would otherwise inherit it), plus checks of the new rule. It also lists in
