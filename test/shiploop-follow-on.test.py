@@ -237,6 +237,21 @@ class RouteTests(FollowOnCase):
         self.assertIn("Follow-on: 2 entries are recorded and none recommends a follow-on run (see the report).",
                       " ".join(out.split()))
 
+    def test_the_request_file_goes_when_the_accepted_list_no_longer_recommends(self) -> None:
+        # A later handoff (after add-work reopens the outer stages) can accept a list that recommends nothing; the
+        # request the earlier list wrote must not outlive it.
+        run, head = self.at_handoff()
+        self.finish(run, head, [GAP])
+        self.assertTrue((run / "follow-on-request.md").is_file())
+        state = self.state(run)
+        action = [row["action"] for row in state["history"] if row["stage"] == "handoff"][-1]
+        state["accepted"][action]["follow_on"] = [NOTE]
+        nav.save(run, state)
+        self.assertFalse((run / "follow-on-request.md").exists())
+        state["accepted"][action]["follow_on"] = [DECISION]
+        nav.save(run, state)
+        self.assertIn(DECISION["statement"], (run / "follow-on-request.md").read_text(encoding="utf-8"))
+
     def test_an_empty_list_prints_no_follow_on_line_and_writes_no_request(self) -> None:
         run, head = self.at_handoff()
         out = self.finish(run, head, [])
