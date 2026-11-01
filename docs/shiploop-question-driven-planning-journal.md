@@ -352,6 +352,34 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   above were corrected in place with this date, and README "Calibration (2026-11-01)" holds the numbers.
 - Status: firm (a recomputation over the committed evidence).
 
+### E17 — 2026-11-01: the step-plan stage reviewed for effectiveness and efficiency (saved runs, no model run)
+
+- Question (the owner: "revisit the step planning stage and make sure it is as effective and efficient as
+  possible"): what does step-plan cost, which of its plans fail later and why, and what would stop that?
+- Method: `docs/experiments/step-plan-review-20261101/step_plan_review.py` and `replay_proofs.py` over 112 traced runs
+  (2026-10-25 to 11-01, ShipLoop 1.12.0-1.26.1, mostly Codex Terra 6.1): times from trace events, refusals, every
+  send-back to step-plan with its result, Improve passes; each send-back classified from its headline and summary;
+  candidate rules replayed on every accepted plan and step. Review: docs/shiploop-step-plan-review-2026-11-01.md.
+- Result:
+  - Cost: a median 11.3% of a run; on Terra 0.52 minutes to author and 0.47 to review (medians); the review is about
+    45% of the stage. Refusals in the loop fell from 57 in 53 plans (1.24.1-1.25.0) to 25 in 44 (1.25.1-1.26.1).
+  - 50 of 178 plans came back (implement 32, test-spec 12, test 6). On ShipLoop 1.25.0 and later, 19: focused IDs
+    fewer than the criteria a focused command names 8, Proof command defects 4, a Proof needing unwritten tests
+    without a file path 3, a Proof that cannot run twice 2, a check needing a later step 2. The named-path proof-order
+    class went from 13 to 0 with E5's refusal.
+  - The step-plan template has shown three criteria and two IDs whenever an open item is due (since 8dee00e0), and no
+    step-plan text stated test-spec's one-case-per-ID rule; 22 of the 24 short plans had an Improve review.
+  - A matching rule refuses 24 of 175 accepted plans: the 9 test-spec sent back and 15 test-spec folded (a criterion
+    with no case of its own); none whose every criterion had a case. Four rules for the no-path Proof form flag Proofs
+    that passed (N1 10/12/18 send-back/done/none, N4 7/30/11), so none is built.
+- Decision: build the rule as a step-plan refusal (`test_loop.criteria_without_ids`,
+  `navigator._check_focused_criteria_ids`), give the template one ID per criterion, and say it in duty 5 and the
+  Checked-by line. Routine under the owner's 2026-10-28 rule: it aligns step-plan with a contract test-spec already
+  enforces and limits no loop. The Improve review and a repeatable-Proof clause are left to the owner.
+- Status: firm (replay of every saved plan); the live check is pre-registered in the review's §7.
+- Evidence: `replay_ids.jsonl`, `sendback_classes.jsonl`, `sendbacks.jsonl`, `runs.jsonl`, `improve_passes.jsonl`,
+  `replay_proofs.jsonl` in docs/experiments/step-plan-review-20261101/.
+
 ## Findings
 
 Each finding is stated in full, with its evidence, in §6.1 of the proposal document.
@@ -380,3 +408,8 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F20 | One sentence on the `experiment` route moves runtime questions there (10% -> 33%, p 0.0035) without over-routing, below the +1.0 bar; a prompt shifts what intake proposes, not what the run probes | firm (no-tool) | E13 |
 | F21 | A research duty that probes each `experiment` question rarely probes live (1 of 6 runs); every baseline failure on ticket-import was a step-plan stall, not a missed runtime fact | firm (mechanism), interim (stall rate) | E14 |
 | F22 | An executed criterion settling an open plan item holds live: used in 4 of 4 runs, all pass, and it replaces checks that time nothing (`node --version`, a 404 from the unbuilt route) with the item's own timed tests | firm (mechanism); no harm seen at 4 runs a side, not ruled out; unmeasured (stall rate, so the benefit). Corrected 2026-11-01 (E16); was "firm (mechanism, no harm)" | E15, E16 |
+| F23 | Step-plan is a median 11% of a run; its Improve review is about 45% of the stage; refusals in its loop halved after c2da4604 | firm | E17 |
+| F24 | 28% of step plans come back to step-plan; on ShipLoop >= 1.25.0 the largest class (8 of 19) is a focused command with fewer IDs than its executed criteria, and the named-path proof-order class is gone (13 -> 0) | firm | E17 |
+| F25 | The shortage comes from step-plan's contract: test-spec's one-case-per-ID rule was never stated there, and the template has shown a short row since 8dee00e0; Improve missed it in 22 of 22 reviewed short plans | firm (mechanism); the template's own share unmeasured | E17 |
+| F26 | A matching rule refuses exactly the short plans: 9 sent back by test-spec, 15 folded, none fully covered (24 of 175) | firm (replay) | E17 |
+| F27 | No precise rule separates a Proof that runs unwritten tests without a file path from a legitimate one (N1-N4 all flag passed Proofs) | firm (replay) | E17 |
