@@ -130,7 +130,7 @@ def main(argv: list[str]) -> int:
                 print(f"median {arm} {case:10s} secs {statistics.median(r['process'] for r in picked):7.1f}  product {statistics.median(r['product'] for r in picked):7.1f}  "
                       f"wording {statistics.median(r['wording'] for r in picked):6.1f}  mutation rounds {statistics.median(r['mutation_rounds'] for r in picked):g}  (n={len(picked)})")
     print()
-    print("\n".join(files_table(root)))
+    print("\n".join(line.rstrip() for line in files_table(root)))
     if out:
         out.write_text(json.dumps(ledgers(root), indent=1, sort_keys=True) + "\n")
         print(f"wrote {out}")
