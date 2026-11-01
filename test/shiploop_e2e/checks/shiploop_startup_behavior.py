@@ -238,6 +238,46 @@ def possible_binder(command, output):
             or observer.command_run_dir(payload) is not None)
 
 
+def additional_startup(work, out, selected, start, end):
+    """Find a second archived fresh startup in the trial's known run layouts."""
+    candidates = set()
+    for base in (work, out / ".shiploop-runs", selected.parent):
+        if base.is_symlink():
+            continue
+        for directory, folders, files in os.walk(base, followlinks=False):
+            folders[:] = [name for name in folders if not (Path(directory) / name).is_symlink()]
+            path = Path(directory) / "trace.jsonl"
+            if "trace.jsonl" in files and not path.is_symlink():
+                candidates.add(path.resolve())
+    for path in sorted(candidates):
+        if path == selected.resolve():
+            continue
+        try:
+            other = rows(path)
+            packet = other[0]
+            command = next(row for row in other if row.get("kind") == "command")
+            revision, action = packet.get("rev"), packet.get("action")
+            require(all(row.get("v") == 1 and number(row.get("ts")) for row in other)
+                    and packet.get("kind") == "packet" and packet.get("stage") == "intake"
+                    and packet.get("status") == "active" and type(revision) is int and revision >= 0
+                    and isinstance(action, str) and action
+                    and command.get("verb") in ("init", "workspace")
+                    and command.get("status") == "active" and type(command.get("exit")) is int
+                    and command["exit"] == 0
+                    and position(command, "rev") == [None, revision]
+                    and position(command, "stage") == [None, "intake"]
+                    and position(command, "cursor") == [None, action] and not command.get("accepted")
+                    and start["t"] + 0.0005 < attempt_start(command)
+                    and attempt_start(command) < packet["ts"] <= command["ts"]
+                    and command["ts"] + 0.0005 < end["t"],
+                    "additional trace is not a verified fresh startup in this session")
+            packet_text(path.parent, packet)
+        except (Verdict, OSError, ValueError, TypeError, KeyError, IndexError, StopIteration):
+            continue  # Unrelated, stale or incomplete app traces do not select a run.
+        return path
+    return None
+
+
 def evaluate(work, out, invocation, report):
     require(invocation.get("host") == "codex", "only normalized Codex is verified")
     events_path, sessions_path = out / "events.jsonl", out / "sessions.jsonl"
@@ -320,6 +360,10 @@ def evaluate(work, out, invocation, report):
                 "first stop trace and decision cannot be uniquely correlated")
     require(hook, "first stop trace is missing")
     observation(report, "continue_hook", trace_path, (hook_index,), session_hash=session_hash)
+    extra = additional_startup(work, out, trace_path, start, end)
+    if extra is not None:
+        observation(report, "additional_startup", extra)
+    require(extra is None, "additional fresh startup trace in the original session")
 
     tools = []
     for i, event in enumerate(events[:end["events_line"]]):
@@ -347,7 +391,7 @@ def evaluate(work, out, invocation, report):
                 command=events[called]["rawInput"].get("command"))
 
     for i, returned, output, code in tools:
-        if i == called or not possible_binder(events[i]["rawInput"].get("command"), output):
+        if i == called:
             continue
         # Only exact archived output, unique exposure order, exit and a post-Stop
         # outer-command interval can locate an extra possible binder. Counts of
@@ -366,10 +410,12 @@ def evaluate(work, out, invocation, report):
                 joined.append(command)
         correlated = (i > exposures[0][1] and len(joined) == 1
                       and decision["at"] < attempt_start(joined[0]))
-        if not correlated:
+        if correlated:
+            break  # All later tool calls follow a proven post-Stop return.
+        if possible_binder(events[i]["rawInput"].get("command"), output):
             observation(report, "binding_uncertainty", events_path, (i, returned),
                         command=events[i]["rawInput"]["command"])
-        require(correlated, "uncorrelated binding-capable tool call could precede the first Stop")
+            require(False, "uncorrelated binding-capable tool call could precede the first Stop")
 
     accepted = []
     for i, command in commands:

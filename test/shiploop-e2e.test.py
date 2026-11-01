@@ -8661,6 +8661,9 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
                 del self.events[1:3]
         self.set_tool("completion", f"python3 /neutral/scripts/shiploop complete --run-dir={self.root} "
                       f"--action={self.action}", "accepted\n")
+        self.check("pass")  # The earlier verified next return already orders this callback after Stop.
+        del self.trace[3:5]
+        del self.events[4:6]
         self.check("unknown", "uncorrelated binding-capable")
 
     def test_second_fresh_trace_in_same_session_is_unknown_with_or_without_acceptance(self):
@@ -8677,6 +8680,54 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
         self.check("unknown", "multiple candidate run traces")
         self.trace = [row for row in self.trace if not row.get("accepted")]
         self.check("unknown", "multiple candidate run traces")
+
+    def test_selected_identity_cannot_hide_a_second_fresh_startup(self):
+        for route in ("direct", "managed", "nested"):
+            for keep_acceptance in (True, False):
+                with self.subTest(route=route, accepted=keep_acceptance):
+                    self.setUp()
+                    if route == "managed":
+                        self.managed_root()
+                        extra = self.out / ".shiploop-runs/second/run"
+                    else:
+                        self.select_root()
+                        extra = (self.root / "second-run" if route == "nested"
+                                 else self.work / ".shiploop/second-run")
+                    original = self.root
+                    self.root = extra
+                    self.root.mkdir(parents=True)
+                    packet, printed = self.packet("nav-neutral-second-intake", "intake", 0, 125)
+                    command = self.command("init", 126, fresh=True)
+                    command["cursor"] = [None, packet["action"]]
+                    (self.root / "trace.jsonl").write_text(
+                        "".join(json.dumps(row) + "\n" for row in (packet, command)))
+                    self.root = original
+                    # The extra run is real trace evidence even when its shell form
+                    # is opaque to the observer's command-text predicates.
+                    self.events[4:4] = self.tool("fresh", "opaque_fresh_start", printed)
+                    if not keep_acceptance:
+                        self.trace = [row for row in self.trace if not row.get("accepted")]
+                    self.check("unknown", "additional fresh startup trace")
+
+    def test_stale_trace_does_not_override_valid_selected_identity(self):
+        self.select_root()
+        original = self.root
+        self.root = self.work / ".shiploop/prior-run"
+        self.root.mkdir(parents=True)
+        packet, _ = self.packet("nav-prior-intake", "intake", 0, 85)
+        command = self.command("init", 86, fresh=True)
+        command["cursor"] = [None, packet["action"]]
+        (self.root / "trace.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in (packet, command)))
+        self.root = original
+        self.check("pass")
+
+    def test_binding_text_after_a_proven_post_stop_return_cannot_explain_startup(self):
+        self.events[6:6] = self.independent_binder("heredoc")
+        self.check("pass")
+        del self.events[6:8]
+        self.events[4:4] = self.independent_binder("heredoc")
+        self.check("unknown", "uncorrelated binding-capable tool call")
 
     def test_later_full_reprint_cannot_replace_truncated_startup_exposure(self):
         self.trace[3:3] = [dict(self.trace[0], ts=125), self.command("next", 126)]
