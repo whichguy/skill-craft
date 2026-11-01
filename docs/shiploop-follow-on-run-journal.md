@@ -793,7 +793,7 @@ Superseded (marked 2026-11-01): Round 5's "Open" list names M2a as a recommended
 remain open.
 
 Open (as of this round): M3 on the owner's own features (the demand question); U11 (entry-level agreement, now possible on 2 model-written entries that are alike); a recommended `gap` and the comparison with a hand-written
-request (the rest of M2a); the cosmetic double period with the next change to `request_text`; the multipass fix's release (the other session's, the owner's word); Cursor's refresh through its app (the owner's).
+request (the rest of M2a); the cosmetic double period with the next change to `request_text`; the multipass fix's release (the other session's, the owner's word); Cursor's refresh through its app (the owner's). Updated 2026-11-01 (Round 7): the multipass fix is released (skill-craft 2.31.0 / ShipLoop 1.30.0) and a recommended `gap` has since run live (Round 7).
 
 ## Round 7 — 2026-11-01 — the recommended gap, live on a primed request (design M2a, the second class)
 
@@ -867,3 +867,52 @@ Not concluded whatever the numbers: two primed runs are a mechanics check, not a
 host, one model, one effort; U11 is not measured.
 
 Files: `docs/experiments/follow-on-recommended-gap-20261101/` (`request.txt`, `launch.sh`, `calibrate_checks.py`, `readout.py`, then the extracts and the README).
+
+### Result (2026-11-01; three runs on Codex Terra xhigh, the published build; a primed request, so mechanics only)
+
+Evidence commit fef3c041b7ea25a05d6c0b596ad3593376172032 (docs/experiments/follow-on-recommended-gap-20261101/README.md has the table, `runs.json` and `readings.txt` the readout, `verdicts.txt` the runners'
+blocks). The published build moved during the round: the two link-1 runs loaded skill-craft 2.31.0 / ShipLoop 1.30.0 (plugin tree b604dade538e); another session released skill-craft 2.32.0 / ShipLoop 1.30.1 /
+Backchain 0.7.0 at 13:00 (01d537e9b753aa04859117c1568dfc19f4a0afe7), so the link-2 run, launched at 13:03, loaded that build (6aa0a67b2ac0). The 1.30.1 change is to the `converge` marker line of plan packets and
+touches neither the follow-on module nor the handoff duty; a request file written by 1.30.0 was read by 1.30.1, the realistic upgrade case, and the links are not on identical builds.
+
+| Run | Started from | Build | Turns | Minutes | Gates | Handoff | `follow_on` | `--max-length` |
+|---|---|---|---|---|---|---|---|---|
+| link1-a | the request | 2.31.0 / 1.30.0 | 141 | 8.5 | 6 of 6 | 1 attempt | one `note`, `lessons.open_next` | exit 2 (deferred) |
+| link1-b | the request | 2.31.0 / 1.30.0 | 146 | 9.6 | 6 of 6 | 1 attempt | one `gap`, `lessons.open_next`, S3 | exit 2 (deferred) |
+| link2-b | link1-b's request file | 2.32.0 / 1.30.1 | 167 | 9.0 | 6 of 6 | 1 attempt | `[]` | `hello-wo` for 8, `hello` for 6 |
+
+Rules. R1 holds (both link-1 runs done with every verdict; the deferral respected). R2 holds on one of two replicates: link1-b filed a `gap` whose request sentence is S3, the sentence that asks for the option,
+and wrote its request file and report section; link1-a filed the same deferral as a `note` ("The user explicitly deferred --max-length to a later run."), which recommends nothing. Both entries are supported by the
+lessons they cite ("it is intentionally absent now"; "If requested later, implement --max-length ..."). R3 holds (the printed command ran as printed on a copy of link1-b's checkout: exit 0, one workspace record, the stored
+request equal to the file but for its last newline). R4 holds on the one run started: link2-b reached `done` with every verdict, both examples of the option included, with nobody answering anything. R5: it changed
+`slug.py`, `test_slug.py`, `README.md`, the three living knowledge files and `SHIPLOOP.md`, the knowledge index ShipLoop has committed with `docs/shiploop/` since 2cd8f33b30f3056a925e3636f624849aadf61982 (neither link-1 run of this
+round nor any Round 6 run committed one; I first wrote that the newer build introduced it, a check showed it is old behaviour, and the evidence says so). R6 holds (accepted on the first `complete`, `follow_on` `[]`).
+
+Predictions. P1 held (75%). P2 held for "at least one gap" (55%) and missed for "both" (30%): one `gap`, one `note`. P3 held (85%). P4 held (90%). P5 held (80%, 1 of 1). P6 held (85%). P7 held (75%, with the knowledge index
+counted as a living knowledge file). P8 held (85%: no handoff refusal in either link-1 run on 2.31.0).
+
+Findings (status; citation).
+- F45 (firm for these runs, mechanics only, primed; fef3c041b7ea25a05d6c0b596ad3593376172032). The recommended gap ran live and unattended: a model filed a `gap` against the right request sentence, ShipLoop wrote a request and a
+  command that work as printed, and a run started from it implemented the option with the request's two examples, kept the basic tool, updated the records and did not file it again, on a build one patch newer than the one that
+  wrote the request. n = 1 for the delivery.
+- F46 (exploratory, n = 2). A requester-deferred outcome sits on the boundary between `gap` and `note`: the same request was filed once as each. The duty's words fit both ("a request outcome left unmet ... that needs no person's
+  answer"; "knowledge for a later change; nothing is open"). One candidate wording is recorded and not applied: say in the `gap` definition that an outcome the request itself defers to a later run is a gap mapped to its sentence.
+  A `gap` surfaces the next step with a ready command; a `note` leaves it to be asked for; nothing auto-starts either way, so the cost of the split is small, and two runs are no ground for a prompt change.
+- F47 (firm; practice). `--source marketplace` is a moving target during a round: the harness prints the build it installs at each launch and `result.json` records it per run (`versions`). A round that needs one build
+  throughout should pin it (`--source checkout` from the release commit) or say so, as this one does.
+- F48 (observed again; the fix is a separate commit, hash cited when it lands). The unfixed build wrote "...updates tests.. Recorded in lessons.open_next." again in the gap's request file (Round 6, F41).
+- F49 (reading, not a measurement). Across the work so far a `gap` has appeared only when the occasion was arranged: the replay found none in 166 runs (Round 4), the four live runs of Round 5 none, Round 6's primed request
+  produced a decision, Round 7's primed deferral produced one gap and one note. Unprimed runs complete their requests, so the leftovers are decisions, persons, capabilities and notes. Auto-start for gaps (design D2) therefore
+  has little to start in practice, and the evidence that it would work if one appeared is F45.
+
+Decisions recorded (routine, AGENTS.md 2026-10-28): the three runs were launched unasked as verification of a shipped feature; the second attempt the plan allowed was not needed (R2 held on one replicate); the duty text was not
+changed on two runs (F46); no release (no mechanical defect in the path).
+
+Contrary evidence and what is not concluded: the request is primed (a deferral the requester asked for is the easiest gap there is); two link-1 replicates and one link-2 run; one host, one model, one effort; the links ran on
+different builds; the comparison with a hand-written request on the same base was not run; M3 and U11 are untouched.
+
+Superseded (marked 2026-11-01): Round 6's "Open" list names the multipass fix's release as the other session's and the owner's word, and a recommended `gap` as unmeasured. The fix is released (skill-craft 2.31.0 / ShipLoop 1.30.0,
+5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a) and the gap has since run live (F45).
+
+Open (as of this round): M3 on the owner's own features (the demand question, and the only way to learn whether a natural gap appears); U11 (entry-level agreement); the comparison with a hand-written request (the rest of M2a);
+the F41 and F48 fix reaching a release with the next one; Cursor's refresh through its app (the owner's).

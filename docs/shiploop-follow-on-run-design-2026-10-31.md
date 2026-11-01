@@ -81,7 +81,7 @@ the whole loop again.
   and whether it should also wait for E4's result is open (section 4.7).
 - Order: the recommend-only list is built and was checked live (revision 6); the replay (revision 5) had advised waiting for runs of the owner's own features,
   and the owner asked for the build. As of f9454b31ff1751d333e16b6439842a312f3e6f31 a recommended run started from a model-written request has run live (section 7, M2a: a `decision` blocks and asks, the answered run
-  delivers). The next measurements are the list on the owner's own features (M3) and a recommended run for a `gap` started from a
+  delivers). The next measurement is the list on the owner's own features (M3); as of fef3c041b7ea25a05d6c0b596ad3593376172032 a recommended `gap` has run live too (Round 7), started from a
   model-written request (M2a); the peek and the replay rerun in minutes. Consider chaining runs only with new evidence, the multipass fix's release
   and the owner's calls on D2 and D3.
 
@@ -516,6 +516,12 @@ with options and a reason no default would do, and changed nothing; a run starte
 architecture to say it supersedes the earlier pending decision, and filed no decision again (2 of 2 each). So an unanswered `decision` is a request for a person, not for a run; only a `gap` could run unattended.
 Not run: the comparison with a hand-written request on the same base, a recommended `gap`, the multipass chain as a base, and a person answering instead of a fixed answer.
 
+M2a result 2 (journal Round 7; docs/experiments/follow-on-recommended-gap-20261101/; as of fef3c041b7ea25a05d6c0b596ad3593376172032). The second class ran too, on the published build, with a request that asks for a slug tool and an
+option and tells the run to build the option in a later run. Of two replicates, one filed the deferred option as a `gap` that maps to the sentence asking for it, and one as a `note`; the gap's request file and printed command worked
+as printed, and a run started from it (on the next patch release, ShipLoop 1.30.1 after 1.30.0) delivered the option with the request's two examples, kept the basic tool, updated the records and did not file it again, with nobody
+answering anything. So a recommended `gap` is what an unattended follow-on run can take, as a recommended `decision` is not (M2a result above). A requester-deferred outcome is on the boundary between `gap` and `note` (n = 2); the
+duty text is unchanged. Not run: the comparison with a hand-written request on the same base, a natural (unprimed) gap, and the multipass chain as a base.
+
 M2b. Value: does a follow-on run repair a delivery that is wrong? Still no case: every pass in the ticket chain passes (E1 and
 E3 included), and XI's baseline failures were stalls. Calibrate a brownfield case whose first run completes and fails a held-out
 check, and in which the run can know it did not verify the deciding fact (so the fact reaches `unverified` or `Open for the next
@@ -591,7 +597,7 @@ the build plan.
 | weakens a clause | S-12: a second parser for requests or lessons | mitigated: reuse `shiploop_request` and `shiploop_knowledge_home` |
 | other style, host, platform | the printed command breaks under a host's quoting | mitigated: command substitution of a file; test on each host's adapter |
 | fails silently | the model files a real gap under `note` | accepted: same as today; M1 measured it: all four readers label the same 11 rows `note`, and none of them a gap |
-| passes tests, fails live | a list that validates but never recommends | partly measured (revision 6): four live Codex runs were accepted on the first try with real sources and two supported notes; no run reached a recommendation then. As of f9454b31ff1751d333e16b6439842a312f3e6f31 (Round 6, a primed request, n = 2) a model filed a recommending `decision`, the printed command worked as printed, an unanswered run blocked and asked, and an answered run delivered; the natural rate and a recommended `gap` are still unmeasured (M3, M2a) |
+| passes tests, fails live | a list that validates but never recommends | partly measured (revision 6): four live Codex runs were accepted on the first try with real sources and two supported notes; no run reached a recommendation then. As of f9454b31ff1751d333e16b6439842a312f3e6f31 (Round 6, a primed request, n = 2) a model filed a recommending `decision`, the printed command worked as printed, an unanswered run blocked and asked, and an answered run delivered; the natural rate is still unmeasured (M3); as of fef3c041b7ea25a05d6c0b596ad3593376172032 (Round 7, primed) a model-filed `gap` was started from its request, delivered unattended and was not filed again |
 | model-written glue, dead ends | a malformed list refuses `complete` with no exit | mitigated: the refusal states the exit and a test submits it through the real CLI |
 | enlarges packets | the handoff head grows | measured (revision 6): +1,475 printed characters in a real hello run (the head printed 16,850 to 17,462 of 20,000 in the four live runs); the handoff is not in `head_table.json` |
 | leaks, touches user work | the request file quotes result text | mitigated: it is written under `RUN`, outside the repository, through the existing privacy screens |
@@ -609,7 +615,7 @@ limit changes.
 | | Question | Recommendation |
 |---|---|---|
 | D1 | Shape: follow-on run, in-run back edge, or stay manual | a follow-on run, as built (the list's request starts one; no back edge). Staying manual until runs of the owner's own features show more was the M1 advice and was not kept (M1 reported: no gap, two to three decisions in 166 runs) |
-| D2 | Recommend-only, or auto-start a chain for `gap` entries | recommend-only; auto-start only after M2b shows a use and the multipass fix for what stages write has met its A/B test (E2: met) and been merged (as of 3d5732d0: not yet; tried on passes 1 and 2 only, E4 on passes 3 and 4 fixed and not started, U9); as of f9454b31ff1751d333e16b6439842a312f3e6f31 a recommended run for a `decision` blocked at spec and asked the requester in 2 of 2 live runs (Round 6), so an auto-start could apply only to `gap` entries |
+| D2 | Recommend-only, or auto-start a chain for `gap` entries | recommend-only; auto-start only after M2b shows a use and the multipass fix for what stages write has met its A/B test (E2: met) and been merged (as of 3d5732d0: not yet; tried on passes 1 and 2 only, E4 on passes 3 and 4 fixed and not started, U9); as of f9454b31ff1751d333e16b6439842a312f3e6f31 a recommended run for a `decision` blocked at spec and asked the requester in 2 of 2 live runs (Round 6), so an auto-start could apply only to `gap` entries; as of fef3c041b7ea25a05d6c0b596ad3593376172032 a recommended gap delivered unattended in 1 of 1 live run (Round 7, primed), the multipass fix is released (skill-craft 2.31.0, 5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a) and M2b still has no case; gaps have appeared only on arranged requests (journal F49) |
 | D3 | A dollars or minutes ceiling on a chain | none proposed; yours if you want one, ending in a report |
 | D4 | Build the recommend-only list now, or measure first | Decided: built, on the owner's "Rebase, Merge to main and publish, implement improvements" (2026-11-01), which I read as D4 = build. M1's advice to wait stands as evidence about demand: rerun the peek and the replay when runs of the owner's own features have finished (minutes, a few model calls) |
 

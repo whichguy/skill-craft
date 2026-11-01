@@ -5588,6 +5588,44 @@ xhigh; entry-level agreement between readers (U11).
   the evidence commit is f9454b31ff1751d333e16b6439842a312f3e6f31.
 - Journal docs/shiploop-follow-on-run-journal.md, Round 6 (plan, addendum 1, result, findings F38 to F44).
 
+## Follow-on list, the recommended gap: E2E round on the Codex harness, Terra 6.1 xhigh, three custom-prompt runs on a primed request, published builds (2026-11-01) — status: firm for these three runs, mechanics only (a primed request; two replicates at link 1, one run at link 2; the two links on different builds): a model filed the deferred option as a gap against the right request sentence, the printed start command worked as printed, and a run started from it delivered unattended; the same deferral was filed once as a note
+
+**Change under test.** None. The published builds: skill-craft 2.31.0 / ShipLoop 1.30.0 for link 1 (plugin tree b604dade538e) and, because another session released it between the links, skill-craft 2.32.0 / ShipLoop 1.30.1 /
+Backchain 0.7.0 for link 2 (tree 6aa0a67b2ac0; 01d537e9b753aa04859117c1568dfc19f4a0afe7). The question is the second recommending class after the previous entry's `decision`: a recommended `gap` is the class an
+unattended run can take. The plan, rules R1 to R6 and predictions P1 to P8 were committed before any run (e7c05e6875679ad0a617923c41e1f9fd5c57079e).
+
+**Runs.**
+- Command: `docs/experiments/follow-on-recommended-gap-20261101/launch.sh` over `run.py --prompt ... --check ... --host codex --model gpt-6.1-terra --effort xhigh --source marketplace` (custom prompt, no named case, no fixed port),
+  launched from a worktree whose HEAD was the plan commit. Link 1: a request for a slug tool plus an option `--max-length N`, with the instruction to build only the basic tool in this run and leave the option for a later run;
+  two replicates at once. Link 2: one run started from the request file of the replicate that recommended a run, in a copy of its checkout, nobody answering anything.
+- Output: `/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/`. The machine's load average was 19, 10 and 7 at the start; no launch was refused.
+
+**Result.**
+
+| Run | Build | Turns | Minutes | Gates | Handoff | `follow_on` | `--max-length` |
+|---|---|---|---|---|---|---|---|
+| link1-a | 2.31.0 / 1.30.0 | 141 | 8.5 | 6 of 6 | 1 attempt | one `note`, `lessons.open_next` | exit 2 (deferred) |
+| link1-b | 2.31.0 / 1.30.0 | 146 | 9.6 | 6 of 6 | 1 attempt | one `gap`, `lessons.open_next`, S3 | exit 2 (deferred) |
+| link2-b (from link1-b's request file) | 2.32.0 / 1.30.1 | 167 | 9.0 | 6 of 6 | 1 attempt | `[]` | `hello-wo` for 8, `hello` for 6 |
+
+- R1, R3, R4 and R6 hold; R2 holds on one of two replicates. The printed command ran as printed on a copy of link1-b's checkout (exit 0, one workspace record, the stored request equal to the file but for its last newline).
+  Predictions: P2 "at least one gap" (55%) held and "both" (30%) missed; every other prediction held.
+- link2-b changed `slug.py`, `test_slug.py`, `README.md`, the three living knowledge files and `SHIPLOOP.md` (the knowledge index ShipLoop has committed with `docs/shiploop/` since 2cd8f33b30f3056a925e3636f624849aadf61982). No harness
+  mismatch was written.
+
+**Contrary evidence and unexplained.**
+- The request is primed: a deferral the requester asked for is the easiest gap there is; unprimed runs complete their requests, so a natural gap may be rare (journal F49, a reading and not a measurement).
+- The same deferral was filed once as a `gap` and once as a `note`; the duty's two definitions both fit it. Two runs are no ground for a prompt change.
+- The links ran on different builds because the marketplace moved mid-round; the 1.30.1 change touches the `converge` marker line of plan packets only, and nothing here suggests the build mattered, but the round cannot show it.
+- A first reading of mine said the newer build introduced `SHIPLOOP.md`; a check showed the index is old behaviour that the link-1 runs did not trigger. The evidence file says so.
+
+**Not measured.** The comparison with a hand-written request on the same base; a natural (unprimed) gap; the owner's own features (M3); the Claude and Grok hosts; efforts other than xhigh; entry-level agreement between readers (U11).
+
+**Evidence.**
+- docs/experiments/follow-on-recommended-gap-20261101/: README.md (the write-up), readings.txt, runs.json, verdicts.txt, printed-command-link1-b.json, requests.md, link2-changes.txt, and the instruments request.txt, launch.sh,
+  calibrate_checks.py, readout.py. The three baseline rows are in test/shiploop_e2e/baselines.jsonl (`local_head` e7c05e6875679ad0a617923c41e1f9fd5c57079e); the evidence commit is fef3c041b7ea25a05d6c0b596ad3593376172032.
+- Journal docs/shiploop-follow-on-run-journal.md, Round 7 (plan, result, findings F45 to F49).
+
 ## Harness change: the Claude host defaults to Anthropic's Sonnet 5.5, not Ollama's DeepSeek flash (2026-11-01) — status: firm (a default, not a finding); supersedes the 2026-10-26 entry "an E2E run defaults to DeepSeek flash on Ollama"
 
 **Owner decision.** 2026-11-01, in chat, "Yes use that as default", answering "Make Claude the E2E harness's default backend
