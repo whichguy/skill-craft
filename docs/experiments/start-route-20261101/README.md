@@ -552,12 +552,16 @@ ended on `workspace start`. Every refused `sf-ui` session ran `init` once and th
 ran `init`, was refused, and ran `init --in-place` (24 of 24).
 
 **Against the first design.** The same old wording, the same request, the same model: first design 0 of 16 first-`init` sessions ended on
-`workspace start`, second design 20 of 20. The change was the visibility of the override: of the 20, 7 had run a `--help` before their
-first start (13 had not), and the flag was no longer in what `--help` printed. The prediction (E between 50% and 90%) was too cautious.
+`workspace start`, second design 20 of 20. The second design changed two things together: it hid the flag from `--help`, and it added the
+card's cue to the refusal. The data support the first (the first design's 16 pre-emptive passes of the flag all followed a `--help` that
+showed it; none of the second design's 20 passed it before the refusal; of the 20, 7 had run a `--help` and 13 had not). They cannot
+separate the cue's part in what the sessions did after the refusal (all 20 took `workspace start`), because the first design had no
+refused wrong start to compare with (Astra's review, below). The prediction (E between 50% and 90%) was too cautious.
 
 **Costs, measured.** Every explicit in-place or non-Git session now pays one refused command (24 of 24; with the flag in `--help`
 it was 12 of 24). On the old wording the refused sessions took a median 50 s to reach their run against 44 s for the old-wording
-sessions that were not refused. On the T2 card nothing changed (0 of 20 began with `init`).
+sessions that were not refused; that is an observation of two groups that took different routes, not a measured cost of the refusal.
+On the T2 card nothing changed (0 of 20 began with `init`).
 
 **Limits.** Codex `gpt-6.1-terra` at `xhigh` only; Claude and Grok never began the Salesforce request with `init`, so their answer to
 the refusal text is untested (the text is plain and names the command to run); one Salesforce prompt and one pair of explicit requests.
@@ -574,8 +578,13 @@ throwaway HOME before its run exists. On macOS the CLI's first org command there
 screen and left a `security add-generic-password` child (parent 1, working directory in the trial's work folder, for example
 `20261101-guard/trials/098-GOLD-sf-ui-13-a1/work`) that the driver's per-trial cleanup, which matched command lines, did not reach. The
 fix for the harness is f9717c93631ae068bec75c6dc9238a2f878cc8ec (`SF_USE_GENERIC_UNIX_KEYCHAIN` in every throwaway HOME); the driver's
-`reap` now also matches the working directory. No measure here changed: every route is read at or after the run's first start, there
-was no invalid attempt in either guard launch, and the medians (44 to 50 s) show no session waited on a dialog; the cost was to the owner's screen.
+`reap` now also matches the working directory. Whether a measure changed is not established by the medians (44 to 50 s): a session that
+waited on a dialog would show as a tail, and there was no invalid attempt in either guard launch, which is weaker than "none waited". What the
+stored sessions do show (Astra's review, below): in every stored event stream, 17 sessions ran the real Salesforce CLI as a program, and
+their commands were `sf --version` (17), `sf data query --target-org de` (3) and `sf org list` (1), all read-only, none on the Claude
+host; no session ran a deploy, an Apex run or a data write (the many matches of those commands are the request text written to a file).
+The exposure is structural all the same: the request tells a session to deploy, the Claude host keeps the real HOME, and a probe stops at
+the first run, not before.
 
 ### Post-release checks of the published build (2.31.0 / 1.30.0, 2026-11-01)
 
@@ -591,6 +600,35 @@ was no invalid attempt in either guard launch, and the medians (44 to 50 s) show
   way of an ordinary run, not a rate. Output: `~/e2e-runs-startroute/20261101-release-smoke-codex`.
 - *Hosts.* `claude plugin update skill-craft@whichguy` took Claude's install from 2.30.0 to 2.31.0 (a restart applies it); the Codex and Grok
   marketplace refreshes show skill-craft 2.31.0 / ShipLoop 1.30.0 with the guard in their copies. Cursor is the owner's, in its app.
+
+## Astra's review (2026-11-01, after the work had shipped)
+
+Not asked before the plan went to the owner or before the guard shipped, against the owner's standing rule that design feedback goes to
+Astra at max effort; asked on the owner's question afterwards. The brief, the runner's report and Astra's answer verbatim are in
+`astra-review-2026-11-01.md` (gpt-6-astra, effort max, read-only, no fallback). Each finding below was checked against the code or the
+stored runs before it was relied on; "done" names what changed, and the commits that did it are in the history of this folder.
+
+| Astra's finding | What I checked | Disposition |
+|---|---|---|
+| P0 probe containment: a probe stops at the first run, not before it; the Salesforce request tells the model to deploy; the Claude host keeps the real HOME; Codex runs with full access in a throwaway HOME | Source confirmed. Scan of every stored stream: 17 sessions ran `sf` as a program, all read-only (see the side-effect paragraph above), none on the Claude host | Not fixed in the driver. Open for the owner: future probes should use a request that keeps the "current directory itself" wording and drops the live-org actions |
+| P0 `reap` matched path prefixes and any owner | Confirmed in the code; `/t/trial-a1` would have matched `/t/trial-a10` | Done: matches by path component and by owner; checked against a neighbouring trial |
+| P1 `start_route.route` credited `workspace` on `workspace.md` alone | Confirmed: `prepare` writes it before the internal init, and a blocked one is possible. All 80 workspace endings of the second guard probe (the 20 recoveries among them) and all 64 of the first had a `state.md` on disk, so no result moved | Done: a run state is required; a probe records the first route its watcher saw |
+| P1 the command detector counts a help request that names `--repo` and printed text, takes an unrelated `['init']` list for a start, and misses `$CLI` without the word shiploop | Reproduced all four | Done for the help request; the other three are recorded as expected failures in `check_analyzer.py`. In the effect-stop probes the route that decides is read from the disk |
+| P1 the analyzer prints RELEASE for a partial design, NO REGRESSION FOUND for a host with no starts, and takes card sizes from today's card | Reproduced all three (RELEASE for 8 old-wording and 4 explicit sessions; `arms.json` gave 30,115 and 30,137 bytes) | Done: missing cells and planned slots make a verdict INSUFFICIENT, an unreadable host is reported as such (as registered), H3 cannot pass on nothing, recorded sizes are used. `check_analyzer.py` replays all 7 committed batches and each keeps its conclusion |
+| P1 validity checks the card hash, not the script that holds the guard; a session that never touches the skill is retried as invalid | Confirmed (one Claude row) | Done: the driver also records and checks the guard script's hash. The retry of a no-skill session is kept and noted in the checklist |
+| P1 the guard refused a folder holding only an empty `.shiploop` and sent the session to a `workspace start` that then failed | Reproduced on the released 2.31.0 CLI: the empty folder recovers, the `.shiploop` and `.shiploop/.lock` folders do not | Done in the next patch release: such a folder is not refused (the card's non-empty route); a test runs the printed recovery |
+| P1 the printed command drops `--delivery-contract`, `--delegation`, `--lint`, `--backchain-passes`, `--planning-review` and `--improve-skill` | Confirmed | Done in the same patch: the command repeats them; a test runs the recovery and reads the options from the new run |
+| P1 the Git diagnostic is read in English only | Confirmed | Done: the probe runs under `LC_ALL=C` |
+| P1 no outcome-level check for direct runs (`workspace_completion_guard` covers isolated runs only; `_commit_stage` skips a step with no base) | Confirmed in `shiploop_protocol.py` and `shiploop_navigator.py` | Open for the owner: this is the protection the original incident needed; the entry guard only makes the wrong entry rarer |
+| P1 hidden-from-help is a bundle with the sharper refusal; the other hosts were probed before the refusal existed | Confirmed (see "Against the first design") | Wording corrected. Open for the owner: a cross-host recovery screen (Astra sketches 36 short sessions) |
+| P1 the release gate no longer reads a conflict resolution's own text; default history simplification hides non-merge commits (797 against 806 here) | Confirmed; the 9 hidden commits are from 2026-09-15 to 2026-09-27, none in a current release interval | Open for the owner: exempt mechanical merges only, and use full history; not changed |
+| P2 17/40 against 8/40 is not drift; one prompt; H2 tolerated 4 of 24 explicit requests dishonoured; "50 s against 44 s" is observational; "no measure changed" | Agreed on each | Wording corrected above; the checklist asks for a high bar on paths that must not be harmed and for blocked replication when the question is variation over time |
+| P2 fixtures changed from plain folders to `git init -q` change the behaviour they exercise | Agreed: 15 suites now exercise the Git case where they exercised the non-Git direct case | Open for the owner: restore `--in-place` in them |
+
+Astra's "do not change" list matches what stands: T2, the direct entry on the card, no silent Git bootstrap in `init`, the refusal before
+the run lock, the failed first design kept in this journal, the stop-race test fix, the bounded teardown retry as a disclosed mitigation,
+and first-start probes as a cheap tool that does not certify delivery. Its remark that "E2E cases start with workspace start" is a weak
+reason for the guard commit's `No-E2E-Round` trailer is right: the probes are the evidence, as the entry in `test/shiploop_e2e/LEARNINGS.md` says.
 
 ## Release CI
 
