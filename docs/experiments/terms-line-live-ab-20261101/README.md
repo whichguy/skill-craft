@@ -86,3 +86,37 @@ K12 questions say, the route mix, send-backs.
 bash lane.sh CASE <checkout of arm A> <checkout of arm B> ~/e2e-runs-tl/20261101      # once per case
 python3 e2e_ab.py                                                                       # reads the runs, applies L1-L5, writes scores.json
 ```
+
+## Round 1 as read, and why a replication (R2) is registered (written after the 11 round-1 runs that finished were read, before any R2 run)
+
+Round 1 is the 12-run design above. Eleven runs finished; the twelfth (B, ticket-assignment, run 2) was refused by the harness at
+launch before any model started, because a listener an earlier case of another session left was still bound, and a retry is now
+queued behind another session's runs that hold the machine-wide lease on port 4180 (the registered one-rerun contingency; both attempts
+are recorded). Reading the eleven with the reader, the five rules L1 to L5 all hold even if the missing run counts as a total failure
+(L1 and L2 need 5 of 6 and B has 5 of 5; L3 and L4 would need that run to refuse 9 callbacks or use 149 million tokens to fail).
+
+One thing the rules did not look at stands out. **Send-backs** (a stage returning the item to step-plan) were registered as descriptive:
+A had **0 of 6** runs with one, B had **4 of 5** (hello s1 and s2 at test-spec: a step plan whose focused test command listed no test
+ID; ticket-assignment s1 and user-listing s2 at implement: a criterion that needs tests the test stage writes later). Exact one-sided
+p of that split, if both arms had one rate: 0.015. Earlier rounds on the same subject and effort, with the proof-order refusal in the
+product, had 2 runs with a send-back in 18 (the stage-prompt round's hello r1 and the ledger round's B ticket-assignment s3), about 11%.
+There is no mechanism I can name by which intake's ledger changes what step-plan writes five stages later, and the four are three
+different faults across three cases, so chance is the likelier reading; but this was found after the rules were set, the rules cannot
+see it, and a prompt change that adds planning loops is a cost this round must not wave through.
+
+**R2, the replication.** New runs only (the round-1 runs are not reused for the decision): case `hello`, which needs no port lease,
+4 more runs per arm (samples s3 to s6; A and B each in two lanes of two, all four lanes started together, so both arms share the
+hours), the same command, subject, effort, arms and reader as round 1 (`lane-r2.sh`).
+
+- **R2-1:** the excess **replicates** if, among the 8 new runs, B has at least 2 more runs with a send-back than A (counting a run once,
+  whatever its stage). Under one rate of 15% in both arms that happens about 6% of the time; against a rate of 80% in B and 10% in A it
+  happens about 90% of the time (my arithmetic, 4 runs a side).
+- **Decision.** R2-1 replicates: the change does not ship; the finding goes to the owner with the runs, and nothing under `skills/` is
+  published. R2-1 does not replicate: the change ships under L1 to L5, and the round-1 imbalance is recorded as unexplained and
+  compatible with chance, with its numbers.
+- **Report either way:** all send-backs by stage and arm, pooled over round 1 and R2 (descriptive only: round 1 was chosen for being
+  odd, so a pooled test would be biased toward finding an effect and is not used), and the pass, refusal and token figures of R2.
+
+R2 cannot say whether the brownfield implement send-backs (two of the four) repeat, because the ticket case is behind another session's
+lease and user-listing would take an hour on its own port; it cannot tell a small effect from none (4 runs a side); and it is a second
+look at an outcome chosen after the first look.
