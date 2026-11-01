@@ -146,6 +146,13 @@ def card_sizes(arms_file: Path) -> dict:
 
 
 def evaluate(cells: dict, arms_file: Path) -> tuple[list[str], str | None]:
+    """The report lines and the arm selected: fewest wrong starts among the arms that meet the bar, then the smaller card."""
+    lines, meeting = evaluate_arms(cells, arms_file)
+    return lines, (min(meeting)[2] if meeting else None)
+
+
+def evaluate_arms(cells: dict, arms_file: Path) -> tuple[list[str], list[tuple[int, int, str]]]:
+    """The report lines and every arm that meets the bar, as (wrong starts, card bytes, arm)."""
     lines: list[str] = []
     control = cells[("sf-ui", "C")]
     c_started = control["workspace"] + control["direct"]
@@ -174,7 +181,7 @@ def evaluate(cells: dict, arms_file: Path) -> tuple[list[str], str | None]:
         lines.extend(f"    {'ok ' if v else 'NO '} {k}" for k, v in checks.items())
         if ok:
             meeting.append((cell["direct"], sizes[arm], arm))
-    return lines, (min(meeting)[2] if meeting else None)
+    return lines, meeting
 
 
 def agreement(rows: list[dict]) -> list[str]:
@@ -218,6 +225,10 @@ def main() -> None:
                     help="start: init is wrong (the bar and tie-break); inplace: init is right (is T2 harmless?); "
                          "hosts: one other host, both directions")
     ap.add_argument("--also", type=Path, help="another batch's results: add a pooled table (descriptive only)")
+    ap.add_argument("--replicates", type=Path,
+                    help="another batch of the same experiment: judge it alone by the same rules and print whether the "
+                         "same arm is selected in both (a selection from one batch is not yet a result)")
+    ap.add_argument("--replicates-arms", type=Path, help="the arms file that batch used (default: --arms)")
     args = ap.parse_args()
     rows, dropped = load(args.results)
     cells = tally(rows)
@@ -245,6 +256,18 @@ def main() -> None:
         print("\n".join(lines))
         print()
         print(f"DECISION: ship {winner}" if winner else "DECISION: ship nothing (no candidate meets the pre-registered bar)")
+    if args.replicates:
+        if args.mode != "start":
+            raise SystemExit("--replicates is for the start set")
+        again, _ = load(args.replicates)
+        _, meeting = evaluate_arms(tally(again), args.replicates_arms or args.arms)
+        others = sorted(arm for _, _, arm in meeting)
+        print()
+        print(f"REPLICATION (this batch and {args.replicates.name}, each judged alone by the same rules):")
+        print(f"    this batch selects {winner or 'nothing'}; the arms meeting the bar in {args.replicates.name}: "
+              f"{', '.join(others) or 'none'}")
+        print("    REPLICATED: " + (f"yes, {winner} meets the bar in both batches" if winner in others
+                                    else "NO, so the selection above rests on one batch"))
     extra = agreement(rows)
     if extra:
         print()
