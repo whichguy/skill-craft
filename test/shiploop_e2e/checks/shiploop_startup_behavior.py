@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Grade canonical startup/first-Stop artifacts without executing ShipLoop.
 
-Shell text is opaque provenance. Fresh trace transitions and archived packet
-bytes establish startup; native decisions and original launch bounds establish
-continuation. This does not prove the ordering of every product write.
+Fresh trace transitions and archived packet bytes establish startup; native
+decisions and original launch bounds establish continuation. Observer predicates
+only flag uncertainty, never prove shell execution or startup binding.
 """
 
 from __future__ import annotations
@@ -12,9 +12,14 @@ import hashlib
 import json
 import math
 import os
+import sys
 from pathlib import Path
 
 from shiploop_hook_contract import locate_invocation
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "skills/shiploop/scripts"))
+import shiploop_keepalive as observer
+import shiploop_store as store
 
 RECEIPT = "shiploop-startup-behavior-receipt.json"
 PRINT_END = "=== end ShipLoop print ===\n"
@@ -57,6 +62,8 @@ def number(value):
 
 def paired_update(events, index, stop):
     call = events[index]
+    require(isinstance(call.get("rawInput"), dict) and isinstance(call["rawInput"].get("command"), str),
+            "tool command provenance is missing")
     identity = call.get("toolCallId")
     require(isinstance(identity, str) and identity, "tool call identity is missing")
     calls = [i for i, event in enumerate(events[:stop])
@@ -145,6 +152,132 @@ def position(command, name):
     return pair
 
 
+def absolute_path(value):
+    require(isinstance(value, str) and value.strip() and Path(value).is_absolute(),
+            "recorded path is missing or not absolute")
+    return Path(value)
+
+
+def identity_object(pairs):
+    require(len({key for key, _ in pairs}) == len(pairs), "conflicting explicit run identity keys")
+    return dict(pairs)
+
+
+def invalid_constant(value):
+    raise Verdict("unknown", f"nonstandard explicit run identity constant: {value}")
+
+
+def selected_trace(work, out, invocation):
+    require(absolute_path(invocation.get("cwd")).resolve() == work,
+            "invocation does not identify checked workdir")
+    identity_path = out / "shiploop-run.json"
+    if identity_path.exists() or identity_path.is_symlink():
+        require(not identity_path.is_symlink(), "explicit run identity is a symlink")
+        identity = json.loads(identity_path.read_text(encoding="utf-8"),
+                              object_pairs_hook=identity_object, parse_constant=invalid_constant)
+        require(isinstance(identity, dict), "explicit run identity is not an object")
+        selected = absolute_path(identity.get("run_dir"))
+        require(not selected.is_symlink(), "selected run root is a symlink")
+        root = selected.resolve()
+        require(root.is_dir() and root != work, "selected run root is missing or is checked workdir")
+        if not root.is_relative_to(work):
+            workspace = store.read_record(root.parent / "workspace.md")
+            state = store.read_record(root / "state.md")
+            require(isinstance(workspace, dict) and isinstance(state, dict),
+                    "managed workspace/state record is not an object")
+            require(absolute_path(workspace.get("source_repo")).resolve() == work
+                    and absolute_path(workspace.get("run_dir")).resolve() == root,
+                    "managed workspace source/run join disagrees with selected identity")
+            require(absolute_path(workspace.get("worktree")).resolve()
+                    == absolute_path(state.get("repo")).resolve()
+                    and isinstance(state.get("run_id"), str) and state["run_id"].strip(),
+                    "managed workspace/state repo or run_id join is missing or mismatched")
+        trace_path = root / "trace.jsonl"
+    else:
+        trace_paths = []
+        for directory, folders, files in os.walk(work, followlinks=False):
+            folders[:] = [name for name in folders if not (Path(directory) / name).is_symlink()]
+            if "trace.jsonl" in files:
+                trace_paths.append(Path(directory) / "trace.jsonl")
+        require(len(trace_paths) == 1, "missing or multiple candidate run traces under checked workdir")
+        trace_path = trace_paths[0]
+        root = trace_path.parent.resolve()
+        require(root.is_relative_to(work) and root != work, "startup run is outside checked workdir")
+    require(not trace_path.is_symlink() and trace_path.is_file(), "selected trace is missing or a symlink")
+    return trace_path
+
+
+def print_exposures(printed, tools):
+    return [(called, returned) for called, returned, output, code in tools
+            if code == 0 and printed in output]
+
+
+def packet_owners(trace, commands, start, end):
+    # emit() prints and records each packet; protocol.main finally appends the
+    # outer command, even for workspace's nested init. Hooks may interleave.
+    result = []
+    for i, packet in enumerate(trace):
+        if packet.get("kind") != "packet" or not start < packet["ts"] < end:
+            continue
+        following = [(j, command) for j, command in commands if j > i]
+        require(following, "printed packet has no recorded outer command")
+        j, command = following[0]
+        require(attempt_start(command) < packet["ts"] <= command["ts"],
+                "printed packet cannot be joined to its outer command interval")
+        result.append((packet, j, command))
+    return result
+
+
+def possible_binder(command, output):
+    # These are the common source observer's pure classification functions.
+    # Never call observe/run_status, inspect a package, or evaluate shell text.
+    payload = {"tool_input": {"command": command}, "tool_response": output}
+    marker = observer.last_marker(payload)
+    invoking = observer.invoking_command(payload)
+    return (marker is not None and invoking is not None and observer.DRIVING_COMMAND.search(invoking)
+            or observer.command_run_dir(payload) is not None)
+
+
+def additional_startup(work, out, selected, start, end):
+    """Find a second archived fresh startup in the trial's known run layouts."""
+    candidates = set()
+    for base in (work, out / ".shiploop-runs", selected.parent):
+        if base.is_symlink():
+            continue
+        for directory, folders, files in os.walk(base, followlinks=False):
+            folders[:] = [name for name in folders if not (Path(directory) / name).is_symlink()]
+            path = Path(directory) / "trace.jsonl"
+            if "trace.jsonl" in files and not path.is_symlink():
+                candidates.add(path.resolve())
+    for path in sorted(candidates):
+        if path == selected.resolve():
+            continue
+        try:
+            other = rows(path)
+            packet = other[0]
+            command = next(row for row in other if row.get("kind") == "command")
+            revision, action = packet.get("rev"), packet.get("action")
+            require(all(row.get("v") == 1 and number(row.get("ts")) for row in other)
+                    and packet.get("kind") == "packet" and packet.get("stage") == "intake"
+                    and packet.get("status") == "active" and type(revision) is int and revision >= 0
+                    and isinstance(action, str) and action
+                    and command.get("verb") in ("init", "workspace")
+                    and command.get("status") == "active" and type(command.get("exit")) is int
+                    and command["exit"] == 0
+                    and position(command, "rev") == [None, revision]
+                    and position(command, "stage") == [None, "intake"]
+                    and position(command, "cursor") == [None, action] and not command.get("accepted")
+                    and start["t"] + 0.0005 < attempt_start(command)
+                    and attempt_start(command) < packet["ts"] <= command["ts"]
+                    and command["ts"] + 0.0005 < end["t"],
+                    "additional trace is not a verified fresh startup in this session")
+            packet_text(path.parent, packet)
+        except (Verdict, OSError, ValueError, TypeError, KeyError, IndexError, StopIteration):
+            continue  # Unrelated, stale or incomplete app traces do not select a run.
+        return path
+    return None
+
+
 def evaluate(work, out, invocation, report):
     require(invocation.get("host") == "codex", "only normalized Codex is verified")
     events_path, sessions_path = out / "events.jsonl", out / "sessions.jsonl"
@@ -154,15 +287,8 @@ def evaluate(work, out, invocation, report):
     observation(report, "session", sessions_path, (0, 1), session_id=session,
                 events_interval=[start["events_line"], end["events_line"]])
 
-    trace_paths = []
-    for directory, folders, files in os.walk(work, followlinks=False):
-        folders[:] = [name for name in folders if not (Path(directory) / name).is_symlink()]
-        if "trace.jsonl" in files:
-            trace_paths.append((Path(directory) / "trace.jsonl").resolve())
-    require(len(trace_paths) == 1, "missing or multiple candidate run traces under checked workdir")
-    trace_path = trace_paths[0]
+    trace_path = selected_trace(work, out, invocation)
     root = trace_path.parent
-    require(root.is_relative_to(work) and root != work, "startup run is outside checked workdir")
     trace = rows(trace_path)
     require(all(row.get("v") == 1 and number(row.get("ts")) for row in trace), "unverified run trace schema")
     require(all(trace[i - 1]["ts"] <= trace[i]["ts"] for i in range(1, len(trace))),
@@ -192,21 +318,6 @@ def evaluate(work, out, invocation, report):
     observation(report, "first_packet", path, action=action, revision=revision, root=str(root))
     observation(report, "startup_trace", trace_path, (startup_index,))
 
-    # Validate actual Codex command/output provenance without classifying shell
-    # syntax. Help/refusals create no fresh trace; later reprints are permissible.
-    exposures = []
-    for i, event in enumerate(events[:end["events_line"]]):
-        if event.get("type") != "tool_call" or event.get("toolName") != "run_terminal_command":
-            continue
-        returned, output = paired_update(events, i, end["events_line"])
-        update = events[returned]
-        if printed in output and update.get("status") == "completed" and update["rawOutput"]["exit_code"] == 0:
-            exposures.append((i, returned))
-    require(exposures, "canonical first print has no successful original-session tool exposure")
-    called, returned = exposures[0]
-    observation(report, "startup", events_path, (called, returned),
-                command=events[called]["rawInput"].get("command"))
-
     decisions_path = out / "home/.local/state/shiploop/keepalive/decisions.log"
     decisions = rows(decisions_path)
     session_hash = hashlib.sha256(session.encode()).hexdigest()[:12]
@@ -226,6 +337,10 @@ def evaluate(work, out, invocation, report):
     require(len(stops) == 1 or stops[1][1]["at"] > decision["at"], "tied stop decisions")
     require(startup["ts"] + 0.0005 < decision["at"] < end["t"] - 0.0005,
             "first stop cannot be ordered after startup in the original session")
+    # Decide the first native allow before inspecting any later tool evidence.
+    # An unbound allow legitimately has no run hook. Outer rescue cannot replace it.
+    require(decision["decision"] != "allow", "first startup stop allowed termination: "
+            + str(decision.get("why")), "fail")
     observation(report, "command_attempts", trace_path, [i for i, _ in commands[1:]])
     for _, command in commands[1:]:
         require(decision["at"] < attempt_start(command),
@@ -243,12 +358,64 @@ def evaluate(work, out, invocation, report):
                 and decision["at"] - 0.0005 <= hook["ts"]
                 and hook["ts"] + 0.0005 < boundary,
                 "first stop trace and decision cannot be uniquely correlated")
-    # An unbound allow legitimately has no engine hook. Later outer rescue does
-    # not replace this first native decision; a bound allow fails as well.
-    require(decision["decision"] != "allow", "first startup stop allowed termination: "
-            + str(decision.get("why")), "fail")
     require(hook, "first stop trace is missing")
     observation(report, "continue_hook", trace_path, (hook_index,), session_hash=session_hash)
+    extra = additional_startup(work, out, trace_path, start, end)
+    if extra is not None:
+        observation(report, "additional_startup", extra)
+    require(extra is None, "additional fresh startup trace in the original session")
+
+    tools = []
+    for i, event in enumerate(events[:end["events_line"]]):
+        if event.get("type") != "tool_call" or event.get("toolName") != "run_terminal_command":
+            continue
+        returned, output = paired_update(events, i, end["events_line"])
+        update = events[returned]
+        code = update["rawOutput"]["exit_code"]
+        require(code != 0 or update.get("status") == "completed", "successful command status is inconsistent")
+        tools.append((i, returned, output, code))
+    owners = packet_owners(trace, commands, start["t"], end["t"])
+    exposures = print_exposures(printed, tools)
+    require(exposures, "canonical first print has no successful original-session tool exposure")
+    initial = [(packet, j, command) for packet, j, command in owners if packet.get("sha") == first["sha"]]
+    require(len(exposures) == len(initial)
+            and all(packet.get("action") == action and packet.get("rev") == revision
+                    and command["exit"] == 0 and packet_text(root, packet)[1] == printed
+                    for packet, _, command in initial)
+            and initial[0][1] == startup_index
+            and all(exposures[i - 1][1] < exposures[i][0] for i in range(1, len(exposures)))
+            and all(output.count(printed) == 1 for _, _, output, code in tools if code == 0 and printed in output),
+            "first print exposures do not uniquely cover canonical startup/reprint rows")
+    called, returned = exposures[0]
+    observation(report, "startup", events_path, (called, returned),
+                command=events[called]["rawInput"].get("command"))
+
+    for i, returned, output, code in tools:
+        if i == called:
+            continue
+        # Only exact archived output, unique exposure order, exit and a post-Stop
+        # outer-command interval can locate an extra possible binder. Counts of
+        # regex matches/commands alone establish nothing (notably in heredocs).
+        joined = []
+        for packet, j, command in owners:
+            _, sent = packet_text(root, packet)
+            if output.count(sent) != 1 or code != command["exit"]:
+                continue
+            matching = [(p, k) for p, k, _ in owners if p.get("sha") == packet.get("sha")]
+            seen = print_exposures(sent, tools)
+            if (len(matching) == len(seen) and (i, returned) in seen
+                    and all(seen[n - 1][1] < seen[n][0] for n in range(1, len(seen)))
+                    and matching[seen.index((i, returned))][1] == j
+                    and all(packet_text(root, p)[1] == sent for p, _ in matching)):
+                joined.append(command)
+        correlated = (i > exposures[0][1] and len(joined) == 1
+                      and decision["at"] < attempt_start(joined[0]))
+        if correlated:
+            break  # All later tool calls follow a proven post-Stop return.
+        if possible_binder(events[i]["rawInput"].get("command"), output):
+            observation(report, "binding_uncertainty", events_path, (i, returned),
+                        command=events[i]["rawInput"]["command"])
+            require(False, "uncorrelated binding-capable tool call could precede the first Stop")
 
     accepted = []
     for i, command in commands:

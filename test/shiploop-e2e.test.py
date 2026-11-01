@@ -8500,6 +8500,245 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
         self.events[0]["type"] = "thread.started"
         self.check("unknown", "normalized Codex process boundaries")
 
+    def select_root(self, root=None):
+        (self.out / "shiploop-run.json").write_text(json.dumps({
+            "preexisting": {}, "run_dir": str(root or self.root),
+            "basis": "the only run that was not there before the invocation",
+        }))
+
+    def managed_root(self):
+        from run_choice import store
+
+        old = self.root
+        self.root = self.out / ".shiploop-runs/work-neutral/run"
+        self.root.parent.mkdir(parents=True)
+        old.rename(self.root)
+        self.trace[0], self.first_text = self.packet(self.action, "intake", 0, 110)
+        self.trace[3], self.second_text = self.packet("nav-neutral-discovery", "discovery", 1, 131)
+        self.trace[1]["verb"] = "workspace"
+        self.set_tool("startup", f'python3 {self.head} workspace start --repo "{self.work}"', self.first_text)
+        self.set_tool("completion", f'python3 {self.head} complete --run-dir "{self.root}" '
+                      f'--action {self.action} --result /neutral/result.md', self.second_text)
+        self.workspace_path = self.root.parent / "workspace.md"
+        self.workspace = {"schema": "shiploop-workspace", "version": 1, "status": "returned",
+                          "source_repo": str(self.work), "source_head": "1" * 40,
+                          "run_dir": str(self.root), "worktree": str(self.root.parent / "worktree")}
+        self.state = {"repo": self.workspace["worktree"], "run_id": "neutral-run"}
+        self.workspace_path.write_text(store.dumps(self.workspace))
+        (self.root / "state.md").write_text(store.dumps(self.state))
+        self.select_root()
+
+    def independent_binder(self, kind):
+        if kind == "heredoc":
+            command = ("cat > saved.txt <<'EOF'\npython3 /neutral/scripts/shiploop complete "
+                       f"--run-dir={self.root} --action={self.action}\nEOF")
+        else:
+            command = f"python3 /neutral/scripts/shiploop next --run-dir {self.root} --help"
+        return self.tool("independent", command, "")
+
+    def test_explicit_managed_root_ignores_unrelated_traces_and_disposed_worktree(self):
+        self.managed_root()
+        unrelated = self.work / ".shiploop/foreign/trace.jsonl"
+        unrelated.parent.mkdir(parents=True)
+        unrelated.write_text(json.dumps(dict(self.trace[0], ts=90)) + "\n")
+        # Returned worktree may be disposed and source_head is historical provenance.
+        self.assertFalse(Path(self.workspace["worktree"]).exists())
+        self.check("pass")
+        self.decisions[0].update(decision="allow", why="no run bound to this session")
+        self.trace.pop(2)
+        self.check("fail", "first startup stop allowed termination")
+
+    def test_explicit_direct_root_is_authoritative(self):
+        self.select_root()
+        unrelated = self.work / ".shiploop/foreign/trace.jsonl"
+        unrelated.parent.mkdir(parents=True)
+        unrelated.write_text("unrelated bytes\n")
+        self.check("pass")
+        self.select_root(self.out / "missing/run")
+        self.check("unknown", "selected run root is missing")
+
+    def test_present_invalid_identity_never_falls_back_to_direct_trace(self):
+        identity = self.out / "shiploop-run.json"
+        for text in ("{", "[]", "{}", '{"run_dir": null}', '{"run_dir": "relative/run"}',
+                     '{"run_dir": "/one", "run_dir": "/two"}',
+                     '{"run_dir": "/one", "unused": NaN}'):
+            with self.subTest(identity=text):
+                identity.write_text(text)
+                self.check("unknown")
+
+    def test_managed_path_and_run_id_mismatches_are_unknown(self):
+        from run_choice import store
+
+        self.managed_root()
+        for path, original, key, value in (
+            (self.workspace_path, self.workspace, "source_repo", str(self.out / "foreign")),
+            (self.workspace_path, self.workspace, "run_dir", str(self.out / "foreign/run")),
+            (self.workspace_path, self.workspace, "worktree", ""),
+            (self.root / "state.md", self.state, "repo", str(self.out / "foreign")),
+            (self.root / "state.md", self.state, "run_id", ""),
+        ):
+            with self.subTest(field=key):
+                path.write_text(store.dumps(dict(original, **{key: value})))
+                self.check("unknown")
+                path.write_text(store.dumps(original))
+
+    def test_missing_malformed_and_ambiguous_managed_records_are_unknown(self):
+        self.managed_root()
+        for path in (self.workspace_path, self.root / "state.md"):
+            original = path.read_text()
+            for text in (None, "{}\n", original * 2,
+                         '# Record\n\n```shiploop-state\n{"repo": 1, "repo": 2}\n```\n'):
+                with self.subTest(record=path.name, text=text):
+                    if text is None:
+                        path.unlink()
+                    else:
+                        path.write_text(text)
+                    self.check("unknown")
+                    path.write_text(original)
+
+    def test_actual_symlink_run_root_and_trace_are_unknown(self):
+        self.managed_root()
+        original = self.root
+        target = original.with_name("real-run")
+        original.rename(target)
+        original.symlink_to(target, target_is_directory=True)
+        self.check("unknown", "selected run root is a symlink")
+        original.unlink()
+        target.rename(original)
+        self.write_artifacts()
+        trace = self.root / "trace.jsonl"
+        saved = self.root / "saved-trace.jsonl"
+        trace.rename(saved)
+        trace.symlink_to(saved)
+        self.check("unknown", "selected trace is missing or a symlink")
+
+    def test_symlink_parent_and_var_aliases_preserve_managed_path_identity(self):
+        from run_choice import store
+
+        self.managed_root()
+        alias = self.out / "parent-alias"
+        alias.symlink_to(self.root.parent.parent, target_is_directory=True)
+        self.select_root(alias / self.root.parent.name / "run")
+        self.check("pass")
+        if str(self.out).startswith("/var/") and Path("/private/var").is_dir():
+            self.workspace["source_repo"] = "/private" + str(self.work)
+            self.workspace["run_dir"] = "/private" + str(self.root)
+            self.workspace["worktree"] = "/private" + self.workspace["worktree"]
+            self.workspace_path.write_text(store.dumps(self.workspace))
+            self.check("pass")
+
+    def test_untraced_binding_capable_heredoc_and_help_are_unknown(self):
+        for kind in ("heredoc", "help"):
+            with self.subTest(kind=kind):
+                self.events[4:4] = self.independent_binder(kind)
+                self.check("unknown", "uncorrelated binding-capable tool call")
+                del self.events[4:6]
+
+    def test_first_allow_precedes_later_binder_and_unfinished_tool_uncertainty(self):
+        self.decisions[0].update(decision="allow", why="no run bound to this session")
+        self.trace.pop(2)
+        self.events[4:4] = self.independent_binder("heredoc")
+        self.events.insert(-1, self.tool("inflight", "opaque_script", "")[0])
+        self.check("fail", "first startup stop allowed termination")
+        self.events.pop(-2)
+        del self.events[4:6]
+        self.split_session()
+        self.events[-1:-1] = self.independent_binder("help")
+        self.check("fail", "first startup stop allowed termination")
+
+    def test_literal_post_stop_binder_needs_packet_correlation_and_reads_do_not_bind(self):
+        self.trace[3:3] = [dict(self.trace[0], ts=125), self.command("next", 126)]
+        self.events[4:4] = self.tool("recover", f"python3 /neutral/scripts/shiploop next --run-dir {self.root}", self.first_text)
+        self.set_tool("completion", f"python3 /neutral/scripts/shiploop complete --run-dir={self.root} "
+                      f"--action={self.action}", self.second_text)
+        self.check("pass")
+        # Read/status output containing markers alone cannot establish ownership.
+        marker = f"SHIPLOOP-RUN run=neutral-run rev=0 dir={self.root}\n"
+        for command in (f"cat {self.root}/packet.md", f"python3 /neutral/scripts/shiploop status --run-dir {self.root}"):
+            with self.subTest(command=command):
+                self.events[1:1] = self.tool("read", command, marker)
+                self.check("pass")
+                del self.events[1:3]
+        self.set_tool("completion", f"python3 /neutral/scripts/shiploop complete --run-dir={self.root} "
+                      f"--action={self.action}", "accepted\n")
+        self.check("pass")  # The earlier verified next return already orders this callback after Stop.
+        del self.trace[3:5]
+        del self.events[4:6]
+        self.check("unknown", "uncorrelated binding-capable")
+
+    def test_second_fresh_trace_in_same_session_is_unknown_with_or_without_acceptance(self):
+        original = self.root
+        self.root = original / "second-run"
+        self.root.mkdir()
+        packet, printed = self.packet("nav-neutral-second-intake", "intake", 0, 125)
+        command = self.command("init", 126, fresh=True)
+        command["cursor"] = [None, packet["action"]]
+        (self.root / "trace.jsonl").write_text("".join(json.dumps(row) + "\n" for row in (packet, command)))
+        self.events[4:4] = self.tool("fresh", f'python3 "$CLI" init --repo "{self.work}" --run-dir "{self.root}" '
+                                   '--prompt "Second neutral request"', printed)
+        self.root = original
+        self.check("unknown", "multiple candidate run traces")
+        self.trace = [row for row in self.trace if not row.get("accepted")]
+        self.check("unknown", "multiple candidate run traces")
+
+    def test_selected_identity_cannot_hide_a_second_fresh_startup(self):
+        for route in ("direct", "managed", "nested"):
+            for keep_acceptance in (True, False):
+                with self.subTest(route=route, accepted=keep_acceptance):
+                    self.setUp()
+                    if route == "managed":
+                        self.managed_root()
+                        extra = self.out / ".shiploop-runs/second/run"
+                    else:
+                        self.select_root()
+                        extra = (self.root / "second-run" if route == "nested"
+                                 else self.work / ".shiploop/second-run")
+                    original = self.root
+                    self.root = extra
+                    self.root.mkdir(parents=True)
+                    packet, printed = self.packet("nav-neutral-second-intake", "intake", 0, 125)
+                    command = self.command("init", 126, fresh=True)
+                    command["cursor"] = [None, packet["action"]]
+                    (self.root / "trace.jsonl").write_text(
+                        "".join(json.dumps(row) + "\n" for row in (packet, command)))
+                    self.root = original
+                    # The extra run is real trace evidence even when its shell form
+                    # is opaque to the observer's command-text predicates.
+                    self.events[4:4] = self.tool("fresh", "opaque_fresh_start", printed)
+                    if not keep_acceptance:
+                        self.trace = [row for row in self.trace if not row.get("accepted")]
+                    self.check("unknown", "additional fresh startup trace")
+
+    def test_stale_trace_does_not_override_valid_selected_identity(self):
+        self.select_root()
+        original = self.root
+        self.root = self.work / ".shiploop/prior-run"
+        self.root.mkdir(parents=True)
+        packet, _ = self.packet("nav-prior-intake", "intake", 0, 85)
+        command = self.command("init", 86, fresh=True)
+        command["cursor"] = [None, packet["action"]]
+        (self.root / "trace.jsonl").write_text(
+            "".join(json.dumps(row) + "\n" for row in (packet, command)))
+        self.root = original
+        self.check("pass")
+
+    def test_binding_text_after_a_proven_post_stop_return_cannot_explain_startup(self):
+        self.events[6:6] = self.independent_binder("heredoc")
+        self.check("pass")
+        del self.events[6:8]
+        self.events[4:4] = self.independent_binder("heredoc")
+        self.check("unknown", "uncorrelated binding-capable tool call")
+
+    def test_later_full_reprint_cannot_replace_truncated_startup_exposure(self):
+        self.trace[3:3] = [dict(self.trace[0], ts=125), self.command("next", 126)]
+        self.events[4:4] = self.tool("recover", "hidden_alias", self.first_text)
+        self.set_tool("startup", self.startup_command(), "tail only\n")
+        receipt = self.check("unknown", "first print exposures do not uniquely cover")
+        self.assertNotIn("startup", receipt["observations"])
+        self.set_tool("startup", self.startup_command(), self.first_text)
+        receipt = self.check("pass")
+        self.assertEqual(receipt["observations"]["startup"]["lines"], [2, 3])
+
     def test_case_preserves_original_case_bytes_checks_and_probe_term(self):
         import hashlib
 
