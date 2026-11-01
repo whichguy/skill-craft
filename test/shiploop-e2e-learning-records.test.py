@@ -160,6 +160,46 @@ class LearningRecordsTest(LedgerCase):
         rows = [row for row in lr.rows(self.ledger) if row["record"] == opened[1] and row["event"] == "opened"]
         self.assertEqual(rows[0]["same_as_unknown"], "LR-20990101-abcdef")
 
+    def refound(self, record, route):
+        finding = {"id": "D9", "title": "again", "materiality": "material", "confidence": "high", "target": "shiploop",
+                   "files": [], "proposal": "p", "next_experiment": "n", "mission_anchor": {"clause_id": "S-6"},
+                   "same_as": record}
+        return lr.ingest({}, {route: [finding]}, {"run": "/runs/again", "exposure": "development"}, self.ledger)
+
+    def test_a_refound_record_the_owner_holds_stays_with_the_owner_until_the_owner_decides(self):
+        """Stage 5's second launch opened a record and routed it to the owner. A later exploration that re-finds it and
+        whose judge says implementation must add its evidence, not take the record out of the owner's hands."""
+        held = self.open_record("held")
+        lr.append("owner", held, self.ledger, reason="material challenge routed to the owner or an investigation")
+        self.assertEqual(self.refound(held, "implementation"), [held])
+        state = lr.current(self.ledger)[held]
+        self.assertEqual((state["status"], state["seen"]), ("owner", 2), "the evidence is kept and the owner's hold is not lost")
+        self.assertEqual(len(state["sources"]), 1, "the re-find's source is on the record")
+        self.assertIsNone(lr.select(self.ledger), "a record the owner holds is never offered to a cycle")
+        lr.append("owner", held, self.ledger, outcome="accept", owner_decision="qualify it")
+        self.assertEqual(lr.current(self.ledger)[held]["status"], "admitted")
+        self.assertEqual(lr.select(self.ledger), held, "the owner's accept is what makes it selectable")
+
+    def test_a_refound_record_in_a_candidate_stays_in_it_whatever_the_route(self):
+        for route in ("implementation", "owner_challenges", "harness"):
+            with self.subTest(route=route):
+                record = self.open_record(f"in flight {route}")
+                lr.append("admitted", record, self.ledger)
+                lr.append("predicted", record, self.ledger, prediction={"record": record}, candidate="abc")
+                self.refound(record, route)
+                state = lr.current(self.ledger)[record]
+                self.assertEqual((state["status"], state["seen"], state["candidate"]), ("in_candidate", 2, "abc"))
+
+    def test_a_refound_open_record_is_still_admitted_and_an_admitted_one_can_still_go_to_the_owner(self):
+        open_record = self.open_record("open")
+        self.refound(open_record, "implementation")
+        self.assertEqual(lr.current(self.ledger)[open_record]["status"], "admitted")
+        admitted = self.open_record("admitted")
+        lr.append("admitted", admitted, self.ledger)
+        self.refound(admitted, "owner_challenges")
+        self.assertEqual(lr.current(self.ledger)[admitted]["status"], "owner",
+                         "a new challenge to an admitted record is the owner's to answer")
+
     def test_the_checked_in_ledger_folds_and_the_harness_alone_may_write_it(self):
         import boundary
         states = lr.current()

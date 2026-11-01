@@ -42,6 +42,9 @@ RECORD_ID = re.compile(r"LR-\d{8}-[0-9a-f]{6}")
 # The reviewer sees these first; the rest are history it should not re-propose.
 LIVE = ("in_candidate", "admitted", "open", "owner")
 SETTLED = ("refuted", "no_effect", "deferred", "rejected", "unexplained_gain", "verified")
+# A new sighting adds its evidence to a record in these and never moves it: the owner decides an `owner` record, and an
+# `in_candidate` one belongs to a registered epoch.
+HELD = ("owner", "in_candidate")
 OUTCOMES = ("verified", "unexplained_gain", "refuted", "no_effect", "deferred", "admitted")
 CONFIDENCE = {"high": 0, "medium": 1, "low": 2}
 # Fields an "opened" row may carry: what a reviewer or a session says the lesson is. Evidence text stays in its source.
@@ -231,7 +234,8 @@ def ingest(review: dict, routes: dict, source: dict, path: Path = LEDGER) -> lis
 
     ``implementation`` findings are admitted; ``owner_challenges`` go to the owner; ``harness`` findings are deferred to
     a separate evaluator experiment. A discovery whose ``same_as`` names a known record adds to it; an unknown one opens
-    a new record and keeps the claimed id as ``same_as_unknown``."""
+    a new record and keeps the claimed id as ``same_as_unknown``. Adding to a record the owner holds, or one in a
+    candidate (``HELD``), records the evidence and leaves the record where it is, whatever the route."""
     known = set(current(path))
     recorded = []
     for route, follow in (("implementation", "admitted"), ("owner_challenges", "owner"), ("harness", "deferred")):
@@ -246,8 +250,11 @@ def ingest(review: dict, routes: dict, source: dict, path: Path = LEDGER) -> lis
             fields["source"] = {**source, "finding_id": finding.get("id"), "route": route}
             if claimed and record != claimed:
                 fields["same_as_unknown"] = claimed
+            held = record in known and current(path)[record]["status"] in HELD
             append("opened", record, path, **fields)
-            if follow == "admitted":
+            if held:
+                pass
+            elif follow == "admitted":
                 append("admitted", record, path, reason="supported by the judge and implementation-eligible")
             elif follow == "owner":
                 append("owner", record, path, reason="material challenge routed to the owner or an investigation")
