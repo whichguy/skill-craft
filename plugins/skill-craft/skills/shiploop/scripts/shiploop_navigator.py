@@ -3440,7 +3440,9 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     (``knowledge.section_notices``) right after its commit: a count, never a refusal, and none at
     the terminal handoff, which is no close.  A close accepted in this call prints them even when
     the script records another stage after it.  An accepted carry-forward prints
-    ``knowledge.command_notices`` the same way.
+    ``knowledge.command_notices`` the same way.  Any accepted stage that changed the home also prints the placement notices
+    (``knowledge.placement_notices``), read against HEAD before the commit, after the section notices; none at the terminal
+    handoff.
     """
     rows = after["history"][len(before["history"]):]
     stages = [row["stage"] for row in rows if row["outcome"] == "done"]
@@ -3452,6 +3454,12 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
         # knowledge home with the step's code, tests and docs (design T §8); a commit here would split it.  A state
         # with no navigator cursor is in no iteration.
         return
+    # Where this stage's edit put an entry or a heading, read against HEAD before the commit makes the edit HEAD (a notice, never
+    # raised, none at the terminal handoff, which edits nothing).
+    try:
+        placement = [] if terminal else knowledge.placement_notices(after)
+    except Exception:  # noqa: BLE001 - a notice never blocks a close
+        placement = []
     try:
         committed = knowledge.commit(after, stages[-1],
                                      _lessons_open_items(after) if stages[-1] == "release-verify" else ())
@@ -3466,6 +3474,8 @@ def _knowledge_close(before: Mapping[str, Any], after: Mapping[str, Any], root: 
     # the same call would otherwise leave that close silent.
     close = next((stage for stage in reversed(stages) if stage in knowledge.CLOSES), stages[-1])
     for line in knowledge.section_notices(after, close):
+        print(line)
+    for line in placement:
         print(line)
     # An accepted carry-forward: one counted line when a command that passed at its item's test stage is still not named in
     # environment.md (plan row VR-3); never a refusal.

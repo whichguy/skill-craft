@@ -5,10 +5,10 @@ script owns the graph: it returns the prompt for the current step and the one
 callback that completes it. Do that step, then run the printed callback.
 
 ~~~sh
-# New Git-backed work in an isolated worktree (preferred):
+# New work in an isolated worktree (preferred; an empty starting directory is made a Git repository):
 python3 "$SKILL_ROOT/scripts/shiploop" workspace start \
   --repo "$REPO" --prompt='<user request>'   # prints its new .shiploop-runs root
-# Explicit in-place or non-Git run:
+# Only for an in-place or non-Git run the user explicitly asked for (naming the current directory is not that):
 python3 "$SKILL_ROOT/scripts/shiploop" init \
   --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'
 ~~~

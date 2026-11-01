@@ -136,6 +136,17 @@ route, and record the alias and page path. Keep the URL out of evidence and
 logs: it is a session credential. Ask the user only when the CLI has no working
 authentication for the target org.
 
+## CLI login
+
+The CLI encrypts its org logins with a key that, on macOS, lives in the login keychain (service `sfdx`, account
+`local`), so only the HOME that holds the login can use them. In any other HOME (an isolated host profile, a sandbox,
+CI) the first org command makes a new key and asks the keychain to store it; with no keychain there, macOS shows a modal
+"Keychain Not Found" dialog ("A keychain cannot be found to store "local"") and the command waits until someone answers.
+An `sf` command that hangs in such a HOME is waiting on that dialog, not on the org. Run org commands where the login
+lives. A HOME that must stay separate sets `SF_USE_GENERIC_UNIX_KEYCHAIN=true`: the key goes to `<HOME>/.sfdx/key.json`
+and a command without a login fails at once. Never set it in the HOME that holds the login: the CLI would stop reading
+the keychain key and could no longer decrypt the saved logins.
+
 ## Tool state
 
 The `sf` CLI writes its own state inside the project: `.sf/` (org source tracking, caches) and `.sfdx/`. Both belong in

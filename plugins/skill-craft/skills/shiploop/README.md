@@ -1,4 +1,4 @@
-# ShipLoop navigator 1.29.0
+# ShipLoop navigator 1.30.0
 
 > **Two readers, one file.** This first part is for developers who *use* ShipLoop: what it is, how to start a run, what you will
 > see, how to steer it, and what to do when something stops. The [maintainer reference](#maintainer-reference) after it is the
@@ -1733,7 +1733,7 @@ shiploop workspace start --repo REPO --workspace-root ROOT [--improve-skill ABSO
 shiploop workspace plan-return --workspace-root ROOT
 shiploop workspace review-return --workspace-root ROOT [--keep PATH...] [--exclude PATH...]
 shiploop workspace return      --workspace-root ROOT
-shiploop init     --repo REPO [--run-dir RUN] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--backchain-passes=one|converge|none] [--planning-review=stage|none] --prompt=TEXT
+shiploop init     --repo REPO [--run-dir RUN] [--in-place] [--improve-skill ABSOLUTE_SKILL_CARD] [--delivery-contract] [--delegation=inline|ask-agent] [--lint=fix|report|off] [--backchain-passes=one|converge|none] [--planning-review=stage|none] --prompt=TEXT
 # Reread the current packet; never advances
 shiploop next     --run-dir RUN
 shiploop report   --run-dir RUN
