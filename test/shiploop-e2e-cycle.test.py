@@ -957,7 +957,7 @@ class CycleKitTest(unittest.TestCase):
         """The first launch was refused: user-listing declares port 3000 and another session's run held that lease."""
         text = (self.KIT / "run.sh").read_text()
         catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
-        self.assertIn("--case csv-report --generality-case seat-reservations", text)
+        self.assertIn("--case seat-reservations --generality-case csv-report", text)
         for case in ("csv-report", "seat-reservations"):
             self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
             self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"),
@@ -999,7 +999,7 @@ class CalibrationKitTest(unittest.TestCase):
         cycle_script = (ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101" / "run.sh").read_text()
         catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
         self.assertEqual(set(template["cases"]), {"csv-report", "seat-reservations"})
-        self.assertIn("--case csv-report --generality-case seat-reservations", cycle_script)
+        self.assertIn("--case seat-reservations --generality-case csv-report", cycle_script)
         for case in template["cases"]:
             self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
             self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"), f"{case} declares a fixed port")
