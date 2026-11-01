@@ -600,6 +600,10 @@ step-plan focused-ID rule) at 09:01. The pending note therefore ships as ShipLoo
 entry and rows first). SKILL.md is 30,115 bytes against the bound of 30500 (their release added 104; the feature added none). Their step-plan and prompt changes were not in the tree
 the four live runs tested, so the merged tree was verified again by the quick tier before the release (the line below).
 
+Fourth merge: origin/main reached d71eaa7198772501b189dff76308d4ee7ac533cb with the multipass work's E4 result (its Round 4: with the fix no later pass filed its new decision under `## Superseded`, 0 of 3, against 4 of 5
+for the old ShipLoop; a clean prior still mislabelled, so this journal's lineage reading, F21 to F26, is not needed and not sufficient alone). The design note's multipass subsection now says so
+("Update, as of d71eaa7198772501b189dff76308d4ee7ac533cb"), and the statements elsewhere that E4 had not started are marked as of 3d5732d0. D2 is unchanged: the fix is not on main and its release is the owner's word.
+
 Superseded (marked 2026-11-01): Round 4's "the recommendation stays not to build until runs of the owner's own features show more" was not kept: the owner asked for
 the build (see the plan above). Its evidence about demand stands. The design's "Nothing is built, adopted or released" (revision 5's status line) is replaced
 by revision 6's.

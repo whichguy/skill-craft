@@ -366,7 +366,7 @@ xhigh) twice, the second time with the class definitions in reverse order, and G
 - Every reader had the first reader's definitions, none of the 32 rows comes from the owner's own features, and the new rows are
   correlated.
 
-### What the multipass work adds (revisions 2 to 5)
+### What the multipass work adds (revisions 2 to 6)
 
 Read in full after rebasing: its [plan](shiploop-multipass-plan-2026-10-31.md), its [journal](shiploop-multipass-journal.md) and
 commits 03d046c6, aa601d37, 84b6bdd2, 1bdeac40 and 737640ca; revision 3 read 15ef676f, c55d0bc0, c981605d, d1e5df37 and bf68e959
@@ -375,6 +375,16 @@ is one run on the repository an earlier run left; a link is one test case that f
 kept beside each run of what it changed compared with the run before; E1, E2 and E3 are the multipass journal's names for its
 first live third pass, its A/B test of the fix for the leaks, and the live run of the fourth link. Most of it read eight saved
 runs and called no model; E1, E2 (twelve runs) and E3 are its live runs.
+
+Update, as of d71eaa7198772501b189dff76308d4ee7ac533cb (added to revision 6 before it was committed): the multipass work's E4 reported while this revision was being finished (its journal,
+"Result of Round 4"; six runs in three matched pairs, one run per cell, on a machine at load 30 to over 100). With the fix no later pass filed its new decision
+under `## Superseded` (0 of 3); the old ShipLoop did in 4 of 5 later passes, and stray headings fell from 8, 1, 0 to 2, 0, 0. Its bar B1 is recorded missed (one
+delivery failed one base test once, which it reads as a port collision, the environment) and B2 to B4 held. It reads the data as a per-run chance, high on these
+chains, and not as a rule tied to the pass number or the file's shape: R4b0 had a clean prior and still mislabelled, so this note's lineage reading (the mislabel
+persists once made) is not needed, and a prior that carries the mislabel did not force it (R4c0). The candidate is still not on main as of that commit and releasing it
+stays the owner's word, so D2's condition is unchanged: a chain waits for the fix's release. Cost is not shown to be nil (model calls 1.53 times in the pass-4 pair, one
+run per cell). Every statement below that says E4 had not started, or that U9 stays open for lack of it, is as of 3d5732d0 and is superseded by this paragraph; U9's
+own question (bound to a lineage, or growing with the pass number) now reads: neither pre-registered reading holds alone (E4, exploratory).
 
 - A second pass works: all 8 saved runs (four pairs) passed, and in the 4 second passes R-1 to R-5 were kept byte for byte, no
   earlier test was touched, and 0 of 19 planned test cases cite a requirement the run did not add. This is the best evidence for shape B.
