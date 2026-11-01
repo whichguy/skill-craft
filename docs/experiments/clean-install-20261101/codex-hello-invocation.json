@@ -1,0 +1,89 @@
+{
+  "case": "hello",
+  "host": "codex",
+  "backend": null,
+  "model": "gpt-6.1-terra",
+  "effort": "xhigh",
+  "argv": [
+    "codex",
+    "exec",
+    "--json",
+    "-m",
+    "gpt-6.1-terra",
+    "--skip-git-repo-check",
+    "-s",
+    "danger-full-access",
+    "-c",
+    "approval_policy=\"never\"",
+    "--dangerously-bypass-hook-trust",
+    "-C",
+    "/Users/dadleet/e2e-runs/2026-11-01/shiploop-hello-codex-floor-2c31ea/work",
+    "-c",
+    "model_reasoning_effort=xhigh",
+    "$skill-craft:shiploop Create hello.py that prints exactly \"Hello, world!\" when run, plus a unittest test in test_hello.py that verifies that output."
+  ],
+  "cwd": "/Users/dadleet/e2e-runs/2026-11-01/shiploop-hello-codex-floor-2c31ea/work",
+  "plugin_dir": "/Users/dadleet/e2e-runs/2026-11-01/shiploop-hello-codex-floor-2c31ea/home/.codex/plugins/cache/whichguy/skill-craft/2.27.2",
+  "plugin": {
+    "pass": true,
+    "loaded": [
+      "skill-craft@whichguy 2.27.2"
+    ],
+    "source": "whichguy/skill-craft",
+    "registry_version": "2.27.2",
+    "path": "/Users/dadleet/e2e-runs/2026-11-01/shiploop-hello-codex-floor-2c31ea/home/.codex/plugins/cache/whichguy/skill-craft/2.27.2"
+  },
+  "versions": {
+    "source": "marketplace",
+    "installed_by": "codex marketplace add + install (fresh profile)",
+    "plugin_version": "2.27.2",
+    "shiploop_version": "1.26.2",
+    "plugin_sha256": "b665a3fac1d7",
+    "released": {
+      "origin_main": "3d5732d017899a6d486b3249915284793af19d3a",
+      "local_head": "3d5732d017899a6d486b3249915284793af19d3a",
+      "local_behind_main": true,
+      "catalog_version": "2.27.2",
+      "shiploop_version": "1.26.2",
+      "unreleased": [],
+      "ci": "success"
+    },
+    "gate": []
+  },
+  "host_build": "codex-cli 0.166.0",
+  "checks": [
+    "test \"$(python3 hello.py)\" = 'Hello, world!'",
+    "python3 -m unittest -q"
+  ],
+  "follow_on": null,
+  "base": null,
+  "resumed_run": null,
+  "seeded": null,
+  "owner_note_at": null,
+  "needs": [],
+  "environment": {
+    "observed": true,
+    "at": "2026-11-01T14:07:01Z",
+    "tools": {
+      "node": "v26.12.1",
+      "python3": "Python 3.15.1",
+      "git": "git version 2.54.0 (Apple Git-157)"
+    },
+    "cpus": 18,
+    "loadavg": [
+      60.86,
+      57.6,
+      39.84
+    ],
+    "display_hold": true,
+    "unread": {},
+    "browser": {
+      "declared": false,
+      "probed": false,
+      "reason": "no case or --need declares a browser"
+    }
+  },
+  "planning_review": null,
+  "improve_skill": null,
+  "identity_unmeasured": {}
+}

@@ -82,8 +82,10 @@ refuses a calibration whose digests differ from the epoch it is applied to.
 **Trying to achieve.** Every improvement to ShipLoop proven by its own comparison: one learning record, one candidate
 with a prediction, one `promotion/5` decision, built on only after PROMOTE, and remembered. Done means a live cycle that
 promotes a change whose prediction is confirmed, lands it on `main` and marks its record verified. That has happened
-once, by hand and not through `cycle.py` (two paragraphs down). Not yet seen live: a decision that says no, `cycle.py`
-end to end, or a cycle under a stated tolerance.
+once, by hand and not through `cycle.py` (two paragraphs down). A live decision that says no has since been recorded too
+(f842a624, below). Not yet seen: `cycle.py` end to end, a known-bad rejected on purpose, or a cycle under a stated
+tolerance. The owner asked on 2026-11-01 for the stage 4 pilot and one full cycle; their results are added below when
+they exist.
 
 **Established.** Stages 1 and 2 are on `main` (6337038, CI green): the SPEC rules, the learning records, predictions,
 `spread.py`, the purpose check, side-by-side runs and `cycle.py`, with no-model tests. ba51c3f then fixed the controller's
@@ -100,7 +102,14 @@ limits: a quality gain at +34.2% processed tokens and +3.9% seconds, not an effi
 unmeasured (the owner stated a 25% margin and declined calibration); and neither message names `cycle.py` or `iterate.py
 --qualify`. The published build then failed the strict fidelity gate on one open handoff entry (eef1eda), and that
 session holds its next live iteration until the owner chooses to withdraw the change, accept the gap or measure again.
-Stages 4 and 5 below are still to be run, and the cautions under them apply.
+
+**A second live decision says no (added 2026-11-01).** f842a624 records `promotion/5` returning DROP for
+LR-20261101-a9f259: a startup-guidance candidate raised CSV tokens per successful attempt by 45.938% against a
+registered budget of 31,563,718 and a stated 25% margin, so its prediction read refuted through the broken token guard
+although its startup effect was confirmed. One fresh attempt per build per case, a stated and unmeasured margin, and its
+message names neither `cycle.py` nor `iterate.py`, so it too looks hand-driven. The gate has now said yes (07734b9) and
+no (f842a624) on real candidates. Neither is a known-bad rejected on purpose, and neither ran through `cycle.py`; stages
+4 and 5 below are for those two, and the cautions under them apply.
 
 **Learned, and where.** About the loop: LEARNINGS.md, "Closed loop, stage 2" and "Closed loop review" (what a cycle costs,
 the noise question, the corrections). About ShipLoop: `test/shiploop_e2e/learning-records.jsonl` (six records; the
@@ -115,7 +124,7 @@ comparison that promotes is one registered epoch".
 | 1 | Stage 3 (same-build calibration): **skipped by the owner**. The kit stays for a later measurement | `docs/experiments/e2e-calibration-20261031/` | nothing |
 | 2 | State the tolerance and attempts per cycle (`--tolerance`, `--attempts`, recorded as unmeasured; start at 0.25 or more). D3 (limits) and D4 (sampled reviews) remain open | the decisions table above | the owner |
 | 3 | Trim the cycle if the owner wants it cheaper: sampled reviews, the second case at release, the purpose review on a flag | `epoch.py` `decide` (every attempt reviewed before PROMOTE); `cycle.py` `roles_for` and the purpose review in `qualify` | D4 |
-| 4 | Stage 4: a planted defect must be dropped or left undecided (4 KB of padding is too small to see: see Stage 4) | a new file in `test/shiploop_e2e/overlays/`; `cycle.py --candidate-plugin` | live runs |
+| 4 | Stage 4: the hook-revert pilot must be dropped or left undecided (kit built 2026-11-01; the owner asked for the run; 4 KB of padding was too small to see: see Stage 4) | a new file in `test/shiploop_e2e/overlays/`; `cycle.py --candidate-plugin` | live runs |
 | 5 | Stage 5: the first cycle, on a record whose fix should move a measure by at least the tolerance (not the S-13 slip: see Stage 5) | `iterate.py --qualify` | live runs |
 
 All live runs need Codex Terra on the owner's computer. The Claude host is reachable from a cloud session, but see the
@@ -383,26 +392,39 @@ Around it:
 
 ## Stage 4: known-bad pilot
 
-The 10-29 plan's "prove the loop can say no", live:
-- **Candidate:** main's build plus an overlay (`overlay.apply_to_plugin`) that adds about 4 KB of inert text to every
-  printed packet head: a token cost with no purpose, which S-7 counts as a defect.
-- **Prediction:** tokens up on `user-listing` by at least t.
-- **Run:** `cycle.py --candidate-plugin` on `user-listing`, k attempts per arm. About 6 runs, about 40 minutes.
-- **Pass:** DROP or UNDECIDED, never PROMOTE, and the prediction confirmed (the measurement sees what was planted). The
-  tip is unchanged and the record reads refuted.
-- **Caution (2026-11-01):** about 4 KB is roughly 1,000 tokens (4 characters a token, an estimate) each time a packet
-  head prints. A run here processes millions of tokens (the hook pair in 07734b9: 17.0M and 22.8M), so at a stated
-  tolerance of 0.25 this prediction would be refuted and the epoch would end UNDECIDED at best, not "confirmed". Before
-  the pilot, plant a defect that exceeds the tolerance by a wide margin, or one that fails a floor the control passes
-  (quality decides before efficiency is read).
+The 10-29 plan's "prove the loop can say no", live. Built 2026-11-01 as `docs/experiments/closed-loop-pilot-20261101/`
+(bba7561); its README says what to run and what to return.
+- **Candidate:** the control without the qualified missing-completion hook (the reverse of the source delta between the
+  two builds of 07734b9's pair). Faster, and wrong by construction: the case's own contract check fails a build without
+  the hook whatever the model does. No-model evidence: with the reverse applied and the hook's tests left as they are,
+  11 + 13 + 1 tests fail in `shiploop-keepalive`, `shiploop-loops` and `shiploop-actual-improve-cli`.
+- **Prediction:** tokens down by at least 0.25 on `hello-hook-continuation`, guarded by accuracy not down. A careless
+  simplification would claim this (the hook cost +34.2% tokens in the pair), and the guard is what rejects it.
+- **Run:** `cycle.py` with a hand-built candidate, through the kit's `run.sh`: one regression case, 3 attempts per arm,
+  a stated tolerance of 0.25, Codex Terra high, reviews skipped so it can only DROP or stay UNDECIDED. About 6 runs.
+- **Pass:** not PROMOTE. The expected result is DROP, the accuracy guard broken, the prediction refuted and the record
+  reading refuted; UNDECIDED is an honest result that says the measurement could not see the defect at this sample.
+- **Why not padding (2026-11-01):** the first design planted about 4 KB of inert text in every printed packet head and
+  predicted tokens up by at least t. About 4 KB is roughly 1,000 tokens (4 characters a token, an estimate) each time a
+  packet head prints, and a run here processes millions of tokens (the hook pair: 17.0M and 22.8M), so at a stated
+  tolerance of 0.25 that prediction would have been refuted and the epoch UNDECIDED at best. A planted defect has to
+  exceed the tolerance by a wide margin, or fail a floor the control passes (quality decides before efficiency is read).
 
 ## Stage 5: first qualified cycles
 
 ```sh
-bash test/run-integration.sh shiploop-e2e-iterate --case user-listing --qualify --cycles 3 --generality-case battleship
+python3 test/shiploop_e2e/iterate.py --qualify --case user-listing --generality-case csv-report \
+    --tolerance 0.25 --attempts 3 --host codex --model gpt-6.1-terra --effort high --iterations 1
 ```
 
+(Corrected 2026-11-01: `iterate.py` has `--iterations`, not `--cycles`; `csv-report` replaces `battleship`, which has
+never run on Terra and has no time measured; one iteration first, since a cycle is the expensive unit.)
+
 - **The first record:** from an exploration run on `user-listing`, or a seeded record whose reopen condition holds.
+- **Selection (2026-11-01):** `select` reads the cycle's cases (b3328b4). The one admitted record on the ledger,
+  LR-20261031-8d97e7, was found on the hosted `gym-membership-salesforce` case, so a `user-listing` cycle would have
+  taken it and measured it on two cases that cannot show it; it now explores first. If exploring leaves no admitted
+  material record, the loop stops and no cycle runs.
 - **Not the S-13 slip (2026-11-01).** `prediction.validate` refuses a prediction with no effect and an efficiency effect
   smaller than the tolerance, and a search of `scorecard.py`, `metrics.py` and `promotion.py` for S-13 and probe-naming
   terms finds no measure that counts an engine naming a probe. A one-line comment edit moves nothing, so a cycle on it

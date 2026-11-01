@@ -481,6 +481,79 @@ caught exactly this once in E2 (B3 pass 2), in a file whose last section is `Sup
 - Method: the case was written from the request and a synthetic prior, and its first contact with a real prior found two wrong words in two places. For a chain B, write retention words and `may_change` patterns from a real prior pass, and give every check the in-place route as well as the new-ID route.
 - The correction was made after the result was seen. It is defined from the request alone (the variable the request introduces), the run had named that variable, and the recorded failure stays visible; but a reader should know the verdict changed after the fact.
 
+## Round 4: the fix on passes 3 and 4, with a control for each (R4; fixed 2026-11-01, before any run)
+
+**Why.** E2 tried the fix on passes 1 and 2 only. Both leaks were seen on passes 3 and 4 (E1, E3): 8 and 9 stray headings added to `environment.md`, and the new decision
+filed under `## Superseded`. Two readings of those two runs are on the record and the runs do not separate them: the mislabel grows with the pass number (Round 3, F13), or it
+persists once a lineage has it (the follow-on journal, [Round 3](shiploop-follow-on-run-journal.md), F21 to F26). Both runs continue one lineage, whose saved pass 2
+(`bf-codex-r2`) already had AD-3 filed under Superseded, as the last section of the file. E2's control never mislabelled in six passes, so B1 held untested and the fix's effect
+on the mislabel was seen once (B3, pass 2). And the fix makes tidier files: E2's `B1-ticket-escalation` (the prior of the tidy pair below) has every named section in
+`architecture.md` and ends with `## Superseded`, which is the precondition of the mislabel (F1: a pass appends below the last heading). So the lineage the fix produces may be the
+hard case for it, and no run has been made on it.
+
+**The question.** Does the fix keep passes 3 and 4 as tidy as it kept passes 1 and 2, on a lineage that already carries the mislabel (seeded) and on one that does not but ends
+with `## Superseded` (tidy), and is it the fix that does it?
+
+**Runs: six, one at a time on the port-4180 lease, in this order.** Each pair is one case from one prior, first without the fix and then with it.
+
+| name | case | prior | ShipLoop |
+|---|---|---|---|
+| `R4a0-comments-seeded-old` | `ticket-comments` | `bf-codex-r2-ticket-escalation`, E1's prior (AD-3 under Superseded, the last section) | X |
+| `R4a-comments-seeded-fix` | `ticket-comments` | the same | Y |
+| `R4b0-comments-tidy-old` | `ticket-comments` | E2's `B1-ticket-escalation`, made with the fix (0 stray headings, AD-3 live under Decisions, the file ends with Superseded) | X |
+| `R4b-comments-tidy-fix` | `ticket-comments` | the same | Y |
+| `R4c-sla-tidy-fix` | `ticket-sla` | the output of `R4b-comments-tidy-fix` | Y |
+| `R4c0-sla-tidy-old` | `ticket-sla` | the output of `R4b0-comments-tidy-old` | X |
+
+**Arms (frozen, never edited).** X is a detached checkout at `e81fdb55d58bdb0bcc8c1643d93d5973709100e4` (`origin/main` when the arms were frozen; ShipLoop 1.26.2, no fix). Y is a
+detached checkout of X plus the candidate: the feature commit of the local branch `feat/multipass-placement-725e1a` (local hash `40640d48371691ffa7baa593b37409bfd8357c1c`, not on
+`origin`, and rebased again before any merge, so the hash is not a durable name and the patch-id is). Its patch-id is `8cf39729c9b94711faf1b7b2030b7a4adb7f8456`, the same as the tested
+`c1d737dc95c7df6698f20a6ac3464b3d8b40da19` and as the three rebased versions of it since (`git patch-id --stable`; the diff of Y against X is exactly the candidate's eight files,
++546 -23). Y is the feature commit, not the LEARNINGS commit after it, which changes no behaviour. Both arms run `--source checkout`, so the apparatus is equal (E1 ran from the
+marketplace, which is why it is a reference here and the control is run again), on Codex `gpt-6.1-terra` at `xhigh`, hooks on, the harness defaults of E2. Outputs under
+`~/e2e-runs-multipass/20261101/r4/<name>`.
+
+**Read through** the ledger ([delta.py](../test/shiploop_e2e/delta.py)) and [round4_readout.py](experiments/multipass-20261031/round4_readout.py), written and checked before any run:
+fed E1 and E3 it reproduces them exactly (E1: 1,125.4 s, 8 stray headings, AD-4 born retired; E3: 993.3 s, 9, AD-5 born retired, `replaced 1/1 left 0 unexplained 0` in the spec).
+
+**Bar, set before the runs** (on the three runs with the fix).
+- B1: every fix run passes and loses no hidden check (its own checks, the earlier passes' regression, the retention checks and the hidden acceptance, as the checks stand now, E3's two wrong words corrected).
+- B2: every fix run adds at most 2 stray headings to `environment.md` (old ShipLoop: 2 to 8 in E2's six passes, 8 in E1, 9 in E3).
+- B3: no fix run files a new decision as retired (E1: AD-4; E3: AD-5).
+- B4: pass 4 with the fix: no earlier entry changed that the request did not name (the ledger's `unexplained` is empty in the spec and in the architecture).
+
+**The control, set before the runs (what the fix is credited with).** K: in each pair, the run without the fix leaks, which is at least 4 stray headings added or a new decision
+filed as retired. The fix is credited in a pair only where its control leaks. I make no prediction for whether `R4b0` files a new decision as retired: the tidy file ends with
+Superseded, so the mechanism is available, and that is the question the pair asks.
+
+**Predictions, written before the runs.**
+1. P1: `R4a` prints at least one placement notice and its new decision is not filed as retired.
+2. P2: `R4b` prints at least one placement notice.
+3. P3: `R4b` adds at most 2 stray headings and files nothing as retired.
+4. P4: `R4c` adds at most 2 stray headings and passes with all 16 hidden checks.
+5. P5: `R4c` touches the old escalation decision (changed in place, or moved under Superseded) and does not leave it standing: the first test of the modifying link on a prior without the mislabel.
+6. P6: `R4a` leaves the prior's mislabel alone (AD-3 still filed as retired at the end): the notice speaks about what an edit adds, not about what was already there.
+7. P7: `R4a0` repeats E1 (at least 4 stray headings and a new decision filed as retired); `R4b0` and `R4c0` each add at least 4 stray headings.
+8. P8: each fix run takes at most 1.3 times as long as the run without the fix in its pair.
+
+**Reading rule.**
+- B1 to B4 held and K held in at least two pairs: the fix holds on passes 3 and 4, credited in those pairs, for these chains. That closes the gap E2 left; the release stays the owner's word.
+- B3 missed in `R4b` or `R4c` (a new decision filed as retired with the fix, from the tidy prior): do not release. Read which stage wrote the entry and whether the notice came after it: E2's replay already showed that `plan`, the stage that wrote both entries filed as retired when new, is not one of the eight that get the packet line.
+- B3 missed in `R4a` only, with a notice printed: the notice is read and not obeyed from a file whose last section is Superseded; the fix still holds where the lineage is not seeded. Read the stage before changing a word.
+- B2 missed with B3 held: a stage's duty text still pulls reports into `environment.md`; the ledger's attribution names the stage.
+- B1 missed: read the run's mismatch note first (is a check wrong?) before blaming the fix: E3's lesson.
+- K missed in the tidy pairs (the old run does not leak there) with B1 to B4 held: the fix is not shown to matter on that lineage, and the mislabel reads as bound to a seeded lineage, as the follow-on journal reads it. E2's numbers (0 against 2 to 8 stray headings) stay the basis for the release.
+
+**Limits.** One run per cell, so a pair is a contrast and not a test; a model's variation is not measured. The pairs differ from each other in more than the mislabel (different priors, made on
+different days by different builds), so only the contrast inside a pair is clean. The arms are a newer main than the one E2's arms and the tidy prior were made on (the 3.9-floor release and
+other commits that do not touch the knowledge home). One case pair, one host and model. A 4180 lease taken by another session can delay a run but not change it.
+
+**Decisions made without asking (routine).** Six runs, so that each fix run has a control on the same prior (a fix run alone would read "held untested" again, as E2's B1 did). The
+controls are run again on X because E1 ran from the marketplace. The tidy prior is the fix's own pass 2, so the tidy pass 4 prior is the tidy pass 3 of the same arm. Order: the seeded pair, the tidy pair, then
+pass 4 with the fix before pass 4 without it, so that a cut short by the lane leaves the pairs that matter most whole. The readout was written and calibrated first. No merge or release is decided by this round.
+
+**Status: fixed; not started.** Arms frozen at X and Y above; the runs start after this commit is on `origin/main`.
+
 ## Decisions made without asking (routine, AGENTS.md "Decisions")
 
 - Work in an isolated worktree (`feat/multipass-c5fc75`), because three other sessions commit to `main` in the canonical checkout.
@@ -498,8 +571,8 @@ caught exactly this once in E2 (B3 pass 2), in a file whose last section is `Sup
 
 ## Not done, and unknowns
 
-- Pass 3 and 4 behaviour on a live run (Round 1 is the first).
-- Which part of the candidate (the notice, the packet line, the duty edits) does the work, and whether it holds on a third and a fourth pass: E2 shows the bundle on passes 1 and 2 only (F12).
+- Pass 3 and 4 behaviour with the fix on a live run: fixed in Round 4 (2026-11-01), not started when this line was written. Unfixed, Round 1 is the first third pass and E3 the first fourth pass.
+- Which part of the candidate (the notice, the packet line, the duty edits) does the work, and whether it holds on a third and a fourth pass: E2 shows the bundle on passes 1 and 2 only (F12); Round 4 asks the second half.
 - A second chain on a smaller base (designed, not built; D5 builds it after E2). The modifying increment, `ticket-sla`, is built and ran live once (E3, Round 3); whether a run retires and supersedes the old decision needs a prior without E1's mislabel.
 - An independent alternative delivery for `ticket-comments`, and a persistence check for the pass-4 link.
 - `knowledge_reads` on Codex is still empty; `delta.writes` is its heuristic replacement.

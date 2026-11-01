@@ -1,0 +1,34 @@
+Third look at the two rows Sol's retest (sol-b) labelled `gap`, by the first reader, 2026-11-01, after all three readers answered.
+Rule G (journal, Round 4, Plan): a candidate gap from sol-a or sol-b is confirmed only if grok also labels it `gap` and, on a reading of the
+row, its run's request and its state, a request sentence is unmet or an assumption was refuted in a way that needs no person.
+
+F01  ~/e2e-runs/2026-10-30/shiploop-salesforce-battleship-zbcb4i5d/... (request R01: build a Battleship game in Apex with a Lightning web component, deploy and test it in the org `de`)
+  Open for the next run: "Confirm rendering and click-through in an authenticated browser."
+  Labels: first person; sol-a capability (alt person); sol-b gap (alt person); grok person (alt capability).
+  The run's own record (state.md, via peek.py's readers):
+    unverified: owner "user"; requirement R-4; outcome "Opening and playing the rendered Lightning board, including visual accessibility and responsive layout";
+                reason "No authenticated browser session is available to this automation."
+    lessons, considerations: "Deployed compiler validation and mocked board interaction do not establish authenticated browser rendering."
+    open assumption A2 ("specified metadata deploys and full game fits transaction"): disposition open, because the reader never closes a plan row; the lessons' "learned" line reports
+                that the complete game fits in one Apex transaction.
+  Reading: the open item is owned by a person and its reason is a missing capability (no authenticated browser session). The system could not close it alone.
+  Grok did not label it gap. Not confirmed.
+
+N1   ~/e2e-runs-hostonly/20261031/sf-live-2/... (the same Battleship request family, live Salesforce check)
+  Open for the next run: "Observe the authenticated Lightning board in de and exercise play and restart; do not treat local mock checks as rendered UI evidence."
+  Labels: first person (arguable: capability); sol-a capability (alt person); sol-b gap (alt capability); grok person (alt capability).
+  The run's own record:
+    unverified: owner "release owner"; requirement R-4; outcome "The deployed board opens and supports actual click, keyboard, responsive and theme interactions for the assigned user.";
+                reason "No authenticated browser automation route is available; the local browser used an isolated profile.";
+                settle "Open the Battleship app and board as the assigned user, fire cells and restart, and report rendered behavior."
+    open assumption A4 ("A browser can verify rendered interaction"): disposition open, reason "Browser tool probe did not find one".
+  Reading: same as F01: a person (the release owner) is named, and the missing piece is a capability. Grok did not label it gap. Not confirmed.
+
+Result of rule G: no gap is confirmed in 32 rows. The two candidates are the rows where `person`, `capability` and `gap` meet; the same reader that called them
+`capability` with the classes in file order called them `gap` with the classes in reverse order.
+
+Rows the other readers moved away from the first reader's class (no gap involved), read again by the first reader:
+  F18  The text lists three optional items (a test, an expiry, a README note) and then an unconditional instruction: a leftover node server (PID 20304) "was still running at
+       release-verify; stop it by hand." All three other readers chose person (alt extension). The first reader keyed on the leading "Optional:". The majority is the better class.
+  F23  The text mixes an answer to record (the requesting user's answer to A1: decision), a place where knowledge lives (note), an instruction to operations to confirm readiness
+       against the delivered checkout (person) and a rerun condition (note). All three other readers chose person (alt decision, debt, decision). A mixed row: one class per text is lossy.
