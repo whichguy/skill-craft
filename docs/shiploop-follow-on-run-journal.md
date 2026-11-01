@@ -900,7 +900,7 @@ Findings (status; citation).
   A `gap` surfaces the next step with a ready command; a `note` leaves it to be asked for; nothing auto-starts either way, so the cost of the split is small, and two runs are no ground for a prompt change.
 - F47 (firm; practice). `--source marketplace` is a moving target during a round: the harness prints the build it installs at each launch and `result.json` records it per run (`versions`). A round that needs one build
   throughout should pin it (`--source checkout` from the release commit) or say so, as this one does.
-- F48 (observed again; fixed, unreleased: c01c9663a33cb3da30181b9026a8611f22dffc17 on main, written test first, the quick tier on its files passed, 18 suites in 219.6 s; its change note ships with the next release). The unfixed build wrote "...updates tests.. Recorded in lessons.open_next." again in the gap's request file (Round 6, F41).
+- F48 (observed again; fixed by c01c9663a33cb3da30181b9026a8611f22dffc17 on main (test first; the quick tier on its files passed, 18 suites in 219.6 s) and released as skill-craft 2.32.1 / ShipLoop 1.30.2, release commit 9273b4cfda87761f4ad002324b238e6d8f755bfb). The unfixed build wrote "...updates tests.. Recorded in lessons.open_next." again in the gap's request file (Round 6, F41).
 - F49 (reading, not a measurement). Across the work so far a `gap` has appeared only when the occasion was arranged: the replay found none in 166 runs (Round 4), the four live runs of Round 5 none, Round 6's primed request
   produced a decision, Round 7's primed deferral produced one gap and one note. Unprimed runs complete their requests, so the leftovers are decisions, persons, capabilities and notes. Auto-start for gaps (design D2) therefore
   has little to start in practice, and the evidence that it would work if one appeared is F45.
@@ -915,4 +915,11 @@ Superseded (marked 2026-11-01): Round 6's "Open" list names the multipass fix's 
 5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a) and the gap has since run live (F45).
 
 Open (as of this round): M3 on the owner's own features (the demand question, and the only way to learn whether a natural gap appears); U11 (entry-level agreement); the comparison with a hand-written request (the rest of M2a);
-the F41 and F48 fix reaching a release with the next one; Cursor's refresh through its app (the owner's).
+the F41 and F48 fix reaching a release with the next one (superseded after the round, 2026-11-01: released as 2.32.1 / 1.30.2); Cursor's refresh through its app (the owner's).
+
+After the round (2026-11-01). The owner asked whether anything pending was worth planning and implementing; two items that were mine were done.
+- The F41/F48 fix was released as skill-craft 2.32.1 / ShipLoop 1.30.2 (release commit 9273b4cfda87761f4ad002324b238e6d8f755bfb): `release.py` carried only its note, the four release checks passed, and the hosts were refreshed (Claude
+  2.32.0 to 2.32.1, Codex's marketplace upgraded, Grok synced; Cursor is the owner's through its app). I had first decided to leave the note pending for the next release. That was against the owner's standing rule that a push of
+  skill changes also updates the marketplace ("Whenever we push, also update the marketplace", 2026-09-26), and the pending note made `--source marketplace` launches refuse for every session until a release, so the release followed
+  within the hour. No live run exercised the fix; the commit carries a No-E2E-Round trailer that says so.
+- `docs/experiments/follow-on-build-20261101/tally_follow_on.py` gives the owner the M3 count with one command (design note, M3, "How to read it"). Its self-test passes and it reads the three finished live rounds as that note states.
