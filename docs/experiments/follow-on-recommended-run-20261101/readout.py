@@ -3,7 +3,7 @@
 Usage: python3 readout.py OUT_ROOT [--json]
 
 Read-only, except that it runs `python3 -B slug.py Café` in each run's work folder (a command that writes nothing).  For every
-`link1-*` and `link2-*` folder under OUT_ROOT it reports what the plan's rules read: the harness verdicts and turns, the handoff
+`link1-*`, `link2-*` and `link3-*` folder under OUT_ROOT it reports what the plan's rules read: the harness verdicts and turns, the handoff
 refusals, the accepted `follow_on` list, whether the request file and the report section exist, and (link 2) whether the prompt
 was the prior run's request file, the files the run changed against the prior run's head, which knowledge files name the
 finding, and what the tool does for "Café".  It computes no rate and calls no model.  Written before any run was read.
@@ -135,7 +135,7 @@ def main(argv: list[str]) -> int:
     if len(paths) != 1:
         print(__doc__)
         return 2
-    folders = sorted(path for path in paths[0].iterdir() if path.is_dir() and path.name.startswith(("link1", "link2")))
+    folders = sorted(path for path in paths[0].iterdir() if path.is_dir() and path.name.startswith(("link1", "link2", "link3")))
     rows = [describe(folder) for folder in folders]
     if "--json" in argv:
         print(json.dumps(rows, indent=2, ensure_ascii=False, default=str))
