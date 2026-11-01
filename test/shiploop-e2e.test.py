@@ -8040,7 +8040,20 @@ class GitDiscoveryTests(unittest.TestCase):
         self.assertIn("/a", env["GIT_CEILING_DIRECTORIES"].split(os.pathsep))
 
 class StartupContractEvaluatorTest(unittest.TestCase):
-    """Calibrate the selected package startup examples and keepalive observer."""
+    """Calibrate raw documented startup commands and the keepalive observer."""
+
+    def _load_checker(self, checks):
+        sys.path.insert(0, str(checks))
+        try:
+            spec = importlib.util.spec_from_file_location(
+                "startup_contract_under_test", checks / "shiploop_startup_contract.py")
+            self.assertIsNotNone(spec)
+            self.assertIsNotNone(spec.loader)
+            checker = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(checker)
+            return checker
+        finally:
+            sys.path.remove(str(checks))
 
     def test_new_case_reuses_hello_continuation_obligations(self):
         cases = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text(encoding="utf-8"))
@@ -8051,6 +8064,19 @@ class StartupContractEvaluatorTest(unittest.TestCase):
         self.assertEqual(new["checks"][:len(old["checks"])], old["checks"])
         self.assertEqual(new["checks"][-1], 'python3 -B "$E2E_CHECKS/shiploop_startup_contract.py"')
         self.assertIn("startup", new["checks_source"].lower())
+
+    def test_literal_shell_heads_are_extracted_from_external_card_text(self):
+        package = ROOT / "plugins" / "skill-craft"
+        cli = package / "skills" / "shiploop" / "scripts" / "shiploop"
+        single = "'" + str(cli) + "'"
+        double = '"' + str(cli) + '"'
+        first = f"""python3 {single} workspace start --repo "$REPO" --prompt='<user request>'"""
+        second = f"""python3 {double} init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'"""
+        fence = chr(96) * 3
+        card = f"{fence}sh\n{first}\n{fence}\n{fence}bash\n{second}\n{fence}\n"
+        checker = self._load_checker(ROOT / "test" / "shiploop_e2e" / "checks")
+        examples = checker.startup_commands_from_text(card, str(cli))
+        self.assertEqual(examples, [("workspace_start", first), ("init", second)])
 
     def test_selected_package_startup_observer_calibration(self):
         package = (ROOT / "plugins" / "skill-craft").resolve()
@@ -8083,33 +8109,57 @@ class StartupContractEvaluatorTest(unittest.TestCase):
             receipt_path = output / "shiploop-startup-contract-receipt.json"
             self.assertTrue(receipt_path.is_file(), result.stdout + result.stderr)
             receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
-            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            self.assertEqual(receipt.get("schema"), "shiploop-startup-contract/v1")
-            self.assertEqual(receipt.get("verdict"), "pass")
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            self.assertEqual(receipt.get("schema"), "shiploop-startup-contract/v2")
+            self.assertEqual(receipt.get("verdict"), "fail")
+            self.assertEqual(receipt.get("calibration_verdict"), "pass")
             probes = {row["id"]: row for row in receipt.get("probes", [])}
-            self.assertEqual(len(probes), 12)
-            self.assertTrue(all(row["status"] == "pass" for row in probes.values()), receipt)
+            self.assertEqual(len(probes), 14)
+            expected_doc_failures = {"documented_workspace_start", "documented_init"}
+            self.assertEqual({key for key, row in probes.items() if row["status"] == "fail"},
+                             expected_doc_failures, receipt)
             self.assertTrue(all(row["package"]["unchanged"] and
                                 row["package"]["before_sha256"] == row["package"]["after_sha256"]
                                 for row in probes.values()))
-            self.assertTrue(probes["documented_workspace_start"]["observed"]["bound"])
-            self.assertTrue(probes["documented_init"]["observed"]["bound"])
-            self.assertTrue(probes["documented_workspace_start"]["observed"]["bound_run_id_matches"])
-            self.assertTrue(probes["documented_init"]["observed"]["bound_run_id_matches"])
+            for probe_id in expected_doc_failures:
+                row = probes[probe_id]
+                self.assertFalse(row["observed"]["bound"], receipt)
+                self.assertIn("$CLI", row["source_command"])
+                self.assertIn("$CLI", row["command"])
+            self.assertTrue(probes["literal_workspace_start_single"]["observed"]["bound"])
+            self.assertTrue(probes["literal_workspace_start_double"]["observed"]["bound"])
+            self.assertTrue(probes["literal_workspace_start_single"]["observed"]["bound_run_id_matches"])
+            self.assertTrue(probes["literal_workspace_start_double"]["observed"]["bound_run_id_matches"])
             self.assertFalse(probes["variable_head"]["observed"]["bound"])
             self.assertFalse(probes["read_packet"]["observed"]["bound"])
             self.assertFalse(probes["read_status"]["observed"]["bound"])
             self.assertFalse(probes["missing_state"]["observed"]["bound"])
             self.assertFalse(probes["corrupt_state"]["observed"]["bound"])
             self.assertEqual(probes["foreign_owner"]["observed"]["decision"], "allow")
-            for probe_id in ("argv_workspace_start", "argv_init"):
-                forms = probes[probe_id]["observed"]["forms"]
-                self.assertEqual(set(forms), {"documented_variable", "literal_single", "literal_double"})
-                self.assertTrue(all(form["argv_match"] for form in forms.values()))
+            for probe_id in ("argv_documented_workspace_start", "argv_documented_init",
+                             "argv_literal_single", "argv_literal_double"):
+                self.assertTrue(probes[probe_id]["observed"]["argv_match"], probes[probe_id])
             self.assertTrue(receipt["package_unchanged"])
             self.assertTrue(receipt["package_signature_before_sha256"])
             self.assertEqual(receipt["package_signature_before_sha256"],
                              receipt["package_signature_after_sha256"])
+            self.assertEqual(receipt["synthetic_card"]["source"],
+                             "temporary external synthetic card text")
+            self.assertTrue(receipt["synthetic_card"]["sha256"])
+            self.assertEqual(len(receipt["synthetic_card"]["commands"]), 2)
+            self.assertEqual(receipt["synthetic_card"]["text"].count(chr(96) * 3), 4)
+            argv_fixture = receipt["argv_fixture"]
+            self.assertTrue(argv_fixture["paths_are_synthetic"])
+            self.assertTrue(argv_fixture["stub_cli_path"].endswith("\n"))
+            self.assertTrue(argv_fixture["repo_path"].endswith("\n"))
+            self.assertTrue(argv_fixture["run_dir_path"].endswith("\n"))
+            for path_value in (argv_fixture["stub_cli_path"], argv_fixture["repo_path"],
+                               argv_fixture["run_dir_path"]):
+                self.assertIn(" path ' $ " + chr(96) + " Ω\ninside\n", path_value)
+            self.assertTrue(argv_fixture["request"].startswith("--option-like=value"))
+            self.assertIn("apostrophe's dollar$ grave" + chr(96), argv_fixture["request"])
+            self.assertTrue(argv_fixture["request"].endswith("\n"))
+            self.assertIn("internal line\n", argv_fixture["request"])
 
 
 if __name__ == "__main__":

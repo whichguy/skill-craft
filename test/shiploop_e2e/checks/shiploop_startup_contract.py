@@ -1,8 +1,7 @@
 """Probe documented startup shell forms against the selected package observer.
 
-The E2E runner calls this from work/ with E2E_CHECKS set. It is a synthetic
-capability check, not evidence that a model naturally renders the commands or
-that a ShipLoop application or cost measure improved.
+This is a synthetic harness capability check, not evidence of natural model
+behavior or a ShipLoop application or cost improvement.
 """
 
 from __future__ import annotations
@@ -13,6 +12,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -37,60 +37,82 @@ def shell_single(value: str) -> str:
 
 
 def shell_double(value: str) -> str:
-    """Return a POSIX double-quoted shell word with expansions disabled."""
-    escaped = "".join("\\" + char if char in '\\\"$' + chr(96) else char for char in value)
+    """Return a POSIX double-quoted shell word with shell expansions disabled."""
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"').replace("$", "\\$").replace(chr(96), "\\" + chr(96))
     return '"' + escaped + '"'
 
 
-def _commands(block: str):
-    """Read only simple python3 CLI commands and their backslash continuations."""
-    pending = None
-    for raw in block.splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#"):
-            continue
-        if pending is None:
-            if not re.match(r'^python3\s+["\']\$CLI["\']\s+', line):
+def _quoted_head(command: str):
+    """Return the simply quoted python3 head, its shell-decoded token and quote style."""
+    match = re.match(r"""^python3\s+(?P<word>"(?:\\.|[^"\\])*"|'[^']*')(?=\s)""", command)
+    if not match:
+        return None
+    try:
+        words = shlex.split(match.group("word"), posix=True)
+    except ValueError:
+        return None
+    if len(words) != 1:
+        return None
+    return match, words[0], match.group("word")[0]
+
+
+def _startup_kind(command: str, selected_cli: str) -> str | None:
+    head = _quoted_head(command)
+    if head is None or head[1] not in ("$CLI", selected_cli):
+        return None
+    try:
+        words = shlex.split(command, posix=True)
+    except ValueError:
+        return None
+    if len(words) < 3 or words[0] != "python3" or words[1] != head[1]:
+        return None
+    if words[2:4] == ["workspace", "start"]:
+        return "workspace_start"
+    if words[2] == "init":
+        return "init"
+    return None
+
+
+def startup_commands_from_text(text: str, selected_cli: str) -> list[tuple[str, str]]:
+    """Extract simple fenced sh/bash python3 startup commands without rewriting their heads."""
+    commands: list[tuple[str, str]] = []
+    fences = re.finditer(r"^\x60\x60\x60(?:sh|bash)\s*\n(.*?)^\x60\x60\x60\s*$",
+                         text, flags=re.MULTILINE | re.DOTALL)
+    for fence in fences:
+        pending: str | None = None
+        for raw in fence.group(1).splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#"):
                 continue
-            pending = line
-        else:
-            pending += " " + line
-        if pending is not None and line.endswith("\\"):
-            pending = pending[:-1].rstrip()
-        elif pending is not None:
-            yield pending
+            if pending is None:
+                if _quoted_head(line) is None:
+                    continue
+                pending = line
+            else:
+                pending += " " + line
+            if line.endswith("\\"):
+                pending = pending[:-1].rstrip()
+                continue
+            kind = _startup_kind(pending, selected_cli)
+            if kind:
+                commands.append((kind, pending))
             pending = None
+    return commands
 
 
-def documented_examples(skill: Path) -> dict[str, str]:
-    """Extract the documented startup commands from fenced POSIX shell examples."""
+def documented_examples(skill: Path, selected_cli: str) -> dict[str, str]:
+    """Read the selected card's first documented workspace-start and init commands."""
     try:
         text = (skill / "SKILL.md").read_text(encoding="utf-8")
     except (OSError, UnicodeError) as exc:
         fail(f"selected ShipLoop SKILL.md is unreadable: {exc}")
     examples: dict[str, str] = {}
-    for match in re.finditer(r"^\x60\x60\x60(?:sh|bash)\s*\n(.*?)^\x60\x60\x60\s*$",
-                             text, flags=re.MULTILINE | re.DOTALL):
-        for command in _commands(match.group(1)):
-            kind = "workspace_start" if re.search(r"\bworkspace\s+start\b", command) else (
-                "init" if re.search(r"\binit\b", command) else None)
-            if kind and kind not in examples:
-                examples[kind] = command
+    for kind, command in startup_commands_from_text(text, selected_cli):
+        examples.setdefault(kind, command)
     missing = {"workspace_start", "init"} - examples.keys()
     if missing:
         fail("selected SKILL.md lacks supported fenced python3 startup examples: " + ", ".join(sorted(missing)))
     return examples
-
-
-def _cli_token(command: str, path: str, style: str | None) -> str:
-    pattern = re.compile(r'(?P<quote>["\'])\$CLI(?P=quote)')
-    match = pattern.search(command)
-    if not match:
-        fail("startup example does not contain a simply quoted $CLI token")
-    original_style = match.group("quote")
-    chosen = style or ("single" if original_style == "'" else "double")
-    value = shell_single(path) if chosen == "single" else shell_double(path)
-    return command[:match.start()] + value + command[match.end():]
 
 
 def _render_path(command: str, name: str, value: str) -> str:
@@ -98,21 +120,18 @@ def _render_path(command: str, name: str, value: str) -> str:
     match = pattern.search(command)
     if not match:
         return command
-    style = match.group("quote")
-    quoted = shell_single(value) if style == "'" else shell_double(value)
+    quoted = shell_single(value) if match.group("quote") == "'" else shell_double(value)
     return command[:match.start()] + quoted + command[match.end():]
 
 
-def render_example(command: str, *, cli: str, repo: str, run_dir: str,
-                   request: str, cli_style: str | None = None) -> str:
-    """Substitute only the documented startup placeholders; fail closed on drift."""
-    rendered = _cli_token(command, cli, cli_style)
-    rendered = _render_path(rendered, "REPO", repo)
+def render_example(command: str, *, repo: str, run_dir: str, request: str) -> str:
+    """Render illustrative values only; retain the selected command head verbatim."""
+    rendered = _render_path(command, "REPO", repo)
     rendered = _render_path(rendered, "RUN_DIR", run_dir)
     prompt = "--prompt='<user request>'"
     if prompt not in rendered:
         fail("startup example no longer has the supported --prompt='<user request>' slot")
-    return rendered.replace(prompt, "--prompt='" + request.replace("'", "'\\''") + "'", 1)
+    return rendered.replace(prompt, "--prompt=" + shell_single(request), 1)
 
 
 def _marker(run_id: str, revision: Any, run_dir: str) -> str:
@@ -133,7 +152,8 @@ def observe(keepalive: Any, host: str, session: str, command: str, marker: str) 
 
 def record(report: dict[str, Any], receipt: Path, probe_id: str, command: str,
            expected: dict[str, Any], observed: dict[str, Any], package: Path,
-           before: tuple[dict[str, tuple[str, int]], str]) -> None:
+           before: tuple[dict[str, tuple[str, int]], str], *,
+           source_command: str | None = None) -> bool:
     after = contract.tree_signature(package)
     package_unchanged = before == after
     passed = package_unchanged and all(observed.get(key) == value for key, value in expected.items())
@@ -141,21 +161,24 @@ def record(report: dict[str, Any], receipt: Path, probe_id: str, command: str,
            "package": {"before_sha256": before[1], "after_sha256": after[1],
                        "unchanged": package_unchanged},
            "status": "pass" if passed else "fail"}
+    if source_command is not None:
+        row["source_command"] = source_command
     report["probes"].append(row)
     contract.write_receipt(receipt, report)
     if not package_unchanged:
         fail(f"selected package content or executable modes changed during {probe_id}")
-    if not passed:
-        fail(f"{probe_id} observed {observed!r}, expected {expected!r}")
+    return passed
 
 
 def observer_probe(report: dict[str, Any], receipt: Path, package: Path, keepalive: Any,
-                   host: str, session: str, command: str, marker: str,
-                   expected: dict[str, Any]) -> dict[str, Any]:
+                   host: str, probe_id: str, command: str, marker: str,
+                   expected: dict[str, Any], *, source_command: str | None = None) -> dict[str, Any]:
+    session = "startup-" + probe_id
     before = contract.tree_signature(package)
     observed = observe(keepalive, host, session, command, marker)
-    record(report, receipt, session.removeprefix("startup-").replace("-", "_"), command,
-           expected, observed, package, before)
+    record(report, receipt, probe_id, command, expected, observed, package, before,
+           source_command=source_command)
+    keepalive.session_end(host, {"session_id": session})
     return observed
 
 
@@ -178,42 +201,73 @@ def _argv_stub(command: str, env: dict[str, str], expected: list[str]) -> dict[s
             "expected_bytes_base64": [base64.b64encode(item).decode("ascii") for item in wanted]}
 
 
-def _argv_examples(examples: dict[str, str], scratch: Path, request: str,
-                   report: dict[str, Any], receipt: Path, package: Path) -> None:
+def _argv_stub_command(command: str, selected_cli: str, stub_cli: str) -> str:
+    """Point a head at the stub for argv execution only, never to construct observer text."""
+    head = _quoted_head(command)
+    if head is None:
+        fail("argv example has no simply quoted python3 command head")
+    match, value, quote = head
+    if value == "$CLI":
+        return command
+    if value != selected_cli:
+        fail("argv example names a CLI other than the exact selected package path")
+    replacement = shell_single(stub_cli) if quote == "'" else shell_double(stub_cli)
+    return command[:match.start("word")] + replacement + command[match.end("word"):]
+
+
+def _expected_arguments(kind: str, repo: str, run_dir: str, request: str) -> list[str]:
+    args = ["workspace", "start"] if kind == "workspace_start" else ["init"]
+    args.extend(["--repo", repo])
+    if kind == "init":
+        args.extend(["--run-dir", run_dir])
+    args.append("--prompt=" + request)
+    return args
+
+
+def argv_probe(report: dict[str, Any], receipt: Path, package: Path, probe_id: str,
+               observer_command: str, source_command: str, kind: str, selected_cli: str,
+               stub_cli: str, env: dict[str, str], repo: str, run_dir: str,
+               request: str) -> None:
+    stub_command = _argv_stub_command(observer_command, selected_cli, stub_cli)
+    observed = _argv_stub(stub_command, env, [stub_cli, *_expected_arguments(kind, repo, run_dir, request)])
+    observed["argv_stub_command"] = stub_command
+    before = contract.tree_signature(package)
+    record(report, receipt, probe_id, observer_command, {"argv_match": True}, observed,
+           package, before, source_command=source_command)
+
+
+def _argv_examples(examples: dict[str, str], literal_examples: list[tuple[str, str]],
+                   selected_cli: str, scratch: Path, report: dict[str, Any],
+                   receipt: Path, package: Path) -> None:
     special = " path ' $ " + chr(96) + " Ω\ninside\n"
-    cli = scratch / ("cli" + special)
+    stub_cli_path = scratch / ("cli" + special)
     repo = scratch / ("repo" + special)
     run_dir = scratch / ("run" + special)
     repo.mkdir()
     run_dir.mkdir()
-    cli.write_text(
+    stub_cli_path.write_text(
         "import base64, json, os, sys\n"
         "print(json.dumps([base64.b64encode(os.fsencode(value)).decode('ascii') for value in sys.argv]))\n",
         encoding="utf-8")
+    stub_cli = str(stub_cli_path)
     env = os.environ.copy()
-    env.update({"CLI": str(cli), "REPO": str(repo), "RUN_DIR": str(run_dir)})
-    for kind, probe_id in (("workspace_start", "argv_workspace_start"), ("init", "argv_init")):
-        command = examples[kind]
-        prompt = "--prompt='<user request>'"
-        if prompt not in command:
-            fail(f"documented {kind} has no supported prompt slot for argv calibration")
-        command = command.replace(prompt, "--prompt='" + request.replace("'", "'\\''") + "'", 1)
-        expected = ["workspace", "start"] if kind == "workspace_start" else ["init"]
-        expected.extend(["--repo", str(repo)])
-        if kind == "init":
-            expected.extend(["--run-dir", str(run_dir)])
-        expected.append("--prompt=" + request)
-        forms = {
-            "documented_variable": command,
-            "literal_single": _cli_token(command, str(cli), "single"),
-            "literal_double": _cli_token(command, str(cli), "double"),
-        }
-        before = contract.tree_signature(package)
-        form_results = {name: _argv_stub(form, env, [str(cli), *expected])
-                        for name, form in forms.items()}
-        observed = {"argv_match": all(result["argv_match"] for result in form_results.values()),
-                    "forms": form_results}
-        record(report, receipt, probe_id, command, {"argv_match": True}, observed, package, before)
+    env.update({"CLI": stub_cli, "REPO": str(repo), "RUN_DIR": str(run_dir)})
+    request = ("--option-like=value apostrophe's dollar$ grave" + chr(96) +
+               " Unicode Ω\ninternal line\n")
+    report["argv_fixture"] = {"stub_cli_path": stub_cli, "repo_path": str(repo),
+                              "run_dir_path": str(run_dir), "request": request,
+                              "request_sha256": hashlib.sha256(request.encode("utf-8")).hexdigest(),
+                              "paths_are_synthetic": True}
+    for kind, probe_id in (("workspace_start", "argv_documented_workspace_start"),
+                           ("init", "argv_documented_init")):
+        command = render_example(examples[kind], repo=str(repo), run_dir=str(run_dir), request=request)
+        argv_probe(report, receipt, package, probe_id, command, examples[kind], kind, selected_cli,
+                   stub_cli, env, str(repo), str(run_dir), request)
+    for index, (kind, source_command) in enumerate(literal_examples):
+        command = render_example(source_command, repo=str(repo), run_dir=str(run_dir), request=request)
+        probe_id = "argv_literal_single" if index == 0 else "argv_literal_double"
+        argv_probe(report, receipt, package, probe_id, command, source_command, kind, selected_cli,
+                   stub_cli, env, str(repo), str(run_dir), request)
 
 
 def run_probe(invocation: dict[str, Any], package: Path, skill: Path, modules: dict[str, Any],
@@ -246,64 +300,97 @@ def run_probe(invocation: dict[str, Any], package: Path, skill: Path, modules: d
         if live.get("error") or live.get("status") != "active" or not live.get("run_id"):
             fail("temporary fixture run is not readable and active through selected hook-status")
         marker = _marker(live["run_id"], live.get("revision"), live["run_dir"])
-        cli = str((skill / "scripts" / "shiploop").resolve(strict=True))
-        examples = documented_examples(skill)
+        selected_cli = str(skill / "scripts" / "shiploop")
+        if not Path(selected_cli).is_file():
+            fail("selected package's exact ShipLoop CLI path is unavailable")
+        source_path = skill / "SKILL.md"
+        source_text = source_path.read_text(encoding="utf-8")
+        examples = documented_examples(skill, selected_cli)
+        repo = str(driver.repo)
         simple_request = "startup observer calibration"
-        rendered = {
-            kind: render_example(command, cli=cli, repo=str(driver.repo.resolve()), run_dir=run_dir,
-                                 request=simple_request)
-            for kind, command in examples.items()
+        rendered = {kind: render_example(command, repo=repo, run_dir=run_dir, request=simple_request)
+                    for kind, command in examples.items()}
+        report["selected_documentation"] = {
+            "path": str(source_path), "sha256": hashlib.sha256(source_text.encode("utf-8")).hexdigest(),
+            "commands": examples, "selected_cli_path": selected_cli,
+            "observer_head_policy": "preserve raw $CLI or selected literal head; no CLI substitution",
         }
+        report["documented_probe_ids"] = ["documented_workspace_start", "documented_init"]
         for probe_id, kind in (("documented_workspace_start", "workspace_start"),
                                ("documented_init", "init")):
-            session = "startup-" + probe_id
-            observer_probe(report, receipt, package, keepalive, host, session, rendered[kind], marker,
-                           {"bound": True, "bound_run_id_matches": True})
-            keepalive.session_end(host, {"session_id": session})
+            observer_probe(report, receipt, package, keepalive, host, probe_id, rendered[kind], marker,
+                           {"bound": True, "bound_run_id_matches": True},
+                           source_command=examples[kind])
 
-        for probe_id, style in (("literal_quote_single", "single"), ("literal_quote_double", "double")):
-            session = "startup-" + probe_id
-            command = render_example(examples["workspace_start"], cli=cli, repo=str(driver.repo.resolve()),
-                                     run_dir=run_dir, request=simple_request, cli_style=style)
-            observer_probe(report, receipt, package, keepalive, host, session, command, marker,
-                           {"bound": True, "bound_run_id_matches": True})
-            keepalive.session_end(host, {"session_id": session})
+        synthetic_source = Path(scratch.name) / "external-synthetic-card.md"
+        literal_start_single = (
+            f"python3 {shell_single(selected_cli)} workspace start --repo \"$REPO\" "
+            "--prompt='<user request>'")
+        literal_start_double = (
+            f"python3 {shell_double(selected_cli)} workspace start --repo \"$REPO\" "
+            "--prompt='<user request>'")
+        synthetic_text = (
+            "\x60\x60\x60sh\n" + literal_start_single + "\n\x60\x60\x60\n"
+            "\x60\x60\x60bash\n" + literal_start_double + "\n\x60\x60\x60\n")
+        synthetic_source.write_text(synthetic_text, encoding="utf-8")
+        literal_examples = startup_commands_from_text(synthetic_source.read_text(encoding="utf-8"), selected_cli)
+        if literal_examples != [("workspace_start", literal_start_single),
+                                ("workspace_start", literal_start_double)]:
+            fail("external synthetic literal-head card did not yield both raw quote forms")
+        report["synthetic_card"] = {
+            "source": "temporary external synthetic card text", "path": str(synthetic_source),
+            "sha256": hashlib.sha256(synthetic_source.read_bytes()).hexdigest(),
+            "commands": [command for _, command in literal_examples], "text": synthetic_text,
+        }
+        literal_commands: list[tuple[str, str]] = []
+        for index, (kind, source_command) in enumerate(literal_examples):
+            quote_style = _quoted_head(source_command)[2]
+            name = "single" if quote_style == "'" else "double"
+            probe_id = "literal_workspace_start_" + name
+            command = render_example(source_command, repo=repo, run_dir=run_dir,
+                                     request=simple_request)
+            observer_probe(report, receipt, package, keepalive, host, probe_id, command, marker,
+                           {"bound": True, "bound_run_id_matches": True},
+                           source_command=source_command)
+            literal_commands.append((kind, source_command))
 
-        # Restore the source's variable head for this negative control.
-        raw_variable = examples["workspace_start"].replace("--prompt='<user request>'",
-                                                            "--prompt='" + simple_request + "'", 1)
-        observer_probe(report, receipt, package, keepalive, host, "startup-variable-head",
-                       raw_variable, marker, {"bound": False})
+        variable_command = rendered["workspace_start"]
+        observer_probe(report, receipt, package, keepalive, host, "variable_head",
+                       variable_command, marker, {"bound": False},
+                       source_command=examples["workspace_start"])
 
         packet = shell_single(str(Path(run_dir) / "packets" / "next.md"))
-        read_packet = "cat " + packet
-        observer_probe(report, receipt, package, keepalive, host, "startup-read-packet",
-                       read_packet, marker, {"bound": False})
-        read_status = "python3 " + shell_double(cli) + " hook-status --run-dir " + shell_single(run_dir)
-        observer_probe(report, receipt, package, keepalive, host, "startup-read-status",
+        observer_probe(report, receipt, package, keepalive, host, "read_packet",
+                       "cat " + packet, marker, {"bound": False})
+        read_status = "python3 " + shell_double(selected_cli) + " hook-status --run-dir " + shell_single(run_dir)
+        observer_probe(report, receipt, package, keepalive, host, "read_status",
                        read_status, marker, {"bound": False})
 
         missing_dir = str(Path(scratch.name) / "missing-run")
-        missing_command = render_example(examples["init"], cli=cli, repo=str(driver.repo.resolve()),
-                                         run_dir=missing_dir, request=simple_request)
+        missing_command = render_example(literal_start_single, repo=repo, run_dir=missing_dir,
+                                         request=simple_request)
         missing_marker = _marker("missing-run-id", live.get("revision"), missing_dir)
-        observer_probe(report, receipt, package, keepalive, host, "startup-missing-state",
-                       missing_command, missing_marker, {"bound": False})
+        observer_probe(report, receipt, package, keepalive, host, "missing_state",
+                       missing_command, missing_marker, {"bound": False},
+                       source_command=literal_start_single)
 
         corrupt_dir = Path(scratch.name) / "corrupt-run"
         corrupt_dir.mkdir()
         (corrupt_dir / "state.md").write_text("not a ShipLoop state record\n", encoding="utf-8")
-        corrupt_command = render_example(examples["init"], cli=cli, repo=str(driver.repo.resolve()),
-                                         run_dir=str(corrupt_dir), request=simple_request)
+        corrupt_command = render_example(literal_start_single, repo=repo, run_dir=str(corrupt_dir),
+                                         request=simple_request)
         corrupt_marker = _marker("corrupt-run-id", live.get("revision"), str(corrupt_dir))
-        observer_probe(report, receipt, package, keepalive, host, "startup-corrupt-state",
-                       corrupt_command, corrupt_marker, {"bound": False})
+        observer_probe(report, receipt, package, keepalive, host, "corrupt_state",
+                       corrupt_command, corrupt_marker, {"bound": False},
+                       source_command=literal_start_single)
 
-        owner_session, foreign_session = "startup-owner", "startup-foreign-owner"
+        owner_session = "startup-owner"
+        foreign_session = "startup-foreign-owner"
         owner_probe_before = contract.tree_signature(package)
         if not keepalive.claim_owner(run_dir, host, owner_session):
             fail("temporary owner fixture could not claim its own run")
-        foreign_command = rendered["workspace_start"]
+        foreign_command = render_example(literal_start_single, repo=repo, run_dir=run_dir,
+                                         request=simple_request)
         foreign_binding = keepalive.observe(
             host, {"session_id": foreign_session, "tool_input": {"command": foreign_command},
                    "tool_response": marker})
@@ -314,18 +401,27 @@ def run_probe(invocation: dict[str, Any], package: Path, skill: Path, modules: d
         observed = {"decision": decision.get("decision"), "why": decision.get("why"),
                     "owner_preserved": owner_after == keepalive._owner_id(host, owner_session)}
         record(report, receipt, "foreign_owner", foreign_command,
-               {"decision": "allow", "owner_preserved": True}, observed, package, owner_probe_before)
+               {"decision": "allow", "owner_preserved": True}, observed, package, owner_probe_before,
+               source_command=literal_start_single)
         keepalive.session_end(host, {"session_id": foreign_session})
         keepalive.release_owner(run_dir, host, owner_session)
 
-        request = ("--option-like=value apostrophe's dollar$ grave" + chr(96) +
-                   " Unicode Ω\ninternal line\n")
-        _argv_examples(examples, Path(scratch.name), request, report, receipt, package)
-
+        _argv_examples(examples, literal_commands, selected_cli, Path(scratch.name),
+                       report, receipt, package)
         report["fixture"] = {"run_id_sha256": hashlib.sha256(str(live["run_id"]).encode()).hexdigest(),
                              "state": "synthetic active run in a temporary Git fixture",
                              "keepalive_home": "temporary isolated directory",
                              "no_callbacks": True}
+        controls = {
+            "literal_workspace_start_single", "literal_workspace_start_double", "variable_head",
+            "read_packet", "read_status", "missing_state", "corrupt_state", "foreign_owner",
+            "argv_documented_workspace_start", "argv_documented_init",
+            "argv_literal_single", "argv_literal_double",
+        }
+        rows = {row["id"]: row for row in report["probes"]}
+        report["calibration_verdict"] = (
+            "pass" if controls.issubset(rows) and all(rows[item]["status"] == "pass" for item in controls)
+            else "fail")
     finally:
         keepalive.home = original_home
         try:
@@ -340,11 +436,12 @@ def main() -> int:
     args = parser.parse_args()
     work = Path.cwd().resolve()
     report: dict[str, Any] = {
-        "schema": "shiploop-startup-contract/v1",
+        "schema": "shiploop-startup-contract/v2",
         "verdict": "unknown",
+        "calibration_verdict": "unknown",
         "work_cwd": str(work),
-        "scope": "selected-package documented startup capability; synthetic observer run and argv-only shell stub; "
-                 "not natural model behavior or product/cost qualification",
+        "scope": "selected-package documented startup capability; raw command heads reach the selected observer; "
+                 "temporary observer state and argv-only shell stub; not natural model behavior or product/cost qualification",
         "probes": [],
         "failure_or_unknown": None,
     }
@@ -372,8 +469,23 @@ def main() -> int:
         report["package_signature_after_sha256"] = after_signature
         if contract.runner_tree_digest(wanted) != identity["plugin_sha256"]:
             fail("selected package digest changed during the startup probe")
+        failed = [row["id"] for row in report["probes"] if row["status"] != "pass"]
+        if failed:
+            documented_failures = [probe_id for probe_id in report.get("documented_probe_ids", [])
+                                   if probe_id in failed]
+            if documented_failures:
+                report["failure_or_unknown"] = (
+                    "selected package documented startup commands did not bind through the observer: "
+                    + ", ".join(documented_failures)
+                )
+            else:
+                report["failure_or_unknown"] = "one or more startup contract probes failed: " + ", ".join(failed)
+            report["verdict"] = "fail"
+            print("FAIL: " + report["failure_or_unknown"] +
+                  f"; independent calibration {report['calibration_verdict']}")
+            return 1
         report["verdict"] = "pass"
-        print("PASS: documented startup forms preserve argv and bind through the selected observer")
+        print("PASS: selected package documented startup forms preserve argv and bind")
         return 0
     except ContractFailure as exc:
         report["failure_or_unknown"] = str(exc)
