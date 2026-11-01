@@ -278,7 +278,19 @@ release procedure in environment.md under the run's heading, so the first releas
   rest held: the duty edits pull too little, so the notice is the only lever left and its effect is P4's survival count.
 - Limits. Three chains per arm, one case pair, one host and model. The saved runs come from four engine states, so arm A is run again here and not borrowed. The
   candidate has not run live: B1's first pass is its first live use, and a breakage there is a finding, not an excuse.
-- Status: pending. The arms wait for E1 and for the other session's queue (its last run ends about 17:10).
+- Status: running, then held (an external scheduling pause, below). E2 started at 17:33:58, when E1 ended; its first case, `A1-ticket-assignment`, was running at 17:47.
+
+**An external scheduling pause (not part of any measurement).** At about 17:45 the owner chose, for the shared port-4180 lane, the test-writing pilots of another session
+(relayed from its Codex chat "Review ShipLoop E2E improvement loop"): finish the active case, dispatch nothing more, let that session's two pilots run, resume E2 after the
+second pilot case. Done at 17:47:28 by stopping only the E2 driver's shell while `A1-ticket-assignment` ran on untouched, so nothing is dispatched after it and the lease is
+free for the pilots the moment it ends. Builds, arm order, the bar, the predictions and the scoring are unchanged; a watcher resumes the driver, which skips every case that
+already has a result, once two pilot cases (lease holders named `ticket-tests-*` under that session's `model-runs` folder) have each held and released the lease and it has
+been free for two minutes. The pause moves wall-clock time only: pass 2 of a chain reads the folder pass 1 left, so the gap between `A1-ticket-assignment` and
+`A1-ticket-escalation` changes nothing they measure. The pause's start and end are recorded here when it lifts.
+
+**Main moved while E2 was being set up.** `origin/main` has since released skill-craft 2.27.1 and ShipLoop 1.26.1 (a fix in `shiploop_test_loop.py` that is unrelated to the
+knowledge home). Both arms run the 1.26.0 tree at `87d3da8e`, so the A/B is internally consistent; the candidate does not touch the files that release changed, but it must be
+rebased and its tier rerun on a quiet machine before any merge.
 
 **Before the first B run (17:36): what the finished third pass and a replay add. The bar and the predictions above are unchanged.** The E2 driver started arm A's
 first chain at 17:33:58, the moment E1 ended.
