@@ -794,3 +794,76 @@ remain open.
 
 Open (as of this round): M3 on the owner's own features (the demand question); U11 (entry-level agreement, now possible on 2 model-written entries that are alike); a recommended `gap` and the comparison with a hand-written
 request (the rest of M2a); the cosmetic double period with the next change to `request_text`; the multipass fix's release (the other session's, the owner's word); Cursor's refresh through its app (the owner's).
+
+## Round 7 — 2026-11-01 — the recommended gap, live on a primed request (design M2a, the second class)
+
+### Plan (written and committed before any live run; the result follows below it)
+
+What happened. After Round 6 (a recommended `decision`) the owner sent "Determine how to conclude, plan out, and implement." again (verbatim, 2026-11-01). I read it as a second pass of the same
+improvement prompt: decide what is still non-trivial for the follow-on feature, do what is mine and measurable, and say plainly what is left. What Round 6 left: M3 (the owner's real runs: not mine), U11
+(not worth a pass on four alike entries), the comparison with a hand-written request, a recommended `gap`, the cosmetic double period (F41), the multipass fix's release and Cursor's refresh. Two facts moved since:
+the multipass fix is released (skill-craft 2.31.0 / ShipLoop 1.30.0, release commit 5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a, whose CHANGELOG carries it together with the `init` guard), which closes Round 6's open
+item about its release and makes the design's D2 condition "merged" true; and the published build the hosts run is now 2.31.0, which changed the start route (the guard) and the stage packets (placement notices)
+since Round 6's 2.30.0. What is mine and measurable now is the recommended `gap`: Round 6 found that only a `gap` could ever run unattended (F39), and no live run has filed one.
+
+Question. When a real run leaves a request outcome unmet that needs no person's answer, does it file a `gap` that maps to the sentence of the request, and does a run started from that request deliver it
+unattended while keeping what already works? And does the list still behave on the newest published build?
+
+Why a primed request, and what it can show. As in Round 6: a natural gap is rare and the occasion is arranged, so the result is about the path and not its use. The request (`request.txt`) asks for the same slug
+tool plus an option `--max-length N`, and says to build only the basic tool in this run and leave the option for a later run "because I want to see the basic tool first", and that an unknown option is an error
+(exit 2) until then, which makes the deferral checkable. The deferred option is a request outcome left unmet that needs nobody's answer, which is the definition of a `gap`; a model might file it as an `extension`
+or a `note` instead, and which it picks is itself a finding about the class boundary.
+
+Conditions. Codex gpt-6.1-terra at xhigh, `--source marketplace`: the published build the hosts run (skill-craft 2.31.0 / ShipLoop 1.30.0, plugin cache 2.31.0 on this host). The harness allows it only when the
+launching checkout's HEAD is an ancestor of origin/main and no change note is pending, which holds now (origin/main bb5ea921 has no skill file that differs from the release and `changes/` holds only its README),
+so the cosmetic fix (F41) waits until the runs are done: a change note on main would make the harness refuse. Custom `--prompt` runs with `--check` commands (`launch.sh`), launched from a worktree at origin/main,
+outputs under `/Users/dadleet/e2e-runs/2026-11-01/follow-on-gap-d79bc3/`. Two link-1 replicates at once; then one link-2 run for every replicate whose accepted handoff recommended a run, started from that run's own
+`follow-on-request.md` in a copy of its checkout (`--continue-from`), with nobody answering anything. No fixed port. The machine's load average was 19, 10 and 7 over 1, 5 and 15 minutes when this was written, and
+other sessions' runs may overlap, so minutes are not comparable with Round 6's.
+
+The owner's hold on new live E2E cycles (d9fefb1144dea7f9a8d85b5897ad1275dbe08a07) concerns improvement cycles; these are verification runs of a shipped feature, which AGENTS.md lists as routine, as in Rounds 5
+and 6.
+
+Link-1 request (verbatim; `request.txt`):
+
+> Write slug.py, a small command-line tool: `python3 slug.py TITLE` prints TITLE as a URL slug on standard output and exits 0. Lowercase the letters, turn each run of spaces or punctuation into a single hyphen, and
+> drop hyphens from both ends, so "Hello, World!" gives hello-world and "  Many   spaces here " gives many-spaces-here. I also want an option `--max-length N` that cuts the slug to at most N characters without
+> leaving a hyphen at the end, so `python3 slug.py "Hello, World" --max-length 8` gives hello-wo and `--max-length 6` gives hello. Build only the basic tool in this run and leave `--max-length` for a later run,
+> because I want to see the basic tool first; until then the tool should treat any option it does not know as an error and exit with status 2. Add unit tests with unittest.
+
+Checks (shell commands in the run's folder; `calibrate_checks.py` ran them on three hand-written variants, 18 of 18 statuses as expected). Link 1: the two examples of the basic tool, the unit tests, and
+`--max-length 5` exits 2 (the deferral was respected). Link 2: the two basic examples, the unit tests, and the request's two examples of the option (`--max-length 8` gives hello-wo, `--max-length 6` gives hello).
+
+Instruments, before any run: `readout.py` was run on finished Round 6 folders of both kinds (a link-1 and a link-2 folder) and on an empty root; `check_printed_command.py` is the Round 6 instrument, reused from
+`docs/experiments/follow-on-recommended-run-20261101/` (it was calibrated on an adversarial request and used on four finished runs).
+
+Rules, fixed now:
+- R1. Link 1 holds. Both runs reach `done` with every verdict and the deferral is respected. A run that built the option anyway is reported as having ignored the request, and its list is still read.
+- R2. A recommended gap. At least one link-1 accepted handoff lists a `gap` (and not an `extension`, a `note` or a `decision`) whose `request_sentence` is the sentence of the request that asks for the option; its
+  request file and the report section exist, and the done packet and the report print the start command. The entry is read against its cited record. If the class is another one, the class boundary is the finding.
+- R3. The printed command works as printed: exit 0, a workspace record, the stored request equal to the file but for its last newline, no traceback.
+- R4. A run started from the gap's request delivers unattended. Each link-2 run reaches `done` with every verdict, including both `--max-length` examples and the basic checks. A failure is read before it is called
+  a defect of the request.
+- R5. Where it lands (descriptive): the files link 2 changed against link 1's head, whether the living knowledge files name the option as built, and what the tool does for the plain title, the two examples and an
+  unknown option.
+- R6. Its own list. Link 2's handoff is accepted on the first `complete`, and the gap is not filed again.
+
+Predictions (probability, written before any run):
+- P1. Both link-1 runs reach `done` with every verdict and the deferral respected (75%).
+- P2. At least one link-1 run files a `gap` (55%); both do (30%); otherwise the deferral is filed as an `extension` (30% of runs), a `note` (10%) or not at all (5%).
+- P3. A filed gap maps to the sentence that asks for the option (85%).
+- P4. R3 holds for every command tried (90%).
+- P5. Every link-2 run started reaches `done` with every verdict (80%).
+- P6. No link-2 run files the gap again (85%).
+- P7. Every link-2 run changes only `slug.py`, its tests, `README.md` and the living knowledge files (75%).
+- P8. No link-1 handoff is refused for a reason that names `follow_on` on the 2.31.0 build (85%).
+
+Decision rule. R2, R3 and R4 hold: both recommending classes have now run live; the design note records the gap path (an unattended delivery) as the close of M2a's mechanics; no code change and no release.
+A mechanical defect (the request cannot be started, the command misreads the text, a run started from the request is refused at intake, loses the finding, or files it again for a reason in the request's wording):
+fix it generically with the test first, release when preflight and CI pass (routine), and rerun the failed link. R2 fails (no `gap` in two runs): read what each filed and why; a further attempt only with a changed
+request written down first. After the round, the F41 fix lands with a change note and its test (unreleased until the next release).
+
+Not concluded whatever the numbers: two primed runs are a mechanics check, not a rate (M3) and not the value of a follow-on run (M2b); the comparison with a hand-written request on the same base is not run; one
+host, one model, one effort; U11 is not measured.
+
+Files: `docs/experiments/follow-on-recommended-gap-20261101/` (`request.txt`, `launch.sh`, `calibrate_checks.py`, `readout.py`, then the extracts and the README).

@@ -312,7 +312,10 @@ items of Rounds 4 and 6; this record. Evidence: `docs/experiments/release-smoke-
 ### The owner's, in order
 
 1. Install `skill-craft` in the Cursor app from the `whichguy` marketplace and remove the local 1.21.0 copy (F22).
-2. Read the first scheduled CI run on Monday 2026-11-02 after 14:23 UTC, or ask for a scheduled check to read it.
+2. The first scheduled CI run, Monday 2026-11-02 after 14:23 UTC. At the owner's word on 2026-11-01 ("Yes, schedule it") a
+   one-time, read-only Desktop task, `read-first-weekly-ci-run-2026-11-02` (the app's Scheduled list), is set for 08:30 PST that
+   day. It waits for the run and reports; it records nothing, so writing the observed half of F20 here still needs a session.
+   It runs while the app is open, or on the next launch.
 3. The 1.0 s progress-observer deadline (a limit) and the hook-cost split (F6), as before.
 
 ## Proposals as first written (2026-10-31; applied as Round 3)
