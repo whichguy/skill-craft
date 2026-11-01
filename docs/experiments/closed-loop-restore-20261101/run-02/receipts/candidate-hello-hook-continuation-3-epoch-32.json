@@ -1,0 +1,336 @@
+{
+  "review": {
+    "outcome": "The run delivered and returned the requested app, two passing tests and single checkpoint, successfully continuing the interrupted action, but retained stale knowledge and violated script-only progress reporting.",
+    "version": 2,
+    "learnings": [
+      {
+        "title": "Retain the observed same-action continuation",
+        "evidence": "S-1, S-2, S-10: events.jsonl:126-140 records one implementation-loop start, one exclusive-create product write, one checkpoint append, continuation, and completion against the same loop and action. The run trace records continuation at line 36 and implementation acceptance at line 38. result.json records one continuation and a completed delivery.",
+        "proposal": "Add this corroborating attempt to LR-20261101-58f651. Preserve the existing script-owned recovery mechanism; do not introduce another hook path or claim cold-context recovery from this warm-session observation.",
+        "files": [
+          "skills/shiploop/scripts/shiploop_keepalive.py",
+          "skills/shiploop/scripts/shiploop_navigator.py"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "The scripts determine the pending action and required callback; the model resumes only the work they identify."
+      }
+    ],
+    "missing_considerations": [
+      {
+        "title": "Reconcile verification claims when decisions remain unchanged",
+        "evidence": "S-11: delivered work/docs/shiploop/architecture.md:7 still says the product and hook sequence do not yet exist. environment.md:33 calls TC_1 the sole planned case, while lines 47 and 52 describe two cases and completed verification. The accepted document result says architecture needs no change because implementation matches AD-1 and AD-2; its Improve review reports no material documentation issue.",
+        "proposal": "Investigate refining the existing document reconciliation duty to examine changed verification status as well as changed architectural decisions. Update affected current sections from accepted evidence, preserving IDs, dated baseline facts and unresolved limits. Avoid blanket replacement of words such as planned or unverified.",
+        "files": [
+          "skills/shiploop/scripts/shiploop_stage_spec.py",
+          "skills/shiploop/references/project-knowledge.md"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "The existing document stage and review remain script-selected; the model supplies the scoped documentation judgment."
+      }
+    ],
+    "optimizations": [
+      {
+        "title": "Make progress instructions consistently script-owned",
+        "evidence": "S-15, S-3: events.jsonl:33,77,116,142,168,200,279 contain model-composed progress. At line 278 the script supplies the handoff narrative, but line 279 substitutes a composed update. metrics.json reports 19 of 20 narratives shown verbatim. SKILL.md:294-309 combines verbatim narrative instructions with instructions to tell the user a line and briefly report milestones.",
+        "proposal": "Clarify those existing instructions and the status-display reference so progress always uses the script-rendered text under its display rule. Preserve answers to user questions, artifact delivery information, host-displayed status and unchanged-status suppression. Add no reporting stage or counter.",
+        "files": [
+          "skills/shiploop/SKILL.md",
+          "skills/shiploop/references/status-display.md"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "Scripts continue to determine both progress state and its wording; the model only presents the designated text."
+      }
+    ],
+    "discoveries": [
+      {
+        "id": "D1",
+        "title": "Warm continuation preserved the unfinished action",
+        "evidence": [
+          {
+            "reference": "events.jsonl:126-140; .shiploop-runs/work-20261101-185925-58197e/run/trace.jsonl:36,38",
+            "observation": "The hook continued the existing implementation action, followed by verification and completion of the original loop without another product write or checkpoint append.",
+            "interpretation": "The restored mechanism handled this deliberate early final message while retaining script ownership."
+          },
+          {
+            "reference": "shiploop-hook-contract-receipt.json; sessions.jsonl",
+            "observation": "The separate selected-package fixture passed active-loop and terminal-loop completion checks; the live run used one session.",
+            "interpretation": "Fixture coverage and live active-loop recovery are useful but different evidence; neither establishes cold-context equivalence."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-2",
+          "relationship": "supports",
+          "challenge": "No amendment is proposed; this also supports S-1 and S-10 within the observed path."
+        },
+        "materiality": "minor",
+        "confidence": "high",
+        "potential_impact": "Preserving the mechanism prevents premature termination or replay of partial work on this exercised path.",
+        "alternatives": [
+          "The explicit checkpoint instruction and warm context may make this easier than an accidental interruption.",
+          "Terminal-loop recovery may behave differently with a live model than in the synthetic fixture."
+        ],
+        "next_experiment": "For the remaining live-coverage gap, interrupt after an inner loop becomes terminal but before its parent callback and verify exactly one original callback without replay. Treat that as narrow mechanism evidence; broader benefit requires the registered exposing-plus-generality comparison.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/scripts/shiploop_keepalive.py",
+          "skills/shiploop/scripts/shiploop_navigator.py"
+        ],
+        "proposal": "Attach this attempt to the existing candidate lesson and preserve its scope limits; do not create a duplicate implementation proposal.",
+        "implementation_eligible": false,
+        "proposed_disposition": "investigate",
+        "same_as": "LR-20261101-58f651"
+      },
+      {
+        "id": "D2",
+        "title": "Unchanged decisions concealed stale verification knowledge",
+        "evidence": [
+          {
+            "reference": "work/docs/shiploop/architecture.md:7; work/docs/shiploop/environment.md:33,47,52",
+            "observation": "The delivered living files retain pre-implementation claims alongside completed verification and a two-case suite.",
+            "interpretation": "A later reader must reconstruct which statements remain current."
+          },
+          {
+            "reference": ".shiploop-runs/work-20261101-185925-58197e/run/results/nav-f82ac7815cd24319994f01f845b6a7d0.md; run/improve/nav-f82ac7815cd24319994f01f845b6a7d0/evidence/01-review-1.md",
+            "observation": "The document result justifies no architecture change by unchanged decisions, and Improve accepts the documentation without edits.",
+            "interpretation": "The existing review may attend to decision changes while overlooking the transition from planned checks to observed evidence."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-11",
+          "relationship": "supports",
+          "challenge": "This is a missed existing knowledge-maintenance obligation, not a request for additional living files or stricter section-notice gates."
+        },
+        "materiality": "minor",
+        "confidence": "high",
+        "potential_impact": "Stale verification claims could cause unnecessary rediscovery or incorrect confidence in a subsequent run; this run's delivered behavior remained correct.",
+        "alternatives": [
+          "This may be a model oversight despite adequate existing guidance.",
+          "Some old statements may be intended as baseline history, but their scope and date are not clearly distinguished."
+        ],
+        "next_experiment": "Use a neutral document-stage fixture with unchanged decisions but newly observed checks, plus a genuinely unresolved boundary. Compare the existing duty with a targeted clarification; require current evidence to be reconciled while unresolved limits and stable IDs survive. A successful slice would still need full-run confirmation.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/scripts/shiploop_stage_spec.py",
+          "skills/shiploop/references/project-knowledge.md"
+        ],
+        "proposal": "Investigate a narrow refinement of the existing reconciliation duty before adding any new mechanism or checklist.",
+        "implementation_eligible": false,
+        "proposed_disposition": "investigate"
+      },
+      {
+        "id": "D3",
+        "title": "Progress guidance permits an ambiguous reporting choice",
+        "evidence": [
+          {
+            "reference": "events.jsonl:278-279; metrics.json:narrative",
+            "observation": "The handoff narrative was emitted but replaced by model-composed progress; nineteen other narratives were shown verbatim.",
+            "interpretation": "The execution departed from S-15 even though most milestones followed it."
+          },
+          {
+            "reference": "skills/shiploop/SKILL.md:294-309; skills/shiploop/references/status-display.md:348-350 in the supplied executed source",
+            "observation": "Verbatim narrative instructions coexist with less specific instructions to report milestones and provide one-line updates.",
+            "interpretation": "The wording offers an avoidable ambiguity, although this run does not establish that it caused the model's choice."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-15",
+          "relationship": "supports",
+          "challenge": "Align the cards with the existing script-rendered reporting obligation; do not authorize composed progress."
+        },
+        "materiality": "minor",
+        "confidence": "high",
+        "potential_impact": "Clearer instructions could prevent omitted narratives and redundant model narration without changing execution or review coverage.",
+        "alternatives": [
+          "Host-level communication instructions may have influenced the composed updates.",
+          "The model may have disregarded an otherwise sufficient packet instruction."
+        ],
+        "next_experiment": "Exercise neutral milestone and non-milestone packets with and without host-displayed status. Check exact presentation, no duplicate unchanged status, and continued ability to answer user questions. Confirm live adherence separately; claim no token or time gain from this run.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/SKILL.md",
+          "skills/shiploop/references/status-display.md"
+        ],
+        "proposal": "Replace the ambiguous progress wording with an explicit reference to the packet's script-rendered display rule, retaining its host-display and suppression behavior.",
+        "implementation_eligible": true,
+        "proposed_disposition": "implement"
+      },
+      {
+        "id": "D4",
+        "title": "The readable transcript merges distinct message phases",
+        "evidence": [
+          {
+            "reference": "transcript.md:123; events.jsonl:132-133",
+            "observation": "One readable say line joins the checkpoint message and subsequent continuation commentary, which are separate raw events.",
+            "interpretation": "A transcript-only reviewer could incorrectly conclude that the exact-message requirement failed."
+          },
+          {
+            "reference": "home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-13-01a1987a-e2d1-7393-b5a4-7e27b4222fcd.jsonl:379-388",
+            "observation": "The rollout labels the checkpoint as final_answer, records hook injection, and labels the next message commentary.",
+            "interpretation": "The underlying evidence resolves the apparent discrepancy; presentation should preserve that distinction."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-9",
+          "relationship": "supports",
+          "challenge": "This is an evaluator presentation issue affecting inspection of S-2 behavior, not a ShipLoop failure or proposed floor change."
+        },
+        "materiality": "minor",
+        "confidence": "high",
+        "potential_impact": "Preserving message boundaries would reduce false review findings about exact callbacks and premature-final behavior.",
+        "alternatives": [
+          "Keep the compact transcript but explicitly mark merged text and link each underlying event.",
+          "Render separate messages and show phase only where the host actually records it."
+        ],
+        "next_experiment": "Replay only this retained event sequence through the transcript renderer and require separate checkpoint and continuation messages, without inventing phase labels on hosts that omit them.",
+        "target": "harness",
+        "files": [],
+        "proposal": "Investigate preserving message boundaries and observed phases in readable exports as a separate evaluator change.",
+        "implementation_eligible": false,
+        "proposed_disposition": "investigate"
+      }
+    ],
+    "harness": {
+      "learning_retention": {
+        "answer": "Keep the existing append-only learning records and verbose operator-owned Git learning commits. No alternative state store is justified by this run.",
+        "proposals": [
+          "Record this attempt under LR-20261101-58f651 with candidate identity, raw hook evidence, actual measurements, contrary evidence and scope limits; keep admission, implementation and qualification statuses separate.",
+          "After reviewer and judge work ends, the authorized operator should record the learning commit and exact review/judge binding. That work remains pending in this read-only review.",
+          "Preserve raw events and rollout phases alongside the readable export; the latter loses a distinction needed to assess this probe."
+        ]
+      },
+      "further_learning": {
+        "answer": "Useful gaps remain in cold recovery, live terminal-loop continuation and the usability of delivered knowledge in a later run.",
+        "proposals": [
+          "Use S-6 stage-boundary and within-stage clear-context probes before claiming recovery equivalence or removing packet grounding.",
+          "Investigate A2's continued appearance as an open plan assumption despite later settlement evidence; distinguish historical declarations from current unresolved status without closing assumptions from model prose or criterion presence alone.",
+          "Inspect whether interpreter-written report plumbing is required by the interface or chosen by the host before proposing an S-4/S-5 mechanism change.",
+          "Keep one learning record per qualified candidate and exposing-plus-generality coverage, or explicitly narrow the claim; a successful replay alone cannot establish end-to-end benefit."
+        ]
+      },
+      "evaluation_criteria": {
+        "answer": "No new promotion floor is justified. Improve evidence interpretation and coverage within the existing clauses.",
+        "proposals": [
+          "Retain known S-11 and S-15 violations beside the passing delivery verdict instead of treating a green product as full conformance.",
+          "Resolve the recorded verification-reader disagreement of ten versus six commands and the unmapped step-proof evidence before using those diagnostics quantitatively; preserve unknowns meanwhile.",
+          "Report mutation coverage, served-model identity, dollar cost and cold-context recovery as unobserved where applicable; do not infer them from successful completion.",
+          "Treat transcript-rendering repairs as evaluator experiments with their own boundary, never as evidence of a ShipLoop gain."
+        ]
+      }
+    },
+    "process": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 335.7
+    },
+    "driver": {
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "effort": "xhigh"
+    },
+    "validity": {
+      "status": "valid",
+      "reason": null,
+      "discovery_qualified": true
+    },
+    "skill_source": {
+      "roots": [
+        "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/candidate-build/plugins/skill-craft/skills/shiploop"
+      ],
+      "basis": "the run's launch records",
+      "reason": null
+    },
+    "review_receipt": {
+      "stage_dir": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3/review-epoch-32",
+      "review_json": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3/review-epoch-32.json",
+      "review_markdown": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3/review-epoch-32.md"
+    },
+    "actionable": []
+  },
+  "judge": {
+    "review_sha256": "be9791aa26e21c29d17b2ce4ea9dc1ecae20e06be48bee457098f0c2e3cd3d81",
+    "assessments": [
+      {
+        "id": "D1",
+        "status": "supported",
+        "reason": "The live evidence confirms continuation of the same unfinished action without replaying its writes or restarting its loop. Confidence is high within this narrow observation; cold-context recovery and live terminal-loop recovery remain unobserved. Retention and further investigation are appropriate.",
+        "evidence": [
+          "events.jsonl:126-140 records one implementation-loop start, successful exclusive creation of hello.py, one checkpoint append, passing verification after continuation, and completion using the original loop state and action token.",
+          ".shiploop-runs/work-20261101-185925-58197e/run/trace.jsonl:36,38 records the hook continuing action nav-fbdaef8786a54572ba41e60fe9fb52b0 and subsequent acceptance of that same implementation action.",
+          "sessions.jsonl records one session; metrics.json records zero compactions. result.json records one hook continuation, completed delivery, two passing tests and a passing checkpoint check.",
+          "shiploop-hook-contract-receipt.json records passing active-loop and terminal-loop fixture phases with unchanged snapshots, while explicitly limiting its scope to a synthetic capability probe."
+        ],
+        "disposition": "investigate"
+      },
+      {
+        "id": "D2",
+        "status": "supported",
+        "reason": "The delivered knowledge contains directly verifiable contradictions, with minor impact on future readers. The unchanged-decisions rationale supports the proposed investigation, but does not establish that inadequate guidance caused the oversight: existing reconciliation guidance already addresses actual evidence.",
+        "evidence": [
+          "work/docs/shiploop/architecture.md:7 says the product and hook sequence do not yet exist, despite the delivered hello.py and recorded successful continuation.",
+          "work/docs/shiploop/environment.md:33 calls TC_1 the sole planned case; lines 47 and 52 describe two cases and completed verification. work/test_hello.py contains both cases.",
+          ".shiploop-runs/work-20261101-185925-58197e/run/results/nav-f82ac7815cd24319994f01f845b6a7d0.md:15-21 justifies leaving architecture unchanged because AD-1 and AD-2 still match.",
+          ".shiploop-runs/work-20261101-185925-58197e/run/improve/nav-f82ac7815cd24319994f01f845b6a7d0/evidence/01-review-1.md:6-10 reports no documentation issue or edits.",
+          "home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/references/project-knowledge.md:329-335,371-376 already distinguishes verification status and requires reconciliation with actual evidence."
+        ],
+        "disposition": "investigate"
+      },
+      {
+        "id": "D3",
+        "status": "supported",
+        "reason": "The omitted required narrative and competing reporting language support the narrow clarification under S-15. This is a minor but material progress-display conformance issue, eligible for implementation. The evidence does not establish that the ambiguous wording caused the omission or that clarification will improve live adherence.",
+        "evidence": [
+          "events.jsonl:278 explicitly requires displaying the handoff narrative unchanged; line 279 instead contains a composed progress update.",
+          "Independent comparison of narrative blocks against text events confirms metrics.json:narrative: 20 emitted, 19 shown verbatim, with the handoff narrative missing.",
+          "home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/SKILL.md:294-309 combines script-rendered display rules with instructions to tell the user a line and briefly report milestones.",
+          "home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/references/status-display.md:308-316 specifies exact presentation and host-display suppression, while lines 348-350 refer less specifically to owner updates. The clarification should preserve those display distinctions."
+        ],
+        "disposition": "implement"
+      },
+      {
+        "id": "D4",
+        "status": "supported",
+        "reason": "The readable export demonstrably merges distinct messages and hides their recorded phases. Confidence in the presentation defect is high; its impact is a minor risk of misinterpretation, not evidence that a reviewer actually made that mistake. This belongs to harness investigation.",
+        "evidence": [
+          "transcript.md:123 joins HOOK_CONTINUATION_CHECKPOINT and the subsequent continuation commentary into one say line.",
+          "events.jsonl:132-133 preserves those texts as two separate events.",
+          "home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-13-01a1987a-e2d1-7393-b5a4-7e27b4222fcd.jsonl:379-388 records the exact checkpoint as final_answer, then hook injection, then a distinct commentary message."
+        ],
+        "disposition": "investigate"
+      }
+    ],
+    "process": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 157.7
+    },
+    "validity": {
+      "status": "invalid",
+      "reason": "the judge response is invalid: assessments[2] implements a finding that is not supported, material and eligible"
+    },
+    "driver": {
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "effort": "xhigh"
+    },
+    "admitted": {
+      "implementation": [],
+      "owner_challenges": [],
+      "harness": []
+    },
+    "judge_receipt": {
+      "stage_dir": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3/review-judge-epoch-32",
+      "prompt": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3/review-judge-epoch-32/prompt.txt",
+      "events": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3/review-judge-epoch-32/events.jsonl",
+      "stderr": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3/review-judge-epoch-32/stderr.txt",
+      "verdict": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-3/review-judge-epoch-32/verdict.json"
+    }
+  },
+  "routes": {
+    "implementation": [],
+    "owner_challenges": [],
+    "harness": []
+  }
+}

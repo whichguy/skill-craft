@@ -1,0 +1,394 @@
+{
+  "review": {
+    "outcome": "The checkout candidate delivered and committed the requested application, passing unittest and single checkpoint, with successful same-action continuation but several minor workflow conformance defects.",
+    "version": 2,
+    "learnings": [
+      {
+        "title": "Reconcile progress instructions with script-rendered narratives",
+        "evidence": "S-3 and S-15: metrics.json.narrative records 20 emitted narratives, one shown verbatim and 22/23 results with headlines. Transcript lines 20, 35, 64, 146, 224 and 292 contain composed summaries. SKILL.md:294-301 and 396-400 and references/navigator.md:576-588 instruct one-line reporting or non-reprinting, conflicting with references/status-display.md:310-313, which requires verbatim relay on Codex.",
+        "proposal": "Remove the conflicting progress directions from the skill and navigator card. Make the script's existing display instruction authoritative: relay its narrative unchanged where required, and avoid duplicating hook-rendered or unchanged status. Preserve S-6 packet grounding and S-16 terminology. Validate both display surfaces with neutral fixtures before live qualification.",
+        "files": [
+          "skills/shiploop/SKILL.md",
+          "skills/shiploop/references/navigator.md",
+          "test/shiploop-status-display.test.py",
+          "test/shiploop-narrative.test.py"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "The scripts continue to determine progress and its wording; the model only relays their output."
+      }
+    ],
+    "missing_considerations": [
+      {
+        "title": "Reconcile provisional knowledge before final delivery",
+        "evidence": "S-11: delivered work/docs/shiploop/spec.md:6 and 11 still mark implementation and verification pending; architecture.md:24 says system and delivery verification remain due despite completed script checks. environment.md:22 says separate test IDs are unnecessary although test_hello.py:11 declares TC_1, and Commands appears four times. Structural retention succeeded; no follow-on demonstrated a resulting failure.",
+        "proposal": "Investigate whether the existing final knowledge review should explicitly reconcile provisional statements and test conventions against accepted evidence, updating their existing sections. Preserve genuinely unresolved boundaries and stable IDs. First replay a neutral knowledge close containing both settled and still-open checks; then test a follow-on reader. Do not turn placement diagnostics into automatic verdicts.",
+        "files": [
+          "skills/shiploop/references/project-knowledge.md",
+          "skills/shiploop/scripts/shiploop_stage_spec.py",
+          "test/shiploop-knowledge.test.py"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "Knowledge reconciliation remains a stage duty governed by script-owned acceptance and recorded checks; prose cannot manufacture completion."
+      }
+    ],
+    "optimizations": [
+      {
+        "title": "Print executable commands for inner-loop reporting and recovery",
+        "evidence": "S-4 and S-5: the loop-start output at events.jsonl:154 supplies argv arrays without a shell-ready completion command. shiploop_loops.py:497-512 and 564-609 direct the model to use those arrays. Thirteen calls, including events 80, 148, 167 and 287, load receipts and dispatch subprocess.run with next_argv or done_argv. This is mechanical dispatch beyond supplying judgment fields. Improve already prints directly executable completion commands, and shiploop_navigator.py:7705 renders validated argv for the hook.",
+        "proposal": "Investigate reusing the existing validated command-rendering mechanism at the ShipLoop inner-loop boundary. Supply exact recovery and reporting commands while preserving the runtime's report schema, truthful assessments, receipt validation and separate parent callback. Start with neutral active and terminal fixtures, including quoted paths and invalid reports. Measure full-run savings only after qualification; this attempt had no callback refusals.",
+        "files": [
+          "skills/shiploop/scripts/shiploop_loops.py",
+          "skills/shiploop/scripts/shiploop_navigator.py",
+          "test/shiploop-loops.test.py"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "Scripts derive the permitted operation and its arguments. The model supplies judgments without selecting graph transitions or rewriting state."
+      }
+    ],
+    "discoveries": [
+      {
+        "id": "D-PROGRESS-INSTRUCTION-CONFLICT",
+        "title": "Contradictory cards accompany skipped script narratives",
+        "evidence": [
+          {
+            "reference": "metrics.json:narrative; transcript.md:20,35,64,146,224,292",
+            "observation": "Only one of twenty emitted narratives was relayed verbatim; the subject repeatedly composed progress summaries.",
+            "interpretation": "The passing product verdict does not establish S-15 conformance. The summaries appear accurate here, so no delivery failure is inferred."
+          },
+          {
+            "reference": "skills/shiploop/SKILL.md:294-301,396-400; references/navigator.md:576-588; references/status-display.md:310-313",
+            "observation": "The cards contain conflicting instructions about verbatim relay, non-reprinting and one-line summaries.",
+            "interpretation": "The instruction conflict is a concrete S-3 defect and a plausible contributor to the observed behavior."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-15",
+          "relationship": "supports",
+          "challenge": "No amendment is proposed; reconcile the cards with the existing script-authoritative display contract, also preserving S-3."
+        },
+        "materiality": "minor",
+        "confidence": "high",
+        "potential_impact": "More reliable owner-visible progress, with the output-token cost already required by S-15.",
+        "alternatives": [
+          "Host instructions encouraging frequent prose updates may also explain the behavior.",
+          "The subject may have ignored the packet even without contradictory card text."
+        ],
+        "next_experiment": "Replay one neutral milestone on a hook-rendered surface and a relay surface; require exactly the appropriate display once. Then qualify the isolated wording change through the exposing case and another style, or state a narrower claim.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/SKILL.md",
+          "skills/shiploop/references/navigator.md",
+          "test/shiploop-status-display.test.py",
+          "test/shiploop-narrative.test.py"
+        ],
+        "proposal": "Implement a focused reconciliation of conflicting progress instructions, retaining script wording, host-specific relay and deduplication.",
+        "implementation_eligible": true,
+        "proposed_disposition": "implement"
+      },
+      {
+        "id": "D-INNER-LOOP-DISPATCH",
+        "title": "Ordinary loop packets require glue that Improve already avoids",
+        "evidence": [
+          {
+            "reference": "events.jsonl:154,167; skills/shiploop/scripts/shiploop_loops.py:497-512,564-609",
+            "observation": "The model receives argv arrays and constructs receipt-reading subprocess wrappers to execute them.",
+            "interpretation": "S-4/S-5 are unmet at this interchange even though model_glue is empty; the specification already documents detector blind spots."
+          },
+          {
+            "reference": "skills/shiploop/scripts/shiploop_navigator.py:7705,9489",
+            "observation": "The hook and Improve route already render exact completion commands.",
+            "interpretation": "An existing mechanism may support a smaller correction than a new reporting protocol, preserving S-12."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-4",
+          "relationship": "supports",
+          "challenge": "No clause change is needed. S-5 and S-12 require removing dispatch assembly without duplicating validation or changing runtime ownership."
+        },
+        "materiality": "minor",
+        "confidence": "high",
+        "potential_impact": "Less model-authored dispatch code and fewer opportunities for quoting or stale-action errors; actual cost and reliability gains remain unmeasured.",
+        "alternatives": [
+          "The model could manually translate argv arrays, but that still requires assembly.",
+          "A ShipLoop adapter could render commands, provided it reuses existing validation and leaves the selected runtime unchanged."
+        ],
+        "next_experiment": "Use a neutral active-loop fixture with spaces and shell metacharacters in paths. Verify that printed commands preserve arguments and action identity, reject invalid reports and require no receipt-parsing code. A replay establishes only this mechanism, not E2E benefit.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/scripts/shiploop_loops.py",
+          "skills/shiploop/scripts/shiploop_navigator.py",
+          "test/shiploop-loops.test.py"
+        ],
+        "proposal": "Investigate one shared command-rendering integration before choosing an implementation; preserve all report and callback gates.",
+        "implementation_eligible": false,
+        "proposed_disposition": "investigate"
+      },
+      {
+        "id": "D-LIVE-CONTINUATION-EVIDENCE",
+        "title": "Live continuation requires evidence outside the automated case checks",
+        "evidence": [
+          {
+            "reference": "home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-11-01a1987a-db06-7b12-9662-579e2cfd41b9.jsonl:391,394; events.jsonl:155-169",
+            "observation": "The raw rollout identifies the premature final and injected hook continuation. Subsequent events show completion of the same action without repeating its writes.",
+            "interpretation": "This run satisfies the live sequence on inspection, corroborating the existing recovery learning."
+          },
+          {
+            "reference": "transcript.md:134; shiploop-hook-contract-receipt.json:scope; test/shiploop_e2e/checks/shiploop_hook_contract.py:419-459; test/shiploop_e2e/scorecard.py:277-301",
+            "observation": "The readable transcript merges the checkpoint and later commentary. Normalized text events omit channel information. The contract check explicitly tests synthetic fixture mechanics; the other checks verify application behavior and final checkpoint bytes.",
+            "interpretation": "The scripted accuracy result alone cannot establish that the live interruption, continuation and no-replay sequence occurred. A run omitting that sequence might still pass these checks; that false-positive hypothesis needs calibration."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-9",
+          "relationship": "supports",
+          "challenge": "The evaluator needs discriminating evidence for the requested S-2 behavior. This does not invalidate the successful sequence observed here or authorize changing frozen verdicts."
+        },
+        "materiality": "material",
+        "confidence": "medium",
+        "potential_impact": "Automated qualification could credit an unexercised live recovery behavior, overstating the engine's supported capability.",
+        "alternatives": [
+          "Retain explicit manual raw-rollout inspection and label the automated check as package mechanics only.",
+          "Add a calibrated case-adapter check for the live sequence while preserving raw host evidence."
+        ],
+        "next_experiment": "In a separate evaluator experiment, test preserved event fixtures with the final omitted, moved to commentary, followed by a loop restart, or accompanied by a repeated write later erased. Include this valid trace and incomplete evidence controls. Require known violations to fail and missing evidence to remain unknown.",
+        "target": "harness",
+        "files": [
+          "test/shiploop_e2e/cases.json",
+          "test/shiploop_e2e/checks/shiploop_hook_contract.py"
+        ],
+        "proposal": "Investigate a separately labeled live-sequence check and preservation of channel/hook boundaries. Freeze any evaluator change between comparisons; do not bundle it with a ShipLoop candidate.",
+        "implementation_eligible": false,
+        "proposed_disposition": "investigate"
+      }
+    ],
+    "harness": {
+      "learning_retention": {
+        "answer": "Keep the append-only ledger and verbose learning commits. This run adds corroborating recovery evidence, not a new hook design or promotion decision.",
+        "proposals": [
+          "Attach successful same-action continuation and its coverage limits to LR-20261101-58f651, referencing the earlier LR-20261030-5dce01 decision.",
+          "Retain raw Codex rollout evidence or an equivalent sealed channel-preserving extract before disposing of home; events.jsonl and transcript.md alone lose the relevant boundary.",
+          "Have the authorized operator record the learning commit and obtain a fresh judge assessment bound to this review's exact bytes; both remain pending in this read-only review."
+        ]
+      },
+      "further_learning": {
+        "answer": "The most useful additional coverage is repeated live interruption and genuine context loss, followed by a contrasting task style.",
+        "proposals": [
+          "Exercise repeated premature endings at unchanged progress and the terminal-loop-to-parent-callback boundary, preserving explicit stop and blocked controls under S-2, S-10 and S-14.",
+          "Probe context loss inside a stage and at a stage boundary under S-6; measure rereads and repeated writes without assuming receipt continuity proves no replay.",
+          "Use a file-processing or stateful-service case for S-8/S-13 generality, with one learning record per candidate and prospective promotion/5 registration."
+        ]
+      },
+      "evaluation_criteria": {
+        "answer": "Calibrate evidence for the existing live recovery obligation; do not add generic thresholds for reviews, packet size, planning time or knowledge placement.",
+        "proposals": [
+          "Separate live model behavior, installed-package fixture mechanics and product correctness in reported qualification scope under S-2 and S-9.",
+          "Keep the 8-versus-6 verification-reader discrepancy and unrecognized step-proof mapping explicitly unmeasured until a separate evaluator repair reconciles them under S-9 and S-12.",
+          "Treat empty glue detectors, no applicable mutants and absent fresh starts as bounded observations, not conformance passes.",
+          "Preserve the recorded run verdict and require a new frozen comparison for any changed evaluator."
+        ]
+      }
+    },
+    "process": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 365.5
+    },
+    "driver": {
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "effort": "xhigh"
+    },
+    "validity": {
+      "status": "valid",
+      "reason": null,
+      "discovery_qualified": true
+    },
+    "skill_source": {
+      "roots": [
+        "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/candidate-build/plugins/skill-craft/skills/shiploop"
+      ],
+      "basis": "the run's launch records",
+      "reason": null
+    },
+    "review_receipt": {
+      "stage_dir": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2/review-epoch-35",
+      "review_json": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2/review-epoch-35.json",
+      "review_markdown": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2/review-epoch-35.md"
+    },
+    "actionable": []
+  },
+  "judge": {
+    "review_sha256": "efd56c68dd8e65168f84021a05436ed9c5cc0480dc4793b38db8e2b3b6c43b4d",
+    "assessments": [
+      {
+        "id": "D-PROGRESS-INSTRUCTION-CONFLICT",
+        "status": "supported",
+        "reason": "High-confidence, minor S-3/S-15 conformance defect. Conflicting guidance and skipped narratives are independently confirmed; causation and delivery harm are not established. Minor materiality excludes implementation under this review's gate.",
+        "evidence": [
+          "events.jsonl: independently counted 20 emitted narrative blocks and one verbatim assistant relay, matching metrics.json:narrative. Events 27-28 directly show a required narrative replaced by composed prose.",
+          "home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/SKILL.md:294-301,396-400 and references/navigator.md:576-588 prescribe one-line reporting or non-reprinting, conflicting with references/status-display.md:310-313 and the packets' explicit relay instruction.",
+          "result.json: product checks passed; these checks do not establish narrative conformance."
+        ],
+        "disposition": "defer"
+      },
+      {
+        "id": "D-INNER-LOOP-DISPATCH",
+        "status": "supported",
+        "reason": "High-confidence, minor interface gap aligned with S-4/S-5. Ordinary loop output requires mechanical dispatch assembly. Existing command rendering supports investigating reuse, but implementation design and cost or reliability benefits remain unverified.",
+        "evidence": [
+          "events.jsonl:154 supplies next_argv and done_argv arrays; event 167 reads the receipt and executes done_argv through a model-authored subprocess wrapper. Thirteen such dispatch calls occur across the run.",
+          "home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/scripts/shiploop_loops.py:497-512,564-609 directs execution of argv arrays without rendering equivalent completion commands.",
+          "home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/scripts/shiploop_navigator.py:7691-7705 validates and renders the hook command; lines 9487-9489 print Improve's executable completion command.",
+          "metrics.json:model_glue is empty despite the directly observed wrappers; it cannot establish interface conformance."
+        ],
+        "disposition": "investigate"
+      },
+      {
+        "id": "D-LIVE-CONTINUATION-EVIDENCE",
+        "status": "supported",
+        "reason": "The live sequence and automated coverage limitation are supported. Potential qualification impact is material, while the proposed false-positive scenarios remain uncalibrated. This warrants a separate harness investigation, not a ShipLoop implementation or revision of the recorded verdict.",
+        "evidence": [
+          "home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-11-01a1987a-db06-7b12-9662-579e2cfd41b9.jsonl:390-395 records the exact checkpoint with phase final_answer followed by the injected hook continuation for the pending implementation action.",
+          "events.jsonl:153-170 shows one loop start, the product write and checkpoint append, then proof, lint, completion of the same loop iteration and its parent callback without repeating those writes.",
+          "transcript.md:134 merges checkpoint and subsequent commentary; events.jsonl:157-158 retains separate text events but omits their channel and hook boundary.",
+          "shiploop-hook-contract-receipt.json:scope explicitly limits the passing probe to synthetic fixture mechanics. result.json:checks otherwise verifies application behavior, unittest success and final checkpoint bytes, without checking the live interruption sequence."
+        ],
+        "disposition": "investigate"
+      }
+    ],
+    "process": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 134.3
+    },
+    "validity": {
+      "status": "valid",
+      "reason": null
+    },
+    "driver": {
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "effort": "xhigh"
+    },
+    "admitted": {
+      "implementation": [],
+      "owner_challenges": [],
+      "harness": [
+        {
+          "id": "D-LIVE-CONTINUATION-EVIDENCE",
+          "title": "Live continuation requires evidence outside the automated case checks",
+          "evidence": [
+            {
+              "reference": "home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-11-01a1987a-db06-7b12-9662-579e2cfd41b9.jsonl:391,394; events.jsonl:155-169",
+              "observation": "The raw rollout identifies the premature final and injected hook continuation. Subsequent events show completion of the same action without repeating its writes.",
+              "interpretation": "This run satisfies the live sequence on inspection, corroborating the existing recovery learning."
+            },
+            {
+              "reference": "transcript.md:134; shiploop-hook-contract-receipt.json:scope; test/shiploop_e2e/checks/shiploop_hook_contract.py:419-459; test/shiploop_e2e/scorecard.py:277-301",
+              "observation": "The readable transcript merges the checkpoint and later commentary. Normalized text events omit channel information. The contract check explicitly tests synthetic fixture mechanics; the other checks verify application behavior and final checkpoint bytes.",
+              "interpretation": "The scripted accuracy result alone cannot establish that the live interruption, continuation and no-replay sequence occurred. A run omitting that sequence might still pass these checks; that false-positive hypothesis needs calibration."
+            }
+          ],
+          "mission_anchor": {
+            "clause_id": "S-9",
+            "relationship": "supports",
+            "challenge": "The evaluator needs discriminating evidence for the requested S-2 behavior. This does not invalidate the successful sequence observed here or authorize changing frozen verdicts."
+          },
+          "materiality": "material",
+          "confidence": "medium",
+          "potential_impact": "Automated qualification could credit an unexercised live recovery behavior, overstating the engine's supported capability.",
+          "alternatives": [
+            "Retain explicit manual raw-rollout inspection and label the automated check as package mechanics only.",
+            "Add a calibrated case-adapter check for the live sequence while preserving raw host evidence."
+          ],
+          "next_experiment": "In a separate evaluator experiment, test preserved event fixtures with the final omitted, moved to commentary, followed by a loop restart, or accompanied by a repeated write later erased. Include this valid trace and incomplete evidence controls. Require known violations to fail and missing evidence to remain unknown.",
+          "target": "harness",
+          "files": [
+            "test/shiploop_e2e/cases.json",
+            "test/shiploop_e2e/checks/shiploop_hook_contract.py"
+          ],
+          "proposal": "Investigate a separately labeled live-sequence check and preservation of channel/hook boundaries. Freeze any evaluator change between comparisons; do not bundle it with a ShipLoop candidate.",
+          "implementation_eligible": false,
+          "proposed_disposition": "investigate",
+          "judge_assessment": {
+            "id": "D-LIVE-CONTINUATION-EVIDENCE",
+            "status": "supported",
+            "reason": "The live sequence and automated coverage limitation are supported. Potential qualification impact is material, while the proposed false-positive scenarios remain uncalibrated. This warrants a separate harness investigation, not a ShipLoop implementation or revision of the recorded verdict.",
+            "evidence": [
+              "home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-11-01a1987a-db06-7b12-9662-579e2cfd41b9.jsonl:390-395 records the exact checkpoint with phase final_answer followed by the injected hook continuation for the pending implementation action.",
+              "events.jsonl:153-170 shows one loop start, the product write and checkpoint append, then proof, lint, completion of the same loop iteration and its parent callback without repeating those writes.",
+              "transcript.md:134 merges checkpoint and subsequent commentary; events.jsonl:157-158 retains separate text events but omits their channel and hook boundary.",
+              "shiploop-hook-contract-receipt.json:scope explicitly limits the passing probe to synthetic fixture mechanics. result.json:checks otherwise verifies application behavior, unittest success and final checkpoint bytes, without checking the live interruption sequence."
+            ],
+            "disposition": "investigate"
+          }
+        }
+      ]
+    },
+    "judge_receipt": {
+      "stage_dir": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2/review-judge-epoch-35",
+      "prompt": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2/review-judge-epoch-35/prompt.txt",
+      "events": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2/review-judge-epoch-35/events.jsonl",
+      "stderr": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2/review-judge-epoch-35/stderr.txt",
+      "verdict": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2/review-judge-epoch-35/verdict.json"
+    }
+  },
+  "routes": {
+    "implementation": [],
+    "owner_challenges": [],
+    "harness": [
+      {
+        "id": "D-LIVE-CONTINUATION-EVIDENCE",
+        "title": "Live continuation requires evidence outside the automated case checks",
+        "evidence": [
+          {
+            "reference": "home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-11-01a1987a-db06-7b12-9662-579e2cfd41b9.jsonl:391,394; events.jsonl:155-169",
+            "observation": "The raw rollout identifies the premature final and injected hook continuation. Subsequent events show completion of the same action without repeating its writes.",
+            "interpretation": "This run satisfies the live sequence on inspection, corroborating the existing recovery learning."
+          },
+          {
+            "reference": "transcript.md:134; shiploop-hook-contract-receipt.json:scope; test/shiploop_e2e/checks/shiploop_hook_contract.py:419-459; test/shiploop_e2e/scorecard.py:277-301",
+            "observation": "The readable transcript merges the checkpoint and later commentary. Normalized text events omit channel information. The contract check explicitly tests synthetic fixture mechanics; the other checks verify application behavior and final checkpoint bytes.",
+            "interpretation": "The scripted accuracy result alone cannot establish that the live interruption, continuation and no-replay sequence occurred. A run omitting that sequence might still pass these checks; that false-positive hypothesis needs calibration."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-9",
+          "relationship": "supports",
+          "challenge": "The evaluator needs discriminating evidence for the requested S-2 behavior. This does not invalidate the successful sequence observed here or authorize changing frozen verdicts."
+        },
+        "materiality": "material",
+        "confidence": "medium",
+        "potential_impact": "Automated qualification could credit an unexercised live recovery behavior, overstating the engine's supported capability.",
+        "alternatives": [
+          "Retain explicit manual raw-rollout inspection and label the automated check as package mechanics only.",
+          "Add a calibrated case-adapter check for the live sequence while preserving raw host evidence."
+        ],
+        "next_experiment": "In a separate evaluator experiment, test preserved event fixtures with the final omitted, moved to commentary, followed by a loop restart, or accompanied by a repeated write later erased. Include this valid trace and incomplete evidence controls. Require known violations to fail and missing evidence to remain unknown.",
+        "target": "harness",
+        "files": [
+          "test/shiploop_e2e/cases.json",
+          "test/shiploop_e2e/checks/shiploop_hook_contract.py"
+        ],
+        "proposal": "Investigate a separately labeled live-sequence check and preservation of channel/hook boundaries. Freeze any evaluator change between comparisons; do not bundle it with a ShipLoop candidate.",
+        "implementation_eligible": false,
+        "proposed_disposition": "investigate",
+        "judge_assessment": {
+          "id": "D-LIVE-CONTINUATION-EVIDENCE",
+          "status": "supported",
+          "reason": "The live sequence and automated coverage limitation are supported. Potential qualification impact is material, while the proposed false-positive scenarios remain uncalibrated. This warrants a separate harness investigation, not a ShipLoop implementation or revision of the recorded verdict.",
+          "evidence": [
+            "home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-11-01a1987a-db06-7b12-9662-579e2cfd41b9.jsonl:390-395 records the exact checkpoint with phase final_answer followed by the injected hook continuation for the pending implementation action.",
+            "events.jsonl:153-170 shows one loop start, the product write and checkpoint append, then proof, lint, completion of the same loop iteration and its parent callback without repeating those writes.",
+            "transcript.md:134 merges checkpoint and subsequent commentary; events.jsonl:157-158 retains separate text events but omits their channel and hook boundary.",
+            "shiploop-hook-contract-receipt.json:scope explicitly limits the passing probe to synthetic fixture mechanics. result.json:checks otherwise verifies application behavior, unittest success and final checkpoint bytes, without checking the live interruption sequence."
+          ],
+          "disposition": "investigate"
+        }
+      }
+    ]
+  }
+}
