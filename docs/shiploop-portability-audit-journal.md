@@ -140,6 +140,53 @@ broke four pinned selection expectations, because a suite that imports the catal
 the suite is therefore not in the quick baseline, imports no catalog, and is still selected by a change to any file its
 source names (`shiploop_pyfloor.py`, the hook entries, `SKILL.md`, `ci.yml`).
 
+## Round 4 — learnings and what is left (2026-11-01)
+
+Asked by the owner on 2026-11-01 ("Commit and merge everything to main and publish. Determine any learnings and things we
+need to improve. I want to expose this through our marketplace"). Before publishing, the two Round 3 commits were rebased
+onto `origin/main` (26 new commits, none touching `skills/`, `agents/`, `changes/`, `catalog/`, `.github/`,
+`test/suite_catalog.py`, `test/ci_policy.py` or `test/test-groups.test.py`; they changed only docs, E2E-apparatus files
+and six test files), so the hashes of both commits changed.
+
+### Learnings
+
+| # | Learning | Status | Evidence |
+|---|----------|--------|----------|
+| L1 | Shipping executable scripts through the marketplace is not what makes ShipLoop non-portable. The released tree arrives intact (installed copy identical to the source, execute bits kept); what varies is the machine's interpreter and whether the plugin's hooks tolerate its absence | firm | Round 1 |
+| L2 | The two execution channels fail differently, and that decides the rule. The CLI the model runs fails once, visibly, with a named cause. A plugin hook fires on every Bash call in every project where the plugin is enabled, whether or not ShipLoop is in use, so a hook that errors is a cost to people who never asked for ShipLoop. The rule: **a plugin hook never fails the host's tool call** (no `python3` or too old: exit 0, silent), and the visible failure is kept for the explicit CLI path. `shiploop-status-hook` already followed it; four of five entries did not | firm | F4, Round 3 Debian 10 check |
+| L3 | A prerequisite that is not declared is not tested. CI ran `python-version: '3.x'` with `check-latest` on one OS, so the floor existed only by accident (`os.PathLike[str]`, `str.removeprefix`). A floor needs three things together: a number in the card, a runtime check that names the number, and a CI leg that fails when the code crosses it. Any one alone drifts | firm | F5; `test/shiploop-python-floor.test.py` pins the card and `ci.yml` to the same number |
+| L4 | The test harness had a higher floor than the product (`run_suites.py` needed 3.10's `ignore_cleanup_errors`), so the product's floor could not be tested at all until the harness was lowered. Check the harness's own floor before claiming a product floor is tested | firm | Round 2, `_scratch_directory` |
+| L5 | Two tests were coupled to an implementation detail the host never depends on: `shiploop-skill-calls` ran hook entries as `[sys.executable, entry]`, which breaks the moment an entry is a shell wrapper, and `shiploop-callback-contract` asserted the JSON parser's wording from Python 3.13. Run an entry as a program, the way a host does, and compute any interpreter-worded text instead of copying it | firm | Round 3 |
+| L6 | Quoting a commit's full hash in the next commit's message goes stale when the pair is rebased. It happened twice in this one change (a short hash in Round 3, the full hash of the first commit here). After any rebase, `git grep` the tree and `grep` the message for the old hashes before the push | firm | the pair was rebased twice before publication (onto 26, then 2 more upstream commits); the first commit's hash changed each time and the second commit's message cited it |
+
+### What is left, ranked by gain
+
+1. **The CI leg has not run on GitHub.** Locally the group ran through the real runner on 3.9.6 before the rebase; it is
+   re-run on the rebased tree before the release (result in the next section). The first push to `main` is the first
+   real proof, and it should be read once, not assumed.
+2. **The floor is enforced only in the full tier.** A change that needs newer syntax fails in the post-merge full run, not
+   in the quick tier a push gets. Cheap candidate: put `shiploop-python-floor` plus an import of every `shiploop_*` module
+   under 3.9 in the quick tier. Not done: it is a CI-policy trade-off (cost on every push against catching a break
+   earlier), and no break has yet reached `main` that it would have caught.
+3. **Eight E2E-apparatus suites fail on 3.9 with "write to closed file", unexplained.** The apparatus is declared 3.10+, so
+   they are out of the job, but a failure that is not a 3.10 API may be a real defect that only shows up there. Worth one
+   short investigation before the declaration is relied on.
+4. **No live-model first run from a machine with nothing installed.** The marketplace lifecycle is covered
+   (`docs/marketplace-e2e-testing.md`), and the clean-room probes here ran the CLI and hooks, not a model session. Run the
+   marketplace lifecycle once from the published release, after the host refresh.
+5. **Hook cost and plugin-wide scope (F6) remain.** 45–60 ms per Bash call for every user of the plugin, ShipLoop or not.
+   Splitting the hooks into a ShipLoop-only plugin would change the one-namespace decision, so it is the owner's call and
+   is not proposed here.
+6. **Unknowns unchanged:** Windows and WSL, Python 3.8 itself, busybox `ps`, macOS without the Command Line Tools, and
+   Cursor and Grok's treatment of a failing hook (now moot for ShipLoop's own entries, which exit 0).
+
+### Decision (routine, session)
+
+Publish the two commits as one release (patch: shiploop 1.26.2, skill-craft 2.27.2). Why routine: the owner asked for it in
+chat on 2026-11-01, `scripts/release.py`'s preflight passes (the second commit, the only one that touches `skills/shiploop/`, carries
+its own `No-E2E-Round` trailer for the ShipLoop order check), and AGENTS.md lists publishing a release that fast-forwards `main` as routine. Contrary evidence
+kept: no live-model round exercised the hook wrappers, and the CI leg is unproven on GitHub; both are item 1 and item 4.
+
 ## Proposals as first written (2026-10-31; applied as Round 3)
 
 1. **Declare the floor.** One line in `skills/shiploop/SKILL.md` and its README: Python 3.9 or newer and `git` on PATH.
