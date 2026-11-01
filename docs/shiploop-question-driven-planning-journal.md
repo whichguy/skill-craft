@@ -301,7 +301,8 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   endpoint's timing open, due at W1, step-plan's rule asked for an expectation checked on the unchanged base, and the
   model judged that impossible and stopped. B's research mostly wrote the question down as open ("the endpoint does not
   exist yet") instead of probing it. The stall is a defect of the rule, which fix 1 changes (8dee00e0, 035b3a41, in
-  2.27.0); E15 measures that.
+  2.27.0). E15 tests the changed rule live, but could not measure the stall, which did not occur in its control arm
+  (corrected 2026-11-01: this said "E15 measures that"; see E16).
 - Status: firm that the candidate's mechanism did not fire (1 of 6); interim on the stall rate (3 of 6 against 0 of 6,
   p 0.09).
 
@@ -318,10 +319,38 @@ Statuses: **firm** (measured, replicated or by construction), **interim** (measu
   never; no run stalled. Adopted: fix 1 stays as shipped.
 - Reading: with fix 1 the item is settled where it can be: by the item's own tests after the build, a timed scratch
   probe at implement (s1) or the focused suite's timed 5000-ticket test (s2 to s4). Contrary: the delivered tests time
-  the import in both arms, so the change is to what planning records and to the stall path, not to what is tested; and
-  P never stalled (c2da4604 reworded its step-plan `from` duty after XI's baseline), so no stall rate is measured.
-  Mean minutes F 11.8, P 14.1 (exact one-sided p 0.086; not a pre-registered test, no claim).
-- Status: firm for the mechanism and no harm on this case; the stall rate is unmeasured.
+  the import in both arms, so the change is to what planning records and, by design, to the stall path, not to what is
+  tested; and P never stalled (c2da4604 reworded its step-plan `from` duty after XI's baseline), so no stall rate is
+  measured. Mean minutes F 11.8, P 14.1 (exact one-sided p 0.086; not a pre-registered test, no claim).
+- Status (corrected 2026-11-01, E16; was "firm for the mechanism and no harm on this case"): firm for the mechanism on
+  this case. No harm was seen at 4 runs a side, which does not rule harm out. The stall rate, and so fix 1's benefit,
+  is unmeasured.
+
+### E16 — 2026-11-01: recheck of E14 and E15's conclusions (no new runs)
+
+- Question: the owner asked "Are you certain about the conclusions?" Does each conclusion of E14 and E15 hold at the
+  strength the README, LEARNINGS.md and this journal state?
+- Method: recompute and reread; no new runs.
+  - score_fx.py from a scratch copy over the raw runs;
+  - stats.permutation_p for each reported p;
+  - each run's commit against its arm;
+  - each run's last accepted step plan read directly, not through the scorer.
+- Result: the numbers hold.
+  - scores-fx.json is reproduced; the p values are reproduced (0.086, 0.0909).
+  - The arms differ only by fix 1's five files.
+  - F cites A2 through executed criteria in 4 of 4 runs, P through expectations in 4 of 4.
+- Two statements claimed more than the evidence carries:
+  - "No harm" (E15, F22, the LEARNINGS.md round title) is no harm seen. A true pass rate of 70% still gives 4 of 4
+    about 24% of the time, and 4 of 4 rules out only rates below about 47% (one-sided 95%).
+  - "Fix 1 removes the stall" (README, LEARNINGS.md) holds by design only. The gate now accepts an executed criterion
+    for an open item about what the item builds. Live, the stall fell from 3 of 6 (XI's baseline 02a215e9, which lacks
+    c2da4604) to 0 of 4 in P (after c2da4604, without fix 1), p 0.17, across bases that differ by more than fix 11. So
+    fix 1's own gain is unmeasured.
+  - Showing that gain would be expensive. Suppose the stall hit 1 run in 4 without fix 1 and none with it: 15 runs a
+    side reach p < 0.05 about half the time (power 0.54), and about 25 a side give 80% (0.79).
+- Decision: E14's and E15's decisions stand. Fix 1 is kept; XI and XR stay not adopted. The statuses and sentences
+  above were corrected in place with this date, and README "Calibration (2026-11-01)" holds the numbers.
+- Status: firm (a recomputation over the committed evidence).
 
 ## Findings
 
@@ -350,4 +379,4 @@ Each finding is stated in full, with its evidence, in §6.1 of the proposal docu
 | F19 | On the brownfield cases we have, runs already find runtime facts and keep existing behaviour: 26 of 26 completed runs pass every held-out check, 0 of 17 products break a probed behaviour; a plan-time experiment step has nothing to bind there | firm (two Node bases) | E12 |
 | F20 | One sentence on the `experiment` route moves runtime questions there (10% -> 33%, p 0.0035) without over-routing, below the +1.0 bar; a prompt shifts what intake proposes, not what the run probes | firm (no-tool) | E13 |
 | F21 | A research duty that probes each `experiment` question rarely probes live (1 of 6 runs); every baseline failure on ticket-import was a step-plan stall, not a missed runtime fact | firm (mechanism), interim (stall rate) | E14 |
-| F22 | An executed criterion settling an open plan item holds live: used in 4 of 4 runs, all pass, and it replaces checks that time nothing (`node --version`, a 404 from the unbuilt route) with the item's own timed tests | firm (mechanism, no harm), unmeasured (stall rate) | E15 |
+| F22 | An executed criterion settling an open plan item holds live: used in 4 of 4 runs, all pass, and it replaces checks that time nothing (`node --version`, a 404 from the unbuilt route) with the item's own timed tests | firm (mechanism); no harm seen at 4 runs a side, not ruled out; unmeasured (stall rate, so the benefit). Corrected 2026-11-01 (E16); was "firm (mechanism, no harm)" | E15, E16 |

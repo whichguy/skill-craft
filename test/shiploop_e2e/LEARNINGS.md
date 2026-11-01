@@ -5238,7 +5238,7 @@ docs/shiploop-question-record-verdicts-and-plan-2026-10-31.md §3.
 **Not measured.** One subject and effort; three cases; long requests (fix 9: these prompts are short); the
 release-verify restate path (no run left a due `unverified` entry).
 
-## Open plan item settled by an executed criterion (fix 1): E2E round on the Codex harness, Terra 6.1 high (2026-10-31) — status: firm that the route holds live on this case (used in 4 of 4 runs, no harm); the stall rate it removes is not measured here
+## Open plan item settled by an executed criterion (fix 1): E2E round on the Codex harness, Terra 6.1 high (2026-10-31) — status: firm that the route holds live on this case (used in 4 of 4 runs); no harm seen at 4 runs a side, not ruled out; its benefit, the stall it is built to remove, is not measured here (status corrected 2026-11-01)
 
 **Change under test.** 8dee00e0, with 035b3a41's doc fit, published in 2.27.0 (eeb433d5). It lets an executed criterion
 settle an open plan assumption due at its item through `from`, as an expectation already could. Before it, the
@@ -5304,8 +5304,10 @@ route answering 404, the existing store's tests, a check that the store module l
 
 **Contrary evidence.**
 - The test stage writes a timed 5000-ticket test in both arms (P s1 `TC_SCALE`, F s1 `TC-2`, F s2 `TC_4`): the spec
-  carries the 10-second requirement. The route changes what the step plan records as settling the item, and removes the
-  stall path; it does not change what gets tested.
+  carries the 10-second requirement. The route changes what the step plan records as settling the item, and by design
+  gives an open item about the built code a route that can be met; it does not change what gets tested. Neither arm
+  stalled, so this round does not show it preventing a stall (corrected 2026-11-01: this said it "removes the stall
+  path").
 - P never stalled. Its step-plan wording differs from XI's baseline: c2da4604, the stage-prompt review's fix 11,
   reworded the `from` duty. So this round shows no stall rate either way.
 - F s1's one send-back was a step whose Proof (`npm test`) could not run the item's new criteria at implement. The
@@ -5314,8 +5316,23 @@ route answering 404, the existing store's tests, a check that the store module l
 
 **Not measured.**
 - One case on one base, one subject and effort, 4 runs a side.
-- The stall rate on 2.27.0's baseline wording.
+- Harm to the pass rate. 4 of 4 a side shows none seen, not none: a true pass rate of 70% still gives 4 of 4 about 24%
+  of the time (0.7^4), and 4 of 4 rules out only rates below about 47% (one-sided 95%).
+- The stall rate on the wording P ran (2.26.2, after c2da4604), and so whether fix 1 prevents any live stall.
+  - XI's baseline (02a215e9, which lacks c2da4604) stalled in 3 of 6; P in 0 of 4 (exact one-sided p 0.17).
+  - Suppose the stall still hit 1 run in 4 without fix 1. Then 15 runs a side would show fix 1's gain about half the
+    time, and 80% needs about 25 a side.
+  - Corrected 2026-11-01: this read "The stall rate on 2.27.0's baseline wording"; 2.27.0 carries fix 1, and P ran
+    2.26.2.
 - DeepSeek flash and the other hosts.
+
+**Calibration (2026-11-01).** Rechecked, with no new runs, when the owner asked "Are you certain about the conclusions?":
+- score_fx.py over the raw runs reproduces scores-fx.json;
+- each run used its arm's commit;
+- each run's last accepted step plan, read directly, confirms the routes above.
+
+The decision stands. The status line and the two statements above are the corrected ones. Details are in
+docs/experiments/experiment-route-20261031/README.md "Calibration (2026-11-01)" and the journal's E16.
 
 **Evidence.**
 - Runs: `~/e2e-runs-xr/20261031/[PF]-ticket-import-s*`.

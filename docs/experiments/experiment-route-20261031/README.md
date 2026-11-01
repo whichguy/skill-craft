@@ -149,7 +149,8 @@ running settles.
 XI final (score_xi.py on the rejected candidate's branch; empty learning commit 2ae6200e): A 3 of 6 pass every held-out
 check, B 6 of 6 (B s7 replaced the infrastructure stop B s6), exact one-sided p = 0.0909; probe commands are in the
 host's event stream in 1 of 6 B runs (s7). Not adopted. All three A failures are the step-plan stall this study's fix 1
-removes (s1, s4, s6).
+is built to remove (s1, s4, s6); whether it prevents the stall live is unmeasured (corrected 2026-11-01: this said
+"removes"; see Calibration).
 
 FX (scores-fx.json; 8 of 8 runs scored, in run order):
 
@@ -164,7 +165,8 @@ FX (scores-fx.json; 8 of 8 runs scored, in run order):
 | F s4 | 13/13 | PASS | 14.4 | A2 criterion: `timed node:test` | 0 | none |
 | P s4 | 13/13 | PASS | 15.3 | A2 expectation: `node -e "require('./src/store')"` | 0 | none |
 
-- Rule: (1) no harm: F passes 4 of 4 against P's 4 of 4: met; (2) mechanism: every F plan leaves the timing item (A2)
+- Rule: (1) no harm: F passes 4 of 4 against P's 4 of 4: met (as registered; at 4 runs a side this is no harm seen,
+  not harm ruled out: see Calibration); (2) mechanism: every F plan leaves the timing item (A2)
   open and every F step plan cites it through an executed criterion (4 of 4; 3 needed): met; (3) the fix's one
   quick-tier failure (package integrity) was fixed in 035b3a41, and the full CI tier passed on the release commit
   eeb433d5 (run 41247212349): met. **Fix 1 is adopted**; it shipped in 2.27.0, so nothing is reverted and no release
@@ -179,8 +181,9 @@ FX (scores-fx.json; 8 of 8 runs scored, in run order):
 
 Contrary evidence:
 - The test stage writes a timed 5000-ticket test in both arms (P s1 `TC_SCALE`, F s1 `TC-2`, F s2 `TC_4`), because the
-  spec carries the 10-second requirement: the route changes what the step plan records as settling the item, and removes
-  the stall path, not what gets tested.
+  spec carries the 10-second requirement: the route changes what the step plan records as settling the item, and by
+  design gives an open item about the built code a route that can be met, not what gets tested. Neither arm stalled, so
+  this round does not show it preventing a stall (corrected 2026-11-01: this said it "removes the stall path").
 - XI's stall (3 of 6 runs of 02a215e9) did not recur in P (7f565994), whose step-plan `from` sentence c2da4604 had
   reworded (fix 11 of the stage-prompt review), so this round shows no stall rate either way.
 - F s1's one send-back (implement: "C1 and C2 require a new test file which the implementation contract forbids
@@ -188,5 +191,42 @@ Contrary evidence:
   C1, which has no `from`, had the same fault; the proof-order refusal reads only test paths a Proof names, so it does
   not see a Proof that names none. It is a step-plan gap of its own, not a cost of fix 1.
 
-Unknowns: one case on one base, one subject and effort, 4 runs a side; how often the stall occurs on 2.27.0's baseline
-wording at all.
+Unknowns: one case on one base, one subject and effort, 4 runs a side; how often the stall occurs at all on the wording
+P ran (2.26.2, after c2da4604), and so whether fix 1 prevents any live stall (corrected 2026-11-01: this read "on
+2.27.0's baseline wording"; 2.27.0 carries fix 1, and P ran 2.26.2).
+
+## Calibration (2026-11-01)
+
+Rechecked when the owner asked "Are you certain about the conclusions?". No new runs.
+
+The numbers hold:
+- score_fx.py, run from a scratch copy over `~/e2e-runs-xr/20261031/[PF]-ticket-import-s*`, reproduces scores-fx.json.
+- stats.permutation_p reproduces FX's minutes p (0.086) and XI's pass p (0.0909).
+- Every run used its arm's commit, and the two FX arms differ only by fix 1's five files.
+- Read from each run's last accepted step plan directly, not through the scorer: F cites A2 through executed criteria in
+  4 of 4 runs, P through expectations in 4 of 4.
+
+Two readings claimed more than 4 runs a side carry:
+- No harm. Condition (1) is met as registered, but it shows no harm seen, not harm ruled out. A true pass rate of 70%
+  still gives 4 of 4 about 24% of the time (0.7^4), and 4 of 4 rules out only rates below about 47% (one-sided 95%,
+  0.05^(1/4)).
+- The stall. Fix 1 removes the dead end by design: the step-plan gate now accepts an executed criterion for an open item
+  about what the item builds (test/shiploop-callback-contract.test.py). Its live benefit is unmeasured:
+  - XI's baseline (02a215e9, which lacks c2da4604) stalled in 3 of 6 runs; P (7f565994, after c2da4604, without fix 1)
+    stalled in 0 of 4. That is exact one-sided p 0.17 (20 of 120 splits), and the two bases differ by more than fix 11.
+  - So fix 1's gain over fix 11 is not measured.
+  - Measuring it would be expensive. Suppose the stall still hit 1 run in 4 without fix 1, and never with it. At 15
+    runs a side, a one-sided Fisher test reaches p < 0.05 only about half the time (power 0.54); 80% needs about 25
+    runs a side (power 0.79).
+
+The decisions stand. Fix 1 stays: its rule was met, and it replaces checks that settle nothing. XI and XR stay not
+adopted.
+
+Corrected in place on this date:
+- the XI-final sentence;
+- condition (1)'s line;
+- the first contrary-evidence bullet;
+- the unknowns line.
+
+The same corrections are in the FX round entry of test/shiploop_e2e/LEARNINGS.md and in
+docs/shiploop-question-driven-planning-journal.md (E14, E15, E16, F22).
