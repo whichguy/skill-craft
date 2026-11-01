@@ -1,6 +1,6 @@
 # Start route: does rewording the card's start section stop the wrong first command?
 
-Status: **done 2026-11-01.** Pre-registered before the first scored trial; T2 met the registered bar and shipped as skill-craft 2.27.3 / shiploop 1.26.3 (release f24746fa6193007235818f2d8b109408d70ca413); a published-build confirmation held (see "Results").
+Status: **done 2026-11-01.** Pre-registered before the first scored trial; T2 met the registered bar and shipped as skill-craft 2.27.3 / shiploop 1.26.3 (release f24746fa6193007235818f2d8b109408d70ca413); a published-build confirmation held and a clean replication (R2) held too (see "Results" and "Replication R2: result").
 Owner: Jim Wiese. Model and harness (owner, 2026-11-01: "Use terra at xhigh", "We should be using the codex harness"):
 the E2E harness `test/shiploop_e2e/run.py` on its Codex host, `gpt-6.1-terra` at `xhigh`.
 
@@ -213,6 +213,7 @@ Wrong = the first ShipLoop start command was `init`.
   mattered much more than expected.
 - **Exploratory: how often a session read a start verb's `--help` first.** Control 24 of 40, T1 16 of 40, T2 12 of 40. The
   published wording leaves many sessions unsure which verb to use; both edits cut that. Not a registered outcome.
+  **Superseded 2026-11-01:** in R2 the figures were 25, 19 and 23 of 40, so there is no consistent drop; do not rely on it.
 - **Cost.** 180 valid sessions made 820 model calls (mean input peak 42,212 tokens), about 17M to 35M tokens processed with
   cache reads counted: an estimate, since a stopped session reports no totals. Median 30 s to the start in every arm. 137
   attempts made no model call (123 refused by the harness, 14 superseded by the detector fix).
@@ -228,6 +229,40 @@ Findings.
   the archive's overall Codex rate (3.0%), so the saving in real runs will be smaller than the probe's drop.
 - Limits as registered: first command only, Codex Terra xhigh only, one Salesforce request; Claude and Grok never chose `init`
   in the archive, so nothing is claimed for them; no minutes, tokens or loops saved are measured.
+
+## Replication R2: result
+
+Run 2026-11-01 07:06 to 07:31 in one launch, 180 slots, the order of `plan-r2.json`, the final driver, no change while it ran:
+180 valid sessions in 180 attempts (no invalid attempt, no superseded row, no fault), `analysis-r2-output.txt`,
+`results-r2-compact.jsonl`. Wrong = the first ShipLoop start command was `init`.
+
+| request | card | sessions | `workspace start` | `init` | wrong rate (95% interval) |
+|---|---|---|---|---|---|
+| sf-ui | C, the old wording | 40 | 32 | **8** | 20% (10% to 35%) |
+| sf-ui | T1, lead-in names an empty directory | 40 | 39 | **1** | 2.5% (0% to 13%) |
+| sf-ui | T2, the published card | 40 | 39 | **1** | 2.5% (0% to 13%) |
+| hello | C, T1, T2 | 10 each | 10 each | 0 | 0% (0% to 28%) each |
+| repo | C, T1, T2 | 10 each | 10 each | 0 | 0% (0% to 28%) each |
+
+- **The bar.** T2 meets all six items against C again (one-sided Fisher p 0.0144, rate 2.5% against 20%, no session without a
+  start, guards 0 of 60, card 30,115 bytes), so **R2 replicates**. T1 meets it too. The analysis script's "ship" line names T1 here,
+  because the two tie at one wrong start each and its tie-break takes the smaller card; that line selects between candidates and
+  was settled by the first batch. R2 asks whether T2 holds, and it does.
+- **Two readings of the route.** The route read from the command and the route read from what the start left on disk agree in all
+  176 sessions where both are readable (workspace.md present and the empty folder turned into a Git repository for every
+  `workspace start`; only state.md for every `init`); 4 starts were stopped before they wrote anything.
+- **The two batches together** (descriptive): C 25 of 80 wrong (31%, 22% to 42%), T1 5 of 80 (6.2%), T2 1 of 80 (1.3%, 0.2% to 6.7%);
+  T2 against C one-sided p 5e-08. T2 against T1 alone: 1 of 80 against 5 of 80, p 0.105. The data still do not separate T2 from T1.
+- **Prediction check.** C 25% to 45%: observed 20%, **below the range**. T1 15% or less: 2.5%, held. T2 5% or less: 2.5%, held. No
+  guard session started with `init`: held. The two readings agree: held.
+- **The control's rate is not a constant.** 17 of 40 in the first batch, 8 of 40 in R2 (two-sided exact p 0.053), on packages that
+  differ only in version strings; T2 was 0 of 40 and 1 of 40. The comparison inside each batch held both times, but the size of
+  the failure on the old wording moves from hour to hour, so a single batch's rate should not be quoted as the rate. R2's 20% is
+  closer to the archive's Salesforce-prompt rate (3 of 12).
+- **The one wrong start with T2** (slot 68) was `init --repo "$PWD" --run-dir "$PWD/../shiploop-run"` for the Salesforce request: the
+  new sentence lowers the rate, it does not remove it. T1's one (slot 132) used a Python one-liner.
+- **Cost.** 558 model calls (mean input peak 39,344 tokens), about 12M to 22M tokens processed with cache reads counted (an
+  estimate); 30 s median to the start.
 
 ## Published-build confirmation (registered 2026-11-01, before it runs)
 
@@ -274,11 +309,21 @@ the route agree wherever both are readable.
 
 **Cost.** About 18M tokens and 15 to 35 minutes, as the first batch (estimate; a stopped session reports no totals).
 
+## Release CI
+
+The full CI run of the release commit f24746fa6193007235818f2d8b109408d70ca413 (run 41318115086) failed one job, `full /
+shiploop-3`, on `test_a_document_rerun_is_held_to_the_count_the_test_stage_accepted` in `shiploop-test-loop`: `OSError: [Errno 39]
+Directory not empty: '.../repo/.git/objects'` raised by `tempfile` while it removed the test's temporary Git repository, a cleanup
+race, not an assertion about the card. The test passes alone (3 of 3 locally), every other job of the run passed, and rerunning the
+failed job passed, so the run ended green. The same class of race was fixed for another fixture in
+f48df6587d78cf3e958120382128e072cfa948f4 (isolate ephemeral fixtures from progress writers); this test's temporary repository is not yet isolated that way.
+
 ## Evidence
 
 - `arms.json`, `stimuli/sf-ui.txt`, `plan.json`, `start_probe.py`, `analyze.py`: the design. `arms-r2.json`, `plan-r2.json`: the replication's. `start_probe.py reclassify` and
   `rescan` are the two detector corrections of "Deviations" 4 and 6.
 - `confirm-output.txt`, `confirm-compact.jsonl`: the published-build confirmation (`start_probe.py confirm`).
+- `analysis-r2-output.txt`, `results-r2-compact.jsonl`: the replication's result. Raw rows: `~/e2e-runs-startroute/20261101-r2/`.
 - `analysis-output.txt`, `results-compact.jsonl`: the result (the compact rows trim each command; the raw rows are below).
 - `start_routes.py`, `recount.py`, `recount-output.txt`: the archive recount (run before any trial).
 - Raw run folders (not committed): `~/e2e-runs-startroute/20261101/` (`results.jsonl`, `baselines-probe.jsonl`,
