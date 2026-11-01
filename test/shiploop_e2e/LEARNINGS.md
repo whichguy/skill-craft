@@ -5395,8 +5395,20 @@ p 0.0083, +8% output tokens; its silent-assertion rule missed at p 0.115 and the
 user-listing or ticket-assignment; other subjects and efforts; the `research` route with a real search tool; a loosely worded live request.
 Pass rate: 19 of 19 rules out only true rates below about 85% (one-sided 95%).
 
+**Merged-tree check (added 2026-11-01, after the merge).** The round above ran on 2.27.2's base (e13af240100c066489e83c028d97339845402b55). Before landing,
+origin/main had moved by two releases, skill-craft 2.27.3 (f24746fa6193007235818f2d8b109408d70ca413) and 2.27.4 (26123c9efd2d02d8df77c6053bd16787b704f507), among them
+rule C of the proof-order refusal (9870c6f68bfbd9375340c0e91ffdf4abfd76bd85) and the card's start text (b65984554d7769306518ed4bcb822dbaffbb9292). The change was merged
+twice (d2bee85c28219c48fa16afbf9ea270e649f6b38e, a32b4402b74e4002495c8fa182b2653df0ef9b44) and the exact merged tree, a32b4402, was checked before release:
+- the quick and prompt tiers, pinned to origin/main's tip at the first merge: 42 suites OK in 473.3 s;
+- one live run each of hello and user-listing on it (same command, subject and effort; plugin tree 851847a33ff6): both passed, both wrote
+  all 12 categories with K12 "yes", neither had an intake refusal or asked a person. hello 9.9 minutes, 16.7M tokens, 0 refused callbacks, no
+  send-back; user-listing 15.4 minutes, 29.7M tokens, 3 refused callbacks and one send-back at implement (its criteria required the focused
+  test/user-listing.test.js, which implement cannot write: the family of round 1's implement send-backs, on a tree that already has rule C).
+This is a smoke check of the tree being released: one run per case, no control arm, n = 1. It does not decide the send-back question. The
+send-back family also appears here without a way to tie it to K12.
+
 **Evidence.**
-- Runs: `~/e2e-runs-tl/20261101/[AB]-<case>-s<n>`; the 19 rows are in test/shiploop_e2e/baselines.jsonl.
+- Runs: `~/e2e-runs-tl/20261101/[AB]-<case>-s<n>` and `M-<case>-s1`; the 21 rows are in test/shiploop_e2e/baselines.jsonl.
 - docs/experiments/terms-line-live-ab-20261101/: README.md (rules, Results, limits), e2e_ab.py, lane.sh, lane-r2.sh, scores.json,
   results-tables.md, b-ticket-s2-refusals/.
 - Journal docs/shiploop-intake-question-bank-journal.md, §5.6 and §9 (F30-F35).

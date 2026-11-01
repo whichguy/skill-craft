@@ -2862,9 +2862,11 @@ def _check_intake_questions(stage: str, result: Any) -> None:
     """Refuse a malformed key-question ledger (intake duty 9) or one at another stage.  The ledger is optional: the
     template asks for it, as in pilot X1-T (recall 0.49 without it, 0.91 with it, Codex Terra 6.1 high), and both live
     runs of 2026-10-31 wrote it unasked by any gate (11 categories with 3 and 6 questions); requiring it would refuse
-    every synthetic intake the hermetic suites complete.  Checked for its shape when present: ``question_categories``
-    names each of K1-K11 once with ``applies`` yes or no (a no gives its reason); each of ``questions`` has a unique id,
-    its question and one route of QUESTION_ROUTES; no field keeps a template placeholder."""
+    every synthetic intake the hermetic suites complete.  K12 (terms and references) joined the catalog on 2026-11-01
+    (docs/experiments/terms-line-confirmation-20261031: items right 0.52 to 0.67, p 0.008, on three new requests).
+    Checked for its shape when present: ``question_categories`` names each of K1-K12 once with ``applies`` yes or no
+    (a no gives its reason); each of ``questions`` has a unique id, its question and one route of QUESTION_ROUTES; no
+    field keeps a template placeholder."""
     if not isinstance(result, Mapping) or result.get("outcome") != "done":
         return
     present = [key for key in ("question_categories", "questions") if key in result]
@@ -5166,7 +5168,7 @@ HANDOFF_SHAPES: dict[str, Any] = {
 
 # Intake's key-question ledger (duty 9): the catalog categories and the routes a question can take, as the template
 # names them (pilot X1-T, docs/experiments/question-record-20261031).
-QUESTION_CATEGORIES = tuple(f"K{number}" for number in range(1, 12))
+QUESTION_CATEGORIES = tuple(f"K{number}" for number in range(1, 13))
 QUESTION_ROUTES = ("inspect", "research", "experiment", "default", "person")
 QUESTION_ROW = {"blocks": "...", "category": "...", "changes": "...", "default": "...", "id": "Q1", "question": "...",
                 "route": "|".join(QUESTION_ROUTES)}
