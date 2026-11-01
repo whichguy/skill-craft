@@ -271,3 +271,28 @@ deadline, no retries. The backend did not report the served model. The pilot is 
 
 Next: rerun the pilot at the fix's commit. The first pilot's folder moves to `cohort/pilot-1/`, because `freeze`
 refuses to overwrite a campaign.
+
+Round 6's fix landed as b655b804a7c1a3d2cfed33f118ded73c350a38fb.
+
+## Round 7 — the pilot again, at the fix (2026-11-01)
+
+Conditions: Round 6's, at b655b804. Evidence:
+[`experiments/backchain-efficiency-20261101/pilot-2/pilot.json`](experiments/backchain-efficiency-20261101/pilot-2/pilot.json);
+raw run folders under `/Users/dadleet/src/backchain/results/backchain-efficiency-20261101/cohort/pilot/`.
+
+| Case | Outcome checks | Wall s | Tokens (in + out) | Commands | Code blocks | Loop end |
+|------|----------------|-------:|------------------:|---------:|------------:|----------|
+| bounded-source-edge-repair | pass | 79.8 | 606,660 | 13 | 4 | complete |
+| independent-inspection-scopes | pass | 116.9 | 566,936 | 13 | 4 | complete |
+| known-external-approval-blocker | pass | 127.7 | 667,635 | 14 | 3 | complete |
+| legacy-draft-discovers-mapping | pass | 101.0 | 581,495 | 13 | 5 | complete |
+| missing-normative-redaction-source | pass (an honest stop) | 82.7 | 740,812 | 14 | 4 | stopped |
+| stale-build-receipt-identity | pass | 139.7 | 715,311 | 15 | 3 | complete |
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R7-1 | Every attempt passes every outcome check, including the bounded repair that Round 6 stopped on. All six used the toolkit route; 6 of 6 carried the caller's binding into the loop. | firm (n = 6) | `pilot.json` |
+| R7-2 | Medians of the six: 108.9 s, 633,685 input tokens (62,273 uncached), 3,514 output, 13.5 commands, 4 code blocks. Descriptive only. | exploratory | `pilot.json` |
+
+No workflow-stopping defect remains, so the cohort is frozen next, on this commit. Its skill trees are b655b804's;
+this commit changes only docs.
