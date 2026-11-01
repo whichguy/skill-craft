@@ -5852,3 +5852,33 @@ R4b FAILED on one base test of its delivery (the failed check passes 15 of 15 on
 - Runs: `~/e2e-runs-multipass/20261031/e2/` (outside the repository). Twelve baseline rows appended to test/shiploop_e2e/baselines.jsonl (source checkout; six with local_head 87d3da8e, six with c1d737dc).
 - docs/experiments/multipass-20261031/: round2_readout.py, round2_cost.py, round2-*-output.txt, round2-ledgers.json, e2-hold*, candidate-rebase-checks-20261101.txt; Round 4: round4_readout.py, round4-*.txt, round4-ledgers.json.
 - Journal docs/shiploop-multipass-journal.md, Round 2 "Result of E2" and Round 4 "Result of Round 4"; plan docs/shiploop-multipass-plan-2026-10-31.md.
+## `init` in an empty non-Git folder: first-command probes of the guard on the Codex harness, Terra 6.1 xhigh, `--stop-after-start` (2026-11-01) — status: firm for these 208 sessions (one model, one Salesforce prompt, one pair of explicit requests); the guard shipped on its second design only
+
+**What this vouches for.** The ShipLoop change released after this entry: `init` refuses an empty folder that is not a Git repository,
+names `workspace start`, and accepts `--in-place` as the user's explicit override
+(d8a8dce097368ae349ba051ec76c83d036e7f2ef, refined by f9f91667228c1ef719cfb916757cba015e9189c7), with the references and the
+`/shiploop` command card aligned to the card sentence of 2.27.3. No full-cycle E2E round ran for it, and none was needed to see the
+change: it acts only before a run exists, and an E2E case begins with `workspace start` (0 of 20 sessions on the current card began
+with `init`). These are first-command probes through `run.py --stop-after-start`, each ending at the first run on disk.
+
+**Observed.** Journal and registrations: `docs/experiments/start-route-20261101/README.md`; raw sessions under `~/e2e-runs-startroute/`.
+- *First design* (override visible in `init --help`), 104 sessions: of 60 old-wording Salesforce sessions, 16 began with `init` and 0 were
+  refused: all 16 had run `--help`, saw `--in-place` and passed it on the first command, then ended on the direct entry (effectiveness 0
+  of 16). Explicit in-place and non-Git requests, 24 of 24 on the direct entry, 12 of them after one refusal. Registered verdict
+  INSUFFICIENT; not released.
+- *Second design* (override hidden from `--help`, refusal repeats "naming the current directory is not an in-place request"), 104
+  sessions: 20 of 20 old-wording sessions that began with `init` were refused and then ran `workspace start` (Wilson 0.84-1.00); 24 of 24
+  explicit sessions were refused once, ran `init --in-place` and ended on the direct entry; 20 of 20 never-refused T2 sessions ended on
+  `workspace start`. Registered verdict RELEASE (gate E, H2, H3).
+
+**Triage of the first design's miss** (per the order above): not the check, not the environment, reproduced (16 of 16), not an
+expectation about how; a normal run hits it (the sessions that choose `init` read `--help` first); the expectation traced to the
+request, so the product changed: the override left `--help`. **Verified by** the second probe, a hermetic test that pins it
+(`DirectEntryGuardTests.test_the_override_is_named_by_the_refusal_and_not_by_help`), and the quick tier (46 of 46) on the merged branch.
+
+**Cost and limits.** Every explicit in-place or non-Git run now pays one refused command (24 of 24); old-wording sessions that were
+refused took a median 50 s to their run against 44 s. Claude and Grok never began the Salesforce request with `init`, so their answer to
+the refusal is untested. 17 suites' fixtures needed a repository or `--in-place` (listed in the guard commit's message).
+
+**Not measured:** a full case end to end with the guard present; the guard's rate of firing on the current card (about 1 start in 80 on
+Codex, none seen on the other hosts).
