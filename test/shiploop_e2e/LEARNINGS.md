@@ -5413,7 +5413,7 @@ send-back family also appears here without a way to tie it to K12.
   results-tables.md, b-ticket-s2-refusals/.
 - Journal docs/shiploop-intake-question-bank-journal.md, §5.6 and §9 (F30-F35).
 
-## Focused-ID rule: E2E round on the Codex harness, Terra 6.1 xhigh (2026-11-01) — status: firm that the change costs no step-plan time and, after its wording fix, causes no test-spec send-back for IDs on these runs (6 deliveries, 20 step-plan slices); its benefit at xhigh is test quality, not shown here as fewer send-backs; the ticket-import deliveries (the template's open-item path) are pending
+## Focused-ID rule: E2E round on the Codex harness, Terra 6.1 xhigh (2026-11-01) — status: firm that the change costs no step-plan time and, after its wording fix, causes no test-spec send-back for IDs on these runs (6 deliveries, 20 step-plan slices); its benefit at xhigh is test quality, not shown here as fewer send-backs; the template's open-item path held live (ticket-import 3 of 3, 13 of 13 held-out checks each)
 
 **Change under test.** b8d32033 (step-plan refuses an executed criterion a focused command names without a focused test
 ID of its own; the template lists one ID per criterion its focused row names; duty 5 and the Checked-by line say so) and
@@ -5423,8 +5423,8 @@ ID of its own; the template lists one ID per criterion its focused row names; du
 
 **Runs.** All Codex `gpt-6.1-terra` at xhigh (the owner, 2026-11-01: "For using a test harness and runner we want to use
 codex Terra 6.1 at xhigh"), hooks on, `--source checkout`, from the worktree of branch stepplan-ids-f80cd9.
-- SP1, whole deliveries (`run.py`, launch_sp1.sh): hello 1 and csv-report 2 on b8d32033; ticket-import 3 on 45153684,
-  waiting on port 4180 when this was written. A pilot of the same three at Terra high (made before the owner's word) is
+- SP1, whole deliveries (`run.py`, launch_sp1.sh): hello 1 and csv-report 2 on b8d32033; ticket-import 3 on 7ec63879
+  (45153684 merged with main, skills/ equal to the 2.29.0 release but for version strings), run after port 4180 freed. A pilot of the same three at Terra high (made before the owner's word) is
   kept apart, in `~/e2e-runs-sp/20261101/`.
 - SP2, step-plan slices (`slice.py --stop-after test-spec`, launch_sp2.sh): arm B = main at e81fdb55, arm T = b8d32033;
   tickets-assign and stand-in-rules, 4 slices per arm per case, order B T T B.
@@ -5437,6 +5437,7 @@ codex Terra 6.1 at xhigh"), hooks on, `--source checkout`, from the worktree of 
 |---|---|---|---|---|---|---|
 | SP1 (b8d32033) | hello 1, csv-report 2 | 3 of 3 PASS (11.5, 15.3, 21.8 min) | 0 | 0 | 0 | — |
 | SP1 pilot at high | hello 1, csv-report 2 | 3 of 3 PASS (9.0, 11.6, 15.0 min) | 0 | 0 | 0 | — |
+| SP1 (7ec63879) | ticket-import 3 | 3 of 3 PASS, 13 of 13 held-out checks each (12.7, 21.1, 34.8 min) | 0 | 1 | 0 | — |
 | SP2 arm B (main) | 8 slices | 8 of 8 to test-spec done | 0 | — | 0 | 2.17 |
 | SP2 arm T (b8d32033) | 8 slices | 8 of 8 | 1 | 0 | 0 | 2.25 |
 | SP3 (45153684) | 4 slices | 4 of 4 | 0 | 0 | 0 | 2.50 |
@@ -5450,6 +5451,13 @@ codex Terra 6.1 at xhigh"), hooks on, `--source checkout`, from the worktree of 
   criterion. Arm B also produced no short plan (0 of 8) against the pre-registered "some"; in the saved runs Terra xhigh
   plans were short 7 times in 67, and test-spec folded 6 of them rather than sending them back (Terra high: 8 in 75, 7
   sent back). 0 of 8 at 10% happens 43% of the time.
+
+**The open-item path, live.** In ticket-import s1 the packet's template showed `"criteria": ["C1", "C2", "C3"], "ids":
+["TC-1", "TC-2", "TC-3"]` (C3 the row settling A2); the plan settled A2 through its own executed criterion with four
+focused IDs for its two criteria, and test-spec passed first time. In s2 the plan kept the template's shape exactly (C3
+from A2, IDs TC-1 to TC-3 for C1 to C3). In s3 the gate fired once, on W3's draft ("Criterion C2 has no focused test ID
+of its own (the focused commands list IDs TC_7 for C1, C2)"); the next check, 25 seconds later, passed with TC_7 and TC_8,
+and test-spec accepted W3 first time: the 25 seconds stand where a test-spec send-back or a folded case used to.
 
 **Reading.** On the owner's runner the change costs nothing measurable at step-plan (medians within 0.33 min of main),
 and once worded for executed criteria it leaves test-spec nothing to send back for IDs. Its gain at xhigh is that each
@@ -5467,16 +5475,13 @@ other models (DeepSeek flash 3 of 21 plans short, Sonnet 3 of 7, Grok 3 of 5) it
   test-spec, so the run is at implement when the slice stops; SP2 and SP3 read only step-plan and test-spec.
 
 **Not measured.**
-- The template's open-item path live: ticket-import, the case whose plans carry a criterion settling an open item due at
-  W1 (where the template showed three criteria and two IDs), is the pending part of SP1. The hermetic test covers the
-  template row.
 - The extra test-writing time of the cases the 15 folded plans would gain.
 - DeepSeek flash (at its Ollama limit), Grok and Sonnet.
 
 **Evidence.**
 - Runs: `~/e2e-runs-sp/20261101/` (pilot), `sp1-xhigh`, `sp2-xhigh`, `sp3-xhigh`.
 - `docs/experiments/step-plan-review-20261101/`: README, launch_sp1.sh, launch_sp2.sh, launch_sp3.sh, score_sp1.py,
-  score_sp2.py, sp2_scores.jsonl, sp3_scores.jsonl, and the corpus files (replay_ids.jsonl, sendback_classes.jsonl).
-- Baseline rows appended to test/shiploop_e2e/baselines.jsonl: SP1's 3 xhigh runs and the 3 pilot runs at high (their
+  score_sp2.py, sp1_scores.jsonl, sp2_scores.jsonl, sp3_scores.jsonl, and the corpus files (replay_ids.jsonl, sendback_classes.jsonl).
+- Baseline rows appended to test/shiploop_e2e/baselines.jsonl: SP1's 6 xhigh runs and the 3 pilot runs at high (their
   effort is in each row).
 - Journal docs/shiploop-question-driven-planning-journal.md, E19 and E20.
