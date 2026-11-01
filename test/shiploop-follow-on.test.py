@@ -328,6 +328,18 @@ class RequestFileTests(unittest.TestCase):
         self.assertIn("/runs/one/request.md", text)
         self.assertEqual(module.request_text([NOTE], run_dir="/runs/one", lessons_subject=""), "")
 
+    def test_a_statement_or_needs_text_that_ends_with_a_period_does_not_double_it_and_one_without_gets_it(self) -> None:
+        """Round 6 saw "...implement and test it.. Recorded in lessons.open_next." twice: the model's needs text ended with a period
+        and the template added another."""
+        module = follow_on_module()
+        ended = dict(DECISION, statement="Whether exponent notation counts as a number.", needs="the requester's answer.")
+        bare = dict(DECISION, statement="Whether exponent notation counts as a number", needs="the requester's answer")
+        for row in (ended, bare):
+            text = module.request_text([row], run_dir="/runs/one", lessons_subject="")
+            self.assertIn("Whether exponent notation counts as a number. Needs: the requester's answer. Recorded in lessons.open_next.",
+                          text)
+            self.assertNotIn("..", text)
+
 
 if __name__ == "__main__":
     unittest.main()
