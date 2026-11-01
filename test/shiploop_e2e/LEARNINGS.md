@@ -5400,3 +5400,93 @@ Pass rate: 19 of 19 rules out only true rates below about 85% (one-sided 95%).
 - docs/experiments/terms-line-live-ab-20261101/: README.md (rules, Results, limits), e2e_ab.py, lane.sh, lane-r2.sh, scores.json,
   results-tables.md, b-ticket-s2-refusals/.
 - Journal docs/shiploop-intake-question-bank-journal.md, §5.6 and §9 (F30-F35).
+
+## E2E iteration 0 learnings (csv-report, codex high)
+
+Iteration 0 ran ShipLoop built from 27dedcff30f1ca05a0a541a4b4b1d21e3fe438d8 with codex gpt-6.1-terra (effort high) from an empty directory on the csv-report case.
+
+Outcome
+
+- run: PASS; host exited (rc 0) after 945.3 s, 186 turns, cost not reported
+- ShipLoop: status done, stage done, report True
+- checks in work/: 5/5 pass
+- ended as: PASS (every verdict passed)
+
+Reviewer outcome
+
+The run delivered a clean, committed CLI that passed every catalog check, while exposing a recurring proof-prerequisite gap, progress-contract violations and avoidable verification glue.
+
+Learnings
+
+- Investigate proof prerequisites before strengthening the gate (material, within current authority)
+  Evidence: S-9/S-10: .shiploop-runs/work-20261101-155412-05d2fa/run/results/nav-536d0db98e444645b72b6162cf06bd1f.md:79 assigns a unittest proof before test creation; its Improve evidence/01-review-2.md:7 says 'Test creation precedes S1'. events.jsonl:146 records 'Ran 0 tests' with exit 0. The implementation sent the plan back; metrics.json records 67 seconds of repeated step-plan and 22 seconds of repeated test-spec.
+  Proposal: Extend the existing proof-order investigation to prose-only confirmation and composite suite/inline commands. Preserve valid direct proofs, existing tests, earlier-step suppliers and test-only work. Do not revive the broad refusal rejected in cc828f7372a0bc3c75aa3b9b703a4c805a3d298a or merely repeat existing guidance.
+  Premise: S-1/S-9: scripts retain stage selection and acceptance; the investigation seeks earlier detection without accepting zero-test proof or removing review.
+  Files: skills/shiploop/scripts/shiploop_item_scope.py, skills/shiploop/scripts/shiploop_prompts.py
+
+Missing considerations
+
+- Align progress guidance with exact script-rendered display (minor, within current authority)
+  Evidence: S-3/S-15: events.jsonl:153,196,217,248 contain model-composed progress. SKILL.md:298 asks for at most one line per completed step and :308 says to briefly report the milestone, while references/status-display.md requires script-authored status. Genuine undisplayed narrative bodies remain at events 185,247,349.
+  Proposal: Replace the ambiguous card sentences with the existing exact-display obligation, including hook ownership and suppression of unchanged repeats. Preserve the rendered narrative and avoid adding a new runtime refusal. Treat wording as a plausible contributor, not a proven sole cause.
+  Premise: S-15 remains unchanged: scripts compose progress from saved state and the model relays it.
+  Files: skills/shiploop/SKILL.md, skills/shiploop/references/status-display.md
+
+Optimizations
+
+- Investigate duplicate returned-tree verification (minor, within current authority)
+  Evidence: S-4/S-5/S-12: events.jsonl:338 contains model-written mkdir, git archive, extraction and unittest execution. The subsequent script record tests/nav-d733538739a84a5d85096027af2fd472-verify1.md independently exports the returned tree and runs the same three tests against the same f783991bfec7a3c9febe7f7d9a4cd6865ae6fb5a head. shiploop_prompts.py:1771 asks the host to run checks although completion also runs them.
+  Proposal: Investigate a script-issued verification route that supplies evidence for the model's assessment without requiring a second hand-built export. Preserve completion-time identity checks, failure recovery and remote-target freshness. Retain the prior deferral until those conditions are demonstrated; no speedup is established here.
+  Premise: S-5/S-9: export, execution and acceptance remain script-owned; model-authored success notes cannot replace verification.
+  Files: skills/shiploop/scripts/shiploop_prompts.py, skills/shiploop/scripts/shiploop_test_loop.py, skills/shiploop/scripts/shiploop_workspace.py
+
+Discoveries and independent judgment
+
+- A reviewed proof still depended on future tests (material, requires separate disposition)
+  Evidence: [{'reference': '.shiploop-runs/work-20261101-155412-05d2fa/run/improve/nav-536d0db98e444645b72b6162cf06bd1f/evidence/01-review-2.md:7', 'observation': 'Improve accepted a trivial review that incorrectly stated test creation preceded S1.', 'interpretation': "The review did not correctly apply the engine's actual execution order."}, {'reference': 'events.jsonl:146; .shiploop-runs/work-20261101-155412-05d2fa/run/results/nav-71a6272ea144462ca197531e3970164c.md:14; metrics.json.stages', 'observation': 'The proof ran zero tests, implementation sent it back, and repeated planning/test-spec consumed 89 recorded seconds.', 'interpretation': 'Recovery protected delivery, but earlier review and structural validation left consequential avoidable work.'}]
+  Proposal: Continue the known proof-readiness investigation. Commit 9870c6f68bfbd9375340c0e91ffdf4abfd76bd85 explicitly retained prose/identifier misses; this run confirms that limitation and adds a composite-command example, rather than disproving its narrow path-based guarantee.
+  Files: skills/shiploop/scripts/shiploop_item_scope.py, skills/shiploop/scripts/shiploop_prompts.py, test/shiploop-callback-contract.test.py
+  Mission relationship: {"challenge": "No amendment is requested. A zero-test exit cannot prove behavior; S-10 review exits must respect actual prerequisites.", "clause_id": "S-9", "relationship": "supports"}
+  Confidence: high; next experiment: Replay neutral cases covering prose-only future tests, the same suite combined with a nonbehavioral inline assertion, a genuine standalone behavioral proof, existing tests, earlier-step suppliers and test-only work. Require discrimination without the false refusals found in cc828f7372a0bc3c75aa3b9b703a4c805a3d298a before constructing a candidate.
+- The card permits an ambiguous progress interpretation (minor, within current authority)
+  Evidence: [{'reference': 'events.jsonl:248; skills/shiploop/SKILL.md:298; skills/shiploop/SKILL.md:308; skills/shiploop/references/status-display.md:4', 'observation': "The model composed a delivery-progress update; the card's brief-report wording is weaker than the reference and packet exact-copy instruction.", 'interpretation': 'The interchange contains avoidable ambiguity, although host-level communication instructions could also explain the behavior.'}]
+  Proposal: Align the two ambiguous card sentences with the existing display rule, preserving hook behavior and every required narrative. This continues the unimplemented clarification discussed in b1d4dab1924b54af6c6cb9089c3f7458f5a73e8d; it does not introduce a new status mechanism.
+  Files: skills/shiploop/SKILL.md, skills/shiploop/references/status-display.md, test/shiploop-status-display.test.py
+  Mission relationship: {"challenge": "Preserve the accepted script-authored display contract and reconcile the card under S-3.", "clause_id": "S-15", "relationship": "supports"}
+  Confidence: medium; next experiment: Test a neutral milestone with exact-copy instructions and competing generic progress guidance, including hook-displayed and unchanged-repeat controls. A later live comparison must measure genuine milestone obligations rather than raw packet appearances.
+- The host duplicates an existing script-owned export (minor, requires separate disposition)
+  Evidence: [{'reference': 'events.jsonl:338; .shiploop-runs/work-20261101-155412-05d2fa/run/notes/release-verification.txt', 'observation': 'The host built a clean archive and manually ran the consumer suite.', 'interpretation': 'The prompt led to mechanical work already implemented by ShipLoop.'}, {'reference': '.shiploop-runs/work-20261101-155412-05d2fa/run/tests/nav-d733538739a84a5d85096027af2fd472-verify1.md', 'observation': 'Completion then exported the receipt-bound returned result and ran the same three tests successfully.', 'interpretation': 'The existing script path supplies authoritative evidence; the extra host path is a candidate for simplification, subject to freshness safeguards.'}]
+  Proposal: Retain the investigation deferred in b1d4dab1924b54af6c6cb9089c3f7458f5a73e8d. Build on e9ec4733b98c5b41f67f2b0f42291faa903fca64's receipt-bound export rather than creating another exporter or weakening completion checks.
+  Files: skills/shiploop/scripts/shiploop_prompts.py, skills/shiploop/scripts/shiploop_test_loop.py, skills/shiploop/scripts/shiploop_workspace.py, test/shiploop-workspace.test.py
+  Mission relationship: {"challenge": "S-4 and S-12 favor eliminating duplicate mechanical glue, while S-9 still requires current script-run evidence.", "clause_id": "S-5", "relationship": "supports"}
+  Confidence: high; next experiment: Use a neutral local-return fixture to test evidence retrieval and completion against unchanged, changed and unreadable receipt-bound trees. Include a mutable-target control that must not reuse stale evidence.
+- Packet rereads distort narrative display accounting (minor, requires separate disposition)
+  Evidence: [{'reference': 'metrics.json.narrative; events.jsonl:299-302,316-319,334-337,339-342', 'observation': 'Metrics reports 27 emissions and 14 verbatim displays. These sequences contain an original narrative, numbered reread and matching user display that the counter treats as skipped.', 'interpretation': 'Tool appearances are being confused with milestone display obligations.'}, {'reference': 'events.jsonl; test/shiploop_e2e/metrics.py:2319-2337', 'observation': 'Normalizing numbered rereads yields 21 distinct narrative bodies, 18 displayed verbatim; bodies at events 185,247,349 remain undisplayed. The reader opens a new display window for each tool call.', 'interpretation': 'The published counter overstates omissions, but actual S-15 violations remain. Distinct-body counting is diagnostic, not a replacement grading rule.'}]
+  Proposal: Reconcile with 420018f1db8e93ec9f27d1c254a85e17d4b25004, which already implemented unchanged-progress accounting on saved history but is not an ancestor of this run's source. Test its coverage of numbered rereads before proposing another implementation. Keep this evaluator experiment separate from ShipLoop qualification.
+  Files: test/shiploop_e2e/metrics.py, test/shiploop-e2e.test.py
+  Mission relationship: {"challenge": "The evaluator should distinguish repeated access to saved status from a newly owed milestone, without hiding genuine omissions or repeated user displays.", "clause_id": "S-15", "relationship": "supports"}
+  Confidence: high; next experiment: Replay original emission followed by plain or numbered reread and one display; contrast changed milestones, intervening milestones, genuine omissions and duplicate user displays. Preserve original metrics and append the calibrated interpretation.
+Judge: {"assessments": [{"disposition": "investigate", "evidence": [".shiploop-runs/work-20261101-155412-05d2fa/run/results/nav-536d0db98e444645b72b6162cf06bd1f.md:13-79 assigns behavioral criteria to unittest and combines that suite with a docstring assertion.", ".shiploop-runs/work-20261101-155412-05d2fa/run/improve/nav-536d0db98e444645b72b6162cf06bd1f/evidence/01-review-2.md:7 says test creation precedes S1, while packets/nav-71a6272ea144462ca197531e3970164c.md:20,49 explicitly schedules tests later and prohibits writing them during implementation.", "events.jsonl:145-146 records the composite command returning successfully after running zero tests; run/trace.jsonl:41 records the implementation send-back.", "metrics.json.stages records repeated planning and test-spec stages of 67 and 22 seconds. These are observed recovery costs, not demonstrated savings."], "id": "D-PROOF-PREREQUISITE-ESCAPE", "reason": "The reviewed proof depended on future tests; its additional assertion checked only a docstring. Recovery prevented acceptance of empty behavioral evidence. This material finding supports investigation, but neither a safe broader gate nor prospective savings is established.", "status": "supported"}, {"disposition": "investigate", "evidence": ["The run-installed skills/shiploop/SKILL.md:294-310 juxtaposes script-rendered narrative instructions with 'at most one line' and 'briefly report the milestone'; references/status-display.md assigns rendering to scripts and specifies exact model relay.", "events.jsonl:153,196,217,248 contains model-composed progress updates.", "events.jsonl:185,247,349 requests exact narrative display; subsequent user-facing messages omit those complete bodies. The omissions remain after accounting for packet rereads."], "id": "D-PROGRESS-INSTRUCTION-ALIGNMENT", "reason": "The card contains competing progress wording, and composed updates occurred. Wording is a plausible contributor, not an established cause. This minor finding does not meet the materiality requirement for implementation.", "status": "supported"}, {"disposition": "investigate", "evidence": ["events.jsonl:338 builds a git archive, extracts it into run/scratch/returned-check and executes unittest; events.jsonl:339 and run/notes/release-verification.txt retain the three-test output.", ".shiploop-runs/work-20261101-155412-05d2fa/run/tests/nav-d733538739a84a5d85096027af2fd472-verify1.md independently records the same command and test IDs against head f783991bfec7a3c9febe7f7d9a4cd6865ae6fb5a.", "All seven tracked files in the preserved returned-check and consumer-check copies match that commit, corroborating the model-written identity claim.", "Run-installed shiploop_prompts.py:1771 requires preliminary execution, while shiploop_test_loop.py:1421-1457 performs the script-owned export and verification. Preliminary execution currently informs the model's assessment."], "id": "D-RETURNED-CHECK-DUPLICATION", "reason": "Both paths exported the same committed source and ran the same three tests. Safe consolidation and meaningful savings remain unproved. Investigation should assess the existing script check route while preserving completion-time identity and freshness checks.", "status": "supported"}, {"disposition": "investigate", "evidence": ["metrics.json.narrative records 27 emissions and 14 verbatim displays.", "events.jsonl:299-302,316-319,334-337,339-342 each contains an original narrative, a numbered reread and a matching user display.", "Independent read-only analysis of events.jsonl merges consecutive identical bodies after removing reread numbering; only bodies first appearing at events 185,247,349 remain undisplayed.", "Source test/shiploop_e2e/metrics.py:2319-2337 opens separate windows for matching tool results. Commit 420018f1db8e93ec9f27d1c254a85e17d4b25004 adds unchanged-body accounting but lacks numbered-reread normalization and is not an ancestor of the recorded run source."], "id": "D-NARRATIVE-REREAD-ACCOUNTING", "reason": "The counter confuses repeated packet access with new display obligations. Independent normalization reproduces 21 distinct bodies, 18 displayed verbatim and three genuine omissions. This is a harness calibration finding, not an eligible ShipLoop implementation.", "status": "supported"}], "review_sha256": "1f862c1e4255ef6a280551e3086518f01011f6970560a5393f5becbfe711323d", "validity": {"reason": null, "status": "valid"}}
+
+Harness questions
+
+- learning retention: Keep the existing append-only learning records and full Git messages. The needed improvement is history reconciliation, not another state store. Recording this review's learning remains pending with the authorized operator; this reviewer wrote nothing.
+  proposal: Record the clean delivery, proof-order recovery, exact identities, measured costs, unknowns and raw artifact locations in the operator-owned learning commit.
+  proposal: Retain the rejected broad proof rule, the narrow adopted rule and its explicit remaining misses together; do not infer a regression from an uncovered case.
+  proposal: Preserve the original narrative metrics and attach any calibrated reinterpretation separately. Bind a fresh independent judge assessment to this review's exact bytes.
+- further learning: The highest-value next observations concern proof readiness, truthful progress accounting and what a cold consumer learns from retained knowledge. This run does not establish campaign exhaustion.
+  proposal: Run the discriminating proof-prerequisite replay before selecting an engine candidate; then qualify one record at a time on csv-report and a contrasting style such as stateful-service.
+  proposal: Use a cold follow-on to determine whether the mixed planned/completed statements in environment.md cause rediscovery or mistaken readiness judgments under S-11.
+  proposal: Calibrate a two-nonempty-input aggregation fault against the delivered tests and public checks. The current implementation has no demonstrated defect; the question is oracle adequacy under S-9.
+  proposal: Exercise missing-completion continuation and fresh-context recovery separately; their absence here does not reconfirm LR-20261030-5dce01 or S-6.
+- evaluation criteria: No new promotion floor is justified by this run. Calibrate existing measurements and preserve their limits before using them to judge efficacy.
+  proposal: Distinguish narrative appearances, milestone obligations and user displays while retaining genuine S-15 violations.
+  proposal: Investigate the existing verification-reader disagreement: metrics counts eight commands while fidelity counts five and does not understand step-proof. Preserve raw baseline failures despite summary red=0; do not turn unknowns into S-9 passes.
+  proposal: Keep script mutation samples distinct from independent held-out quality, and keep checkout exploration distinct from marketplace qualification.
+  proposal: Do not convert packet bytes, review counts, missing notice-only sections or a single run's planning time into optimization targets or new verdicts.
+
+Learning records: LR-20261101-bea142 (test/shiploop_e2e/learning-records.jsonl)
+
+Next
+
+- no independently admitted ShipLoop finding to apply; retained challenges need disposition
