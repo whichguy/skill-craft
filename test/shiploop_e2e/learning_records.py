@@ -12,6 +12,9 @@ A record's ``event`` rows fold into one status (``current``):
     decided (the promotion decision) then verdict (the prediction's verdict and the record's outcome);
     deferred -> deferred; reopened -> admitted (or open, never admitted); owner -> owner, or its outcome
 
+Automatic rediscovery cannot admit or defer a visible owner rejection. New owner-routed evidence may return it to
+owner review; explicit owner acceptance and reopening retain their existing meaning.
+
 Ids carry a timestamp and a random suffix and there is no global sequence, so two branches that append at once merge
 by union (``.gitattributes``) and the fold accepts any line order. ``reviewer_view`` is what a reviewer reads: titles,
 anchors and statuses, never evidence text. ``improver_view`` is one record for the improver, also without evidence, so
@@ -235,7 +238,9 @@ def ingest(review: dict, routes: dict, source: dict, path: Path = LEDGER) -> lis
     ``implementation`` findings are admitted; ``owner_challenges`` go to the owner; ``harness`` findings are deferred to
     a separate evaluator experiment. A discovery whose ``same_as`` names a known record adds to it; an unknown one opens
     a new record and keeps the claimed id as ``same_as_unknown``. Adding to a record the owner holds, or one in a
-    candidate (``HELD``), records the evidence and leaves the record where it is, whatever the route."""
+    candidate (``HELD``), records the evidence and leaves the record where it is, whatever the route. A rejected record
+    may return to owner review, but cannot be automatically admitted or deferred. ``source.held`` marks a withheld route.
+    This guards visible decisions, not unseen decisions on another branch; historical folding is unchanged."""
     known = set(current(path))
     recorded = []
     for route, follow in (("implementation", "admitted"), ("owner_challenges", "owner"), ("harness", "deferred")):
@@ -248,9 +253,14 @@ def ingest(review: dict, routes: dict, source: dict, path: Path = LEDGER) -> lis
                                                          "proposal", "next_experiment")}
             fields["anchor"] = finding.get("mission_anchor")
             fields["source"] = {**source, "finding_id": finding.get("id"), "route": route}
+            if finding.get("routing"):
+                fields["source"]["routing"] = finding["routing"]
             if claimed and record != claimed:
                 fields["same_as_unknown"] = claimed
-            held = record in known and current(path)[record]["status"] in HELD
+            status = current(path)[record]["status"] if record in known else None
+            held = status in HELD or (status == "rejected" and follow != "owner")
+            if held:
+                fields["source"]["held"] = status
             append("opened", record, path, **fields)
             if held:
                 pass

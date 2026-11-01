@@ -2542,7 +2542,17 @@ candidate, one decision: the loop tip advances only on PROMOTE.
 - **Learning records** (`learning_records.py`, `learning-records.jsonl`): each lesson's history, appended only by the
   harness and read alongside the last three commit messages (owner decision D2). `review.py` gives the reviewer the
   records' view, and a discovery that recurs a record names it in `same_as`; `iterate.py` records every judged material
-  discovery and commits the ledger with its learnings. Union-merged (`.gitattributes`); not in the evaluator digest.
+  discovery and commits the ledger with its learnings. Rediscovery adds evidence while preserving an `owner` hold or
+  `rejected` decision visible to that checkout; neither is automatically admitted or deferred. New owner-routed evidence
+  may return a rejected record to owner review. An existing hold keeps its reason; a withheld route is recorded in
+  `source.held`, and `source.routing` retains the judge's owner-review/investigation distinction when supplied.
+  Records already in a candidate also retain their state. Explicit owner acceptance or reopening can release the hold. This also applies to investigation findings routed to
+  `owner`: the loop may stop with no admitted record, rather than wait for a person. The returned ids still include
+  these observations. Unseen branch decisions and later epoch verdicts require separate reconciliation; the ledger test
+  detects admission or prediction after the latest unresolved owner hold in checked-in history; a later explicit owner
+  decision or reopening can resolve an earlier conflict without erasing it.
+  The ledger is union-merged (`.gitattributes`) and is not in the evaluator digest; `learning_records.py` is, so updating
+  the code requires a new comparison registration. Keep active campaigns on their frozen checkout.
   `python3 test/shiploop_e2e/learning_records.py view` prints what a reviewer reads.
 - **Predictions** (`prediction.py`): what a candidate will move, bound by `epoch.py init --prediction` before any attempt;
   after `decide`, each effect is confirmed, refuted, no effect or unknown, recorded beside the decision, never instead of it.
