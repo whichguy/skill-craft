@@ -88,7 +88,7 @@ If T1 alone works, it is the smaller change and wins.
 |---|---|---|---|
 | `sf-ui` | `--prompt`, the host prompt of run 2 minus the skill prefix, byte for byte (`stimuli/sf-ui.txt`, 6,960 bytes) | empty, not a Git repository | the failing situation |
 | `hello` | `--case hello` | empty, not a Git repository | regression guard: a plain request, no "current directory" wording |
-| `repo` | `--case user-listing` | an existing Git repository (a Node project) | regression guard: the case the lead-in's first clause covers |
+| `repo` | `--case ticket-assignment-tests` (first choice `user-listing`: see "Deviations") | an existing Git repository (a Node project) | regression guard: the case the lead-in's first clause covers |
 
 No platform is declared, so no org is touched: the harness profile holds no login, and no run is built (see "Method").
 
@@ -148,6 +148,23 @@ the changed-file tests to pass, a change note (`changes/shiploop/`), and a verbo
 - A null result does not prove the wording is harmless or useless; it shows this sample could not tell the arms apart under the
   rule above.
 - The reasoning behind a choice is not recorded, so a working arm shows that the wording matters, not which words.
+
+## Deviations from the registration
+
+Recorded as they happened; none changes an arm, the sample sizes, the order, or the decision rule.
+
+1. **The `repo` request was replaced (2026-11-01, 05:46, after 32 rows).** Launch 1 ran `repo` as `--case user-listing`. All 15
+   attempts (5 slots, 3 attempts each) were refused by the harness in 1 to 2 seconds, with no model call: that case declares port
+   3000, which the harness leases machine-wide, and another session's run (`e2e-runs-tl/20261101/A-user-listing-s1`) held it.
+   The replacement `ticket-assignment-tests` was refused the same way (port 4180, held by that session's `ticket-assignment`
+   run), so `repo` trials now run with a private lease folder per trial (`SHIPLOOP_E2E_LEASES`, the harness's own setting). That
+   is safe here because every trial ends within seconds of the model's first start command, before anything could be built or
+   served on that port. The 15 refusals stay in `results.jsonl` as invalid rows; no valid `repo` trial existed before the change.
+   The 14 valid `sf-ui` and 3 valid `hello` trials of launch 1 stay in the data (the driver code for those requests did not change).
+2. **Attempt accounting.** The driver numbered attempts across launches, so slots refused in launch 1 would never have been
+   retried; a launch now makes at most 3 attempts per slot and numbers them after the earlier ones.
+3. **Timing.** The `repo` slots run after their planned position, so the guard's trials are not interleaved in time with the
+   other requests. The `sf-ui` comparison, the one the decision rests on, is unaffected.
 
 ## Results
 

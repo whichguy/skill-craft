@@ -41,8 +41,9 @@ STOP_GRACE_SECONDS = 120     # after the stop file, the harness is given this lo
 MAX_ATTEMPTS = 3             # a slot is retried only when its trial was invalid (infrastructure), never for its outcome
 ARMS = ("C", "T1", "T2")
 # stimulus -> (selector for run.py, trials per arm). sf-ui is the prompt of the failing run, byte for byte; hello is the
-# smoke case (an empty directory, no "current directory" wording); repo is a brownfield case (an existing Git repository).
-STIMULI = {"sf-ui": (["--prompt-file"], 40), "hello": (["--case", "hello"], 10), "repo": (["--case", "user-listing"], 10)}
+# smoke case (an empty directory, no "current directory" wording); repo is a brownfield case that declares no port (an
+# existing Git repository). user-listing was the first choice and was dropped: it leases the machine-wide port 3000.
+STIMULI = {"sf-ui": (["--prompt-file"], 40), "hello": (["--case", "hello"], 10), "repo": (["--case", "ticket-assignment-tests"], 10)}
 SEED = 20261101
 
 # A start is the ShipLoop CLI invoked with the verb `workspace start` or `init`, written as a shell command, with the
@@ -159,8 +160,14 @@ def run_trial(slot: dict, attempt: int, out: Path, expected: dict) -> dict:
     proc = None
     try:
         log = (out / "trials" / f"{trial.name}.log").open("wb")
+        # A brownfield case declares a fixed port, which the harness leases machine-wide, so another session's run holds
+        # it and refuses ours. These trials end before the model has written anything, let alone served on that port,
+        # so each gets a private lease folder (the harness's own SHIPLOOP_E2E_LEASES) and neither blocks nor is blocked.
+        env = dict(os.environ)
+        if stimulus == "repo":
+            env["SHIPLOOP_E2E_LEASES"] = str(out / "leases" / trial.name)
         proc = subprocess.Popen(argv, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
-                                start_new_session=True)
+                                env=env, start_new_session=True)
         stopped_at = None
         while proc.poll() is None:
             time.sleep(1.0)
@@ -228,7 +235,7 @@ def run_all(plan: list[dict], out: Path, jobs: int) -> None:
     out.mkdir(parents=True, exist_ok=True)
     expected = prepare(out)
     results_path = out / "results.jsonl"
-    done: dict[int, int] = {}
+    done: dict[int, int] = {}   # slot -> its highest attempt number, or 99 once a valid row exists
     if results_path.is_file():
         for line in results_path.read_text().splitlines():
             row = json.loads(line)
@@ -236,8 +243,8 @@ def run_all(plan: list[dict], out: Path, jobs: int) -> None:
     lock = threading.Lock()
 
     def work(slot: dict) -> None:
-        attempt = done.get(slot["slot"], 0) + 1
-        while attempt <= MAX_ATTEMPTS:
+        first = done.get(slot["slot"], 0) + 1   # attempts are numbered across launches; each launch makes at most MAX_ATTEMPTS
+        for attempt in range(first, first + MAX_ATTEMPTS):
             row = run_trial(slot, attempt, out, expected)
             with lock, results_path.open("a") as fh:
                 fh.write(json.dumps(row) + "\n")
@@ -245,7 +252,6 @@ def run_all(plan: list[dict], out: Path, jobs: int) -> None:
                   f"valid={row['valid']} {row['seconds']}s {row['error'] or ''}", flush=True)
             if row["valid"]:
                 return
-            attempt += 1
 
     with ThreadPoolExecutor(max_workers=jobs) as pool:
         list(pool.map(work, [s for s in plan if done.get(s["slot"], 0) < 99]))
