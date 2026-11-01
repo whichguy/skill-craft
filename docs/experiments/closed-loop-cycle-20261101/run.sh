@@ -16,7 +16,10 @@
 #
 # Environment: SKILL_CRAFT_REPO (default ~/src/skill-craft) only supplies git objects; PARALLEL (default 3) is the number of
 # subject runs at once; EXPOSING_CASE (default seat-reservations) is the case explored and kept visible to the improver, and
-# GENERALITY_CASE (default csv-report) the case kept unseen by it. Both must be cases with no fixed port and no hosted platform.
+# GENERALITY_CASE (default csv-report) the case kept unseen by it. Neither may need a hosted platform. A case with a fixed port
+# (user-listing, battleship, checkers, the ticket cases) is allowed: attempts that share a port run one at a time, but a
+# start is still refused while another session's run holds that port, and a base older than the commit that added the
+# serialisation (see launch_all) must use PARALLEL=1.
 # EFFORT (default xhigh) is the subject's reasoning effort: the owner asked on 2026-11-01 for Codex with Terra 6.1 at Extra High;
 # the first four launches of this kit ran at high. See README.md for what to expect and what to return.
 set -euo pipefail

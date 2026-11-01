@@ -126,6 +126,8 @@ class CycleTest(unittest.TestCase):
     def run_scheduler(self, root, plugins, cleanup_by_case=None):
         spawned, started, finished, violations = [], [], set(), []
         active, previous = {}, {}
+        ports_active, live = {}, []
+        self.overlaps = []  # (case, cases already running) for each attempt that started
         cleanup_by_case = cleanup_by_case or {}
 
         class Child:
@@ -139,7 +141,13 @@ class CycleTest(unittest.TestCase):
                 child.case = row["case"]
                 platform = runner.case_platform(child.case)
                 child.target = (platform.get("kind"), platform.get("org")) if platform else None
+                child.ports = set(runner.case_quality(child.case).get("refuse_ports") or [])
                 spawned.append(child.attempt_id)
+                taken = sorted(port for port in child.ports if port in ports_active)
+                if taken:  # run.py leases a declared fixed port machine-wide: a second attempt on it would be refused
+                    violations.append(f"{child.attempt_id} spawned while {ports_active[taken[0]]} held port {taken[0]}")
+                    child.returncode = 1
+                    return
                 if child.target is not None:
                     if child.target in active:
                         violations.append(f"{child.attempt_id} spawned while {active[child.target]} was running")
@@ -161,6 +169,10 @@ class CycleTest(unittest.TestCase):
                 intent = epoch.launch_intent(root, child.attempt_id, plugins[row["arm"]])
                 child.output = Path(intent["output"])
                 started.append(child.attempt_id)
+                for port in child.ports:
+                    ports_active[port] = child.attempt_id
+                self.overlaps.append((child.case, [other.case for other in live]))
+                live.append(child)
 
             def poll(child):
                 if child.returncode is not None:
@@ -183,6 +195,9 @@ class CycleTest(unittest.TestCase):
                 if child.target is not None:
                     active.pop(child.target, None)
                     previous[child.target] = child.attempt_id
+                for port in child.ports:
+                    ports_active.pop(port, None)
+                live.remove(child)
                 child.returncode = 0
                 return child.returncode
 
@@ -628,6 +643,27 @@ class CycleTest(unittest.TestCase):
         self.assertEqual({row["attempt_id"] for row in epoch.events(root) if row["kind"] == "launch_intent"}, expected)
         self.assertTrue(all(row["status"] == "recorded" for row in epoch.state(root)["attempts"]))
 
+    def test_launch_all_serializes_attempts_that_share_a_fixed_port_and_runs_the_others_beside_them(self):
+        """user-listing, battleship and checkers declare port 3000 and the ticket cases 4180. run.py leases a declared port
+        machine-wide, so two attempts on one port refuse each other, which is why a cycle on such a case had to run one attempt
+        at a time. The scheduler must hold the second back and use the free slot for work that needs no such port."""
+        for case, port in (("user-listing", 3000), ("battleship", 3000), ("ticket-assignment", 4180)):
+            self.assertEqual(runner.case_quality(case).get("refuse_ports"), [port], case)
+        self.assertFalse(runner.case_quality("csv-report").get("refuse_ports"))
+        root, plugins = self.scheduler_epoch("fixed-port-queue",
+                                             {"user-listing": 2, "battleship": 1, "ticket-assignment": 1, "csv-report": 2})
+
+        spawned, started, violations = self.run_scheduler(root, plugins)
+
+        expected = {row["id"] for row in epoch.registration(root)["attempts"]}
+        self.assertEqual(violations, [])
+        self.assertEqual(set(started), expected, "every attempt still runs, only not beside one that holds its port")
+        self.assertTrue(all(row["status"] == "recorded" for row in epoch.state(root)["attempts"]))
+        beside = [(case, running) for case, running in self.overlaps if running]
+        self.assertTrue(beside, "work that needs a different resource runs beside a port holder, or this is just serial")
+        self.assertTrue(any(case == "csv-report" for case, _running in beside) or
+                        any("ticket-assignment" in {case, *running} for case, running in beside))
+
     def test_launch_all_leaves_unclean_targets_queued_while_other_targets_and_local_runs_complete(self):
         cases = {"chess-salesforce": 2, "battleship-salesforce": 2, "csv-report": 2, "hello": 1}
         root, plugins = self.scheduler_epoch("blocked-target-queue", cases)
@@ -1051,7 +1087,8 @@ class CycleKitTest(unittest.TestCase):
         for case in ("csv-report", "seat-reservations", "shared-expenses"):  # the defaults and the documented override
             self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
             self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"),
-                             f"{case} declares a fixed port, which run.py leases machine-wide and launch_all does not serialise")
+                             f"{case} declares a fixed port: the default and documented override cases leave a launch independent of "
+                             "another session's port lease")
         for flag in ("--tolerance 0.25", "--attempts 3", '--effort "$effort"', "--model gpt-6.1-terra", "--iterations 1"):
             self.assertIn(flag, text)
         self.assertIn("EFFORT:-xhigh", text, "the owner asked for Terra 6.1 at Extra High on 2026-11-01")
@@ -1086,7 +1123,8 @@ class CalibrationKitTest(unittest.TestCase):
 
     def test_it_runs_the_cycles_cases_at_the_cycles_driver_and_needs_no_fixed_port(self):
         """Its first design ran user-listing, ticket-assignment and battleship: each declares a fixed port, which run.py
-        leases machine-wide and launch_all does not serialise, so its own parallel attempts would have refused each other."""
+        leases machine-wide; launch_all did not then serialise attempts on one port (it does now), so its own parallel
+        attempts would have refused each other."""
         template = self.registration().template("0" * 12)
         cycle_script = (ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101" / "run.sh").read_text()
         catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())

@@ -494,8 +494,8 @@ measured. `user-listing` was then used for the first launch and refused: it decl
 `quality.refuse_ports`, `run.py` takes a declared port as a machine-wide lease and refuses to start while another
 harness holds it, and another session's `user-listing` run did. `battleship` and `checkers` declare 3000 too, the
 `ticket-*` cases 4180. A cycle on such a case would also fail its own parallel attempts, because `launch_all` serialises
-attempts that share a hosted platform but not attempts that share a fixed port; that gap is not fixed. The cycle
-therefore uses two cases with no fixed port and no hosted platform, of different styles. They were first `csv-report`,
+attempts that share a hosted platform but not attempts that share a fixed port; that gap was closed the same day (see
+"A second gap closed" below). The cycle therefore defaults to two cases with no fixed port and no hosted platform, of different styles. They were first `csv-report`,
 exposing, and `seat-reservations`, the unseen generality case, and were swapped after the second launch (below).)
 
 - **Launches (2026-11-01).** Launch 1 (kit a32b4402b74e4002495c8fa182b2653df0ef9b44, `user-listing`): refused at once by
@@ -520,6 +520,13 @@ exposing, and `seat-reservations`, the unseen generality case, and were swapped 
   7ca88df4 fixed on 2026-10-31 (the same refusal; not replayed), though the ledger still reads admitted. So no record exists
   that a cycle on local cases could take, and a third blind exploration may meet the same owner-held items. Getting past
   this is the owner's decision (an admission route), listed with the options in the stage 5 report.
+- **A second gap closed (2026-11-01).** `cycle.launch_all` now holds an attempt back while another attempt of the epoch holds a
+  fixed port its case declares (`quality.refuse_ports`; `cycle.fixed_ports`), and gives the free slot to other work, so a
+  cycle on `user-listing`, `battleship`, `checkers` or a ticket case no longer has to run one attempt at a time. It serialises
+  on the epoch process's life, which is longer than the run's lease (the process also settles and seals), so it is
+  conservative. Shown by a failing scheduler test first (two attempts of one port started together), then three mutations of
+  the new logic, each caught. A start is still refused while another session's run holds the port, and a base older than
+  this change must still use `PARALLEL=1`; the owner's `user-listing` cycle of 2026-11-01 runs from such a base.
 - **A gap closed beside it (2026-11-01).** `learning_records.ingest` used to append `admitted` after an implementation-routed
   re-find of a record the owner held, and the fold lets the later event win, so a re-find could take a record out of the
   owner's hands (shown by a failing test first). A record that the owner holds, or that is in a candidate (`HELD`), now takes

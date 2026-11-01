@@ -26,9 +26,11 @@ Stage 5 of [the closed-loop plan](../../shiploop-e2e-closed-loop-plan-2026-10-30
 **Why these cases.** The first launch used `user-listing` and was refused: it declares a fixed port 3000
 (`quality.refuse_ports`), `run.py` takes that port as a machine-wide lease and refuses to start while another harness
 holds it, and another session's `user-listing` run held it. `battleship` and `checkers` declare 3000 too, and the
-`ticket-*` cases 4180. A cycle on such a case would also fail its own parallel attempts, because `launch_all` serialises
-same-platform attempts but not same-port ones. So the cycle uses two cases with no fixed port and no hosted platform, of
-different styles: `seat-reservations` (a small HTTP service on a free port, the exposing case) and `csv-report` (a
+`ticket-*` cases 4180. At that time a cycle on such a case would also have failed its own parallel attempts, because
+`launch_all` serialised same-platform attempts but not same-port ones; it now holds back an attempt whose port another
+attempt of the epoch holds and uses the free slot for other work, so such a case can run with `PARALLEL` above 1 (another
+session's run on the port still refuses a start). The default cycle uses two cases with no fixed port and no hosted
+platform, of different styles: `seat-reservations` (a small HTTP service on a free port, the exposing case) and `csv-report` (a
 command-line tool, kept unseen by the improver as the generality case). Both have run on Terra in other sessions' studies.
 No Salesforce org, no shared lane, no fixed port.
 
