@@ -543,6 +543,32 @@ class RunTests(unittest.TestCase):
         _, accepted = self.caller_run(without_one_edge, "within-bounds", bounds)
         self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
 
+    def test_a_provisional_edge_gains_inputs_only_with_allow_new_edges(self):
+        """Round 2's F4: a provisional edge may change, but one that ends with more inputs gained dependencies."""
+        produce = "The importer logs each header it cannot map."
+
+        def one_more_input(plan):
+            plan["steps"][0]["produces"].append(produce)
+            plan["steps"][1]["inputs"].append({"need": produce, "from": "S1"})
+            return plan
+
+        bounds = {"provisional_step_ids": ["S1", "S2"], "provisional_edge_keys": ["S2<-S1"], "allow_new_edges": False}
+        _, refused = self.caller_run(one_more_input, "gains-refused", bounds)
+        self.assertEqual(refused.returncode, 1, refused.stdout + refused.stderr)
+        self.assertIn("edge S2<-S1 gains an input without allow_new_edges", refused.stdout)
+        _, accepted = self.caller_run(one_more_input, "gains-allowed", dict(bounds, allow_new_edges=True))
+        self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
+
+    def test_the_contract_lets_a_review_remove_what_the_bounds_make_provisional(self):
+        """Round 2's F5: with caller bounds the work text no longer forbids an authorized inherited removal."""
+        run_dir, frozen = self.caller_run(lambda plan: plan, "removal-text", {"provisional_step_ids": ["S2"]})
+        self.assertEqual(frozen.returncode, 0, frozen.stdout + frozen.stderr)
+        work = json.loads((run_dir / "loop/contract.json").read_text(encoding="utf-8"))["work"]
+        self.assertIn("an inherited one only where the caller's edit bounds make it provisional", work)
+        self.assertNotIn("never an inherited one", work)
+        fresh = json.loads((self.frozen(name="fresh-text") / "loop/contract.json").read_text(encoding="utf-8"))
+        self.assertIn("never an inherited one", fresh["work"])
+
     def test_record_binds_the_assessment_to_the_candidate_it_reviewed(self):
         """F4: a missing or stale candidate identity, or an assessment that records no checks, is refused."""
         run_dir = self.frozen()
@@ -553,7 +579,9 @@ class RunTests(unittest.TestCase):
         for label, review, expected in (
                 ("missing identity", dict(assessment("none"), candidate_identity=None), "candidate_identity"),
                 ("stale identity", dict(assessment("none"), candidate_identity=stale), "candidate_identity"),
-                ("no checks", dict(assessment("none"), checks=[]), "checks")):
+                ("no checks", dict(assessment("none"), checks=[]), "checks"),
+                ("null checks (round 2, F3)", dict(assessment("none"), checks=[None]), "checks"),
+                ("blank checks (round 2, F3)", dict(assessment("none"), checks=["  "]), "checks")):
             with self.subTest(label):
                 refused = self.record(run_dir, review)
                 self.assertEqual(refused.returncode, 1, refused.stdout)
@@ -579,20 +607,73 @@ class RunTests(unittest.TestCase):
         finished = run("finish", "--run", str(run_dir))
         self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
 
-    def test_finish_refuses_a_callback_submitted_without_record(self):
-        """F1: a report written by hand and submitted without record leaves an action no record covers."""
-        run_dir = self.frozen()
-        packet = self.start(run_dir)
+    @staticmethod
+    def submit(packet: dict, report: dict) -> dict:
+        submitted = subprocess.run(packet["done_argv"], input=json.dumps(report), capture_output=True, text=True,
+                                   timeout=60)
+        if submitted.returncode != 0:
+            raise AssertionError(submitted.stderr)
+        return json.loads(submitted.stdout)
+
+    def test_a_callback_submitted_without_record_is_found(self):
+        """F1, and round 2's F2: a hand-written report in an earlier callback is refused by the next record (an extra
+        record cannot pad it), and one in the last callback by finish."""
         hand = {"classification": "non-trivial", "exit_assessment": "unsatisfied", "continuation_assessment": "allowed",
                 "evidence": "A hand-written report.", "handoff": "A hand-written handoff."}
-        submitted = subprocess.run(packet["done_argv"], input=json.dumps(hand), capture_output=True, text=True,
-                                   timeout=60)
-        self.assertEqual(submitted.returncode, 0, submitted.stderr)
-        self.assertEqual(self.cycle(run_dir, json.loads(submitted.stdout), assessment("none"))["status"], "complete")
+        run_dir = self.frozen(name="earlier")
+        after = self.submit(self.start(run_dir), hand)
+        refused = self.record(run_dir, assessment("none"))
+        self.assertEqual(refused.returncode, 1, refused.stdout + refused.stderr)
+        self.assertIn("callback 1 that is not the last report record wrote", refused.stdout)
+        self.assertFalse((run_dir / "evidence.json").exists())
+        self.assertEqual(after["status"], "active")
+        # The last callback: cycle 1 is recorded and submitted, then callback 2 submits a hand-written trivial report.
+        run_dir = self.frozen("--passes", "converge", name="last")
+        after = self.cycle(run_dir, self.start(run_dir), assessment("none"))
+        verified = subprocess.run(after["verify_script"], shell=True, executable="/bin/sh", cwd=str(run_dir),
+                                  capture_output=True, text=True, timeout=120)
+        self.assertIn("all passed", verified.stdout, verified.stdout[-2000:])
+        final = self.submit(after, dict(hand, classification="trivial", exit_assessment="satisfied"))
+        self.assertEqual(final["status"], "complete")
         done = run("finish", "--run", str(run_dir))
         self.assertEqual(done.returncode, 1, done.stdout + done.stderr)
         result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))
-        self.assertIn("2 action(s) where 1 cycle(s) are recorded", result["convergence"]["next_action"])
+        self.assertIn("callback(s) 2 have no recorded cycle", result["convergence"]["next_action"])
+
+    @staticmethod
+    def final_review(run_dir: Path, **changes) -> dict:
+        """The caller review object a source-aware run writes after its loop, assessing the final candidate."""
+        review = {"interface": "backchain-caller/v1", "action": "repair", "stage": "revise", "action_id": "bounds-test",
+                  "candidate": {"output_sha256": file_digest(run_dir / "plan.json"), "disposition": "unchanged"},
+                  "findings": [], "planning_gaps": [], "execution_blockers": [],
+                  "coverage": {"source_review_status": "complete"}}
+        review.update(changes)
+        return review
+
+    def test_finish_refuses_a_final_review_that_is_not_of_the_final_candidate(self):
+        """Round 2's F1: an identity-only shell, or the assessment of the inherited candidate after a revision, is not
+        the final source assessment; finish refuses it (could not run) instead of stamping the output digest on it."""
+        bounds = {"provisional_step_ids": ["S2"], "provisional_edge_keys": ["S2<-S1"]}
+        run_dir, frozen = self.caller_run(without_one_edge, "stale-review", bounds)
+        self.assertEqual(frozen.returncode, 0, frozen.stdout + frozen.stderr)
+        self.assertEqual(self.cycle(run_dir, self.start(run_dir), assessment("none"))["status"], "complete")
+        inherited = file_digest(self.base / "stale-review-inherited.json")
+        shell = {key: self.final_review(run_dir)[key] for key in ("interface", "action", "stage", "action_id")}
+        for label, review, expected in (
+                ("identity fields only", shell, "candidate.output_sha256"),
+                ("the inherited candidate's assessment", self.final_review(
+                    run_dir, candidate={"output_sha256": inherited, "disposition": "unchanged"}), "final candidate"),
+                ("no source status", self.final_review(run_dir, coverage={}), "coverage.source_review_status")):
+            with self.subTest(label):
+                path = self.base / "review-under-test.json"
+                path.write_text(json.dumps(review))
+                done = run("finish", "--run", str(run_dir), "--review", str(path))
+                self.assertEqual(done.returncode, 3, done.stdout + done.stderr)
+                self.assertIn(expected, done.stderr)
+                self.assertFalse((run_dir / "result.json").exists())
+        path.write_text(json.dumps(self.final_review(run_dir, candidate={
+            "output_sha256": file_digest(run_dir / "plan.json"), "disposition": "changed"})))
+        self.assertEqual(run("finish", "--run", str(run_dir), "--review", str(path)).returncode, 0)
 
     def test_a_source_aware_run_returns_plan_and_review(self):
         """F5: a source-aware result is {plan, review} with review.convergence, built from the caller's own review."""
@@ -606,9 +687,7 @@ class RunTests(unittest.TestCase):
         self.assertEqual(missing.returncode, 3)
         self.assertIn("--review", missing.stderr)
         review = self.base / "final-review.json"
-        review.write_text(json.dumps({"interface": "backchain-caller/v1", "action": "repair", "stage": "revise",
-                                      "action_id": "bounds-test", "findings": [], "planning_gaps": [],
-                                      "execution_blockers": [], "coverage": {"source_review_status": "complete"}}))
+        review.write_text(json.dumps(self.final_review(run_dir)))
         finished = run("finish", "--run", str(run_dir), "--review", str(review))
         self.assertEqual(finished.returncode, 0, finished.stdout + finished.stderr)
         result = json.loads((run_dir / "result.json").read_text(encoding="utf-8"))

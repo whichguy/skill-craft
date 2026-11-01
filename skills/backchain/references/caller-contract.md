@@ -111,7 +111,10 @@ records actual final output digest and final source assessment, and stores an op
 `review.convergence` binding record. After the loop ends, write the final source assessment as
 the review object below (its interface, action, stage and action ID the packet's) and run
 `finish --run DIR --review FILE`: it does that restoring and recording, and takes
-`coverage.structural_plan_status` from the check receipt on the final candidate. It may say converged planning only with the exact
+`coverage.structural_plan_status` from the check receipt on the final candidate. It refuses a
+review that does not assess the final candidate: `candidate.output_sha256` must be the final
+candidate's sha256 (the last `record` printed it), `findings` a list, and
+`coverage.source_review_status` `complete` or `incomplete`. It may say converged planning only with the exact
 Until Loop terminal `complete` receipt plus candidate-specific domain evidence. Missing or
 stale selection/candidate/source/bounds resources, `blocked`/`stopped`/cancelled Until Loop,
 or absent domain evidence is incomplete. Do not infer terminal state from copied text,
@@ -141,7 +144,7 @@ Compare the candidate against the original request, source clauses, indexed map,
 
 This is separate from legacy elaboration. Legacy elaboration continues to preserve inherited seed/null edges and `goal_needs`. An authorized revise may remove or rewire an exact provisional edge only within explicit bounds.
 
-Running/completed steps are always protected. Accepted facts/evidence and listed protected items remain protected. Existing items may change only if their exact ID/key is provisional. New steps require `allow_new_steps: true`; new edges require `allow_new_edges: true`; adding/changing an edge to an existing consumer also requires that consumer to be provisional and not running/completed. An edge key is `consumer<-supplier`, the consumer's step ID and the `from` of its inputs; an `initial_state` input's supplier is written `null` (`S3<-null`), and every input a consumer takes from one supplier belongs to that key. `freeze`, `record` and `verify` enforce these bounds against the inherited candidate and name each edit outside them. Each removal, split, replacement, or rewire needs an old-to-new mapping and source-linked reason. An active selected Until Loop callback may apply authorized revisions through the one-revision `prompts/revise.prompt.md`; Until Loop classifies cycles and owns recurrence. A blocked or out-of-bounds necessary repair stays incomplete.
+Running/completed steps are always protected. Accepted facts/evidence and listed protected items remain protected. Existing items may change only if their exact ID/key is provisional. New steps require `allow_new_steps: true`; new edges require `allow_new_edges: true`; adding/changing an edge to an existing consumer also requires that consumer to be provisional and not running/completed. An edge key is `consumer<-supplier`, the consumer's step ID and the `from` of its inputs; an `initial_state` input's supplier is written `null` (`S3<-null`), and every input a consumer takes from one supplier belongs to that key. Rewording or dropping an input of a provisional key changes that edge; ending with more inputs on a key than it had needs `allow_new_edges: true`. `freeze`, `record` and `verify` enforce these bounds against the inherited candidate and name each edit outside them. Each removal, split, replacement, or rewire needs an old-to-new mapping and source-linked reason. An active selected Until Loop callback may apply authorized revisions through the one-revision `prompts/revise.prompt.md`; Until Loop classifies cycles and owns recurrence. A blocked or out-of-bounds necessary repair stays incomplete.
 
 A revised plan emits `parallel_groups: []`; `backchain.py record` packages each revision and checks its structure, so `parallel_groups` and `structural_plan_status` always come from the receipt for this exact `output_sha256`. Until that receipt exists, `structural_plan_status` is `"unknown"`; never carry stale waves or structural status forward.
 

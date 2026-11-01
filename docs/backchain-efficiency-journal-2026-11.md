@@ -200,3 +200,39 @@ passes on 090e37f5 and after; it is a guard, not a fail-first test.
 Not defended, by the KISS rule (fix what breaks a normal run, document the rest): a hand-edited `run.json` can
 change what the binding check compares against, and a deliberately forged packet that copies every contract field
 and the last report would pass `receipt_problems`. The 2026-10-16 failures were hand-built bindings, not tampering.
+
+Round 4 landed as 26d4785541fedbfba91bb32e61d525ed8f4a19f2.
+
+## Round 5 — a second adversarial review, of the fixes, and the cohort runner (2026-11-01)
+
+Conditions: the same reviewer (`codex:gpt-6.1-sol`, medium) on 26d47855 against 090e37f5. The packet was the diff of
+`skills/` and `changes/` with a header quoting round 1's claims (49,791 bytes), plus an evidence brief. Five findings.
+Evidence: [`experiments/backchain-efficiency-20261101/adversarial/round2/`](experiments/backchain-efficiency-20261101/adversarial/round2/).
+
+| ID | Finding | Status | Evidence |
+|----|---------|--------|----------|
+| R5-1 (R2-F1) | `finish --review` stamped the final digest on any review whose identity fields matched, including an empty shell or the inherited candidate's assessment. It now requires the review to assess the final candidate: `candidate.output_sha256` the final sha256 (the last `record` printed it), `findings` a list, `coverage.source_review_status` set. | firm (test) | `test_finish_refuses_a_final_review_that_is_not_of_the_final_candidate` |
+| R5-2 (R2-F2) | Round 4's corrected count ("no more actions than recorded cycles") still let a hand-written callback hide behind an extra record. The count is gone. `record` now runs inside a callback: it reads the loop's packet from the receipt, stamps the cycle with the callback number, and refuses when the previous callback submitted anything but the last report `record` wrote in it. `finish` requires a recorded cycle for every callback. | firm (test) | `test_a_callback_submitted_without_record_is_found`; `record`, `receipt_problems` |
+| R5-3 (R2-F3) | `checks: [null]` passed as a non-empty list. Checks must now be non-blank strings. Their content stays the reviewer's claim: checking substance would need a structured checks format, an unmeasured prompt change. The cohort's blind grading measures what the reviews achieve. | firm (shape); judgement (substance) | `test_record_binds_the_assessment_to_the_candidate_it_reviewed` |
+| R5-4 (R2-F4) | Keying edges per consumer/supplier pair (Round 4's decision) let a provisional edge gain inputs without `allow_new_edges`. An edge that ends with more inputs than it had now needs it; rewording or dropping an input is still a change. | firm (test) | `test_a_provisional_edge_gains_inputs_only_with_allow_new_edges` |
+| R5-5 (R2-F5) | The contract's work text said "never an inherited one" even where caller bounds authorize the removal. With bounds it now says a review may remove an inherited edge or step only where the bounds make it provisional. The live check of this is the cohort's bounded source-edge repair case. | firm (text, test); open (live) | `test_the_contract_lets_a_review_remove_what_the_bounds_make_provisional` |
+
+Fail-first, and after: the final test file run against 26d47855 fails 8 times in 5 tests: R2-F1 3, R2-F2 1 (`record`
+after a hand-written callback 1 succeeded), R2-F3 2, R2-F4 1, R2-F5 1. After the fixes all 34 toolkit tests pass.
+
+The cohort runner is in. A separate agent built `cohort.py` from the brief: dry run 48 expectations, 0 problems; 48
+unit tests on Python 3.15.1 and 3.9.6; no model launched. It reproduces the 2026-10-16 prior of 11 confirming
+reviews, 0 non-trivial, and extracts all 36 retained receipts. I accepted its eight implementation deviations before
+the freeze. They apply to both arms and are recorded in the cohort protocol's "Runner implementation notes".
+- The packet extraction now counts a helper script's output: the 2026-10-16 study's own post-hoc correction,
+  applied up front.
+- The input one-liners no longer hint at each case's trap.
+
+Two card fixes came from the runner's pilot watch-list:
+- The card said "choose a new run directory outside the project", which conflicts with a caller that confines
+  writes. It now says to use a run directory where the caller or request lets you write, otherwise outside the
+  project.
+- The card never mentioned `--binding`, so a caller's `Backchain standalone Until Loop binding: ID` was replaced by a
+  generated ID. `prepare --binding ID` now carries it.
+
+Neither card fix is measured yet; the pilot is their first live use.

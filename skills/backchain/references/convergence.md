@@ -105,7 +105,8 @@ account for every reported difference in the assessment (`moved_unchanged`, `add
 `unchanged_produce_confirmation_changed`, `produce_text_absent`, multi-owner produces), or restore
 it. A legitimate in-place produce rewrite or move grants no permission to narrow a seed or move its
 work. A review may remove an edge or step this run itself generated when it finds it unjustified,
-as a material repair with its reason; inherited content stays.
+as a material repair with its reason; inherited content stays, unless the caller's `edit_bounds`
+make it provisional.
 
 ## Each cycle
 
@@ -201,15 +202,18 @@ After the loop ends, `backchain.py finish` writes `DIR/result.json`. It reports 
 only with both the exact selected Until Loop terminal `complete` packet (the receipt) and
 candidate-specific domain evidence: every cycle record intact and matching, the final output
 identity, a structurally valid candidate, and no planning gap. The receipt must be this run's own:
-it repeats the frozen contract's workspace, work, conditions, context and exit checks, names this
-receipt path and gate, counts no more actions than recorded cycles (each callback submits a report
-`record` wrote), carries the last cycle's report and,
-when `complete`, shows every frozen exit check passing. The adapter validates callback shape and
-transitions, not that semantic evidence is true.
+it repeats the frozen contract's workspace, work, conditions, context and exit checks and names this
+receipt path and gate; every callback it counts has a recorded cycle; and it carries the last
+cycle's report and, when `complete`, shows every frozen exit check passing. Each callback submits
+the report `record` wrote: `record` runs inside a callback, reads the loop's packet from the
+receipt, stamps the cycle with that callback's number and refuses when the previous callback
+submitted anything but the last report `record` wrote in it. The adapter validates callback shape
+and transitions, not that semantic evidence is true.
 
 `record` keeps every cycle's original review record with its observed candidate identity, and
 refuses an assessment whose `candidate_identity` is not the sha256 of the candidate the cycle began
-with, or whose `checks` are empty; `finish` reopens them all; the evidence set that converged planning needs depends on the gate. By
+with, or whose `checks` hold no non-blank string; what the checks say stays the reviewer's claim.
+`finish` reopens them all; the evidence set that converged planning needs depends on the gate. By
 default it is the completing cycle's trivial review record, with every earlier cycle's. With
 `Backchain passes: one`, the evidence set is the one review record of the cycle and the
 `backchain-check` receipt on the final candidate. With `Backchain passes: converge`, it is both

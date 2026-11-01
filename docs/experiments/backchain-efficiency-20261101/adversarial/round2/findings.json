@@ -1,0 +1,71 @@
+{
+ "change": "Backchain fix round: binding checks after the first adversarial review",
+ "reviewer": "codex:gpt-6.1-sol@medium",
+ "findings": [
+  {
+   "id": "F1",
+   "claim": "finish can attach a stale or absent final source assessment to the current output and still report convergence. It validates the final review's action identity, but does not require its candidate identity, source assessment, coverage, or findings to describe the final candidate. caller_review then supplies the current output digest, making an unbound assessment appear candidate-specific.",
+   "severity": "high",
+   "category": "untested-case",
+   "evidence": "command_finish accepts any review object with matching interface/action/stage/action_id and no planning gaps. caller_review overwrites candidate.output_sha256 and structural_plan_status without validating the assessment's original candidate or requiring source_review_status. The F5 test checks output packaging, not rejection of stale or missing source evidence.",
+   "testable": true,
+   "experiment": {
+    "type": "scenario",
+    "description": "Complete a caller-packet run, then finish with a review containing only the four matching identity fields. Repeat with an assessment of the inherited candidate after materially revising it.",
+    "success": "Both reviews are rejected or force an incomplete result because final-candidate source evidence is missing or stale."
+   }
+  },
+  {
+   "id": "F2",
+   "claim": "The receipt action-count check still accepts callbacks submitted without record when extra records pad the count. It does not establish that each submitted report came from a recorded cycle.",
+   "severity": "high",
+   "category": "untested-case",
+   "evidence": "receipt_problems requires only action_number <= len(cycles) and equality with the final report. The explicitly supported case of recording twice in one callback creates surplus records that can mask an unrelated handwritten report in another callback. The offered negative test has two actions but only one record, so it cannot detect this bypass.",
+   "testable": true,
+   "experiment": {
+    "type": "scenario",
+    "description": "Under the default gate, submit a handwritten non-trivial report in callback 1. In callback 2, record twice and submit only the second recorded trivial report. Run finish on the genuine terminal receipt.",
+    "success": "finish rejects the run specifically because callback 1's report has no corresponding recorded submission, despite two actions and two records."
+   }
+  },
+  {
+   "id": "F3",
+   "claim": "The assessment check still permits an empty inspection in substance to qualify as a trivial review. A current digest and a nonempty list do not establish any required lens, source, bounds, or chunk checks.",
+   "severity": "high",
+   "category": "untested-case",
+   "evidence": "review_problems accepts checks such as [null], [\"\"] or [{}]. It validates neither entry shape nor required coverage. The F4 evidence tests an empty list and stale identities, but no meaningless nonempty list or omitted required checks.",
+   "testable": true,
+   "experiment": {
+    "type": "scenario",
+    "description": "Record an unchanged valid candidate using its printed identity, change_class trivial, checks [null], and empty findings, planning_gaps and execution_blockers; then submit the report and finish.",
+    "success": "record refuses the assessment for lacking substantive required inspection evidence, preventing convergence."
+   }
+  },
+  {
+   "id": "F4",
+   "claim": "The new edge grouping can broaden edit permission: allow_new_edges false still permits adding input objects under an existing provisional consumer/supplier key. Callers expecting per-input protection can authorize more work than intended.",
+   "severity": "medium",
+   "category": "overreach",
+   "evidence": "edges_by_key groups every input from one supplier together. Changes within an existing provisional key bypass the new-edge permission check, which examines only previously absent keys. The evidence explicitly says the prior edit-bounds study used per-input keys; the new tests exercise removal within a group but not insertion under allow_new_edges false.",
+   "testable": true,
+   "experiment": {
+    "type": "scenario",
+    "description": "Give provisional S2 and S2<-S1, set allow_new_edges false, and add another structurally valid input object from S1 to S2 without removing the original. Run freeze and record.",
+    "success": "The added dependency is rejected unless the caller explicitly authorizes the broader grouped-input permission."
+   }
+  },
+  {
+   "id": "F5",
+   "claim": "The generated callback instructions contradict the newly authorized source-aware removals, which can cause a model to leave an allowed necessary repair undone or declare it blocked.",
+   "severity": "medium",
+   "category": "wording",
+   "evidence": "contract_for still instructs that a review may remove a generated edge or step, 'never an inherited one.' The revised caller contract and bound_errors explicitly permit inherited provisional steps and edges to be removed. Script tests cannot show which conflicting instruction a model follows, and no model has used the fixed commands.",
+   "testable": true,
+   "experiment": {
+    "type": "scenario",
+    "description": "Run one live source-aware callback where removing an inherited provisional edge is the only necessary repair, with explicit bounds permitting that removal.",
+    "success": "The model performs the authorized removal and completes without treating the generated contract's prohibition as binding or requesting new authority."
+   }
+  }
+ ]
+}

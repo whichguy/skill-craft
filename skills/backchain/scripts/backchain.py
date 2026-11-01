@@ -263,8 +263,9 @@ def edges_by_key(plan: Any) -> Dict[str, List[str]]:
 def bound_errors(inherited: Any, candidate: Any, bounds: Dict[str, Any]) -> List[str]:
     """Edits outside a caller's edit_bounds (references/caller-contract.md, repair/revise): running, completed and
     protected steps are unchanged; another existing step changes only if provisional; a new step needs
-    allow_new_steps; an existing edge changes only if its key is provisional on a provisional consumer, and a new edge
-    needs allow_new_edges on a provisional or new consumer; protected edges and facts stay."""
+    allow_new_steps; an existing edge changes only if its key is provisional on a provisional consumer, and gains
+    inputs only with allow_new_edges; a new edge needs allow_new_edges on a provisional or new consumer; protected
+    edges and facts stay."""
     def steps(plan: Any) -> Dict[str, Any]:
         return {s["id"]: s for s in plan.get("steps", []) if isinstance(s, dict) and isinstance(s.get("id"), str)}
 
@@ -289,18 +290,21 @@ def bound_errors(inherited: Any, candidate: Any, bounds: Dict[str, Any]) -> List
     protected_edges = set(bounds.get("protected_edge_keys") or [])
     provisional_edges = set(bounds.get("provisional_edge_keys") or []) - protected_edges
     old_edges, new_edges = edges_by_key(inherited), edges_by_key(candidate)
-    for key, entries in old_edges.items():
-        if new_edges.get(key) == entries:
+    for key in sorted(set(old_edges) | set(new_edges)):
+        before, after = old_edges.get(key, []), new_edges.get(key, [])
+        if before == after:
             continue
         consumer = key.split("<-", 1)[0]
+        if not before:
+            if not bounds.get("allow_new_edges") or (consumer in old and consumer not in provisional):
+                errors.append(f"new edge {key} outside the edit bounds")
+            continue
         if key in protected_edges or key not in provisional_edges or consumer not in provisional:
             errors.append(f"edge {key} changed outside the edit bounds")
-    for key in new_edges:
-        if key in old_edges:
-            continue
-        consumer = key.split("<-", 1)[0]
-        if not bounds.get("allow_new_edges") or (consumer in old and consumer not in provisional):
-            errors.append(f"new edge {key} outside the edit bounds")
+        # Round 2 (F4): rewording or dropping an input of a provisional edge changes that edge, but an edge that ends
+        # with more inputs than it had gained new dependencies, which only allow_new_edges grants.
+        if len(after) > len(before) and not bounds.get("allow_new_edges"):
+            errors.append(f"edge {key} gains an input without allow_new_edges")
     facts = {graph.normalize_need_string(fact) for fact in candidate.get("initial_state", [])
              if isinstance(fact, str)} if isinstance(candidate, dict) else set()
     for fact in bounds.get("protected_facts") or []:
@@ -499,13 +503,16 @@ def contract_for(run: Run, meta: Dict[str, Any], exit_checks: List[Dict[str, str
                   "and confirmations")
     else:
         bounds = "every step may change; this run generated all of them"
+    # Round 2 (F5): with a caller's bounds, what they make provisional may go too.
+    removable = ("and an inherited one only where the caller's edit bounds make it provisional"
+                 if meta.get("edit_bounds") else "never an inherited one")
     work = (f"One complete Backchain dependency review/fix/check cycle of the candidate {run.plan}. Read "
             f"{resolve('prompts/convergence-review.prompt.md')} and perform its assessment against the frozen request "
             f"{run.request}, its sources and the edit bounds: trace backward from every requested outcome and "
             "verification sink, walk the graph forward, screen every lens category and read the cards it marks "
             "applicable or uncertain, check sources and bounds, and review implementable chunks. Repair every "
             f"finding the edit bounds allow by editing {run.plan}; a review may remove an edge or step this run "
-            "generated when it finds it unjustified, never an inherited one. Save the assessment (the review "
+            f"generated when it finds it unjustified, {removable}. Save the assessment (the review "
             "prompt's JSON; its candidate_identity is the sha256 of the candidate the cycle began with, which freeze "
             "printed for cycle 1 and each record prints, and last_report.handoff repeats, for the next) to a new "
             f"file, run `{record}`, then the packet's verify_script, then submit the report file that record prints "
@@ -698,8 +705,11 @@ def review_problems(review: Any, identity: str) -> List[str]:
                         "or the previous record printed it)")
     if not isinstance(review.get("findings"), list):
         problems.append("findings is a list")
-    if not isinstance(review.get("checks"), list) or not review["checks"]:
-        problems.append("checks lists what this cycle inspected (at least one entry)")
+    # Round 2 (F3): a list of nulls is not a record of inspection. What the checks claim stays the reviewer's word;
+    # the blind grading of the plans measures it.
+    checks = review.get("checks")
+    if not isinstance(checks, list) or not checks or not all(isinstance(c, str) and c.strip() for c in checks):
+        problems.append("checks lists what this cycle inspected: at least one non-blank string")
     for key in ("planning_gaps", "execution_blockers"):
         if not isinstance(review.get(key), list) or not all(isinstance(item, str) for item in review.get(key, [])):
             problems.append(f"{key} is a list of strings")
@@ -713,7 +723,25 @@ def command_record(args: argparse.Namespace) -> int:
     meta = run.frozen()
     review = read_json(args.review)
     cycles = run.recorded()
-    problems = binding_problems(run, meta) + review_problems(review, reviewed_identity(run, meta, cycles))
+    # A cycle is one callback of this run's loop: the receipt holds the loop's latest packet, which names the callback.
+    if not run.receipt.is_file():
+        raise Unavailable(f"no loop packet at {run.receipt}; start the loop with the command freeze printed, then "
+                          "record each cycle inside its callback")
+    packet = read_json(run.receipt)
+    if isinstance(packet, dict) and packet.get("status") != "active":
+        raise Unavailable(f"the loop at {run.receipt} has ended ({packet.get('status')}); a cycle is recorded inside "
+                          "a callback, so run finish")
+    problems = binding_problems(run, meta) + packet_problems(run, packet)
+    callback = callback_of(packet)
+    if callback is None:
+        problems.append("the receipt names no callback number")
+    elif callback > 1:
+        earlier = [entry for entry in cycles if entry.get("callback") == callback - 1]
+        if not earlier or packet.get("last_report") != read_json(Path(earlier[-1]["report"]["path"])):
+            problems.append(f"the loop accepted a report in callback {callback - 1} that is not the last report "
+                            "record wrote in it; each callback submits the report record wrote, so this run cannot "
+                            "converge: finish it, or start a new run")
+    problems += review_problems(review, reviewed_identity(run, meta, cycles))
     data, plan = read_plan(run.plan)
     receipt = check_receipt(data, plan, str(run.plan))
     if not receipt["ok"]:
@@ -741,7 +769,7 @@ def command_record(args: argparse.Namespace) -> int:
         write_once(directory / f"{name}.json", text)
     gaps, blockers = review["planning_gaps"], review["execution_blockers"]
     entry = {
-        "cycle": number, "classification": classification, "changed": current != previous,
+        "cycle": number, "callback": callback, "classification": classification, "changed": current != previous,
         "change_class": review["change_class"], "findings": len(review["findings"]),
         "review": locator(directory / "review.json"),
         "plan": dict(locator(directory / "plan.json"), packaged_sha256=current),
@@ -821,10 +849,9 @@ def command_verify(args: argparse.Namespace) -> int:
     return EXIT_OK if not problems else EXIT_FAILS
 
 
-def receipt_problems(run: Run, packet: Any, cycles: List[Dict[str, Any]]) -> List[str]:
-    """Why the terminal packet at the run's receipt is not this run's own (adversarial review F1, 2026-11-01: any
-    file saying complete made a run converge). It repeats the frozen contract, counts no more actions than recorded
-    cycles and carries the last cycle's report; a complete one shows every frozen exit check passing."""
+def packet_problems(run: Run, packet: Any) -> List[str]:
+    """Why a packet at the run's receipt is not this run's loop: it repeats the frozen contract's workspace, work,
+    conditions, context, exit checks and gate, and names this receipt."""
     if not isinstance(packet, dict):
         return [f"the receipt {run.receipt} is not an Until Loop packet"]
     contract = read_json(run.contract)
@@ -835,14 +862,38 @@ def receipt_problems(run: Run, packet: Any, cycles: List[Dict[str, Any]]) -> Lis
     progress = packet.get("progress") if isinstance(packet.get("progress"), dict) else {}
     if progress.get("required_trivial_reviews") != contract["required_trivial_reviews"]:
         problems.append("the receipt's review gate is not this run's")
-    # Each callback submits a report record wrote. Recording twice in one callback (an edit after record) leaves one
-    # record unsubmitted, which is harmless; an action with no record behind it was a hand-written report.
-    actions = progress.get("action_number")
-    if isinstance(actions, bool) or not isinstance(actions, int) or not 1 <= actions <= len(cycles):
-        problems.append(f"the receipt counts {actions} action(s) where {len(cycles)} cycle(s) are recorded; each "
-                        "callback submits the report record wrote")
+    return problems
+
+
+def callback_of(packet: Any) -> Optional[int]:
+    """The packet's callback number (Until Loop's progress.action_number, from 1), or None."""
+    progress = packet.get("progress") if isinstance(packet, dict) and isinstance(packet.get("progress"), dict) else {}
+    number = progress.get("action_number")
+    return number if isinstance(number, int) and not isinstance(number, bool) and number >= 1 else None
+
+
+def receipt_problems(run: Run, packet: Any, cycles: List[Dict[str, Any]]) -> List[str]:
+    """Why the terminal packet at the run's receipt is not this run's own. Adversarial reviews of 2026-11-01: in
+    round 1 (F1) any file saying complete made a run converge; in round 2 (F2) a count of actions against records let
+    a hand-written callback hide behind an extra record. So: packet_problems, then every callback has a recorded
+    cycle (record stamps each with its callback and, when a callback begins, checks that the one before submitted
+    the last report record wrote then), the last callback submitted the last recorded report, and a complete packet
+    shows every frozen exit check passing."""
+    problems = packet_problems(run, packet)
+    if not isinstance(packet, dict):
+        return problems
+    callbacks = callback_of(packet)
+    stamped = {entry.get("callback") for entry in cycles}
+    if callbacks is None:
+        problems.append("the receipt names no callback number")
+    else:
+        unrecorded = [str(number) for number in range(1, callbacks + 1) if number not in stamped]
+        if unrecorded:
+            problems.append(f"the receipt's callback(s) {', '.join(unrecorded)} have no recorded cycle; each callback "
+                            "submits the report record wrote")
     if cycles and packet.get("last_report") != read_json(Path(cycles[-1]["report"]["path"])):
         problems.append("the receipt's last_report is not the last recorded cycle's report")
+    contract = read_json(run.contract)
     status = packet.get("status")
     if status == "complete":
         results = packet.get("last_check_results")
@@ -903,6 +954,18 @@ def command_finish(args: argparse.Namespace) -> int:
             raise Unavailable("--review is not this caller action's review: " + "; ".join(mismatched))
         if not all(isinstance(gap, str) for gap in review.get("planning_gaps") or []):
             raise Unavailable("--review planning_gaps is a list of strings")
+        # Round 2 (F1): the review must be of the final candidate, not an earlier one or an empty shell.
+        final = file_sha256(run.plan)
+        assessed = review.get("candidate") if isinstance(review.get("candidate"), dict) else {}
+        coverage = review.get("coverage") if isinstance(review.get("coverage"), dict) else {}
+        unbound = [problem for problem, holds in (
+            (f"candidate.output_sha256 is the final candidate's sha256, {final} (the last record printed it)",
+             assessed.get("output_sha256") == final),
+            ("findings is a list", isinstance(review.get("findings"), list)),
+            ("coverage.source_review_status is complete or incomplete",
+             coverage.get("source_review_status") in ("complete", "incomplete"))) if not holds]
+        if unbound:
+            raise Unavailable("--review does not assess the final candidate: " + "; ".join(unbound))
     cycles = run.recorded()
     problems = verification(run) + receipt_problems(run, packet, cycles)
     data, plan = read_plan(run.plan)

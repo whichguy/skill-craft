@@ -49,11 +49,13 @@ contract, or keep a pass counter.
 ## Native procedure
 
 Every command is `python3 -I -B <this skill>/scripts/backchain.py <command> …`; each prints
-absolute paths and the next command. Choose a new run directory outside the project.
+absolute paths and the next command. Use a new, empty run directory: where the caller or request
+lets you write, otherwise outside the project.
 
 1. **Prepare.** `prepare --run DIR --request REQUEST.md`. Add `--draft PLAN.json` to elaborate
    an inherited plan, `--caller PACKET.json` for a `backchain-caller/v1` request (read
-   [references/caller-contract.md](references/caller-contract.md) first), and `--passes one` or
+   [references/caller-contract.md](references/caller-contract.md) first), `--binding ID` when the
+   request carries `Backchain standalone Until Loop binding: ID`, and `--passes one` or
    `--passes converge` when the caller states that marker. It freezes the inputs, resolves
    every resource (the selected Until Loop is the bundled `../improve/runtime/until-loop/ADAPTER.md`
    beside this skill unless `--until-loop` names another; a missing one stops the run) and prints
@@ -77,8 +79,9 @@ absolute paths and the next command. Choose a new run directory outside the proj
    the packet's `verify_script`, and submit the report `record` wrote through the packet's
    `done_argv`.
 5. **Finish.** After the loop ends, `finish --run DIR` writes `DIR/result.json`,
-   `{plan, convergence}`; with a caller packet, write the final review object
-   ([references/caller-contract.md](references/caller-contract.md)) and pass it with
+   `{plan, convergence}`; with a caller packet, write the final review object of the final
+   candidate ([references/caller-contract.md](references/caller-contract.md); its
+   `candidate.output_sha256` is the sha256 the last `record` printed) and pass it with
    `--review FILE` to get `{plan, review}`. Return it; say converged only when `finish` does, and
    otherwise report its next action. `export DIR/plan.json` gives Plan Dispatcher the execution
    graph of a complete plan.
@@ -149,9 +152,10 @@ must keep `unresolved` as `[]` and must never write `origin: "discovered"`** —
 the elaborator only. **Seed step `id`s are immutable** — never rename or renumber an existing
 seed. **The elaborator never removes an existing `inputs[]` edge** from the draft (it may add
 edges and widen `statement`/`produces` in place). **Inherited and generated content differ:** a
-step, edge or confirmation in the caller's input (an inherited draft or plan) stays, and `freeze`
-and `record` check that mechanically; a later review may remove an edge or step this run itself
-generated when it finds it unjustified, recording the reason as a material repair.
+step, edge or confirmation in the caller's input (an inherited draft or plan) stays, unless the
+caller's `edit_bounds` make it provisional, and `freeze` and `record` check that mechanically; a
+later review may remove an edge or step this run itself generated when it finds it unjustified,
+recording the reason as a material repair.
 
 Each **input** is an object with required keys `need` (string) and `from`:
 - `from: null` — need is already true in `initial_state` (must be listed there; not an unspoken “world” fact).
