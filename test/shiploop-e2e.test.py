@@ -8135,7 +8135,8 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
                 "returncode": 0, "engine": None}
 
     def write_artifacts(self):
-        self.sessions[-1]["events_line"] = len(self.events)
+        if self.sessions[-1].get("row") == "end":
+            self.sessions[-1]["events_line"] = len(self.events)
         for path, records in ((self.out / "events.jsonl", self.events), (self.out / "sessions.jsonl", self.sessions),
                               (self.root / "trace.jsonl", self.trace), (self.decisions_path, self.decisions)):
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -8149,160 +8150,293 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
                                 capture_output=True, text=True, timeout=10, check=False)
         self.assertTrue(self.receipt.is_file(), result.stdout + result.stderr)
         receipt = json.loads(self.receipt.read_text())
-        self.assertEqual(result.returncode, {"pass": 0, "fail": 1, "unknown": 2}[expected], result.stdout + result.stderr)
-        self.assertEqual(receipt["status"], expected, receipt)
-        if reason:
-            self.assertIn(reason, receipt["reason"])
+        self.assertEqual(result.returncode, {"pass": 0, "fail": 1, "unknown": 2}[receipt["status"]],
+                         result.stdout + result.stderr)
+        self.assertTrue(result.stdout.startswith(receipt["status"].upper() + ": "), result.stdout)
         self.assertEqual(before, {path: (path.read_bytes(), path.stat().st_mode) for path in before},
                          "original artifact bytes/modes changed")
         self.assertEqual({p for p in self.out.rglob("*") if p.is_file()}, set(before) | {self.receipt})
         self.assertFalse((self.out / "result.json").exists(), "grading must precede result.json")
+        self.assertEqual(receipt["status"], expected, receipt)
+        if reason:
+            self.assertIn(reason, receipt["reason"])
         return receipt
+
+    def set_tool(self, identity, command, output):
+        indices = [i for i, row in enumerate(self.events) if row.get("toolCallId") == identity]
+        self.assertEqual(len(indices), 2)
+        self.events[indices[0]:indices[-1] + 1] = self.tool(identity, command, output)
+
+    def add_attempt(self, verb, timestamp, *, duration=1200, code=0):
+        command = self.command(verb, timestamp)
+        command.update(ms=duration, exit=code)
+        if verb == "complete":
+            command["action"] = self.action
+        self.trace.append(command)
+        self.trace.sort(key=lambda row: row["ts"])
+        return command
+
+    def split_session(self, reason="resume-loop"):
+        import hashlib
+
+        self.events.insert(4, self.turn_end())
+        other = "neutral-codex-resume"
+        self.events.insert(5, {"type": "available_commands", "commands": [], "sessionId": other})
+        self.events[-1]["sessionId"] = other
+        self.sessions = [self.session_start(1, 0, 100), self.session_end(1, 5, 124),
+                         self.session_start(2, 5, 125, reason), self.session_end(2, len(self.events), 200)]
+        self.decisions[-1]["session"] = hashlib.sha256(other.encode()).hexdigest()[:12]
+        self.trace[-1]["session"] = self.decisions[-1]["session"]
 
     def test_terminal_end_only_after_same_session_acceptance_passes(self):
         self.assertEqual([i for i, row in enumerate(self.events) if row["type"] == "end"], [7])
+        self.set_tool("startup", "/bin/zsh -lc " + repr(self.startup_command()), self.first_text)
+        # Acceptance uses trace action/time/session, not callback print containment.
+        self.set_tool("completion", "/bin/zsh -lc 'recover_and_submit 2>&1'", "accepted\n")
         receipt = self.check("pass")
         for key in ("startup", "first_packet", "first_stop", "continue_hook",
-                    "intake_acceptance", "continued_callback", "completion_attempts"):
+                    "intake_acceptance", "command_attempts", "same_action_recovery"):
             self.assertTrue(receipt["observations"][key]["artifact"])
         self.assertEqual(receipt["observations"]["first_stop"]["session_hash"], self.session_hash)
         self.assertEqual(receipt["observations"]["intake_acceptance"]["lines"], [5])
         self.assertEqual(receipt["observations"]["first_stop"]["decision"], "continue")
 
-    def test_hook_owned_next_before_or_around_stop_is_allowed(self):
-        for timestamp in (119, 120.0, 120.002):
-            with self.subTest(timestamp=timestamp):
-                repeat = dict(self.trace[0], ts=timestamp - 0.001)
-                recovery = self.command("next", timestamp)
-                self.trace.extend([repeat, recovery])
-                self.trace.sort(key=lambda row: row["ts"])
+    def test_shell_forms_are_opaque_with_identical_canonical_state(self):
+        canonical = json.dumps(self.trace, sort_keys=True)
+        startup = self.startup_command()
+        forms = [startup, "/bin/zsh -lc " + repr(startup), "launch_alias",
+                 "python3 /neutral/hidden_script.py", "bash /neutral/recover.sh",
+                 'CLI=$(resolve_cli); export CLI; cd "$REPO" && ' + startup + " 2>&1 | tail -100",
+                 'set -euo pipefail\n' + startup + ' --improve-skill="$IMPROVE_SKILL"',
+                 "/bin/zsh -lc 'cat > inbox.md <<EOF\nnext complete init workspace start\nEOF\n"
+                 + startup + " 2>&1'"]
+        for command in forms:
+            with self.subTest(command=command):
+                self.set_tool("startup", command, self.first_text)
+                self.set_tool("completion", command + " --opaque", "accepted")
                 receipt = self.check("pass")
-                self.assertEqual(len(receipt["observations"]["hook_owned_next"]["lines"]), 1)
-                self.assertEqual(receipt["observations"]["pending_replay_calls"]["lines"], [])
-                self.trace.remove(repeat)
-                self.trace.remove(recovery)
+                self.assertEqual(receipt["observations"]["startup"]["command"], command)
+                self.assertEqual(json.dumps(self.trace, sort_keys=True), canonical)
 
-    def test_allow_or_unbound_first_stop_fails_despite_later_resume_and_acceptance(self):
-        # The only end of launch one is before the later outer-resume tools.
-        self.events.insert(4, self.turn_end())
-        self.events.insert(5, {"type": "available_commands", "commands": [], "sessionId": self.session})
-        self.sessions = [self.session_start(1, 0, 100), self.session_end(1, 5, 124),
-                         self.session_start(2, 5, 125, "resume-loop"), self.session_end(2, len(self.events), 200)]
-        self.decisions[0].update(decision="allow")
-        for why in ("no progress", "no run bound to this session"):
-            with self.subTest(why=why):
-                self.decisions[0]["why"] = why
-                if why == "no progress":
-                    self.trace[2].update(decision="allow", why=why)
-                else:
-                    self.trace.pop(2)  # An unbound Stop writes no hook into this run.
-                self.check("fail", "first startup stop allowed termination")
+    def test_prior_help_or_refused_call_without_run_does_not_select_startup(self):
+        for code in (0, 2):
+            with self.subTest(code=code):
+                prior = self.tool("prior", '/bin/zsh -lc \'python3 "$CLI" init --help\'', "usage\n")
+                prior[-1]["rawOutput"]["exit_code"] = code
+                prior[-1]["status"] = "failed" if code else "completed"
+                self.events[1:1] = prior
+                self.check("pass")
+                del self.events[1:3]
 
-    def test_missing_stop_is_unknown(self):
-        self.decisions = []
-        self.check("unknown", "empty artifact")
-
-    def test_late_stop_after_any_complete_attempt_is_unknown_even_if_refused(self):
-        for refused in (False, True):
-            with self.subTest(refused=refused):
-                attempt = self.command("complete", 118, accepted=not refused)
-                attempt["action"] = self.action
-                if refused:
-                    attempt.update(exit=2, error="neutral refusal")
-                self.trace.insert(2, attempt)
-                tools = self.tool("early", f'python3 {self.head} complete --action {self.action}', "refused")
-                tools[-1]["rawOutput"]["exit_code"] = 2 if refused else 0
-                self.events[4:4] = tools
-                self.check("unknown", "before any complete attempt")
+    def test_post_stop_next_reprint_keeps_same_action_without_actor_inference(self):
+        repeat = dict(self.trace[0], ts=125)
+        recovery = self.command("next", 126)
+        self.trace[3:3] = [repeat, recovery]
+        for shell in ('python3 /neutral/scripts/shiploop-next', 'hidden_alias', "/bin/zsh -lc 'recover'"):
+            with self.subTest(shell=shell):
+                self.events[4:4] = self.tool("recover", shell, self.first_text)
+                receipt = self.check("pass")
+                self.assertEqual(receipt["observations"]["same_action_recovery"]["lines"], [5])
+                self.assertNotIn("hook_owned_next", receipt["observations"])
                 del self.events[4:6]
-                self.trace.pop(2)
 
-    def test_complete_attempt_straddling_stop_is_unknown(self):
-        self.trace[4]["ms"] = 13000  # Completion started before Stop, but ended after it.
-        self.check("unknown", "before any complete attempt")
+    def test_every_pre_stop_attempt_is_unknown_including_refusals(self):
+        for verb in ("next", "check", "complete"):
+            for code in (0, 2):
+                with self.subTest(verb=verb, code=code):
+                    attempt = self.add_attempt(verb, 119, code=code)
+                    self.check("unknown", "before every later command attempt")
+                    self.trace.remove(attempt)
 
-    def test_untraced_complete_attempt_cannot_be_silently_skipped(self):
-        self.events[4:4] = self.tool("refused", f'python3 {self.head} complete --action {self.action}', "refused")
-        self.events[5]["rawOutput"]["exit_code"] = 2
-        self.check("unknown", "completion attempt")
+    def test_duration_overlap_tied_and_inflight_attempts_are_unknown(self):
+        for verb in ("next", "check", "complete"):
+            for timestamp, duration in ((120, 0), (121, 2000), (121.201, 1200), (120.001, 1)):
+                with self.subTest(verb=verb, timestamp=timestamp, duration=duration):
+                    attempt = self.add_attempt(verb, timestamp, duration=duration)
+                    self.check("unknown", "before every later command attempt")
+                    self.trace.remove(attempt)
 
-    def test_model_next_reinit_and_restart_before_acceptance_fail(self):
-        for verb in ("next", "init", "restart", "reinit", "workspace start"):
-            with self.subTest(verb=verb):
-                self.events[4:4] = self.tool("replay", f'python3 {self.head} {verb} --run-dir "{self.root}"', self.first_text)
-                # Trace alone cannot distinguish a model replay from hook recovery.
-                self.trace.insert(3, self.command(verb.split()[0], 125))
-                self.check("fail", "tool call before intake acceptance")
-                del self.events[4:6]
-                self.trace.pop(3)
+    def test_acceptance_before_stop_is_unknown_before_duplicate_detection(self):
+        attempt = self.command("complete", 119, accepted=True)
+        self.trace.insert(2, attempt)
+        self.check("unknown", "before every later command attempt")
 
-    def test_observed_next_without_a_trace_row_still_fails(self):
-        self.events[4:4] = self.tool("replay", f'python3 {self.head} next --run-dir "{self.root}"', self.first_text)
-        self.check("fail", "tool call before intake acceptance")
+    def test_unfinished_native_tool_is_unknown_without_guessing_shell_semantics(self):
+        self.events.insert(-1, self.tool("inflight", "opaque_script", "unused")[0])
+        self.check("unknown", "pairing is missing or ambiguous")
 
-    def test_model_next_between_completion_call_and_return_still_fails(self):
-        self.events[5:5] = self.tool("replay", f'python3 {self.head} next --run-dir "{self.root}"', self.first_text)
-        self.check("fail", "tool call before intake acceptance")
-
-    def test_packet_exposure_from_wrapper_cannot_be_relabelled_fresh_startup(self):
-        self.events[1:1] = self.tool("wrapper", "bash /neutral/start.sh", self.first_text)
-        self.check("unknown", "already exposed")
-
-    def test_malformed_or_missing_artifacts_are_unknown(self):
-        self.trace[4]["accepted"] = ["unparseable acceptance"]
-        self.check("unknown", "artifact/correlation gap")
-        self.trace[4] = self.command("complete", 132, accepted=True)
-        self.events[2]["rawOutput"]["command"] = "different command"
-        self.check("unknown", "unverified Codex command output")
+    def test_post_stop_refused_callback_then_same_action_success_passes(self):
+        self.add_attempt("complete", 125, code=2)
+        tools = self.tool("refused", "/bin/zsh -lc 'submit'", "refused")
+        tools[-1]["status"] = "failed"
+        tools[-1]["rawOutput"]["exit_code"] = 2
+        self.events[4:4] = tools
+        self.check("pass")
 
     def test_duplicate_accepted_first_intake_fails(self):
-        self.trace.append(self.command("complete", 150, accepted=True))
+        duplicate = self.command("complete", 150, accepted=True)
+        self.trace.append(duplicate)
+        self.check("fail", "duplicate accepted")
+        self.trace.remove(duplicate)
+        self.trace[4]["accepted"] *= 2
         self.check("fail", "duplicate accepted")
 
-    def test_declared_variable_and_literal_heads_have_identical_pass_and_raw_text(self):
-        commands = []
-        for separator in ("; ", "\n"):
-            for export in ("", "export "):
-                for head in ('"$CLI"', "'/neutral/scripts/shiploop'"):
-                    with self.subTest(separator=separator, export=export, head=head):
-                        self.head = head
-                        declarations = ["SKILL_ROOT='/neutral/skill'", 'CLI="$SKILL_ROOT/scripts/shiploop"',
-                                        f'REPO="{self.work}"', f'RUN_DIR="{self.root}"']
-                        command = separator.join(export + value for value in declarations) + separator + self.startup_command()
-                        self.events[1:3] = self.tool("startup", command, self.first_text)
-                        receipt = self.check("pass")
-                        self.assertEqual(receipt["observations"]["startup"]["command"], command)
-                        commands.append(command)
-        self.assertEqual(len(set(commands)), 8)
+    def test_bound_and_unbound_first_allow_fail(self):
+        self.decisions[0].update(decision="allow", why="run can move")
+        hook = self.trace[2]
+        hook["decision"] = "allow"
+        self.check("fail", "first startup stop allowed termination")
+        self.decisions[0]["why"] = "no run bound to this session"
+        self.trace.remove(hook)
+        self.check("fail", "first startup stop allowed termination")
 
-    def test_single_variable_and_literal_command_heads_remain_equivalent(self):
-        for head in ('"$CLI"', "'/neutral/scripts/shiploop'"):
-            with self.subTest(head=head):
-                self.head = head
-                self.events[1:3] = self.tool("startup", self.startup_command(), self.first_text)
-                receipt = self.check("pass")
-                self.assertEqual(receipt["observations"]["startup"]["command"], self.startup_command())
+    def test_first_allow_fails_despite_later_outer_resume_acceptance(self):
+        self.split_session()
+        self.decisions[0]["decision"] = "allow"
+        self.trace[2]["decision"] = "allow"
+        self.check("fail", "first startup stop allowed termination")
+        self.decisions[0]["why"] = "no run bound to this session"
+        self.trace.pop(2)
+        self.check("fail", "first startup stop allowed termination")
 
-    def test_later_launch_reusing_tool_ids_does_not_change_first_session_pairing(self):
-        boundary = len(self.events)
-        self.events += [{"type": "available_commands", "commands": [], "sessionId": self.session},
-                        *self.tool("startup", "git status --short", ""), self.turn_end()]
-        self.sessions += [self.session_start(2, boundary, 210, "resume-loop"),
-                          self.session_end(2, len(self.events), 220)]
-        self.check("pass")
+    def test_missing_native_stop_is_unknown(self):
+        self.decisions = []
+        self.check("unknown", "empty artifact")
+        self.decisions = [{"at": 120, "decision": "release", "host": "codex", "session": self.session_hash}]
+        self.check("unknown", "first stop decision")
 
-    def test_workspace_start_and_quoted_delimiters_join_the_same_behavior(self):
-        command = f'export CLI="/neutral/path;with newline\nscript"; python3 -B "$CLI" workspace start --repo "{self.work}" --prompt "Neutral; request"'
-        self.events[1:3] = self.tool("startup", command, self.first_text)
-        self.trace[1]["verb"] = "workspace"
-        self.check("pass")
+    def test_tied_stop_or_stop_at_startup_is_unknown(self):
+        self.decisions.insert(1, dict(self.decisions[0]))
+        self.check("unknown", "tied stop")
+        self.decisions.pop(1)
+        self.decisions[0]["at"] = 111.0004
+        self.check("unknown", "ordered after startup")
 
-    def test_retained_printed_head_joins_without_requiring_unprinted_packet_text(self):
+    def test_missing_ambiguous_or_mixed_hook_is_unknown(self):
+        original = dict(self.trace[2])
+        hook = self.trace.pop(2)
+        self.check("unknown", "first stop trace is missing")
+        self.trace.insert(2, hook)
+        self.trace.insert(3, dict(hook))
+        self.check("unknown", "first stop trace is ambiguous")
+        self.trace.pop(3)
+        for field, value, reason in (("session", "abcdef123456", "mixed session identity"),
+                                     ("why", "different reason", "uniquely correlated"),
+                                     ("ts", 119, "uniquely correlated")):
+            with self.subTest(field=field):
+                hook[field] = value
+                self.check("unknown", reason)
+                hook.update(original)
+
+    def test_mixed_normalized_and_decision_sessions_are_unknown(self):
+        self.events[-1]["sessionId"] = "different-session"
+        self.check("unknown", "mixed Codex session identity")
+        self.events[-1]["sessionId"] = self.session
+        self.decisions.insert(0, dict(self.decisions[0], at=119, session="abcdef123456"))
+        self.check("unknown", "mixed or unidentified stop sessions")
+
+    def test_missing_or_inconsistent_session_bounds_are_unknown(self):
+        end = self.sessions.pop()
+        self.check("unknown", "session end boundary")
+        self.sessions.append(end)
+        self.events.insert(4, {"type": "available_commands", "commands": [], "sessionId": self.session})
+        self.check("unknown", "original session identity is ambiguous")
+        self.events.pop(4)
+        self.sessions[0]["t"] = 109.8001
+        self.check("unknown", "fresh startup timing")
+
+    def test_original_session_only_acceptance_required_even_for_outer_resume(self):
+        self.split_session("after-interrupt")
+        self.check("unknown", "original session")
+        self.sessions[2]["reason"] = "resume-loop"
+        self.check("unknown", "original session")
+
+    def test_acceptance_tied_to_original_session_end_is_unknown(self):
+        for timestamp in (132, 132.0006):
+            with self.subTest(timestamp=timestamp):
+                self.sessions[1]["t"] = timestamp
+                self.check("unknown", "original session")
+
+    def test_missing_invalid_or_unresolvable_attempt_timing_is_unknown(self):
+        command = self.trace[4]
+        for value in (None, -1, True, "1200", float("nan")):
+            with self.subTest(value=value):
+                command["ms"] = value
+                self.check("unknown", "duration is missing or invalid")
+        command.pop("ms")
+        self.check("unknown", "duration is missing or invalid")
+
+    def test_missing_and_ambiguous_acceptance_are_unknown(self):
+        original = json.loads(json.dumps(self.trace[4]))
+        self.trace[4].pop("accepted")
+        self.check("unknown", "accepted first intake completion is missing")
+        changes = [("accepted", ["malformed"]), ("accepted", [{"stage": "intake", "outcome": "done"}]),
+                   ("accepted", [dict(original["accepted"][0], outcome="unknown")]),
+                   ("accepted", [dict(original["accepted"][0], stage="discovery")]),
+                   ("action", "other-action"), ("verb", "next"), ("exit", 2),
+                   ("rev", [0, 0]), ("cursor", [self.action, self.action])]
+        for field, value in changes:
+            with self.subTest(field=field, value=value):
+                self.trace[4] = dict(original, **{field: value})
+                self.check("unknown")
+
+    def test_restart_reset_and_fresh_run_commands_cannot_pass(self):
+        for verb in ("init", "workspace", "resume", "restart", "reinit", "reset"):
+            with self.subTest(verb=verb):
+                attempt = self.add_attempt(verb, 125)
+                self.check("fail", "restart/reset/new startup")
+                self.trace.remove(attempt)
+
+    def test_pending_state_advance_cannot_pass(self):
+        for field, value in (("rev", [0, 1]), ("stage", ["intake", "discovery"]),
+                             ("cursor", [self.action, "different-action"]), ("rev", [1, 1])):
+            with self.subTest(field=field, value=value):
+                attempt = self.add_attempt("next", 125)
+                attempt[field] = value
+                self.check("fail", "pending intake state advanced or reset")
+                self.trace.remove(attempt)
+
+    def test_pending_other_acceptance_fails_and_missing_state_is_unknown(self):
+        attempt = self.add_attempt("check", 125)
+        attempt["accepted"] = [{"action": "other-action", "stage": "intake", "outcome": "done"}]
+        self.check("fail", "other work accepted")
+        attempt.pop("accepted")
+        attempt.pop("cursor")
+        self.check("unknown", "cursor transition is missing or malformed")
+
+    def test_multiple_runs_are_unknown(self):
+        other = self.work / ".shiploop" / "other-run" / "trace.jsonl"
+        other.parent.mkdir(parents=True)
+        other.write_text(json.dumps(self.trace[0]) + "\n")
+        self.check("unknown", "multiple candidate run traces")
+
+    def test_packet_or_read_output_without_fresh_initial_transition_is_unknown(self):
+        self.trace[1]["verb"] = "status"
+        self.set_tool("startup", "cat /neutral/packet.md", self.first_text)
+        self.check("unknown", "fresh startup")
+        self.trace[1]["verb"] = "init"
+        self.trace[1]["cursor"][0] = self.action
+        self.check("unknown", "fresh startup")
+        self.trace[1]["cursor"][0] = None
+        self.trace.insert(1, dict(self.trace[0]))
+        self.check("unknown", "initial packet is ambiguous")
+
+    def test_missing_corrupt_or_escaping_first_packet_is_unknown(self):
+        packet = self.trace[0]
+        original = dict(packet)
+        for field, value in (("file", "packets/sent/missing.md"), ("sha", "wrong"),
+                             ("chars", 0), ("printed", 0), ("whole", False),
+                             ("file", "../outside.md"), ("stage", "discovery")):
+            with self.subTest(field=field):
+                packet[field] = value
+                self.check("unknown")
+                packet.update(original)
+
+    def test_retained_printed_head_joins_without_unprinted_tail(self):
         import hashlib
 
         packet = self.trace[0]
-        full = self.root / packet["file"]
-        text = full.read_text() + "Unprinted neutral fixture tail.\n"
+        text = (self.root / packet["file"]).read_text() + "Unprinted neutral fixture tail.\n"
         packet["sha"] = hashlib.sha256(text.encode()).hexdigest()[:16]
         packet["file"] = f'packets/sent/{packet["sha"]}.md'
         (self.root / packet["file"]).write_text(text)
@@ -8310,119 +8444,86 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
         packet.update(whole=False, chars=len(text), head_file=f"packets/sent/{head_hash}.md")
         (self.root / packet["head_file"]).write_text(self.first_text)
         self.check("pass")
+        packet["head_file"] = "../outside.md"
+        self.check("unknown", "printed head leaves its run")
 
-    def test_mixed_session_identity_or_multiple_run_traces_are_unknown(self):
-        self.events[-1]["sessionId"] = "other-thread"
-        self.check("unknown", "mixed Codex session identity")
-        self.events[-1]["sessionId"] = self.session
-        other = self.work / ".shiploop" / "other-run" / "trace.jsonl"
-        other.parent.mkdir(parents=True)
-        other.write_text(json.dumps(self.trace[0]) + "\n")
-        self.check("unknown", "multiple candidate run traces")
+    def test_marker_wording_and_terminal_message_do_not_decide_verdict(self):
+        import hashlib
 
-    def test_missing_hook_or_wrong_session_hash_is_unknown(self):
-        hook = self.trace.pop(2)
-        self.check("unknown", "first stop trace")
-        self.trace.insert(2, hook)
-        self.trace[2]["session"] = "abcdef123456"
-        self.check("unknown", "mixed session identity")
+        packet = self.trace[0]
+        text = f"A neutral intake packet for {self.action}.\n"
+        digest = hashlib.sha256(text.encode()).hexdigest()[:16]
+        packet.update(sha=digest, file=f"packets/sent/{digest}.md", chars=len(text),
+                      printed=len(text + "=== end ShipLoop print ===\n"))
+        (self.root / packet["file"]).write_text(text)
+        self.set_tool("startup", "opaque_driver", text + "=== end ShipLoop print ===\n")
+        self.events[3]["data"] = "Arbitrary native message, no marker or channel.\n"
+        self.check("pass")
 
-    def test_mixed_stop_sessions_are_unknown_instead_of_skipping_first_stop(self):
-        self.decisions.insert(0, dict(self.decisions[0], at=119, session="abcdef123456"))
-        self.check("unknown", "mixed or unidentified stop sessions")
+    def test_missing_successful_first_print_or_bad_tool_pair_is_unknown(self):
+        self.set_tool("startup", "opaque_startup", "partial output")
+        self.check("unknown", "first print has no successful")
+        self.set_tool("startup", "opaque_startup", self.first_text)
+        self.events[2]["rawOutput"]["command"] = "mismatched provenance"
+        self.check("unknown", "unverified Codex command output")
+        self.events[2]["rawOutput"]["command"] = "opaque_startup"
+        self.events[2]["rawOutput"]["exit_code"] = 2
+        self.events[2]["status"] = "failed"
+        self.check("unknown", "first print has no successful")
 
-    def test_outer_resume_with_intake_pending_fails_even_after_continue(self):
-        self.events.insert(4, self.turn_end())
-        self.events.insert(5, {"type": "available_commands", "commands": [], "sessionId": self.session})
-        self.sessions = [self.session_start(1, 0, 100), self.session_end(1, 5, 124),
-                         self.session_start(2, 5, 125, "resume-loop"), self.session_end(2, len(self.events), 200)]
-        self.check("fail", "outer resume-loop started with intake pending")
+    def test_workspace_and_later_normal_workflow_advance_are_allowed(self):
+        self.trace[1]["verb"] = "workspace"
+        self.set_tool("startup", "/bin/zsh -lc 'documented_workspace_launcher'", self.first_text)
+        later = self.command("complete", 150)
+        later.update(action="nav-neutral-discovery", rev=[1, 2], stage=["discovery", "research"],
+                     cursor=["nav-neutral-discovery", "nav-neutral-research"],
+                     accepted=[{"action": "nav-neutral-discovery", "stage": "discovery", "outcome": "done"}])
+        self.trace.append(later)
+        self.check("pass")
 
-    def test_callback_in_other_session_without_outer_resume_is_unknown(self):
-        self.events.insert(4, self.turn_end())
-        self.events.insert(5, {"type": "available_commands", "commands": [], "sessionId": self.session})
-        self.sessions = [self.session_start(1, 0, 100), self.session_end(1, 5, 124),
-                         self.session_start(2, 5, 125, "after-interrupt"), self.session_end(2, len(self.events), 200)]
-        self.check("unknown", "original session")
+    def test_later_launch_reusing_tool_ids_preserves_first_session_join(self):
+        boundary = len(self.events)
+        self.events += [{"type": "available_commands", "commands": [], "sessionId": self.session},
+                        *self.tool("startup", "git status --short", ""), self.turn_end()]
+        self.sessions += [self.session_start(2, boundary, 210, "resume-loop"),
+                          self.session_end(2, len(self.events), 220)]
+        self.check("pass")
+        self.sessions[2]["t"] = 199
+        self.check("unknown", "overlapping session times")
 
-    def test_read_status_wrappers_and_extra_executables_cannot_qualify(self):
-        startup = self.startup_command()
-        for command in ('cat /neutral/packet.md', f'python3 {self.head} status --run-dir "{self.root}"',
-                        startup + f'; python3 {self.head} complete --action {self.action}',
-                        'echo ready; ' + startup, 'env ' + startup, 'bash -c ' + repr(startup),
-                        'CLI=/neutral/cli && ' + startup, 'CLI=$(echo /neutral/cli); ' + startup,
-                        'export CLI; ' + startup, 'CLI=/neutral/cli\n' + startup + '\npwd'):
-            with self.subTest(command=command):
-                self.events[1:3] = self.tool("startup", command, self.first_text)
-                self.check("unknown", "no bounded fresh startup")
-
-    def test_unverified_host_partial_packet_and_tied_stop_are_unknown(self):
+    def test_unverified_host_and_normalized_schema_are_unknown(self):
         invocation = self.out / "invocation.json"
         record = json.loads(invocation.read_text())
         invocation.write_text(json.dumps(dict(record, host="grok")))
         self.check("unknown", "only normalized Codex")
         invocation.write_text(json.dumps(record))
-        self.trace[0]["whole"] = False
-        self.check("unknown", "lacks its archived printed head")
-        self.trace[0]["whole"] = True
-        self.decisions.insert(1, dict(self.decisions[0]))
-        self.check("unknown", "tied stop")
-
-    def test_stop_tied_with_startup_or_complete_attempt_is_unknown(self):
-        self.decisions[0]["at"] = 111
-        self.check("unknown", "ordered after startup")
-        self.decisions[0]["at"] = 132 - self.trace[4]["ms"] / 1000
-        self.trace[2]["ts"] = self.decisions[0]["at"] + 0.001
-        self.trace.sort(key=lambda row: row["ts"])
-        self.check("unknown", "before any complete attempt")
-
-    def test_missing_acceptance_or_same_process_identity_is_unknown(self):
-        self.trace[4].pop("accepted")
-        self.check("unknown", "accepted first intake completion is missing")
-        self.trace[4] = self.command("complete", 132, accepted=True)
-        self.events.insert(4, {"type": "available_commands", "commands": [], "sessionId": self.session})
-        self.check("unknown", "original session identity is ambiguous")
-
-    def test_duplicate_hook_or_unknown_normalized_schema_is_unknown(self):
-        self.trace.insert(3, dict(self.trace[2]))
-        self.check("unknown", "first stop trace is ambiguous")
-        self.trace.pop(3)
         self.events[0]["type"] = "thread.started"
         self.check("unknown", "normalized Codex process boundaries")
 
-    def test_first_packet_without_fresh_startup_trace_is_unknown(self):
-        self.trace[1]["cursor"][0] = self.action
-        self.check("unknown", "fresh startup")
-        self.trace[1]["cursor"][0] = None
-        self.trace[0]["stage"] = "discovery"
-        self.check("unknown", "first intake packet")
-
     def test_case_preserves_original_case_bytes_checks_and_probe_term(self):
+        import hashlib
+
         cases_path = ROOT / "test/shiploop_e2e/cases.json"
         source = cases_path.read_text()
-        baseline = subprocess.run(["git", "-C", str(ROOT), "show",
-                                   "b2052820bc143a9b70b291896e9a630ccf48936b:test/shiploop_e2e/cases.json"],
-                                  capture_output=True, text=True, check=True).stdout
         begin, end = '  "hello-hook-continuation": {', '  "hello-startup-contract": {'
-        self.assertEqual(source[source.index(begin):source.index(end)],
-                         baseline[baseline.index(begin):baseline.index(end)])
-        cases, original = json.loads(source), json.loads(baseline)
+        original_case_bytes = source[source.index(begin):source.index(end)].encode()
+        self.assertEqual(hashlib.sha256(original_case_bytes).hexdigest(),
+                         "0af87438c03897a696ecc8d3846568afbda60f543066c3d798f49b023e777ead")
+        cases = json.loads(source)
         old, new = cases["hello-hook-continuation"], cases["hello-startup-contract"]
-        self.assertEqual(new["style"], old["style"])
-        self.assertEqual(new["checks"], original["hello-startup-contract"]["checks"])
+        startup_metadata = {key: value for key, value in new.items() if key != "prompt"}
+        self.assertEqual(hashlib.sha256(json.dumps(
+            startup_metadata, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode()).hexdigest(), "b655b835aed6ca18739497c609abcfcebb46761f9f66afd2ea637b29f19b35bf")
         self.assertEqual(new["checks"][:4], old["checks"])
         self.assertEqual(new["checks"][-1], 'python3 -B "$E2E_CHECKS/shiploop_startup_behavior.py"')
         self.assertNotIn("STARTUP_HANDOFF_CHECKPOINT", new["prompt"])
         self.assertNotIn("FINAL", new["prompt"])
         self.assertNotIn("$CLI", new["prompt"])
-        self.assertIn("attempt to end the current turn", new["prompt"])
+        self.assertNotIn("replay next", new["prompt"])
+        self.assertIn("before any other ShipLoop command or intake work", new["prompt"])
+        self.assertIn("recovering the existing packet if needed", new["prompt"])
         self.assertIn("exactly one line `partial work recorded`", new["prompt"])
-        for name, case in original.items():
-            if name == "hello-startup-contract":
-                self.assertEqual({k: v for k, v in cases[name].items() if k != "prompt"},
-                                 {k: v for k, v in case.items() if k != "prompt"})
-            else:
-                self.assertEqual(cases[name], case)
         terms = json.loads((ROOT / "test/shiploop_e2e/probe_terms.json").read_text())["terms"]
         self.assertEqual(terms["hello-startup-contract"], terms["hello-hook-continuation"])
 

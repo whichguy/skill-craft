@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Grade actual normalized Codex startup/Stop artifacts without executing ShipLoop.
+"""Grade canonical startup/first-Stop artifacts without executing ShipLoop.
 
-Recognize pure leading declarations and one simple Python3 invocation. Keep its
-head opaque and command text unchanged; output, fresh trace and packet establish
-the run. Native Stop is measured inside the original process launch window;
-normalized end is a process boundary, never a pre-callback prerequisite.
+Shell text is opaque provenance. Fresh trace transitions and archived packet
+bytes establish startup; native decisions and original launch bounds establish
+continuation. This does not prove the ordering of every product write.
 """
 
 from __future__ import annotations
@@ -13,21 +12,12 @@ import hashlib
 import json
 import math
 import os
-import re
-import shlex
 from pathlib import Path
 
 from shiploop_hook_contract import locate_invocation
 
 RECEIPT = "shiploop-startup-behavior-receipt.json"
-MARKER = re.compile(r"SHIPLOOP-RUN run=(\S+) rev=(\d+) dir=([^\r\n]+)")
 PRINT_END = "=== end ShipLoop print ===\n"
-# One clear assignment consists of unquoted data, quoted data, or escaped data.
-# This is a finite recognizer, not a shell evaluator. Substitutions are refused.
-ASSIGNMENT = r"[A-Za-z_][A-Za-z_0-9]*=(?:[^\s\\\"';&|<>()]+|'[^']*'|\"(?:\\.|[^\"\\])*\"|\\.)*"
-DECLARATIONS = re.compile(r"(?:export[ \t]+)?" + ASSIGNMENT + r"(?:[ \t]+" + ASSIGNMENT + r")*\Z")
-REPLAY = {"next", "init", "resume", "restart", "reinit"}
-VARIABLE = re.compile(r"\$(?:[A-Za-z_][A-Za-z_0-9]*|\{[A-Za-z_][A-Za-z_0-9]*\})\Z")
 
 
 class Verdict(Exception):
@@ -65,69 +55,7 @@ def number(value):
     return type(value) in (int, float) and math.isfinite(value)
 
 
-def python_command(command):
-    """Return opaque head/argv for declarations followed by one Python3 call.
-
-    Split only unquoted semicolons/newlines; quoted delimiters remain data.
-    No expansion, rewriting, parser subprocess, wrappers or extra executables.
-    """
-    if not isinstance(command, str) or "$(" in command or "`" in command:
-        return None
-    command = command.replace("\\\n", "")
-    statements, begin, quote, escaped = [], 0, None, False
-    for index, char in enumerate(command):
-        if escaped:
-            escaped = False
-        elif char == "\\" and quote != "'":
-            escaped = True
-        elif quote:
-            if char == quote:
-                quote = None
-        elif char in ("'", '\"'):
-            quote = char
-        elif char in "&|<>()":
-            return None
-        elif char in ";\n":
-            statements.append(command[begin:index].strip())
-            begin = index + 1
-    if quote or escaped:
-        return None
-    statements.append(command[begin:].strip())
-    if not statements[-1] or any(not DECLARATIONS.fullmatch(part) for part in statements[:-1]):
-        return None
-    try:
-        tokens = shlex.split(statements[-1], comments=False, posix=True)
-    except ValueError:
-        return None
-    if not tokens or tokens.pop(0) not in ("python3", "/usr/bin/python3"):
-        return None
-    if tokens and tokens[0] == "-B":
-        tokens.pop(0)
-    if len(tokens) < 2 or not tokens[0] or tokens[0].startswith("-"):
-        return None
-    return tokens[0], tokens[1:]
-
-
-def startup_options(argv):
-    offset = 2 if argv[:2] == ["workspace", "start"] else 1 if argv[:1] == ["init"] else 0
-    require(offset, "marker was not returned by init or workspace start")
-    # The documented forms use these flags. Unknown flags are an explicit gap,
-    # not guessed shell/CLI semantics. No selected-package documentation is read.
-    valued = {"--repo", "--prompt", "--workspace-root" if offset == 2 else "--run-dir"}
-    options = {}
-    rest = argv[offset:]
-    while rest:
-        flag, equal, value = rest.pop(0).partition("=")
-        require(flag in valued and flag not in options and (equal or rest),
-                "startup flags are outside the supported documented form")
-        options[flag] = value if equal else rest.pop(0)
-    require(options.get("--prompt"), "startup request is missing")
-    require("--repo" in options, "startup repository is not explicit")
-    require(offset == 2 or "--run-dir" in options, "init run directory is not explicit")
-    return options
-
-
-def paired_update(events, index, stop, *, success=True):
+def paired_update(events, index, stop):
     call = events[index]
     identity = call.get("toolCallId")
     require(isinstance(identity, str) and identity, "tool call identity is missing")
@@ -145,9 +73,6 @@ def paired_update(events, index, stop, *, success=True):
             "unverified Codex command output shape")
     require(update.get("status") in ("completed", "failed") and type(output.get("exit_code")) is int,
             "command exit evidence is missing")
-    if success:
-        require(update.get("status") == "completed" and output["exit_code"] == 0,
-                "command did not return a successful complete output")
     return updates[0], output["output_for_prompt"]
 
 
@@ -193,6 +118,9 @@ def session_intervals(sessions, events):
         require(events[lo].get("type") == "available_commands" and events[lo].get("sessionId") == session
                 and events[hi - 1].get("type") == "end" and events[hi - 1].get("sessionId") == session,
                 "unverified normalized Codex process boundaries")
+        require(not any(event.get("type") in ("available_commands", "end")
+                        for event in events[lo + 1:hi - 1]),
+                "original session identity is ambiguous within process boundaries")
         if intervals:
             require(start["t"] >= intervals[-1][1]["t"], "overlapping session times")
         intervals.append((start, end, session))
@@ -200,6 +128,21 @@ def session_intervals(sessions, events):
     require(previous == len(events) and sessions[0].get("kind") == "first"
             and sessions[0].get("reason") == "start", "first launch or stream coverage is unknown")
     return intervals
+
+
+def attempt_start(command):
+    require(number(command.get("ms")) and command["ms"] >= 0,
+            "command attempt duration is missing or invalid")
+    # record_command samples rounded monotonic ms before record's rounded wall
+    # ts. Account for both millisecond roundings; no tool-event clock is inferred.
+    return command["ts"] - command["ms"] / 1000 - 0.001
+
+
+def position(command, name):
+    pair = command.get(name)
+    require(isinstance(pair, list) and len(pair) == 2,
+            f"command {name} transition is missing or malformed")
+    return pair
 
 
 def evaluate(work, out, invocation, report):
@@ -211,64 +154,58 @@ def evaluate(work, out, invocation, report):
     observation(report, "session", sessions_path, (0, 1), session_id=session,
                 events_interval=[start["events_line"], end["events_line"]])
 
-    exposures = []
-    for i, event in enumerate(events):
-        raw = event.get("rawInput")
-        if event.get("type") != "tool_call" or not isinstance(raw, dict):
-            continue
-        parsed = python_command(raw.get("command"))
-        if parsed and (parsed[1][:1] == ["init"] or parsed[1][:2] == ["workspace", "start"]):
-            exposures.append((i, parsed))
-    require(exposures, "no bounded fresh startup command/output exposure")
-    call_index, (_, argv) = exposures[0]
-    require(call_index < end["events_line"], "startup did not occur in the first launch")
-    options = startup_options(argv.copy())
-    update_index, output = paired_update(events, call_index, end["events_line"])
-    observation(report, "startup", events_path, (call_index, update_index),
-                command=events[call_index]["rawInput"]["command"])
-    markers = MARKER.findall(output)
-    require(len(markers) == 1, "startup run marker is missing or ambiguous")
-    run_id, revision, raw_root = markers[0]
-    require(not any(markers[0] in MARKER.findall((event.get("rawOutput") or {}).get("output_for_prompt", ""))
-                    for event in events[:call_index] if event.get("type") == "tool_call_update"),
-            "startup output was already exposed before the bounded fresh startup")
-    root = Path(raw_root).resolve()
-    require(root.is_relative_to(work) and root != work, "startup run is outside checked workdir")
-    for flag, expected in (("--repo", work), ("--run-dir", root)):
-        value = options.get(flag)
-        if value and not VARIABLE.fullmatch(value):
-            require((work / value).resolve() == expected, f"startup {flag} disagrees with artifacts")
-    workspace_root = options.get("--workspace-root")
-    if workspace_root and not VARIABLE.fullmatch(workspace_root):
-        require(root.is_relative_to((work / workspace_root).resolve()), "workspace root disagrees with artifacts")
     trace_paths = []
     for directory, folders, files in os.walk(work, followlinks=False):
         folders[:] = [name for name in folders if not (Path(directory) / name).is_symlink()]
         if "trace.jsonl" in files:
             trace_paths.append((Path(directory) / "trace.jsonl").resolve())
-    trace_path = root / "trace.jsonl"
-    require(trace_paths == [trace_path], "missing or multiple candidate run traces under checked workdir")
+    require(len(trace_paths) == 1, "missing or multiple candidate run traces under checked workdir")
+    trace_path = trace_paths[0]
+    root = trace_path.parent
+    require(root.is_relative_to(work) and root != work, "startup run is outside checked workdir")
     trace = rows(trace_path)
     require(all(row.get("v") == 1 and number(row.get("ts")) for row in trace), "unverified run trace schema")
     require(all(trace[i - 1]["ts"] <= trace[i]["ts"] for i in range(1, len(trace))),
             "trace time order is inconsistent")
     first = trace[0]
-    action = first.get("action")
+    action, revision = first.get("action"), first.get("rev")
     require(first.get("kind") == "packet" and first.get("stage") == "intake"
-            and isinstance(action, str) and action and str(first.get("rev")) == revision,
-            "first trace row is not the exposed first intake packet")
-    path, text = packet_text(root, first)
-    require(text in output and MARKER.findall(text) == markers, "startup output does not expose the complete first print")
-    observation(report, "first_packet", path, run_id=run_id, action=action, trace=str(trace_path) + ":1")
+            and isinstance(action, str) and action and type(revision) is int and revision >= 0,
+            "first trace row is not the first intake packet")
+    path, printed = packet_text(root, first)
     commands = [(i, row) for i, row in enumerate(trace) if row.get("kind") == "command"]
     require(commands, "startup command trace is missing")
+    require(all(isinstance(row.get("verb"), str) and row["verb"]
+                and type(row.get("exit")) is int for _, row in commands),
+            "command verb/exit evidence is missing or malformed")
     startup_index, startup = commands[0]
-    require(startup.get("verb") == argv[0] and startup.get("exit") == 0
+    require(sum(row.get("kind") == "packet" for row in trace[:startup_index]) == 1,
+            "canonical initial packet is ambiguous")
+    require(startup.get("verb") in ("init", "workspace") and startup.get("exit") == 0
             and startup.get("stage") == [None, "intake"] and startup.get("cursor") == [None, action]
-            and startup.get("rev") == [None, first.get("rev")]
-            and start["t"] <= first["ts"] <= startup["ts"] < end["t"]
-            and not startup.get("accepted"), "fresh startup and first trace command cannot be joined")
+            and startup.get("rev") == [None, revision] and not startup.get("accepted"),
+            "fresh startup and first trace command cannot be joined")
+    require(start["t"] + 0.0005 < attempt_start(startup)
+            and start["t"] + 0.001 < first["ts"] <= startup["ts"]
+            and startup["ts"] + 0.001 < end["t"],
+            "fresh startup timing is outside or tied with original session bounds")
+    observation(report, "first_packet", path, action=action, revision=revision, root=str(root))
     observation(report, "startup_trace", trace_path, (startup_index,))
+
+    # Validate actual Codex command/output provenance without classifying shell
+    # syntax. Help/refusals create no fresh trace; later reprints are permissible.
+    exposures = []
+    for i, event in enumerate(events[:end["events_line"]]):
+        if event.get("type") != "tool_call" or event.get("toolName") != "run_terminal_command":
+            continue
+        returned, output = paired_update(events, i, end["events_line"])
+        update = events[returned]
+        if printed in output and update.get("status") == "completed" and update["rawOutput"]["exit_code"] == 0:
+            exposures.append((i, returned))
+    require(exposures, "canonical first print has no successful original-session tool exposure")
+    called, returned = exposures[0]
+    observation(report, "startup", events_path, (called, returned),
+                command=events[called]["rawInput"].get("command"))
 
     decisions_path = out / "home/.local/state/shiploop/keepalive/decisions.log"
     decisions = rows(decisions_path)
@@ -277,7 +214,8 @@ def evaluate(work, out, invocation, report):
     require(all(decisions[i - 1]["at"] <= decisions[i]["at"] for i in range(1, len(decisions))),
             "decision time order is inconsistent")
     stops = [(i, row) for i, row in enumerate(decisions)
-             if first["ts"] <= row["at"] <= end["t"] and row.get("decision") != "release"]
+             if first["ts"] - 0.0005 <= row["at"] <= end["t"] + 0.0005
+             and row.get("decision") != "release"]
     require(stops, "first stop decision for startup session is missing")
     require(all(row.get("host") == "codex" and row.get("session") == session_hash
                 and row.get("decision") in ("allow", "continue") for _, row in stops),
@@ -286,120 +224,76 @@ def evaluate(work, out, invocation, report):
     observation(report, "first_stop", decisions_path, (decision_index,), session_hash=session_hash,
                 decision=decision["decision"], why=decision.get("why"))
     require(len(stops) == 1 or stops[1][1]["at"] > decision["at"], "tied stop decisions")
-    # Trace timestamps are rounded to milliseconds; decision times are unrounded.
-    require(start["t"] < first["ts"] and startup["ts"] + 0.0005 < decision["at"] < end["t"],
-            "first stop cannot be ordered after startup in the original launch")
+    require(startup["ts"] + 0.0005 < decision["at"] < end["t"] - 0.0005,
+            "first stop cannot be ordered after startup in the original session")
+    observation(report, "command_attempts", trace_path, [i for i, _ in commands[1:]])
+    for _, command in commands[1:]:
+        require(decision["at"] < attempt_start(command),
+                "first Stop is not strictly before every later command attempt (tie, pre-Stop or in-flight)")
 
-    accepted = [(i, row, entry) for i, row in commands for entry in row.get("accepted", [])
-                if entry.get("action") == action]
-    accepted_index = accepted[0][0] if accepted else len(trace)
-    attempts = [(i, row) for i, row in commands if i <= accepted_index and row.get("verb") == "complete"]
-    observation(report, "completion_attempts", trace_path, [i for i, _ in attempts])
-    for _, attempt in attempts:
-        require(number(attempt.get("ms")) and attempt["ms"] >= 0, "completion attempt duration is missing")
-        # Include refused and in-flight attempts. ts and ms each round to 1 ms;
-        # equality/overlap cannot establish a Stop before the command began.
-        require(decision["at"] < attempt["ts"] - attempt["ms"] / 1000 - 0.001,
-                "startup Stop was not exposed before any complete attempt")
-
-    # The transcript has no per-tool timestamps. Bound its pending interval by
-    # the accepted command's actual returned packet, when one exists. Unmatched
-    # complete calls must remain UNKNOWN, including refused/untraced attempts.
-    next_packet = None
-    if accepted and decision["decision"] == "continue":
-        cursor = accepted[0][1].get("cursor", [None])[-1]
-        packets = [row for row in trace[:accepted_index] if row.get("kind") == "packet" and row.get("action") == cursor]
-        require(len(packets) <= 1, "accepted callback packet is ambiguous")
-        if packets:
-            next_packet = packets[0]
-    next_path, next_text = packet_text(root, next_packet) if next_packet else (None, None)
-    calls, callbacks, replay_calls = [], [], []
-    pending_end = end["events_line"]
-    for i in range(update_index + 1, end["events_line"]):
-        if i >= pending_end:
-            break
-        event = events[i]
-        if event.get("type") != "tool_call":
-            continue
-        raw = event.get("rawInput") or {}
-        command = raw.get("command")
-        parsed = python_command(command)
-        if not parsed:
-            require(not isinstance(command, str) or not re.search(
-                r"\b(?:complete|next|init|resume|restart|reinit)\b|workspace\s+start", command),
-                "unsupported pending command could hide a completion attempt or replay")
-            continue
-        args = parsed[1]
-        if args[0] in REPLAY or args[:2] == ["workspace", "start"]:
-            replay_calls.append(i)
-        if args[0] != "complete":
-            continue
-        returned, output = paired_update(events, i, end["events_line"], success=False)
-        code = events[returned]["rawOutput"]["exit_code"]
-        calls.append((i, args, code))
-        same_action = any(args[n:n + 2] == ["--action", action] or args[n] == "--action=" + action
-                          for n in range(len(args)))
-        if decision["decision"] == "allow" and accepted and same_action and code == 0:
-            break  # A failing first Stop does not depend on later callback output.
-        if next_text and next_text in output and same_action:
-            callbacks.append((i, returned))
-            pending_end = returned
-    original_attempts = [row for _, row in attempts if row["ts"] < end["t"]]
-    require(len(calls) == len(original_attempts), "completion attempt transcript/trace join is missing or ambiguous")
-    for (_, args, code), attempt in zip(calls, original_attempts, strict=True):
-        require(attempt.get("exit") == code and any(
-            args[n:n + 2] == ["--action", attempt.get("action")]
-            or args[n] == "--action=" + str(attempt.get("action")) for n in range(len(args))
-        ), "completion attempt action/exit cannot be joined")
-
-    boundary = stops[1][1]["at"] - 0.0005 if len(stops) > 1 else end["t"]
+    boundary = stops[1][1]["at"] if len(stops) > 1 else end["t"]
     hooks = [(i, row) for i, row in enumerate(trace) if row.get("kind") == "hook"
-             and row.get("hook") == "stop" and first["ts"] <= row["ts"] < boundary]
+             and row.get("hook") == "stop" and first["ts"] <= row["ts"] < boundary + 0.0005]
     require(len(hooks) <= 1, "first stop trace is ambiguous")
     hook_index, hook = hooks[0] if hooks else (None, None)
     if hook:
         require(hook.get("session") == session_hash, "first stop trace has mixed session identity")
         require(hook.get("host") == "codex" and hook.get("decision") == decision["decision"]
                 and hook.get("why") == decision.get("why") and startup_index < hook_index
-                and decision["at"] - 0.0005 <= hook["ts"] < end["t"]
-                and (len(stops) == 1 or hook["ts"] + 0.0005 < stops[1][1]["at"]),
+                and decision["at"] - 0.0005 <= hook["ts"]
+                and hook["ts"] + 0.0005 < boundary,
                 "first stop trace and decision cannot be uniquely correlated")
+    # An unbound allow legitimately has no engine hook. Later outer rescue does
+    # not replace this first native decision; a bound allow fails as well.
     require(decision["decision"] != "allow", "first startup stop allowed termination: "
             + str(decision.get("why")), "fail")
     require(hook, "first stop trace is missing")
-    observation(report, "continue_hook", trace_path, (hook_index,), session_hash=hook["session"])
+    observation(report, "continue_hook", trace_path, (hook_index,), session_hash=session_hash)
 
-    observation(report, "pending_replay_calls", events_path, replay_calls,
-                commands=[events[i]["rawInput"]["command"] for i in replay_calls])
-    require(not replay_calls, "next/reinit/restart tool call before intake acceptance", "fail")
-    recovery = [i for i, row in commands if startup_index < i < accepted_index and row.get("verb") == "next"]
-    observation(report, "hook_owned_next", trace_path, recovery)
-    # A trace next alone is hook recovery, not evidence of a model replay.
+    accepted = []
+    for i, command in commands:
+        entries = command.get("accepted", [])
+        require(isinstance(entries, list) and all(isinstance(entry, dict)
+                and isinstance(entry.get("action"), str) and entry["action"] for entry in entries),
+                "acceptance entries are malformed or ambiguous")
+        accepted.extend((i, command, entry) for entry in entries if entry["action"] == action)
     observation(report, "intake_acceptance", trace_path, [i for i, _, _ in accepted], action=action)
     require(len(accepted) <= 1, "duplicate accepted first intake completion", "fail")
     require(accepted, "accepted first intake completion is missing")
     accepted_index, completed, entry = accepted[0]
-    require(hook_index < accepted_index and hook["ts"] < completed["ts"],
-            "intake accepted before first continue stop")
     require(completed.get("verb") == "complete" and completed.get("action") == action
-            and completed.get("exit") == 0 and entry.get("stage") == "intake" and entry.get("outcome") == "done",
-            "acceptance is not a successful completion of the first intake action", "fail")
-    for i, (launched, _, _) in enumerate(intervals[1:], 1):
-        if launched.get("reason") == "resume-loop":
-            observation(report, "outer_resume", sessions_path, (i * 2,))
-            require(launched["t"] >= completed["ts"], "outer resume-loop started with intake pending", "fail")
-            require(launched["t"] != completed["ts"], "outer resume and acceptance timestamps tie")
-    require(completed["ts"] < end["t"], "intake completion did not occur in the original session")
-    require(next_packet and hook["ts"] + 0.0005 < next_packet["ts"] <= completed["ts"],
-            "accepted callback packet cannot be ordered in the original session")
-    require(len(callbacks) == 1, "accepted callback tool exposure is missing or ambiguous")
-    called, returned = callbacks[0]
-    observation(report, "continued_callback", events_path, (called, returned), packet=str(next_path))
-    require(update_index < called < returned == pending_end < end["events_line"],
-            "intake completion did not continue in the original session")
-    require(not any(events[i].get("type") in ("available_commands", "end")
-                    for i in range(update_index + 1, returned)),
-            "continuation original session identity is ambiguous")
+            and type(completed.get("exit")) is int and completed["exit"] == 0
+            and entry.get("stage") == "intake" and entry.get("outcome") == "done",
+            "acceptance is not an unambiguous successful completion of the first intake action")
+    require(hook_index < accepted_index and hook["ts"] + 0.0005 < attempt_start(completed),
+            "accepted intake attempt cannot be ordered after the first continue hook")
+    require(completed["ts"] + 0.001 < end["t"],
+            "intake completion is outside or tied with the original session")
+
+    require(len(completed["accepted"]) == 1
+            and position(completed, "rev")[0] == revision
+            and type(position(completed, "rev")[1]) is int
+            and position(completed, "rev")[1] > revision
+            and position(completed, "cursor")[1] != action,
+            "accepted intake transition is malformed or ambiguous")
+
+    recovery = []
+    expected = {"rev": revision, "stage": "intake", "cursor": action}
+    for i, command in commands[1:]:
+        if i > accepted_index:
+            break  # Subsequent app stages may advance normally.
+        for name, value in expected.items():
+            pair = position(command, name)
+            require(pair[0] == value, "pending intake state advanced or reset before acceptance", "fail")
+            if i < accepted_index:
+                require(pair[1] == value, "pending intake state advanced or reset before acceptance", "fail")
+        if i < accepted_index:
+            require(command.get("verb") not in {"init", "workspace", "resume", "restart", "reinit", "reset"},
+                    "restart/reset/new startup before original intake acceptance", "fail")
+            require(not command.get("accepted"), "other work accepted before original intake", "fail")
+            if command.get("verb") == "next":
+                recovery.append(i)
+    observation(report, "same_action_recovery", trace_path, recovery)
 
 
 def main():
