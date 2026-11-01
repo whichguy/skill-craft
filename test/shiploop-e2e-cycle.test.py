@@ -1042,8 +1042,11 @@ class CycleKitTest(unittest.TestCase):
         """The first launch was refused: user-listing declares port 3000 and another session's run held that lease."""
         text = (self.KIT / "run.sh").read_text()
         catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
-        self.assertIn("--case seat-reservations --generality-case csv-report", text)
-        for case in ("csv-report", "seat-reservations"):
+        self.assertIn("EXPOSING_CASE:-seat-reservations", text)
+        self.assertIn("GENERALITY_CASE:-csv-report", text)
+        self.assertIn('--case "$exposing" --generality-case "$generality"', text,
+                      "the cases come from the two variables, so a launch can change them and nothing else")
+        for case in ("csv-report", "seat-reservations", "shared-expenses"):  # the defaults and the documented override
             self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
             self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"),
                              f"{case} declares a fixed port, which run.py leases machine-wide and launch_all does not serialise")
@@ -1084,7 +1087,8 @@ class CalibrationKitTest(unittest.TestCase):
         cycle_script = (ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101" / "run.sh").read_text()
         catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
         self.assertEqual(set(template["cases"]), {"csv-report", "seat-reservations"})
-        self.assertIn("--case seat-reservations --generality-case csv-report", cycle_script)
+        self.assertIn("EXPOSING_CASE:-seat-reservations", cycle_script)
+        self.assertIn("GENERALITY_CASE:-csv-report", cycle_script)
         for case in template["cases"]:
             self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
             self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"), f"{case} declares a fixed port")
