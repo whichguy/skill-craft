@@ -8064,16 +8064,20 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
                       {"v": 1, "ts": 120.001, "at": "1970-01-01T00:02:00Z", "kind": "hook", "hook": "stop",
                        "host": "codex", "session": self.session_hash, "decision": "continue",
                        "why": "run can move", "text": "Continue the pending action."},
-                      second, self.command("complete", 132, accepted=True)]
+                      second, self.command("complete", 132, accepted=True),
+                      {"v": 1, "ts": 140.001, "kind": "hook", "hook": "stop", "host": "codex",
+                       "session": self.session_hash, "decision": "allow", "why": "run paused"}]
         self.events = [{"type": "available_commands", "commands": [], "sessionId": self.session},
                        *self.tool("startup", self.startup_command(), self.first_text),
-                       {"type": "text", "data": "STARTUP_HANDOFF_CHECKPOINT\n"}, self.turn_end(),
+                       {"type": "text", "data": "I will end this turn now.\n"},
                        *self.tool("completion", f'python3 {self.head} complete --run-dir "{self.root}" '
                                   f'--action {self.action} --result /neutral/result.md', self.second_text),
                        {"type": "text", "data": "Delivery finished.\n"}, self.turn_end()]
         self.sessions = [self.session_start(1, 0, 100), self.session_end(1, len(self.events), 200)]
         self.decisions = [{"at": 120.0001, "host": "codex", "session": self.session_hash,
-                           "decision": "continue", "why": "run can move"}]
+                           "decision": "continue", "why": "run can move"},
+                          {"at": 140.0001, "host": "codex", "session": self.session_hash,
+                           "decision": "allow", "why": "run paused"}]
         (self.out / "invocation.json").write_text(json.dumps({
             "host": "codex", "case": "hello-startup-contract", "cwd": str(self.work),
         }))
@@ -8094,7 +8098,7 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
 
     def command(self, verb, timestamp, *, fresh=False, accepted=False):
         row = {"v": 1, "ts": timestamp, "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(timestamp)), "kind": "command", "verb": verb,
-               "exit": 0, "ms": 12, "status": "active", "rev": [None if fresh else 0, 1 if accepted else 0],
+               "exit": 0, "ms": 1200, "status": "active", "rev": [None if fresh else 0, 1 if accepted else 0],
                "stage": [None if fresh else "intake", "discovery" if accepted else "intake"],
                "cursor": [None if fresh else self.action, "nav-neutral-discovery" if accepted else self.action]}
         if accepted:
@@ -8139,7 +8143,8 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
 
     def check(self, expected, reason=None):
         self.write_artifacts()
-        before = {path: path.read_bytes() for path in self.out.rglob("*") if path.is_file() and path != self.receipt}
+        before = {path: (path.read_bytes(), path.stat().st_mode) for path in self.out.rglob("*")
+                  if path.is_file() and path != self.receipt}
         result = subprocess.run([sys.executable, "-B", str(self.checker)], cwd=self.work,
                                 capture_output=True, text=True, timeout=10, check=False)
         self.assertTrue(self.receipt.is_file(), result.stdout + result.stderr)
@@ -8148,20 +8153,39 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
         self.assertEqual(receipt["status"], expected, receipt)
         if reason:
             self.assertIn(reason, receipt["reason"])
-        self.assertEqual(before, {path: path.read_bytes() for path in before}, "original artifacts changed")
+        self.assertEqual(before, {path: (path.read_bytes(), path.stat().st_mode) for path in before},
+                         "original artifact bytes/modes changed")
         self.assertEqual({p for p in self.out.rglob("*") if p.is_file()}, set(before) | {self.receipt})
         self.assertFalse((self.out / "result.json").exists(), "grading must precede result.json")
         return receipt
 
-    def test_same_session_continue_and_one_same_action_acceptance_pass(self):
+    def test_terminal_end_only_after_same_session_acceptance_passes(self):
+        self.assertEqual([i for i, row in enumerate(self.events) if row["type"] == "end"], [7])
         receipt = self.check("pass")
-        for key in ("startup", "first_packet", "checkpoint", "first_turn_end", "first_stop", "continue_hook",
-                    "intake_acceptance", "continued_callback"):
+        for key in ("startup", "first_packet", "first_stop", "continue_hook",
+                    "intake_acceptance", "continued_callback", "completion_attempts"):
             self.assertTrue(receipt["observations"][key]["artifact"])
         self.assertEqual(receipt["observations"]["first_stop"]["session_hash"], self.session_hash)
         self.assertEqual(receipt["observations"]["intake_acceptance"]["lines"], [5])
+        self.assertEqual(receipt["observations"]["first_stop"]["decision"], "continue")
+
+    def test_hook_owned_next_before_or_around_stop_is_allowed(self):
+        for timestamp in (119, 120.0, 120.002):
+            with self.subTest(timestamp=timestamp):
+                repeat = dict(self.trace[0], ts=timestamp - 0.001)
+                recovery = self.command("next", timestamp)
+                self.trace.extend([repeat, recovery])
+                self.trace.sort(key=lambda row: row["ts"])
+                receipt = self.check("pass")
+                self.assertEqual(len(receipt["observations"]["hook_owned_next"]["lines"]), 1)
+                self.assertEqual(receipt["observations"]["pending_replay_calls"]["lines"], [])
+                self.trace.remove(repeat)
+                self.trace.remove(recovery)
 
     def test_allow_or_unbound_first_stop_fails_despite_later_resume_and_acceptance(self):
+        # The only end of launch one is before the later outer-resume tools.
+        self.events.insert(4, self.turn_end())
+        self.events.insert(5, {"type": "available_commands", "commands": [], "sessionId": self.session})
         self.sessions = [self.session_start(1, 0, 100), self.session_end(1, 5, 124),
                          self.session_start(2, 5, 125, "resume-loop"), self.session_end(2, len(self.events), 200)]
         self.decisions[0].update(decision="allow")
@@ -8171,54 +8195,93 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
                 if why == "no progress":
                     self.trace[2].update(decision="allow", why=why)
                 else:
-                    self.trace.pop(2)  # An unbound stop writes no hook into this run.
-                self.check("fail", "first checkpoint stop allowed termination")
+                    self.trace.pop(2)  # An unbound Stop writes no hook into this run.
+                self.check("fail", "first startup stop allowed termination")
 
-    def test_missing_checkpoint_or_stop_is_unknown(self):
-        checkpoint = self.events.pop(3)
-        self.check("unknown", "checkpoint is missing")
-        self.events.insert(3, checkpoint)
+    def test_missing_stop_is_unknown(self):
         self.decisions = []
         self.check("unknown", "empty artifact")
 
-    def test_next_init_and_restart_before_acceptance_fail(self):
-        for verb in ("next", "init", "restart"):
+    def test_late_stop_after_any_complete_attempt_is_unknown_even_if_refused(self):
+        for refused in (False, True):
+            with self.subTest(refused=refused):
+                attempt = self.command("complete", 118, accepted=not refused)
+                attempt["action"] = self.action
+                if refused:
+                    attempt.update(exit=2, error="neutral refusal")
+                self.trace.insert(2, attempt)
+                tools = self.tool("early", f'python3 {self.head} complete --action {self.action}', "refused")
+                tools[-1]["rawOutput"]["exit_code"] = 2 if refused else 0
+                self.events[4:4] = tools
+                self.check("unknown", "before any complete attempt")
+                del self.events[4:6]
+                self.trace.pop(2)
+
+    def test_complete_attempt_straddling_stop_is_unknown(self):
+        self.trace[4]["ms"] = 13000  # Completion started before Stop, but ended after it.
+        self.check("unknown", "before any complete attempt")
+
+    def test_untraced_complete_attempt_cannot_be_silently_skipped(self):
+        self.events[4:4] = self.tool("refused", f'python3 {self.head} complete --action {self.action}', "refused")
+        self.events[5]["rawOutput"]["exit_code"] = 2
+        self.check("unknown", "completion attempt")
+
+    def test_model_next_reinit_and_restart_before_acceptance_fail(self):
+        for verb in ("next", "init", "restart", "reinit", "workspace start"):
             with self.subTest(verb=verb):
-                self.trace.insert(3, self.command(verb, 125))
-                self.check("fail", "while first intake remains pending")
+                self.events[4:4] = self.tool("replay", f'python3 {self.head} {verb} --run-dir "{self.root}"', self.first_text)
+                # Trace alone cannot distinguish a model replay from hook recovery.
+                self.trace.insert(3, self.command(verb.split()[0], 125))
+                self.check("fail", "tool call before intake acceptance")
+                del self.events[4:6]
                 self.trace.pop(3)
 
     def test_observed_next_without_a_trace_row_still_fails(self):
+        self.events[4:4] = self.tool("replay", f'python3 {self.head} next --run-dir "{self.root}"', self.first_text)
+        self.check("fail", "tool call before intake acceptance")
+
+    def test_model_next_between_completion_call_and_return_still_fails(self):
         self.events[5:5] = self.tool("replay", f'python3 {self.head} next --run-dir "{self.root}"', self.first_text)
         self.check("fail", "tool call before intake acceptance")
 
+    def test_packet_exposure_from_wrapper_cannot_be_relabelled_fresh_startup(self):
+        self.events[1:1] = self.tool("wrapper", "bash /neutral/start.sh", self.first_text)
+        self.check("unknown", "already exposed")
+
     def test_malformed_or_missing_artifacts_are_unknown(self):
-        self.trace[-1]["accepted"] = ["unparseable acceptance"]
+        self.trace[4]["accepted"] = ["unparseable acceptance"]
         self.check("unknown", "artifact/correlation gap")
-        self.trace[-1] = self.command("complete", 132, accepted=True)
+        self.trace[4] = self.command("complete", 132, accepted=True)
         self.events[2]["rawOutput"]["command"] = "different command"
         self.check("unknown", "unverified Codex command output")
-
-    def test_callback_before_checkpoint_fails(self):
-        callback = self.events[5:7]
-        del self.events[5:7]
-        self.events[3:3] = callback
-        self.check("fail", "tool call/callback precedes")
 
     def test_duplicate_accepted_first_intake_fails(self):
         self.trace.append(self.command("complete", 150, accepted=True))
         self.check("fail", "duplicate accepted")
 
-    def test_command_head_bytes_do_not_decide_behavior(self):
+    def test_declared_variable_and_literal_heads_have_identical_pass_and_raw_text(self):
+        commands = []
+        for separator in ("; ", "\n"):
+            for export in ("", "export "):
+                for head in ('"$CLI"', "'/neutral/scripts/shiploop'"):
+                    with self.subTest(separator=separator, export=export, head=head):
+                        self.head = head
+                        declarations = ["SKILL_ROOT='/neutral/skill'", 'CLI="$SKILL_ROOT/scripts/shiploop"',
+                                        f'REPO="{self.work}"', f'RUN_DIR="{self.root}"']
+                        command = separator.join(export + value for value in declarations) + separator + self.startup_command()
+                        self.events[1:3] = self.tool("startup", command, self.first_text)
+                        receipt = self.check("pass")
+                        self.assertEqual(receipt["observations"]["startup"]["command"], command)
+                        commands.append(command)
+        self.assertEqual(len(set(commands)), 8)
+
+    def test_single_variable_and_literal_command_heads_remain_equivalent(self):
         for head in ('"$CLI"', "'/neutral/scripts/shiploop'"):
             with self.subTest(head=head):
                 self.head = head
                 self.events[1:3] = self.tool("startup", self.startup_command(), self.first_text)
                 receipt = self.check("pass")
                 self.assertEqual(receipt["observations"]["startup"]["command"], self.startup_command())
-                self.decisions[0].update(decision="allow", why="no run bound to this session")
-                self.check("fail", "first checkpoint stop allowed termination")
-                self.decisions[0].update(decision="continue", why="run can move")
 
     def test_later_launch_reusing_tool_ids_does_not_change_first_session_pairing(self):
         boundary = len(self.events)
@@ -8228,8 +8291,8 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
                           self.session_end(2, len(self.events), 220)]
         self.check("pass")
 
-    def test_workspace_start_form_can_join_the_same_actual_behavior(self):
-        command = f'python3 -B {self.head} workspace start --repo "{self.work}" --prompt "Neutral request"'
+    def test_workspace_start_and_quoted_delimiters_join_the_same_behavior(self):
+        command = f'export CLI="/neutral/path;with newline\nscript"; python3 -B "$CLI" workspace start --repo "{self.work}" --prompt "Neutral; request"'
         self.events[1:3] = self.tool("startup", command, self.first_text)
         self.trace[1]["verb"] = "workspace"
         self.check("pass")
@@ -8249,9 +8312,9 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
         self.check("pass")
 
     def test_mixed_session_identity_or_multiple_run_traces_are_unknown(self):
-        self.events[4]["sessionId"] = "other-thread"
+        self.events[-1]["sessionId"] = "other-thread"
         self.check("unknown", "mixed Codex session identity")
-        self.events[4]["sessionId"] = self.session
+        self.events[-1]["sessionId"] = self.session
         other = self.work / ".shiploop" / "other-run" / "trace.jsonl"
         other.parent.mkdir(parents=True)
         other.write_text(json.dumps(self.trace[0]) + "\n")
@@ -8269,18 +8332,31 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
         self.check("unknown", "mixed or unidentified stop sessions")
 
     def test_outer_resume_with_intake_pending_fails_even_after_continue(self):
+        self.events.insert(4, self.turn_end())
+        self.events.insert(5, {"type": "available_commands", "commands": [], "sessionId": self.session})
         self.sessions = [self.session_start(1, 0, 100), self.session_end(1, 5, 124),
                          self.session_start(2, 5, 125, "resume-loop"), self.session_end(2, len(self.events), 200)]
         self.check("fail", "outer resume-loop started with intake pending")
 
-    def test_read_status_or_compound_commands_with_marker_cannot_qualify(self):
+    def test_callback_in_other_session_without_outer_resume_is_unknown(self):
+        self.events.insert(4, self.turn_end())
+        self.events.insert(5, {"type": "available_commands", "commands": [], "sessionId": self.session})
+        self.sessions = [self.session_start(1, 0, 100), self.session_end(1, 5, 124),
+                         self.session_start(2, 5, 125, "after-interrupt"), self.session_end(2, len(self.events), 200)]
+        self.check("unknown", "original session")
+
+    def test_read_status_wrappers_and_extra_executables_cannot_qualify(self):
+        startup = self.startup_command()
         for command in ('cat /neutral/packet.md', f'python3 {self.head} status --run-dir "{self.root}"',
-                        self.startup_command() + f'; python3 {self.head} complete --action {self.action}'):
+                        startup + f'; python3 {self.head} complete --action {self.action}',
+                        'echo ready; ' + startup, 'env ' + startup, 'bash -c ' + repr(startup),
+                        'CLI=/neutral/cli && ' + startup, 'CLI=$(echo /neutral/cli); ' + startup,
+                        'export CLI; ' + startup, 'CLI=/neutral/cli\n' + startup + '\npwd'):
             with self.subTest(command=command):
                 self.events[1:3] = self.tool("startup", command, self.first_text)
                 self.check("unknown", "no bounded fresh startup")
 
-    def test_unverified_host_and_partial_packet_and_tied_stop_are_unknown(self):
+    def test_unverified_host_partial_packet_and_tied_stop_are_unknown(self):
         invocation = self.out / "invocation.json"
         record = json.loads(invocation.read_text())
         invocation.write_text(json.dumps(dict(record, host="grok")))
@@ -8289,18 +8365,64 @@ class StartupBehaviorCheckerTest(unittest.TestCase):
         self.trace[0]["whole"] = False
         self.check("unknown", "lacks its archived printed head")
         self.trace[0]["whole"] = True
-        self.decisions.append(dict(self.decisions[0]))
-        self.check("unknown", "cannot be uniquely correlated")
+        self.decisions.insert(1, dict(self.decisions[0]))
+        self.check("unknown", "tied stop")
 
-    def test_case_keeps_original_checks_and_adds_startup_probe_term(self):
-        cases = json.loads((ROOT / "test/shiploop_e2e/cases.json").read_text())
+    def test_stop_tied_with_startup_or_complete_attempt_is_unknown(self):
+        self.decisions[0]["at"] = 111
+        self.check("unknown", "ordered after startup")
+        self.decisions[0]["at"] = 132 - self.trace[4]["ms"] / 1000
+        self.trace[2]["ts"] = self.decisions[0]["at"] + 0.001
+        self.trace.sort(key=lambda row: row["ts"])
+        self.check("unknown", "before any complete attempt")
+
+    def test_missing_acceptance_or_same_process_identity_is_unknown(self):
+        self.trace[4].pop("accepted")
+        self.check("unknown", "accepted first intake completion is missing")
+        self.trace[4] = self.command("complete", 132, accepted=True)
+        self.events.insert(4, {"type": "available_commands", "commands": [], "sessionId": self.session})
+        self.check("unknown", "original session identity is ambiguous")
+
+    def test_duplicate_hook_or_unknown_normalized_schema_is_unknown(self):
+        self.trace.insert(3, dict(self.trace[2]))
+        self.check("unknown", "first stop trace is ambiguous")
+        self.trace.pop(3)
+        self.events[0]["type"] = "thread.started"
+        self.check("unknown", "normalized Codex process boundaries")
+
+    def test_first_packet_without_fresh_startup_trace_is_unknown(self):
+        self.trace[1]["cursor"][0] = self.action
+        self.check("unknown", "fresh startup")
+        self.trace[1]["cursor"][0] = None
+        self.trace[0]["stage"] = "discovery"
+        self.check("unknown", "first intake packet")
+
+    def test_case_preserves_original_case_bytes_checks_and_probe_term(self):
+        cases_path = ROOT / "test/shiploop_e2e/cases.json"
+        source = cases_path.read_text()
+        baseline = subprocess.run(["git", "-C", str(ROOT), "show",
+                                   "b2052820bc143a9b70b291896e9a630ccf48936b:test/shiploop_e2e/cases.json"],
+                                  capture_output=True, text=True, check=True).stdout
+        begin, end = '  "hello-hook-continuation": {', '  "hello-startup-contract": {'
+        self.assertEqual(source[source.index(begin):source.index(end)],
+                         baseline[baseline.index(begin):baseline.index(end)])
+        cases, original = json.loads(source), json.loads(baseline)
         old, new = cases["hello-hook-continuation"], cases["hello-startup-contract"]
         self.assertEqual(new["style"], old["style"])
+        self.assertEqual(new["checks"], original["hello-startup-contract"]["checks"])
         self.assertEqual(new["checks"][:4], old["checks"])
         self.assertEqual(new["checks"][-1], 'python3 -B "$E2E_CHECKS/shiploop_startup_behavior.py"')
-        self.assertIn("STARTUP_HANDOFF_CHECKPOINT", new["prompt"])
-        self.assertNotIn("HOOK_CONTINUATION_CHECKPOINT", new["prompt"])
+        self.assertNotIn("STARTUP_HANDOFF_CHECKPOINT", new["prompt"])
+        self.assertNotIn("FINAL", new["prompt"])
         self.assertNotIn("$CLI", new["prompt"])
+        self.assertIn("attempt to end the current turn", new["prompt"])
+        self.assertIn("exactly one line `partial work recorded`", new["prompt"])
+        for name, case in original.items():
+            if name == "hello-startup-contract":
+                self.assertEqual({k: v for k, v in cases[name].items() if k != "prompt"},
+                                 {k: v for k, v in case.items() if k != "prompt"})
+            else:
+                self.assertEqual(cases[name], case)
         terms = json.loads((ROOT / "test/shiploop_e2e/probe_terms.json").read_text())["terms"]
         self.assertEqual(terms["hello-startup-contract"], terms["hello-hook-continuation"])
 
