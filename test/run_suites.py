@@ -20,6 +20,7 @@ import json
 import os
 from pathlib import Path
 import shlex
+import shutil
 import signal
 import subprocess
 import sys
@@ -296,6 +297,20 @@ def _state_home_error(state_home: Path) -> str | None:
             "enough: XDG_STATE_HOME takes precedence over it")
 
 
+@contextlib.contextmanager
+def _scratch_directory(prefix: str) -> Iterator[str]:
+    """A temporary directory removed on exit, whose removal errors are ignored.
+
+    ``TemporaryDirectory(ignore_cleanup_errors=True)`` is Python 3.10+; the python-floor group runs this runner on 3.9.
+    """
+
+    name = tempfile.mkdtemp(prefix=prefix)
+    try:
+        yield name
+    finally:
+        shutil.rmtree(name, ignore_errors=True)
+
+
 def run_process(
     argv: Sequence[str],
     *,
@@ -313,7 +328,7 @@ def run_process(
     """
 
     # Resolved: macOS temporary paths sit under the /var symlink, which Until Loop refuses as a state root.
-    with tempfile.TemporaryDirectory(prefix="skill-craft-suite-state-", ignore_cleanup_errors=True) as name:
+    with _scratch_directory("skill-craft-suite-state-") as name:
         state_home = Path(name).resolve()
         environment = {key: value for key, value in os.environ.items() if key not in _STATE_OVERRIDES}
         # Ordinary hermetic fixtures must not leave per-run observers.

@@ -10,14 +10,17 @@ CLI is launched.
 
 from __future__ import annotations
 
+import atexit
 import importlib.util
 import json
 import os
 from pathlib import Path
 import re
 import shlex
+import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -26,6 +29,19 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 FIXTURES = ROOT / "test" / "fixtures" / "shiploop-keepalive"
 CLI = SCRIPTS / "shiploop"
+
+# A host runs a hook entry as a program, so these tests do too (the entries are shell wrappers around shiploop-hook, not
+# Python files): a PATH whose python3 is the interpreter under test.
+_BIN = Path(tempfile.mkdtemp(prefix="skill-calls-bin-"))
+(_BIN / "python3").write_text(f'#!/bin/sh\nexec {shlex.quote(sys.executable)} "$@"\n')
+(_BIN / "python3").chmod(0o755)
+atexit.register(shutil.rmtree, _BIN, True)
+
+
+def entry_env(**extra: str) -> dict:
+    return {**os.environ, "PATH": f"{_BIN}{os.pathsep}{os.environ.get('PATH', '')}", **extra}
+
+
 sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(ROOT / "test"))
 
@@ -141,15 +157,15 @@ class SkillCallHookTests(keepalive_tests.KeepaliveTestCase):
 
     def test_the_entry_script_is_silent_fast_and_never_fails_the_call(self) -> None:
         self.bind()
-        env = {**os.environ}
+        env = entry_env()
         entry = SCRIPTS / "shiploop-skill-call"
-        good = subprocess.run([sys.executable, str(entry)], input=json.dumps(
+        good = subprocess.run([str(entry)], input=json.dumps(
             skill_payload("session-1", "improve", "ShipLoop Improve: /w/handoff.md")), capture_output=True, text=True,
             env=env, check=False)
         self.assertEqual((good.returncode, good.stdout, good.stderr), (0, "", ""))
         self.assertEqual(len(records(self.run_dir)), 1)
         for junk in ("", "{not json", "[]", '{"tool_name": "Skill"}', json.dumps(skill_payload("session-1", "improve", 7))):
-            result = subprocess.run([sys.executable, str(entry)], input=junk, capture_output=True, text=True, env=env,
+            result = subprocess.run([str(entry)], input=junk, capture_output=True, text=True, env=env,
                                     check=False)
             self.assertEqual((result.returncode, result.stdout), (0, ""), junk)
         # a non-string argument is kept as JSON text, not dropped or crashed on
@@ -158,11 +174,11 @@ class SkillCallHookTests(keepalive_tests.KeepaliveTestCase):
     def test_the_entry_script_survives_a_closed_stdin_and_bytes_that_are_not_text(self) -> None:
         self.bind()
         entry = SCRIPTS / "shiploop-skill-call"
-        closed = subprocess.run(f"{shlex.quote(sys.executable)} {shlex.quote(str(entry))} <&-", shell=True,
+        closed = subprocess.run(f"{shlex.quote(str(entry))} <&-", shell=True, env=entry_env(),
                                 capture_output=True, text=True, check=False)
         self.assertEqual((closed.returncode, closed.stdout, closed.stderr), (0, "", ""))
-        strict = subprocess.run([sys.executable, str(entry)], input=b"\xff\xfe{", capture_output=True, check=False,
-                                env={**os.environ, "PYTHONIOENCODING": "utf-8:strict"})
+        strict = subprocess.run([str(entry)], input=b"\xff\xfe{", capture_output=True, check=False,
+                                env=entry_env(PYTHONIOENCODING="utf-8:strict"))
         self.assertEqual((strict.returncode, strict.stdout, strict.stderr), (0, b"", b""))
         self.assertEqual(records(self.run_dir), [])
 
@@ -234,13 +250,13 @@ class SkillHookRegistrationTests(keepalive_tests.KeepaliveTestCase):
         import package_build
 
         scripts = package_build.plugins() / "skill-craft" / "skills" / "shiploop" / "scripts"
-        env = {**os.environ}
-        observed = subprocess.run([sys.executable, str(scripts / "shiploop-keepalive-observe")],
+        env = entry_env()
+        observed = subprocess.run([str(scripts / "shiploop-keepalive-observe")],
                                   input=json.dumps(self.payload("claude", "observe")), capture_output=True, text=True,
                                   env=env, check=False)
         self.assertEqual((observed.returncode, observed.stdout), (0, ""), observed.stderr)
         self.assertTrue(keepalive.load_binding("claude", "session-1")["skill_hook"])
-        recorded = subprocess.run([sys.executable, str(scripts / "shiploop-skill-call")],
+        recorded = subprocess.run([str(scripts / "shiploop-skill-call")],
                                   input=json.dumps(skill_payload("session-1", "skill-craft:improve", "x")),
                                   capture_output=True, text=True, env=env, check=False)
         self.assertEqual((recorded.returncode, recorded.stdout), (0, ""), recorded.stderr)

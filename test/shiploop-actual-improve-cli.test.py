@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Real ShipLoop/Improve CLI composition; fixture judgments are synthetic."""
+from __future__ import annotations
+
 from pathlib import Path
 import hashlib
 import json

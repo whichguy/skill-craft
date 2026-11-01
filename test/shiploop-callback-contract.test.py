@@ -415,10 +415,13 @@ class RefusalRouteTests(RealCliCase):
     def test_a_result_file_that_does_not_parse_is_a_rejected_request_and_the_fixed_file_is_accepted(self) -> None:
         # A model-written file that is not a result block is a fault in the file, not lost state: the reply names
         # the file, the parser's reason and the same command to run again, and never the lost-state recovery text.
+        try:
+            json.loads('{"outcome": "done", "summary": "x",}')
+        except ValueError as exc:
+            comma_reason = exc.msg  # the parser's own wording differs by Python version; the reply quotes it
         bad = {
             "no fence": ('{"outcome": "done", "summary": "x"}\n', "found 0"),
-            "trailing comma": ('```shiploop-state\n{"outcome": "done", "summary": "x",}\n```\n',
-                               "Illegal trailing comma"),
+            "trailing comma": ('```shiploop-state\n{"outcome": "done", "summary": "x",}\n```\n', comma_reason),
             "unterminated fence": ('```shiploop-state\n{"outcome": "done", "summary": "x"}\n',
                                    "unterminated shiploop-state fence"),
             "duplicate key": ('```shiploop-state\n{"outcome": "done", "summary": "x", "summary": "y"}\n```\n',
