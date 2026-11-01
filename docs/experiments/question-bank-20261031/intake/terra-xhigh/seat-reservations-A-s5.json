@@ -1,0 +1,13 @@
+{
+ "model_used": "gpt-6.1-terra",
+ "effort": "xhigh",
+ "exit": 0,
+ "text": "```shiploop-state\n{\n  \"evidence_refs\": [\"Original request S1\", \"Original request S2\", \"Exercise instructions\"],\n  \"headline\": \"Intake established the service outcome, boundaries, and defaults for discovery.\",\n  \"outcome\": \"done\",\n  \"summary\": \"S1 \u2014 Fact: deliver a small Python HTTP service through which organisers create events with seat counts and people reserve seats; the HTTP interface is the entry point. Assumptions: each reservation takes one seat, reservations cannot exceed capacity, and event and reservation state is shared by clients of one service process. Recorded default: identify neither organisers nor people, collect no personal details, and provide no private state; this rules out access controls, personal reservation histories, and per-person limits. Recorded default: keep state in memory until the process ends, ruling out persistence across restarts and shared state across service processes. Discovery must first inspect the available runtime and repository conventions; if they provide storage, identity, or other relevant facilities, discovery decides whether to use them. Until then, the choices of framework, interface details, concurrency handling, and test environment remain open and block implementation and verification. S2 \u2014 Fact: include tests that verify event creation, reservations, and capacity limits; discovery must establish the available test tooling before choosing how to run them. Run boundary \u2014 Fact: the repository is empty and this unattended intake implements nothing; no earlier run, deployment target, team, channel, internal site, document, private repository, owner, or specialized term is named as a discovery lead. Authority and visibility \u2014 Assumption: the requested deliverable is usable from the resulting source checkout; no deployed target is specified. The isolated run's source checkout stays at its snapshot until the final return, when the outcome becomes visible there; an outcome in any deployed target exists only after release. Risk \u2014 The in-memory and anonymous defaults limit durability and accountability; discovery may replace them if repository or runtime evidence establishes a different requirement.\"\n}\n```",
+ "usage": {
+  "input_tokens": 14748,
+  "cached_input_tokens": 12032,
+  "cache_write_input_tokens": 0,
+  "output_tokens": 610,
+  "reasoning_output_tokens": 202
+ }
+}

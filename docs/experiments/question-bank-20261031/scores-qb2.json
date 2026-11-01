@@ -1,0 +1,688 @@
+{
+  "unverified_quotes": [],
+  "arms": {
+    "B": {
+      "n": 5,
+      "coverage": 1.0,
+      "right": 0.5647058823529412,
+      "partial": 0.43529411764705883,
+      "wrong": 0.0,
+      "person_routes": 0.0,
+      "wasted_person_routes": 0.0,
+      "silent": 1.6,
+      "out_tokens": 3676.2,
+      "reasoning": 261.6,
+      "uncached_input": 29687.8,
+      "commands": 7.6,
+      "items": 15.4,
+      "noise": 2.6,
+      "parsed": 5
+    },
+    "Bp": {
+      "n": 5,
+      "coverage": 1.0,
+      "right": 0.7294117647058823,
+      "partial": 0.27058823529411763,
+      "wrong": 0.0,
+      "person_routes": 0.0,
+      "wasted_person_routes": 0.0,
+      "silent": 0.4,
+      "out_tokens": 4122.4,
+      "reasoning": 359.8,
+      "uncached_input": 32830.2,
+      "commands": 9.8,
+      "items": 16.6,
+      "noise": 3.0,
+      "parsed": 5
+    },
+    "Qp": {
+      "n": 5,
+      "coverage": 1.0,
+      "right": 0.7411764705882353,
+      "partial": 0.25882352941176473,
+      "wrong": 0.0,
+      "person_routes": 0.0,
+      "wasted_person_routes": 0.0,
+      "silent": 0.0,
+      "out_tokens": 4297.8,
+      "reasoning": 418.2,
+      "uncached_input": 33227.6,
+      "commands": 11.0,
+      "items": 17.6,
+      "noise": 3.8,
+      "parsed": 5
+    },
+    "Sp": {
+      "n": 5,
+      "coverage": 1.0,
+      "right": 0.8,
+      "partial": 0.2,
+      "wrong": 0.0,
+      "person_routes": 0.0,
+      "wasted_person_routes": 0.0,
+      "silent": 0.0,
+      "out_tokens": 4331.2,
+      "reasoning": 339.4,
+      "uncached_input": 34989.2,
+      "commands": 13.6,
+      "items": 18.0,
+      "noise": 3.8,
+      "parsed": 5
+    }
+  },
+  "groups": {
+    "skill/B": {
+      "coverage": 1.0,
+      "right": 0.3333333333333333
+    },
+    "skill/Bp": {
+      "coverage": 1.0,
+      "right": 0.9333333333333333
+    },
+    "skill/Qp": {
+      "coverage": 1.0,
+      "right": 0.7333333333333333
+    },
+    "skill/Sp": {
+      "coverage": 1.0,
+      "right": 0.9333333333333333
+    },
+    "slang/B": {
+      "coverage": 1.0,
+      "right": 0.9
+    },
+    "slang/Bp": {
+      "coverage": 1.0,
+      "right": 0.9
+    },
+    "slang/Qp": {
+      "coverage": 1.0,
+      "right": 0.8
+    },
+    "slang/Sp": {
+      "coverage": 1.0,
+      "right": 1.0
+    },
+    "unknown/B": {
+      "coverage": 1.0,
+      "right": 0.0
+    },
+    "unknown/Bp": {
+      "coverage": 1.0,
+      "right": 0.4
+    },
+    "unknown/Qp": {
+      "coverage": 1.0,
+      "right": 0.8
+    },
+    "unknown/Sp": {
+      "coverage": 1.0,
+      "right": 0.6
+    },
+    "referent/B": {
+      "coverage": 1.0,
+      "right": 0.3333333333333333
+    },
+    "referent/Bp": {
+      "coverage": 1.0,
+      "right": 0.3333333333333333
+    },
+    "referent/Qp": {
+      "coverage": 1.0,
+      "right": 0.4
+    },
+    "referent/Sp": {
+      "coverage": 1.0,
+      "right": 0.3333333333333333
+    },
+    "conflict/B": {
+      "coverage": 1.0,
+      "right": 1.0
+    },
+    "conflict/Bp": {
+      "coverage": 1.0,
+      "right": 1.0
+    },
+    "conflict/Qp": {
+      "coverage": 1.0,
+      "right": 1.0
+    },
+    "conflict/Sp": {
+      "coverage": 1.0,
+      "right": 1.0
+    },
+    "constraint/B": {
+      "coverage": 1.0,
+      "right": 0.8
+    },
+    "constraint/Bp": {
+      "coverage": 1.0,
+      "right": 0.8
+    },
+    "constraint/Qp": {
+      "coverage": 1.0,
+      "right": 0.8666666666666667
+    },
+    "constraint/Sp": {
+      "coverage": 1.0,
+      "right": 0.8666666666666667
+    },
+    "open/B": {
+      "coverage": 1.0,
+      "right": 0.2
+    },
+    "open/Bp": {
+      "coverage": 1.0,
+      "right": 0.5
+    },
+    "open/Qp": {
+      "coverage": 1.0,
+      "right": 0.6
+    },
+    "open/Sp": {
+      "coverage": 1.0,
+      "right": 0.8
+    }
+  },
+  "items": {
+    "J1/B": {
+      "covered": 5,
+      "right": 2,
+      "routes": {
+        "knowledge": 3,
+        "silent": 2
+      }
+    },
+    "J1/Bp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "J1/Qp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "J1/Sp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "J2/B": {
+      "covered": 5,
+      "right": 1,
+      "routes": {
+        "knowledge": 3,
+        "silent": 2
+      }
+    },
+    "J2/Bp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "J2/Qp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "J2/Sp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "J4/B": {
+      "covered": 5,
+      "right": 2,
+      "routes": {
+        "default": 5
+      }
+    },
+    "J4/Bp": {
+      "covered": 5,
+      "right": 4,
+      "routes": {
+        "default": 5
+      }
+    },
+    "J4/Qp": {
+      "covered": 5,
+      "right": 1,
+      "routes": {
+        "environment": 1,
+        "default": 4
+      }
+    },
+    "J4/Sp": {
+      "covered": 5,
+      "right": 4,
+      "routes": {
+        "default": 5
+      }
+    },
+    "J3/B": {
+      "covered": 5,
+      "right": 4,
+      "routes": {
+        "knowledge": 5
+      }
+    },
+    "J3/Bp": {
+      "covered": 5,
+      "right": 4,
+      "routes": {
+        "knowledge": 5
+      }
+    },
+    "J3/Qp": {
+      "covered": 5,
+      "right": 3,
+      "routes": {
+        "knowledge": 5
+      }
+    },
+    "J3/Sp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "knowledge": 5
+      }
+    },
+    "J6/B": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "knowledge": 5
+      }
+    },
+    "J6/Bp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "knowledge": 5
+      }
+    },
+    "J6/Qp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "knowledge": 5
+      }
+    },
+    "J6/Sp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "knowledge": 5
+      }
+    },
+    "J5/B": {
+      "covered": 5,
+      "right": 0,
+      "routes": {
+        "silent": 4,
+        "default": 1
+      }
+    },
+    "J5/Bp": {
+      "covered": 5,
+      "right": 2,
+      "routes": {
+        "silent": 2,
+        "default": 1,
+        "environment": 2
+      }
+    },
+    "J5/Qp": {
+      "covered": 5,
+      "right": 4,
+      "routes": {
+        "default": 3,
+        "environment": 2
+      }
+    },
+    "J5/Sp": {
+      "covered": 5,
+      "right": 3,
+      "routes": {
+        "environment": 4,
+        "default": 1
+      }
+    },
+    "R1/B": {
+      "covered": 5,
+      "right": 0,
+      "routes": {
+        "default": 4,
+        "environment": 1
+      }
+    },
+    "R1/Bp": {
+      "covered": 5,
+      "right": 0,
+      "routes": {
+        "default": 4,
+        "environment": 1
+      }
+    },
+    "R1/Qp": {
+      "covered": 5,
+      "right": 0,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "R1/Sp": {
+      "covered": 5,
+      "right": 0,
+      "routes": {
+        "environment": 4,
+        "default": 1
+      }
+    },
+    "R3/B": {
+      "covered": 5,
+      "right": 0,
+      "routes": {
+        "default": 5
+      }
+    },
+    "R3/Bp": {
+      "covered": 5,
+      "right": 0,
+      "routes": {
+        "default": 5
+      }
+    },
+    "R3/Qp": {
+      "covered": 5,
+      "right": 1,
+      "routes": {
+        "default": 5
+      }
+    },
+    "R3/Sp": {
+      "covered": 5,
+      "right": 0,
+      "routes": {
+        "default": 5
+      }
+    },
+    "R2/B": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 1,
+        "default": 4
+      }
+    },
+    "R2/Bp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 1,
+        "default": 4
+      }
+    },
+    "R2/Qp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 1,
+        "default": 4
+      }
+    },
+    "R2/Sp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 1,
+        "default": 4
+      }
+    },
+    "C1/B": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "default": 5
+      }
+    },
+    "C1/Bp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "default": 5
+      }
+    },
+    "C1/Qp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "default": 5
+      }
+    },
+    "C1/Sp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "default": 5
+      }
+    },
+    "C2/B": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "default": 5
+      }
+    },
+    "C2/Bp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "default": 5
+      }
+    },
+    "C2/Qp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 4,
+        "default": 1
+      }
+    },
+    "C2/Sp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 4,
+        "default": 1
+      }
+    },
+    "C3/B": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "C3/Bp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "C3/Qp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "C3/Sp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "B1/B": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "B1/Bp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "B1/Qp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "default": 1,
+        "environment": 4
+      }
+    },
+    "B1/Sp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "default": 1,
+        "environment": 4
+      }
+    },
+    "D1/B": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "D1/Bp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "D1/Qp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "default": 1,
+        "environment": 4
+      }
+    },
+    "D1/Sp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "A1/B": {
+      "covered": 5,
+      "right": 2,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "A1/Bp": {
+      "covered": 5,
+      "right": 2,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "A1/Qp": {
+      "covered": 5,
+      "right": 3,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "A1/Sp": {
+      "covered": 5,
+      "right": 3,
+      "routes": {
+        "environment": 5
+      }
+    },
+    "O1/B": {
+      "covered": 5,
+      "right": 2,
+      "routes": {
+        "default": 5
+      }
+    },
+    "O1/Bp": {
+      "covered": 5,
+      "right": 3,
+      "routes": {
+        "default": 5
+      }
+    },
+    "O1/Qp": {
+      "covered": 5,
+      "right": 4,
+      "routes": {
+        "default": 5
+      }
+    },
+    "O1/Sp": {
+      "covered": 5,
+      "right": 5,
+      "routes": {
+        "default": 5
+      }
+    },
+    "N1/B": {
+      "covered": 5,
+      "right": 0,
+      "routes": {
+        "default": 5
+      }
+    },
+    "N1/Bp": {
+      "covered": 5,
+      "right": 2,
+      "routes": {
+        "default": 3,
+        "environment": 2
+      }
+    },
+    "N1/Qp": {
+      "covered": 5,
+      "right": 2,
+      "routes": {
+        "default": 3,
+        "environment": 2
+      }
+    },
+    "N1/Sp": {
+      "covered": 5,
+      "right": 3,
+      "routes": {
+        "default": 2,
+        "environment": 3
+      }
+    }
+  }
+}

@@ -137,7 +137,20 @@ python3 judge.py && QB_WORK=<scratch> python3 run.py jobs-judge.tsv --limit=opus
 python3 score.py
 ```
 
-Codex event streams and stderr are not committed; each envelope keeps the call's token usage.
+QB2, QB3 and QB4 (each its own script; the judge steps need `QB_WORK` as above):
+
+```
+python3 qb2.py build && python3 qb2.py jobs && QB_WORK=<scratch> python3 run.py jobs-qb2.tsv --limit=codex=4
+python3 qb2.py judge && QB_WORK=<scratch> python3 run.py jobs-judge-qb2.tsv --limit=opus=5 && python3 qb2.py score
+python3 qb3.py build && python3 qb3.py jobs && QB_WORK=<scratch> python3 run.py jobs-qb3.tsv --limit=codex=4
+python3 qb3.py judge && QB_WORK=<scratch> python3 run.py jobs-judge-qb3.tsv --limit=opus=4 && python3 qb3.py score
+python3 qb4.py build && python3 qb4.py jobs && QB_WORK=<scratch> python3 run.py jobs-qb4.tsv --limit=codex=4 && python3 qb4.py report
+python3 rows.py            # where QB1's coverage was found (exploratory)
+python3 x1t_tokens.py      # X1-T's saved token costs; python3 check_coarse.py for the permutation check
+```
+
+Codex event streams, stderr and the judge prompts are not committed (the prompts regenerate from the committed outputs with the
+seeds above); each envelope keeps the call's token usage, and QB2 and QB4 envelopes list the shell commands the model ran.
 
 ## QB2: a long, loosely worded request, with the tools on (exploratory; registered before its first scored call)
 
@@ -302,4 +315,77 @@ Limits: one request, one repository, one judge, five outputs per arm; coverage i
 the arms; intake read the repository, which the real stage leaves to discovery; the person route and the web search were not
 exercisable; the judge's expected-handling text was written by the session that built the arms.
 
-(QB1 and QB3 results are appended below when their judge calls return.)
+### QB4 (exploratory; 8 outputs, no judge; `qb4/intake/`, `python3 qb4.py report`)
+
+Rows routed to a person per output: Bp 1, 1, 1, 1 (of 14, 14, 12 and 14 ledger rows); Qp 1, 1, 0, 0 (of 27 bank rows). All six are one
+question, the weekly report's window. Bp asks for its start, end, time zone and boundary, or which of the previous calendar week, a
+rolling seven days or another interval; three of the four tell discovery to check the report and its documents first. Qp's K13.3 row
+says the person must choose the window because the repository gives none. Nothing else went to a person: OldTracker, "right away"
+against "batch it", the bulk contract and the missing cap of "ralph-style" were defaulted and recorded.
+
+Predictions, scored: at least two thirds of person rows concern an item a decision settles: **true** (6 of 6, the missing window);
+fewer than one wasted ask per output: **true** (0); Qp sends more rows to a person than Bp: **false** (2 against 4). Reading: when
+asking is restricted to what the repository and the skills cannot settle and where two readings lead to different work, an
+attended intake asked one question, and it was the one where the request's premise was false and no default is safe. The count is
+steered by that rule's wording (stated in the registration); a looser rule would ask more. 4 outputs per arm; classified by hand.
+
+### QB1 (192 graded outputs, 32 per arm, 0 unverified judge quotes, 0 unparsed; `scores.json`, `judge/`)
+
+| Arm | recall | agreement | noise share | rows | output tokens (reasoning) | uncached input | covered per 1,000 output tokens |
+|---|---|---|---|---|---|---|---|
+| A (old shipped statements) | 0.468 | 0.71 | 0.34 | 0 | 636 (242) | 3,102 | 6.98 |
+| B (catalog and ledger, shipped) | 0.935 | 0.74 | 0.36 | 10.6 | 2,153 (448) | 3,336 | 4.12 |
+| Bq (B, all lines questions) | 0.926 | 0.76 | 0.39 | 10.7 | 2,160 (431) | 3,367 | 4.07 |
+| Bs (B, all lines statements) | 0.942 | 0.72 | 0.40 | 10.8 | 2,170 (389) | 3,366 | 4.12 |
+| Qb (fixed bank, questions) | 0.921 | 0.68 | 0.42 | 20.0 | 1,854 (372) | 3,306 | 4.72 |
+| Sb (fixed bank, statements) | 0.958 | 0.61 | 0.41 | 20.0 | 1,995 (442) | 3,316 | 4.56 |
+
+Rules, as registered:
+- **R1, the bank's wording (Qb against Sb): no difference of the registered size.** Qb is 3.7 points below Sb on recall (the bar is 5) and
+  uses 0.93 of its output tokens (the bar is 0.85). Read without the bars: Sb covers more (p 0.009 that it is higher) and Qb costs 7%
+  less (p 0.005), and Sb commits more defaults that conflict with the full request (agreement 0.61 against 0.68).
+- **R2, the ledger's wording (Bq against Bs): no difference** (recall gap 1.7 points, p 0.16; token ratio 0.995).
+- **R3, the fixed bank replaces the generated ledger: fails, B stays.** Taking Sb, the bank with more recall: recall 0.958 against
+  0.935 (within 3 points, met); output tokens 0.93 of B's (needs 0.75; Qb reaches 0.86); agreement 0.61 against 0.74 (needs within
+  2 points, missed); noise share 0.413 against 0.358 (needs within 5 points; 5.5 points higher, missed). Qb fails the same three
+  (tokens 0.86, agreement 0.684 against 0.740, noise share 0.416, 5.8 points higher).
+- **R4, the anchors replicate: holds, narrowly.** A 0.468 and B 0.935 against X1-T's 0.513 and 0.981: each is 4.5 points lower. The same
+  outputs score 2.6 points (B) and 4.8 points (Qb) higher in QB3's eight-output judge calls than in QB1's twelve-output calls, so the
+  judge has batch-level calibration shifts of the size of the 3-point margins in R3; only comparisons inside one call are valid.
+- **R5, a ceiling: false as written** (A sits at 0.468). In substance the five catalog-based arms lie within 0.921 to 0.958.
+
+Where the coverage was found (`rows.py`, exploratory, one quote per decision): in the ledger arms categories K3 (interfaces and
+contracts) 28-31%, K4 (rules and edge cases) 25-28%, K6 (runtime and dependencies) 13-14%, K8 (verification) 11%, K5 (state and data) 8-9%
+and K2 5-6%; seven categories hold 95%. In the bank arms K3.1 21-29%, K3.2 16%, K4.1 14-15%, K8.1 9-10%, K6.2 10%, K6.3 5-6% and K5.1 5%; nine to
+eleven of the 20 rows hold 95%. K1, K9, K10 and K11 earned almost nothing here, but the ground truth is the testable contract of four
+end-to-end cases, so that says little about delivery or risk items in other work. What every wording missed: the read contract of the
+seat-reservation service (SR8, missed in 6 to 7 of 8 outputs in every catalog arm), and, now and then, how the page is served (BS3),
+an empty input (CR9) and the pagination defaults (UL4, UL5). Rows per output by basis or route (unattended, so no person rows): the
+ledger 6.0 inspect, 3.8 default, 0.7 research; the bank 12.6 to 12.9 default (of 20), 3.7 settled by a request sentence, 3.3 to 3.7
+inspect, under 0.1 not applicable.
+
+### QB3 (64 graded outputs, 16 per arm, 0 unverified, 0 unparsed; `scores-qb3.json`, `judge3/`)
+
+| Arm | recall | agreement | noise share | output tokens (reasoning) | covered per 1,000 output tokens |
+|---|---|---|---|---|---|
+| B | 0.968 | 0.70 | 0.36 | 2,175 (492) | 4.22 |
+| Qb | 0.974 | 0.65 | 0.41 | 1,880 (388) | 4.92 |
+| Qt (bank, answers at most 12 words) | 0.868 | 0.68 | 0.42 | 1,604 (448) | 5.14 |
+| Bt (ledger, fields at most 12 words) | 0.894 | 0.69 | 0.34 | 1,981 (511) | 4.29 |
+
+- **R6, the cap cuts the bank's cost: fails.** Qt writes 0.85 of Qb's output tokens (needs 0.80; p 0.0004 that it is lower) and loses
+  10.6 points of recall (needs to stay within 3).
+- **R7, the bank against the ledger at equal terseness: holds.** Qt writes 0.81 of Bt's output tokens (p below 0.001) with recall 2.6
+  points lower (within the 3 allowed). Part of the bank's saving is the bank's, not the cap's.
+- **R8, replacing B: fails for both.** Qt: tokens 0.74 of B's (met), agreement met, recall 10 points lower and noise share 6 points higher
+  (missed). Bt: recall 7 points lower and tokens 0.91 of B's (both missed).
+- The cap is not a free saving: the 12-word answers dropped the specific value (a port, a code, a name) that made a decision count as
+  covered. Covered decisions per 1,000 output tokens rose only from 4.92 to 5.14 (bank) and from 4.22 to 4.29 (ledger).
+
+**Reading across QB1 and QB3, for the owner's question.** With the content held fixed, question wording did not raise coverage or lower
+cost on the shipped mechanism (QB1 R2), and on the fixed bank it traded 3.7 points of coverage and a few points of agreement against 7%
+of tokens (QB1 R1). What moved coverage, from 0.47 to 0.92-0.96, was an explicit list of items the model must answer, whatever its
+wording and whether the model or the bank wrote the questions. A fixed bank is 7% to 14% cheaper than the model-written ledger on a
+vague request, and costs more on a long one (QB2), because the bank answers every row and the ledger writes only what the request
+leaves open. The shipped ledger stays. Unknown: the effect downstream (does the bank's output reach the spec as the ledger's does?),
+which none of this measures.

@@ -1,0 +1,112 @@
+{
+  "qb2-s1": {
+    "O1": {
+      "arm": "Sp",
+      "sample": 1,
+      "file": "qb2/intake/BP1-Sp-s1.json"
+    },
+    "O2": {
+      "arm": "Qp",
+      "sample": 1,
+      "file": "qb2/intake/BP1-Qp-s1.json"
+    },
+    "O3": {
+      "arm": "Bp",
+      "sample": 1,
+      "file": "qb2/intake/BP1-Bp-s1.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 1,
+      "file": "qb2/intake/BP1-B-s1.json"
+    }
+  },
+  "qb2-s2": {
+    "O1": {
+      "arm": "Sp",
+      "sample": 2,
+      "file": "qb2/intake/BP1-Sp-s2.json"
+    },
+    "O2": {
+      "arm": "Bp",
+      "sample": 2,
+      "file": "qb2/intake/BP1-Bp-s2.json"
+    },
+    "O3": {
+      "arm": "Qp",
+      "sample": 2,
+      "file": "qb2/intake/BP1-Qp-s2.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 2,
+      "file": "qb2/intake/BP1-B-s2.json"
+    }
+  },
+  "qb2-s3": {
+    "O1": {
+      "arm": "Qp",
+      "sample": 3,
+      "file": "qb2/intake/BP1-Qp-s3.json"
+    },
+    "O2": {
+      "arm": "Bp",
+      "sample": 3,
+      "file": "qb2/intake/BP1-Bp-s3.json"
+    },
+    "O3": {
+      "arm": "Sp",
+      "sample": 3,
+      "file": "qb2/intake/BP1-Sp-s3.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 3,
+      "file": "qb2/intake/BP1-B-s3.json"
+    }
+  },
+  "qb2-s4": {
+    "O1": {
+      "arm": "B",
+      "sample": 4,
+      "file": "qb2/intake/BP1-B-s4.json"
+    },
+    "O2": {
+      "arm": "Sp",
+      "sample": 4,
+      "file": "qb2/intake/BP1-Sp-s4.json"
+    },
+    "O3": {
+      "arm": "Bp",
+      "sample": 4,
+      "file": "qb2/intake/BP1-Bp-s4.json"
+    },
+    "O4": {
+      "arm": "Qp",
+      "sample": 4,
+      "file": "qb2/intake/BP1-Qp-s4.json"
+    }
+  },
+  "qb2-s5": {
+    "O1": {
+      "arm": "Qp",
+      "sample": 5,
+      "file": "qb2/intake/BP1-Qp-s5.json"
+    },
+    "O2": {
+      "arm": "Sp",
+      "sample": 5,
+      "file": "qb2/intake/BP1-Sp-s5.json"
+    },
+    "O3": {
+      "arm": "B",
+      "sample": 5,
+      "file": "qb2/intake/BP1-B-s5.json"
+    },
+    "O4": {
+      "arm": "Bp",
+      "sample": 5,
+      "file": "qb2/intake/BP1-Bp-s5.json"
+    }
+  }
+}

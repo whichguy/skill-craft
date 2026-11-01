@@ -1,0 +1,136 @@
+{
+  "unverified_quotes": [],
+  "arms": {
+    "B": {
+      "n": 16,
+      "recall": 0.9680562500000001,
+      "covered": 147,
+      "decisions": 152,
+      "default_yes": 97,
+      "default_no": 42,
+      "agreement": 0.697841726618705,
+      "items": 11.1875,
+      "noise_share": 0.3575418994413408,
+      "out_tokens": 2175.0625,
+      "reasoning": 491.75,
+      "uncached_in": 3328.25,
+      "chars": 7706.6875,
+      "seconds": 25.35,
+      "rows": 10.375,
+      "person": 0.0,
+      "covered_per_1k_out": 4.2240165512485275,
+      "unparsed": 0,
+      "kinds": {
+        "default": 4.12,
+        "experiment": 0.06,
+        "inspect": 5.69,
+        "research": 0.5
+      }
+    },
+    "Qb": {
+      "n": 16,
+      "recall": 0.9736125,
+      "covered": 148,
+      "decisions": 152,
+      "default_yes": 82,
+      "default_no": 45,
+      "agreement": 0.6456692913385826,
+      "items": 20.6875,
+      "noise_share": 0.4108761329305136,
+      "out_tokens": 1879.5625,
+      "reasoning": 387.9375,
+      "uncached_in": 3306.1875,
+      "chars": 6733.625,
+      "seconds": 22.3,
+      "rows": 20.0,
+      "person": 0.0,
+      "covered_per_1k_out": 4.921358028796595,
+      "unparsed": 0,
+      "kinds": {
+        "default": 12.69,
+        "inspect": 3.62,
+        "na": 0.06,
+        "request": 3.56,
+        "research": 0.06
+      }
+    },
+    "Qt": {
+      "n": 16,
+      "recall": 0.8680625000000001,
+      "covered": 132,
+      "decisions": 152,
+      "default_yes": 74,
+      "default_no": 35,
+      "agreement": 0.6788990825688074,
+      "items": 20.9375,
+      "noise_share": 0.4208955223880597,
+      "out_tokens": 1604.3125,
+      "reasoning": 447.625,
+      "uncached_in": 3317.875,
+      "chars": 4950.5625,
+      "seconds": 20.2875,
+      "rows": 0.0,
+      "person": 0.0,
+      "covered_per_1k_out": 5.142389652888698,
+      "unparsed": 0,
+      "kinds": {}
+    },
+    "Bt": {
+      "n": 16,
+      "recall": 0.89375625,
+      "covered": 136,
+      "decisions": 152,
+      "default_yes": 83,
+      "default_no": 38,
+      "agreement": 0.6859504132231405,
+      "items": 12.875,
+      "noise_share": 0.33980582524271846,
+      "out_tokens": 1981.4375,
+      "reasoning": 511.25,
+      "uncached_in": 4107.5,
+      "chars": 6250.25,
+      "seconds": 22.0,
+      "rows": 0.0,
+      "person": 0.0,
+      "covered_per_1k_out": 4.289814844021071,
+      "unparsed": 0,
+      "kinds": {}
+    }
+  },
+  "rules": {
+    "R6 the cap cuts the bank's cost (Qt against Qb)": {
+      "clauses": {
+        "recall within 3 points": false,
+        "output tokens at most 80%": false,
+        "default agreement within 2 points": true,
+        "noise share at most 5 points above": true
+      },
+      "holds": false,
+      "p_tokens_lower": 0.0004149694519230614
+    },
+    "R7 the bank is cheaper than the ledger at equal terseness (Qt against Bt)": {
+      "token_ratio_qt_over_bt": 0.809671009052771,
+      "p_tokens_lower": 2.811603952010479e-07,
+      "recall_gap_qt_minus_bt": -0.02569374999999996,
+      "holds": true
+    },
+    "R8 Qt replaces B in intake item 9": {
+      "clauses": {
+        "recall within 3 points": false,
+        "output tokens at most 75%": true,
+        "default agreement within 2 points": true,
+        "noise share at most 5 points above": false
+      },
+      "holds": false
+    },
+    "R8 Bt replaces B in intake item 9": {
+      "clauses": {
+        "recall within 3 points": false,
+        "output tokens at most 75%": false,
+        "default agreement within 2 points": true,
+        "noise share at most 5 points above": true
+      },
+      "holds": false
+    }
+  }
+}

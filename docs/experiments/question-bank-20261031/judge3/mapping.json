@@ -1,0 +1,338 @@
+{
+  "qb3-battleship-p12": {
+    "O1": {
+      "arm": "B",
+      "sample": 2,
+      "file": "question-record-20261031/intake/terra-xhigh/battleship-B-s2.json"
+    },
+    "O2": {
+      "arm": "Bt",
+      "sample": 2,
+      "file": "question-bank-20261031/intake/terra-xhigh/battleship-Bt-s2.json"
+    },
+    "O3": {
+      "arm": "Qb",
+      "sample": 2,
+      "file": "question-bank-20261031/intake/terra-xhigh/battleship-Qb-s2.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 1,
+      "file": "question-record-20261031/intake/terra-xhigh/battleship-B-s1.json"
+    },
+    "O5": {
+      "arm": "Qt",
+      "sample": 1,
+      "file": "question-bank-20261031/intake/terra-xhigh/battleship-Qt-s1.json"
+    },
+    "O6": {
+      "arm": "Qt",
+      "sample": 2,
+      "file": "question-bank-20261031/intake/terra-xhigh/battleship-Qt-s2.json"
+    },
+    "O7": {
+      "arm": "Bt",
+      "sample": 1,
+      "file": "question-bank-20261031/intake/terra-xhigh/battleship-Bt-s1.json"
+    },
+    "O8": {
+      "arm": "Qb",
+      "sample": 1,
+      "file": "question-bank-20261031/intake/terra-xhigh/battleship-Qb-s1.json"
+    }
+  },
+  "qb3-battleship-p34": {
+    "O1": {
+      "arm": "Bt",
+      "sample": 3,
+      "file": "question-bank-20261031/intake/terra-xhigh/battleship-Bt-s3.json"
+    },
+    "O2": {
+      "arm": "Qt",
+      "sample": 3,
+      "file": "question-bank-20261031/intake/terra-xhigh/battleship-Qt-s3.json"
+    },
+    "O3": {
+      "arm": "Qb",
+      "sample": 3,
+      "file": "question-bank-20261031/intake/terra-xhigh/battleship-Qb-s3.json"
+    },
+    "O4": {
+      "arm": "Qb",
+      "sample": 4,
+      "file": "question-bank-20261031/intake/terra-xhigh/battleship-Qb-s4.json"
+    },
+    "O5": {
+      "arm": "Bt",
+      "sample": 4,
+      "file": "question-bank-20261031/intake/terra-xhigh/battleship-Bt-s4.json"
+    },
+    "O6": {
+      "arm": "B",
+      "sample": 4,
+      "file": "question-record-20261031/intake/terra-xhigh/battleship-B-s4.json"
+    },
+    "O7": {
+      "arm": "Qt",
+      "sample": 4,
+      "file": "question-bank-20261031/intake/terra-xhigh/battleship-Qt-s4.json"
+    },
+    "O8": {
+      "arm": "B",
+      "sample": 3,
+      "file": "question-record-20261031/intake/terra-xhigh/battleship-B-s3.json"
+    }
+  },
+  "qb3-csv-report-p12": {
+    "O1": {
+      "arm": "Bt",
+      "sample": 2,
+      "file": "question-bank-20261031/intake/terra-xhigh/csv-report-Bt-s2.json"
+    },
+    "O2": {
+      "arm": "Bt",
+      "sample": 1,
+      "file": "question-bank-20261031/intake/terra-xhigh/csv-report-Bt-s1.json"
+    },
+    "O3": {
+      "arm": "Qb",
+      "sample": 1,
+      "file": "question-bank-20261031/intake/terra-xhigh/csv-report-Qb-s1.json"
+    },
+    "O4": {
+      "arm": "Qb",
+      "sample": 2,
+      "file": "question-bank-20261031/intake/terra-xhigh/csv-report-Qb-s2.json"
+    },
+    "O5": {
+      "arm": "B",
+      "sample": 1,
+      "file": "question-record-20261031/intake/terra-xhigh/csv-report-B-s1.json"
+    },
+    "O6": {
+      "arm": "Qt",
+      "sample": 2,
+      "file": "question-bank-20261031/intake/terra-xhigh/csv-report-Qt-s2.json"
+    },
+    "O7": {
+      "arm": "B",
+      "sample": 2,
+      "file": "question-record-20261031/intake/terra-xhigh/csv-report-B-s2.json"
+    },
+    "O8": {
+      "arm": "Qt",
+      "sample": 1,
+      "file": "question-bank-20261031/intake/terra-xhigh/csv-report-Qt-s1.json"
+    }
+  },
+  "qb3-csv-report-p34": {
+    "O1": {
+      "arm": "B",
+      "sample": 3,
+      "file": "question-record-20261031/intake/terra-xhigh/csv-report-B-s3.json"
+    },
+    "O2": {
+      "arm": "Bt",
+      "sample": 4,
+      "file": "question-bank-20261031/intake/terra-xhigh/csv-report-Bt-s4.json"
+    },
+    "O3": {
+      "arm": "Qt",
+      "sample": 4,
+      "file": "question-bank-20261031/intake/terra-xhigh/csv-report-Qt-s4.json"
+    },
+    "O4": {
+      "arm": "Bt",
+      "sample": 3,
+      "file": "question-bank-20261031/intake/terra-xhigh/csv-report-Bt-s3.json"
+    },
+    "O5": {
+      "arm": "Qb",
+      "sample": 3,
+      "file": "question-bank-20261031/intake/terra-xhigh/csv-report-Qb-s3.json"
+    },
+    "O6": {
+      "arm": "Qt",
+      "sample": 3,
+      "file": "question-bank-20261031/intake/terra-xhigh/csv-report-Qt-s3.json"
+    },
+    "O7": {
+      "arm": "B",
+      "sample": 4,
+      "file": "question-record-20261031/intake/terra-xhigh/csv-report-B-s4.json"
+    },
+    "O8": {
+      "arm": "Qb",
+      "sample": 4,
+      "file": "question-bank-20261031/intake/terra-xhigh/csv-report-Qb-s4.json"
+    }
+  },
+  "qb3-seat-reservations-p12": {
+    "O1": {
+      "arm": "Qt",
+      "sample": 1,
+      "file": "question-bank-20261031/intake/terra-xhigh/seat-reservations-Qt-s1.json"
+    },
+    "O2": {
+      "arm": "Qt",
+      "sample": 2,
+      "file": "question-bank-20261031/intake/terra-xhigh/seat-reservations-Qt-s2.json"
+    },
+    "O3": {
+      "arm": "B",
+      "sample": 2,
+      "file": "question-record-20261031/intake/terra-xhigh/seat-reservations-B-s2.json"
+    },
+    "O4": {
+      "arm": "Bt",
+      "sample": 2,
+      "file": "question-bank-20261031/intake/terra-xhigh/seat-reservations-Bt-s2.json"
+    },
+    "O5": {
+      "arm": "B",
+      "sample": 1,
+      "file": "question-record-20261031/intake/terra-xhigh/seat-reservations-B-s1.json"
+    },
+    "O6": {
+      "arm": "Bt",
+      "sample": 1,
+      "file": "question-bank-20261031/intake/terra-xhigh/seat-reservations-Bt-s1.json"
+    },
+    "O7": {
+      "arm": "Qb",
+      "sample": 2,
+      "file": "question-bank-20261031/intake/terra-xhigh/seat-reservations-Qb-s2.json"
+    },
+    "O8": {
+      "arm": "Qb",
+      "sample": 1,
+      "file": "question-bank-20261031/intake/terra-xhigh/seat-reservations-Qb-s1.json"
+    }
+  },
+  "qb3-seat-reservations-p34": {
+    "O1": {
+      "arm": "Bt",
+      "sample": 3,
+      "file": "question-bank-20261031/intake/terra-xhigh/seat-reservations-Bt-s3.json"
+    },
+    "O2": {
+      "arm": "Qb",
+      "sample": 3,
+      "file": "question-bank-20261031/intake/terra-xhigh/seat-reservations-Qb-s3.json"
+    },
+    "O3": {
+      "arm": "B",
+      "sample": 4,
+      "file": "question-record-20261031/intake/terra-xhigh/seat-reservations-B-s4.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 3,
+      "file": "question-record-20261031/intake/terra-xhigh/seat-reservations-B-s3.json"
+    },
+    "O5": {
+      "arm": "Qt",
+      "sample": 3,
+      "file": "question-bank-20261031/intake/terra-xhigh/seat-reservations-Qt-s3.json"
+    },
+    "O6": {
+      "arm": "Qb",
+      "sample": 4,
+      "file": "question-bank-20261031/intake/terra-xhigh/seat-reservations-Qb-s4.json"
+    },
+    "O7": {
+      "arm": "Bt",
+      "sample": 4,
+      "file": "question-bank-20261031/intake/terra-xhigh/seat-reservations-Bt-s4.json"
+    },
+    "O8": {
+      "arm": "Qt",
+      "sample": 4,
+      "file": "question-bank-20261031/intake/terra-xhigh/seat-reservations-Qt-s4.json"
+    }
+  },
+  "qb3-user-listing-p12": {
+    "O1": {
+      "arm": "Bt",
+      "sample": 2,
+      "file": "question-bank-20261031/intake/terra-xhigh/user-listing-Bt-s2.json"
+    },
+    "O2": {
+      "arm": "Qb",
+      "sample": 2,
+      "file": "question-bank-20261031/intake/terra-xhigh/user-listing-Qb-s2.json"
+    },
+    "O3": {
+      "arm": "Qt",
+      "sample": 2,
+      "file": "question-bank-20261031/intake/terra-xhigh/user-listing-Qt-s2.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 1,
+      "file": "question-record-20261031/intake/terra-xhigh/user-listing-B-s1.json"
+    },
+    "O5": {
+      "arm": "B",
+      "sample": 2,
+      "file": "question-record-20261031/intake/terra-xhigh/user-listing-B-s2.json"
+    },
+    "O6": {
+      "arm": "Bt",
+      "sample": 1,
+      "file": "question-bank-20261031/intake/terra-xhigh/user-listing-Bt-s1.json"
+    },
+    "O7": {
+      "arm": "Qt",
+      "sample": 1,
+      "file": "question-bank-20261031/intake/terra-xhigh/user-listing-Qt-s1.json"
+    },
+    "O8": {
+      "arm": "Qb",
+      "sample": 1,
+      "file": "question-bank-20261031/intake/terra-xhigh/user-listing-Qb-s1.json"
+    }
+  },
+  "qb3-user-listing-p34": {
+    "O1": {
+      "arm": "Bt",
+      "sample": 4,
+      "file": "question-bank-20261031/intake/terra-xhigh/user-listing-Bt-s4.json"
+    },
+    "O2": {
+      "arm": "Qb",
+      "sample": 3,
+      "file": "question-bank-20261031/intake/terra-xhigh/user-listing-Qb-s3.json"
+    },
+    "O3": {
+      "arm": "Qb",
+      "sample": 4,
+      "file": "question-bank-20261031/intake/terra-xhigh/user-listing-Qb-s4.json"
+    },
+    "O4": {
+      "arm": "B",
+      "sample": 3,
+      "file": "question-record-20261031/intake/terra-xhigh/user-listing-B-s3.json"
+    },
+    "O5": {
+      "arm": "Qt",
+      "sample": 4,
+      "file": "question-bank-20261031/intake/terra-xhigh/user-listing-Qt-s4.json"
+    },
+    "O6": {
+      "arm": "Bt",
+      "sample": 3,
+      "file": "question-bank-20261031/intake/terra-xhigh/user-listing-Bt-s3.json"
+    },
+    "O7": {
+      "arm": "B",
+      "sample": 4,
+      "file": "question-record-20261031/intake/terra-xhigh/user-listing-B-s4.json"
+    },
+    "O8": {
+      "arm": "Qt",
+      "sample": 3,
+      "file": "question-bank-20261031/intake/terra-xhigh/user-listing-Qt-s3.json"
+    }
+  }
+}
