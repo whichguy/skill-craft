@@ -1,0 +1,282 @@
+#!/usr/bin/env python3
+"""Start-route probe, driven through the E2E harness: which ShipLoop start command does a fresh Codex session run first?
+
+Each trial is one `test/shiploop_e2e/run.py` run on the harness's Codex host (gpt-6.1-terra, xhigh: owner, 2026-11-01),
+with one plugin build (an arm: the published package, or the package with one wording edit in the skill card, passed as
+--plugin-dir) and one request (a --prompt or a --case). The harness builds the throwaway profile, installs the plugin,
+runs `codex exec`, and records the run folder as for any E2E run. This driver only watches the run's events.jsonl and,
+the moment the model issues its first ShipLoop start command (`workspace start`, the isolated entry, or `init`, the
+direct entry), creates <run>/stop, the harness's own way to end a host on purpose. That command is the outcome, so no
+run is built and nothing else is attempted. No platform is declared, so no org is touched: the profile holds no login.
+
+    python3 -I start_probe.py plan  --out plan.json
+    python3 -I start_probe.py smoke --arm C --stimulus sf-ui --out DIR     # one unscored trial, printed in full
+    python3 -I start_probe.py run   --plan plan.json --out DIR --jobs 4    # scored; resumes from DIR/results.jsonl
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import random
+import re
+import shutil
+import signal
+import subprocess
+import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[2]
+RUN_PY = ROOT / "test" / "shiploop_e2e" / "run.py"
+
+MODEL, EFFORT = "gpt-6.1-terra", "xhigh"
+HOST_TIMEOUT_SECONDS = 240   # the harness ends a host that never starts ShipLoop; the driver's own stop usually comes first
+HARD_LIMIT_SECONDS = 420     # the driver kills a run folder's process group when the harness itself has not exited
+STOP_GRACE_SECONDS = 120     # after the stop file, the harness is given this long to write its records
+MAX_ATTEMPTS = 3             # a slot is retried only when its trial was invalid (infrastructure), never for its outcome
+ARMS = ("C", "T1", "T2")
+# stimulus -> (selector for run.py, trials per arm). sf-ui is the prompt of the failing run, byte for byte; hello is the
+# smoke case (an empty directory, no "current directory" wording); repo is a brownfield case (an existing Git repository).
+STIMULI = {"sf-ui": (["--prompt-file"], 40), "hello": (["--case", "hello"], 10), "repo": (["--case", "user-listing"], 10)}
+SEED = 20261101
+
+# A start is the ShipLoop CLI invoked with the verb `workspace start` or `init`, written as a shell command, with the
+# CLI in a variable, or as a Python subprocess argument list. A reader command that mentions the words is not a start.
+SHELL_START = re.compile(r"(?:scripts/shiploop|\$\{?CLI\}?)['\"]?\s+(workspace\s+start|init)\b")
+PY_START = re.compile(r"""\[[^\]]*?['"](workspace['"]\s*,\s*['"]start|init)['"]""", re.DOTALL)
+BOOTSTRAP = re.compile(r"\bgit\s+(init|config|commit)\b")
+PLUGIN_PATH = "plugins/cache/whichguy/skill-craft"
+
+
+def detect_start(cmd: str) -> str | None:
+    """`workspace` for the isolated entry, `direct` for init, None when the command is not a ShipLoop start."""
+    if "shiploop" not in cmd:
+        return None
+    match = SHELL_START.search(cmd)
+    if match is None and "scripts/shiploop" in cmd and ("subprocess" in cmd or "execv" in cmd):
+        match = PY_START.search(cmd)
+    if match is None:
+        return None
+    return "workspace" if match.group(1).startswith("workspace") else "direct"
+
+
+def make_plan() -> list[dict]:
+    slots = [{"stimulus": s, "arm": a, "i": i} for s, (_, n) in STIMULI.items() for a in ARMS for i in range(1, n + 1)]
+    random.Random(SEED).shuffle(slots)
+    for number, slot in enumerate(slots, 1):
+        slot["slot"] = number
+    return slots
+
+
+def build_arm(arm: str, edits: list, dest: Path) -> str:
+    """A marketplace root holding the repository's published plugin package with the arm's exact text edits."""
+    if dest.exists():
+        shutil.rmtree(dest)
+    (dest / ".agents" / "plugins").mkdir(parents=True)
+    shutil.copy2(ROOT / ".agents" / "plugins" / "marketplace.json", dest / ".agents" / "plugins" / "marketplace.json")
+    shutil.copytree(ROOT / "plugins" / "skill-craft", dest / "plugins" / "skill-craft", symlinks=True)
+    card = dest / "plugins" / "skill-craft" / "skills" / "shiploop" / "SKILL.md"
+    text = card.read_text()
+    for old, new in edits:
+        if text.count(old) != 1:
+            raise SystemExit(f"arm {arm}: the text to replace occurs {text.count(old)} times, not once")
+        text = text.replace(old, new)
+    card.write_text(text)
+    git = ["git", "-c", "user.name=probe", "-c", "user.email=probe@example.invalid"]
+    subprocess.run(git + ["init", "-q", "-b", "main"], cwd=dest, check=True)
+    subprocess.run(git + ["add", "-A"], cwd=dest, check=True)
+    subprocess.run(git + ["commit", "-q", "-m", f"probe arm {arm}"], cwd=dest, check=True)
+    return hashlib.sha256(card.read_bytes()).hexdigest()[:12]
+
+
+def call_text(event: dict) -> str | None:
+    """The command of a translated tool_call event (the harness writes every host's stream in one shape)."""
+    if event.get("type") == "tool_call":
+        command = (event.get("rawInput") or {}).get("command")
+        if isinstance(command, list):
+            command = " ".join(map(str, command))
+        return command if isinstance(command, str) else None
+    return None
+
+
+def scan(events_path: Path) -> dict:
+    """Read a run's events.jsonl: the commands before the first start, and that start."""
+    found: dict = {"start": "none", "start_command": None, "event_n": None, "commands": [], "messages": []}
+    if not events_path.is_file():
+        return found
+    with events_path.open(errors="replace") as fh:
+        for number, line in enumerate(fh, 1):
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            if not isinstance(event, dict):
+                continue
+            if event.get("type") == "text" and len(found["messages"]) < 4:
+                found["messages"].append(str(event.get("data"))[:240])
+            command = call_text(event)
+            if command is None:
+                continue
+            start = detect_start(command)
+            if start:
+                found.update(start=start, start_command=command[:400], event_n=number)
+                return found
+            found["commands"].append(command)
+    return found
+
+
+def stop_group(proc: subprocess.Popen) -> None:
+    try:
+        os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+    except OSError:
+        pass
+
+
+def run_trial(slot: dict, attempt: int, out: Path, expected: dict) -> dict:
+    arm, stimulus = slot["arm"], slot["stimulus"]
+    trial = out / "trials" / f"{slot['slot']:03d}-{arm}-{stimulus}-{slot['i']:02d}-a{attempt}"
+    if trial.exists():
+        shutil.rmtree(trial)
+    trial.parent.mkdir(parents=True, exist_ok=True)
+    row = {"slot": slot["slot"], "attempt": attempt, "stimulus": stimulus, "arm": arm, "i": slot["i"],
+           "model": MODEL, "effort": EFFORT, "start": "none", "end": None, "error": None, "valid": False,
+           "card_sha256": expected["card_sha256"][arm], "pre_start": [], "start_command": None,
+           "skill_seen": False, "read_run_start": False, "self_bootstrap": False,
+           "start_dir": "git-repository" if stimulus == "repo" else "empty-not-git",
+           "event_n": None, "seconds_to_start": None, "messages": [], "run_dir": str(trial)}
+    selector, _ = STIMULI[stimulus]
+    if selector == ["--prompt-file"]:
+        selector = ["--prompt", (HERE / "stimuli" / f"{stimulus}.txt").read_text()]
+    argv = [sys.executable, str(RUN_PY), *selector, "--host", "codex", "--model", MODEL, "--effort", EFFORT,
+            "--plugin-dir", str(out / "arms" / arm / "root" / "plugins" / "skill-craft"), "--output", str(trial),
+            "--timeout", str(HOST_TIMEOUT_SECONDS), "--quiet", "--baseline", str(out / "baselines-probe.jsonl")]
+    started = time.monotonic()
+    proc = None
+    try:
+        log = (out / "trials" / f"{trial.name}.log").open("wb")
+        proc = subprocess.Popen(argv, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                                start_new_session=True)
+        stopped_at = None
+        while proc.poll() is None:
+            time.sleep(1.0)
+            now = time.monotonic()
+            if stopped_at is None and (trial / "events.jsonl").is_file() and scan(trial / "events.jsonl")["start"] != "none":
+                row["seconds_to_start"] = round(now - started, 1)
+                (trial / "stop").touch()
+                stopped_at = now
+            if (stopped_at is not None and now - stopped_at > STOP_GRACE_SECONDS) or now - started > HARD_LIMIT_SECONDS:
+                stop_group(proc)
+                row["driver_killed"] = True
+                break
+        proc.wait(timeout=20)
+        found = scan(trial / "events.jsonl")
+        row.update(start=found["start"], start_command=found["start_command"], event_n=found["event_n"],
+                   messages=found["messages"])
+        commands = found["commands"]
+        row["pre_start"] = [c[:200] for c in commands[:14]]
+        row["skill_seen"] = any(PLUGIN_PATH in c or "shiploop" in c for c in commands) or row["start"] != "none"
+        row["read_run_start"] = any("run-start.md" in c for c in commands)
+        row["self_bootstrap"] = any(BOOTSTRAP.search(c) for c in commands)
+        try:
+            invocation = json.loads((trial / "invocation.json").read_text())
+            result = json.loads((trial / "result.json").read_text()) if (trial / "result.json").is_file() else {}
+        except (OSError, ValueError) as exc:
+            row["error"] = f"no run record: {exc}"
+            return row
+        installed = sorted((trial / "home" / ".codex" / "plugins" / "cache" / "whichguy" / "skill-craft").glob(
+            "*/skills/shiploop/SKILL.md"))
+        sha = hashlib.sha256(installed[0].read_bytes()).hexdigest()[:12] if len(installed) == 1 else None
+        row["installed_card_sha256"] = sha
+        row["host_record"] = [invocation.get("host"), invocation.get("model"), invocation.get("effort")]
+        row["plugin_verdict"] = (result.get("plugin") or {}).get("pass")
+        if row["host_record"] != ["codex", MODEL, EFFORT]:
+            row["error"] = f"the harness ran {row['host_record']}"
+        elif sha != expected["card_sha256"][arm]:
+            row["error"] = f"the installed card ({sha}) is not the arm's card"
+        elif row["start"] != "none":
+            row["end"] = "start"
+        elif row.get("driver_killed"):
+            row["end"] = "killed"
+        else:
+            row["end"] = "timeout" if (result.get("process") or {}).get("status") == "timeout" else "turn-ended"
+        row["valid"] = row["error"] is None and (row["start"] != "none" or (row["skill_seen"] and row["end"] is not None))
+        return row
+    except Exception as exc:  # noqa: BLE001  an infrastructure fault: the slot is retried, the fault is kept in the row
+        row["error"] = f"{type(exc).__name__}: {exc}"[:300]
+        return row
+    finally:
+        if proc is not None and proc.poll() is None:
+            stop_group(proc)
+        row["seconds"] = round(time.monotonic() - started, 1)
+        for heavy in ("home", "work", "platform"):
+            shutil.rmtree(trial / heavy, ignore_errors=True)
+        trial.mkdir(parents=True, exist_ok=True)
+        (trial / "trial.json").write_text(json.dumps(row, indent=1) + "\n")
+
+
+def prepare(out: Path) -> dict:
+    arms = json.loads((HERE / "arms.json").read_text())
+    return {"card_sha256": {arm: build_arm(arm, arms[arm], out / "arms" / arm / "root") for arm in ARMS}}
+
+
+def run_all(plan: list[dict], out: Path, jobs: int) -> None:
+    out.mkdir(parents=True, exist_ok=True)
+    expected = prepare(out)
+    results_path = out / "results.jsonl"
+    done: dict[int, int] = {}
+    if results_path.is_file():
+        for line in results_path.read_text().splitlines():
+            row = json.loads(line)
+            done[row["slot"]] = 99 if row["valid"] else max(done.get(row["slot"], 0), row["attempt"])
+    lock = threading.Lock()
+
+    def work(slot: dict) -> None:
+        attempt = done.get(slot["slot"], 0) + 1
+        while attempt <= MAX_ATTEMPTS:
+            row = run_trial(slot, attempt, out, expected)
+            with lock, results_path.open("a") as fh:
+                fh.write(json.dumps(row) + "\n")
+            print(f"slot {slot['slot']:3d} {slot['arm']:2s} {slot['stimulus']:6s} a{attempt} -> {row['start']:9s} "
+                  f"valid={row['valid']} {row['seconds']}s {row['error'] or ''}", flush=True)
+            if row["valid"]:
+                return
+            attempt += 1
+
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
+        list(pool.map(work, [s for s in plan if done.get(s["slot"], 0) < 99]))
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    p = sub.add_parser("plan")
+    p.add_argument("--out", required=True)
+    p = sub.add_parser("smoke")
+    p.add_argument("--arm", default="C", choices=ARMS)
+    p.add_argument("--stimulus", default="sf-ui", choices=tuple(STIMULI))
+    p.add_argument("--out", required=True)
+    p = sub.add_parser("run")
+    p.add_argument("--plan", required=True)
+    p.add_argument("--out", required=True)
+    p.add_argument("--jobs", type=int, default=4)
+    args = ap.parse_args()
+    if args.cmd == "plan":
+        Path(args.out).write_text(json.dumps(make_plan(), indent=1) + "\n")
+        print(f"{len(make_plan())} slots, seed {SEED} -> {args.out}")
+    elif args.cmd == "smoke":
+        out = Path(args.out)
+        out.mkdir(parents=True, exist_ok=True)
+        expected = prepare(out)
+        print(json.dumps(run_trial({"slot": 0, "arm": args.arm, "stimulus": args.stimulus, "i": 0}, 1, out, expected),
+                         indent=1))
+    else:
+        run_all(json.loads(Path(args.plan).read_text()), Path(args.out), args.jobs)
+
+
+if __name__ == "__main__":
+    main()

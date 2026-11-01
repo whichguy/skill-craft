@@ -1,0 +1,32 @@
+# python3 -I start_routes.py --since 2026-10-24 --json routes.json   (run 2026-11-01, before any trial of this experiment)
+runs with events since 2026-10-24 : 1622
+first start: {'workspace': 298, None: 1269, 'direct': 55}
+by host x start:
+   ('claude', 'workspace') 56
+   ('claude', None) 741
+   ('codex', 'direct') 55
+   ('codex', 'workspace') 131
+   ('codex', None) 164
+   ('fixture', None) 96
+   ('grok', 'workspace') 111
+   ('grok', None) 268
+
+# python3 -I recount.py routes.json
+runs with an event stream since 2026-10-24: 1622; with a ShipLoop start found: 353
+left out as scripted fixtures (hello-startup-contract, init): 51
+    51  e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1
+
+model-chosen first start by host:
+   claude workspace  56  direct   0
+   codex  workspace 131  direct   4
+   grok   workspace 111  direct   0
+
+Codex, by request kind (Salesforce prompts name the org and say the project root is the current directory):
+   Salesforce cases  workspace   9  direct   3  (3/12)
+   all other cases   workspace 122  direct   1  (1/123)
+
+every model-chosen direct start:
+   battleship-salesforce      codex gpt-6.1-terra xhigh  folder check: not-git epair-htoehblp/qualification-full-ui/runs/battleship-control
+   battleship-salesforce-ui   codex gpt-6.1-terra high   folder check: git     2026-10-30/shiploop-sf-qualified-pv9hf_8a/effort-high-01/run
+   hello                      codex gpt-6.1-terra xhigh  folder check: not-git ~/e2e-runs/20261030/hello-terra-2243-5fb43e
+   battleship-salesforce-ui   codex gpt-6.1-terra xhigh  folder check: not-git ~/e2e-runs-hostonly/20261031/ui-live-2
