@@ -1781,17 +1781,19 @@ def platform_env(base: dict, platform_dir: Path, existing: str = "fresh") -> dic
 def write_model_bin(bins: dict, platform_dir: Path, real_home: Path) -> dict:
     """Write ``<platform_dir>/bin/<name>`` for each name: an executable ``#!/bin/sh`` script that runs the case's command with the
     real HOME, the operator's PATH and the model's argv as "$@". The harness's E2E_* variables are baked in as literals (the model's environment has
-    none). Returns {name: path}. The command is the case's own text, run as the case wrote it."""
+    none), and the throwaway HOME's own settings (``hosts.THROWAWAY_HOME_ENV``) are unset, so a real CLI reads its real keychain.
+    Returns {name: path}. The command is the case's own text, run as the case wrote it."""
     folder = platform_dir / "bin"
     folder.mkdir(parents=True, exist_ok=True)
     baked = {"E2E_CHECKS": str(HERE / "checks"), "E2E_PLATFORM_DIR": str(platform_dir), "E2E_MODEL_BIN_DIR": str(folder),
              "E2E_CHECK_PHASE": "builder"}
+    unset = "".join(f"-u {key} " for key in hosts.THROWAWAY_HOME_ENV)
     written = {}
     for name, command in bins.items():
         path = folder / name
         path.write_text("#!/bin/sh\n# written by the E2E harness (platform.model_bin); the case's policy decides what the model may run\n"
                         + "".join(f"export {key}={shlex.quote(value)}\n" for key, value in baked.items())
-                        + f"exec env HOME={shlex.quote(str(real_home))} PATH={shlex.quote(os.environ.get('PATH', os.defpath))} {command} \"$@\"\n")
+                        + f"exec env {unset}HOME={shlex.quote(str(real_home))} PATH={shlex.quote(os.environ.get('PATH', os.defpath))} {command} \"$@\"\n")
         path.chmod(0o755)
         written[name] = str(path)
     return written

@@ -19,7 +19,7 @@ flowchart LR
 Bind `CLI` from the selected ShipLoop skill as described in `SKILL.md`, then:
 
 ```sh
-python3 "$CLI" init --repo="$REPO" --run-dir="$RUN_DIR" --delivery-contract --prompt='requested outcome'
+python3 "$CLI" workspace start --repo="$REPO" --delivery-contract --prompt='requested outcome'
 python3 "$CLI" next --run-dir="$RUN_DIR"
 ```
 

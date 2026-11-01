@@ -5852,3 +5852,55 @@ R4b FAILED on one base test of its delivery (the failed check passes 15 of 15 on
 - Runs: `~/e2e-runs-multipass/20261031/e2/` (outside the repository). Twelve baseline rows appended to test/shiploop_e2e/baselines.jsonl (source checkout; six with local_head 87d3da8e, six with c1d737dc).
 - docs/experiments/multipass-20261031/: round2_readout.py, round2_cost.py, round2-*-output.txt, round2-ledgers.json, e2-hold*, candidate-rebase-checks-20261101.txt; Round 4: round4_readout.py, round4-*.txt, round4-ledgers.json.
 - Journal docs/shiploop-multipass-journal.md, Round 2 "Result of E2" and Round 4 "Result of Round 4"; plan docs/shiploop-multipass-plan-2026-10-31.md.
+## `init` in an empty non-Git folder: first-command probes of the guard on the Codex harness, Terra 6.1 xhigh, `--stop-after-start` (2026-11-01) — status: firm for these 208 sessions (one model, one Salesforce prompt, one pair of explicit requests); the guard shipped on its second design only
+
+**What this vouches for.** The ShipLoop change released after this entry: `init` refuses an empty folder that is not a Git repository,
+names `workspace start`, and accepts `--in-place` as the user's explicit override
+(d8a8dce097368ae349ba051ec76c83d036e7f2ef, refined by f9f91667228c1ef719cfb916757cba015e9189c7), with the references and the
+`/shiploop` command card aligned to the card sentence of 2.27.3. No full-cycle E2E round ran for it, and none was needed to see the
+change: it acts only before a run exists, and an E2E case begins with `workspace start` (0 of 20 sessions on the current card began
+with `init`). These are first-command probes through `run.py --stop-after-start`, each ending at the first run on disk.
+
+**Observed.** Journal and registrations: `docs/experiments/start-route-20261101/README.md`; raw sessions under `~/e2e-runs-startroute/`.
+- *First design* (override visible in `init --help`), 104 sessions: of 60 old-wording Salesforce sessions, 16 began with `init` and 0 were
+  refused: all 16 had run `--help`, saw `--in-place` and passed it on the first command, then ended on the direct entry (effectiveness 0
+  of 16). Explicit in-place and non-Git requests, 24 of 24 on the direct entry, 12 of them after one refusal. Registered verdict
+  INSUFFICIENT; not released.
+- *Second design* (override hidden from `--help`, refusal repeats "naming the current directory is not an in-place request"), 104
+  sessions: 20 of 20 old-wording sessions that began with `init` were refused and then ran `workspace start` (Wilson 0.84-1.00); 24 of 24
+  explicit sessions were refused once, ran `init --in-place` and ended on the direct entry; 20 of 20 never-refused T2 sessions ended on
+  `workspace start`. Registered verdict RELEASE (gate E, H2, H3).
+
+**Triage of the first design's miss** (per the order above): not the check, not the environment, reproduced (16 of 16), not an
+expectation about how; a normal run hits it (the sessions that choose `init` read `--help` first); the expectation traced to the
+request, so the product changed: the override left `--help`. **Verified by** the second probe, a hermetic test that pins it
+(`DirectEntryGuardTests.test_the_override_is_named_by_the_refusal_and_not_by_help`), and the quick tier (46 of 46) on the merged branch.
+
+**Cost and limits.** Every explicit in-place or non-Git run now pays one refused command (24 of 24); old-wording sessions that were
+refused took a median 50 s to their run against 44 s. Claude and Grok never began the Salesforce request with `init`, so their answer to
+the refusal is untested. 17 suites' fixtures needed a repository or `--in-place` (listed in the guard commit's message).
+
+**Not measured:** a full case end to end with the guard present; the guard's rate of firing on the current card (about 1 start in 80 on
+Codex, none seen on the other hosts).
+
+## Release preflight: a merge of main into a branch is listed as a ShipLoop change without a round (2026-11-01) — status: firm (seen twice in one release); the gate is unchanged and the owner decides whether to change it
+
+**What happened.** `scripts/release.py --dry-run` for 2.31.0 / 1.30.0 refused twice, each time naming one commit that is a merge:
+582fe176 (main merged into the guard branch) and, after other sessions pushed, 794c0b81 (main merged into `fix/sf-keychain-39fa3a`).
+`git log -- skills/shiploop changes/shiploop` keeps a merge that differs from both parents in those paths, which a merge of
+main into a branch that also changed them always does. A merge adds no change of its own, and the repository's rule is to merge
+main into branches (never rebase, so cited hashes survive), so the refusal recurs every time two sessions change ShipLoop in the
+same window.
+
+**What stands behind the changes this release ships** (the non-merge commits since 41ee3d89d580fb715fc90994b2361348550698c7 that touch
+`skills/shiploop/` or `changes/shiploop/`; checked one by one, not by the gate):
+- 9e39b146 (stages report where standing facts go): covered by the placement candidate's E2 round entry above it (a04ad7f5).
+- d8a8dce0 and f9f91667 (the `init` guard): each carries its own `No-E2E-Round:` trailer, and the entry before this one records the
+  two first-command probes that vouch for them.
+- 20a7f385 (a Salesforce platform guide section): carries its own `No-E2E-Round:` trailer (reference text only; the behaviour was
+  measured live for f9717c93).
+
+**Decision.** This entry follows both merges; it records that their non-merge commits were looked at, not that a round ran on the
+merges. The gate was not changed: it is the owner's rule. A smaller fix would list non-merge commits only
+(`git log --no-merges`), or accept a merge whose parents are all covered; until then a release that follows two sessions' merges
+needs an entry like this one after the last merge.
