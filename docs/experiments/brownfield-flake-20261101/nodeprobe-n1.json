@@ -1,0 +1,135 @@
+{
+ "tag": "n1",
+ "concurrency": 16,
+ "rounds": 8,
+ "runs": 128,
+ "failures": 8,
+ "seconds": 25.8,
+ "load": 84.22119140625,
+ "signatures": {
+  "socket hang up/ECONNRESET": 4,
+  "other": 4
+ },
+ "failing": [
+  {
+   "rc": 1,
+   "seconds": 2.8,
+   "failed_tests": [
+    "refuses an X-Actor over 64 characters",
+    "GET /tickets/:id/audit",
+    "refuses an X-Actor over 64 characters"
+   ],
+   "error_lines": [
+    "Error: socket hang up",
+    "code: 'ECONNRESET'"
+   ],
+   "block": ""
+  },
+  {
+   "rc": 1,
+   "seconds": 3.0,
+   "failed_tests": [
+    "answers 404 not_found for an unknown route or method",
+    "everything else",
+    "answers 404 not_found for an unknown route or method"
+   ],
+   "error_lines": [
+    "code: 'ERR_ASSERTION',"
+   ],
+   "block": ""
+  },
+  {
+   "rc": 1,
+   "seconds": 3.0,
+   "failed_tests": [
+    "answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist",
+    "POST /tickets/:id/transition",
+    "answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist"
+   ],
+   "error_lines": [
+    "Error: socket hang up",
+    "code: 'ECONNRESET'"
+   ],
+   "block": ""
+  },
+  {
+   "rc": 1,
+   "seconds": 3.0,
+   "failed_tests": [
+    "answers 404 not_found for a ticket that does not exist",
+    "GET /tickets/:id",
+    "filters by status",
+    "GET /tickets",
+    "answers 404 not_found for a ticket that does not exist",
+    "filters by status"
+   ],
+   "error_lines": [
+    "code: 'ERR_ASSERTION',",
+    "Error: socket hang up",
+    "code: 'ECONNRESET'"
+   ],
+   "block": ""
+  },
+  {
+   "rc": 1,
+   "seconds": 2.9,
+   "failed_tests": [
+    "records the X-Actor of each change, and system without one",
+    "GET /tickets/:id/audit",
+    "records the X-Actor of each change, and system without one"
+   ],
+   "error_lines": [
+    "Error: socket hang up",
+    "code: 'ECONNRESET'"
+   ],
+   "block": ""
+  },
+  {
+   "rc": 1,
+   "seconds": 3.4,
+   "failed_tests": [
+    "answers a bad filter, limit or cursor with 400 invalid",
+    "GET /tickets",
+    "answers a bad filter, limit or cursor with 400 invalid"
+   ],
+   "error_lines": [
+    "code: 'ERR_ASSERTION',"
+   ],
+   "block": ""
+  },
+  {
+   "rc": 1,
+   "seconds": 3.8,
+   "failed_tests": [
+    "creates an open ticket and answers 201 with it",
+    "refuses a body over MAX_BODY_BYTES",
+    "POST /tickets",
+    "answers 409 conflict for a closed ticket",
+    "PATCH /tickets/:id",
+    "creates an open ticket and answers 201 with it"
+   ],
+   "error_lines": [
+    "code: 'ERR_ASSERTION',",
+    "code: 'ERR_ASSERTION',",
+    "code: 'ERR_ASSERTION',"
+   ],
+   "block": ""
+  },
+  {
+   "rc": 1,
+   "seconds": 3.7,
+   "failed_tests": [
+    "answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist",
+    "POST /tickets/:id/transition",
+    "filters by status",
+    "GET /tickets",
+    "answers 409 for a move the lifecycle does not allow and 400 for a status that does not exist",
+    "filters by status"
+   ],
+   "error_lines": [
+    "code: 'ERR_ASSERTION',"
+   ],
+   "block": ""
+  }
+ ]
+}

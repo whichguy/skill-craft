@@ -70,6 +70,8 @@ GROUND_TRUTH = ROOT / "docs" / "experiments" / "brownfield-baseline-20261028" / 
 GIT_ENV = {"GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
 # Threads that grade variants side by side: most of a variant's time is spent waiting on its servers and its worker.
 POOL = min(16, max(4, 2 * (os.cpu_count() or 2)))
+# A result that disagrees with what its variant declares is graded again, alone, until a grade agrees, at most this many more times (the last stands).
+REGRADES = 3
 
 
 class Case:
@@ -202,17 +204,32 @@ def agrees(case: Case, variant: str, kind: str, result) -> bool:
     return (result.returncode != 0) == (case is not ESCALATION and variant == "base")
 
 
+def settle(result, agrees_now, grade_again, regrades: int = REGRADES):
+    """Grade a result that disagrees again, alone, until a grade agrees or the regrades are used: (the grade that stands, how many
+    times it was graded again, whether the first regrade disagreed too). ``agrees_now(grade)`` says whether a grade is the one the
+    variant declares; ``grade_again()`` grades once more."""
+    for done in range(1, regrades + 1):
+        result = grade_again()
+        if agrees_now(result):
+            return result, done, done > 1
+    return result, regrades, True
+
+
 @functools.cache
 def graded() -> dict:
     """Every variant of both cases built, committed and graded: {"deliveries", "accepted", "pristine", "suite", "groups",
-    "regraded"}, each keyed by (case name, variant). The acceptance runs side by side first, the longest first (a base waits out
-    each bounded wait for what it lacks, and the follow-on's variants run more checks); the node --test runs follow, side by
+    "regraded", "repeated"}, each keyed by (case name, variant). The acceptance runs side by side first, the longest first (a base
+    waits out each bounded wait for what it lacks, and the follow-on's variants run more checks); the node --test runs follow, side by
     side.
 
-    A result that disagrees with what its variant declares is graded once more, alone, and that grade stands (``regraded``
-    names them). A defect disagrees both times. What does not is the machine: a hundred node --test runs at once, each starting
-    dozens of servers on recycled ports, on a host other work also loads, have shown a test of the base's own suite end in a
-    reset connection ("socket hang up") about once in two hundred runs, never twice in a row, and never in a run alone."""
+    A result that disagrees with what its variant declares is graded again, alone, until a grade agrees (``settle``): ``regraded``
+    names the results that needed it and ``repeated`` those whose first regrade disagreed too. A defect disagrees every time. What
+    does not is the machine. The base's own tests start a server on a random port, and on a machine that other work also uses a
+    request can reach another project's server that holds the same port number (it is answered with that project's JSON,
+    ``{"game":"g"}`` where a ticket was expected) or one that resets it ("socket hang up"). The probes of 2026-11-01 saw 32 of 928
+    concurrent ``node --test`` runs end that way, 19 in a reset and 13 in a wrong answer, and 0 to 8 results per execution of this
+    suite disagree the first time (docs/experiments/brownfield-flake-20261101/). It does not repeat: the same result disagreeing
+    twice in a row is a variant or a check that wavers, and that is what ``repeated`` counts."""
     tmp = Path(tempfile.mkdtemp(prefix="brownfield-tickets-"))
     unittest.addModuleCleanup(shutil.rmtree, tmp, True)
     jobs = sorted(((case, variant) for case in GRADED_CASES for variant in case.builder.VARIANTS),
@@ -239,14 +256,53 @@ def graded() -> dict:
     results = {"accepted": accepted, "pristine": {key[1:]: done for key, done in ran.items() if key[0] == "pristine"},
                "suite": {key[1:]: done for key, done in ran.items() if key[0] == "suite"}}
     by_name = {case.name: case for case in GRADED_CASES}
-    regraded = []
+    regraded, repeated = [], []
     for kind, graded_kind in results.items():
         for (name, variant), result in list(graded_kind.items()):
-            if not agrees(by_name[name], variant, kind, result):
-                regraded.append((kind, name, variant))
-                graded_kind[name, variant] = (accept((by_name[name], variant))[1] if kind == "accepted"
-                                              else base_tests(deliveries[name, variant], kind))
-    return {"deliveries": deliveries, "groups": groups, "regraded": regraded, **results}
+            case = by_name[name]
+            if agrees(case, variant, kind, result):
+                continue
+            regraded.append((kind, name, variant))
+            final, _, again = settle(result, lambda grade: agrees(case, variant, kind, grade),
+                                     lambda: accept((case, variant))[1] if kind == "accepted" else base_tests(deliveries[name, variant], kind))
+            graded_kind[name, variant] = final
+            if again:
+                repeated.append((kind, name, variant))
+    return {"deliveries": deliveries, "groups": groups, "regraded": regraded, "repeated": repeated, **results}
+
+
+class SettleTest(unittest.TestCase):
+    """Regrading a result that disagrees: alone, bounded, and it stops at the first grade that agrees."""
+
+    @staticmethod
+    def graders(*grades):
+        calls = []
+
+        def again():
+            calls.append(len(calls))
+            return grades[len(calls) - 1]
+        return again, calls
+
+    def test_a_first_regrade_that_agrees_stands_and_is_not_a_repeat(self):
+        again, calls = self.graders("ok")
+        self.assertEqual(settle("bad", lambda grade: grade == "ok", again), ("ok", 1, False))
+        self.assertEqual(len(calls), 1)
+
+    def test_a_second_disagreement_is_a_repeat_and_the_first_grade_after_it_that_agrees_stands(self):
+        again, calls = self.graders("bad again", "ok", "never read")
+        self.assertEqual(settle("bad", lambda grade: grade == "ok", again), ("ok", 2, True))
+        self.assertEqual(len(calls), 2, "grading stops at the first grade that agrees")
+
+    def test_a_result_that_never_agrees_is_graded_exactly_the_regrades_again_and_the_last_grade_stands(self):
+        again, calls = self.graders("b1", "b2", "b3", "never read")
+        self.assertEqual(settle("b0", lambda grade: False, again), ("b3", REGRADES, True))
+        self.assertEqual(len(calls), REGRADES)
+
+    def test_one_regrade_is_enough_for_a_collision_and_a_defect_costs_every_regrade(self):
+        # The cost of the rule: a variant that really disagrees is graded REGRADES more times, and only then does the suite say so.
+        again, calls = self.graders(*["bad"] * REGRADES)
+        final, done, repeated = settle("bad", lambda grade: grade == "ok", again)
+        self.assertEqual((final, done, repeated, len(calls)), ("bad", REGRADES, True, REGRADES))
 
 
 class CaseDeclarationTest(unittest.TestCase):
@@ -382,9 +438,12 @@ class CalibrationTest(unittest.TestCase):
                     pristine = self.graded["pristine"][case.name, variant]
                     self.assertEqual(pristine.returncode, 0, pristine.stdout)
 
-    def test_a_disagreeing_grade_is_rare(self):
-        # Regrading is for the machine, not the variants: more than a few would say the variants or the checks waver.
-        self.assertLessEqual(len(self.graded["regraded"]), 4, self.graded["regraded"])
+    def test_a_grade_that_disagrees_twice_in_a_row_is_rare(self):
+        # A collision with another project's server is the machine's and does not repeat (``regraded`` counts those, and the machine sets
+        # their number: 0 to 8 an execution on a busy host). The same result disagreeing again on its first regrade is a variant or a check
+        # that wavers: more than a few of them is what this guard is for.
+        self.assertLessEqual(len(self.graded["repeated"]), 4,
+                             {"repeated": self.graded["repeated"], "first_grades_that_disagreed": len(self.graded["regraded"])})
 
     def test_each_variant_fails_exactly_the_checks_its_defect_reads(self):
         for case in GRADED_CASES:
@@ -470,12 +529,18 @@ class CaseChecksTest(unittest.TestCase):
         env = {"PRIOR_WORK": str(prior)} if prior else None
         return [row["pass"] for row in run.run_checks(work, checks, timeout=180, env=env)]
 
+    def expect(self, work: Path, checks: list[str], expected: list[bool], prior: Path | None = None) -> list[bool]:
+        """The verdicts of ``checks`` on ``work``, graded again, alone, until they are ``expected`` (``settle``); what stands is returned. These
+        checks start the product's server and node's own tests on ports that other work on the machine may hold, as the graded results do."""
+        got = self.checks(work, checks, prior)
+        return got if got == expected else settle(got, lambda grade: grade == expected, lambda: self.checks(work, checks, prior))[0]
+
     def test_the_first_cases_base_fails_the_suite_and_http_checks_and_its_deliveries_pass_all(self):
         for variant, expected in (("base", [False, True, False]), ("reference", [True, True, True]),
                                   ("alternative", [True, True, True])):
             with self.subTest(variant=variant):
                 work = committed(first.build(self.tmp / variant, variant))
-                self.assertEqual(self.checks(work, ASSIGNMENT.entry["checks"]), expected)
+                self.assertEqual(self.expect(work, ASSIGNMENT.entry["checks"], expected), expected)
 
     def delivery(self, name: str, builder, variant: str, spec: str) -> Path:
         work = builder.build(self.tmp / name, variant)
@@ -489,14 +554,15 @@ class CaseChecksTest(unittest.TestCase):
         for variant in ("reference", "alternative"):
             with self.subTest(variant=variant):
                 work = self.delivery(variant, second, variant, SPEC_AFTER)
-                self.assertEqual(self.checks(work, checks, prior), [True] * len(checks))
+                self.assertEqual(self.expect(work, checks, [True] * len(checks), prior), [True] * len(checks))
         unchanged = self.delivery("unchanged", second, "base", SPEC_BEFORE)
-        self.assertEqual(self.checks(unchanged, checks, prior),
-                         [True, True, True, False, False, True, True, False, False],
+        expected_unchanged = [True, True, True, False, False, True, True, False, False]
+        self.assertEqual(self.expect(unchanged, checks, expected_unchanged, prior), expected_unchanged,
                          "the first run's delivery as it was: regression passes, the new feature, the tests and the spec do not")
         lost = self.delivery("lost", second, "reference", SPEC_AFTER.replace("## R-2 The assignee filter\n", ""))
         (lost / "docs" / "operations.md").unlink()
-        self.assertEqual(self.checks(lost, ESCALATION.entry["retention"], prior), [False, True, True, False],
+        expected_lost = [False, True, True, False]
+        self.assertEqual(self.expect(lost, ESCALATION.entry["retention"], expected_lost, prior), expected_lost,
                          "a file of the first run deleted and a requirement ID dropped")
 
 
