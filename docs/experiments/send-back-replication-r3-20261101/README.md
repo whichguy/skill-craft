@@ -100,3 +100,79 @@ approved; if the result is R3-2 a second block is the next step, and 20 a side i
 bash lanes.sh L1 ~/e2e-runs-r3/20261101 <checkout of arm A> <checkout of arm B> A:1 B:1 A:2 B:2     # and L2 to L5 as above
 python3 r3_reader.py      # reads the runs, applies R3-1 to R3-3, S1 and C1 to C3, writes scores.json and results-tables.md
 ```
+
+## Results (20 runs of Codex gpt-6.1-terra at high on shared-expenses; every run passed and no launch was refused; `scores.json`, `results-tables.md`, `extra-analysis.txt`)
+
+**How it ran.** Five lanes started at 10:08 (local time) as background tasks of two runs each, the second half of a lane starting when its first
+half ended (a task chained to the first half for lanes 1, 3, 4 and 5, by hand for lane 2); every run started at its first attempt (`lanes.txt`: 20
+lines, `exit=0 attempts=1`; `refusals.txt` was never written) and all 20 had finished at 11:22. A run took 11 to 24 minutes, at a machine load average of 50
+to 190 from other sessions' work. Arm A loaded plugin tree `e1f3664f5d9c` in all 10 runs, arm B `3efc9db89059` in all 10.
+
+### Every run
+
+| Run | pass | minutes | tokens (M) | implement stages | refused callbacks | send-backs (stage: summary) | failed checks |
+|---|---|---|---|---|---|---|---|
+| A-shared-expenses-s1 | True | 23.9 | 63.4 | 4 | 6 | implement: S1 proof requires test/service.test.js, but implement forbids writing tests and the test s | - |
+| A-shared-expenses-s2 | True | 11.3 | 23.9 | 1 | 1 | - | - |
+| A-shared-expenses-s3 | True | 13.4 | 24.2 | 1 | 2 | - | - |
+| A-shared-expenses-s4 | True | 14.6 | 37.7 | 2 | 3 | implement: S1 proof runs zero tests on this empty baseline, so it cannot confirm C1-C3; the implement; validate-existing: E1 incorrectly described the current checkout; ShipLoop checks the unchanged item base, wh | - |
+| A-shared-expenses-s5 | True | 12.6 | 25.7 | 1 | 2 | - | - |
+| A-shared-expenses-s6 | True | 12.2 | 21.5 | 1 | 1 | - | - |
+| A-shared-expenses-s7 | True | 14.1 | 31.6 | 1 | 2 | - | - |
+| A-shared-expenses-s8 | True | 15.8 | 39.3 | 2 | 5 | - | - |
+| A-shared-expenses-s9 | True | 16.4 | 32.9 | 2 | 1 | implement: The proof node --test has no tests: it exits 0 with 0 cases. Test authoring is scheduled a | - |
+| A-shared-expenses-s10 | True | 11.4 | 28.1 | 3 | 1 | implement: S1 requires node --test to prove TC_1–TC_4 yet the tests do not exist and implement explic; implement: S1 independent HTTP proof passed, but C1–C3 still require unwritten TC_1–TC_4 at implement | - |
+| B-shared-expenses-s1 | True | 23.5 | 70.2 | 4 | 5 | test: TC_1 requires expense creation and balances, assigned to later S2 and S3, so it cannot pas | - |
+| B-shared-expenses-s2 | True | 14.2 | 35.9 | 2 | 5 | implement: The plan requires node --test to prove TC_1 through TC_4 during implement, but the impleme | - |
+| B-shared-expenses-s3 | True | 11.5 | 21.1 | 1 | 2 | - | - |
+| B-shared-expenses-s4 | True | 12.9 | 27.6 | 1 | 3 | system-test: node --test failed with unexpected empty JSON response in TC_3 and TC_4; subsequent runs p | - |
+| B-shared-expenses-s5 | True | 17.9 | 42.4 | 2 | 3 | - | - |
+| B-shared-expenses-s6 | True | 15.0 | 32.1 | 1 | 2 | - | - |
+| B-shared-expenses-s7 | True | 13.9 | 23.0 | 1 | 3 | - | - |
+| B-shared-expenses-s8 | True | 18.3 | 40.8 | 3 | 4 | - | - |
+| B-shared-expenses-s9 | True | 13.5 | 27.7 | 1 | 4 | - | - |
+| B-shared-expenses-s10 | True | 11.7 | 20.9 | 1 | 3 | - | - |
+
+| Arm | runs | passed | runs with a send-back | minutes | tokens (M) | refused callbacks | implement stages | K12 applies yes |
+|---|---|---|---|---|---|---|---|---|
+| A | 10 | 10 | 4 | 14.6 | 32.8 | 2.40 | 1.8 | 0 |
+| B | 10 | 10 | 3 | 15.2 | 34.2 | 3.40 | 1.7 | 10 |
+
+(The send-back column is cut at 90 characters; `extra-analysis.txt` has every send-back in full.)
+
+### The registered rules
+
+- **R3-1 does not fire.** Runs with a send-back: A **4 of 10**, B **3 of 10**; exact one-sided p (B higher) **0.8251**. B did not have more. R3-2 does not
+  apply either, so the outcome is **R3-3, no excess seen.**
+- **S1 holds.** One plugin digest per arm and the two differ; all 10 A ledgers store 11 categories and all 10 B ledgers 12.
+- **C1 holds:** A passed 10 of 10 runs, B 10 of 10. **C2 holds:** mean processed tokens A 32.8M, B 34.2M (ratio
+  1.041, bound 1.25); refused callbacks per run A 2.4, B 3.4 (B at most A plus 1.5).
+  **C3 holds:** nobody asked a person and no run ended blocked.
+
+### Decision
+
+R3-3: the K12 line stays as shipped and nothing under `skills/` changes. Round 1's imbalance (A 0 of 6 runs with a send-back, B 4 of 5) was not
+reproduced on today's `main` with a case that plans several steps, and R2 had not reproduced it on hello; it stays recorded as unexplained and
+compatible with chance. No owner decision on K12 follows from this round.
+
+### What these runs show, and do not
+
+- **B did not send stages back more often than A:** 3 runs with a send-back against 4, and 3 send-backs against 6 (A: implement 5, validate-existing 1;
+  B: test 1, implement 1, system-test 1). That is not a finding of no effect. The registered rule was sized for a control near 5% (power 43% against a
+  true 40%), and the control turned out to be at 40%: against that rate the rule could have fired only with B at 9 or 10 runs of 10, so this round could
+  not have seen a moderate excess. What it shows is that B was not worse here, and that the round-1 pattern (B high, A none) did not return.
+- **The send-back is common and does not need the K12 line.** 7 of the 20 runs (35%) had at least one. Five of the 20 had an implement send-back of
+  one family: a step's proof needs tests the test stage writes later (on an empty baseline `node --test` runs zero tests, or the proof names a test file that does not
+  exist yet, and the implement packet forbids writing tests), A 4 runs (s1, s4, s9, s10) and B 1 (s2). That split was chosen after looking, so it is
+  not a test (one-sided exact p 0.1517 that A has more than B); it says the family is present on a tree that has rule C and the focused-ID fixes
+  (`b8d320335c81151a99e7d168b684d79fd0e81352`, `9870c6f68bfbd9375340c0e91ffdf4abfd76bd85`, `4515368495e2b2e50ea07f7599146875188449f9`), in both arms. The other three send-backs
+  are three different faults, one each: A s4 at validate-existing (an expectation described the checkout wrongly), B s1 at test (a case assigned to a later
+  step), B s4 at system-test (a flaky `node --test` with an empty JSON response). A run with a send-back took 16.7 minutes and 42.3M processed tokens against 13.9
+  and 28.8M for a run without one, with 2.57 implement stages against 1.31 (pooled over both arms, descriptive).
+- **What K12 cost, descriptively:** minutes 15.24 against 14.57 (+4.6%), tokens +4.1%, refused callbacks +1.0 per run (test 21 against 14, step-plan 10 against 7, improve
+  3 against 0; none at intake in either arm), intake questions 2.6 against 2.8, implement stages 1.7 against 1.8. Run-to-run spread is tens of percent, so
+  no cost is claimed beyond what C1 to C3 bound.
+- **K12 was used and found nothing to ask:** all 10 B ledgers mark K12 "yes" and none files a question under it; the request defines its own
+  terms, so the benefit is still not measured here.
+- **Not shown:** that K12 has no effect on send-backs; why the round-1 imbalance appeared; anything about the 2.27.2 pair, which was not re-run; any
+  other case, subject or effort. The case itself did its job: its checks passed on all 20 deliveries and its runs needed no restart.

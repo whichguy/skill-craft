@@ -1,7 +1,7 @@
 ---
 Execute: inline
 Status: research done; QB1 to QB5 run and scored; the terms-and-references category (K12) built and live-tested on 2026-11-01 (§5.6) and
-  released after this entry (its version is in CHANGELOG.md); recommendation in §0 and §8; its send-back excess is being replicated on a new case, R3 (§5.7, registered 2026-11-01)
+  released after this entry (its version is in CHANGELOG.md); recommendation in §0 and §8; its send-back excess was not reproduced on today's main by R3 (§5.7, 2026-11-01)
 Opened: 2026-10-31
 Consumer: the owner, who asked how harnesses enrich a prompt, whether questions beat statements and cost fewer tokens, and
   whether a question bank belongs in ShipLoop's intake; later, a session that changes intake duty item 9 or adds term and
@@ -320,8 +320,12 @@ complicated test which does a standalone node server with app functionality". Se
 docs/experiments/send-back-replication-r3-20261101/README.md, committed before any scored run): the new case `shared-expenses` (47ed1804d379e1ad58ac5ad081e027dab043f906; a Node
 service with six checks calibrated on a reference and nine defects; it leases no port); 10 runs per arm over five lanes on Codex gpt-6.1-terra at high;
 arm B = main at 47ed1804d379e1ad58ac5ad081e027dab043f906, arm A = the same with the K12 commit 60dc376881d397d770874af16c8a6a8ed60956b2 reverted (a scratch commit, never merged); rule R3-1: the runs with a send-back, B
-higher, exact one-sided p at most 0.05, which a true 40% against 5% reaches 43% of the time at 10 a side. Status: registered; the result is appended
-here when it is read.
+higher, exact one-sided p at most 0.05, which a true 40% against 5% reaches 43% of the time at 10 a side. Result (status: firm for this case, subject and effort): all 20 runs passed; runs with a send-back A 4 of 10, B 3 of 10, one-sided exact p (B higher)
+0.8251, so R3-3, no excess seen; S1, C1, C2 and C3 hold (tokens B 1.04 times A, refused callbacks 3.4 against 2.4 per run, nobody asked a person). The control's
+rate was 40%, not the 5% the rule was sized for, so the round could not have seen a moderate excess; it shows that B was not worse. The implement send-back (a
+step's proof needs tests the test stage writes later) is common and does not need K12: 5 of 20 runs (A 4, B 1; split chosen after looking), 7 of 20 runs had any
+send-back, and such a run took about 2.8 minutes and 47% more tokens (descriptive). Evidence: docs/experiments/send-back-replication-r3-20261101/ (README.md,
+scores.json, results-tables.md, extra-analysis.txt, r3_reader.py, r3_extra.py, lanes.sh); runs in ~/e2e-runs-r3/20261101/.
 
 ## 6. What a change to intake has to beat
 
@@ -502,7 +506,7 @@ and names skills and slang, graded on what the run does with them, to measure K1
   person route, all 19 runs passed (firm for these three cases, one subject and effort); F31 K12 is used: 5 "yes", 4 "no" with a reason, one
   question filed under it, routed to inspect (exploratory: the requests are fully specified); F32 L1 to L5 hold on 11 of 12 round-1 runs and
   also with the missing run counted as a failure (firm); F33 the send-back excess of round 1 (A 0 of 6, B 4 of 5) did not replicate by R2-1 (A 0 of
-  4, B 1 of 4) and remains unexplained; pooled A 0 of 10, B 5 of 9 (interim, descriptive, biased toward an effect); F34 token and time
+  4, B 1 of 4) and remains unexplained; pooled A 0 of 10, B 5 of 9 (interim, descriptive, biased toward an effect; update 2026-11-01: R3, F42, did not reproduce it on today's main); F34 token and time
   figures are too unbalanced by case and too spread (ticket-assignment 26M to 67M) to claim a saving or a cost (exploratory); F35 (process) the
   harness refuses a launch while a stray listener of another session's ended case is bound, and a machine-wide lease on a port can hold a
   second session out for hours behind a multi-run round of the first: lane planning for port-leased cases must allow for that.
@@ -523,3 +527,10 @@ and names skills and slang, graded on what the run does with them, to measure K1
   requires node --test to execute TC_1-TC_4, but implement forbids writing tests"), on a tree that already has rule C (exploratory, n = 1; it agrees with F38);
   F41 (process) the A/B base 2.27.2 lacked the three fixes that bear on those send-backs, so no 2.27.2 result says what today's product does and R3 runs on today's
   main (firm: `git merge-base --is-ancestor`).
+- 2026-11-01, R3 read. Ran the 20 registered runs (five lanes, 10:08 to 11:22, no launch refused, no restart) and applied the rules in the reader committed beforehand
+  (ade06b6426e5b4e53f4817049f80028832476baf). Findings (status in brackets): F42 R3-3, no excess of send-backs: A 4 of 10 runs, B 3 of 10, one-sided exact p 0.8251; S1 and C1 to C3 hold (firm
+  for this case, subject and effort; the rule could not have seen a moderate excess against a 40% control); F43 the implement send-back (a step's proof needs a test the
+  test stage writes later) is present on today's main, which has rule C (9870c6f68bfbd9375340c0e91ffdf4abfd76bd85), in both arms: 5 of 20 runs (A 4, B 1), 7 of 20 runs had any send-back, and a run with one
+  cost about 2.8 minutes and 47% more tokens (interim, descriptive; the A and B split is post hoc); F44 K12's cost, descriptively: +4.6% minutes, +4.1% tokens, +1.0 refused
+  callbacks per run (test 21 against 14, step-plan 10 against 7), none at intake (exploratory, inside the C bounds); F45 round 1's imbalance (F33) was not reproduced and
+  stays unexplained. Process: two-run background tasks per lane, the second chained to the first, kept every task under the 120-minute cap.

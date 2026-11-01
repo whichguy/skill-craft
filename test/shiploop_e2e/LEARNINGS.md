@@ -5657,6 +5657,47 @@ $4.18, $7.65, $4.39, $3.88, $4.13 and $5.69, so 280 turns and $5.69 are inside t
 folder shows the documented command passing its gate on 2.31.0 once the note was released. Evidence:
 `docs/experiments/release-smoke-20261101/`.
 
+## Send-back replication R3 on shared-expenses: E2E round on the Codex harness, Terra 6.1 high (2026-11-01) — status: firm for this case and setting that the K12 line did not send stages back more often (A 4 of 10 runs, B 3 of 10); the send-back family itself is common (7 of 20 runs) and does not need K12, interim
+
+**Change under test.** The K12 terms-and-references change (60dc376881d397d770874af16c8a6a8ed60956b2, released in skill-craft 2.28.0 / ShipLoop 1.27.0), on `main` at 47ed1804d379e1ad58ac5ad081e027dab043f906 (ShipLoop 1.29.0,
+skill-craft 2.30.0). Arm B is that tree, arm A is the tree with the change reverted. Round 1 of the first A/B had A 0 of 6 runs with a send-back and B 4 of 5
+(74cfdc91ea4a15287508d9a5913336a3b8584b90); its replication R2 had A 0 of 4 and B 1 of 4 (9c2bf16a0264edc7d8b682ded7dc9a8292e8a838 registered it).
+
+**Runs.**
+- Command: `run.py --case shared-expenses --host codex --model gpt-6.1-terra --effort high --source checkout`, each run from its arm's own worktree (B: the commit
+  above, detached; A: the same plus `git revert --no-commit 60dc376881d397d770874af16c8a6a8ed60956b2` committed on a scratch branch, never merged). Rules registered in ade06b6426e5b4e53f4817049f80028832476baf before any scored run
+  (R3-1: runs with a send-back, B higher, exact one-sided Fisher p at most 0.05; power 43% against a true 40% versus 5%).
+- 20 runs over five lanes of two-run background tasks, 10:08 to 11:22, the arms alternating in each lane; no launch refused, every run at its first attempt, no
+  restart. The case is new (shared-expenses, 47ed1804d379e1ad58ac5ad081e027dab043f906): Node, no port lease, six product checks calibrated on a reference service and nine defects; one unscored smoke
+  run before the registration.
+- Output `~/e2e-runs-r3/20261101/`; reader docs/experiments/send-back-replication-r3-20261101/r3_reader.py.
+
+**Result.** All 20 runs passed (the six checks passed on every delivery); plugin tree e1f3664f5d9c in the 10 A runs and 3efc9db89059 in the 10 B runs.
+
+| Arm | Runs | Passed | Minutes (mean) | Processed tokens, millions (mean) | Refused callbacks per run | Runs with a send-back | Send-backs |
+|---|---|---|---|---|---|---|---|
+| A | 10 | 10 | 14.6 | 32.8 | 2.4 | 4 | 6 (implement 5, validate-existing 1) |
+| B | 10 | 10 | 15.2 | 34.2 | 3.4 | 3 | 3 (test 1, implement 1, system-test 1) |
+
+- R3-1 does not fire (one-sided exact p 0.8251): R3-3, no excess seen. S1 holds (one digest per arm; 11 against 12 stored ledger categories). C1 to C3 hold
+  (tokens ratio 1.04; refused callbacks +1.0 per run, bound +1.5; nobody asked a person, no blocked run). K12 was marked "yes" in 10 of 10 B ledgers and no
+  question was filed under it.
+
+**Contrary evidence and unexplained.**
+- The control's rate was 40%, not the 5% the rule was sized for; against it the rule could have fired only with B at 9 or 10 of 10, so this round could not see a
+  moderate excess. It shows that B was not worse here; it does not show that K12 has no effect on send-backs.
+- The implement send-back (a step's proof needs tests the test stage writes later; on an empty baseline `node --test` runs zero tests) is present in both arms on a
+  tree that has rule C (9870c6f68bfbd9375340c0e91ffdf4abfd76bd85) and the focused-ID fixes: 5 of 20 runs (A s1, s4, s9, s10; B s2; a split chosen after looking, one-sided p 0.1517 for A over B), and
+  7 of 20 runs had any send-back. A run with one took 16.7 minutes and 42.3M tokens against 13.9 and 28.8M without (pooled, descriptive). It looks independent of K12
+  and belongs to whoever owns step-plan's proofs.
+- Round 1's imbalance stays unexplained. Refused callbacks: B +1.0 per run (test 21 against 14, step-plan 10 against 7, improve 3 against 0), none at intake.
+
+**Not measured.** K12's benefit (the request defines its own terms); other cases, subjects or efforts; the 2.27.2 pair; any cost beyond the C bounds (run-to-run
+spread is tens of percent).
+
+**Evidence.** docs/experiments/send-back-replication-r3-20261101/ (README.md with the rules and the Results, scores.json, results-tables.md, extra-analysis.txt,
+r3_reader.py, r3_extra.py, lanes.sh); 20 rows in test/shiploop_e2e/baselines.jsonl; the journal docs/shiploop-intake-question-bank-journal.md §5.7 and F42 to F45.
+
 ## E2E iteration 0 learnings (csv-report, codex high)
 
 Iteration 0 ran ShipLoop built from 27dedcff30f1ca05a0a541a4b4b1d21e3fe438d8 with codex gpt-6.1-terra (effort high) from an empty directory on the csv-report case.
