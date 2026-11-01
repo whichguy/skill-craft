@@ -45,6 +45,7 @@ import environment  # noqa: E402
 import hosts  # noqa: E402
 import iterate  # noqa: E402
 import metrics  # noqa: E402
+import package_build
 import packets
 import progress  # noqa: E402
 import review  # noqa: E402
@@ -8038,6 +8039,230 @@ class GitDiscoveryTests(unittest.TestCase):
     def test_an_existing_ceiling_is_kept(self):
         env = run.isolate_git_discovery({"GIT_CEILING_DIRECTORIES": "/a"}, Path("/tmp/out"))
         self.assertIn("/a", env["GIT_CEILING_DIRECTORIES"].split(os.pathsep))
+
+class StartupContractEvaluatorTest(unittest.TestCase):
+    """Calibrate raw documented startup commands and the keepalive observer."""
+
+    def _load_checker(self, checks):
+        sys.path.insert(0, str(checks))
+        try:
+            spec = importlib.util.spec_from_file_location(
+                "startup_contract_under_test", checks / "shiploop_startup_contract.py")
+            self.assertIsNotNone(spec)
+            self.assertIsNotNone(spec.loader)
+            checker = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(checker)
+            return checker
+        finally:
+            sys.path.remove(str(checks))
+
+    def test_new_case_reuses_hello_continuation_obligations(self):
+        cases = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text(encoding="utf-8"))
+        old = cases["hello-hook-continuation"]
+        new = cases["hello-startup-contract"]
+        self.assertEqual(new["style"], old["style"])
+        self.assertEqual(new["prompt"], old["prompt"])
+        self.assertEqual(new["checks"][:len(old["checks"])], old["checks"])
+        self.assertEqual(new["checks"][-1], 'python3 -B "$E2E_CHECKS/shiploop_startup_contract.py"')
+        self.assertIn("startup", new["checks_source"].lower())
+
+    def test_literal_shell_heads_are_extracted_from_external_card_text(self):
+        with tempfile.TemporaryDirectory(prefix="startup-path-extraction-") as temporary:
+            cli = str(Path(temporary) / "selected-package" / "skills" / "shiploop" / "scripts" / "shiploop")
+            first = """python3 '/absolute/directory-containing-the-loaded-SKILL.md/scripts/shiploop' workspace start --repo "$REPO" --prompt='<user request>'"""
+            second = """python3 "/selected/synthetic-installed-skill-root/scripts/shiploop" workspace start --repo "$REPO" --prompt='<user request>'"""
+            third = f"""python3 "{cli}" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'"""
+            fence = chr(96) * 3
+            card = (f"{fence}sh\n{first}\n{fence}\n{fence}bash\n{second}\n{fence}\n"
+                    f"{fence}sh\n{third}\n{fence}\n")
+            checker = self._load_checker(ROOT / "test" / "shiploop_e2e" / "checks")
+            examples = checker.startup_commands_from_text(card, cli)
+            self.assertEqual(examples, [("workspace_start", first),
+                                        ("workspace_start", second), ("init", third)])
+
+    def test_registered_literal_head_substitutes_selected_path_and_preserves_quotes(self):
+        with tempfile.TemporaryDirectory(prefix="startup-path-render-") as temporary:
+            cli = str(Path(temporary) / "selected-package" / "skills" / "shiploop" / "scripts" / "shiploop")
+            checker = self._load_checker(ROOT / "test" / "shiploop_e2e" / "checks")
+            source = """python3 '/absolute/directory-containing-the-loaded-SKILL.md/scripts/shiploop' workspace start --repo "$REPO" --prompt='<user request>'"""
+            rendered = checker.render_example(source, selected_cli=cli, repo="/tmp/repo path",
+                                              run_dir="/tmp/run path", request="request's\n")
+            source_head = checker._quoted_head(source)
+            rendered_head = checker._quoted_head(rendered)
+            self.assertEqual((source_head[1], source_head[2]),
+                             ("/absolute/directory-containing-the-loaded-SKILL.md/scripts/shiploop", "'"))
+            self.assertEqual((rendered_head[1], rendered_head[2]), (cli, "'"))
+            self.assertIn("--prompt=" + checker.shell_single("request's\n"), rendered)
+
+            selected_placeholder = """python3 '/selected/another-distinct-package/scripts/shiploop' workspace start --repo "$REPO" --prompt='<user request>'"""
+            selected_rendered = checker.render_example(
+                selected_placeholder, selected_cli=cli, repo="/tmp/repo", run_dir="/tmp/run", request="request")
+            selected_head = checker._quoted_head(selected_rendered)
+            self.assertEqual((selected_head[1], selected_head[2]), (cli, "'"))
+
+            exact = f'python3 "{cli}" workspace start --repo "$REPO" --prompt=\'<user request>\''
+            exact_rendered = checker.render_example(exact, selected_cli=cli, repo="/tmp/repo",
+                                                    run_dir="/tmp/run", request="request")
+            self.assertEqual(checker._quoted_head(exact_rendered)[1:],
+                             checker._quoted_head(exact)[1:])
+            self.assertEqual(checker._quoted_head(exact_rendered)[0].group("word"),
+                             checker._quoted_head(exact)[0].group("word"))
+
+    def test_unregistered_foreign_absolute_head_is_rejected(self):
+        with tempfile.TemporaryDirectory(prefix="startup-foreign-head-") as temporary:
+            cli = str(Path(temporary) / "selected-package" / "skills" / "shiploop" / "scripts" / "shiploop")
+            checker = self._load_checker(ROOT / "test" / "shiploop_e2e" / "checks")
+            foreign = """python3 '/foreign/unknown/scripts/shiploop' workspace start --repo "$REPO" --prompt='<user request>'"""
+            fence = chr(96) * 3
+            card = f"{fence}sh\n{foreign}\n{fence}\n"
+            with self.assertRaisesRegex(checker.ContractFailure, "unsupported absolute"):
+                checker.startup_commands_from_text(card, cli)
+
+    def test_selected_package_startup_observer_calibration(self):
+        checks = ROOT / "test" / "shiploop_e2e" / "checks"
+        checker = checks / "shiploop_startup_contract.py"
+        self.assertTrue(checker.is_file(), "startup contract checker is not implemented yet")
+        helper_path = checks / "shiploop_hook_contract.py"
+        spec = importlib.util.spec_from_file_location("startup_identity_helpers", helper_path)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        helpers = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(helpers)
+        built_package = package_build.plugins() / "skill-craft"
+        self.assertTrue((built_package / "skills" / "shiploop" / "scripts" / "shiploop").is_file())
+        with tempfile.TemporaryDirectory(prefix="startup-contract-test-") as temporary:
+            output = Path(temporary)
+            checker_module = self._load_checker(checks)
+            fence = chr(96) * 3
+            fixtures = []
+            for variant in ("old-variable", "valid-literal"):
+                variant_root = output / variant
+                package = variant_root / "package"
+                variant_root.mkdir()
+                shutil.copytree(built_package, package)
+                selected_cli = str(package / "skills" / "shiploop" / "scripts" / "shiploop")
+                if variant == "old-variable":
+                    commands = [
+                        """python3 "$CLI" workspace start --repo "$REPO" --prompt='<user request>'""",
+                        """python3 "$CLI" init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'""",
+                    ]
+                else:
+                    commands = [
+                        f"""python3 {checker_module.shell_single(selected_cli)} workspace start --repo "$REPO" --prompt='<user request>'""",
+                        f"""python3 {checker_module.shell_double(selected_cli)} init --repo "$REPO" --run-dir "$RUN_DIR" --prompt='<user request>'""",
+                    ]
+                card = f"{fence}sh\n" + "\n".join(commands) + f"\n{fence}\n"
+                (package / "skills" / "shiploop" / "SKILL.md").write_text(card, encoding="utf-8")
+                work = variant_root / "work"
+                work.mkdir()
+                fixtures.append({"variant": variant, "root": variant_root, "package": package,
+                                 "selected_cli": selected_cli, "work": work, "commands": commands,
+                                 "card": card})
+
+            # Freeze both controlled cards before capturing any package identity or digest.
+            built_signature = helpers.tree_signature(built_package)
+            for fixture in fixtures:
+                package = fixture["package"]
+                invocation = {
+                    "case": "hello-startup-contract",
+                    "cwd": str(fixture["work"]),
+                    "host": "codex",
+                    "plugin_dir": str(package),
+                    "plugin": {"pass": True, "path": str(package)},
+                    "versions": {"plugin_sha256": helpers.runner_tree_digest(package)},
+                }
+                (fixture["root"] / "invocation.json").write_text(
+                    json.dumps(invocation), encoding="utf-8")
+
+            env = os.environ.copy()
+            env["E2E_CHECKS"] = str(checks)
+            for fixture in fixtures:
+                variant = fixture["variant"]
+                package = fixture["package"]
+                work = fixture["work"]
+                result = subprocess.run([sys.executable, "-B", str(checker)], cwd=work, env=env,
+                                        capture_output=True, text=True, timeout=120, check=False)
+                receipt_path = fixture["root"] / "shiploop-startup-contract-receipt.json"
+                self.assertTrue(receipt_path.is_file(), result.stdout + result.stderr)
+                receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+                old_variable = variant == "old-variable"
+                self.assertEqual(result.returncode, 1 if old_variable else 0, result.stdout + result.stderr)
+                self.assertEqual(receipt.get("schema"), "shiploop-startup-contract/v2")
+                self.assertEqual(receipt.get("verdict"), "fail" if old_variable else "pass")
+                self.assertEqual(receipt.get("calibration_verdict"), "pass")
+                self.assertEqual(
+                    receipt["selected_documentation"]["observer_head_policy"],
+                    "preserve $CLI and exact selected literal; substitute only absolute heads under "
+                    "/absolute/ or /selected/ ending /scripts/shiploop")
+                probes = {row["id"]: row for row in receipt.get("probes", [])}
+                self.assertEqual(len(probes), 17)
+                expected_doc_failures = (
+                    {"documented_workspace_start", "documented_init"} if old_variable else set())
+                self.assertEqual({key for key, row in probes.items() if row["status"] == "fail"},
+                                 expected_doc_failures, receipt)
+                self.assertTrue(all(row["package"]["unchanged"] and
+                                    row["package"]["before_sha256"] == row["package"]["after_sha256"]
+                                    for row in probes.values()))
+                for probe_id in ("documented_workspace_start", "documented_init"):
+                    row = probes[probe_id]
+                    expected_head = "$CLI" if old_variable else fixture["selected_cli"]
+                    self.assertEqual(checker_module._quoted_head(row["source_command"])[1], expected_head)
+                    self.assertEqual(checker_module._quoted_head(row["command"])[1], expected_head)
+                    self.assertEqual(row["observed"]["bound"], not old_variable)
+
+                literal_specs = {
+                    "literal_absolute_placeholder_single":
+                        ("/absolute/directory-containing-the-loaded-SKILL.md/scripts/shiploop", "'"),
+                    "literal_selected_placeholder_double":
+                        ("/selected/synthetic-installed-skill-root/scripts/shiploop", '"'),
+                    "literal_exact_selected_double": (fixture["selected_cli"], '"'),
+                }
+                for probe_id, (raw_head, quote) in literal_specs.items():
+                    row = probes[probe_id]
+                    self.assertTrue(row["observed"]["bound"], receipt)
+                    self.assertTrue(row["observed"]["bound_run_id_matches"], receipt)
+                    source_head = checker_module._quoted_head(row["source_command"])
+                    rendered_head = checker_module._quoted_head(row["command"])
+                    self.assertEqual((source_head[1], source_head[2]), (raw_head, quote))
+                    self.assertEqual((rendered_head[1], rendered_head[2],
+                                      source_head[2]), (fixture["selected_cli"], quote, quote))
+
+                self.assertTrue(probes["unsupported_foreign_literal"]["observed"]["rejected"])
+                self.assertFalse(probes["unsupported_foreign_literal"]["observed"]["observer_called"])
+                self.assertIsNone(probes["unsupported_foreign_literal"]["observed"]["rendered_command"])
+                self.assertFalse(probes["variable_head"]["observed"]["bound"])
+                self.assertFalse(probes["read_packet"]["observed"]["bound"])
+                self.assertFalse(probes["read_status"]["observed"]["bound"])
+                self.assertFalse(probes["missing_state"]["observed"]["bound"])
+                self.assertFalse(probes["corrupt_state"]["observed"]["bound"])
+                self.assertEqual(probes["foreign_owner"]["observed"]["decision"], "allow")
+                self.assertTrue(probes["foreign_owner"]["observed"]["owner_preserved"])
+                for probe_id in ("argv_documented_workspace_start", "argv_documented_init",
+                                 "argv_literal_absolute_single", "argv_literal_selected_double",
+                                 "argv_literal_exact_double"):
+                    self.assertTrue(probes[probe_id]["observed"]["argv_match"], probes[probe_id])
+                argv_fixture = receipt["argv_fixture"]
+                self.assertTrue(argv_fixture["paths_are_synthetic"])
+                self.assertTrue(argv_fixture["stub_cli_path"].endswith("\n"))
+                self.assertTrue(argv_fixture["repo_path"].endswith("\n"))
+                self.assertTrue(argv_fixture["run_dir_path"].endswith("\n"))
+                for path_value in (argv_fixture["stub_cli_path"], argv_fixture["repo_path"],
+                                   argv_fixture["run_dir_path"]):
+                    self.assertIn(" path ' $ " + chr(96) + " Ω\ninside\n", path_value)
+                self.assertTrue(argv_fixture["request"].startswith("--option-like=value"))
+                self.assertIn("apostrophe's dollar$ grave" + chr(96), argv_fixture["request"])
+                self.assertIn("internal line\n", argv_fixture["request"])
+                self.assertTrue(argv_fixture["request"].endswith("\n"))
+                self.assertTrue(receipt["package_unchanged"])
+                self.assertEqual(receipt["package_signature_before_sha256"],
+                                 receipt["package_signature_after_sha256"])
+                self.assertEqual(len(receipt["synthetic_card"]["commands"]), 3)
+                self.assertEqual(receipt["synthetic_card"]["text"].count(chr(96) * 3), 6)
+                self.assertTrue(receipt["foreign_literal_card"]["sha256"])
+
+            self.assertEqual(helpers.tree_signature(built_package), built_signature,
+                             "controlled fixture cards must not modify the shared package-build output")
+
 
 if __name__ == "__main__":
     unittest.main()
