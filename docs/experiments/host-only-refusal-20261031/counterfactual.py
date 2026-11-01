@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Counterfactual replay of the drift check on a LIVE run's real state (offline, no org, no model).
 
-Usage: python3 -I counterfactual.py <scripts dir of one plugin version> <run dir holding state.md>
+Usage: python3 -I counterfactual.py <scripts dir of one plugin version> <run dir holding state.md> [--as-recorded]
 
 Takes the run's real state (test-strategy targets, step-plan rows, system-test-author rows), marks the org-native system
 command host_dependent (the one thing the live run did not do), and calls that plugin version's default_suite_drift with a
@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 scripts, run_dir = Path(sys.argv[1]), Path(sys.argv[2])
+as_recorded = "--as-recorded" in sys.argv[3:]
 sys.path.insert(0, str(scripts))
 import shiploop_store as store  # noqa: E402
 import shiploop_test_loop as tl  # noqa: E402
@@ -22,8 +23,10 @@ state = store.read_record(run_dir / "state.md")
 result = tl._latest_root_result(state, "system-test-author")
 rows = copy.deepcopy(list(result.get("system_commands") or ()))
 org = [r for r in rows if r["command"].startswith("sf apex run test")]
+if as_recorded:  # the run's own marks, nothing added: only the stubbed command output is invented
+    org = [r for r in org if r.get("host_dependent")]
 if not org:
-    print("no org-native system command in this run")
+    print("no org-native system command" + (" marked host_dependent" if as_recorded else "") + " in this run")
     raise SystemExit(2)
 for r in org:
     r["host_dependent"] = True

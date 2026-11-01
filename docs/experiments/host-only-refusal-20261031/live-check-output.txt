@@ -46,10 +46,43 @@ test-strategy targets that keep state (route B): {'Salesforce de org': 'The pref
    no drift-check run recorded (the check skipped every hosted-runtime command, or system-test has not run)
    refusals naming host-dependent in the timeline: none
 
-## counterfactual: run 1's real state with the org command marked host_dependent, per plugin version
+## run 3: battleship-salesforce-ui, prefix SLNvHo5c20 (live_check.py on the run folder)
+====================================================================================================
+run: ~/e2e-runs-hostonly/20261031/ui-live-3/.shiploop-runs/work-20261101-030945-ceb81c/run
+status: done | work items: ['W1']
+timeline: intake:done > discovery:done > research:done > spec:done > test-strategy:done > plan:done > prepare:done > step-plan/W1:done > test-spec/W1:done > validate-existing/W1:done > implement/W1:done > test/W1:done > document/W1:done > implement/W1:done > test/W1:done > document/W1:done > implement/W1:send-back > step-plan/W1:done > test-spec/W1:done > validate-existing/W1:done > implement/W1:done > test/W1:done > document/W1:done > implement/W1:done > test/W1:done > document/W1:done > implement/W1:done > test/W1:done > document/W1:done > carry-forward/W1:done > system-test-author:done > system-test:done > product-acceptance:done > release-plan:done > release-check:done > release:done > release-verify:done > operations:done > handoff:done
+send-backs, refusals and blocks in the timeline: ['implement/W1:send-back']
+
+test-strategy targets that keep state (route B): {'Salesforce org de and authenticated browser': 'The new named metadata is absent at baseline; test deployed candidate and inspect inventory.'}
+
+-- signal 1: step-plan test commands
+   W1: focused    target=Salesforce org de and authenticated browser sf project deploy start --target-org de && sf apex run --target-org de --file ~/e2e-runs-hostonly
+   W1: focused    target=None node ~/e2e-runs-hostonly/20261031/ui-live-3/.shiploop-runs/work-20261101-030945-ceb81c/run/scratc
+   W1: focused    target=Salesforce org de and authenticated browser sf project deploy start --target-org de && sf apex run --target-org de --file ~/e2e-runs-hostonly
+   W1: REGRESSION target=Salesforce org de and authenticated browser sf apex run test --target-org de --class-names SLNvHo5c20EngineTest --synchronous --result-format human --code
+   W1: check      target=None node --check force-app/main/default/lwc/slNvHo5c20Board/slNvHo5c20Board.js
+
+-- signal 2: system-test-author system_commands
+   suite=focused    host_dependent=True ids=3 sf apex run test --target-org de --class-names SLNvHo5c20EngineTest --synchronous --result-format hu
+   suite=focused    host_dependent=True ids=1 battleship-ui
+   suite=regression host_dependent=None ids=1 node ~/e2e-runs-hostonly/20261031/ui-live-3/.shiploop-runs/work-20261101-030945-ceb81c/
+
+-- signal 3 and 4: system-test records
+   no drift-check run recorded (the check skipped every hosted-runtime command, or system-test has not run)
+   refusals naming host-dependent in the timeline: none
+
+## replays on the recorded state (counterfactual.py), per plugin version
+### run 1, with the mark added (it had none)
 plugin 2.27.0: stateful targets ['de org']
   marked ids: 2  |  commands the check asked to run: 1  |  refusals: 1
   asked: sf apex run test --target-org de --class-names SLBtlHo9a87EngineTest --synchronous --result-format human --cod
   refusal: host-dependent-in-default-suite | shown: ['TC_ENGINE', 'TC_CONTROLLER']
 plugin 2.27.1: stateful targets ['de org']
   marked ids: 2  |  commands the check asked to run: 0  |  refusals: 0
+### run 3, rows as recorded (--as-recorded: the run's own marks)
+plugin 2.27.0: stateful targets ['Salesforce org de and authenticated browser']
+  marked ids: 3  |  commands the check asked to run: 1  |  refusals: 1
+  asked: sf apex run test --target-org de --class-names SLNvHo5c20EngineTest --synchronous --result-format human --code
+  refusal: host-dependent-in-default-suite | shown: ['controllerFullGame', 'fleetGeometry', 'seedDeterminism']
+plugin 2.27.1: stateful targets ['Salesforce org de and authenticated browser']
+  marked ids: 3  |  commands the check asked to run: 0  |  refusals: 0

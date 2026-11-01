@@ -118,40 +118,52 @@ Added after publication, 2026-10-31. The findings above keep their status: F1, F
 
 ## Live check
 
-Added 2026-10-31 after the owner's go (answer "3": run the live check, and apply the three defaults). Two full runs on the
-published plugin (skill-craft 2.27.1, ShipLoop 1.26.1; Codex gpt-6.1-terra, xhigh), each launched from a detached checkout of
-origin/main with its own platform prefix in org `de`. The org lease is exclusive, so they ran one after the other, and both
-cleanups were verified. Output: `live-check-output.txt`. Scripts: `live_check.py` (the four signals from a run's records) and
-`counterfactual.py` (the replay in L2).
+Added 2026-10-31 after the owner's go (answer "3": run the live check, and apply the three defaults), and extended after the
+owner's second "3" (both: investigate run 2, and a third run). Three full runs on the published plugin (skill-craft 2.27.1,
+ShipLoop 1.26.1; Codex gpt-6.1-terra, xhigh), each launched from a detached checkout of origin/main with its own platform
+prefix in org `de`. The org lease is exclusive, so they ran one after the other, and all three cleanups were verified.
+Output: `live-check-output.txt`. Scripts: `live_check.py` (the four signals from a run's records) and `counterfactual.py`
+(the replays in L2; `--as-recorded` uses the run's own marks).
 
-| | run 1 | run 2 |
-|---|---|---|
-| case and prefix | battleship-salesforce, SLBtlHo9a87 | battleship-salesforce-ui, SLNvHo250f |
-| time | 27.6 minutes | 25.2 minutes |
-| harness verdict | pass | fail on `committed` only (L3) |
-| org checks, cleanup | pass, pass | pass, pass |
-| step plan lists the org test command as a regression command | yes, in the second plan, after a test-stage send-back | no, both test rows are focused |
-| system-test author marks the org command `host_dependent` | no (four rows, none marked) | yes, and the browser check too |
-| system test | passed first time | passed first time |
-| anything for the drift check to do | no: nothing marked | no: no regression command |
+| | run 1 | run 2 | run 3 |
+|---|---|---|---|
+| case and prefix | battleship-salesforce, SLBtlHo9a87 | battleship-salesforce-ui, SLNvHo250f | battleship-salesforce-ui, SLNvHo5c20 |
+| time | 27.6 minutes | 25.2 minutes | 27.9 minutes |
+| ShipLoop start | `workspace start` | `init` with its own run folder | `workspace start` |
+| harness verdict | pass | fail on `committed` only (L3) | pass |
+| org checks, cleanup | pass, pass | pass, pass | pass, pass |
+| test strategy declares the org as keeping state | yes (`de org`) | yes (`Salesforce de org`) | yes (`Salesforce org de and authenticated browser`) |
+| step plan lists the org test command as a regression command | yes, in the second plan, after a test-stage send-back | no, both test rows are focused | yes, and it stayed through a re-plan |
+| system-test author marks the org command `host_dependent` | no (four rows, none marked) | yes, and the browser check too | yes, and the browser check too |
+| system test | passed first time | passed first time | passed first time |
+| anything for the drift check to do | no: nothing marked | no: no regression command | yes: a marked org command that is also the regression command |
 
-- L1, firm: neither run exercised the fixed path. Each met one of its two preconditions (a regression row for the org command,
-  and a mark on it) and not the other, so the old check would have passed both runs as well. They are no-regression samples:
-  with the fix, system test passed first time in both and no row was refused.
-- L2, firm (offline, on a live state): run 1's real state, with only the mark added to the org command, was given to each
-  version's `default_suite_drift`. Plugin 2.27.0 asks to run the org command and refuses `host-dependent-in-default-suite`
-  (shown ids TC_ENGINE and TC_CONTROLLER); plugin 2.27.1 asks to run nothing and refuses nothing. The inputs are real (the
-  run's test strategy declares `de org` as keeping state, its step plan has the regression row, its system rows); the output
-  the stub returns for the org command is invented.
-- L3, interim, unrelated to the fix: run 2 failed the harness's `committed` verdict. The model started ShipLoop with `init` and
-  its own run folder (`battleship-run`) instead of `workspace start`, so the harness's `work` folder was never a git repository
-  and the product copied into it was never committed; run 1 used `workspace start` and passed. Whether this is a model slip or
-  a gap in the start guidance is not examined. The run's `mismatch.md` is left unfilled and `test/shiploop_e2e/LEARNINGS.md`
-  untouched on purpose: the release preflight reads that file's commit order, and these runs are not an E2E round that
-  vouches for the release.
+- L1, firm: runs 1 and 2 did not reach the fixed path. Each met one of the two preconditions (a regression row for the org
+  command, and a mark on it) and not the other, so the old check would have passed both. Run 3 met both, the joint case, live:
+  the check skipped the org regression command, system test passed first time, and the org-native row stayed `focused` and
+  `host_dependent` with all three of its IDs found (`ids_missing` empty) in a passing system-test record. No row was refused.
+  This is the live confirmation of the fix.
+- L2, firm (offline): the recorded state given to each version's `default_suite_drift`. Run 3, rows as recorded: plugin 2.27.0
+  asks to run the org command and refuses `host-dependent-in-default-suite` (shown ids controllerFullGame, fleetGeometry,
+  seedDeterminism); plugin 2.27.1 asks to run nothing and refuses nothing. Run 1, with the mark added (it had none): 2.27.0
+  refuses (TC_ENGINE, TC_CONTROLLER), 2.27.1 does not. The inputs are real; the output the stub returns for the org command is
+  invented, so a replay shows what the check asks to run and refuses, not what the org prints. Run 3 on 2.27.1 is the live
+  half and the replay on 2.27.0 is the other half; they are not a paired run, so the saving (F3) stays predicted.
+- L3, interim, unrelated to the fix: run 2 failed the harness's `committed` verdict. Cause as far as the records show: its
+  model ran `init --repo <work> --run-dir <output>/battleship-run`, where the other two ran `workspace start --repo <work>`.
+  The skill card's start section prescribes `workspace start` for an empty folder ("An empty starting directory needs no setup:
+  `workspace start` makes it a Git repository on `main` with one empty baseline commit") and keeps `init` for "an explicitly
+  selected in-place/non-Git run". Its lead-in reads "For new work in an existing Git repository, use the isolated entry below",
+  which an empty, non-Git folder does not match, so that lead-in is the likely trap; the transcript holds no stated reason.
+  With `init` the harness's `work` folder never became a git repository, so the product copied into it was never committed.
+  Frequency: of 454 earlier event streams since 2026-10-24 the first start was `workspace start` in 160 and `init` in 8; 286
+  could not be read that way (resumed or seeded runs, other forms). Of these three runs, one used `init`. Not acted on: a
+  change to the card's text needs a change note and a measurement, and is the owner's call. The run's `mismatch.md` is left
+  unfilled and `test/shiploop_e2e/LEARNINGS.md` untouched on purpose: the release preflight reads that file's commit order, and
+  these runs are not an E2E round that vouches for the release.
 - Context, exploratory: of 9 earlier unseeded Salesforce runs (final system-test-author result), the Terra runs marked some row
-  `host_dependent` in 3 of 4 and Grok in 0 of 5, so the author's choice varies; the step plan's `regression` flag varied
-  between the two runs today as well.
+  `host_dependent` in 3 of 4 and Grok in 0 of 5, so the author's choice varies; the step plan's `regression` flag varied across
+  these three runs too. The joint case took three runs to see.
 
-What stays open: the joint case (a marked org command that is also a regression command) has not been seen live. A third
-run would have to hope for both choices at once; L2 already shows the difference on real state.
+What stays open: the saving per avoided loop (1.3 to 4.1 minutes and 4 to 7 packets in E-close.md) is still predicted from
+earlier runs; the card's start lead-in (L3) is unexamined beyond reading it and counting starts.
