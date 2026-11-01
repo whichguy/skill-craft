@@ -10,12 +10,12 @@ Stage 5 of [the closed-loop plan](../../shiploop-e2e-closed-loop-plan-2026-10-30
 
 1. **Select or explore.** `learning_records.select` now reads the cycle's cases (b3328b4), so the only admitted record on the
    ledger, LR-20261031-8d97e7 (found on the hosted `gym-membership-salesforce` case), is not this cycle's. With no record it can
-   take, the loop explores: one `csv-report` run on the tip, reviewed and judged, whose material implementation findings open
+   take, the loop explores: one `seat-reservations` run on the tip, reviewed and judged, whose material implementation findings open
    and admit records. If nothing is admitted the loop stops there ("no admitted learning record after exploring") and no cycle
    runs. That is a designed outcome, and it is what to return.
 2. **Improve and check purpose.** An improver (Codex `gpt-6.1-sol`, the role default) applies exactly one record in one commit
    with a `Learning-Record:` trailer and a prediction; the script check and a fresh review confirm the change serves the record.
-3. **Register and run.** A `promotion/5` epoch: the tip against the candidate, `csv-report` (the exposing case) and `seat-reservations`
+3. **Register and run.** A `promotion/5` epoch: the tip against the candidate, `seat-reservations` (the exposing case) and `csv-report`
    (a case of another style, kept unseen by the improver), a stated tolerance of 0.25 and 3 attempts per arm recorded as
    unmeasured, subject Codex `gpt-6.1-terra` at `high` (the owner's choice), 12 subject runs.
 4. **Review, decide, record.** Every attempt is reviewed and judged (Codex `gpt-6-astra` at `xhigh`, the role default), then
@@ -27,9 +27,17 @@ Stage 5 of [the closed-loop plan](../../shiploop-e2e-closed-loop-plan-2026-10-30
 holds it, and another session's `user-listing` run held it. `battleship` and `checkers` declare 3000 too, and the
 `ticket-*` cases 4180. A cycle on such a case would also fail its own parallel attempts, because `launch_all` serialises
 same-platform attempts but not same-port ones. So the cycle uses two cases with no fixed port and no hosted platform, of
-different styles: `csv-report` (a command-line tool, the exposing case) and `seat-reservations` (a small HTTP service on
-a free port, kept unseen by the improver as the generality case). Both have run on Terra in other sessions' studies. No
-Salesforce org, no shared lane, no fixed port.
+different styles: `seat-reservations` (a small HTTP service on a free port, the exposing case) and `csv-report` (a
+command-line tool, kept unseen by the improver as the generality case). Both have run on Terra in other sessions' studies.
+No Salesforce org, no shared lane, no fixed port.
+
+**Why the roles were swapped.** The second launch used them the other way round (`csv-report` exposing). Its exploration ran
+once, found one material item and the loop routed it to the owner (record LR-20261101-bea142, with the owner in the
+ledger), so nothing was admitted for an improver and the loop stopped there, as designed; no cycle ran. The results of that
+launch are in `run-02-results/` once landed. The third launch explores the other case. The record is on the ledger before it
+starts, so the reviewer is told it is the owner's, and the generality case is the one that record's evidence names: if the
+new exploration finds the same item again it adds to that record, which this cycle cannot select, and the loop stops
+for the same stated reason. The swap changes which case is explored; no record was hidden, edited or admitted by hand.
 
 ## What passes
 
