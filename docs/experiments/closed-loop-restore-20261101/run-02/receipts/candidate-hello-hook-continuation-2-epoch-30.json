@@ -1,0 +1,343 @@
+{
+  "review": {
+    "outcome": "The run delivered and verified the requested application, unittest and uninterrupted same-action continuation, with minor interface, progress-reporting and knowledge-freshness defects.",
+    "version": 2,
+    "learnings": [
+      {
+        "title": "Retain the demonstrated same-action continuation",
+        "evidence": "S-1, S-2, S-10: events.jsonl:153 starts the implementation loop; :155 writes the product and checkpoint; :157 records the checkpoint message; :159-169 inspect preserved work, check it and complete the same action. The raw rollout at home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-11-01a1987a-db06-7b12-9662-579e2cfd41b9.jsonl:391 confirms phase=final_answer and the exact requested message. The terminal receipt records action_number=1.",
+        "proposal": "Attach this corroborating attempt to LR-20261101-58f651. Preserve receipt-derived continuation and authoritative callbacks; do not infer promotion or fresh-context coverage from this one run.",
+        "files": [
+          "skills/shiploop/scripts/shiploop_navigator.py",
+          "skills/shiploop/scripts/shiploop_keepalive.py"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "The scripts identify the unfinished action and required callback; the model neither chooses a successor nor accepts its own completion."
+      }
+    ],
+    "missing_considerations": [
+      {
+        "title": "Reconcile current knowledge before handoff",
+        "evidence": "S-11: work/docs/shiploop/spec.md:6,11 still says 'Pending implementation and verification'; architecture.md:10,24 leaves completed verification due. environment.md:19,22 retains planned testing and says no separate case IDs are needed, while test_hello.py:11 names TC_1. The document result declares architecture and environment unchanged, and its Improve review reports no edits. Four Commands headings are an organization diagnostic, not independently a clause violation.",
+        "proposal": "Investigate a focused reconciliation duty at existing knowledge closes: update superseded planning statements in place from accepted evidence, while retaining requirement and decision IDs. First test whether a cold reader of the returned knowledge identifies the correct remaining work and test-ID convention; do not introduce a semantic pass based on heading counts.",
+        "files": [
+          "skills/shiploop/scripts/shiploop_knowledge_home.py",
+          "skills/shiploop/references/project-knowledge.md"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "The model reconciles knowledge content; existing scripts continue to own acceptance, retention checks and commits."
+      }
+    ],
+    "optimizations": [
+      {
+        "title": "Move loop-report transport into ShipLoop",
+        "evidence": "S-4, S-5: events.jsonl:167 constructs report JSON in a Python heredoc, reads done_argv and calls subprocess.run with serialized stdin. Equivalent transport occurs at :124,148,195,208,230. scripts/shiploop_loops.py:501-534 supplies commands and a field schema, but leaves this transport to the model. metrics.json reports model_glue=0 despite these commands.",
+        "proposal": "Investigate a script-created judgment template and exact submission command that serializes the populated fields through the existing runtime. Preserve all five report fields, truthful unsatisfied/unknown outcomes, frozen contracts and receipt validation. A neutral replay should first demonstrate less model-written transport without altered acceptance; E2E savings remain unmeasured.",
+        "files": [
+          "skills/shiploop/scripts/shiploop_loops.py",
+          "skills/shiploop/scripts/shiploop_navigator.py",
+          "test/shiploop-loops.test.py"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "Scripts gain mechanical serialization and invocation; the model supplies judgments and never navigates the graph."
+      },
+      {
+        "title": "Make progress instructions consistently require script text",
+        "evidence": "S-3, S-15: metrics.json.narrative records 20 emitted narratives, one shown and one verbatim. events.jsonl:28,41,77 and later text events instead contain composed summaries. All 20 narrative-bearing replies instructed verbatim display. SKILL.md:294-310 and :396-405 also tell the model to provide brief milestone and activity reports, conflicting with references/status-display.md:3-6, which says the model writes neither status nor narrative.",
+        "proposal": "Replace the competing summary instructions with one consistent rule to relay the script-rendered narrative when requested. Preserve the existing host-display distinction, milestone cadence, recorded pace and suppression of unchanged status. Test both host-display routes so the correction neither duplicates narratives nor removes per-packet grounding.",
+        "files": [
+          "skills/shiploop/SKILL.md",
+          "test/shiploop-status-display.test.py"
+        ],
+        "severity": "minor",
+        "preserves_premise": true,
+        "premise_note": "Progress remains derived from saved script state; the model only relays the selected display."
+      }
+    ],
+    "discoveries": [
+      {
+        "id": "D1-same-action-continuation",
+        "title": "The live checkpoint exercised preserved-work continuation",
+        "evidence": [
+          {
+            "reference": "events.jsonl:153-169; home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-11-01a1987a-db06-7b12-9662-579e2cfd41b9.jsonl:391",
+            "observation": "One loop start and one product/checkpoint write precede the exact FINAL message; subsequent calls check and complete the same action without repeating those writes.",
+            "interpretation": "This is direct evidence of same-context continuation, beyond the separate synthetic package-capability check."
+          },
+          {
+            "reference": ".shiploop-runs/work-20261101-185924-015339/run/trace.jsonl:35,77; run/loops/nav-2bbd40cc94904c8a87edfbb60d70ba1f-terminal.json",
+            "observation": "The trace records one continuation followed by permission to stop at done; the implementation receipt records a completed first iteration.",
+            "interpretation": "The hook preserved script-owned action and completion boundaries."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-2",
+          "relationship": "supports",
+          "challenge": "No amendment is proposed; this corroborates the existing hook-restoration lesson."
+        },
+        "materiality": "minor",
+        "confidence": "high",
+        "potential_impact": "Reliable continuation can prevent a premature final response from abandoning authorized work, but this attempt alone does not measure a comparative gain.",
+        "alternatives": [
+          "The deliberate checkpoint may be easier to recover from than an accidental stop.",
+          "Fresh-context and live terminal-loop interruption may behave differently."
+        ],
+        "next_experiment": "For additional recovery coverage, interrupt a neutral action after its loop receipt becomes terminal but before the stage callback; verify the same callback completes without replay. Keep fresh-context recovery separate. Any broader qualification needs the exposing case and another style, or an explicitly narrower claim.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/scripts/shiploop_navigator.py",
+          "skills/shiploop/scripts/shiploop_keepalive.py"
+        ],
+        "proposal": "Add this attempt's supporting evidence to the existing record; leave promotion and prediction assessment to the registered comparison.",
+        "implementation_eligible": false,
+        "proposed_disposition": "investigate",
+        "same_as": "LR-20261101-58f651"
+      },
+      {
+        "id": "D2-report-transport",
+        "title": "A successful callback still required model-written transport",
+        "evidence": [
+          {
+            "reference": "events.jsonl:124,148,167,195,208,230; supplied source scripts/shiploop_loops.py:501-534",
+            "observation": "The model repeatedly serialized loop judgments and invoked done_argv through Python. The interface supplied fields and argv, rather than a complete submission facility.",
+            "interpretation": "Exact callback arguments alone do not satisfy S-4/S-5 when mechanical report transport remains model work."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-4",
+          "relationship": "supports",
+          "challenge": "The particular heredoc was optional, but report serialization and delivery remained necessary; S-5 also applies."
+        },
+        "materiality": "minor",
+        "confidence": "high",
+        "potential_impact": "A submission helper could reduce formatting mistakes and generated glue; no failure or cost reduction was measured here.",
+        "alternatives": [
+          "A host with structured process-input tools may need less glue.",
+          "A new helper could merely move complexity or duplicate the runtime's validation."
+        ],
+        "next_experiment": "Replay one neutral inner action with a script-owned template and submission bridge, including satisfied, unsatisfied, unknown and mismatched-receipt cases. Reject the approach if it changes judgments or duplicates validation. A narrow replay cannot establish E2E benefit.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/scripts/shiploop_loops.py",
+          "skills/shiploop/scripts/shiploop_navigator.py",
+          "test/shiploop-loops.test.py"
+        ],
+        "proposal": "Investigate reusing the existing runtime through one ShipLoop-owned transport path, without changing the vendored runtime or loop contracts.",
+        "implementation_eligible": false,
+        "proposed_disposition": "investigate"
+      },
+      {
+        "id": "D3-knowledge-freshness",
+        "title": "Complete knowledge sections retained obsolete current statements",
+        "evidence": [
+          {
+            "reference": "work/docs/shiploop/spec.md:6,11; work/docs/shiploop/architecture.md:10,24; work/docs/shiploop/environment.md:19,22; metrics.json.delta",
+            "observation": "All required knowledge sections are present, yet several statements still describe completed implementation or verification as pending.",
+            "interpretation": "Structural completeness and appended success observations did not ensure that a later reader receives consistent current knowledge."
+          },
+          {
+            "reference": ".shiploop-runs/work-20261101-185924-015339/run/results/nav-8df345577a0346689ea52ba72ce8be9a.md; run/improve/nav-8df345577a0346689ea52ba72ce8be9a/evidence/01-review-1.md",
+            "observation": "The document result declares two living files unchanged, and the review records no edits.",
+            "interpretation": "Existing documentation and review duties did not resolve the stale guidance in this attempt."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-11",
+          "relationship": "supports",
+          "challenge": "This concerns freshness of living knowledge, not a proposal to make section or append heuristics new verdicts."
+        },
+        "materiality": "minor",
+        "confidence": "high",
+        "potential_impact": "A later run could repeat completed checks or select obsolete conventions; no follow-on cost or failure was observed.",
+        "alternatives": [
+          "A reader may correctly resolve the contradictions from later notes and receipts.",
+          "A more focused existing close duty may suffice without another stage or gate."
+        ],
+        "next_experiment": "Give a cold reader only the returned knowledge and ask which checks remain and which test-ID convention applies; compare with accepted evidence. Use a full follow-on run before claiming reduced rediscovery.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/scripts/shiploop_knowledge_home.py",
+          "skills/shiploop/references/project-knowledge.md",
+          "test/shiploop-knowledge.test.py"
+        ],
+        "proposal": "Investigate reconciliation within existing knowledge closes, preserving IDs and useful history while replacing obsolete current guidance.",
+        "implementation_eligible": false,
+        "proposed_disposition": "investigate"
+      },
+      {
+        "id": "D4-progress-instruction-conflict",
+        "title": "Competing card instructions accompanied narrative substitution",
+        "evidence": [
+          {
+            "reference": "metrics.json.narrative; events.jsonl:28,41,77; supplied source SKILL.md:294-310,396-405",
+            "observation": "Only one of twenty requested narratives was relayed verbatim. The card also asks for brief milestone and activity summaries.",
+            "interpretation": "The competing wording is a plausible contributor to the observed S-15 violation; causation is not established by this run."
+          }
+        ],
+        "mission_anchor": {
+          "clause_id": "S-15",
+          "relationship": "supports",
+          "challenge": "Reconcile the card with the existing script-rendered display contract; S-3 also applies."
+        },
+        "materiality": "minor",
+        "confidence": "medium",
+        "potential_impact": "Consistent instructions could restore reliable progress visibility and avoid unnecessary composition, without changing execution quality.",
+        "alternatives": [
+          "Host instructions or model noncompliance may dominate even after the card is corrected.",
+          "Direct host display could reduce dependence on model relay where supported."
+        ],
+        "next_experiment": "Test the corrected card with a saved milestone on a host requiring relay and one reporting that it already displayed the narrative. Require exact relay only where requested, no duplicate unchanged display, and unchanged callback behavior; then verify end to end.",
+        "target": "shiploop",
+        "files": [
+          "skills/shiploop/SKILL.md",
+          "test/shiploop-status-display.test.py"
+        ],
+        "proposal": "Replace the competing free-form reporting instructions with the existing verbatim-relay rule. Preserve cadence, host-display handling, per-packet grounding and script-owned terminology.",
+        "implementation_eligible": true,
+        "proposed_disposition": "implement"
+      }
+    ],
+    "harness": {
+      "learning_retention": {
+        "answer": "Keep the existing append-only learning records and verbose operator-owned commits. This read-only review must not write learning into the product or sealed evidence.",
+        "proposals": [
+          "Attach D1 to LR-20261101-58f651 rather than creating another hook-restoration lesson. Record candidate identity 9bdd30ddc51cb76a0cea4e9bbfd0b95bb5bf57b7 and plugin digest 852d67ee5006, actual measurements, unknowns and evidence locations.",
+          "Retain the raw rollout because it preserves the FINAL boundary that transcript.md merges with subsequent commentary. Bind the separate judge assessment to this review's exact bytes.",
+          "Keep operator learning retention explicitly pending until the authorized operator records it; keep evaluator findings separate from retained ShipLoop changes."
+        ]
+      },
+      "further_learning": {
+        "answer": "The useful remaining observations concern recovery boundaries and downstream knowledge use, not more repetitions of the same successful checkpoint alone.",
+        "proposals": [
+          "Under S-2/S-6, distinguish live active-loop continuation, live terminal-loop continuation and fresh-context recovery. The synthetic hook receipt establishes selected-package capability, not actual subject behavior.",
+          "Under S-11, use the cold-reader experiment to decide whether a follow-on case is warranted for stale knowledge.",
+          "For each eventual qualified candidate, retain one learning record and prospective prediction, then use the exposing case plus a contrasting style or explicitly limit the claim. Preserve existing review schedules and grounding under S-6/S-10."
+        ]
+      },
+      "evaluation_criteria": {
+        "answer": "This run does not justify a new generic quality floor. It does justify more precise evidence interpretation and separately calibrated evaluator experiments.",
+        "proposals": [
+          "Under S-2/S-9, keep actual FINAL phase, action identity, loop continuity and write replay evidence separate from shiploop-hook-contract-receipt.json's synthetic capability verdict. Calibrate any automated event checker against omitted, repeated and wrong-action checkpoint traces; missing evidence must remain unknown.",
+          "Under S-4/S-5/S-9, do not read model_glue=0 as conformance. A separate measurement experiment should address the observed Python transport and the fidelity reader's 8-versus-6 command discrepancy without rewriting this frozen verdict.",
+          "Under S-9/S-11, retain mutation as unexercised because no operator matched, and treat knowledge freshness as a reviewed observation until a calibrated criterion is admitted.",
+          "Exclude this overlapped run from timing-gain claims; preserve its reported token totals and unavailable dollar cost without inventing measurements."
+        ]
+      }
+    },
+    "process": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 371.8
+    },
+    "driver": {
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "effort": "xhigh"
+    },
+    "validity": {
+      "status": "valid",
+      "reason": null,
+      "discovery_qualified": true
+    },
+    "skill_source": {
+      "roots": [
+        "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/candidate-build/plugins/skill-craft/skills/shiploop"
+      ],
+      "basis": "the run's launch records",
+      "reason": null
+    },
+    "review_receipt": {
+      "stage_dir": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2/review-epoch-30",
+      "review_json": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2/review-epoch-30.json",
+      "review_markdown": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2/review-epoch-30.md"
+    },
+    "actionable": []
+  },
+  "judge": {
+    "review_sha256": "21b6b3ad8563051436579486e7af5355bf517528dbca9fe5edcfd638a5eb2c3c",
+    "assessments": [
+      {
+        "id": "D1-same-action-continuation",
+        "status": "supported",
+        "reason": "Direct evidence confirms preserved-work continuation within the same context and first loop iteration. This supports the narrow corroboration claim, not fresh-context recovery, comparative improvement, or promotion. The finding is not implementation-eligible.",
+        "evidence": [
+          "events.jsonl:153-170 records one implementation-loop start, the product/checkpoint write, continuation checks, loop completion, and the callback for the same action.",
+          "home/.codex/sessions/2026/11/01/rollout-2026-11-01T10-59-11-01a1987a-db06-7b12-9662-579e2cfd41b9.jsonl:391,394 confirms the exact FINAL message and subsequent hook prompt naming the unfinished action.",
+          ".shiploop-runs/work-20261101-185924-015339/run/trace.jsonl:35,37,77 records continuation, acceptance of that implementation action, and permission to stop only at done.",
+          ".shiploop-runs/work-20261101-185924-015339/run/loops/nav-2bbd40cc94904c8a87edfbb60d70ba1f-terminal.json records status=complete and action_number=1; work/checkpoint.log contains exactly one requested line."
+        ],
+        "disposition": "investigate"
+      },
+      {
+        "id": "D2-report-transport",
+        "status": "supported",
+        "reason": "The observed interface leaves serialization and submission mechanics to model-written code, supporting the minor S-4/S-5 finding. A submission helper merits investigation, but reduced errors or cost are unmeasured and the finding is not implementation-eligible.",
+        "evidence": [
+          "events.jsonl:124,148,167,195,208,230 contains Python code loading done_argv, constructing reports, serializing JSON, and invoking subprocess.run with stdin.",
+          "home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/scripts/shiploop_loops.py:501-540 supplies callback instructions and five report fields without a complete submission bridge.",
+          "home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py:1156-1181,1319-1320 confirms that done consumes JSON from stdin.",
+          "metrics.json:model_glue is empty despite the directly observed transport code; it cannot establish conformance."
+        ],
+        "disposition": "investigate"
+      },
+      {
+        "id": "D3-knowledge-freshness",
+        "status": "supported",
+        "reason": "Delivered files demonstrably retain obsolete pending-work statements and inconsistent test-ID guidance. This is a minor knowledge-quality defect with strong direct evidence; downstream confusion and the proposed reconciliation's effectiveness remain unmeasured.",
+        "evidence": [
+          "work/docs/shiploop/spec.md:6,11 still marks implementation and verification pending; architecture.md:10,24 leaves completed checks due.",
+          "work/docs/shiploop/environment.md:19,22 retains planned coverage and says separate case IDs are unnecessary, while work/test_hello.py:11 identifies TC_1.",
+          "result.json:253-277 records passing application, unittest, and checkpoint checks; environment.md:57 also records successful return verification.",
+          ".shiploop-runs/work-20261101-185924-015339/run/results/nav-8df345577a0346689ea52ba72ce8be9a.md:16-19 declares architecture and environment unchanged; run/improve/nav-8df345577a0346689ea52ba72ce8be9a/evidence/01-review-1.md:6-10 records no corrective edits."
+        ],
+        "disposition": "investigate"
+      },
+      {
+        "id": "D4-progress-instruction-conflict",
+        "status": "supported",
+        "reason": "The instruction conflict and repeated narrative substitutions are directly supported. This minor but material progress-visibility defect supports the eligible wording correction under S-3/S-15. Causation and post-fix effectiveness remain unproved; preserve host-display handling, cadence, and grounding.",
+        "evidence": [
+          "metrics.json:231-255 records 20 narratives and one verbatim relay. events.jsonl:20-21 shows that relay; :27-28 and :339-340 show explicit verbatim requests followed by composed summaries.",
+          "home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/SKILL.md:294-310,396-405 combines exact narrative display with brief milestone and activity-report instructions.",
+          "home/.codex/plugins/cache/whichguy/skill-craft/2.30.0/skills/shiploop/references/status-display.md:3-8 says the model writes neither status nor narrative.",
+          "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/candidate-tree/test/shiploop_e2e/SPEC.md:132-135,359-367 establishes script authority and verbatim progress display under S-3/S-15."
+        ],
+        "disposition": "implement"
+      }
+    ],
+    "process": {
+      "status": "exited",
+      "returncode": 0,
+      "elapsed_seconds": 173.0
+    },
+    "validity": {
+      "status": "invalid",
+      "reason": "the judge response is invalid: assessments[3] implements a finding that is not supported, material and eligible"
+    },
+    "driver": {
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "effort": "xhigh"
+    },
+    "admitted": {
+      "implementation": [],
+      "owner_challenges": [],
+      "harness": []
+    },
+    "judge_receipt": {
+      "stage_dir": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2/review-judge-epoch-30",
+      "prompt": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2/review-judge-epoch-30/prompt.txt",
+      "events": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2/review-judge-epoch-30/events.jsonl",
+      "stderr": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2/review-judge-epoch-30/stderr.txt",
+      "verdict": "/Users/dadleet/e2e-runs/2026-11-01/closed-loop-restore-02/cycle/epoch/runs/candidate-hello-hook-continuation-2/review-judge-epoch-30/verdict.json"
+    }
+  },
+  "routes": {
+    "implementation": [],
+    "owner_challenges": [],
+    "harness": []
+  }
+}

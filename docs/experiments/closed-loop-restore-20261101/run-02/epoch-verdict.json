@@ -1,0 +1,28 @@
+{
+  "contract": "prediction-verdict/1",
+  "record": "LR-20261101-58f651",
+  "verdict": "confirmed",
+  "effects": [
+    {
+      "case": "hello-hook-continuation",
+      "measure": "accuracy",
+      "control": 0.0,
+      "candidate": 1.0,
+      "change": 1.0,
+      "direction": "up",
+      "at_least": 0.5,
+      "verdict": "confirmed"
+    }
+  ],
+  "guards": [
+    {
+      "case": "hello-hook-continuation",
+      "measure": "accuracy",
+      "control": 0.0,
+      "candidate": 1.0,
+      "change": 1.0,
+      "direction": "not_down",
+      "held": true
+    }
+  ]
+}
