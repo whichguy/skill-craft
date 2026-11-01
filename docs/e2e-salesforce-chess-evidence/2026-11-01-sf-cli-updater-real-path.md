@@ -81,3 +81,35 @@ updater exit=0
 - The existing scheduled task `nightly-cli-update` (02:06 daily) covers claude, grok, codex, cursor and antigravity, not this CLI.
 - The success notification (a macOS banner) was removed from the job: it notifies only on failure, because a banner is a popup and
   the owner's complaint was popups.
+
+## The keychain smoke check (added the same afternoon; owner: "Updater smoke check")
+
+The harness fix rests on one CLI setting and the updater moves the CLI weekly, so the updater now runs
+`~/.claude/tools/sf-keychain-smoke.py` after every install and whenever the installed version differs from the one in
+`~/.claude/sf-cli-update.smoked`. It runs one `sf data query --target-org <nonexistent>` in a fresh throwaway HOME with
+`SF_USE_GENERIC_UNIX_KEYCHAIN=true`. Of four commands tried in a fresh HOME only that one leaves `<HOME>/.sfdx/key.json`
+(`--version`, `alias list`, `org list --json` do not touch the key). Pass: it ends within 90 s and left the key file. Fail: it is
+blocked while a new SecurityAgent or waiting `security *-generic-password` exists (the group is killed, which dismisses the dialog),
+it hangs, or it ends with no key file (cron has no GUI session, so a broken contract there shows as no key file). A failure notifies,
+exits 4 and is not recorded, so the next day checks again. Files (first 16 hex of sha256, live copies in `~/.claude/tools`, outside
+any repository): sf-cli-update-cron.sh 2f300aedeb2bb027, sf-cli-update-cron-tests.sh a7ecd3bc346496f8, sf-keychain-smoke.py
+7dba6f227f831d78, sf-keychain-smoke-tests.sh 8f973ec8ffc9db82.
+
+Tests. `sf-keychain-smoke-tests.sh`: 10 of 10. Five mutations of the script each fail the intended test (ignore the baseline: 1 failing;
+never detect a dialog: 3; skip the key-file check: 1; ignore the timeout: 1; ignore the unset seam: 1). `sf-cli-update-cron-tests.sh`: 12
+of 19 against the updater before the smoke was wired in (the seven smoke cases failed), 19 of 19 after.
+
+Real runs, 2026-11-01:
+```
+real smoke, installed 2.156.8:  PASS sf data query exited 2 in 2.7 s, key kept in a file (mode 600), no dialog
+cron-like env (env -i, PATH=/usr/bin:/bin), updater: current, then PASS ... exited 2 in 0.9 s; marker 2.156.8; second run: no smoke
+CONTROL (SF_SMOKE_UNSET=SF_USE_GENERIC_UNIX_KEYCHAIN): FAIL blocked on a keychain dialog after 2.6 s (new process [64013, 64014]);
+  its group was killed and the dialog went 10.5 s later; exit 1; nothing left running or on disk
+week-old CLI in a temporary prefix: installing 2.156.8 (installed 2.156.5); updated; plugins: Updating plugins... done;
+  PASS ... exited 2 in 1.4 s; marker 2.156.8; second run no smoke; marker removed, third run: smoke only; owner's install untouched
+```
+
+A cost of the control: the CLI retries a failed keychain write 3 times (`GET_PASSWORD_RETRY_COUNT = 3`, @salesforce/core
+`lib/crypto/keyChainImpl.js`), so each Cancel can bring the next dialog, up to four per command. The owner, present at the screen, got
+"a bunch" and cancelled them. This corrects the earlier advice to answer Cancel: kill the stuck command's process group instead (the
+dialog goes in about 11 s). A control that raises a real dialog is not rerun without the owner asking.
