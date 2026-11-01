@@ -1,0 +1,4 @@
+base: 27dedcff30f1ca05a0a541a4b4b1d21e3fe438d8
+loop branch: auto/shiploop-loop-a93fbb
+f8ce110b6bba72e77d3a33cfb741dde9ade2bb6b Jim Wiese test(shiploop): record E2E iteration 0 learnings (csv-report, codex high)
+kept candidates:
