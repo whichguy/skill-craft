@@ -56,10 +56,10 @@ def score(folder: Path) -> dict:
                     text = str(body.get("headline") or "") + " " + str(body.get("summary") or "")
                     sendbacks.append({"stage": kept.get("stage"), "class": klass(str(kept.get("stage")), text), "text": text[:400]})
     row["sendbacks"] = sendbacks
-    metrics = folder / "metrics.json"
-    if metrics.is_file():
-        data = json.loads(metrics.read_text())
-        row["minutes"] = round(float(data.get("elapsed_s") or data.get("wall_s") or 0) / 60, 1) or None
+    span = result.get("span") or {}
+    if span.get("started") and span.get("ended"):
+        row["minutes"] = round((float(span["ended"]) - float(span["started"])) / 60, 1)
+    row["turns"] = (result.get("metrics") or {}).get("turns")
     return row
 
 

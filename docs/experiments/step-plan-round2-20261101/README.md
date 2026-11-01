@@ -200,6 +200,40 @@ It runs `shared-expenses` s1 to s3 and `csv-report` s1 to s3 into `~/e2e-runs-sp
 - **The scorer** is `score_release.py`. It reads each run's `result.json`, its hidden checks, and every send-back with its stage and
   summary. Classes come from the same reading as `corpus/sendback_classes_127plus.jsonl`.
 
+### Release round results (2026-11-01, 14:48 to 15:28 PST)
+
+All six ran from the branch head 2651317f. Each run built its plugin from the committed tree, so every build holds A1's
+`itertools.pairwise`. b6b8f52a later replaced it for Python 3.9, a fix found by the quick tier. The deliveries' ShipLoop CLI ran on a
+newer interpreter, so the behaviour they exercised is the one that ships.
+
+| Run | Verdict | Hidden checks | Minutes | Turns | Send-backs (stage: class) |
+|---|---|---|---|---|---|
+| csv-report s1 | pass | 5 of 5 | 12.1 | 128 | none |
+| csv-report s2 | pass | 5 of 5 | 18.8 | 249 | test: a searched criterion's `rg` on a focused row with ID `report` (runner or command kind) |
+| csv-report s3 | pass | 5 of 5 | 11.0 | 149 | none |
+| shared-expenses s1 | pass | 6 of 6 | 26.3 | 251 | implement: S1's `node -e` Proof had broken shell quoting (Proof command defect); then validate-existing: the re-plan wrote E1 against the working checkout, where implement's draft server.js existed, not the item base (wrong expectation) |
+| shared-expenses s2 | pass | 6 of 6 | 19.9 | 196 | none |
+| shared-expenses s3 | pass | 6 of 6 | 23.0 | 242 | none |
+
+- **Predictions.** All three held.
+  - No implement send-back of form 1, and no step-plan refusal at all, so A1 never fired.
+  - No test-spec send-back for RED on six empty bases (D).
+  - 33 of 33 hidden checks pass.
+- **First step plans.** `proofscore.classify` finds no form 1, form 2 or filtered form in any of the six. On the owner's runner,
+  whole deliveries write direct Proofs: inline `python3 -c` and `node -e` scripts, or a scratch script. That agrees with X-A's arm B
+  rate.
+- **Counted, not ruled.** Three send-backs, none of a targeted class.
+  - A Proof quoting defect. §6.2 records that no precise rule catches these.
+  - An expectation written against the draft after a send-back. R3 had the same once, at 1.29.0.
+  - A searched criterion's search command on a focused row. R3 had the same once ("Correct the documentation check classification").
+- **Follow-up candidates, recorded only.**
+  - A step-plan refusal of a focused command that names only searched criteria. It is precise by construction: the test gate needs
+    a focused command to print test IDs.
+  - After a send-back, the re-plan's expectations must describe the item base, not the working checkout.
+- **Comparison with main.** SP1 xhigh's csv-report had 3 of 3 pass, one of them with two implement send-backs of the class and F31.
+  R3's shared-expenses had 20 of 20 pass at Terra high. The branch gives up nothing on either case.
+- Evidence: `release_scores.jsonl` (score_release.py); runs in `~/e2e-runs-sp/20261101/round2-release/` (outside git).
+
 ## Not ruled here
 
 - **Proof command defects** (quoting, a wrong API, a wrong state transition) get no build. `bash -n` catches none of them, and a dry run can
