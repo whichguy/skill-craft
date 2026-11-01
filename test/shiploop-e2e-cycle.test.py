@@ -20,6 +20,7 @@ import boundary
 import cycle
 import epoch
 import iterate
+import judge
 import learning_records as lr
 import prediction as predictions
 import purpose_check
@@ -663,6 +664,77 @@ class CycleTest(unittest.TestCase):
         self.assertTrue(beside, "work that needs a different resource runs beside a port holder, or this is just serial")
         self.assertTrue(any(case == "csv-report" for case, _running in beside) or
                         any("ticket-assignment" in {case, *running} for case, running in beside))
+
+    def sealed_epoch(self, name):
+        """A real epoch whose four attempts (hello and csv-report, both arms) are recorded and not yet reviewed."""
+        root, plugins = self.scheduler_epoch(name, {"hello": 1, "csv-report": 1})
+        self.run_scheduler(root, plugins)
+        self.assertEqual({row["status"] for row in epoch.state(root)["attempts"]}, {"recorded"})
+        return root
+
+    def assessments(self, root, attempt):
+        return len([row for row in epoch.events(root) if row["kind"] == "exposure" and row["attempt_id"] == attempt])
+
+    def fixture_review(self):
+        payload = {"version": 2, "outcome": "Fixture observation", "learnings": [], "missing_considerations": [],
+                   "optimizations": [], "harness": {}, "discoveries": []}
+        payload["validity"] = reviewer.validity(payload, {"status": "exited", "returncode": 0})
+        return payload
+
+    def run_review_all(self, root, judge_valid):
+        """cycle.review_all over a real epoch, a fake reviewer, and a fake judge whose answer fails the harness's own
+        consistency check (as two of six did live) whenever judge_valid(<run folder>) is false. Returns the judge's call count."""
+        def fake_judge(output, _review, **_kwargs):
+            return {"validity": {"status": "valid" if judge_valid(str(output)) else "failed"}, "assessments": []}
+
+        with mock.patch.object(reviewer, "review", return_value=self.fixture_review()), \
+                mock.patch.object(judge, "judge", side_effect=fake_judge) as independent:
+            cycle.review_all(root, root.parent / f"{root.name}-ledger.jsonl", "csv-report")
+        return independent.call_count
+
+    def test_review_all_assesses_an_incomplete_review_again_until_it_is_complete(self):
+        """Live, two of six judge answers failed the harness's validator; each attempt became review_incomplete and the epoch,
+        otherwise a PROMOTE, was downgraded to UNDECIDED, because review_all never looked at an incomplete attempt again."""
+        root = self.sealed_epoch("review-retry")
+        answers = iter([False, True, True, True, True])  # the first judgment is invalid, every later one is valid
+
+        calls = self.run_review_all(root, lambda _output: next(answers))
+
+        states = {row["id"]: row["status"] for row in epoch.state(root)["attempts"]}
+        self.assertEqual(set(states.values()), {"reviewed"})
+        self.assertEqual(calls, 5)
+        self.assertEqual(sorted(self.assessments(root, attempt) for attempt in states), [1, 1, 1, 2],
+                         "only the attempt whose judgment was invalid was assessed again, and with a new exposure")
+
+    def test_review_all_stops_at_its_bound_and_leaves_the_attempt_incomplete(self):
+        root = self.sealed_epoch("review-bound")
+
+        calls = self.run_review_all(root, lambda output: "control-hello-1" not in output)
+
+        self.assertEqual(self.assessments(root, "control-hello-1"), cycle.REVIEW_ASSESSMENTS)
+        self.assertEqual(calls, cycle.REVIEW_ASSESSMENTS + 3, "the three other attempts get one judgment each")
+        states = {row["id"]: row["status"] for row in epoch.state(root)["attempts"]}
+        self.assertEqual(states["control-hello-1"], "recorded", "epoch.state keeps an attempt recorded until a review completes")
+        last = [row for row in epoch.events(root) if row.get("attempt_id") == "control-hello-1"][-1]
+        self.assertEqual(last["kind"], "review_incomplete")
+        self.assertEqual({status for attempt, status in states.items() if attempt != "control-hello-1"}, {"reviewed"})
+        action = epoch.next_action(root)
+        self.assertEqual((action["action"], action["attempt_id"]), ("review", "control-hello-1"),
+                         "the epoch still wants this attempt reviewed, so a PROMOTE cannot be claimed without it")
+
+    def test_review_all_counts_assessments_made_before_it_was_called(self):
+        """A resumed cycle meets an attempt that is already incomplete: it picks it up, and the bound counts what was spent."""
+        root = self.sealed_epoch("review-resume")
+        failing = {"validity": {"status": "failed"}, "assessments": []}
+        with mock.patch.object(reviewer, "review", return_value=self.fixture_review()), \
+                mock.patch.object(judge, "judge", return_value=failing):
+            self.assertEqual(epoch.review_attempt(root, "control-hello-1")["kind"], "review_incomplete")
+            self.assertEqual(epoch.review_attempt(root, "control-hello-1")["kind"], "review_incomplete")
+
+        self.run_review_all(root, lambda output: "control-hello-1" not in output)
+
+        self.assertEqual(self.assessments(root, "control-hello-1"), cycle.REVIEW_ASSESSMENTS,
+                         "two assessments before the call plus one more, not three more")
 
     def test_launch_all_leaves_unclean_targets_queued_while_other_targets_and_local_runs_complete(self):
         cases = {"chess-salesforce": 2, "battleship-salesforce": 2, "csv-report": 2, "hello": 1}
