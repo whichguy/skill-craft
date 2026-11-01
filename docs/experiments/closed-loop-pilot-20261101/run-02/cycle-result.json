@@ -1,0 +1,44 @@
+{
+  "contract": "shiploop-cycle/1",
+  "decision": "DROP",
+  "reasons": [
+    "an established requirement fell: hello-hook-continuation"
+  ],
+  "verdict": {
+    "contract": "prediction-verdict/1",
+    "record": "LR-20261101-1b4675",
+    "verdict": "refuted",
+    "effects": [
+      {
+        "case": "hello-hook-continuation",
+        "measure": "tokens",
+        "control": 18203931.333333332,
+        "candidate": null,
+        "unknown": "no successful case to divide the all-attempt total by",
+        "direction": "down",
+        "at_least": 0.25,
+        "verdict": "unknown"
+      }
+    ],
+    "guards": [
+      {
+        "case": "hello-hook-continuation",
+        "measure": "accuracy",
+        "control": 1.0,
+        "candidate": 0.0,
+        "change": -1.0,
+        "direction": "not_down",
+        "held": false
+      }
+    ]
+  },
+  "outcome": {
+    "outcome": "refuted",
+    "reason": "dropped, and the prediction was refuted: an established requirement fell: hello-hook-continuation [tolerance and attempts stated, not measured]",
+    "reopen_when": "new evidence that the measure can move this way",
+    "calibration": "stated, not measured"
+  },
+  "opened": [],
+  "control_build": "605a526e7cf9",
+  "candidate_build": "b04162c89445"
+}

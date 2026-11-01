@@ -41,10 +41,15 @@ STOP_GRACE_SECONDS = 120     # after the stop file, the harness is given this lo
 MAX_INVALID_STREAK = 6        # invalid attempts in a row that stop the whole batch
 MAX_ATTEMPTS = 3             # a slot is retried only when its trial was invalid (infrastructure), never for its outcome
 ARMS = ("C", "T1", "T2")
-# stimulus -> (selector for run.py, trials per arm). sf-ui is the prompt of the failing run, byte for byte; hello is the
-# smoke case (an empty directory, no "current directory" wording); repo is a brownfield case that declares no port (an
-# existing Git repository). user-listing was the first choice and was dropped: it leases the machine-wide port 3000.
-STIMULI = {"sf-ui": (["--prompt-file"], 40), "hello": (["--case", "hello"], 10), "repo": (["--case", "ticket-assignment-tests"], 10)}
+# stimulus -> selector for run.py. sf-ui is the prompt of the failing run, byte for byte; hello is the smoke case (an empty
+# directory, no "current directory" wording); repo is a brownfield case that declares no port (an existing Git repository;
+# user-listing was the first choice and was dropped: it leases the machine-wide port 3000). The last three ask for an
+# in-place or non-Git run explicitly, where `init` is the right first command (stimuli/*.txt).
+SELECTORS = {"sf-ui": ["--prompt-file"], "hello": ["--case", "hello"], "repo": ["--case", "ticket-assignment-tests"],
+             "inplace-hello": ["--prompt-file"], "nogit-hello": ["--prompt-file"], "inplace-sf": ["--prompt-file"]}
+# a plan set: which cards run, and how many sessions per card for each request
+PLAN_SETS = {"start": {"arms": ("C", "T1", "T2"), "counts": {"sf-ui": 40, "hello": 10, "repo": 10}},
+             "inplace": {"arms": ("C", "T2"), "counts": {"inplace-hello": 16, "nogit-hello": 16, "inplace-sf": 16}}}
 SEED = 20261101
 ARMS_FILE = HERE / "arms.json"   # --arms picks another; the replication uses arms-r2.json
 
@@ -69,8 +74,10 @@ def detect_start(cmd: str) -> str | None:
     return "workspace" if match.group(1).startswith("workspace") else "direct"
 
 
-def make_plan(seed: int = SEED) -> list[dict]:
-    slots = [{"stimulus": s, "arm": a, "i": i} for s, (_, n) in STIMULI.items() for a in ARMS for i in range(1, n + 1)]
+def make_plan(seed: int = SEED, plan_set: str = "start") -> list[dict]:
+    chosen = PLAN_SETS[plan_set]
+    slots = [{"stimulus": s, "arm": a, "i": i} for s, n in chosen["counts"].items() for a in chosen["arms"]
+             for i in range(1, n + 1)]
     random.Random(seed).shuffle(slots)
     for number, slot in enumerate(slots, 1):
         slot["slot"] = number
@@ -180,7 +187,7 @@ def run_trial(slot: dict, attempt: int, out: Path, expected: dict) -> dict:
            "skill_seen": False, "read_run_start": False, "self_bootstrap": False,
            "start_dir": "git-repository" if stimulus == "repo" else "empty-not-git",
            "event_n": None, "seconds_to_start": None, "messages": [], "run_dir": str(trial)}
-    selector, _ = STIMULI[stimulus]
+    selector = SELECTORS[stimulus]
     if selector == ["--prompt-file"]:
         selector = ["--prompt", (HERE / "stimuli" / f"{stimulus}.txt").read_text()]
     build = (["--source", "marketplace"] if arm == "PUB"   # the published build, as a user installs it
@@ -334,14 +341,14 @@ def run_confirm(out: Path, count: int, jobs: int) -> None:
         list(pool.map(work, range(1, count + 1)))
 
 
-def prepare(out: Path) -> dict:
+def prepare(out: Path, wanted: tuple = ARMS) -> dict:
     arms = json.loads(ARMS_FILE.read_text())
-    return {"card_sha256": {arm: build_arm(arm, arms[arm], out / "arms" / arm / "root") for arm in ARMS}}
+    return {"card_sha256": {arm: build_arm(arm, arms[arm], out / "arms" / arm / "root") for arm in wanted}}
 
 
 def run_all(plan: list[dict], out: Path, jobs: int) -> None:
     out.mkdir(parents=True, exist_ok=True)
-    expected = prepare(out)
+    expected = prepare(out, tuple(sorted({s["arm"] for s in plan})))
     results_path = out / "results.jsonl"
     done: dict[int, int] = {}   # slot -> its highest attempt number, or 99 while its last row is valid
     if results_path.is_file():
@@ -381,10 +388,11 @@ def main() -> None:
     p = sub.add_parser("plan")
     p.add_argument("--out", required=True)
     p.add_argument("--seed", type=int, default=SEED)
+    p.add_argument("--set", dest="plan_set", default="start", choices=tuple(PLAN_SETS))
     p = sub.add_parser("smoke")
     p.add_argument("--arms", default=None)
     p.add_argument("--arm", default="C", choices=ARMS)
-    p.add_argument("--stimulus", default="sf-ui", choices=tuple(STIMULI))
+    p.add_argument("--stimulus", default="sf-ui", choices=tuple(SELECTORS))
     p.add_argument("--out", required=True)
     p = sub.add_parser("confirm")
     p.add_argument("--out", required=True)
@@ -405,12 +413,12 @@ def main() -> None:
         global ARMS_FILE
         ARMS_FILE = Path(args.arms).resolve()
     if args.cmd == "plan":
-        Path(args.out).write_text(json.dumps(make_plan(args.seed), indent=1) + "\n")
-        print(f"{len(make_plan(args.seed))} slots, seed {args.seed} -> {args.out}")
+        Path(args.out).write_text(json.dumps(make_plan(args.seed, args.plan_set), indent=1) + "\n")
+        print(f"{len(make_plan(args.seed, args.plan_set))} slots, set {args.plan_set}, seed {args.seed} -> {args.out}")
     elif args.cmd == "smoke":
         out = Path(args.out)
         out.mkdir(parents=True, exist_ok=True)
-        expected = prepare(out)
+        expected = prepare(out, (args.arm,))
         print(json.dumps(run_trial({"slot": 0, "arm": args.arm, "stimulus": args.stimulus, "i": 0}, 1, out, expected),
                          indent=1))
     elif args.cmd == "confirm":

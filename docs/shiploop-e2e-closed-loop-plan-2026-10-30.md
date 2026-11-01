@@ -83,9 +83,10 @@ refuses a calibration whose digests differ from the epoch it is applied to.
 with a prediction, one `promotion/5` decision, built on only after PROMOTE, and remembered. Done means a live cycle that
 promotes a change whose prediction is confirmed, lands it on `main` and marks its record verified. That has happened
 once, by hand and not through `cycle.py` (two paragraphs down). A live decision that says no has since been recorded too
-(f842a624, below). Not yet seen: `cycle.py` end to end, a known-bad rejected on purpose, or a cycle under a stated
-tolerance. The owner asked on 2026-11-01 for the stage 4 pilot and one full cycle; their results are added below when
-they exist.
+(f842a624, below). On 2026-11-01 the stage 4 pilot ran `cycle.py`'s own path on a live model: its second run rejected a
+known-bad build (DROP, prediction refuted) with all six attempts valid, after its first run found and fixed a
+parallel-launch defect (Stage 4, below). Not yet seen: `cycle.py` with an improver, reviews and a promotion, which is
+the stage 5 cycle the owner asked for the same day; its result is added when it exists.
 
 **Established.** Stages 1 and 2 are on `main` (6337038, CI green): the SPEC rules, the learning records, predictions,
 `spread.py`, the purpose check, side-by-side runs and `cycle.py`, with no-model tests. ba51c3f then fixed the controller's
@@ -111,11 +112,11 @@ message names neither `cycle.py` nor `iterate.py`, so it too looks hand-driven. 
 no (f842a624) on real candidates. Neither is a known-bad rejected on purpose, and neither ran through `cycle.py`; stages
 4 and 5 below are for those two, and the cautions under them apply.
 
-**Learned, and where.** About the loop: LEARNINGS.md, "Closed loop, stage 2" and "Closed loop review" (what a cycle costs,
-the noise question, the corrections). About ShipLoop: `test/shiploop_e2e/learning-records.jsonl` (six records; the
-admitted one is the S-13 slip LR-20261030-8ff7a9). The rules the lessons became: SPEC.md's Purpose, "Learning records and
-predictions", Change admission's "Purpose", the promotion contract's "Qualified iteration" and the harness rule "A
-comparison that promotes is one registered epoch".
+**Learned, and where.** About the loop: LEARNINGS.md, "Closed loop, stage 2" and "Closed loop review" (what a cycle
+costs, the noise question, the corrections). About ShipLoop: `test/shiploop_e2e/learning-records.jsonl` (the S-13 slip
+LR-20261030-8ff7a9 is admitted, minor and unfixed; the stage 4 pilot's record reads refuted). The rules the lessons
+became: SPEC.md's Purpose, "Learning records and predictions", Change admission's "Purpose", the promotion contract's
+"Qualified iteration" and the harness rule "A comparison that promotes is one registered epoch".
 
 **Still to change, in order** (rewritten 2026-10-31, after the owner's two decisions below).
 
@@ -124,7 +125,7 @@ comparison that promotes is one registered epoch".
 | 1 | Stage 3 (same-build calibration): **skipped by the owner**. The kit stays for a later measurement | `docs/experiments/e2e-calibration-20261031/` | nothing |
 | 2 | State the tolerance and attempts per cycle (`--tolerance`, `--attempts`, recorded as unmeasured; start at 0.25 or more). D3 (limits) and D4 (sampled reviews) remain open | the decisions table above | the owner |
 | 3 | Trim the cycle if the owner wants it cheaper: sampled reviews, the second case at release, the purpose review on a flag | `epoch.py` `decide` (every attempt reviewed before PROMOTE); `cycle.py` `roles_for` and the purpose review in `qualify` | D4 |
-| 4 | Stage 4: the hook-revert pilot must be dropped or left undecided (kit built 2026-11-01; the owner asked for the run; 4 KB of padding was too small to see: see Stage 4) | a new file in `test/shiploop_e2e/overlays/`; `cycle.py --candidate-plugin` | live runs |
+| 4 | Stage 4: the hook-revert pilot: **done 2026-11-01**. Run 1 UNDECIDED (parallel-launch defect, fixed), run 2 DROP with all six attempts valid. Its kit and results stay in `docs/experiments/closed-loop-pilot-20261101/` | `docs/experiments/closed-loop-pilot-20261101/` | nothing |
 | 5 | Stage 5: the first cycle, on a record whose fix should move a measure by at least the tolerance (not the S-13 slip: see Stage 5) | `iterate.py --qualify` | live runs |
 
 All live runs need Codex Terra on the owner's computer. The Claude host is reachable from a cloud session, but see the
@@ -410,19 +411,36 @@ The 10-29 plan's "prove the loop can say no", live. Built 2026-11-01 as `docs/ex
   tolerance of 0.25 that prediction would have been refuted and the epoch UNDECIDED at best. A planted defect has to
   exceed the tolerance by a wide margin, or fail a floor the control passes (quality decides before efficiency is read).
 
+- **Result (2026-11-01).** Run 1 (kit bba7561): UNDECIDED. Four of its six attempts were `invalid_evidence`: an attempt
+  sealed while a parallel sibling was still writing, and the receipt binds each overlapping run's timeline, metrics and
+  invocation files. Fixed in f0e1adb (an attempt waits for its siblings before it seals), with a second defect,
+  `epoch.py status` raising after a decision, fixed in 5b7ce8d. Run 2 (kit 1a47885): all six attempts `recorded`; DROP
+  ("an established requirement fell: hello-hook-continuation"); the control had 3 of 3 successes and the candidate 0 of
+  3; the prediction read refuted through its accuracy guard (the token effect is unknown, as the candidate had no
+  successful attempt); the record reads `refuted`. Passes the stage's bar (not PROMOTE, and the measurement saw the
+  planted defect). Three attempts per arm under a stated, unmeasured tolerance: it shows this loop rejects this
+  regression at this sample, not how often. Files: `docs/experiments/closed-loop-pilot-20261101/run-01`, `run-02` and
+  its README.
 ## Stage 5: first qualified cycles
 
 ```sh
-python3 test/shiploop_e2e/iterate.py --qualify --case user-listing --generality-case csv-report \
+python3 test/shiploop_e2e/iterate.py --qualify --case csv-report --generality-case seat-reservations \
     --tolerance 0.25 --attempts 3 --host codex --model gpt-6.1-terra --effort high --iterations 1
 ```
 
-(Corrected 2026-11-01: `iterate.py` has `--iterations`, not `--cycles`; `csv-report` replaces `battleship`, which has
-never run on Terra and has no time measured; one iteration first, since a cycle is the expensive unit.)
+(Corrected 2026-11-01: `iterate.py` has `--iterations`, not `--cycles`; one iteration first, since a cycle is the
+expensive unit. The cases changed twice. `battleship` was replaced because it has never run on Terra and has no time
+measured. `user-listing` was then used for the first launch and refused: it declares the fixed port 3000 in
+`quality.refuse_ports`, `run.py` takes a declared port as a machine-wide lease and refuses to start while another
+harness holds it, and another session's `user-listing` run did. `battleship` and `checkers` declare 3000 too, the
+`ticket-*` cases 4180. A cycle on such a case would also fail its own parallel attempts, because `launch_all` serialises
+attempts that share a hosted platform but not attempts that share a fixed port; that gap is not fixed. The cycle
+therefore uses two cases with no fixed port and no hosted platform, of different styles: `csv-report`, exposing, and
+`seat-reservations`, the unseen generality case.)
 
-- **The first record:** from an exploration run on `user-listing`, or a seeded record whose reopen condition holds.
+- **The first record:** from an exploration run on `csv-report`, or a seeded record whose reopen condition holds.
 - **Selection (2026-11-01):** `select` reads the cycle's cases (b3328b4). The one admitted record on the ledger,
-  LR-20261031-8d97e7, was found on the hosted `gym-membership-salesforce` case, so a `user-listing` cycle would have
+  LR-20261031-8d97e7, was found on the hosted `gym-membership-salesforce` case, so a cycle on other cases would have
   taken it and measured it on two cases that cannot show it; it now explores first. If exploring leaves no admitted
   material record, the loop stops and no cycle runs.
 - **Not the S-13 slip (2026-11-01).** `prediction.validate` refuses a prediction with no effect and an efficiency effect

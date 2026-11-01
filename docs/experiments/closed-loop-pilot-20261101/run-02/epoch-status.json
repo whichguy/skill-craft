@@ -1,0 +1,273 @@
+{
+  "contract": "shiploop-epoch/2",
+  "purpose": "product_change",
+  "attempts": [
+    {
+      "id": "control-hello-hook-continuation-1",
+      "arm": "control",
+      "case": "hello-hook-continuation",
+      "status": "recorded"
+    },
+    {
+      "id": "control-hello-hook-continuation-2",
+      "arm": "control",
+      "case": "hello-hook-continuation",
+      "status": "recorded"
+    },
+    {
+      "id": "control-hello-hook-continuation-3",
+      "arm": "control",
+      "case": "hello-hook-continuation",
+      "status": "recorded"
+    },
+    {
+      "id": "candidate-hello-hook-continuation-1",
+      "arm": "candidate",
+      "case": "hello-hook-continuation",
+      "status": "recorded"
+    },
+    {
+      "id": "candidate-hello-hook-continuation-2",
+      "arm": "candidate",
+      "case": "hello-hook-continuation",
+      "status": "recorded"
+    },
+    {
+      "id": "candidate-hello-hook-continuation-3",
+      "arm": "candidate",
+      "case": "hello-hook-continuation",
+      "status": "recorded"
+    }
+  ],
+  "decision": {
+    "sequence": 20,
+    "at": 1793546959.636786,
+    "kind": "decision",
+    "result": {
+      "contract": "promotion/5",
+      "registration": "5f432d5d8ffab45eca8e7618399cf6228bc706c665c55e58b32e9e3e899bad7c",
+      "purpose": "product_change",
+      "decision": "DROP",
+      "reasons": [
+        "an established requirement fell: hello-hook-continuation"
+      ],
+      "cases": {
+        "hello-hook-continuation": {
+          "role": "regression",
+          "control": {
+            "attempts": 3,
+            "registered_attempts": 3,
+            "successes": 3,
+            "unknown": 0,
+            "share": 1.0
+          },
+          "candidate": {
+            "attempts": 3,
+            "registered_attempts": 3,
+            "successes": 0,
+            "unknown": 0,
+            "share": 0.0
+          }
+        }
+      },
+      "attempts": [
+        {
+          "id": "control-hello-hook-continuation-1",
+          "arm": "control",
+          "case": "hello-hook-continuation",
+          "started": 1793544979.406,
+          "product": {
+            "observed": true,
+            "head": "c28a6ce41ec4a3b18bbe74f2c7ee5cca6ca989c6",
+            "tree": "1bf67d7a9bed91275d838d9038cf0b1b63edb823",
+            "after_head": "c28a6ce41ec4a3b18bbe74f2c7ee5cca6ca989c6",
+            "after_tree": "1bf67d7a9bed91275d838d9038cf0b1b63edb823",
+            "unchanged_during_checks": true
+          },
+          "scorecard": "scorecard/6",
+          "evidence_valid": true,
+          "evidence_errors": [],
+          "reported_outcome": "success",
+          "outcome": "success",
+          "hard_floor_failures": [],
+          "unknown_floors": []
+        },
+        {
+          "id": "control-hello-hook-continuation-2",
+          "arm": "control",
+          "case": "hello-hook-continuation",
+          "started": 1793544981.202,
+          "product": {
+            "observed": true,
+            "head": "0400857d8d1af214323ea97a89113fdc71545475",
+            "tree": "734b6c5537a2768c8319794490e7a54d90f647d7",
+            "after_head": "0400857d8d1af214323ea97a89113fdc71545475",
+            "after_tree": "734b6c5537a2768c8319794490e7a54d90f647d7",
+            "unchanged_during_checks": true
+          },
+          "scorecard": "scorecard/6",
+          "evidence_valid": true,
+          "evidence_errors": [],
+          "reported_outcome": "success",
+          "outcome": "success",
+          "hard_floor_failures": [],
+          "unknown_floors": []
+        },
+        {
+          "id": "control-hello-hook-continuation-3",
+          "arm": "control",
+          "case": "hello-hook-continuation",
+          "started": 1793545745.174,
+          "product": {
+            "observed": true,
+            "head": "68b44868151c01c73178fd4147dec5b4f2dba7a9",
+            "tree": "98cccb10e3712635b5e2d79cd446d35c1fc58b85",
+            "after_head": "68b44868151c01c73178fd4147dec5b4f2dba7a9",
+            "after_tree": "98cccb10e3712635b5e2d79cd446d35c1fc58b85",
+            "unchanged_during_checks": true
+          },
+          "scorecard": "scorecard/6",
+          "evidence_valid": true,
+          "evidence_errors": [],
+          "reported_outcome": "success",
+          "outcome": "success",
+          "hard_floor_failures": [],
+          "unknown_floors": []
+        },
+        {
+          "id": "candidate-hello-hook-continuation-1",
+          "arm": "candidate",
+          "case": "hello-hook-continuation",
+          "started": 1793545747.731,
+          "product": {
+            "observed": true,
+            "head": "edb73accef823cd0aea5dc0745aae5ab8acd1577",
+            "tree": "68437943f66da11dddc47d4fd34cb2b8e63e9663",
+            "after_head": "edb73accef823cd0aea5dc0745aae5ab8acd1577",
+            "after_tree": "68437943f66da11dddc47d4fd34cb2b8e63e9663",
+            "unchanged_during_checks": true
+          },
+          "scorecard": "scorecard/6",
+          "evidence_valid": true,
+          "evidence_errors": [],
+          "reported_outcome": "failure",
+          "outcome": "failure",
+          "hard_floor_failures": [
+            "accuracy"
+          ],
+          "unknown_floors": []
+        },
+        {
+          "id": "candidate-hello-hook-continuation-2",
+          "arm": "candidate",
+          "case": "hello-hook-continuation",
+          "started": 1793546404.243,
+          "product": {
+            "observed": true,
+            "head": "35c42cbdcd9d7a198f22bf0f807b56c456eaa6fd",
+            "tree": "6606b54dd31d2db71d55da9679d5676ff6b5393e",
+            "after_head": "35c42cbdcd9d7a198f22bf0f807b56c456eaa6fd",
+            "after_tree": "6606b54dd31d2db71d55da9679d5676ff6b5393e",
+            "unchanged_during_checks": true
+          },
+          "scorecard": "scorecard/6",
+          "evidence_valid": true,
+          "evidence_errors": [],
+          "reported_outcome": "failure",
+          "outcome": "failure",
+          "hard_floor_failures": [
+            "accuracy"
+          ],
+          "unknown_floors": []
+        },
+        {
+          "id": "candidate-hello-hook-continuation-3",
+          "arm": "candidate",
+          "case": "hello-hook-continuation",
+          "started": 1793546411.524,
+          "product": {
+            "observed": true,
+            "head": "8f502523c46418d18792f8334c6c330f33a7afec",
+            "tree": "6b06b48031c3a5002635fba06e710abc5076d8eb",
+            "after_head": "8f502523c46418d18792f8334c6c330f33a7afec",
+            "after_tree": "6b06b48031c3a5002635fba06e710abc5076d8eb",
+            "unchanged_during_checks": true
+          },
+          "scorecard": "scorecard/6",
+          "evidence_valid": true,
+          "evidence_errors": [],
+          "reported_outcome": "failure",
+          "outcome": "failure",
+          "hard_floor_failures": [
+            "accuracy"
+          ],
+          "unknown_floors": []
+        }
+      ],
+      "known_floor_failures": [
+        {
+          "id": "candidate-hello-hook-continuation-1",
+          "arm": "candidate",
+          "case": "hello-hook-continuation",
+          "floors": [
+            "accuracy"
+          ],
+          "evidence_valid": true
+        },
+        {
+          "id": "candidate-hello-hook-continuation-2",
+          "arm": "candidate",
+          "case": "hello-hook-continuation",
+          "floors": [
+            "accuracy"
+          ],
+          "evidence_valid": true
+        },
+        {
+          "id": "candidate-hello-hook-continuation-3",
+          "arm": "candidate",
+          "case": "hello-hook-continuation",
+          "floors": [
+            "accuracy"
+          ],
+          "evidence_valid": true
+        }
+      ],
+      "hard_floor_failures": [],
+      "unknown_floor_evidence": [],
+      "notes": [],
+      "global_errors": [],
+      "evidence_issues": [],
+      "qualification": {
+        "claim": "product_change",
+        "scorecard": "scorecard/6",
+        "snapshot": "1f696a4bf08dad45bb57e91116fde50ddb06028cbe0c35874431f598c69f6990",
+        "attribution": "ShipLoop build change"
+      }
+    }
+  },
+  "prediction": {
+    "contract": "prediction/1",
+    "record": "LR-20261101-1b4675",
+    "anchor": "S-2",
+    "because": "Reverting the same-action continuation removes the recovery work that cost the tip 34.2% more processed tokens in the pair behind 07734b9, so the reverted build should need at least a quarter fewer tokens per successful attempt.",
+    "effects": [
+      {
+        "case": "hello-hook-continuation",
+        "measure": "tokens",
+        "direction": "down",
+        "at_least": 0.25
+      }
+    ],
+    "guards": [
+      {
+        "case": "hello-hook-continuation",
+        "measure": "accuracy",
+        "direction": "not_down"
+      }
+    ]
+  },
+  "discoveries": [],
+  "publication": "not_performed",
+  "generalisation": "unobserved unless independently qualified by the registered coverage"
+}

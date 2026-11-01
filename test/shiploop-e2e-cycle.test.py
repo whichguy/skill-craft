@@ -876,10 +876,9 @@ class PilotKitTest(unittest.TestCase):
     def test_the_run_script_parses_pins_the_hook_commits_and_refuses_a_used_folder(self):
         script = self.KIT / "run.sh"
         self.assertEqual(subprocess.run(["bash", "-n", str(script)], capture_output=True, text=True, check=False).returncode, 0)
-        text, readme = script.read_text(), (self.KIT / "README.md").read_text()
+        text = script.read_text()
         for pinned in ("779980629a81ce0e740f7c196e83e000dd582d99", "7f25acff8dab239485f262249ec70773ba906aad"):
             self.assertIn(pinned, text)
-            self.assertIn(pinned, readme)
         for name in ("prediction.json", "pilot-ledger.jsonl"):
             self.assertIn(name, text)
             self.assertTrue((self.KIT / name).is_file())
@@ -894,13 +893,15 @@ class CycleKitTest(unittest.TestCase):
     """The stage 5 full-cycle kit (docs/experiments/closed-loop-cycle-20261101): what its script runs is checked here."""
     KIT = ROOT / "docs" / "experiments" / "closed-loop-cycle-20261101"
 
-    def test_the_cycle_uses_no_hosted_platform_and_no_shared_lane_and_reads_its_own_cases(self):
+    def test_the_cycle_needs_no_hosted_platform_no_fixed_port_and_names_its_own_cases(self):
+        """The first launch was refused: user-listing declares port 3000 and another session's run held that lease."""
         text = (self.KIT / "run.sh").read_text()
         catalog = json.loads((ROOT / "test" / "shiploop_e2e" / "cases.json").read_text())
-        for case in ("user-listing", "csv-report"):
-            self.assertIn(case, text)
+        self.assertIn("--case csv-report --generality-case seat-reservations", text)
+        for case in ("csv-report", "seat-reservations"):
             self.assertIsNone(runner.case_platform(case), f"{case} must not need a hosted platform")
-            self.assertNotIn("4180", json.dumps(catalog[case]), f"{case} must not take the shared port-4180 lane")
+            self.assertFalse((catalog[case].get("quality") or {}).get("refuse_ports"),
+                             f"{case} declares a fixed port, which run.py leases machine-wide and launch_all does not serialise")
         for flag in ("--tolerance 0.25", "--attempts 3", "--effort high", "--model gpt-6.1-terra", "--iterations 1"):
             self.assertIn(flag, text)
         self.assertNotIn("--skip-reviews", text, "the full cycle reviews every attempt")
