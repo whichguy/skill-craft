@@ -1,0 +1,12 @@
+{
+  "contract": "prediction/1",
+  "record": "LR-20261101-1b4675",
+  "anchor": "S-2",
+  "because": "Reverting the same-action continuation removes the recovery work that cost the tip 34.2% more processed tokens in the pair behind 07734b9, so the reverted build should need at least a quarter fewer tokens per successful attempt.",
+  "effects": [
+    {"case": "hello-hook-continuation", "measure": "tokens", "direction": "down", "at_least": 0.25}
+  ],
+  "guards": [
+    {"case": "hello-hook-continuation", "measure": "accuracy", "direction": "not_down"}
+  ]
+}

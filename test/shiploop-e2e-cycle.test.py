@@ -21,6 +21,7 @@ import cycle
 import epoch
 import iterate
 import learning_records as lr
+import prediction as predictions
 import purpose_check
 import review as reviewer
 import run as runner
@@ -790,6 +791,88 @@ class CycleTest(unittest.TestCase):
         path.write_text(json.dumps({"contract": spread.CONTRACT, "cases": {case: {} for case in CASES}}))
         with self.assertRaisesRegex(ValueError, "malformed"):
             cycle.load_calibration(path, list(CASES))
+
+
+class PilotKitTest(unittest.TestCase):
+    """The stage 4 pilot kit (docs/experiments/closed-loop-pilot-20261101): a live run is only as good as its inputs, so
+    every input it needs is checked here without a model."""
+    KIT = ROOT / "docs" / "experiments" / "closed-loop-pilot-20261101"
+    CASE = "hello-hook-continuation"
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.temp = Path(temp.name)
+        self.prediction_file = self.KIT / "prediction.json"
+        self.prediction = json.loads(self.prediction_file.read_text())
+        self.ledger = self.KIT / "pilot-ledger.jsonl"
+
+    def plugin(self, name):
+        plugin = self.temp / name
+        (plugin / "skills" / "shiploop").mkdir(parents=True)
+        (plugin / "skills" / "shiploop" / "SKILL.md").write_text(name)
+        return plugin
+
+    def test_the_prediction_registers_with_the_stated_basis_the_run_uses(self):
+        driver = {"host": "codex", "model": "gpt-6.1-terra", "effort": "high"}
+        calibration = cycle.stated_calibration(3, 0.25)
+        template = self.temp / "registration.json"
+        template.write_text(json.dumps(cycle.registration_template(
+            cycle.roles_for(self.prediction, self.CASE, None), runner.tree_digest(self.plugin("control")),
+            runner.tree_digest(self.plugin("candidate")), driver, calibration["attempts"], calibration["tolerance"],
+            calibration["metric"])))
+        root = self.temp / "epoch"
+        epoch.initialise(root, template, self.prediction_file)
+        self.assertEqual(epoch.state(root)["prediction"]["record"], self.prediction["record"])
+        attempts = epoch.registration(root)["attempts"]
+        self.assertEqual(({row["case"] for row in attempts}, len(attempts)), ({self.CASE}, 6))
+
+    def test_a_prediction_below_the_stated_tolerance_would_have_been_refused_at_registration(self):
+        driver = {"host": "codex", "model": "gpt-6.1-terra", "effort": "high"}
+        weak = self.temp / "weak.json"
+        weak.write_text(json.dumps({**self.prediction, "effects": [{**self.prediction["effects"][0], "at_least": 0.10}]}))
+        template = self.temp / "registration.json"
+        template.write_text(json.dumps(cycle.registration_template(
+            {self.CASE: "regression"}, runner.tree_digest(self.plugin("control")),
+            runner.tree_digest(self.plugin("candidate")), driver, 3, 0.25, "tokens")))
+        with self.assertRaisesRegex(ValueError, "below the registered tolerance"):
+            epoch.initialise(self.temp / "epoch", template, weak)
+
+    def test_the_pilots_case_is_a_regression_case_so_a_quality_fall_decides_first(self):
+        self.assertEqual(cycle.roles_for(self.prediction, self.CASE, None), {self.CASE: "regression"})
+
+    def test_the_pilot_record_resolves_and_no_loop_can_select_it(self):
+        view = lr.improver_view(self.prediction["record"], self.ledger)
+        self.assertIn("reverted", view["title"])
+        self.assertIsNone(lr.select(self.ledger), "a pilot record is an input, never a record a loop takes")
+
+    def test_a_reverted_build_that_fails_the_case_is_refuted_while_a_cheaper_pass_would_be_confirmed(self):
+        control = [card(self.CASE, 10_000_000) for _ in range(3)]
+        registration = {"cases": {self.CASE: {"role": "regression", "attempts": 3}}, "tolerance": 0.25}
+        failing = [card(self.CASE, 6_000_000, ok=False) for _ in range(3)]
+        judged = predictions.verdict(self.prediction, registration, control, failing)
+        self.assertEqual(judged["verdict"], "refuted")
+        self.assertIs(judged["guards"][0]["held"], False)
+        self.assertEqual(predictions.outcome("DROP", judged, ["accuracy fell"])["outcome"], "refuted")
+        passing = [card(self.CASE, 6_000_000) for _ in range(3)]
+        self.assertEqual(predictions.verdict(self.prediction, registration, control, passing)["verdict"], "confirmed",
+                         "the same tokens at the same quality confirm it: the guard, not the numbers, rejects the failure")
+
+    def test_the_run_script_parses_pins_the_hook_commits_and_refuses_a_used_folder(self):
+        script = self.KIT / "run.sh"
+        self.assertEqual(subprocess.run(["bash", "-n", str(script)], capture_output=True, text=True, check=False).returncode, 0)
+        text, readme = script.read_text(), (self.KIT / "README.md").read_text()
+        for pinned in ("779980629a81ce0e740f7c196e83e000dd582d99", "7f25acff8dab239485f262249ec70773ba906aad"):
+            self.assertIn(pinned, text)
+            self.assertIn(pinned, readme)
+        for name in ("prediction.json", "pilot-ledger.jsonl"):
+            self.assertIn(name, text)
+            self.assertTrue((self.KIT / name).is_file())
+        used = self.temp / "used"
+        used.mkdir()
+        refused = subprocess.run(["bash", str(script), "0" * 40, str(used)], capture_output=True, text=True, check=False)
+        self.assertEqual(refused.returncode, 2, refused.stderr)
+        self.assertIn("exists", refused.stderr)
 
 
 if __name__ == "__main__":
