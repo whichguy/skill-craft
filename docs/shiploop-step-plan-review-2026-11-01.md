@@ -1,7 +1,8 @@
 ---
 Status: one change built, tested hermetically (§5) and live on Codex Terra 6.1 xhigh (§7a: 9 deliveries, 20 step-plan slices; a
   wording fix, 45153684, came out of it); released as skill-craft 2.29.0 / ShipLoop 1.28.0 (4224161b, CI green); §8 is the owner's;
-  round 2 (§9, the same afternoon) built A1, A2a and D and reverted A2b on its registered rule
+  round 2 (§9, the same afternoon) built A1, A2a and D and reverted A2b on its registered rule; the owner chose to ship A2a and
+  leave A2b reverted
 Opened: 2026-11-01
 Consumer: the owner, who asked to make step planning as effective and efficient as possible; later, a session that changes
   the step-plan stage reads §3 for what it costs and what goes wrong, and §6 for what was considered and not built.
@@ -42,8 +43,10 @@ what the stage costs, and changes what the evidence supports.
   repeatable-Proof line and changes to the step-plan Improve review are listed for the owner (§8).
 - **Round 2 (§9, the same afternoon).** The owner reopened the class of a Proof that runs this item's unwritten tests.
   - Built: A1, a step-plan gate that reads test paths inside a Proof's inline code; D, test-spec accepts a load failure of new code as RED.
-  - Also built: A2a, "make it safe to repeat". It has no registered rule of its own, so whether it ships is the owner's call.
-  - A2b ("never the focused command") missed its rule and was reverted.
+  - Also built: A2a, "make it safe to repeat". It has no registered rule of its own, so whether it shipped was the owner's call. The
+    owner: "Ship A2a (Recommended)".
+  - A2b ("never the focused command") missed its rule and was reverted. The owner: "Leave A2b reverted (Recommended)". Its
+    whole-delivery A/B is a follow-up.
 - **Live (§7a, Codex Terra 6.1 xhigh).** Nine deliveries passed with no test-spec send-back for IDs (ticket-import's three
   through the open-item template path, the gate firing once and the next draft passing); 16 step-plan
   slices (A/B) and 4 more showed no extra step-plan time and no short plan. They also caught one regression: the first
@@ -329,9 +332,9 @@ leave F31" (§8 item 4). Registration, rules and results: docs/experiments/step-
 | Item | What was done | Result |
 |---|---|---|
 | Corpus refresh | the review's tool on 229 runs (338 step-plan actions, 91 send-backs) | Of the 30 send-backs on ShipLoop 1.27.0 and later, by main class (30 in all): 11 a Proof that runs this item's unwritten tests, 11 focused IDs short (1.27.0, gated since 1.28.0), 2 test-spec refusing RED on an empty base, 3 runner or command kind, 1 F31, 1 needs a later step, 1 wrong expectation. Counting the send-backs that hold a second class too: 12 unwritten-test Proofs and 5 RED refusals |
-| A1: rule A reads test paths inside inline code | `shiploop_item_scope.inline_code_paths`, a route test and a reader test, both fail-first | Its replay over 363 saved plans (352 at their acceptance commit, 11 at the lint tree) flags 2, both real faults; 0 false. The review found a false refusal for a quoted absolute path with a space, or a URL with a port, fixed in fd7223e8; a Python 3.10-only call, fixed in b6b8f52a, was found by the quick tier. Built |
-| A2a: the Proof must be safe to repeat (§8 item 3) | "ShipLoop reruns it at the step's done, so make it safe to repeat"; the tests-are-not-a-step line loses the clause its refusal states | Heads -20. Not measured live (its cases are Salesforce). Registered inside A2, whose rule failed; it has no rule of its own, so it ships only at the owner's word |
-| A2b: never the focused command or a filtered copy | proof bullet and review focus | X-A, a replay of R3's A-s9 state at step-plan, 12 per arm on Terra xhigh: B 1 of 12 faulty, T 0 of 12, p = 0.50. Missed its rule; reverted (68985caf). Post hoc, A2b did move Proof choice: node's runner appears in a Proof in 6 of 12 B plans and 0 of 12 T plans. Every T sample also crashed once on A1's 3.10-only call |
+| A1: rule A reads test paths inside inline code | `shiploop_item_scope.inline_code_paths`, a route test and a reader test, both fail-first | Its replay over 363 saved plans (352 at their acceptance commit, 11 at the lint tree) flags 2, both real faults; 0 false. The first review found a false refusal for a quoted absolute path with a space, or a URL with a port, fixed in fd7223e8. The second found that fd7223e8 dropped a quoted command string's relative test (a false negative), and that more false-refusal forms remained; both were fixed in 87913a53, which changes the reading of 0 of 489 saved Proofs. A Python 3.10-only call, fixed in b6b8f52a, was found by the quick tier. Built |
+| A2a: the Proof must be safe to repeat (§8 item 3) | "ShipLoop reruns it at the step's done, so make it safe to repeat"; the tests-are-not-a-step line loses the clause its refusal states | Heads -20. Not measured live (its cases are Salesforce). Registered inside A2, whose rule failed; it has no rule of its own. The owner: "Ship A2a (Recommended)". Ships |
+| A2b: never the focused command or a filtered copy | proof bullet and review focus | X-A, a replay of R3's A-s9 state at step-plan, 12 per arm on Terra xhigh: B 1 of 12 faulty, T 0 of 12, p = 0.50. Missed its rule; reverted (68985caf); the owner: "Leave A2b reverted (Recommended)", with its whole-delivery A/B a follow-up. Post hoc, arm T moved Proof choice: node's runner appears in a Proof in 6 of 12 B plans and 0 of 12 T plans. Arm T held A1, A2a, A2b and D, and A2a rewrote the same proof bullet, so the shift cannot be credited to A2b alone. Every T sample also crashed once on A1's 3.10-only call |
 | D: RED may be a load failure | test-spec duty 3, the template's RED placeholder ("not because a file is" removed), glossary | Aligns test-spec with the base run's rule. Its live check is the release round |
 | Needs-later-step | rule B over the `minimum` regression command's paths, replayed | 1 of 363 flagged, after a filter fix (a Salesforce plan sent back earlier for another reason); neither known case. Not built |
 | Proof command defects | none | No precise rule (§6.2) |

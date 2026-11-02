@@ -1,0 +1,38 @@
+== round2/xa-B
+  step-plan/proof-runs-focused-suite/1: refused checks 0 [] | crash rows 0 at step-plan check #[] | refused completes []
+  step-plan/proof-runs-focused-suite/2: refused checks 1 ["a test command's ids must be a nonempty list of test IDs without spaces"] | crash rows 0 at step-plan check #[] | refused completes []
+  step-plan/proof-runs-focused-suite/3: refused checks 0 [] | crash rows 0 at step-plan check #[] | refused completes []
+  step-plan/proof-runs-focused-suite/4: refused checks 1 ["a test command's ids must be a nonempty list of test IDs without spaces"] | crash rows 0 at step-plan check #[] | refused completes []
+  TOTAL {'ref': 2, 'ref_samples': 2, 'crash': 0, 'crash_samples': 0}
+== round2/xa-B2
+  step-plan/proof-runs-focused-suite/1: refused checks 0 [] | crash rows 0 at step-plan check #[] | refused completes []
+  step-plan/proof-runs-focused-suite/2: refused checks 2 ['open plan assumptions A2 name W1 as due_item; settle each here: an executed criterion with', "a test command's ids must be a nonempty list of test IDs without spaces"] | crash rows 0 at step-plan check #[] | refused completes []
+  step-plan/proof-runs-focused-suite/3: refused checks 0 [] | crash rows 0 at step-plan check #[] | refused completes []
+  step-plan/proof-runs-focused-suite/4: refused checks 1 ["a test command's ids must be a nonempty list of test IDs without spaces"] | crash rows 0 at step-plan check #[] | refused completes []
+  step-plan/proof-runs-focused-suite/5: refused checks 0 [] | crash rows 0 at step-plan check #[] | refused completes []
+  step-plan/proof-runs-focused-suite/6: refused checks 2 ["step S1's Proof runs test/expenses.test.js, which the item base does not have and no earli", "a test command's ids must be a nonempty list of test IDs without spaces"] | crash rows 0 at step-plan check #[] | refused completes []
+  step-plan/proof-runs-focused-suite/7: refused checks 0 [] | crash rows 0 at step-plan check #[] | refused completes []
+  step-plan/proof-runs-focused-suite/8: refused checks 1 ["a test command's ids must be a nonempty list of test IDs without spaces"] | crash rows 0 at step-plan check #[] | refused completes []
+  TOTAL {'ref': 6, 'ref_samples': 4, 'crash': 0, 'crash_samples': 0}
+== round2/xa-T
+  step-plan/proof-runs-focused-suite/1: refused checks 1 ["a test command's ids must be a nonempty list of test IDs without spaces"] | crash rows 1 at step-plan check #[1] | refused completes []
+  step-plan/proof-runs-focused-suite/10: refused checks 3 ['Criterion C6 has no focused test ID of its own (the focused commands list IDs TC_1, TC_2, ', 'open plan assumptions A2 name W1 as due_item; settle each here: an executed criterion with', "a test command's ids must be a nonempty list of test IDs without spaces"] | crash rows 1 at step-plan check #[2] | refused completes []
+  step-plan/proof-runs-focused-suite/11: refused checks 0 [] | crash rows 1 at step-plan check #[1] | refused completes []
+  step-plan/proof-runs-focused-suite/12: refused checks 0 [] | crash rows 1 at step-plan check #[1] | refused completes []
+  step-plan/proof-runs-focused-suite/2: refused checks 1 ["a test command's ids must be a nonempty list of test IDs without spaces"] | crash rows 1 at step-plan check #[1] | refused completes []
+  step-plan/proof-runs-focused-suite/3: refused checks 1 ["a test command's ids must be a nonempty list of test IDs without spaces"] | crash rows 1 at step-plan check #[1] | refused completes []
+  step-plan/proof-runs-focused-suite/4: refused checks 0 [] | crash rows 1 at step-plan check #[1] | refused completes []
+  step-plan/proof-runs-focused-suite/5: refused checks 0 [] | crash rows 1 at step-plan check #[1] | refused completes []
+  step-plan/proof-runs-focused-suite/6: refused checks 1 ["a test command's ids must be a nonempty list of test IDs without spaces"] | crash rows 1 at step-plan check #[1] | refused completes []
+  step-plan/proof-runs-focused-suite/7: refused checks 0 [] | crash rows 1 at step-plan check #[1] | refused completes []
+  step-plan/proof-runs-focused-suite/8: refused checks 1 ["a test command's criteria must be a nonempty list of distinct criterion IDs"] | crash rows 1 at step-plan check #[1] | refused completes []
+  step-plan/proof-runs-focused-suite/9: refused checks 0 [] | crash rows 1 at step-plan check #[1] | refused completes []
+  TOTAL {'ref': 8, 'ref_samples': 6, 'crash': 12, 'crash_samples': 12}
+== round2-release
+  csv-report-s1: refused checks 0 [] | crash rows 1 at step-plan check #[1] | refused completes [('improve', "step S1's proof must be one nonblank command line, run from the repository root;")]
+  csv-report-s2: refused checks 1 ["step S1's proof must be one nonblank command line, run from the repository root; join step"] | crash rows 1 at step-plan check #[1] | refused completes []
+  csv-report-s3: refused checks 0 [] | crash rows 0 at step-plan check #[] | refused completes []
+  shared-expenses-s1: refused checks 0 [] | crash rows 1 at step-plan check #[1] | refused completes [('release-verify', 'no result file at ~/e2e-runs-sp/20261101/round2-release/shared-expe')]
+  shared-expenses-s2: refused checks 1 ["a test command's ids must be a nonempty list of test IDs without spaces"] | crash rows 1 at step-plan check #[1] | refused completes []
+  shared-expenses-s3: refused checks 1 ["step S1's proof must be one nonblank command line, run from the repository root; join step"] | crash rows 1 at step-plan check #[1] | refused completes []
+  TOTAL {'ref': 3, 'ref_samples': 3, 'crash': 5, 'crash_samples': 5}

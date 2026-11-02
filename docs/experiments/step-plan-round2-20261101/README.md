@@ -225,9 +225,14 @@ run built at its own start.
 | shared-expenses s3 | pass | 6 of 6 | 23.0 | 242 | none |
 
 - **Predictions.** All three held.
-  - No implement send-back of form 1, and A1's refusal text appears in no run, so A1 never fired. (First written as "no step-plan
-    refusal at all", which was wrong. The trace shows a refused (exit 2) step-plan `check` in five runs. The session logs name a Proof on
-    two lines in three runs and an empty test-ID list in one.)
+  - No implement send-back of form 1, and A1's refusal text appears in no run, so A1 never fired.
+    - First written as "no step-plan refusal at all", which was wrong.
+    - The first correction ("a refused step-plan `check` in five runs") was wrong too (second review, finding #6). Those five exit-2
+      rows are the AttributeError crashes: each pre-fix run logs its crash as an exit-2 step-plan check with no error.
+    - Beyond the crash, step-plan checks were refused in three runs: csv-report s2 and shared-expenses s3 (Proof on two lines) and
+      shared-expenses s2 (empty test-ID list).
+    - csv-report s1 had a two-line Proof refused at its Improve `complete`, not at step-plan. shared-expenses s1 had no step-plan refusal.
+    - `count_refusals.py`; output in `refusal_counts.txt`.
   - No test-spec send-back for RED on six empty bases (D).
   - 33 of 33 hidden checks pass.
 - **First step plans.** `proofscore.classify` finds no form 1, form 2 or filtered form in any of the six. On the owner's runner,
@@ -255,7 +260,9 @@ run built at its own start.
 
 The release round's evidence was weakened by A1's first-committed `itertools.pairwise`: five of its six deliveries crashed once and retried.
 This round reruns the same six deliveries on the final head, **fd6aaf19a1ddb8c3b78d1b5e676b3de548708e01**: A1 with the Python 3.9 fix and the false-refusal fix, A2a and D,
-merged with main. It uses `launch_release_round.sh` with `RUNS=~/e2e-runs-sp/20261101/round2-verify` and 3 lanes, Codex Terra 6.1
+merged with main. (Added after launch: the six built at 56670dca, whose `skills/` tree equals fd6aaf19's. Each build's
+`shiploop_item_scope.py` hashes to 56670dca's. The second review's reader fix, 87913a53, landed after all six had built, so this round
+does not run it; it changes the reading of 0 of 489 saved Proofs.) It uses `launch_release_round.sh` with `RUNS=~/e2e-runs-sp/20261101/round2-verify` and 3 lanes, Codex Terra 6.1
 xhigh.
 - **Predictions:**
   - no AttributeError or other traceback from the ShipLoop CLI in any session log;
@@ -317,12 +324,22 @@ not count.
 
 ## Results
 
-| Run | Arm | Samples | Faulty (amended) | Form 1 | Form 2 verbatim | Form 2 filtered only | Faulty (registered) | Short of IDs | Not done | Refusals |
-|---|---|---|---|---|---|---|---|---|---|---|
-| pilot | B (49d21bc5) | 4 | 1 (sample 4) | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
-| rest | B (49d21bc5) | 8 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| **B total** | B | **12** | **1** | 0 | 0 | 1 | 0 | 0 | 0 | 0 |
-| **T total** | T (c7679685) | **12** | **0** | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Run | Arm | Samples | Faulty (amended) | Form 1 | Form 2 verbatim | Form 2 filtered only | Faulty (registered) | Short of IDs | Not done | Refused completions | Refused step-plan checks |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| pilot | B (49d21bc5) | 4 | 1 (sample 4) | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 2 rows in 2 samples |
+| rest | B (49d21bc5) | 8 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 6 rows in 4 samples |
+| **B total** | B | **12** | **1** | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 8 rows in 6 samples |
+| **T total** | T (c7679685) | **12** | **0** | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 8 rows in 6 samples, plus 12 crash rows (one per sample) |
+
+- The faults and forms are read from the accepted plans. A draft that `check` refused and the model then rewrote is not scored.
+- Corrected after round 2's second review. The first table had one "Refusals" column, all zeros, read from `samples.refusals`. That
+  function uses `shiploop_trace.refused`, which leaves out the `check` verb, so it could not see the step-plan check refusals that the
+  registration named as A1's arm-T signal. "Refused completions" is that column. "Refused step-plan checks" is new; it is counted by
+  `count_refusals.py` (output in `refusal_counts.txt`), and a crash row is an exit-2 `check` row with no error.
+- Most of the refusals in both arms are the existing test-command checks: a test command's IDs or criteria list is empty.
+- Arm B's xa-B2 sample 6 drafted a form-1 Proof. The existing rule A refused it ("step S1's Proof runs test/expenses.test.js, which the
+  item base does not have…"), and its accepted plan is direct.
+- No T refusal names a Proof.
 
 Arm B, read before any T sample:
 - **The fault in the replay.** 1 of 12. The other 11 plans prove each step with a scratch script the step plan wrote in RUN/scratch,
@@ -339,8 +356,9 @@ Arm B, read before any T sample:
 - **Controls.** No sample in either arm ends other than done, leaves an executed criterion without its ID, or drops the focused command. T's
   control failures (0) are within B's (0) plus 1.
 - **Cost.** Step-plan host time: median 1.04 minutes in B, 1.10 in T. A1's refusal never fired: no plan wrote the inline-wrapper form.
-  Correction (round 2's review): all 12 T samples crashed once at their first `check` on A1's `itertools.pairwise` under Python 3.9.6, and
-  recovered by rerunning the CLI on Homebrew Python. B's plugin has no A1, so it never crashed. T's minutes include that retry, and the arms
+  Correction (round 2's review): all 12 T samples crashed once on A1's `itertools.pairwise` under Python 3.9.6, at the first step-plan
+  `check` that reached A1. That was the first check in 11 of 12. In T10 the first check was refused before A1 ran, and the crash came at
+  the second (second review, finding #7). Each sample recovered by rerunning the CLI on Homebrew Python. B's plugin has no A1, so it never crashed. T's minutes include that retry, and the arms
   differ by it.
   - The Proofs were written before the crash.
   - The fix is b6b8f52a.
@@ -348,16 +366,25 @@ Arm B, read before any T sample:
   therefore reverted from the branch before merge, as registered. Its change is the proof bullet's "so never the focused command or a
   filtered copy of it" and the review focus's "or an unwritten test".
 - **What the verdict means.** Corrected after round 2's review; the first text said "there was nothing for A2b to remove".
-  - On the owner's runner the replay rarely produced the scored fault, so the registered rule could not be met.
-  - A2b did move Proof choice. Node's runner appears in a Proof in 6 of 12 B plans and 0 of 12 T plans. That is post hoc and descriptive,
-    one-sided Fisher p about 0.007. Five of B's six ran a scratch file and were legitimate; only one was the fault.
-  - So A2b steers plans away from the runner, at no measured cost, but its registered benefit could not be shown here.
+  - On the owner's runner the replay rarely produced the scored fault in an accepted plan, so the registered rule could not be met.
+    Drafts are another matter. Arm B's xa-B2 sample 6 drafted a form-1 Proof, which the existing rule A refused at `check`. The scored
+    measure counts accepted plans only.
+  - Arm T moved Proof choice off node's runner. The runner appears in a Proof in 6 of 12 B plans and 0 of 12 T plans. That is post hoc
+    and descriptive, one-sided Fisher p about 0.007. Five of B's six ran a scratch file and were legitimate; only one was the fault.
+  - Arm T held A1, A2a, A2b and D. A2a rewrote the same proof bullet the model reads, so this design cannot credit the shift to A2b alone.
+    (Corrected after the second review, finding #9; the first text credited it to A2b.)
+  - So arm T's wording steers plans away from the runner, at no measured cost, but A2b's registered benefit could not be shown here.
   - R3's whole deliveries at Terra high had 5 of 20.
 - **What ships from X-A's side.** Corrected after round 2's review.
-  - A1 rests on its own replay (0 false flags in 363 plans) and adds no refusal here. Its false refusal on a quoted absolute path or URL in
-    inline code was found by the review and fixed in fd7223e8.
+  - A1 rests on its own replay (0 false flags in 363 plans) and adds no refusal here.
+    - The first review found a false refusal on a quoted absolute path or URL in inline code, fixed in fd7223e8.
+    - The second review found that fd7223e8 dropped a quoted command string that starts with an absolute program path, with the
+      relative test it runs (a false negative). It also found that false refusals remained for a URL outside its own quotes, an
+      apostrophe in a double-quoted path, an escaped space and a drive-letter path.
+    - All of these were fixed in 87913a53, which changes the reading of 0 of 489 saved Proofs. The replay, X-A and release scores are
+      byte-identical under it.
   - D (RED) was registered without a live rule of its own, and its check is the release round.
   - A2a (safe to repeat) was registered as part of A2, whose one live rule failed. It was split out after registration and has no rule of
-    its own, so whether it ships is the owner's call.
+    its own, so whether it ships was the owner's call: "Ship A2a" (below).
 
 Evidence: `xa_scores.jsonl` (score_xa.py); the runs in `~/e2e-runs-sp/20261101/round2/xa-B/` `xa-B2/` and `xa-T/` (outside git).
