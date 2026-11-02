@@ -70,6 +70,10 @@ NON_PROMOTE_STOP = 2  # cycles in a row without PROMOTE before the loop stops (D
 # Assessments (a reviewer and a judge, fresh each time) tried on one attempt before its review is left incomplete. Live, two
 # of six judge answers failed the harness's own consistency check; an incomplete attempt keeps a PROMOTE from being claimed.
 REVIEW_ASSESSMENTS = 3
+# The same bound for the exploration's one judgment. judge.admitted sends every material discovery to the owner when the
+# judge's answer is invalid, and an owner record is held against every later admission, so one invalid answer would end
+# the record's chance. Only the last answer is written.
+JUDGE_ASSESSMENTS = 3
 
 
 class RegistrationRefused(ValueError):
@@ -287,7 +291,11 @@ def review_all(root: Path, ledger: Path, generality: str | None) -> list[str]:
     A review that ends incomplete (the reviewer or the judge answered in a way the harness refuses, which a model sometimes
     does) is assessed again from scratch, a fresh exposure each time, up to REVIEW_ASSESSMENTS in all for the attempt,
     counting those made before this call. Every exposure stays in the epoch's log. An attempt still incomplete after the
-    last stays recorded (its last event is review_incomplete), and epoch.decide then reports UNDECIDED instead of a PROMOTE."""
+    last stays recorded (its last event is review_incomplete), and epoch.decide then reports UNDECIDED instead of a PROMOTE.
+
+    Only the assessment that completed, or the last one the bound allows, reaches the ledger. judge.admitted sends every
+    material discovery to the owner when the judge's answer is invalid, and an `owner` record is held against every later
+    admission, so a first pass that is about to be assessed again must not be written."""
     opened = []
     for row in epoch.state(root)["attempts"]:
         if row["status"] != "recorded":  # epoch.state keeps an attempt recorded until a review of it completes
@@ -297,11 +305,12 @@ def review_all(root: Path, ledger: Path, generality: str | None) -> list[str]:
             spent += 1
             with epoch.locked(root, epoch.INTENT_WAIT):
                 event = epoch.review_attempt(root, row["id"], records=learning_records.reviewer_view(ledger))
-            receipt = json.loads((root / event["receipt"]).read_text())
-            exposure = "confirmation" if row["case"] == generality else "development"
-            opened += learning_records.ingest(receipt["review"], receipt["routes"], {
-                "epoch": str(root), "attempt": row["id"], "case": row["case"], "exposure": exposure,
-                "review_sha256": (receipt.get("judge") or {}).get("review_sha256")}, ledger)
+            if event["kind"] == "reviewed" or spent >= REVIEW_ASSESSMENTS:
+                receipt = json.loads((root / event["receipt"]).read_text())
+                exposure = "confirmation" if row["case"] == generality else "development"
+                opened += learning_records.ingest(receipt["review"], receipt["routes"], {
+                    "epoch": str(root), "attempt": row["id"], "case": row["case"], "exposure": exposure,
+                    "review_sha256": (receipt.get("judge") or {}).get("review_sha256")}, ledger)
             if event["kind"] == "reviewed":
                 break
     return opened
@@ -854,7 +863,11 @@ def explore(worktree: Path, stage: Path, args) -> list[str]:
                                  None, [args.case], note,
                                  exploration_run_summary(stage / "run" / "result.json"))
         return []
-    judged = judge.judge(stage / "run", verdict, **iterate.role_profile(args, "judge"))
+    for asked in range(JUDGE_ASSESSMENTS):  # the first judgment keeps its folder name; each later one gets its own
+        judged = judge.judge(stage / "run", verdict, **iterate.role_profile(args, "judge"),
+                             **({"assessment_id": f"retry-{asked}"} if asked else {}))
+        if (judged.get("validity") or {}).get("status") == "valid":
+            break
     routes = judge.admitted(verdict, judged)
     opened = learning_records.ingest(verdict, routes, {"run": str(stage / "run"), "case": args.case,
                                                        "review_sha256": judged.get("review_sha256"),

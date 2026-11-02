@@ -610,6 +610,59 @@ class CycleTest(unittest.TestCase):
         self.assertIn("Product comparison.", message)
         self.assertIn("Improvement remains unmeasured", message)
 
+    def explore_with_judgments(self, answers):
+        """cycle.explore over a qualified fake review and a fake judge that answers from `answers` (a list of validity words).
+        Returns the judge's assessment ids, in call order, and the review_sha256 each ledger write was given."""
+        explore_args = argparse.Namespace(**{**vars(self.args), "host": iterate.hosts.RUN_DEFAULT_HOST,
+                                             "permission_mode": "auto"})
+        asked, written = [], []
+        replies = iter(answers)
+
+        def fake_judge(_run_dir, _review, **kwargs):
+            asked.append(kwargs.get("assessment_id"))
+            word = next(replies)
+            return {"review_sha256": f"answer-{len(asked)}", "validity": {"status": word}, "assessments": []}
+
+        def fake_ingest(_review, _routes, source, _ledger):
+            written.append(source["review_sha256"])
+            return []
+
+        def run_with_result(argv):
+            run_dir = Path(argv[argv.index("--output") + 1])
+            run_dir.mkdir(parents=True)
+            (run_dir / "result.json").write_text(json.dumps({"process": {"elapsed_seconds": 1.0}, "checks": []}))
+            return 0
+
+        review = {"validity": {"discovery_qualified": True, "status": "valid"}, "discoveries": []}
+        with mock.patch.object(cycle, "build", side_effect=self.build), \
+                mock.patch.object(runner, "main", side_effect=run_with_result), \
+                mock.patch.object(reviewer, "review", return_value=review), \
+                mock.patch.object(judge, "judge", side_effect=fake_judge), \
+                mock.patch.object(lr, "ingest", side_effect=fake_ingest), \
+                mock.patch.object(iterate, "learnings_message", return_value="learnings"), \
+                mock.patch.object(iterate, "record_learnings"):
+            cycle.explore(self.worktree, self.temp / "out" / "explore", explore_args)
+        return asked, written
+
+    def test_an_exploration_asks_the_judge_again_when_its_answer_is_invalid_and_writes_only_the_valid_one(self):
+        """judge.admitted routes every material discovery to the owner when the judge's answer is invalid, and an owner
+        record is held against every later admission, so one invalid answer would send the finding to the owner for good."""
+        asked, written = self.explore_with_judgments(["invalid", "failed", "valid"])
+
+        self.assertEqual(asked, [None, "retry-1", "retry-2"], "each new judgment has its own stage folder")
+        self.assertEqual(written, ["answer-3"])
+
+    def test_an_exploration_stops_asking_at_its_bound_and_writes_the_last_answer(self):
+        asked, written = self.explore_with_judgments(["invalid"] * cycle.JUDGE_ASSESSMENTS)
+
+        self.assertEqual(len(asked), cycle.JUDGE_ASSESSMENTS)
+        self.assertEqual(written, [f"answer-{cycle.JUDGE_ASSESSMENTS}"])
+
+    def test_an_exploration_asks_the_judge_once_when_the_first_answer_is_valid(self):
+        asked, written = self.explore_with_judgments(["valid"])
+
+        self.assertEqual((asked, written), ([None], ["answer-1"]))
+
     def test_a_probe_word_rejects_without_asking_the_review(self):
         result, review = self.run_cycle(improver=self.improver("x = 2  # sink the battleship\n"))
         self.assertEqual(result["decision"], "REJECTED_AT_PURPOSE")
@@ -721,6 +774,37 @@ class CycleTest(unittest.TestCase):
         action = epoch.next_action(root)
         self.assertEqual((action["action"], action["attempt_id"]), ("review", "control-hello-1"),
                          "the epoch still wants this attempt reviewed, so a PROMOTE cannot be claimed without it")
+
+    def ingested_attempts(self, root, judge_valid):
+        """The attempts whose receipts review_all handed to the ledger, in order, over the same fakes as run_review_all."""
+        def fake_judge(output, _review, **_kwargs):
+            return {"validity": {"status": "valid" if judge_valid(str(output)) else "failed"}, "assessments": []}
+
+        with mock.patch.object(reviewer, "review", return_value=self.fixture_review()), \
+                mock.patch.object(judge, "judge", side_effect=fake_judge), \
+                mock.patch.object(lr, "ingest", return_value=[]) as ingest:
+            cycle.review_all(root, root.parent / f"{root.name}-ledger.jsonl", "csv-report")
+        return [call.args[2]["attempt"] for call in ingest.call_args_list]
+
+    def test_review_all_gives_the_ledger_only_the_assessment_that_completed(self):
+        """judge.admitted sends every material discovery to the owner when the judge's answer is invalid, and learning_records
+        keeps an `owner` record out of every later admission. A first pass that was assessed again must not be written, or
+        the retry would make the valid second pass unable to admit anything."""
+        root = self.sealed_epoch("review-ledger-final")
+        answers = iter([False, True, True, True, True])
+
+        attempts = self.ingested_attempts(root, lambda _output: next(answers))
+
+        self.assertEqual(sorted(attempts), sorted({row["id"] for row in epoch.state(root)["attempts"]}),
+                         "one receipt per attempt, the valid one, and none from the pass that was assessed again")
+
+    def test_review_all_still_gives_the_ledger_the_last_assessment_of_an_attempt_that_never_completed(self):
+        root = self.sealed_epoch("review-ledger-bound")
+
+        attempts = self.ingested_attempts(root, lambda output: "control-hello-1" not in output)
+
+        self.assertEqual(attempts.count("control-hello-1"), 1, "its last assessment is written once, not each of the three")
+        self.assertEqual(len(attempts), 4)
 
     def test_review_all_counts_assessments_made_before_it_was_called(self):
         """A resumed cycle meets an attempt that is already incomplete: it picks it up, and the bound counts what was spent."""
