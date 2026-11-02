@@ -455,9 +455,6 @@ _ROWS = (
             # Design T §9.1 2b-3, option C (owner 2026-10-28): document is the step's one place to reflect.
             "the knowledge home records what this step showed, and `knowledge` names each living file with what "
             "changed in it or why nothing did",
-            "each current spec status made stale by completed work in this item, including earlier steps, is unchanged "
-            "here and covered once by an open same-item assumption due at carry-forward naming its R-<n>, exact "
-            "correction and observed evidence",
         ),
         develop="Update code, API, user and operator documentation from observed behaviour.",
         # Design T §8.2 (2b-4b): verify's lint gate and rerun moved into the step, scoped to this stage's own edits.
@@ -477,8 +474,6 @@ _ROWS = (
         done_when=(
             "every still-required future item is in the queue, in prerequisite order",
             "learnings and durable knowledge are recorded in the knowledge home, not in run notes",
-            "each status correction deferred by document is resolved in the living files and the result cites "
-            "its observed evidence while unrun verification remains explicitly unverified",
             "the skill decision is recorded: none, reuse, update or create, with its reason and repeat evidence",
         ),
         develop="Record reusable learnings and conventions; create or update a local skill only for a procedure that "

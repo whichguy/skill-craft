@@ -102,27 +102,6 @@ class KnowledgeTests(HomeFixture):
         spec.write_text(held + "- Acceptance: another step's line. (W1/S2).\n")
         self.assertIn("without the step's mark", knowledge.step_spec_refusal(self.repo, "W1/S1"))
 
-    def test_carry_forward_can_reconcile_current_status_while_step_routes_refuse_in_place_spec_edits(self) -> None:
-        """Carry-forward may update stale current status; implement/document protect the committed requirement text."""
-        spec = self.repo / "docs/shiploop/spec.md"
-        spec.parent.mkdir(parents=True)
-        intent = "The importer accepts CSV rows and preserves their source order."
-        historical = "As of 2026-10-30, implementation and checks had not run."
-        pending = "Current status: implementation and checks are pending."
-        original = ("# Product\n\n## Requirements\n\n### R-1 CSV import\n\n" + intent + "\n" + historical + "\n"
-                    + pending + "\n")
-        spec.write_text(original, encoding="utf-8")
-        git(self.repo, "add", "docs/shiploop/spec.md")
-        git(self.repo, "commit", "-qm", "record the requirement baseline")
-
-        current = ("Current status: implementation is in src/importer.py. "
-                   "Verification: the focused unit check passed on 2026-11-01.")
-        spec.write_text(original.replace(pending, current), encoding="utf-8")
-
-        self.assertEqual(knowledge.check(self.state, "carry-forward"), "")
-        # Implement and document use this same step guard, which protects a committed requirement from in-place edits.
-        self.assertTrue(knowledge.step_spec_refusal(self.repo, "W1/S1"))
-
     def test_a_file_written_before_a_close_names_the_next_close_that_requires_it(self) -> None:
         self.assertEqual(knowledge.next_close("plan", "architecture.md"), "prepare")
         self.assertEqual(knowledge.next_close("discovery", "environment.md"), "prepare")
@@ -647,7 +626,7 @@ class RemovalTests(HomeFixture):
         self.assertEqual(knowledge.STAGE_FILES, {
             "discovery": (E,), "research": (E,), "spec": (S,), "test-strategy": (E, A), "plan": (A,), "prepare": (E,),
             "step-plan": (A, E), "validate-existing": (E,), "implement": (E, A), "test": (E,), "document": (S, A, E),
-            "carry-forward": (S, A, E),
+            "carry-forward": (A, E),
             "system-test-author": (E,), "release-plan": (E,), "release-check": (E,), "release-verify": (E,), "operations": (E,)})
         for table in (knowledge.CLOSES, knowledge.STAGE_FILES):
             for names in table.values():
@@ -815,7 +794,7 @@ class SectionsTests(HomeFixture):
                "test": ("environment.md",),
                # Design T §9.1 2b-3, option C (owner 2026-10-28): each step's document reflects on what it showed.
                "document": ("spec.md", "architecture.md", "environment.md"),
-               "carry-forward": ("spec.md", "architecture.md", "environment.md")}
+               "carry-forward": ("architecture.md", "environment.md")}
 
     def test_the_stages_that_discover_commands_facts_and_decisions_keep_the_files_up_to_date(self) -> None:
         for stage, names in self.WRITERS.items():

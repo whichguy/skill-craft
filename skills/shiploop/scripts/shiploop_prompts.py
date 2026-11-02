@@ -1469,10 +1469,6 @@ preparatory commit); a mismatch there is a send-back.
    - KNOWLEDGE/spec.md: a line inside the R-<n> entry it concerns, ending with this step's mark (<item>/<step>): a
      vague clause this step made precise, stated as observable behaviour, or the files and test file that now meet it.
      Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n>.
-     Leave existing current implementation or verification status lines unchanged here. If completed work in this item
-     made one stale, reuse its open correction due at `carry-forward`, or record one in `assumptions` with the R-<n>,
-     exact correction and observed evidence. Include earlier steps' corrections without duplicating rows or current-status
-     values. This defers status reconciliation only, never changed intent, incorrect public docs or a check due now.
    - KNOWLEDGE/architecture.md ## Decisions: a design or service decision implement did not record, or a departure from
      an AD-<n>, as a new AD-<n> (a service choice with contract, owner and revalidation trigger); a superseded one moves
      to ## Superseded.
@@ -1493,13 +1489,10 @@ preparatory commit); a mismatch there is a send-back.
 """,
     "carry-forward": """\
 1. **Knowledge home.** Update in place under the sections named here, with no new ## heading for this item's results;
-   keep completed evidence apart from future plans; never rewrite a recorded result or earlier as-of evidence. When this
-   item's accepted code or passing checks have overtaken a current status statement, reconcile that status in place:
-   say what is implemented and which checks actually passed. Record outstanding verification in `assumptions` with its
-   `due_stage`, as below; preserve requirement intent and work still deferred or blocked:
+   keep completed evidence apart from future plans, never rewriting it:
    - KNOWLEDGE/environment.md ## Commands: every command that worked.
-   - KNOWLEDGE/architecture.md ## Decisions: each AD-<n> this item added, with its current status; a superseded one
-     moves to ## Superseded, never deleted.
+   - KNOWLEDGE/architecture.md ## Decisions: each AD-<n> this item added; a superseded one moves to ## Superseded, never
+     deleted.
    - KNOWLEDGE/environment.md ## Harnesses and suites: suites; focused, smoke and full commands; harness and case
      locators; fixture lifecycle; each test facility's locator, interface, readiness or gap, owner, revalidation
      condition.
@@ -1507,10 +1500,6 @@ preparatory commit); a mismatch there is a send-back.
    - KNOWLEDGE/spec.md: each R-<n> this item satisfied; an open gap under its R-<n>, an unresolved state or data change
      included (State and data assessment). Keep unaffected clauses, and never relax one to fit the code or tests.
      Test IDs live only in test code: write none here.
-   - Resolve each status correction deferred by document before reporting done: reread the whole affected R-<n> entry
-     and verify the actual living-file edit against observed evidence. A result claim or disappearance from `open_items`
-     alone is not proof. Do not drop an unsettled correction. Keep an unrun check explicitly unverified with its
-     existing later-stage obligation.
    - Open risks, unresolved dependencies, system-test obligations, release prerequisites and any observation no item
      owns: open items in `assumptions`, each with owner and, as `due_stage`, the later outer stage it is due at.
    - Carry the prior baseline, incoming delta and updated knowledge locators forward, keeping historical snapshots
@@ -2565,13 +2554,7 @@ and KNOWLEDGE, any of these:
 - a KNOWLEDGE line the code or tests contradict, or something the step showed
   that KNOWLEDGE does not record (a clarified requirement, a decision, a
   command): fix it in place; spec.md takes only new lines ending with the step's
-  mark inside an R-<n> the committed spec holds. Exception: when the contradicted
-  line is a protected current implementation or verification status and this
-  item already has an open `assumptions` status correction due at `carry-forward`,
-  verify that it names the exact R-<n>, correction and observed evidence; leave
-  the protected line unchanged and add no duplicate correction row or
-  current-status value. A requirement intent change remains a send-back naming
-  the R-<n>. Never direct edits to script-owned run records;
+  mark inside an R-<n> the committed spec holds;
 - the step's Proof failing or not testing its criteria (a skipped file, a later
   step's work), or a new unwaived lint finding on a changed line, after your
   last edit.

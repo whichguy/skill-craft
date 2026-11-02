@@ -187,9 +187,7 @@
       },
       "acceptance": {
         "module": "checkers_accept",
-        "calibration": [
-          "test/fixtures/quality/reference_checkers.py"
-        ],
+        "calibration": ["test/fixtures/quality/reference_checkers.py"],
         "start": "node server.js",
         "source": "hand-written from the request, never shown to the model, run in the harness process after the host ended (SPEC: Delivered quality is recorded, never judged); calibrated against test/fixtures/quality/reference_checkers.py",
         "checks": [
@@ -249,21 +247,10 @@
         "open": "python3 \"$E2E_CHECKS/sf_guard.py\" --org de --prefix SLChess --deny-all --name open --"
       },
       "check_timeout": 900,
-      "host_allow": [
-        "Bash(sf *)",
-        "Bash(cd *)",
-        "Bash(tail *)",
-        "Bash(head *)",
-        "Bash(tee *)",
-        "Bash(grep *)"
-      ],
+      "host_allow": ["Bash(sf *)", "Bash(cd *)", "Bash(tail *)", "Bash(head *)", "Bash(tee *)", "Bash(grep *)"],
       "resume_note": "The platform was reset to its baseline when your last session ended, so anything you deployed to the org was removed. Deploy again from your source before you rely on it or run tests in the org.",
       "resume_note_kept": "Your last session's work was kept: what you deployed is still in the org; check it before you deploy again.",
-      "keep_checks": [
-        "deployed",
-        "tests",
-        "rules"
-      ],
+      "keep_checks": ["deployed", "tests", "rules"],
       "source": "owner go 2026-10-16: deploy to the Developer Edition org `de`, prefix SLChess, remove afterwards; Grok 4.7 medium. Owner 2026-10-17: with --keep-platform the app stays in the org to be played, also when ShipLoop did not finish and the org checks deployed, tests and rules pass (not project, which needs a commit); recorded NOT a pass"
     },
     "budget": {
@@ -285,21 +272,13 @@
     "seed_product": "battleship-salesforce-reference",
     "seed_home": "battleship-salesforce-home",
     "seed_release": {
-      "source_checks": [
-        "project"
-      ],
-      "product_exclude": [
-        "README.md"
-      ],
+      "source_checks": ["project"],
+      "product_exclude": ["README.md"],
       "operation": {
         "name": "deploy",
         "stage": "release",
         "log": "platform/sf-calls.jsonl",
-        "argv": [
-          "project",
-          "deploy",
-          "start"
-        ]
+        "argv": ["project", "deploy", "start"]
       },
       "source": "owner request 2026-10-18: an end-to-end test focused on deployment into the owner's Salesforce org, starting at the release stages with an already-built product. seed_product is the prebuilt project (the known-good reference the case's own checks pass on); seed_home holds the knowledge home and the records the skipped stages leave; source_checks are the checks that read the source checkout, run only once the product has been returned to it; product_exclude are the fixture's own files (its README), never committed into the run; operation is the platform change whose timing the release-stage verdict reads from the guard log"
     },
@@ -332,9 +311,7 @@
         "tests",
         "rules"
       ],
-      "existing": [
-        "update"
-      ],
+      "existing": ["update"],
       "source": "owner request 2026-10-17: \"run the proper prompt with 'developing a battleship game' in my Salesforce org\"; modelled on chess-salesforce (owner go 2026-10-16: the Developer Edition org `de`, everything prefixed and removed afterwards; owner 2026-10-17: with --keep-platform the app stays in the org to be played when the org checks deployed, tests and rules pass, recorded NOT a pass), prefix SLBattle, plus the permission set the chess run lacked (its finding F9: the app's tab was hidden because no permission set or profile granted it), which the guard allows with --permission-sets"
     },
     "budget": {
@@ -1865,159 +1842,6 @@
             "id": "summary-team-case-sensitive",
             "grade": "fail-to-pass",
             "source": "the request: 'Use the same `name` and `team` filters GET /users applies.', read as user-teams' `team-filter-case-sensitive` check reads it"
-          }
-        ]
-      },
-      "refuse_ports": [
-        3000
-      ],
-      "refuse_ports_source": "the node-base server listens on PORT and defaults to 3000; held-out checks set PORT and refuse a delivery that ignores it"
-    }
-  },
-  "user-summary-status": {
-    "style": "brownfield",
-    "base": {
-      "fixture": "node-user-teams-status",
-      "digest": "ac1233f6b0e6",
-      "source": "A fresh, hand-authored user-service base with the existing user listing and team behavior; its code is generated from the hand-authored reference_user_teams.py reference and its living documents are authored for this case. The fixture is pinned so any base change is a case change (SPEC: A brownfield case)."
-    },
-    "prompt": "Add GET /users/summary. It returns a JSON object with `total`, the number of all matching users, and `by_team`, a map from each matching user's stored team name to its count; omit groups with no matching users. It counts all matches without pagination. Use the same `name` and `team` filters GET /users applies. Ignore `page`, `size`, `include` and other query parameters on this summary route; do not validate them for this route. Other response keys may be present. No matches return total 0 and an empty by_team object. Everything the project already does keeps working, and its existing tests must still pass as they are. Add node:test tests for the summary. Update the project documents to reflect the current implementation and verification of this requirement. Follow the documentation conventions already in the repository, preserve dated history, and leave explicitly deferred future work deferred.",
-    "checks": [
-      "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-user-teams-status",
-      "python3 \"$E2E_CHECKS/base_tests.py\" suite node-user-teams-status",
-      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const b=process.env.BASE;(async()=>{const a=await fetch(b+'/users/summary?name=e&team=Engineering&page=2&size=1').then(r=>r.json());const z=await fetch(b+'/users/summary?page=bad&size=0').then(r=>r.json());const ok=a.total===2&&a.by_team.Engineering===2&&z.total===3&&z.by_team.Support===1;process.exit(ok?0:3);})().catch(()=>process.exit(4))\""
-    ],
-    "checks_source": "the request: the base tests stay unchanged, new node:test coverage is added, and the real summary route handles valid and invalid pagination query parameters without applying pagination to the summary",
-    "quality": {
-      "acceptance": {
-        "module": "user_summary_status_accept",
-        "calibration": [
-          "test/fixtures/quality/reference_user_teams.py",
-          "test/fixtures/quality/reference_user_summary.py",
-          "test/shiploop-e2e-living-status.test.py"
-        ],
-        "start": "node src/server.js",
-        "source": "hand-written from the summary request and the fixture README’s documented fields; the existing user-summary HTTP checks are re-exported unchanged, and Product.folder is read only for R-1 through R-4 under the active ## Requirements section, nonempty Requirement fields, R-3 current state tokens and resolving source/test paths, the dated history note, and R-4 deferred fields. Calibrated against the fixture, two independent implementations, Markdown field layouts and filenames, historical headings, and targeted status and behavior defects.",
-        "checks": [
-          {
-            "id": "list-unchanged",
-            "grade": "pass-to-pass",
-            "source": "the request: 'without `page` and `size`, GET /users still answers a JSON array of users in id order (every user unless `name` is given), any other query parameter is ignored'"
-          },
-          {
-            "id": "user-by-id-unchanged",
-            "grade": "pass-to-pass",
-            "source": "the request: 'and GET /users/:id is unchanged'"
-          },
-          {
-            "id": "name-filter",
-            "grade": "fail-to-pass",
-            "source": "the request: 'The `name` query parameter keeps only the users whose name contains it as plain text, ignoring case; an empty `name` keeps every user', read with 'without `page` and `size`, GET /users still answers a JSON array'"
-          },
-          {
-            "id": "name-plain-text",
-            "grade": "fail-to-pass",
-            "source": "the same sentence's 'as plain text', read for a name holding a pattern's characters (`a.a`, `.`, `(`): it matches only names that hold those characters, which a regular expression would not"
-          },
-          {
-            "id": "page-envelope",
-            "grade": "fail-to-pass",
-            "source": "the request: 'When either is given, the answer is a JSON object with \"page\", \"size\", \"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched) and \"items\" (the users on that page)'"
-          },
-          {
-            "id": "partial-last-page",
-            "grade": "fail-to-pass",
-            "source": "the request: 'page 1 holding the first `size` of them' and '\"pages\" (how many pages they fill)', read for users that do not fill the last page; the base's paginate drops that page"
-          },
-          {
-            "id": "page-past-end",
-            "grade": "fail-to-pass",
-            "source": "the request: 'a page after the last one answers an empty \"items\"'"
-          },
-          {
-            "id": "page-defaults",
-            "grade": "fail-to-pass",
-            "source": "the request: '`size` is 10 when only `page` is given and `page` is 1 when only `size` is given'"
-          },
-          {
-            "id": "filter-then-page",
-            "grade": "fail-to-pass",
-            "source": "the request: 'ask for one page of those users' and '\"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched)', read with a `name`"
-          },
-          {
-            "id": "size-bounds",
-            "grade": "fail-to-pass",
-            "source": "the request: '`size` a whole number from 1 to 100', read at both ends"
-          },
-          {
-            "id": "bad-page-or-size",
-            "grade": "fail-to-pass",
-            "source": "the request: '`page` must be a whole number of at least 1 and `size` a whole number from 1 to 100: any other value, an empty one included, answers HTTP 400 with a JSON object whose \"error\" says what is wrong'"
-          },
-          {
-            "id": "team-filter-exact",
-            "grade": "fail-to-pass",
-            "source": "the request: '`team` matches an exact team name; an empty or unknown `team` selects no users', read as user-listing's name filter reads its sentence"
-          },
-          {
-            "id": "team-filter-case-sensitive",
-            "grade": "fail-to-pass",
-            "source": "the request: '`team` matches an exact name and is case-sensitive': `team=engineering` returns no users while stored names use their stated capitalization"
-          },
-          {
-            "id": "team-filters-combine-before-page",
-            "grade": "fail-to-pass",
-            "source": "the request: 'a user must match both `name` (when given) and `team` (when given); apply both filters before pagination'"
-          },
-          {
-            "id": "team-include-opt-in",
-            "grade": "fail-to-pass",
-            "source": "the request: '`include=team` (exactly that value) adds `team` to every user GET /users or GET /users/:id answers, including paged items; any other include value changes nothing. Without it the existing user object shape is unchanged'"
-          },
-          {
-            "id": "summary-total-by-team",
-            "grade": "fail-to-pass",
-            "source": "the request: 'GET /users/summary returns {total, by_team} for all matching users'; `by_team` has exact stored-name keys and counts, and missing groups are omitted"
-          },
-          {
-            "id": "summary-uses-user-filters",
-            "grade": "fail-to-pass",
-            "source": "the request: 'Use the same `name` and `team` filters GET /users applies.', read as user-teams' `team-filter-exact` and `team-filters-combine-before-page` checks read it"
-          },
-          {
-            "id": "summary-unpaginated-ignores",
-            "grade": "fail-to-pass",
-            "source": "the request: 'counts are unpaginated; page, size, include and other queries are ignored on summary', read with 'all matching users'"
-          },
-          {
-            "id": "summary-no-matches",
-            "grade": "fail-to-pass",
-            "source": "the request: 'no match returns total 0 and {}'; read with the same filters GET /users applies, including an empty team selecting no users"
-          },
-          {
-            "id": "summary-team-case-sensitive",
-            "grade": "fail-to-pass",
-            "source": "the request: 'Use the same `name` and `team` filters GET /users applies.', read as user-teams' `team-filter-case-sensitive` check reads it"
-          },
-          {
-            "id": "summary-status-records",
-            "grade": "pass-to-pass",
-            "source": "the fixture README: R-1 through R-4 each remain one heading with a nonempty Requirement field under the active ## Requirements section; history and retired headings do not count as active requirements"
-          },
-          {
-            "id": "summary-status-current",
-            "grade": "fail-to-pass",
-            "source": "the fixture README finite state contract: R-3 remains accepted, its Current implementation starts with implemented or complete and cites a resolving source file, and Current verification starts with passed and cites a resolving test file"
-          },
-          {
-            "id": "summary-status-history",
-            "grade": "pass-to-pass",
-            "source": "the fixture README: the dated 2026-10-31 as-of observation remains an earlier record after current fields change"
-          },
-          {
-            "id": "summary-status-deferred",
-            "grade": "pass-to-pass",
-            "source": "the fixture README and R-4: the future CSV export remains deferred, not started and not run"
           }
         ]
       },
