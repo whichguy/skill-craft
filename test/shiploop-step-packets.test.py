@@ -198,8 +198,8 @@ class StepPacketTests(unittest.TestCase):
                          "reason": "r" * 150})
         whole = layers.packet_lines(rows, targets)
         case = CASES["node-fix-bug"]
-        for route, returned in (("inline", False), ("ask-agent", False), ("inline", True), ("ask-agent", True)):
-            with self.subTest(route=route, returned=returned), budget.reference_tmpdir(), \
+        for route in ("inline", "ask-agent"):
+            with self.subTest(route=route), budget.reference_tmpdir(), \
                     tempfile.TemporaryDirectory(prefix="shiploop-step-packets-") as temp:
                 run_dir = Path(temp) / "run"
                 run_dir.mkdir()
@@ -212,15 +212,6 @@ class StepPacketTests(unittest.TestCase):
                     state = navigator.apply(state, action, {"outcome": "done", "summary": "Synthetic", **extra})
                     if state.get("active_improve") is not None:
                         state = navigator.finish_improve(state, action, {"summary": "Synthetic review", "lessons": "x"})
-                if returned:
-                    item = state["work_items"][state["work_index"]]["id"]
-                    returned_action = "synthetic-document-return"
-                    summary = "R-1 current status is stale; observed code and check receipts support repair."
-                    state["history"].append({"stage": "document", "outcome": "send-back", "workitem": item,
-                                             "action": returned_action, "summary": summary})
-                    state["accepted"][returned_action] = navigator._canonical_result(
-                        {"outcome": "send-back", "summary": summary}, stage="document",
-                        delivery_contract=state.get("delivery_contract"))
                 store.write_record(run_dir / "state.md", state)
                 saved = store.read_record(run_dir / "state.md")
                 with contextlib.redirect_stdout(io.StringIO()):
@@ -230,10 +221,6 @@ class StepPacketTests(unittest.TestCase):
                 self.assertLessEqual(budget.at_reference_install(printed), navigator.HEAD_LIMIT)
                 self.assertTrue(printed.endswith(navigator.HEAD_END + "\n"))
                 self.assertIn("Current stage guidance:", printed)
-                if returned:
-                    self.assertIn("without evidence, no spec edit", printed)
-                    self.assertIn("This return grants no other spec edit", printed)
-                    self.assertEqual(full.count("This item's Knowledge exception"), 1)
                 self.assertIn(whole[0], printed)  # the leading lines print
                 found = re.search(r"RUN/(fields/\S+-test-layers\.md) holds all " + str(len(whole)) + " whole", full)
                 self.assertIsNotNone(found, "the packet names the file that holds every layers line")

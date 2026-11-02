@@ -236,45 +236,6 @@ def _destination_line(stage: str, written: Sequence[str]) -> str:
             "goes in your result.")
 
 
-def _document_status_repair_return(state: Mapping[str, Any], stage: str) -> bool:
-    """Whether this active step-plan is the same item's return from a document send-back."""
-    if stage != "step-plan" or state.get("stage") != "inner-loop":
-        return False
-    items, index = state.get("work_items"), state.get("work_index")
-    if (not isinstance(items, list) or not isinstance(index, int) or isinstance(index, bool)
-            or not 0 <= index < len(items)):
-        return False
-    item = items[index]
-    item_id = item.get("id") if isinstance(item, Mapping) else None
-    if not isinstance(item_id, str) or not item_id:
-        return False
-    loops = state.get("inner_loops")
-    current = loops.get(item_id) if isinstance(loops, Mapping) else None
-    if not isinstance(current, Mapping) or current.get("stage") != "step-plan":
-        return False
-    history = state.get("history")
-    if not isinstance(history, list):
-        return False
-    same_item = [row for row in history if isinstance(row, Mapping) and row.get("workitem") == item_id]
-    while (same_item and same_item[-1].get("stage") == "step-plan"
-           and same_item[-1].get("outcome") == "blocked"):
-        same_item.pop()
-    return bool(same_item and same_item[-1].get("stage") == "document"
-                and same_item[-1].get("outcome") == "send-back")
-
-
-def status_repair_lines(state: Mapping[str, Any], stage: str) -> List[str]:
-    """The returned plan's conditional authority is required packet text, not file-only knowledge context."""
-    if not _document_status_repair_return(state, stage):
-        return []
-    spec = str(Path(str(state["repo"])) / HOME / "spec.md")
-    return ["This item's Knowledge exception: only if returned for stale status in an existing R-<n>, fix current "
-            "implementation/verification in " + spec + " from observed code and actual check receipts; without "
-            "evidence, no spec edit. Keep R text/intent, IDs, dated history, deferred scope verbatim. "
-            "summary: change/reason; evidence_refs: code/checks. Unrun: not run. "
-            "This return grants no other spec edit."]
-
-
 def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
     """Packet lines: where the knowledge home is and what this stage keeps up to date there."""
     repo = Path(str(state["repo"]))
@@ -685,9 +646,8 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
     S3.3): a new line inside an existing, current R-<n> entry, ending ``(<marker>)`` (``W1/S2``), so the line names the
     step that added it and its commit.  Existing means the committed spec holds the entry: an entry the edit adds is a
     new requirement, not a line inside one.  Changing or removing a line of the committed spec, or adding a requirement,
-    changes the contract, which is the step plan's to decide: the refusal names send-back. A stale current-status
-    correction also returns to the step plan, where the evidence-backed status-only scope is explicit. Earlier steps'
-    lines are committed with their steps, so HEAD is this step's baseline.
+    changes the contract, which is the step plan's to decide: the refusal names send-back.  Earlier steps' lines are
+    committed with their steps, so HEAD is this step's baseline.
     """
     path = Path(repo) / HOME / "spec.md"
     old = _committed(Path(repo), "spec.md")
@@ -720,9 +680,7 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
         ("outside an R-<n> entry the committed spec holds", outside))
         if lines]
     return ("Restore " + str(path) + " to what HEAD holds plus this step's requirement lines, then run the same "
-            "callback again; for stale current implementation or verification status, report send-back naming its "
-            "R-<n> and cite observed code and actual check receipts; to change requirement intent, report send-back "
-            "naming it.\n"
+            "callback again; to change a requirement, report send-back naming it.\n"
             "In a step, spec.md takes only new lines inside an R-<n> entry the committed spec holds, each ending ("
             + marker + "); ShipLoop commits them with the step. Found: " + " | ".join(found) + ".")
 
