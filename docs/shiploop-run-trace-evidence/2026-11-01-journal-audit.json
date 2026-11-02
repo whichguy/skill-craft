@@ -1,0 +1,330 @@
+{
+ "date": "2026-11-01",
+ "method": "Workflow audit-run-journal (run wf_02909a46-07c): 6 finders (writers, readers, contract, legacy, tests, skill-calls+notes), 1 skeptic per finding told to refute and read git history, 1 completeness critic; 42 agents",
+ "data_survey": {
+  "trace_files": 1266,
+  "skill_call_files": 262,
+  "shiploop_trace_lines": 32052,
+  "bad_lines": 0,
+  "unterminated_files": 0,
+  "other_product_lines_named_trace_jsonl": 2143,
+  "skill_call_lines": 510
+ },
+ "findings": [
+  {
+   "n": 0,
+   "severity": "P2",
+   "verdict": "confirmed",
+   "category": "bug",
+   "title": "Writers emit raw U+2028/U+2029/U+0085 and lone surrogates (ensure_ascii=False), so the trace reader drops those rows and a surrogate drops the whole event",
+   "file": "skills/shiploop/scripts/shiploop_trace.py",
+   "outcome": "fixed"
+  },
+  {
+   "n": 1,
+   "severity": "P3",
+   "verdict": "partly",
+   "category": "bug",
+   "title": "record_packet keeps sent copies after the trace has hit its 32 MB cap, so packets/sent grows with files no trace line names",
+   "file": "skills/shiploop/scripts/shiploop_trace.py",
+   "outcome": "fixed"
+  },
+  {
+   "n": 2,
+   "severity": "P3",
+   "verdict": "confirmed",
+   "category": "doc-drift",
+   "title": "Trace docs name the retired `chain` verb and omit the session-end hook rows the writer emits",
+   "file": "skills/shiploop/references/state-files.md",
+   "outcome": "fixed"
+  },
+  {
+   "n": 3,
+   "severity": "P2",
+   "verdict": "confirmed",
+   "category": "bug",
+   "title": "The E2E trace reader counts a callback held for an owner note as a refusal, against the owner decision and shiploop_trace.refused",
+   "file": "test/shiploop_e2e/run_trace.py",
+   "outcome": "fixed"
+  },
+  {
+   "n": 4,
+   "severity": "P3",
+   "verdict": "partly",
+   "category": "bug",
+   "title": "run_trace.checks packet_copies hashes a newline-translated read, so a packet holding CR fails falsely",
+   "file": "test/shiploop_e2e/run_trace.py",
+   "outcome": "fixed"
+  },
+  {
+   "n": 5,
+   "severity": "P3",
+   "verdict": "confirmed",
+   "category": "bug",
+   "title": "shiploop_trace._read_jsonl splits on str.splitlines(), which drops any line holding U+2028/U+2029/U+0085 (the defect d56904e2 fixed in read_records)",
+   "file": "skills/shiploop/scripts/shiploop_trace.py",
+   "outcome": "fixed"
+  },
+  {
+   "n": 6,
+   "severity": "P3",
+   "verdict": "partly",
+   "category": "duplication",
+   "title": "Four more hand-rolled readers of trace.jsonl / skill-calls.jsonl duplicate shiploop_trace._read_jsonl with the same splitlines split",
+   "file": "test/shiploop_e2e/status_card.py",
+   "outcome": "fixed (shared reader; status_card keeps its own loop, split at \\n)"
+  },
+  {
+   "n": 7,
+   "severity": "P3",
+   "verdict": "confirmed",
+   "category": "bug",
+   "title": "For a pre-`check` trace, run_trace.summary drops failed `complete --check-only` lines from both refusals and checks_failed, while `shiploop trace` counts them as refusals",
+   "file": "test/shiploop_e2e/run_trace.py",
+   "outcome": "fixed"
+  },
+  {
+   "n": 8,
+   "severity": "P3",
+   "verdict": "confirmed",
+   "category": "bug",
+   "title": "Product trace reader counts pre-8bf10c64 failed `complete --check-only` lines as refusals, while the harness readers of the same file count them as checks",
+   "file": "skills/shiploop/scripts/shiploop_trace.py",
+   "outcome": "not taken: product reads the verb only by owner decision D1 (docs/shiploop-check-phases-bc-plan-2026-10-28.md); documented"
+  },
+  {
+   "n": 9,
+   "severity": "P3",
+   "verdict": "partly",
+   "category": "doc-drift",
+   "title": "No field contract for trace.jsonl lines: most written fields are undocumented, and the docs leave out session-end hook rows",
+   "file": "skills/shiploop/references/state-files.md",
+   "outcome": "fixed"
+  },
+  {
+   "n": 10,
+   "severity": "P3",
+   "verdict": "partly",
+   "category": "legacy",
+   "title": "Neither `v: 1` nor SCHEMA \"shiploop-trace/v1\" is read or documented, and the line format changed twice without a bump",
+   "file": "skills/shiploop/scripts/shiploop_trace.py",
+   "outcome": "documented (v stays 1; readers key on kind)"
+  },
+  {
+   "n": 11,
+   "severity": "P3",
+   "verdict": "confirmed",
+   "category": "doc-drift",
+   "title": "trace.jsonl contract still lists the removed `chain` verb",
+   "file": "skills/shiploop/references/state-files.md",
+   "outcome": "fixed"
+  },
+  {
+   "n": 12,
+   "severity": "P3",
+   "verdict": "confirmed",
+   "category": "dead-code",
+   "title": "UNTRACED never decides anything: every member is already excluded because no run root is set",
+   "file": "skills/shiploop/scripts/shiploop_trace.py",
+   "outcome": "fixed"
+  },
+  {
+   "n": 13,
+   "severity": "P3",
+   "verdict": "partly",
+   "category": "doc-drift",
+   "title": "The documented reason lint and red-check go untraced is wrong: both write run state, and `lint --fix` edits files",
+   "file": "skills/shiploop/references/status-display.md",
+   "outcome": "fixed"
+  },
+  {
+   "n": 14,
+   "severity": "P3",
+   "verdict": "partly",
+   "category": "format",
+   "title": "The trace reader splits JSONL on Unicode line separators, so a line whose text holds U+2028/U+2029/U+0085 is silently dropped",
+   "file": "skills/shiploop/scripts/shiploop_trace.py",
+   "outcome": "fixed"
+  },
+  {
+   "n": 15,
+   "severity": "P3",
+   "verdict": "partly",
+   "category": "doc-drift",
+   "title": "skill-calls.jsonl's gate-line shape is undocumented; its discriminator (the presence of `gate`) is implicit",
+   "file": "skills/shiploop/references/keepalive.md",
+   "outcome": "fixed"
+  },
+  {
+   "n": 16,
+   "severity": "P2",
+   "verdict": "confirmed",
+   "category": "bug",
+   "title": "run_trace.summary and flow.trace_block take checks_failed from the product reader, which stopped counting old `complete --check-only` failures in 8bf10c64, so re-reading a run from before phase B gives a record that does not add up and does not match its own saved metrics.json",
+   "file": "test/shiploop_e2e/run_trace.py",
+   "outcome": "fixed"
+  },
+  {
+   "n": 17,
+   "severity": "P3",
+   "verdict": "partly",
+   "category": "doc-drift",
+   "title": "The 'run saved before the trace existed' framing is stale: the accepted-event fallback (`legacy`/`untraced_steps`) is live for harness-seeded slice steps, and only the no-trace.jsonl branch is pure legacy, which nothing in the repo reads through this reader",
+   "file": "skills/shiploop/scripts/shiploop_trace.py",
+   "outcome": "fixed"
+  },
+  {
+   "n": 18,
+   "severity": "P3",
+   "verdict": "confirmed",
+   "category": "doc-drift",
+   "title": "state-files.md and status-display.md still describe `hook` trace rows as stop decisions only; the session-end row added by 1f0bc835 is documented only in keepalive.md",
+   "file": "skills/shiploop/references/status-display.md",
+   "outcome": "fixed"
+  },
+  {
+   "n": 19,
+   "severity": "P3",
+   "verdict": "confirmed",
+   "category": "dead-code",
+   "title": "Unused imports in shiploop_trace.py: datetime.timezone and typing.Iterable",
+   "file": "skills/shiploop/scripts/shiploop_trace.py",
+   "outcome": "fixed"
+  },
+  {
+   "n": 20,
+   "severity": "P2",
+   "verdict": "confirmed",
+   "category": "bug",
+   "title": "The trace reader splits lines with str.splitlines, so a row holding U+2028/U+2029/U+0085 is silently dropped; d56904e2 fixed this only in skill_calls, and no test covers the trace side",
+   "file": "skills/shiploop/scripts/shiploop_trace.py",
+   "outcome": "fixed"
+  },
+  {
+   "n": 21,
+   "severity": "P3",
+   "verdict": "confirmed",
+   "category": "test-gap",
+   "title": "No test covers how trace.build merges skill-calls.jsonl (call rows and gate rows)",
+   "file": "test/shiploop-skill-calls.test.py",
+   "outcome": "fixed (test)"
+  },
+  {
+   "n": 22,
+   "severity": "P3",
+   "verdict": "confirmed",
+   "category": "test-gap",
+   "title": "No test asserts the trace rows written at an Improve stage (packet stage 'improve' with 'reviewed', command stage pair), which harness readers depend on",
+   "file": "test/shiploop-skill-calls.test.py",
+   "outcome": "open: no test yet"
+  },
+  {
+   "n": 23,
+   "severity": "P3",
+   "verdict": "confirmed",
+   "category": "test-gap",
+   "title": "Nothing tests run_trace.read on the old `complete --check-only` rows it deliberately keeps reading (1,918 real rows)",
+   "file": "test/shiploop-e2e-run-trace.test.py",
+   "outcome": "fixed (test)"
+  },
+  {
+   "n": 24,
+   "severity": "P3",
+   "verdict": "confirmed",
+   "category": "test-gap",
+   "title": "No test checks that the harness treats a trace at its size cap as not covering the run",
+   "file": "test/shiploop-e2e-run-trace.test.py",
+   "outcome": "open: covered by test_the_trace_stops_growing_at_its_cap for the product; harness covers() not pinned"
+  },
+  {
+   "n": 25,
+   "severity": "P3",
+   "verdict": "confirmed",
+   "category": "test-gap",
+   "title": "No test checks the TEXT_LIMIT clip and its marker on refusal or hook text",
+   "file": "test/shiploop-trace.test.py",
+   "outcome": "fixed (test)"
+  },
+  {
+   "n": 26,
+   "severity": "P2",
+   "verdict": "confirmed",
+   "category": "bug",
+   "title": "The trace counts the Improve gate's 'not enforced' line as a Skill call, so the digest and page report calls that were never made",
+   "file": "skills/shiploop/scripts/shiploop_trace.py",
+   "outcome": "fixed"
+  },
+  {
+   "n": 27,
+   "severity": "P3",
+   "verdict": "confirmed",
+   "category": "bug",
+   "title": "The trace reader splits JSONL with str.splitlines(), so it drops a Skill call or trace event that contains U+2028/U+2029/U+0085 (the same defect d56904e2 fixed in the gate's reader)",
+   "file": "skills/shiploop/scripts/shiploop_trace.py",
+   "outcome": "fixed"
+  },
+  {
+   "n": 28,
+   "severity": "P3",
+   "verdict": "confirmed",
+   "category": "bug",
+   "title": "When `shiploop check` prints a waiting owner note, mark_held records it in shown.json but the trace's command line gets no 'held', so the reader loses it once the action is accepted",
+   "file": "skills/shiploop/scripts/shiploop_navigator.py",
+   "outcome": "open: a check that printed a held note leaves no trace row"
+  },
+  {
+   "n": 29,
+   "severity": "P3",
+   "verdict": "partly",
+   "category": "doc-drift",
+   "title": "The run-file contract in state-files.md omits owner-notes/ (N<k>.md, shown.json) and calls the gate line host-only, though delegation also writes it",
+   "file": "skills/shiploop/references/state-files.md",
+   "outcome": "fixed"
+  }
+ ],
+ "rejected": [
+  {
+   "title": "skill-calls.jsonl append blocks on a FIFO and skips the regular-file check that the trace writer adds (same defect fixed for the trace in 49a86d88)",
+   "verdict": "deliberate-decision"
+  },
+  {
+   "title": "`workspace start` is traced as verb `workspace`, which hides whether it ran init or next; undocumented",
+   "verdict": "deliberate-decision"
+  },
+  {
+   "title": "The product trace reader (`shiploop trace` digest, --json counts, trace.html) now shows every failed `complete --check-only` in a saved run as a refusal, which contradicts the firm 2026-10-25 finding and its committed evidence",
+   "verdict": "deliberate-decision"
+  },
+  {
+   "title": "No test checks that a torn final line is skipped and the next line still reads",
+   "verdict": "refuted"
+  },
+  {
+   "title": "The rule that a trace write never fails a command is only tested for the final append, not the code that builds the row",
+   "verdict": "refuted"
+  }
+ ],
+ "critic": [
+  {
+   "severity": "P2",
+   "category": "bug",
+   "title": "A command that dies on an uncaught exception or Ctrl-C is traced as exit 2 with no message, so every reader counts it as a ShipLoop refusal",
+   "file": "skills/shiploop/scripts/shiploop_protocol.py",
+   "outcome": "fixed"
+  },
+  {
+   "severity": "P3",
+   "category": "legacy",
+   "title": "The generated context-index.md still lists RUN/chains/ (retired in ad30aa1c) and describes trace.jsonl and skill-calls.jsonl incompletely",
+   "file": "skills/shiploop/scripts/shiploop_context_index.py",
+   "outcome": "fixed"
+  },
+  {
+   "severity": "P3",
+   "category": "doc-drift",
+   "title": "The run-file catalog (state-files.md) leaves out timeline.json and callback-attempts, and its results/ row cites the removed planning_context.collect",
+   "file": "skills/shiploop/references/state-files.md",
+   "outcome": "fixed"
+  }
+ ]
+}

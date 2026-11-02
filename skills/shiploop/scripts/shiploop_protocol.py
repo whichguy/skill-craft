@@ -614,6 +614,14 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     except SystemExit as exc:
         code = exc.code if isinstance(exc.code, int) else 2
         raise
+    except BaseException as exc:
+        # Not ShipLoop's answer: an interrupt (the host or a harness stopped the process) or a crash.  The trace says
+        # which, with the exit the process gets, so no reader counts it as a refusal (exit 2, ``EXIT_BLOCKED``).
+        code = 130 if isinstance(exc, KeyboardInterrupt) else 1
+        _TRACE["crashed"] = type(exc).__name__
+        _TRACE["error"] = ("interrupted before the command finished" if code == 130 else
+                           f"crashed: {type(exc).__name__}: {exc}")
+        raise
     finally:
         _DEPTH[0] -= 1
         if outermost:  # an inner command's packets stay in the trace until the command line that ran it ends
@@ -624,19 +632,19 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
 def _record_command(raw_argv: Sequence[str], code: int, started: float) -> None:
     """Append the finished command to its run's trace.  The state after it was captured inside the run lock, so a
     command that ran next is never credited to this one; a refused command saved nothing, so its after is its before.
-    The routed verbs (lint, red-check, backchain-check) are not traced: their views and record-only checks
-    must leave the run as it was."""
+    Only a command that loaded a current run (or created one) is traced: the display verbs and the routed verbs (lint,
+    red-check, backchain-check), which never load it here, are not."""
     import shiploop_trace as trace
 
     root = _TRACE.get("root")
-    if not raw_argv or raw_argv[0] in trace.UNTRACED or root is None:
+    if not raw_argv or root is None:
         return
     if _TRACE.get("before") is None and not _TRACE.get("created"):
         return
     after = _TRACE.get("after", _TRACE.get("before"))
     trace.record_command(root, raw_argv, code, started, before=_TRACE.get("before"),
                          after=after if isinstance(after, dict) else None, error=_TRACE.get("error"),
-                         note=_TRACE.get("note"), held=_TRACE.get("held"))
+                         note=_TRACE.get("note"), held=_TRACE.get("held"), crashed=_TRACE.get("crashed"))
 
 
 def _saved_state(root: Path) -> Optional[dict]:

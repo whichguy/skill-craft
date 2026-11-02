@@ -87,7 +87,10 @@ def read(run_dir: Path | str | None) -> dict | None:
         if event["kind"] == "command" and event.get("verb") == "complete" and not event.get("check_only"):
             completes.append({"i": event["i"], "action": event.get("action") or (event.get("cursor") or [None])[0],
                               "accepted": event.get("exit") == 0})
-        if event["kind"] == "command" and event.get("exit") not in (0, None) and event.get("verb") not in ROUTED_VERBS:
+        # A callback held once for owner notes refused nothing, and a command interrupted or crashed before it answered
+        # (``crashed``) is not ShipLoop's answer: neither is a failure here, as neither is a refusal to shiploop_trace.
+        if (event["kind"] == "command" and event.get("exit") not in (0, None) and event.get("verb") not in ROUTED_VERBS
+                and not event.get("held") and not event.get("crashed")):
             before = (event.get("stage") or [None])[0]
             text = shiploop_trace._screened(event["error"]) if isinstance(event.get("error"), str) else None
             failures.append({"i": event["i"], "ts": event.get("ts"), "at": event.get("at"), "verb": event.get("verb") or "unknown",
@@ -152,7 +155,7 @@ def sent_texts(run_dir: Path, traced: dict) -> dict[str, list[str]]:
             if send.get("repeat") or not send.get("file"):
                 continue
             try:
-                texts.setdefault(action, []).append((Path(run_dir) / send["file"]).read_text(errors="replace"))
+                texts.setdefault(action, []).append((Path(run_dir) / send["file"]).read_bytes().decode("utf-8", errors="replace"))
             except OSError:
                 continue
     return texts
@@ -190,11 +193,11 @@ def checks(traced: dict | None) -> dict | None:
     repeats = [send for send in sends if send.get("repeat")]
     broken = []
     for send in sends:
-        try:
-            text = (Path(traced["run_dir"]) / str(send.get("file"))).read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
-            text = None
-        if text is None or not send.get("sha") or hashlib.sha256(text.encode("utf-8")).hexdigest()[:16] != send["sha"]:
+        try:  # the bytes as kept: a text read would turn a sent "\r" into "\n" and miss the hash
+            data = (Path(traced["run_dir"]) / str(send.get("file"))).read_bytes()
+        except OSError:
+            data = None
+        if data is None or not send.get("sha") or hashlib.sha256(data).hexdigest()[:16] != send["sha"]:
             broken.append(send)
     copies = (_check("not exercised", "no packet was printed") if not sends else
               _check("fail", f"{len(broken)} of {len(sends)} prints name no kept copy with their hash", lines(broken))
@@ -267,6 +270,12 @@ def checks_line(found: dict | None) -> str | None:
                                                                        f" ({row['evidence']})") for name, row in found.items())
 
 
+def checks_failed(traced: dict) -> int:
+    """The run's failed checks: ``shiploop check`` and, in a run before that verb, ``complete --check-only``
+    (``shiploop_trace`` reads only the verb, so its own count misses the older rows this harness still reads)."""
+    return sum(bool(failure["check_only"]) for failure in traced["failures"])
+
+
 def summary(traced: dict | None, stream_failures: int | None = None) -> dict | None:
     """The record metrics.json keeps of the trace: what it counted, whether it covers the run, the stream's own count, and the
     live checks (``checks``)."""
@@ -279,7 +288,8 @@ def summary(traced: dict | None, stream_failures: int | None = None) -> dict | N
     notes = traced.get("notes") or []
     return {"file": FILE, "covers": traced["covers"], "partial": traced["partial"], "traced_since": traced["traced_since"],
             "untraced_steps": traced["untraced_steps"], "seeded_steps": traced["seeded_steps"],
-            "commands": counts.get("commands"), "refusals": len(refusals), "checks_failed": counts.get("checks_failed"),
+            "commands": counts.get("commands"), "refusals": len(refusals), "checks_failed": checks_failed(traced),
+            "crashed": counts.get("crashed"),
             "packets": counts.get("packets"), "reprints": counts.get("reprints"),
             "continuations": counts.get("continuations"), "stops": counts.get("stops"),
             "notes": {"written": len(notes), "held": sum(bool(n.get("held_in")) for n in notes),

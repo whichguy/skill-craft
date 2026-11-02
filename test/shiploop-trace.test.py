@@ -182,6 +182,61 @@ class TraceWriterTests(CliRun):
         self.assertEqual((self.run / trace.TRACE_FILE).stat().st_size, size)
 
 
+class TraceFormatTests(CliRun):
+    """The journal's line format (audit of 2026-11-01, docs/shiploop-run-trace-journal.md)."""
+
+    def test_unicode_line_ends_and_lone_surrogates_keep_their_line(self) -> None:
+        """A raw U+2028 or U+0085 once cut a line for a reader splitting with splitlines(), and a lone surrogate (an
+        undecodable file name) failed the encode and lost the whole row: every line is ASCII now."""
+        text = "one\u2028two\u0085three " + os.fsdecode(b"caf\xe9.txt")
+        self.assertTrue(trace.record(self.run, "command", verb="x", exit=2, error=text))
+        raw = (self.run / trace.TRACE_FILE).read_bytes()
+        raw.decode("ascii")                                          # pure ASCII: nothing for a reader to split on
+        self.assertEqual([row["error"] for row in store.read_jsonl(self.run / trace.TRACE_FILE) if row.get("verb") == "x"],
+                         [text])
+        self.assertIn(text, [event.get("error") for event in trace.build(self.run)["events"]])
+
+    def test_a_line_from_before_the_escape_still_reads_whole(self) -> None:
+        """A line written raw (UTF-8, as before the audit) with a U+2028 inside a value is one line to the reader."""
+        line = json.dumps({"v": 1, "ts": 1.0, "at": "x", "kind": "command", "verb": "y", "exit": 2, "error": "a\u2028b"},
+                          ensure_ascii=False)
+        with (self.run / trace.TRACE_FILE).open("a", encoding="utf-8") as handle:
+            handle.write(line + "\n")
+        self.assertIn("a\u2028b", [row.get("error") for row in store.read_jsonl(self.run / trace.TRACE_FILE)])
+
+    def test_long_text_is_cut_with_a_marker_and_short_text_is_not(self) -> None:
+        self.assertTrue(trace.record(self.run, "hook", hook="stop", text="x" * (trace.TEXT_LIMIT + 1000), why="short"))
+        row = events(self.run)[-1]
+        self.assertTrue(row["text"].startswith("x" * trace.TEXT_LIMIT))
+        self.assertTrue(row["text"].endswith("… [1000 more characters]"))
+        self.assertEqual(row["why"], "short")
+
+    def test_an_interrupted_command_is_not_a_refusal(self) -> None:
+        """The start-route trials of 2026-11-01 stopped the host as `init` printed its packet; 45 such rows read exit 2
+        with no text, so every reader counted a refusal ShipLoop never made."""
+        import importlib.machinery
+        import contextlib
+        import io
+        import shiploop_protocol as protocol
+
+        loader = importlib.machinery.SourceFileLoader("shiploop_cli_for_interrupt", str(CLI))
+        spec = importlib.util.spec_from_loader(loader.name, loader)
+        core = importlib.util.module_from_spec(spec)
+        loader.exec_module(core)
+        for raised, code, label in ((KeyboardInterrupt(), 130, "interrupted: "), (RuntimeError("boom"), 1, "crashed: ")):
+            with mock.patch.object(navigator, "emit", side_effect=raised), \
+                    mock.patch.dict(os.environ, {"SHIPLOOP_PROGRESS": "off"}), \
+                    contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()), \
+                    self.assertRaises(type(raised)):
+                protocol.main(core, ["next", "--run-dir", str(self.run)])
+            row = events(self.run)[-1]
+            self.assertEqual((row["verb"], row["exit"], row["crashed"]), ("next", code, type(raised).__name__))
+            model = trace.build(self.run)
+            self.assertEqual(model["counts"]["refusals"], 0)
+            self.assertIn(label, trace.digest(model))
+        self.assertEqual(model["counts"]["crashed"], 2)
+
+
 class TraceReviewFindingTests(CliRun):
     """Findings of the independent review of the run trace (Sol, 2026-10-25), each pinned through the real route."""
 

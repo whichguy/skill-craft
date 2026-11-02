@@ -682,13 +682,7 @@ def build(sc: Scenario, out: Path, *, cli: Path | None = None) -> Built:
 def _trace(run_dir: Path) -> list | None:
     """The rows of RUN/trace.jsonl, or None when the run wrote none."""
     path = run_dir / "trace.jsonl"
-    if not path.is_file():
-        return None
-    rows = []
-    for line in path.read_text(errors="replace").splitlines():
-        with contextlib.suppress(ValueError):
-            rows.append(json.loads(line))
-    return rows
+    return store.read_jsonl(path) if path.is_file() else None
 
 
 def render(sc: Scenario, out: Path, *, cli: Path | None = None) -> stage_oracle.Bundle:

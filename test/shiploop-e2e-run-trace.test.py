@@ -48,6 +48,7 @@ import run_trace  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_trace  # noqa: E402
+import status_card  # noqa: E402
 
 ENV = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1", "SHIPLOOP_PROGRESS": "off"}
 RUN = ".shiploop-runs/work-trace/run"
@@ -317,6 +318,44 @@ class TracedRun(unittest.TestCase):
             found = run_trace.checks(traced)
         self.assertEqual(found["packet_copies"]["verdict"], "fail")
         self.assertEqual(found["packet_copies"]["lines"], [single["i"]])
+
+    def test_held_interrupted_and_old_check_only_rows_read_as_what_they_were(self):
+        """Audit 2026-11-01: a callback held for owner notes and a command interrupted before it answered are not
+        failures, and a failed `complete --check-only` from before the `check` verb still counts as a failed check."""
+        base = {"v": 1, "kind": "command", "stage": ["intake", "intake"], "action": self.intake, "ms": 1}
+        rows = [{**base, "ts": 9e9, "verb": "complete", "exit": 2, "held": ["N1"], "error": "held for N1"},
+                {**base, "ts": 9e9 + 1, "verb": "next", "exit": 130, "crashed": "KeyboardInterrupt",
+                 "error": "interrupted before the command finished"},
+                {**base, "ts": 9e9 + 2, "verb": "complete", "exit": 2, "check_only": True, "error": "old dry run"}]
+        with tempfile.TemporaryDirectory(prefix="shiploop-e2e-run-trace-rows-") as temp:
+            run = Path(temp) / "run"
+            shutil.copytree(self.run_dir, run)
+            with (run / shiploop_trace.TRACE_FILE).open("a", encoding="utf-8") as handle:
+                handle.writelines(json.dumps(row) + "\n" for row in rows)
+            before = run_trace.read(self.run_dir)
+            traced = run_trace.read(run)
+            found = run_trace.summary(traced)
+            import shiploop_stage_spec
+            card = status_card._timeline(run / shiploop_trace.TRACE_FILE, None, shiploop_stage_spec)
+        self.assertEqual([(f["verb"], f["exit"], f["check_only"]) for f in traced["failures"][len(before["failures"]):]],
+                         [("complete", 2, True)])
+        self.assertEqual(found["checks_failed"], run_trace.checks_failed(before) + 1)
+        self.assertEqual(found["refusals"], run_trace.summary(before)["refusals"])
+        self.assertEqual(found["crashed"], 1)
+        self.assertNotIn("held for N1", [mark["text"] for mark in card["marks"]])
+
+    def test_a_kept_copy_holding_a_carriage_return_matches_its_hash(self):
+        with tempfile.TemporaryDirectory(prefix="shiploop-e2e-run-trace-cr-") as temp:
+            run = Path(temp) / "run"
+            shutil.copytree(self.run_dir, run)
+            traced = run_trace.read(run)
+            sends = [send for rows in traced["packets"].values() for send in rows]
+            text = "line one\r\nline two\r\n"
+            sha, file = shiploop_trace.keep_sent(run, text)
+            for send in sends:
+                send["sha"], send["file"] = sha, file
+            found = run_trace.checks(traced)
+        self.assertEqual(found["packet_copies"]["verdict"], "pass", found["packet_copies"])
 
     def test_a_run_before_the_trace_keeps_the_stream_counts(self):
         m = metrics.collect(self.untraced, self.untraced / RUN)

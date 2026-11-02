@@ -24,6 +24,7 @@ from typing import Callable
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1] / "skills/shiploop/scripts"))
+import shiploop_store  # noqa: E402
 import shiploop_trace  # noqa: E402
 
 FILE = "owner-note.json"
@@ -37,18 +38,8 @@ WRITTEN = re.compile(r"^Owner note (N\d+) written", re.M)
 
 def packet_printed(run_dir: Path, action: str) -> bool:
     """Whether the run's trace holds a ``packet`` line for ``action``: its step has started, so a note now is mid-step."""
-    try:
-        rows = (run_dir / shiploop_trace.TRACE_FILE).read_text(encoding="utf-8", errors="replace").splitlines()
-    except OSError:
-        return False
-    for row in rows:
-        try:
-            event = json.loads(row)
-        except ValueError:
-            continue
-        if isinstance(event, dict) and event.get("kind") == "packet" and event.get("action") == action:
-            return True
-    return False
+    return any(event.get("kind") == "packet" and event.get("action") == action
+               for event in shiploop_store.read_jsonl(run_dir / shiploop_trace.TRACE_FILE))
 
 
 def due(run_dir: Path, stage: str) -> dict | None:

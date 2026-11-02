@@ -704,7 +704,7 @@ def trace_block(traced: dict | None, run: str) -> dict:
     counts = traced["counts"]
     return {"measured": True, "covers": traced["covers"], "partial": traced["partial"], "packets": counts.get("packets"),
             "reprints": counts.get("reprints"), "continuations": counts.get("continuations"), "stops": counts.get("stops"),
-            "checks_failed": counts.get("checks_failed"), "file": f"{run}/{run_trace.FILE}"}
+            "checks_failed": run_trace.checks_failed(traced), "file": f"{run}/{run_trace.FILE}"}
 
 
 STANDALONE_HEAD = ('<!doctype html>\n<html lang="en">\n<meta charset="utf-8">\n'

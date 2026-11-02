@@ -7,18 +7,25 @@ write can.  ``scripts/shiploop-skill-call`` (a PostToolUse hook on the Skill too
 ``<run dir>/skill-calls.jsonl``; ``complete`` on an Improve stage reads it (``skill_call_gate`` in the navigator).
 
 The hook runs for every Skill call of a bound session, so it is cheap and never raises into the host.  It writes only inside a
-run directory the keepalive hooks bound, and only to a regular file it opened without following a symlink.
+run directory the keepalive hooks bound, through ``store.append_jsonl``: one ASCII line, a regular file only, never a
+symlink, never blocking.
+
+Two line shapes share the file: a call (``ts``, ``at``, ``skill``, ``called_as``, ``args``, ``session``, and
+``tool_use_id`` / ``agent_id`` when the host gave them) and, at most once per run, a gate note (``ts``, ``at``,
+``gate``: ``not enforced``, ``action``, ``why``) saying the call could not be enforced here.  A line with a ``gate`` key is
+the note; every other line is a call.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import re
 import sys
 import time
 from pathlib import Path
 from typing import Any, Iterable, Mapping
+
+import shiploop_store as store
 
 RECORD_FILE = "skill-calls.jsonl"
 PLUGIN = "skill-craft"  # the one plugin namespace every ShipLoop skill is invoked under (/skill-craft:<leaf>)
@@ -36,19 +43,6 @@ def skill_name(raw: Any) -> str:
     name = str(raw or "").strip().lstrip("/").strip().lower()
     plugin, _, leaf = name.rpartition(":")
     return leaf.strip() if plugin.strip() in ("", PLUGIN) else name
-
-
-def _line(record: Mapping[str, Any]) -> bytes:
-    return (json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n").encode("utf-8")
-
-
-def _append(run_dir: Path, record: Mapping[str, Any]) -> None:
-    """Append one line to the run's record: a regular file inside the run directory, never a symlink."""
-    fd = os.open(run_dir / RECORD_FILE, os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o644)
-    try:
-        os.write(fd, _line(record))
-    finally:
-        os.close(fd)
 
 
 def record_call(run_dir: str | Path, tool_input: Any, *, session: str, tool_use_id: Any = None,
@@ -80,25 +74,12 @@ def record_call(run_dir: str | Path, tool_input: Any, *, session: str, tool_use_
         record["tool_use_id"] = tool_use_id
     if isinstance(agent_id, str) and agent_id:
         record["agent_id"] = agent_id
-    _append(root, record)
-    return True
+    return store.append_jsonl(root / RECORD_FILE, record, mode=0o644)
 
 
 def read_records(run_dir: str | Path) -> list[dict]:
-    """Every readable line of the run's record; a missing file or a damaged line is skipped, never an error."""
-    try:
-        text = (Path(run_dir) / RECORD_FILE).read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return []
-    found = []
-    for line in text.split("\n"):  # not splitlines(): U+2028 and U+0085 inside an argument are not line ends
-        try:
-            item = json.loads(line)
-        except ValueError:
-            continue
-        if isinstance(item, dict):
-            found.append(item)
-    return found
+    """Every readable line of the run's record (``store.read_jsonl``); a missing file or a damaged line is skipped."""
+    return store.read_jsonl(Path(run_dir) / RECORD_FILE)
 
 
 def _plain(text: str) -> str:
@@ -131,10 +112,13 @@ def note_not_enforced(run_dir: str | Path, action: str, why: str, *, echo: Any =
         return False
     stamp = time.time()
     try:
-        _append(Path(run_dir), {"ts": round(stamp, 6), "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(stamp)),
-                                "gate": "not enforced", "action": action, "why": why})
-    except OSError:
+        written = store.append_jsonl(Path(run_dir) / RECORD_FILE, {
+            "ts": round(stamp, 6), "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(stamp)),
+            "gate": "not enforced", "action": action, "why": why}, mode=0o644)
+    except (OSError, ValueError):
         return False  # a note must never undo an import that was already saved
+    if not written:
+        return False
     (echo or sys.stderr).write(
         "ShipLoop: invoking the improve skill is not enforced on this host (" + why + "), so the Improve stage's "
         "complete accepts the review on the Improve runtime's own receipt without a recorded Skill call.\n")

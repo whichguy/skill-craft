@@ -189,7 +189,7 @@ class MasterIndexTests(unittest.TestCase):
                 if name not in ("workspace.md", "return-plan.md", "return-receipt.md"):
                     first = name.split("/")[0]
                     named.add(first + "/" if "/" in name else first)
-        named |= {"packets/", "scratch/", "reference.md", "context-index.md", "timeline.json", "backchain/", "chains/",
+        named |= {"packets/", "scratch/", "reference.md", "context-index.md", "timeline.json", "backchain/",
                   "transaction.md", ".lock", "callback-attempts", "run-baseline.txt"}
         # quality/ (verify's Code craft rubric) retired with verify (design T §9.1 2b-4c).
         self.assertTrue({"state.md", "decisions/", "loops/", "tests/", "lint/", "expectations/", "improve/",

@@ -24,16 +24,15 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter, defaultdict
-from datetime import datetime, timezone
+from datetime import datetime
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
-import stat
 import sys
 import time
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 import shiploop_store as store
 
@@ -49,10 +48,8 @@ TEXT_LIMIT = 4000  # guard: characters of refusal or hook text one trace line ke
 # The page embeds each packet's text as sent, screened line by line, up to these bounds; past them it names the file.
 PAGE_PACKET_LIMIT = 256 * 1024
 PAGE_TEXT_LIMIT = 12 * 1024 * 1024  # guard: the page stays openable in a browser however many packets a run sent
-# Commands that only read or display; they are not run activity.
-UNTRACED = frozenset(("view", "hook-status", "trace", "graph-dry-run", "-h", "--help"))
 # Set by the CLI while a traced command runs on a current run; packets printed at any other time (a routed verb such as
-# chain, a test calling emit directly) write nothing.
+# lint, a test calling emit directly) write nothing.
 ACTIVE = False
 
 
@@ -71,36 +68,31 @@ def _clip(value: Any, limit: int = TEXT_LIMIT, where: str = "") -> Any:
     return value
 
 
+def _capped(path: Path) -> bool:
+    """Whether the trace at ``path`` has reached ``TRACE_LIMIT`` and stopped growing."""
+    try:
+        return path.stat().st_size >= TRACE_LIMIT
+    except FileNotFoundError:
+        return False
+
+
 def record(root: str | Path, kind: str, **fields: Any) -> bool:
     """Append one event to the run's trace; True when a line was written.  Never raises.
 
-    Only a run directory (one holding ``state.md``) gets a trace, and only through a regular file opened without
-    following a symlink and without blocking (a FIFO in its place is refused, never waited on).  One ``write`` on an
-    ``O_APPEND`` descriptor keeps concurrent writers (a command and a hook) from interleaving lines.  Callers that are
-    not a command on a loaded run check ``current_state`` first.
+    Only a run directory (one holding ``state.md``) gets a trace, appended by ``store.append_jsonl`` (one ASCII line,
+    one ``O_APPEND`` write, a regular file only, never a symlink, never blocking).  Callers that are not a command on a
+    loaded run check ``current_state`` first.
     """
     try:
         run = Path(root)
         if not (run / "state.md").is_file():
             return False
         path = run / TRACE_FILE
-        try:
-            if path.stat().st_size >= TRACE_LIMIT:
-                return False
-        except FileNotFoundError:
-            pass
+        if _capped(path):
+            return False
         event = {"v": 1, **_stamp(), "kind": kind,
                  **{key: _clip(value) for key, value in fields.items() if value is not None}}
-        line = json.dumps(event, ensure_ascii=False, separators=(",", ":")) + "\n"
-        flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
-        fd = os.open(path, flags, 0o600)
-        try:
-            if not stat.S_ISREG(os.fstat(fd).st_mode):
-                return False
-            os.write(fd, line.encode("utf-8"))
-        finally:
-            os.close(fd)
-        return True
+        return store.append_jsonl(path, event)
     except (OSError, TypeError, ValueError):
         return False
 
@@ -138,6 +130,8 @@ def record_packet(root: str | Path, state: Mapping[str, Any], text: str, printed
     if not ACTIVE:
         return False
     try:
+        if _capped(Path(root) / TRACE_FILE):  # no line would name the copy
+            return False
         sha, file = keep_sent(root, text)
         whole = printed.startswith(text)
         head = None if whole else keep_sent(root, printed)[1]
@@ -172,13 +166,12 @@ def accepted_between(before: Mapping[str, Any], after: Mapping[str, Any]) -> lis
 
 def record_command(root: str | Path, argv: Sequence[str], code: int, started: float, *,
                    before: Mapping[str, Any] | None, after: Mapping[str, Any] | None, error: str | None,
-                   note: str | None = None, held: Sequence[str] | None = None) -> bool:
+                   note: str | None = None, held: Sequence[str] | None = None, crashed: str | None = None) -> bool:
     """Record one ShipLoop command line that named the run: ``before`` and ``after`` are the saved states around it
     (``after`` is None when the command saved nothing it could report).  ``note`` is the owner note a ``note`` command
-    wrote, ``held`` the notes a held callback printed; the notes an accepted step delivered come from the two states."""
+    wrote, ``held`` the notes a held callback printed; the notes an accepted step delivered come from the two states.
+    ``crashed`` names the exception that ended the command before it answered (``KeyboardInterrupt`` for an interrupt)."""
     verb = argv[0] if argv else ""
-    if verb in UNTRACED:
-        return False
     first = cursor_facts(before) if before is not None else None
     last = cursor_facts(after) if after is not None else first
     pairs = {name: [(first or {}).get(name), (last or {}).get(name)] for name in ("rev", "stage", "cursor")} if last else {}
@@ -189,7 +182,7 @@ def record_command(root: str | Path, argv: Sequence[str], code: int, started: fl
         root, "command", verb=verb, action=_flag(argv, "--action"), exit=code,
         ms=round((time.monotonic() - started) * 1000),
         **pairs, status=(last or {}).get("status"), accepted=accepted or None, error=error if code else None,
-        note=note, held=list(held) if held else None, delivered=delivered or None,
+        note=note, held=list(held) if held else None, delivered=delivered or None, crashed=crashed,
     )
 
 
@@ -234,23 +227,6 @@ def _cursor(state: Mapping[str, Any]) -> tuple[str | None, Mapping[str, Any] | N
 # ---------------------------------------------------------------------------------------------------------- reader
 
 
-def _read_jsonl(path: Path) -> list[dict[str, Any]]:
-    """The lines of a JSONL file that parse as objects; a partly written last line is skipped."""
-    try:
-        raw = path.read_bytes()
-    except OSError:
-        return []
-    rows = []
-    for line in raw.decode("utf-8", errors="replace").splitlines():
-        try:
-            value = json.loads(line)
-        except ValueError:
-            continue
-        if isinstance(value, dict):
-            rows.append(value)
-    return rows
-
-
 def _parse(stamp: Any) -> float | None:
     if isinstance(stamp, (int, float)):
         return float(stamp)
@@ -278,30 +254,31 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
     accepted_at = {action: _parse(stamp) for action, stamp in (timeline.get("accepted") or {}).items()}
     trace_path = run / TRACE_FILE
     traced = trace_path.is_file()
-    raw = _read_jsonl(trace_path)
+    raw = store.read_jsonl(trace_path)
     events: list[dict[str, Any]] = [dict(row) for row in raw if isinstance(row.get("kind"), str)]
     # Refusals and hook text name files by absolute path; RUN reads shorter and matches the rest of the reader.
     for event in events:
         for name in ("error", "text"):
             if isinstance(event.get(name), str):
                 event[name] = event[name].replace(str(run) + os.sep, "RUN/").replace(str(run), "RUN")
-    for row in _read_jsonl(run / SKILL_CALLS):
+    for row in store.read_jsonl(run / SKILL_CALLS):
         if "gate" in row:
             events.append({"kind": "skill", "ts": row.get("ts"), "at": row.get("at"), "gate": row.get("gate"),
                            "action": row.get("action"), "why": row.get("why")})
         else:
             events.append({"kind": "skill", "ts": row.get("ts"), "at": row.get("at"), "skill": row.get("skill"),
                            "args": row.get("args")})
-    # A step no traced command accepted (the run predates the trace, or began before an upgrade) is the one event the
-    # timeline recorded for it, so the history never loses a step the trace did not see.
+    # A step no traced command accepted (accepted before the trace began, in a run from before the trace or one upgraded
+    # mid-flight, or seeded by a harness calling the navigator directly) is the one event the timeline recorded for it,
+    # so the history never loses a step the trace did not see.
     traced_since = min((float(row.get("ts") or 0) for row in events if row["kind"] in ("command", "packet", "hook")),
                        default=None)
     covered = {row.get("action") for event in events if event["kind"] == "command" for row in event.get("accepted") or []}
-    legacy = 0
+    outside_trace = 0
     for entry in state.get("history") or []:
         ts = accepted_at.get(entry.get("action"))
         if ts is not None and entry.get("action") not in covered:
-            legacy += 1
+            outside_trace += 1
             events.append({"kind": "accepted", "ts": ts, "at": _iso(ts), "action": entry.get("action"),
                            "stage": entry.get("stage"), "item": entry.get("workitem"),
                            "outcome": entry.get("outcome")})
@@ -404,7 +381,7 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
             "status_reason": state.get("status_reason"), "revision": state.get("revision"),
             "started": _iso(started), "last_event": _iso(last_ts or None),
             "elapsed": round(end - started) if started else None,
-            "traced": traced, "traced_since": _iso(traced_since), "untraced_steps": legacy,
+            "traced": traced, "traced_since": _iso(traced_since), "untraced_steps": outside_trace,
             "trace_bytes": size, "capped": size >= TRACE_LIMIT,
             "work_items": len(state.get("work_items") or []), "work_index": state.get("work_index"),
             "cli": str(Path(__file__).resolve().parent / "shiploop"),
@@ -421,18 +398,20 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
             "refusals": sum(refused(event) for event in commands),
             "held": sum(bool(event.get("held")) for event in commands),
             "checks_failed": sum(event.get("exit") not in (0, None) and event.get("verb") == "check" for event in commands),
+            "crashed": sum(bool(event.get("crashed")) for event in commands),
             "continuations": sum(event.get("decision") == "continue" for event in hooks),
             "stops": sum(event.get("decision") == "allow" for event in hooks),
-            "skills": counts["skill"],
+            "skills": sum(event["kind"] == "skill" and not event.get("gate") for event in events),
         },
     }
 
 
 def refused(event: Mapping[str, Any]) -> bool:
-    """A command that exited non-zero, other than a check (``shiploop check``), which reports and never completes, and a
-    callback held once for owner notes, which refuses nothing the model submitted."""
+    """A command that exited non-zero, other than a check (``shiploop check``), which reports and never completes, a
+    callback held once for owner notes, which refuses nothing the model submitted, and a command interrupted or crashed
+    before it answered (``crashed``)."""
     return (event.get("kind") == "command" and event.get("exit") not in (0, None) and event.get("verb") != "check"
-            and not event.get("held"))
+            and not event.get("held") and not event.get("crashed"))
 
 
 def notes_model(run: Path, state: Mapping[str, Any], events: Sequence[Mapping[str, Any]],
@@ -771,7 +750,9 @@ def event_line(event: Mapping[str, Any]) -> str:
         if event.get("held"):
             text += " · held for owner note" + ("s " if len(event["held"]) > 1 else " ") + ", ".join(event["held"])
         elif event.get("exit"):
-            text += " · " + ("check: " if event.get("verb") == "check" else "refused: ") + _one_line(event.get("error") or "(no message recorded)")
+            label = ("check: " if event.get("verb") == "check" else "interrupted: " if event.get("crashed") == "KeyboardInterrupt"
+                     else "crashed: " if event.get("crashed") else "refused: ")
+            text += " · " + label + _one_line(event.get("error") or "(no message recorded)")
         return f"{head}{text} · {event.get('ms')} ms"
     if kind == "packet":
         where = f"{(event.get('item') + ' ') if event.get('item') else ''}{event.get('stage')}"

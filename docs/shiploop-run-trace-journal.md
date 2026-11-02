@@ -616,6 +616,53 @@ wrong, and the trace row it reads is correct (`released: true`, reason `other`).
 `owner_watch.py` logs it. Follow-up, not built: a claim row in the trace (written where `claim_owner` takes a run) would
 let the check read the next session's claim instead of waiting for a stop decision.
 
+## 2026-11-01: audit of the journal's format, writers and readers (firm for the fixes; three items open)
+
+**Question** (owner): is the run journal, `trace.jsonl` with its sibling `skill-calls.jsonl`, properly structured, do the
+scripts write and read it correctly, and is there legacy or debt in that code?
+
+**Data first, by script** (`docs/shiploop-run-trace-evidence/2026-11-01-journal-survey.py`): every `trace.jsonl` and
+`skill-calls.jsonl` under the home directory, 1,266 and 262 files. All 32,052 ShipLoop trace lines parse as objects with
+`v: 1`, every file ends in a newline, none is torn. 2,143 more lines in files also named `trace.jsonl` belong to
+devloop/Hermes (`~/.local/state/devloop`, `~/.hermes`) and are out of scope. The skill-call file holds two unmarked shapes,
+291 calls and 219 gate notes. The format on disk was sound; the defects were in code paths real data had not yet hit, and
+in counting.
+
+**Method**: a Workflow (run `wf_02909a46-07c`, Opus, 42 agents): six reviewers (writers, readers, contract vs docs,
+legacy, tests, skill calls and owner notes), one skeptic per finding told to refute it and to read the full commit
+history for a recorded decision, then a completeness critic. 35 findings, 30 survived (5 refuted or judged deliberate),
+critic added 3. Compact verdicts and outcomes: `docs/shiploop-run-trace-evidence/2026-11-01-journal-audit.json`.
+
+**Findings and what was done** (all hermetic; no live run):
+
+| Finding | Evidence | Outcome |
+|---|---|---|
+| Writers used `ensure_ascii=False`; `_read_jsonl` (and two harness readers) split with `splitlines()`, which ends a line at U+2028/U+2029/U+0085, so a refusal, hook text or Skill argument holding one vanished from `shiploop trace`, the page and the status card. A lone surrogate (an undecodable file name, a hook payload's `\ud83d`) failed the encode and lost the whole row. d56904e2 fixed this for `read_records` only (HK-3); 2abfe7c7 brought it back in the new reader. | Reproduced: `record(error='a b')` wrote, the reader returned `[]`; a surrogate made `record` return False. None on disk yet. | One writer `store.append_jsonl` (ASCII, `allow_nan=False`, O_APPEND, regular file only, no follow, no block) and one reader `store.read_jsonl` (split at `\n`), used by the trace, the Skill-call record and the harness readers. Tests pin both directions, including a raw line from before the change. |
+| A command interrupted or crashed before it answered was traced as exit 2 with no text, so every reader counted a refusal ShipLoop never made. | 45 `init` rows in `~/e2e-runs-startroute/20261101-*/trials/*/trace.jsonl` (e.g. `036-G-nogit-hello-12-a1`): run created, packet printed, row `exit 2`, no error; the trial harness stops the host after the start command. | `protocol.main` records exit 130 (`KeyboardInterrupt`) or 1 with `crashed` and the reason; `refused()`, the page and the harness leave such rows out of refusals; `counts.crashed`. |
+| The Improve gate's "not enforced" line was counted as a Skill call. | Code: `counts["skill"]` counted every skill-file row. | `counts.skills` counts calls only; the gate line still shows. |
+| Harness: a callback held for owner notes counted as a failure and a status-card refusal mark, against `shiploop_trace.refused`. | Code and a test row. | `run_trace.read` and `status_card._timeline` skip `held` (and `crashed`). |
+| Harness: `checks_failed` came from the product count, which since 8bf10c64 reads the verb only, so an old failed `complete --check-only` row dropped out of both refusals and failed checks. | 1,918 `check_only` rows on disk, 114 failed. | `run_trace.checks_failed` counts from the harness's own rows; `flow.trace_block` uses it. |
+| Harness `packet_copies` hashed a newline-translated read, so a kept copy holding `\r` failed falsely. | Code. | Hash the bytes. |
+| Docs: the trace row named the retired `chain` verb, omitted session-end hook rows, gave a wrong reason for not tracing `lint`/`red-check`, and no field list existed; the gate line's shape was undocumented; `state-files.md` lacked `timeline.json`, `callback-attempts` and `owner-notes/`, and cited the removed `planning_context.collect`; the context index listed the retired `RUN/chains/`. | Grep against code and ad30aa1c. | Field table in `status-display.md` "Run trace"; rows fixed or added; context index updated. |
+| Dead code: `UNTRACED` never decided anything (no display verb sets a run root); unused imports; a `legacy` counter that also counts harness-seeded steps. | Verifier traced every member. | Removed; renamed `outside_trace`; packet copies are no longer kept once the trace is capped. |
+
+**Not taken**: the product reader reading the old `check_only` field. The owner approved removing it with no alias (D1,
+`docs/shiploop-check-phases-bc-plan-2026-10-28.md`); the harness alone reads it for saved evidence. The verifier on one
+side called it unrecorded, the other found the plan. The plan decides; the contract table now says which reader reads
+what. `v` stays 1: no reader keys on it, readers key on `kind` and its fields, and the changes add optional fields only.
+Two other rejections stand: the `workspace` verb hiding init/next (191f272f, deliberate) and a FIFO at
+`skill-calls.jsonl` (recorded as adversarial-only in the hook's journal; the shared writer now refuses it anyway).
+
+**Checks**: `shiploop-trace` 29 OK (4 new), `shiploop-skill-calls` 34 OK, `shiploop-e2e-run-trace` 25 OK (2 new), then the
+journal-touching suites listed in the commit. The quick tier was not run locally (load ~70 from another session's
+tiers); CI runs it.
+
+**Open**:
+- A `shiploop check` that prints a held owner note records it in `owner-notes/shown.json` but not in its trace row, so the
+  reader loses that print once the action is accepted (P3).
+- No test pins the trace rows of an Improve stage (packet `stage: improve` with `reviewed`) that the harness reads (P3).
+- No test pins the harness treating a capped trace as not covering the run (P3).
+
 ## Open (exploratory)
 
 - ~~**Owner feedback during a run**: built (2026-10-26). Not verified on a live host run; the next E2E round runs one case

@@ -409,7 +409,8 @@ def build_e2e(folder: Path, now: datetime | None = None) -> tuple[dict, dict]:
 
 def _trace_rows(path: Path) -> list[dict]:
     rows = []
-    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+    # Lines end at "\n" only, as shiploop_store.read_jsonl reads them (this card runs without ShipLoop's scripts on its path).
+    for line in path.read_text(encoding="utf-8", errors="replace").split("\n"):
         try:
             row = json.loads(line)
         except ValueError:
@@ -452,6 +453,8 @@ def _timeline(trace: Path, open_item: str | None, stage_spec) -> dict | None:
             printed = row.get("action") or printed
         stage = row.get("stage") if isinstance(row.get("stage"), list) and len(row["stage"]) == 2 else None
         if row.get("kind") != "command" or row.get("verb") not in ("complete", "check") or not stage:
+            continue
+        if row.get("held") or row.get("crashed"):  # a hold for owner notes or an interrupt moves nothing and refuses nothing
             continue
         at = round(row["ts"], 1)
         # A check is the verb `check` (phase B) or, in a run before it, `complete` with check_only: it moves nothing.

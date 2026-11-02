@@ -287,6 +287,10 @@ class SkillCallRecordTests(unittest.TestCase):
                                     session="s", now=100.0)
             self.assertEqual(len(skill_calls.read_records(run)), 1)
             self.assertIsNotNone(skill_calls.improve_call_since(run, 0, ["/w/handoff.md"]))
+            (run / skill_calls.RECORD_FILE).read_bytes().decode("ascii")  # escaped, so no reader can cut the line
+            # A lone surrogate in a hook payload is escaped too, not an encode error that loses the call.
+            self.assertTrue(skill_calls.record_call(run, {"skill": "improve", "args": "x\ud83d"}, session="s", now=101.0))
+            self.assertEqual(skill_calls.read_records(run)[-1]["args"], "x\ud83d")
 
     def test_only_this_plugins_improve_is_the_improve_skill(self) -> None:
         for name in ("improve", "/improve", "Improve", " skill-craft:improve ", "/skill-craft:improve"):
@@ -467,6 +471,14 @@ class SkillCallGateTests(GateFixture):
         self.assertIn("not enforced on this host (ShipLoop's hooks have not bound this Claude Code session to this run)",
                       done.stderr)
         self.assertEqual([item["gate"] for item in self.gate_lines()], ["not enforced"])
+        # The trace shows the gate line and does not count it as a Skill call (audit 2026-11-01).
+        import shiploop_trace
+
+        model = shiploop_trace.build(self.run)
+        gates = [event for event in model["events"] if event["kind"] == "skill" and event.get("gate")]
+        self.assertEqual([gate["gate"] for gate in gates], ["not enforced"])
+        self.assertEqual(model["counts"]["skills"], 0)
+        self.assertIn("gate not enforced:", shiploop_trace.digest(model))
         # Said once for the run: the next Improve stage does not repeat it.
         self.complete_current_stage_through_actual_improve(self.parent_evidence_refs, "Second stage evidence.")
         self.assertEqual(len(self.gate_lines()), 1)

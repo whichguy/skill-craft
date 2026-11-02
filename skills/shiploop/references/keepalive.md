@@ -110,7 +110,8 @@ records the calls and the Improve stage's `complete` checks them.
   `Skill`) appends one JSON line to the bound run's `skill-calls.jsonl`: `ts` and `at`, `skill` (normalised, so
   `skill-craft:improve` is `improve`), `called_as`, `args` (cut at 2,000 characters), `session`, `tool_use_id` and, for a
   subagent, `agent_id`. Only a session the keepalive hooks bound to the run writes it, only a regular file inside that run
-  directory, and the hook is silent and never blocks the call. The file is evidence, not state, and is append-only.
+  directory, and the hook is silent and never blocks the call. The file is evidence, not state, and is append-only. Every
+  line is ASCII JSON (non-ASCII text is `\u` escaped) and a reader splits lines at `\n` only.
 - **The gate.** `complete --action=<improve id>` refuses until the record holds a call to `improve` made after that Improve
   stage started (the child's `start.json`) whose `args` carry the stage's handoff path or its action id; quoting is ignored.
   The refusal's first line names the fix: invoke the Skill tool with skill `improve` and the printed argument, let it
@@ -121,7 +122,8 @@ records the calls and the Improve stage's `complete` checks them.
   writes). It also does not apply under `delegation: ask-agent` (a fresh worker runs the review, out of this session's
   hooks), on Grok, Codex, Cursor or OpenCode, with no hooks installed, or with `SHIPLOOP_KEEPALIVE=off`. Then `complete`
   accepts the review on the Improve runtime's own receipt and, once the import is accepted, says so once per run (stderr,
-  and a `gate` line in the record).
+  and a gate line in the record: `ts`, `at`, `gate` (`not enforced`), `action` and `why`). A line with a `gate` key is
+  that note; every other line is a call, and `shiploop trace` counts only calls as Skill calls.
 
 ## Several agents on one run
 
