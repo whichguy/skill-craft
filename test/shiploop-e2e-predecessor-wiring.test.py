@@ -72,6 +72,32 @@ class PredecessorWiringTest(unittest.TestCase):
         (skill / "SKILL.md").write_text("fixture ShipLoop build\n")
         return plugin
 
+    @staticmethod
+    def selected_run_fixture(output):
+        selected_home = output / ".shiploop-runs" / "synthetic"
+        selected = selected_home / "run"
+        selected.mkdir(parents=True, exist_ok=True)
+        (selected / "state.md").write_text(
+            "# Synthetic selected run fixture\n\n"
+            "This file exists only to exercise registered linkage; no ShipLoop run occurred.\n"
+        )
+        (selected / "current-spec.md").write_text("Synthetic current-spec fixture for linkage tests.\n")
+        (selected / "reviewed.md").write_text(
+            "Synthetic review fixture; no independent or owner review was performed.\n"
+        )
+        (selected / "promotion.md").write_text(
+            "Synthetic promotion fixture; no promotion decision was made.\n"
+        )
+        (selected_home / "workspace.md").write_text("Synthetic workspace fixture.\n")
+        (selected_home / "return-plan.md").write_text("Synthetic return-plan fixture.\n")
+        (selected_home / "return-receipt.md").write_text("Synthetic return-receipt fixture.\n")
+        (output / "shiploop-run.json").write_text(json.dumps({
+            "preexisting": {},
+            "run_dir": str(selected.resolve()),
+            "basis": "synthetic fixture explicitly selects this run",
+        }) + "\n")
+        return selected
+
     def qualification_fixture(self, prior_fixture, plugin, *, epoch_ids=False):
         fixture = self.helper(
             "shiploop-e2e-qualification.test.py", "QualificationTest",
@@ -133,6 +159,7 @@ class PredecessorWiringTest(unittest.TestCase):
             invocation["plugin_dir"] = str(plugin)
             result_path.write_text(json.dumps(result) + "\n")
             invocation_path.write_text(json.dumps(invocation) + "\n")
+            self.selected_run_fixture(output)
             return self.refresh_card(fixture, reg, output, attempt_id)
 
     @staticmethod
@@ -312,6 +339,26 @@ class PredecessorWiringTest(unittest.TestCase):
 
         self.assertNotEqual(rejected["decision"], "PROMOTE")
         self.assertTrue(any("has no follow_on binding" in issue["reason"] for issue in rejected["evidence_issues"]))
+
+    def test_registered_final_linkage_requires_a_bound_selected_run(self):
+        prior = self.predecessor_fixture()
+        plugin = self.plugin_fixture()
+        qualification = self.set_up_qualification_helper(prior, plugin)
+        helper = self.qualification_helper
+        card = self.linked_run(helper, qualification, prior.entry, plugin, "control", passed=False, start=2500)
+        output = Path(card[0]["run"])
+        selector = output / "shiploop-run.json"
+
+        with mock.patch.dict(os.environ, {"SHIPLOOP_E2E_RUNS_ROOT": str(helper.runs)}):
+            self.assertEqual(predecessor.linkage_problems(prior.entry, output, "battleship"), [])
+            selector.unlink()
+            missing = predecessor.linkage_problems(prior.entry, output, "battleship")
+        self.assertTrue(any("bound selected run" in problem for problem in missing), missing)
+
+        selector.write_text(json.dumps({"preexisting": {"/prior/run": "f" * 64}}) + "\n")
+        with mock.patch.dict(os.environ, {"SHIPLOOP_E2E_RUNS_ROOT": str(helper.runs)}):
+            unbound = predecessor.linkage_problems(prior.entry, output, "battleship")
+        self.assertTrue(any("bound selected run" in problem for problem in unbound), unbound)
 
     def test_changed_registered_predecessor_source_receipt_blocks_sealing_and_promotion(self):
         prior = self.predecessor_fixture()

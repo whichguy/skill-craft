@@ -367,6 +367,19 @@ class QualificationTest(unittest.TestCase):
         self.assertFalse(unsafe["observed"])
         self.assertTrue(unsafe["unsafe_symlinks"])
 
+    def test_legacy_run_receipt_without_selector_remains_complete_and_unbound(self):
+        reg = self.registration()
+        card = self.card(reg, "control", "hello", start=2000)
+        folder = Path(card["run"])
+
+        with mock.patch.dict(os.environ, {"SHIPLOOP_E2E_RUNS_ROOT": str(self.runs)}):
+            receipt = scorecard.run_receipt(folder)
+
+        self.assertNotIn("shiploop-run.json", receipt["files"])
+        self.assertTrue(receipt["observed"])
+        self.assertFalse(receipt["selected_run"]["observed"])
+        self.assertEqual(receipt["selected_run"]["reason"], "shiploop-run.json is absent")
+
     def test_snapshot_hashes_nested_evaluators_and_blocks_unreadable_inputs(self):
         with tempfile.TemporaryDirectory() as tmp:
             harness = Path(tmp) / "repo" / "test" / "shiploop_e2e"

@@ -2546,6 +2546,10 @@ The review names its reviewer and supplies passing, cited evidence for requested
 decision handling, knowledge/organization and workflow/lineage. A product pass alone is insufficient.
 Both arms use this same entry. The predecessor must match the case's `follows`, have passing accuracy and fidelity,
 and retain its clean delivered HEAD/tree. Missing, changed, failed or unknown evidence refuses dispatch.
+The receipt also binds `shiploop-run.json`, the selected run's state/spec/review files, and adjacent workspace return
+records. This matters when the run lives beside `work/`: hashing the delivered product alone does not seal its planning
+and completion evidence. Historical outputs without a selector remain readable, but cannot serve as a registered
+predecessor or a registered follow-on delivery until their selected evidence is explicitly bound.
 
 The epoch passes its exact registration and digest to the runner, which restores the accepted commit and history
 from the frozen `delivery/work.bundle` onto a local `e2e-predecessor` branch. This registered path uses committed

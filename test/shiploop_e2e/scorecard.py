@@ -504,6 +504,133 @@ def run_receipt(run) -> dict:
         prefix = "review_source/" + hashlib.sha256(os.fsencode(str(source))).hexdigest()[:12]
         tree(source, prefix)
 
+    selected_run = {"observed": False, "path": None, "reason": "shiploop-run.json is absent"}
+    selector_path = run / "shiploop-run.json"
+    try:
+        selector_stat = selector_path.lstat()
+    except FileNotFoundError:
+        selector_stat = None
+    except OSError as error:
+        selector_stat = None
+        selected_run["reason"] = f"shiploop-run.json is unreadable: {error.strerror}"
+        missing.append(selected_run["reason"])
+    if selector_stat is not None:
+        if selector_path.is_symlink():
+            try:
+                target = os.readlink(selector_path)
+            except OSError as error:
+                target = f"unreadable link: {error.strerror}"
+            symlinks["shiploop-run.json"] = target
+            selected_run["reason"] = "shiploop-run.json is a symlink"
+            unsafe_symlinks.append(f"shiploop-run.json -> {target} (selector symlinks are not followed)")
+        elif not selector_path.is_file():
+            selected_run["reason"] = "shiploop-run.json is not a regular file"
+            missing.append(selected_run["reason"])
+        else:
+            try:
+                selector_bytes = selector_path.read_bytes()
+            except OSError as error:
+                selected_run["reason"] = f"shiploop-run.json is unreadable: {error.strerror}"
+                missing.append(selected_run["reason"])
+            else:
+                files["shiploop-run.json"] = hashlib.sha256(selector_bytes).hexdigest()
+
+                def unique_object(pairs):
+                    value = {}
+                    for key, item in pairs:
+                        if key in value:
+                            raise ValueError(f"duplicate JSON field {key!r}")
+                        value[key] = item
+                    return value
+
+                def reject_constant(value):
+                    raise ValueError(f"non-standard JSON constant {value}")
+
+                try:
+                    selector = json.loads(selector_bytes.decode("utf-8"), object_pairs_hook=unique_object,
+                                          parse_constant=reject_constant)
+                    if not isinstance(selector, dict):
+                        raise ValueError("selector must contain an object")
+                    if set(selector) - {"preexisting", "run_dir", "basis"}:
+                        raise ValueError("selector has unexpected fields")
+                    preexisting = selector.get("preexisting", {})
+                    if (not isinstance(preexisting, dict)
+                            or any(not isinstance(path, str) or not Path(path).is_absolute()
+                                   or (digest is not None and not isinstance(digest, str))
+                                   for path, digest in preexisting.items())):
+                        raise ValueError("selector preexisting must map absolute paths to state digests or null")
+                    if "run_dir" not in selector:
+                        if "basis" in selector:
+                            raise ValueError("selector basis is present without a chosen run")
+                        selected_run["reason"] = ("shiploop-run.json records preexisting runs but no chosen run"
+                                                   if preexisting else "shiploop-run.json has no chosen run")
+                        selector = None
+                    else:
+                        run_dir_value = selector["run_dir"]
+                        if (not isinstance(run_dir_value, str) or not run_dir_value
+                                or not Path(run_dir_value).is_absolute()):
+                            raise ValueError("selector run_dir must be a non-blank absolute path")
+                        if "basis" in selector and (not isinstance(selector["basis"], str)
+                                                     or not selector["basis"].strip()):
+                            raise ValueError("selector basis must be a non-blank string")
+                except (UnicodeError, ValueError, RecursionError) as error:
+                    selector = None
+                    selected_run["reason"] = f"shiploop-run.json is malformed: {error}"
+                    missing.append(selected_run["reason"])
+
+                if selector is not None:
+                    run_dir_value = selector["run_dir"]
+                    try:
+                        selected_root = Path(run_dir_value).resolve(strict=True)
+                    except (OSError, RuntimeError, ValueError) as error:
+                        selected_root = None
+                        selected_run["reason"] = f"selected run cannot be resolved: {error}"
+                        missing.append(selected_run["reason"])
+                    if selected_root is not None:
+                        if not selected_root.is_relative_to(run) or selected_root == run:
+                            selected_run["reason"] = "selected run is outside output"
+                            missing.append(selected_run["reason"])
+                        elif str(selected_root) != run_dir_value:
+                            selected_run["path"] = str(selected_root)
+                            selected_run["reason"] = "selected run path is not canonical or traverses a symlink"
+                            missing.append(selected_run["reason"])
+                        elif not selected_root.is_dir():
+                            selected_run["path"] = str(selected_root)
+                            selected_run["reason"] = "selected run is not a regular directory"
+                            missing.append(selected_run["reason"])
+                        elif ((selected_root / "state.md").is_symlink()
+                              or not (selected_root / "state.md").is_file()):
+                            selected_run["path"] = str(selected_root)
+                            selected_run["reason"] = "selected run has no readable state.md"
+                            missing.append(selected_run["reason"])
+                        else:
+                            before_missing = len(missing)
+                            before_unsafe = len(unsafe_symlinks)
+                            try:
+                                work_root = work.resolve(strict=True)
+                            except (OSError, RuntimeError, ValueError):
+                                work_root = None
+                            inside_work = work_root is not None and selected_root.is_relative_to(work_root)
+                            if not inside_work:
+                                tree(selected_root, "selected_run")
+                            for name in ("workspace.md", "return-plan.md", "return-receipt.md"):
+                                context_path = selected_root.parent / name
+                                try:
+                                    context_path.lstat()
+                                except FileNotFoundError:
+                                    continue
+                                except OSError as error:
+                                    missing.append(f"selected_run_context/{name}: {error.strerror}")
+                                else:
+                                    record_path(context_path, f"selected_run_context/{name}", run)
+                            problems = missing[before_missing:] + unsafe_symlinks[before_unsafe:]
+                            if problems:
+                                selected_run["path"] = str(selected_root)
+                                selected_run["reason"] = "selected run evidence is incomplete: " + "; ".join(problems)
+                            else:
+                                selected_run = {"observed": True, "path": str(selected_root),
+                                                "tree": "work" if inside_work else "selected_run"}
+
     # Ambient evidence affects correctness and timing. Bind the root and the exact overlapping neighbour inputs so
     # cleanup, a changed runs-root override, or a changed neighbour cannot silently erase an observed interference.
     overlap_root = environment.runs_root(run).resolve()
@@ -525,7 +652,8 @@ def run_receipt(run) -> dict:
     ambient = {"root": str(overlap_root), "observed": overlap.get("observed"), "neighbours": neighbours,
                "unreadable": overlap.get("siblings_unreadable", [])}
     body = {"observed": not missing and not unsafe_symlinks, "files": files, "symlinks": symlinks,
-            "unsafe_symlinks": sorted(unsafe_symlinks), "missing": sorted(missing), "product": product}
+            "unsafe_symlinks": sorted(unsafe_symlinks), "missing": sorted(missing), "product": product,
+            "selected_run": selected_run}
     body["ambient"] = ambient
     encoded = json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False).encode("utf-8")
     return {**body, "sha256": hashlib.sha256(encoded).hexdigest()}

@@ -1,6 +1,7 @@
 """No-model checks for frozen incremental predecessors and their delivery lineage."""
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -87,22 +88,57 @@ class PredecessorTest(unittest.TestCase):
         (self.run / "transcript.md").write_text("fixture\n")
         (self.run / "invocation.json").write_text(json.dumps({"case": self.result["case"], "host": "fixture"}))
         (self.run / "result.json").write_text(json.dumps(self.result))
+        self._write_selected_run()
+
+    def _write_selected_run(self, output=None, name="synthetic"):
+        output = Path(output or self.run)
+        selected_home = output / ".shiploop-runs" / name
+        selected = selected_home / "run"
+        selected.mkdir(parents=True, exist_ok=True)
+        (selected / "state.md").write_text(
+            "# Synthetic selected run fixture\n\n"
+            "This file exists only to exercise receipt binding; no ShipLoop run occurred.\n"
+        )
+        (selected / "current-spec.md").write_text(
+            "Synthetic current-spec fixture for receipt binding only.\n"
+        )
+        (selected / "reviewed.md").write_text(
+            "Synthetic review fixture; no independent or owner review was performed.\n"
+        )
+        (selected / "promotion.md").write_text(
+            "Synthetic promotion fixture; no promotion decision was made.\n"
+        )
+        (selected_home / "workspace.md").write_text(
+            "Synthetic workspace fixture adjacent to the selected run.\n"
+        )
+        (selected_home / "return-plan.md").write_text(
+            "Synthetic return-plan fixture adjacent to the selected run.\n"
+        )
+        (selected_home / "return-receipt.md").write_text(
+            "Synthetic return-receipt fixture adjacent to the selected run.\n"
+        )
+        (output / "shiploop-run.json").write_text(json.dumps({
+            "preexisting": {},
+            "run_dir": str(selected.resolve()),
+            "basis": "synthetic fixture explicitly selects this run",
+        }) + "\n")
+        return selected
 
     def _entry(self):
         receipt = scorecard.run_receipt(self.run)
         review = {
-            "reviewer": "human reviewer",
+            "reviewer": "synthetic test fixture",
             "receipt_sha256": receipt["sha256"],
-            "dimensions": {name: {"status": "pass", "evidence": [f"checked {name}"]} for name in DIMENSIONS},
-            "basis": "manual review",
+            "dimensions": {name: {"status": "pass", "evidence": [f"synthetic fixture text for {name}"]}
+                           for name in DIMENSIONS},
+            "basis": "synthetic fixture only; no independent review was performed",
         }
         return {"run": str(self.run.resolve()), "receipt": receipt, "review": review}
 
     def _refresh_entry(self):
         self.entry = self._entry()
 
-    @staticmethod
-    def _write_follow_output(output, work, invocation, result):
+    def _write_follow_output(self, output, work, invocation, result):
         before = delivery.capture(work, output)
         result["delivery"] = {"before": before, "after": delivery.fingerprint(work)}
         (output / "prompt.txt").write_text("follow-on prompt\n")
@@ -113,6 +149,7 @@ class PredecessorTest(unittest.TestCase):
         (output / "transcript.md").write_text("fixture\n")
         (output / "invocation.json").write_text(json.dumps(invocation))
         (output / "result.json").write_text(json.dumps(result))
+        self._write_selected_run(output)
 
     def test_fail_first_clean_restore_preserves_committed_history_and_excludes_ignored_files(self):
         predecessor.validate_entry(self.entry, "hello")
@@ -135,6 +172,152 @@ class PredecessorTest(unittest.TestCase):
             "bundle_sha256": self.entry["receipt"]["files"]["delivery/work.bundle"],
             "head": product["head"], "tree": product["tree"],
         })
+
+    def test_run_receipt_binds_selected_run_tree_selector_and_adjacent_receipts(self):
+        selected = self.run / ".shiploop-runs" / "synthetic" / "run"
+        baseline = scorecard.run_receipt(self.run)
+        self.assertTrue(baseline["selected_run"]["observed"])
+        self.assertEqual(baseline["selected_run"]["path"], str(selected.resolve()))
+        self.assertIn("shiploop-run.json", baseline["files"])
+        self.assertTrue(baseline["observed"])
+
+        digest = baseline["sha256"]
+        evidence = (
+            selected / "current-spec.md", selected / "state.md", selected / "reviewed.md",
+            selected / "promotion.md", selected.parent / "workspace.md", selected.parent / "return-plan.md",
+            selected.parent / "return-receipt.md",
+        )
+        for path in evidence:
+            with self.subTest(path=path.name):
+                path.write_text(path.read_text() + "changed in receipt regression\n")
+                changed = scorecard.run_receipt(self.run)
+                self.assertNotEqual(digest, changed["sha256"], f"receipt did not bind {path}")
+                digest = changed["sha256"]
+
+        added = selected / "added-after-run.md"
+        added.write_text("Synthetic late addition.\n")
+        with_added = scorecard.run_receipt(self.run)
+        self.assertNotEqual(digest, with_added["sha256"], "receipt did not bind added selected-run evidence")
+        added.unlink()
+        after_delete = scorecard.run_receipt(self.run)
+        self.assertNotEqual(with_added["sha256"], after_delete["sha256"],
+                            "receipt did not bind deletion of selected-run evidence")
+
+        self._write_selected_run(name="retargeted")
+        retargeted = scorecard.run_receipt(self.run)
+        self.assertNotEqual(after_delete["sha256"], retargeted["sha256"], "receipt did not bind selector retargeting")
+
+    def test_run_receipt_does_not_walk_a_product_internal_selected_run_twice(self):
+        selected_home = self.work / ".shiploop"
+        selected = selected_home / "run"
+        selected.mkdir(parents=True)
+        (selected / "state.md").write_text("Synthetic product-internal selected run.\n")
+        (selected_home / "workspace.md").write_text("Synthetic product-internal workspace.\n")
+        (self.run / "shiploop-run.json").write_text(json.dumps({
+            "preexisting": {}, "run_dir": str(selected.resolve()),
+            "basis": "synthetic fixture selects a run inside work",
+        }) + "\n")
+
+        receipt = scorecard.run_receipt(self.run)
+
+        self.assertTrue(receipt["selected_run"]["observed"])
+        self.assertEqual(receipt["selected_run"]["tree"], "work")
+        self.assertIn("work/.shiploop/run/state.md", receipt["files"])
+        self.assertIn("work/.shiploop/workspace.md", receipt["files"])
+        self.assertFalse(any(name.startswith("selected_run/") for name in receipt["files"]))
+
+        self.work.joinpath("state.md").write_text("Synthetic selected run at work root.\n")
+        for name in ("workspace.md", "return-plan.md", "return-receipt.md"):
+            (self.run / name).write_text(f"Synthetic output-level {name} beside the selected work root.\n")
+        (self.run / "shiploop-run.json").write_text(json.dumps({
+            "preexisting": {}, "run_dir": str(self.work.resolve()),
+            "basis": "synthetic fixture selects the work root",
+        }) + "\n")
+
+        root_selected = scorecard.run_receipt(self.run)
+
+        self.assertTrue(root_selected["selected_run"]["observed"])
+        self.assertEqual(root_selected["selected_run"]["tree"], "work")
+        self.assertIn("work/state.md", root_selected["files"])
+        for name in ("workspace.md", "return-plan.md", "return-receipt.md"):
+            self.assertIn(f"selected_run_context/{name}", root_selected["files"])
+
+    def test_run_receipt_keeps_absent_or_unchosen_selector_unbound_without_breaking_legacy(self):
+        selector = self.run / "shiploop-run.json"
+        selector.unlink()
+        legacy = scorecard.run_receipt(self.run)
+        self.assertTrue(legacy["observed"])
+        self.assertFalse(legacy["selected_run"]["observed"])
+        self.assertEqual(legacy["selected_run"]["reason"], "shiploop-run.json is absent")
+        self.assertNotIn("shiploop-run.json", legacy["files"])
+
+        self._refresh_entry()
+        with self.assertRaisesRegex(ValueError, "bound selected run"):
+            predecessor.validate_entry(self.entry, "hello", observe=False)
+
+        selector.write_text(json.dumps({"preexisting": {"/prior/run": "f" * 64}}) + "\n")
+        unchosen = scorecard.run_receipt(self.run)
+        self.assertTrue(unchosen["observed"])
+        self.assertFalse(unchosen["selected_run"]["observed"])
+        self.assertIn("no chosen run", unchosen["selected_run"]["reason"])
+
+        self._refresh_entry()
+        with self.assertRaisesRegex(ValueError, "bound selected run"):
+            predecessor.validate_entry(self.entry, "hello", observe=False)
+
+    def test_registered_predecessor_requires_selector_bytes_in_its_receipt(self):
+        receipt = json.loads(json.dumps(self.entry["receipt"]))
+        receipt["files"].pop("shiploop-run.json")
+        receipt["sha256"] = predecessor._receipt_digest(receipt)
+        entry = {**self.entry, "receipt": receipt}
+        entry["review"] = {**self.entry["review"], "receipt_sha256": receipt["sha256"]}
+
+        with self.assertRaisesRegex(ValueError, "shiploop-run.json digest"):
+            predecessor.validate_entry(entry, "hello", observe=False)
+
+    def test_run_receipt_refuses_malformed_missing_outside_and_symlink_selected_runs(self):
+        selector = self.run / "shiploop-run.json"
+
+        selector.write_text('{"run_dir": ["not", "a", "path"]}\n')
+        malformed = scorecard.run_receipt(self.run)
+        self.assertFalse(malformed["observed"])
+        self.assertFalse(malformed["selected_run"]["observed"])
+
+        missing = self.run / ".shiploop-runs" / "missing" / "run"
+        selector.write_text(json.dumps({"run_dir": str(missing), "basis": "synthetic missing run"}) + "\n")
+        missing_receipt = scorecard.run_receipt(self.run)
+        self.assertFalse(missing_receipt["observed"])
+        self.assertFalse(missing_receipt["selected_run"]["observed"])
+
+        no_state = self.run / ".shiploop-runs" / "no-state" / "run"
+        no_state.mkdir(parents=True)
+        selector.write_text(json.dumps({"run_dir": str(no_state.resolve()), "basis": "synthetic missing state"}) + "\n")
+        missing_state = scorecard.run_receipt(self.run)
+        self.assertFalse(missing_state["observed"])
+        self.assertIn("state.md", " ".join(missing_state["missing"]))
+
+        outside = self.root / "outside-selected-run"
+        outside.mkdir()
+        (outside / "state.md").write_text("Synthetic outside selected run.\n")
+        sentinel = outside / "secret.txt"
+        sentinel.write_text("outside selected run must never be hashed\n")
+        outside_digest = hashlib.sha256(sentinel.read_bytes()).hexdigest()
+        selector.write_text(json.dumps({"run_dir": str(outside.resolve()), "basis": "synthetic outside run"}) + "\n")
+        outside_receipt = scorecard.run_receipt(self.run)
+        self.assertFalse(outside_receipt["observed"])
+        self.assertFalse(outside_receipt["selected_run"]["observed"])
+        self.assertNotIn(outside_digest, outside_receipt["files"].values())
+
+        symlink = self.run / ".shiploop-runs" / "linked-outside"
+        symlink.symlink_to(outside, target_is_directory=True)
+        selected_via_link = symlink
+        selector.write_text(json.dumps({
+            "run_dir": str(selected_via_link), "basis": "synthetic symlink run",
+        }) + "\n")
+        symlink_receipt = scorecard.run_receipt(self.run)
+        self.assertFalse(symlink_receipt["observed"])
+        self.assertFalse(symlink_receipt["selected_run"]["observed"])
+        self.assertNotIn(outside_digest, symlink_receipt["files"].values())
 
     def test_repeat_restore_when_bundle_default_branch_is_already_fixed_name(self):
         git(self.work, "branch", "e2e-predecessor")
@@ -329,6 +512,8 @@ class PredecessorTest(unittest.TestCase):
         work = output / "work"
         work.mkdir()
         follow_on = predecessor.restore(self.entry, work, "hello")
+        git(work, "config", "user.name", "Descendant fixture")
+        git(work, "config", "user.email", "descendant@example.invalid")
         (work / "product.txt").write_text("child change\n")
         git(work, "add", "product.txt")
         git(work, "commit", "-qm", "child change")

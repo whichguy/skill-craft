@@ -117,6 +117,10 @@ Restore committed files and history from that receipt's delivery bundle; do not 
 or mutable prior Git configuration. Recheck the source around restoration and bind the copied commit to the
 invocation/result and final qualification. Missing, changed or unqualified predecessors cannot launch or qualify.
 Final ancestry is proved from the receipt-bound delivery bundle, not mutable live Git metadata excluded by the receipt.
+The receipt binds the existing selected-run manifest and its contained run evidence, including state, spec, review and
+adjacent workspace return records. Changing those inputs after sealing must change or invalidate the receipt even when
+the run lives outside the product checkout. Unbound historical reports remain diagnostic; registered predecessor and
+follow-on deliveries require bound selected-run evidence.
 Ordinary unregistered continuation keeps its existing behavior.
 
 The stepwise epoch controller records every dispatch before launching and seals its evidence afterward. A resume is a

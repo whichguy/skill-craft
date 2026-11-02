@@ -69,6 +69,10 @@ def _validate_receipt(receipt) -> tuple[dict, str, str, str]:
         raise ValueError("predecessor receipt sha256 does not match its scorecard.run_receipt contents")
     if receipt.get("missing") or receipt.get("unsafe_symlinks"):
         raise ValueError("predecessor receipt has missing or unsafe inputs")
+    selected_run = receipt.get("selected_run")
+    if (not isinstance(selected_run, dict) or selected_run.get("observed") is not True
+            or not isinstance(selected_run.get("path"), str) or not Path(selected_run["path"]).is_absolute()):
+        raise ValueError("predecessor receipt has no bound selected run")
     product = receipt.get("product")
     if not isinstance(product, dict) or product.get("observed") is not True:
         raise ValueError("predecessor receipt has no observed product fingerprint")
@@ -78,6 +82,9 @@ def _validate_receipt(receipt) -> tuple[dict, str, str, str]:
     if product.get("status") != []:
         raise ValueError("predecessor product is not clean")
     files = receipt.get("files")
+    selector_sha = files.get("shiploop-run.json") if isinstance(files, dict) else None
+    if not isinstance(selector_sha, str) or not SHA256.fullmatch(selector_sha):
+        raise ValueError("predecessor receipt does not include the shiploop-run.json digest")
     bundle = files.get(delivery.BUNDLE) if isinstance(files, dict) else None
     if not isinstance(bundle, str) or not SHA256.fullmatch(bundle):
         raise ValueError("predecessor receipt does not include the delivery/work.bundle digest")
@@ -304,6 +311,10 @@ def _check_ancestry(output: Path, final_head: str, predecessor_head: str) -> str
     receipt = _fresh_receipt(output)
     if receipt.get("observed") is not True:
         return "final run receipt is not observed, so its delivery bundle cannot prove ancestry"
+    selected_run = receipt.get("selected_run")
+    if (not isinstance(selected_run, dict) or selected_run.get("observed") is not True
+            or not isinstance(selected_run.get("path"), str) or not Path(selected_run["path"]).is_absolute()):
+        return "final run receipt has no bound selected run, so its delivery bundle cannot prove ancestry"
     if receipt.get("sha256") != _receipt_digest(receipt):
         return "final run receipt sha256 is malformed"
     files = receipt.get("files") if isinstance(receipt.get("files"), dict) else {}
