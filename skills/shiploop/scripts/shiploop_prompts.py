@@ -1314,9 +1314,9 @@ Change no product file in this stage.
    - when the item adds or moves code or stored data, replays a pinned value (fixed dice, seed data), or changes
      interactions, UI or service state: also record what the Plan record guide (GUIDES/plan-record.md) lists for that
      topic, opening only its matching section.
-10. **Knowledge.** A structural choice KNOWLEDGE/architecture.md lacks: next AD-<n> under ## Decisions, cited in the
-    step. A newly working command: KNOWLEDGE/environment.md ## Commands. Keep every R-<n> and AD-<n>; write nothing else
-    in KNOWLEDGE/.
+10. **Knowledge.** New structural choice: next AD-<n> in KNOWLEDGE/architecture.md ## Decisions; cite in step.
+    Working command: KNOWLEDGE/environment.md ## Commands. Keep R-<n>/AD-<n>. No other edits unless this packet
+    grants status-only repair.
 """ + _STEP_PLAN_NO_GRAPH + """\
 12. **evidence_refs**: absolute paths of every planning file written, and the requirement sections and test locators
     used.
@@ -1466,9 +1466,9 @@ preparatory commit); a mismatch there is a send-back.
    working. Durable facts go in the repository's docs, never only in run notes.
 3. **Reflect.** With the step built, tested and documented, record what it showed in the knowledge home, where the
    next steps' packets read it:
-   - KNOWLEDGE/spec.md: a line inside the R-<n> entry it concerns, ending with this step's mark (<item>/<step>): a
-     vague clause this step made precise, stated as observable behaviour, or the files and test file that now meet it.
-     Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n>.
+   - KNOWLEDGE/spec.md: append an observable clarification or implementing files and tests in its R-<n>,
+     ending with (<item>/<step>). For stale current status or changed intent, leave it intact: send-back naming the
+     R-<n> with observed code and check receipts for returned planning. Do not defer a status contradiction.
    - KNOWLEDGE/architecture.md ## Decisions: a design or service decision implement did not record, or a departure from
      an AD-<n>, as a new AD-<n> (a service choice with contract, owner and revalidation trigger); a superseded one moves
      to ## Superseded.

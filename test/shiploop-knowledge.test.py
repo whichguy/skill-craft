@@ -813,6 +813,54 @@ class SectionsTests(HomeFixture):
         self.assertTrue([row for row in lines if "keeps these up to date" in row and environment in row], lines)
         self.assertIn("ShipLoop refuses release-plan if any of these is missing or empty: " + environment + ".", lines)
 
+    def test_status_repair_permission_is_only_on_the_same_items_document_return(self) -> None:
+        state = dict(self.state, stage="inner-loop", work_index=0,
+                     work_items=[{"id": "W1"}, {"id": "W2"}],
+                     inner_loops={"W1": {"stage": "step-plan", "action": "w1-plan"},
+                                  "W2": {"stage": "step-plan", "action": "w2-plan"}},
+                     history=[])
+        spec = str(self.repo / "docs/shiploop/spec.md")
+        permission = "Document-send-back status repair for this same item only:"
+        first_visit = "\n".join(knowledge.stage_lines(state, "step-plan"))
+        self.assertNotIn(permission, first_visit)
+        self.assertNotIn(spec, next(line for line in first_visit.splitlines()
+                                    if line.startswith("This stage keeps these up to date")))
+
+        state["history"] = [{"stage": "document", "outcome": "send-back", "workitem": "W1",
+                             "action": "w1-document"}]
+        same_item_return = "\n".join(knowledge.stage_lines(state, "step-plan"))
+        self.assertIn(permission, same_item_return)
+        self.assertIn(spec, next(line for line in same_item_return.splitlines() if line.startswith(permission)))
+        self.assertNotIn(spec, next(line for line in same_item_return.splitlines()
+                                    if line.startswith("This stage keeps these up to date")))
+        for required in ("current implementation", "current verification", "actual check receipts",
+                         "requirement text and intent", "dated history", "deferred scope verbatim"):
+            with self.subTest(required=required):
+                self.assertIn(required, same_item_return)
+
+        state["history"].append({"stage": "step-plan", "outcome": "blocked", "workitem": "W1",
+                                 "action": "w1-plan-blocked"})
+        resumed_return = "\n".join(knowledge.stage_lines(state, "step-plan"))
+        self.assertIn(permission, resumed_return,
+                      "a blocked returned plan keeps its narrow permission when resumed")
+
+        state["work_index"] = 1
+        other_item = "\n".join(knowledge.stage_lines(state, "step-plan"))
+        self.assertNotIn(permission, other_item)
+        self.assertNotIn(spec, next(line for line in other_item.splitlines()
+                                    if line.startswith("This stage keeps these up to date")))
+
+        state["work_index"] = 0
+        state["history"].extend([
+            {"stage": "step-plan", "outcome": "done", "workitem": "W1", "action": "w1-plan-returned"},
+            {"stage": "test-spec", "outcome": "done", "workitem": "W1", "action": "w1-test-spec"},
+            {"stage": "validate-existing", "outcome": "done", "workitem": "W1", "action": "w1-validate"},
+            {"stage": "implement", "outcome": "send-back", "workitem": "W1", "action": "w1-implement"},
+        ])
+        stale_document_return = "\n".join(knowledge.stage_lines(state, "step-plan"))
+        self.assertNotIn(permission, stale_document_return,
+                         "accepted same-item stages followed by a different send-back make the document return stale")
+
     DUTY_FILES = ("spec", "environment", "architecture")
 
     @classmethod
