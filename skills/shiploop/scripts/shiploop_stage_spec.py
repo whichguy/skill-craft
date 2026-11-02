@@ -347,6 +347,9 @@ _ROWS = (
             "expectation, and for every new path an absent one, each with a read-only check command",
             "each step's skills list names a concrete use for each helper skill, or is empty",
             "the files the item will change are declared in paths",
+            "on a document send-back return, any current-status correction is limited to the existing R-<n> entry "
+            "named by the return and supported by observed code and actual check receipts, while requirement intent, "
+            "dated history and deferred scope stay unchanged",
         ),
         develop="Name target files, interfaces and conventions; follow the house-style match contract.",
         test="Record the item's test commands; the test stage runs them exactly.",
@@ -452,6 +455,8 @@ _ROWS = (
         done_when=(
             "each changed public behaviour is documented where users and maintainers look",
             "each changed document was reread after the last edit",
+            "each existing R-<n> current implementation and verification status matches observed code and actual check "
+            "evidence, with checks that did not run still marked not run",
             # Design T §9.1 2b-3, option C (owner 2026-10-28): document is the step's one place to reflect.
             "the knowledge home records what this step showed, and `knowledge` names each living file with what "
             "changed in it or why nothing did",

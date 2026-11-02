@@ -4099,8 +4099,9 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
     """The 8-stage inner loop's script-owned routes, each driven through the real `shiploop complete` CLI.
 
     Every inner stage's loop runs through the bundled until-loop runtime (shiploop_loop_support.finish_loop); no
-    receipt is written by hand.  Prelude results are synthetic declarations that meet the gates; an Improve child is
-    imported in-process (no Improve runtime runs), as the other CLI suites do.
+    receipt is written by hand. Prelude results and most Improve children are synthetic declarations that meet the
+    gates; the status-recovery case drives its returned step-plan Improve child through the actual runtime and CLI import,
+    with synthetic review text that makes no semantic review claim.
     """
 
     STEP_PLAN_NOTES = "notes.md"
@@ -4197,6 +4198,53 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         navigator.save(self.run_dir, updated, writes)
         navigator._lint_finish(self.run_dir, payload)
         navigator._iteration_entry(self.run_dir, state, updated)
+
+    def finish_improve_through_cli(self) -> None:
+        """Finish the actual child runtime and import its pass through complete, including the knowledge close.
+
+        The review text is synthetic protocol evidence, not a claim of semantic review. The runtime writes its own final
+        receipt, `improve-pass` writes the pass/check records, and the real CLI `complete` runs the import gates.
+        """
+        import shiploop_standalone_improve as standalone
+
+        child = self.state()["active_improve"]
+        self.assertEqual(child["stage"], "step-plan")
+        reviews = navigator.improve_reviews_dir(child)
+        reviews.mkdir(parents=True, exist_ok=True)
+        for _ in range(3):
+            packet = json.loads(standalone.receipt_path(child).read_text(encoding="utf-8"))
+            if packet["status"] == "complete":
+                break
+            number = packet["progress"]["action_number"]
+            review = reviews / ("review-" + str(number) + ".md")
+            review.write_text(
+                "---\nclassification: trivial\nexit: satisfied\ncontinuation: allowed\n---\n"
+                "Read: The returned step-plan and its evidence references.\n"
+                "Found: Synthetic protocol fixture; no semantic finding is claimed.\n"
+                "Changed: none.\n"
+                "Checked: The callback and evidence records required by this route.\n"
+                "Class: Trivial synthetic protocol review; no semantic claim.\n"
+                "## Handoff\nSynthetic protocol completion only; this fixture does not judge requirement meaning.\n",
+                encoding="utf-8")
+            passed = self.cli("improve-pass", "--run-dir", str(self.run_dir), "--action",
+                              child["improve_action"])
+            self.assertEqual(passed.returncode, 0, passed.stdout + passed.stderr)
+            done_line = next(line for line in passed.stdout.splitlines() if " done --state " in line)
+            completed = subprocess.run(["/bin/sh", "-c", done_line], check=False, cwd=self.base, text=True,
+                                       capture_output=True, timeout=60,
+                                       env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1",
+                                            "SHIPLOOP_PROGRESS": "off", "SHIPLOOP_KEEPALIVE": "off"})
+            self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+            terminal = json.loads(completed.stdout)
+            self.assertIn(terminal["status"], ("active", "complete"), terminal)
+            if terminal["status"] == "complete":
+                break
+        else:
+            self.fail("the synthetic trivial Improve review did not complete the actual runtime")
+
+        imported = self.cli("complete", "--run-dir", str(self.run_dir), "--action", child["improve_action"])
+        self.assertEqual(imported.returncode, 0, imported.stdout + imported.stderr)
+        self.assertIsNone(self.state()["active_improve"], "the real CLI imported and closed the Improve result")
 
     def step_plan(self, expectations: list[dict]) -> dict:
         return {
@@ -4731,7 +4779,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         refused = self.submit(result(summary="Wrote notes.md.", learned=["none"], decisions=["none"]))
         self.assertNotEqual(refused.returncode, 0)
         text = refused.stdout + refused.stderr
-        self.assertIn("to change a requirement, report send-back naming it", text)
+        self.assertIn("to change requirement intent, report send-back naming it", text)
         self.assertIn("changed or removed: R-1: Synthetic requirement.", text)
         # An unmarked line is refused too, with the mark it needs.
         spec.write_text(self.git("show", "HEAD:docs/shiploop/spec.md").replace(
@@ -4757,7 +4805,280 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.assertNotEqual(refused.returncode, 0)
         text = refused.stdout + refused.stderr
         self.assertIn("outside an R-<n> entry the committed spec holds: R-2: notes.md lists every run. (W1/S1)", text)
-        self.assertIn("to change a requirement, report send-back naming it", text)
+        self.assertIn("to change requirement intent, report send-back naming it", text)
+
+    def test_document_status_refusal_returns_to_narrow_step_plan_and_revalidates_before_step_acceptance(self) -> None:
+        import shiploop_loops as loops
+        import shiploop_test_loop as test_loop
+
+        spec = self.spec_path()
+        baseline = ("# spec\n\n## Requirements\n\n"
+                    "R-1: The notes file exposes the current item status.\n"
+                    "  Current implementation: pending.\n"
+                    "  Current verification: not run.\n"
+                    "  History: 2026-10-30 baseline captured.\n"
+                    "  Deferred: multi-item summary remains outside W1.\n\n"
+                    "## Non-functional requirements\n\nSynthetic knowledge.\n\n"
+                    "## Retired\n\nNone.\n")
+        spec.parent.mkdir(parents=True, exist_ok=True)
+        spec.write_text(baseline, encoding="utf-8")
+        self.git("add", "docs/shiploop/spec.md")
+        self.git("commit", "-qm", "seed current status for document recovery")
+
+        self.start()
+        self.drive_to_step_plan()
+        first_packet = _with_packet_file(self.cli("next", "--run-dir", str(self.run_dir)).stdout)
+        self.assertNotIn("Document-send-back status repair for this same item only", first_packet)
+        self.assertNotIn("current implementation and current verification status", first_packet)
+
+        def plan(summary: str, evidence_refs: list[str] | None = None) -> dict[str, Any]:
+            value: dict[str, Any] = {
+                "outcome": "done", "summary": summary, "paths": ["a.py"], "follows": ["R-1"],
+                "criteria": [{"id": "C1", "text": "R-1 is implemented. Confirm by: "
+                             "python3 -c 'import a; assert a.x == 2'; "
+                             "pass when it exits 0.", "confirm": "executed"}],
+                "test_commands": [{"command": "python3 -c 'import a; assert a.x == 2'", "suite": "check",
+                                   "criteria": ["C1"]}],
+                "steps": [{"id": "S1", "task": "Set the current value in a.py.", "deps": [],
+                           "criteria": ["C1"], "proof": "python3 -c 'import a; assert a.x == 2'",
+                           "paths": ["a.py"],
+                           "skills": []}],
+                "expectations": [{"id": "E1", "state": "works", "statement": "a.py starts at x = 1",
+                                  "steps": ["S1"], "paths": ["a.py"], "check": "grep -q '^x = 1$' a.py"}],
+            }
+            if evidence_refs is not None:
+                value["evidence_refs"] = evidence_refs
+            return value
+
+        self.accept(plan("Plan the current status implementation and its check."))
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(result())
+        self.assertEqual(self.settle(), "implement")
+        (self.repo / "a.py").write_text("x = 2\n", encoding="utf-8")
+        self.accept(result(summary="Set a.py to x = 2."))
+        self.assertEqual(navigator.current_stage(self.state()), "test")
+        first_test_action = navigator.current_action(self.state())["id"]
+        self.accept(result(summary="The current value check passes."))
+        first_check = self.run_dir / test_loop.verify_path(first_test_action, 1)
+        self.assertTrue(first_check.is_file(), "test stage saved ShipLoop's actual command record")
+        first_record = store.read_record(first_check)
+        self.assertTrue(first_record["passed"], first_record)
+        self.assertEqual(first_record["runs"][0]["exit"], 0)
+        self.assertEqual(navigator.current_stage(self.state()), "document")
+
+        implementation = "  Current implementation: a.py now sets x = 2.\n"
+        verification = "  Current verification: passed using " + str(first_check) + ".\n"
+        corrected = baseline.replace("  Current implementation: pending.\n", implementation)
+        corrected = corrected.replace("  Current verification: not run.\n", verification)
+        self.assertNotEqual(corrected, baseline)
+        document_action = navigator.current_action(self.state())["id"]
+        document_done = result(summary="R-1 status is supported by the current code and test receipt.",
+                               evidence_refs=[str(self.repo / "a.py"), str(first_check)])
+
+        self.loop_support.finish_loop(self.run_dir, outcome="done")
+        unmarked = self.submit(result(outcome="send-back", summary="No document refusal opened this route."))
+        self.assertNotEqual(unmarked.returncode, 0, unmarked.stdout + unmarked.stderr)
+        self.assertFalse(loops.send_back_open_path(self.run_dir, document_action).exists())
+        self.assertEqual(navigator.current_stage(self.state()), "document",
+                         "an unmarked document send-back still needs a receipt supporting that outcome")
+
+        # A document cannot write even a factual status correction. The completed document receipt opens only its
+        # named send-back; each protected contract/history/deferred edit remains refused by the same guard.
+        spec.write_text(corrected, encoding="utf-8")
+        refused = self.submit(document_done)
+        self.assertNotEqual(refused.returncode, 0, refused.stdout + refused.stderr)
+        refusal = refused.stdout + refused.stderr
+        self.assertIn("current implementation or verification status", refusal)
+        self.assertIn("changed or removed", refusal)
+        marker = loops.send_back_open_path(self.run_dir, document_action)
+        self.assertTrue(marker.is_file(), "a failed document done opens its named send-back")
+
+        protected_mutations = (
+            ("requirement intent", "R-1: The notes file exposes the current item status.",
+             "R-1: The notes file exposes every historical item status."),
+            ("dated history", "History: 2026-10-30 baseline captured.",
+             "History: 2026-10-31 baseline captured."),
+            ("deferred scope", "Deferred: multi-item summary remains outside W1.",
+             "Deferred: multi-item summary is included in W1."),
+        )
+        for label, old, new in protected_mutations:
+            with self.subTest(protected=label):
+                spec.write_text(baseline.replace(old, new), encoding="utf-8")
+                rejected = self.submit(document_done)
+                self.assertNotEqual(rejected.returncode, 0, rejected.stdout + rejected.stderr)
+                self.assertIn(old, rejected.stdout + rejected.stderr)
+                self.assertIn("changed or removed", rejected.stdout + rejected.stderr)
+        spec.write_text(baseline, encoding="utf-8")
+        self.assertEqual(self.git("show", "HEAD:docs/shiploop/spec.md"), baseline)
+        self.accept(result(outcome="send-back", summary="R-1 current status conflicts with observed a.py and its "
+                           "passing check; return W1 to step-plan for the status-only correction."))
+        self.assertEqual(navigator.current_stage(self.state()), "step-plan")
+        self.assertEqual((self.repo / "a.py").read_text(encoding="utf-8"), "x = 2\n",
+                         "send-back retains the earlier implementation for revalidation")
+
+        returned_packet = _with_packet_file(self.cli("next", "--run-dir", str(self.run_dir)).stdout)
+        for phrase in ("Document-send-back status repair for this same item only", "current implementation",
+                       "current verification", "actual check receipts", "dated history", "deferred scope verbatim",
+                       "This return grants no other spec edit"):
+            with self.subTest(packet_phrase=phrase):
+                self.assertIn(phrase, returned_packet)
+        self.assertNotIn("spec.md", next(line for line in returned_packet.splitlines()
+                                          if line.startswith("This stage keeps these up to date")))
+        self.assertIn("KNOWLEDGE/spec.md", next(line for line in returned_packet.splitlines()
+                                               if line.startswith("Document-send-back status repair")))
+
+        blocked_action = navigator.current_action(self.state())["id"]
+        stopped = self.submit(blocked_result(summary="The status-only plan needs one external confirmation.",
+                                             awaiting=WAIT_SERVICE))
+        self.assertEqual(stopped.returncode, 0, stopped.stdout + stopped.stderr)
+        blocked_state = self.state()
+        self.assertEqual(blocked_state["status"], "blocked")
+        self.assertEqual(blocked_state["history"][-1]["action"], blocked_action)
+        self.assertEqual((blocked_state["history"][-1]["stage"], blocked_state["history"][-1]["outcome"]),
+                         ("step-plan", "blocked"))
+        resumed = self.cli("resume", "--run-dir", str(self.run_dir), "--observed",
+                           "The synthetic service check now passes.")
+        self.assertEqual(resumed.returncode, 0, resumed.stdout + resumed.stderr)
+        self.assertEqual(navigator.current_stage(self.state()), "step-plan")
+        self.assertNotEqual(navigator.current_action(self.state())["id"], blocked_action)
+        resumed_packet = _with_packet_file(self.cli("next", "--run-dir", str(self.run_dir)).stdout)
+        self.assertIn("Document-send-back status repair for this same item only", resumed_packet)
+        self.assertNotIn("spec.md", next(line for line in resumed_packet.splitlines()
+                                          if line.startswith("This stage keeps these up to date")))
+        self.assertIn("KNOWLEDGE/spec.md", next(line for line in resumed_packet.splitlines()
+                                               if line.startswith("Document-send-back status repair")))
+
+        spec.write_text(corrected, encoding="utf-8")
+        returned_action = navigator.current_action(self.state())["id"]
+        returned_plan = plan("Reconciled R-1 current status from a.py and its passing check receipt; preserved its "
+                             "requirement, dated history and deferred scope.",
+                             [str(self.repo / "a.py"), str(first_check)])
+        # Reentry checks expectations on the retained item base, not the unaccepted working implementation.
+        returned_plan["expectations"][0]["statement"] = "a.py starts at x = 1 on the item's retained base"
+        self.accept(returned_plan)
+        pending_plan = self.state()
+        self.assertEqual(pending_plan["active_improve"]["stage"], "step-plan")
+        self.assertNotIn(returned_action, pending_plan["accepted"],
+                         "the reviewed step-plan remains pending until its Improve import")
+        self.assertFalse(any(row["action"] == returned_action for row in pending_plan["history"]))
+        self.assertEqual(self.git("show", "HEAD:docs/shiploop/spec.md"), baseline,
+                         "the status correction is not committed before step-plan review import")
+        self.assertEqual((self.repo / "a.py").read_text(encoding="utf-8"), "x = 2\n")
+        # The review text is synthetic protocol evidence; the runtime, pass, import gates and knowledge close are real.
+        self.finish_improve_through_cli()
+        accepted_plan = self.state()["accepted"][returned_action]
+        self.assertIn("Reconciled R-1 current status", accepted_plan["summary"])
+        self.assertIn(str(first_check), accepted_plan["evidence_refs"])
+        self.assertEqual(self.git("show", "HEAD:docs/shiploop/spec.md"), corrected,
+                         "the status-only spec change is committed only after returned step-plan review import")
+        self.assertEqual(navigator.current_stage(self.state()), "test-spec")
+
+        self.accept(result())
+        self.assertEqual(self.settle(), "implement")
+        state = self.state()
+        validation_rows = [row for row in state["history"]
+                           if row["stage"] == "validate-existing" and row["workitem"] == "W1"]
+        self.assertEqual(len(validation_rows), 2, "the returned plan reruns base expectation validation")
+        self.assertIn("each matched its state", state["accepted"][validation_rows[-1]["action"]]["summary"])
+
+        returned_implement = navigator.current_action(self.state())["id"]
+        self.accept(result(summary="Retained implementation still passes the step Proof."))
+        self.assertEqual(navigator.current_stage(self.state()), "test")
+        second_test_action = navigator.current_action(self.state())["id"]
+        self.accept(result(summary="The current value check still passes after revalidation."))
+        second_check = self.run_dir / test_loop.verify_path(second_test_action, 1)
+        self.assertTrue(store.read_record(second_check)["passed"], "the returned step reruns its recorded check")
+        self.assertEqual(navigator.current_stage(self.state()), "document")
+        self.accept(result(summary="Documented the accepted current behavior after the status correction.",
+                           evidence_refs=[str(self.repo / "a.py"), str(second_check)],
+                           knowledge={"spec": "Unchanged: current status was corrected at the returned step-plan.",
+                                      "architecture": "Unchanged: no design decision changed.",
+                                      "environment": "Unchanged: the check command is already recorded."}))
+        self.assertEqual(self.state()["active_improve"]["stage"], "document",
+                         "the corrected implementation, check and documentation receive the step review")
+        child = self.state()["active_improve"]
+        handoff = navigator.improve_handoff_path(child).read_text(encoding="utf-8")
+        item_base = navigator.lint.read_base(self.run_dir, "W1")
+        bound = store.read_record(self.run_dir / navigator.improve_changes.bind_path(child["action_id"]))
+        self.assertIsNotNone(item_base)
+        self.assertIn("Review base (the step's change since it began", handoff)
+        review_line = next(line for line in handoff.splitlines() if line.startswith("Review base ("))
+        self.assertIn(item_base["tree"], review_line)
+        self.assertIn(bound["tree"], review_line)
+        diff_paths = self.git("diff-tree", "-r", "--no-renames", "--name-only",
+                              item_base["tree"], bound["tree"]).split()
+        self.assertIn("a.py", diff_paths,
+                      "the later Improve handoff must still include code retained from the refused document route")
+        self.assertIn("docs/shiploop/spec.md", diff_paths,
+                      "the handoff diff must include the status correction committed by the returned step-plan")
+        self.finish_improve()
+        accepted_step = navigator.step_commit(self.run_dir, returned_implement)
+        self.assertTrue(accepted_step, "the returned step is accepted only after its review")
+        self.assertIn("a.py", self.git("show", "--name-only", "--format=", accepted_step).split())
+        self.assertEqual(self.git("show", "HEAD:docs/shiploop/spec.md"), corrected)
+
+    def test_document_sendback_accepts_an_unmarked_genuine_blocked_receipt(self) -> None:
+        import shiploop_loops as loops
+
+        baseline = ("# spec\n\n## Requirements\n\n"
+                    "R-1: The notes file exposes the current item status.\n"
+                    "  Current implementation: pending.\n"
+                    "  Current verification: not run.\n"
+                    "  History: 2026-10-30 baseline captured.\n"
+                    "  Deferred: multi-item summary remains outside W1.\n\n"
+                    "## Non-functional requirements\n\nSynthetic knowledge.\n\n"
+                    "## Retired\n\nNone.\n")
+        spec = self.spec_path()
+        spec.parent.mkdir(parents=True, exist_ok=True)
+        spec.write_text(baseline, encoding="utf-8")
+        self.git("add", "docs/shiploop/spec.md")
+        self.git("commit", "-qm", "seed status for blocked document return")
+
+        self.start()
+        self.drive_to_step_plan()
+        plan = {
+            "outcome": "done", "summary": "Plan the current status implementation and its check.",
+            "paths": ["a.py"], "follows": ["R-1"],
+            "criteria": [{"id": "C1", "text": "R-1 is implemented. Confirm by: "
+                         "python3 -c 'import a; assert a.x == 2'; "
+                         "pass when it exits 0.", "confirm": "executed"}],
+            "test_commands": [{"command": "python3 -c 'import a; assert a.x == 2'", "suite": "check",
+                               "criteria": ["C1"]}],
+            "steps": [{"id": "S1", "task": "Set the current value in a.py.", "deps": [], "criteria": ["C1"],
+                       "proof": "python3 -c 'import a; assert a.x == 2'", "paths": ["a.py"], "skills": []}],
+            "expectations": [{"id": "E1", "state": "works", "statement": "a.py starts at x = 1",
+                              "steps": ["S1"], "paths": ["a.py"], "check": "grep -q '^x = 1$' a.py"}],
+        }
+        self.accept(plan)
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(result())
+        self.assertEqual(self.settle(), "implement")
+        (self.repo / "a.py").write_text("x = 2\n", encoding="utf-8")
+        self.accept(result(summary="Set a.py to x = 2."))
+        self.assertEqual(self.state()["stage"], "inner-loop")
+        self.assertEqual(navigator.current_stage(self.state()), "test")
+        self.accept(result(summary="The current value check passes."))
+        self.assertEqual(navigator.current_stage(self.state()), "document")
+
+        packet = _with_packet_file(self.cli("next", "--run-dir", str(self.run_dir)).stdout)
+        self.assertIn("current implementation or verification status is stale", packet)
+        self.assertIn("report send-back naming the R-<n>", packet)
+        document_action = navigator.current_action(self.state())["id"]
+        self.assertFalse(loops.send_back_open_path(self.run_dir, document_action).exists())
+        receipt = self.loop_support.finish_loop(self.run_dir, outcome="blocked",
+                                                note="R-1 status needs evidence-backed correction at step-plan")
+        packet_record = json.loads(receipt.read_text(encoding="utf-8"))
+        self.assertEqual(packet_record["status"], "stopped")
+        self.assertEqual(packet_record["last_report"]["continuation_assessment"], "blocked")
+
+        self.accept(result(outcome="send-back", summary="R-1 current status needs a step-plan correction from "
+                           "observed a.py and the actual check receipt."))
+        state = self.state()
+        self.assertEqual(navigator.current_stage(state), "step-plan")
+        self.assertEqual(state["history"][-1]["stage"], "document")
+        self.assertEqual(state["history"][-1]["outcome"], "send-back")
+        self.assertFalse(loops.send_back_open_path(self.run_dir, document_action).exists(),
+                         "the existing blocked receipt supports send-back without a refusal marker")
 
     def test_the_look_back_quotes_the_last_two_commits_that_are_not_shiploop_records(self) -> None:
         self.start()
@@ -4947,7 +5268,7 @@ class StepReflectionCliTests(inner_fixture.RunDriver):
         refusal = self.refused(dict(inner_fixture.DONE, knowledge=dict(self.RECORD), assumptions=[]))
         self.assertIn("without the step's mark: Clarified: unmarked.", refusal)
         self.assertIn("each ending (W1/S1)", refusal)
-        self.assertIn("to change a requirement, report send-back naming it", refusal)
+        self.assertIn("to change requirement intent, report send-back naming it", refusal)
         marked = "  Clarified: entry() returns its argument unchanged. (W1/S1)\n"
         spec.write_text(committed.replace(self.SPEC_LINE, self.SPEC_LINE + marked))
         self.complete(inner_fixture.loop(self.run_dir, self.state(),
