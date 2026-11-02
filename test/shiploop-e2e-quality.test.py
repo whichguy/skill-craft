@@ -1418,6 +1418,7 @@ class EventFactsTest(QualityCase):
                                                           "test/fixtures/quality/reference_user_teams.py",
                                                           "test/fixtures/quality/ticket_adequacy_alternative.test.js",
                                                           "test/fixtures/quality/ticket_adequacy_strong.test.js",
+                                                          "test/shiploop-e2e-living-status.test.py",
                                                           "test/shiploop-e2e-test-adequacy.test.py",
                                                           "test/shiploop-e2e-user-chain.test.py",
                                                           "test/shiploop_e2e/checks/checkers_accept.py",
@@ -1431,6 +1432,7 @@ class EventFactsTest(QualityCase):
                                                           "test/shiploop_e2e/checks/user_page_size_accept.py",
                                                           "test/shiploop_e2e/checks/user_roles_accept.py",
                                                           "test/shiploop_e2e/checks/user_summary_accept.py",
+                                                          "test/shiploop_e2e/checks/user_summary_status_accept.py",
                                                           "test/shiploop_e2e/checks/user_team_casefold_accept.py",
                                                           "test/shiploop_e2e/checks/user_team_listing_accept.py",
                                                           "test/shiploop_e2e/checks/user_teams_accept.py"])
