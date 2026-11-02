@@ -732,7 +732,8 @@ _PATH_SUITE_IDS = {
     "test/shiploop_e2e/obligations.py": ("shiploop-packet-obligations",),
     # The E2E journal and the baseline data are read by these suites alone (test-economy review 2026-10-17, row 1).
     "test/shiploop_e2e/LEARNINGS.md": ("shiploop-e2e", "release-preflight"),
-    "test/shiploop_e2e/baselines.jsonl": ("shiploop-e2e-baseline", "shiploop-e2e-platform", "shiploop-e2e"),
+    "test/shiploop_e2e/baselines.jsonl": ("shiploop-e2e-baseline", "shiploop-e2e-platform", "shiploop-e2e",
+                                      "shiploop-e2e-epoch"),
     # The workspace module is driven through the CLI by the return-review, handoff and knowledge suites (row 3).
     "skills/shiploop/scripts/shiploop_workspace.py": ("shiploop-return-review", "shiploop-handoff", "shiploop-knowledge"),
     # The navigator is a hub, so its edit selects the hub consumers; the seam's equivalence with complete is pinned by one
