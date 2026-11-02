@@ -1103,20 +1103,18 @@ DUTIES = {
     "plan": """\
 1. Reopen accepted intake through test-strategy results, RUN/notes/{discovery,research,current-system-baseline}.md,
    RUN/current-spec.md, RUN/spec/prior-{spec,architecture,environment}.md, KNOWLEDGE/environment.md ## Harnesses and suites,
-   and KNOWLEDGE/architecture.md. Inspect affected full Git messages beyond the recent-window leads; revalidate volatile facts.
-   Sort open gaps into researchable unknown
-   contracts, owner or access gaps and known setup prerequisites, each with its first affected consumer. With one
-   boundary blocked, keep independent research and conditional planning eligible on their own prerequisites.
+   and KNOWLEDGE/architecture.md. Read affected full Git messages beyond recent leads; revalidate volatile facts.
+   Classify gaps as researchable unknown contracts, owner/access gaps or known setup prerequisites; name each gap's
+   first affected consumer. Blocked boundaries leave independent research and conditional planning eligible on their own prerequisites.
 2. Plan backward from desired outcomes to their producers (Dependency-planning guidance); return `work_items`
    (item 17). Order readiness, implementation, integration and release so no consumer runs before its
    prerequisites. Each item's `context` gives ready and done conditions, candidate scope, proving check, authority
    boundaries, correction route. The plan implies no unrun test and no authorized external operation.
 3. Use the incoming request and quoted prior-to-current spec diff to plan only new/changed outcomes and evidenced
-   prerequisites. Reuse evidenced achieved behavior in the affected scope; keep accepted deferred work deferred.
-   Carry known prior gaps as open context; an affected gap that gates work needs an owned assumption (item 16) or
-   prerequisite. Unchanged spec text does not prove delivery. Map affected acceptance and preservation checks to an item and proof, or a
-   reasoned exclusion/open need. A `follows` reference alone does not assign old work. Keep the mapping in `context`;
-   a filled template is not proof. `concerns`: per
+   prerequisites. Reuse evidenced achieved behavior in affected scope; keep accepted deferred work deferred and known
+   prior gaps open. A gating gap needs an owned assumption (item 16) or prerequisite. Unchanged spec text is no
+   delivery proof. In `context`, map affected acceptance/preservation checks to an item and proof, reasoned exclusion
+   or open need. `follows` alone assigns no old work. Filled templates prove nothing. `concerns`: per
    item a row for each of ui, api, messaging, state, migrate-before, migrate-after, switchover, concurrency,
    platform-services, scale, security, observability, config, performance, accessibility: the template's row, or
    `{id, applies: "no", reason}`; one clause each.
@@ -1208,8 +1206,8 @@ DUTIES = {
 16. Return the load-bearing `assumptions`, starting from RUN/notes/research.md ## Assumptions and the discovery
     notes, with exactly the template's fields per disposition (evidenced: `evidence`; probed: `check`, `evidence`;
     open: `due_item`, `reason`, `settle`). An open assumption's `due_item` is the `work_items` ID that settles it.
-17. Return the complete ordered `work_items`, each with `id`, `title`, `follows` (the R-<n>/AD-<n> it serves) and
-    optional `context`, covering this request's approved changes and prerequisites, including requested independent work.
+17. Return complete ordered `work_items` for this request's approved changes, prerequisites and requested independent
+    work. Each: `id`, `title`, `follows` (served R-<n>/AD-<n>) and optional `context`.
 18. `summary` is supporting reference; each item's ready and done conditions stay its only execution directive.
     `evidence_refs`: KNOWLEDGE/architecture.md, any execution graph, every source used. An unrecorded conversation is not a
     handoff.
