@@ -1239,8 +1239,13 @@ DUTIES = {
    `summary`. Record not-applicable only when this candidate needs no preparation, with what you assessed. Missing
    required access or setup is blocked, not not-applicable.
 8. Tool state: a tool that writes its own files inside the checkout (the platform guide's ## Tool state names them)
-   needs them in .gitignore before any build; add the missing lines and list .gitignore in `evidence_refs`. An
+   needs them in .gitignore before any build; add the missing lines and list .gitignore in `evidence_refs` and `paths`. An
    unignored tool file reads as a product change to ShipLoop's checks.
+9. `paths`: inspect each current diff and reconcile unrelated edits before declaring exact repository-relative files
+   this preparation changed outside KNOWLEDGE, or [] when none; no directory
+   or glob expansion. This declares scope; `evidence_refs` supplies locators. ShipLoop commits only declared eligible
+   deltas clean or absent at preparation entry, before item capture. Knowledge keeps its separate close. Name anything
+   left uncommitted in `summary`; never commit it yourself or absorb unrelated work.
 """,
     "step-plan": """\
 Change no product file in this stage.
@@ -1465,52 +1470,50 @@ preparatory commit); a mismatch there is a send-back.
    outside dependency must unblock it.
 """,
     "document": """\
-1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results and the
-   item's diff.
-2. **Observe and write.** Run each changed behaviour, then update the README, API, user, operator, error and design
-   docs from what you observe: visible errors, how to turn on diagnostics, known limits and caveats. Link to the
-   authoritative home rather than copying a contract (Documentation guidance). Document nothing you did not observe
-   working. Durable facts go in the repository's docs, never only in run notes.
-3. **Reflect.** With the step built, tested and documented, record what it showed in the knowledge home, where the
-   next steps' packets read it:
+1. **List** changed public behaviours from paths, step plan, implement results and item diff.
+2. **Observe and write.** Run each changed behaviour; update README, API, user, operator, error and design docs with
+   observed behaviour, visible errors, diagnostic controls, limits and caveats. Link the authoritative home
+   (Documentation guidance). Write only observed working behaviour in repository docs, never just run notes.
+3. **Reflect.** Open current spec, architecture and environment, even unchanged. Reconcile affected current claims
+   with this step's observations, including checks now executed; preserve as-of history and checks not due.
+   Record what the step showed:
    - RUN/current-spec.md: a line inside the R-<n> entry it concerns, ending with this step's mark (<item>/<step>): a
      vague clause this step made precise, stated as observable behaviour, or the files and test file that now meet it.
      Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n>.
    - KNOWLEDGE/architecture.md ## Decisions: a design or service decision implement did not record, or a departure from
      an AD-<n>, as a new AD-<n> (a service choice with contract, owner and revalidation trigger); a superseded one moves
      to ## Superseded.
-   - KNOWLEDGE/environment.md: a command that worked under ## Commands; a harness or platform fact not yet recorded.
+   - KNOWLEDGE/environment.md: worked commands under ## Commands, with the runtime, target and prerequisites that made
+     their evidence meaningful; current harness readiness and test outcomes, or a platform fact not yet recorded.
    - Work the step showed: a defect in its change, fix now; work this item's step plan lacks, report send-back; work a
      later step already holds: leave it to that step; work outside this item: an open item in `assumptions` due at
      carry-forward. A system, release or real-boundary check the criteria need is an open item due at the stage that
      makes it, with its owner.
    In `knowledge` give `spec`, `architecture` and `environment`: for each file, what changed or why not.
-4. **Baseline.** Recovered existing behaviour: keep recovered observations and accepted deltas apart from the prior
-   as-of baseline (Current-system baseline guide).
-5. **Reread** every changed document and run its commands and examples. In RUN/notes/<action>.md record why a
-   behaviour needs no documentation, why the README did not change, or why an example cannot run here.
+4. **Baseline.** Keep recovered observations and accepted deltas separate from the prior as-of baseline
+   (Current-system baseline guide).
+5. **Reread** changed docs and run their commands/examples. In RUN/notes/<action>.md explain why a behaviour needs no
+   docs, the README stayed unchanged or an example cannot run.
 6. **Commit nothing yourself.** """ + _ITEM_COMMIT + """
 7. Plan or criterion wrong as observed: report send-back naming it. Report blocked only when a behaviour cannot be
    observed here, naming it.
 """,
     "carry-forward": """\
-1. **Knowledge home.** Update in place under the sections named here, with no new ## heading for this item's results;
-   keep completed evidence apart from future plans, never rewriting it:
-   - KNOWLEDGE/environment.md ## Commands: every command that worked.
-   - KNOWLEDGE/architecture.md ## Decisions: each AD-<n> this item added; a superseded one moves to ## Superseded, never
-     deleted.
-   - KNOWLEDGE/environment.md ## Harnesses and suites: suites; focused, smoke and full commands; harness and case
-     locators; fixture lifecycle; each test facility's locator, interface, readiness or gap, owner, revalidation
-     condition.
+1. **Knowledge home.** Open current spec, architecture and environment even unchanged. Reconcile affected current
+   claims with accepted evidence; keep as-of history and checks not due. Update in place
+   under the sections named here, with no new ## heading for this item's results;
+   - KNOWLEDGE/environment.md ## Commands: every worked command with its runtime, target and prerequisites.
+   - KNOWLEDGE/architecture.md ## Decisions: this item's added AD-<n>; superseded ones move to ## Superseded, never deleted.
+   - KNOWLEDGE/environment.md ## Harnesses and suites: focused/smoke/full suites and commands; harness and case locators;
+     fixture lifecycle; each test facility's locator, interface, readiness or gap, owner, revalidation condition.
    - KNOWLEDGE/architecture.md ## Real-boundary checks: each pending full-suite and real-boundary check with its owner.
    - RUN/current-spec.md: each R-<n> this item satisfied; an open gap under its R-<n>, an unresolved state or data change
-     included (State and data assessment). Keep unaffected clauses, and never relax one to fit the code or tests.
-     Test IDs live only in test code: write none here.
-   - Open risks, unresolved dependencies, system-test obligations, release prerequisites and any observation no item
-     owns: open items in `assumptions`, each with owner and, as `due_stage`, the later outer stage it is due at.
-   - Carry the prior baseline, incoming delta and updated knowledge locators forward, keeping historical snapshots
-     (Current-system baseline guide); retain the house style (House-style guidance) and the learnings the next run
-     needs (Persistent project-knowledge guidance).
+     included (State and data assessment). Keep unaffected clauses; never relax one to fit code or tests.
+     Test IDs live only in test code.
+   - Open risks, dependencies, system tests, release prerequisites and unowned observations: open `assumptions`, each
+     with owner and the later outer `due_stage`.
+   - Carry prior baseline, incoming delta and knowledge locators with historical snapshots (Current-system
+     baseline guide); keep house style (House-style guidance) and learnings needed next run (Persistent project-knowledge guidance).
    - Expand no scope; adopt no tentative idea as policy.
 2. **Queue** (Carry-forward mapping guidance). Read RUN/state.md `work_items` with every pending title and context;
    give every observation that affects later work an owner:
@@ -1861,12 +1864,14 @@ preparatory commit); a mismatch there is a send-back.
 6. Isolated run: handoff needs a current return receipt. If release did not return the candidate, run the packet's
    plan-return, decide every undecided path with review-return, run its return command (Workspace return guidance);
    receipt path in `evidence_refs`.
-7. From the returned project, without the run directory, check the knowledge survives: durable documentation links
+7. Reconcile affected current environment/architecture claims with the latest accepted observations; preserve as-of
+   history and checks not due, and retain commands' meaningful runtime/target conditions. From the returned project,
+   without the run directory, check the knowledge survives: durable documentation links
    resolve in the returned repository (KNOWLEDGE/spec.md, KNOWLEDGE/environment.md, KNOWLEDGE/architecture.md); the AD-<n> entries
    in KNOWLEDGE/architecture.md hold the current service decisions, ownership, unresolved boundaries and revalidation
    conditions (Service discovery guidance); their source and check locators open for a fresh reader. Check new spec
    link targets against RUN/current-spec.md, which promotion will supply; the aggregate may still be prior here.
-   Keep the prior baseline's as-of account (Current-system baseline guide). Fix environment/architecture links now;
+   Keep the prior baseline's as-of account (Current-system baseline guide). Fix environment/architecture facts and links now;
    a missing spec target needs corrective work, never a direct aggregate edit.
    Work-item context and earlier result references are not a durable index.
 8. Read release-verify's `lessons` (quoted in the hand-offs); carry its open-next items into the follow-up work in
@@ -2516,6 +2521,9 @@ input, then review the change against the rubric below and for:
 - a parser that checks each field but not how they combine;
 - a language pitfall handled in one place and not everywhere it applies;
 - a failure state that does not name the user's next action;
+- affected current knowledge claims, even unchanged lines, that disagree with
+  accepted observations or omit their meaningful runtime/target conditions:
+  reconcile them while keeping as-of history and checks not due;
 - a mutant disposition a test stage recorded (equivalent, out-of-scope,
   not-exercisable) that a later edit made untrue, or a kill claimed with no run.
 Fix violations within scope; each fix comes with a test that fails before it.
@@ -2564,10 +2572,10 @@ and KNOWLEDGE plus the step's marked RUN/current-spec.md additions, any of these
 - a step skill the packet lists, unused or misused with no reason in the result;
 - a test that asserts the code's current behaviour instead of its case's oracle,
   a behaviour of the step no test checks, or a doc that disagrees with the code;
-- a KNOWLEDGE line the code or tests contradict, or something the step showed
-  that KNOWLEDGE does not record (a clarified requirement, a decision, a
-  command): fix it in place; add only step-marked implementation evidence inside
-  the accepted R-<n> in RUN/current-spec.md; never change requirement intent;
+- wrong or missing current facts in the spec, architecture or environment: open
+  all three even if unchanged; reconcile affected claims with the step's evidence,
+  keeping as-of history and checks not due. Keep commands' runtime and target;
+  add only step-marked evidence inside accepted R-<n>; never change its intent;
 - the step's Proof failing or not testing its criteria (a skipped file, a later
   step's work), or a new unwaived lint finding on a changed line, after your
   last edit.

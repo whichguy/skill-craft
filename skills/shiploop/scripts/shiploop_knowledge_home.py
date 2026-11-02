@@ -69,7 +69,8 @@ CLOSES: Dict[str, Tuple[str, ...]] = {
 # requirement lines, decisions, commands and facts); carry-forward records the run's decisions and what they superseded; system-test-author keeps the system-test
 # catalog and release-plan the standing release procedure in environment.md, which release-check corrects when the rollback
 # differs (D2); operations keeps the log and audit retrieval and recovery locators there (its duty 5; the saved ticket runs
-# committed its edits as "knowledge after operations", so it is a writer).  A key that is no stage of the graph is
+# committed its edits as "knowledge after operations", so it is a writer); handoff reconciles final current facts
+# in environment and architecture, while its reviewed candidate spec stays read-only. A key that is no stage of the graph is
 # a stale entry: a test pins every key to ``stage_spec.STAGES``.
 STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "discovery": ("environment.md",),
@@ -89,6 +90,7 @@ STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "release-check": ("environment.md",),
     "release-verify": ("environment.md",),
     "operations": ("environment.md",),
+    "handoff": (ARCHITECTURE, "environment.md"),
 }
 
 # The living files each stage's packet lists by contents (consumer contract 0A; owner decisions D1 2026-10-11 and D1
@@ -102,7 +104,7 @@ READS: Dict[str, Tuple[str, ...]] = {
     "validate-existing": (_E, _A), "implement": (_E, _A), "test": (_E, _A), "document": (_S, _E, _A),
     "carry-forward": (), "system-test-author": (_S, _E, _A), "system-test": (_E, _A), "product-acceptance": (_S, _E),
     "release-plan": (_E,), "release-check": (_E,), "release": (_E,), "release-verify": (), "operations": (_E,),
-    "handoff": (),
+    "handoff": (_S, _E, _A),
 }
 
 

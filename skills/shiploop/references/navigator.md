@@ -724,6 +724,51 @@ system-test, outer Improve and release planning read it and reconcile actual
 readiness with the remaining route. Script-enforced queue order is not proof
 that the host included all prerequisites or actually prepared a remote target.
 
+### Preparation files before item capture
+
+A done `prepare` result may declare `paths`: exact repository-relative product
+files this preparation changed outside the knowledge home. Omitted or empty
+means no files are authorized by this field. These are concrete files, including
+literal metacharacters in names; directory and glob expansion are not supported.
+`evidence_refs` remains a locator list and never supplies commit authority.
+Inspect each declared file's current diff first. Reconcile unrelated edits;
+omit a file whose complete delta cannot safely be included and name the gap in
+the result. A planned filename alone does not approve its later contents.
+
+Before issuing the first prepare packet, ShipLoop records its Git working tree,
+HEAD and dirty paths, including staged-only changes, after the preceding stage's
+commits. It keeps that entry through a blocked result and resume. On accepted
+preparation it commits only declared eligible deltas that were clean or absent
+at entry, before capturing the first work item's base. Runtime paths and managed
+workspace exclusions stay out; existing dirty paths and undeclared concurrent
+changes stay outside this commit. Scope declaration and a temporal delta do not
+establish authorship of concurrent edits to the same declared path.
+
+```mermaid
+flowchart TD
+    E[Capture preparation entry] --> P[Issue prepare packet]
+    P --> D[Declare changed file paths]
+    D --> A[Accept preparation]
+    A --> C[Commit eligible declared deltas]
+    C --> B[Capture first item base]
+```
+
+Preparation outputs must reach their commit before item capture; an unchanged
+setup file already in the item base is no later step's delta. Commit recovery
+recognizes the exact recorded parent and planned tree, so a landed commit is
+not repeated. The same pending record retains the canonical producer result and
+its digest. A changed retry is refused: restore that original callback from
+`RUN/preparation.md`'s `pending.result`, then retry; never edit the script-owned
+record. An unrelated HEAD or a Git failure leaves the callback pending.
+A missing entry after packet issuance is unknown; recovery never invents an
+earlier clean tree. Non-Git or unborn entries do not authorize automatic Git
+initialization or a whole-tree commit. The packet/result names files left
+uncommitted; preparation completion alone is no proof of clean delivery.
+
+The knowledge home retains its separate existing close-and-commit contract.
+This preparation scope excludes it and does not certify preservation of dirty
+knowledge-home files by that close. Step commits retain their existing scope.
+
 ### Step commits
 
 On the inline route ShipLoop commits each step once its `document` stage and
