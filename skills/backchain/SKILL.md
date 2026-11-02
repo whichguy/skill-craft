@@ -83,8 +83,9 @@ lets you write, otherwise outside the project.
    candidate ([references/caller-contract.md](references/caller-contract.md); its
    `candidate.output_sha256` is the sha256 the last `record` printed) and pass it with
    `--review FILE` to get `{plan, review}`. Return it; say converged only when `finish` does, and
-   otherwise report its next action. `export DIR/plan.json` gives Plan Dispatcher the execution
-   graph of a complete plan.
+   otherwise report its next action. `export --run DIR` gives Plan Dispatcher the execution graph
+   of the plan the run converged on; it refuses a run that did not converge or whose plan changed
+   after `finish`. `export PLAN` exports any complete plan.
 
 A `backchain-caller/v1` action `review` (stage `audit`) is a read-only one-pass diagnostic with
 [prompts/audit.prompt.md](prompts/audit.prompt.md): it changes no candidate, starts no loop and
