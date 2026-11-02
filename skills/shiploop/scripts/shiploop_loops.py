@@ -129,10 +129,7 @@ REPEAT: Mapping[str, str] = {
         "when a recorded command cannot run here. " + _NEVER_CANCEL),
     "document": (
         "Repeat while a changed public behaviour is undocumented or a reread or example run found a wrong "
-        "statement; " + _NO_LIMIT + " Stop blocked only when a behaviour cannot be observed here (name it), or when an "
-        "existing R-<n> entry's current implementation or verification status is stale and needs the protected "
-        "status-only return to step-plan. In that case report send-back naming the R-<n> with observed code and actual "
-        "check receipts; do not defer the contradiction. "
+        "statement; " + _NO_LIMIT + " Stop blocked only when a behaviour cannot be observed here (name it). "
         + _NEVER_CANCEL),
     "carry-forward": (
         "Repeat while an exit condition fails after an iteration; " + _NO_LIMIT + " Stop blocked when a finding is "
@@ -218,12 +215,12 @@ def terminal_path(action_id: str) -> str:
 
 
 def send_back_open_path(root: Path, action_id: str) -> Path:
-    """The marker a refused implement or document done leaves when its fix is a send-back (``open_send_back``)."""
+    """The marker a refused implement done leaves when its fix is a send-back (``open_send_back``)."""
     return Path(root) / LOOP_DIR / (action_id + "-send-back-open")
 
 
 def open_send_back(root: Path, action_id: str, reason: str) -> None:
-    """Record that a gate refused this implement or document action's done and named send-back as the fix.
+    """Record that a gate refused this implement action's done and named send-back as the fix.
 
     The step's Until Loop has completed by the time a done is submitted, and a completed loop supports only done, so the
     refusal's own exit was refused in turn (build plan S3.3's route test).  The marker lets that one action's send-back
@@ -756,7 +753,7 @@ def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, An
     path = receipt_path(root, action_id)
     if outcome == "blocked" and not os.path.lexists(path):
         return None  # The loop never started (for example, no runtime resolves); the summary and awaiting say why.
-    if outcome == "send-back" and stage in ("implement", "document") and send_back_open_path(root, action_id).is_file():
+    if outcome == "send-back" and stage == "implement" and send_back_open_path(root, action_id).is_file():
         return None  # a gate refused this action's done and named send-back (open_send_back)
     if outcome in ("send-back", "blocked") and (
             (stage in ("test", "document") and _remedy_open(root, action_id))

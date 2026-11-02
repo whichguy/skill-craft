@@ -1316,10 +1316,7 @@ Change no product file in this stage.
      topic, opening only its matching section.
 10. **Knowledge.** A structural choice KNOWLEDGE/architecture.md lacks: next AD-<n> under ## Decisions, cited in the
     step. A newly working command: KNOWLEDGE/environment.md ## Commands. Keep every R-<n> and AD-<n>; write nothing else
-    in KNOWLEDGE/ except the status-only correction this packet explicitly permits after a document send-back. There,
-    update only current implementation and verification status in the existing R-<n> entry whose stale status the return identifies,
-    from observed code and actual check receipts. Preserve requirement intent, dated history and deferred scope verbatim;
-    cite the correction and evidence in this result's summary and evidence_refs.
+    in KNOWLEDGE/.
 """ + _STEP_PLAN_NO_GRAPH + """\
 12. **evidence_refs**: absolute paths of every planning file written, and the requirement sections and test locators
     used.
@@ -1472,10 +1469,6 @@ preparatory commit); a mismatch there is a send-back.
    - KNOWLEDGE/spec.md: a line inside the R-<n> entry it concerns, ending with this step's mark (<item>/<step>): a
      vague clause this step made precise, stated as observable behaviour, or the files and test file that now meet it.
      Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n>.
-     If current implementation or verification status is stale, do not edit it here or move the contradiction to an
-     open item due at carry-forward; report send-back naming the R-<n> with observed code and actual check evidence so
-     the returned step-plan can make the status-only correction. A material or unresolved finding stays in Improve
-     until resolved; a deferral does not complete that review.
    - KNOWLEDGE/architecture.md ## Decisions: a design or service decision implement did not record, or a departure from
      an AD-<n>, as a new AD-<n> (a service choice with contract, owner and revalidation trigger); a superseded one moves
      to ## Superseded.
