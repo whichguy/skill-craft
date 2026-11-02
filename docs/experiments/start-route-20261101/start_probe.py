@@ -86,6 +86,8 @@ def detect_start(cmd: str) -> str | None:
     """`workspace` for the isolated entry, `direct` for init, None when the command is not a ShipLoop start."""
     if "shiploop" not in cmd or ("--repo" not in cmd and "--prompt" not in cmd):
         return None   # `init --help` and `workspace start --help` read the verb; a start carries the repository or the request
+    if re.search(r"(?:^|\s)(?:--help|-h)(?:\s|$)", cmd):
+        return None   # a help request that also names --repo is still a read (found by Astra's review of this detector, 2026-11-01)
     match = SHELL_START.search(cmd)
     if match is None and "scripts/shiploop" in cmd and ("subprocess" in cmd or "execv" in cmd):
         match = PY_START.search(cmd)
@@ -188,26 +190,44 @@ def starts_in(events_path: Path) -> dict:
     return {"starts": starts, "refused": refused}
 
 
+def under(path: str, root: str) -> bool:
+    """`path` is `root` or inside it, by path component: /t/trial-a1 is not under /t/trial-a10's prefix, and /t/trial-a10 is not under /t/trial-a1."""
+    return path == root or path.startswith(root.rstrip(os.sep) + os.sep)
+
+
+PATH_BREAKS = r"""\s='",:;()\[\]{}<>|&"""   # what can stand just before or after a path in a command line: white space, the = of
+# --run-dir=/t or NAME=/t, the : of PATH=a:/t, and the quotes and brackets of python3 -c "...('/t')"
+
+
+def names(command: str, root: str) -> bool:
+    """The command line names `root`, or a path inside it, as a whole path: it starts where a path can start and ends at `root` or at
+    a slash inside it. /t/trial-a1+backup and /other/t/trial-a1 are not the folder, and no list of characters that may follow or
+    precede the name could say so (Sol's review of this driver, 2026-11-01: a blacklist of trailing characters missed `+`)."""
+    return re.search(rf"(?<![^{PATH_BREAKS}])" + re.escape(root) + rf"(?:/|(?![^{PATH_BREAKS}]))", command) is not None
+
+
 def reap(trial: Path) -> None:
-    """Kill anything still running that names the trial folder, on its command line or as its working directory. A start
+    """Kill anything of mine still running that names the trial folder, on its command line or as its working directory. A start
     command spawns a progress observer that can outlive the harness; the harness then refuses every later launch as long as
     such an orphan lives. A child that names no folder escapes the command-line match: the Salesforce CLI's first org command in
     a throwaway HOME makes macOS raise a "Keychain Not Found" dialog and leaves `security add-generic-password` waiting with the
-    trial's work folder as its working directory (found by another session, 2026-11-01), so the working directory is matched too."""
+    trial's work folder as its working directory (found by another session, 2026-11-01), so the working directory is matched too.
+    Matching is by path component and by owner: Astra's review of this driver (2026-11-01) showed a bare prefix match would also kill
+    /t/trial-a10 when cleaning /t/trial-a1, and a process of another user is never touched."""
+    roots = {str(trial), str(trial.resolve())}   # lsof prints the resolved path (/private/var for /var)
     victims: set[int] = set()
-    listing = subprocess.run(["ps", "-axo", "pid=,command="], capture_output=True, text=True, check=False).stdout
+    listing = subprocess.run(["ps", "-axo", "pid=,uid=,command="], capture_output=True, text=True, check=False).stdout
     for line in listing.splitlines():
-        pid, _, command = line.strip().partition(" ")
-        if str(trial) in command and pid.isdigit():
-            victims.add(int(pid))
+        parts = line.strip().split(None, 2)
+        if len(parts) == 3 and parts[0].isdigit() and parts[1] == str(os.getuid()) and any(names(parts[2], root) for root in roots):
+            victims.add(int(parts[0]))
     cwds = subprocess.run(["lsof", "-d", "cwd", "-Fpn"], capture_output=True, text=True, check=False).stdout
-    roots = (str(trial), str(trial.resolve()))   # lsof prints the resolved path (/private/var for /var)
     owner = ""
     for line in cwds.splitlines():
         if line.startswith("p"):
             owner = line[1:]
-        elif line.startswith("n") and owner.isdigit() and line[1:].startswith(roots):
-            victims.add(int(owner))
+        elif line.startswith("n") and owner.isdigit() and any(under(line[1:], root) for root in roots):
+            victims.add(int(owner))   # lsof -d cwd lists the caller's processes and others'; the kill below fails on another user's
     for pid in victims - {os.getpid()}:
         try:
             os.kill(pid, signal.SIGKILL)
@@ -317,12 +337,16 @@ def run_trial(slot: dict, attempt: int, out: Path, expected: dict) -> dict:
         installed = installed_cards(trial, result)
         sha = hashlib.sha256(installed[0].read_bytes()).hexdigest()[:12] if len(installed) == 1 else None
         row["installed_card_sha256"] = sha
+        row["installed_protocol_sha256"] = protocol_sha(installed[0].parents[2]) if len(installed) == 1 else None
         row["host_record"] = [invocation.get("host"), invocation.get("model"), invocation.get("effort")]
         row["plugin_verdict"] = (result.get("plugin") or {}).get("pass")
         if row["host_record"] != [HOST, MODEL, EFFORT]:
             row["error"] = f"the harness ran {row['host_record']}"
         elif sha != expected["card_sha256"][arm]:
             row["error"] = f"the installed card ({sha}) is not the arm's card"
+        elif (expected.get("protocol_sha256") or {}).get(arm) not in (None, row["installed_protocol_sha256"]):
+            row["error"] = (f"the installed shiploop_protocol.py ({row['installed_protocol_sha256']}) is not the arm's "
+                            f"({expected['protocol_sha256'][arm]})")
         elif row["start"] != "none":
             row["end"] = "start"
         elif row.get("driver_killed"):
@@ -420,9 +444,21 @@ def run_confirm(out: Path, count: int, jobs: int) -> None:
         list(pool.map(work, range(1, count + 1)))
 
 
+PROTOCOL = Path("skills") / "shiploop" / "scripts" / "shiploop_protocol.py"
+
+
+def protocol_sha(plugin_root: Path) -> str | None:
+    """The script that holds the init guard, hashed: the card alone does not identify a build whose difference is in a script (the
+    first and second guard builds had the same card, and Astra's review of this driver, 2026-11-01, asked for the identity of the code)."""
+    script = plugin_root / PROTOCOL
+    return hashlib.sha256(script.read_bytes()).hexdigest()[:12] if script.is_file() else None
+
+
 def prepare(out: Path, wanted: tuple = ARMS) -> dict:
     arms = json.loads(ARMS_FILE.read_text())
-    return {"card_sha256": {arm: build_arm(arm, arms[arm], out / "arms" / arm / "root") for arm in wanted}}
+    cards = {arm: build_arm(arm, arms[arm], out / "arms" / arm / "root") for arm in wanted}
+    return {"card_sha256": cards,
+            "protocol_sha256": {arm: protocol_sha(out / "arms" / arm / "root" / "plugins" / "skill-craft") for arm in wanted}}
 
 
 def run_all(plan: list[dict], out: Path, jobs: int) -> None:

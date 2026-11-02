@@ -805,6 +805,27 @@ class StartRouteTest(unittest.TestCase):
         (root / "workspace.md").write_text("workspace\n")
         self.assertEqual(start_route.route(self.out), "workspace")
 
+    def test_a_workspace_manifest_without_a_run_state_is_not_yet_a_route(self):
+        # workspace.prepare writes workspace.md before the internal init, and can write a blocked one: the isolated entry has
+        # not started a run until the run's state.md exists (Astra's review of the start-route probe, 2026-11-01).
+        root = self.out / ".shiploop-runs" / "work-1"
+        (root / "run").mkdir(parents=True)
+        (root / "workspace.md").write_text("workspace\n")
+        self.assertIsNone(start_route.route(self.out))
+        self.state(root / "run")
+        self.assertEqual(start_route.route(self.out), "workspace")
+
+    def test_the_recorded_route_is_the_first_one_the_watcher_saw_not_what_the_folder_reads_at_the_end(self):
+        self.state(self.out / "shiploop-run")
+        watcher = start_route.StartWatcher(self.out, self.out / "stop")
+        watcher.route = "direct"           # what it saw first
+        root = self.out / ".shiploop-runs" / "work-1"
+        self.state(root / "run")
+        (root / "workspace.md").write_text("workspace\n")   # a workspace made afterwards outranks the direct run on disk
+        self.assertEqual(start_route.route(self.out), "workspace")
+        self.assertEqual(start_route.recorded(watcher, self.out), "direct")
+        self.assertEqual(start_route.recorded(None, self.out), "workspace")
+
     def test_a_workspace_md_that_is_no_workspace_root_is_not_one(self):
         (self.out / "work").mkdir()
         (self.out / "work" / "workspace.md").write_text("a product file\n")

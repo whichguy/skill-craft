@@ -1669,12 +1669,13 @@ python3 test/shiploop_e2e/run.py --prompt "<request>" --host codex --plugin-dir 
   --stop-after-start --timeout 240 --quiet
 ```
 
-`start_route.py` reads the output folder once a second: a `workspace.md` in a workspace root means the isolated entry, a ShipLoop
-`state.md` without one means the direct entry. The first one found creates the folder's `stop` file, the harness's own stop
+`start_route.py` reads the output folder once a second: a `workspace.md` in a workspace root whose `run/state.md` exists means the
+isolated entry (`workspace.md` alone does not: it is written before the internal `init` and a blocked one is written when the source
+changed), a ShipLoop `state.md` without a workspace means the direct entry. The first one found creates the folder's `stop` file, the harness's own stop
 (status `stopped`: no resume, the records are written). Reading the disk instead of the host's commands needs no pattern for the
 ways a model writes a command (a shell line, a variable, a Python argument list with escaped quotes), and a refused `init`
 writes nothing, so it reads as no start. `result.json` carries `start_route` (`workspace`, `direct`, or null before ShipLoop
-started a run) for every run, and a finished run's baseline row carries it too; a probe is a run the harness ended, so it
+started a run; for a probe, the first route its watcher saw) for every run, and a finished run's baseline row carries it too; a probe is a run the harness ended, so it
 writes no baseline row.
 
 A probe takes no fixed-port lease (nothing is served, so another session's run of the same case does not refuse it) and it
@@ -1693,16 +1694,32 @@ each of these after the fact, at the cost of a relaunch or a re-read of stored r
    requests as starts (14 of the first 40 rows) and missed the escaped form (9 sessions), found only after the trials.
    `--stop-after-start` reads the disk and needs none of these patterns, so prefer it, and report the sessions where the command
    and the disk disagree.
-2. *Run the control twice in the first batch* (two arms with the same text). The old wording began with `init` in 17 of 40
-   sessions in one batch and 8 of 40 in the next (p 0.053): one control cannot size the run-to-run spread, and a bar set on one
-   batch's control can be met by chance.
+2. *Size the run-to-run spread before trusting one control.* The old wording began with `init` in 17 of 40 sessions in one batch and
+   8 of 40 in the next (p 0.053, which sampling variation alone can produce): a bar set on one batch's control can be met by chance.
+   Run the control twice in the first batch (two arms with the same text), or run the batch in time blocks and compare the blocks
+   when the question is variation over time; replicate before shipping either way.
 3. *Register before the first trial, and push it:* the stimulus bytes, the decision rule, the sample sizes, and the fault policy
-   (what stops a batch, what restarts it from scratch).
+   (what stops a batch, what restarts it from scratch). Set the bar for a path that must not be harmed (an explicit request that has
+   to keep working) at no tolerated loss or a high rate with its confidence bound, not at "most": the guard probes' 80% bar would
+   have passed with 4 of 24 explicit requests dishonoured. Count every outcome of an assigned session (a start of the wrong kind, no
+   start, a session that never touched the skill), not only those that reached a step.
 4. *A selection from one batch is not a result.* `analyze.py --replicates <second batch>` prints REPLICATED apart from the
    decision; "REPLICATED: NO" means the selection rests on one batch.
 5. *Stop a batch on a run of invalid attempts* (the driver's `MAX_INVALID_STREAK`) instead of looping, and count attempts per
    launch, not per slot. A host refused in a second or two with no model call is a harness fault (a leased port, a stray
-   observer), not an outcome.
+   observer), not an outcome. The driver retries a session that never touched the skill as invalid; that can be a behaviour, so
+   report the retries.
+6. *Contain the probe.* A probe ends at the first run, not before it, and a request that tells the model to deploy to a live org
+   will let it try. Use a request that keeps the wording under test and drops the live actions, or confirm the host cannot reach the
+   credentials (the Claude host keeps the real HOME). Calibrate the analysis on counterexamples and replays before the first trial
+   (`docs/experiments/start-route-20261101/check_analyzer.py`), and have an independent model review the plan before the owner is
+   asked to approve it. This list is from Astra's review of the work (`astra-review-2026-11-01.md` in that folder), asked afterwards.
+7. *Make the instruments fail loud, then try to make them lie.* An analysis names the registered plan of its batch (`--plan`) and
+   prints no verdict without it; a comparison needs a started session in both arms, and an arm that mostly never started makes the
+   host unreadable, not clean; a process killer matches whole paths (the folder or a slash inside it, after a place a path can
+   start), never a prefix or a list of characters that may follow. Sol's review of the fixes to Astra's findings (2026-11-01) found
+   each of these three still failing in the safe-looking direction, and each shipped in a test that failed first
+   (`check_analyzer.py`).
 
 ### Launching long runs
 

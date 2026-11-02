@@ -42,11 +42,19 @@ def route(out) -> str | None:
     out = Path(out)
     for record in _search(out, WORKSPACE):
         root = record.parent
-        if (root / "run" / "state.md").is_file() or root.parent.name == ".shiploop-runs":
+        # workspace.md is written before the internal init (and a blocked one is written when the source changed), so only a
+        # run state inside the workspace shows that the isolated entry started a run.
+        if (root / "run" / "state.md").is_file():
             return "workspace"
     import run_choice  # the harness's own definition of a ShipLoop run: a state.md that reads as a run's state
 
     return "direct" if run_choice.shiploop_runs(out) else None
+
+
+def recorded(watch, out) -> str | None:
+    """The route to record for a run: the first one the watcher saw while the run was starting, else what the folder reads now.
+    The folder at the end can hold a direct run and a workspace made later, and ``route`` ranks the workspace first."""
+    return (watch.route if watch is not None else None) or route(out)
 
 
 class StartWatcher:

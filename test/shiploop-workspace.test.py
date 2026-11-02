@@ -12,6 +12,7 @@ from __future__ import annotations
 import copy
 import os
 from pathlib import Path
+import re
 import shlex
 import shutil
 import stat
@@ -2906,17 +2907,114 @@ class DirectEntryGuardTests(unittest.TestCase):
         self.assertNotIn("--in-place", helped.stdout + helped.stderr)  # a session that read it would pass it in advance
         self.assertIn("--in-place", self.init().stderr)
 
-    def test_the_run_directory_inside_the_empty_folder_does_not_make_it_non_empty(self) -> None:
+    def printed_recovery(self, refusal: subprocess.CompletedProcess[str], *extra: str) -> list[str]:
+        """The `workspace start` command the refusal prints, with the request filled in and a workspace root under the test."""
+        found = re.search(r"python3 \S+ workspace start --repo .*? --prompt='<user request>'", refusal.stderr)
+        self.assertIsNotNone(found, refusal.stderr)
+        words = shlex.split(found.group(0).replace("<user request>", "build the thing"))
+        return [sys.executable, "-B", *words[1:], "--workspace-root", str(self.base / "recovered"), *extra]
+
+    def run_recovery(self, argv: list[str]) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(argv, cwd=self.base, text=True, capture_output=True, timeout=180, env=self.env)
+
+    def test_the_recovery_the_refusal_prints_works_in_the_folder_it_refused(self) -> None:
+        refusal = self.init()
+        self.assertEqual(refusal.returncode, 2, refusal.stdout + refusal.stderr)
+        recovered = self.run_recovery(self.printed_recovery(refusal))
+        self.assertEqual(recovered.returncode, 0, recovered.stdout + recovered.stderr)
+        self.assertTrue((self.folder / ".git").exists(), "workspace start made the empty folder a repository")
+        self.assertTrue((self.base / "recovered" / "run" / "state.md").is_file())
+
+    def test_a_run_directory_made_beforehand_inside_the_folder_makes_it_non_empty_as_the_recovery_sees_it(self) -> None:
+        # Checked on 2.31.0: a folder holding only an empty `.shiploop` was refused, and the printed `workspace start` then failed
+        # ("not a git repository"), because workspace start bootstraps a directory with no entry at all. A refusal must not send the
+        # session to a command that cannot work, so such a folder is not refused; it is the non-empty non-Git folder the card
+        # already describes (bootstrap Git within scope first, or the direct entry when the user asked for it).
         inside = self.folder / ".shiploop"
         inside.mkdir()
         result = subprocess.run(
             [sys.executable, "-B", str(CLI), "init", "--repo", str(self.folder), "--run-dir", str(inside), "--prompt=build the thing"],
             cwd=self.base, text=True, capture_output=True, timeout=60, env=self.env,
         )
-        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
-        self.assertIn("No run was started.", result.stderr)
-        self.assertEqual([p.name for p in self.folder.iterdir()], [".shiploop"])
-        self.assertEqual(list(inside.iterdir()), [])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("No run was started.", result.stderr)
+        self.assertTrue((inside / "state.md").is_file())
+
+    def test_the_options_the_refused_init_carried_are_in_the_command_it_prints_and_survive_the_recovery(self) -> None:
+        card = ROOT / "skills" / "improve" / "SKILL.md"
+        carried = ("--delivery-contract", "--delegation=ask-agent", "--lint=report", "--backchain-passes=converge",
+                   "--planning-review=stage", f"--improve-skill={card}")
+        refusal = self.init(*carried)
+        self.assertEqual(refusal.returncode, 2, refusal.stdout + refusal.stderr)
+        for option in carried:
+            self.assertIn(option, refusal.stderr)
+        recovered = self.run_recovery(self.printed_recovery(refusal))
+        self.assertEqual(recovered.returncode, 0, recovered.stdout + recovered.stderr)
+        text = (self.base / "recovered" / "run" / "state.md").read_text(encoding="utf-8")
+        for value in ("ask-agent", "report", "converge", str(card)):
+            self.assertIn(value, text)
+        self.assertIn("delivery_contract_version", text)
+
+    def test_an_improve_path_that_starts_with_a_dash_survives_the_recovery(self) -> None:
+        # Sol's review of the fix (2026-11-01): the refusal printed --improve-skill=-card/SKILL.md, which both commands accept, but
+        # workspace start handed init the two words `--improve-skill -card/SKILL.md`, and init read the value as another option.
+        refusal = self.init("--improve-skill=-card/SKILL.md")
+        self.assertEqual(refusal.returncode, 2, refusal.stdout + refusal.stderr)
+        self.assertIn("--improve-skill=-card/SKILL.md", refusal.stderr)
+        recovered = self.run_recovery(self.printed_recovery(refusal))
+        self.assertEqual(recovered.returncode, 0, recovered.stdout + recovered.stderr)
+        self.assertIn("-card/SKILL.md", (self.base / "recovered" / "run" / "state.md").read_text(encoding="utf-8"))
+
+    def test_a_bound_plan_is_in_the_command_the_refusal_prints_and_survives_the_recovery(self) -> None:
+        # Sol's review of the fix (2026-11-01): init takes --bound-plan, workspace start did not, so the printed command dropped it
+        # in silence and the recovered run recorded no plan.
+        plan = self.base / "plan.md"
+        plan.write_text("# Plan\n", encoding="utf-8")
+        refusal = self.init(f"--bound-plan={plan}")
+        self.assertEqual(refusal.returncode, 2, refusal.stdout + refusal.stderr)
+        self.assertIn(f"--bound-plan={shlex.quote(str(plan))}", refusal.stderr)
+        recovered = self.run_recovery(self.printed_recovery(refusal))
+        self.assertEqual(recovered.returncode, 0, recovered.stdout + recovered.stderr)
+        self.assertIn(str(plan), (self.base / "recovered" / "run" / "state.md").read_text(encoding="utf-8"))
+
+    def test_workspace_start_takes_every_option_init_does_except_the_two_it_sets_itself(self) -> None:
+        # The refusal prints a `workspace start` command in place of the refused `init`, so an `init` option that command lacked is
+        # dropped in silence: Astra's review of the first release found six, Sol's review of the fix found --bound-plan. A new
+        # `init` option fails here until `workspace start` takes it and the refusal carries it. (--run-dir is the workspace root's
+        # job and --execution-mode is set by workspace start itself.)
+        def options(*command: str) -> set:
+            helped = subprocess.run([sys.executable, "-B", str(CLI), *command, "--help"], cwd=self.base, text=True,
+                                    capture_output=True, timeout=60, env=self.env, check=False)
+            self.assertEqual(helped.returncode, 0, helped.stdout + helped.stderr)
+            return set(re.findall(r"^ {2}(--[a-z][a-z-]*)", helped.stdout, re.MULTILINE))
+
+        init, start = options("init"), options("workspace", "start")
+        self.assertIn("--improve-skill", init)  # the comparison reads the help it is meant to read
+        self.assertEqual(init - start - {"--run-dir", "--execution-mode"}, set())
+
+    def test_the_command_for_a_refusal_with_no_options_is_the_one_the_probes_measured(self) -> None:
+        # The second probe (docs/experiments/start-route-20261101) measured this exact wording; carrying options adds words
+        # only when the refused command had options.
+        refusal = self.init()
+        self.assertIn(f"workspace start --repo {shlex.quote(str(self.folder))} --prompt='<user request>'. Only if the user explicitly asked",
+                      refusal.stderr)
+
+    def test_the_git_probe_runs_with_a_neutral_locale(self) -> None:
+        # The refusal reads Git's "not a git repository" diagnostic; a translated one would let the wrong start through.
+        import types
+        import shiploop_protocol as protocol
+        seen: dict = {}
+        real = subprocess.run
+
+        def spy(argv, **kwargs):
+            seen.update(kwargs.get("env") or {})
+            return real(argv, **kwargs)
+
+        with mock.patch.object(protocol.subprocess, "run", side_effect=spy):
+            refusal = protocol._in_place_refusal(types.SimpleNamespace(PACKAGE_ROOT=CLI.parent.parent), self.folder,
+                                                 self.base / "run", False)
+        self.assertIsNotNone(refusal)
+        self.assertEqual((seen.get("LC_ALL"), seen.get("LANGUAGE")), ("C", "C"))
 
     def test_a_run_directory_that_is_the_folder_or_not_empty_is_refused_in_its_own_words(self) -> None:
         same = self.init(run_dir=self.folder)
