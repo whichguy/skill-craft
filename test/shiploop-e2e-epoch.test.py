@@ -98,6 +98,35 @@ class EpochTest(unittest.TestCase):
         self.assertEqual((self.root / epoch.LEDGER).read_bytes(), original)
         self.assertEqual(json.loads((self.root / "roles.json").read_text())["improver"]["model"], "gpt-6.1-sol")
 
+    def test_launch_retains_summary_rows_in_epoch_without_mutating_source_baseline(self):
+        source_baseline = self.temp / "source-baselines.jsonl"
+        accepted = '{"case": "accepted-history"}\n'
+        source_baseline.write_text(accepted)
+        campaign_baseline = self.root / "baselines.jsonl"
+        campaign_baseline.write_text('{"case": "earlier-campaign-run"}\n')
+
+        def completed_run(argv):
+            # Exercise the real parser's baseline default/override without starting a model.
+            args = runner.parser().parse_args(argv)
+            with args.baseline.open("a") as handle:
+                handle.write(json.dumps({"case": args.case, "attempt": args.output.name}) + "\n")
+            args.output.mkdir()
+            (args.output / "result.json").write_text(json.dumps({"case": args.case, "pass": True}))
+            return 0
+
+        with mock.patch.object(runner, "BASELINES", source_baseline), \
+                mock.patch.object(runner, "main", side_effect=completed_run):
+            for arm in ("control", "candidate"):
+                epoch.launch(self.root, arm + "-hello", self.plugin)
+
+        self.assertEqual(source_baseline.read_text(), accepted)
+        rows = [json.loads(line) for line in campaign_baseline.read_text().splitlines()]
+        self.assertEqual(rows, [{"case": "earlier-campaign-run"},
+                                {"case": "hello", "attempt": "control-hello"},
+                                {"case": "hello", "attempt": "candidate-hello"}])
+        self.assertEqual([row["status"] for row in epoch.state(self.root)["attempts"]],
+                         ["recorded", "recorded"])
+
     def test_crash_after_intent_blocks_a_duplicate_dispatch(self):
         self.intent()
         self.assertEqual(epoch.next_action(self.root)["action"], "reconcile")
