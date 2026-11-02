@@ -21,7 +21,7 @@ tier runs everything on release commits.
 | Fan-out and fan-in on any graph | Linear, 16-way fan-out and join, shared joins, diamond of diamonds, deep blocking, replanning and faults, each run normally and with context loss. An independent oracle checks readiness, supplier evidence, blocking, refused callbacks, completion and capacity | `test/plan-dispatcher-scenarios.test.js` (`test/orchestrator_scenarios/`; `SCENARIO_SEEDS=1-40` for a wider sweep) |
 | The tests catch broken code | 37 deliberate code breaks, each caught by the scenario its spec names (release tier only) | `test/plan-dispatcher-mutants.test.py` (specs in `test/orchestrator_scenarios/specs/`) |
 | Chain bridge and Git | Per-step integration, competing and duplicate callbacks, crash recovery, conflicts, all against the live dispatcher | `test/shiploop-chain*.test.py` (7 suites), `test/integration-boundaries.test.py` |
-| Backchain to dispatcher | An exported plan, with and without confirm methods, passes `validate-graph` | `test/export-execution-graph.test.js` in the Backchain repo |
+| Backchain to dispatcher | Every complete corpus plan exports and passes `validate-graph`; the exporter Plan Dispatcher names runs from the built package; `export --run` exports only a converged run's plan | `test/backchain-toolkit.test.py` (`ExportTests`, `RunTests.test_export_run_exports_only_the_plan_a_run_converged_on`) |
 | ShipLoop Improve routes | ShipLoop writes the contract and starts the child on both routes; restart; import | `test/shiploop-actual-improve-cli.test.py`, `test/shiploop-delegation.test.py`, `test/shiploop-navigator-v4.test.py` |
 | E2E harness | Host interface (Grok, Claude, Codex), stream translation, `--resume-run`, fan-out grader | `test/shiploop-e2e.test.py` |
 

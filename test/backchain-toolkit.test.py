@@ -23,7 +23,9 @@ CORPUS = ROOT / "test/fixtures/backchain-check"
 GOLDENS = ROOT / "test/fixtures/backchain-export"
 DISPATCH = ROOT / "skills/plan-dispatcher/scripts/dispatch.js"
 sys.path.insert(0, str(CLI.parent))
+sys.path.insert(0, str(ROOT / "test"))
 import backchain_graph as graph  # noqa: E402
+import package_build  # noqa: E402
 
 
 def run(*args: str, cwd: Path = ROOT) -> subprocess.CompletedProcess:
@@ -174,6 +176,29 @@ class ExportTests(unittest.TestCase):
         # The JS exporter, run on each packaged input on 2026-11-01, gave the same verdict for all 88 and the same
         # graph for the 33 it exported (journal, Round 1).
         self.assertEqual((exported, refused), (33, 55))
+
+    def test_the_exporter_plan_dispatcher_names_runs_from_the_built_package(self):
+        """Round 10 (Astra 7, verifier R7): Plan Dispatcher named `node scripts/export-execution-graph.js`, a file only
+        the private research checkout has, and forbade resolving an exporter relative to its package. Route test:
+        take the command its protocol names, resolve it from the built plan-dispatcher skill, export, validate."""
+        import re
+        skills = package_build.plugins() / "skill-craft" / "skills"
+        dispatcher = skills / "plan-dispatcher"
+        protocol = (dispatcher / "references/protocol.md").read_text(encoding="utf-8")
+        named = re.search(r"`python3 -I -B (\S+) export PLAN\.json`", protocol)
+        self.assertIsNotNone(named, "protocol.md names no runnable Backchain export command")
+        self.assertIn(named.group(1), (dispatcher / "SKILL.md").read_text(encoding="utf-8"))
+        exporter = (dispatcher / named.group(1)).resolve()
+        self.assertTrue(exporter.is_file(), exporter)
+        out = self.base / "named.graph.json"
+        done = subprocess.run([sys.executable, "-I", "-B", str(exporter), "export", str(GOLDENS / "confirmed.plan.json"),
+                               "--out", str(out)], capture_output=True, text=True, timeout=60)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        request = self.base / "named.validate.json"
+        request.write_text(json.dumps({"graph": json.loads(out.read_text(encoding="utf-8"))}), encoding="utf-8")
+        accepted = subprocess.run(["node", str(dispatcher / "scripts/dispatch.js"), "validate-graph", str(request)],
+                                  capture_output=True, text=True, timeout=60)
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
 
     def test_an_incomplete_plan_is_refused_with_its_open_needs(self):
         done = run("export", str(CORPUS / "luna/plan-final.json"))
