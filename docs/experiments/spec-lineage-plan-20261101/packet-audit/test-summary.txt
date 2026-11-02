@@ -1,0 +1,11 @@
+result=PASS
+source_revision_pre=3be5daeced25cd39c722701bac9b2d34e894e0cb
+source_revision_post=3be5daeced25cd39c722701bac9b2d34e894e0cb
+source_status_pre=clean detached HEAD
+source_status_post=clean detached HEAD
+total_tests=342
+01-shiploop-cross-run exit=0 elapsed_seconds=7 Ran 10 tests in 7.153s log=/Users/dadleet/shiploop-audits/2026-11-01/prior-spec-packets-ou8yjmg2/checks/01-shiploop-cross-run.log
+02-shiploop-knowledge exit=0 elapsed_seconds=31 Ran 163 tests in 30.666s log=/Users/dadleet/shiploop-audits/2026-11-01/prior-spec-packets-ou8yjmg2/checks/02-shiploop-knowledge.log
+03-shiploop-handoff exit=0 elapsed_seconds=77 Ran 133 tests in 76.607s log=/Users/dadleet/shiploop-audits/2026-11-01/prior-spec-packets-ou8yjmg2/checks/03-shiploop-handoff.log
+04-shiploop-step-packets exit=0 elapsed_seconds=2 Ran 10 tests in 1.414s log=/Users/dadleet/shiploop-audits/2026-11-01/prior-spec-packets-ou8yjmg2/checks/04-shiploop-step-packets.log
+05-shiploop-return-review exit=0 elapsed_seconds=126 Ran 26 tests in 125.111s log=/Users/dadleet/shiploop-audits/2026-11-01/prior-spec-packets-ou8yjmg2/checks/05-shiploop-return-review.log

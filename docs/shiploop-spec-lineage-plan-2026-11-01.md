@@ -4,6 +4,8 @@ Keep one current product contract. Explicit new instructions override only confl
 
 **Status: proposed verification and conditional hardening, 2026-11-01.** This task changes documentation only. Source inspected at `c0bcf83dedc759a15ed924d3966bb8392422eeca` on `main`; no product test, live delivery, release or deployment is claimed here.
 
+**Subsequent read-only audit:** [prior-run packet context and spec lifecycle](shiploop-prior-artifact-packet-audit-2026-11-01.md) records 342 passing hermetic tests and a synthetic packet-block probe. It confirms early create/update followed by guarded return, and demonstrates the step-level requirement-selection boundary. The remaining cold-model semantic checks and any product implementation below are still pending.
+
 ## Assessment of the current setup
 
 The intended delineation already exists and is largely wired. A new feature request receives a fresh run with its verbatim prompt; the repository retains its living spec. The spec producer must read that spec whole, keep stable requirement IDs, and change old clauses in place. Explicit current user instructions supersede conflicting older clauses; silence preserves them. These are current contracts, not proposed new behavior. See [SKILL.md — new request versus recovery](../skills/shiploop/SKILL.md#L108), [shiploop_prompts.py — spec duties](../skills/shiploop/scripts/shiploop_prompts.py#L988), and [requirements-definition.md — reconciliation](../skills/shiploop/references/requirements-definition.md#L34).

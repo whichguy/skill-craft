@@ -1,0 +1,32 @@
+{
+  "kind": "deterministic synthetic-state packet-block probe; no live model or completed product run",
+  "source_revision": "3be5daeced25cd39c722701bac9b2d34e894e0cb",
+  "product_baseline": "c0f9f0748a33fde68c69a6dbf615768ea832de39",
+  "item_follows": [
+    "R-1",
+    "R-2",
+    "AD-1"
+  ],
+  "step_one_without_explicit_old_id": [
+    "AD-1",
+    "R-2"
+  ],
+  "step_one_with_explicit_old_id_in_criterion": [
+    "AD-1",
+    "R-1",
+    "R-2"
+  ],
+  "old_authorization_entry_quoted_before": false,
+  "old_authorization_entry_quoted_after": true,
+  "current_combined_r2_text_quoted": true,
+  "r1_reference_inside_r2_still_visible_before": true,
+  "spec_diff_contains_prior_and_current": true,
+  "outputs": [
+    "01-intake-inherited-blocks.md",
+    "02-spec-instructions.md",
+    "03-plan-spec-diff.md",
+    "04-implement-item-follows-only.md",
+    "05-implement-step-names-preserved.md",
+    "prior-spec.md"
+  ]
+}
