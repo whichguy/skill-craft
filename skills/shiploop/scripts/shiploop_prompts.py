@@ -1470,7 +1470,7 @@ preparatory commit); a mismatch there is a send-back.
    outside dependency must unblock it.
 """,
     "document": """\
-1. **List** changed public behaviours from paths, step plan, implement results and item diff.
+1. **List** the changed public behaviours from the changed paths below, step plan, implement results and item diff.
 2. **Observe and write.** Run each changed behaviour; update README, API, user, operator, error and design docs with
    observed behaviour, visible errors, diagnostic controls, limits and caveats. Link the authoritative home
    (Documentation guidance). Write only observed working behaviour in repository docs, never just run notes.
@@ -1483,8 +1483,8 @@ preparatory commit); a mismatch there is a send-back.
    - KNOWLEDGE/architecture.md ## Decisions: a design or service decision implement did not record, or a departure from
      an AD-<n>, as a new AD-<n> (a service choice with contract, owner and revalidation trigger); a superseded one moves
      to ## Superseded.
-   - KNOWLEDGE/environment.md: worked commands under ## Commands, with the runtime, target and prerequisites that made
-     their evidence meaningful; current harness readiness and test outcomes, or a platform fact not yet recorded.
+   - KNOWLEDGE/environment.md: worked commands under ## Commands; retain observed runtime/target/prerequisites needed
+     to repeat their evidence, current harness readiness, test outcomes and new platform facts.
    - Work the step showed: a defect in its change, fix now; work this item's step plan lacks, report send-back; work a
      later step already holds: leave it to that step; work outside this item: an open item in `assumptions` due at
      carry-forward. A system, release or real-boundary check the criteria need is an open item due at the stage that
@@ -1501,8 +1501,8 @@ preparatory commit); a mismatch there is a send-back.
     "carry-forward": """\
 1. **Knowledge home.** Open current spec, architecture and environment even unchanged. Reconcile affected current
    claims with accepted evidence; keep as-of history and checks not due. Update in place
-   under the sections named here, with no new ## heading for this item's results;
-   - KNOWLEDGE/environment.md ## Commands: every worked command with its runtime, target and prerequisites.
+   under these sections, with no new ## heading for this item's results;
+   - KNOWLEDGE/environment.md ## Commands: every worked command, retaining observed runtime/target/prerequisites.
    - KNOWLEDGE/architecture.md ## Decisions: this item's added AD-<n>; superseded ones move to ## Superseded, never deleted.
    - KNOWLEDGE/environment.md ## Harnesses and suites: focused/smoke/full suites and commands; harness and case locators;
      fixture lifecycle; each test facility's locator, interface, readiness or gap, owner, revalidation condition.
@@ -1858,21 +1858,23 @@ preparatory commit); a mismatch there is a send-back.
    conditions.
 5. Reconcile RUN/current-spec.md (digest bound in RUN/spec/reviewed.md) against RUN/spec/prior-spec.md, the request and delivered
    evidence. Preserve unaffected/deferred intent and rationale; summarize clause changes and the actual delta. Code
-   proves implementation, not intent. If the candidate drifted after review, restore that snapshot or report add-work
-   for a corrective item and review before handoff. Do not edit the candidate here.
+   proves implementation, not intent. A stale candidate claim or post-review drift needs restoration of accurate
+   reviewed bytes or add-work for a corrective item and review before handoff. Do not edit the candidate here.
    Return `spec_reconciliation` exactly as `{"current_sha256":"<printed 64-hex>","prior_sha256":"<printed 64-hex>","summary":"<nonblank>"}`; copy both packet hashes (absent prior: SHA-256 of empty bytes). ShipLoop promotes only this reviewed, digest-bound candidate.
-6. Isolated run: handoff needs a current return receipt. If release did not return the candidate, run the packet's
+6. Reconcile current environment/architecture facts in KNOWLEDGE from accepted observations before a return here;
+   keep as-of history, checks not due and observed command conditions. Isolated run: handoff needs a current return
+   receipt. If release did not return the candidate, run the packet's
    plan-return, decide every undecided path with review-return, run its return command (Workspace return guidance);
    receipt path in `evidence_refs`.
-7. Reconcile affected current environment/architecture claims with the latest accepted observations; preserve as-of
-   history and checks not due, and retain commands' meaningful runtime/target conditions. From the returned project,
-   without the run directory, check the knowledge survives: durable documentation links
+7. From the returned project, without the run directory, check the knowledge survives: durable documentation links
    resolve in the returned repository (KNOWLEDGE/spec.md, KNOWLEDGE/environment.md, KNOWLEDGE/architecture.md); the AD-<n> entries
    in KNOWLEDGE/architecture.md hold the current service decisions, ownership, unresolved boundaries and revalidation
    conditions (Service discovery guidance); their source and check locators open for a fresh reader. Check new spec
    link targets against RUN/current-spec.md, which promotion will supply; the aggregate may still be prior here.
-   Keep the prior baseline's as-of account (Current-system baseline guide). Fix environment/architecture facts and links now;
-   a missing spec target needs corrective work, never a direct aggregate edit.
+   Keep the prior baseline's as-of account (Current-system baseline guide). Fix environment/architecture facts and links
+   in KNOWLEDGE in WORKTREE, never directly in the source checkout. The terminal callback commits that knowledge and
+   performs its guarded follow-up return before completion. A missing spec target needs corrective work, never a direct
+   aggregate edit.
    Work-item context and earlier result references are not a durable index.
 8. Read release-verify's `lessons` (quoted in the hand-offs); carry its open-next items into the follow-up work in
    `summary` and report any conflict with what you observed.
@@ -2521,9 +2523,9 @@ input, then review the change against the rubric below and for:
 - a parser that checks each field but not how they combine;
 - a language pitfall handled in one place and not everywhere it applies;
 - a failure state that does not name the user's next action;
-- affected current knowledge claims, even unchanged lines, that disagree with
-  accepted observations or omit their meaningful runtime/target conditions:
-  reconcile them while keeping as-of history and checks not due;
+- affected current knowledge claims, even unchanged, that conflict with accepted
+  observations or omit conditions those observations establish: reconcile current
+  facts, keep as-of history and checks not due, and infer no missing conditions;
 - a mutant disposition a test stage recorded (equivalent, out-of-scope,
   not-exercisable) that a later edit made untrue, or a kill claimed with no run.
 Fix violations within scope; each fix comes with a test that fails before it.
@@ -2572,10 +2574,10 @@ and KNOWLEDGE plus the step's marked RUN/current-spec.md additions, any of these
 - a step skill the packet lists, unused or misused with no reason in the result;
 - a test that asserts the code's current behaviour instead of its case's oracle,
   a behaviour of the step no test checks, or a doc that disagrees with the code;
-- wrong or missing current facts in the spec, architecture or environment: open
-  all three even if unchanged; reconcile affected claims with the step's evidence,
-  keeping as-of history and checks not due. Keep commands' runtime and target;
-  add only step-marked evidence inside accepted R-<n>; never change its intent;
+- wrong/missing current spec, architecture or environment facts: read all three,
+  even unchanged. Reconcile from this step's evidence; keep as-of history and
+  checks not due. Retain observed runtime/target conditions; infer none. Add only
+  step-marked evidence inside accepted R-<n>; never change its intent;
 - the step's Proof failing or not testing its criteria (a skipped file, a later
   step's work), or a new unwaived lint finding on a changed line, after your
   last edit.
