@@ -639,6 +639,32 @@ class ImproveReviewsMetricTest(unittest.TestCase):
             self.assertIsNone(got["passes"])
             self.assertTrue(got["unmeasured"])
 
+    def test_a_review_folder_requires_an_unambiguous_exact_writer_id(self):
+        for variant in ("full-action-id", "short-suffix", "duplicate-folder", "duplicate-binding"):
+            with self.subTest(variant=variant), tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                run_dir = root / "run"
+                (run_dir / "improve").mkdir(parents=True)
+                repo = root / "work"
+                (run_dir / "state.md").write_text('```shiploop-state\n' + json.dumps({"repo": str(repo)}) + '\n```\n')
+                (run_dir / "improve" / ("nav-" + "a" * 24 + "aaaa1111-bind.md")).write_text("current binding")
+                child = "decoy-1111" if variant == "short-suffix" else "spec-aaaa1111"
+                reviews = repo / ".shiploop-improve" / child / "reviews"
+                reviews.mkdir(parents=True)
+                (reviews / "review-1.md").write_text("review")
+                if variant == "duplicate-folder":
+                    older = repo / ".shiploop-improve" / "old-run" / "spec-aaaa1111" / "reviews"
+                    older.mkdir(parents=True)
+                    (older / "review-1.md").write_text("ambiguous review")
+                if variant == "duplicate-binding":
+                    (run_dir / "improve" / ("nav-" + "b" * 24 + "aaaa1111-bind.md")).write_text("another binding")
+                got = metrics.improve_reviews(run_dir)
+                if variant == "full-action-id":
+                    self.assertEqual((got["children"], got["passes"]), (1, 1))
+                else:
+                    self.assertIsNone(got["passes"])
+                    self.assertTrue(got["unmeasured"])
+
     def test_invalid_recorded_repo_is_unknown_not_relative_to_the_evaluator_cwd(self):
         with tempfile.TemporaryDirectory() as temp:
             run_dir = Path(temp) / "run"

@@ -1062,7 +1062,7 @@ def improve_reviews(run_dir: Path | None) -> dict:
             root = run_dir.parent / "worktree" / ".shiploop-improve"
         return _improve_review_records(root, run_dir, bound_repo="repo" in state)
     except OSError as error:
-        return {**unavailable, "unmeasured": f"Improve review evidence is missing or unreadable: {error}"}
+        return {**unavailable, "unmeasured": f"Improve review evidence is unavailable: {error}"}
 
 
 def _improve_review_records(root: Path, run_dir: Path, *, bound_repo: bool) -> dict:
@@ -1087,7 +1087,11 @@ def _improve_review_records(root: Path, run_dir: Path, *, bound_repo: bool) -> d
     measured_binds = set()
     for reviews in sorted(folders):
         suffix = reviews.parent.name.rsplit("-", 1)[-1]
-        bind = next((path for path in binds if path.name.endswith(suffix + "-bind.md")), None)
+        # The writer uses the action's final eight characters, never an arbitrary shorter suffix.
+        matches = [path for path in binds if path.name.removesuffix("-bind.md")[-8:] == suffix]
+        if len(matches) > 1:
+            raise FileNotFoundError("multiple run bindings match one Improve review folder")
+        bind = matches[0] if matches else None
         # A direct repository can retain older runs' reviews. Use the same run-owned binding as the timer.
         if bound_repo and binds and bind is None:
             continue
@@ -1095,6 +1099,8 @@ def _improve_review_records(root: Path, run_dir: Path, *, bound_repo: bool) -> d
         notes = [path for path in entries if path.match("review-*.md") and path.is_file()]
         if notes:
             if bind:
+                if bind in measured_binds:
+                    raise FileNotFoundError("multiple Improve review folders match one run binding")
                 measured_binds.add(bind)
             stamps = [n.stat().st_mtime for n in notes]
             facts = []
