@@ -1369,6 +1369,19 @@ class StepSizingRouteTests(RealCliCase):
             ("node -e \"fetch('http://127.0.0.1:3000/spec/openapi.json').then(r=>process.exit(r.ok?0:1))\"", []),
             ("python3 -c \"import urllib.request as u; u.urlopen('http://localhost:8000/tests/1.json')\"", []),
             ("node -e \"require(`~/work/test/helper.test.js`)\"", []),
+            # The second review: a quoted command string that starts with an absolute program path is a command, not a
+            # path, so the relative test file it runs is still read; a URL is removed wherever it stands, quoted or not;
+            # a quoted path ends at its own closing quote, and an escaped space does not end an absolute path.
+            ("node -e \"require('child_process').execSync('/usr/local/bin/node --test test/new.test.js',"
+             "{stdio:'inherit'})\"", ["test/new.test.js"]),
+            ("python3 -c \"import subprocess; subprocess.run('/usr/bin/env python3 -m pytest tests/test_new.py', "
+             "shell=True, check=True)\"", ["tests/test_new.py"]),
+            ("node -e \"require('child_process').execSync('curl -sf http://localhost:3000/spec/openapi.json')\"", []),
+            ("sh -c \"curl -sf http://127.0.0.1:8080/api/v1/items.json | grep -q id\"", []),
+            ("sh -c \"curl -sf localhost:8080/api/v1/items.json\"", []),
+            ("python3 -c \"import runpy; runpy.run_path(\\\"/Users/me/Jim's Files/app/tests/test_existing.py\\\")\"", []),
+            ("sh -c \"node --test /Users/me/My\\\\ Projects/app/test/existing.test.js\"", []),
+            ("python3 -c \"import runpy; runpy.run_path('C:/Users/me/My Projects/app/tests/test_existing.py')\"", []),
         ]
         for command, paths in cases:
             with self.subTest(command):

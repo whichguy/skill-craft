@@ -31,11 +31,6 @@ import shiploop_item_scope as scope  # noqa: E402
 
 INLINE = frozenset(("-e", "-c", "--eval", "-p"))
 OPERATORS = frozenset(("&&", "||", ";", "|", "&"))
-# A relative path inside inline code: not preceded by a path character, so the tail of an absolute path is not one.
-PATHISH = re.compile(r"(?<![\w./@+-])[\w.@+-]+(?:/[\w.@+-]+)+")
-# As the shipped reader (shiploop_item_scope._QUOTED_ELSEWHERE, after round 2's review): a quoted absolute or home path or
-# URL is removed whole before PATHISH reads the code, so a space or a port inside it leaves no tail.
-QUOTED_ELSEWHERE = re.compile(r"([\"'`])(?:/|~|[A-Za-z][\w+.-]*://)[^\"'`]*\1")
 SEARCHED = ("code", "test")
 
 
@@ -66,16 +61,12 @@ def segments(command: str) -> list[list[str]]:
 
 
 def named_paths(proof: str) -> list[str]:
-    """The relative file paths a Proof names: ``scope.command_paths`` plus those inside its inline code."""
-    paths = list(scope.command_paths(proof))
-    split = words(proof)
-    for index, word in enumerate(split[:-1]):
-        if word in INLINE:
-            for match in PATHISH.findall(QUOTED_ELSEWHERE.sub(" ", split[index + 1])):
-                path = match[2:] if match.startswith("./") else match
-                if "../" not in path and scope._EXTENSION.search(path):
-                    paths.append(path)
-    return list(dict.fromkeys(paths))
+    """The relative file paths a Proof names: ``scope.command_paths`` plus those inside its inline code.
+
+    The inline reading is the shipped reader itself (``scope.inline_code_paths``). Until the second review this scorer
+    held a copy of its patterns, kept equal by hand; each review fix then had to land twice.
+    """
+    return list(dict.fromkeys(list(scope.command_paths(proof)) + scope.inline_code_paths(proof)))
 
 
 def holds_id(ident: str, texts: Mapping[str, str]) -> bool:

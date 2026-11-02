@@ -96,9 +96,22 @@ _CONFIRM_BY = re.compile(r"confirm by:\s*(.+?)(?:;\s*pass when|;|$)", re.I | re.
 _INLINE_CODE = frozenset(("-e", "-c", "--eval", "-p"))
 # A relative path inside inline code: not preceded by a path character, so the tail of an absolute path is not one.
 _INLINE_PATH = re.compile(r"(?<![\w./@+-])[\w.@+-]+(?:/[\w.@+-]+)+")
-# A quoted literal that is an absolute or home path or a URL, removed before _INLINE_PATH reads the code: a space or the
-# colon of a port inside it would otherwise start a "relative" path in its tail.
-_QUOTED_ELSEWHERE = re.compile(r"([\"'`])(?:/|~|[A-Za-z][\w+.-]*://)[^\"'`]*\1")
+# Text removed before _INLINE_PATH reads the code, because a space or the colon of a port inside it would otherwise start
+# a "relative" path in its tail: a quoted literal that starts with an absolute, home or drive-letter path or a URL (up to
+# its own closing quote), a URL anywhere, and an absolute or home word with its escaped spaces.  A quoted literal with an
+# option word in it is a command (``'/usr/local/bin/node --test test/new.test.js'``): only its absolute words and URLs go.
+_QUOTED_ELSEWHERE = re.compile(r"([\"'`])((?:/|~|[A-Za-z]:[/\\]|[A-Za-z][\w+.-]*://)(?:(?!\1).)*)\1", re.S)
+_URL = re.compile(r"[A-Za-z][\w+.-]*://[^\s\"'`]*|(?<![\w.-])[\w.-]+:\d+/[^\s\"'`]*")
+_ABSOLUTE_WORD = re.compile(r"(?<![\w.@+-])[/~](?:\\.|[^\s\"'`;,()\[\]{}])*")
+_OPTION_WORD = re.compile(r"(?:^|\s)-{1,2}\w")
+
+
+def _without_paths_elsewhere(code: str) -> str:
+    def literal(match: re.Match[str]) -> str:
+        body = match.group(2)
+        return " " + _ABSOLUTE_WORD.sub(" ", _URL.sub(" ", body)) + " " if _OPTION_WORD.search(body) else " "
+
+    return _ABSOLUTE_WORD.sub(" ", _URL.sub(" ", _QUOTED_ELSEWHERE.sub(literal, code)))
 
 
 def inline_code_paths(command: str) -> List[str]:
@@ -108,8 +121,11 @@ def inline_code_paths(command: str) -> List[str]:
     ``command_paths`` skips that word whole, so a Proof whose code runs ``node --test`` on a test file named inside it
     (a live run's S1: ``node -e '...execFileSync(process.execPath,["--test","test/service.test.js"])...'``) hid the
     path from rule A.  A path needs a slash and a file extension; an absolute path (a run's scratch script), a URL and
-    one that leaves the repository (``../``) are skipped, as ``command_paths`` skips them.  A quoted absolute path or
-    URL is removed whole first (``_QUOTED_ELSEWHERE``), so a space or a port inside it cannot leave a tail behind.
+    one that leaves the repository (``../``) are skipped, as ``command_paths`` skips them.  Quoted absolute paths, URLs
+    and escaped spaces are removed first (``_without_paths_elsewhere``), so a space or a port inside one cannot leave a
+    tail behind; a quoted command string keeps its relative words.  A quoted absolute path that holds a space and no
+    option word reads as a path, so a command string such as ``'/bin/sh test/run.test.sh'`` is not read: the two
+    cannot be told apart, and a missed refusal costs one send-back where a false one blocks a sound plan.
     """
     try:
         words = shlex.split(command)
@@ -119,7 +135,7 @@ def inline_code_paths(command: str) -> List[str]:
     for flag, code in zip(words, words[1:]):  # not itertools.pairwise: the floor is Python 3.9
         if flag not in _INLINE_CODE:
             continue
-        for match in _INLINE_PATH.findall(_QUOTED_ELSEWHERE.sub(" ", code)):
+        for match in _INLINE_PATH.findall(_without_paths_elsewhere(code)):
             path = match.removeprefix("./")
             if not path.startswith("../") and "/../" not in path and _EXTENSION.search(path):
                 paths.append(path)
