@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-01
 
+### skill-craft 2.32.2
+
+- Skills: shiploop 1.30.3
+
+### shiploop 1.30.3
+
+- The `init` refusal in an empty folder that is not a Git repository now points at a recovery that works. The `workspace start` command it prints repeats the options the refused `init` carried (`--improve-skill`, `--delivery-contract`, `--delegation`, `--lint`, `--backchain-passes`, `--planning-review`), so following it does not drop what was asked for. A folder that holds any entry, even an empty `.shiploop` made beforehand, is no longer refused: `workspace start` bootstraps only a folder with no entry at all, so for such a folder the printed command failed. Git's "not a git repository" diagnostic is now read under a neutral locale, so a translated message cannot let the wrong start through. `workspace start` also takes `--bound-plan`, the one `init` option it lacked, and the printed command carries it; a path that starts with a dash (`--improve-skill=-card/SKILL.md`) now reaches the run intact instead of failing after the folder had been prepared.
+
 ### skill-craft 2.32.1
 
 - Skills: shiploop 1.30.2

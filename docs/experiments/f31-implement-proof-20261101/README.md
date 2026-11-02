@@ -198,6 +198,18 @@ into `~/e2e-runs-f31/20261101-r2`. It stops each run's observers when the run en
   B's hollow count is reported as a test of the review's concern, not a rule. If 1, 2 or 4 fails, neither wording is
   merged. If 3 fails, each failing run is read, as round 1 registered.
 
+### Amendment 2a (2026-11-01, before any run of round 2): arm V is the fourth commit
+
+A read-only review of cb558e63 (above) found no material problem. Its one minor problem that mattered: the skill card
+and the planning guide, shortened in cb558e63, applied the executed-criterion route to every criterion, which is wrong
+for a searched criterion and impossible for an inspected one. Before any run of round 2, arm V moves to
+132408e308a8f80ec2239cdf351c175d18e763eb, patch-id f82da38b3bf76d3512980b83f36b734431a93e29:
+- the card and the guide say "for an executed criterion";
+- the condition says "the step's Proof if it exercises the criterion" in place of "where";
+- implement's head grows 214 characters against main, on both routes.
+Everything else in amendment 2 is unchanged. "Merge the two candidate commits" in its rule means the four commits on
+the branch: 97667d22, 2e2240dd, cb558e63 and 132408e3.
+
 ## Result of round 2
 
 Not yet run.
