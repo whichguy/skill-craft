@@ -699,6 +699,17 @@ class ImproveReviewsMetricTest(unittest.TestCase):
             self.assertIsNone(got["passes"])
             self.assertTrue(got["unmeasured"])
 
+    def test_legacy_bound_child_with_missing_notes_is_also_unknown(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            run_dir = root / "run"
+            (run_dir / "improve").mkdir(parents=True)
+            (run_dir / "improve" / "nav-aaaa1111-bind.md").write_text("recorded child")
+            (root / "worktree" / ".shiploop-improve").mkdir(parents=True)
+            got = metrics.improve_reviews(run_dir)
+            self.assertIsNone(got["passes"])
+            self.assertTrue(got["unmeasured"])
+
     def test_unreadable_bindings_do_not_look_like_no_bindings(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

@@ -1118,7 +1118,7 @@ def _improve_review_records(root: Path, run_dir: Path, *, bound_repo: bool) -> d
                              "review_seconds": round(max(stamps) - bind.stat().st_mtime, 1) if bind else None,
                              "edited": edited, "edited_basis": basis,
                              "bytes": sum(n.stat().st_size for n in notes)})
-    if bound_repo and set(binds) - measured_binds:
+    if set(binds) - measured_binds:
         raise FileNotFoundError("review notes are missing for one or more of this run's bound Improve children")
     return {"children": len(children), "passes": sum(c["passes"] for c in children),
             "edited_children": sum(1 for c in children if c["edited"] is True),
