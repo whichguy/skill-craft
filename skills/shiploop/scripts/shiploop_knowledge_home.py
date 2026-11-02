@@ -281,8 +281,7 @@ def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
     lines = ["", "Repository knowledge home (committed, inherited by later runs): " + str(repo / HOME) + "/: "
              + ", ".join(str(repo / HOME / name) for name in LIVING) + ". Earlier runs' spec, environment and "
              "architecture are there; open a file when this stage needs it."]
-    written = STAGE_FILES.get(stage, ())
-    earlier = required_earlier(stage)
+    written, earlier = STAGE_FILES.get(stage, ()), required_earlier(stage)
     if written:
         lines.append("This stage keeps these up to date (create them if missing): "
                      + ", ".join(str(repo / path) for path in _expand(written, state)) + ".")
