@@ -1,0 +1,1 @@
+{"fails": ["P1"], "why": "The second review's form: node's runner pointed at the repository's own unwritten test by absolute path. The scratch-file exemption (an absolute path outside the repository) must not cover it; the oracle fails it as P1."}
