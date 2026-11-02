@@ -1491,9 +1491,8 @@ preparatory commit); a mismatch there is a send-back.
 1. **Knowledge home.** Update in place under the sections named here, with no new ## heading for this item's results;
    keep completed evidence apart from future plans; never rewrite a recorded result or earlier as-of evidence. When this
    item's accepted code or passing checks have overtaken a current status statement, reconcile that status in place:
-   say what is implemented and what is verified separately, and leave remaining verification with the later stage that
-   actually owes it. Preserve requirement intent; work still deferred or blocked and checks still due later keep those
-   states:
+   say what is implemented and which checks actually passed. Record outstanding verification in `assumptions` with its
+   `due_stage`, as below; preserve requirement intent and work still deferred or blocked:
    - KNOWLEDGE/environment.md ## Commands: every command that worked.
    - KNOWLEDGE/architecture.md ## Decisions: each AD-<n> this item added, with its current status; a superseded one
      moves to ## Superseded, never deleted.

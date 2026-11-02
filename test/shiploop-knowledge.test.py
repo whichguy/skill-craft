@@ -115,8 +115,8 @@ class KnowledgeTests(HomeFixture):
         git(self.repo, "add", "docs/shiploop/spec.md")
         git(self.repo, "commit", "-qm", "record the requirement baseline")
 
-        current = ("Current status: implementation is in src/importer.py. Verification: the focused unit check passed; "
-                   "full-suite verification remains due at system-test.")
+        current = ("Current status: implementation is in src/importer.py. "
+                   "Verification: the focused unit check passed on 2026-11-01.")
         spec.write_text(original.replace(pending, current), encoding="utf-8")
 
         self.assertEqual(knowledge.check(self.state, "carry-forward"), "")
