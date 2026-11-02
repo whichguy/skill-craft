@@ -458,8 +458,6 @@ def _workspace_return(cwd: Path, run_dir: Path, candidate: bytes,
     if receipt is None:
         raise OracleError("worktree return-receipt.md is missing")
     chain = _receipt_chain(receipt)
-    if len(chain) < 2:
-        raise OracleError("worktree mode lacks an observed follow-up return receipt")
 
     for index, entry in enumerate(chain):
         tree = _tree_for_return(entry)
@@ -500,13 +498,15 @@ def _workspace_return(cwd: Path, run_dir: Path, candidate: bytes,
         if diff.returncode != 0:
             raise OracleError("final returned working_tree does not match delivered tracked files")
 
-    previous_tree = _tree_for_return(chain[-2])
-    changes = _git(cwd, "diff", "--name-only", "-z", "--no-renames", previous_tree, final_tree)
-    if changes.returncode:
-        raise OracleError("cannot inspect final follow-up tree delta")
-    names = [part.decode("utf-8", "surrogateescape") for part in changes.stdout.split(b"\0") if part]
-    if AGGREGATE not in names or any(not path.startswith("docs/shiploop/") for path in names):
-        raise OracleError("final worktree receipt is not an observed knowledge-only docs/shiploop follow-up")
+    names: list[str] = []
+    if len(chain) > 1:
+        previous_tree = _tree_for_return(chain[-2])
+        changes = _git(cwd, "diff", "--name-only", "-z", "--no-renames", previous_tree, final_tree)
+        if changes.returncode:
+            raise OracleError("cannot inspect final follow-up tree delta")
+        names = [part.decode("utf-8", "surrogateescape") for part in changes.stdout.split(b"\0") if part]
+        if any(not path.startswith("docs/shiploop/") for path in names):
+            raise OracleError("final worktree receipt is not an observed knowledge-only docs/shiploop follow-up")
     checks.pass_("worktree-return-chain", {"receipts": len(chain), "final_head": final_head,
                                             "final_tree": final_tree, "follow_up_paths": names})
 

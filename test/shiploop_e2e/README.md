@@ -2567,11 +2567,15 @@ builds the existing CSV request through the direct Git route and records a futur
 Neither case is added to the routine suites automatically.
 
 Their lifecycle check reads run records independently of the candidate's validator. It checks exact prior snapshots,
-the accepted current-spec review, final promotion and delivered aggregate. The worktree case also checks the earlier
-return trees and final knowledge follow-up; the direct case requires no workspace receipt. These are byte and lifecycle
-checks. A separate semantic review must establish the actual delta, preserved conditions, authorized changes, deferred
-scope, truthful status and organization. A recorded path alone does not establish retrieval. Synthetic positive and
-negative controls establish what the checker detects; they do not establish a live ShipLoop improvement.
+the accepted current-spec review, final promotion and delivered aggregate. The worktree case checks that each earlier
+return preserves the prior aggregate and that the final return covers the promoted candidate. If a follow-up return
+exists, its delta may be empty or stay within `docs/shiploop/`; it need not change the spec path if those bytes already
+match the promoted candidate. A single final return needs no follow-up. The direct case requires no workspace receipt.
+These are byte and lifecycle checks: a lone final receipt does not prove every earlier write preserved the prior
+aggregate. A separate semantic review must establish the actual delta, preserved conditions,
+authorized changes, deferred scope, truthful status and organization. A recorded path alone does not establish retrieval.
+Synthetic positive and negative controls establish what the checker detects; they do not establish a live ShipLoop
+improvement.
 
 Every detailed review is an exposure event, including failed reviews. This is accounting, not proof that a holdout was
 never previously seen. The first controller's generalisation claim remains unobserved without independent registered

@@ -78,7 +78,9 @@ class Fixture:
     """A small real Git history with the current-spec records the oracle reads."""
 
     def __init__(self, root: Path, mode: str, *, follow_on: bool,
-                 early_promotion: bool = False, final_kind: str = "fast-forward-merge"):
+                 early_promotion: bool = False, single_return: bool = False,
+                 empty_follow_up: bool = False,
+                 candidate: bytes | None = None, final_kind: str = "fast-forward-merge"):
         self.root = root.resolve()
         self.mode = mode
         self.output = self.root
@@ -102,16 +104,27 @@ class Fixture:
         self.start_head = commit(self.product, "source baseline")
         self.start_tree = tree(self.product, self.start_head)
 
-        self.candidate = b"# Current spec\n\nR-1: preserve the old result.\nR-2: add the accepted request.\n"
-        if mode == "worktree" and early_promotion:
-            write(self.product / "docs/shiploop/spec.md", self.candidate)
+        self.candidate = candidate if candidate is not None else (
+            b"# Current spec\n\nR-1: preserve the old result.\nR-2: add the accepted request.\n")
+        no_change_return = (mode == "worktree" and single_return and final_kind == "no-change-return"
+                            and self.candidate == self.prior["spec"])
         if mode == "worktree":
-            write(self.product / "src/users.py", "# returned product change\n")
+            if not no_change_return:
+                write(self.product / "src/users.py", "# returned product change\n")
+            if early_promotion or (single_return and not no_change_return):
+                write(self.product / "docs/shiploop/spec.md", self.candidate)
         else:
             write(self.product / "docs/shiploop/spec.md", self.candidate)
-        self.first_return_head = commit(self.product, "return product change")
+        self.first_return_head = (self.start_head if no_change_return
+                                  else commit(self.product, "return product change"))
         self.first_return_tree = tree(self.product, self.first_return_head)
-        if mode == "worktree":
+        if mode == "worktree" and single_return:
+            self.final_head = self.first_return_head
+            self.final_tree = self.first_return_tree
+        elif mode == "worktree" and empty_follow_up:
+            self.final_head = self.first_return_head
+            self.final_tree = self.first_return_tree
+        elif mode == "worktree":
             if not early_promotion:
                 write(self.product / "docs/shiploop/spec.md", self.candidate)
             write(self.product / "docs/shiploop/notes.md", "# Learning\n\nKeep the accepted intent.\n")
@@ -138,12 +151,17 @@ class Fixture:
                 "schema": "shiploop-workspace", "version": 1, "status": "returned",
                 "source_repo": str(self.product), "worktree": str(self.worktree), "run_dir": str(self.run),
             }))
-            prior_receipt = return_receipt(
-                self.first_return_head, self.first_return_tree,
-                source_fingerprint(self.start_head, self.start_tree))
-            self.receipt = return_receipt(
-                self.final_head, self.final_tree,
-                prior_receipt["expected_source"], previous=prior_receipt, kind=final_kind)
+            if single_return:
+                self.receipt = return_receipt(
+                    self.final_head, self.final_tree,
+                    source_fingerprint(self.start_head, self.start_tree), kind=final_kind)
+            else:
+                prior_receipt = return_receipt(
+                    self.first_return_head, self.first_return_tree,
+                    source_fingerprint(self.start_head, self.start_tree))
+                self.receipt = return_receipt(
+                    self.final_head, self.final_tree,
+                    prior_receipt["expected_source"], previous=prior_receipt, kind=final_kind)
             # A linked execution worktree already holds the candidate during this return.
             write(self.worktree / "docs/shiploop/spec.md", self.candidate)
             write(self.worktree / "docs/shiploop/notes.md", "# Learning\n\nKeep the accepted intent.\n")
@@ -225,9 +243,13 @@ class IntentContinuityTest(unittest.TestCase):
         self.root = Path(self.temp.name).resolve()
 
     def fixture(self, mode: str, *, follow_on: bool = False, early_promotion: bool = False,
+                single_return: bool = False, empty_follow_up: bool = False,
+                candidate: bytes | None = None,
                 final_kind: str = "fast-forward-merge") -> Fixture:
         return Fixture(self.root / ("case-" + str(len(list(self.root.iterdir())))), mode,
-                       follow_on=follow_on, early_promotion=early_promotion, final_kind=final_kind)
+                       follow_on=follow_on, early_promotion=early_promotion,
+                       single_return=single_return, empty_follow_up=empty_follow_up,
+                       candidate=candidate, final_kind=final_kind)
 
     def run_oracle(self, fixture: Fixture, mode: str, label: str) -> tuple[int, dict[str, Any]]:
         proc = subprocess.run([sys.executable, str(ORACLE), "--mode", mode], cwd=fixture.product,
@@ -268,6 +290,35 @@ class IntentContinuityTest(unittest.TestCase):
         self.assertEqual(finding["observed"]["receipts"], 2)
         self.assertEqual(finding["observed"]["follow_up_paths"],
                          ["docs/shiploop/notes.md", "docs/shiploop/spec.md"])
+
+    def test_single_no_change_return_matches_prior_without_follow_up(self) -> None:
+        candidate = b"# Earlier spec\n\nR-1: preserve the old result.\n"
+        fixture = self.fixture("worktree", follow_on=True, single_return=True,
+                               candidate=candidate, final_kind="no-change-return")
+        code, result = self.run_oracle(fixture, "worktree", "single-no-change-return")
+        self.assertEqual(code, 0, result)
+        finding = next(item for item in result["findings"] if item["check"] == "worktree-return-chain")
+        self.assertEqual(finding["observed"]["receipts"], 1)
+        self.assertEqual(finding["observed"]["follow_up_paths"], [])
+
+    def test_no_change_follow_up_can_leave_prior_and_candidate_bytes_equal(self) -> None:
+        candidate = b"# Earlier spec\n\nR-1: preserve the old result.\n"
+        fixture = self.fixture("worktree", follow_on=True, empty_follow_up=True,
+                               candidate=candidate, final_kind="no-change-return")
+        code, result = self.run_oracle(fixture, "worktree", "empty-no-change-follow-up")
+        self.assertEqual(code, 0, result)
+        finding = next(item for item in result["findings"] if item["check"] == "worktree-return-chain")
+        self.assertEqual(finding["observed"]["receipts"], 2)
+        self.assertEqual(finding["observed"]["follow_up_paths"], [])
+
+    def test_single_final_return_can_cover_changed_candidate_without_follow_up(self) -> None:
+        fixture = self.fixture("worktree", follow_on=True, single_return=True)
+        self.assertNotEqual(fixture.candidate, fixture.prior["spec"])
+        code, result = self.run_oracle(fixture, "worktree", "single-changed-final-return")
+        self.assertEqual(code, 0, result)
+        finding = next(item for item in result["findings"] if item["check"] == "worktree-return-chain")
+        self.assertEqual(finding["observed"]["receipts"], 1)
+        self.assertEqual(finding["observed"]["follow_up_paths"], [])
 
     def test_working_tree_return_uses_the_runtime_working_tree_field(self) -> None:
         fixture = self.fixture("worktree", follow_on=True, final_kind="working-tree-return")
@@ -357,6 +408,24 @@ class IntentContinuityTest(unittest.TestCase):
         receipt["expected_source"] = {"head": fixture.final_head, "tree": fixture.final_tree, "branch": "main"}
         write(fixture.workspace / "return-receipt.md", fenced(receipt))
         self.assert_rejected(fixture, "worktree", "unrelated-final-return", "not an observed knowledge-only")
+
+    def test_stale_final_return_does_not_cover_promoted_candidate(self) -> None:
+        fixture = self.fixture("worktree", follow_on=True)
+        receipt = fixture.receipt
+        assert receipt is not None
+        receipt["expected_source"]["tree"] = fixture.first_return_tree
+        write(fixture.workspace / "return-receipt.md", fenced(receipt))
+        self.assert_rejected(fixture, "worktree", "stale-final-return",
+                             "does not preserve the exact promoted candidate bytes")
+
+    def test_final_return_source_before_must_match_previous_return(self) -> None:
+        fixture = self.fixture("worktree", follow_on=True)
+        receipt = fixture.receipt
+        assert receipt is not None
+        receipt["source_before"] = source_fingerprint(fixture.start_head, fixture.start_tree)
+        write(fixture.workspace / "return-receipt.md", fenced(receipt))
+        self.assert_rejected(fixture, "worktree", "broken-return-continuity",
+                             "source_before does not match its previous returned tree")
 
     def test_old_state_format_fails_clearly(self) -> None:
         fixture = self.fixture("direct")
