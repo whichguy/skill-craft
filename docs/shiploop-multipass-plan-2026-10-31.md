@@ -13,7 +13,8 @@ Status: **D1 to D5 approved as recommended (owner, 2026-10-31, "Approve all")**.
   Released the same morning as skill-craft 2.31.0 / ShipLoop 1.30.0 (release commit 5c9bf5e8786a1d44a1389a3b98fa8c5da3c05a8a, 10:38 PT): another session cut it, with two other pending notes, before the owner's
   "Yes, release" reached this session, so no second release was cut. CI on the release commit was green in all nine jobs including the full tier, the Claude, Codex and Grok hosts were on 2.31.0, and a live Codex
   session from the published marketplace tree passed ([release-smoke-2.31.0-codex-20261101.txt](experiments/multipass-20261031/release-smoke-2.31.0-codex-20261101.txt)). The word "unreleased" above was true when it was written.
-  2026-11-01, evening: chain B (D5) is built, calibrated against seven real pass-1 deliveries and pre-registered (journal Round 5: bar B1 to B6, predictions P1 to P8, the readout, the gate and the driver); its four live passes run next on the published ShipLoop.
+  2026-11-01, evening: chain B (D5) was built, calibrated against seven real pass-1 deliveries, pre-registered (journal Round 5: bar B1 to B6, predictions P1 to P8, the readout, the gate and the driver) and run the same evening on the published ShipLoop (skill-craft 2.32.1 / ShipLoop 1.30.2): 4 of 4 passes passed,
+  no stray heading and no entry filed as retired in any pass, the modifying link changed its old rule in place, B1 to B6 held and P3 missed (journal Round 5, Result). One chain, one run per cell, no control; it informs the owner's word on nothing to release and offers a matched control as the next experiment.
 Opened: 2026-10-31
 Consumer: the owner, who decides D1 to D5 in section 7; later whoever adds the fourth link or changes how a stage writes the
   living files, and reads the ledger as the before and after
@@ -163,7 +164,7 @@ heuristics, and a ledger of a first pass on a fixture has nothing to compare an 
 | E2 | Does a counted notice plus named destinations (D2, D3, D4) reduce the leak without losing function? | done 2026-10-31 (17:33 to 21:40): 12 of 12 runs passed and B1 to B5 held; the fix added 0 stray headings in all six passes against 2 to 8 in the control, with no measurable cost (journal Round 2, Result) |
 | E3 | Does a modifying fourth link retire and supersede rather than duplicate? | done 2026-10-31 (21:40 to 21:57): delivery right (16 of 16 hidden checks), a wrong retention check in the case found and fixed, both leaks repeated on the unfixed fourth pass (journal Round 3, Result) |
 | E4 | Does the fix hold on passes 3 and 4, on a lineage that already has the mislabel and on one that ends with Superseded, and is it the fix that does it? | done 2026-11-01 (06:53 to 09:02; journal Round 4, Result): six runs, three matched pairs. With the fix 0 of 3 new decisions were filed under Superseded (old ShipLoop 2 of 3 here, 4 of 5 later passes in all), stray headings 2, 0, 0 against 8, 1, 0; B2 to B4 and P1 to P6 and P8 held, K held in pairs a and b; B1 missed as recorded (R4b, one flaky base test) |
-| E5 | Do the placement fix's outcomes and the ledger's reading hold on a second domain, a base twenty times smaller, over four passes (chain B)? | pre-registered 2026-11-01 (journal Round 5): four live passes on the published ShipLoop, bar B1 to B6, no control; result below when it ran |
+| E5 | Do the placement fix's outcomes and the ledger's reading hold on a second domain, a base twenty times smaller, over four passes (chain B)? | ran 2026-11-01 (journal Round 5, Result): 4 of 4 passes, 0 stray headings, 0 of 4 entries filed as retired, the modifying link edited its old rules in place; B1 to B6 held, P3 missed; no control |
 
 **E1 predictions** are in the journal before the run, and [round1_readout.py](experiments/multipass-20261031/round1_readout.py) scores them from the run's own files. **Decision rule for E1:** a lost retained check or inherited hidden check means the leftovers
 are harmful, and D2 to D4 become urgent. A pass with the same hygiene as pass 2 means they are cost and noise, and E2 decides the fix.
@@ -196,7 +197,8 @@ merged only when E2 meets its bar.
  done     tier on the rebased tree ─► merged to main (2026-11-01, unreleased; its E2E round entry follows the feature commit, so the preflight passes)
  done     owner's word ("Yes, release") ─► released as skill-craft 2.31.0 / ShipLoop 1.30.0 by another session at 10:38 PT ─► hosts on 2.31.0 ─► live Codex smoke on the published tree passed
  done     chain B built, calibrated on real pass-1 priors and pre-registered (Round 5)
- next     chain B's four live passes, gate between passes, then the readout
+ done     chain B's four live passes (gate between passes) and the readout: B1 to B6 held
+ next     a matched control of chain B on a checkout without the fix, if the owner wants the credit; a replicate; another host or model
 ```
 
 ## 9. Risks and unknowns

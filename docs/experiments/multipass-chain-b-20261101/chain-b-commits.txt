@@ -1,0 +1,48 @@
+== B1-user-listing
+c4f2a66 docs(shiploop): record this-directory-is-an-existing-node-f7677f knowledge after discovery
+af6b40a docs(shiploop): record this-directory-is-an-existing-node-f7677f knowledge after spec
+1dad826 docs(shiploop): record this-directory-is-an-existing-node-f7677f knowledge after test-strategy
+8ed92c5 docs(shiploop): record this-directory-is-an-existing-node-f7677f knowledge after plan
+7d5376f docs(shiploop): record this-directory-is-an-existing-node-f7677f knowledge at prepare
+4a6716c feat(W1/S1): Added case-insensitive literal name filtering
+8db7219 feat(W1/S2): Added validated pagination and metadata
+cb043c3 docs(shiploop): record this-directory-is-an-existing-node-f7677f knowledge after carry-forward
+8ddc909 docs(shiploop): record this-directory-is-an-existing-node-f7677f knowledge after system-test-author
+6317e93 docs(shiploop): record this-directory-is-an-existing-node-f7677f knowledge at release-plan
+22ebfa4 chore(shiploop): commit files written after the last work item, before the return
+6f28c90 docs(shiploop): record this-directory-is-an-existing-node-f7677f knowledge after operations
+
+== B2-user-roles
+38290bf docs(shiploop): record give-the-users-roles-every-user-50b6dc knowledge after discovery
+d541b0b docs(shiploop): record give-the-users-roles-every-user-50b6dc knowledge after research
+bacb639 docs(shiploop): record give-the-users-roles-every-user-50b6dc knowledge after spec
+0b4b9c3 docs(shiploop): record give-the-users-roles-every-user-50b6dc knowledge after test-strategy
+2288f8d docs(shiploop): record give-the-users-roles-every-user-50b6dc knowledge after plan
+80bfae6 feat(W1/S1): Assigned roles to the fixed users
+b395cb6 feat(W1/S2): Added role validation and conjunctive filtering
+3551e8c docs(shiploop): record give-the-users-roles-every-user-50b6dc knowledge after carry-forward
+5e6b00a docs(shiploop): record give-the-users-roles-every-user-50b6dc knowledge after system-test-author
+43ef185 docs(shiploop): record give-the-users-roles-every-user-50b6dc knowledge at release-plan
+
+== B3-user-team-listing
+174ea4c docs(shiploop): record add-teams-there-are-five-teams-ff335a knowledge after discovery
+923467f docs(shiploop): record add-teams-there-are-five-teams-ff335a knowledge after spec
+531a2cf docs(shiploop): record add-teams-there-are-five-teams-ff335a knowledge after test-strategy
+9d37047 docs(shiploop): record add-teams-there-are-five-teams-ff335a knowledge after plan
+4344ca5 docs(shiploop): record add-teams-there-are-five-teams-ff335a knowledge at prepare
+a3eee2b feat(W1/S1): Added fixed team records and detail lookup
+ce67f73 feat(W1/S2): Added team listing with shared query handling
+f346e6f docs(shiploop): record add-teams-there-are-five-teams-ff335a knowledge after carry-forward
+02f52aa docs(shiploop): record add-teams-there-are-five-teams-ff335a knowledge at release-plan
+
+== B4-user-page-size
+1adf526 docs(shiploop): record change-how-the-listings-page-today-d87bbb knowledge after discovery
+f0a8561 Clarify page size override in specification
+7bb53f5 Clarify pagination verification fixtures
+9ce1d49 docs(shiploop): record change-how-the-listings-page-today-d87bbb knowledge after plan
+c4e0ce6 docs(shiploop): record change-how-the-listings-page-today-d87bbb knowledge at prepare
+3bb63bf feat(W1/S1): Implemented configured default and 50-item size limit
+7589150 docs(shiploop): record change-how-the-listings-page-today-d87bbb knowledge after carry-forward
+283bf99 docs(shiploop): record change-how-the-listings-page-today-d87bbb knowledge after system-test-author
+dcf1243 docs(shiploop): record change-how-the-listings-page-today-d87bbb knowledge at release-plan
+8cb4147 chore(shiploop): commit files written after the last work item, before the return

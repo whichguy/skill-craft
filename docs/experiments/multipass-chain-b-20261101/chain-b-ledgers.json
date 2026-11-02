@@ -1,0 +1,1565 @@
+{
+ "B1-user-listing": {
+  "checks": [
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-base",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-base",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process",
+    "pass": true
+   }
+  ],
+  "delta": {
+   "basis": {
+    "followed_case": null,
+    "head": "6f28c90b47a08fae1c8174a52bf83e8908d2d50c",
+    "kind": "base",
+    "start_head": "51f2eab199bec99f89969b8790b84134f13a1f39"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 12,
+      "modified": 1
+     },
+     "living": {
+      "added": 3,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 99,
+      "modified": 0
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 1,
+      "insertions": 26,
+      "modified": 1
+     },
+     "tests": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 97,
+      "modified": 0
+     }
+    },
+    "prior_source_files": 6,
+    "prior_source_modified": 1,
+    "prior_tests_modified": []
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 183,
+     "learned": 142,
+     "open_next": 5
+    },
+    "lessons_commit": "b641029277f3",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": []
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-1"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 1,
+     "prefix": "AD",
+     "prior": 0,
+     "retired_by_run": [],
+     "unchanged": 0
+    },
+    "spec.md": {
+     "added": [
+      "R-1",
+      "R-2",
+      "R-3",
+      "R-4"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 4,
+     "prefix": "R",
+     "prior": 0,
+     "retired_by_run": [],
+     "unchanged": 0
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 1447,
+      "prior": 0
+     },
+     "changed_sections": [
+      "Stack",
+      "Structure",
+      "Conventions",
+      "Interfaces and boundaries",
+      "Real-boundary checks",
+      "Decisions",
+      "Superseded"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "User store architecture",
+      "prior": null
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 3830,
+      "prior": 0
+     },
+     "changed_sections": [
+      "Targets and runtimes",
+      "Commands",
+      "Skills",
+      "Harnesses and suites",
+      "ID convention",
+      "Access and accounts",
+      "Platform facts"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Environment",
+      "prior": null
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 2170,
+      "prior": 0
+     },
+     "changed_sections": [
+      "Requirements",
+      "Non-functional requirements",
+      "Retired"
+     ],
+     "duplicate": [],
+     "level2": 3,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "User store API specification",
+      "prior": null
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-1",
+     "R-1",
+     "R-2",
+     "R-3",
+     "R-4"
+    ],
+    "primary": {
+     "delta": 4,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 5,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 4,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 0,
+     "other_writes": 3,
+     "reads": 3
+    },
+    "environment.md": {
+     "appends": 0,
+     "other_writes": 11,
+     "reads": 2
+    },
+    "spec.md": {
+     "appends": 0,
+     "other_writes": 13,
+     "reads": 4
+    }
+   }
+  },
+  "elapsed_seconds": 988.5,
+  "hidden": [
+   {
+    "id": "list-unchanged",
+    "note": "2 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "user-by-id-unchanged",
+    "note": "/users/2: HTTP 200 {\"id\": 2, \"name\": \"Grace Hopper\", \"email\": \"grace@example.com\"}; /users/42: HTTP 404",
+    "pass": true
+   },
+   {
+    "id": "name-filter",
+    "note": "6 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "name-plain-text",
+    "note": "3 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "page-envelope",
+    "note": "1 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "partial-last-page",
+    "note": "3 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "page-past-end",
+    "note": "1 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "page-defaults",
+    "note": "2 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "filter-then-page",
+    "note": "2 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "size-bounds",
+    "note": "2 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "bad-page-or-size",
+    "note": "every bad page or size answered 400 with an error and no users",
+    "pass": true
+   }
+  ],
+  "host": {
+   "effort": "xhigh",
+   "host": "codex",
+   "host_build": "codex-cli 0.166.0",
+   "model": "gpt-6.1-terra"
+  },
+  "line": "base | R +4 ~0 -0 retired 0 born-retired 0 | AD +1 ~0 -0 retired 0 born-retired 0 | stray+ spec 0 env 0 arch 0 | appends spec 0 env 0 arch 0 | prior tests modified 0 src 1/6 | follows d5/p0 tests d4/p0 | lessons b641029277f3",
+  "model_calls": 167,
+  "pass": true,
+  "tokens": {
+   "input_peak": 449493,
+   "output": 68138,
+   "processed": 38995093
+  },
+  "turns": 241,
+  "versions": {
+   "plugin_version": "2.32.1",
+   "shiploop_version": "1.30.2",
+   "source": "marketplace"
+  }
+ },
+ "B2-user-roles": {
+  "checks": [
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-base",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-base",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_d",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_d",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_d",
+    "pass": true
+   },
+   {
+    "command": "git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard | grep -v '\\.log$' | wh",
+    "pass": true
+   },
+   {
+    "command": "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse",
+    "pass": true
+   },
+   {
+    "command": "count() { (cd \"$1\" && node --test 2>&1) | sed -nE 's/^(\u2139|#) pass ([0-9]+).*/\\2/p' | tail -",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bR-[0-9]+\\b' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; befor",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bAD-[0-9]+\\b' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u;",
+    "pass": true
+   }
+  ],
+  "delta": {
+   "basis": {
+    "followed_case": "user-listing",
+    "head": "d6f67a3847cb434429ce4c06a650ea1b95c0f420",
+    "kind": "follow-on",
+    "start_head": "6f28c90b47a08fae1c8174a52bf83e8908d2d50c"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 1,
+      "insertions": 5,
+      "modified": 1
+     },
+     "living": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 1,
+      "insertions": 23,
+      "modified": 3
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 4,
+      "insertions": 9,
+      "modified": 2
+     },
+     "tests": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 3,
+      "insertions": 89,
+      "modified": 1
+     }
+    },
+    "prior_source_files": 6,
+    "prior_source_modified": 2,
+    "prior_tests_modified": [
+     "test/server-listing.test.js"
+    ]
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 158,
+     "learned": 126,
+     "open_next": 5
+    },
+    "lessons_commit": "d6f67a3847cb",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": []
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-2"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 2,
+     "prefix": "AD",
+     "prior": 1,
+     "retired_by_run": [],
+     "unchanged": 1
+    },
+    "spec.md": {
+     "added": [
+      "R-5"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 5,
+     "prefix": "R",
+     "prior": 4,
+     "retired_by_run": [],
+     "unchanged": 4
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 2263,
+      "prior": 1447
+     },
+     "changed_sections": [
+      "Real-boundary checks",
+      "Decisions"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "User store architecture",
+      "prior": "User store architecture"
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 5406,
+      "prior": 3830
+     },
+     "changed_sections": [
+      "Targets and runtimes",
+      "Commands",
+      "Harnesses and suites",
+      "ID convention"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Environment",
+      "prior": "Environment"
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 3541,
+      "prior": 2170
+     },
+     "changed_sections": [
+      "Requirements"
+     ],
+     "duplicate": [],
+     "level2": 3,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "User store API specification",
+      "prior": "User store API specification"
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-2",
+     "R-5"
+    ],
+    "primary": {
+     "delta": 1,
+     "preserved": 1,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 2,
+     "preserved": 1,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 3,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 0,
+     "other_writes": 4,
+     "reads": 1
+    },
+    "environment.md": {
+     "appends": 0,
+     "other_writes": 11,
+     "reads": 2
+    },
+    "spec.md": {
+     "appends": 0,
+     "other_writes": 8,
+     "reads": 2
+    }
+   }
+  },
+  "elapsed_seconds": 940.2,
+  "hidden": [
+   {
+    "id": "list-unchanged",
+    "note": "2 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "user-by-id-unchanged",
+    "note": "/users/2: HTTP 200 {\"id\": 2, \"name\": \"Grace Hopper\", \"email\": \"grace@example.com\"}; /users/42: HTTP 404",
+    "pass": true
+   },
+   {
+    "id": "name-filter",
+    "note": "6 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "name-plain-text",
+    "note": "3 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "page-envelope",
+    "note": "1 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "partial-last-page",
+    "note": "3 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "page-past-end",
+    "note": "1 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "page-defaults",
+    "note": "2 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "filter-then-page",
+    "note": "2 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "size-bounds",
+    "note": "2 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "bad-page-or-size",
+    "note": "every bad page or size answered 400 with an error and no users",
+    "pass": true
+   },
+   {
+    "id": "role-shown",
+    "note": "every user shows its role by id, in the array, in a filtered array and in a page",
+    "pass": true
+   },
+   {
+    "id": "role-filter",
+    "note": "4 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "filters-combine",
+    "note": "7 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "role-then-page",
+    "note": "5 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "bad-role",
+    "note": "every bad role, and a bad page or size beside a role, answered 400 with an error and no users",
+    "pass": true
+   }
+  ],
+  "host": {
+   "effort": "xhigh",
+   "host": "codex",
+   "host_build": "codex-cli 0.166.0",
+   "model": "gpt-6.1-terra"
+  },
+  "line": "follow-on | R +1 ~0 -0 retired 0 born-retired 0 | AD +1 ~0 -0 retired 0 born-retired 0 | stray+ spec 0 env 0 arch 0 | appends spec 0 env 0 arch 0 | prior tests modified 1 src 2/6 | follows d2/p1 tests d3/p0 | lessons d6f67a3847cb",
+  "model_calls": 168,
+  "pass": true,
+  "tokens": {
+   "input_peak": 359522,
+   "output": 50324,
+   "processed": 34920243
+  },
+  "turns": 198,
+  "versions": {
+   "plugin_version": "2.32.1",
+   "shiploop_version": "1.30.2",
+   "source": "marketplace"
+  }
+ },
+ "B3-user-team-listing": {
+  "checks": [
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-base",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-base",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_d",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_d",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_d",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_d",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_d",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_d",
+    "pass": true
+   },
+   {
+    "command": "git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard | grep -v '\\.log$' | wh",
+    "pass": true
+   },
+   {
+    "command": "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse",
+    "pass": true
+   },
+   {
+    "command": "count() { (cd \"$1\" && node --test 2>&1) | sed -nE 's/^(\u2139|#) pass ([0-9]+).*/\\2/p' | tail -",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bR-[0-9]+\\b' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; befor",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bAD-[0-9]+\\b' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u;",
+    "pass": true
+   }
+  ],
+  "delta": {
+   "basis": {
+    "followed_case": "user-roles",
+    "head": "81f5d7655265ab23c2d184da217791a29b80f222",
+    "kind": "follow-on",
+    "start_head": "d6f67a3847cb434429ce4c06a650ea1b95c0f420"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 1,
+      "insertions": 6,
+      "modified": 1
+     },
+     "living": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 7,
+      "insertions": 43,
+      "modified": 3
+     },
+     "source": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 7,
+      "insertions": 36,
+      "modified": 1
+     },
+     "tests": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 0,
+      "insertions": 89,
+      "modified": 0
+     }
+    },
+    "prior_source_files": 6,
+    "prior_source_modified": 1,
+    "prior_tests_modified": []
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 91,
+     "learned": 111,
+     "open_next": 5
+    },
+    "lessons_commit": "81f5d7655265",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": []
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-3"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 3,
+     "prefix": "AD",
+     "prior": 2,
+     "retired_by_run": [],
+     "unchanged": 2
+    },
+    "spec.md": {
+     "added": [
+      "R-6",
+      "R-7"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "final": 7,
+     "prefix": "R",
+     "prior": 5,
+     "retired_by_run": [],
+     "unchanged": 5
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 3370,
+      "prior": 2263
+     },
+     "changed_sections": [
+      "Structure",
+      "Interfaces and boundaries",
+      "Real-boundary checks",
+      "Decisions"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "User and team store architecture",
+      "prior": "User store architecture"
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 7923,
+      "prior": 5406
+     },
+     "changed_sections": [
+      "Targets and runtimes",
+      "Commands",
+      "Harnesses and suites",
+      "ID convention"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Environment",
+      "prior": "Environment"
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 5113,
+      "prior": 3541
+     },
+     "changed_sections": [
+      "Requirements"
+     ],
+     "duplicate": [],
+     "level2": 3,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "User and team API specification",
+      "prior": "User store API specification"
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-3",
+     "R-6",
+     "R-7"
+    ],
+    "primary": {
+     "delta": 2,
+     "preserved": 0,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 3,
+     "preserved": 1,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 3,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 0,
+     "other_writes": 5,
+     "reads": 2
+    },
+    "environment.md": {
+     "appends": 0,
+     "other_writes": 13,
+     "reads": 2
+    },
+    "spec.md": {
+     "appends": 0,
+     "other_writes": 12,
+     "reads": 2
+    }
+   }
+  },
+  "elapsed_seconds": 1117.5,
+  "hidden": [
+   {
+    "id": "list-unchanged",
+    "note": "2 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "user-by-id-unchanged",
+    "note": "/users/2: HTTP 200 {\"id\": 2, \"name\": \"Grace Hopper\", \"email\": \"grace@example.com\"}; /users/42: HTTP 404",
+    "pass": true
+   },
+   {
+    "id": "name-filter",
+    "note": "6 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "name-plain-text",
+    "note": "3 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "page-envelope",
+    "note": "1 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "partial-last-page",
+    "note": "3 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "page-past-end",
+    "note": "1 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "page-defaults",
+    "note": "2 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "filter-then-page",
+    "note": "2 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "size-bounds",
+    "note": "2 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "bad-page-or-size",
+    "note": "every bad page or size answered 400 with an error and no users",
+    "pass": true
+   },
+   {
+    "id": "role-shown",
+    "note": "every user shows its role by id, in the array, in a filtered array and in a page",
+    "pass": true
+   },
+   {
+    "id": "role-filter",
+    "note": "4 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "filters-combine",
+    "note": "7 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "role-then-page",
+    "note": "5 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "bad-role",
+    "note": "every bad role, and a bad page or size beside a role, answered 400 with an error and no users",
+    "pass": true
+   },
+   {
+    "id": "teams-listing",
+    "note": "the five teams answered in id order with their members, and an unrelated parameter was ignored",
+    "pass": true
+   },
+   {
+    "id": "team-by-id",
+    "note": "every team answered by id, and a missing one answered 404 with an error",
+    "pass": true
+   },
+   {
+    "id": "teams-name-filter",
+    "note": "9 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "teams-pages",
+    "note": "8 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "teams-page-defaults",
+    "note": "2 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "teams-size-bounds",
+    "note": "2 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "teams-bad-page-or-size",
+    "note": "every bad page or size answered 400 with an error and no teams",
+    "pass": true
+   }
+  ],
+  "host": {
+   "effort": "xhigh",
+   "host": "codex",
+   "host_build": "codex-cli 0.166.0",
+   "model": "gpt-6.1-terra"
+  },
+  "line": "follow-on | R +2 ~0 -0 retired 0 born-retired 0 | AD +1 ~0 -0 retired 0 born-retired 0 | stray+ spec 0 env 0 arch 0 | appends spec 0 env 0 arch 0 | prior tests modified 0 src 1/6 | follows d3/p1 tests d3/p0 | lessons 81f5d7655265",
+  "model_calls": 151,
+  "pass": true,
+  "tokens": {
+   "input_peak": 385634,
+   "output": 58716,
+   "processed": 34905901
+  },
+  "turns": 203,
+  "versions": {
+   "plugin_version": "2.32.1",
+   "shiploop_version": "1.30.2",
+   "source": "marketplace"
+  }
+ },
+ "B4-user-page-size": {
+  "checks": [
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" suite node-base",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/base_tests.py\" pristine node-base",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_d",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_d",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_d",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_d",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_d",
+    "pass": true
+   },
+   {
+    "command": "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_CHECKS/user_d",
+    "pass": true
+   },
+   {
+    "command": "env -u PAGE_SIZE python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$",
+    "pass": true
+   },
+   {
+    "command": "PAGE_SIZE=2 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$E2E_C",
+    "pass": true
+   },
+   {
+    "command": "env -u PAGE_SIZE python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- python3 \"$",
+    "pass": true
+   },
+   {
+    "command": "git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard | grep -v '\\.log$' | wh",
+    "pass": true
+   },
+   {
+    "command": "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse",
+    "pass": true
+   },
+   {
+    "command": "count() { (cd \"$1\" && node --test 2>&1) | sed -nE 's/^(\u2139|#) pass ([0-9]+).*/\\2/p' | tail -",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bR-[0-9]+\\b' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; befor",
+    "pass": true
+   },
+   {
+    "command": "ids() { grep -oE '\\bAD-[0-9]+\\b' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u;",
+    "pass": true
+   }
+  ],
+  "delta": {
+   "basis": {
+    "followed_case": "user-team-listing",
+    "head": "a40a897305fc7e274b76df1c9465a307cf2dda2f",
+    "kind": "follow-on",
+    "start_head": "81f5d7655265ab23c2d184da217791a29b80f222"
+   },
+   "footprint": {
+    "by_class": {
+     "docs": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 2,
+      "insertions": 5,
+      "modified": 1
+     },
+     "living": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 6,
+      "insertions": 47,
+      "modified": 3
+     },
+     "source": {
+      "added": 0,
+      "deleted": 0,
+      "deletions": 3,
+      "insertions": 6,
+      "modified": 1
+     },
+     "tests": {
+      "added": 1,
+      "deleted": 0,
+      "deletions": 9,
+      "insertions": 80,
+      "modified": 2
+     }
+    },
+    "prior_source_files": 7,
+    "prior_source_modified": 1,
+    "prior_tests_modified": [
+     "test/server-listing.test.js",
+     "test/server-teams.test.js"
+    ]
+   },
+   "handoff": {
+    "lessons_chars": {
+     "considerations": 108,
+     "learned": 124,
+     "open_next": 4
+    },
+    "lessons_commit": "a40a897305fc",
+    "sections": {
+     "architecture.md": {
+      "empty": [],
+      "missing": []
+     },
+     "environment.md": {
+      "empty": [],
+      "missing": []
+     },
+     "spec.md": {
+      "empty": [],
+      "missing": []
+     }
+    },
+    "tracked": {
+     "architecture.md": true,
+     "environment.md": true,
+     "spec.md": true
+    }
+   },
+   "heuristics": "writes, relative_wording and the class of a path are heuristics: lists to confirm, not counts to trust; no hit is not proof and a hit can be quoted text",
+   "ids": {
+    "architecture.md": {
+     "added": [
+      "AD-4"
+     ],
+     "born_retired": [],
+     "changed": [],
+     "dropped": [],
+     "expected": [
+      "AD-1",
+      "AD-2",
+      "AD-3"
+     ],
+     "expected_touched": [],
+     "expected_untouched": [
+      "AD-1",
+      "AD-2",
+      "AD-3"
+     ],
+     "final": 4,
+     "prefix": "AD",
+     "prior": 3,
+     "retired_by_run": [],
+     "unchanged": 3,
+     "unexplained": []
+    },
+    "spec.md": {
+     "added": [],
+     "born_retired": [],
+     "changed": [
+      "R-2",
+      "R-3"
+     ],
+     "dropped": [],
+     "expected": [
+      "R-2",
+      "R-3"
+     ],
+     "expected_touched": [
+      "R-2",
+      "R-3"
+     ],
+     "expected_untouched": [],
+     "final": 7,
+     "prefix": "R",
+     "prior": 7,
+     "retired_by_run": [],
+     "unchanged": 5,
+     "unexplained": []
+    }
+   },
+   "placement": {
+    "architecture.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 4287,
+      "prior": 3370
+     },
+     "changed_sections": [
+      "Real-boundary checks",
+      "Decisions"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "User and team store architecture",
+      "prior": "User and team store architecture"
+     }
+    },
+    "environment.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 11041,
+      "prior": 7923
+     },
+     "changed_sections": [
+      "Commands",
+      "Skills",
+      "Harnesses and suites"
+     ],
+     "duplicate": [],
+     "level2": 7,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [
+       "this change"
+      ],
+      "n": 1
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "Environment",
+      "prior": "Environment"
+     }
+    },
+    "spec.md": {
+     "added_under_retired": [],
+     "bytes": {
+      "final": 6109,
+      "prior": 5113
+     },
+     "changed_sections": [
+      "Requirements",
+      "Retired"
+     ],
+     "duplicate": [],
+     "level2": 3,
+     "named_empty": [],
+     "named_missing": [],
+     "relative_wording": {
+      "examples": [],
+      "n": 0
+     },
+     "stray": [],
+     "stray_added": [],
+     "title": {
+      "final": "User and team API specification",
+      "prior": "User and team API specification"
+     }
+    }
+   },
+   "plan": {
+    "delta_ids": [
+     "AD-4",
+     "R-2",
+     "R-3"
+    ],
+    "primary": {
+     "delta": 2,
+     "preserved": 2,
+     "unknown": 0
+    },
+    "step_plan_follows": {
+     "delta": 3,
+     "preserved": 2,
+     "unknown": 0
+    },
+    "test_cases": {
+     "delta": 2,
+     "no_requirement": 0,
+     "preserved": 0,
+     "unknown": 0
+    }
+   },
+   "writes": {
+    "architecture.md": {
+     "appends": 0,
+     "other_writes": 10,
+     "reads": 4
+    },
+    "environment.md": {
+     "appends": 0,
+     "other_writes": 20,
+     "reads": 4
+    },
+    "spec.md": {
+     "appends": 0,
+     "other_writes": 13,
+     "reads": 5
+    }
+   }
+  },
+  "elapsed_seconds": 1001.1,
+  "hidden": [
+   {
+    "id": "list-unchanged",
+    "note": "2 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "user-by-id-unchanged",
+    "note": "/users/2: HTTP 200 {\"id\": 2, \"name\": \"Grace Hopper\", \"email\": \"grace@example.com\"}; /users/42: HTTP 404",
+    "pass": true
+   },
+   {
+    "id": "name-filter",
+    "note": "6 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "name-plain-text",
+    "note": "3 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "page-envelope",
+    "note": "1 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "partial-last-page",
+    "note": "3 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "page-past-end",
+    "note": "1 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "filter-then-page",
+    "note": "2 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "bad-page-or-size",
+    "note": "every bad page or size answered 400 with an error and no users",
+    "pass": true
+   },
+   {
+    "id": "role-shown",
+    "note": "every user shows its role by id, in the array, in a filtered array and in a page",
+    "pass": true
+   },
+   {
+    "id": "role-filter",
+    "note": "4 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "filters-combine",
+    "note": "7 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "role-then-page",
+    "note": "5 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "bad-role",
+    "note": "every bad role, and a bad page or size beside a role, answered 400 with an error and no users",
+    "pass": true
+   },
+   {
+    "id": "teams-listing",
+    "note": "the five teams answered in id order with their members, and an unrelated parameter was ignored",
+    "pass": true
+   },
+   {
+    "id": "team-by-id",
+    "note": "every team answered by id, and a missing one answered 404 with an error",
+    "pass": true
+   },
+   {
+    "id": "teams-name-filter",
+    "note": "9 listings answered with the expected users",
+    "pass": true
+   },
+   {
+    "id": "teams-pages",
+    "note": "8 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "teams-bad-page-or-size",
+    "note": "every bad page or size answered 400 with an error and no teams",
+    "pass": true
+   },
+   {
+    "id": "page-size-default",
+    "note": "4 pages answered as expected",
+    "pass": true
+   },
+   {
+    "id": "page-size-setting",
+    "note": "PAGE_SIZE=2 set the default page size of both listings, the plain arrays stayed whole, and a given size won",
+    "pass": true
+   },
+   {
+    "id": "page-size-largest",
+    "note": "size 50 was accepted and 51 and 100 were refused, for both listings",
+    "pass": true
+   }
+  ],
+  "host": {
+   "effort": "xhigh",
+   "host": "codex",
+   "host_build": "codex-cli 0.166.0",
+   "model": "gpt-6.1-terra"
+  },
+  "line": "follow-on | R +0 ~2 -0 retired 0 born-retired 0 replaced 2/2 left 0 unexplained 0 | AD +1 ~0 -0 retired 0 born-retired 0 replaced 0/3 left 3 unexplained 0 | stray+ spec 0 env 0 arch 0 | appends spec 0 env 0 arch 0 | prior tests modified 2 src 1/7 | follows d3/p2 tests d2/p0 | lessons a40a897305fc",
+  "model_calls": 122,
+  "pass": true,
+  "tokens": {
+   "input_peak": 300925,
+   "output": 48605,
+   "processed": 22656816
+  },
+  "turns": 152,
+  "versions": {
+   "plugin_version": "2.32.1",
+   "shiploop_version": "1.30.2",
+   "source": "marketplace"
+  }
+ }
+}

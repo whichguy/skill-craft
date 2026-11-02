@@ -1,0 +1,29 @@
+# chain_b_gate.py: each link read against the real prior the pass before it left. The same command ran before each pass (its output then went to the terminal and was not kept);
+# these are the outputs of running it again after the chain, on the same priors, which no later pass changes (a follow-on works in a copy).
+
+## python3 chain_b_gate.py user-roles <chain-b>/B1-user-listing
+ok     retention word 'viewer': absent from the prior's spec (both routes open)
+ok     the link's own checks fail on the prior (they must all fail): failed [0, 1, 2]
+ok     the earlier passes' own checks on the prior: 3 of 3 pass
+ok     hidden acceptance on the prior: observed True; the new checks all fail: True; inherited checks failing (the previous pass's result): none
+clear to run
+exit 0
+
+## python3 chain_b_gate.py user-team-listing <chain-b>/B2-user-roles
+ok     retention word 'team': absent from the prior's spec (both routes open)
+ok     the link's own checks fail on the prior (they must all fail): failed [0, 1, 2]
+ok     the earlier passes' own checks on the prior: 6 of 6 pass
+ok     hidden acceptance on the prior: observed True; the new checks all fail: True; inherited checks failing (the previous pass's result): none
+clear to run
+exit 0
+
+## python3 chain_b_gate.py user-page-size <chain-b>/B3-user-team-listing
+ok     retention word 'PAGE_SIZE': absent from the prior's spec (both routes open)
+ok     ledger patterns for spec.md find ['R-2', 'R-3'] in the prior
+ok     ledger patterns for architecture.md find ['AD-1', 'AD-2', 'AD-3'] in the prior
+ok     the patterns' reading of the prior's entries: {"spec.md": {"R-2": "### R-2: Pagination Basis: user request 2026-11-01. With page or size present, filter first then return JSON o", "R-3": "### R-3: Validation Basis: user request 2026-11-01. Page must be a whole number >=1; size must be a whole numb"}, "architecture.md": {"AD-1": "AD-1: Compose filter and pagination at GET /users; retain existing paginate helper because its floor calculati", "AD-2": "### AD-2: Role data and request filtering Use the existing CommonJS users module as the fixed in-memory data o", "AD-3": "### AD-3: Team storage and shared list handling Implemented: CommonJS src/teams.js exporting fixed ordered rec"}}
+ok     the link's own checks fail on the prior (they must all fail): failed [0, 1, 2]
+ok     the earlier passes' own checks on the prior: 9 of 9 pass
+ok     hidden acceptance on the prior: observed True; the new checks all fail: True; inherited checks failing (the previous pass's result): none
+clear to run
+exit 0

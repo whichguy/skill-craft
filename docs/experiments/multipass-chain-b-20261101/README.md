@@ -10,6 +10,7 @@ plan: [section 4, chain B](../../shiploop-multipass-plan-2026-10-31.md).
 | `chain_b_readout.py`, `readout-calibration-output.txt` | the readout, written first: bar B1 to B6 and predictions P1 to P8 as `held`, `missed` or `unknown`, fed saved runs with known numbers (E1, E3, a saved `user-listing` run) |
 | `chain_b_gate.py` | the gate between two passes: reads a link against the real prior the pass before it left (the retention word absent from the prior's spec, the ledger patterns finding their rules, the link's own and new hidden checks failing on the prior, the earlier checks passing), before the link runs |
 | `chain_b_driver.py` | runs one pass from the marketplace on Codex, retrying while another session holds the port-3000 lease |
+| `chain-b-readout-output.txt`, `chain-b-ledgers.json`, `chain-b-commits.txt`, `chain-b-gates.txt`, `passes/` , `chain_b_harvest.py` | the result: the readout on the four live passes, each pass's ledger block with its verdict, checks and hidden rows, the commits of the living files per pass, the gates (run again after the chain), the three living files each pass left (trailing blank lines stripped), and the script that cut them |
 
 Cases, references, hidden acceptance and the calibration suite are under `test/` (`cases.json`, `test/fixtures/quality/reference_user_*.py`, `test/shiploop_e2e/checks/user_*_accept.py`,
 `user_directory_probe.py`, `test/shiploop-e2e-user-directory.test.py`).
