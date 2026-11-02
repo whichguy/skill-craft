@@ -117,6 +117,10 @@
     "user-team-casefold": [
       "\\bteam[- ]casefold\\b",
       "\\bby_team\\b"
+    ],
+    "user-summary-status": [
+      "\\bby_team\\b",
+      "\\buser[- ]summary[- ]status\\b"
     ]
   },
   "exempt": [
