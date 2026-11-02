@@ -604,10 +604,160 @@ class ImproveReviewsMetricTest(unittest.TestCase):
             # Each pass's size in lines (the convergence gate's measure); a run before passes had a size has none.
             self.assertEqual((child["test-spec-aaaa1111"]["lines"], child["step-plan-bbbb2222"]["lines"]), ([6], None))
 
-    def test_no_worktree_means_no_children(self):
-        self.assertEqual(metrics.improve_reviews(None)["passes"], 0)
+    def test_direct_run_reads_its_recorded_repo_not_an_unrelated_sibling_worktree(self):
         with tempfile.TemporaryDirectory() as temp:
-            self.assertEqual(metrics.improve_reviews(Path(temp) / "run")["children"], 0)
+            root = Path(temp)
+            run_dir = root / "shiploop-run"
+            run_dir.mkdir()
+            repo = root / "work"
+            (run_dir / "state.md").write_text('```shiploop-state\n' + json.dumps({"repo": str(repo)}) + '\n```\n')
+            direct = repo / ".shiploop-improve" / "carry-forward-aaaa1111" / "reviews"
+            decoy = root / "worktree" / ".shiploop-improve" / "unrelated-bbbb2222" / "reviews"
+            previous = repo / ".shiploop-improve" / "previous-cccc3333" / "reviews"
+            (run_dir / "improve").mkdir()
+            (run_dir / "improve" / "nav-aaaa1111-bind.md").write_text("this run's child")
+            for folder in (direct, decoy, previous):
+                folder.mkdir(parents=True)
+                (folder / "review-1.md").write_text("review")
+            (direct / "review-2.md").write_text("review")
+            (direct / "pass-1.json").write_text(json.dumps({"edited": True, "changed": False, "result_changed": True}))
+            got = metrics.improve_reviews(run_dir)
+            self.assertEqual((got["children"], got["passes"], got["edited_children"]), (1, 2, 1))
+            self.assertEqual(got["per_child"][0]["child"], "carry-forward-aaaa1111")
+            self.assertEqual(got["per_child"][0]["edited_basis"], "tree and result")
+
+    def test_recorded_missing_repo_cannot_fall_back_to_an_unrelated_worktree(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            run_dir = root / "run"
+            run_dir.mkdir()
+            (run_dir / "state.md").write_text('```shiploop-state\n' + json.dumps({"repo": str(root / "gone")}) + '\n```\n')
+            reviews = root / "worktree" / ".shiploop-improve" / "decoy" / "reviews"
+            reviews.mkdir(parents=True)
+            (reviews / "review-1.md").write_text("not this run")
+            got = metrics.improve_reviews(run_dir)
+            self.assertIsNone(got["passes"])
+            self.assertTrue(got["unmeasured"])
+
+    def test_invalid_recorded_repo_is_unknown_not_relative_to_the_evaluator_cwd(self):
+        with tempfile.TemporaryDirectory() as temp:
+            run_dir = Path(temp) / "run"
+            run_dir.mkdir()
+            for repo in ("relative/path", "", 42, None, "/bad\0path"):
+                with self.subTest(repo=repo):
+                    (run_dir / "state.md").write_text('```shiploop-state\n' + json.dumps({"repo": repo}) + '\n```\n')
+                    got = metrics.improve_reviews(run_dir)
+                    self.assertIsNone(got["passes"])
+                    self.assertTrue(got["unmeasured"])
+
+    def test_missing_review_evidence_is_unknown_not_zero(self):
+        self.assertIsNone(metrics.improve_reviews(None)["passes"])
+        with tempfile.TemporaryDirectory() as temp:
+            got = metrics.improve_reviews(Path(temp) / "run")
+            for field in ("children", "passes", "edited_children", "max_passes"):
+                self.assertIsNone(got[field])
+            self.assertTrue(got["unmeasured"])
+
+    def test_an_observed_empty_review_root_is_zero(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "worktree" / ".shiploop-improve").mkdir(parents=True)
+            got = metrics.improve_reviews(root / "run")
+            self.assertEqual((got["children"], got["passes"], got["max_passes"]), (0, 0, 0))
+            self.assertFalse(got.get("unmeasured"))
+
+    def test_bound_children_with_missing_notes_do_not_look_like_a_complete_count(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            run_dir = root / "run"
+            (run_dir / "improve").mkdir(parents=True)
+            repo = root / "work"
+            reviews = repo / ".shiploop-improve" / "spec-aaaa1111" / "reviews"
+            reviews.mkdir(parents=True)
+            (run_dir / "state.md").write_text('```shiploop-state\n' + json.dumps({"repo": str(repo)}) + '\n```\n')
+            (run_dir / "improve" / "nav-aaaa1111-bind.md").write_text("first child")
+            (run_dir / "improve" / "nav-bbbb2222-bind.md").write_text("second child")
+            for have_one_note in (False, True):
+                with self.subTest(have_one_note=have_one_note):
+                    if have_one_note:
+                        (reviews / "review-1.md").write_text("first child's review")
+                    got = metrics.improve_reviews(run_dir)
+                    self.assertIsNone(got["passes"])
+                    self.assertTrue(got["unmeasured"])
+
+    def test_recorded_repo_reviews_without_bindings_cannot_be_attributed_to_this_run(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            run_dir = root / "run"
+            run_dir.mkdir()
+            repo = root / "work"
+            reviews = repo / ".shiploop-improve" / "previous-aaaa1111" / "reviews"
+            reviews.mkdir(parents=True)
+            (reviews / "review-1.md").write_text("previous run's review")
+            (run_dir / "state.md").write_text('```shiploop-state\n' + json.dumps({"repo": str(repo)}) + '\n```\n')
+            got = metrics.improve_reviews(run_dir)
+            self.assertIsNone(got["passes"])
+            self.assertTrue(got["unmeasured"])
+
+    def test_unreadable_bindings_do_not_look_like_no_bindings(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            binds = root / "run" / "improve"
+            binds.mkdir(parents=True)
+            (root / "worktree" / ".shiploop-improve").mkdir(parents=True)
+            original = Path.iterdir
+
+            def read(path):
+                if path == binds:
+                    raise PermissionError("fixture unreadable bindings")
+                return original(path)
+
+            with mock.patch.object(Path, "iterdir", read):
+                got = metrics.improve_reviews(root / "run")
+            self.assertIsNone(got["passes"])
+            self.assertIn("unreadable", got["unmeasured"])
+
+    def test_unreadable_review_root_is_unknown_not_zero(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            reviews = root / "worktree" / ".shiploop-improve"
+            reviews.mkdir(parents=True)
+            original = Path.iterdir
+
+            def read(path):
+                if path == reviews:
+                    raise PermissionError("fixture unreadable review root")
+                return original(path)
+
+            with mock.patch.object(Path, "iterdir", read):
+                got = metrics.improve_reviews(root / "run")
+            self.assertIsNone(got["passes"])
+            self.assertIn("unreadable", got["unmeasured"])
+
+    def test_unreadable_state_is_unknown_not_a_collector_crash(self):
+        with mock.patch.object(metrics, "engine_state", side_effect=PermissionError("fixture unreadable state")):
+            got = metrics.improve_reviews(Path("/fixture/run"))
+        self.assertIsNone(got["passes"])
+        self.assertIn("unreadable", got["unmeasured"])
+
+    def test_malformed_existing_state_does_not_authorize_the_legacy_fallback(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            run_dir = root / "run"
+            run_dir.mkdir()
+            (run_dir / "state.md").write_text('```shiploop-state\n{broken\n```\n')
+            reviews = root / "worktree" / ".shiploop-improve" / "decoy" / "reviews"
+            reviews.mkdir(parents=True)
+            (reviews / "review-1.md").write_text("not this run")
+            got = metrics.improve_reviews(run_dir)
+            self.assertIsNone(got["passes"])
+            self.assertTrue(got["unmeasured"])
+
+    def test_summary_reports_missing_review_measurement(self):
+        data = dict(shiploop_failures=[], model_glue=[], asked_user=[], sessions=[], cost_usd=0.0,
+                    unmeasured={}, improve_children=0, improve_reviews=metrics.improve_reviews(None),
+                    script_verifications={"passed": 0, "records": 0}, turns=0, stages=[])
+        self.assertIn("review passes not measured", metrics.summary_lines(data)[0])
 
 
 class ClaudeResumeInvokedTest(unittest.TestCase):
