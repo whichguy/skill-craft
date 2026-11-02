@@ -134,8 +134,9 @@ MARKER = re.compile(r"SHIPLOOP-RUN")
 # The routed verbs lint, red-check and backchain-check refuse with "ShipLoop <verb> could not run: " (exit 3) instead;
 # until 2026-10-28 no prefix here matched it, so each was recorded with an empty line (7 lint refusals, bf-ds-*-09c33b).
 # A failed `shiploop check` opens with "ShipLoop check: the check says no. " (phase B) and trails "Nothing was accepted or counted."
-REFUSAL_LINE = re.compile(r"^ShipLoop (?:(?:navigator|blocked|workspace blocked|[a-z][a-z-]* could not run): |"
-                          r"check: the check says no\. )", re.M)
+# v12 can refuse an absent authoritative run before workspace dispatch or trace creation.
+REFUSAL_LINE = re.compile(r"^(?:ShipLoop (?:(?:navigator|blocked|workspace blocked|[a-z][a-z-]* could not run): |"
+                          r"check: the check says no\. )|error: no authoritative state\.md in [^\r\n]+)", re.M)
 TRAILER_LINE = re.compile(r"^(?:Read the current packet with next; |The run is still active: fix the result and |"
                           r"Nothing was accepted or counted\. |"
                           r"Request failure: no in-memory result|Durable cursor recovery: )")
@@ -2172,7 +2173,7 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     try:
         context_rows = context_window_rows(out, run_dir, stamps=stamps, accepted=accepted, pending=pending,
                                            sessions=sessions_recorded, compaction_lines=compaction_lines)
-    except Exception as exc:  # noqa: BLE001 - record-only, like fresh_starts above
+    except Exception:  # noqa: BLE001 - record-only, like fresh_starts above
         context_rows = []
     stages = per_stage(accepted, turns, tools.calls, stamps, pending, unmeasured, window_tokens)
     # The harness's launch record reconciles reported sessions with launches on every host (SPEC build step 8); without

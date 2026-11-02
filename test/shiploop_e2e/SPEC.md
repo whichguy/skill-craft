@@ -111,6 +111,14 @@ require usable measurement evidence. Candidate construction precedes registratio
 qualification evidence. A/A calibration and model-only comparisons can intentionally share a build, with purpose
 declared in advance. `promotion/4` remains historical diagnostic behaviour, not the strict epoch qualification path.
 
+A registered follow-on binds one reviewed predecessor per case, shared by both arms. Its exact run receipt,
+clean delivered commit/tree and five passing semantic checkpoint dimensions are frozen before dispatch.
+Restore committed files and history from that receipt's delivery bundle; do not inherit ignored runtime caches
+or mutable prior Git configuration. Recheck the source around restoration and bind the copied commit to the
+invocation/result and final qualification. Missing, changed or unqualified predecessors cannot launch or qualify.
+Final ancestry is proved from the receipt-bound delivery bundle, not mutable live Git metadata excluded by the receipt.
+Ordinary unregistered continuation keeps its existing behavior.
+
 The stepwise epoch controller records every dispatch before launching and seals its evidence afterward. A resume is a
 session of its logical attempt; a restart is a new attempt. Lost launch receipts leave an explicit unknown state, not an
 automatic retry. Detailed review feedback is recorded as exposure. Changes to the mission, scorer or requirements take
@@ -738,6 +746,15 @@ and two decisions are compared only under the same id.
     The delta ledger remains a locator for this semantic review. Correct output alone does not establish which source the
     subject retrieved: report that source as unknown when the access evidence is incomplete. This clarification permits
     source-mapped incorporation by reference; it does not make an exploratory chain a promotion/5 qualification.
+  - *Prior/current intent lifecycle* (owner design, 2026-11-02; `docs/shiploop-intent-continuity-plan-2026-11-02.md`).
+    A run binds its exact prior aggregate and maintains a separate current candidate. Earlier release returns preserve
+    the prior aggregate; final handoff promotes exactly the accepted current bytes and returns that knowledge to the
+    source. Direct runs prove promotion without inventing a workspace receipt. The opt-in `user-intent-continuity` and
+    `csv-intent-direct` cases check this lifecycle independently of the candidate validator. The API case combines an
+    addition and an explicit old-clause replacement; the CSV case includes accepted future scope that stays deferred.
+    Byte/receipt checks do not establish semantic preservation: review delta-only work, retained conditions and rationale,
+    intentional override authority, deferred scope, accurate status, organization and any claimed source retrieval.
+    Positive and defective synthetic controls calibrate those checks before a comparison; they are not live product wins.
   - *A chain is read to its end* (`chains.py`). A link's regression is every earlier link's own checks, oldest first; a
     check an earlier link already contributed runs once, and a case's own list is never thinned. Its quality measures are the
     nearest declaration among the cases it follows, key by key. Its retention checks see only the link just before it as

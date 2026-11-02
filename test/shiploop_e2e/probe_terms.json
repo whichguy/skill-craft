@@ -117,6 +117,13 @@
     "user-team-casefold": [
       "\\bteam[- ]casefold\\b",
       "\\bby_team\\b"
+    ],
+    "user-intent-continuity": [
+      "\\bby_team\\b",
+      "\\bteam[- ]casefold\\b"
+    ],
+    "csv-intent-direct": [
+      "\\bcsv[- ]report\\b"
     ]
   },
   "exempt": [

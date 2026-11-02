@@ -33,6 +33,7 @@ import lifecycle
 import listeners
 import metrics
 import prediction as predictions
+import predecessor
 import promotion
 import scorecard
 
@@ -268,9 +269,12 @@ def launch_intent(root: Path, attempt_id: str, plugin: Path) -> dict:
     output = root / "runs" / attempt_id
     if output.exists():
         raise ValueError("attempt output already exists; reconcile its identity")
+    prior = (reg.get("predecessors") or {}).get(spec["case"])
+    bound = ({"predecessor": {"run": prior["run"], "receipt_sha256": prior["receipt"]["sha256"]}}
+             if prior else {})
     return append(root, "launch_intent", attempt_id=attempt_id, arm=spec["arm"], case=spec["case"],
                   output=str(output), plugin=str(plugin.resolve()), driver=expected["driver"],
-                  registration_sha256=digest(root / "registration.json"))
+                  registration_sha256=digest(root / "registration.json"), **bound)
 
 
 def unsettled_siblings(root: Path, output: Path) -> list[Path]:
@@ -313,7 +317,7 @@ def settle_siblings(root: Path, output: Path, wait: float | None = None, poll: f
 
 def record_run(root: Path, attempt_id: str) -> dict:
     reg = registration(root)
-    attempt_spec(reg, attempt_id)
+    spec = attempt_spec(reg, attempt_id)
     rows = events(root)
     if any(row["kind"] == "recorded" and row.get("attempt_id") == attempt_id for row in rows):
         raise ValueError("attempt already sealed")
@@ -330,6 +334,12 @@ def record_run(root: Path, attempt_id: str) -> dict:
                          + "); sealing now would not be stable evidence: reconcile it once that run ends")
     if not (output / "result.json").is_file():
         raise ValueError("no result receipt; launch remains unknown")
+    prior = (reg.get("predecessors") or {}).get(spec["case"])
+    if prior:
+        problems = predecessor.linkage_problems(
+            prior, output, reg["qualification"]["cases"][spec["case"]]["follows"])
+        if problems:
+            raise ValueError("registered predecessor linkage: " + "; ".join(problems))
     files = {name: digest(output / name) for name in SEALED_FILES if (output / name).is_file()}
     return append(root, "recorded", attempt_id=attempt_id, output=str(output), files=files,
                   evidence=scorecard.run_receipt(output), started=launches[-1]["at"])
@@ -431,6 +441,9 @@ def launch(root: Path, attempt_id: str, plugin: Path) -> dict:
     driver = intent["driver"]
     argv = ["--case", intent["case"], "--host", driver["host"], "--model", driver["model"],
             "--effort", driver["effort"], "--plugin-dir", intent["plugin"], "--output", intent["output"]]
+    if intent.get("predecessor"):
+        argv += ["--predecessor-registration", str(root / "registration.json"),
+                 "--predecessor-registration-sha256", intent["registration_sha256"]]
     # No retries: a crash after dispatch leaves an intent for explicit reconciliation.
     result = runner.main(argv)
     settle_siblings(root, Path(intent["output"]))  # before the lock: a sibling that ends needs it to seal itself

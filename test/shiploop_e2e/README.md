@@ -2540,6 +2540,35 @@ Partial receipts remain visible as unknown.
 A later improver change needs a new build and qualification registration; `iterate.py` writes `iteration-result.json`
 identifying the final source and whether it remains unevaluated.
 
+A registered incremental case binds one `predecessors[case]` entry before either arm starts: the canonical prior
+run path, its complete existing `scorecard.run_receipt`, and a manual review bound to that receipt's SHA256.
+The review names its reviewer and supplies passing, cited evidence for requested behavior, prior behavior,
+decision handling, knowledge/organization and workflow/lineage. A product pass alone is insufficient.
+Both arms use this same entry. The predecessor must match the case's `follows`, have passing accuracy and fidelity,
+and retain its clean delivered HEAD/tree. Missing, changed, failed or unknown evidence refuses dispatch.
+
+The epoch passes its exact registration and digest to the runner, which restores the accepted commit and history
+from the frozen `delivery/work.bundle` onto a local `e2e-predecessor` branch. This registered path uses committed
+product files only; ignored runtime caches and mutable prior Git configuration are excluded. It verifies the
+bundle/source before and after restore and the resulting HEAD/tree before launching a model. Invocation and result
+records retain the binding, and strict promotion rechecks it and descendant ancestry from the receipt-bound
+final delivery bundle, never the live checkout's mutable Git metadata. Ordinary
+`run.py --continue-from` retains its existing copy behavior. Stage slices remain diagnostic and cannot replace
+the registered full-run comparison.
+
+Two opt-in cases exercise intent continuity. `user-intent-continuity` starts from a reviewed `user-teams` delivery,
+adds the summary route and explicitly changes team matching to ignore case. It reuses the calibrated API oracle,
+preserving all earlier conditions except the two deliberately replaced strict-case checks. `csv-intent-direct`
+builds the existing CSV request through the direct Git route and records a future region selector as deferred.
+Neither case is added to the routine suites automatically.
+
+Their lifecycle check reads run records independently of the candidate's validator. It checks exact prior snapshots,
+the accepted current-spec review, final promotion and delivered aggregate. The worktree case also checks the earlier
+return trees and final knowledge follow-up; the direct case requires no workspace receipt. These are byte and lifecycle
+checks. A separate semantic review must establish the actual delta, preserved conditions, authorized changes, deferred
+scope, truthful status and organization. A recorded path alone does not establish retrieval. Synthetic positive and
+negative controls establish what the checker detects; they do not establish a live ShipLoop improvement.
+
 Every detailed review is an exposure event, including failed reviews. This is accounting, not proof that a holdout was
 never previously seen. The first controller's generalisation claim remains unobserved without independent registered
 coverage. `disposition` appends a reasoned lesson event (including deferral or reopening) without changing its original
