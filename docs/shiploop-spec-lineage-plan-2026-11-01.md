@@ -1,5 +1,7 @@
 # Plan: preserve product requirements across ShipLoop feature runs
 
+**Superseded design recommendation, 2026-11-02:** the owner clarified that prior aggregate intent and current-run intent must be distinct, with deliberate final consolidation and step plans limited to new/intentional changes. Follow [new work against retained intent](shiploop-intent-continuity-plan-2026-11-02.md). The inspection and tests below remain historical evidence; their recommendation to retain the lifecycle without explicit consolidation is no longer the target.
+
 Keep one current product contract. Explicit new instructions override only conflicting earlier clauses; every compatible earlier requirement remains binding. The incoming request need not name an old requirement ID to supersede its conflicting clause. Verify that the affected old clauses and the incoming change reach planning, implementation, tests and Improve, including after context loss.
 
 **Status: proposed verification and conditional hardening, 2026-11-01.** This task changes documentation only. Source inspected at `c0bcf83dedc759a15ed924d3966bb8392422eeca` on `main`; no product test, live delivery, release or deployment is claimed here.

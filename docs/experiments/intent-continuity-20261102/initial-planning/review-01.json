@@ -1,0 +1,54 @@
+{
+  "candidate_identity": "ea14ba39d49c17917d879095e87af58bd9b74ca420dc2e67a1506987cba5ca10",
+  "context_identity": "500284b109e1ce8552fac3ca4057bafb1fe01c0f642a296d375349ac02ec5fa6",
+  "change_class": "material",
+  "findings": [
+    {
+      "description": "S9 relied on same-build cold-context packet/review evidence but had no supplier that retained that campaign; S8 conflated producing the shared evidence with its delta-only verdict. Added D1, retained explicit source/oracle/profile/identity limits and rewired qualification to the evidence rather than assuming it.",
+      "candidate_refs": [
+        "S8",
+        "S9",
+        "D1"
+      ],
+      "source_refs": [
+        "input/request.md: cold-model/incremental validation and source-versus-observation limits"
+      ],
+      "recommended_change": "One shared registered campaign produces raw observations; qualification consumes those records without rerunning models."
+    },
+    {
+      "description": "S9 combined separate terminal continuity outcomes with different observation boundaries. Moved the environment/AD continuity produce and its exact confirmation unchanged to discovered D2; S9 retains prior-intent/terminal-promotion qualification. All original goal_needs remain verbatim.",
+      "candidate_refs": [
+        "S9",
+        "D2"
+      ],
+      "source_refs": [
+        "input/request.md: environment/architecture decision continuity versus terminal aggregate promotion"
+      ],
+      "recommended_change": "Keep lifecycle identity checks and semantic prior-decision checks independently assessable while sharing D1 evidence."
+    },
+    {
+      "description": "S8 confirmation now consumes retained campaign records explicitly and does not launch a duplicate campaign; its original condition and request coverage are preserved and expanded with current record identity.",
+      "candidate_refs": [
+        "S8"
+      ],
+      "source_refs": [
+        "input/request.md: frozen subject/control/evaluator and no favorable reruns"
+      ],
+      "recommended_change": "Retain the original quality and scope postcondition but distinguish evidence collection from verdict."
+    }
+  ],
+  "checks": [
+    "Backward trace covered all three unchanged goal_needs; S1 owns active-run compatibility before S3 and no compatibility outcome was invented as initial_state.",
+    "Forward walk: S1 contract -> S2 calibrated independent fixtures -> S3 protected role binding -> S4 delta-only planning and S5 prior-decision continuity in parallel -> S6 terminal consolidation -> S7 package/docs identity -> D1 campaign -> S8/S9/D2 independent conclusions. Direct edges name actually consumed artifacts.",
+    "Implementable chunks reviewed: S3 binding and accepted writeback protection share one safe transition boundary; S4 planning scope and preserved-constraint selection share a step-plan contract; S5 standing-file/rationale handoffs are distinct from terminal mutation S6. S7 package/docs join checks discoverability beyond implementation.",
+    "Technical screen read technical-lenses.md, cards T01 T02 T03 T07 T08 T11 T12 T13 T16 T19 T34 T36 T38 T41 and technical-interactions.md. Remaining triggered concerns (configuration/trust/privacy/failure/performance/audit/ownership) are supplied by existing mechanisms and explicit identity/minimality/review obligations, not new services or infrastructure. No UI, networking, external deployment, database backfill, localization, authorization-system or backup project is introduced.",
+    "Reviewed filesystem atomicity, duplicate callback, source drift, initialization/reseed, current/prior parser skew, reviewed/promoted/returned digest and early-release-versus-handoff interactions; these are future executed checks, not current runtime passes.",
+    "Original request and later same-scope step-plan clarifications agree: inherited follows constrain a step without ordering a rebuild; source code is observed state, not approval. No source edit, commit or project execution occurred during this loop cycle.",
+    "Post-repair obligations retain every seed ID and exact goal_needs. D2 preserves the moved original produce and confirmation; D1 is consumed by all three qualification conclusions."
+  ],
+  "planning_gaps": [],
+  "execution_blockers": [
+    "Before S3 implementation, S1 must settle the policy for existing active runs; this is planned contract work, not proof that old run state is safely migratable.",
+    "Live campaign transport/readiness and actual served identity are not established now; D1 must retain and qualify that evidence and stop incomplete when unavailable."
+  ]
+}

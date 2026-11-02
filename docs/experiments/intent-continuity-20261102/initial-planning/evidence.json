@@ -1,0 +1,80 @@
+{
+  "schema": "backchain-evidence/v1",
+  "binding_id": "backchain-500284b1-3ae75c",
+  "candidate": {
+    "input_sha256": "ea14ba39d49c17917d879095e87af58bd9b74ca420dc2e67a1506987cba5ca10",
+    "output_sha256": "c2a2bc83bcffec79cd8d61b840878d502358d828823493f3d66f9390a9c6d2d2"
+  },
+  "cycles": [
+    {
+      "cycle": 1,
+      "callback": 1,
+      "classification": "non-trivial",
+      "changed": true,
+      "change_class": "material",
+      "findings": 3,
+      "review": {
+        "path": "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain/cycles/01/review.json",
+        "sha256": "a670d57b4214e33bf77cd8e6999257f99f0a55b8bd21db416d8b78cfeb6a04b9"
+      },
+      "plan": {
+        "path": "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain/cycles/01/plan.json",
+        "sha256": "c2a2bc83bcffec79cd8d61b840878d502358d828823493f3d66f9390a9c6d2d2",
+        "packaged_sha256": "d68c5c030667c20b59246293cb2a0211aa27b8b231d00fcdbcf9d82c28008da1"
+      },
+      "check": {
+        "path": "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain/cycles/01/check.json",
+        "sha256": "3d160cf739bdeef96634d8ddfec777c91aa52ef2571a146ec9b5f6864d141aa5",
+        "ok": true,
+        "completion": "complete"
+      },
+      "comparison": {
+        "path": "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain/cycles/01/comparison.json",
+        "sha256": "a2f52ad57fca08a3cdc8e224b2fc5bcf4e857d90853eb405b68b6d6f1fa6e240",
+        "differences": 3
+      },
+      "report": {
+        "path": "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain/cycles/01/report.json",
+        "sha256": "fe4360f4987ff105b1a62677af1005807d94fd8bfa50440e5d2c315af96e1f65"
+      }
+    },
+    {
+      "cycle": 2,
+      "callback": 2,
+      "classification": "trivial",
+      "changed": false,
+      "change_class": "none",
+      "findings": 0,
+      "review": {
+        "path": "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain/cycles/02/review.json",
+        "sha256": "3a04d2e85c3ca3c7cbbcc56d5492b6e788be2d4414ced6304e14501ff52912a7"
+      },
+      "plan": {
+        "path": "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain/cycles/02/plan.json",
+        "sha256": "c2a2bc83bcffec79cd8d61b840878d502358d828823493f3d66f9390a9c6d2d2",
+        "packaged_sha256": "d68c5c030667c20b59246293cb2a0211aa27b8b231d00fcdbcf9d82c28008da1"
+      },
+      "check": {
+        "path": "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain/cycles/02/check.json",
+        "sha256": "3d160cf739bdeef96634d8ddfec777c91aa52ef2571a146ec9b5f6864d141aa5",
+        "ok": true,
+        "completion": "complete"
+      },
+      "comparison": {
+        "path": "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain/cycles/02/comparison.json",
+        "sha256": "a2f52ad57fca08a3cdc8e224b2fc5bcf4e857d90853eb405b68b6d6f1fa6e240",
+        "differences": 3
+      },
+      "report": {
+        "path": "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain/cycles/02/report.json",
+        "sha256": "1afbbafefdda99654b632aeddd5421679fd2b2e0687fbe8d1a64bbbe5fe114db"
+      }
+    }
+  ],
+  "planning_gaps": [],
+  "execution_blockers": [
+    "S1 must finalize old active-run compatibility before S3 implementation; do not apply an unevidenced migration to running state.",
+    "D1 must establish actual authorized transport/readiness and identity for its frozen campaign; absence is incomplete execution, not evidence that the design passed."
+  ],
+  "next_action": ""
+}

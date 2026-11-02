@@ -1,5 +1,7 @@
 # Audit: prior-run context and the living spec
 
+**Later owner direction, 2026-11-02:** this file describes the inspected implementation, not the newly selected target. The owner wants distinct prior/current intent, deliberate completion-time consolidation and delta-only step plans. See the [revised continuity plan](shiploop-intent-continuity-plan-2026-11-02.md); the earlier recommendation against a consolidation obligation is superseded.
+
 Packets carry the repository's enduring product knowledge and selected requirement entries. They do not reload every old run folder. The living spec is created or updated in the execution worktree during specification, then returned with the product at completion. **There is no separate final semantic merge of a feature spec into an older full spec.**
 
 This follow-up inspects and exercises the source at `3be5daeced25cd39c722701bac9b2d34e894e0cb`; its ShipLoop code is unchanged from `c0bcf83dedc759a15ed924d3966bb8392422eeca`. Five established suites passed, 342 tests total, and a synthetic-state probe rendered the actual packet blocks described below. No live model delivery or product-source change is claimed.
