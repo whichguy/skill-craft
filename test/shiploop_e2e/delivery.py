@@ -19,21 +19,22 @@ FOLDER = "delivery"
 BUNDLE = f"{FOLDER}/work.bundle"
 
 
-def _git(work: Path, *args: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["git", "-C", str(work), *args], capture_output=True, text=True, stdin=subprocess.DEVNULL)
+def _git(work: Path, *args: str, env=None) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", "-C", str(work), *args], capture_output=True, text=True,
+                          stdin=subprocess.DEVNULL, env=env)
 
 
-def fingerprint(work: Path) -> dict:
+def fingerprint(work: Path, *, git_env=None) -> dict:
     """``{observed: True, head, tree, status}`` for a git work tree (head and tree null before its first commit), else
     ``{observed: False, reason}``."""
     work = Path(work)
     if not (work / ".git").exists():
         return {"observed": False, "reason": "no work/ repository (torn down, or nothing was delivered)"}
-    status = _git(work, "status", "--porcelain", "--untracked-files=normal")
+    status = _git(work, "status", "--porcelain", "--untracked-files=normal", env=git_env)
     if status.returncode != 0:
         return {"observed": False, "reason": "git status failed: " + (status.stderr.strip().splitlines() or ["no message"])[0][:160]}
-    head = _git(work, "rev-parse", "--verify", "-q", "HEAD")
-    tree = _git(work, "rev-parse", "--verify", "-q", "HEAD^{tree}")
+    head = _git(work, "rev-parse", "--verify", "-q", "HEAD", env=git_env)
+    tree = _git(work, "rev-parse", "--verify", "-q", "HEAD^{tree}", env=git_env)
     return {"observed": True, "head": head.stdout.strip() or None, "tree": tree.stdout.strip() or None,
             "status": [line for line in status.stdout.splitlines() if line.strip()]}
 
@@ -68,17 +69,18 @@ def changed(before: dict, after: dict) -> list[str]:
     return reasons
 
 
-def restore(out: Path, dest: Path, head: str | None = None) -> Path:
+def restore(out: Path, dest: Path, head: str | None = None, *, git_env=None) -> Path:
     """Rebuild the delivered tree from ``<out>/delivery/work.bundle`` into ``dest`` (which must not exist), at ``head``
     when given. Raises ``FileNotFoundError`` when the run has no bundle and ``RuntimeError`` when git refuses."""
     bundle = Path(out) / BUNDLE
     if not bundle.is_file():
         raise FileNotFoundError(f"{bundle}: the run archived no delivery")
-    done = subprocess.run(["git", "clone", "-q", str(bundle), str(dest)], capture_output=True, text=True, stdin=subprocess.DEVNULL)
+    done = subprocess.run(["git", "clone", "-q", str(bundle), str(dest)], capture_output=True, text=True,
+                          stdin=subprocess.DEVNULL, env=git_env)
     if done.returncode != 0:
         raise RuntimeError("git clone of the delivery bundle failed: " + done.stderr.strip()[:200])
     if head:
-        checkout = _git(Path(dest), "checkout", "-q", head)
+        checkout = _git(Path(dest), "checkout", "-q", head, env=git_env)
         if checkout.returncode != 0:
             raise RuntimeError(f"the bundle has no commit {head[:8]}: " + checkout.stderr.strip()[:200])
     return Path(dest)

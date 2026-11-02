@@ -138,6 +138,7 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
 import boundary  # noqa: E402
+import predecessor  # noqa: E402
 import brownfield  # noqa: E402
 import chains  # noqa: E402
 import counters  # noqa: E402
@@ -449,6 +450,30 @@ def continue_from(prior: Path, work: Path) -> dict:
             or (earlier.get("cli") or {}).get("num_turns"),
             "prior_cost_usd": (earlier.get("metrics") or earlier.get("cli") or {}).get("cost_usd"),
             "prior_lower_bound": metrics.lower_bound(earlier.get("metrics") or {})}
+
+
+def registered_predecessor(args, case: str) -> dict | None:
+    """Read the exact epoch registration before restoring a committed predecessor."""
+    path = args.predecessor_registration
+    expected = args.predecessor_registration_sha256
+    if path is None and expected is None:
+        return None
+    if path is None or expected is None:
+        raise SystemExit("registered predecessor needs its registration path and SHA256 digest")
+    if args.continue_from or args.resume_run or args.seed_at or args.suite or args.prompt:
+        raise SystemExit("registered predecessor needs one named new case, without continuation, resume, seed or suite overrides")
+    try:
+        raw = path.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != expected:
+            raise ValueError("predecessor registration digest changed after launch intent")
+        reg = json.loads(raw)
+        predecessor.validate_registration(reg)
+        entry = reg.get("predecessors", {}).get(case)
+        if entry is None:
+            raise ValueError(f"predecessor registration has no input for case {case!r}")
+    except (OSError, ValueError, TypeError) as error:
+        raise SystemExit(str(error)) from None
+    return entry
 
 
 def new_output_dir(requested: Path | None, name: str) -> Path:
@@ -2553,6 +2578,10 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--continue-from", type=Path,
                    help="an earlier run's output directory: start in a copy of its source checkout "
                         "(required by follow-on cases, which name the case they follow)")
+    p.add_argument("--predecessor-registration", type=Path,
+                   help="epoch registration binding one reviewed committed predecessor for this case")
+    p.add_argument("--predecessor-registration-sha256",
+                   help="SHA256 of the exact predecessor registration recorded before dispatch")
     p.add_argument("--seed-at", choices=SEED_STAGES,
                    help="start a run at this stage, with the earlier stages recorded without doing them. step-plan: an "
                         "Ask-Agent run that reaches the implementation steps without hours of planning. "
@@ -3896,6 +3925,10 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     guard = guard or PlatformGuard()
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
+    if args.predecessor_registration or args.predecessor_registration_sha256:
+        if args.baseline_report or args.preflight_only:
+            raise SystemExit("registered predecessor is a new-run input, not a report or preflight override")
+        registered_predecessor(args, args.case)
     if args.keep_platform and (args.suite or args.preflight_only or args.baseline_report):
         raise SystemExit("--keep-platform keeps what one run of a case with a platform made there: it does not go with --suite, "
                          "--preflight-only or --baseline-report")
@@ -3959,7 +3992,8 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     if args.planning_review and args.seed_at:
         raise SystemExit("--planning-review with --seed-at: the harness starts a seeded run itself and records its stages "
                          "without doing them, so the option would change nothing")
-    if args.stop_after_start and (args.suite or args.seed_at or args.resume_run or args.continue_from or args.keep_platform):
+    if args.stop_after_start and (args.suite or args.seed_at or args.resume_run or args.continue_from
+                                 or args.predecessor_registration or args.keep_platform):
         raise SystemExit("--stop-after-start ends a new run at its first start: it does not go with --suite, --seed-at, "
                          "--resume-run, --continue-from or --keep-platform")
     if args.suite:
@@ -4071,10 +4105,11 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             raise SystemExit(f"--keep-platform: case {name!r} has no platform, so there is nothing to keep")
         refuse_unmatched_keep_checks(name, platform_spec, checks)
         planning_review = planning_review_choice(args.planning_review, None)
-        if follows and not args.continue_from:
+        registered_input = registered_predecessor(args, name)
+        if follows and not (args.continue_from or registered_input):
             raise SystemExit(f"case {name!r} follows {follows!r}: pass --continue-from <that run's output directory>")
         based_on = catalog().get(name) if name != "custom" else None
-        if (based_on or {}).get("base") and (args.continue_from or args.seed_at):
+        if (based_on or {}).get("base") and (args.continue_from or registered_input or args.seed_at):
             raise SystemExit(f"case {name!r} starts from its base, fixtures/{based_on['base']['fixture']}: it takes neither "
                              "--continue-from nor --seed-at")
         brownfield.resolve(based_on)  # a base that no longer matches its pin is refused before the folder exists
@@ -4087,7 +4122,13 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         lease.bind(out)
         work = out / "work"
         work.mkdir()
-        follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
+        if registered_input:
+            try:
+                follow_on = predecessor.restore(registered_input, work, follows)
+            except (OSError, ValueError, RuntimeError) as error:
+                raise SystemExit(f"registered predecessor restore refused: {error}") from None
+        else:
+            follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
         based = brownfield.start(work, based_on)  # the base, committed before the host starts (None: an empty folder)
         record_preexisting_runs(out)  # a follow-on's copy can bring an earlier run's state along: never this run's
     args.platform_existing = existing  # resume_command reads it: a resume keeps its run's mode

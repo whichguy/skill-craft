@@ -46,6 +46,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import boundary  # noqa: E402  (boundary.GROUPS: the grading digests)
 import metrics  # noqa: E402  (metrics.span: the one span reader)
+import predecessor  # noqa: E402
 import scorecard  # noqa: E402  (the cards the contract reads)
 
 CONTRACT_ID = "promotion/4"
@@ -226,6 +227,10 @@ def _strict_registration(raw: dict, data: bytes) -> dict:
              if count != normalized[case]["attempts"]]
     if wrong:
         raise SystemExit("promotion/5 attempts must exactly cover every registered case in each arm: " + ", ".join(wrong))
+    try:
+        predecessor.validate_registration(reg)
+    except (OSError, ValueError, TypeError) as error:
+        raise SystemExit(f"promotion/5 predecessor binding: {error}") from None
     try:
         expected = boundary.qualification_snapshot(Path(__file__).resolve().parent, normalized)
         changes = boundary.qualification_changes(qualification, Path(__file__).resolve().parent, normalized)
@@ -619,6 +624,10 @@ def _strict_decide(reg: dict, control, candidate, harness_root: Path | None = No
                 if counts["path"].get(canonical_path, 0) > 1:
                     add_evidence_error(row, f"run path {canonical_path!r} is duplicated")
                 frozen_case = ((reg.get("qualification") or {}).get("cases") or {}).get(case)
+                prior = (reg.get("predecessors") or {}).get(case)
+                if prior:
+                    for problem in predecessor.linkage_problems(prior, Path(run_path), frozen_case["follows"]):
+                        add_evidence_error(row, f"{attempt_id}: registered predecessor {problem}")
                 invalid_records = _strict_run_records(Path(run_path))
                 if invalid_records:
                     fresh = None

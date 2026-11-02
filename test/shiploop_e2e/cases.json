@@ -2013,5 +2013,185 @@
       },
       "source": "the request replaces only the earlier case-sensitive team-matching rule in either living file; team is the measured locator pattern, and the ledger remains evidence for manual semantic review"
     }
+  },
+  "user-intent-continuity": {
+    "style": "brownfield",
+    "follows": "user-teams",
+    "prompt": "Add GET /users/summary. It returns a JSON object with `total`, the number of all matching users, and `by_team`, a map from each matching user's stored team name to its count; omit groups with no matching users. It counts all matches without pagination. Use the same `name` and `team` filters GET /users applies. Ignore `page`, `size`, `include` and other query parameters on this summary route; do not validate them for this route. Other response keys may be present. No matches return total 0 and an empty by_team object. At the same time, change team matching on both GET /users and GET /users/summary to ignore letter case while still requiring the exact team name. Stored and returned team spelling stays unchanged. This explicitly replaces the old case-sensitive team rule: update that requirement, any decision behind it and only the tests that state that old rule. All unrelated behavior and tests must remain intact. Add node:test tests. Use ShipLoop's isolated worktree route and return the completed work to this repository.",
+    "checks": [
+      "node --test",
+      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const b=process.env.BASE;(async()=>{const a=await fetch(b+'/users/summary?name=e&team=Engineering&page=2&size=1').then(r=>r.json());const z=await fetch(b+'/users/summary?page=bad&size=0').then(r=>r.json());const ok=a.total===2&&a.by_team.Engineering===2&&z.total===3&&z.by_team.Support===1;process.exit(ok?0:3);})().catch(()=>process.exit(4))\"",
+      "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const b=process.env.BASE;(async()=>{const a=await fetch(b+'/users?team=engineering&include=team').then(r=>r.json());const s=await fetch(b+'/users/summary?team=ENGINEERING').then(r=>r.json());const exact=await fetch(b+'/users?team=Eng').then(r=>r.json());const ok=a.length===2&&a[0].team==='Engineering'&&s.total===2&&s.by_team.Engineering===2&&exact.length===0;process.exit(ok?0:3);})().catch(()=>process.exit(4))\"",
+      "python3 \"$E2E_CHECKS/intent_continuity.py\" --mode worktree"
+    ],
+    "checks_source": "The request combines the independently calibrated summary addition and explicit team-case rule replacement. The final check observes the owner-approved ShipLoop current/prior intent lifecycle through exact snapshot, accepted review, terminal promotion and workspace-return receipts; semantic preservation is reviewed separately.",
+    "retention": [
+      "files_path=$(mktemp) || exit 1; git -C \"$PRIOR_WORK\" ls-files --cached --others --exclude-standard > \"$files_path\" || { rm -f \"$files_path\"; exit 1; }; while IFS= read -r prior_file; do case \"$prior_file\" in *.log) continue ;; esac; [ -e \"$prior_file\" ] || { echo \"missing prior file $prior_file\"; rm -f \"$files_path\"; exit 1; }; done < \"$files_path\"; rm -f \"$files_path\"; for living_file in docs/shiploop/spec.md docs/shiploop/environment.md docs/shiploop/architecture.md; do [ -f \"$living_file\" ] || { echo \"missing living file $living_file\"; exit 1; }; done",
+      "node -e 'const fs=require(\"fs\"),path=require(\"path\");const deps=d=>{try{const p=JSON.parse(fs.readFileSync(path.join(d,\"package.json\"),\"utf8\"));return JSON.stringify(Object.keys({...p.dependencies,...p.devDependencies}).sort())}catch{return \"[]\"}};process.exit(deps(\".\")===deps(process.env.PRIOR_WORK)?0:1)'",
+      "ids() { grep -oE 'R-[0-9]+' \"$1/docs/shiploop/spec.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\"); echo \"earlier requirement IDs: $(wc -l < \"$before\"); missing: $missing\"; rm -f \"$before\" \"$after\"; [ -z \"$missing\" ]",
+      "ids() { grep -oE 'AD-[0-9]+' \"$1/docs/shiploop/architecture.md\" 2>/dev/null | sort -u; }; before=$(mktemp); after=$(mktemp); ids \"$PRIOR_WORK\" > \"$before\"; ids . > \"$after\"; missing=$(comm -23 \"$before\" \"$after\"); echo \"earlier decision IDs: $(wc -l < \"$before\"); missing: $missing\"; rm -f \"$before\" \"$after\"; [ -z \"$missing\" ]"
+    ],
+    "retention_source": "For this pilot, the file check preserves prior project files and requires all three living files; this is not a general rule about allowed file organization. Dependencies stay unchanged and every prior requirement and decision ID remains, including entries under Retired or Superseded; zero prior AD IDs is valid. These checks do not require new IDs, new words, new files or a larger test count. The delta ledger is a locator; reviewers inspect requirement meaning and retirement manually.",
+    "quality": {
+      "acceptance": {
+        "module": "user_team_casefold_accept",
+        "calibration": [
+          "test/fixtures/quality/reference_user_listing.py",
+          "test/fixtures/quality/reference_user_summary.py",
+          "test/fixtures/quality/reference_user_team_casefold.py",
+          "test/fixtures/quality/reference_user_teams.py",
+          "test/shiploop-e2e-user-chain.test.py",
+          "test/shiploop-e2e-intent-continuity.test.py",
+          "test/shiploop_e2e/checks/intent_continuity.py"
+        ],
+        "start": "node src/server.js",
+        "source": "Reuses the calibrated user_team_casefold_accept oracle: all listing/team/summary behavior except the two expressly replaced strict-case conditions, plus casefold and unchanged-spelling checks. This combined request starts from the reviewed user-teams predecessor rather than an unqualified summary run.",
+        "checks": [
+          {
+            "id": "list-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'without `page` and `size`, GET /users still answers a JSON array of users in id order (every user unless `name` is given), any other query parameter is ignored'"
+          },
+          {
+            "id": "user-by-id-unchanged",
+            "grade": "pass-to-pass",
+            "source": "the request: 'and GET /users/:id is unchanged'"
+          },
+          {
+            "id": "name-filter",
+            "grade": "fail-to-pass",
+            "source": "the request: 'The `name` query parameter keeps only the users whose name contains it as plain text, ignoring case; an empty `name` keeps every user', read with 'without `page` and `size`, GET /users still answers a JSON array'"
+          },
+          {
+            "id": "name-plain-text",
+            "grade": "fail-to-pass",
+            "source": "the same sentence's 'as plain text', read for a name holding a pattern's characters (`a.a`, `.`, `(`): it matches only names that hold those characters, which a regular expression would not"
+          },
+          {
+            "id": "page-envelope",
+            "grade": "fail-to-pass",
+            "source": "the request: 'When either is given, the answer is a JSON object with \"page\", \"size\", \"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched) and \"items\" (the users on that page)'"
+          },
+          {
+            "id": "partial-last-page",
+            "grade": "fail-to-pass",
+            "source": "the request: 'page 1 holding the first `size` of them' and '\"pages\" (how many pages they fill)', read for users that do not fill the last page; the base's paginate drops that page"
+          },
+          {
+            "id": "page-past-end",
+            "grade": "fail-to-pass",
+            "source": "the request: 'a page after the last one answers an empty \"items\"'"
+          },
+          {
+            "id": "page-defaults",
+            "grade": "fail-to-pass",
+            "source": "the request: '`size` is 10 when only `page` is given and `page` is 1 when only `size` is given'"
+          },
+          {
+            "id": "filter-then-page",
+            "grade": "fail-to-pass",
+            "source": "the request: 'ask for one page of those users' and '\"total\" (how many users matched), \"pages\" (how many pages they fill, 0 when none matched)', read with a `name`"
+          },
+          {
+            "id": "size-bounds",
+            "grade": "fail-to-pass",
+            "source": "the request: '`size` a whole number from 1 to 100', read at both ends"
+          },
+          {
+            "id": "bad-page-or-size",
+            "grade": "fail-to-pass",
+            "source": "the request: '`page` must be a whole number of at least 1 and `size` a whole number from 1 to 100: any other value, an empty one included, answers HTTP 400 with a JSON object whose \"error\" says what is wrong'"
+          },
+          {
+            "id": "team-filter-exact",
+            "grade": "fail-to-pass",
+            "source": "the request: '`team` matches an exact team name; an empty or unknown `team` selects no users', read as user-listing's name filter reads its sentence"
+          },
+          {
+            "id": "team-filters-combine-before-page",
+            "grade": "fail-to-pass",
+            "source": "the request: 'a user must match both `name` (when given) and `team` (when given); apply both filters before pagination'"
+          },
+          {
+            "id": "team-include-opt-in",
+            "grade": "fail-to-pass",
+            "source": "the request: '`include=team` (exactly that value) adds `team` to every user GET /users or GET /users/:id answers, including paged items; any other include value changes nothing. Without it the existing user object shape is unchanged'"
+          },
+          {
+            "id": "summary-total-by-team",
+            "grade": "fail-to-pass",
+            "source": "the request: 'GET /users/summary returns {total, by_team} for all matching users'; `by_team` has exact stored-name keys and counts, and missing groups are omitted"
+          },
+          {
+            "id": "summary-uses-user-filters",
+            "grade": "fail-to-pass",
+            "source": "the request: 'with the same `name` and `team` filters GET /users applies', read as user-teams' `team-filter-exact` and `team-filters-combine-before-page` checks read it"
+          },
+          {
+            "id": "summary-unpaginated-ignores",
+            "grade": "fail-to-pass",
+            "source": "the request: 'counts are unpaginated; page, size, include and other queries are ignored on summary', read with 'all matching users'"
+          },
+          {
+            "id": "summary-no-matches",
+            "grade": "fail-to-pass",
+            "source": "the request: 'no match returns total 0 and {}'; read with the same filters GET /users applies, including an empty team selecting no users"
+          },
+          {
+            "id": "team-filter-casefold-listing",
+            "grade": "fail-to-pass",
+            "source": "the request: 'team matching in both GET /users and GET /users/summary ignores case'; listing matches Engineering with lowercase and uppercase query values"
+          },
+          {
+            "id": "summary-team-casefold",
+            "grade": "fail-to-pass",
+            "source": "the request: 'team matching in both GET /users and GET /users/summary ignores case', read on the summary route"
+          },
+          {
+            "id": "team-casefold-exact-match",
+            "grade": "fail-to-pass",
+            "source": "the request: 'team matching still requires the exact team name after ignoring case'"
+          },
+          {
+            "id": "team-response-spelling-preserved",
+            "grade": "fail-to-pass",
+            "source": "the request: 'the team's stored and returned spelling stays unchanged', read for the opt-in team field"
+          },
+          {
+            "id": "summary-group-spelling-preserved",
+            "grade": "fail-to-pass",
+            "source": "the request: 'the team's stored and returned spelling stays unchanged', read for by_team keys"
+          }
+        ]
+      },
+      "refuse_ports": [
+        3000
+      ],
+      "refuse_ports_source": "the node-base server listens on PORT and defaults to 3000; held-out checks set PORT and refuse a delivery that ignores it"
+    },
+    "delta": {
+      "may_change": {
+        "spec.md": [
+          "team"
+        ],
+        "architecture.md": [
+          "team"
+        ]
+      },
+      "source": "the request replaces only the earlier case-sensitive team-matching rule in either living file; team is the measured locator pattern, and the ledger remains evidence for manual semantic review"
+    }
+  },
+  "csv-intent-direct": {
+    "style": "cli-files",
+    "prompt": "Build a command-line tool report.py (Python 3, standard library only) that summarises sales records. Usage: `python3 report.py FILE [FILE ...]`. Each FILE is CSV with the header row `date,region,product,units,unit_price`; units is a non-negative integer and unit_price a non-negative decimal. Print one JSON object to stdout: {\"rows\": the number of valid rows, \"revenue\": the sum of units * unit_price rounded to 2 decimals, \"by_region\": revenue per region rounded to 2 decimals, \"by_product\": total units per product}. A row with the wrong number of columns, or a non-numeric or negative units or unit_price, is skipped and reported on stderr as `FILE:LINE: <reason>` (the header is line 1), and the exit code is then 2; otherwise it is 0. A file that cannot be read prints an error on stderr without a traceback, prints nothing on stdout and exits 1. A file with only a header contributes nothing. Cover the behaviour with unittest tests that run with `python3 -m unittest`. I explicitly request an in-place Git run of ShipLoop: initialize a local Git repository if needed and use the direct entry. Also retain this accepted future requirement, without implementing it in this run: an optional --region selector will eventually match the exact case-sensitive region string, including the empty string, and validate all input rows before selecting totals. Keep that feature deferred. Keep current implementation and verification status accurate while retaining historical decisions.",
+    "checks": [
+      "python3 \"$E2E_CHECKS/csv_report.py\" unit",
+      "python3 \"$E2E_CHECKS/csv_report.py\" totals",
+      "python3 \"$E2E_CHECKS/csv_report.py\" invalid",
+      "python3 \"$E2E_CHECKS/csv_report.py\" missing",
+      "python3 \"$E2E_CHECKS/csv_report.py\" empty",
+      "python3 \"$E2E_CHECKS/intent_continuity.py\" --mode direct"
+    ],
+    "checks_source": "the request: each check tests a sentence of the prompt; the final check independently verifies the owner-approved direct current/prior spec lifecycle and exact final promotion, without a fabricated workspace return. Deferred scope and status meaning require semantic review."
   }
 }

@@ -55,6 +55,21 @@ RUN = ".shiploop-runs/work-trace/run"
 INTAKE = '```shiploop-state\n{"outcome": "done", "summary": "S1 outcome: greet.py prints Hello and the name (fact).", ' \
          '"headline": "Scope: one greeting script", "evidence_refs": []}\n```\n'
 CONTINUED = "ShipLoop run is active: continue with the packet's next step; do not end the turn."
+
+
+def _workspace_refusal_kind(text: str, *, run_dir: Path | None = None) -> str:
+    """Accept only the observed v12 pre-dispatch refusal or the v11 workspace refusal."""
+    first = text.splitlines()[0] if text.splitlines() else ""
+    if first.startswith("ShipLoop workspace blocked: ") and first.removeprefix("ShipLoop workspace blocked: ").strip():
+        return "v11-workspace-blocked"
+    prefix = "error: no authoritative state.md in "
+    if first.startswith(prefix):
+        if run_dir is not None and Path(first[len(prefix):]).resolve() != run_dir.resolve():
+            raise AssertionError(f"workspace command refused for the wrong run path: {text}")
+        return "v12-no-authoritative-state"
+    raise AssertionError(f"workspace command failed for an unrecognized reason: {text}")
+
+
 # Hook rows as the reader gives them, for the session_end check: a session end that freed the run, and the next session's
 # stop decision 30 s later that continued its turn.
 RELEASED_END = {"i": 40, "ts": 5000.0, "hook": "session-end", "decision": "release", "host": "claude",
@@ -101,7 +116,8 @@ def traced_output(base: Path) -> Path:
     # Two failures no trace can hold: a workspace verb that names no run, and a command line that does not parse.
     missing = base / "missing-workspace"
     blocked = shell(f"{cli} workspace plan-return --workspace-root {missing}", ["workspace", "plan-return", "--workspace-root", str(missing)])
-    assert blocked.returncode != 0 and "ShipLoop workspace blocked" in blocked.stderr, blocked.stdout + blocked.stderr
+    assert blocked.returncode != 0, blocked.stdout + blocked.stderr
+    _workspace_refusal_kind(blocked.stderr, run_dir=missing / "run")
     usage = shell(f"{cli} complete --run-dir {run}", ["complete", "--run-dir", str(run)])
     assert usage.returncode == 2 and "error:" in usage.stderr, usage.stdout + usage.stderr
     lint = shell(f"{cli} lint --run-dir {run} --action={intake}", ["lint", "--run-dir", str(run), f"--action={intake}"])
@@ -124,6 +140,11 @@ def traced_output(base: Path) -> Path:
     (out / "timeline.jsonl").write_text("".join(json.dumps({"line": n, "t": t}) + "\n" for n, t in enumerate(stamps)))
     (out / "invocation.json").write_text(json.dumps({"kind": "run", "case": "trace-fixture", "host": "claude"}))
     return out
+
+
+def fresh_traced_run(base: Path) -> tuple[Path, Path]:
+    out = traced_output(base)
+    return out, out / RUN
 
 
 def without_trace(out: Path, into: Path) -> Path:
@@ -188,6 +209,17 @@ class TracedRun(unittest.TestCase):
         self.assertEqual(run_trace.ROUTED_VERBS, {"lint", "red-check", "backchain-check"})
         self.assertNotIn("lint", {f["verb"] for f in run_trace.read(self.run_dir)["failures"]})
 
+    def test_workspace_pre_dispatch_refusal_is_a_stream_refusal(self):
+        failure = self.metrics["shiploop_failures"][1]
+        self.assertIn(_workspace_refusal_kind(failure["line"]),
+                      {"v11-workspace-blocked", "v12-no-authoritative-state"})
+        self.assertRegex(failure["line"], metrics.REFUSAL_LINE)
+        command = f"{CLI} workspace plan-return --workspace-root /e2e/.shiploop-runs/w"
+        self.assertTrue(metrics.outside_trace(command, failure["line"]))
+        self.assertIsNone(metrics.REFUSAL_LINE.search("error: no authoritative state.json in /e2e/run"))
+        self.assertEqual(_workspace_refusal_kind("ShipLoop workspace blocked: return plan has unresolved paths"),
+                         "v11-workspace-blocked")
+
     def test_an_unreadable_trace_is_an_error_record_never_an_exception(self):
         with tempfile.TemporaryDirectory() as temp:
             run = Path(temp) / "run"
@@ -208,7 +240,8 @@ class TracedRun(unittest.TestCase):
                           ("complete", 2, False, "events.jsonl"), ("lint", 3, False, "events.jsonl"),
                           ("complete", 2, False, "trace")])
         self.assertIn("exactly one shiploop-state fence", m["shiploop_failures"][4]["line"])
-        self.assertIn("ShipLoop workspace blocked", m["shiploop_failures"][1]["line"])
+        self.assertIn(_workspace_refusal_kind(m["shiploop_failures"][1]["line"]),
+                      {"v11-workspace-blocked", "v12-no-authoritative-state"})
         # The routed verb's refusal keeps its own line (until 2026-10-28 it was recorded as "").
         self.assertIn("ShipLoop lint could not run: ", m["shiploop_failures"][3]["line"])
         self.assertEqual(m["failures_source"], {"file": "<run>/trace.jsonl", "why": None})
@@ -294,8 +327,7 @@ class TracedRun(unittest.TestCase):
 
     def test_the_checks_fail_a_continuation_without_text_and_a_reprint_whose_copy_changed(self):
         with tempfile.TemporaryDirectory(prefix="shiploop-e2e-run-trace-checks-") as temp:
-            run = Path(temp) / "run"
-            shutil.copytree(self.run_dir, run)
+            _out, run = fresh_traced_run(Path(temp))
             traced = run_trace.read(run)
             traced["hooks"][0]["text"] = ""
             reprint = next(send for sends in traced["packets"].values() for send in sends if send["repeat"])
@@ -310,8 +342,7 @@ class TracedRun(unittest.TestCase):
         # A print that is not a repeat: the reprint a fresh session gets from `next` differs from the first print, so
         # only checking repeats never saw it (docs/shiploop-trims-plan-2026-10-28.md, T3).
         with tempfile.TemporaryDirectory(prefix="shiploop-e2e-run-trace-copies-") as temp:
-            run = Path(temp) / "run"
-            shutil.copytree(self.run_dir, run)
+            _out, run = fresh_traced_run(Path(temp))
             traced = run_trace.read(run)
             single = next(send for sends in traced["packets"].values() for send in sends if not send["repeat"])
             single["file"] = "packets/sent/never-written.md"  # its reprint keeps the shared copy, which still passes
@@ -322,17 +353,19 @@ class TracedRun(unittest.TestCase):
     def test_held_interrupted_and_old_check_only_rows_read_as_what_they_were(self):
         """Audit 2026-11-01: a callback held for owner notes and a command interrupted before it answered are not
         failures, and a failed `complete --check-only` from before the `check` verb still counts as a failed check."""
-        base = {"v": 1, "kind": "command", "stage": ["intake", "intake"], "action": self.intake, "ms": 1}
-        rows = [{**base, "ts": 9e9, "verb": "complete", "exit": 2, "held": ["N1"], "error": "held for N1"},
-                {**base, "ts": 9e9 + 1, "verb": "next", "exit": 130, "crashed": "KeyboardInterrupt",
+        base_event = {"v": 1, "kind": "command", "stage": ["intake", "intake"], "ms": 1}
+        rows = [{**base_event, "ts": 9e9, "verb": "complete", "exit": 2, "held": ["N1"], "error": "held for N1"},
+                {**base_event, "ts": 9e9 + 1, "verb": "next", "exit": 130, "crashed": "KeyboardInterrupt",
                  "error": "interrupted before the command finished"},
-                {**base, "ts": 9e9 + 2, "verb": "complete", "exit": 2, "check_only": True, "error": "old dry run"}]
+                {**base_event, "ts": 9e9 + 2, "verb": "complete", "exit": 2, "check_only": True, "error": "old dry run"}]
         with tempfile.TemporaryDirectory(prefix="shiploop-e2e-run-trace-rows-") as temp:
-            run = Path(temp) / "run"
-            shutil.copytree(self.run_dir, run)
+            _out, run = fresh_traced_run(Path(temp))
+            intake = store.read_record(run / "state.md")["history"][0]["action"]
+            for row in rows:
+                row["action"] = intake
+            before = run_trace.read(run)
             with (run / shiploop_trace.TRACE_FILE).open("a", encoding="utf-8") as handle:
                 handle.writelines(json.dumps(row) + "\n" for row in rows)
-            before = run_trace.read(self.run_dir)
             traced = run_trace.read(run)
             found = run_trace.summary(traced)
             import shiploop_stage_spec
@@ -346,8 +379,7 @@ class TracedRun(unittest.TestCase):
 
     def test_a_kept_copy_holding_a_carriage_return_matches_its_hash(self):
         with tempfile.TemporaryDirectory(prefix="shiploop-e2e-run-trace-cr-") as temp:
-            run = Path(temp) / "run"
-            shutil.copytree(self.run_dir, run)
+            _out, run = fresh_traced_run(Path(temp))
             traced = run_trace.read(run)
             sends = [send for rows in traced["packets"].values() for send in rows]
             text = "line one\r\nline two\r\n"
@@ -369,27 +401,27 @@ class TracedRun(unittest.TestCase):
 
     def test_a_trace_that_began_after_a_step_the_model_ran_does_not_cover_the_run(self):
         with tempfile.TemporaryDirectory() as temp:
-            out = Path(temp) / "partial"
-            shutil.copytree(self.out, out)
-            trace_file = out / RUN / run_trace.FILE
+            out, run = fresh_traced_run(Path(temp))
+            intake = store.read_record(run / "state.md")["history"][0]["action"]
+            trace_file = run / run_trace.FILE
             rows = [json.loads(line) for line in trace_file.read_text().splitlines()]
             # The intake's accepting command is gone: the step reads as accepted before the trace began.
             kept = [row for row in rows if not row.get("accepted")]
             trace_file.write_text("".join(json.dumps(row) + "\n" for row in kept))
-            traced = run_trace.read(out / RUN)
+            traced = run_trace.read(run)
             self.assertFalse(run_trace.covers(traced))
             self.assertIn("1 accepted step the model ran before the trace began", traced["partial"])
-            m = metrics.collect(out, out / RUN)
+            m = metrics.collect(out, run)
             self.assertEqual(m["failures_source"]["file"], "events.jsonl")
             self.assertIn("does not cover the run", m["failures_source"]["why"])
             self.assertFalse(m["run_trace"]["covers"])
             self.assertIn("partial: 1 accepted step", flow.build(out)["sources"]["refusals"])
             # A step the harness seeded (synthetic) was never the model's: the trace still covers the run.
-            state = store.read_record(out / RUN / "state.md")
-            record = state["accepted"][self.intake]
+            state = store.read_record(run / "state.md")
+            record = state["accepted"][intake]
             (record.get("result", record) if isinstance(record, dict) else record)["summary"] = "Synthetic: seeded."
-            store.write_record(out / RUN / "state.md", state, "ShipLoop navigator state")
-            traced = run_trace.read(out / RUN)
+            store.write_record(run / "state.md", state, "ShipLoop navigator state")
+            traced = run_trace.read(run)
             self.assertTrue(run_trace.covers(traced))
             self.assertEqual(traced["seeded_steps"], 1)
 
@@ -472,7 +504,10 @@ class TracedRun(unittest.TestCase):
                          [("intake", 1, "trace"), ("intake", 1, "events.jsonl"), ("intake", 1, "events.jsonl")])
         self.assertIn("exactly one shiploop-state fence", r["rows"][0]["cause"])
         self.assertIn("exactly one shiploop-state fence", r["rows"][0]["text"])
-        self.assertIn("cannot read record", r["rows"][1]["cause"])
+        if "no authoritative state.md" in r["rows"][1]["text"]:
+            self.assertIn("no authoritative state.md", r["rows"][1]["cause"])
+        else:
+            self.assertIn("cannot read record", r["rows"][1]["cause"])
         self.assertIn("not a Git checkout", r["rows"][2]["cause"])
         t = self.first["trace"]
         self.assertEqual((t["measured"], t["packets"], t["reprints"], t["continuations"], t["checks_failed"]),
