@@ -77,7 +77,8 @@ CLOSES: Dict[str, Tuple[str, ...]] = {
 # validate-existing, implement and test find commands and facts (environment.md); test-strategy records the harnesses, suites,
 # ID convention (environment.md) and real-boundary checks (architecture.md); plan, step-plan and implement may add a decision
 # (an AD-<n>); each step's document reflects on what the step showed in all three (design T §9.1 2b-3, option C:
-# requirement lines, decisions, commands and facts); carry-forward records the run's decisions and what they superseded; system-test-author keeps the system-test
+# requirement lines, decisions, commands and facts); carry-forward reconciles current requirement, decision and test status,
+# and records the run's decisions and what they superseded; system-test-author keeps the system-test
 # catalog and release-plan the standing release procedure in environment.md, which release-check corrects when the rollback
 # differs (D2); operations keeps the log and audit retrieval and recovery locators there (its duty 5; the saved ticket runs
 # committed its edits as "knowledge after operations", so it is a writer).  A key that is no stage of the graph is
@@ -94,7 +95,7 @@ STAGE_FILES: Dict[str, Tuple[str, ...]] = {
     "implement": ("environment.md", ARCHITECTURE),
     "test": ("environment.md",),
     "document": ("spec.md", ARCHITECTURE, "environment.md"),
-    "carry-forward": (ARCHITECTURE, "environment.md"),
+    "carry-forward": ("spec.md", ARCHITECTURE, "environment.md"),
     "system-test-author": ("environment.md",),
     "release-plan": ("environment.md",),
     "release-check": ("environment.md",),

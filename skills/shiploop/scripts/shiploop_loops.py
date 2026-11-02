@@ -129,7 +129,9 @@ REPEAT: Mapping[str, str] = {
         "when a recorded command cannot run here. " + _NEVER_CANCEL),
     "document": (
         "Repeat while a changed public behaviour is undocumented or a reread or example run found a wrong "
-        "statement; " + _NO_LIMIT + " Stop blocked only when a behaviour cannot be observed here (name it). "
+        "statement, except an unchanged protected current spec status line covered by this item's recorded "
+        "carry-forward correction as the exit condition above requires; "
+        + _NO_LIMIT + " Stop blocked only when a behaviour cannot be observed here (name it). "
         + _NEVER_CANCEL),
     "carry-forward": (
         "Repeat while an exit condition fails after an iteration; " + _NO_LIMIT + " Stop blocked when a finding is "
