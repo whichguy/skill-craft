@@ -440,7 +440,8 @@ def launch(root: Path, attempt_id: str, plugin: Path) -> dict:
         intent = launch_intent(root, attempt_id, plugin)
     driver = intent["driver"]
     argv = ["--case", intent["case"], "--host", driver["host"], "--model", driver["model"],
-            "--effort", driver["effort"], "--plugin-dir", intent["plugin"], "--output", intent["output"]]
+            "--effort", driver["effort"], "--plugin-dir", intent["plugin"], "--output", intent["output"],
+            "--baseline", str(root.resolve() / "baselines.jsonl")]
     if intent.get("predecessor"):
         argv += ["--predecessor-registration", str(root / "registration.json"),
                  "--predecessor-registration-sha256", intent["registration_sha256"]]

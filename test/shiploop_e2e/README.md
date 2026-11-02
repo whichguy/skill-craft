@@ -2511,6 +2511,8 @@ separate evaluator experiment. Older reviews remain readable diagnostics and can
 The registration freezes the cases, scorer, SPEC, nested evaluators, arm build identities and unique attempt inventory.
 Every generated product has its own post-run identity. The controller never publishes, deploys on its own, changes the
 active spec from a finding, or automatically retries an unknown launch.
+Run summary rows append to the epoch's `baselines.jsonl`, leaving the committed repository baseline unchanged.
+The registered comparison uses its sealed attempts; this local summary file does not replace their evidence.
 
 Prepare both plugin builds with the existing build workflow. Supply a `promotion/5` registration template with `cases`
 (each has `role` and `attempts`), `arms` (control and candidate each bind `shiploop_build` and `driver: {host, model,
