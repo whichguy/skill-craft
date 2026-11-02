@@ -263,25 +263,29 @@ def _document_status_repair_return(state: Mapping[str, Any], stage: str) -> bool
                 and same_item[-1].get("outcome") == "send-back")
 
 
+def status_repair_lines(state: Mapping[str, Any], stage: str) -> List[str]:
+    """The returned plan's conditional authority is required packet text, not file-only knowledge context."""
+    if not _document_status_repair_return(state, stage):
+        return []
+    spec = str(Path(str(state["repo"])) / HOME / "spec.md")
+    return ["This item's Knowledge exception: only if returned for stale status in an existing R-<n>, fix current "
+            "implementation/verification in " + spec + " from observed code and actual check receipts; without "
+            "evidence, no spec edit. Keep R text/intent, IDs, dated history, deferred scope verbatim. "
+            "summary: change/reason; evidence_refs: code/checks. Unrun: not run. "
+            "This return grants no other spec edit."]
+
+
 def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
     """Packet lines: where the knowledge home is and what this stage keeps up to date there."""
     repo = Path(str(state["repo"]))
     lines = ["", "Repository knowledge home (committed, inherited by later runs): " + str(repo / HOME) + "/: "
              + ", ".join(str(repo / HOME / name) for name in LIVING) + ". Earlier runs' spec, environment and "
              "architecture are there; open a file when this stage needs it."]
-    status_repair = _document_status_repair_return(state, stage)
     written = STAGE_FILES.get(stage, ())
     earlier = required_earlier(stage)
     if written:
         lines.append("This stage keeps these up to date (create them if missing): "
                      + ", ".join(str(repo / path) for path in _expand(written, state)) + ".")
-    if status_repair:
-        lines.append("Document-send-back status repair for this same item only: in " + str(repo / HOME / "spec.md")
-                     + ", correct only current implementation and current verification status in the existing R-<n> named by the "
-                     "return. First verify observed code and actual check receipts; without evidence, no spec edit. "
-                     "Name the correction in summary; cite code and check receipts in evidence_refs. Unrun stays not "
-                     "run. Preserve requirement text and intent, IDs, dated history and deferred scope verbatim. "
-                     "This return grants no other spec edit.")
     destination = _destination_line(stage, written)
     if destination:
         lines.append(destination)

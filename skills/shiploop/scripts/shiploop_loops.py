@@ -129,10 +129,10 @@ REPEAT: Mapping[str, str] = {
         "when a recorded command cannot run here. " + _NEVER_CANCEL),
     "document": (
         "Repeat while a changed public behaviour is undocumented or a reread or example run found a wrong "
-        "statement; " + _NO_LIMIT + " Stop blocked only when a behaviour cannot be observed here (name it), or when an "
-        "existing R-<n> entry's current implementation or verification status is stale and needs the protected "
-        "status-only return to step-plan. In that case report send-back naming the R-<n> with observed code and actual "
-        "check receipts; do not defer the contradiction. "
+        "statement; " + _NO_LIMIT + " If a behaviour cannot be observed here, stop the Until Loop blocked and "
+        "report blocked, naming it. For stale current implementation or verification status in an existing R-<n>, "
+        "stop the Until Loop blocked, then report send-back naming that R-<n> with observed code and actual check "
+        "receipts for status-only repair at step-plan. Do not defer the contradiction. "
         + _NEVER_CANCEL),
     "carry-forward": (
         "Repeat while an exit condition fails after an iteration; " + _NO_LIMIT + " Stop blocked when a finding is "

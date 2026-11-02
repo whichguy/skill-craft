@@ -4828,7 +4828,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.start()
         self.drive_to_step_plan()
         first_packet = _with_packet_file(self.cli("next", "--run-dir", str(self.run_dir)).stdout)
-        self.assertNotIn("Document-send-back status repair for this same item only", first_packet)
+        self.assertNotIn("This item's Knowledge exception", first_packet)
         self.assertNotIn("current implementation and current verification status", first_packet)
 
         def plan(summary: str, evidence_refs: list[str] | None = None) -> dict[str, Any]:
@@ -4916,16 +4916,22 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.assertEqual((self.repo / "a.py").read_text(encoding="utf-8"), "x = 2\n",
                          "send-back retains the earlier implementation for revalidation")
 
-        returned_packet = _with_packet_file(self.cli("next", "--run-dir", str(self.run_dir)).stdout)
-        for phrase in ("Document-send-back status repair for this same item only", "current implementation",
-                       "current verification", "actual check receipts", "dated history", "deferred scope verbatim",
+        returned_stdout = self.cli("next", "--run-dir", str(self.run_dir)).stdout
+        # The cold reader must receive the repair limits in the printed head, not only in the full packet file.
+        self.assertGreater(len(navigator.packet_path(self.run_dir, self.state()).read_text()), navigator.PRINT_LIMIT)
+        self.assertLessEqual(len(returned_stdout), navigator.HEAD_LIMIT)
+        for limit in ("without evidence, no spec edit", "This return grants no other spec edit"):
+            self.assertIn(limit, returned_stdout)
+        returned_packet = _with_packet_file(returned_stdout)
+        for phrase in ("This item's Knowledge exception", "current implementation/verification",
+                       "actual check receipts", "dated history", "deferred scope verbatim",
                        "This return grants no other spec edit"):
             with self.subTest(packet_phrase=phrase):
                 self.assertIn(phrase, returned_packet)
         self.assertNotIn("spec.md", next(line for line in returned_packet.splitlines()
                                           if line.startswith("This stage keeps these up to date")))
         self.assertIn("KNOWLEDGE/spec.md", next(line for line in returned_packet.splitlines()
-                                               if line.startswith("Document-send-back status repair")))
+                                               if line.startswith("This item's Knowledge exception")))
 
         blocked_action = navigator.current_action(self.state())["id"]
         stopped = self.submit(blocked_result(summary="The status-only plan needs one external confirmation.",
@@ -4942,11 +4948,11 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.assertEqual(navigator.current_stage(self.state()), "step-plan")
         self.assertNotEqual(navigator.current_action(self.state())["id"], blocked_action)
         resumed_packet = _with_packet_file(self.cli("next", "--run-dir", str(self.run_dir)).stdout)
-        self.assertIn("Document-send-back status repair for this same item only", resumed_packet)
+        self.assertIn("This item's Knowledge exception", resumed_packet)
         self.assertNotIn("spec.md", next(line for line in resumed_packet.splitlines()
                                           if line.startswith("This stage keeps these up to date")))
         self.assertIn("KNOWLEDGE/spec.md", next(line for line in resumed_packet.splitlines()
-                                               if line.startswith("Document-send-back status repair")))
+                                               if line.startswith("This item's Knowledge exception")))
 
         spec.write_text(corrected, encoding="utf-8")
         returned_action = navigator.current_action(self.state())["id"]
@@ -5061,8 +5067,8 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.assertEqual(navigator.current_stage(self.state()), "document")
 
         packet = _with_packet_file(self.cli("next", "--run-dir", str(self.run_dir)).stdout)
-        self.assertIn("stale current status", packet)
-        self.assertIn("send-back naming the", packet)
+        self.assertIn("report send-back naming the R-<n>", packet)
+        self.assertIn("Add lines only", packet)
         document_action = navigator.current_action(self.state())["id"]
         self.assertFalse(loops.send_back_open_path(self.run_dir, document_action).exists())
         receipt = self.loop_support.finish_loop(self.run_dir, outcome="blocked",

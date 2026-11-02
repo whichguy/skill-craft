@@ -404,6 +404,7 @@ class TierTests(unittest.TestCase):
                 for name, tier in tiers.items():
                     if tier == navigator.P1:
                         self.assertIn(name, {"answered", "owner-notes", "work-item", "revisit", "concerns", "step", "commit-scope",
+                                             "document-status-repair",
                                              "expectation-results", "queue-rule", "test-rules", "rerun", "observed",
                                              "workspace-return", "delivery", "lint-commands", "improve-lessons"})
                 # Test's and document's Step block names the step just built and the skills the step plan lists for the

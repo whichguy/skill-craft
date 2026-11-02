@@ -553,7 +553,7 @@ class KnowledgeGroundingPacketTests(unittest.TestCase):
             with self.subTest(stage=stage):
                 self.assertIn(knowledge.ARCHITECTURE_HOLDS, flat(self.found[(stage, "producer")]))
         self.assertNotIn(knowledge.ARCHITECTURE_HOLDS, flat(self.found[("step-plan", "producer")]))
-        self.assertIn("New structural choice: next AD-<n> in KNOWLEDGE/architecture.md ## Decisions",
+        self.assertIn("A structural choice KNOWLEDGE/architecture.md lacks: next AD-<n> under ## Decisions",
                       flat(self.found[("step-plan", "producer")]))
 
     def walk_to(self, repo: Path, run: Path, stage: str) -> str:
