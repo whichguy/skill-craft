@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import sys
 import tempfile
 import unittest
@@ -242,7 +243,7 @@ class SpecPromotionTests(unittest.TestCase):
             external = base / "external.md"
             external.write_text("external\n", encoding="utf-8")
             (repo / promotion.AGGREGATE).unlink(missing_ok=True)
-            (repo / promotion.AGGREGATE).hardlink_to(external)
+            os.link(external, repo / promotion.AGGREGATE)
             with self.assertRaises(promotion.PromotionError):
                 promotion.promote(run, state, "handoff-final", self.reconciliation(state))
             self.assertEqual(external.read_text(encoding="utf-8"), "external\n")
