@@ -43,9 +43,8 @@ class ProgressDataTests(unittest.TestCase):
         return navigator.new_state(str(self.repo), prompt)
 
     def save_state(self, state: dict) -> bytes:
-        text = store.dumps(state, "ShipLoop navigator state")
-        (self.run_root / "state.md").write_text(text, encoding="utf-8")
-        return text.encode("utf-8")
+        navigator.save(self.run_root, state)
+        return (self.run_root / "state.md").read_bytes()
 
     def accept(self, state: dict, **fields) -> dict:
         action = navigator.current_action(state)["id"]
@@ -88,7 +87,8 @@ class ProgressDataTests(unittest.TestCase):
         self.assertFalse(snapshot["plan_accepted"])
         self.assertEqual(snapshot["work_items"][0]["id"], "W1")
         self.assertEqual(snapshot["work_items"][0]["plan"], "")
-        self.assertEqual(self.document(snapshot, "living-spec")["status"], "missing")
+        self.assertEqual(self.document(snapshot, "current-spec")["status"], "draft")
+        self.assertEqual(self.document(snapshot, "prior-aggregate-spec")["status"], "missing")
         self.assertEqual(self.document(snapshot, "current-action-notes")["status"], "missing")
         self.assertIn("source_fingerprint", snapshot)
         self.assertTrue(snapshot["observed_at"].endswith("Z"))
@@ -96,10 +96,13 @@ class ProgressDataTests(unittest.TestCase):
     def test_current_plan_and_accepted_results_stay_separate_from_living_drafts(self) -> None:
         outside = self.base / "outside-plan.md"
         outside.write_text("External material must not be read.", encoding="utf-8")
+        aggregate_spec = self.repo / knowledge_home.HOME / "spec.md"
+        aggregate_spec.parent.mkdir(parents=True)
+        aggregate_spec.write_text("# Prior accepted aggregate\n", encoding="utf-8")
         state = self.plan_state(evidence_refs=[str(outside)])
-        live_spec = self.repo / knowledge_home.HOME / "spec.md"
-        live_spec.parent.mkdir(parents=True)
-        live_spec.write_text("# Draft spec\n", encoding="utf-8")
+        self.save_state(state)
+        current_spec = knowledge_home.spec_path(state)
+        current_spec.write_text("# Draft spec\n", encoding="utf-8")
         self.write_result_record(state, "spec")
         self.write_result_record(state, "plan")
         self.save_state(state)
@@ -107,40 +110,44 @@ class ProgressDataTests(unittest.TestCase):
         first = progress_data.build_snapshot(self.run_root)
         self.assertTrue(first["plan_accepted"])
         self.assertEqual([row["id"] for row in first["work_items"]], ["W1", "W2"])
-        self.assertEqual(self.document(first, "living-spec")["status"], "draft")
+        self.assertEqual(self.document(first, "current-spec")["status"], "draft")
+        self.assertEqual(self.document(first, "prior-aggregate-spec")["status"], "draft")
         self.assertEqual(self.document(first, "accepted-spec-result")["status"], "accepted-result")
         self.assertEqual(self.document(first, "accepted-plan-result")["status"], "accepted-result")
         self.assertTrue(any("outside the repository/run root" in warning for warning in first["warnings"]))
         self.assertFalse(any(str(outside) in repr(row) for row in first["documents"]))
 
-        old_sha = self.document(first, "living-spec")["sha256"]
-        live_spec.write_text("# Draft spec\n## Added detail\n", encoding="utf-8")
+        old_sha = self.document(first, "current-spec")["sha256"]
+        aggregate_sha = self.document(first, "prior-aggregate-spec")["sha256"]
+        current_spec.write_text("# Draft spec\n## Added detail\n", encoding="utf-8")
         second = progress_data.build_snapshot(self.run_root)
-        self.assertNotEqual(self.document(second, "living-spec")["sha256"], old_sha)
+        self.assertNotEqual(self.document(second, "current-spec")["sha256"], old_sha)
+        self.assertEqual(self.document(second, "prior-aggregate-spec")["sha256"], aggregate_sha)
         self.assertNotEqual(second["source_fingerprint"], first["source_fingerprint"])
 
     def test_optional_document_symlink_hardlink_and_fifo_are_withheld(self) -> None:
+        self.save_state(self.state())
         directory = self.repo / "docs" / "shiploop"
         directory.mkdir(parents=True)
         outside = self.base / "secret-spec.md"
         outside.write_text("Authorization: Bearer abcdefghijklmnopqrstuvwxyz012345", encoding="utf-8")
         spec = directory / "spec.md"
         spec.symlink_to(outside)
-        self.save_state(self.state())
         linked = progress_data.build_snapshot(self.run_root)
-        self.assertEqual(self.document(linked, "living-spec")["status"], "withheld")
+        self.assertEqual(self.document(linked, "prior-aggregate-spec")["status"], "withheld")
+        self.assertEqual(self.document(linked, "current-spec")["status"], "draft")
         self.assertNotIn("Authorization: Bearer", repr(linked))
 
         spec.unlink()
         os.link(outside, spec)
         linked = progress_data.build_snapshot(self.run_root)
-        self.assertEqual(self.document(linked, "living-spec")["status"], "withheld")
+        self.assertEqual(self.document(linked, "prior-aggregate-spec")["status"], "withheld")
         spec.unlink()
 
         if hasattr(os, "mkfifo"):
             os.mkfifo(spec)
             fifo = progress_data.build_snapshot(self.run_root)
-            self.assertEqual(self.document(fifo, "living-spec")["status"], "withheld")
+            self.assertEqual(self.document(fifo, "prior-aggregate-spec")["status"], "withheld")
 
     def test_a_result_with_credential_looking_text_is_recorded_as_written_and_the_view_still_redacts_it(self) -> None:
         """Owner decision 2026-10-16: ShipLoop refuses no credential pattern, so the run keeps the result's text as
@@ -156,14 +163,13 @@ class ProgressDataTests(unittest.TestCase):
         self.assertIn("Credential-like", repr(snapshot))
 
     def test_credential_content_and_unstable_optional_document_are_withheld(self) -> None:
-        directory = self.repo / "docs" / "shiploop"
-        directory.mkdir(parents=True)
-        spec = directory / "spec.md"
+        state = self.state()
+        self.save_state(state)
+        spec = knowledge_home.spec_path(state)
         secret = "Authorization: Bearer abcdefghijklmnopqrstuvwxyz012345"
         spec.write_text(secret, encoding="utf-8")
-        self.save_state(self.state())
         screened = progress_data.build_snapshot(self.run_root)
-        self.assertEqual(self.document(screened, "living-spec")["status"], "withheld")
+        self.assertEqual(self.document(screened, "current-spec")["status"], "withheld")
         self.assertNotIn(secret, repr(screened))
 
         spec.write_text("A harmless initial draft.", encoding="utf-8")
@@ -184,8 +190,8 @@ class ProgressDataTests(unittest.TestCase):
         with mock.patch.object(progress_data.os, "read", side_effect=mutate_after_read):
             unstable = progress_data.build_snapshot(self.run_root)
         self.assertTrue(changed)
-        self.assertEqual(self.document(unstable, "living-spec")["status"], "withheld")
-        self.assertIn("changed while reading", self.document(unstable, "living-spec")["error"])
+        self.assertEqual(self.document(unstable, "current-spec")["status"], "withheld")
+        self.assertIn("changed while reading", self.document(unstable, "current-spec")["error"])
 
     def test_inline_step_plan_exposes_declared_branching_dependencies(self) -> None:
         state = self.plan_state()
@@ -266,7 +272,8 @@ class ProgressDataTests(unittest.TestCase):
         ids = [row["id"] for row in snapshot["documents"]]
         for removed in ("feature-spec", "feature-plan", "feature-test-spec", "test-strategy"):
             self.assertNotIn(removed, ids)
-        self.assertIn("living-spec", ids)
+        self.assertIn("current-spec", ids)
+        self.assertIn("prior-aggregate-spec", ids)
         self.assertFalse([row for row in snapshot["documents"] if row.get("status") == "retired"])
         self.assertFalse([warning for warning in snapshot["warnings"] if "feature" in warning or "test-strategy" in warning])
 

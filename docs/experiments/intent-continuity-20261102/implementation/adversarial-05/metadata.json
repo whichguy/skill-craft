@@ -1,0 +1,32 @@
+{
+  "requested": "grok:grok-4.7@xhigh",
+  "calls": [
+    {
+      "input_tokens": 64468,
+      "output_tokens": 26775,
+      "seconds": 444.0,
+      "outside": [],
+      "spec": "grok:grok-4.7@xhigh"
+    }
+  ],
+  "usage": {
+    "input_tokens": 19284,
+    "cache_read_input_tokens": 45184,
+    "cache_creation_input_tokens": 0,
+    "output_tokens": 26775,
+    "reasoning_tokens": 25048,
+    "total_tokens": 91243
+  },
+  "modelUsage": {
+    "grok-4.7-build": {
+      "inputTokens": 19284,
+      "outputTokens": 26775,
+      "cacheReadInputTokens": 45184,
+      "cacheCreationInputTokens": 0,
+      "modelCalls": 3,
+      "costUSD": 0.22181
+    }
+  },
+  "total_cost_usd": 0.22181,
+  "raw_evidence": "/Users/dadleet/shiploop-audits/2026-11-02/intent-implementation-ee0f6bv4/adversarial-05"
+}

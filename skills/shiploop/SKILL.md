@@ -245,10 +245,12 @@ Work toward that goal and keep going until every condition holds; a passing
 test that ShipLoop ran is the evidence.
 
 Every packet opens, after its goal, with a **References** block that defines each
-path once: `KNOWLEDGE` (the knowledge home `docs/shiploop/`, each file with its
-sections, a missing one marked with the stage that writes it), `RUN` (the run
-directory), `WORKTREE` (the execution checkout) and `GUIDES` (this skill's
-references directory). Its heading reads "symbols expand to these absolute paths;
+path once: `KNOWLEDGE` (the accepted prior aggregate `docs/shiploop/`, each
+file with its sections), `RUN` (the run directory, including the full
+`current-spec.md` candidate and immutable `spec/prior-*.md` snapshots),
+`WORKTREE` (the execution checkout) and `GUIDES` (this skill's references
+directory). The candidate carries the current request; the aggregate stays at its
+accepted prior state until the final handoff promotes the reviewed candidate. Its heading reads "symbols expand to these absolute paths;
 commands stay literal": the prose of the packet names files by these symbols
 (`RUN/notes/x.md`, `GUIDES/navigator.md#anchor`), while the callback and every
 command line, the Keepalive marker, the "Full packet:" line, the Progress view

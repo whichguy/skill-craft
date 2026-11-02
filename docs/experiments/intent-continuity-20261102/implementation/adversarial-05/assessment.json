@@ -1,0 +1,7 @@
+{
+  "F1": "Adopted a clarification making preservation of implementation explicitly conditional on status-only reconciliation; added explicit workitem match to the already-selected latest sent-back action. Another item and implement-only return receive no such policy. No reason-keyword classifier or general spec edit authority added. The actual document send-back marker-consumption bug was found by the real route test and fixed narrowly; done/blocked still use ordinary receipt validation.",
+  "F2": "Unified replacement authority to a conflicting explicit instruction from the current USER request, with citation of original wording at acceptance. An intake paraphrase or model self-label is not such an instruction. Mechanical hashes still do not prove semantic authorization; registered semantic review remains separate.",
+  "F3": "Affected reuse requires achieved-behavior evidence. Known prior gaps stay open context, and an affected load-bearing gap needs an owned assumption or prerequisite. Unrelated deferred/unchanged requirements do not become a fresh backlog.",
+  "evidence": "S11 validation13 passed1test7.274s on899a0b96518e5968c68e0b8d199a0d44cf91a4e73ed76e505050f3c43610f6ee; includes matching-marker/no-marker, same-item replan, actual revalidation/test receipts and required synthetic review. Separate loop negative controls and full corrected bank remain pending.",
+  "post_review_prompt_sha256": "8e7ebf0e74bf33a8eb3b8f1c0066e7e248b8ccded421496d8ae9dfd81ff7887f"
+}

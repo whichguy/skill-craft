@@ -1,0 +1,140 @@
+{
+  "block_count": 33,
+  "changed": [
+    {
+      "after_role_replacement": "20425423036e",
+      "changed_line_count": 1,
+      "key": "01-intake",
+      "new": "02eb1b99a18c",
+      "old": "20425423036e",
+      "role_replacement_lines": [
+        "RUN/current-spec.md (121 bytes, 11 lines), contents:"
+      ],
+      "role_replacement_recovers_old": true
+    },
+    {
+      "after_role_replacement": "c3d1dcf21c01",
+      "changed_line_count": 1,
+      "key": "06-test-strategy",
+      "new": "db38547dd815",
+      "old": "c3d1dcf21c01",
+      "role_replacement_lines": [
+        "RUN/current-spec.md (121 bytes, 11 lines), contents:"
+      ],
+      "role_replacement_recovers_old": true
+    },
+    {
+      "after_role_replacement": "c384b412d4d4",
+      "changed_line_count": 1,
+      "key": "08-plan",
+      "new": "72a2dd1fcf77",
+      "old": "c384b412d4d4",
+      "role_replacement_lines": [
+        "RUN/current-spec.md (121 bytes, 11 lines), contents:"
+      ],
+      "role_replacement_recovers_old": true
+    },
+    {
+      "after_role_replacement": "34d4ded0cbd4",
+      "changed_line_count": 1,
+      "key": "11-step-plan",
+      "new": "04e379e21071",
+      "old": "34d4ded0cbd4",
+      "role_replacement_lines": [
+        "RUN/current-spec.md (121 bytes, 11 lines), contents:"
+      ],
+      "role_replacement_recovers_old": true
+    },
+    {
+      "after_role_replacement": "603a3bd68476",
+      "changed_line_count": 1,
+      "key": "13-test-spec",
+      "new": "3f78099923af",
+      "old": "603a3bd68476",
+      "role_replacement_lines": [
+        "RUN/current-spec.md (121 bytes, 11 lines), contents:"
+      ],
+      "role_replacement_recovers_old": true
+    },
+    {
+      "after_role_replacement": "1dac24adc67e",
+      "changed_line_count": 1,
+      "key": "19-document",
+      "new": "009ae9afbcd3",
+      "old": "1dac24adc67e",
+      "role_replacement_lines": [
+        "RUN/current-spec.md (121 bytes, 11 lines), contents:"
+      ],
+      "role_replacement_recovers_old": true
+    },
+    {
+      "after_role_replacement": "68da442e2a67",
+      "changed_line_count": 1,
+      "key": "23-document",
+      "new": "545a296fb71e",
+      "old": "68da442e2a67",
+      "role_replacement_lines": [
+        "RUN/current-spec.md (121 bytes, 11 lines), contents:"
+      ],
+      "role_replacement_recovers_old": true
+    },
+    {
+      "after_role_replacement": "6d1756f3cf4b",
+      "changed_line_count": 1,
+      "key": "26-step-plan",
+      "new": "c2a03d4dd193",
+      "old": "6d1756f3cf4b",
+      "role_replacement_lines": [
+        "RUN/current-spec.md (121 bytes, 11 lines), contents:"
+      ],
+      "role_replacement_recovers_old": true
+    },
+    {
+      "after_role_replacement": "a6f458c2ef70",
+      "changed_line_count": 1,
+      "key": "27-test-spec",
+      "new": "d9bd3436c269",
+      "old": "a6f458c2ef70",
+      "role_replacement_lines": [
+        "RUN/current-spec.md (121 bytes, 11 lines), contents:"
+      ],
+      "role_replacement_recovers_old": true
+    },
+    {
+      "after_role_replacement": "b9bf90857943",
+      "changed_line_count": 1,
+      "key": "31-document",
+      "new": "e79ff67287a8",
+      "old": "b9bf90857943",
+      "role_replacement_lines": [
+        "RUN/current-spec.md (121 bytes, 11 lines), contents:"
+      ],
+      "role_replacement_recovers_old": true
+    },
+    {
+      "after_role_replacement": "9c09062ca617",
+      "changed_line_count": 1,
+      "key": "35-system-test-author",
+      "new": "b85b79dbdce2",
+      "old": "9c09062ca617",
+      "role_replacement_lines": [
+        "RUN/current-spec.md (121 bytes, 11 lines), contents:"
+      ],
+      "role_replacement_recovers_old": true
+    },
+    {
+      "after_role_replacement": "d957aea6fbd1",
+      "changed_line_count": 1,
+      "key": "38-product-acceptance",
+      "new": "b32ddb1b98de",
+      "old": "d957aea6fbd1",
+      "role_replacement_lines": [
+        "RUN/current-spec.md (121 bytes, 11 lines), contents:"
+      ],
+      "role_replacement_recovers_old": true
+    }
+  ],
+  "exact_all_path_differences_only": true,
+  "git_baseline": false,
+  "route": "inline"
+}

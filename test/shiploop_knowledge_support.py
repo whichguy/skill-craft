@@ -24,21 +24,25 @@ def write(state: Mapping[str, Any]) -> None:
 
     A living file with named sections (``knowledge.SECTIONS``) is written with all of them.
     """
-    repo = Path(str(state["repo"]))
     for names in knowledge.CLOSES.values():
         for name in names:
-            path = repo / knowledge.HOME / name
-            if path.is_file():
+            path = knowledge.artifact_path(state, name)
+            if path.is_file() and (name != "spec.md" or path.stat().st_size > 0):
                 continue
             path.parent.mkdir(parents=True, exist_ok=True)
             body = sections(name) if name in knowledge.SECTIONS else "Synthetic knowledge.\n"
+            # A fresh run's candidate exists but starts empty; fixture setup may
+            # fill that placeholder. This helper never runs in production.
             path.write_text("# " + path.stem + "\n\n" + body, encoding="utf-8")
 
 
 def write_spec(state: Mapping[str, Any]) -> None:
-    """Create spec.md with its sections and R-1, when missing: what a spec stage writes before its done, whose
-    ``primary`` must name an R-<n> with an entry there (run-5 batch F6)."""
-    path = Path(str(state["repo"])) / knowledge.HOME / "spec.md"
-    if not path.is_file():
+    """Create or fixture-fill the selected spec with sections and R-1 for the primary gate.
+
+    Pure fixtures write the aggregate that would be copied at first save. Bound
+    fixtures write the already-initialized run candidate; they never reseed it.
+    """
+    path = knowledge.artifact_path(state, "spec.md")
+    if not path.is_file() or path.stat().st_size == 0:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("# spec\n\n" + sections("spec.md"), encoding="utf-8")

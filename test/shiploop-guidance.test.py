@@ -7,6 +7,7 @@ claim that an LLM interpreted a locator correctly or that Improve executed.
 
 from __future__ import annotations
 
+import copy
 import json
 from pathlib import Path
 import re
@@ -244,15 +245,25 @@ SPEC_ANSWER_WAIT = {"kind": "answer", "question": "Which fixture does the test s
 _REAL_READ_TEXT = Path.read_text
 
 
-def _knowledge_reads_only():
-    """A ``Path.read_text`` that lets a render read only the knowledge home and the run baseline.
+def _knowledge_reads_only(run: Path):
+    """A ``Path.read_text`` that permits the knowledge home, bound run spec and baseline.
 
-    The packet quotes the living files whole (consumer contract D1, knowledge_home.reads_quotes) and names the run's
-    spec-diff baseline; any other read, such as a host evidence locator, is the defect this guard catches.
+    The packet quotes the current candidate and knowledge files, plus its binding and run diff baseline; any other read,
+    such as a host evidence locator, is the defect this guard catches.
     """
+    run_files = {
+        (run / "current-spec.md").resolve(),
+        (run / "spec" / "binding.md").resolve(),
+        (run / "spec" / "accepted.md").resolve(),
+        (run / "spec" / "prior-spec.md").resolve(),
+        (run / "spec" / "prior-architecture.md").resolve(),
+        (run / "spec" / "prior-environment.md").resolve(),
+    }
+
     def read_text(self, *args, **kwargs):
         text = str(self)
-        if "/docs/shiploop/" in text or text.endswith("/" + knowledge_home.RUN_BASELINE):
+        if ("/docs/shiploop/" in text or Path(text).resolve() in run_files
+                or text.endswith("/" + knowledge_home.RUN_BASELINE)):
             return _REAL_READ_TEXT(self, *args, **kwargs)
         raise AssertionError("render read evidence: " + text)
     return read_text
@@ -326,7 +337,7 @@ class GuidanceTests(unittest.TestCase):
         if child is not None and child["skill"] is None:
             shown, _ = navigator._improve_entry(self.run, {**state, "improve_skill": str(IMPROVE_CARD)})
         if guarded:
-            with patch.object(Path, "read_text", new=_knowledge_reads_only()):
+            with patch.object(Path, "read_text", new=_knowledge_reads_only(self.run)):
                 packet = render_with_guides(None, self.run, shown)
         else:
             packet = render_with_guides(None, self.run, shown)
@@ -335,7 +346,8 @@ class GuidanceTests(unittest.TestCase):
         return packet
 
     def cold_packet(self, state: dict) -> tuple[dict, str]:
-        recovered = self.save_reload(state)
+        # Binding a pure graph fixture for a cold packet must not leak its temporary spec_root back to the caller.
+        recovered = self.save_reload(copy.deepcopy(state))
         before = (self.run / "state.md").read_bytes()
         packet = self.packet_with_handoff(recovered, guarded=True)
         self.assertEqual((self.run / "state.md").read_bytes(), before)
@@ -906,7 +918,11 @@ class GuidanceTests(unittest.TestCase):
         voids = {"system-test": "rerun the affected observations",
                  "release-check": "invalidates the observations it affects",
                  "release-verify": "invalidates the observations it affects"}
+        run_parent = self.run.parent
         for route in (prompts.INLINE, prompts.ASK_AGENT):
+            # Each independent run identity needs a fresh root; navigator.save binds a root permanently to its run.
+            self.run = run_parent / ("procedure-" + route)
+            self.run.mkdir()
             state = navigator.new_state(str(self.repo), "Change how a stored value is updated.", improve_skill="",
                                         delegation=route)
             seen: list[str] = []
@@ -961,9 +977,13 @@ class GuidanceTests(unittest.TestCase):
         index_route = "Repository knowledge index (host-authored, if present): WORKTREE/" + index.name
         observed: list[str] = []
         improved: list[str] = []
+        run_parent = self.run.parent
 
         for target in LOCAL_SKILL_INDEX_STAGES:
             with self.subTest(stage=target):
+                # Each independently seeded graph has its own run identity and therefore needs its own binding root.
+                self.run = run_parent / ("run-" + target)
+                self.run.mkdir()
                 state = self.state()
                 while navigator.current_stage(state) != target:
                     stage = navigator.current_stage(state)
@@ -1490,7 +1510,7 @@ class GuidanceTests(unittest.TestCase):
                         decision_ref = "unrelated://pending-improve"
                     continue
 
-                with patch.object(Path, "read_text", new=_knowledge_reads_only()):
+                with patch.object(Path, "read_text", new=_knowledge_reads_only(self.run)):
                     packet = render_with_guides(None, self.run, recovered)
                 self.assertEqual((self.run / "state.md").read_bytes(), before)
                 assert_test_sources(packet, inner=stage != "system-test-author")
@@ -2096,7 +2116,11 @@ class GuidanceTests(unittest.TestCase):
                 self.assertEqual(reconciliation in locators, stage == "plan")
                 if stage in stages:
                     self.assertIn("State and data assessment", prompts.improve_prompt(stage))
-        self.assertIn("Initial-plan reconciliation", prompts.prompt("plan"))
+        plan_intent = (
+            "Use the incoming request and quoted prior-to-current spec diff to plan only new/changed outcomes "
+            "and evidenced prerequisites."
+        )
+        self.assertIn(plan_intent, normalized(prompts.prompt("plan")))
         self.assertIn("State and data assessment", prompts.prompt("spec"))
         # This is guidance within existing stages, not another runtime owner.
         self.assertFalse(any("assessment" in stage or "reconciliation" in stage for stage in prompts.STAGES))

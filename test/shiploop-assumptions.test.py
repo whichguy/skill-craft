@@ -154,6 +154,9 @@ class GateTests(unittest.TestCase):
                 command="complete", action=action, result=str(path)))
 
     def test_research_submits_without_a_list(self):
+        # This is a new run identity; give it a new root rather than attempting to reseed the plan fixture's binding.
+        self.run_dir = self.base / "research-run"
+        self.run_dir.mkdir()
         state = nav.new_state(str(self.repo), "Research fixture.", improve_skill="",
                               lint_option="off")
         while nav.current_stage(state) != "research":

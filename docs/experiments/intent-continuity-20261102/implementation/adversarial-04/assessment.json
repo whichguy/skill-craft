@@ -1,0 +1,20 @@
+{
+  "review_input_sha256": "949dd602a566089266259c7951e478860dc3a6a4fa7a1866c8e41746fd74f75b",
+  "post_review_sha256": "188b9982c52f75d7de6681353399ea39be2bf40914b9a668945d4354f9c7eb29",
+  "adopted": [
+    "explicit current user request authority and cited basis",
+    "superseded clauses remain history rather than active acceptance",
+    "product acceptance requires cited conflicting request instruction for intentional replacement",
+    "known prior gaps stay open; reuse requires achieved-behavior evidence",
+    "learning-only commit terminology"
+  ],
+  "false_or_misaligned_premises": [
+    "F1 requested earlier aggregate promotion contradicts owner final-handoff timing; incomplete early-return boundary documented",
+    "F2 KNOWLEDGE alias is exactly docs/shiploop; Markdown relative links resolve from containing file, not repository root"
+  ],
+  "not_claimed_refuted": [
+    "F5 cold-context repeated history reads are intentional under S-6; relevant scope and semantic stop conditions remain; causal retrieval still requires live evidence",
+    "F6 identified pending qualifications truthfully; full and live results remain pending"
+  ],
+  "native_focused_review": "No broader rewrite authority/test self-waiver found; specific authority citation adopted."
+}

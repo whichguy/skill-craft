@@ -167,7 +167,7 @@ def step_anchors(plan: Mapping[str, Any], step: Mapping[str, Any]) -> dict[str, 
     decisions = [ident for ident in follows if ident.startswith("AD-")]
     home = knowledge_home.HOME
     return {"criteria": _and(listed) if listed else "the step's task",
-            "serving": (", serving " + _and(requirements) + " in " + home + "/spec.md") if requirements else "",
+            "serving": (", serving " + _and(requirements) + " in RUN/current-spec.md") if requirements else "",
             "decisions": ((_and(decisions) + " in " if decisions else "") + home + "/" + knowledge_home.ARCHITECTURE)}
 
 
@@ -379,6 +379,9 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, titl
                  f"files this step's change affects ({_paths_text(DOC_FILES)}), which ShipLoop commits with the step, "
                  "and docs/shiploop/ for this step's knowledge record. Product documentation (README, API, user and "
                  "operator docs) stays with the product, never in docs/shiploop/. Preserve every other change.")
+    scope += (" Current spec: RUN/current-spec.md; implement/document may add marked lines to accepted entries. "
+              "Spec development owns intent; a returned step-plan may reconcile evidenced status. "
+              "Aggregate docs/shiploop/spec.md is read-only until handoff.")
     text = WORK_ONE_STEP if one_step and stage == "carry-forward" else WORK[stage]
     repeat = REPEAT[stage]
     work = _fill(text, values)
@@ -400,7 +403,8 @@ def _build(root: Path, stage: str, action_id: str, *, repo: str, item: str, titl
          "locator": str(root / "packets" / (action_id + ".md"))},
         {"purpose": "this action's pass log: append what each iteration checked and what is left",
          "locator": str(root / "notes" / (action_id + ".md"))},
-        {"purpose": "living spec", "locator": str(home / "spec.md")},
+        {"purpose": "current-run spec candidate and current requirements", "locator": str(root / "current-spec.md")},
+        {"purpose": "prior accepted aggregate, retained until final handoff", "locator": str(home / "spec.md")},
         {"purpose": "architecture", "locator": str(home / "architecture.md")},
         {"purpose": "environment, working commands, harnesses and suites", "locator": str(home / "environment.md")},
     ]
@@ -753,7 +757,7 @@ def check_terminal(root: Path, state: Mapping[str, Any], result: Mapping[str, An
     path = receipt_path(root, action_id)
     if outcome == "blocked" and not os.path.lexists(path):
         return None  # The loop never started (for example, no runtime resolves); the summary and awaiting say why.
-    if outcome == "send-back" and stage == "implement" and send_back_open_path(root, action_id).is_file():
+    if outcome == "send-back" and stage in ("implement", "document") and send_back_open_path(root, action_id).is_file():
         return None  # a gate refused this action's done and named send-back (open_send_back)
     if outcome in ("send-back", "blocked") and (
             (stage in ("test", "document") and _remedy_open(root, action_id))

@@ -31,6 +31,7 @@ import shiploop_inner_fixture as fx  # noqa: E402
 import shiploop_loop_support as support  # noqa: E402
 from shiploop_packet_view import callback_argv, callback_result_path  # noqa: E402
 import shiploop_item_scope as item_scope  # noqa: E402
+import shiploop_current_spec as current_spec  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
@@ -51,6 +52,14 @@ SERVICE_WAIT = {"kind": "service", "service": "the Until Loop runtime", "check":
 # The slash command for the loop, as a regular expression: "/until-loop" that is not the start of a path segment
 # (the runtime the start command runs lives in `.../runtime/until-loop/scripts/`).
 SLASH_FORM = r"/until-loop(?![\w/.-])"
+
+
+def seed_step_spec_snapshot(root: Path, state: dict, item: str = "W1") -> None:
+    """Seed the accepted per-step current-spec baseline for a fixture that starts after implement entry."""
+    key = nav._step_spec_key(state, item)
+    writes = current_spec.step_snapshot_writes(state, key)
+    if writes:
+        store.transaction(root, writes)
 
 
 def _runtime_module():
@@ -196,18 +205,28 @@ class ContractTests(Synthetic):
         packet = self.runtime(["start", "--receipt", str(receipt)], writes[loops.contract_path("A-implement")])
         self.assertEqual((packet["status"], packet["conditions"]["exit"]), ("active", value["exit_condition"]))
 
-    def test_the_step_contract_binds_its_anchors_and_rebuilds_the_same_after_the_living_files_change(self):
+    def test_the_step_contract_binds_its_anchors_when_the_run_candidate_changes(self):
         """T12: the inline step's Work names its criteria, the R-<n> they name and the item's AD-<n>; the contract rebuilt
-        at complete equals the one written at entry, though the step edited HOME/spec.md in between (the anchors are
-        read from state, never from the living files)."""
+        at complete equals the one written at entry, though the step edits RUN/current-spec.md (anchors come from state)."""
         state = self.state_for("implement")
         state["accepted"]["A-sp"].update(criteria=[{"id": "C1", "text": "The header is read as R-2 states."}],
                                          follows=["R-1", "AD-3"])
-        written = json.loads(self.write(state)[loops.contract_path("A-implement")])
         home = self.repo / "docs" / "shiploop"
         home.mkdir(parents=True)
-        (home / "spec.md").write_text("# Spec\n\n- R-2: the header, edited by the step.\n- R-9: new.\n")
+        prior_text = "# Spec\n\n- R-2: the header.\n"
+        (home / "spec.md").write_text(prior_text, encoding="utf-8")
+        state.update(version=current_spec.STATE_VERSION, spec_root="")
+        for relative, text in current_spec.initialize_writes(self.root, state).items():
+            target = self.root / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(text, encoding="utf-8")
+        state["spec_root"] = str(self.root.resolve())
+        seed_step_spec_snapshot(self.root, state)
+        written = json.loads(self.write(state)[loops.contract_path("A-implement")])
+        (self.root / "current-spec.md").write_text(
+            "# Spec\n\n- R-2: the header, edited by the step.\n- R-9: new.\n", encoding="utf-8")
         self.assertEqual(loops.contract(self.root, state, "A-implement"), written)
+        self.assertEqual((home / "spec.md").read_text(encoding="utf-8"), prior_text)
         for token in ("step S1", "C1", "R-2", "AD-3",
                       "until each criterion assigned to this step is satisfied and none of the others is broken"):
             self.assertIn(token, written["work"])
@@ -293,16 +312,17 @@ class ContractTests(Synthetic):
                 for removed in ("/features/", "test-strategy", "/test-spec.md", "test spec", "feature plan"):
                     self.assertNotIn(removed, engine)
 
-    def test_resources_are_packet_pass_log_three_living_files_and_step_plan(self):
+    def test_resources_separate_current_candidate_from_prior_aggregate(self):
         home = self.repo / "docs" / "shiploop"
         for stage in stage_spec.INNER:
             with self.subTest(stage=stage):
                 resources = loops.contract(self.root, self.state_for(stage), "A-" + stage)["context"]["resources"]
                 self.assertEqual([row["locator"] for row in resources[:6]], [
                     str(self.root / "packets" / ("A-" + stage + ".md")), str(self.root / "notes" / ("A-" + stage + ".md")),
-                    str(home / "spec.md"), str(home / "architecture.md"), str(home / "environment.md"),
-                    str(self.root / "results" / "A-sp.md")])
-                self.assertEqual(len(resources), 6)
+                    str(self.root / "current-spec.md"), str(home / "spec.md"), str(home / "architecture.md"),
+                    str(home / "environment.md")])
+                self.assertEqual(resources[6]["locator"], str(self.root / "results" / "A-sp.md"))
+                self.assertEqual(len(resources), 7)
 
     def test_a_contract_is_only_for_the_current_inner_action(self):
         with self.assertRaisesRegex(loops.LoopError, "not the current inner action"):
@@ -997,6 +1017,51 @@ class NavigatorLoopTests(fx.RunDriver):
         self.submit(dict(DOC_DONE, evidence_refs=[str(self.receipt())]))
         self.assertEqual(self.state()["active_improve"]["stage"], "document", "accepted: the step's review starts")
 
+    def test_document_send_back_marker_is_action_scoped_and_does_not_waive_receipts(self):
+        """S-11: a document gate's send-back marker opens that action's send-back route only."""
+        self.start()
+        self.drive_to("document")
+        state, action, receipt = self.state(), self.action(), self.receipt()
+        self.assertTrue(current_spec.path(state).is_file(), "the fixture must retain its persisted current-spec binding")
+        terminal = self.run_loop([TRIVIAL])
+        self.assertEqual(terminal["status"], "complete")
+
+        loops.open_send_back(self.run_dir, action, "The document gate refused done and named send-back.")
+        send_back = {"outcome": "send-back", "summary": "Correct the document-stage finding."}
+        self.assertIsNone(loops.check_terminal(self.run_dir, state, send_back))
+
+        # A marker for action A does not authorize a different action B on the same bound run.
+        item = state["work_items"][state["work_index"]]["id"]
+        foreign = dict(state)
+        foreign_loops = dict(state["inner_loops"])
+        foreign_item = dict(foreign_loops[item])
+        foreign_action = foreign_item["action"]
+        foreign_item["action"] = ({**foreign_action, "id": action + "-foreign"}
+                                   if isinstance(foreign_action, dict) else action + "-foreign")
+        foreign_loops[item] = foreign_item
+        foreign["inner_loops"] = foreign_loops
+        with self.assertRaisesRegex(loops.LoopError, "the document loop has not run: no receipt exists at"):
+            loops.check_terminal(self.run_dir, foreign, send_back)
+
+        refs = {"evidence_refs": [str(receipt)]}
+        self.assertEqual(loops.check_terminal(self.run_dir, state, {"outcome": "done", **refs}), receipt)
+        receipt.unlink()
+        with self.assertRaisesRegex(loops.LoopError, "the document loop has not run: no receipt exists at"):
+            loops.check_terminal(self.run_dir, state, {"outcome": "done", **refs})
+        receipt.write_text("{broken", encoding="utf-8")
+        # blocked without any receipt retains its existing pre-start rule; a present invalid or foreign receipt is not
+        # waived by this action marker.
+        for outcome in ("done", "blocked"):
+            with self.subTest(outcome=outcome, receipt="invalid"):
+                with self.assertRaisesRegex(loops.LoopError, "is not valid JSON"):
+                    loops.check_terminal(self.run_dir, state, {"outcome": outcome, **refs})
+
+        receipt.write_text(json.dumps(dict(terminal, work="a different contract")), encoding="utf-8")
+        for outcome in ("done", "blocked"):
+            with self.subTest(outcome=outcome, receipt="mismatched"):
+                with self.assertRaisesRegex(loops.LoopError, "not from a run of this action's contract"):
+                    loops.check_terminal(self.run_dir, state, {"outcome": outcome, **refs})
+
     def test_done_without_a_matching_receipt_is_refused_and_nothing_is_saved(self):
         self.start()
         self.drive_to("document")
@@ -1171,6 +1236,7 @@ class MissingContractTests(unittest.TestCase):
                 if state.get("active_improve") is not None:
                     state = nav.finish_improve(state, action, {"summary": "Synthetic review"})
             nav.save(run, state)
+            seed_step_spec_snapshot(run, state)
             action = nav.current_action(state)["id"]
             receipt = loops.receipt_path(run, action)
             self.assertFalse(receipt.exists())
@@ -1305,6 +1371,7 @@ class WorkTextTests(Synthetic):
                 if state.get("active_improve") is not None:
                     state = nav.finish_improve(state, action, {"summary": "Synthetic review"})
             nav.save(run, state)
+            seed_step_spec_snapshot(run, state)
             action = nav.current_action(state)["id"]
             printed = subprocess.run([sys.executable, "-B", str(ROOT / "skills/shiploop/scripts/shiploop"), "next",
                                       "--run-dir", str(run)], capture_output=True, text=True,

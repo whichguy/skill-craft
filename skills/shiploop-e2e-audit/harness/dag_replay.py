@@ -32,9 +32,15 @@ CASE_SCHEMA = "shiploop-e2e-dag-case/1"
 MOCK_REQUEST_SCHEMA = "shiploop-e2e-mock-grok-request/1"
 MOCK_RESPONSE_SCHEMA = "shiploop-e2e-mock-grok-response/1"
 SIMULATION_SCOPE = (
-    "Synthetic apparatus only: real navigator transition functions consume local mock "
-    "callbacks. No model, network, repository work, captured shell command, product, "
-    "or live E2E verdict is produced."
+    "Synthetic apparatus only: real navigator graph transitions consume local mock callbacks. "
+    "The report directory contains a temporary synthetic repository and, when supported, "
+    "run-local current-spec binding. No model, network, product work, captured shell "
+    "command, live E2E verdict, or terminal aggregate promotion is produced."
+)
+_SYNTHETIC_SPEC = (
+    "# Synthetic current-spec replay fixture\n\n"
+    "This temporary baseline exercises run-local current-spec binding and candidate continuity. "
+    "It states no product requirement or external design decision.\n"
 )
 _CASE_FIELDS = frozenset((
     "schema", "id", "kind", "protocol_version", "provenance", "prompt", "steps",
@@ -523,6 +529,21 @@ def _load_durable(navigator: Any, run_dir: Path) -> dict[str, Any]:
     return state
 
 
+def _selected_current_spec(navigator: Any, state: Mapping[str, Any]) -> Any | None:
+    """Return only the current-spec API belonging to this selected state's version."""
+    current_spec = getattr(navigator, "current_spec", None)
+    if current_spec is None or state.get("version") != getattr(current_spec, "STATE_VERSION", None):
+        return None
+    navigator_file = getattr(navigator, "__file__", None)
+    current_spec_file = getattr(current_spec, "__file__", None)
+    if (not navigator_file or not current_spec_file
+            or not _within(Path(current_spec_file), Path(navigator_file).resolve().parent)):
+        raise DagReplayError("current-spec API did not bind to the selected ShipLoop package")
+    if not callable(getattr(current_spec, "digest", None)):
+        raise DagReplayError("selected v12 current-spec API lacks its candidate digest reader")
+    return current_spec
+
+
 class _MockSession:
     """One bounded local subprocess per replay case; no shell is involved."""
 
@@ -770,7 +791,7 @@ def replay_case(case: Mapping[str, Any], *, fixture: Mapping[str, Any], output: 
     skill_root = (DEFAULT_SKILL_ROOT if skill_root is None else skill_root).expanduser().resolve()
     if not (skill_root / "SKILL.md").is_file():
         raise DagReplayError("selected skill root must contain SKILL.md")
-    report_dir = output / "cases" / case["id"]
+    report_dir = (output / "cases" / case["id"]).resolve()
     report_dir.mkdir(parents=True, exist_ok=False)
     started = time.monotonic()
     source_before = _source_fingerprint(skill_root)
@@ -788,6 +809,7 @@ def replay_case(case: Mapping[str, Any], *, fixture: Mapping[str, Any], output: 
         "live_verdict": "not-assessed",
         "captured_command_execution": "none",
         "scope": SIMULATION_SCOPE,
+        "terminal_spec_promotion": "not-exercised",
         "transition_engine": str((skill_root / "scripts" / "shiploop_navigator.py").resolve()),
         "source_before": source_before,
         "harness_before": harness_before,
@@ -837,15 +859,39 @@ def replay_case(case: Mapping[str, Any], *, fixture: Mapping[str, Any], output: 
     core = SimpleNamespace(PACKAGE_ROOT=skill_root, REF_DIR=skill_root / "references")
     run_dir = report_dir / "run"
     run_dir.mkdir()
+    repo_dir = report_dir / "repo"
+    repo_dir.mkdir()
     state = navigator.new_state(
-        f"/simulation-only/dag-replay/{case['id']}",
-        case.get("prompt", "Synthetic ShipLoop DAG replay fixture; no project work."),
+        str(repo_dir.resolve()),
+        case.get("prompt", "Synthetic ShipLoop DAG replay fixture; no product work."),
         improve_skill="",
         planning_review=case["planning_review"],
     )
+    current_spec = _selected_current_spec(navigator, state)
+    if current_spec is not None:
+        aggregate = repo_dir / "docs" / "shiploop" / "spec.md"
+        aggregate.parent.mkdir(parents=True)
+        aggregate.write_text(_SYNTHETIC_SPEC, encoding="utf-8")
     navigator.save(run_dir, state)
     initial_state = _load_durable(navigator, run_dir)
     report["initial_state_sha256"] = _state_hash(initial_state)
+    report["state_version"] = initial_state.get("version")
+    report["current_spec_replay"] = {
+        "mode": "synthetic-v12-run-local-binding" if current_spec is not None
+        else "selected-subject-does-not-bind-v12-current-spec",
+        "repo": "repo",
+        "review_evidence": "not-produced-graph-only",
+        "terminal_aggregate_promotion": "not-exercised",
+    }
+    if current_spec is not None:
+        if not initial_state.get("spec_root"):
+            raise DagReplayError("selected v12 navigator did not bind its first saved synthetic run")
+        current_spec.assert_binding(run_dir, initial_state)
+        report["current_spec_replay"].update(
+            candidate="run/current-spec.md",
+            candidate_sha256=current_spec.digest(initial_state),
+            synthetic_aggregate_source="repo/docs/shiploop/spec.md",
+        )
     mock = _MockSession(report_dir)
     mock_summary: dict[str, Any] | None = None
     try:

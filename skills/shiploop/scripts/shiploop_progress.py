@@ -35,6 +35,30 @@ STALE_AFTER = 30.0
 IDLE_TIMEOUT = 1800.0
 
 
+class _BindingError(ValueError):
+    """The persisted run is not safely bound to its current-spec candidate."""
+
+
+def _require_binding(root: Path, *, core: Any = None) -> dict:
+    """Validate the persisted v12 run and its candidate before observer/control writes."""
+    loader = getattr(core, "load_state", None)
+    if callable(loader):
+        try:
+            return loader(root)
+        except SystemExit as exc:
+            raise _BindingError(f"run state at {root} is not bound: {exc}") from exc
+    import shiploop_navigator as navigator
+    import shiploop_current_spec as current_spec
+
+    try:
+        state = store.read_record(root / "state.md")
+        navigator.validate(state)
+        current_spec.assert_binding(root, state)
+    except (OSError, ValueError, KeyError, TypeError, store.StorageError) as exc:
+        raise _BindingError(str(exc)) from exc
+    return state
+
+
 def now() -> str:
     """Current UTC time as an ISO-8601 string with a ``Z`` suffix, to the second."""
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
@@ -127,9 +151,17 @@ def sample(root: Path) -> dict | None:
     import shiploop_progress_data as data
 
     with _lock(root, ".lock", shared=True) as acquired:
-        if not acquired or os.path.lexists(root / store.JOURNAL_NAME):
+        if not acquired:
             return None
-        return data.build_snapshot(root)
+        if os.path.lexists(root / store.JOURNAL_NAME):
+            return None
+        _require_binding(root)
+        import shiploop_current_spec as current_spec
+
+        try:
+            return data.build_snapshot(root)
+        except current_spec.SpecError as exc:
+            raise _BindingError(str(exc)) from exc
 
 
 def publish(root: Path, snapshot: dict, *, mode: str, interval: float,
@@ -167,6 +199,7 @@ def observe(root: Path, *, watch: bool, interval: float = 2.0,
     root = checked_root(root)
     # Validate identity before creating even the display lock.
     _regular(root / "state.md")
+    _require_binding(root)
     instance = instance or uuid.uuid4().hex
     with _lock(root, LOCK, create=True) as acquired:
         if not acquired:
@@ -179,6 +212,7 @@ def observe(root: Path, *, watch: bool, interval: float = 2.0,
         terminal_since = None
         code = 0
         reason = "stopped"
+        binding_lost = False
         try:
             while True:
                 if not root.is_dir():
@@ -222,6 +256,9 @@ def observe(root: Path, *, watch: bool, interval: float = 2.0,
                         if final or not watch:
                             reason = "final" if final else "snapshot"
                             break
+                except _BindingError as exc:
+                    reason, code, binding_lost = "run binding unavailable: " + str(exc), 2, True
+                    break
                 except (OSError, ValueError, KeyError, TypeError, store.StorageError) as exc:
                     reason = "observation unavailable: " + str(exc)
                     # Keep last good content and its old observed_at; errors are not progress.
@@ -238,7 +275,7 @@ def observe(root: Path, *, watch: bool, interval: float = 2.0,
         except KeyboardInterrupt:
             reason = "stopped by interrupt"
         finally:
-            if root.is_dir():
+            if root.is_dir() and not binding_lost:
                 try:
                     if last is not None and reason not in ("final", "snapshot"):
                         publish(root, last, mode="snapshot", interval=interval, error=reason)
@@ -259,6 +296,7 @@ def start(root: Path, *, interval: float = 2.0, idle_timeout: float = IDLE_TIMEO
     """Start one detached observer for the run; True when one is running afterwards."""
     root = checked_root(root)
     _regular(root / "state.md")
+    _require_binding(root)
     if running(root):
         return True
     previous_instance = _read_json(root / STATUS).get("instance")
@@ -310,6 +348,8 @@ def ensure(root: Path) -> None:
 
 def stop(root: Path) -> None:
     """Disable automatic observation and ask a running observer to stop."""
+    root = checked_root(root)
+    _require_binding(root)
     _write(root, DISABLED, "Automatic observation stopped by view --stop. Use view --start to resume.\n")
     record = _read_json(root / STATUS)
     if running(root) and record.get("instance"):
@@ -334,9 +374,13 @@ def serve(root: Path, *, port: int | None, interval: float, idle_timeout: float)
     """``view --serve``: keep the observer going for a live run, then serve the run's pages until interrupted."""
     import shiploop_progress_serve as viewer
 
+    root = checked_root(root)
+    _require_binding(root)
     try:
         if not finished(root) and not start(root, interval=interval, idle_timeout=idle_timeout):
             print("ShipLoop progress observer unavailable; serving the pages already published.", file=sys.stderr)
+    except _BindingError:
+        raise
     except (OSError, ValueError, store.StorageError) as exc:
         print(f"ShipLoop progress observer unavailable: {exc}; serving the pages already published.",
               file=sys.stderr)
@@ -371,6 +415,8 @@ def main(argv: Sequence[str] | None = None, *, core: Any = None) -> int:
             print(json.dumps({**_read_json(root / STATUS), "running": running(root),
                               "path": str(root / PAGE)}, sort_keys=True))
             return 0
+        if args.start or args.watch or args.serve or args.stop:
+            _require_binding(root, core=core)
         if args.stop:
             stop(root)
             print("Progress stop requested; ShipLoop execution is unchanged.")

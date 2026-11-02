@@ -14,6 +14,7 @@ import stat
 from typing import Any, Mapping
 
 import shiploop_context_index as context_index
+import shiploop_current_spec as current_spec
 import shiploop_knowledge_home as knowledge_home
 import shiploop_navigator as navigator
 import shiploop_planning_revision as planning_revision
@@ -518,14 +519,21 @@ def build_snapshot(root: Path) -> dict[str, Any]:
     doc_identity: list[dict[str, str]] = []
 
     repo = Path(os.path.abspath(os.fspath(state["repo"])))
-    # The living spec; the run's other records are result fields (consumer contract 6.2), shown by the report.
+    candidate_spec = current_spec.path(state)
+    if candidate_spec.parent != run_root.resolve():
+        raise ValueError("current-spec binding does not belong to the requested progress run")
+    # Keep the run candidate separate from the accepted aggregate until final handoff.
+    aggregate_title = ("Long-running aggregate after final handoff" if state.get("status") == "done"
+                       else "Prior accepted aggregate specification")
     fixed_docs = (
-        ("living-spec", "Living specification", knowledge_home.HOME + "/spec.md"),
+        ("current-spec", "Current-run specification candidate", candidate_spec.name),
+        ("prior-aggregate-spec", aggregate_title, knowledge_home.HOME + "/spec.md"),
     )
     candidates: list[tuple[str, str, Path, str, Mapping[str, Any] | None,
                            Mapping[str, Any] | None, str | None]] = []
     for doc_id, title, relative in fixed_docs:
-        candidates.append((doc_id, title, repo, relative, None, None, None))
+        base = candidate_spec.parent if doc_id == "current-spec" else repo
+        candidates.append((doc_id, title, base, relative, None, None, None))
 
     for result_stage in ("spec", "plan"):
         result_action = current.get((None, result_stage))

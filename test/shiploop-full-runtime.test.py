@@ -561,29 +561,127 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             flags += ["--final-result", str(final)]
         return flags
 
-    def _submit_child(self, context: dict, child: dict) -> None:
-        def report(classification: str, exit_assessment: str, label: str) -> dict:
-            return {
-                "classification": classification,
-                "exit_assessment": exit_assessment,
-                "continuation_assessment": "allowed",
-                "evidence": f"Synthetic {context['stage']} {label}; no semantic review claim.",
-                "handoff": (
-                    f"Synthetic only. Parent state: {context['run'] / 'state.md'}. "
-                    f"Parent return: {context['parent_return']}. "
-                    f"Latest packet receipt: {context['packet_path']}. Preserve current scope and binding."
-                ),
-            }
+    def _record_improve_pass(
+        self, context: dict, packet: dict, classification: str, exit_assessment: str, label: str
+    ) -> str:
+        """Use the copied ShipLoop improve-pass route to record synthetic protocol-only pass evidence."""
+        number = int((packet.get("progress") or {}).get("action_number") or 1)
+        reviews = context["packet_path"].parent / "reviews"
+        reviews.mkdir(parents=True, exist_ok=True)
+        review_path = reviews / f"review-{number}.md"
+        original_review = review_path.read_text(encoding="utf-8") if review_path.is_file() else ""
+        state = self._state(context["run"])
+        work_items = [item for item in state.get("work_items", []) if isinstance(item, dict)]
+        work_index = state.get("work_index")
+        if type(work_index) is int and 0 <= work_index < len(work_items):
+            queue_titles = "; ".join(item["title"] for item in work_items[work_index:])
+            work_observation = (
+                f"Observed active work item: {work_items[work_index]['title']}; "
+                f"current corrective queue: {queue_titles}."
+            )
+        else:
+            completed = set(state.get("completed_work_items", []))
+            completed_titles = "; ".join(
+                item["title"] for item in work_items if item.get("id") in completed
+            ) or "none"
+            work_observation = f"Observed no active work item; completed work-item titles: {completed_titles}."
+        delivered = Path(context["repo"]) / DELIVERED
+        delivered_contents = delivered.read_text(encoding="utf-8") if delivered.is_file() else "(missing)"
+        observations_list = [
+            work_observation,
+            f"Observed {DELIVERED} exact contents: {delivered_contents!r}.",
+        ]
+        contract = None
+        for entry in reversed(state.get("history", [])):
+            result = state.get("accepted", {}).get(entry.get("action"), {})
+            assessment = result.get("delivery_assessment") if isinstance(result, dict) else None
+            if isinstance(assessment, dict) and assessment.get("kind") == "contract":
+                contract = assessment.get("contract")
+                break
+        if isinstance(contract, dict):
+            observations_list.append(
+                "Observed current delivery contract: "
+                f"candidate {contract.get('candidate')!r}, target {contract.get('target')!r}, "
+                f"operation {contract.get('operation')!r}, behavior {contract.get('behavior')!r}."
+            )
+        else:
+            observations_list.append("Observed that the accepted run history has no delivery contract.")
+        if context["stage"] == "release-plan":
+            producer = context.get("producer", {})
+            consumer_entry = producer.get("consumer_entry", {}) if isinstance(producer, dict) else {}
+            checks = producer.get("consumer_checks", []) if isinstance(producer, dict) else []
+            observations_list.append(
+                "Observed release-plan producer context: "
+                f"entry instructions {consumer_entry.get('how')!r}, "
+                f"sources {consumer_entry.get('sources', [])!r}, "
+                f"consumer checks {[row.get('command') for row in checks if isinstance(row, dict)]!r}."
+            )
+        observations = "\n".join(observations_list) + "\n"
+        review_path.write_text(
+            "---\n"
+            f"classification: {classification}\n"
+            f"exit: {exit_assessment}\n"
+            "continuation: allowed\n"
+            "---\n"
+            f"Read: synthetic callback protocol for {context['stage']} action {context['action']}.\n"
+            f"Found: no callback protocol defect in fixture pass {number} ({label}).\n"
+            f"Changed: no product files or run-local spec content in fixture pass {number}.\n"
+            f"Checked: copied ShipLoop improve-pass binding and digest path for action {context['action']}.\n"
+            f"{observations}"
+            "Class: synthetic protocol evidence only; no semantic product review claim.\n"
+            f"Original fixture review text: {original_review.rstrip()}\n"
+            "## Handoff\n"
+            f"Pass {number} records callback wiring for {context['stage']} action {context['action']}; "
+            f"the exact parent return instructions are at {context['parent_return']} and the child receipt is at "
+            f"{context['packet_path']}; this does not claim a product review.\n",
+            encoding="utf-8",
+        )
+        passed = self._run(
+            self._script(context["shiploop"]), "improve-pass", "--run-dir", context["run"],
+            "--action", context["improve"],
+        )
+        lines = passed.stdout.splitlines()
+        instruction = "Run the Until Loop runtime's done for this pass exactly as printed"
+        index = next((at for at, line in enumerate(lines) if line.startswith(instruction)), None)
+        self.assertIsNotNone(index, passed.stdout)
+        self.assertGreater(len(lines), index + 1, passed.stdout)
+        command = lines[index + 1].strip()
+        self.assertIn(" < ", command)
+        pass_path = reviews / f"pass-{number}.json"
+        sidecar = reviews / f"current-spec-{number}.md"
+        facts = json.loads(pass_path.read_text(encoding="utf-8"))
+        self.assertEqual(facts["current_spec"], hashlib.sha256(sidecar.read_bytes()).hexdigest())
+        context.setdefault("pending_done_commands", {})[number] = command
+        return command
 
+    def _run_printed_done(self, command: str) -> tuple[bytes, dict]:
+        """Run improve-pass's literal shell command for the bound runtime's done and retain its receipt bytes."""
+        result = subprocess.run(
+            ["/bin/sh", "-c", command], cwd=self.unrelated_cwd, env=self.environment,
+            capture_output=True, timeout=30,
+        )
+        detail = (result.stdout + result.stderr).decode("utf-8", "replace")
+        self.assertEqual(result.returncode, 0, detail)
+        raw = result.stdout
+        try:
+            packet = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            self.fail(f"printed Until Loop done did not return JSON: {detail}\n{exc}")
+        self.assertIsInstance(packet, dict)
+        return raw, packet
+
+    def _submit_child(self, context: dict, child: dict) -> None:
         packet = child["packet"]
         for classification, exit_assessment, label in (
             ("non-trivial", "unsatisfied", "material finding"),
             ("trivial", "unsatisfied", "first qualifying review"),
             ("trivial", "satisfied", "second qualifying review"),
         ):
-            raw, packet = self._run_child_argv(
-                packet["done_argv"], report(classification, exit_assessment, label)
-            )
+            number = int((packet.get("progress") or {}).get("action_number") or 1)
+            command = context.get("pending_done_commands", {}).pop(number, None)
+            if command is None:
+                command = self._record_improve_pass(context, packet, classification, exit_assessment, label)
+            raw, packet = self._run_printed_done(command)
             context["packet_path"].write_bytes(raw)
         self.assertEqual(packet["status"], "complete")
         self.assertEqual(packet["progress"]["trivial_streak"], 2)
@@ -775,6 +873,25 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             result["unverified"] = []
         if stage == "handoff" and result.get("outcome") == "done" and "follow_on" not in result:
             result["follow_on"] = []                                  # the handoff classifies what is left for a later run
+        if stage == "handoff" and result.get("outcome") == "done" and "spec_reconciliation" not in result:
+            # Read the exact hashes from this copied runtime's packet template; the real terminal gate and promotion
+            # still validate these values against the bound candidate and immutable run-start snapshot.
+            head = self._run(self._script(shiploop), "next", "--run-dir", run).stdout
+            template_text = head.split("Result template:\n", 1)[1].split("\nAllowed outcomes:", 1)[0]
+            marker = "```shiploop-state\n"
+            self.assertIn(marker, template_text)
+            template = json.loads(template_text.split(marker, 1)[1].split("\n```", 1)[0])
+            reconciliation = template["spec_reconciliation"]
+            self.assertEqual(set(reconciliation), {"current_sha256", "prior_sha256", "summary"})
+            self.assertRegex(reconciliation["current_sha256"], r"^[0-9a-f]{64}$")
+            self.assertRegex(reconciliation["prior_sha256"], r"^[0-9a-f]{64}$")
+            result["spec_reconciliation"] = {
+                **reconciliation,
+                "summary": (
+                    "The accepted current spec carries this run's intended design; prior requirements remain unless "
+                    "that accepted spec explicitly changes them."
+                ),
+            }
         if stage in knowledge_support.knowledge.CLOSES:
             knowledge_support.write(state)
         if final_result is None:
@@ -956,6 +1073,11 @@ class FullRuntimeCompositionTests(unittest.TestCase):
             self._cold_recover(context)
         child = self._continue_child(context)
         receipt = self._receipt(context, final_result=final_result)
+        if rejection in {"stale", "foreign", "unfinished"}:
+            # Give the intended receipt rejection a valid, real improve-pass
+            # digest first; the pass is synthetic protocol evidence and the
+            # Until Loop remains active until the later printed done command.
+            self._record_improve_pass(context, child["packet"], "non-trivial", "unsatisfied", rejection)
         if rejection == "stale":
             # complete before any child receipt exists (a child that never started): refused, state unchanged.
             genuine = context["packet_path"].read_bytes()
@@ -992,21 +1114,41 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         self.assertEqual(state_before, (run / "state.md").read_bytes())
         self.assertEqual(child_before, context["packet_path"].read_bytes())
 
-    def _checkpoint(self, run: Path, repo: Path) -> tuple[Path, Path]:
+    def _checkpoint(self, run: Path, repo: Path) -> tuple[Path, Path, bool, bytes | None]:
         checkpoint = self.base / "late-outer-checkpoint"
         run_copy = checkpoint / "run"
         child_copy = checkpoint / "shiploop-improve"
         shutil.copytree(run, run_copy)
         shutil.copytree(repo / ".shiploop-improve", child_copy)
-        return run_copy, child_copy
+        aggregate = repo / "docs/shiploop/spec.md"
+        aggregate_present = aggregate.is_file()
+        self.assertFalse(aggregate.exists() and not aggregate_present, "aggregate snapshot must be a regular file")
+        aggregate_bytes = aggregate.read_bytes() if aggregate_present else None
+        return run_copy, child_copy, aggregate_present, aggregate_bytes
 
-    def _restore_checkpoint(self, run: Path, repo: Path, checkpoint: tuple[Path, Path]) -> None:
-        """Reuse a real pre-operations subprocess state, never a hand-written fixture."""
-        run_copy, child_copy = checkpoint
+    def _restore_checkpoint(
+        self, run: Path, repo: Path, checkpoint: tuple[Path, Path, bool, bytes | None]
+    ) -> None:
+        """Reuse a real pre-operations state and restore its exact prior aggregate after preserving terminal evidence."""
+        run_copy, child_copy, aggregate_present, aggregate_bytes = checkpoint
         run.rename(self.base / "completed-baseline-run")
         (repo / ".shiploop-improve").rename(self.base / "completed-baseline-shiploop-improve")
+        aggregate = repo / "docs/shiploop/spec.md"
+        self.assertTrue(aggregate.is_file(), "completed baseline must retain the promoted aggregate spec")
+        completed_bytes = aggregate.read_bytes()
+        self.assertEqual(completed_bytes, (self.base / "completed-baseline-run" / "current-spec.md").read_bytes())
+        (self.base / "completed-baseline-aggregate-spec.md").write_bytes(completed_bytes)
         shutil.copytree(run_copy, run)
         shutil.copytree(child_copy, repo / ".shiploop-improve")
+        if aggregate_present:
+            self.assertIsNotNone(aggregate_bytes)
+            aggregate.parent.mkdir(parents=True, exist_ok=True)
+            aggregate.write_bytes(aggregate_bytes)
+        else:
+            self.assertIsNone(aggregate_bytes)
+            if aggregate.exists():
+                self.assertTrue(aggregate.is_file(), "only the promoted aggregate is removed for this checkpoint")
+                aggregate.unlink()
 
     def _return_final_workspace(self, workspace: Path, source: Path, context: dict, _receipt: Path) -> None:
         self._run(self._script(context["shiploop"]), "workspace", "plan-return", "--workspace-root", workspace)
@@ -1038,7 +1180,7 @@ class FullRuntimeCompositionTests(unittest.TestCase):
         state = self._state(run)
         self.assertEqual(state["delivery_contract_version"], 1)
         observed: list[str] = []
-        checkpoint: tuple[Path, Path] | None = None
+        checkpoint: tuple[Path, Path, bool, bytes | None] | None = None
         first_context: dict | None = None
 
         for stage in EXPECTED_STAGES:

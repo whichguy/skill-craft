@@ -286,13 +286,12 @@ class HeadBoundTests(unittest.TestCase):
         p0, p1 = head_order.tokens(key, row, route, {})
         return printed, p0, p1, row
 
-    def test_heads_keep_the_host_cut_and_every_required_token_and_plan_prints_the_one_line_floor(self) -> None:
+    def test_heads_keep_the_host_cut_and_required_tokens_and_use_the_note_floor_when_needed(self) -> None:
         texts = [f"Note {index}: the board must work at phone width; reuse the date helper in src/util/dates.ts."
                  for index in range(1, 6)]
         for route in ("inline", "ask-agent"):
-            # The plan head has the least room.  Plan F2 took the stated size limits and the headline's character count
-            # out of it, and plan F3's `follows` (the work item's row, the coverage rule in the checked-by line) took the
-            # room back: the head prints the floor by id and file, with no note quoted.
+            # The complete plan continuity duties use the id/file floor even for one note.
+            # The host cut, required tokens and held-note delivery remain fixed.
             for stage, quoted in (("plan", {1: [], 5: []}),
                                   ("step-plan", {1: ["N1"], 5: ["N1", "N2", "N3", "N4", "N5"]}),
                                   ("implement", {1: ["N1"], 5: ["N1", "N2", "N3", "N4", "N5"]})):

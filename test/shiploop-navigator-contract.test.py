@@ -1697,19 +1697,23 @@ class NavigatorContractTests(unittest.TestCase):
         while True:
             stage = navigator.current_stage(state)
             if stage in cold_stages:
-                navigator.save(cold_root, state)
-                before = (cold_root / "state.md").read_bytes()
-                recovered = store.read_record(cold_root / "state.md")
-                packet = navigator.render(None, cold_root, recovered)
-                self.assertEqual((cold_root / "state.md").read_bytes(), before)
-                self.assertEqual(recovered, state)
+                stage_root = cold_root / stage
+                stage_root.mkdir()
+                cold_state = copy.deepcopy(state)
+                navigator.save(stage_root, cold_state)
+                before = (stage_root / "state.md").read_bytes()
+                recovered = store.read_record(stage_root / "state.md")
+                packet = navigator.render(None, stage_root, recovered)
+                self.assertEqual((stage_root / "state.md").read_bytes(), before)
+                self.assertEqual(recovered, cold_state)
             else:
                 packet = navigator.render(None, self.repo / ".shiploop", state)
             normalized_packet = " ".join(packet.split())
             # The runtime rule is in the run reference file only (re-cut, 2026-10-11); the packet's RULES paragraph
             # points at it.
             self.assertIn("reference#rules", normalized_packet)
-            reference = " ".join(self._reference_text(cold_root).split())
+            reference_root = stage_root if stage in cold_stages else cold_root
+            reference = " ".join(self._reference_text(reference_root).split())
             self.assertIn("Requested runtime / entry point / material dependency", reference)
             self.assertIn("Record local-test-route evidence separately", reference)
             self.assertIn("Establish compatibility with target-compatible source or local evidence", reference)
@@ -2259,17 +2263,14 @@ class NavigatorContractTests(unittest.TestCase):
 
     def test_save_is_transactional_recovers_via_cli_and_refuses_symlink_escape(self) -> None:
         """Recover the receipt-before-state and after-state interruption seams."""
-        state = self.state()
-        action = self._action(state)
+        template_state = self.state()
+        action = self._action(template_state)
         submitted = result(summary="Synthetic intake result: S1.")
-        updated = navigator.apply(state, action["id"], submitted)
-        self.assertEqual(navigator.current_stage(updated), "discovery")
         expected_targets = ("context-index.md", "reference.md", "request.md", f"results/{action['id']}.md", "state.md", "status.md", "timeline.json")
-        expected_status = "```text\n" + navigator.status_block(updated) + "\n```\n"
         core = SimpleNamespace(PACKAGE_ROOT=SCRIPTS.parent)
         real_transaction = store.transaction
 
-        def crash_save(root: Path, fault_index: int, label: str) -> list[tuple[str, ...]]:
+        def crash_save(root: Path, updated: dict, fault_index: int, label: str) -> list[tuple[str, ...]]:
             observed: list[tuple[str, ...]] = []
 
             def crash_after_target(transaction_root, writes, deletes=None, **kwargs):
@@ -2292,9 +2293,13 @@ class NavigatorContractTests(unittest.TestCase):
             with self.subTest(interruption=label):
                 root = (Path(self.temp.name) / f"transaction-{fault_index}").resolve()
                 root.mkdir()
+                state = copy.deepcopy(template_state)
                 navigator.save(root, state)
+                updated = navigator.apply(state, action["id"], submitted)
+                self.assertEqual(navigator.current_stage(updated), "discovery")
+                expected_status = "```text\n" + navigator.status_block(updated) + "\n```\n"
                 self.assertTrue((root / "inbox" / ".keep").is_file())
-                self.assertEqual(crash_save(root, fault_index, label), [expected_targets])
+                self.assertEqual(crash_save(root, updated, fault_index, label), [expected_targets])
                 journal = store.read_record(root / "transaction.md")
                 self.assertEqual([entry["path"] for entry in journal["writes"]],
                                  list(expected_targets))
@@ -2323,8 +2328,11 @@ class NavigatorContractTests(unittest.TestCase):
         # The public CLI rolls an interrupted transaction forward under its lock.
         cli_root = (Path(self.temp.name) / "transaction-cli").resolve()
         cli_root.mkdir()
+        state = copy.deepcopy(template_state)
         navigator.save(cli_root, state)
-        crash_save(cli_root, 1, "receipt-before-state")
+        updated = navigator.apply(state, action["id"], submitted)
+        expected_status = "```text\n" + navigator.status_block(updated) + "\n```\n"
+        crash_save(cli_root, updated, 1, "receipt-before-state")
         self.assertTrue((cli_root / "transaction.md").is_file())
         self.assertEqual(store.read_record(cli_root / "state.md"), state)
         status = subprocess.run(
@@ -2594,7 +2602,9 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual(completed.call_args_list, [((workspace_root, Path(worktree["repo"])), {})])
         # The WORKTREE line absorbs the "Execution checkout" line outside return stages (packet re-cut, 2026-10-11).
         self.assertEqual(early_packet.count("WORKTREE = "), 1)
-        self.assertIn("an isolated worktree", early_packet)
+        self.assertIn("the source checkout changes through a verified return at release or handoff",
+                      " ".join(early_packet.split()))
+        self.assertIn("The current spec joins the accepted aggregate at final handoff.", early_packet)
         self.assertNotIn("Execution checkout: ", early_packet)
         self.assertNotIn("Return receipt:", early_packet)
         self.assertNotIn("Current workspace return:", early_packet)
@@ -3809,6 +3819,8 @@ class PlanningReviewDocumentsTest(unittest.TestCase):
             "names the consumers of a note that exist; promises none",
         ("references/state-files.md", "An Improve handoff receives that same source plus"):
             "says what an Improve handoff that runs receives; the stages listed are the source's owners",
+        ("references/state-files.md", "Exact current-spec bytes when the Improve child was bound"):
+            "a reference row describing the bytes held in a run-local bind snapshot, not promising a planning review",
         ("references/testing-and-documentation.md", "for review, plan, apply, check and two-trivial assessment"):
             "`plan` is a verb of the Until Loop here, not the stage",
     }
@@ -4699,34 +4711,40 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.assertEqual(self.git("rev-parse", "HEAD"), head)  # nothing committed on a refusal
 
     def spec_path(self) -> Path:
-        return self.repo / "docs" / "shiploop" / "spec.md"
+        return self.knowledge_support.knowledge.spec_path(self.state())
 
-    def test_a_steps_acceptance_line_in_the_spec_is_accepted_and_committed_with_the_step(self) -> None:
-        # Build plan S3.3: a step that settles what a requirement should say writes it back as a marked line inside the
-        # requirement's entry; the step commit carries it.
+    def test_a_steps_acceptance_line_is_retained_in_the_run_spec_without_a_product_commit(self) -> None:
+        # A step may refine an accepted requirement with its mark. A current-spec-only change stays run-local, so it
+        # creates no product commit; final aggregate promotion remains reserved for handoff.
         self.start()
-        self.to_validate_existing([dict(self.ABSENT_NOTES)])
+        self.drive_to_step_plan()
+        plan = self.step_plan([dict(self.ABSENT_NOTES)])
+        plan["steps"][0].update(task="Retain the accepted R-1 acceptance line in current-spec.md.", proof="true")
+        plan["steps"][0].pop("paths")
+        self.accept(plan)
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(result())
         self.assertEqual(self.settle(), "implement")
         spec = self.spec_path()
         self.assertIn("R-1: Synthetic requirement.\n", spec.read_text())
         spec.write_text(spec.read_text().replace(
             "R-1: Synthetic requirement.\n",
             "R-1: Synthetic requirement.\n  Acceptance: notes.md opens with a level-one title. (W1/S1)\n"))
-        (self.repo / "notes.md").write_text("# Notes\n")
         action = navigator.current_action(self.state())["id"]
-        self.accept(result(summary="Wrote notes.md."))
+        self.accept(result(summary="Refined the acceptance line; no repository product file changed."))
         self.settle()
-        commit = navigator.step_commit(self.run_dir, action)
-        self.assertEqual(sorted(self.git("show", "--name-only", "--format=", commit).split()),
-                         ["docs/shiploop/spec.md", "notes.md"])
-        self.assertIn("(W1/S1)", self.git("show", commit + ":docs/shiploop/spec.md"))
+        self.assertIsNone(navigator.step_commit(self.run_dir, action))
+        self.assertFalse((self.repo / "notes.md").exists())
+        self.assertIn("(W1/S1)", spec.read_text())
+        self.assertFalse((self.repo / "docs" / "shiploop" / "spec.md").exists())
 
     def test_a_changed_requirement_at_implement_is_refused_and_send_back_is_the_accepted_exit(self) -> None:
         self.start()
         self.to_validate_existing([dict(self.ABSENT_NOTES)])
         self.assertEqual(self.settle(), "implement")
         spec = self.spec_path()
-        spec.write_text(spec.read_text().replace("R-1: Synthetic requirement.", "R-1: A different requirement."))
+        baseline = spec.read_text()
+        spec.write_text(baseline.replace("R-1: Synthetic requirement.", "R-1: A different requirement."))
         (self.repo / "notes.md").write_text("# Notes\n")
         refused = self.submit(result(summary="Wrote notes.md.", learned=["none"], decisions=["none"]))
         self.assertNotEqual(refused.returncode, 0)
@@ -4734,7 +4752,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         self.assertIn("to change a requirement, report send-back naming it", text)
         self.assertIn("changed or removed: R-1: Synthetic requirement.", text)
         # An unmarked line is refused too, with the mark it needs.
-        spec.write_text(self.git("show", "HEAD:docs/shiploop/spec.md").replace(
+        spec.write_text(baseline.replace(
             "R-1: Synthetic requirement.\n", "R-1: Synthetic requirement.\n  Acceptance: unmarked.\n"))
         unmarked = self.submit(result(summary="Wrote notes.md.", learned=["none"], decisions=["none"]))
         self.assertIn("without the step's mark: Acceptance: unmarked.", unmarked.stdout + unmarked.stderr)
@@ -4745,7 +4763,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
     def test_a_requirement_a_step_adds_is_refused_and_send_back_is_the_exit(self) -> None:
         """Astra's review of 2026-10-28, a probe: a marked line counted as inside an R-<n> entry when that entry was new in
         the edited spec, so a step could add a requirement, a contract change that is the step plan's to decide.  Only
-        an entry the committed spec holds takes a step's lines."""
+        an entry the accepted baseline holds takes a step's lines."""
         self.start()
         self.to_validate_existing([dict(self.ABSENT_NOTES)])
         self.assertEqual(self.settle(), "implement")
@@ -4756,7 +4774,7 @@ class EightStageInnerLoopCliTests(unittest.TestCase):
         refused = self.submit(result(summary="Wrote notes.md.", learned=["none"], decisions=["none"]))
         self.assertNotEqual(refused.returncode, 0)
         text = refused.stdout + refused.stderr
-        self.assertIn("outside an R-<n> entry the committed spec holds: R-2: notes.md lists every run. (W1/S1)", text)
+        self.assertIn("outside an R-<n> entry the accepted baseline holds: R-2: notes.md lists every run. (W1/S1)", text)
         self.assertIn("to change a requirement, report send-back naming it", text)
 
     def test_the_look_back_quotes_the_last_two_commits_that_are_not_shiploop_records(self) -> None:
@@ -4895,7 +4913,7 @@ class StepReflectionCliTests(inner_fixture.RunDriver):
               "environment": "none: the step ran no new command"}
 
     def spec(self) -> Path:
-        return self.repo / "docs" / "shiploop" / "spec.md"
+        return inner_fixture.knowledge.spec_path(self.state())
 
     def refused(self, result: dict) -> str:
         """The refusal of ``result`` at the current inner stage, its loop run first and no fixture field added."""
@@ -4955,15 +4973,338 @@ class StepReflectionCliTests(inner_fixture.RunDriver):
                       prepare_inner=False)
         self.finish_improve()
         sha = self.step_commit_sha()
-        self.assertIn("docs/shiploop/spec.md", inner_fixture.git(self.repo, "show", "--name-only", "--format=", sha).split())
-        self.assertIn(marked, inner_fixture.git(self.repo, "show", sha + ":docs/shiploop/spec.md"))
+        step_paths = inner_fixture.git(self.repo, "show", "--name-only", "--format=", sha).split()
+        self.assertEqual(step_paths, ["a.py", "new_mod.py"])
+        self.assertIn(marked, spec.read_text())
+        self.assertFalse((self.repo / "docs" / "shiploop" / "spec.md").exists())
+
+    def test_s11_status_refusal_returns_to_same_item_for_evidenced_status_only_replan(self) -> None:
+        """A protected document status edit goes through the accepted same-item replan and is reviewed on real evidence.
+
+        The item has already built and tested R-1 when document tries to correct stale status. The refusal sends the
+        item back to step-plan; that plan changes only the implementation/verification statements, snapshots those
+        exact bytes, and still reruns its existing expectations and tests before document's Improve review.
+        """
+        test_id = "test_entry_returns_identity"
+        test_command = "python3 -m unittest -v test_entry"
+        implementation_before = "  Implementation status: not implemented.\n"
+        verification_before = "  Verification status: not run.\n"
+        implementation_after = "  Implementation status: implemented in new_mod.py.\n"
+        prior_spec = (
+            "# Accepted product spec\n\n"
+            "## Requirements\n\n"
+            "R-1: `entry(value)` returns the value unchanged.\n"
+            "  Intent: preserve the input exactly.\n"
+            + implementation_before
+            + verification_before
+            + "\n## Non-functional requirements\n\nNo additional constraint.\n\n"
+            "## Retired\n\nNone.\n\n"
+            "## Deferred scope\n\nBatch operations remain deferred.\n\n"
+            "## History\n\n2026-11-01: R-1 intent and deferred scope accepted.\n"
+        )
+        aggregate = self.repo / "docs" / "shiploop" / "spec.md"
+        aggregate.parent.mkdir(parents=True, exist_ok=True)
+        aggregate.write_text(prior_spec, encoding="utf-8")
+        (self.repo / "test_entry.py").write_text(
+            "import unittest\n\n"
+            "class EntryTests(unittest.TestCase):\n"
+            "    def test_entry_returns_identity(self):\n"
+            "        from new_mod import entry\n"
+            "        self.assertEqual(entry(\"value\"), \"value\")\n",
+            encoding="utf-8",
+        )
+        inner_fixture.git(self.repo, "add", "docs/shiploop/spec.md", "test_entry.py")
+        inner_fixture.git(self.repo, "commit", "-qm", "seed accepted S-11 fixture")
+        prior_bytes = aggregate.read_bytes()
+
+        self.start()
+        fresh_state = self.drive_to("step-plan")
+        candidate = self.spec()
+        self.assertEqual(candidate.read_text(encoding="utf-8"), prior_spec)
+        status_policy_prefix = (
+            "if document sent this item back for a protected-spec stale-status refusal, reconcile only "
+            "implementation/verification status in run/current-spec.md from actual code and check receipts; "
+            "cite that evidence."
+        )
+        status_policy_fragments = (
+            status_policy_prefix,
+            "in that status-only reconciliation, preserve requirement intent, ids, history, deferred scope and "
+            "existing implementation.",
+            "ordinary step planning has no general spec rewrite authority.",
+            "revalidate and review the amended plan and step before acceptance.",
+        )
+        fresh_packet = " ".join(navigator.render(inner_fixture.CORE, self.run_dir, fresh_state).split())
+        self.assertNotIn(status_policy_prefix, fresh_packet.lower(),
+                         "ordinary planning has no S-11 status-rewrite authority")
+
+        def plan(summary: str) -> dict:
+            return {
+                **inner_fixture.DONE,
+                "summary": summary,
+                "follows": ["R-1"],
+                "criteria": [{
+                    "id": "C1",
+                    "text": "R-1 returns the input unchanged. Confirm by: " + test_command
+                    + "; pass when " + test_id + " passes.",
+                    "confirm": "executed",
+                }],
+                "steps": [{
+                    "id": "S1", "task": "Implement R-1's existing behavior.", "deps": [],
+                    "criteria": ["C1"], "proof": test_command, "paths": ["new_mod.py"], "skills": [],
+                }],
+                "test_commands": [{
+                    "command": test_command, "suite": "focused", "ids": [test_id], "min_tests": 1,
+                    "criteria": ["C1"],
+                }],
+                "check_na": "This one-file fixture has no separate lint, type or build command.",
+                "expectations": [
+                    {"id": "E1", "state": "absent", "statement": "new_mod.py is new at the item base",
+                     "steps": ["S1"], "paths": ["new_mod.py"], "check": "test ! -e new_mod.py"},
+                    {"id": "E2", "state": "works", "statement": "test_entry.py is the R-1 check",
+                     "steps": ["S1"], "paths": ["test_entry.py"], "check": "test -f test_entry.py"},
+                ],
+                "paths": ["new_mod.py", "test_entry.py"],
+            }
+
+        self.complete(plan("W1 implements R-1 and proves it with the focused check."))
+        first_plan_state = self.state()
+        self.assertEqual(first_plan_state["active_improve"]["stage"], "step-plan")
+        first_handoff_path = navigator.improve_handoff_path(first_plan_state["active_improve"])
+        self.assertTrue(first_handoff_path.is_file())
+        first_plan_handoff = " ".join(first_handoff_path.read_text(encoding="utf-8").split())
+        self.assertNotIn(status_policy_prefix, first_plan_handoff.lower(),
+                         "a fresh step-plan review gets no returned-plan exception")
+        inner_fixture.fixture_current_spec_pass(
+            self.run_dir, first_plan_state, first_plan_state["active_improve"]
+        )
+        self.finish_improve()
+        first_plan_state = self.state()
+        first_plan_action = [row["action"] for row in first_plan_state["history"]
+                             if row["stage"] == "step-plan" and row["workitem"] == "W1"][-1]
+        self.assertEqual(navigator.current_spec.step_baseline(first_plan_state, first_plan_action), prior_spec)
+
+        self.complete(inner_fixture.DONE)  # test-spec; validate-existing runs its expectation checks on entry.
+        state = self.state()
+        first_validation = [row for row in state["history"]
+                            if row["stage"] == "validate-existing" and row["workitem"] == "W1"][-1]
+        first_validation_record = navigator.expectations.read_record(self.run_dir, first_validation["action"])
+        self.assertIsNotNone(first_validation_record)
+        self.assertTrue(all(row["matches"] for row in first_validation_record["results"]))
+        self.assertEqual(navigator.current_stage(state), "implement")
+        old_step_key = navigator._step_spec_key(state, "W1")
+        old_step_baseline = navigator.current_spec.step_baseline(state, old_step_key)
+        self.assertEqual(old_step_baseline, prior_spec)
+
+        (self.repo / "new_mod.py").write_text("def entry(value):\n    return value\n", encoding="utf-8")
+        first_implement_action = navigator.current_action(self.state())["id"]
+        self.complete(inner_fixture.DONE)
+        self.assertEqual(navigator.current_stage(self.state()), "test")
+        self.complete(inner_fixture.DONE)  # Actual base and candidate runs, including the focused test receipt.
+        state = self.state()
+        self.assertEqual(navigator.current_stage(state), "document")
+        first_test_action = [row["action"] for row in state["history"]
+                             if row["stage"] == "test" and row["workitem"] == "W1"][-1]
+
+        def assert_test_receipt(action: str) -> dict:
+            path = self.run_dir / inner_fixture.test_loop.verify_path(action, 1)
+            record = store.read_record(path)
+            self.assertTrue(record["passed"], str(path))
+            run = next(row for row in record["runs"] if row["command"] == test_command)
+            self.assertEqual(run["status"], "passed", str(path))
+            self.assertEqual(run["counts"]["ran"], 1, str(path))
+            self.assertEqual(run["ids_missing"], [], str(path))
+            output = run["stdout"] + "\n" + run["stderr"]
+            self.assertIn(test_id, output, str(path))
+            self.assertIn("Ran 1 test", output, str(path))
+            self.assertIn("OK", output, str(path))
+            return record
+
+        assert_test_receipt(first_test_action)
+        first_base_record = store.read_record(
+            self.run_dir / inner_fixture.test_loop.base_path(first_test_action, 1)
+        )
+        self.assertEqual(first_base_record["runs"][0]["status"], "red")
+        first_document_action = navigator.current_action(state)["id"]
+        first_test_evidence = "RUN/" + inner_fixture.test_loop.verify_path(first_test_action, 1)
+
+        def status_candidate(evidence: str) -> str:
+            updated = prior_spec.replace(implementation_before, implementation_after)
+            return updated.replace(verification_before, "  Verification status: passed " + test_id
+                                  + "; evidence: " + evidence + ".\n")
+
+        attempted_spec = status_candidate(first_test_evidence)
+        self.assertEqual(
+            attempted_spec.replace(implementation_after, implementation_before)
+            .replace("  Verification status: passed " + test_id + "; evidence: " + first_test_evidence + ".\n",
+                     verification_before),
+            prior_spec,
+            "the candidate correction changes status lines only",
+        )
+        candidate.write_text(attempted_spec, encoding="utf-8")
+        document_result = dict(inner_fixture.DONE, summary="Documented the implementation and its check receipt.",
+                               knowledge=dict(self.RECORD), assumptions=[])
+        refusal = self.refused(document_result)
+        self.assertIn("to change a requirement, report send-back naming it", refusal)
+        self.assertIn("changed or removed:", refusal)
+        self.assertIn(implementation_before.strip(), refusal)
+        self.assertIn(verification_before.strip(), refusal)
+        send_back_marker = inner_fixture.loops.send_back_open_path(self.run_dir, first_document_action)
+        self.assertTrue(send_back_marker.is_file())
+        self.assertTrue(inner_fixture.loops.receipt_path(self.run_dir, first_document_action).is_file())
+        marker_bytes = send_back_marker.read_bytes()
+        send_back_marker.unlink()
+        try:
+            with self.assertRaises(inner_fixture.loops.LoopError):
+                inner_fixture.loops.check_terminal(
+                    self.run_dir, self.state(), dict(document_result, outcome="send-back")
+                )
+        finally:
+            send_back_marker.write_bytes(marker_bytes)
+        self.assertFalse(
+            (self.run_dir / inner_fixture.test_loop.verify_path(first_document_action, 1)).exists(),
+            "the document edit changed only RUN/current-spec.md, so the document rerun gate correctly ran no test",
+        )
+
+        self.complete({
+            "outcome": "send-back",
+            "summary": "The document status update hit the protected step baseline; reconcile R-1 status from code and receipts.",
+            "evidence_refs": [first_test_evidence],
+        })
+        returned_state = self.state()
+        self.assertEqual(navigator.current_stage(returned_state), "step-plan")
+        self.assertEqual(returned_state["work_items"][returned_state["work_index"]]["id"], "W1")
+        returned_packet = " ".join(navigator.render(inner_fixture.CORE, self.run_dir, returned_state).split())
+        for phrase in status_policy_fragments:
+            self.assertIn(phrase.lower(), returned_packet.lower())
+        self.assertTrue(
+            navigator._status_replan_lines(returned_state, "step-plan", "W1")[0]
+            .lower().startswith("if document sent this item back for a protected-spec stale-status refusal"),
+            "the returned-plan authority is conditional on this item's protected-spec status refusal",
+        )
+        self.assertEqual(navigator._status_replan_lines(returned_state, "step-plan", "W2"), [])
+        self.assertEqual(navigator._status_replan_lines(returned_state, "implement", "W1"), [])
+        self.assertIn("amended plan, not a new one", returned_packet)
+        self.assertIn("RUN/results/" + first_plan_action + ".md", returned_packet)
+        self.assertEqual(returned_state["accepted"][first_implement_action]["outcome"], "done")
+        self.assertEqual((self.repo / "new_mod.py").read_text(encoding="utf-8"),
+                         "def entry(value):\n    return value\n")
+
+        repaired_spec = status_candidate(first_test_evidence)
+        self.assertEqual(
+            repaired_spec.replace(implementation_after, implementation_before)
+            .replace("  Verification status: passed " + test_id + "; evidence: " + first_test_evidence + ".\n",
+                     verification_before),
+            prior_spec,
+            "the accepted replan changes only implementation and verification status",
+        )
+        candidate.write_text(repaired_spec, encoding="utf-8")
+        self.assertEqual(navigator.current_spec.prior_snapshot(returned_state, "spec"), prior_spec)
+        self.assertEqual(navigator.current_spec.step_baseline(returned_state, old_step_key), old_step_baseline)
+        self.assertEqual(aggregate.read_bytes(), prior_bytes, "the accepted aggregate remains the exact run-start spec")
+
+        second_plan = plan("Revalidate R-1's existing implementation and reconcile only its evidenced status.")
+        second_plan["steps"][0]["task"] = "Revalidate R-1; preserve the existing implementation."
+        self.complete(second_plan)
+        replanned_state = self.state()
+        self.assertEqual(replanned_state["active_improve"]["stage"], "step-plan")
+        second_plan_action = replanned_state["active_improve"]["action_id"]
+        self.assertNotEqual(second_plan_action, first_plan_action)
+        returned_handoff_path = navigator.improve_handoff_path(replanned_state["active_improve"])
+        self.assertTrue(returned_handoff_path.is_file())
+        returned_handoff = " ".join(returned_handoff_path.read_text(encoding="utf-8").split())
+        for phrase in status_policy_fragments:
+            self.assertIn(phrase.lower(), returned_handoff.lower())
+        inner_fixture.fixture_current_spec_pass(
+            self.run_dir, replanned_state, replanned_state["active_improve"]
+        )
+        self.finish_improve()
+        replanned_state = self.state()
+        self.assertEqual(navigator.current_stage(replanned_state), "test-spec")
+        self.assertIn(second_plan_action, replanned_state["accepted"])
+        self.assertEqual(navigator.step_view(replanned_state, "W1").step["id"], "S1")
+        self.assertEqual(navigator.current_spec.step_baseline(replanned_state, second_plan_action), repaired_spec)
+        self.assertEqual(navigator.current_spec.step_baseline(replanned_state, old_step_key), old_step_baseline)
+        self.assertEqual(candidate.read_text(encoding="utf-8"), repaired_spec)
+        self.assertEqual(navigator.current_spec.prior_snapshot(replanned_state, "spec"), prior_spec)
+        self.assertEqual(aggregate.read_bytes(), prior_bytes)
+
+        self.complete(inner_fixture.DONE)
+        state = self.state()
+        self.assertEqual(navigator.current_stage(state), "implement")
+        new_step_key = navigator._step_spec_key(state, "W1")
+        self.assertNotEqual(new_step_key, old_step_key)
+        self.assertEqual(navigator.current_spec.step_baseline(state, new_step_key), repaired_spec)
+        second_validation = [row for row in state["history"]
+                             if row["stage"] == "validate-existing" and row["workitem"] == "W1"
+                             and row["action"] != first_validation["action"]][-1]
+        validation_record = navigator.expectations.read_record(self.run_dir, second_validation["action"])
+        self.assertIsNotNone(validation_record)
+        self.assertTrue(validation_record["results"])
+        self.assertTrue(all(row["matches"] for row in validation_record["results"]))
+        self.assertEqual({row["id"] for row in validation_record["results"]}, {"E1", "E2"})
+        self.assertEqual(navigator.current_stage(state), "implement")
+
+        code_before_revalidation = (self.repo / "new_mod.py").read_bytes()
+        implement_action = navigator.current_action(state)["id"]
+        self.complete(inner_fixture.DONE)  # Proof reruns on the retained implementation; no code is written.
+        self.assertEqual((self.repo / "new_mod.py").read_bytes(), code_before_revalidation)
+        self.assertEqual(navigator.current_stage(self.state()), "test")
+        self.complete(inner_fixture.DONE)
+        state = self.state()
+        second_test_action = [row["action"] for row in state["history"]
+                              if row["stage"] == "test" and row["workitem"] == "W1"][-1]
+        second_test_record = assert_test_receipt(second_test_action)
+        self.assertTrue(second_test_record["passed"])
+        second_base_record = store.read_record(
+            self.run_dir / inner_fixture.test_loop.base_path(second_test_action, 1)
+        )
+        self.assertEqual(second_base_record["runs"][0]["status"], "red")
+        self.assertEqual((self.repo / "new_mod.py").read_bytes(), code_before_revalidation)
+        self.assertEqual(navigator.current_stage(state), "document")
+
+        second_document_action = navigator.current_action(state)["id"]
+        second_document_result = dict(
+            inner_fixture.DONE,
+            summary="Documented R-1 status from the retained implementation and the accepted test receipts.",
+            knowledge={
+                "spec": "R-1 implementation and verification status cite the retained code and current receipts.",
+                "architecture": "none: the existing module layout remains unchanged",
+                "environment": "none: no command or platform fact changed",
+            },
+            assumptions=[],
+        )
+        self.complete(second_document_result)
+        state = self.state()
+        self.assertEqual(state["active_improve"]["stage"], "document")
+        self.assertNotIn(second_document_action, state["improve_results"], "document review is still required")
+        self.assertFalse(
+            (self.run_dir / inner_fixture.test_loop.verify_path(second_document_action, 1)).exists(),
+            "the accepted step was tested after replan; document made no code or test edits, so its rerun is skipped",
+        )
+        self.assertEqual((self.repo / "new_mod.py").read_bytes(), code_before_revalidation)
+        inner_fixture.fixture_current_spec_pass(self.run_dir, state, state["active_improve"])
+        self.finish_improve()
+        state = self.state()
+        self.assertIn(second_document_action, state["improve_results"])
+        self.assertEqual(state["accepted"][second_document_action]["outcome"], "done")
+
+        self.assertEqual((self.repo / "new_mod.py").read_bytes(), code_before_revalidation)
+        self.assertEqual(inner_fixture.git(self.repo, "show", "--name-only", "--format=",
+                                           self.step_commit_sha()).split(), ["new_mod.py"])
+        self.assertEqual(candidate.read_text(encoding="utf-8"), repaired_spec)
+        self.assertEqual(navigator.current_spec.prior_snapshot(state, "spec"), prior_spec)
+        self.assertEqual(aggregate.read_bytes(), prior_bytes)
+        self.assertIn(first_plan_action, state["accepted"])
+        self.assertIn(first_implement_action, state["accepted"])
+        self.assertTrue(any(row["stage"] == "document" and row["outcome"] == "send-back"
+                            for row in state["history"]))
 
     def test_the_document_packet_names_the_step_its_mark_and_the_reflection(self) -> None:
         self.start()
         state = self.drive_to("document")
         packet = navigator.render(inner_fixture.CORE, self.run_dir, state)
         self.assertIn("Step S1 (1 of 1), built and tested: Make the planned change. A line this step adds to "
-                      "KNOWLEDGE/spec.md ends (W1/S1).", packet)
+                      "RUN/current-spec.md ends (W1/S1).", packet)
         duties = " ".join(prompts.DUTIES["document"].split())
         for phrase in ("**Reflect.**", "a vague clause this step made precise", "the files and test file that now meet it",
                        "a new AD-<n>", "## Commands", "report send-back naming the R-<n>",

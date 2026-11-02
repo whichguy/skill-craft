@@ -1,0 +1,84 @@
+{
+  "change": "ShipLoop intent continuity",
+  "reviewer": "grok:grok-4.7@xhigh",
+  "findings": [
+    {
+      "id": "F1",
+      "claim": "A release or any stop before final handoff can publish code and rewritten architecture against the previous spec, and the next run will treat that previous spec as the contract. Spec duty 1 keeps KNOWLEDGE/spec.md at the prior aggregate until handoff and writes the live contract only to RUN/current-spec.md. Plan duties 7-9 and carry-forward still mutate and, on item accept, commit KNOWLEDGE/architecture.md and KNOWLEDGE/environment.md. Intake duty 5 and handoff duty 6 return the source checkout at release, while handoff duty 5 promotes the candidate only at final handoff. Handoff duty 7 even says the aggregate may still be the prior spec while that check runs.",
+      "severity": "high",
+      "category": "regression",
+      "evidence": "Before this change, carry-forward committed spec satisfaction in the same KNOWLEDGE commit as architecture. The new split is explicit: intake says the checkout changes at release or handoff and the spec joins the aggregate only at final handoff; carry-forward item 4 still says ShipLoop commits KNOWLEDGE/. Terminal06's pass oracle is that early release retained the aggregate, which is the divergence itself, so that pass cannot show the returned tree stays consistent or that a follow-up run reseeds the unpromoted candidate.",
+      "testable": true,
+      "experiment": {
+        "type": "scenario",
+        "description": "One item that adds R-new and supersedes an existing AD. Accept through carry-forward, do the early release return, and stop before handoff. Hash the published spec aggregate and diff KNOWLEDGE/architecture.md against run start. Start a second run on that tree and read the seeded prior spec.",
+        "success": "Refutes the claim if the returned spec aggregate already contains R-new in the same publish as the AD supersession, or the AD file is held unchanged until that spec publish, and the second run's seed contains R-new."
+      }
+    },
+    {
+      "id": "F2",
+      "claim": "Generated skills are told to link a different durable spec file from the one every other stage checks, so the committed link can dangle after promotion. Carry-forward skill rule 4 hardcodes relative links to docs/shiploop/spec.md and says they are resolved after promotion. Spec, product-acceptance, and handoff call the durable file KNOWLEDGE/spec.md and the in-run file RUN/current-spec.md. No duty says promotion writes both paths or that they are one file. The skill directory is committed on carry-forward accept, which can be returned at release, before promotion. Handoff duty 7 checks new spec targets against candidate content and forbids a direct aggregate edit, so a wrong path whose anchor exists in the candidate still passes.",
+      "severity": "high",
+      "category": "overreach",
+      "evidence": "The previous carry-forward text linked KNOWLEDGE/spec.md, matching the knowledge home named in handoff. The replacement path docs/shiploop/spec.md appears in that skill rule and nowhere else in the duties. The offered evidence states the docs/shiploop/spec.md link as intended and separately states that link survival is assessed after promotion, but handoff duty 7 still runs while the aggregate is prior and still names KNOWLEDGE/spec.md.",
+      "testable": true,
+      "experiment": {
+        "type": "scenario",
+        "description": "On a fixture whose only requirements file is KNOWLEDGE/spec.md, run carry-forward's create-skill steps, accept the item, then complete promotion and return. Resolve the relative link written in the new SKILL.md from the returned repo root.",
+        "success": "Refutes the claim if that link opens the file promotion wrote and that file contains the candidate R-IDs handoff validated. The claim stands if the link target is docs/shiploop/spec.md and that path is absent or is not the promoted aggregate."
+      }
+    },
+    {
+      "id": "F3",
+      "claim": "The authoring stage can now replace prior clauses without a user instruction, later review gates will accept a weakened test when the model calls it authorized, and an 'inactive' conflicting clause has no defined effect on the acceptance set. Spec duty 1 used to let only explicit user instructions supersede older clauses and forbade relaxing a requirement to fit the code. It now says explicit current replacements override conflicting clauses, retire dropped IDs, and leave the old clause inactive, without an inactive marker or a rule to drop it from the lines test-strategy and product-acceptance read. Spec duty 10, test-strategy duty 13, and the review-focus list flag a dropped or weakened requirement, test ID, or case only when there is no intentional replacement the model attributes to the current request. Product-acceptance duty 5 still requires that no clause or case was dropped and was not updated for a recorded retirement. A test ID that keeps its name and loses its oracle is outside that drop check.",
+      "severity": "high",
+      "category": "wording",
+      "evidence": "The user-instruction sentence and the prior-accepted-version comparison are the deleted lines. The same loosened bullet was copied into three gates, so the reviewer uses the author's standard. Product-acceptance duty 5 still says no clause or case was dropped. 'Inactive' is not defined in any later duty, so a conflicting old clause can remain an acceptance line beside its replacement.",
+      "testable": true,
+      "experiment": {
+        "type": "scenario",
+        "description": "Arm 1: request text does not mention TC-4; the candidate keeps the TC-4 title and changes its oracle from an exact value to a non-empty check, and the stage result calls that an intentional replacement. Arm 2: the request quotes a conflicting R-2 clause and spec duty 1 moves the old wording under ## Retired with a reason, leaving the new clause under the same ID. Run the spec pre-submit check, the review focus, and product-acceptance duty 5.",
+        "success": "Refutes the claim if arm 1 is rejected by the review focus or the spec pre-submit check, and arm 2 is accepted by product-acceptance with no add-work whose only cause is the retirement."
+      }
+    },
+    {
+      "id": "F4",
+      "claim": "An unchanged, non-deferred, unimplemented prior requirement stays in the candidate and is given to no work item. Spec duty 1 copies every prior R-ID and unaffected acceptance line into RUN/current-spec.md. Plan duties 3 and 17 schedule only this request's new or changed outcomes and evidenced prerequisites, and they say a follows reference is not an assignment of old work. Step-plan duty 8 repeats that follows IDs are constraints, not rebuild orders. Nothing in plan tells the model to confirm a kept R-ID is implemented before reusing it as achieved behavior. Identical text in the prior and current spec is therefore invisible to the quoted diff.",
+      "severity": "medium",
+      "category": "regression",
+      "evidence": "Plan item 17 previously required covering every approved outcome. The replacement limits coverage to this request's approved changes and prerequisites. The evidence's counter-predicate covers a preserved, already-met R-ID cited only as a constraint. It does not cover a required R-ID that is absent from the tree and absent from the diff. Judging 'achieved' from prose would be a model boundary; the missing due check is a duty gap.",
+      "testable": true,
+      "experiment": {
+        "type": "scenario",
+        "description": "Prior spec contains required R-7, not deferred and not retired, and the checkout has no code or test that meets it. The request adds only R-8. The candidate keeps R-7 byte-identical. Run plan and read work_items and assumptions.",
+        "success": "Refutes the claim if a work item implements R-7, or assumptions record R-7 as an open gap with an owner and a due item. The claim stands if R-7 appears only as a follows constraint or is absent from both work_items and assumptions."
+      }
+    },
+    {
+      "id": "F5",
+      "claim": "Research and plan are ordered to reread full Git history after discovery has been ordered to stop, and rejected alternatives are retained where later stages build assumptions. Discovery duty 3 reads affected messages, including the undefined phrase 'empty learnings', stops when the decision basis is established, and reopens a settled choice only for a current explicit change or contrary evidence. Research duty 2 separately requires the full relevant messages beyond the recent window and says to retain exact revisions, alternatives, and rationale, with no stop and no non-binding rule. Plan duty 1 requires that inspection again. Research notes are the source of plan assumptions, and discovery records the inspection in KNOWLEDGE/environment.md with binding, observed, or proposal status, which later commits.",
+      "severity": "medium",
+      "category": "wording",
+      "evidence": "The stop and reopen limits were added only to discovery duty 3. Research duty 2 and plan duty 1 are the new full-message sentences and do not inherit those limits. 'Contrary evidence' is a judgment boundary. The missing shared stop is a contradictory duty: discovery can settle a choice and research can present its rejected alternative as retained rationale for plan.",
+      "testable": true,
+      "experiment": {
+        "type": "scenario",
+        "description": "History whose commit C1 contains the decision, the rejected alternative, and the rationale, with later unrelated commits. The request does not mention that decision. Record which commits discovery, research, and plan open, and whether the plan assumptions or AD status change the settled choice or list the rejected alternative as selectable.",
+        "success": "Refutes the claim if research and plan both stop at C1, leave the AD unchanged, and do not carry the rejected alternative into assumptions or environment.md as a proposal a work item can adopt."
+      }
+    },
+    {
+      "id": "F6",
+      "claim": "The offered passes do not measure these continuity failures, and the new promotion oracle matches the split-brain outcome. Terminal06 treats early release as passed because the spec aggregate stayed prior, and treats promotion as passed only on a completed review-and-restore path. Quick05 finished 47 pass and 12 fail. The handoff suite failed 18 assertions and 5 errors out of 135. Both failing sets are described as old path or version fixtures still being ported, on the same path surface this change rewrites. Full regression, the live same-build campaign, and the semantic experiments are stated as still pending, so no observation yet shows how a model resolves the contradictory duties.",
+      "severity": "medium",
+      "category": "measurement",
+      "evidence": "The evidence says focused04 had a missing navigator fixture, Quick05 failures were retained, the handoff suite is not an overall pass, Opus did not review, and semantic experiments remain obligations. New CLI cases were written to the new rule that the aggregate stays unchanged until final promotion. That is a condition mismatch with the previous contract, whose failing assertions were removed from the pass claim rather than compared.",
+      "testable": true,
+      "experiment": {
+        "type": "metric",
+        "description": "Rerun the 12 Quick05 failures and the 18 handoff assertion failures after changing only fixture path strings and version constants. Leave expected promotion timing, link targets, retirement or weakening, and digest checks as they were.",
+        "success": "Refutes the claim if all of those cases pass under that mechanical rename alone. The claim stands if any still fail on when the spec aggregate changes, which spec path is linked, whether a weakened or retired case is allowed, or whether architecture commits while spec bytes stay prior."
+      }
+    }
+  ]
+}

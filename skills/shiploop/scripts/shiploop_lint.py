@@ -2754,11 +2754,18 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
         return EXIT_UNAVAILABLE
     import shiploop_navigator as navigator
     with core.run_lock(root):
-        state = store.read_record(root / "state.md")
         try:
-            navigator.validate(state)
+            loader = getattr(core, "load_state", None)
+            if callable(loader):
+                state = loader(root)
+            else:
+                state = store.read_record(root / "state.md")
+                navigator.validate(state)
+                import shiploop_current_spec as current_spec
+
+                current_spec.assert_binding(root, state)
             view = navigator.lint_view(state)
-        except (navigator.NavigatorError, KeyError, TypeError) as exc:
+        except (navigator.NavigatorError, KeyError, TypeError, ValueError) as exc:
             print("ShipLoop lint could not run: " + str(exc), file=sys.stderr)
             return EXIT_UNAVAILABLE
         if view["action"] != args.action:

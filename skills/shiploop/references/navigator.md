@@ -736,8 +736,10 @@ sections, from the implement result's `learned`, `decisions`, `evidence_refs` an
 that are not ShipLoop records (knowledge or leftover commits) as its look-back,
 one line each: the subject and its Key learnings. A
 redone step after a send-back names its own previous result and commit. A step
-may add an acceptance line inside an existing R-<n> entry of `spec.md`, ending
-`(<item>/<step>)`, which its commit carries; any other spec change is refused, at
+may add an acceptance line inside an existing R-<n> entry of
+`RUN/current-spec.md`, ending `(<item>/<step>)`, retained in the run's accepted step baseline;
+the `KNOWLEDGE/spec.md` prior aggregate stays unchanged until final handoff.
+Any other step-time contract change is refused, at
 implement's and document's complete and at the import of the step's review, and a
 refusal at a complete opens that action's send-back even though the step's Until
 Loop has completed.
@@ -766,16 +768,20 @@ committed, with a note, as the gates that need the base are skipped.
 
 **Each step's reflection** (design T §9.1 2b-3, option C, owner 2026-10-28). There
 is no knowledge stage: a step's `document` stage is its one place to reflect. With
-the step built and tested, it records what the step showed in the knowledge home,
-where the next steps' packets read it: a clarified requirement or the files that now
-meet it (a marked line in `spec.md`), a decision implement did not record (an
+the step built and tested, it records what the step showed in the run's current spec
+candidate, where the next steps' packets read it: a clarified requirement or the files
+that now meet it (a marked line in `RUN/current-spec.md`), a decision implement did not record (an
 `AD-<n>`), a command, harness or platform fact (`environment.md`). Its result's
 `knowledge` names each of the three files with what changed in it or why nothing
 did. New work the step showed goes where it belongs: a defect in the step's change
 is fixed now, work the step plan lacks is a send-back, work a later step holds is
 left to it, and work outside the item is an open item due at the item's
 `carry-forward`; every step's open items stay listed until then. The step's review
-reads the knowledge edits with the code, tests and docs and corrects them in place.
+reads the candidate and knowledge edits with the code, tests and docs and corrects
+them in place. A protected-spec status refusal follows the accepted same-item
+send-back route: planning may reconcile only implementation/verification status
+from actual code and check receipts, while preserving intent, IDs, history and
+deferred scope. Ordinary step planning gets no general spec rewrite authority.
 A step whose change touches no code or test path records `document` as not
 applicable: implement's and test's own write-backs stand, and `carry-forward`
 reconciles the knowledge home at the item's end. The skill decision stays once per

@@ -151,8 +151,17 @@ discarded execution worktree. For non-Git projects use retained as-of copies or
 receipts instead of assuming Git history exists. If durable retention is outside
 scope or unavailable, report the remaining obligation rather than claim success.
 
+For a new ShipLoop request, the aggregate `KNOWLEDGE/spec.md` is the prior
+accepted contract; the run-local `RUN/current-spec.md` is its full candidate,
+initialized from the immutable `RUN/spec/prior-spec.md` snapshot (or explicit
+absence). Plan only the request's delta and necessary prerequisites. Preserve
+unaffected intent, deferred work and decision rationale; a `follows` reference
+does not schedule old work again. Final handoff reconciles the current candidate,
+and the script promotes it into the aggregate. Do not edit the aggregate during
+earlier stages.
+
 For a new request, read and revalidate maintained knowledge and capture that run's
 prior baseline; do not replay the old task or reuse its receipts as completion.
 Keep original and superseding rationale retrievable. Interrupted requests resume
-their existing run. No new state fields, importer, mandatory ID taxonomy, host
-launcher or lifecycle stage is introduced.
+their existing run. No new importer, mandatory ID taxonomy, host launcher or
+lifecycle stage is introduced.

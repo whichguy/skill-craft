@@ -30,6 +30,7 @@ IMPROVE_CARD = ROOT / "skills/improve/SKILL.md"
 sys.path.insert(0, str(PACKAGE / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import shiploop_check  # noqa: E402
+import shiploop_current_spec as current_spec  # noqa: E402
 import shiploop_inner_fixture as inner  # noqa: E402
 import shiploop_loop_support as support  # noqa: E402
 import shiploop_knowledge_support as knowledge_support  # noqa: E402
@@ -271,7 +272,9 @@ class TestLoopTests(unittest.TestCase):
 
     def finish_improve(self) -> None:
         state = self.state()
-        action = state["active_improve"]["action_id"]
+        child = state["active_improve"]
+        action = child["action_id"]
+        inner.fixture_current_spec_pass(self.run_dir, state, child)
         updated = nav.finish_improve(state, action, {"summary": "Synthetic Improve.",
                                                      "review_refs": ["synthetic://r"],
                                                      "check_refs": ["synthetic://c"]})
@@ -1117,7 +1120,11 @@ class TestLoopTests(unittest.TestCase):
         log = git(self.repo, "log", "--format=%s", "-n", "3")
         self.assertIn("docs(shiploop): record", log)
         self.assertIn("knowledge at prepare", log)
-        self.assertIn("docs/shiploop/spec.md", git(self.repo, "ls-files", "docs/shiploop"))
+        tracked = git(self.repo, "ls-files", "docs/shiploop").splitlines()
+        self.assertIn("docs/shiploop/architecture.md", tracked)
+        self.assertIn("docs/shiploop/environment.md", tracked)
+        self.assertNotIn("docs/shiploop/spec.md", tracked)
+        self.assertTrue(current_spec.path(self.state()).is_file())
 
     def test_a_done_step_plan_must_declare_its_paths(self):
         self.start()
@@ -2547,7 +2554,6 @@ class TestLoopTests(unittest.TestCase):
         stage's side, with the draft, counted runs and revision: test_each_change_to_what_the_gates_read_...)."""
         for change in ("tree",):
             with self.subTest(change=change):
-                self.restart()
                 action, done, _output = self.document_checked()
                 (self.repo / "a.py").write_text("x = 2\n")  # one byte
                 calls: list = []
@@ -2598,7 +2604,6 @@ class TestLoopTests(unittest.TestCase):
         for change in ("tree", "draft", "counted run", "revision"):
             with self.subTest(change=change):
                 self.restart()
-                self.start()
                 self.ran(3)
                 self.drive_to("test", step_plan=self.floor_item())
                 action = self.action()
@@ -2789,6 +2794,7 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(child["stage"], "document")
         self.assertIn("Review base (the step's change since it began", nav.improve_handoff_text(CORE, self.run_dir, state))
         receipt = {"no_commit": nav.STEP_REVIEW_NO_COMMIT}
+        inner.fixture_current_spec_pass(self.run_dir, state, child)
         calls = []
         real = test_loop._run_command
 
@@ -2829,6 +2835,7 @@ class TestLoopTests(unittest.TestCase):
         action = child["action_id"]
         final = dict(child["seed_result"], added_tests=[{"id": "TC-1 (a)", "command": self.REGISTERED}])
         receipt = {"no_commit": nav.STEP_REVIEW_NO_COMMIT, "final_result": final}
+        inner.fixture_current_spec_pass(self.run_dir, state, child)
         (self.repo / "a.py").write_text("import os\nimport sys\n")       # the review's fix; its test is not run yet
         with self.assertRaises(nav.NavigatorError) as caught:
             nav._improve_change_gate(CORE, self.run_dir, state, action, child, receipt)

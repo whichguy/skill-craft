@@ -6,7 +6,7 @@ deferred assumptions: nothing executed showed it.  The owner's answer is structu
 
 - the spec stage's result lists, in ``primary``, the requirements (R-<n>) that carry the request's primary outcomes:
   what the user asked for directly.  A script cannot infer primacy, so the model records it once, where it writes the
-  requirements, and the gate checks that each ID has a current entry in the living spec;
+  requirements, and the gate checks that each ID has a current entry in this run's spec candidate;
 - every ``unverified`` row of product-acceptance names its ``requirement`` and its ``lower_layer_check``: the executed
   check below the e2e layer that shows the outcome's logic works;
 - a row whose requirement is primary is accepted only when its ``lower_layer_check`` is the ID of a test that ShipLoop
@@ -72,15 +72,18 @@ def canonical(value: Any) -> List[str]:
     return [ident.strip() for ident in value]
 
 
-def _spec_path(repo: Path) -> Path:
-    return Path(repo) / knowledge.HOME / "spec.md"
+def _spec_path(source: Path | Mapping[str, Any]) -> Path:
+    """The run-local candidate for saved state, or the explicit aggregate for standalone callers."""
+    if isinstance(source, Mapping):
+        return knowledge.spec_path(source)
+    return Path(source) / knowledge.HOME / "spec.md"
 
 
-def check_spec(repo: Path, stage: str, result: Any) -> None:
-    """A done spec result lists ``primary``: at least one R-<n>, each once, each with a current entry in the spec."""
+def check_spec(source: Path | Mapping[str, Any], stage: str, result: Any) -> None:
+    """A done spec result lists ``primary``: at least one R-<n>, each once, each in the selected current spec."""
     if stage != STAGE or not isinstance(result, Mapping) or result.get("outcome") != "done":
         return
-    spec = _spec_path(repo)
+    spec = _spec_path(source)
     _need(FIELD in result, 'a done spec result lists primary: the R-<n> that carry the request\'s primary outcomes, '
           'what the user asked for directly, such as ["R-1"]; product-acceptance accepts an unverified one only with '
           "a lower-layer test that passed")
@@ -91,7 +94,7 @@ def check_spec(repo: Path, stage: str, result: Any) -> None:
     malformed = [ident for ident in ids if not _REQUIREMENT.fullmatch(ident)]
     _need(not malformed, "primary names " + ", ".join(malformed) + ": list requirement IDs only, R-<n>")
     _need(len(set(ids)) == len(ids), "primary lists an ID twice: list each R-<n> once")
-    held = knowledge.entries(Path(repo), "spec.md")
+    held = knowledge.entries(source, "spec.md")
     missing = [ident for ident in ids if ident not in held or held[ident].retired]
     _need(not missing, "primary names " + ", ".join(missing) + ", with no current entry in " + str(spec) + ": write "
           "each as R-<n> under ## Requirements, or drop it from primary")
@@ -178,7 +181,7 @@ def followers(queue: List[Mapping[str, Any]]) -> Dict[str, List[str]]:
 
 def check_queue(state: Mapping[str, Any], stage: str, result: Any) -> None:
     """A done plan, or a done carry-forward that replaces the future queue: each ``follows`` ID its work items give has
-    an entry in the living files, and every primary requirement is in the ``follows`` of some work item of the queue it
+    an entry in the current-run spec candidate or architecture, and every primary requirement is in the ``follows`` of some work item of the queue it
     leaves (see the module docstring)."""
     if stage not in QUEUE_STAGES or not isinstance(result, Mapping) or result.get("outcome") != "done":
         return
@@ -187,11 +190,11 @@ def check_queue(state: Mapping[str, Any], stage: str, result: Any) -> None:
         return
     repo = Path(str(state["repo"]))
     architecture = repo / knowledge.HOME / knowledge.ARCHITECTURE
-    known = {**knowledge.entries(repo, "spec.md"), **knowledge.entries(repo, knowledge.ARCHITECTURE)}
+    known = {**knowledge.entries(state, "spec.md"), **knowledge.entries(repo, knowledge.ARCHITECTURE)}
     absent = list(dict.fromkeys(ident for row in result.get("work_items") or () for ident in _follows(row)
                                 if ident not in known))
     _need(not absent, "work_items follows names " + ", ".join(absent) + ", with no entry (a line that starts with the "
-          "ID) in " + str(_spec_path(repo)) + " (R-) or " + str(architecture) + " (AD-): cite only IDs with an entry, "
+          "ID) in " + str(_spec_path(state)) + " (R-) or " + str(architecture) + " (AD-): cite only IDs with an entry, "
           "or write the entry first")
     ids = primary_ids(state)
     if not ids:
@@ -225,11 +228,11 @@ def check_unverified(root: Path, state: Mapping[str, Any], stage: str, result: A
     if not rows:
         return
     repo = Path(str(state["repo"]))
-    held = knowledge.entries(repo, "spec.md")
+    held = knowledge.entries(state, "spec.md")
     for index, row in enumerate(rows):
         ident = str(row.get("requirement") or "").strip()
         _need(ident in held and not held[ident].retired,
-              "unverified[" + str(index) + "].requirement " + ident + " has no current entry in " + str(_spec_path(repo))
+              "unverified[" + str(index) + "].requirement " + ident + " has no current entry in " + str(_spec_path(state))
               + ": name the R-<n> whose acceptance lines the outcome maps to (current: "
               + (", ".join(sorted((key for key, entry in held.items() if not entry.retired),
                                   key=lambda key: int(key.split("-")[1]))) or "none") + ")")

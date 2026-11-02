@@ -578,7 +578,8 @@ class ImprovePassGateTests(GateFixture):
         for args in (("init", "-q"), ("add", "-A"), ("-c", "user.name=Fixture", "-c", "user.email=f@example.invalid",
                                                       "commit", "-qm", "fixture")):
             subprocess.run(["git", "-C", str(self.repo), *args], check=True, capture_output=True, env=self.environment)
-        for relative, text in improve_changes.bind_writes(self.run, self.repo, self.bound["action_id"]).items():
+        for relative, text in improve_changes.bind_writes(self.run, self.repo, self.bound["action_id"],
+                                                          self.state).items():
             store.atomic_write_text(Path(self.run) / relative, text)
         reviews = bridge.receipt_path(self.bound).parent / "reviews"
         (reviews / "review-1.md").write_text(

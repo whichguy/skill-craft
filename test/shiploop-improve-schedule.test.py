@@ -576,17 +576,18 @@ class PlanningReviewNoneCliTests(CliRunCase):
                                   capture_output=True, text=True).stdout.splitlines()
         return [line for line in subjects if "knowledge after spec" in line]
 
-    def test_the_spec_is_accepted_and_committed_at_complete_with_no_review(self):
-        """S-11 under none: the knowledge home is committed when the spec is accepted; under stage a child holds it."""
+    def test_the_current_spec_stays_run_local_until_final_handoff(self):
+        """The candidate is retained in the run for either review mode; only final handoff promotes the aggregate."""
         commits = {}
         for mode in ("stage", "none"):
             run = self.start(mode)
             self.advance_to(run, "spec")
-            spec = self.repo / "docs" / "shiploop" / "spec.md"
-            spec.parent.mkdir(parents=True)
-            spec.write_text("# spec\n\nR-1: Say hello.\n")
+            candidate = nav.knowledge.spec_path(self.saved(run))
+            candidate.write_text("# spec\n\nR-1: Say hello.\n")
             self.complete(run)
             state = self.saved(run)
+            self.assertIn("R-1: Say hello.", candidate.read_text())
+            self.assertFalse((self.repo / "docs" / "shiploop" / "spec.md").exists())
             if mode == "none":
                 self.assertEqual(state["stage"], "test-strategy")
                 self.assertIsNone(state.get("active_improve"))
@@ -595,8 +596,7 @@ class PlanningReviewNoneCliTests(CliRunCase):
                 self.assertEqual(state["stage"], "spec")
                 self.assertIsNotNone(state["active_improve"])
             commits[mode] = self.knowledge_commits()
-        self.assertEqual(commits["stage"], [])
-        self.assertEqual(len(commits["none"]), 1, commits)
+        self.assertEqual(commits, {"stage": [], "none": []})
 
     def test_a_none_run_has_no_child_to_bind_and_nothing_to_reconcile(self):
         run = self.start("none")

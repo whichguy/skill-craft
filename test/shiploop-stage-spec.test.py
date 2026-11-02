@@ -57,14 +57,16 @@ class StageTableTest(unittest.TestCase):
                 self.assertTrue(all(";" not in item for item in row.done_when))
                 self.assertEqual(prompts.STAGE_PURPOSE[name], row.short_goal)
 
-    def test_no_goal_or_condition_names_a_folder_the_knowledge_layout_removed(self) -> None:
-        """The spec goal said this run's ID changes were in FEATURE/spec.md; there is no FEATURE folder since the
-        knowledge layout moved to HOME (consumer contract 4b), and ShipLoop derives the changes from the spec diff."""
+    def test_spec_goal_targets_the_run_candidate_and_keeps_script_derived_changes(self) -> None:
+        """The current candidate is run-local; ShipLoop derives this run's changes from its bound prior snapshot."""
         for name, row in spec.STAGE_SPEC.items():
             with self.subTest(stage=name):
                 for text in (row.goal, *row.done_when):
                     self.assertNotIn("FEATURE", text)
-        self.assertIn("ShipLoop derives this run's ID changes from the spec diff", spec.stage("spec").goal)
+        goal = spec.stage("spec").goal
+        self.assertIn("RUN/current-spec.md", goal)
+        self.assertIn("preserve prior intent", goal)
+        self.assertIn("ShipLoop derives this run's ID changes from the spec diff", goal)
 
     def test_no_stage_row_has_wording_for_an_action_that_builds_several_steps(self) -> None:
         """Design T section 9.1 2c-1: every route issues one implement action per step, so a row has one goal and one

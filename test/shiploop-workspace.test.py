@@ -41,8 +41,10 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_store as store  # noqa: E402
+import shiploop_current_spec as current_spec  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_spec_promotion as spec_promotion  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 import shiploop_workspace as workspace  # noqa: E402
 
@@ -2153,7 +2155,19 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         state = store.read_record(run / "state.md")
         self.assertEqual(state["execution_mode"], "navigator-worktree")
         state = self._advance_to_handoff(state)
+        current_spec.path(state).write_text(
+            "# Workspace handoff guard fixture\n\n"
+            "## Requirements\n\n"
+            "- R-1: A synthetic nonblank candidate lets the missing-return guard decide this case.\n",
+            encoding="utf-8",
+        )
         navigator.save(run, state)
+        improvements = list(state.get("improve_results") or {})
+        self.assertTrue(improvements, "synthetic graph walk must accept an Improve before recording its spec review")
+        review_action = improvements[-1]
+        reviewed_writes = current_spec.reviewed_writes(state, review_action, current_spec.digest(state))
+        relative, reviewed_text = next(iter(reviewed_writes.items()))
+        store.atomic_write_text(run / relative, reviewed_text)
         action = state["action"]
         result_path = run / "inbox" / f"{action['id']}.md"
         store.write_record(
@@ -2162,6 +2176,10 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
                 "outcome": "done",
                 "summary": "This completion must be rejected without a return receipt.",
                 "follow_on": [],
+                "spec_reconciliation": {
+                    **spec_promotion.hashes(state),
+                    "summary": "Synthetic mechanics fixture: candidate matches the immutable prior spec.",
+                },
             },
             "ShipLoop navigator result",
         )
@@ -2208,7 +2226,8 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         # handoff (navigator.RETURN_STAGES); an intake packet names only where product work happens.
         self.assertNotIn("Return receipt: ", initial_packet)
         self.assertIn("WORKTREE = " + str(initial_state["repo"]), initial_packet)
-        self.assertIn("returned to the original branch only at release or handoff", initial_packet)
+        normalized_packet = " ".join(initial_packet.split())
+        self.assertIn("source checkout changes through a verified return at release or handoff", normalized_packet)
         self.assertEqual((run / "state.md").read_bytes(), initial_state_bytes)
 
         worktree = root / "worktree"
@@ -2245,11 +2264,32 @@ class ShipLoopWorkspaceTests(unittest.TestCase):
         )
 
         action = navigator.current_action(returned_state)
+        current_spec.path(returned_state).write_text(
+            "# Return projection fixture spec\n\n"
+            "## Requirements\n\n"
+            "- R-1: A synthetic nonblank candidate lets the terminal handoff fixture reach return checks.\n",
+            encoding="utf-8",
+        )
+        improvements = list(returned_state.get("improve_results") or {})
+        self.assertTrue(improvements, "synthetic graph walk must accept an Improve before recording its spec review")
+        review_action = improvements[-1]
+        reviewed_writes = current_spec.reviewed_writes(
+            returned_state, review_action, current_spec.digest(returned_state))
+        relative, reviewed_text = next(iter(reviewed_writes.items()))
+        store.atomic_write_text(run / relative, reviewed_text)
         result_path = run / "inbox" / f"{action['id']}.md"
         stale_summary = "Historical claim: return is currently verified <unsafe-summary>."
         store.write_record(
             result_path,
-            {"outcome": "done", "summary": stale_summary, "follow_on": []},
+            {
+                "outcome": "done",
+                "summary": stale_summary,
+                "follow_on": [],
+                "spec_reconciliation": {
+                    **spec_promotion.hashes(returned_state),
+                    "summary": "Mechanics-only fixture: the prior spec was absent and the synthetic current candidate has R-1.",
+                },
+            },
             "ShipLoop navigator result",
         )
         terminal = self.cli(
@@ -3057,6 +3097,26 @@ class DirectEntryGuardTests(unittest.TestCase):
             with self.subTest(label):
                 name = f"run-{label}"
                 self.assert_started(self.init(folder=folder, name=name), name)
+                if label == "not-yet-made":
+                    self.assertTrue(folder.is_dir(), "authorized direct init creates its missing target")
+                    root = (self.base / name).resolve()
+                    state = store.read_record(root / "state.md")
+                    self.assertEqual(state["repo"], str(folder.resolve()))
+                    self.assertEqual(state["spec_root"], str(root))
+                    self.assertTrue(current_spec.path(state).is_file())
+                    current_spec.assert_binding(root, state)
+
+    def test_a_missing_target_stays_absent_when_init_preflight_refuses(self) -> None:
+        for label, options in (
+            ("invalid-delegation", ("--delegation", "unsupported")),
+            ("unbound-worktree", ("--execution-mode", "navigator-worktree")),
+        ):
+            with self.subTest(label=label):
+                target = self.base / label
+                self.assertFalse(target.exists())
+                refused = self.init(*options, folder=target, name="run-" + label)
+                self.assertNotEqual(refused.returncode, 0, refused.stdout + refused.stderr)
+                self.assertFalse(target.exists(), "init preflight must not create its missing repository target")
 
     def test_workspace_start_still_begins_in_an_empty_non_git_folder(self) -> None:
         result = subprocess.run(
