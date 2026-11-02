@@ -331,6 +331,22 @@ docs/shiploop-consumer-contract-2026-10-11.md, section 0A.3, and its landed
 removals in `589bc03e`. This supersedes the earlier four-file and feature-folder
 lifecycle; requirement/decision retention and committed delivery remain binding.
 
+**S-11 status recovery, owner decision 2026-11-01.** A document-stage
+protected-spec refusal can use its named `send-back` callback to return the
+same work item to step planning. In that returned plan only, existing current
+implementation and verification statements may be reconciled against observed
+code and actual check receipts. Requirement intent, stable IDs, dated history,
+and deferred scope remain protected; a check that has not run remains unverified.
+The return retains prior work and results, then revalidates the affected step
+and reviews its corrected code, tests and documentation before accepting it.
+Normal step planning does not gain general ownership of the spec. This uses the
+existing send-back, plan, check and review path; it adds no stage or receipt type
+and does not exempt a material or unresolved finding from S-10's Improve loop.
+The owner explicitly selected "Repair through send-back planning" after the
+document callback and planning-authority conflict was demonstrated. This is
+prospective authority for that repair, not evidence of implementation or a
+regrading of an earlier experiment.
+
 **S-12 One implementation of each mechanism.** A mechanism (committing, loop
 contracts and starts, receipts, identity, privacy screens) has one code path
 that every caller uses. New features extend it rather than copying it; old
