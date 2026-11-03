@@ -5754,10 +5754,12 @@ def status_line(state: Mapping[str, Any]) -> str:
     The goal is appended, never prefixed: the hooks find this line by matching a leading ``Where:`` (shiploop_status_hook
     ``LINE``), and the narrative's title was otherwise the only place a non-milestone packet carried the run's own words
     (2026-11-03: `discovery` lost the request's stated aim when the narrative was narrowed, caught by a contract test).
+    The field is ``Goal:``, not ``Run:``: the status block already has a ``Run:`` line meaning preparation/work-item/
+    release progress, and a second meaning for the same label would mislead a reader comparing the two.
     """
     label, text = _status_next(state)
     goal = _status_text(_title_from_prompt(state["prompt"]), 90)
-    return f"Where: {_status_where(state)} · {label}: {text} · Run: {goal}"
+    return f"Where: {_status_where(state)} · {label}: {text} · Goal: {goal}"
 
 
 def status_block(state: Mapping[str, Any]) -> str:

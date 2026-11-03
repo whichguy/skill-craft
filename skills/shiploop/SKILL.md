@@ -294,10 +294,11 @@ awaiting, halted and done packets are short and print whole.
 Each packet carries one script-rendered **progress block**: at a milestone the
 **narrative** (achieved, now, ahead, pace), whose first line says whether to paste
 it to the user as written or whether the host already showed it; otherwise one
-**status line** (`Where: … · Next: …`). An Improve packet carries neither.
-Do not reprint the status line: a host status hook shows the user a two-line summary where
-the host supports one. Tell the user at most one line per completed step, and when
-they ask for the full status show the **status block** that `shiploop status` prints
+**status line** (`Where: … · Next: … · Goal: …`). An Improve packet carries neither.
+Relay a progress block; never compose one: show the narrative as its first line says,
+or let the host status hook show the status line, and never paraphrase, shorten or
+extend either into your own progress sentence. For the full status, show the
+**status block** that `shiploop status` prints
 (also in `status.md`) unchanged; see [status display](references/status-display.md).
 If the user asks what has run, what is scheduled, what a step was sent or how
 planning expanded the request, run `shiploop trace --run-dir RUN` (`--action ID`,
@@ -305,7 +306,7 @@ planning expanded the request, run `shiploop trace --run-dir RUN` (`--action ID`
 
 Run to completion by default within the user's scope and existing authority.
 Progress reports are intermediate updates, not turn-ending handoffs or approval
-requests. After each major completed step, briefly report the milestone and
+requests. After each major completed step, relay the packet's progress block and
 immediately follow the returned packet's current owner, including a bound
 Improve child. Do not wait for acknowledgement, ask whether to continue, or end
 the turn while authorized runnable work remains. A step's `done` or an Improve

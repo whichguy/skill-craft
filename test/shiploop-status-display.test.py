@@ -309,7 +309,7 @@ class StatusBlockTests(unittest.TestCase):
         where = line(block, "Where").split(":", 1)[1].strip()
         upcoming = line(block, "Next").split(":", 1)[1].strip()
         self.assertEqual(navigator.status_line(state),
-                         f"Where: {where} · Next: {upcoming} · Run: Add a --version flag.")
+                         f"Where: {where} · Next: {upcoming} · Goal: Add a --version flag.")
         self.assertEqual(hook.LINE.fullmatch(navigator.status_line(state))["where"], where)
 
     def test_a_packet_carries_one_progress_block_and_status_keeps_the_full_block(self) -> None:
