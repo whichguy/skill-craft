@@ -43,6 +43,7 @@ import shiploop_lint as lint
 import shiploop_improve_changes as improve_changes
 import shiploop_item_scope as item_scope
 import shiploop_git as shiploop_git
+import shiploop_preparation as preparation
 import shiploop_iteration as iteration
 import shiploop_lessons as commit_lessons
 import shiploop_knowledge_home as knowledge
@@ -1164,11 +1165,18 @@ def _canonical_result(
         _need(outcome == "blocked", "awaiting is allowed only on a blocked result")
         result["awaiting"] = _normalise_awaiting(value["awaiting"])
     if "paths" in value:
-        _need(stage == "step-plan" and outcome == "done", "paths are allowed only on a done step-plan result")
-        try:
-            result["paths"] = item_scope.normalise_paths(value["paths"])
-        except item_scope.ItemScopeError as exc:
-            raise NavigatorError(str(exc)) from exc
+        _need(stage in ("step-plan", "prepare") and outcome == "done",
+              "paths are allowed only on a done step-plan or prepare result")
+        if stage == "prepare":
+            try:
+                result["paths"] = preparation.normalise_paths(value["paths"])
+            except preparation.PreparationError as exc:
+                raise NavigatorError(str(exc)) from exc
+        else:
+            try:
+                result["paths"] = item_scope.normalise_paths(value["paths"])
+            except item_scope.ItemScopeError as exc:
+                raise NavigatorError(str(exc)) from exc
     if "consumer_entry" in value:
         _need(stage == "release-plan" and outcome == "done",
               "consumer_entry is allowed only on a done release-plan result")
@@ -2084,6 +2092,13 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
     pass ``PRINT_LIMIT``; then they print a pointer to the file and what fits.
     """
     timeline = load_timeline(root)
+    if state.get("status") == "active" and not state.get("active_improve") and current_stage(state) == "prepare":
+        target = packet_path(root, state)
+        reason = preparation.packet_entry(
+            root, state, str(current_action(state)["id"]), already_issued=target.exists() or target.is_symlink())
+        if reason:
+            print("ShipLoop prepare: entry snapshot unknown (" + reason + "). Setup paths will not be committed "
+                  "automatically without that original boundary.", file=sys.stderr)
     scratch_dir(root).mkdir(exist_ok=True)
     version = run_reference.package_version()
     if run_reference.stale(root, version):
@@ -4596,6 +4611,10 @@ def _transition(core: Any, root: Path, before: Mapping[str, Any],
     # The step's commit stage runs against its own base, before the next step's base replaces it.  Its records are saved
     # with the state they advance.
     writes = {**writes, **_commit_stage(root, before, after)}
+    try:
+        preparation.commit_transition(root, before, after)
+    except preparation.PreparationError as exc:
+        raise NavigatorError(str(exc)) from exc
     writes = {**writes, **_iteration_base(root, before, after)}
     after, bind_writes = _improve_entry(root, after)
     writes = {**writes, **bind_writes}
@@ -5339,6 +5358,7 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
         result["test_layers"] = [dict(layers.ROW_TEMPLATE)]
         result["targets"] = [dict(layers.TARGET_TEMPLATE)]
     if stage == "prepare":
+        result["paths"] = []
         wanted = [row for row in _test_strategy_layers(state)[0] or () if row.get("status") == "prerequisite"]
         if wanted:
             result["harness_runs"] = [dict(layers.HARNESS_RUN_TEMPLATE, code=row["code"], layer=row["layer"])

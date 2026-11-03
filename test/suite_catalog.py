@@ -117,6 +117,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-backchain-check.test.py",
     "test/shiploop-improve-changes.test.py",
     "test/shiploop-knowledge.test.py",
+    "test/shiploop-preparation.test.py",
     "test/shiploop-current-spec.test.py",
     "test/shiploop-current-spec-recovery.test.py",
     "test/shiploop-spec-promotion.test.py",

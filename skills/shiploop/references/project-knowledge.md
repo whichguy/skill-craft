@@ -29,6 +29,21 @@ its conflicting clause; keep unaffected requirements, stable IDs, history,
 alternatives and rationale. Code and test results establish implementation
 status, not the original approved intent.
 
+At document, carry-forward, final handoff and their reviews, open affected current claims in
+the candidate spec, architecture and environment even when those files have no
+diff. Reconcile them with accepted observations at that phase: an item check
+already executed must not remain current-looking planned work; a system check
+not yet due stays pending. Preserve true as-of evidence, including an earlier
+step's test count when later records explain the change. Retain the exact
+command and runtime, target or prerequisite that made a regression observable;
+a different default command need not exercise that condition. If Improve changes
+facts needed by successors, refresh the producer through its existing
+`--final-result` route; never edit accepted state or generated result records.
+At final handoff the reviewed candidate spec remains read-only; a candidate
+correction needs the existing corrective-work and review route. Environment and
+architecture may reconcile final facts before their existing terminal commit
+and any required follow-up return.
+
 ## New work versus recovery
 
 - **Continue the same request:** recover its exact run with `next`; reconcile

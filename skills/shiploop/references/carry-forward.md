@@ -41,6 +41,14 @@ Record in the result `summary` and a linked run note, named in `evidence_refs`:
 - for selected local skills, the repo index/entrypoint, applicable inputs,
   validation evidence and revalidation trigger.
 
+Read the current spec, architecture and environment, including unchanged lines.
+Reconcile affected current claims with accepted observations; keep true as-of
+evidence and checks not due. Record the exact runtime, target and prerequisites
+of commands that exposed and verified a regression so a later invocation can
+repeat the meaningful check. If Improve changes current facts successors need,
+return a revised producer result through its existing `--final-result` route;
+earlier accepted step results stay historical.
+
 Keep completed evidence separate from future plans. Update appropriate project
 knowledge (see
 [retain learnings for the next invocation](project-knowledge.md#retain-learnings-for-the-next-invocation))

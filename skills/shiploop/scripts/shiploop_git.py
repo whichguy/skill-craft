@@ -65,9 +65,10 @@ def identity_env(repo: Path) -> Optional[Mapping[str, str]]:
 
 
 def commit_paths(repo: Path, paths: Sequence[str], message: str, *, allow_empty: bool = False,
-                 message_file: Optional[Path] = None) -> Committed:
+                 message_file: Optional[Path] = None, literal_paths: bool = False) -> Committed:
     """Stage exactly ``paths`` (files or directories) and commit them.
 
+    ``literal_paths`` disables Git pathspec magic for callers whose paths are already exact file names.
     ``allow_empty`` with no paths records a commit with no files; it never takes what else is staged.
     """
     repo = Path(repo)
@@ -78,39 +79,53 @@ def commit_paths(repo: Path, paths: Sequence[str], message: str, *, allow_empty:
         if done.returncode:
             raise CommitError("cannot create the commit: " + (done.stderr or done.stdout).strip())
         return Committed(git(repo, "rev-parse", "HEAD").stdout.strip(), [])
-    paths = _stageable(repo, paths)
+    paths = _stageable(repo, paths, literal_paths=literal_paths)
     if not paths:
         return Committed("", [])
-    added = git(repo, "add", "-A", "--", *paths)
+    specs = _pathspecs(paths, literal_paths)
+    added = git(repo, "add", "-A", "--", *specs)
     if added.returncode:
         raise CommitError("cannot stage " + ", ".join(paths) + ": " + added.stderr.strip())
-    staged = [line for line in git(repo, "diff", "--cached", "--name-only", "-z", "--", *paths).stdout.split("\0")
-              if line]
+    diff_args = ["diff", "--cached", "--name-only"]
+    if literal_paths:
+        # Path inputs are repository-relative to repo, so return names in that same frame before recommitting them.
+        diff_args.append("--relative")
+    staged = [line for line in git(repo, *diff_args, "-z", "--", *specs).stdout.split("\0") if line]
     if not staged:
         return Committed("", [])
-    done = git(repo, "commit", "-q", "--cleanup=whitespace", *given, "--", *staged, env=identity_env(repo))
+    done = git(repo, "commit", "-q", "--cleanup=whitespace", *given, "--", *_pathspecs(staged, literal_paths),
+               env=identity_env(repo))
     if done.returncode:
         raise CommitError("cannot commit " + ", ".join(staged) + ": " + (done.stderr or done.stdout).strip())
     return Committed(git(repo, "rev-parse", "HEAD").stdout.strip(), staged)
 
 
-def _stageable(repo: Path, paths: Sequence[str]) -> List[str]:
+def _pathspecs(paths: Sequence[str], literal_paths: bool) -> List[str]:
+    """Git's literal magic makes metacharacters part of a filename, including pathspec-leading punctuation."""
+    return [":(literal)" + path for path in paths] if literal_paths else list(paths)
+
+
+def _stageable(repo: Path, paths: Sequence[str], *, literal_paths: bool = False) -> List[str]:
     """``paths`` less those with nothing to stage: neither on disk nor known to Git (a deletion is known to Git)."""
-    tracked = set(git(repo, "ls-files", "-z", "--", *paths).stdout.split("\0")) if paths else set()
+    specs = _pathspecs(paths, literal_paths)
+    tracked = set(git(repo, "ls-files", "-z", "--", *specs).stdout.split("\0")) if paths else set()
+    if literal_paths:
+        # Prepare accepts concrete file names; a directory path must never widen to its contents.
+        return [path for path in paths if path in tracked or (repo / path).is_file() or (repo / path).is_symlink()]
     return [path for path in paths if (repo / path).exists() or path in tracked
             or any(name.startswith(path.rstrip("/") + "/") for name in tracked)]
 
 
-def planned_tree(repo: Path, paths: Sequence[str]) -> str:
+def planned_tree(repo: Path, paths: Sequence[str], *, literal_paths: bool = False) -> str:
     """The tree ``commit_paths(repo, paths, ...)`` would commit now: HEAD's tree with ``paths`` as the checkout holds
     them, built in a temporary index, so the real one is untouched.  "" when Git cannot build it."""
     repo = Path(repo)
-    paths = _stageable(repo, paths)
+    paths = _stageable(repo, paths, literal_paths=literal_paths)
     with tempfile.TemporaryDirectory(prefix="shiploop-tree-") as scratch:
         env = {"GIT_INDEX_FILE": str(Path(scratch) / "index")}
         if git(repo, "read-tree", "HEAD", env=env).returncode:
             return ""
-        if paths and git(repo, "add", "-A", "--", *paths, env=env).returncode:
+        if paths and git(repo, "add", "-A", "--", *_pathspecs(paths, literal_paths), env=env).returncode:
             return ""
         written = git(repo, "write-tree", env=env)
         return "" if written.returncode else written.stdout.strip()

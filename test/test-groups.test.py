@@ -122,9 +122,10 @@ class TestGroupTests(unittest.TestCase):
         # and backchain-toolkit (its command line).
         # Registered predecessors, their runner wiring and intent lifecycle calibration add three (2026-11-02).
         # Five current-spec storage/recovery/review/promotion/lifecycle suites add to the three evaluator suites.
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 134)
+        # Preparation ownership/recovery adds one (2026-11-02), also selected on the Python floor.
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 135)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 55)
-        self.assertEqual(len(suite_catalog.SUITES), 191)
+        self.assertEqual(len(suite_catalog.SUITES), 192)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))

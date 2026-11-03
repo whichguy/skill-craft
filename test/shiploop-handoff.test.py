@@ -100,7 +100,7 @@ EXPECTED_READS = {
     "validate-existing": (_E, _A), "implement": (_E, _A), "test": (_E, _A), "document": (_S, _E, _A),
     "carry-forward": (), "system-test-author": (_S, _E, _A), "system-test": (_E, _A), "product-acceptance": (_S, _E),
     "release-plan": (_E,), "release-check": (_E,), "release": (_E,), "release-verify": (), "operations": (_E,),
-    "handoff": (),
+    "handoff": (_S, _E, _A),
 }
 
 
@@ -127,7 +127,7 @@ class ReadsTests(RepoCase):
         (self.repo / knowledge.HOME / "architecture.md").mkdir()      # not a regular file
         quotes = knowledge.reads_quotes(self.state, "test")
         self.assertEqual([(quote.file, quote.text) for quote in quotes], [(_E, None), (_A, None)])
-        self.assertEqual(knowledge.reads_quotes(self.state, "handoff"), [])
+        self.assertEqual(knowledge.reads_quotes(self.state, "carry-forward"), [])
 
     def test_an_unknown_stage_raises(self) -> None:
         with self.assertRaises(ValueError):
@@ -2060,7 +2060,8 @@ SMALL_HOME_FINGERPRINTS: dict = {
     "42-release": "283571c24c3a",
     "43-release-verify": "3bf63126c3e6",
     "44-operations": "283571c24c3a",
-    "45-handoff": "7e50c8910839",
+    # Handoff now opens all three current knowledge files to reconcile final accepted facts.
+    "45-handoff": "03cfdd92e104",
 }
 
 SMALL_HOME = {
