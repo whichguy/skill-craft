@@ -20,6 +20,7 @@ from typing import Any, Mapping
 
 
 SCHEMA = "shiploop-intent-continuity-v1"
+OUTCOME_SCHEMA = "shiploop-intent-outcome-assessment-v1"
 STATE_VERSION = 12
 CURRENT_SPEC = "current-spec.md"
 AGGREGATE = "docs/shiploop/spec.md"
@@ -30,6 +31,7 @@ SNAPSHOTS = {
 }
 EMPTY_SHA256 = hashlib.sha256(b"").hexdigest()
 SHA = re.compile(r"^[0-9a-f]{40,64}$")
+DIGEST = re.compile(r"^[0-9a-f]{64}$")
 ACTION = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,159}$")
 
 
@@ -519,6 +521,455 @@ def _direct_mode(cwd: Path, run_dir: Path, checks: Findings) -> None:
     checks.pass_("direct-execution", {"repo": str(cwd), "workspace_return": "absent"})
 
 
+class OutcomeStop(Exception):
+    def __init__(self, status: str, check: str, detail: str, observed: Any = None):
+        super().__init__(detail)
+        self.status, self.check, self.detail, self.observed = status, check, detail, observed
+
+
+def _outcome_start(invocation: Mapping[str, Any], repo: Path) -> tuple[str | None, str | None, bytes | None]:
+    selected = None
+    for name in ("follow_on", "seeded", "base"):
+        record = invocation.get(name)
+        if record is not None and not isinstance(record, dict):
+            raise OracleError(f"invocation.{name} must be an object when present")
+        head = record.get("start_head") if isinstance(record, dict) else None
+        if head:
+            selected = (name, head)
+            break
+    if selected is None:
+        if any(invocation.get(name) is not None for name in ("follow_on", "seeded", "base")):
+            raise OracleError("invocation has a predecessor but no usable start_head")
+        return None, None, None
+    name, head = selected
+    if not isinstance(head, str) or SHA.fullmatch(head) is None:
+        raise OracleError(f"invocation.{name}.start_head is not a full Git object ID")
+    _check_object(repo, head, "commit")
+    tree = _git_text(repo, "rev-parse", f"{head}^{{tree}}")
+    return head, tree, _git_blob(repo, tree, AGGREGATE)
+
+
+def _outcome_diff_paths(repo: Path, before: str, after: str) -> list[str]:
+    _check_object(repo, before, "tree")
+    _check_object(repo, after, "tree")
+    result = _git(repo, "diff", "--name-only", "-z", "--no-renames", before, after)
+    if result.returncode:
+        raise OracleError("cannot inspect return tree delta")
+    return [path.decode("utf-8", "surrogateescape") for path in result.stdout.split(b"\0") if path]
+
+
+def _outcome_tracked_paths(repo: Path, tree: str) -> list[str]:
+    _check_object(repo, tree, "tree")
+    result = _git(repo, "ls-tree", "-r", "-z", "--name-only", tree)
+    if result.returncode:
+        raise OracleError("cannot inspect tracked paths at delivered HEAD")
+    return [path.decode("utf-8", "surrogateescape") for path in result.stdout.split(b"\0") if path]
+
+
+def _outcome_claims(run_dir: Path, state: Mapping[str, Any], run_id: str, repo: Path,
+                    candidate: bytes | None, prior: bytes | None, prior_tree: str | None,
+                    findings: list[dict[str, Any]]) -> dict[str, Any]:
+    claims: dict[str, Any] = {}
+    candidate_hash = hashlib.sha256(candidate).hexdigest() if candidate is not None else None
+    prior_hash = hashlib.sha256(prior).hexdigest() if prior is not None else EMPTY_SHA256
+    binding = _fenced_record(run_dir / "spec" / "binding.md", run_dir, required=False)
+    if binding is not None:
+        if candidate is None:
+            raise OracleError("declared current-spec binding has no readable candidate")
+        if binding.get("schema") != "shiploop-current-spec" or type(binding.get("version")) is not int or binding["version"] != 1:
+            raise OracleError("declared current-spec binding schema is unsupported")
+        if (binding.get("run_id") != run_id or binding.get("repo") != str(repo)
+                or binding.get("root") != str(run_dir) or binding.get("candidate") != CURRENT_SPEC):
+            raise OutcomeStop("FAIL", "current-spec-binding", "declared current-spec binding contradicts selected run identity")
+        snapshots = binding.get("snapshots")
+        if not isinstance(snapshots, dict) or set(snapshots) != set(SNAPSHOTS):
+            raise OracleError("declared current-spec binding has unreadable snapshot claims")
+        for name, (source_path, snapshot_path) in SNAPSHOTS.items():
+            entry = snapshots.get(name)
+            if (not isinstance(entry, dict) or entry.get("path") != snapshot_path
+                    or type(entry.get("present")) is not bool):
+                raise OracleError(f"declared {name} snapshot claim is malformed")
+            actual = _read_file(run_dir, snapshot_path, required=False)
+            source = _git_blob(repo, prior_tree, source_path) if prior_tree else None
+            if entry["present"]:
+                digest = entry.get("sha256")
+                if not isinstance(digest, str) or DIGEST.fullmatch(digest) is None:
+                    raise OracleError(f"declared {name} snapshot digest is malformed")
+                if actual is None or hashlib.sha256(actual).hexdigest() != digest:
+                    raise OutcomeStop("FAIL", "current-spec-binding", f"declared {name} snapshot digest is false")
+            elif actual is not None or entry.get("sha256") is not None:
+                raise OutcomeStop("FAIL", "current-spec-binding", f"declared absent {name} snapshot has bytes")
+            if prior_tree and actual != source:
+                raise OutcomeStop("FAIL", "current-spec-binding", f"declared prior {name} snapshot contradicts frozen source Git")
+        spec_snapshot = snapshots["spec"]
+        declared_initial = binding.get("candidate_initial_sha256")
+        if not isinstance(declared_initial, str) or DIGEST.fullmatch(declared_initial) is None:
+            raise OracleError("declared initial candidate digest is malformed")
+        expected_initial = spec_snapshot.get("sha256") if spec_snapshot.get("present") else EMPTY_SHA256
+        if declared_initial != expected_initial or (prior_tree is not None and declared_initial != prior_hash):
+            raise OutcomeStop("FAIL", "current-spec-binding", "declared initial candidate digest contradicts prior bytes")
+        claims["binding"] = {"run_id": run_id, "repo": str(repo), "candidate_sha256": candidate_hash}
+        findings.append({"check": "declared-current-spec-binding", "status": "PASS"})
+
+    reviewed = _fenced_record(run_dir / "spec" / "reviewed.md", run_dir, required=False)
+    if reviewed is not None:
+        if candidate is None:
+            raise OracleError("declared current-spec review has no readable candidate")
+        action = reviewed.get("action")
+        digest = reviewed.get("sha256")
+        if reviewed.get("schema") != "shiploop-spec-reviewed-v1" or not isinstance(action, str) or ACTION.fullmatch(action) is None:
+            raise OracleError("declared review schema or action is unavailable")
+        if not isinstance(digest, str) or DIGEST.fullmatch(digest) is None:
+            raise OracleError("declared review digest is malformed")
+        if reviewed.get("run_id") != run_id or reviewed.get("repo") != str(repo) or reviewed.get("root") != str(run_dir):
+            raise OutcomeStop("FAIL", "declared-current-spec-review", "declared review contradicts selected run identity")
+        accepted = state.get("accepted")
+        if not isinstance(accepted, dict):
+            raise OracleError("declared review cannot be checked against accepted actions")
+        improve = accepted.get(action) if isinstance(accepted, dict) and isinstance(action, str) else None
+        if not isinstance(improve, dict) or improve.get("outcome") != "done":
+            raise OutcomeStop("FAIL", "declared-current-spec-review", "declared review has no accepted completed Improve")
+        claims["review"] = {"action": action, "candidate_sha256": digest,
+                            "matches_current_spec": digest == candidate_hash,
+                            "as_of": "accepted current-spec bytes at the reviewed Improve"}
+        findings.append({"check": "declared-current-spec-review", "status": "PASS"})
+
+    promotion = _fenced_record(run_dir / "spec" / "promotion.md", run_dir, required=False)
+    if promotion is not None:
+        if candidate is None:
+            raise OracleError("declared spec promotion has no readable candidate")
+        if promotion.get("schema") != "shiploop-spec-promotion" or type(promotion.get("version")) is not int or promotion["version"] != 1:
+            raise OracleError("declared promotion schema is unsupported")
+        action = promotion.get("handoff_action")
+        if not isinstance(action, str) or ACTION.fullmatch(action) is None:
+            raise OracleError("declared promotion action is unavailable")
+        if (promotion.get("run_id") != run_id or promotion.get("repo") != str(repo)
+                or promotion.get("root") != str(run_dir) or promotion.get("aggregate") != AGGREGATE
+                or promotion.get("candidate") != CURRENT_SPEC):
+            raise OutcomeStop("FAIL", "declared-spec-promotion", "declared promotion contradicts selected run identity")
+        if not isinstance(promotion.get("status"), str):
+            raise OracleError("declared promotion status is unavailable")
+        if promotion["status"] != "promoted":
+            claims["promotion"] = {"handoff_action": action, "status": promotion["status"],
+                                   "as_of": "record does not claim completed promotion"}
+            return claims
+        accepted = state.get("accepted")
+        if not isinstance(accepted, dict):
+            raise OracleError("declared promotion cannot be checked against accepted actions")
+        handoff = accepted.get(action) if isinstance(accepted, dict) and isinstance(action, str) else None
+        history = state.get("history")
+        if not isinstance(history, list):
+            raise OracleError("declared promotion cannot be checked against run history")
+        terminal = isinstance(history, list) and any(
+            isinstance(row, dict) and row.get("action") == action and row.get("stage") == "handoff"
+            and row.get("outcome") == "done" for row in history)
+        promoted_hash = promotion.get("candidate_sha256")
+        current_hash = promotion.get("current_sha256")
+        if (not isinstance(promoted_hash, str) or DIGEST.fullmatch(promoted_hash) is None
+                or not isinstance(current_hash, str) or DIGEST.fullmatch(current_hash) is None):
+            raise OracleError("declared promotion digest is malformed")
+        if (current_hash != promoted_hash
+                or promotion.get("prior_sha256") != prior_hash or promotion.get("prior_present") is not (prior is not None)
+                or not isinstance(handoff, dict) or handoff.get("outcome") != "done" or not terminal):
+            raise OutcomeStop("FAIL", "declared-spec-promotion", "declared promotion contradicts run, review bytes, or prior")
+        claims["promotion"] = {"handoff_action": action, "candidate_sha256": promoted_hash,
+                               "matches_current_spec": promoted_hash == candidate_hash,
+                               "prior_sha256": prior_hash, "as_of": "accepted handoff promotion"}
+        findings.append({"check": "declared-spec-promotion", "status": "PASS"})
+    return claims
+
+
+def evaluate_outcome(mode: str) -> tuple[dict[str, Any], int]:
+    findings: list[dict[str, Any]] = []
+    diagnostics: dict[str, Any] = {}
+
+    def require(ok: bool, check: str, detail: str, observed: Any = None) -> None:
+        if not ok:
+            raise OutcomeStop("FAIL", check, detail, observed)
+        findings.append({"check": check, "status": "PASS", "observed": observed})
+
+    try:
+        base_checks = Findings()
+        cwd, output, run_dir, invocation, _metrics = _run_record_checks(mode, base_checks)
+        findings.extend({"check": item["check"], "status": "PASS", "observed": item.get("observed")}
+                        for item in base_checks.items)
+        case = invocation.get("case")
+        if not isinstance(case, str) or not case:
+            raise OracleError("harness invocation does not identify its case")
+        invocation_cwd = invocation.get("cwd")
+        if not isinstance(invocation_cwd, str):
+            raise OracleError("harness invocation does not identify its cwd")
+        require(_absolute_dir(invocation_cwd, "invocation cwd") == cwd,
+                "harness-output", "invocation cwd does not match selected product checkout")
+        diagnostics["harness_output"] = {"output": str(output), "case": case, "selected_run": str(run_dir),
+                                         "result_json": "written after case checks; parent may bind it later"}
+        state = _fenced_record(run_dir / "state.md", run_dir)
+        if state is None:
+            raise OracleError("selected ShipLoop state is unavailable")
+        version = state.get("version")
+        if type(version) is not int or version not in (11, STATE_VERSION):
+            raise OracleError("selected state has no supported outcome evidence contract")
+        run_id = state.get("run_id")
+        if not isinstance(run_id, str) or ACTION.fullmatch(run_id) is None:
+            raise OracleError("selected state run_id is unsafe or unavailable")
+        if not isinstance(state.get("status"), str):
+            raise OracleError("selected state status is unavailable")
+        require(state.get("status") == "done", "run-state", "selected ShipLoop run has not reached done",
+                {"run_id": run_id, "version": version, "status": state.get("status")})
+
+        if mode == "worktree":
+            root = run_dir.parent
+            workspace = _fenced_record(root / "workspace.md", root)
+            if workspace is None:
+                raise OracleError("worktree manifest is unavailable")
+            worktree = _absolute_dir(root / "worktree", "workspace worktree")
+            repo = _absolute_dir(state.get("repo", ""), "state repo")
+            if (workspace.get("schema") != "shiploop-workspace" or type(workspace.get("version")) is not int
+                    or workspace.get("version") != 1):
+                raise OracleError("worktree manifest schema is unsupported")
+            for key in ("source_repo", "worktree", "run_dir"):
+                value = workspace.get(key)
+                if not isinstance(value, str) or not Path(value).is_absolute():
+                    raise OracleError(f"worktree manifest {key} identity is unavailable")
+            require(workspace.get("source_repo") == str(cwd) and workspace.get("worktree") == str(worktree)
+                    and workspace.get("run_dir") == str(run_dir) and repo == worktree,
+                    "workspace-manifest", "worktree manifest does not bind selected run and source repo")
+            if not isinstance(workspace.get("status"), str):
+                raise OracleError("worktree manifest status is unavailable")
+            require(workspace.get("status") == "returned", "workspace-manifest",
+                    "worktree run has no completed returned manifest")
+            require(state.get("repo") == str(worktree), "run-state", "state repo contradicts bound workspace")
+            initial = workspace.get("initial_fingerprint")
+            if not isinstance(initial, dict):
+                raise OracleError("worktree manifest has no initial source fingerprint")
+        else:
+            repo = cwd
+            require(state.get("repo") == str(cwd), "run-state", "direct state repo does not match product checkout")
+            extra_records: list[dict[str, Any]] = []
+            for rel in ("workspace.md", "return-receipt.md"):
+                try:
+                    record = _fenced_record(run_dir.parent / rel, run_dir.parent, required=False)
+                except OracleError as exc:
+                    extra_records.append({"path": rel, "present": True,
+                                          "claims_status": "unavailable", "detail": str(exc)})
+                else:
+                    extra_records.append({"path": rel, "present": record is not None,
+                                          "claims_status": "available" if record is not None else "absent",
+                                          "claims": record})
+            diagnostics["extra_direct_records"] = extra_records
+            root, workspace, worktree, initial = run_dir.parent, None, repo, None
+
+        if state.get("spec_root") is not None:
+            if not isinstance(state.get("spec_root"), str):
+                raise OracleError("state spec_root identity is malformed")
+            require(state.get("spec_root") == str(run_dir), "run-state", "state spec_root contradicts selected run")
+        start_head, prior_tree, prior = _outcome_start(invocation, repo)
+        if mode == "direct" and start_head is None:
+            baseline = invocation.get("improve_runtime_baseline")
+            if (not isinstance(baseline, dict) or baseline.get("schema") != "shiploop-improve-root-observation-v1"
+                    or baseline.get("root") != ".shiploop-improve"
+                    or baseline.get("workspace") != str(cwd)):
+                raise OracleError("fresh direct run has no bound prelaunch workspace observation")
+            git_mode, top = baseline.get("git_mode"), baseline.get("git_toplevel")
+            git_head = baseline.get("git_head")
+            if git_head is not None and (not isinstance(git_head, str) or SHA.fullmatch(git_head) is None):
+                raise OracleError("prelaunch Git HEAD observation is malformed")
+            git_observed = baseline.get("git_observed")
+            try:
+                workspace_stat = cwd.stat()
+            except OSError as exc:
+                raise OracleError(f"cannot verify prelaunch workspace identity: {exc}") from exc
+            if (type(baseline.get("workspace_dev")) is not int or type(baseline.get("workspace_ino")) is not int):
+                raise OracleError("prelaunch workspace device/inode identity is unavailable")
+            require((baseline["workspace_dev"], baseline["workspace_ino"]) ==
+                    (workspace_stat.st_dev, workspace_stat.st_ino), "fresh-workspace",
+                    "prelaunch workspace device/inode does not match selected cwd")
+            if git_mode == "git" and git_observed is True:
+                top = _absolute_dir(top, "prelaunch Git top level")
+                if top == cwd or not _inside(cwd, top):
+                    raise OracleError("prelaunch Git identity does not establish a fresh selected workspace")
+                if _git_text(top, "rev-parse", "--show-toplevel") != str(top):
+                    raise OracleError("prelaunch Git top level does not identify its repository")
+            elif git_mode == "non-git" and git_observed is False and top is None and git_head is None:
+                top = None
+            else:
+                raise OracleError("prelaunch Git identity is unavailable")
+            runtime_root = cwd / ".shiploop-improve"
+            try:
+                runtime_info = runtime_root.lstat()
+            except FileNotFoundError:
+                runtime_observation: dict[str, Any] = {"present": False}
+            except OSError as exc:
+                runtime_observation = {"present": None, "detail": str(exc)}
+            else:
+                runtime_observation = {"present": True,
+                                       "kind": "directory" if stat.S_ISDIR(runtime_info.st_mode) else
+                                       "symlink" if stat.S_ISLNK(runtime_info.st_mode) else "other"}
+                if stat.S_ISDIR(runtime_info.st_mode):
+                    try:
+                        runtime_observation["entries"] = sorted(path.name for path in runtime_root.iterdir())
+                    except OSError as exc:
+                        runtime_observation["entries_status"] = f"unavailable: {exc}"
+            diagnostics["fresh_workspace_baseline"] = {"git_mode": git_mode,
+                                                        "git_toplevel": str(top) if top else None,
+                                                        "git_head": git_head,
+                                                        "git_observed": git_observed,
+                                                        "runtime_root_absent_at_prelaunch": baseline.get("root_absent"),
+                                                        "runtime_root_current": runtime_observation,
+                                                        "ancestor_head_is_not_selected_baseline": git_mode == "git"}
+        if mode == "worktree" and start_head is None:
+            initial_head, initial_tree = initial.get("head"), initial.get("working_tree")
+            if not isinstance(initial_head, str) or SHA.fullmatch(initial_head) is None or not isinstance(initial_tree, str):
+                raise OracleError("new-root worktree has no readable initial source identity")
+            _check_object(repo, initial_head, "commit")
+            _check_object(repo, initial_tree, "tree")
+            prior_tree = initial_tree
+            prior = _git_blob(repo, prior_tree, AGGREGATE)
+            start_head = initial_head
+            diagnostics["prior_source"] = "workspace initial fingerprint; no invocation predecessor"
+        elif start_head is not None:
+            diagnostics["prior_source"] = "invocation start_head"
+        else:
+            diagnostics["prior_source"] = "fresh selected workdir; no invocation predecessor"
+            diagnostics["prior_absence_basis"] = (
+                "no follow_on/seeded/base start_head and the bound prelaunch observation has no selected-project Git history; "
+                "the runtime-root record does not separately snapshot spec.md absence")
+        prior_hash = hashlib.sha256(prior).hexdigest() if prior is not None else EMPTY_SHA256
+        candidate = _read_file(run_dir, CURRENT_SPEC, required=False)
+        delivered = _read_file(cwd, AGGREGATE, required=False)
+        if delivered is None:
+            raise OracleError("delivered aggregate bytes are unavailable")
+        execution = _read_file(repo, AGGREGATE, required=False)
+        diagnostics["hashes"] = {"prior_aggregate_sha256": prior_hash,
+                                  "delivered_aggregate_sha256": hashlib.sha256(delivered).hexdigest(),
+                                  "execution_aggregate_sha256": hashlib.sha256(execution).hexdigest() if execution is not None else None,
+                                  "current_spec_sha256": hashlib.sha256(candidate).hexdigest() if candidate is not None else None}
+        claims = _outcome_claims(run_dir, state, run_id, repo, candidate, prior, prior_tree, findings)
+
+        if mode == "worktree":
+            receipt = _fenced_record(root / "return-receipt.md", root)
+            if receipt is None:
+                raise OracleError("worktree return chronology is unavailable")
+            chain = _receipt_chain(receipt)
+            if not chain:
+                raise OracleError("worktree return chronology is empty")
+            if start_head is None:
+                raise OracleError("worktree return has no baseline HEAD")
+            start_tree = _git_text(repo, "rev-parse", f"{start_head}^{{tree}}")
+            if _git_blob(repo, start_tree, AGGREGATE) != prior:
+                raise OutcomeStop("FAIL", "prior-aggregate", "frozen prior aggregate does not match invocation start_head")
+            initial = workspace.get("initial_fingerprint", {})
+            require(initial.get("head") == start_head, "workspace-baseline", "manifest initial HEAD differs from frozen start_head")
+            initial_working = initial.get("working_tree")
+            if not isinstance(initial_working, str) or SHA.fullmatch(initial_working) is None:
+                raise OracleError("workspace initial working_tree is unavailable")
+            _check_object(repo, initial_working, "tree")
+            if _git_blob(repo, initial_working, AGGREGATE) != prior:
+                raise OutcomeStop("FAIL", "workspace-baseline", "manifest initial source does not contain frozen prior aggregate")
+
+            returned: list[dict[str, Any]] = []
+            for index, entry in enumerate(chain):
+                head, tree = _head_for_return(entry), _tree_for_return(entry)
+                _check_object(cwd, head, "commit")
+                _check_object(cwd, tree, "tree")
+                source_before = entry.get("source_before")
+                if not isinstance(source_before, dict):
+                    raise OracleError("return source_before chronology is unavailable")
+                before_head = source_before.get("head")
+                before_tree = source_before.get("tree", source_before.get("working_tree"))
+                if not isinstance(before_head, str) or SHA.fullmatch(before_head) is None or not isinstance(before_tree, str):
+                    raise OracleError("return source_before identity is malformed")
+                _check_object(cwd, before_head, "commit")
+                _check_object(cwd, before_tree, "tree")
+                if index == 0:
+                    require(before_head == start_head and before_tree == initial_working,
+                            "return-chain", "first return source_before does not match frozen workspace baseline")
+                elif not _same_source_tree(source_before, chain[index - 1]):
+                    raise OutcomeStop("FAIL", "return-chain", "return source_before does not match preceding returned HEAD/tree")
+                if entry.get("kind") == "fast-forward-merge":
+                    commit_tree = _git_text(cwd, "rev-parse", f"{head}^{{tree}}")
+                    require(commit_tree == tree, "return-chain", "fast-forward receipt tree does not match returned HEAD")
+                if index < len(chain) - 1 and _git_blob(cwd, tree, AGGREGATE) != prior:
+                    raise OutcomeStop("FAIL", "prior-aggregate", f"nonfinal return {index + 1} changed frozen prior aggregate")
+                returned.append({"head": head, "tree": tree, "kind": entry.get("kind"),
+                                 "source_before_head": before_head,
+                                 "diff_paths": _outcome_diff_paths(cwd, before_tree, tree)})
+            final = chain[-1]
+            final_head, final_tree = _head_for_return(final), _tree_for_return(final)
+            current_head = _git_text(cwd, "rev-parse", "HEAD")
+            require(final_head == current_head, "final-return", "final receipt HEAD does not match delivered checkout")
+            if final.get("kind") == "fast-forward-merge":
+                current_tree = _git_text(cwd, "rev-parse", "HEAD^{tree}")
+                status = _git(cwd, "status", "--porcelain=v1", "--untracked-files=all")
+                require(final_tree == current_tree and status.returncode == 0 and not status.stdout,
+                        "final-return", "final receipt tree does not match clean delivered checkout")
+            else:
+                diff = _git(cwd, "diff", "--no-ext-diff", "--quiet", final_tree, "--")
+                if diff.returncode > 1:
+                    raise OracleError("cannot compare final returned tree with delivered checkout")
+                require(diff.returncode == 0, "final-return", "final returned working tree does not match delivery")
+            require(_git_blob(cwd, final_tree, AGGREGATE) == delivered,
+                    "final-return", "final returned aggregate differs from delivered aggregate")
+            diagnostics["returns"] = returned
+            diagnostics["final_return"] = {"head": final_head, "tree": final_tree, "kind": final.get("kind")}
+        else:
+            head = _git_text(cwd, "rev-parse", "HEAD")
+            tree = _git_text(cwd, "rev-parse", "HEAD^{tree}")
+            committed_aggregate = _git_blob(cwd, tree, AGGREGATE)
+            require(committed_aggregate == delivered, "direct-delivery",
+                    "delivered aggregate bytes do not match the actual committed HEAD tree",
+                    {"head": head, "tree": tree,
+                     "committed_aggregate_sha256": hashlib.sha256(committed_aggregate).hexdigest()
+                     if committed_aggregate is not None else None,
+                     "delivered_aggregate_sha256": hashlib.sha256(delivered).hexdigest()})
+            direct_return = {"mode": "direct", "head": head, "tree": tree,
+                             "committed_aggregate_sha256": hashlib.sha256(committed_aggregate).hexdigest()}
+            if prior_tree is not None:
+                direct_return["diff_paths"] = _outcome_diff_paths(cwd, prior_tree, tree)
+                direct_return["comparison"] = "frozen prior tree to delivered HEAD tree"
+            else:
+                direct_return["created_tracked_paths"] = _outcome_tracked_paths(cwd, tree)
+                direct_return["comparison"] = "trusted fresh workspace; no prior tree comparison"
+            diagnostics["returns"] = [direct_return]
+
+        current_hash = diagnostics["hashes"]["current_spec_sha256"]
+        delivered_hash = diagnostics["hashes"]["delivered_aggregate_sha256"]
+        reviewed_hash = claims.get("review", {}).get("candidate_sha256")
+        promoted_hash = claims.get("promotion", {}).get("candidate_sha256")
+        current_comparison = ("UNKNOWN" if current_hash is None else
+                              "MATCH" if current_hash == delivered_hash else "DIFFERS")
+        differs = any(value is not None and value != delivered_hash
+                      for value in (current_hash, reviewed_hash, promoted_hash))
+        diagnostics["final_aggregate_comparison"] = {
+            "path": AGGREGATE, "delivered_sha256": delivered_hash,
+            "current_spec_sha256": current_hash, "reviewed_sha256": reviewed_hash,
+            "promoted_sha256": promoted_hash,
+            "current_spec_comparison_status": current_comparison,
+            "matches_current_spec": current_hash == delivered_hash if current_hash else None,
+            "matches_reviewed": reviewed_hash == delivered_hash if reviewed_hash else None,
+            "matches_promotion": promoted_hash == delivered_hash if promoted_hash else None,
+            "diagnostic_diff_paths": [AGGREGATE] if differs else [],
+        }
+        diagnostics["review_scope"] = {"run_id": run_id, "state_version": version, "run_status": "done",
+                                       "review": claims.get("review"), "promotion": claims.get("promotion"),
+                                       "as_of": "selected done run and delivered checkout; semantic meaning unassessed"}
+        findings.append({"check": "outcome-evidence", "status": "PASS",
+                         "observed": "required output, identity, prior, and final-delivery bindings agree"})
+        status = "PASS"
+    except OutcomeStop as exc:
+        status = exc.status
+        findings.append({"check": exc.check, "status": status, "detail": exc.detail, "observed": exc.observed})
+    except Exception as exc:
+        status = "UNKNOWN"
+        detail = str(exc) if isinstance(exc, OracleError) else f"{type(exc).__name__}: {exc}"
+        findings.append({"check": "evidence-availability", "status": status, "detail": detail})
+    payload = {"schema": OUTCOME_SCHEMA, "mode": mode, "machine_evidence_status": status,
+               "semantic_outcome": "UNKNOWN", "findings": findings, "diagnostics": diagnostics,
+               "limitations": ["Retained records cannot prove every transient write.",
+                               "This assessment does not judge semantic preservation or user benefit."]}
+    return payload, 0 if status == "PASS" else 1
+
+
 def evaluate(mode: str) -> tuple[dict[str, Any], int]:
     checks = Findings()
     try:
@@ -547,8 +998,9 @@ def evaluate(mode: str) -> tuple[dict[str, Any], int]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("worktree", "direct"), required=True)
+    parser.add_argument("--assessment", choices=("outcome",))
     args = parser.parse_args(argv)
-    payload, code = evaluate(args.mode)
+    payload, code = evaluate_outcome(args.mode) if args.assessment == "outcome" else evaluate(args.mode)
     print(json.dumps(payload, sort_keys=True))
     return code
 

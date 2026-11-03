@@ -47,6 +47,16 @@ def write(path: Path, raw: bytes | str) -> None:
     path.write_bytes(raw if isinstance(raw, bytes) else raw.encode("utf-8"))
 
 
+def capture_runtime_baseline(work: Path) -> dict[str, Any]:
+    producer = ROOT / "test" / "shiploop_e2e" / "improve_runtime.py"
+    spec = importlib.util.spec_from_file_location("fixture_improve_runtime", producer)
+    if spec is None or spec.loader is None:
+        raise AssertionError(f"Improve runtime baseline producer is unavailable: {producer}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.capture_baseline(work)
+
+
 def fenced(payload: dict[str, Any]) -> str:
     return "# Fixture record\n\n```shiploop-state\n" + json.dumps(
         payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n```\n"
@@ -80,13 +90,27 @@ class Fixture:
     def __init__(self, root: Path, mode: str, *, follow_on: bool,
                  early_promotion: bool = False, single_return: bool = False,
                  empty_follow_up: bool = False,
-                 candidate: bytes | None = None, final_kind: str = "fast-forward-merge"):
+                 candidate: bytes | None = None, final_kind: str = "fast-forward-merge",
+                 state_version: int = 12, capture_runtime_baseline_before_init: bool = False,
+                 prepared_runtime_root: bool = False, ancestor_git_before_product: bool = False):
         self.root = root.resolve()
         self.mode = mode
+        self.state_version = state_version
         self.output = self.root
         self.output.mkdir(parents=True)
+        if ancestor_git_before_product:
+            subprocess.run(["git", "-C", str(self.output), "init", "--quiet", "--initial-branch=main"], check=True)
+            git(self.output, "config", "user.name", "Intent Ancestor")
+            git(self.output, "config", "user.email", "ancestor@example.invalid")
+            write(self.output / "ancestor-context.txt", "Ancestor repository context.\n")
+            commit(self.output, "ancestor baseline")
         self.product = self.output / "product"
         self.product.mkdir()
+        self.improve_runtime_baseline = None
+        if prepared_runtime_root:
+            (self.product / ".shiploop-improve").mkdir()
+        if capture_runtime_baseline_before_init:
+            self.improve_runtime_baseline = capture_runtime_baseline(self.product)
         subprocess.run(["git", "-C", str(self.product), "init", "--quiet", "--initial-branch=main"], check=True)
         git(self.product, "config", "user.name", "Intent Fixture")
         git(self.product, "config", "user.email", "intent@example.invalid")
@@ -150,6 +174,8 @@ class Fixture:
             write(self.workspace / "workspace.md", fenced({
                 "schema": "shiploop-workspace", "version": 1, "status": "returned",
                 "source_repo": str(self.product), "worktree": str(self.worktree), "run_dir": str(self.run),
+                "initial_fingerprint": {"head": self.start_head, "working_tree": self.start_tree,
+                                         "tracked_tree": self.start_tree, "branch": "main"},
             }))
             if single_return:
                 self.receipt = return_receipt(
@@ -174,7 +200,8 @@ class Fixture:
 
         self.run.mkdir(parents=True)
         write(self.output / "shiploop-run.json", json.dumps({"run_dir": str(self.run)}))
-        invocation = {"case": "fixture", "follow_on": {"start_head": self.start_head} if follow_on else None}
+        invocation = {"case": "fixture", "cwd": str(self.product),
+                      "follow_on": {"start_head": self.start_head} if follow_on else None}
         write(self.output / "invocation.json", json.dumps(invocation))
         write(self.output / "metrics.json", json.dumps({"fixture": True}))
         self._write_state()
@@ -195,15 +222,14 @@ class Fixture:
             raw = self.prior[name]
             snapshot_meta[name] = {"path": snapshot, "present": raw is not None,
                                    "sha256": sha(raw) if raw is not None else None}
-            if raw is not None:
+            if self.state_version == 12 and raw is not None:
                 write(self.run / snapshot, raw)
         run_id, improve, handoff = "fixture-run", "I-spec", "H-terminal"
         current_hash = sha(self.candidate)
         prior_spec = self.prior["spec"]
         prior_hash = sha(prior_spec) if prior_spec is not None else sha(b"")
-        write(self.run / "current-spec.md", self.candidate)
         state = {
-            "version": 12, "run_id": run_id, "repo": str(repo), "spec_root": str(self.run),
+            "version": self.state_version, "run_id": run_id, "repo": str(repo),
             "status": "done",
             "accepted": {
                 improve: {"outcome": "done", "summary": "Current spec accepted."},
@@ -215,7 +241,12 @@ class Fixture:
                 {"action": handoff, "stage": "handoff", "outcome": "done"},
             ],
         }
+        if self.state_version == 12:
+            state["spec_root"] = str(self.run)
+            write(self.run / "current-spec.md", self.candidate)
         write(self.run / "state.md", fenced(state))
+        if self.state_version == 11:
+            return
         binding = {
             "schema": "shiploop-current-spec", "version": 1, "run_id": run_id,
             "repo": str(repo), "root": str(self.run), "candidate": "current-spec.md",
@@ -235,7 +266,6 @@ class Fixture:
         }
         write(self.run / "spec/promotion.md", fenced(promotion))
 
-
 class IntentContinuityTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
@@ -245,11 +275,16 @@ class IntentContinuityTest(unittest.TestCase):
     def fixture(self, mode: str, *, follow_on: bool = False, early_promotion: bool = False,
                 single_return: bool = False, empty_follow_up: bool = False,
                 candidate: bytes | None = None,
-                final_kind: str = "fast-forward-merge") -> Fixture:
+                final_kind: str = "fast-forward-merge", state_version: int = 12,
+                capture_runtime_baseline_before_init: bool = False,
+                prepared_runtime_root: bool = False, ancestor_git_before_product: bool = False) -> Fixture:
         return Fixture(self.root / ("case-" + str(len(list(self.root.iterdir())))), mode,
                        follow_on=follow_on, early_promotion=early_promotion,
                        single_return=single_return, empty_follow_up=empty_follow_up,
-                       candidate=candidate, final_kind=final_kind)
+                       candidate=candidate, final_kind=final_kind, state_version=state_version,
+                       capture_runtime_baseline_before_init=capture_runtime_baseline_before_init,
+                       prepared_runtime_root=prepared_runtime_root,
+                       ancestor_git_before_product=ancestor_git_before_product)
 
     def run_oracle(self, fixture: Fixture, mode: str, label: str) -> tuple[int, dict[str, Any]]:
         proc = subprocess.run([sys.executable, str(ORACLE), "--mode", mode], cwd=fixture.product,
@@ -264,6 +299,28 @@ class IntentContinuityTest(unittest.TestCase):
         except json.JSONDecodeError as exc:
             self.fail(f"oracle did not emit JSON: {exc}; stdout={proc.stdout!r}; stderr={proc.stderr!r}")
         return proc.returncode, result
+
+    def run_outcome(self, fixture: Fixture, mode: str, label: str) -> tuple[int, dict[str, Any]]:
+        proc = subprocess.run([sys.executable, str(ORACLE), "--mode", mode, "--assessment", "outcome"],
+                              cwd=fixture.product, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              text=True, check=False)
+        if LOG_DIR:
+            destination = Path(LOG_DIR)
+            destination.mkdir(parents=True, exist_ok=True)
+            (destination / (label + ".stdout.json")).write_text(proc.stdout, encoding="utf-8")
+            (destination / (label + ".stderr.log")).write_text(proc.stderr, encoding="utf-8")
+        try:
+            result = json.loads(proc.stdout)
+        except json.JSONDecodeError as exc:
+            self.fail(f"outcome assessment did not emit JSON: {exc}; stdout={proc.stdout!r}; stderr={proc.stderr!r}")
+        return proc.returncode, result
+
+    def assert_outcome(self, fixture: Fixture, mode: str, label: str, status: str) -> dict[str, Any]:
+        code, result = self.run_outcome(fixture, mode, label)
+        self.assertEqual(code, 0 if status == "PASS" else 1, result)
+        self.assertEqual(result["machine_evidence_status"], status)
+        self.assertEqual(result["semantic_outcome"], "UNKNOWN")
+        return result
 
     def assert_rejected(self, fixture: Fixture, mode: str, label: str, message: str) -> None:
         code, result = self.run_oracle(fixture, mode, label)
@@ -290,6 +347,150 @@ class IntentContinuityTest(unittest.TestCase):
         self.assertEqual(finding["observed"]["receipts"], 2)
         self.assertEqual(finding["observed"]["follow_up_paths"],
                          ["docs/shiploop/notes.md", "docs/shiploop/spec.md"])
+
+    def test_outcome_accepts_v11_with_one_final_return_and_no_v12_records(self) -> None:
+        fixture = self.fixture("worktree", follow_on=True, single_return=True, state_version=11)
+        invocation_path = fixture.output / "invocation.json"
+        invocation = json.loads(invocation_path.read_text())
+        invocation["follow_on"] = None
+        invocation["seeded"] = {"start_head": fixture.start_head}
+        write(invocation_path, json.dumps(invocation))
+        self.assertFalse((fixture.run / "spec/binding.md").exists())
+        self.assertFalse((fixture.run / "current-spec.md").exists())
+        result = self.assert_outcome(fixture, "worktree", "outcome-v11-final-only", "PASS")
+        self.assertEqual(result["diagnostics"]["review_scope"]["state_version"], 11)
+        self.assertEqual(len(result["diagnostics"]["returns"]), 1)
+        comparison = result["diagnostics"]["final_aggregate_comparison"]
+        self.assertEqual(comparison["current_spec_comparison_status"], "UNKNOWN")
+        self.assertIsNone(comparison["matches_current_spec"])
+        self.assertEqual(comparison["diagnostic_diff_paths"], [])
+
+    def test_outcome_accepts_valid_v12_return_chain(self) -> None:
+        fixture = self.fixture("worktree", follow_on=True)
+        invocation_path = fixture.output / "invocation.json"
+        invocation = json.loads(invocation_path.read_text())
+        invocation["follow_on"] = None
+        invocation["base"] = {"start_head": fixture.start_head}
+        write(invocation_path, json.dumps(invocation))
+        self.assertFalse((fixture.output / "result.json").exists())
+        result = self.assert_outcome(fixture, "worktree", "outcome-v12-valid", "PASS")
+        self.assertEqual(result["diagnostics"]["prior_source"], "invocation start_head")
+        self.assertEqual(result["diagnostics"]["review_scope"]["review"]["action"], "I-spec")
+        comparison = result["diagnostics"]["final_aggregate_comparison"]
+        self.assertTrue(comparison["matches_reviewed"])
+        self.assertEqual(comparison["current_spec_comparison_status"], "MATCH")
+
+    def test_outcome_reports_later_final_status_amendment_as_diagnostic(self) -> None:
+        fixture = self.fixture("worktree", follow_on=True)
+        amended = fixture.candidate + b"\nVerification completed after the reviewed candidate.\n"
+        write(fixture.run / "current-spec.md", amended)
+        write(fixture.product / "docs/shiploop/spec.md", amended)
+        final_head = commit(fixture.product, "record truthful final status")
+        final_tree = tree(fixture.product, final_head)
+        assert fixture.receipt is not None
+        fixture.receipt["expected_source"] = {"head": final_head, "tree": final_tree, "branch": "main"}
+        write(fixture.workspace / "return-receipt.md", fenced(fixture.receipt))
+        result = self.assert_outcome(fixture, "worktree", "outcome-final-amendment", "PASS")
+        comparison = result["diagnostics"]["final_aggregate_comparison"]
+        self.assertTrue(comparison["matches_current_spec"])
+        self.assertFalse(comparison["matches_reviewed"])
+        self.assertFalse(comparison["matches_promotion"])
+        self.assertEqual(comparison["diagnostic_diff_paths"], ["docs/shiploop/spec.md"])
+        self.assertEqual(result["diagnostics"]["review_scope"]["review"]["as_of"],
+                         "accepted current-spec bytes at the reviewed Improve")
+
+    def test_outcome_rejects_foreign_state_repo_binding(self) -> None:
+        fixture = self.fixture("worktree", follow_on=True)
+        state_path = fixture.run / "state.md"
+        state = json.loads(state_path.read_text().split("```shiploop-state\n", 1)[1].split("\n```", 1)[0])
+        state["repo"] = str(fixture.product)
+        write(state_path, fenced(state))
+        self.assert_outcome(fixture, "worktree", "outcome-foreign-state-repo", "FAIL")
+
+    def test_outcome_rejects_declared_false_v12_binding(self) -> None:
+        fixture = self.fixture("worktree", follow_on=True)
+        path = fixture.run / "spec/binding.md"
+        binding = json.loads(path.read_text().split("```shiploop-state\n", 1)[1].split("\n```", 1)[0])
+        binding["repo"] = str(fixture.product)
+        write(path, fenced(binding))
+        self.assert_outcome(fixture, "worktree", "outcome-false-v12-binding", "FAIL")
+
+    def test_outcome_rejects_early_return_that_changes_prior_aggregate(self) -> None:
+        fixture = self.fixture("worktree", follow_on=True, early_promotion=True)
+        self.assert_outcome(fixture, "worktree", "outcome-early-prior-change", "FAIL")
+
+    def test_outcome_rejects_final_receipt_tree_not_delivered_tree(self) -> None:
+        fixture = self.fixture("worktree", follow_on=True)
+        assert fixture.receipt is not None
+        fixture.receipt["expected_source"]["tree"] = fixture.first_return_tree
+        write(fixture.workspace / "return-receipt.md", fenced(fixture.receipt))
+        self.assert_outcome(fixture, "worktree", "outcome-final-tree-mismatch", "FAIL")
+
+    def test_outcome_unknown_when_worktree_return_chronology_is_absent(self) -> None:
+        fixture = self.fixture("worktree", follow_on=True)
+        (fixture.workspace / "return-receipt.md").unlink()
+        self.assert_outcome(fixture, "worktree", "outcome-missing-chronology", "UNKNOWN")
+
+    def test_outcome_reports_extra_direct_workspace_claims_without_failing(self) -> None:
+        fixture = self.fixture("direct", follow_on=True)
+        write(fixture.output / "workspace.md", fenced({"status": "returned"}))
+        result = self.assert_outcome(fixture, "direct", "outcome-direct-extra-workspace", "PASS")
+        extra = result["diagnostics"]["extra_direct_records"]
+        workspace = next(record for record in extra if record["path"] == "workspace.md")
+        self.assertTrue(workspace["present"])
+        self.assertEqual(workspace["claims"], {"status": "returned"})
+
+    def test_outcome_accepts_real_prelaunch_baseline_with_empty_prepared_root(self) -> None:
+        fixture = self.fixture("direct", capture_runtime_baseline_before_init=True,
+                               prepared_runtime_root=True)
+        baseline = fixture.improve_runtime_baseline
+        self.assertIsInstance(baseline, dict)
+        self.assertFalse(baseline["git_observed"])
+        self.assertEqual(baseline["git_mode"], "non-git")
+        self.assertFalse(baseline["root_absent"])
+        invocation_path = fixture.output / "invocation.json"
+        invocation = json.loads(invocation_path.read_text())
+        invocation["improve_runtime_baseline"] = baseline
+        write(invocation_path, json.dumps(invocation))
+        result = self.assert_outcome(fixture, "direct", "outcome-direct-prepared-root", "PASS")
+        observed = result["diagnostics"]["fresh_workspace_baseline"]
+        self.assertEqual(observed["git_mode"], "non-git")
+        self.assertFalse(observed["git_observed"])
+        self.assertFalse(observed["runtime_root_absent_at_prelaunch"])
+        self.assertEqual(observed["runtime_root_current"],
+                         {"present": True, "kind": "directory", "entries": []})
+
+    def test_outcome_accepts_direct_follow_on_without_workspace_wrappers(self) -> None:
+        fixture = self.fixture("direct", follow_on=True)
+        result = self.assert_outcome(fixture, "direct", "outcome-direct-follow-on", "PASS")
+        self.assertEqual(result["diagnostics"]["prior_source"], "invocation start_head")
+        self.assertEqual(result["diagnostics"]["returns"][0]["diff_paths"], ["docs/shiploop/spec.md"])
+
+    def test_outcome_rejects_direct_aggregate_not_committed_at_head(self) -> None:
+        fixture = self.fixture("direct", follow_on=True)
+        write(fixture.product / "docs/shiploop/spec.md", fixture.candidate + b"\nUncommitted change.\n")
+        result = self.assert_outcome(fixture, "direct", "outcome-direct-uncommitted-aggregate", "FAIL")
+        self.assertEqual(result["findings"][-1]["check"], "direct-delivery")
+
+    def test_outcome_reports_tracked_paths_without_fabricating_fresh_prior_diff(self) -> None:
+        fixture = self.fixture("direct", capture_runtime_baseline_before_init=True,
+                               ancestor_git_before_product=True)
+        baseline = fixture.improve_runtime_baseline
+        self.assertIsInstance(baseline, dict)
+        self.assertTrue(baseline["git_observed"])
+        self.assertEqual(baseline["git_mode"], "git")
+        self.assertEqual(baseline["git_toplevel"], str(fixture.output))
+        self.assertIsNotNone(baseline["git_head"])
+        invocation_path = fixture.output / "invocation.json"
+        invocation = json.loads(invocation_path.read_text())
+        invocation["improve_runtime_baseline"] = baseline
+        write(invocation_path, json.dumps(invocation))
+
+        result = self.assert_outcome(fixture, "direct", "outcome-direct-fresh-paths", "PASS")
+        direct = result["diagnostics"]["returns"][0]
+        self.assertIn("docs/shiploop/spec.md", direct["created_tracked_paths"])
+        self.assertNotIn("diff_paths", direct)
+        self.assertTrue(result["diagnostics"]["fresh_workspace_baseline"]["ancestor_head_is_not_selected_baseline"])
 
     def test_single_no_change_return_matches_prior_without_follow_up(self) -> None:
         candidate = b"# Earlier spec\n\nR-1: preserve the old result.\n"

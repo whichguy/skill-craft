@@ -15,10 +15,23 @@ optimized for a particular product, game, stack or host.
 The E2E loop exists to verify **that engine and how it behaves**, not the
 product a run happens to build. A case (a game, a hello-world, a follow-on
 feature) is a probe: a small, repeatable request whose run exposes where the
-engine's design holds or breaks. A run that ships a working product but
-violates a clause below is a ShipLoop defect. A product defect matters only as
-evidence about ShipLoop. What a probe reveals is fixed in the engine
+engine's design holds or breaks. A working product does not excuse a demonstrated
+failure to preserve the required intent, behavior, truthful knowledge or effective
+incremental workflow below. A product defect matters only as evidence about
+ShipLoop. What a probe reveals is fixed in the engine
 generically; nothing in the engine may know which probe exposed it.
+
+Every blocking criterion must identify the required user outcome or material
+experiment-validity risk it protects. Harmless differences in bookkeeping,
+formatting, timing or hashes are diagnostic; accept equivalent trustworthy
+evidence. Distinguish a demonstrated ShipLoop defect from an invalid or inconclusive
+experiment. In particular, an apparatus UNKNOWN cannot supply a quality loss for
+the control or a claimed quality gain for the candidate, even when a raw check
+records a false Boolean. Evaluator repairs are not ShipLoop quality gains. Do not
+add stages, records or retries solely for process conformity. Measure delivered
+functionality, preserved intent and behavior, truthful knowledge and effective
+incremental development; record costs separately. This clarification governs
+prospective comparisons and does not rewrite frozen criteria, grades or evidence.
 
 Each iteration: run a case on exactly what the marketplace publishes, measure,
 review against this spec, fix ShipLoop generically, release and refresh the

@@ -31,6 +31,16 @@ prompts/templates, their handoffs, stages and gates. A working application alone
 does not establish a good workflow. Harness improvements are evaluator work;
 report their benefit separately from any measured ShipLoop gain.
 
+Every blocking finding must name the required user outcome or material comparison
+risk it protects. Harmless bookkeeping, format, timing or hash differences are
+diagnostics; accept equivalent trustworthy evidence. Distinguish a demonstrated
+ShipLoop failure from experiment-validity UNKNOWN. An invalid or inconclusive
+control cannot establish a candidate quality gain, and making evaluator checks
+pass does not establish a ShipLoop improvement. Judge delivered functionality,
+preserved intent and behavior, truthful knowledge and effective incremental work;
+record costs separately. Do not add stages, records or retries solely for process
+conformity, or reinterpret frozen runs with a later criterion.
+
 Every live case has a mandatory publication/freshness preflight. It compares
 each selected ShipLoop and Improve package with the released package on
 authoritative source `main` (its copy under `plugins/skill-craft`, the one plugin that

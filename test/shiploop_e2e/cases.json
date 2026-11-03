@@ -2022,7 +2022,7 @@
       "node --test",
       "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const b=process.env.BASE;(async()=>{const a=await fetch(b+'/users/summary?name=e&team=Engineering&page=2&size=1').then(r=>r.json());const z=await fetch(b+'/users/summary?page=bad&size=0').then(r=>r.json());const ok=a.total===2&&a.by_team.Engineering===2&&z.total===3&&z.by_team.Support===1;process.exit(ok?0:3);})().catch(()=>process.exit(4))\"",
       "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const b=process.env.BASE;(async()=>{const a=await fetch(b+'/users?team=engineering&include=team').then(r=>r.json());const s=await fetch(b+'/users/summary?team=ENGINEERING').then(r=>r.json());const exact=await fetch(b+'/users?team=Eng').then(r=>r.json());const ok=a.length===2&&a[0].team==='Engineering'&&s.total===2&&s.by_team.Engineering===2&&exact.length===0;process.exit(ok?0:3);})().catch(()=>process.exit(4))\"",
-      "python3 \"$E2E_CHECKS/intent_continuity.py\" --mode worktree"
+      "python3 \"$E2E_CHECKS/intent_continuity.py\" --mode worktree --assessment outcome"
     ],
     "checks_source": "The request combines the independently calibrated summary addition and explicit team-case rule replacement. The final check observes the owner-approved ShipLoop current/prior intent lifecycle through exact snapshot, accepted review, terminal promotion and workspace-return receipts; semantic preservation is reviewed separately.",
     "retention": [
@@ -2190,7 +2190,7 @@
       "python3 \"$E2E_CHECKS/csv_report.py\" invalid",
       "python3 \"$E2E_CHECKS/csv_report.py\" missing",
       "python3 \"$E2E_CHECKS/csv_report.py\" empty",
-      "python3 \"$E2E_CHECKS/intent_continuity.py\" --mode direct"
+      "python3 \"$E2E_CHECKS/intent_continuity.py\" --mode direct --assessment outcome"
     ],
     "checks_source": "the request: each check tests a sentence of the prompt; the final check independently verifies the owner-approved direct current/prior spec lifecycle and exact final promotion, without a fabricated workspace return. Deferred scope and status meaning require semantic review."
   }
