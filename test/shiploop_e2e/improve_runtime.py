@@ -120,10 +120,22 @@ def _workspace(work: Path, baseline: object) -> Path:
     if stat.S_ISLNK(original.st_mode) or not stat.S_ISDIR(original.st_mode):
         raise AttributionError("selected workspace is linked or not a directory")
     mode = baseline.get("git_mode")
-    git_identity_ok = ((mode == "git" and baseline.get("git_observed") is True
-                        and baseline.get("git_toplevel") == str(root))
+    git_top = baseline.get("git_toplevel")
+    git_identity_ok = (mode == "git" and baseline.get("git_observed") is True
+                       and git_top == str(root))
+    if mode == "git" and baseline.get("git_observed") is True and isinstance(git_top, str):
+        try:
+            # Accept a prelaunch parent only when its recorded path is canonical and truly contains this workspace.
+            observed_top = Path(git_top)
+            canonical_top = observed_top.resolve(strict=True)
+            git_identity_ok = git_identity_ok or (
+                observed_top.is_absolute() and str(canonical_top) == git_top
+                and canonical_top != root and root.is_relative_to(canonical_top))
+        except (OSError, RuntimeError, ValueError):
+            pass
+    git_identity_ok = (git_identity_ok
                        or (mode == "non-git" and baseline.get("git_observed") is False
-                           and baseline.get("git_toplevel") is None and baseline.get("git_head") is None))
+                           and git_top is None and baseline.get("git_head") is None))
     if (baseline.get("schema") != _SCHEMA or baseline.get("root") != ROOT_NAME
             or baseline.get("root_absent") is not True or not git_identity_ok
             or type(baseline.get("observed_at_ns")) is not int or baseline["observed_at_ns"] <= 0
@@ -157,7 +169,8 @@ def _git_is_clean_for_runtime(work: Path, baseline: dict, contaminated: bool) ->
     if current.returncode:
         raise AttributionError("current HEAD is unavailable")
     top = _git(work, "rev-parse", "--show-toplevel")
-    if top.returncode or Path(top.stdout.decode("utf-8", "replace").strip()).resolve() != work:
+    top_path = top.stdout.decode("utf-8", "replace").strip()
+    if top.returncode or top_path != str(work) or Path(top_path).resolve(strict=True) != work:
         raise AttributionError("selected workspace is no longer the Git root")
     tree = _git(work, "ls-tree", "-r", "--name-only", "-z", "HEAD", "--", ROOT_NAME)
     history = _git(work, "log", "--all", "--format=", "--name-only", "-z", "--", ROOT_NAME)
@@ -166,7 +179,8 @@ def _git_is_clean_for_runtime(work: Path, baseline: dict, contaminated: bool) ->
     start = baseline.get("git_head")
     if start is not None and (not isinstance(start, str) or not _HASH.fullmatch(start)):
         raise AttributionError("prelaunch Git identity is malformed")
-    if start:
+    # An enclosing repository's HEAD may be unrelated to this selected repository's object database.
+    if start and baseline.get("git_toplevel") == str(work):
         prior = _git(work, "ls-tree", "-r", "--name-only", "-z", start, "--", ROOT_NAME)
         if prior.returncode or prior.stdout:
             raise AttributionError("prelaunch Git tree already contains Improve runtime paths")

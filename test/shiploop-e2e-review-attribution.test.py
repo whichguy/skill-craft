@@ -44,9 +44,14 @@ ACTUAL = _load_actual_improve_cli_tests()
 CASE = "node-seeded-early-validation"
 
 
+def _git_at(path, environment, *args):
+    return subprocess.run(["git", "-C", str(path), *args], check=True, capture_output=True, text=True,
+                          env=environment, timeout=30).stdout
+
+
 class ImproveReviewAttributionTests(unittest.TestCase):
     def runtime_sample(self, *, bound="naive", stage="document", producer_fix=False, loose_test=False,
-                       layout="standard", e2e_workspace=False):
+                       layout="standard", e2e_workspace=False, ancestor_git=None):
         """Use the real navigator binding and improve-pass CLI to create linked snapshot evidence."""
         helper = ACTUAL.ImproveCommitContractTests("runTest")
         helper.setUp()
@@ -56,7 +61,18 @@ class ImproveReviewAttributionTests(unittest.TestCase):
             helper.base = helper.base / "e2e-output"
             helper.base.mkdir()
             helper.repo = helper.base / "work"
+            if ancestor_git is not None:
+                if ancestor_git not in ("null-head", "committed"):
+                    raise ValueError(ancestor_git)
+                _git_at(helper.base, helper.environment, "init", "-q")
+                if ancestor_git == "committed":
+                    (helper.base / "ancestor-marker.txt").write_text("ancestor repository\n", encoding="utf-8")
+                    _git_at(helper.base, helper.environment, "add", "--", "ancestor-marker.txt")
+                    _git_at(helper.base, helper.environment, "-c", "user.name=T", "-c",
+                            "user.email=t@example.invalid", "commit", "-qm", "ancestor")
         else:
+            if ancestor_git is not None:
+                raise ValueError("ancestor Git fixtures require an E2E workspace")
             shutil.rmtree(helper.repo)
             helper.repo = helper.base / "worktree"
         helper.repo.mkdir()
@@ -135,6 +151,78 @@ class ImproveReviewAttributionTests(unittest.TestCase):
             "delegation": "inline",
         }), encoding="utf-8")
         return helper, sample, seed_head
+
+    def _grade_only(self, helper, seed_head):
+        out, work = helper.base, helper.repo
+        plugin = out / "build" / "plugins" / "skill-craft"
+        (plugin / ".claude-plugin").mkdir(parents=True)
+        (plugin / ".claude-plugin" / "plugin.json").write_text("{}", encoding="utf-8")
+        cli = plugin / "skills" / "shiploop" / "scripts" / "shiploop"
+        cli.parent.mkdir(parents=True)
+        cli.write_text("", encoding="utf-8")
+        (out / "prompt.txt").write_text("fixture\n", encoding="utf-8")
+        (out / "events.jsonl").write_text("", encoding="utf-8")
+        (out / "timeline.jsonl").write_text("", encoding="utf-8")
+        (out / "invocation.json").write_text(json.dumps({
+            "case": "hello", "host": "claude", "backend": "anthropic", "model": "fixture", "effort": None,
+            "checks": ["true"], "plugin_dir": str(plugin), "plugin": None, "versions": {}, "argv": [],
+            "cwd": str(work), "base": {"start_head": seed_head}, "follow_on": None, "seeded": None,
+            "planning_review": "none", "improve_runtime_baseline": helper.improve_runtime_baseline,
+        }, indent=2) + "\n", encoding="utf-8")
+
+        def grade():
+            with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(
+                    run, "review_export", return_value="fixture review export"):
+                run.main(["--resume-run", str(out), "--grade-only", "--plugin-dir", str(plugin),
+                          "--baseline", str(out / "baselines.jsonl")])
+            return json.loads((out / "result.json").read_text(encoding="utf-8"))
+
+        return grade
+
+    def _ancestor_git_grade(self, ancestor_git):
+        helper, _sample, seed_head = self.runtime_sample(
+            e2e_workspace=True, ancestor_git=ancestor_git)
+        out, work = helper.base, helper.repo
+        baseline = helper.improve_runtime_baseline
+        self.assertTrue(baseline["root_absent"])
+        self.assertEqual(baseline["git_mode"], "git")
+        self.assertIs(baseline["git_observed"], True)
+        self.assertEqual(baseline["git_toplevel"], str(out.resolve()))
+        self.assertNotEqual(baseline["git_toplevel"], str(work.resolve()))
+        self.assertEqual(baseline["workspace"], str(work.resolve()))
+        captured_identity = (baseline["workspace_dev"], baseline["workspace_ino"])
+        if ancestor_git == "null-head":
+            self.assertIsNone(baseline["git_head"])
+        else:
+            self.assertRegex(baseline["git_head"], r"^[0-9a-f]{40,64}$")
+
+        self.write_review_pass(helper, commit=False)
+        helper.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "add", "--",
+                   "src/basket.js", "test/basket.test.js")
+        helper.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "commit", "-qm", "product")
+        if baseline["git_head"] is not None:
+            ancestor_object = subprocess.run(
+                ["git", "-C", str(work), "cat-file", "-e", baseline["git_head"] + "^{commit}"],
+                capture_output=True, env=helper.environment, timeout=30)
+            self.assertNotEqual(ancestor_object.returncode, 0,
+                                "the committed ancestor must not belong to the selected repository history")
+
+        positive = self._grade_only(helper, seed_head)()
+        self.assertTrue(positive["committed"]["pass"], positive["committed"])
+        knowledge = positive["shiploop"]["knowledge"]
+        runtime_paths = {path for path in knowledge["uncommitted"] if path.startswith(".shiploop-improve/")}
+        self.assertTrue(runtime_paths, "the real direct-child receipts remain visible in raw status")
+        self.assertEqual(knowledge["runtime_uncommitted"], sorted(runtime_paths))
+        self.assertEqual(knowledge["product_uncommitted"], [])
+        status = helper.git("status", "--porcelain", "--untracked-files=all").splitlines()
+        self.assertEqual(knowledge["git_status"], status)
+        self.assertEqual(knowledge["untracked_files"], sum(line.startswith("?? ") for line in status))
+        state = run.metrics.engine_state(Path(helper.run))
+        self.assertEqual(state.get("version"), 12)
+        self.assertTrue(state.get("spec_root"), "the actual CLI fixture must bind a current specification")
+        current_identity = work.stat()
+        self.assertEqual((current_identity.st_dev, current_identity.st_ino), captured_identity)
+        return helper, state, baseline, status
 
     def write_review_pass(self, helper, *, edit="fixed", add_test=True, commit=False, description=None,
                           intermediate_test_failure=False):
@@ -407,6 +495,92 @@ class ImproveReviewAttributionTests(unittest.TestCase):
         self.assertIsNone(ambiguous["value"], ambiguous)
         self.assertEqual(ambiguous["review_repair"]["status"], "unknown")
         self.assertIn("ambiguous", ambiguous["review_repair"]["why"])
+
+    def test_main_committed_verdict_accepts_null_head_ancestor_git(self):
+        self._ancestor_git_grade("null-head")
+
+    def test_main_committed_verdict_accepts_committed_ancestor_git(self):
+        helper, state, baseline, status = self._ancestor_git_grade("committed")
+        out, work = helper.base, helper.repo
+
+        def rejected(proof=baseline, selected=state, selected_work=work, lines=status):
+            owned, reason = run.improve_runtime.owned_untracked_paths(
+                selected_work, Path(helper.run), selected, proof, lines)
+            self.assertEqual(owned, set())
+            self.assertTrue(reason)
+
+        with self.subTest(observer_negative="missing prelaunch root proof"):
+            missing_root = dict(baseline)
+            missing_root.pop("root_absent")
+            rejected(proof=missing_root)
+
+        foreign = out / "foreign-git-root"
+        foreign.mkdir()
+        _git_at(foreign, helper.environment, "init", "-q")
+        with self.subTest(observer_negative="unrelated Git ancestry"):
+            rejected(proof={**baseline, "git_toplevel": str(foreign.resolve())})
+
+        relative_top = str(Path(baseline["git_toplevel"]).relative_to(Path(baseline["git_toplevel"]).anchor))
+        with self.subTest(observer_negative="relative prelaunch Git root"):
+            rejected(proof={**baseline, "git_toplevel": relative_top})
+
+        ancestor_alias = out / "ancestor-root-alias"
+        ancestor_alias.symlink_to(out, target_is_directory=True)
+        try:
+            with self.subTest(observer_negative="symlinked noncanonical ancestor path"):
+                rejected(proof={**baseline, "git_toplevel": str(ancestor_alias)})
+        finally:
+            ancestor_alias.unlink()
+
+        with self.subTest(observer_negative="noncanonical dot ancestor path"):
+            rejected(proof={**baseline, "git_toplevel": str(out) + "/."})
+
+        prefix_sibling = Path(str(work) + "-sibling")
+        prefix_sibling.mkdir()
+        _git_at(prefix_sibling, helper.environment, "init", "-q")
+        with self.subTest(observer_negative="canonical Git root with a matching text prefix"):
+            rejected(proof={**baseline, "git_toplevel": str(prefix_sibling.resolve())})
+
+        with self.subTest(observer_negative="malformed non-null prelaunch HEAD"):
+            rejected(proof={**baseline, "git_head": "not-a-git-head"})
+
+        selected_git = work / ".git"
+        saved_git = out / "saved-selected-git"
+        selected_git.rename(saved_git)
+        try:
+            with self.subTest(observer_negative="ancestor Git without an initialized selected root"):
+                with self.assertRaises(run.improve_runtime.AttributionError):
+                    run.improve_runtime._git_is_clean_for_runtime(work, baseline, False)
+        finally:
+            saved_git.rename(selected_git)
+
+        saved_workspace = out / "linked-workspace-target"
+        work.rename(saved_workspace)
+        try:
+            work.symlink_to(saved_workspace, target_is_directory=True)
+            linked_status = helper.git("status", "--porcelain", "--untracked-files=all").splitlines()
+            with self.subTest(observer_negative="linked selected workspace"):
+                rejected(selected_work=work, lines=linked_status)
+        finally:
+            work.unlink(missing_ok=True)
+            saved_workspace.rename(work)
+
+        saved_workspace = out / "replaced-workspace-target"
+        work.rename(saved_workspace)
+        try:
+            work.mkdir()
+            _git_at(work, helper.environment, "init", "-q")
+            shutil.copytree(saved_workspace / ".shiploop-improve", work / ".shiploop-improve")
+            replaced_status = helper.git("status", "--porcelain", "--untracked-files=all").splitlines()
+            replaced_info = work.stat()
+            self.assertNotEqual((replaced_info.st_dev, replaced_info.st_ino),
+                                (baseline["workspace_dev"], baseline["workspace_ino"]))
+            with self.subTest(observer_negative="replaced selected workspace"):
+                rejected(selected_work=work, lines=replaced_status)
+        finally:
+            if work.exists():
+                shutil.rmtree(work)
+            saved_workspace.rename(work)
 
     def test_main_committed_verdict_excludes_only_proven_direct_improve_runtime(self):
         helper, _sample, seed_head = self.runtime_sample(e2e_workspace=True)
