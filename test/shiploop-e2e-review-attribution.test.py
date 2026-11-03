@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import importlib.util
 import io
 import json
@@ -453,6 +454,29 @@ class ImproveReviewAttributionTests(unittest.TestCase):
         runtime_root = work / ".shiploop-improve"
         child = next(runtime_root.iterdir())
         state = run.metrics.engine_state(Path(helper.run))
+        self.assertEqual(state.get("version"), 12)
+        self.assertTrue(state.get("spec_root"), "the actual CLI fixture must bind a current specification")
+        for pass_path in sorted((child / "reviews").glob("pass-*.json")):
+            pass_record = json.loads(pass_path.read_text(encoding="utf-8"))
+            snapshot_path = pass_path.parent / f"current-spec-{pass_record['pass']}.md"
+            snapshot_digest = hashlib.sha256(snapshot_path.read_bytes()).hexdigest()
+            self.assertEqual(pass_record.get("current_spec"), snapshot_digest)
+            self.assertIn(snapshot_path.relative_to(work).as_posix(), knowledge["runtime_uncommitted"])
+
+        snapshot_path = next((child / "reviews").glob("current-spec-*.md"))
+        snapshot_bytes = snapshot_path.read_bytes()
+        try:
+            snapshot_path.write_bytes(snapshot_bytes + b"\n# digest mismatch\n")
+            tampered = grade()
+            self.assertFalse(tampered["committed"]["pass"], tampered["committed"])
+            tampered_knowledge = tampered["shiploop"]["knowledge"]
+            snapshot_name = snapshot_path.relative_to(work).as_posix()
+            self.assertNotIn(snapshot_name, tampered_knowledge["runtime_uncommitted"])
+            self.assertIn(snapshot_name, tampered_knowledge["product_uncommitted"])
+            self.assertTrue(tampered_knowledge["runtime_uncommitted_reason"])
+        finally:
+            snapshot_path.write_bytes(snapshot_bytes)
+
         action = next(action for action, record in state["improve_results"].items()
                       if record.get("runtime_phase") == "complete")
         marker = "ShipLoop standalone Improve binding: " + state["improve_results"][action]["binding_id"]

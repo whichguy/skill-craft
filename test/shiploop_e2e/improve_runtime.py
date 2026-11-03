@@ -290,6 +290,16 @@ def _child_files(work: Path, child: Path, binding: dict) -> set[str]:
         _json(report_path)
         _read(review_path)
         allowed.update((path, report_path, review_path))
+        current_spec = facts.get("current_spec")
+        current_spec_path = reviews / f"current-spec-{number}.md"
+        if current_spec is not None:
+            if not isinstance(current_spec, str) or not re.fullmatch(r"[0-9a-f]{64}", current_spec):
+                raise AttributionError(f"Improve pass {number} current-spec digest is malformed")
+            if hashlib.sha256(_read(current_spec_path)).hexdigest() != current_spec:
+                raise AttributionError(f"Improve pass {number} current-spec snapshot does not match its digest")
+            allowed.add(current_spec_path)
+        elif current_spec_path.exists() or current_spec_path.is_symlink():
+            raise AttributionError(f"Improve pass {number} current-spec snapshot has no bound digest")
         result_path = reviews / f"result-{number}.json"
         if result_path.exists() or result_path.is_symlink():
             _read(result_path)
