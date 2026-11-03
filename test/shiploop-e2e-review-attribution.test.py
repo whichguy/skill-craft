@@ -2,12 +2,15 @@
 """Causal E5/SG2 review attribution against Improve bind and pass snapshots."""
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -22,6 +25,7 @@ import common  # noqa: E402
 import e5_regression  # noqa: E402
 import experiment  # noqa: E402
 import sg2_recall  # noqa: E402
+import run  # noqa: E402
 
 
 def _load_actual_improve_cli_tests():
@@ -41,15 +45,22 @@ CASE = "node-seeded-early-validation"
 
 class ImproveReviewAttributionTests(unittest.TestCase):
     def runtime_sample(self, *, bound="naive", stage="document", producer_fix=False, loose_test=False,
-                       layout="standard"):
+                       layout="standard", e2e_workspace=False):
         """Use the real navigator binding and improve-pass CLI to create linked snapshot evidence."""
         helper = ACTUAL.ImproveCommitContractTests("runTest")
         helper.setUp()
         self.addCleanup(helper.tearDown)
 
-        shutil.rmtree(helper.repo)
-        helper.repo = helper.base / "worktree"
+        if e2e_workspace:
+            helper.base = helper.base / "e2e-output"
+            helper.base.mkdir()
+            helper.repo = helper.base / "work"
+        else:
+            shutil.rmtree(helper.repo)
+            helper.repo = helper.base / "worktree"
         helper.repo.mkdir()
+        helper.improve_runtime_baseline = (run.improve_runtime.capture_baseline(helper.repo)
+                                           if e2e_workspace else None)
         case = common.case(CASE)
         shutil.copytree(common.FIXTURES / case["fixture"], helper.repo, dirs_exist_ok=True)
         if bound in ("naive", "fixed"):
@@ -395,6 +406,253 @@ class ImproveReviewAttributionTests(unittest.TestCase):
         self.assertIsNone(ambiguous["value"], ambiguous)
         self.assertEqual(ambiguous["review_repair"]["status"], "unknown")
         self.assertIn("ambiguous", ambiguous["review_repair"]["why"])
+
+    def test_main_committed_verdict_excludes_only_proven_direct_improve_runtime(self):
+        helper, _sample, seed_head = self.runtime_sample(e2e_workspace=True)
+        self.assertTrue(helper.improve_runtime_baseline["root_absent"])
+        self.assertEqual(helper.improve_runtime_baseline["git_mode"], "non-git")
+        self.write_review_pass(helper, commit=False)
+        helper.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "add", "--",
+                   "src/basket.js", "test/basket.test.js")
+        helper.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "commit", "-qm", "product")
+        out, work = helper.base, helper.repo
+        plugin = out / "build" / "plugins" / "skill-craft"
+        (plugin / ".claude-plugin").mkdir(parents=True)
+        (plugin / ".claude-plugin" / "plugin.json").write_text("{}", encoding="utf-8")
+        cli = plugin / "skills" / "shiploop" / "scripts" / "shiploop"
+        cli.parent.mkdir(parents=True)
+        cli.write_text("", encoding="utf-8")
+        (out / "prompt.txt").write_text("fixture\n", encoding="utf-8")
+        (out / "events.jsonl").write_text("", encoding="utf-8")
+        (out / "timeline.jsonl").write_text("", encoding="utf-8")
+        (out / "invocation.json").write_text(json.dumps({
+            "case": "hello", "host": "claude", "backend": "anthropic", "model": "fixture", "effort": None,
+            "checks": ["true"], "plugin_dir": str(plugin), "plugin": None, "versions": {}, "argv": [],
+            "cwd": str(work), "base": {"start_head": seed_head}, "follow_on": None, "seeded": None,
+            "planning_review": "none", "improve_runtime_baseline": helper.improve_runtime_baseline,
+        }, indent=2) + "\n", encoding="utf-8")
+
+        def grade():
+            with contextlib.redirect_stdout(io.StringIO()), mock.patch.object(
+                    run, "review_export", return_value="fixture review export"):
+                run.main(["--resume-run", str(out), "--grade-only", "--plugin-dir", str(plugin),
+                          "--baseline", str(out / "baselines.jsonl")])
+            return json.loads((out / "result.json").read_text(encoding="utf-8"))
+
+        positive = grade()
+        self.assertTrue(positive["committed"]["pass"], positive["committed"])
+        knowledge = positive["shiploop"]["knowledge"]
+        runtime_paths = {path for path in knowledge["uncommitted"] if path.startswith(".shiploop-improve/")}
+        self.assertTrue(runtime_paths, "the real direct-child receipts remain visible in raw status")
+        self.assertEqual(knowledge["runtime_uncommitted"], sorted(runtime_paths))
+        self.assertEqual(knowledge["product_uncommitted"], [])
+        status = helper.git("status", "--porcelain", "--untracked-files=all").splitlines()
+        self.assertEqual(knowledge["git_status"], status)
+        self.assertEqual(knowledge["untracked_files"], sum(line.startswith("?? ") for line in status))
+
+        runtime_root = work / ".shiploop-improve"
+        child = next(runtime_root.iterdir())
+        state = run.metrics.engine_state(Path(helper.run))
+        action = next(action for action, record in state["improve_results"].items()
+                      if record.get("runtime_phase") == "complete")
+        marker = "ShipLoop standalone Improve binding: " + state["improve_results"][action]["binding_id"]
+        baseline = helper.improve_runtime_baseline
+
+        def ownership(proof=baseline, selected=state):
+            porcelain = helper.git("status", "--porcelain", "--untracked-files=all").splitlines()
+            return run.improve_runtime.owned_untracked_paths(work, Path(helper.run), selected, proof, porcelain)
+
+        def rejected(proof=baseline, selected=state):
+            owned, reason = ownership(proof, selected)
+            self.assertEqual(owned, set())
+            self.assertTrue(reason)
+
+        def state_copy():
+            return json.loads(json.dumps(state))
+
+        with self.subTest(observer_negative="preexisting root"):
+            observed_existing = run.improve_runtime.capture_baseline(work)
+            self.assertIs(observed_existing["root_absent"], False)
+            rejected(proof=observed_existing)
+        with self.subTest(observer_negative="malformed baseline"):
+            rejected(proof={**baseline, "observed_at_ns": "unknown"})
+        with self.subTest(observer_negative="foreign selected workspace"):
+            foreign = out / "foreign-workspace"
+            foreign.mkdir()
+            selected = state_copy()
+            selected["repo"] = str(foreign)
+            rejected(selected=selected)
+            foreign.rmdir()
+        with self.subTest(observer_negative="foreign imported workspace"):
+            foreign = out / "foreign-workspace"
+            foreign.mkdir()
+            selected = state_copy()
+            selected["improve_results"][action]["workspace"] = str(foreign)
+            rejected(selected=selected)
+            foreign.rmdir()
+        with self.subTest(observer_negative="foreign run binding"):
+            selected = state_copy()
+            selected["improve_results"][action]["binding_id"] = "foreign-run/foreign-action"
+            rejected(selected=selected)
+        with self.subTest(observer_negative="malformed imported result"):
+            selected = state_copy()
+            selected["improve_results"][action]["runtime_phase"] = "stopped"
+            rejected(selected=selected)
+
+        lookalike = runtime_root / "lookalike-child"
+        shutil.copytree(child, lookalike)
+        try:
+            with self.subTest(observer_negative="unbound lookalike child"):
+                rejected()
+        finally:
+            shutil.rmtree(lookalike)
+
+        start_path = child / "start.json"
+        start_bytes = start_path.read_bytes()
+        try:
+            start_data = json.loads(start_bytes)
+            start_data["context"]["request"] += "\n" + marker
+            start_path.write_text(json.dumps(start_data), encoding="utf-8")
+            with self.subTest(observer_negative="ambiguous binding marker"):
+                rejected()
+        finally:
+            start_path.write_bytes(start_bytes)
+
+        packet_path = child / "packet.json"
+        packet_bytes = packet_path.read_bytes()
+        try:
+            packet_path.write_bytes(b"{malformed terminal packet")
+            with self.subTest(observer_negative="malformed terminal packet"):
+                rejected()
+        finally:
+            packet_path.write_bytes(packet_bytes)
+
+        pass_path = next((child / "reviews").glob("pass-*.json"))
+        pass_bytes = pass_path.read_bytes()
+        try:
+            pass_path.write_bytes(b"{malformed pass record")
+            with self.subTest(observer_negative="malformed pass record"):
+                rejected()
+        finally:
+            pass_path.write_bytes(pass_bytes)
+
+        symlink_target = out / "outside-runtime-target.txt"
+        symlink_file = child / "opening.md"
+        original_opening = symlink_file.read_bytes()
+        symlink_target.write_bytes(original_opening)
+        try:
+            symlink_file.unlink()
+            symlink_file.symlink_to(symlink_target)
+            with self.subTest(observer_negative="symlink at a recognized runtime filename"):
+                rejected()
+        finally:
+            symlink_file.unlink(missing_ok=True)
+            symlink_file.write_bytes(original_opening)
+            symlink_target.unlink(missing_ok=True)
+
+        saved_root = out / "saved-runtime-root"
+        runtime_root.rename(saved_root)
+        try:
+            runtime_root.symlink_to(saved_root, target_is_directory=True)
+            with self.subTest(observer_negative="symlink runtime root"):
+                rejected()
+        finally:
+            runtime_root.unlink(missing_ok=True)
+            saved_root.rename(runtime_root)
+
+        with self.subTest(observer_negative="runtime path added then removed in reachable history"):
+            head = helper.git("rev-parse", "HEAD").strip()
+            tracked_path = (child / "start.json").relative_to(work).as_posix()
+            branch = "observer-calibration-history"
+            with tempfile.TemporaryDirectory(dir=out, prefix="observer-index-") as temporary:
+                index = Path(temporary) / "index"
+                env = {**helper.environment, "GIT_INDEX_FILE": str(index)}
+
+                def alt_git(*args):
+                    return subprocess.run(["git", "-C", str(work), *args], env=env, check=True,
+                                          capture_output=True, text=True).stdout.strip()
+
+                alt_git("read-tree", head)
+                alt_git("add", "--", tracked_path)
+                added_tree = alt_git("write-tree")
+                added_commit = alt_git("-c", "user.name=T", "-c", "user.email=t@example.invalid",
+                                       "commit-tree", added_tree, "-p", head, "-m", "temporary runtime add")
+                alt_git("read-tree", added_commit)
+                alt_git("rm", "--cached", "--", tracked_path)
+                removed_tree = alt_git("write-tree")
+                removed_commit = alt_git("-c", "user.name=T", "-c", "user.email=t@example.invalid",
+                                         "commit-tree", removed_tree, "-p", added_commit,
+                                         "-m", "temporary runtime removal")
+                helper.git("branch", branch, removed_commit)
+                try:
+                    rejected()
+                finally:
+                    helper.git("branch", "-D", branch)
+
+        product_path = work / "src" / "basket.js"
+        product_bytes = product_path.read_bytes()
+        try:
+            product_path.write_bytes(product_bytes + b"\n// temporary modified-product control\n")
+            modified_facts = run.knowledge_facts(work, run_dir=Path(helper.run), state=state,
+                                                 improve_baseline=baseline)
+            self.assertFalse(run.committed_facts(modified_facts, seed_head)["pass"])
+            self.assertIn("src/basket.js", modified_facts["product_uncommitted"])
+        finally:
+            product_path.write_bytes(product_bytes)
+
+        index_path = Path(helper.git("rev-parse", "--git-path", "index").strip())
+        if not index_path.is_absolute():
+            index_path = work / index_path
+        index_bytes = index_path.read_bytes()
+        try:
+            product_path.write_bytes(product_bytes + b"\n// temporary staged-product control\n")
+            helper.git("add", "--", "src/basket.js")
+            staged_product_facts = run.knowledge_facts(work, run_dir=Path(helper.run), state=state,
+                                                       improve_baseline=baseline)
+            self.assertFalse(run.committed_facts(staged_product_facts, seed_head)["pass"])
+            self.assertIn("src/basket.js", staged_product_facts["product_uncommitted"])
+        finally:
+            product_path.write_bytes(product_bytes)
+            index_path.write_bytes(index_bytes)
+
+        ordinary = work / "ordinary-untracked.txt"
+        ordinary.write_text("product dirt\n", encoding="utf-8")
+        with_ordinary = grade()
+        self.assertFalse(with_ordinary["committed"]["pass"])
+        self.assertIn("ordinary-untracked.txt", with_ordinary["shiploop"]["knowledge"]["product_uncommitted"])
+        ordinary.unlink()
+
+        child = next((work / ".shiploop-improve").iterdir())
+        unknown = child / "unknown-runtime-file.txt"
+        unknown.write_text("not an Improve writer artifact\n", encoding="utf-8")
+        with_unknown = grade()
+        self.assertFalse(with_unknown["committed"]["pass"])
+        self.assertEqual(with_unknown["shiploop"]["knowledge"]["runtime_uncommitted"], [])
+        self.assertIn(unknown.relative_to(work).as_posix(),
+                      with_unknown["shiploop"]["knowledge"]["product_uncommitted"])
+        self.assertTrue(with_unknown["shiploop"]["knowledge"]["runtime_uncommitted_reason"])
+        unknown.unlink()
+
+        invocation_path = out / "invocation.json"
+        original_invocation = invocation_path.read_bytes()
+        invocation = json.loads(original_invocation)
+        invocation.pop("improve_runtime_baseline")
+        invocation_path.write_text(json.dumps(invocation), encoding="utf-8")
+        without_baseline = grade()
+        self.assertFalse(without_baseline["committed"]["pass"])
+        self.assertEqual(without_baseline["shiploop"]["knowledge"]["runtime_uncommitted"], [])
+        self.assertTrue(without_baseline["shiploop"]["knowledge"]["runtime_uncommitted_reason"])
+        invocation_path.write_bytes(original_invocation)
+
+        staged_path = knowledge["runtime_uncommitted"][0]
+        try:
+            helper.git("add", "--", staged_path)
+            with_staged_runtime = grade()
+            self.assertFalse(with_staged_runtime["committed"]["pass"])
+            self.assertEqual(with_staged_runtime["shiploop"]["knowledge"]["runtime_uncommitted"], [])
+            self.assertIn(staged_path, with_staged_runtime["shiploop"]["knowledge"]["product_uncommitted"])
+        finally:
+            index_path.write_bytes(index_bytes)
 
     def test_invalid_final_public_checks_make_both_scores_unknown(self):
         helper, sample, _seed = self.runtime_sample(bound="fixed")
