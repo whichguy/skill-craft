@@ -905,7 +905,8 @@ class SelectionByReaderTest(unittest.TestCase):
 
     def test_the_baseline_data_selects_its_named_suites(self) -> None:
         self.assertEqual(suite_catalog.targeted([self.BASELINES]),
-                         {"shiploop-e2e-baseline", "shiploop-e2e-platform", "shiploop-e2e", "shiploop-e2e-epoch"})
+                         {"shiploop-e2e-baseline", "shiploop-e2e-platform", "shiploop-e2e", "shiploop-e2e-epoch",
+                          "shiploop-e2e-review-attribution"})
 
     def test_a_suite_that_names_either_data_file_is_listed_for_it(self) -> None:
         # The row is the whole selection, so a new reader that only names the file would be missed: it must be added to

@@ -1705,7 +1705,7 @@ preparatory commit); a mismatch there is a send-back.
 3. Record each step's delivery authority in `summary`. A plan authorizes and performs no external operation; a
    required target or authority gap is blocked.
 4. Write this run's rollback in `summary`; keep the repeatable procedure in KNOWLEDGE/environment.md ## Commands.
-   Isolated run: use the source-return route stated in the packet (Workspace return guidance), as plain `git`
+   Isolated run: write it for the source return the packet states (Workspace return guidance), as plain `git`
    commands. Cite the durable plan/receipt in `evidence_refs`; keep this route's SHAs and branch names with that run,
    never absolute run paths or another route. Source return happens at release or handoff, not here. Use an authorized delivery
    route from the execution checkout when available (Environment promotion guidance). If the return must precede
