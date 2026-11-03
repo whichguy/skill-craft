@@ -1,0 +1,439 @@
+{
+  "plan": {
+    "goal": "ShipLoop implements only the current requested delta while preserving prior intent and design continuity through an explicit current spec and final aggregate consolidation.",
+    "initial_state": [
+      "Owner requires prior aggregate intent, a distinct current spec, terminal consolidation and no accidental rebuilding of achieved or deferred prior requirements.",
+      "Source 826c5c1a has role-blind managed spec readers, current HEAD inline writeback protection, and workspace returns permitted at release before release-verify or at handoff.",
+      "Existing source duties and gates provide overall plans, step plans, follows, primary requirements, expectations, test cases, review contracts and guarded return receipts.",
+      "A prior isolated audit on unchanged ShipLoop code passed 342 hermetic tests and reproduced omission of a preserved item-level follows entry from a narrowed step until that step named the requirement."
+    ],
+    "goal_needs": [
+      "New work follows incoming or intentionally changed scope and evidenced prerequisites, while achieved and deferred prior requirements are reused or preserved without automatic reimplementation.",
+      "Prior approved intent remains independently retrievable and the reviewed current spec is consolidated into the long-running aggregate only at final handoff with recoverable identity-bound promotion.",
+      "Environment, architecture and prior design rationale have tested producer-consumer continuity through discovery, step building, review and final maintained records."
+    ],
+    "steps": [
+      {
+        "id": "S1",
+        "statement": "The revised artifact and compatibility contract matches the owner’s scope and final-handoff boundary.",
+        "produces": [
+          "The artifact contract defines prior aggregate, run-local current spec, accepted writeback snapshots, terminal-only promotion, direct/non-Git handling and the transition policy for active older runs."
+        ],
+        "inputs": [
+          {
+            "need": "Owner requires prior aggregate intent, a distinct current spec, terminal consolidation and no accidental rebuilding of achieved or deferred prior requirements.",
+            "from": null
+          },
+          {
+            "need": "Source 826c5c1a has role-blind managed spec readers, current HEAD inline writeback protection, and workspace returns permitted at release before release-verify or at handoff.",
+            "from": null
+          }
+        ],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "The artifact contract defines prior aggregate, run-local current spec, accepted writeback snapshots, terminal-only promotion, direct/non-Git handling and the transition policy for active older runs.",
+            "by": "Inspect the saved contract against the owner clarifications and current release/handoff stage order; pass when each mode and old-run transition is explicit, no release-time aggregate promotion is allowed, and no code observation supplies approval.",
+            "level": "inspect"
+          }
+        ]
+      },
+      {
+        "id": "S2",
+        "statement": "The discriminating fixture and oracle set is calibrated against owner intent.",
+        "produces": [
+          "Independent scope, preservation, identity, recovery and return fixtures discriminate correct deliveries from duplicated work, dropped old clauses, premature promotion and stale review identities."
+        ],
+        "inputs": [
+          {
+            "need": "The artifact contract defines prior aggregate, run-local current spec, accepted writeback snapshots, terminal-only promotion, direct/non-Git handling and the transition policy for active older runs.",
+            "from": "S1"
+          },
+          {
+            "need": "A prior isolated audit on unchanged ShipLoop code passed 342 hermetic tests and reproduced omission of a preserved item-level follows entry from a narrowed step until that step named the requirement.",
+            "from": null
+          }
+        ],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "Independent scope, preservation, identity, recovery and return fixtures discriminate correct deliveries from duplicated work, dropped old clauses, premature promotion and stale review identities.",
+            "by": "Run the fixture calibration with correct and defective variants; pass when legitimate clause overrides and reused old work pass, while repeated achieved/deferred work, lost constraints, dirty-start reseeding, stale receipts and early aggregate promotion fail for their intended reasons.",
+            "level": "execute"
+          }
+        ]
+      },
+      {
+        "id": "S3",
+        "statement": "All spec consumers use the current candidate while preserving exact prior intent and inline write boundaries.",
+        "produces": [
+          "A shared prior/current spec accessor and script-owned snapshots consistently bind initialization, recovery, entry lookup, primary and queue gates, inline writeback protection, packet diffs and review identity in each supported mode."
+        ],
+        "inputs": [
+          {
+            "need": "The artifact contract defines prior aggregate, run-local current spec, accepted writeback snapshots, terminal-only promotion, direct/non-Git handling and the transition policy for active older runs.",
+            "from": "S1"
+          },
+          {
+            "need": "Independent scope, preservation, identity, recovery and return fixtures discriminate correct deliveries from duplicated work, dropped old clauses, premature promotion and stale review identities.",
+            "from": "S2"
+          },
+          {
+            "need": "Existing source duties and gates provide overall plans, step plans, follows, primary requirements, expectations, test cases, review contracts and guarded return receipts.",
+            "from": null
+          }
+        ],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "A shared prior/current spec accessor and script-owned snapshots consistently bind initialization, recovery, entry lookup, primary and queue gates, inline writeback protection, packet diffs and review identity in each supported mode.",
+            "by": "Run the new role-binding and real-CLI tests plus existing knowledge, handoff, cross-run and writeback suites; pass when no active-stage consumer accidentally reads the prior aggregate as current, dirty starts retain actual content, recovery never reseeds, and unauthorized inline edits remain refused.",
+            "level": "execute"
+          }
+        ]
+      },
+      {
+        "id": "S4",
+        "statement": "Planning and building have an explicit implementation delta without a second scheduler.",
+        "produces": [
+          "Overall and step-plan duties, existing result context and scoped review explicitly separate current-change implementation, reused foundations, preserved constraints, deferred work and evidenced prerequisites."
+        ],
+        "inputs": [
+          {
+            "need": "The artifact contract defines prior aggregate, run-local current spec, accepted writeback snapshots, terminal-only promotion, direct/non-Git handling and the transition policy for active older runs.",
+            "from": "S1"
+          },
+          {
+            "need": "Independent scope, preservation, identity, recovery and return fixtures discriminate correct deliveries from duplicated work, dropped old clauses, premature promotion and stale review identities.",
+            "from": "S2"
+          },
+          {
+            "need": "A shared prior/current spec accessor and script-owned snapshots consistently bind initialization, recovery, entry lookup, primary and queue gates, inline writeback protection, packet diffs and review identity in each supported mode.",
+            "from": "S3"
+          }
+        ],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "Overall and step-plan duties, existing result context and scoped review explicitly separate current-change implementation, reused foundations, preserved constraints, deferred work and evidenced prerequisites.",
+            "by": "Inspect exact shipped duties and render plans/step/review packets for the calibrated cases; pass when every implemented item has a current-change or necessary-prerequisite basis, primary remains request-relative and preserved follows reach affected step criteria/cases without becoming a rebuild order.",
+            "level": "execute"
+          }
+        ]
+      },
+      {
+        "id": "S5",
+        "statement": "Environment, architecture and prior decisions have explicit continuity through their actual consumers.",
+        "produces": [
+          "Artifact ownership guidance and existing packet/review handoffs retain relevant prior AD rationale and rejected alternatives, revalidate volatile environment facts and record deliberate overrides without promoting code inference to intent."
+        ],
+        "inputs": [
+          {
+            "need": "The artifact contract defines prior aggregate, run-local current spec, accepted writeback snapshots, terminal-only promotion, direct/non-Git handling and the transition policy for active older runs.",
+            "from": "S1"
+          },
+          {
+            "need": "Independent scope, preservation, identity, recovery and return fixtures discriminate correct deliveries from duplicated work, dropped old clauses, premature promotion and stale review identities.",
+            "from": "S2"
+          },
+          {
+            "need": "A shared prior/current spec accessor and script-owned snapshots consistently bind initialization, recovery, entry lookup, primary and queue gates, inline writeback protection, packet diffs and review identity in each supported mode.",
+            "from": "S3"
+          }
+        ],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "Artifact ownership guidance and existing packet/review handoffs retain relevant prior AD rationale and rejected alternatives, revalidate volatile environment facts and record deliberate overrides without promoting code inference to intent.",
+            "by": "Check the writer/reader matrix against source and execute discovery/step/review handoff cases; pass when affected prior decisions and source sections reach actual consumers, stale environment facts are rechecked, justified overrides retain basis/history, and unrelated standing records survive.",
+            "level": "execute"
+          }
+        ]
+      },
+      {
+        "id": "S6",
+        "statement": "Terminal intent consolidation is safe under early return, concurrency, retries and interruption.",
+        "produces": [
+          "Final handoff reconciles the current spec with prior intent, promotes only its reviewed content digest into the aggregate and obtains a matching final or eligible follow-up return receipt; early releases retain the prior aggregate."
+        ],
+        "inputs": [
+          {
+            "need": "A shared prior/current spec accessor and script-owned snapshots consistently bind initialization, recovery, entry lookup, primary and queue gates, inline writeback protection, packet diffs and review identity in each supported mode.",
+            "from": "S3"
+          },
+          {
+            "need": "Overall and step-plan duties, existing result context and scoped review explicitly separate current-change implementation, reused foundations, preserved constraints, deferred work and evidenced prerequisites.",
+            "from": "S4"
+          },
+          {
+            "need": "Artifact ownership guidance and existing packet/review handoffs retain relevant prior AD rationale and rejected alternatives, revalidate volatile environment facts and record deliberate overrides without promoting code inference to intent.",
+            "from": "S5"
+          },
+          {
+            "need": "Independent scope, preservation, identity, recovery and return fixtures discriminate correct deliveries from duplicated work, dropped old clauses, premature promotion and stale review identities.",
+            "from": "S2"
+          }
+        ],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "Final handoff reconciles the current spec with prior intent, promotes only its reviewed content digest into the aggregate and obtains a matching final or eligible follow-up return receipt; early releases retain the prior aggregate.",
+            "by": "Run real-CLI release-before-verification and handoff-only routes, then duplicate-callback, failure-between-review/promotion/return, late-spec-edit and source-drift cases; pass when the aggregate stays old before handoff, the exact reviewed candidate reaches the original repo once, and ambiguous/stale operations leave handoff pending with recovery.",
+            "level": "execute"
+          }
+        ]
+      },
+      {
+        "id": "S7",
+        "statement": "The portable skill and its explanatory surfaces consistently describe the implemented lifecycle.",
+        "produces": [
+          "Source documentation, packet examples, progress/report labels, package resources and change notes describe the same prior/current/terminal contract without generated release output edits."
+        ],
+        "inputs": [
+          {
+            "need": "A shared prior/current spec accessor and script-owned snapshots consistently bind initialization, recovery, entry lookup, primary and queue gates, inline writeback protection, packet diffs and review identity in each supported mode.",
+            "from": "S3"
+          },
+          {
+            "need": "Overall and step-plan duties, existing result context and scoped review explicitly separate current-change implementation, reused foundations, preserved constraints, deferred work and evidenced prerequisites.",
+            "from": "S4"
+          },
+          {
+            "need": "Artifact ownership guidance and existing packet/review handoffs retain relevant prior AD rationale and rejected alternatives, revalidate volatile environment facts and record deliberate overrides without promoting code inference to intent.",
+            "from": "S5"
+          },
+          {
+            "need": "Final handoff reconciles the current spec with prior intent, promotes only its reviewed content digest into the aggregate and obtains a matching final or eligible follow-up return receipt; early releases retain the prior aggregate.",
+            "from": "S6"
+          }
+        ],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "Source documentation, packet examples, progress/report labels, package resources and change notes describe the same prior/current/terminal contract without generated release output edits.",
+            "by": "Build the package from canonical source and run reference, packet-completeness and relevant package checks; pass when selected-package paths resolve, current and prior roles are accurately labeled, no stale final-merge wording or abandoned candidate path remains and the pending source change note is present.",
+            "level": "execute"
+          }
+        ]
+      },
+      {
+        "id": "D1",
+        "statement": "One shared registered campaign supplies inspectable exact-candidate evidence for independent qualification conclusions.",
+        "produces": [
+          "Registered exact-candidate campaign evidence retains the frozen control and subject identities, request/oracle/profile digests, raw packets and actual review inputs, outcomes, costs, failures and cleanup observations without claiming favorable results."
+        ],
+        "inputs": [
+          {
+            "need": "Independent scope, preservation, identity, recovery and return fixtures discriminate correct deliveries from duplicated work, dropped old clauses, premature promotion and stale review identities.",
+            "from": "S2"
+          },
+          {
+            "need": "Overall and step-plan duties, existing result context and scoped review explicitly separate current-change implementation, reused foundations, preserved constraints, deferred work and evidenced prerequisites.",
+            "from": "S4"
+          },
+          {
+            "need": "Artifact ownership guidance and existing packet/review handoffs retain relevant prior AD rationale and rejected alternatives, revalidate volatile environment facts and record deliberate overrides without promoting code inference to intent.",
+            "from": "S5"
+          },
+          {
+            "need": "Final handoff reconciles the current spec with prior intent, promotes only its reviewed content digest into the aggregate and obtains a matching final or eligible follow-up return receipt; early releases retain the prior aggregate.",
+            "from": "S6"
+          },
+          {
+            "need": "Source documentation, packet examples, progress/report labels, package resources and change notes describe the same prior/current/terminal contract without generated release output edits.",
+            "from": "S7"
+          }
+        ],
+        "origin": "discovered",
+        "confirm": [
+          {
+            "produces": "Registered exact-candidate campaign evidence retains the frozen control and subject identities, request/oracle/profile digests, raw packets and actual review inputs, outcomes, costs, failures and cleanup observations without claiming favorable results.",
+            "by": "Inspect campaign registration against the owner cases and exact artifact identities, perform transport/readiness preflight and the authorized isolated runs, then validate raw evidence manifests; pass when every attempted control/subject run and failure is retained, actual identity/read limits are explicit, golden oracles match the request and owned cleanup is observed. Inaccessibility or missing evidence remains incomplete rather than a positive result.",
+            "level": "execute"
+          }
+        ]
+      },
+      {
+        "id": "S8",
+        "statement": "The exact candidate is qualified for delta-only planning without inherited rework.",
+        "produces": [
+          "New work follows incoming or intentionally changed scope and evidenced prerequisites, while achieved and deferred prior requirements are reused or preserved without automatic reimplementation."
+        ],
+        "inputs": [
+          {
+            "need": "Registered exact-candidate campaign evidence retains the frozen control and subject identities, request/oracle/profile digests, raw packets and actual review inputs, outcomes, costs, failures and cleanup observations without claiming favorable results.",
+            "from": "D1"
+          },
+          {
+            "need": "Independent scope, preservation, identity, recovery and return fixtures discriminate correct deliveries from duplicated work, dropped old clauses, premature promotion and stale review identities.",
+            "from": "S2"
+          },
+          {
+            "need": "Overall and step-plan duties, existing result context and scoped review explicitly separate current-change implementation, reused foundations, preserved constraints, deferred work and evidenced prerequisites.",
+            "from": "S4"
+          }
+        ],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "New work follows incoming or intentionally changed scope and evidenced prerequisites, while achieved and deferred prior requirements are reused or preserved without automatic reimplementation.",
+            "by": "Apply the frozen request-derived scope oracle and independent semantic review to D1’s retained exact-candidate/control campaign records, not a second model campaign; pass when new capability and one-clause override are delivered, achieved requirements are not rebuilt, deferred work stays deferred, affected old behavior holds and predeclared quality/cost criteria are met. Retain original failures; source tests alone do not satisfy this confirmation.",
+            "level": "execute"
+          }
+        ]
+      },
+      {
+        "id": "S9",
+        "statement": "The exact candidate is qualified for retained prior intent and terminal-only aggregate promotion.",
+        "produces": [
+          "Prior approved intent remains independently retrievable and the reviewed current spec is consolidated into the long-running aggregate only at final handoff with recoverable identity-bound promotion."
+        ],
+        "inputs": [
+          {
+            "need": "Registered exact-candidate campaign evidence retains the frozen control and subject identities, request/oracle/profile digests, raw packets and actual review inputs, outcomes, costs, failures and cleanup observations without claiming favorable results.",
+            "from": "D1"
+          },
+          {
+            "need": "Independent scope, preservation, identity, recovery and return fixtures discriminate correct deliveries from duplicated work, dropped old clauses, premature promotion and stale review identities.",
+            "from": "S2"
+          },
+          {
+            "need": "Final handoff reconciles the current spec with prior intent, promotes only its reviewed content digest into the aggregate and obtains a matching final or eligible follow-up return receipt; early releases retain the prior aggregate.",
+            "from": "S6"
+          }
+        ],
+        "origin": "seed",
+        "confirm": [
+          {
+            "produces": "Prior approved intent remains independently retrievable and the reviewed current spec is consolidated into the long-running aggregate only at final handoff with recoverable identity-bound promotion.",
+            "by": "Inspect and exercise the retained exact-build lifecycle evidence for existing/missing/dirty aggregate, supported modes, early release and handoff, source drift and crash/retry; pass when prior intent stays retrievable, no aggregate changes early and the reviewed current digest, promoted file and verified return agree.",
+            "level": "execute"
+          }
+        ]
+      },
+      {
+        "id": "D2",
+        "statement": "The exact candidate is independently checked for environment, architecture and decision-rationale continuity.",
+        "produces": [
+          "Environment, architecture and prior design rationale have tested producer-consumer continuity through discovery, step building, review and final maintained records."
+        ],
+        "inputs": [
+          {
+            "need": "Registered exact-candidate campaign evidence retains the frozen control and subject identities, request/oracle/profile digests, raw packets and actual review inputs, outcomes, costs, failures and cleanup observations without claiming favorable results.",
+            "from": "D1"
+          },
+          {
+            "need": "Independent scope, preservation, identity, recovery and return fixtures discriminate correct deliveries from duplicated work, dropped old clauses, premature promotion and stale review identities.",
+            "from": "S2"
+          },
+          {
+            "need": "Artifact ownership guidance and existing packet/review handoffs retain relevant prior AD rationale and rejected alternatives, revalidate volatile environment facts and record deliberate overrides without promoting code inference to intent.",
+            "from": "S5"
+          }
+        ],
+        "origin": "discovered",
+        "confirm": [
+          {
+            "produces": "Environment, architecture and prior design rationale have tested producer-consumer continuity through discovery, step building, review and final maintained records.",
+            "by": "Review the same-build discovery and step decisions against prior aggregate/AD sources and actual consumer packets/contracts; pass when relevant rationale and preserved decisions are reused, intentional changes retain basis, volatile facts are revalidated and the final files accurately retain outcomes and limits.",
+            "level": "execute"
+          }
+        ]
+      }
+    ],
+    "parallel_groups": [
+      [
+        "S4",
+        "S5"
+      ],
+      [
+        "S8",
+        "S9",
+        "D2"
+      ]
+    ],
+    "unresolved": []
+  },
+  "convergence": {
+    "binding_id": "backchain-500284b1-3ae75c",
+    "owner": "selected Until Loop binding",
+    "candidate": {
+      "input_sha256": "ea14ba39d49c17917d879095e87af58bd9b74ca420dc2e67a1506987cba5ca10",
+      "output_sha256": "c2a2bc83bcffec79cd8d61b840878d502358d828823493f3d66f9390a9c6d2d2"
+    },
+    "resources": [
+      {
+        "purpose": "Backchain card",
+        "resolved_locator": "/Users/dadleet/.codex/plugins/cache/whichguy/skill-craft/2.32.2/skills/backchain/SKILL.md"
+      },
+      {
+        "purpose": "Backchain prompts/direct.v1.md",
+        "resolved_locator": "/Users/dadleet/.codex/plugins/cache/whichguy/skill-craft/2.32.2/skills/backchain/prompts/direct.v1.md"
+      },
+      {
+        "purpose": "Backchain prompts/dependency-review.prompt.md",
+        "resolved_locator": "/Users/dadleet/.codex/plugins/cache/whichguy/skill-craft/2.32.2/skills/backchain/prompts/dependency-review.prompt.md"
+      },
+      {
+        "purpose": "Backchain prompts/elaborator.v1.md",
+        "resolved_locator": "/Users/dadleet/.codex/plugins/cache/whichguy/skill-craft/2.32.2/skills/backchain/prompts/elaborator.v1.md"
+      },
+      {
+        "purpose": "Backchain references/convergence.md",
+        "resolved_locator": "/Users/dadleet/.codex/plugins/cache/whichguy/skill-craft/2.32.2/skills/backchain/references/convergence.md"
+      },
+      {
+        "purpose": "Backchain prompts/convergence-review.prompt.md",
+        "resolved_locator": "/Users/dadleet/.codex/plugins/cache/whichguy/skill-craft/2.32.2/skills/backchain/prompts/convergence-review.prompt.md"
+      },
+      {
+        "purpose": "Backchain references/technical-lenses.md",
+        "resolved_locator": "/Users/dadleet/.codex/plugins/cache/whichguy/skill-craft/2.32.2/skills/backchain/references/technical-lenses.md"
+      },
+      {
+        "purpose": "Backchain command line",
+        "resolved_locator": "/Users/dadleet/.codex/plugins/cache/whichguy/skill-craft/2.32.2/skills/backchain/scripts/backchain.py"
+      },
+      {
+        "purpose": "Until Loop card",
+        "resolved_locator": "/Users/dadleet/.codex/plugins/cache/whichguy/skill-craft/2.32.2/skills/improve/runtime/until-loop/ADAPTER.md"
+      },
+      {
+        "purpose": "Until Loop runtime",
+        "resolved_locator": "/Users/dadleet/.codex/plugins/cache/whichguy/skill-craft/2.32.2/skills/improve/runtime/until-loop/scripts/until_loop_ephemeral.py"
+      }
+    ],
+    "terminal_receipt": {
+      "resolved_locator": "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain/loop/receipt.json",
+      "status": "complete",
+      "opaque": true
+    },
+    "domain_evidence": [
+      "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain/evidence.json",
+      "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain/cycles/01",
+      "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain/cycles/02"
+    ],
+    "planning_gaps": [],
+    "execution_blockers": [
+      "S1 must finalize old active-run compatibility before S3 implementation; do not apply an unevidenced migration to running state.",
+      "D1 must establish actual authorized transport/readiness and identity for its frozen campaign; absence is incomplete execution, not evidence that the design passed."
+    ],
+    "next_action": ""
+  },
+  "structure": {
+    "ok": true,
+    "completion": "complete",
+    "parallel_groups": [
+      [
+        "S4",
+        "S5"
+      ],
+      [
+        "S8",
+        "S9",
+        "D2"
+      ]
+    ]
+  },
+  "status": "converged"
+}

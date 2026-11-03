@@ -1,0 +1,48 @@
+{
+  "schema": "backchain-evidence/v1",
+  "binding_id": "backchain-13f72f5e-4a6dd6",
+  "candidate": {
+    "input_sha256": "ecf775176f5227d9879197e0d023a47e186913a651e723ded202a4a24e68f028",
+    "output_sha256": "ecf775176f5227d9879197e0d023a47e186913a651e723ded202a4a24e68f028"
+  },
+  "cycles": [
+    {
+      "cycle": 1,
+      "callback": 1,
+      "classification": "trivial",
+      "changed": false,
+      "change_class": "none",
+      "findings": 0,
+      "review": {
+        "path": "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain-mode-correction/cycles/01/review.json",
+        "sha256": "9c232531bfa9803238d0c93391236dff234794d9924247797b29ef60feac1a15"
+      },
+      "plan": {
+        "path": "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain-mode-correction/cycles/01/plan.json",
+        "sha256": "ecf775176f5227d9879197e0d023a47e186913a651e723ded202a4a24e68f028",
+        "packaged_sha256": "555da591061d0aef36de501091524bffe355b04147860c9fbf29df7b03deb558"
+      },
+      "check": {
+        "path": "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain-mode-correction/cycles/01/check.json",
+        "sha256": "e5f07a2a1a06b1acd03df4a1b62845d2d644dc2d174ed2da19505de89796a8b8",
+        "ok": true,
+        "completion": "complete"
+      },
+      "comparison": {
+        "path": "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain-mode-correction/cycles/01/comparison.json",
+        "sha256": "87bf8d62abf677ea44cff6866eb2e912df25435bc963b8c539b5bc555ebc2b21",
+        "differences": 0
+      },
+      "report": {
+        "path": "/Users/dadleet/shiploop-audits/2026-11-02/intent-continuity-kntyzb3p/backchain-mode-correction/cycles/01/report.json",
+        "sha256": "33a6d9bc33d7631541b0dcb59a6347c9e8a616ffd67a5d8e5a9d4497e9258a0d"
+      }
+    }
+  ],
+  "planning_gaps": [],
+  "execution_blockers": [
+    "S1 must settle active older-run compatibility before S3 applies changed persisted artifact bindings.",
+    "D1 must demonstrate authorized transport/readiness and qualify actual subject/candidate identity for its registered campaign."
+  ],
+  "next_action": ""
+}

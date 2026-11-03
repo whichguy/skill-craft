@@ -1,0 +1,81 @@
+{
+  "source_revision": "826c5c1a8ce09c850165e2724a98d67951bf2d6a",
+  "meaning": "declared stage writers and locator/outline readers; separate duties and follows handoffs may also consume these files",
+  "artifacts": {
+    "spec.md": {
+      "writers": [
+        "spec",
+        "document"
+      ],
+      "reads": [
+        "intake",
+        "test-strategy",
+        "plan",
+        "step-plan",
+        "test-spec",
+        "document",
+        "system-test-author",
+        "product-acceptance"
+      ]
+    },
+    "environment.md": {
+      "writers": [
+        "discovery",
+        "research",
+        "test-strategy",
+        "prepare",
+        "step-plan",
+        "validate-existing",
+        "implement",
+        "test",
+        "document",
+        "carry-forward",
+        "system-test-author",
+        "release-plan",
+        "release-check",
+        "release-verify",
+        "operations"
+      ],
+      "reads": [
+        "intake",
+        "plan",
+        "prepare",
+        "step-plan",
+        "test-spec",
+        "validate-existing",
+        "implement",
+        "test",
+        "document",
+        "system-test-author",
+        "system-test",
+        "product-acceptance",
+        "release-plan",
+        "release-check",
+        "release",
+        "operations"
+      ]
+    },
+    "architecture.md": {
+      "writers": [
+        "test-strategy",
+        "plan",
+        "step-plan",
+        "implement",
+        "document",
+        "carry-forward"
+      ],
+      "reads": [
+        "intake",
+        "plan",
+        "step-plan",
+        "test-spec",
+        "validate-existing",
+        "implement",
+        "test",
+        "document",
+        "system-test-author",
+        "system-test"
+      ]
+    }
+  }
+}
