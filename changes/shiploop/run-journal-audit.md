@@ -1,5 +1,5 @@
 ---
-bump: patch
+bump: minor
 ---
 The run trace (`RUN/trace.jsonl`) and the Skill-call record (`RUN/skill-calls.jsonl`) are written as pure ASCII JSON lines
 through one shared writer, and read by one shared reader that ends lines at `\n` only. A refusal, hook text or Skill
