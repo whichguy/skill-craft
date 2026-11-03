@@ -271,7 +271,10 @@ Grok events carry no time) and ShipLoop's run directory:
 
 `result.json` also reports how the run left the source checkout
 (`shiploop.knowledge`): whether `docs/shiploop/spec.md` exists and is committed,
-its requirement IDs, the commits on HEAD, untracked files and branches.
+its requirement IDs, the commits on HEAD, untracked files and branches. It keeps the full Git status and total untracked count;
+the `committed` predicate omits `.shiploop-improve` files only when this invocation recorded that its `.shiploop-improve` root was absent
+before launch and the selected direct ShipLoop run imported matching complete child receipts and pass records. Preexisting,
+staged, tracked, historical, foreign or unrecognized runtime paths remain uncommitted product paths.
 
 `result.json` and each baseline row also carry `termination`: why the run is not
 still going, recorded by the harness that owns the host process. It holds the

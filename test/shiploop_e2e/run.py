@@ -16,7 +16,7 @@ there with one headless host process, shows its progress live, and grades:
   committed the source checkout ends committed: HEAD moved past where the run
             started, holds at least one file (ShipLoop's own empty baseline
             commit is not product) and no product path is left uncommitted
-            (logs aside)
+            (logs and exactly attributed direct Improve runtime artifacts aside)
   checks    every case check command exits 0 in the working directory
 
 --seed-at step-plan starts an Ask-Agent run whose stages before step-plan are
@@ -148,6 +148,7 @@ import environment  # noqa: E402
 import fidelity  # noqa: E402
 import flow  # noqa: E402
 import hosts  # noqa: E402
+import improve_runtime  # noqa: E402
 import lifecycle  # noqa: E402
 import listeners  # noqa: E402
 import metrics  # noqa: E402
@@ -1514,7 +1515,8 @@ def write_mismatch(out: Path, name: str, host: str, failed: list[tuple[str, str,
     return path
 
 
-def knowledge_facts(work: Path) -> dict:
+def knowledge_facts(work: Path, *, run_dir: Path | None = None, state: dict | None = None,
+                    improve_baseline: dict | None = None) -> dict:
     """How the run left the source checkout: knowledge home, commits and branches.
 
     Informational: it shows whether a later run could inherit the spec and
@@ -1529,9 +1531,17 @@ def knowledge_facts(work: Path) -> dict:
     untracked = [ln[3:] for ln in status if ln.startswith("??")]
     # Logs a server or test run leaves behind are not product; anything else uncommitted is.
     uncommitted = [ln[3:] for ln in status if not ln[3:].endswith(".log")]
+    runtime_paths, runtime_reason = improve_runtime.owned_untracked_paths(
+        work, run_dir, state or {}, improve_baseline, status
+    )
+    product_uncommitted = [path for path in uncommitted if path not in runtime_paths]
     return {"spec": spec.is_file(),
             "head": g("rev-parse", "HEAD").strip() or None,
             "uncommitted": uncommitted,
+            "product_uncommitted": product_uncommitted,
+            "runtime_uncommitted": sorted(runtime_paths),
+            "runtime_uncommitted_reason": runtime_reason,
+            "git_status": status,
             "spec_tracked": bool(g("ls-files", "--", "docs/shiploop/spec.md").strip()),
             "requirement_ids": sorted(set(knowledge_home._REQUIREMENT_ID.findall(spec.read_text())),
                                       key=lambda value: int(value.split("-")[1])) if spec.is_file() else [],
@@ -1549,14 +1559,23 @@ def committed_facts(knowledge: dict, start_head: str | None) -> dict:
     fresh run ShipLoop's first act is an empty baseline commit, so HEAD always differs from a start
     with no commit, and a run that ended before it returned anything would otherwise pass.
 
+    Run-bound files under `.shiploop-improve` are omitted from the product-dirt predicate only when
+    this invocation observed that workspace root absent before launch and the selected direct run's
+    complete child receipts and pass records prove ownership. Raw status remains in knowledge facts;
+    unknown, preexisting, staged, tracked, historical, foreign or ambiguous paths stay product dirt.
+
     Known limit, not guarded: any file counts. A future ShipLoop that returned only knowledge files
     (docs/shiploop/) to the source checkout before the product would pass early; today those stay in
     ShipLoop's worktree until the product is returned.
     """
     head, files = knowledge["head"], knowledge["head_files"]
-    return {"pass": bool(head) and head != start_head and files > 0 and not knowledge["uncommitted"],
+    product_uncommitted = knowledge.get("product_uncommitted", knowledge["uncommitted"])
+    return {"pass": bool(head) and head != start_head and files > 0 and not product_uncommitted,
             "start_head": start_head, "head": head, "head_files": files,
-            "uncommitted": knowledge["uncommitted"][:20]}
+            "uncommitted": knowledge["uncommitted"][:20],
+            "product_uncommitted": product_uncommitted[:20],
+            "runtime_uncommitted": knowledge.get("runtime_uncommitted", [])[:20],
+            "runtime_uncommitted_reason": knowledge.get("runtime_uncommitted_reason")}
 
 
 def review_export(out: Path) -> str:
@@ -4009,10 +4028,12 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     earlier = {}
     earlier_result: dict = {}
     recorded: dict = {}  # a regrade restates this: the run's own last record
+    improve_runtime_baseline: dict | None = None
     if args.resume_run:
         # Continue a stopped run in place: same work directory, run state and event stream.
         out = args.resume_run.expanduser().resolve()
         earlier = json.loads((out / "invocation.json").read_text())
+        improve_runtime_baseline = earlier.get("improve_runtime_baseline")
         name, checks, follow_on = earlier["case"], earlier["checks"], earlier.get("follow_on")
         based = earlier.get("base")  # the base the run started from (SPEC: A brownfield case)
         prefix = run_prefix(args.platform_prefix, name, json.loads(CASES.read_text()), resuming=True,
@@ -4131,6 +4152,9 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
             follow_on = continue_from(args.continue_from.expanduser().resolve(), work) if args.continue_from else None
         based = brownfield.start(work, based_on)  # the base, committed before the host starts (None: an empty folder)
         record_preexisting_runs(out)  # a follow-on's copy can bring an earlier run's state along: never this run's
+        # The ownership baseline must precede seed_run and the first host session. A resume carries this original
+        # observation; it never replaces it with a later reading of the runtime directory.
+        improve_runtime_baseline = improve_runtime.capture_baseline(work)
     args.platform_existing = existing  # resume_command reads it: a resume keeps its run's mode
     stop_file = out / "stop"  # a person (or a watcher) creates it to end the run; main consumes it
     # This harness is alive while main runs: a launch elsewhere reads the lock to tell a sibling's server from a leftover.
@@ -4364,6 +4388,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                   "cwd": str(work), "plugin_dir": str(plugin_dir), "plugin": plugin, "versions": versions,
                   "host_build": launch_build, "checks": checks,
                   "follow_on": follow_on, "base": based, "resumed_run": resumed, "seeded": seeded,
+                  "improve_runtime_baseline": improve_runtime_baseline,
                   "owner_note_at": owner_note_at, "needs": needs, "environment": start_environment,
                   **({"platform_prefix": RUN_PREFIX[1]} if RUN_PREFIX else {}),
                   "planning_review": planning_review, "improve_skill": improve_skill,
@@ -4556,11 +4581,14 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     if plugin is None:
         plugin = grade_claude_plugin(plugins, plugin_dir)
     shiploop = grade_shiploop(out)
-    shiploop["knowledge"] = knowledge_facts(work)
+    ledger = Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None
+    engine = metrics.engine_state(ledger)
+    shiploop["knowledge"] = knowledge_facts(
+        work, run_dir=ledger, state=engine, improve_baseline=improve_runtime_baseline
+    )
     start_head = (follow_on or {}).get("start_head") or (seeded or {}).get("start_head") or (based or {}).get("start_head")
     knowledge = shiploop["knowledge"]
     committed = committed_facts(knowledge, start_head)
-    ledger = Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None
     tool_log = metrics.ToolLog()
     run_metrics = metrics.collect(out, ledger, tools=tool_log)
     # The fidelity block is a record in metrics.json only (SPEC 2026-10-09): built once here, so a regrade adds it too, and never
@@ -4595,7 +4623,6 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
                      run_checks(work, to_run, timeout=(platform_spec or {}).get("check_timeout", CHECK_TIMEOUT), env=check_env,
                                 scrubbed=bool(platform_spec)))
     delivered_after = delivery.fingerprint(work)  # what the checks left; scorecard's correctness compares the two
-    engine = metrics.engine_state(Path(shiploop["run_dir"]) if shiploop.get("run_dir") else None)
     try:
         # Informational only (SPEC S-11): does the unreturned candidate already pass? Before the reap below, so a server that a
         # check which timed out leaves is stopped with the rest in a run that launched a host. A regrade reaps nothing (the run
@@ -4815,7 +4842,10 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
               + (f"; {at_stop['timed_out']} timed out" if at_stop["timed_out"] else ""))
     print(f"  committed {mark(committed['pass'])}  HEAD {str(committed['head'])[:8]} (started at "
           f"{str(committed['start_head'])[:8] if committed['start_head'] else 'no commit'}); "
-          f"{committed['head_files']} files in HEAD, {len(knowledge['uncommitted'])} uncommitted product paths")
+          f"{committed['head_files']} files in HEAD, {len(knowledge['product_uncommitted'])} product paths uncommitted, "
+          f"{len(knowledge['runtime_uncommitted'])} bound Improve runtime paths untracked"
+          + (f"; Improve attribution unavailable: {knowledge['runtime_uncommitted_reason']}"
+             if knowledge.get("runtime_uncommitted_reason") else ""))
     print(f"  knowledge docs/shiploop/spec.md {'present' if knowledge['spec'] else 'missing'}"
           f"{', tracked' if knowledge['spec_tracked'] else ', not committed'}; {len(knowledge['requirement_ids'])} "
           f"requirement ids; HEAD has {knowledge['head_commits']} commits, {knowledge['untracked_files']} untracked files"
