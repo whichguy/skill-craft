@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import stat
 import tempfile
 import uuid
 from pathlib import Path
@@ -35,9 +36,12 @@ _CLOSE_FENCE = re.compile(r"^```[ \t]*$")
 
 __all__ = [
     "StorageError",
+    "append_jsonl",
     "atomic_write_text",
     "dumps",
+    "jsonl_line",
     "loads",
+    "read_jsonl",
     "read_record",
     "recover",
     "transaction",
@@ -202,6 +206,50 @@ def read_record(path: RecordPath) -> Any:
 def write_record(path: RecordPath, obj: Any, title: str = "ShipLoop record") -> None:
     """Atomically persist ``obj`` as a Markdown-authoritative record."""
     atomic_write_text(path, dumps(obj, title=title))
+
+
+def jsonl_line(obj: Mapping[str, Any]) -> bytes:
+    """One JSONL line for ``obj``, pure ASCII: U+2028, U+2029 and U+0085 are escaped, so no reader that splits on Unicode
+    line ends cuts the line, and a lone surrogate (an undecodable file name, a hook payload's ``\\ud83d``) is escaped
+    rather than failing the encode.  ``allow_nan=False``: a NaN or infinity is not JSON, so it fails here, not in a reader."""
+    return (json.dumps(obj, separators=(",", ":"), allow_nan=False) + "\n").encode("ascii")
+
+
+def append_jsonl(path: RecordPath, obj: Mapping[str, Any], *, mode: int = 0o600) -> bool:
+    """Append ``obj`` as one line of an append-only evidence file (the run trace, the Skill-call record); True when written.
+
+    One ``write`` on an ``O_APPEND`` descriptor keeps concurrent writers (a command and a hook) from interleaving lines.  The
+    file is opened without following a symlink and without blocking, and anything but a regular file (a FIFO in its place)
+    is refused, never waited on.  Raises OSError, or ValueError for a value JSON cannot hold."""
+    data = jsonl_line(obj)
+    flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    fd = os.open(Path(path), flags, mode)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            return False
+        os.write(fd, data)
+    finally:
+        os.close(fd)
+    return True
+
+
+def read_jsonl(path: RecordPath) -> List[Dict[str, Any]]:
+    """The lines of a JSONL evidence file that parse as objects; a missing file is empty, and a blank, damaged or partly
+    written last line is skipped.  Lines end at ``\\n`` only (not ``splitlines()``: a U+2028 or U+0085 a line written before
+    ``jsonl_line`` escaped them holds raw is not a line end)."""
+    try:
+        raw = Path(path).read_bytes()
+    except OSError:
+        return []
+    rows = []
+    for line in raw.decode("utf-8", errors="replace").split("\n"):
+        try:
+            value = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(value, dict):
+            rows.append(value)
+    return rows
 
 
 def _resolve_root(root: RecordPath) -> Path:

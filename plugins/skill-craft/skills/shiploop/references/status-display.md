@@ -146,15 +146,31 @@ previews stay embedded, and the saved-report link points at the viewer's own `/r
 
 The status block says where the run is; the **run trace** says what happened and
 what is still scheduled (owner, 2026-10-25). ShipLoop appends one JSON line per
-event to `<run>/trace.jsonl` as it happens: `command` (every navigator command on
-a current run, such as `init`, `next`, `complete`, `pause` or `status`: exit code,
-revision, stage and action before and after, results accepted, refusal text),
-`packet` (every packet such a command prints, its text kept as sent in
-`packets/sent/<sha>.md`, since `next` rewrites `packets/<action>.md`) and `hook`
-(each keepalive stop decision, with the text it put into the turn). `lint`, `red-check` and `backchain-check` are not traced: their views and
-record-only checks must leave the run as it was. Skill-tool calls stay in `skill-calls.jsonl`. The
-trace is evidence, never state: nothing resumes from it, and a failed append
-never fails a command.
+event to `<run>/trace.jsonl` as it happens: `command` (every navigator command
+that loaded a current run, such as `init`, `next`, `complete`, `pause` or
+`status`: exit code, revision, stage and action before and after, results
+accepted, refusal text), `packet` (every packet such a command prints, its text
+kept as sent in `packets/sent/<sha>.md`, since `next` rewrites
+`packets/<action>.md`) and `hook` (each keepalive stop decision, with the text it
+put into the turn, and each session end the host reported for the run). `lint`,
+`red-check` and `backchain-check` are not traced: they never load the run through
+the navigator, and appear only in the host's command stream. Skill-tool calls
+stay in `skill-calls.jsonl`. The trace is evidence, never state: nothing resumes
+from it, and a failed append never fails a command.
+
+Every line is one ASCII JSON object (non-ASCII text is `\u` escaped; a reader
+splits lines at `\n` only) with `v` (1), `ts` (epoch seconds), `at` (UTC) and
+`kind`; a field with no value is left out:
+
+| `kind` | Fields |
+|---|---|
+| `command` | `verb`, `action` (its `--action`), `exit`, `ms`, `rev`, `stage` and `cursor` (each `[before, after]`), `status`; `accepted` (`action`, `stage`, `item`, `outcome` per step it accepted), `error` (refusal text, cut at 4,000 characters), `note` (the owner note a `note` command wrote), `held` (notes a held callback printed), `delivered` (notes the step delivered), `crashed` (the exception that ended the command before it answered: `KeyboardInterrupt` for an interrupt, exit 130; any other, exit 1) |
+| `packet` | `action`, `stage`, `item`, `reviewed` (at an Improve stage, the stage it reviews), `status`, `rev`, `chars`, `printed`, `whole`, `sha`, `file` and `head_file` (the kept copies), `notes` (owner notes it quoted whole) |
+| `hook` | `hook` (`stop` or `session-end`), `host`, `session`, `decision`, `why`, `text` (what a stop decision put into the turn); a session end adds `released` and the host's `reason` |
+
+A run made before ShipLoop 1.21.0 may hold `complete` lines with `check_only`
+(a check before the `check` verb); this reader reads the verb only, and the E2E
+harness still reads `check_only` for that saved evidence.
 
 ```sh
 python3 "$CLI" trace --run-dir "$RUN_DIR"              # digest: where the run is, every stage, steps run, recent events
@@ -166,7 +182,8 @@ python3 "$CLI" trace --run-dir "$RUN_DIR" --html       # writes <run>/trace.html
 
 The digest prints its own legend. An event belongs to its own `--action`, else to
 the action of the last packet before it. A failed `shiploop check` is a check, not
-a refusal. A run saved before the trace reads from `state.md` and `timeline.json`,
+a refusal, and so are neither a callback held once for owner notes nor a command
+interrupted or crashed before it answered. A run saved before the trace reads from `state.md` and `timeline.json`,
 and what it never recorded shows as "not recorded", not zero.
 
 ## Owner notes

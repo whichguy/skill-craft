@@ -359,7 +359,7 @@ def _safe_summary(value: Any) -> str:
 
 def _activity(state: Mapping[str, Any], root: Path, timeline: Mapping[str, Any],
               warnings: list[str], mtimes: list[int]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Build the timeline rows of accepted activity for the parent run and its chains, plus the fingerprints that
+    """Build the timeline rows of accepted activity for the run, plus the fingerprints that
     detect change; warnings note withheld data.
     """
     rows: list[dict[str, Any]] = []

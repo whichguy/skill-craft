@@ -108,7 +108,7 @@ summary .c { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end
 .kind { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding-top: 2px; }
 .kind.command { color: var(--accent); } .kind.packet { color: var(--green); } .kind.hook { color: var(--violet); }
 .kind.skill { color: var(--amber); } .kind.accepted { color: var(--green); } .kind.refused { color: var(--red); }
-.kind.check, .kind.held { color: var(--amber); }
+.kind.check, .kind.held, .kind.interrupted, .kind.crashed { color: var(--amber); }
 .ev.check pre { background: var(--amber-soft); }
 .ev .body { min-width: 0; overflow-wrap: anywhere; }
 .ev pre, .viewer pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--mono); font-size: 12px; margin: 6px 0 0;
@@ -455,12 +455,13 @@ const TRACE = /*TRACE-DATA*/null;
 
   // ---------------------------------------------------------------- timeline
   const isHeld = (ev) => ev.kind === "command" && !!(ev.held && ev.held.length);
-  const isRefusal = (ev) => ev.kind === "command" && !!ev.exit && ev.verb !== "check" && !isHeld(ev);
+  const isRefusal = (ev) => ev.kind === "command" && !!ev.exit && ev.verb !== "check" && !isHeld(ev) && !ev.crashed;
   function eventRow(ev) {
     const failed = ev.kind === "command" && ev.exit;
     const held = isHeld(ev);
     const refusal = isRefusal(ev);
-    const kind = failed ? (held ? "held" : ev.verb === "check" ? "check" : "refused") : ev.kind;
+    const kind = failed ? (held ? "held" : ev.verb === "check" ? "check"
+      : ev.crashed ? (ev.crashed === "KeyboardInterrupt" ? "interrupted" : "crashed") : "refused") : ev.kind;
     let body = [];
     if (ev.kind === "command") {
       body.push(el("span", {class: "mono"}, ev.verb + (ev.action ? " " + short(ev.action) : "")), " → exit " + ev.exit);

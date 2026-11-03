@@ -72,13 +72,14 @@ MAP_ROWS: tuple[tuple[str, str, str], ...] = (
     ("RUN/improve/", "per reviewed action: receipt, review files, lessons", "an Improve stage"),
     ("RUN/expectations/", "validate-existing's check results", "validate-existing"),
     ("RUN/backchain/", "Backchain graph checks, per action", "planning"),
-    ("RUN/chains/", "a parallel chain's ledger and attempts, per action", "a chain is bound"),
     ("RUN/decisions/", "the user's replies to a blocked question", "after a resume"),
+    ("RUN/owner-notes/", "the owner's notes written to the running run, one file each", "a packet quotes an owner note"),
     ("RUN/request.md", "the request, then its sentences S1..Sn", "you cite one (S<n>)"),
     ("RUN/run-baseline.txt", "the commit the run began from; spec diffs run against it", "a diff since the run began"),
-    ("RUN/skill-calls.jsonl", "the Skill-tool calls the session made in this run (the Improve stage's gate reads it)",
+    ("RUN/skill-calls.jsonl", ("the Skill-tool calls the session made in this run (the Improve stage's gate reads it), "
+                               "plus one gate line when the call is not enforced"),
      "an Improve stage refuses for a missing skill call"),
-    ("RUN/trace.jsonl", "each command, packet, refusal and hook stop, in order", "what happened? `shiploop trace`"),
+    ("RUN/trace.jsonl", "each command, packet, refusal, hook stop and session end, in order", "what happened? `shiploop trace`"),
     ("RUN/report.html, progress.html, trace.html, timeline.json, progress-observer.json, .progress.lock, .progress-stop, "
      ".progress-disabled, transaction.md, .lock, callback-attempts", "report, progress view, display files, save "
      "journal, lock, counter; no workflow state", "the user asks how the run stands"),
