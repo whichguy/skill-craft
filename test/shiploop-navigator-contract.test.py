@@ -2337,9 +2337,13 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual(store.read_record(cli_root / "state.md"), updated)
         self.assertIn("ShipLoop navigator | discovery | revision 1", status.stdout)
         self.assertEqual((cli_root / "status.md").read_text(encoding="utf-8"), expected_status)
-        # The packet's one progress block (packet review F6, 2026-10-17): after intake, a milestone, the narrative.
-        self.assertIn(navigator.narrative.markdown(navigator.narrative_facts(updated, navigator.load_timeline(cli_root))),
-                      status.stdout)
+        # The packet's one progress block (packet review F6, 2026-10-17): after intake the packet is not a boundary
+        # (2026-11-03: only run boundaries show the narrative), so it carries the one-line status instead -- and that
+        # line names the run's own goal, which is where a non-boundary packet now keeps the request's words.
+        self.assertNotIn(navigator.narrative.markdown(navigator.narrative_facts(updated, navigator.load_timeline(cli_root))),
+                         status.stdout)
+        self.assertIn(navigator.status_line(updated), status.stdout)
+        self.assertIn("Build a small synthetic capability.", status.stdout)
         self.assertNotIn(navigator.STATUS_BEGIN, status.stdout)
 
         outside = Path(self.temp.name) / "outside"

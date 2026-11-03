@@ -298,12 +298,18 @@ class StatusBlockTests(unittest.TestCase):
     # --- packet placement, status.md and the status verb --------------------
 
     def test_status_line_is_the_blocks_where_and_next_on_one_line(self) -> None:
-        """A packet that is not a milestone carries this one line in place of the block (packet review F6, 2026-10-17)."""
+        """A packet that is not a milestone carries this one line in place of the block (packet review F6, 2026-10-17).
+
+        It ends with the run's own goal: between boundaries the narrative is absent, so this is the only place a
+        non-milestone packet carries the request's words (2026-11-03). The goal is appended, keeping ``Where:`` first
+        for the hooks' ``LINE`` match.
+        """
         state = self.advance_to(self.planned(self.ROWS), "test")
         block = navigator.status_block(state)
         where = line(block, "Where").split(":", 1)[1].strip()
         upcoming = line(block, "Next").split(":", 1)[1].strip()
-        self.assertEqual(navigator.status_line(state), f"Where: {where} · Next: {upcoming}")
+        self.assertEqual(navigator.status_line(state),
+                         f"Where: {where} · Next: {upcoming} · Run: Add a --version flag.")
         self.assertEqual(hook.LINE.fullmatch(navigator.status_line(state))["where"], where)
 
     def test_a_packet_carries_one_progress_block_and_status_keeps_the_full_block(self) -> None:

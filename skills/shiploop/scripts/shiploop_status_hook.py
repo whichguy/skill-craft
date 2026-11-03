@@ -29,9 +29,13 @@ END = "=== end ShipLoop status ==="
 BOLD, PLAIN = "\x1b[1m", "\x1b[22m"
 NARRATIVE_BEGIN = "=== ShipLoop narrative ==="
 NARRATIVE_END = "=== end ShipLoop narrative ==="
-# A packet that is not a milestone carries this one line instead, "Where: <where> · Next: <next>"
+# A packet that is not a milestone carries this one line instead, "Where: <where> · Next: <next> · Run: <goal>"
 # (shiploop_navigator.status_line); the full block is printed only by `shiploop status` (packet review F6, 2026-10-17).
-LINE = re.compile(r"^Where: (?P<where>.+?) · (?P<label>Next|Waiting on you|Waiting on a service|Stopped): (?P<value>.+)$", re.M)
+# The trailing `Run:` field is optional inside `value` so a packet from before 2026-11-03 still parses, and it stays
+# part of `value` rather than a new named group: the hook shows Where and Next only, and a group it never reads would
+# make the parsed rows and the printed message disagree.
+LINE = re.compile(r"^Where: (?P<where>.+?) · (?P<label>Next|Waiting on you|Waiting on a service|Stopped): "
+                  r"(?P<value>.+?)(?: · Run: .*)?$", re.M)
 HEADER = "ShipLoop navigator | "
 # The progress must end this early in stdout: the navigator's PRINT_LIMIT, the most a
 # packet prints whole, and a head (up to 20,000 characters) puts the progress block

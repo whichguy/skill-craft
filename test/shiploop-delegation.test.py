@@ -429,10 +429,11 @@ class StepTests(DelegationStateTests):
             self.assertIn("Build \u25b6", status)  # the Build group is current, never done, while steps remain
             self.assertNotIn("Build \u2713", status)
             self.assertIn("Next:      implement:", status)
-            # step 1 follows validate-existing (a milestone: the narrative), step 2 follows step 1 (the status line)
+            # Since 2026-11-03 only run boundaries show the narrative, and neither step 1 (after validate-existing)
+            # nor step 2 (after step 1) is one: both carry the one-line status line.
             shown = hook.packet_progress(packet)
             self.assertRegex(shown, r"Build (>|\u203a) implement")
-            self.assertEqual(shown.startswith(nav.narrative.BEGIN), accepted == 0)
+            self.assertFalse(shown.startswith(nav.narrative.BEGIN), "a mid-item packet shows the status line")
             snapshot = "\n".join(nav._progress_lines(step))
             self.assertIn("Current: implement", snapshot)
             self.assertIn(f"Current stage implement: in progress ({accepted} of 2 steps accepted)", snapshot)
@@ -686,7 +687,11 @@ class StepBlockTests(unittest.TestCase):
             with self.subTest(surface=name):
                 self.assertNotIn("Step paths", text)
                 self.assertNotIn("(change only these)", text)
-                self.assertNotRegex(text, r"(?m)^\s*(Paths|Where): ")
+                # T8's clutter rule: the Step block replaces the removed `Paths:` line. `Where:` is now the one-line
+                # status a non-milestone packet carries (2026-11-03: only run boundaries show the narrative), so it is
+                # allowed exactly once, not as a repeated per-step line.
+                self.assertNotIn("Paths:", text)
+                self.assertLessEqual(text.count("\nWhere: "), 1, "the status line appears at most once")
 
     def test_a_step_quotes_its_own_criterion_and_cases_and_not_a_later_steps(self):
         """T9: S1's packet and its review quote C1 and its case TC-1, and neither C3's text nor its case; S3's review

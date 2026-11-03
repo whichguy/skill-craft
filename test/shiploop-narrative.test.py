@@ -102,9 +102,12 @@ class NarrativeTests(unittest.TestCase):
         state = self.driver.planned(ROWS)
         state = self.driver.advance_to(state, "carry-forward")
         state = self.driver.produce(state, headline="Loader split into two modules; 12 tests added")
+        # The item boundary is `carry-forward`: this state, before any further advance, is a milestone.
+        closed_item = state
+        self.assertTrue(navigator.narrative_facts(closed_item)["milestone"], "the carry-forward that closed W1")
         state = self.driver.advance_to(state, "test-spec")
         facts = navigator.narrative_facts(state)
-        self.assertFalse(facts["milestone"])  # mid-group
+        self.assertFalse(facts["milestone"])  # mid-item
         self.assertEqual(facts["achieved"][0], {"label": "W1 Config loader refactor",
                                                 "text": "Loader split into two modules; 12 tests added"})
         self.assertEqual(facts["now"]["label"], "W2 Add --version flag (2 of 3) › Plan › test-spec")
@@ -112,7 +115,24 @@ class NarrativeTests(unittest.TestCase):
         self.assertIn({"label": "W3 Document the flag", "text": ""}, facts["ahead"])
         self.assertIn("Preparation ✓", narrative.markdown(facts))
         self.assertIn("**Work items 1/3**", narrative.markdown(facts))
-        self.assertTrue(navigator.narrative_facts(self.driver.advance_to(state, "validate-existing"))["milestone"])
+        # A mid-item stage carries the status line, like every other non-boundary stage (2026-11-03).
+        self.assertFalse(navigator.narrative_facts(self.driver.advance_to(state, "validate-existing"))["milestone"])
+
+    def test_only_the_run_boundaries_are_milestones_so_the_narrative_is_asked_for_few_times(self) -> None:
+        """The narrative is a full summary a person reads at a boundary; asked 20 times an item run the model showed it
+        at 61% (measured 2026-11-03 over 2,111 emissions in 102 runs). The milestones are the start, `prepare`, each
+        item's `carry-forward`, and the outer outcomes; every other stage carries the one-line status instead."""
+        # The rule's membership, stated once: a boundary shows the narrative, every other stage does not.
+        self.assertEqual(sorted(navigator._MILESTONE_STAGES),
+                         ["carry-forward", "handoff", "prepare", "product-acceptance", "release"])
+        # A stage that is not a boundary carries no narrative: test-spec follows step-plan inside the item's Plan group.
+        mid_item = self.driver.advance_to(self.driver.planned(ROWS), "test-spec")
+        self.assertFalse(navigator.narrative_facts(mid_item)["milestone"])
+        self.assertEqual(navigator.narrative_lines(mid_item), [])
+        # Preparation complete is a boundary, so the run does not fall silent for the prelude's median 26%: the
+        # boundary counts once `prepare` is the last accepted stage, which is one produce after advance_to stops.
+        at_prepare = self.driver.produce(self.driver.advance_to(self.driver.state(), "prepare"))
+        self.assertTrue(navigator.narrative_facts(at_prepare)["milestone"])
 
     def test_an_improve_stage_is_never_a_milestone_and_its_packet_carries_no_progress(self) -> None:
         """The milestone test reads the last accepted step, which an Improve child does not change: the reviewed result
@@ -120,8 +140,11 @@ class NarrativeTests(unittest.TestCase):
         packet before it (8 of 11 Improve packets of a live run, packet review F6, 2026-10-17)."""
         root = self.driver.repo.parent / "improve-run"
         root.mkdir()
+        # The producer whose result is reviewed is `spec`. Before 2026-11-03 a prelude stage such as `research` made
+        # the preceding packet a milestone; now the prelude's boundary is `prepare`, which is AFTER `spec`, so the
+        # property this test pins is unchanged and simpler to state: an Improve packet is never a milestone and carries
+        # no progress block, whatever the producer's own packet showed.
         spec = self.driver.advance_to(self.driver.state(), "spec")
-        self.assertTrue(navigator.narrative_facts(spec)["milestone"])  # research was just accepted
         parked = self.driver.act(spec, summary="Spec drafted.")
         self.assertIsNotNone(parked.get("active_improve"))
         self.assertFalse(navigator.narrative_facts(parked)["milestone"])
@@ -167,20 +190,31 @@ class NarrativeTests(unittest.TestCase):
         # Preparation, work items and release are all averages of unequal steps (a recorded preparation's stages ran
         # from 0.8 to 9.6 minutes, another's from 2.5 to 121); a forecast read 2.4 to 6.8 times short at its first
         # showing in five recorded preparations.
-        prepared = self.driver.advance_to(self.driver.state(), "research")
-        working = self.driver.advance_to(self.driver.advance_to(self.driver.planned(ROWS), "test-spec"), "implement")
-        releasing = self.driver.advance_to(self.driver.advance_to(self.driver.planned(ROWS), "carry-forward"),
-                                           "system-test-author")
-        for scope, state in (("preparation", prepared), ("work items", working), ("release", releasing)):
+        # Each scope is sampled at a milestone boundary (start, `prepare`, `carry-forward`, `product-acceptance`):
+        # since 2026-11-03 only those carry the narrative, so a mid-scope stage has no pace text to check.
+        # `advance_to` stops BEFORE the stage runs, so the boundary's own acceptance is one more `produce`:
+        # a boundary stage is a milestone once it is the last accepted stage.
+        preparing = self.driver.produce(self.driver.advance_to(self.driver.state(), "prepare"))
+        closing_item = self.driver.produce(self.driver.advance_to(self.driver.planned(ROWS), "carry-forward"))
+        releasing = self.driver.produce(self.driver.advance_to(closing_item, "product-acceptance"))
+        for scope, state in (("preparation", preparing), ("work items", closing_item), ("release", releasing)):
             with self.subTest(scope):
                 begin = datetime.datetime(2026, 1, 1, 10, 0, tzinfo=datetime.timezone.utc)
                 stamps = {row["action"]: (begin + datetime.timedelta(minutes=2 * (n + 1))).strftime("%Y-%m-%dT%H:%M:%SZ")
                           for n, row in enumerate(state["history"])}
                 lines = navigator.narrative_lines(state, {"started": "2026-01-01T10:00:00Z", "accepted": stamps})
+                self.assertTrue(lines, f"the {scope} boundary must show the narrative")
                 text = "\n".join(lines)
                 self.assertRegex(text, r"\*\*⏱ Pace\*\* — \d+ steps in \d+ (min|h)[^\n·]*(\n|$)")
                 self.assertNotIn("left in", text)
                 self.assertNotIn("estimate", text)
+        # The run's start is a boundary too, but it has accepted nothing yet: the narrative shows, and the pace line
+        # is correctly absent rather than a fabricated "0 steps".
+        start = self.driver.state()
+        start_lines = navigator.narrative_lines(start, {"started": "2026-01-01T10:00:00Z", "accepted": {}})
+        self.assertTrue(start_lines, "the start of a run shows the narrative")
+        self.assertNotIn("Pace", "\n".join(start_lines))
+        self.assertNotIn("left in", "\n".join(start_lines))
 
     def test_host_text_is_cleaned(self) -> None:
         state = self.driver.produce(self.driver.state(),
