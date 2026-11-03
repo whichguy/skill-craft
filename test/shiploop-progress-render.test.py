@@ -53,14 +53,36 @@ def snapshot() -> dict:
             {
                 "id": "D1",
                 "title": "Accepted behavior",
-                "path": "spec.md",
-                "uri": "file:///tmp/spec%20one.md",
+                "path": "results/spec acceptance.md",
+                "uri": "file:///tmp/results/spec%20acceptance.md",
                 "content": "# CLI behavior\nShow <script>alert(1)</script> and exit 0.",
                 "summary": "The flag prints the package version.",
                 "sha256": "abc123",
                 "observed_at": "2026-09-28T09:58:00Z",
                 "status": "accepted-result",
                 "acceptance": "Tests pass.",
+            },
+            {
+                "id": "current-spec",
+                "title": "Current-run specification candidate",
+                "path": "current-spec.md",
+                "uri": "file:///tmp/run/current-spec.md",
+                "content": "# Current-run candidate\nR-2: Add the CLI flag.",
+                "summary": "The candidate contains this run's intended changes.",
+                "sha256": "def456",
+                "observed_at": "2026-09-28T09:58:00Z",
+                "status": "draft",
+            },
+            {
+                "id": "prior-aggregate-spec",
+                "title": "Prior accepted aggregate specification",
+                "path": "docs/shiploop/spec.md",
+                "uri": "file:///tmp/repo/docs/shiploop/spec.md",
+                "content": "# Prior accepted aggregate\nR-1: Preserve existing behavior.",
+                "summary": "The aggregate remains the accepted baseline until handoff.",
+                "sha256": "ghi789",
+                "observed_at": "2026-09-28T09:58:00Z",
+                "status": "draft",
             },
         ],
         "activity": [
@@ -122,12 +144,23 @@ class ProgressRenderTests(unittest.TestCase):
         self.assertIn('<details class="document" data-state-key="doc-D1">', page)
         self.assertIn("# CLI behavior", page)
         self.assertIn("Show &lt;script&gt;alert(1)&lt;/script&gt; and exit 0.", page)
-        self.assertIn('href="file:///tmp/spec%20one.md"', page)
+        self.assertIn('href="file:///tmp/results/spec%20acceptance.md"', page)
         self.assertIn("Open local source", page)
         self.assertIn('href="file:///tmp/run/report.html"', page)
         self.assertIn("SHA-256", page)
         self.assertIn("stream navigator", page)
         self.assertIn("stream chain-report", page)
+
+    def test_renders_current_candidate_separately_from_prior_aggregate(self) -> None:
+        page = progress_render.render(snapshot())
+        self.assertIn("Current-run specification candidate", page)
+        self.assertIn("Path</span> current-spec.md", page)
+        self.assertIn('href="file:///tmp/run/current-spec.md"', page)
+        self.assertIn("# Current-run candidate", page)
+        self.assertIn("Prior accepted aggregate specification", page)
+        self.assertIn("Path</span> docs/shiploop/spec.md", page)
+        self.assertIn('href="file:///tmp/repo/docs/shiploop/spec.md"', page)
+        self.assertIn("# Prior accepted aggregate", page)
 
     def test_head_meta_tags_are_closed_so_the_policy_and_color_scheme_both_apply(self) -> None:
         # The policy tag once lacked its closing quote, so it swallowed the next tag and a browser warned that

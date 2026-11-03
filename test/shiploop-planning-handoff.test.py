@@ -83,7 +83,7 @@ class PlanningHandoffTests(unittest.TestCase):
         "intake": "`evidence_refs`: each source used.",
         "discovery": "`evidence_refs`: command, cwd, target, result, coverage limits, output file.",
         "research": "also every file written and source used",
-        "spec": "`evidence_refs`: KNOWLEDGE/spec.md, each requirement section and source used.",
+        "spec": "`evidence_refs`: RUN/current-spec.md, each requirement section and source used.",
         "test-strategy": "`evidence_refs`: KNOWLEDGE/environment.md, KNOWLEDGE/architecture.md, each probe output and source used.",
         "plan": "`evidence_refs`: KNOWLEDGE/architecture.md, any execution graph, every source used. An unrecorded "
                 "conversation is not a handoff.",
@@ -187,7 +187,8 @@ class ContextIndexTests(unittest.TestCase):
 
     def test_the_index_is_derived_and_regenerates_identically(self) -> None:
         with tempfile.TemporaryDirectory(prefix="shiploop-index-") as temp:
-            repo, run = Path(temp) / "repo", Path(temp) / "run"
+            root = Path(temp).resolve()
+            repo, run = root / "repo", root / "run"
             repo.mkdir()
             run.mkdir()
             for stage, _, _, state in full_walk(run, repo, "inline"):

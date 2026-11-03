@@ -30,12 +30,15 @@ SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_current_spec as current_spec  # noqa: E402
 import shiploop_planning_revision as revision  # noqa: E402
+import shiploop_spec_promotion as spec_promotion  # noqa: E402
 import shiploop_standalone_improve as bridge  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_workspace as workspace  # noqa: E402
 sys.path.insert(0, str(ROOT / "test"))
 from shiploop_improve_route import with_route  # noqa: E402
+import shiploop_knowledge_support as knowledge_support  # noqa: E402
 
 
 
@@ -112,6 +115,27 @@ class NavigatorV4Tests(unittest.TestCase):
         while navigator.current_stage(state) != "handoff":
             state = self.complete_synthetic(state)
         return state
+
+    def bound_handoff(self, *, worktree: bool = True) -> tuple[dict, dict[str, str]]:
+        """Bind a synthetic terminal graph and record its reviewed, nonblank current spec."""
+        aggregate = self.repo / "docs" / "shiploop" / "spec.md"
+        aggregate.parent.mkdir(parents=True)
+        aggregate.write_text("# Current spec\n\n## Requirements\n\nR-1: Synthetic requirement.\n", encoding="utf-8")
+        pending = self.at_handoff(worktree=worktree)
+        navigator.save(self.run, pending)
+        pending = store.read_record(self.run / "state.md")
+        candidate = current_spec.path(pending)
+        self.assertEqual(candidate.read_text(encoding="utf-8"), aggregate.read_text(encoding="utf-8"))
+        knowledge_support.write(pending)
+        reviewed_action = next(reversed(pending["improve_results"]))
+        for relative, text in current_spec.reviewed_writes(
+                pending, reviewed_action, current_spec.digest(pending)).items():
+            store.atomic_write_text(self.run / relative, text)
+        reconciliation = {
+            **spec_promotion.hashes(pending),
+            "summary": "The current spec preserves the previously accepted requirement and adds no other scope.",
+        }
+        return pending, reconciliation
 
     def bound_plan_child(self, state: dict) -> tuple[dict, str, dict]:
         self.assertEqual(navigator.current_stage(state), "plan")
@@ -265,12 +289,12 @@ class NavigatorV4Tests(unittest.TestCase):
             navigator.validate(state)
 
     def test_terminal_worktree_handoff_recovers_knowledge_before_guard_and_save(self) -> None:
-        pending = self.at_handoff()
-        navigator.save(self.run, pending)
+        pending, reconciliation = self.bound_handoff()
         action = navigator.current_action(pending)["id"]
         result_path = navigator._result_input_path(self.run, action)
-        result_path.write_text(store.dumps(self.result("handoff", follow_on=[]), "ShipLoop navigator result"),
-                               encoding="utf-8")
+        result_path.write_text(store.dumps(self.result("handoff", follow_on=[],
+                                                       spec_reconciliation=reconciliation),
+                                           "ShipLoop navigator result"), encoding="utf-8")
         args = SimpleNamespace(command="complete", action=action, result=str(result_path))
         report = self.run / "report.html"
         events: list[str] = []
@@ -370,12 +394,12 @@ class NavigatorV4Tests(unittest.TestCase):
             self.assertEqual(len(store.read_record(self.run / "state.md")["history"]), len(completed["history"]))
 
     def test_terminal_in_place_handoff_commit_failure_keeps_pending_then_retries(self) -> None:
-        pending = self.at_handoff(worktree=False)
-        navigator.save(self.run, pending)
+        pending, reconciliation = self.bound_handoff(worktree=False)
         action = navigator.current_action(pending)["id"]
         result_path = navigator._result_input_path(self.run, action)
-        result_path.write_text(store.dumps(self.result("handoff", follow_on=[]), "ShipLoop navigator result"),
-                               encoding="utf-8")
+        result_path.write_text(store.dumps(self.result("handoff", follow_on=[],
+                                                       spec_reconciliation=reconciliation),
+                                           "ShipLoop navigator result"), encoding="utf-8")
         args = SimpleNamespace(command="complete", action=action, result=str(result_path))
         report = self.run / "report.html"
         events: list[str] = []
@@ -788,6 +812,10 @@ class NavigatorV4Tests(unittest.TestCase):
         completed, run = initialize("default-v4")
         self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
         default = store.read_record(run / "state.md")
+        self.assertEqual(default["version"], 12)
+        self.assertEqual(default["spec_root"], str(run.resolve()))
+        self.assertTrue((run / "current-spec.md").is_file())
+        self.assertTrue((run / "spec" / "binding.md").is_file())
         self.assertEqual(default["navigator_protocol_version"], 4)
         self.assertEqual(default["planning_reconciliations"], [])
         for version in ("3", "4"):

@@ -87,6 +87,8 @@ def record(root: str | Path, kind: str, **fields: Any) -> bool:
         run = Path(root)
         if not (run / "state.md").is_file():
             return False
+        if current_state(run) is None:
+            return False
         path = run / TRACE_FILE
         if _capped(path):
             return False
@@ -109,6 +111,9 @@ def current_state(root: str | Path | None) -> dict[str, Any] | None:
         if not isinstance(state, dict) or navigator.retired_run_reason(state) is not None:
             return None
         navigator.validate(state)
+        import shiploop_current_spec as current_spec
+
+        current_spec.assert_binding(Path(root), state)
     except (OSError, ValueError, KeyError, TypeError, store.StorageError):
         return None
     return state
@@ -116,6 +121,8 @@ def current_state(root: str | Path | None) -> dict[str, Any] | None:
 
 def keep_sent(root: str | Path, text: str) -> tuple[str, str]:
     """Keep ``text`` as sent, once per content; returns its short hash and its path relative to the run."""
+    if current_state(root) is None:
+        raise ValueError("trace packet can only be saved for a bound current run")
     sha = hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
     relative = f"{SENT_DIR}/{sha}.md"
     target = Path(root) / relative
@@ -135,7 +142,7 @@ def record_packet(root: str | Path, state: Mapping[str, Any], text: str, printed
         sha, file = keep_sent(root, text)
         whole = printed.startswith(text)
         head = None if whole else keep_sent(root, printed)[1]
-    except (OSError, store.StorageError):
+    except (OSError, ValueError, store.StorageError):
         return False
     child = state.get("active_improve") or {}
     stage, action, item = _cursor(state)
@@ -249,6 +256,9 @@ def build(root: str | Path, *, now: float | None = None) -> dict[str, Any]:
 
     run = Path(root)
     state = store.read_record(run / "state.md")
+    import shiploop_current_spec as current_spec
+
+    current_spec.assert_binding(run, state)
     clock = time.time() if now is None else now
     timeline = navigator.load_timeline(run)
     accepted_at = {action: _parse(stamp) for action, stamp in (timeline.get("accepted") or {}).items()}
@@ -487,7 +497,7 @@ _SENTENCE_READING = re.compile(
 _READING_KIND = re.compile(r"(?i)(outcomes?|boundar(?:y|ies)|open questions?|questions?|defaults?|assumptions?|"
                            r"constraints?)(?:\s+\d+)?(?:\s*\([^()]{0,40}\))?\s*(?:[:=–-]|is\b)\s*")
 _REQUIREMENT = re.compile(r"^###\s+(R-\d+)\.?\s*(.*)$")
-SPEC_LIMIT = 256 * 1024          # guard: the bytes of the living spec the reader reads, so a runaway file cannot stall it
+SPEC_LIMIT = 256 * 1024          # guard: the run-local candidate bytes, so a runaway spec cannot stall the reader
 FIELD_LIMIT = 2000               # display: characters of one expanded field the page shows; the cut names its file
 ANSWER_LIMIT = 8 * 1024          # guard: the bytes of one owner answer the reader reads (the page names its file)
 
@@ -530,7 +540,7 @@ def _bounded_text(path: Path, limit: int) -> str | None:
 
 
 def requirements(path: Path) -> list[dict[str, Any]]:
-    """The living spec's requirements (``### R-n. Title`` and the lines under it), with the section each sits in."""
+    """The selected spec file's requirements (``### R-n. Title`` and its body), with the section each sits in."""
     text = _bounded_text(path, SPEC_LIMIT)
     found: list[dict[str, Any]] = []
     section, current = "", None
@@ -555,10 +565,11 @@ def request_model(run: Path, state: Mapping[str, Any], accepted_at: Mapping[str,
 
     Original: the verbatim prompt and its sentences S1..Sn (``request.md``).  Expanded, from the current accepted
     results only (a reconciled planning result is superseded): intake's reading of each sentence, each planning
-    stage's headline and summary, the living spec's requirements, the work items with their step plans, the plan's
+    stage's headline and summary, the current-run spec candidate's requirements, the work items with their step plans, the plan's
     assumptions, and the owner's answers to questions the run waited on.
     """
     import shiploop_knowledge_home as knowledge
+    import shiploop_current_spec as current_spec
     import shiploop_planning_revision as planning_revision
     import shiploop_request as request_file
 
@@ -606,6 +617,9 @@ def request_model(run: Path, state: Mapping[str, Any], accepted_at: Mapping[str,
         if text is not None:
             answers.append({"file": f"decisions/{path.name}", "action": path.stem, "text": text.strip()})
     home = Path(str(state.get("repo") or "")) / knowledge.HOME
+    candidate_spec = current_spec.path(state)
+    if candidate_spec.parent != Path(run).resolve():
+        raise ValueError("current-spec binding does not belong to the requested trace run")
     sentences = request_file.sentences(prompt)
     return {
         "original": {"text": prompt, "chars": len(prompt), "file": request_file.REQUEST_FILE,
@@ -614,7 +628,10 @@ def request_model(run: Path, state: Mapping[str, Any], accepted_at: Mapping[str,
         "expanded": {
             "through": next((each["stage"] for each in reversed(stages) if each["state"] == "accepted"), None),
             "stages": stages, "mapped": sum(1 for index in range(1, len(sentences) + 1) if readings.get(index)),
-            "requirements": requirements(home / "spec.md"), "spec_file": str(home / "spec.md"),
+            "requirements": requirements(candidate_spec), "spec_file": str(candidate_spec),
+            "aggregate_spec_file": str(home / "spec.md"),
+            "aggregate_spec_role": ("long-running aggregate after final handoff" if state.get("status") == "done"
+                                    else "prior accepted aggregate, retained until final handoff"),
             "architecture_file": str(home / "architecture.md"),
             "work_items": items if any(key[1] == "plan" for key in current) else [],
             "assumptions": assumptions, "answers": answers, "superseded": len(superseded),
@@ -923,7 +940,8 @@ def request_digest(model: Mapping[str, Any]) -> str:
         lines.append(f"  ✓ {stage['stage']:<14} {stage['headline']}" + ("  (+I)" if stage["improve"] else ""))
         if stage["stage"] != "intake" or not expanded["mapped"]:  # a mapped intake summary is the readings above
             lines.append(f"    {'':<14} {_one_line(stage['summary'], 400)}")
-    lines += ["", f"Requirements ({len(expanded['requirements'])}, living spec {expanded['spec_file']}):"]
+    lines += ["", f"Requirements ({len(expanded['requirements'])}, current-run spec candidate {expanded['spec_file']}; "
+              f"{expanded.get('aggregate_spec_role', 'prior aggregate')} at {expanded.get('aggregate_spec_file', 'unavailable')}):"]
     for requirement in expanded["requirements"]:
         lines.append(f"  {requirement['id']:<6} {requirement['title']}  [{requirement['section']}]")
     if not expanded["requirements"]:

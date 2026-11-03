@@ -1671,7 +1671,7 @@ class PlacementDestinationTests(HomeFixture):
         text = " ".join(prompts.PROMPTS["spec"].split())
         self.assertIn("state its basis as a source that stays true in later runs (the request's words with the date, or a "
                       "decision ID; never 'current request')", text)
-        self.assertIn("Title spec.md for the product, not for one request.", text)
+        self.assertIn("Title the spec for the product, not one request.", text)
 
 
 FIXTURES = ROOT / "test" / "fixtures" / "commit-contract"

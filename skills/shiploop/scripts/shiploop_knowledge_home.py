@@ -1,25 +1,13 @@
-"""The repository's ShipLoop knowledge home: three living files, kept and committed by ShipLoop.
+"""ShipLoop's accepted product knowledge and run-local current requirements.
 
-Owner decision 2026-09-26: planning produces knowledge that outlives the run.  The model keeps three living files under
-``docs/shiploop/``; ShipLoop checks them at three closes (prepare, release-plan, release-verify), refuses a living spec
-or architecture that drops an earlier requirement or decision ID, and commits exactly ``docs/shiploop/`` with its own
-message after every accepted stage that changed it.
-
-    docs/shiploop/spec.md            living product spec; stable requirement IDs, a Retired section
-    docs/shiploop/environment.md     targets, commands, harnesses and suites, the ID convention, platform facts
-    docs/shiploop/architecture.md    stack, structure, conventions, interfaces, real-boundary checks; stable decision IDs
-
-Every packet lists the files its stage reads (``READS``) by path, size and table of contents (``outline``; owner decision
-D1, 2026-10-17), and quotes by value only the entries its stage follows.  A run's per-stage records are result fields in its
-state, quoted to their consumers (consumer contract 2026-10-11); release-verify's ``lessons`` become the body of that
-stage's knowledge commit, which the next run's intake and discovery quote (``last_lessons``).
-
-An older repository's ``README.md``, ``test-strategy.md`` and ``features/`` folders are left in place: nothing
-requires, writes or names them.  A repository index at the root is the
-host's file: ShipLoop reads it if present and never commits it.  At each close ShipLoop also prints one counted notice line
-per living file that lacks a named section (``section_notices``); it is a notice, never a refusal.  After any accepted stage that
-changed the home it prints one counted placement line per file whose edit filed a new entry under Retired or Superseded or added a
-level-2 heading that matches no named section or repeats one (``placement_notices``); also a notice, never a refusal.
+The product aggregate docs/shiploop/spec.md retains accepted prior intent until
+final handoff. Each bound run edits current-spec.md, seeded from the exact prior
+bytes; spec promotion is a separate journaled terminal operation. Environment
+and architecture stay in docs/shiploop and are maintained/committed by their
+stage owners. Packets list whole-file locators/outlines and quote only followed
+R/AD entries. Stable IDs, unaffected intent, prior rationale and deferred scope
+survive intentional current-request changes. Code is implementation evidence,
+not a replacement for recorded intent.
 """
 
 from __future__ import annotations
@@ -30,6 +18,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, NamedTuple, Optional, Sequence, Tuple
 
+import shiploop_current_spec as current_spec
 import shiploop_git as shiploop_git
 import shiploop_stage_spec as stage_spec
 
@@ -124,6 +113,24 @@ class Quote(NamedTuple):
     text: Optional[str]   # the whole file, uncut; None when it is absent, blank or cannot be read
 
 
+def spec_path(source: Mapping[str, Any] | Path) -> Path:
+    """Current requirements for a bound run; an explicit repo parses its aggregate.
+
+    An unpersisted new_state has no run root yet and is useful for pure graph
+    simulations. Persisted CLI runs must validate their binding before calling.
+    A bound run never falls back to the aggregate when its candidate is missing.
+    """
+    if isinstance(source, Mapping):
+        if source.get("spec_root"):
+            return current_spec.path(source)
+        source = Path(str(source["repo"]))
+    return Path(source) / HOME / "spec.md"
+
+
+def artifact_path(state: Mapping[str, Any], name: str) -> Path:
+    return spec_path(state) if name == "spec.md" else Path(str(state["repo"])) / HOME / name
+
+
 def reads_quotes(state: Mapping[str, Any], stage: str) -> List[Quote]:
     """The living files ``stage`` reads (``READS``), each whole and uncut, in the row's order.
 
@@ -135,7 +142,7 @@ def reads_quotes(state: Mapping[str, Any], stage: str) -> List[Quote]:
     repo = Path(str(state["repo"]))
     quotes = []
     for name in READS[stage]:
-        path = repo / HOME / name
+        path = artifact_path(state, name)
         try:
             text: Optional[str] = path.read_text(encoding="utf-8-sig", errors="replace") if path.is_file() else None
         except OSError:
@@ -200,7 +207,7 @@ def run_label(state: Mapping[str, Any]) -> str:
 
 
 def _expand(names: Sequence[str], state: Mapping[str, Any]) -> List[str]:
-    return [HOME + "/" + name for name in names]
+    return [str(artifact_path(state, name)) for name in names]
 
 
 def _filled(path: Path) -> bool:
@@ -239,9 +246,13 @@ def _destination_line(stage: str, written: Sequence[str]) -> str:
 def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
     """Packet lines: where the knowledge home is and what this stage keeps up to date there."""
     repo = Path(str(state["repo"]))
-    lines = ["", "Repository knowledge home (committed, inherited by later runs): " + str(repo / HOME) + "/: "
-             + ", ".join(str(repo / HOME / name) for name in LIVING) + ". Earlier runs' spec, environment and "
-             "architecture are there; open a file when this stage needs it."]
+    lines = ["", "Current-run spec: " + str(spec_path(state)) + ". Accepted prior aggregate: "
+             + str(repo / HOME / "spec.md") + " (unchanged until final handoff). Environment and architecture: "
+             + str(repo / HOME / "environment.md") + ", " + str(repo / HOME / ARCHITECTURE)
+             + ". Reuse prior decisions; recheck environment facts."]
+    if state.get("spec_root") and stage in ("intake", "discovery", "research", "spec", "plan", "step-plan", "handoff"):
+        lines.append("Exact prior snapshots and explicit absence: RUN/spec/binding.md and its snapshot paths. "
+                     "Retrieve affected older full decisions and rejected alternatives; the recent messages below are a starting point.")
     written, earlier = STAGE_FILES.get(stage, ()), required_earlier(stage)
     if written:
         lines.append("This stage keeps these up to date (create them if missing): "
@@ -278,10 +289,10 @@ def stage_lines(state: Mapping[str, Any], stage: str) -> List[str]:
                      "considerations and what a later run should pick up; ShipLoop writes them into this run's "
                      "release-verify knowledge commit, which the next run's intake quotes.")
     if stage == "spec":
-        lines.append("spec.md is the living spec: start from the committed one, keep every requirement ID "
-                     "(R-<n>), change it in place, and move a dropped requirement under a 'Retired' heading "
-                     "with its reason. ShipLoop refuses a spec that loses an earlier ID. ShipLoop derives this run's "
-                     "requirement changes from the diff since the run began; no list of them is written.")
+        lines.append("Edit RUN/current-spec.md, seeded once from the prior aggregate. Keep every R-<n>; intentionally "
+                     "replace conflicting clauses in place or retire with a reason. Preserve unaffected clauses and deferred "
+                     "scope. Code shows implementation, not approved intent. ShipLoop refuses a spec that loses an earlier ID. "
+                     "ShipLoop derives this run's requirement changes from the diff since the run began; no manual change list.")
     if stage in CLOSES:
         lines.append("On done ShipLoop checks these files and commits " + HOME + "/ in the execution checkout.")
     else:
@@ -315,9 +326,15 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
     only in an edit still uncommitted: an edit a review already committed through ``improve-commit`` is the baseline.
     """
     repo = Path(str(state["repo"]))
-    if _git(repo, "rev-parse", "--is-inside-work-tree").returncode != 0:
+    bound = bool(state.get("spec_root"))
+    if bound:
+        import shiploop_spec_promotion as promotion
+        refusal = promotion.aggregate_refusal(state)
+        if refusal:
+            return refusal
+    if not bound and _git(repo, "rev-parse", "--is-inside-work-tree").returncode != 0:
         return ""
-    if stage not in CLOSES and not _home_changed(repo):
+    if not bound and stage not in CLOSES and not _home_changed(repo):
         return ""
     required = _expand(CLOSES.get(stage, ()), state)
     missing = [path for path in required if not _filled(repo / path)]
@@ -339,9 +356,11 @@ def check(state: Mapping[str, Any], stage: str, command: str = "complete") -> st
     # uncommitted, which is why the knowledge gate runs before the commit gate on the Improve stage's route.
     refusals = []
     for name, ids, what, kind, section in _RETAINED:
-        path = repo / HOME / name
+        path = artifact_path(state, name)
         now = set(ids.findall(path.read_text(encoding="utf-8", errors="replace"))) if path.is_file() else set()
-        dropped = sorted(set(ids.findall(_committed(repo, name))) - now, key=lambda value: int(value.split("-")[1]))
+        prior = (current_spec.prior_snapshot(state, "spec" if name == "spec.md" else "architecture") or "") if bound else ""
+        baseline = prior + "\n" + current_spec.accepted_text(state) if name == "spec.md" and bound else prior + "\n" + _committed(repo, name)
+        dropped = sorted(set(ids.findall(baseline)) - now, key=lambda value: int(value.split("-")[1]))
         if dropped:
             prefix = dropped[0].split("-")[0]
             if command == "complete":
@@ -432,7 +451,7 @@ def section_notices(state: Mapping[str, Any], stage: str) -> List[str]:
     repo = Path(str(state["repo"]))
     notices: List[str] = []
     for name, headings in SECTIONS.items():
-        path = repo / HOME / name
+        path = artifact_path(state, name)
         if not _filled(path):
             continue
         try:
@@ -623,13 +642,14 @@ def _entries(text: str, prefix: str) -> Dict[str, Entry]:
     return found
 
 
-def entries(repo: Path, name: str) -> Dict[str, Entry]:
+def entries(repo: Path | Mapping[str, Any], name: str) -> Dict[str, Entry]:
     """The entries of ``spec.md`` (R-) or ``architecture.md`` (AD-) in the checkout; {} when the file is absent or blank.
 
     Files only, no Git.
     """
     prefix = next(key for key, (file, _) in _ENTRY_FILES.items() if file == name)
-    path = Path(repo) / HOME / name
+    path = (spec_path(repo) if name == "spec.md" else
+            Path(str(repo["repo"]) if isinstance(repo, Mapping) else repo) / HOME / name)
     try:
         text = path.read_text(encoding="utf-8-sig", errors="replace") if path.is_file() else ""
     except OSError:
@@ -637,7 +657,7 @@ def entries(repo: Path, name: str) -> Dict[str, Entry]:
     return _entries(text, prefix) if text.strip() else {}
 
 
-def step_spec_refusal(repo: Path, marker: str) -> str:
+def step_spec_refusal(repo: Path | Mapping[str, Any], marker: str, baseline: str | None = None) -> str:
     """Refusal text when an inline step's uncommitted spec.md edit does more than add requirement lines ('' when it
     adds only those, or leaves spec.md as HEAD holds it).  Implement and document check it at their complete, and the
     step's review at its import, so the step's commit holds the tree a gate ran on (design T §9.1 2b-3).
@@ -649,9 +669,10 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
     changes the contract, which is the step plan's to decide: the refusal names send-back.  Earlier steps' lines are
     committed with their steps, so HEAD is this step's baseline.
     """
-    path = Path(repo) / HOME / "spec.md"
-    old = _committed(Path(repo), "spec.md")
-    new = path.read_text(encoding="utf-8", errors="replace") if path.is_file() else ""
+    path = spec_path(repo)
+    product = Path(str(repo["repo"])) if isinstance(repo, Mapping) else Path(repo)
+    old = baseline if baseline is not None else _committed(product, "spec.md")
+    new = path.read_bytes().decode("utf-8") if path.is_file() else ""
     if old == new or not old.strip():
         return ""
     before, after = old.splitlines(), new.splitlines()
@@ -677,15 +698,15 @@ def step_spec_refusal(repo: Path, marker: str) -> str:
         return ""
     found = [label + ": " + "; ".join(lines) for label, lines in (
         ("changed or removed", changed), ("without the step's mark", unmarked),
-        ("outside an R-<n> entry the committed spec holds", outside))
+        ("outside an R-<n> entry the accepted baseline holds", outside))
         if lines]
-    return ("Restore " + str(path) + " to what HEAD holds plus this step's requirement lines, then run the same "
+    return ("Restore " + str(path) + " to its accepted step-plan baseline plus this step's requirement lines, then run the same "
             "callback again; to change a requirement, report send-back naming it.\n"
-            "In a step, spec.md takes only new lines inside an R-<n> entry the committed spec holds, each ending ("
-            + marker + "); ShipLoop commits them with the step. Found: " + " | ".join(found) + ".")
+            "In a step, current-spec.md takes only new lines inside an R-<n> entry the accepted baseline holds, each ending ("
+            + marker + "); ShipLoop retains them with the step. Found: " + " | ".join(found) + ".")
 
 
-def entry_text(repo: Path, ident: str) -> Optional[str]:
+def entry_text(repo: Path | Mapping[str, Any], ident: str) -> Optional[str]:
     """The entry of requirement ``R-<n>`` (spec.md) or decision ``AD-<n>`` (architecture.md), uncut; None when there is none.
 
     A malformed ID raises ValueError.
@@ -815,12 +836,12 @@ def placement_notices(state: Mapping[str, Any]) -> List[str]:
         return []
     notices: List[str] = []
     for name in LIVING:
-        path = repo / HOME / name
+        path = artifact_path(state, name)
         try:
             now = path.read_text(encoding="utf-8-sig", errors="replace") if path.is_file() else ""
         except OSError:
             continue
-        before = _committed(repo, name)
+        before = current_spec.prior_text(state) if name == "spec.md" and state.get("spec_root") else _committed(repo, name)
         if not now.strip() or before == now:
             continue
         clauses: List[str] = []
@@ -966,10 +987,31 @@ def record_baseline(root: Path, state: Mapping[str, Any]) -> Optional[str]:
 
 
 def spec_diff(root: Path, state: Mapping[str, Any]) -> Optional[str]:
-    """``git diff <baseline> -- docs/shiploop/spec.md docs/shiploop/architecture.md`` against the working tree, uncut.
+    """The uncut prior-to-current spec and architecture diff.
 
-    "" when neither changed since the run began; None when the run recorded no baseline or the repository is no checkout.
+    Bound runs compare exact immutable initial snapshots with the current
+    candidate and live architecture, including non-Git and dirty starts.
+    Unbound pure graph callers retain the explicit Git-baseline comparison;
+    only that path returns None for a missing baseline or non-Git repository.
     """
+    if state.get("spec_root"):
+        chunks = []
+        for name, old, target in (
+                ("spec.md", current_spec.prior_text(state), spec_path(state)),
+                (ARCHITECTURE, current_spec.prior_snapshot(state, "architecture") or "",
+                 artifact_path(state, ARCHITECTURE))):
+            now = target.read_bytes().decode("utf-8") if target.is_file() else ""
+            if old != now:
+                label = "RUN/current-spec.md" if name == "spec.md" else HOME + "/" + name
+                hunk = []
+                for line in difflib.unified_diff(old.splitlines(keepends=True), now.splitlines(keepends=True),
+                                                 fromfile="prior/" + name, tofile=label):
+                    hunk.append(line)
+                    if not line.endswith("\n"):
+                        hunk.append("\n\\ No newline at end of file\n")
+                chunks.append("diff --git a/" + label + " b/" + label + "\n"
+                              + ("new file mode 100644\n" if not old else "") + "".join(hunk))
+        return "".join(chunks)
     repo = Path(str(state["repo"]))
     try:
         baseline = (Path(root) / RUN_BASELINE).read_text(encoding="utf-8").strip()
@@ -1014,7 +1056,7 @@ def in_home(path: str) -> bool:
 
 
 __all__ = ("ARCHITECTURE",
-           "step_spec_refusal",
+           "step_spec_refusal", "spec_path", "artifact_path",
            "ARCHITECTURE_HOLDS",
            "CLOSES",
            "Entry",

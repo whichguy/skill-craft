@@ -277,10 +277,15 @@ recorded run in [A real run](#a-real-run-stage-by-stage); `RUN` below means the 
   workspace.md          your original checkout, its branch and the baseline commit
   worktree/             the run's checkout: all product work happens here
     hello.py  test_hello.py
-    docs/shiploop/      the knowledge home: spec.md, environment.md, architecture.md
+    docs/shiploop/      accepted spec.md aggregate; environment.md and architecture.md
   run/                  the navigator's state
     state.md            the authoritative state (never edit it)
     request.md          your request, split into sentences S1..Sn
+    current-spec.md     the full run candidate, initialized from the accepted spec
+    spec/
+      binding.md        prior snapshot hashes and any absent sources
+      prior-spec.md  prior-architecture.md  prior-environment.md
+      reviewed.md       candidate snapshot bound to the accepted Improve review
     packets/            every packet; packets/sent/ holds each print exactly as sent
     inbox/  results/    the result the model wrote, and the result ShipLoop accepted
     tests/  checks/  lint/  expectations/  loops/  improve/  iterations/  commits/  notes/
@@ -290,9 +295,12 @@ recorded run in [A real run](#a-real-run-stage-by-stage); `RUN` below means the 
   return-receipt.md     the script's record of the return; the run is done only after it exists
 ```
 
-The **knowledge home**, `docs/shiploop/` in your repository, holds the living `spec.md`, `environment.md` and `architecture.md`. It is
-committed with your code, so the next run starts from what the last one decided. The model's per-run notes and the packets stay in
-the run directory, outside your repository. File-by-file reference: [state files](references/state-files.md).
+The **knowledge home**, `docs/shiploop/`, holds the accepted prior spec plus the maintained environment and architecture. Each run
+starts `run/current-spec.md` from the exact prior spec and keeps immutable run-start snapshots and their presence in `run/spec/`.
+Packets read and update the candidate while the accepted aggregate stays unchanged. At final handoff, ShipLoop reconciles the
+reviewed candidate with the prior intent, request and delivered evidence, then promotes that candidate into `docs/shiploop/spec.md`.
+The next run starts from the promoted aggregate. The model's per-run notes and packets stay outside the product repository.
+File-by-file reference: [state files](references/state-files.md).
 
 ## Use cases
 

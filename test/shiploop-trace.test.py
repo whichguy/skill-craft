@@ -30,6 +30,7 @@ CLI = SCRIPTS / "shiploop"
 sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_keepalive as keepalive  # noqa: E402
+import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_trace as trace  # noqa: E402
@@ -431,9 +432,10 @@ class TraceRequestTests(CliRun):
 
     def test_the_request_shows_the_original_and_each_planning_result(self) -> None:
         self.drive()
-        spec = self.repo / "docs" / "shiploop" / "spec.md"
-        spec.parent.mkdir(parents=True)
-        spec.write_text("# Living spec\n\n## Requirements\n\n### R-1. Greeting\n\n- Positive: prints Hello.\n\n"
+        state = store.read_record(self.run / "state.md")
+        spec = knowledge.spec_path(state)
+        aggregate = Path(state["repo"]) / knowledge.HOME / "spec.md"
+        spec.write_text("# Current spec candidate\n\n## Requirements\n\n### R-1. Greeting\n\n- Positive: prints Hello.\n\n"
                         "## Non-functional requirements\n\n### R-2. Secrets\n\napi_key=sk-live-abcdefghijklmnop1234567890\n",
                         encoding="utf-8")
         (self.run / "decisions").mkdir(exist_ok=True)
@@ -445,6 +447,9 @@ class TraceRequestTests(CliRun):
              "readings": [{"kind": "outcome", "text": "greet.py prints Hello and the name (fact)."}]}])
         expanded = request["expanded"]
         self.assertEqual(expanded["through"], "intake")
+        self.assertEqual(expanded["spec_file"], str(spec))
+        self.assertEqual(expanded["aggregate_spec_file"], str(aggregate))
+        self.assertEqual(expanded["aggregate_spec_role"], "prior accepted aggregate, retained until final handoff")
         self.assertEqual([(stage["stage"], stage["state"]) for stage in expanded["stages"]][:2],
                          [("intake", "accepted"), ("discovery", "pending")])
         self.assertEqual([(r["id"], r["title"], r["section"]) for r in expanded["requirements"]],

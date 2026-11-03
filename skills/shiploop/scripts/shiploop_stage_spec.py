@@ -257,7 +257,7 @@ _ROWS = (
     ),
     Stage(
         "spec", "prelude",
-        goal="Define each requirement and its acceptance lines as R-<n> in KNOWLEDGE/spec.md; ShipLoop derives this run's ID changes from the spec diff.",
+        goal="Define R-<n> acceptance lines in RUN/current-spec.md; preserve prior intent. ShipLoop derives this run's ID changes from the spec diff.",
         short_goal='specify the requirements',
         done_when=(
             "every request outcome maps to at least one acceptance line",

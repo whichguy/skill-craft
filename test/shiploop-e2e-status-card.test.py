@@ -13,7 +13,11 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS = ROOT / "skills" / "shiploop" / "scripts"
+sys.path.insert(0, str(SCRIPTS))
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
+import shiploop_current_spec as current_spec  # noqa: E402
+import shiploop_store as store  # noqa: E402
 import status_card  # noqa: E402
 
 MODEL = {
@@ -191,11 +195,17 @@ class Builders(unittest.TestCase):
         folder = self.base / "battleship-traced"
         run = folder / ".shiploop-runs" / "work-1" / "run"
         run.mkdir(parents=True)
+        repo = folder / "source-repo"
+        (repo / "docs" / "shiploop").mkdir(parents=True)
         history = [{"stage": stage, "outcome": "done", "workitem": None} for stage in ("intake", "discovery")]
         history.append({"stage": "step-plan", "outcome": "done", "workitem": "W1"})
-        state = {"status": "active", "stage": "inner-loop", "work_index": 0, "work_items": [{"id": "W1"}],
+        state = {"version": 12, "run_id": "nav-status-card-fixture", "repo": str(repo.resolve()), "spec_root": "",
+                 "status": "active", "stage": "inner-loop", "work_index": 0, "work_items": [{"id": "W1"}],
                  "history": history, "inner_loops": {"W1": {"stage": "test-spec"}}}
-        (run / "state.md").write_text("# state\n\n```shiploop-state\n" + json.dumps(state) + "\n```\n", encoding="utf-8")
+        writes = current_spec.initialize_writes(run, state)
+        state["spec_root"] = str(run.resolve())
+        writes["state.md"] = store.dumps(state, "ShipLoop state")
+        store.transaction(run, writes)
         rows = [{"kind": "command", "verb": "workspace", "exit": 0, "ts": 1000.0},
                 {"kind": "packet", "action": "a1", "stage": "intake", "item": None, "ts": 1001.0},
                 {"kind": "command", "verb": "complete", "exit": 0, "stage": ["intake", "discovery"], "action": "a1", "ts": 1060.0},

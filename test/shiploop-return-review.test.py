@@ -31,6 +31,8 @@ if str(SCRIPTS) not in sys.path:
     sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_navigator as navigator  # noqa: E402
+import shiploop_current_spec as current_spec  # noqa: E402
+import shiploop_spec_promotion as spec_promotion  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_workspace as workspace  # noqa: E402
 
@@ -126,6 +128,26 @@ class ReturnReviewCase(unittest.TestCase):
 
     def do_return(self, root: Path, code: int = 0) -> subprocess.CompletedProcess:
         return self.cli("workspace", "return", "--workspace-root", str(root), code=code)
+
+    def synthetic_spec_review(self, run: Path, candidate: str | None = None) -> dict:
+        """Bind the candidate to a graph-simulated accepted Improve; this is mechanical evidence, not a live review."""
+        state = store.read_record(run / "state.md")
+        if candidate is not None:
+            current_spec.path(state).write_bytes(candidate.encode("utf-8"))
+        improvements = list(state.get("improve_results") or {})
+        self.assertTrue(improvements, "the synthetic graph walk must accept an Improve before it can seed a review record")
+        action = improvements[-1]
+        writes = current_spec.reviewed_writes(state, action, current_spec.digest(state))
+        relative, text = next(iter(writes.items()))
+        store.atomic_write_text(run / relative, text)
+        return state
+
+    @staticmethod
+    def handoff_result(state: dict, summary: str) -> dict:
+        """Build an exact hash reconciliation for the fixture's current and immutable prior spec text."""
+        return {"outcome": "done", "summary": summary, "follow_on": [],
+                "spec_reconciliation": {**spec_promotion.hashes(state),
+                                         "summary": summary}}
 
     @staticmethod
     def plan(root: Path) -> dict:
@@ -339,9 +361,11 @@ class ReviewReturnTests(ReturnReviewCase):
 
     def test_the_handoff_refusal_names_plan_return_then_review_return_then_return(self) -> None:
         root, _, run = self.candidate("handoff text")
+        state = self.synthetic_spec_review(run, "R-1: Synthetic current candidate for return-guard coverage.\n")
         action = navigator.current_action(store.read_record(run / "state.md"))
         result = run / "inbox" / f"{action['id']}.md"
-        store.write_record(result, {"outcome": "done", "summary": "Rejected without a return.", "follow_on": []},
+        store.write_record(result, self.handoff_result(
+            state, "Synthetic nonblank candidate fixture; testing the missing workspace return guard only."),
                            "ShipLoop navigator result")
         refused = self.cli("complete", "--run-dir", str(run), "--action", action["id"], "--result", str(result), code=2)
         text = refused.stderr
@@ -765,7 +789,7 @@ class ReturnRouteTests(ReturnReviewCase):
                     self.assertEqual(sum(line.startswith("Execution checkout: ") for line in packet.splitlines()), 0)
                     self.assertEqual(sum(line.startswith("WORKTREE = ") and "all product work" in line
                                          for line in packet.splitlines()), 1)
-                    self.assertIn("returned to the original branch only at release or handoff", packet)
+                    self.assertIn("returned to the original branch at release or handoff", packet)
                     for absent in ("Return route", "Return plan:", "Rollback of the return", "Workspace authority"):
                         self.assertNotIn(absent, packet)
                     continue

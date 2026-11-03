@@ -14,6 +14,7 @@ import io
 import shlex
 import subprocess
 import sys
+import json
 import tempfile
 import types
 import unittest
@@ -331,3 +332,27 @@ class RunDriver(unittest.TestCase):
 
 __all__ = ("CORE", "DONE", "IMPROVE_CARD", "KNOWLEDGE_NONE", "LESSONS", "test_cases_for", "RunDriver", "SKILL_NONE", "expectations_for", "fill", "git", "loop",
            "fixture_follows", "fixture_intake", "fixture_primary", "no_concerns_map", "prepare")
+
+
+def fixture_current_spec_pass(root: Path, state: Mapping[str, Any], child: Mapping[str, Any], number: int = 1) -> None:
+    """Add explicit synthetic spec identity to a fixture's already-completed review pass.
+
+    The caller owns the fake review/runtime evidence; this is not product proof.
+    It never rebinds a child or rewrites an earlier pass's different digest, so
+    a later candidate edit still exercises stale-approval refusal.
+    """
+    import shiploop_current_spec as current_spec
+    import shiploop_improve_changes as changes
+    if not state.get("spec_root"):
+        return
+    assert child.get("action_id") == state.get("active_improve", {}).get("action_id"), "fixture pass must use the active child"
+    assert changes.current_spec_changed_since_bind(root, state, str(child["action_id"])) is not None, "bind the fixture with state first"
+    reviews = nav.improve_reviews_dir(child)
+    reviews.mkdir(parents=True, exist_ok=True)
+    path = reviews / ("pass-" + str(number) + ".json")
+    record = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    digest = current_spec.digest(state)
+    assert not record.get("current_spec") or record["current_spec"] == digest, "do not rewrite a stale fixture pass"
+    record.update(current_spec=digest, synthetic_fixture="Explicit protocol fixture; no model review or product work executed")
+    store.atomic_write_text(path, json.dumps(record, indent=2) + "\n")
+    store.atomic_write_text(reviews / changes.spec_pass_path(number), current_spec.path(state).read_bytes().decode("utf-8"))

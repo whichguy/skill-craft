@@ -426,6 +426,7 @@ class ImproveImportTests(SeamCase):
 
     def import_review(self, state: dict) -> str:
         """Import the Improve stage the run stands at through ``dispatch``; returns what it printed."""
+        fx.fixture_current_spec_pass(self.run_dir, state, state["active_improve"])
         args = types.SimpleNamespace(command="complete", action=nav.improve_id(state), result=None, final_result=None)
         record = {"summary": "Synthetic Improve.", "review_refs": ["synthetic://r"], "check_refs": ["synthetic://c"]}
         printed = io.StringIO()

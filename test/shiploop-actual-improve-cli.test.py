@@ -19,9 +19,11 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 import shiploop_loop_contract as loop_contract  # noqa: E402
+import shiploop_current_spec as current_spec  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_privacy as privacy  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
+import shiploop_spec_promotion as spec_promotion  # noqa: E402
 import shiploop_standalone_improve as bridge  # noqa: E402
 import shiploop_store as store  # noqa: E402
 from shiploop_packet_view import head_packet_path, packet_file_named  # noqa: E402
@@ -239,6 +241,16 @@ class ImproveCliFixture(unittest.TestCase):
         state = store.read_record(run / "state.md")
         while navigator.current_stage(state) != stage:
             predecessor = navigator.current_stage(state)
+            if predecessor == "implement" and state.get("spec_root"):
+                item = navigator._current_work_item(state)
+                view = navigator.step_view(state, str(item)) if item else None
+                if item and view is not None:
+                    # This helper seeds synthetic prior navigation. Capture
+                    # the accepted plan plus current-step baseline at entry,
+                    # before the fixture reaches document or mutates spec.
+                    key = navigator._step_spec_key(state, str(item))
+                    for relative, text in current_spec.step_snapshot_writes(state, key).items():
+                        store.atomic_write_text(run / relative, text)
             action = navigator.current_action(state)["id"]
             setup = {
                 "outcome": "done",
@@ -363,15 +375,45 @@ class ImproveCliFixture(unittest.TestCase):
     def done_ephemeral(self, packet, report):
         result, successor = self.invoke_argv(packet["done_argv"], report)
         self.save_packet(result)
+        if successor.get("status") == "complete":
+            self.record_synthetic_current_spec_pass(successor)
         return result, successor
 
-    def finish_ephemeral(self, first=None):
+    def record_synthetic_current_spec_pass(self, terminal):
+        """Record the exact spec identity for this fixture's synthetic terminal review pass.
+
+        These protocol tests submit synthetic Until Loop reports rather than
+        running Improve's ``improve-pass`` command. Keep that limitation
+        explicit while placing the digest and exact text beside the active
+        child review evidence, where production reads pass evidence.
+        """
+        state = store.read_record(self.run / "state.md")
+        child = state.get("active_improve")
+        self.assertIsInstance(child, dict)
+        self.assertEqual(child.get("action_id"), self.bound.get("action_id"))
+        self.assertTrue(state.get("spec_root"), "actual CLI fixture must have a bound current spec")
+        raw = current_spec.path(state).read_bytes()
+        digest = current_spec.digest(state)
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), digest)
+        number = int((terminal.get("progress") or {}).get("action_number") or 1)
+        reviews = bridge.receipt_path(child).parent / "reviews"
+        reviews.mkdir(parents=True, exist_ok=True)
+        (reviews / ("current-spec-" + str(number) + ".md")).write_bytes(raw)
+        store.atomic_write_text(reviews / ("pass-" + str(number) + ".json"), json.dumps({
+            "pass": number,
+            "current_spec": digest,
+            "synthetic_fixture": "protocol evidence only; no semantic Improve review claim",
+        }, indent=1) + "\n")
+
+    def finish_ephemeral(self, first=None, before_final=None):
         if first is None:
             _raw, first = self.start_ephemeral_child()
         _raw, second = self.done_ephemeral(
             first, self.child_report("non-trivial", "unsatisfied", "allowed", "material finding"))
         _raw, third = self.done_ephemeral(
             second, self.child_report("trivial", "unsatisfied", "allowed", "first qualifying review"))
+        if before_final is not None:
+            before_final()
         terminal_raw, terminal = self.done_ephemeral(
             third, self.child_report("trivial", "satisfied", "allowed", "second qualifying review"))
         self.assertEqual(terminal["status"], "complete")
@@ -1491,15 +1533,18 @@ class EphemeralImproveCliTests(ImproveCliFixture):
         self.assertIn("AD-2: split by layer instead.", self.home_git("show", "HEAD:docs/shiploop/architecture.md"))
 
     def test_a_step_reviews_unmarked_spec_line_is_refused_at_its_import_and_a_marked_one_is_imported(self):
-        """Design T §9.1 2b-3, option C (owner 2026-10-28): a step's review may correct what its document stage recorded in
-        the knowledge home, and ShipLoop commits the review's edits with the step, so the spec gate runs again when the
-        review is imported: the step's commit holds the tree a gate ran on (Astra's review, 2026-10-28)."""
+        """A step review may add a marked clarification to RUN/current-spec.md against its accepted step baseline.
+
+        The run-local candidate is reviewed by digest and retained in the run; the product Git commit does not carry
+        that candidate. A post-pass candidate edit makes the old review stale and requires a fresh review.
+        """
         if not self.inline():
             self.skipTest("an inline step's review")
+        prior_spec = "# Product requirements\n\nR-1: Keep the existing behavior.\n"
+        source_spec = self.repo / "docs/shiploop/spec.md"
+        source_spec.parent.mkdir(parents=True, exist_ok=True)
+        source_spec.write_text(prior_spec, encoding="utf-8")
         self.commit_architecture()                     # a checkout whose HEAD holds the knowledge home
-        spec = self.repo / "docs/shiploop/spec.md"
-        committed = spec.read_text(encoding="utf-8")
-        requirement = next(line for line in committed.splitlines() if line.startswith("R-1"))
         steps = [{"id": "S1", "task": "Make the planned change.", "paths": ["src/**"], "criteria": [], "proof": "true",
                   "skills": []}]
         record = {"spec": "none: the step clarified no requirement", "architecture": "none: no decision",
@@ -1508,15 +1553,34 @@ class EphemeralImproveCliTests(ImproveCliFixture):
                                     producer_extra={"knowledge": record, "assumptions": []},
                                     predecessor_extra={"step-plan": {"paths": ["src/**"], "steps": steps}})
         self.assertEqual(self.bound["stage"], "document")
-        self.finish_ephemeral()
-        spec.write_text(committed.replace(requirement, requirement + "\n  Clarified: unmarked."), encoding="utf-8")
+        state = store.read_record(self.run / "state.md")
+        spec = knowledge.spec_path(state)
+        committed = spec.read_text(encoding="utf-8")
+        requirement = next(line for line in committed.splitlines() if line.startswith("R-1"))
+        unmarked = committed.replace(requirement, requirement + "\n  Clarified: unmarked.")
+        self.finish_ephemeral(before_final=lambda: spec.write_text(unmarked, encoding="utf-8"))
         lines = self.refused_import()
         self.assertIn("without the step's mark: Clarified: unmarked.", "\n".join(lines))
         self.assertIn("each ending (W1/S1)", "\n".join(lines))
-        spec.write_text(committed.replace(requirement, requirement + "\n  Clarified: the change is planned. (W1/S1)"),
-                        encoding="utf-8")
+        self.assertIn("Clarified: unmarked.", knowledge.spec_path(store.read_record(self.run / "state.md"))
+                      .read_text(encoding="utf-8"))
+        marked = committed.replace(requirement, requirement + "\n  Clarified: the change is planned. (W1/S1)")
+        spec.write_text(marked, encoding="utf-8")
+        completion, _receipt = self.completion_receipt()
+        stale = self.invoke(CLI, "complete", "--run-dir", self.run, "--action", self.improve,
+                            *completion, status=2)
+        self.assertIn("RUN/current-spec.md changed after the last recorded Improve pass", stale.stderr)
+        self.invoke(CLI, "improve-start", "--run-dir", self.run, "--action", self.improve,
+                    "--restart-stopped")
+        self.bound = store.read_record(self.run / "state.md")["active_improve"]
+        self.packet_path = bridge.receipt_path(self.bound)
+        self._write_parent_route()
+        self.finish_ephemeral()
         self.import_the_review()
-        self.assertIsNone(store.read_record(self.run / "state.md")["active_improve"])
+        state = store.read_record(self.run / "state.md")
+        self.assertIsNone(state["active_improve"])
+        self.assertIn("Clarified: the change is planned. (W1/S1)", knowledge.spec_path(state).read_text(encoding="utf-8"))
+        self.assertEqual(self.home_git("show", "HEAD:docs/shiploop/spec.md"), prior_spec)
 
     def test_a_step_review_whose_commit_git_refuses_is_refused_at_its_import_and_the_same_import_commits_it(self):
         """Design T §9 row 3 (2b-4): the step's commit stage runs in the review's import, after its gates, and the step
@@ -1868,8 +1932,13 @@ class EphemeralImproveCliTests(ImproveCliFixture):
 
         action = navigator.current_action(state)["id"]
         input_path = self.run / "inbox" / (action + ".md")
+        reconciliation = spec_promotion.hashes(state)
         store.write_record(input_path, {"outcome": "done", "summary": "Final fixture handoff", "follow_on": [],
-                                        "evidence_refs": self.parent_evidence_refs})
+                                        "evidence_refs": self.parent_evidence_refs,
+                                        "spec_reconciliation": {
+                                            **reconciliation,
+                                            "summary": "Synthetic fixture checked that no spec change was made for workspace return.",
+                                        }})
         self.invoke(CLI, "complete", "--run-dir", self.run, "--action", action, "--result", input_path)
         self.assertEqual(store.read_record(self.run / "state.md")["status"], "done")
         self.assertEqual(receipt["summary"], "Improve reviewed the spec result; it ended on 1 trivial pass.")

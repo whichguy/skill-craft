@@ -401,7 +401,8 @@ otherwise keep the gap unresolved.
 Follow the packet's Maintained requirements policy. Read the applicable accepted
 product requirements, including preserved and cross-cutting conditions, from
 their repository-owned home; a new request changes scope without erasing
-unaffected rules. Carry requirement and test locators into work-item context.
+unaffected rules. RUN/current-spec.md is the combined run target; the repository aggregate stays prior until
+final handoff. Carry requirement and test locators into work-item context.
 Do not infer approved intent from code/tests or silently relax a condition to
 match them. Keep proposals and verification gaps distinct from accepted intent.
 Follow the packet's Reference handoff policy: distinguish package guidance,
@@ -718,8 +719,8 @@ _REVIEW_FOCUS_ITEMS = (
     "  value, a missing assertion, a title-only test, or an absent required name",
     "a documented command that does not run what it claims on the target runtime:\n"
     "  run it once and record the exit code and the cases it executes",
-    "a required requirement, test ID or case dropped or weakened compared with the\n"
-    "  prior accepted version",
+    "a requirement, test ID or case dropped or weakened without a conflicting\n"
+    "  explicit instruction from the current user request",
     "a claim about what the runtime, platform or a library can do that a decision\n"
     "  depends on, with no primary-documentation source or probe result: check it,\n"
     "  and correct the plan where it is wrong",
@@ -844,8 +845,8 @@ DUTIES = {
    authorized private store, never in KNOWLEDGE/ (it is committed). Ask no questionnaire for what evidence can resolve.
 4. Name where the result must become usable; a request that names the target is the grant (Delivery authority
    guidance).
-5. Say where and when the outcome is visible: an isolated run's source checkout stays at its snapshot until the
-   final return, and an outcome in a deployed target exists only after release.
+5. Say where and when the outcome is visible: the source checkout changes through a verified return at release or
+   handoff. The current spec joins the accepted aggregate at final handoff. A deployed outcome exists only after release.
 6. For an interactive product, list the open interaction and state questions: actors and how the runtime identifies
    them; shared state across people, devices or sessions; its lifetime and what ends it; what stays hidden from
    whom; what the runtime already provides. Answer from the request, else record the default and what it rules out.
@@ -890,8 +891,11 @@ DUTIES = {
 2. Classify the baseline in `summary`: passed, failed, missing coverage, setup or access block, uncertain, or
    expected repair RED. Only a pass is healthy. Change no product file to turn it green. A failed baseline lets
    discovery finish and leaves dependent feature work unready.
-3. Inspect Git and worktree state, instructions, code, tests, docs, consumers and project knowledge. Record in
-   KNOWLEDGE/environment.md, each with a source locator and marked binding requirement, observed practice or proposal:
+3. Inspect Git/worktree state, instructions, code, tests, docs, consumers and current AD decisions. Read affected full
+   Git messages beyond recent leads, including learning-only commits; stop when the decision basis is established. Keep
+   its alternatives, rationale and revision locators in the result. Reopen a settled choice only for current explicit
+   change or contrary evidence. Revalidate access, versions and commands; an old pin or rejected choice is not a
+   current binding fact. Record in KNOWLEDGE/environment.md with source and binding/observed/proposal status:
    - ## Targets and runtimes: development, test, integration and delivery boundaries; runtime and dependency
      versions; the platform guide each target follows (GUIDES/platforms/<name>.md), or none;
    - ## Commands: linters, formatters, type checkers, test runners;
@@ -951,7 +955,8 @@ DUTIES = {
    triggered plan and outcome to RUN/notes/research.md. Investigate directly only when no trigger applies.
 2. Resolve each consequential unknown with repository, primary-interface or other fit evidence: the repository and
    GUIDES/platforms/ first, then the web one question at a time, writing each answer down before the next search
-   (fetched pages stay in context). In
+   (fetched pages stay in context). For affected decisions, retrieve the full relevant Git messages beyond the recent
+   window and retain their exact revisions, alternatives and rationale. In
    RUN/notes/research.md record the conclusion, source, uncertainty, affected requirement, consumer, prerequisite,
    reuse choice and verification need; leave an unsupported question open there with owner and the gate it blocks. A
    recalled fact is not evidence.
@@ -985,27 +990,30 @@ DUTIES = {
     section locator, reopen it as a fresh reader; also every file written and source used.
 """,
     "spec": """\
-1. Start from KNOWLEDGE/spec.md (read it whole), the research and discovery results and RUN/notes/current-system-baseline.md
-   (Current-system baseline guide). Keep every R-<n>: change one in place, move a dropped one under ## Retired with
-   its reason. Current explicit user instructions supersede older clauses; never relax a requirement to fit the code
-   or tests.
-2. Write each requirement under KNOWLEDGE/spec.md ## Requirements as R-<n> with its acceptance lines inside
+1. Start from RUN/current-spec.md (read it whole), discovery/research and RUN/notes/current-system-baseline.md. The full
+   run candidate starts from the exact prior aggregate, or empty when none exists. RUN/spec/prior-spec.md,
+   RUN/spec/prior-architecture.md and RUN/spec/prior-environment.md preserve exact run-start content when present;
+   the binding records absent files.
+   KNOWLEDGE/spec.md stays prior until handoff. Keep every R-<n> and unaffected/deferred acceptance line. Retire
+   dropped IDs under ## Retired with reasons. Explicit user instructions in this request replace only conflicting
+   prior clauses; cite their request basis and retain superseded wording as history, not active acceptance.
+2. Write each requirement under RUN/current-spec.md ## Requirements as R-<n> with its acceptance lines inside
    (Behavior-model guidance): behaviour, boundaries, error behaviour, consumer outcome. Each acceptance line: positive,
    failure and boundary expectations, each only where it says something the others do not, otherwise `n/a: <reason>`;
    the consumer surface where it is observed; how it is confirmed. Split independently verifiable clauses; keep
    bundled behaviours visible under one ID.
 3. Number requirements R-<n> only. A structure or technology choice is an AD-<n> decision in
-   KNOWLEDGE/architecture.md ## Decisions, never in KNOWLEDGE/spec.md; a product decision never takes the AD- prefix.
+   KNOWLEDGE/architecture.md ## Decisions, never in RUN/current-spec.md; a product decision never takes the AD- prefix.
 4. Map every request outcome to at least one acceptance line (Behavior traceability guidance); keep approved scope, and
    list the domain rules the request leaves out under the R-<n> they bound. Mark each unresolved prerequisite or user
-   decision as an open gap under its R-<n> in KNOWLEDGE/spec.md. List in `primary` the R-<n> that carry the request's
+   decision as an open gap under its R-<n> in RUN/current-spec.md. List in `primary` the R-<n> that carry the request's
    primary outcomes, what the user asked for directly: product-acceptance accepts one left unverified only with a
    passed lower-layer test.
 5. In each R-<n> this run adds or changes, state its basis as a source that stays true in later runs (the request's
    words with the date, or a decision ID; never 'current request'), preserved and changed behaviour, source-section
-   locators, evidence limits, and pending implementation and checks. Title spec.md for the product, not for one request.
-   ShipLoop derives the added, changed and retired IDs from the spec diff; list none by hand.
-6. Assess non-functional requirements under KNOWLEDGE/spec.md ## Non-functional requirements (Requirements definition
+   locators, evidence limits, and pending implementation and checks. Title the spec for the product, not one request.
+   ShipLoop derives current-spec changes from the bound prior snapshot; keep no model-maintained change-ID list.
+6. Assess non-functional requirements under RUN/current-spec.md ## Non-functional requirements (Requirements definition
    guide): operating conditions, a numeric bound inside any hard platform limit or an observable acceptance line,
    verification method, justified exclusion, or an unresolved bound. Invent no bound. A material requirement conflict goes in `summary` as open and
    keeps dependent work unready. A deliverable with a user interface (a page, an app screen, a rendered report, a
@@ -1014,27 +1022,27 @@ DUTIES = {
    and a dark theme); designed empty, loading and error states; a layout that works at a narrow and a wide width with
    no horizontal overflow; visible focus states and WCAG AA contrast; motion only where it explains a change,
    honoring reduced motion; one icon set.
-7. State and data assessment: under the R-<n> it affects in KNOWLEDGE/spec.md, write the affected resources, target
+7. State and data assessment: under the R-<n> it affects in RUN/current-spec.md, write the affected resources, target
    identities, before and after invariants, recovery, applicable checks and unknowns.
 8. For each service boundary specify verifiable contracts (Service discovery guidance): current authority, freshness
    versus revocation, incremental state, async completion and recovery, owned event coverage. Mark an inapplicable
    concern in one line; add no service to fill a template.
 9. Decide the state and information lifecycle (Interaction design guide), in proportion to the request, as
-   requirements in KNOWLEDGE/spec.md. Per piece of state: owner and location; who may read it (information one user must
+   requirements in RUN/current-spec.md. Per piece of state: owner and location; who may read it (information one user must
    not see, such as an opponent's hidden game state or another person's record, stays off that client; what a lone
    user could only misuse against themselves may stay); how simultaneous changes resolve; what ends and removes it;
    the runtime quotas it meets. Personal or secret data: where shown, stored, logged, how long kept, how removed.
    Map each to what the runtime offers. Add no identity, sharing or persistence the request does not need; record a
    default for an open choice as an assumption in `summary`. Affected UI: component, interaction and skin premises
    and truthful async feedback as consumer-visible behaviour.
-""" + _duty_focus(10, "KNOWLEDGE/spec.md", "spec") + """\
+""" + _duty_focus(10, "RUN/current-spec.md", "spec") + """\
 11. """ + _BACKCHAIN_ITEM + """
-12. A complete spec establishes acceptance lines, not implementation or test success. `evidence_refs`: KNOWLEDGE/spec.md, each
+12. A complete spec establishes acceptance lines, not implementation or test success. `evidence_refs`: RUN/current-spec.md, each
     requirement section and source used.
 """,
     "test-strategy": """\
-1. Build a risk-based strategy from KNOWLEDGE/spec.md for the spec changes since the run began (quoted below) and
-   the preservation set they touch, before any code; the existing suite, run as is, covers the rest. Under
+1. Build a risk-based strategy from RUN/current-spec.md for new or changed outcomes and the preservation set they
+   affect, before code; the existing suite, run as is, covers the rest. Under
    KNOWLEDGE/environment.md ## Harnesses and suites plan, per requirement in that scope: its layers (unit, component,
    e2e, as in `test_layers`) and any consumer check, negative cases, fixtures and data, environment and authorization
    needs, required surface, due stage, owner, prerequisites; for a state or data change, its before and after checks
@@ -1093,19 +1101,22 @@ DUTIES = {
 14. `evidence_refs`: KNOWLEDGE/environment.md, KNOWLEDGE/architecture.md, each probe output and source used.
 """,
     "plan": """\
-1. Reopen the accepted intake, discovery, research, spec and test-strategy results, RUN/notes/{discovery,research,
-   current-system-baseline}.md, the spec changes since the run began, KNOWLEDGE/environment.md ## Harnesses and suites, KNOWLEDGE/architecture.md
-   and the relevant Git history (Git-history investigation guide). Sort open gaps into researchable unknown
+1. Reopen accepted intake through test-strategy results, RUN/notes/{discovery,research,current-system-baseline}.md,
+   RUN/current-spec.md, RUN/spec/prior-{spec,architecture,environment}.md, KNOWLEDGE/environment.md ## Harnesses and suites,
+   and KNOWLEDGE/architecture.md. Inspect affected full Git messages beyond the recent-window leads; revalidate volatile facts.
+   Sort open gaps into researchable unknown
    contracts, owner or access gaps and known setup prerequisites, each with its first affected consumer. With one
    boundary blocked, keep independent research and conditional planning eligible on their own prerequisites.
 2. Plan backward from desired outcomes to their producers (Dependency-planning guidance); return `work_items`
    (item 17). Order readiness, implementation, integration and release so no consumer runs before its
    prerequisites. Each item's `context` gives ready and done conditions, candidate scope, proving check, authority
    boundaries, correction route. The plan implies no unrun test and no authorized external operation.
-3. Apply Initial-plan reconciliation to KNOWLEDGE/architecture.md, KNOWLEDGE/spec.md, the non-functional requirements and the
-   State and data assessment: map each applicable obligation and every acceptance line to its work item,
-   prerequisites, observing test and release or recovery conditions, or to a reasoned exclusion (`summary`) or open
-   need (`assumptions`). The mapping goes in each item's `context`. A filled template is not proof. `concerns`: per
+3. Use the incoming request and quoted prior-to-current spec diff to plan only new/changed outcomes and evidenced
+   prerequisites. Reuse evidenced achieved behavior in the affected scope; keep accepted deferred work deferred.
+   Carry known prior gaps as open context; an affected gap that gates work needs an owned assumption (item 16) or
+   prerequisite. Unchanged spec text does not prove delivery. Map affected acceptance and preservation checks to an item and proof, or a
+   reasoned exclusion/open need. A `follows` reference alone does not assign old work. Keep the mapping in `context`;
+   a filled template is not proof. `concerns`: per
    item a row for each of ui, api, messaging, state, migrate-before, migrate-after, switchover, concurrency,
    platform-services, scale, security, observability, config, performance, accessibility: the template's row, or
    `{id, applies: "no", reason}`; one clause each.
@@ -1137,10 +1148,10 @@ DUTIES = {
    Plan no empty package or directory for a hypothetical future.
 8. Decide the interaction structure (Interaction design guide); record each decision as an AD-<n> in
    KNOWLEDGE/architecture.md:
-   - placement: the simplest that meets KNOWLEDGE/spec.md. A single-user game or tool with no shared or lasting state
+   - placement: the simplest that meets RUN/current-spec.md. A single-user game or tool with no shared or lasting state
      runs entirely in the client. Add server state, identity, a store or live channel only for a requirement that
      needs it, and use the runtime's native storage, identity, cache, workflow and notification services first;
-   - safeguards at every placement: KNOWLEDGE/spec.md's personal-data handling, a server-side check on every action by a
+   - safeguards at every placement: RUN/current-spec.md's personal-data handling, a server-side check on every action by a
      caller the product does not control, validation and abuse limits on anonymous input, a record of every
      background or async failure that reaches whoever must act;
    - channels: per hop the lightest that meets the stated freshness (request/response; polling at a stated interval;
@@ -1171,14 +1182,12 @@ DUTIES = {
       observation; later items reread the index);
     - test strategy: the ## Harnesses and suites locator and the item's compact test decisions (execution and target
       location, fixture and suite choices, what to recheck);
-    - baseline and spec: exact sections, gaps and revalidation conditions of RUN/notes/current-system-baseline.md and
-      KNOWLEDGE/spec.md;
+    - baseline/spec: relevant sections and gaps, affected decision rationale and revalidation;
     - service decisions: note locators and revalidation conditions;
     - readiness checks of the item's prerequisites.
     A later packet replays no earlier stage's references, so the item carries them. Copy no transcript, invent no
     decision ledger beyond the `concerns` rows; a context summary is not proof.
-11. Plan the before and after decisions and preservation checks from the baseline and the spec changes since the run began, and durable
-    documentation work for knowledge that exists only in run notes.
+11. Plan affected before/after decisions and durable documentation for knowledge held only in run notes.
 12. Map accepted service choices to the affected schema and config, query and cache, worker and status, business and
     UI, logging, test and operator files, as needed (Service discovery guidance), ordering prerequisites and checks.
 13. Each item's `context` states the loadable seam its tests import, so a test loads before the implementation exists,
@@ -1200,7 +1209,7 @@ DUTIES = {
     notes, with exactly the template's fields per disposition (evidenced: `evidence`; probed: `check`, `evidence`;
     open: `due_item`, `reason`, `settle`). An open assumption's `due_item` is the `work_items` ID that settles it.
 17. Return the complete ordered `work_items`, each with `id`, `title`, `follows` (the R-<n>/AD-<n> it serves) and
-    optional `context`, covering every approved outcome, including required independent work with no downstream consumer.
+    optional `context`, covering this request's approved changes and prerequisites, including requested independent work.
 18. `summary` is supporting reference; each item's ready and done conditions stay its only execution directive.
     `evidence_refs`: KNOWLEDGE/architecture.md, any execution graph, every source used. An unrecorded conversation is not a
     handoff.
@@ -1240,8 +1249,8 @@ Change no product file in this stage.
 
 1. **Recheck the item.** Reopen its `context` and recheck each condition. If the plan no longer requires it, report
    blocked (`awaiting` an answer: drop or keep) citing the superseding result; never skip the item
-   or repair the queue here. Keep the change inside the item: available APIs and other parts of the request do not
-   widen it. A prerequisite outside the item gets its supplier route in the summary and the blocked outcome.
+   or repair the queue here. Keep the change inside the item: APIs and other request parts do not widen it.
+   An outside prerequisite needs its supplier route in the summary and a blocked outcome.
 2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions,
    and plan against the Test layers and Test targets below; in the summary say which you retain, refine or supersede
    and why, locators in evidence_refs. Revalidate harness, suite and browser tools for the changed surfaces
@@ -1251,7 +1260,7 @@ Change no product file in this stage.
    and teardown route. Reuse an existing facility before the smallest missing one (Reusable test facilities); record
    its locator and readiness gap in the summary.
 3. **`criteria`** (`[{"id": "C1", "text": "...", "confirm": "executed"}]`). Each text: `<condition>. Confirm by: <what
-   a command observes>; pass when <expected result>`, naming the R-<n> served.
+   a command observes>; pass when <expected result>`, naming the R-<n> served. Include affected preservation checks.
    - `confirm`: `executed` when a recorded command runs the behaviour (a text search runs nothing); `searched` for
      text the item writes (documentation, a docstring, a listed term), named by a search command; `inspected` only
      with `code` and `layer` naming a Test layers row that is `unverified`.
@@ -1260,7 +1269,7 @@ Change no product file in this stage.
    - A new or changed public entry point: a criterion that it checks its arguments, executed by its rejection tests,
      and one that it carries a contract docstring (Code craft 2-3), searched.
    - Where a criterion names an exact value, a count or a prefix match proves nothing.
-4. **`steps`**: every implementation step in order (one is fine); ShipLoop issues one implement packet per step.
+4. **`steps`**: ordered implementation steps (one is fine); ShipLoop issues one implement packet per step.
    - Size each as one behaviour-level change its proof shows: at most 4 criteria and 3 product files (a file that
      only describes another changed file counts with it; tests, docs and its proof script do not). A second module
      or layer (interface first, then each side), two separately confirmable behaviours or two outcomes joined with
@@ -1303,7 +1312,7 @@ Change no product file in this stage.
    stage writes. The item commit takes these, the changed documentation and KNOWLEDGE/. No test command and only non-code
    paths skips the test stage; a diff touching no code or test path skips document. A new check script is a durable
    artifact: list it here with its consumer, or keep it in RUN/scratch.
-8. **`follows`**: each R-<n> and AD-<n> followed; each must exist in KNOWLEDGE/spec.md or KNOWLEDGE/architecture.md.
+8. **`follows`**: existing R-<n>/AD-<n> in RUN/current-spec.md or KNOWLEDGE/architecture.md: constraints, not rebuild orders.
 9. **Concerns and plan record.** Map each concern the plan gave this item to the steps that deliver it. Record in
    the item's `context` or the summary (each step's task and criteria stay its only directive),
    for the topics this item touches only:
@@ -1396,7 +1405,7 @@ preparatory commit); a mismatch there is a send-back.
 4. **Hand off.** `not_covered`: each behaviour the change added that no test-spec case covers, else empty. `learned`,
    `decisions`: lessons for later steps and choices made, with why; the step commit carries them. Write back a
    departure from KNOWLEDGE/architecture.md as a new AD-<n> under ## Decisions, a newly working command under
-   KNOWLEDGE/environment.md ## Commands, and an acceptance detail as a line in its R-<n> entry of KNOWLEDGE/spec.md
+   KNOWLEDGE/environment.md ## Commands, and an acceptance detail as a line in its R-<n> entry of RUN/current-spec.md
    ending (<item>/<step>).
 5. **Services.** Apply the accepted contract and Service discovery guidance; revalidate target state and authority
    before any effect; keep unrelated remote fields and existing operational owners. Unresolved cache access or async
@@ -1466,7 +1475,7 @@ preparatory commit); a mismatch there is a send-back.
    working. Durable facts go in the repository's docs, never only in run notes.
 3. **Reflect.** With the step built, tested and documented, record what it showed in the knowledge home, where the
    next steps' packets read it:
-   - KNOWLEDGE/spec.md: a line inside the R-<n> entry it concerns, ending with this step's mark (<item>/<step>): a
+   - RUN/current-spec.md: a line inside the R-<n> entry it concerns, ending with this step's mark (<item>/<step>): a
      vague clause this step made precise, stated as observable behaviour, or the files and test file that now meet it.
      Add lines only; a requirement whose intent moved is no edit: report send-back naming the R-<n>.
    - KNOWLEDGE/architecture.md ## Decisions: a design or service decision implement did not record, or a departure from
@@ -1477,8 +1486,7 @@ preparatory commit); a mismatch there is a send-back.
      later step already holds: leave it to that step; work outside this item: an open item in `assumptions` due at
      carry-forward. A system, release or real-boundary check the criteria need is an open item due at the stage that
      makes it, with its owner.
-   In `knowledge` give `spec`, `architecture` and `environment`: for each of those living files, what you changed in
-   it or why it needed no change.
+   In `knowledge` give `spec`, `architecture` and `environment`: for each file, what changed or why not.
 4. **Baseline.** Recovered existing behaviour: keep recovered observations and accepted deltas apart from the prior
    as-of baseline (Current-system baseline guide).
 5. **Reread** every changed document and run its commands and examples. In RUN/notes/<action>.md record why a
@@ -1497,7 +1505,7 @@ preparatory commit); a mismatch there is a send-back.
      locators; fixture lifecycle; each test facility's locator, interface, readiness or gap, owner, revalidation
      condition.
    - KNOWLEDGE/architecture.md ## Real-boundary checks: each pending full-suite and real-boundary check with its owner.
-   - KNOWLEDGE/spec.md: each R-<n> this item satisfied; an open gap under its R-<n>, an unresolved state or data change
+   - RUN/current-spec.md: each R-<n> this item satisfied; an open gap under its R-<n>, an unresolved state or data change
      included (State and data assessment). Keep unaffected clauses, and never relax one to fit the code or tests.
      Test IDs live only in test code: write none here.
    - Open risks, unresolved dependencies, system-test obligations, release prerequisites and any observation no item
@@ -1535,7 +1543,7 @@ preparatory commit); a mismatch there is a send-back.
    4. *Write it deterministic.* `skills/<name>/SKILL.md` opens with `name` and `description` frontmatter (when to use
       it and when not). Body: what it produces and why; each input (type, required, default and its source); exact
       steps; expected output; failure and recovery; permission boundaries; relative links to the code, tests and
-      KNOWLEDGE/spec.md sections it relies on (link requirements, never copy); what needs revalidation. No credentials,
+      product requirements in docs/shiploop/spec.md (relative links, resolved after promotion; never copy them); revalidation. No credentials,
       machine-specific paths or IDs, run or worktree paths. Every mechanical sequence is a script
       `skills/<name>/scripts/<verb>` in a runtime the repository already uses: inputs as arguments, exit 0 on
       success and non-zero with a named message per failure, printing the output SKILL.md describes; SKILL.md runs
@@ -1637,8 +1645,7 @@ preparatory commit); a mismatch there is a send-back.
    met while a required observation is unrun.
 """,
     "product-acceptance": """\
-1. Gather: the original request and intake result, the accepted requirements in KNOWLEDGE/spec.md, the spec and
-   architecture changes since the run began, the integrated test plan (latest done system-test-author record after
+1. Gather: the original request and intake result, RUN/current-spec.md, its exact prior snapshot and derived delta, affected architecture decisions, the integrated test plan (latest done system-test-author record after
    the most recent accepted add-work, and KNOWLEDGE/environment.md ## Harnesses and suites; OUTER test-planning handshake),
    and the system-test result. Locators in `evidence_refs`.
 2. Assess the product against the original outcome, not only the spec: acceptance lines, cross-cutting
@@ -1665,7 +1672,8 @@ preparatory commit); a mismatch there is a send-back.
    and evidence. A pass on another surface only supports; source, HTTP or DOM structure alone cannot close a
    rendered interaction. A UI criterion closes only on the rendered interface, captured in both themes and at both
    widths. Missing evidence for a due case stays incomplete. Check that no clause or case was
-   dropped; claim no requirement met while a required observation is unrun.
+   dropped or weakened without a conflicting explicit instruction from the current user request; cite that original
+   instruction in `summary`. Treat superseded wording as history. Claim no requirement met while a required observation is unrun.
 6. Route each gap: missing product work, stale evidence, or a failed or missing due check goes to add-work with one
    corrective `work_items` entry each. A missing delivery prerequisite is named in `summary` for release-plan; blocked
    only when nothing can proceed. Acceptance executes no release and proves no remote consumer boundary.
@@ -1847,18 +1855,25 @@ preparatory commit); a mismatch there is a send-back.
 4. `summary` lists every open item still unverified (product-acceptance's `unverified` list and every other stage's
    result), each with who does what and what they report back; add follow-up work, blockers and revalidation
    conditions.
-5. Isolated run: handoff needs a current return receipt. If release did not return the candidate, run the packet's
+5. Reconcile RUN/current-spec.md (digest bound in RUN/spec/reviewed.md) against RUN/spec/prior-spec.md, the request and delivered
+   evidence. Preserve unaffected/deferred intent and rationale; summarize clause changes and the actual delta. Code
+   proves implementation, not intent. If the candidate drifted after review, restore that snapshot or report add-work
+   for a corrective item and review before handoff. Do not edit the candidate here.
+   Return `spec_reconciliation` exactly as `{"current_sha256":"<printed 64-hex>","prior_sha256":"<printed 64-hex>","summary":"<nonblank>"}`; copy both packet hashes (absent prior: SHA-256 of empty bytes). ShipLoop promotes only this reviewed, digest-bound candidate.
+6. Isolated run: handoff needs a current return receipt. If release did not return the candidate, run the packet's
    plan-return, decide every undecided path with review-return, run its return command (Workspace return guidance);
    receipt path in `evidence_refs`.
-6. From the returned project, without the run directory, check the knowledge survives: durable documentation links
+7. From the returned project, without the run directory, check the knowledge survives: durable documentation links
    resolve in the returned repository (KNOWLEDGE/spec.md, KNOWLEDGE/environment.md, KNOWLEDGE/architecture.md); the AD-<n> entries
    in KNOWLEDGE/architecture.md hold the current service decisions, ownership, unresolved boundaries and revalidation
-   conditions (Service discovery guidance); their source and check locators open for a fresh reader. Keep the prior
-   baseline's as-of account (Current-system baseline guide). Fix a broken link or missing entry in KNOWLEDGE/ now.
+   conditions (Service discovery guidance); their source and check locators open for a fresh reader. Check new spec
+   link targets against RUN/current-spec.md, which promotion will supply; the aggregate may still be prior here.
+   Keep the prior baseline's as-of account (Current-system baseline guide). Fix environment/architecture links now;
+   a missing spec target needs corrective work, never a direct aggregate edit.
    Work-item context and earlier result references are not a durable index.
-7. Read release-verify's `lessons` (quoted in the hand-offs); carry its open-next items into the follow-up work in
+8. Read release-verify's `lessons` (quoted in the hand-offs); carry its open-next items into the follow-up work in
    `summary` and report any conflict with what you observed.
-8. List in `follow_on` what this run leaves for a later run, one entry for each leftover in `summary`, the lessons'
+9. List in `follow_on` what this run leaves for a later run, one entry for each leftover in `summary`, the lessons'
    open-next items, the unverified outcomes and the open assumptions: its `class`, a `statement`, the `source` record it
    comes from, the request sentence S<n> a `gap` maps to ("" for any other class) and what `needs` to close it. Classes:
    `gap` (a request outcome left unmet, or an assumption found refuted, that needs no person's answer), `decision` (a
@@ -2519,7 +2534,7 @@ plan, built, tested and documented: its test stage built out the step's test-spe
 cases and every recorded command passed, and its document stage updated the docs
 and the knowledge home. Review the step's change since its Review base (below),
 its code, tests, docs and knowledge together, and fix, within the item's paths
-and KNOWLEDGE, any of these:
+and KNOWLEDGE plus the step's marked RUN/current-spec.md additions, any of these:
 - the change does not do the step's task, misses a criterion as the spec's R-<n>
   states it, or does work no criterion asks for (a later step's work, a feature
   the item does not request);
@@ -2553,8 +2568,8 @@ and KNOWLEDGE, any of these:
   a behaviour of the step no test checks, or a doc that disagrees with the code;
 - a KNOWLEDGE line the code or tests contradict, or something the step showed
   that KNOWLEDGE does not record (a clarified requirement, a decision, a
-  command): fix it in place; spec.md takes only new lines ending with the step's
-  mark inside an R-<n> the committed spec holds;
+  command): fix it in place; add only step-marked implementation evidence inside
+  the accepted R-<n> in RUN/current-spec.md; never change requirement intent;
 - the step's Proof failing or not testing its criteria (a skipped file, a later
   step's work), or a new unwaived lint finding on a changed line, after your
   last edit.
@@ -2583,7 +2598,7 @@ _STEPS_WORDING = (
      "cases and every recorded command passed, and its document stage updated the docs\n"
      "and the knowledge home. Review the step's change since its Review base (below),\n"
      "its code, tests, docs and knowledge together, and fix, within the item's paths\n"
-     "and KNOWLEDGE, any of these:\n"
+     "and KNOWLEDGE plus the step's marked RUN/current-spec.md additions, any of these:\n"
      "- the change does not do the step's task, misses a criterion as the spec's R-<n>\n"
      "  states it, or does work no criterion asks for (a later step's work, a feature\n"
      "  the item does not request);\n"
@@ -2594,7 +2609,7 @@ _STEPS_WORDING = (
      "cases and every recorded command passed, and its document stage updated the docs\n"
      "and the knowledge home. Review the diff of the paths of these steps ({paths}) and\n"
      "KNOWLEDGE since the first step began, their code, tests, docs and knowledge\n"
-     "together, and fix, within those paths and KNOWLEDGE, any of these:\n"
+     "together, and fix, within those paths and KNOWLEDGE plus the step's marked RUN/current-spec.md additions, any of these:\n"
      "- the change does not do a step's task, misses a criterion as the spec's R-<n>\n"
      "  states it, or does work no criterion asks for (another item's work, a feature\n"
      "  the item does not request);\n"

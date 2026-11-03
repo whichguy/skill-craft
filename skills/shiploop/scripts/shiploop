@@ -89,7 +89,45 @@ def load_state(run_dir: Path) -> Dict[str, Any]:
         die(EXIT_BLOCKED, f"cannot parse authoritative state.md: {exc}")
     if not isinstance(data, dict):
         die(EXIT_BLOCKED, "state.md is not an object")
+    import shiploop_navigator as navigator
+    try:
+        navigator.validate(data)
+        import shiploop_current_spec as current_spec
+        current_spec.assert_binding(run_dir, data)
+    except (navigator.NavigatorError, ValueError) as exc:
+        die(EXIT_BLOCKED, str(exc))
     return data
+
+
+def _preflight_run_recovery(run_dir: Path) -> None:
+    """Refuse old or moved run data before even replaying its pending transaction."""
+    import shiploop_navigator as navigator
+    import shiploop_current_spec as current_spec
+    try:
+        root = run_dir.resolve()
+        existing = store.read_record(root / "state.md") if (root / "state.md").exists() else None
+        if existing is not None:
+            navigator.validate(existing)
+            if existing.get("spec_root") != str(root):
+                raise current_spec.SpecError("run root does not match state spec_root; no recovery was applied")
+        journal = root / store.JOURNAL_NAME
+        if not journal.exists():
+            if existing is not None:
+                current_spec.assert_binding(root, existing)
+            return
+        # Parse the store's complete manifest without writing any destination.
+        store._assert_safe_journal(root)
+        manifest, _deletes = store._manifest_from_journal(root, store.read_record(journal))
+        writes = dict(manifest)
+        pending = store.loads(writes["state.md"]) if "state.md" in writes else existing
+        if pending is None:
+            raise current_spec.SpecError("pending run transaction has no bound navigator state")
+        navigator.validate(pending)
+        if existing is not None and any(pending.get(key) != existing.get(key) for key in ("run_id", "repo", "spec_root")):
+            raise current_spec.SpecError("pending transaction would replace this run's identity")
+        current_spec.recovery_preflight(root, pending, writes)
+    except (navigator.NavigatorError, current_spec.SpecError, store.StorageError, OSError, ValueError) as exc:
+        die(EXIT_BLOCKED, str(exc))
 
 
 @contextmanager
@@ -98,6 +136,8 @@ def run_lock(run_dir: Path) -> Iterator[None]:
     pending transaction before yielding.
     """
     refuse_package_path(run_dir)
+    if run_dir.exists():
+        _preflight_run_recovery(run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
     lock = run_dir / ".lock"
     if lock.is_symlink():
@@ -111,6 +151,7 @@ def run_lock(run_dir: Path) -> Iterator[None]:
         die(EXIT_BLOCKED, f"cannot open run lock {lock}: {exc}")
     try:
         fcntl.flock(fd, fcntl.LOCK_EX)
+        _preflight_run_recovery(run_dir)
         store.recover(run_dir)
         yield
     finally:

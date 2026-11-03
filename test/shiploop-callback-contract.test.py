@@ -36,11 +36,13 @@ CARD = ROOT / "skills" / "improve" / "SKILL.md"
 sys.path.insert(0, str(SCRIPTS))
 
 import shiploop_item_scope as scope  # noqa: E402
+import shiploop_current_spec as current_spec  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
 import shiploop_reference as reference  # noqa: E402
 import shiploop_standalone_improve as standalone  # noqa: E402
+import shiploop_spec_promotion as spec_promotion  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 
@@ -211,16 +213,17 @@ class RealCliCase(unittest.TestCase):
         return self.run_argv(shlex.split(command))
 
     def new_run(self, stage: str = "intake", *, entered: bool = False, flags: tuple[str, ...] = (),
-                results: dict | None = None, **init: str) -> tuple[Path, str]:
+                results: dict | None = None, prior_spec: str | None = None, **init: str) -> tuple[Path, str]:
         """A run positioned at ``stage``; returns its directory and the head the CLI prints there.
 
         ``entered`` positions the run one stage earlier and completes that stage through the CLI, so the files a
         transition writes (a loop's contract) exist, as they do in a real run.  ``flags`` are bare ``init`` flags
         (``--delivery-contract``); ``results`` adds fields, by stage, to the results the positioning accepts.
+        ``prior_spec`` seeds a tracked aggregate before binding when a path-reference case needs an existing prior.
         """
         if entered:
             earlier = EXPECTED_STAGES[EXPECTED_STAGES.index(stage) - 1]
-            run, head = self.new_run(earlier, flags=flags, results=results, **init)
+            run, head = self.new_run(earlier, flags=flags, results=results, prior_spec=prior_spec, **init)
             command, path, _ = printed_callback(head)
             if earlier == "implement":
                 (self.repo_of(run) / "built.txt").write_text("hello\n")  # the work implement's step did
@@ -231,7 +234,7 @@ class RealCliCase(unittest.TestCase):
                 # implement's per-step Improve child (2026-10-10): its review is not under test here, so finish it with
                 # the pure API and write the next action's loop contract with the function the CLI's transition uses.
                 action = state["active_improve"]["action_id"]
-                state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
+                state = self.finish_synthetic_improve(run, state, action, "Synthetic receipt; no review claim.")
                 nav.save(run, state)
                 for relative, text in loops.contract_writes(run, state).items():
                     (run / relative).parent.mkdir(parents=True, exist_ok=True)
@@ -239,6 +242,15 @@ class RealCliCase(unittest.TestCase):
                 head = self.cli("next", "--run-dir", str(run)).stdout
             return run, head
         repo = self.repo = self.make_repo()
+        if prior_spec is not None:
+            prior_path = repo / knowledge.HOME / "spec.md"
+            prior_path.parent.mkdir(parents=True, exist_ok=True)
+            prior_path.write_text(prior_spec, encoding="utf-8")
+            subprocess.run(["git", "-C", str(repo), "add", str(prior_path.relative_to(repo))],
+                           env=self.env, check=True, capture_output=True)
+            subprocess.run(["git", "-C", str(repo), "-c", "user.email=t@example.invalid", "-c",
+                            "user.name=t", "commit", "-qm", "prior aggregate spec"],
+                           env=self.env, check=True, capture_output=True)
         run = self.base / ("run" + repo.name.removeprefix("repo"))
         started = self.cli("init", "--repo", str(repo), "--run-dir", str(run), "--prompt=add hello",
                            "--improve-skill", str(CARD), *flags, *(f"--{k}={v}" for k, v in init.items()))
@@ -248,6 +260,11 @@ class RealCliCase(unittest.TestCase):
             return run, started.stdout
         while nav.current_stage(state) != stage:
             action, here = nav.current_action(state)["id"], nav.current_stage(state)
+            if here == "spec":
+                # A graph walk stands in for the spec author's accepted candidate; seed it before the stage review.
+                candidate = knowledge.spec_path(state)
+                candidate.parent.mkdir(parents=True, exist_ok=True)
+                candidate.write_text(LIVING_SPEC, encoding="utf-8")
             if here == "implement":
                 (repo / "built.txt").write_text("hello\n")  # the work the stage's step did
             if here == "release-verify":
@@ -258,11 +275,38 @@ class RealCliCase(unittest.TestCase):
                     (run / relative).write_text(text, encoding="utf-8")
             state = nav.apply(state, action, {**DONE, **RESULTS.get(here, {}), **(results or {}).get(here, {})})
             if state.get("active_improve") is not None:
-                state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
+                state = self.finish_synthetic_improve(
+                    run, state, action, "Synthetic fixture completed Improve against this current-spec candidate.")
+            # Saving at this exact entry lets the production save hook seed the
+            # accepted plan plus step-ID baseline used by document's guard.
+            if nav.current_stage(state) == "implement":
+                nav.save(run, state)
         nav.save(run, state)
+        if stage == "handoff":
+            current_spec.check_reviewed(state)
         head = self.cli("next", "--run-dir", str(run))
         self.assertEqual(head.returncode, 0, head.stdout + head.stderr)
         return run, head.stdout
+
+    def finish_synthetic_improve(self, run: Path, state: dict, action: str, summary: str) -> dict:
+        """Finish a graph-only synthetic child and bind its accepted receipt to the current candidate bytes."""
+        child = state["active_improve"]
+        if child.get("skill") is None:
+            selected = standalone.resolve_skill(str(CARD))
+            child = standalone.binding(state, action, child["stage"], child["seed_result"], selected,
+                                       improve_action=child["improve_action"])
+            state["active_improve"] = child
+            state["improve_skill"] = selected["skill_card"]
+            nav.validate(state)
+
+        # These graph fixtures do not run or import the Improve runtime. Capture
+        # the candidate bytes the synthetic acceptance represents without
+        # creating runtime bind or pass files in the run workspace.
+        candidate_digest = current_spec.digest(state)
+        updated = nav.finish_improve(state, action, {"summary": summary})
+        for relative, text in current_spec.reviewed_writes(updated, action, candidate_digest).items():
+            store.atomic_write_text(run / relative, text)
+        return updated
 
     def repo_of(self, run: Path) -> Path:
         """The repository a run from ``new_run`` works on (each run has its own)."""
@@ -302,6 +346,13 @@ class RealCliCase(unittest.TestCase):
                 block[key] = "What this stage established (S1)."   # a done intake cites the request's sentences (IN1)
             elif key == "evidence_refs":
                 block[key] = [str(self.evidence)]
+            elif key == "spec_reconciliation":
+                state = store.read_record(printed_callback(head)[1].parent.parent / "state.md")
+                block[key] = {
+                    **spec_promotion.hashes(state),
+                    "summary": "The candidate records R-1 for this synthetic request; the run-start aggregate was "
+                               "absent and recorded as an empty prior snapshot, so no prior requirement IDs were dropped.",
+                }
             else:
                 self.assertIn(key, values, f"the template prints {key}: add its minimum real value to this test")
                 block[key] = values[key]
@@ -328,8 +379,8 @@ class RealCliCase(unittest.TestCase):
         if focused or stage in ("spec", "plan", "product-acceptance"):
             # The spec's primary list and an unverified row name R-1, so the living spec holds its entry (F6).
             state = store.read_record(printed_callback(head)[1].parent.parent / "state.md")
-            living = Path(state["repo"]) / knowledge.HOME / "spec.md"
-            if knowledge.entry_text(Path(state["repo"]), "R-1") is None:
+            living = knowledge.spec_path(state)
+            if knowledge.entry_text(state, "R-1") is None:
                 living.parent.mkdir(parents=True, exist_ok=True)
                 living.write_text((living.read_text(encoding="utf-8") if living.is_file() else "") + LIVING_SPEC,
                                   encoding="utf-8")
@@ -685,6 +736,14 @@ class RefusalRouteTests(RealCliCase):
         self.assertEqual(sorted(self.git(repo, "show", "--name-only", "--format=", "HEAD").split()),
                          ["docs/shiploop/architecture.md"])
 
+    def write_current_spec_candidate(self, run: Path, *, sectioned: bool) -> None:
+        """Write the bound candidate with the section shape this close fixture is asserting."""
+        candidate = knowledge.spec_path(self.state(run))
+        candidate.parent.mkdir(parents=True, exist_ok=True)
+        body = ("# Spec\n\n" + knowledge_support.sections("spec.md") if sectioned
+                else LIVING_SPEC.replace("## Requirements\n\n", ""))
+        candidate.write_text(body, encoding="utf-8")
+
     def accept_a_prepare_with_files(self, sectioned: bool) -> tuple:
         """A run at prepare whose refusal's files are written (with every named section, or as prose), then accepted.
 
@@ -693,13 +752,23 @@ class RefusalRouteTests(RealCliCase):
         run, head = self.new_run("prepare")
         command, path, action = printed_callback(head)
         repo = self.repo_of(run)
+        state = self.state(run)
         write_block(path, self.fill_done(head))
         for named in re.findall(r"^- (/\S+)$", self.refused(command, run), re.M):
             file = Path(named)
             file.parent.mkdir(parents=True, exist_ok=True)
-            living = file.parent == repo / knowledge.HOME and file.name in knowledge.SECTIONS
-            file.write_text(knowledge_support.sections(file.name) if sectioned and living else "What this file records.\n",
-                            encoding="utf-8")
+            name = "spec.md" if file == knowledge.spec_path(state) else file.name
+            living = name in knowledge.SECTIONS and (file == knowledge.spec_path(state)
+                                                       or file.parent == repo / knowledge.HOME)
+            if sectioned and living:
+                text = knowledge_support.sections(name)
+            elif file == knowledge.spec_path(state):
+                # This no-sections spec fixture still retains the accepted R-1 clause.
+                text = LIVING_SPEC.replace("## Requirements\n\n", "")
+            else:
+                text = "What this file records.\n"
+            file.write_text(text, encoding="utf-8")
+        self.write_current_spec_candidate(run, sectioned=sectioned)
         result = self.run_printed(command)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         return run, result, action
@@ -718,7 +787,7 @@ class RefusalRouteTests(RealCliCase):
         self.assertEqual(len(found), len(knowledge.SECTIONS))
         self.assertEqual(found, knowledge.section_notices(self.state(run), "prepare"))
         self.assertEqual([row.split(" ")[3] for row in found],
-                         [str(self.repo_of(run) / knowledge.HOME / name) for name in knowledge.SECTIONS])
+                         [str(knowledge.artifact_path(self.state(run), name)) for name in knowledge.SECTIONS])
         self.assertEqual([heading for row in found for heading in self.named_in(row)],
                          [heading for headings in knowledge.SECTIONS.values() for heading in headings])
         self.assertEqual("".join(row for row in result.stdout.splitlines(True) if row.startswith(knowledge.NOTICE_PREFIX)),
@@ -753,8 +822,10 @@ class RefusalRouteTests(RealCliCase):
         for named in re.findall(r"^- (/\S+)$", self.refused(command, run), re.M):
             file = Path(named)
             file.parent.mkdir(parents=True, exist_ok=True)
-            file.write_text(knowledge_support.sections(file.name) if file.name in knowledge.SECTIONS else "What this file records.\n",
+            name = "spec.md" if file == knowledge.spec_path(self.state(run)) else file.name
+            file.write_text(knowledge_support.sections(name) if name in knowledge.SECTIONS else "What this file records.\n",
                             encoding="utf-8")
+        self.write_current_spec_candidate(run, sectioned=True)
         environment = repo / knowledge.HOME / "environment.md"
         environment.write_text(environment.read_text(encoding="utf-8") + "\n## Preparation\n\nPrepared on 2026-10-31.\n",
                                encoding="utf-8")
@@ -778,14 +849,11 @@ class RefusalRouteTests(RealCliCase):
     def test_test_spec_with_validate_existing_recorded_after_it_is_no_close_and_prints_no_notice(self) -> None:
         # The common route: test-spec is accepted and, in the same call, the script records validate-existing (every
         # expectation matches).  test-spec is no close since consumer contract 4b (its cases are in state): it requires no
-        # feature file, and a home of prose files prints no section notice.
+        # feature file, and the current spec's missing sections print no notice at a no-close stage.
         run, head = self.new_run("test-spec", **{"planning-review": "none"})
         command, path, action = printed_callback(head)
-        repo, state = self.repo_of(run), self.state(run)
-        home = repo / knowledge.HOME
-        for name in knowledge.SECTIONS:
-            (home / name).parent.mkdir(parents=True, exist_ok=True)
-            (home / name).write_text("What this file records.\n", encoding="utf-8")
+        state = self.state(run)
+        self.assertNotIn("## Non-functional requirements", knowledge.spec_path(state).read_text(encoding="utf-8"))
         write_block(path, self.fill_done(head))
         before = len(state["history"])
         result = self.run_printed(command)
@@ -1972,7 +2040,7 @@ class PrimaryRequirementRouteTests(RealCliCase):
 
     def living_spec(self, run: Path) -> None:
         """R-1's entry in the run's living spec, which a follows ID needs (F3)."""
-        living = Path(self.state(run)["repo"]) / knowledge.HOME / "spec.md"
+        living = knowledge.spec_path(self.state(run))
         living.parent.mkdir(parents=True, exist_ok=True)
         living.write_text(LIVING_SPEC, encoding="utf-8")
 
@@ -2241,13 +2309,12 @@ class PathHandlingRouteTests(RealCliCase):
         self.accepted(command + " --result=" + shlex.quote(str(path)))  # the flag is still read when given
 
     def test_a_leading_symbol_in_evidence_refs_is_expanded_checked_and_stored_absolute(self) -> None:
-        run, head = self.new_run()
+        run, head = self.new_run(prior_spec="# Spec\n")
         command, path, action = printed_callback(head)
         repo, home = self.repo_of(run), self.repo_of(run) / knowledge.HOME
         (run / "notes").mkdir(exist_ok=True)
         (run / "notes" / "x.md").write_text("a note\n")
-        home.mkdir(parents=True, exist_ok=True)
-        (home / "spec.md").write_text("# Spec\n")
+        self.assertEqual((home / "spec.md").read_text(encoding="utf-8"), "# Spec\n")
         guide = nav._reference_dir(None) / "navigator.md"
         symbols = {"RUN/notes/x.md": run / "notes" / "x.md", "RUN/notes/x.md#top": str(run / "notes" / "x.md") + "#top",
                    "WORKTREE/a.txt": repo / "a.txt", "KNOWLEDGE/spec.md": home / "spec.md", "GUIDES/navigator.md": guide}
@@ -2660,8 +2727,8 @@ class EveryStageRouteTests(RealCliCase):
                     # A left-out document still owns its step's review (design T section 9 row 2): the recorded result
                     # started it, and the previous stage's callback printed its packet.
                     self.assertIn("       " + nav.IMPROVE_ARGUMENT_PREFIX, head)
-                    state = nav.finish_improve(state, state["active_improve"]["action_id"],
-                                               {"summary": "Synthetic receipt; no review claim."})
+                    state = self.finish_synthetic_improve(
+                        run, state, state["active_improve"]["action_id"], "Synthetic receipt; no review claim.")
                     nav.save(run, state)
                     result = self.cli("next", "--run-dir", str(run))
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -2689,7 +2756,7 @@ class EveryStageRouteTests(RealCliCase):
                 self.assertIn("       " + nav.IMPROVE_ARGUMENT_PREFIX, result.stdout)
                 self.assertNotIn("improve-bind", result.stdout)
                 state = self.state(run)
-                state = nav.finish_improve(state, action, {"summary": "Synthetic receipt; no review claim."})
+                state = self.finish_synthetic_improve(run, state, action, "Synthetic receipt; no review claim.")
                 nav.save(run, state)
                 result = self.cli("next", "--run-dir", str(run))
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -2850,10 +2917,15 @@ class PacketReviewRefusalRouteTests(RealCliCase):
 
     def write_knowledge(self, run: Path) -> None:
         """The living knowledge files an outer close requires, as the earlier stages of a real run leave them."""
+        state = self.state(run)
         for name in ("spec.md", "environment.md", "architecture.md"):
-            path = self.repo_of(run) / knowledge.HOME / name
+            path = (knowledge.spec_path(state) if name == "spec.md"
+                    else self.repo_of(run) / knowledge.HOME / name)
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text("What this file records.\n", encoding="utf-8")
+            if name == "spec.md":
+                path.write_text(LIVING_SPEC, encoding="utf-8")
+            else:
+                path.write_text("What this file records.\n", encoding="utf-8")
 
     def test_release_plan_names_the_necessity_gate_and_its_printed_template_settles_it(self) -> None:
         # Not a refusal of the run: its model read the delivery script 7 times (34 reads of ShipLoop's source, 8.2 min)

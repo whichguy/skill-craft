@@ -28,6 +28,7 @@ from __future__ import annotations
 import difflib
 import hashlib
 import json
+import re
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Tuple
@@ -45,6 +46,96 @@ def bind_path(action: str) -> str:
 def bind_result_path(action: str) -> str:
     """Run-relative path of the result text bound for Improve ``action`` (``result_text``), the first pass's baseline."""
     return "improve/" + action + "-bind-result.json"
+
+
+def bind_spec_path(action: str) -> str:
+    """Run-relative exact candidate-spec text bound when an Improve child starts."""
+    return "improve/" + action + "-bind-spec.md"
+
+
+def spec_pass_path(number: int) -> str:
+    """Filename for exact candidate-spec text beside the active child's Improve pass record."""
+    return "current-spec-" + str(number) + ".md"
+
+
+def current_spec_snapshot(state: Mapping[str, Any]) -> Optional[Tuple[str, str]]:
+    """(SHA-256, exact UTF-8 candidate text), or None only for an unbound pure fixture.
+
+    A bound production state is validated by ``shiploop_current_spec.path``;
+    a missing or damaged run binding is an error, never a fallback to the
+    repository aggregate.
+    """
+    if not state.get("spec_root"):
+        return None
+    import shiploop_current_spec as current_spec
+
+    raw = current_spec.path(state).read_bytes()
+    text = raw.decode("utf-8")
+    return hashlib.sha256(raw).hexdigest(), text
+
+
+def current_spec_review_digest(run_dir: Path, state: Mapping[str, Any], action: str) -> Optional[str]:
+    """The latest active child's pass digest, independent of the live candidate.
+
+    Missing or unreadable pass evidence is unknown. Reading this identity must
+    never replace it with a fresh hash of the file awaiting acceptance.
+    """
+    child = state.get("active_improve")
+    if not isinstance(child, Mapping) or child.get("action_id") != action:
+        return None
+    try:
+        import shiploop_standalone_improve as standalone
+
+        reviews = standalone.receipt_path(child).parent / "reviews"
+    except (OSError, ValueError, RuntimeError):
+        return None
+    passes = []
+    try:
+        for path in reviews.glob("pass-*.json"):
+            match = re.fullmatch(r"pass-([1-9][0-9]*)\.json", path.name)
+            if match:
+                passes.append((int(match.group(1)), path))
+        if not passes:
+            return None
+        # A stopped review can be restarted and restart its pass number while
+        # retaining old pass evidence. Pick the newest written receipt, not the
+        # highest historical pass number.
+        _number, path = max(passes, key=lambda row: row[1].stat().st_mtime_ns)
+        record = json.loads(path.read_text(encoding="utf-8"))
+        prior = record.get("current_spec") if isinstance(record, Mapping) else None
+    except (OSError, ValueError, store.StorageError):
+        return None
+    if not isinstance(prior, str) or not re.fullmatch(r"[0-9a-f]{64}", prior):
+        return None
+    return prior
+
+
+def current_spec_changed_since_review(run_dir: Path, state: Mapping[str, Any], action: str) -> Optional[bool]:
+    """Whether the live candidate differs from the latest recorded pass.
+
+    ``None`` means no successful pass evidence exists or it is unreadable,
+    which the caller must treat as unknown and refuse for a bound state.
+    """
+    snapshot = current_spec_snapshot(state)
+    if snapshot is None:
+        return False
+    reviewed = current_spec_review_digest(run_dir, state, action)
+    return None if reviewed is None else reviewed != snapshot[0]
+
+
+def current_spec_changed_since_bind(run_dir: Path, state: Mapping[str, Any], action: str) -> Optional[bool]:
+    """Whether the candidate differs from the exact content this Improve review began with."""
+    snapshot = current_spec_snapshot(state)
+    if snapshot is None:
+        return False
+    try:
+        record = store.read_record(Path(run_dir) / bind_path(action))
+    except (OSError, ValueError, store.StorageError):
+        return None
+    prior = record.get("current_spec") if isinstance(record, Mapping) else None
+    if not isinstance(prior, str) or not re.fullmatch(r"[0-9a-f]{64}", prior):
+        return None
+    return prior != snapshot[0]
 
 
 def _snapshot(run_dir: Path, repo: Path) -> Optional[Dict[str, str]]:
@@ -135,16 +226,30 @@ def changed_lines(repo: Path, left: Optional[str], right: Optional[str]) -> Opti
     return total
 
 
-def bind_writes(run_dir: Path, repo: Path, action: str) -> Dict[str, str]:
-    """The snapshot record written when an Improve child is bound (none outside Git): the tree and the result's
-    fingerprint, the baselines a pass's edits are measured against."""
+def bind_writes(run_dir: Path, repo: Path, action: str,
+                state: Mapping[str, Any] | None = None) -> Dict[str, str]:
+    """The binding for tree, result, and run-local current-spec identities.
+
+    The tree is optional (non-Git runs still bind their result and current
+    spec). The exact spec bytes are retained beside the digest so later passes
+    can measure text changes without reading a moving baseline.
+    """
     snap = _snapshot(Path(run_dir), Path(repo))
-    if snap is None:
-        return {}
+    spec = current_spec_snapshot(state) if state is not None else None
     text = result_text(Path(run_dir), action)
-    return {bind_path(action): store.dumps(dict(snap, result=result_identity(Path(run_dir), action)),
-                                           "ShipLoop Improve bind snapshot"),
-            **({bind_result_path(action): text} if text is not None else {})}
+    if snap is None and spec is None and text is None:
+        return {}
+    bound = dict(snap or {})
+    bound["result"] = result_identity(Path(run_dir), action)
+    writes = {bind_path(action): store.dumps(bound, "ShipLoop Improve bind snapshot")}
+    if text is not None:
+        writes[bind_result_path(action)] = text
+    if spec is not None:
+        digest, spec_text = spec
+        bound["current_spec"] = digest
+        writes[bind_path(action)] = store.dumps(bound, "ShipLoop Improve bind snapshot")
+        writes[bind_spec_path(action)] = spec_text
+    return writes
 
 
 def _diff(top: Path, left: str, right: str) -> List[str]:
@@ -225,6 +330,7 @@ def rerun_commands(state: Mapping[str, Any]) -> List[Dict[str, Any]]:
     return list(seen.values())
 
 
-__all__ = ("bind_path", "bind_result_path", "bind_writes", "changed_lines", "commit_refusal", "paths_since",
-           "rerun_commands",
-           "result_identity", "result_lines", "result_text", "review_changes", "snapshot_tree", "uncommitted")
+__all__ = ("bind_path", "bind_result_path", "bind_spec_path", "bind_writes", "changed_lines", "commit_refusal",
+           "current_spec_changed_since_bind", "current_spec_changed_since_review", "current_spec_snapshot",
+           "paths_since", "rerun_commands", "result_identity", "result_lines", "result_text", "review_changes",
+           "snapshot_tree", "spec_pass_path", "uncommitted")

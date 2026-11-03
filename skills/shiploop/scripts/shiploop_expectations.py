@@ -520,11 +520,13 @@ def _requirement_order(ident: str) -> int:
     return int(ident.split("-")[1])
 
 
-def requirement_ids_text(repo: Path, label: str) -> str:
-    """Which R-<n> a case's ``requirement`` may name, as a sentence: the IDs the living spec holds (a retired one is
+def requirement_ids_text(source: Path | Mapping[str, Any], label: str) -> str:
+    """Which R-<n> a case's ``requirement`` may name, as a sentence: IDs the selected spec holds (a retired one is
     marked), or that it holds none and the route out.  ``label`` is how the sentence names the spec."""
     import shiploop_knowledge_home as knowledge
-    found = knowledge.entries(Path(repo), "spec.md")
+    if isinstance(source, Mapping) and label != "RUN/current-spec.md":
+        label = str(knowledge.spec_path(source))
+    found = knowledge.entries(source, "spec.md")
     if not found:
         return label + " lists no R-<n> entry: report send-back naming the missing requirement."
     return label + " lists " + ", ".join(ident + (" (retired)" if found[ident].retired else "")
@@ -547,7 +549,7 @@ def case_skeleton(state: Mapping[str, Any]) -> Optional[List[Dict[str, str]]]:
     the plan lists no focused ID (the item needs no case).  Every ID has a row here; the template prints the first
     ``SKELETON_ROWS`` and the packet names the rest.  ``id`` is the focused ID.  ``criterion`` is the one
     criterion the plan's focused commands list for that ID, else the placeholder.  ``requirement`` is the one R-<n>
-    the criterion's text names that the living spec holds an entry for, else the placeholder.  The model fills
+    the criterion's text names that the current-run spec candidate holds an entry for, else the placeholder.  The model fills
     ``oracle``, ``red`` and ``green`` and may change any other field: nothing is derived that the plan does not state.
     """
     import shiploop_knowledge_home as knowledge
@@ -562,7 +564,7 @@ def case_skeleton(state: Mapping[str, Any]) -> Optional[List[Dict[str, str]]]:
                 names += [str(name) for name in row.get("criteria") or () if str(name) not in names]
     text = {str(row.get("id")): str(row.get("text") or "") for row in plan.get("criteria") or ()
             if isinstance(row, Mapping)}
-    held = knowledge.entries(Path(str(state["repo"])), "spec.md") if listed else {}
+    held = knowledge.entries(state, "spec.md") if listed else {}
     rows = []
     for ident, names in listed.items():
         criterion = names[0] if len(names) == 1 else CASE_PLACEHOLDERS["criterion"]
@@ -600,7 +602,7 @@ def check_test_cases(root: Path, state: Mapping[str, Any],
 
     ``result`` is canonical.  The case IDs must equal the current item's focused command IDs in both directions (an
     earlier item's IDs no longer count); each case's criterion is a criterion of that step plan; each requirement it
-    names has an entry in the living spec.  A missing key or [] is accepted when the item has no focused IDs.  Returns
+    names has an entry in the current-run spec candidate.  A missing key or [] is accepted when the item has no focused IDs.  Returns
     ``(fix, seed, lines)`` for the navigator's hand-off refusal: ``fix`` holds ``{result}`` where the result file goes,
     ``seed`` is the same fix for a final result still to be written, ``lines`` follow line 1.
     """
@@ -635,8 +637,8 @@ def check_test_cases(root: Path, state: Mapping[str, Any],
         return ("Fix the case criteria in {result}", "fixes the criteria",
                 ["Set each case's criterion to a criterion of this item's step plan.",
                  "; ".join(wrong) + "; the criteria are " + (", ".join(criteria) or "none") + "."])
-    spec = Path(str(state["repo"])) / knowledge.HOME / "spec.md"
-    entries = knowledge.entries(Path(str(state["repo"])), "spec.md")
+    spec = knowledge.spec_path(state)
+    entries = knowledge.entries(state, "spec.md")
     unknown = []
     for case in cases:
         absent = [ident for ident in knowledge.requirement_ids(case["requirement"]) if ident not in entries]
@@ -644,8 +646,8 @@ def check_test_cases(root: Path, state: Mapping[str, Any],
             unknown.append(case["id"] + " names " + ", ".join(absent))
     if unknown:
         return ("Fix case requirements in {result}", "fixes requirements",
-                ["Set each case's requirement to an R-<n> that has an entry in the living spec (a line that starts "
-                 "with the ID). " + requirement_ids_text(Path(str(state["repo"])), str(spec)),
+                ["Set each case's requirement to an R-<n> that has an entry in RUN/current-spec.md (a line that starts "
+                 "with the ID). " + requirement_ids_text(state, str(spec)),
                  "; ".join(unknown) + "."])
     return None
 

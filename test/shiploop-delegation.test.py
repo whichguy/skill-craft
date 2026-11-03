@@ -232,7 +232,7 @@ class DelegationStateTests(unittest.TestCase):
         action_id = nav.current_action(step_plan_state)["id"]
         contract = loops.contract(self.run, step_plan_state, action_id)
         self.assertIn("steps lists every implementation step in the order to do them", contract["exit_condition"])
-        self.assertIn("`steps`**: every implementation step in order (one is fine)", flat_plan)
+        self.assertIn("**`steps`**: ordered implementation steps (one is fine)", flat_plan)
         # The "sole execution directive" sentence became this one in duty 9 (re-cut 2026-10-11).
         self.assertIn("each step's task and criteria stay its only directive", flat_plan)
         for packet in (inline, step_plan):
@@ -1312,10 +1312,9 @@ class DelegationCliTests(unittest.TestCase):
         self.assertEqual(self.saved()["stage"], "spec")
         action = self.saved()["action"]["id"]
         result_path = self.run / "inbox" / (action + ".md")
-        # A done spec lists its primary requirements, each with an entry in the living spec (run-5 batch F6).
-        (self.repo / "docs" / "shiploop").mkdir(parents=True, exist_ok=True)
-        (self.repo / "docs" / "shiploop" / "spec.md").write_text("## Requirements\n\n- R-1: The request.\n",
-                                                                 encoding="utf-8")
+        # A done spec lists its primary requirements in this run's candidate (run-5 batch F6).
+        candidate = nav.knowledge.spec_path(self.saved())
+        candidate.write_text("## Requirements\n\n- R-1: The request.\n", encoding="utf-8")
         store.write_record(result_path, {"outcome": "done", "summary": "Synthetic spec.", "primary": ["R-1"]})
         self.assertEqual(self.cli("complete", "--run-dir", self.run, "--action", action,
                                   "--result", result_path).returncode, 0)

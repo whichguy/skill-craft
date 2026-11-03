@@ -875,9 +875,14 @@ class ThirdPassPacketTest(unittest.TestCase):
         spec.loader.exec_module(module)
         cls.rendered = {prefix: module.render(prefix) for prefix in ("bf-codex-r2", "hooks-after")}
 
-    def test_the_committed_listings_are_what_the_engine_prints_now(self) -> None:
+    def test_the_historical_contents_are_retained_with_the_current_spec_locator(self) -> None:
         for prefix, text in self.rendered.items():
-            self.assertEqual(text, (EVIDENCE / f"pass3-intake-{prefix}.txt").read_text(), prefix)
+            # Preserve the historical experiment bytes. Current packets identify
+            # the run candidate; only that one contents locator changed roles.
+            self.assertEqual(text.count("RUN/current-spec.md"), 1, prefix)
+            self.assertIn("RUN/current-spec.md (", text, prefix)
+            self.assertEqual(text.replace("RUN/current-spec.md", "KNOWLEDGE/spec.md"),
+                             (EVIDENCE / f"pass3-intake-{prefix}.txt").read_text(), prefix)
 
     def test_the_live_decision_the_second_pass_appended_is_listed_under_superseded(self) -> None:
         listing = self.rendered["bf-codex-r2"]

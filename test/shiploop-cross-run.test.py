@@ -273,13 +273,13 @@ class CrossRunTests(unittest.TestCase):
         return self._run([sys.executable, "-B", *command[1:]])
 
     @staticmethod
-    def _complete_state(repo: Path, prompt: str) -> dict:
+    def _complete_state(repo: Path, prompt: str, initial_state: dict | None = None) -> dict:
         """Build a valid terminal navigator fixture without replaying every CLI call.
 
         Improve checkpoints return through explicitly synthetic receipts; no
         Improve runtime or review runs.
         """
-        state = navigator.new_state(str(repo), prompt)
+        state = initial_state or navigator.new_state(str(repo), prompt)
         while state["status"] != "done":
             action = navigator.current_action(state)
             result: dict[str, object] = {
@@ -428,7 +428,9 @@ class CrossRunTests(unittest.TestCase):
                 OLD_PROMPT,
             ]
         )
-        prior = self._complete_state(self.repo.resolve(), OLD_PROMPT)
+        # Finish the run that `init` actually persisted. A different synthetic
+        # run ID cannot seed or replace an existing current-spec binding.
+        prior = self._complete_state(self.repo.resolve(), OLD_PROMPT, self._state(default_run))
         navigator.save(default_run, prior)
         prior_files = {
             name: (default_run / name).read_bytes()

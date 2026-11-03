@@ -262,8 +262,7 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
             need(bool(args.prompt.strip()), "prompt must not be empty")
             saved = root / "run" / "state.md"
             if saved.exists():
-                existing = store.read_record(saved)
-                navigator.validate(existing)
+                existing = core.load_state(root / "run")
                 need(existing.get("prompt") == args.prompt,
                      "new request needs a fresh workspace root; use next for the saved request")
                 need(existing.get("execution_mode") == "navigator-worktree",
@@ -315,8 +314,7 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
         if args.operation in ("plan-return", "review-return"):
             # Like every run-bound verb, refuse a retired or unloadable run
             # before touching its workspace.
-            saved = store.read_record(root / "run" / "state.md")
-            navigator.validate(saved)
+            saved = core.load_state(root / "run")
             workspace.assert_binding(root, Path(saved["repo"]))
             parts = []  # everything this command prints, held to one budget (see _fit)
             try:
@@ -344,8 +342,7 @@ def workspace_command(core: Any, argv: Sequence[str]) -> int:
                 raise
             _emit(parts)
         else:
-            saved = store.read_record(root / "run" / "state.md")
-            navigator.validate(saved)
+            saved = core.load_state(root / "run")
             workspace.assert_binding(root, Path(saved["repo"]))
             with core.run_lock(root / "run"):
                 saved = core.load_state(root / "run")
@@ -923,6 +920,12 @@ def _main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
                 backchain_passes=args.backchain_passes or navigator.DEFAULT_BACKCHAIN_PASSES,
                 planning_review=args.planning_review or navigator.DEFAULT_PLANNING_REVIEW,
             )
+            # Direct init has always accepted a not-yet-created target. Create
+            # that authorized directory after option/binding preflight so the
+            # new run can snapshot its exact (absent) knowledge and bind a real
+            # repository root without weakening resumed-run identity checks.
+            if not repo.exists():
+                repo.mkdir(parents=True, exist_ok=True)
             navigator.save(root, state)
             _TRACE["created"], _TRACE["after"] = True, state
             import shiploop_trace

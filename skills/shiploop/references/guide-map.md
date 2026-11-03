@@ -45,29 +45,26 @@ notes and item context; load only the applicable sections.
 
 ## Repository knowledge home
 
-Planning knowledge outlives the run. Stages keep three living files in
-`docs/shiploop/` in the product repository up to date: `spec.md` (the living spec,
-stable `R-<n>` IDs), `environment.md` (targets by alias, working commands, harnesses
-and suites, the test-ID convention, platform facts, the standing release procedure)
-and `architecture.md` (stack, structure, conventions, interfaces, real-boundary checks
-and numbered `AD-<n>` decisions). A run's other records are fields of its stage
-results, quoted to the stages that consume them. The three files have named sections
-(`knowledge_home.SECTIONS`); at the closes ShipLoop prints one
-`ShipLoop knowledge notice:` line per file that lacks sections, naming them (a count,
-never a refusal). An older home's `README.md`, `test-strategy.md` and `features/`
-folders are left in place and no longer required, written or named.
-At `prepare`, `release-plan` and `release-verify`, ShipLoop
-refuses `done` until that close's files exist,
-refuses a living spec or architecture whose uncommitted version drops an earlier committed
-ID (an edit a review already committed through `improve-commit` is not seen), and commits exactly
-`docs/shiploop/`. After any other accepted stage that changed `docs/shiploop/`,
-ShipLoop runs the same ID check and commits it too, so never
-commit it yourself. The `release-verify` commit is always made: its body is the
-result's `lessons` (`Learned`, `Key considerations`, `Open for the next run`) and the
-open items still left. Intake and discovery packets quote the last three commit
-messages and that lessons commit, found by its subject. After a working-tree return
-that commit is not on your branch: the report prints its exact message to commit. The
-next run starts from these files; see
+Planning knowledge outlives the run. `docs/shiploop/spec.md` is the accepted
+aggregate from earlier runs. At run start, ShipLoop initializes `RUN/current-spec.md`
+from that exact aggregate (or empty if absent) and binds immutable
+`RUN/spec/prior-{spec,architecture,environment}.md` snapshots, recording any absent
+source. Requirement reads, edits and diffs use the full current candidate; the
+aggregate stays unchanged until final handoff. The accepted handoff reconciles the
+reviewed candidate with the prior snapshot, request and delivered evidence, then the
+script promotes it, so never commit it yourself. The overall and step plans define only this run's changes and
+evidenced prerequisites; old achieved or deferred work is not assigned again merely
+because a plan follows its requirement.
+
+`docs/shiploop/environment.md` keeps target aliases, working commands, harnesses and
+suites, test-ID conventions, platform facts and release procedures. `architecture.md`
+keeps stack, structure, conventions, interfaces, real-boundary checks and numbered
+`AD-<n>` decisions. These remain repository knowledge maintained by their owning
+stages. The candidate, environment and architecture have named sections
+(`knowledge_home.SECTIONS`); a `ShipLoop knowledge notice:` identifies missing
+sections without refusing the stage. Older `README.md`, `test-strategy.md` and
+`features/` folders are left in place and no longer required, written or named. For
+the current readers and close behavior, see
 [repository knowledge home](project-knowledge.md#repository-knowledge-home).
 
 ## Access, testing and environments

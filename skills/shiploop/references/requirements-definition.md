@@ -59,6 +59,28 @@ the proposed delta in the assigned spec/result. Record supersession rationale
 next to the changed clause. Keep historical records and frozen run baselines
 intact; use the active protocol's correction/revision route when they must change.
 
+## ShipLoop's current spec and the prior aggregate
+
+In a ShipLoop run, `KNOWLEDGE/spec.md` is the accepted prior aggregate.
+`RUN/current-spec.md` is the full candidate for this request, initialized from
+that exact prior content; when the prior spec is absent, the run-start record
+says so and the candidate starts empty. The immutable
+`RUN/spec/prior-spec.md`, `prior-architecture.md`, and
+`prior-environment.md` files capture present sources, while the binding records
+which sources were absent. Read and edit the candidate for current work. Do not
+edit the aggregate: ShipLoop promotes the reviewed candidate only after final
+handoff reconciliation and acceptance.
+
+The reviewed overall plan and each step plan define the new work. Schedule
+current-request outcomes and evidenced necessary prerequisites; reuse achieved
+behavior and preserve accepted deferred work. A requirement or AD ID in
+`follows` constrains a work item but does not by itself assign its old work
+again. Map preserved conditions to checks when the planned change could affect
+them; do not create work for unaffected conditions. Existing code and tests show
+observed behavior, not approved intent. An explicit current user instruction can
+replace a conflicting clause without redundant approval; preserve the rest of
+the requirement, its ID, history and decision rationale.
+
 ## State and data change assessment
 
 For an affected change, inventory only the relevant carriers: files, runtime
@@ -126,13 +148,14 @@ can suffice; no mandatory table, category quota, or exhaustive NFR catalog.
 
 ## Initial-plan reconciliation
 
-At initial planning, map every applicable architecture constraint, new and
-preserved requirement, non-functional criterion, and state/data mutation to an
-owner and work item, its prerequisite or evidenced supplier, and its planned
-test/check. Retain an applicable release/recovery condition, or a reasoned
-`N/A` or unresolved disposition, for each mapping. Keep compact source, decision,
-and test locators in existing plan/work-item context and `evidence_refs`; normal
-standalone Improve reviews use those same materials.
+At initial planning, map each new or changed outcome, each evidenced prerequisite,
+and each preserved condition the planned change could affect to an owner and work
+item, its prerequisite or evidenced supplier, and its planned test/check. Reuse
+unaffected achieved behavior and leave accepted deferred work unscheduled unless
+requested or proven necessary. Retain an applicable release/recovery condition,
+or a reasoned `N/A` or unresolved disposition, for each affected mapping. Keep
+compact source, decision, and test locators in existing plan/work-item context
+and `evidence_refs`; normal standalone Improve reviews use those same materials.
 
 For an additive change, compare the actual consumer surface before and after the
 planned outcome against the original request and baseline. Retaining a helper,

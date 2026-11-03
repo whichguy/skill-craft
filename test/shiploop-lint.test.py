@@ -1503,8 +1503,8 @@ class GateTests(Fixture):
     """implement's (every step's), test's and document's done, and the step review's import, pass through the lint
     gate."""
 
-    def start(self, option: str = "fix") -> dict:
-        nav.save(self.run_dir, nav.new_state(str(self.repo), "Lint gate fixture.", improve_skill="",
+    def start(self, option: str = "fix", *, improve_skill: str = "") -> dict:
+        nav.save(self.run_dir, nav.new_state(str(self.repo), "Lint gate fixture.", improve_skill=improve_skill,
                                              lint_option=option))
         with self.patched_env():
             return drive(self.run_dir, "implement")
@@ -1697,16 +1697,32 @@ class GateTests(Fixture):
         """Design T §8.2a (2b-4b): the step review's import lints the review's own edits (since its bind snapshot) before
         ShipLoop reruns the step's commands and commits the step."""
         import shiploop_improve_changes as improve_changes
+        improve_card = str(ROOT / "skills/improve/SKILL.md")
         self.commit({"a.py": "x = 1\n"})
-        self.start()
+        self.start(improve_skill=improve_card)
         with self.patched_env():
             state = drive(self.run_dir, "document")
             complete(self.run_dir, state)
             state = store.read_record(self.run_dir / "state.md")
             child = state["active_improve"]
             self.assertEqual(child["stage"], "document")
-            for relative, text in improve_changes.bind_writes(self.run_dir, self.repo, child["action_id"]).items():
+            self.assertEqual(child["binding_id"], state["run_id"] + "/" + child["action_id"])
+            self.assertTrue(child["skill"], "the fixture must use ShipLoop's actual bound child schema")
+            for relative, text in improve_changes.bind_writes(
+                    self.run_dir, self.repo, child["action_id"], state).items():
                 store.atomic_write_text(self.run_dir / relative, text)
+            import shiploop_current_spec as current_spec
+            import shiploop_standalone_improve as standalone
+            spec_bytes = current_spec.path(state).read_bytes()
+            spec_digest = current_spec.digest(state)
+            reviews = standalone.receipt_path(child).parent / "reviews"
+            reviews.mkdir(parents=True, exist_ok=True)
+            (reviews / "current-spec-1.md").write_bytes(spec_bytes)
+            store.atomic_write_text(reviews / "pass-1.json", json.dumps({
+                "pass": 1,
+                "current_spec": spec_digest,
+                "synthetic_fixture": "lint gate protocol only; no semantic Improve review claim",
+            }, indent=1) + "\n")
             self.edit({"a.py": "x = 1\ny = 2  # lint\n"})        # the review's edit
             receipt = {"no_commit": nav.STEP_REVIEW_NO_COMMIT}
             with self.assertRaises(nav.NavigatorError) as refused:
@@ -1852,7 +1868,10 @@ class CoverageLineTests(Fixture):
         self.assertEqual(lint.command_lines(self.run_dir, "A1", stage="carry-forward", run_option="off", command="x"),
                          [])
         self.commit({"a.py": "x = 1\n"})
-        self.assertIn(off, nav.render(CORE, self.run_dir, self.start("off")))
+        off_run = self.run_dir
+        self.assertIn(off, nav.render(CORE, off_run, self.start("off")))
+        self.run_dir = off_run.parent / "run-fix"
+        self.run_dir.mkdir()
         self.assertNotIn("Lint coverage: off", nav.render(CORE, self.run_dir, self.start("fix")))
 
 

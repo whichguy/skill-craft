@@ -29,6 +29,8 @@ from urllib.parse import quote
 
 import shiploop_assumptions as assumptions
 import shiploop_check
+import shiploop_current_spec as current_spec
+import shiploop_spec_promotion as spec_promotion
 import shiploop_concerns as concerns
 import shiploop_fields as fields
 import shiploop_primary as primary
@@ -67,7 +69,7 @@ import shiploop_trace as trace
 # 11 since 2026-10-29 (design T §9.1 2c-1): the ask-agent route issues one implement action per step, as the inline route
 # does, and has no chain; a version-10 run is refused with V10_REASON, since an ask-agent run's one implement action
 # built every step and would be read as the first.
-STATE_VERSION = 11
+STATE_VERSION = 12
 # Navigator protocol 4 is the only protocol; saved runs from earlier protocols
 # are refused by retired_run_reason.
 PROTOCOL_VERSION = 4
@@ -83,7 +85,7 @@ _RESULT_KEYS = frozenset((
     "expectations", "check_na", "minimum_na", "failed_expectations", "retired_tests", "skill",
     "follows", "test_cases", "lessons", "not_covered", "concerns", "learned", "decisions", "learned_from",
     "test_layers", "test_layers_na", "targets", "harness_runs", "primary", "mutant_dispositions",
-    "knowledge", "added_tests", "question_categories", "questions",
+    "knowledge", "added_tests", "question_categories", "questions", "spec_reconciliation",
 ))
 # What each stage's packet quotes by value from earlier results (consumer contract section 4): every stage has a row.
 # ``spec_diff`` is the script's diff since the run baseline (knowledge_home.spec_diff), not a result key; the other keys
@@ -131,7 +133,7 @@ _DONE_ONLY_FIELDS = (
     "system_commands", "system_commands_na", "consumer_checks", "consumer_checks_na", "consumer_entry",
     "red_na", "lint_waivers", "unverified", "follow_on", "follows", "test_cases", "lessons", "not_covered", "concerns",
     "learned", "decisions", "learned_from", "test_layers", "test_layers_na", "targets", "harness_runs", "primary",
-    "mutant_dispositions", "knowledge", "added_tests", "question_categories", "questions",
+    "mutant_dispositions", "knowledge", "added_tests", "question_categories", "questions", "spec_reconciliation",
 )
 _STATE_KEYS = frozenset(
     (
@@ -141,6 +143,7 @@ _STATE_KEYS = frozenset(
         "run_id",
         "revision",
         "repo",
+        "spec_root",
         "prompt",
         "bound_plan",
         "stage",
@@ -312,6 +315,10 @@ def retired_run_reason(state: Any) -> str | None:
         if state.get("version") == 4:
             return ("this run was saved with ShipLoop's seventeen-stage inner loop (state version 4); the inner loop "
                     "now has seven stages and cannot resume it. " + FRESH_RUN_HINT)
+        if state.get("version") == 11:
+            return ("this run was saved with state version 11, before run-bound current and prior specs; "
+                    "its prior intent cannot be reconstructed safely. Keep its files and resume with its original "
+                    "ShipLoop package, or start a fresh run. " + FRESH_RUN_HINT)
         if state.get("version") == 6:
             return V6_REASON
         for old, new in _RENAMED_STAGES.items():
@@ -877,8 +884,25 @@ def _step_revisit_line(state: Mapping[str, Any], root: Path | None, workitem: st
                if commit else "") + ". Untrusted host report: revalidate what you carry over.")
 
 
+def _status_replan_lines(state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
+    """The owner-approved status-only authority on a plan returned by document, also supplied to its review."""
+    if stage != stage_spec.SEND_BACK_TO or workitem is None:
+        return []
+    sent = _sent_back_results(state, stage, workitem)
+    if sent is None or not any(row["action"] == sent.sent_back and row["stage"] == "document"
+                               and row["workitem"] == workitem
+                               for row in state["history"]):
+        return []
+    return [
+        "If document sent this item back for a protected-spec stale-status refusal, reconcile only implementation/"
+        "verification status in RUN/current-spec.md from actual code and check receipts; cite that evidence.",
+        "In that status-only reconciliation, preserve requirement intent, IDs, history, deferred scope and existing implementation. Ordinary step planning "
+        "has no general spec rewrite authority. Revalidate and review the amended plan and step before acceptance."
+    ]
+
+
 def _revisit_lines(state: Mapping[str, Any], stage: str, workitem: str | None, root: Path | None = None) -> list[str]:
-    """The four lines of a revisited stage's head (``_sent_back_results``): why it is back, its previous accepted result,
+    """The lines of a revisited stage's head (``_sent_back_results``): why it is back, its previous accepted result,
     what changed upstream, and the rule to keep unchanged rows with their IDs.
 
     ``planning_revision.current_actions`` drops the item's earlier results from "Results this stage builds on" once it
@@ -916,6 +940,7 @@ def _revisit_lines(state: Mapping[str, Any], stage: str, workitem: str | None, r
         "Keep unchanged rows with their IDs: carry over as written every row the send-back result and the changes above do "
         "not touch; change or add only what they require."
         + (" Submit the whole amended plan: it replaces the previous one." if stage == stage_spec.SEND_BACK_TO else ""),
+        *_status_replan_lines(state, stage, workitem),
     ]
 
 
@@ -1282,6 +1307,15 @@ def _canonical_result(
             )
         except consumer_delivery.ConsumerDeliveryError as exc:
             raise NavigatorError(str(exc)) from exc
+    if "spec_reconciliation" in value:
+        _need(stage == "handoff" and outcome == "done", "spec_reconciliation is allowed only on a done handoff")
+        record = value["spec_reconciliation"]
+        _need(isinstance(record, Mapping) and set(record) == {"current_sha256", "prior_sha256", "summary"},
+              "spec_reconciliation has exactly current_sha256, prior_sha256 and summary")
+        _need(all(isinstance(record.get(key), str) and re.fullmatch(r"[0-9a-f]{64}", record[key])
+                  for key in ("current_sha256", "prior_sha256")) and isinstance(record.get("summary"), str)
+              and record["summary"].strip(), "spec_reconciliation needs exact SHA-256 values and a nonblank semantic summary")
+        result["spec_reconciliation"] = dict(record)
     _canonical_handoff(value, stage, outcome, result, spec_hint)
     return result
 
@@ -1459,6 +1493,7 @@ def new_state(
         "run_id": "nav-" + uuid.uuid4().hex,
         "revision": 0,
         "repo": repo,
+        "spec_root": "",
         "prompt": prompt,
         "bound_plan": bound_plan,
         "stage": "intake",
@@ -1502,7 +1537,10 @@ def _validate_action(action: Any, stage: str, label: str) -> str:
         return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{40,64}", value) is not None
     extra = set(action) - {"id", "stage"} if isinstance(action, Mapping) else set()
     _need(isinstance(action, Mapping) and {"id", "stage"} <= set(action) and (not extra or (
-        stage == "implement" and extra == {"base"} and tree(action.get("base"))) or (
+        stage == "implement" and extra <= {"base", "spec"}
+        and ("base" not in action or tree(action["base"]))
+        and ("spec" not in action or isinstance(action["spec"], str)
+             and re.fullmatch(r"[0-9a-f]{64}", action["spec"]) is not None)) or (
         stage == "document" and extra <= {"changed", "entry"} and isinstance(action.get("changed", False), bool)
         and ("entry" not in action or tree(action["entry"])))),
           f"{label} is invalid")
@@ -1554,6 +1592,8 @@ def _validate_current_state(state: Mapping[str, Any]) -> None:
           "state is not navigator mode"
           + (f" (execution_mode {mode!r} is retired). " + FRESH_RUN_HINT
              if mode in ("managed", "legacy") else ""))
+    _need(isinstance(state.get("spec_root"), str) and (not state["spec_root"] or Path(state["spec_root"]).is_absolute()),
+          "spec_root must be an explicit absolute run root (empty only before first save)")
     run_id = state.get("run_id")
     _need(isinstance(run_id, str) and _ACTION_ID.fullmatch(run_id) is not None,
           "unsafe navigator run ID")
@@ -2297,6 +2337,13 @@ def _stage_input_blocks(core: Any, root: Path, state: Mapping[str, Any], stage: 
         blocks.append(_Block("rerun", P1, test_loop.rerun_lines(root, state, workitem or "", stage)))
     elif stage == "handoff":
         blocks.append(_Block("observed", P1, test_loop.observed_lines(root, state)))
+        if state.get("spec_root"):
+            hashes = spec_promotion.hashes(state)
+            blocks.append(_Block("spec-reconciliation", P1, [
+                "Final spec reconciliation: current_sha256=" + hashes["current_sha256"]
+                + "; prior_sha256=" + hashes["prior_sha256"] + ". Compare RUN/current-spec.md with the prior snapshot, "
+                "request and delivery evidence; put both hashes and the semantic reconciliation in spec_reconciliation. "
+                "ShipLoop promotes exactly that reviewed content after this callback."]))
     # What a release stage's duties run or its gate reads (packet review G33-1, G33-2): the commands and route of the
     # return, and the delivery contract's lines.
     if stage in RETURN_STAGES:
@@ -3034,14 +3081,27 @@ def _check_submitted_consumer_entry(repo: str, stage: str, result: Any) -> None:
           + ". Create the entry's source files before the release plan, or correct the paths.")
 
 
+def _step_spec_key(state: Mapping[str, Any], item: str) -> str:
+    view = step_view(state, item)
+    _need(view is not None, "current step has no accepted plan")
+    action, _plan = test_loop._step_plan(state, item)
+    _need(bool(action), "current step has no accepted step-plan action")
+    step_digest = hashlib.sha256(str(view.step["id"]).encode("utf-8")).hexdigest()
+    key = str(action) + "_step_" + step_digest[:16]
+    return key if _ACTION_ID.fullmatch(key) else "step-" + hashlib.sha256(
+        (str(action) + "\0" + str(view.step["id"])).encode("utf-8")).hexdigest()
+
+
 def _step_spec_refusal(state: Mapping[str, Any], item: str | None) -> str:
-    """The spec write-back refusal of the inline step ``item`` is on ('' outside one): what its spec.md edit may add
-    (``knowledge.step_spec_refusal``, build plan S3.3).  Implement and document check it at their complete and the step's
-    review at its import, so the step's commit holds the tree a gate ran on (design T §9.1 2b-3, option C)."""
+    """Protect intent against the exact current spec this accepted step began from."""
     view = step_view(state, item) if item else None
     if view is None:
         return ""
-    return knowledge.step_spec_refusal(Path(str(state["repo"])), str(item) + "/" + str(view.step.get("id")))
+    baseline = current_spec.step_baseline(state, _step_spec_key(state, str(item))) if state.get("spec_root") else None
+    refusal = knowledge.step_spec_refusal(state, str(item) + "/" + str(view.step.get("id")), baseline)
+    if refusal and state.get("spec_root"):
+        refusal += "\nProtected baseline: " + str(Path(state["spec_root"]) / "spec/steps" / (_step_spec_key(state, str(item)) + ".md"))
+    return refusal
 
 
 def _knowledge_gate(state: Mapping[str, Any], stage: str, result: Any, command: str = "complete") -> None:
@@ -3757,7 +3817,7 @@ def _check_submitted_primary(root: Path, state: Mapping[str, Any], stage: str, r
             and "work_items" in result:
         _normalise_work_items(result["work_items"], allow_empty=True)   # a template follows gets its shape refusal first
     try:
-        primary.check_spec(Path(str(state["repo"])), stage, result)
+        primary.check_spec(state, stage, result)
         primary.check_queue(state, stage, result)
         primary.check_unverified(root, state, stage, result)
     except primary.PrimaryError as exc:
@@ -3838,7 +3898,7 @@ def _placeholders(result: Mapping[str, Any]) -> list[str]:
             for index, item in enumerate(value):
                 walk(item, where + "[" + str(index) + "]")
 
-    for key in ("follows", "test_cases", "not_covered", "lessons", "knowledge", *STEP_NOTES):
+    for key in ("follows", "test_cases", "not_covered", "lessons", "knowledge", "spec_reconciliation", *STEP_NOTES):
         if key in result:
             walk(result[key], key)
     return found
@@ -3848,11 +3908,11 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
                    command: str) -> _Fault | None:
     """The first hand-off fault of a canonical done result, or None (meaning only; the shape was checked already)."""
     repo = Path(str(state["repo"]))
-    spec, architecture = repo / knowledge.HOME / "spec.md", repo / knowledge.HOME / knowledge.ARCHITECTURE
+    spec, architecture = knowledge.spec_path(state), repo / knowledge.HOME / knowledge.ARCHITECTURE
     placeholders = _placeholders(result)
     if placeholders:
         # An unfilled requirement is the one placeholder whose real value the script can list (the spec's R-<n>).
-        ids = ([expectations.requirement_ids_text(repo, str(spec))]
+        ids = ([expectations.requirement_ids_text(state, str(spec))]
                if any(where.endswith(".requirement") for where in placeholders) else [])
         return _Fault("Replace placeholders in {result}", "has real values",
                       ["Write the real value in place of each template placeholder (the text in angle brackets, or "
@@ -3864,7 +3924,7 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
                           ['Shape: "follows": ["R-3", "AD-2"]: the R-<n> this item implements and the AD-<n> it follows; '
                            "[] only when it serves none. This item's test-spec, implement, test and document "
                            "packets quote each entry."])
-        known = {**knowledge.entries(repo, "spec.md"), **knowledge.entries(repo, knowledge.ARCHITECTURE)}
+        known = {**knowledge.entries(state, "spec.md"), **knowledge.entries(state, knowledge.ARCHITECTURE)}
         absent = [ident for ident in result["follows"] if ident not in known]
         if absent:
             return _Fault("Fix the follows IDs in {result}", "fixes follows",
@@ -3910,7 +3970,7 @@ def _handoff_fault(root: Path, state: Mapping[str, Any], stage: str, result: Map
     if stage == "document" and "knowledge" not in result:
         return _Fault("Add knowledge to {result}", "adds knowledge",
                       ['Shape: {"spec": "...", "architecture": "...", "environment": "..."}: for each living file '
-                       "(KNOWLEDGE/spec.md, architecture.md, environment.md), what this step changed in it or why it "
+                       "(RUN/current-spec.md, architecture.md, environment.md), what this step changed in it or why it "
                        "needed no change. ShipLoop writes it into this step's commit."])
     if stage == "release-verify" and "lessons" not in result:
         return _Fault("Add lessons to {result}", "adds lessons",
@@ -3947,9 +4007,9 @@ def _handoff_gate(root: Path, state: Mapping[str, Any], stage: str, result: Any,
     if not isinstance(result, Mapping) or result.get("outcome") != "done":
         return
     # Only the fields this gate reads: another field's shape fault stays the refusal of the gate that owns it.
-    projected = {key: result[key] for key in ("outcome", "summary", *HANDOFF_FIELDS, "assumptions") if key in result}
+    projected = {key: result[key] for key in ("outcome", "summary", *HANDOFF_FIELDS, "assumptions", "spec_reconciliation") if key in result}
     repo = Path(str(state["repo"]))
-    hint = (expectations.requirement_ids_text(repo, str(repo / knowledge.HOME / "spec.md"))
+    hint = (expectations.requirement_ids_text(state, str(knowledge.spec_path(state)))
             if stage == "test-spec" and "test_cases" in projected else "")
     canonical = _canonical_result(projected, stage=stage, delivery_contract="delivery_contract_version" in state,
                                   spec_hint=hint)
@@ -4056,7 +4116,7 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
             action, plan = test_loop._step_plan(state, item) if item else (None, {})
             value = plan.get(key) if action else None
             if key == "follows" and value is not None:
-                value = [(ident, knowledge.entry_text(repo, ident)) for ident in value]
+                value = [(ident, knowledge.entry_text(state, ident)) for ident in value]
             if key == "test_commands" and value is not None:
                 value = [row for row in value if isinstance(row, Mapping) and row.get("suite") == "focused"]
             if scope is not None and value is not None and key == "follows":
@@ -4584,10 +4644,16 @@ def _step_entry(root: Path, before: Mapping[str, Any], after: dict[str, Any]) ->
     if isinstance(prior, Mapping) and prior.get("id") == action["id"]:
         return after
     tree = improve_changes.snapshot_tree(Path(root), Path(after["repo"]))
-    if not tree:
+    spec = improve_changes.current_spec_snapshot(after)
+    if not tree and spec is None:
         return after
     advanced = deepcopy(after)
-    advanced["inner_loops"][workitem]["action"] = {**action, "base": tree}
+    entry = dict(action)
+    if tree:
+        entry["base"] = tree
+    if spec is not None:
+        entry["spec"] = spec[0]
+    advanced["inner_loops"][workitem]["action"] = entry
     return advanced
 
 
@@ -4628,7 +4694,7 @@ def _improve_entry(root: Path, after: dict[str, Any]) -> tuple[dict[str, Any], d
     updated = dict(after)
     updated["active_improve"] = bound
     updated["improve_skill"] = selected["skill_card"]
-    return updated, improve_changes.bind_writes(root, Path(after["repo"]), child["action_id"])
+    return updated, improve_changes.bind_writes(root, Path(after["repo"]), child["action_id"], after)
 
 
 def _validate_existing_entry(root: Path, before: Mapping[str, Any],
@@ -4680,10 +4746,18 @@ def _document_entry(root: Path, after: dict[str, Any]) -> dict[str, Any]:
     advanced = deepcopy(after)
     changed = item_scope.changed_paths(root, workitem)
     entry = improve_changes.snapshot_tree(Path(root), Path(after["repo"]))
-    recorded = {**({"changed": bool(changed)} if changed is not None else {}), **({"entry": entry} if entry else {})}
+    candidate_changed = False
+    if after.get("spec_root") and step_view(after, str(workitem)) is not None:
+        import shiploop_current_spec as current_spec
+
+        baseline = current_spec.step_baseline(after, _step_spec_key(after, str(workitem)))
+        candidate_changed = current_spec.digest(after) != hashlib.sha256(baseline.encode("utf-8")).hexdigest()
+    has_changed = (bool(changed) if changed is not None else False) or candidate_changed
+    recorded = {**({"changed": has_changed} if changed is not None or candidate_changed else {}),
+                **({"entry": entry} if entry else {})}
     if recorded:
         advanced["inner_loops"][workitem]["action"] = {**action, **recorded}
-    reason = item_scope.no_document_item(root, workitem)
+    reason = None if candidate_changed else item_scope.no_document_item(root, workitem)
     if not reason:
         return advanced
     # A done document result holds the fields the step review reads (``_required_handoff_keys``): the open items it
@@ -4975,6 +5049,16 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
             owed, str(message_path), _callback(core, root, "improve-commit", action=improve_id(state),
                                                message=str(message_path)),
             _callback(core, root, "complete", action=improve_id(state))))
+    spec_changed = improve_changes.current_spec_changed_since_review(root, state, action_id)
+    spec_changed_from_bind = improve_changes.current_spec_changed_since_bind(root, state, action_id)
+    if state.get("spec_root"):
+        _need(spec_changed is not None and spec_changed_from_bind is not None,
+              "The Improve review has no valid current-spec digest for its latest pass; restart and review it again: "
+              + _callback(core, root, "improve-start", action=improve_id(state)) + " --restart-stopped")
+        _need(not spec_changed,
+              "RUN/current-spec.md changed after the last recorded Improve pass, so its approval is stale. Restart "
+              "and review the current spec again: "
+              + _callback(core, root, "improve-start", action=improve_id(state)) + " --restart-stopped")
     if changes is not None and changes[0] and _unchanged_first_pass(child):
         raise NavigatorError("The Improve runtime ended on one unchanged trivial pass, but these files changed "
                              "since the review was bound: " + ", ".join(changes[0]) + ". Review them again, "
@@ -4992,14 +5076,15 @@ def _improve_change_gate(core: Any, root: Path, state: Mapping[str, Any], action
         final = receipt.get("final_result") if isinstance(receipt, Mapping) else None
         added = (final.get(test_loop.ADDED_TESTS) or ()) if isinstance(final, Mapping) else ()
         commands = test_loop.stage_commands(state, "test", item, added)[0] if item else []
-        if commands and (changes is None or changes[0]):
+        if commands and (changes is None or changes[0] or spec_changed_from_bind):
             writes, refusal = test_loop.verify(root, state, item, action_id, "step review", commands=commands)
             for relative, text in writes.items():
                 store.atomic_write_text(root / relative, text)
             _need(not refusal, refusal + "\nFix it within the review's scope, then run the callback again: "
                   + _callback(core, root, "complete", action=improve_id(state)))
         return
-    if child.get("stage") != "carry-forward" or (changes is not None and not changes[0]):
+    if child.get("stage") != "carry-forward" or (
+            changes is not None and not changes[0] and not spec_changed_from_bind):
         return
     commands = improve_changes.rerun_commands(state)
     writes, refusal = test_loop.verify(root, state, "", action_id, "end-of-work review", commands=commands)
@@ -5196,7 +5281,8 @@ _KNOWLEDGE_PLACEHOLDERS = {"spec": "<the lines this step added inside its R-<n> 
                            "environment": "<the commands, harnesses and facts this step proved, or why none>"}
 _STEP_NOTE_PLACEHOLDERS = {"learned": "<lesson for later steps, or none>",
                            "decisions": "<choice made and why, or none>"}
-HANDOFF_PLACEHOLDERS = (FOLLOWS_PLACEHOLDER, *_CASE_PLACEHOLDERS.values(), *expectations.MOCK_PLACEHOLDERS.values(),
+SPEC_RECONCILIATION_PLACEHOLDER = "<how prior intent, intentional replacements and delivered status reconcile>"
+HANDOFF_PLACEHOLDERS = (SPEC_RECONCILIATION_PLACEHOLDER, FOLLOWS_PLACEHOLDER, *_CASE_PLACEHOLDERS.values(), *expectations.MOCK_PLACEHOLDERS.values(),
                         _BEHAVIOUR_PLACEHOLDER, _REASON_PLACEHOLDER,
                         *_LESSON_PLACEHOLDERS.values(), _DUE_STAGE_PLACEHOLDER, *_STEP_NOTE_PLACEHOLDERS.values(),
                         *_KNOWLEDGE_PLACEHOLDERS.values())
@@ -5324,6 +5410,9 @@ def _result_template(state: Mapping[str, Any], stage: str, receipt: Path | None 
             result["concerns"] = [{"id": row["id"], "steps": ["S1"]} for row in owned]
     if stage == "release-verify":
         result["lessons"] = dict(HANDOFF_SHAPES["lessons"])
+    if stage == "handoff" and state.get("spec_root"):
+        result["spec_reconciliation"] = {**spec_promotion.hashes(state),
+                                         "summary": SPEC_RECONCILIATION_PLACEHOLDER}
     if stage in assumptions.OPEN_ITEM_STAGES and stage in stage_spec.OUTER:
         result["assumptions"] = []
     if stage == "plan":
@@ -6388,7 +6477,7 @@ def _result_contract_lines(root: Path, state: Mapping[str, Any], stage: str, act
 
 
 # How much of an entry the requirement list quotes after its ID: enough to tell the requirements apart.  A spec with so many
-# entries that the line passes the limit lists the IDs alone (the text of each is in KNOWLEDGE/spec.md): the head must stay under
+# entries that the line passes the limit lists the IDs alone (the text of each is in RUN/current-spec.md): the head must stay under
 # the host's 20,000-character print however large the spec grows.
 _REQUIREMENT_GIST = 60
 _REQUIREMENT_LINE_LIMIT = 2_400
@@ -6404,7 +6493,7 @@ def _case_lines(state: Mapping[str, Any], stage: str) -> list[str]:
 
 
 def _requirement_lines(state: Mapping[str, Any], stage: str) -> list[str]:
-    """test-spec only: the R-<n> a case's ``requirement`` may name, each with the start of its entry in KNOWLEDGE/spec.md.
+    """test-spec only: the R-<n> a case's ``requirement`` may name, each with the start of its entry in RUN/current-spec.md.
 
     The quoted spec drops out of a printed head that passes ``PRINT_LIMIT``, and the result template can only print a
     placeholder where the plan does not say which requirement a criterion serves, so the IDs the gate accepts are listed
@@ -6413,9 +6502,9 @@ def _requirement_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     """
     if stage != "test-spec":
         return []
-    found = knowledge.entries(Path(str(state["repo"])), "spec.md")
+    found = knowledge.entries(state, "spec.md")
     if not found:
-        return [expectations.requirement_ids_text(Path(str(state["repo"])), reference_name("spec.md"))
+        return [expectations.requirement_ids_text(state, reference_name("spec.md"))
                 + " A case's requirement names an R-<n> that has an entry there."]
     rows, names = [], []
     for ident in sorted(found, key=lambda value: int(value.split("-")[1])):
@@ -6538,13 +6627,13 @@ _INNER_GATES = {
                   "broken expectation, or a new step path with no absent one",
                   "a step skill whose locator does not exist"),
     "test-spec": ("test_cases whose IDs differ from this item's focused command IDs (either way), or a case naming a "
-                  "criterion the step plan does not list or a requirement with no entry in KNOWLEDGE/spec.md",),
+                  "criterion the step plan does not list or a requirement with no entry in RUN/current-spec.md",),
     "implement": ("for an item whose step plan records no test command and only non-code paths, a change to a code "
                   "or test path or to a path the step plan did not declare",),
     "validate-existing": ("a send-back without failed_expectations naming each expectation and what is actually true",),
     "test": ("a red_na or retired_tests entry without an ID and a reason",),
     "document": ("a missing knowledge record (spec, architecture and environment, each with what this step changed in "
-                 "that living file or why nothing), or a KNOWLEDGE/spec.md edit that changes a committed line or adds one "
+                 "that living file or why nothing), or a RUN/current-spec.md edit that changes a committed line or adds one "
                  "without this step's mark or outside an R-<n> the committed spec holds",),
     "carry-forward": ("a missing skill decision (none, reuse, update or create), or a created or updated skill whose "
                       "SKILL.md is missing or lacks name and description",),
@@ -6566,8 +6655,8 @@ BUILDS_ON_HEAD = ("Results this stage builds on (open each not already in your c
                   "choosing silently):")
 # The run's two derived reference files, as the References block lists them (the top block's second pointer line says the
 # block lists the other references and what each holds).
-RUN_RECORDS_LINE = ("RUN/" + run_reference.REFERENCE_FILE + " (the rules' long forms: #policies, #rules, #recovery); RUN/"
-                    + context_index.INDEX_FILE + " (every file of this run and what it holds)")
+RUN_RECORDS_LINE = ("RUN/" + run_reference.REFERENCE_FILE + " (#policies, #rules, #recovery); RUN/"
+                    + context_index.INDEX_FILE + " (run files and accepted results)")
 
 # The Improve handoff's own symbol (the handoff is the only text that defines it): the child's directory, where its
 # receipt, opening, commit message and reviews are.  It sits inside WORKTREE, so the longest root wins.
@@ -6615,7 +6704,7 @@ def symbolic(text: str, root: Path, state: Mapping[str, Any], core: Any = None, 
 PROSE_PATH_LINES = re.compile(
     r"^(?:This action's pass log \(|Full ordered work queue: |Prior Improve evidence and lessons: |"
     r"Latest reconciliation finding and immutable evidence: |Spec and architecture changes since the run began: not computed|"
-    r"State: |Repository knowledge \w+ \(host-authored|Test rerun: on done|Where and floors: |Commands ShipLoop ran \(|"
+    r"State: |Current-run spec: |Repository knowledge \w+ \(host-authored|Test rerun: on done|Where and floors: |Commands ShipLoop ran \(|"
     r"Inherited learnings: |No change inventory recorded for |Execution checkout: |\[Excerpt only\. Full value: |"
     r"This stage's result before the add-work: |"
     r"Proposed queue awaiting Improve: |"
@@ -6665,7 +6754,7 @@ def prose_symbols(text: str, core: Any, root: Path, state: Mapping[str, Any], *,
 
 def reference_name(name: str) -> str:
     """A knowledge_home file name ("spec.md") as the packet's symbol path."""
-    return "KNOWLEDGE/" + name
+    return "RUN/current-spec.md" if name == "spec.md" else "KNOWLEDGE/" + name
 
 
 def reference_files() -> list[str]:
@@ -6680,7 +6769,7 @@ def reference_writer(name: str) -> str:
 
 
 # The living files' packet words.
-_LIVING_LABELS = {"spec.md": "living spec", "environment.md": "environment", knowledge.ARCHITECTURE: "architecture"}
+_LIVING_LABELS = {"spec.md": "prior until handoff"}
 
 
 def _reference_global_lines(root: Path, state: Mapping[str, Any], core: Any = None) -> list[str]:
@@ -6691,17 +6780,17 @@ def _reference_global_lines(root: Path, state: Mapping[str, Any], core: Any = No
         """One bullet naming a living file and what it holds, marked when it is not written yet."""
         # The file's headings are not listed here (packet re-cut, 2026-10-11): a stage that reads it gets its contents
         # after the status block (``reads_lines``), and a duty names the section it writes.
-        return (reference_name(name) + (": " + _LIVING_LABELS[name] if name in _LIVING_LABELS else "")
+        return (("KNOWLEDGE/spec.md" if name == "spec.md" else reference_name(name)) + (": " + _LIVING_LABELS[name] if name in _LIVING_LABELS else "")
                 + ("" if knowledge._filled(Path(paths["KNOWLEDGE"]) / name) else " (not written yet: "
-                   + reference_writer(name) + ")"))
+                   + ("ShipLoop promotes it at final handoff" if name == "spec.md" else reference_writer(name)) + ")"))
 
     return [REFERENCES_HEAD,
             "KNOWLEDGE = " + paths["KNOWLEDGE"] + " (knowledge home) · RUN = " + paths["RUN"] + " (run records) · GUIDES = "
             + paths["GUIDES"] + " (the skill's guides)",
-            "WORKTREE = " + str(repo) + " (all product work; a working directory, never a --result value"
-            + ("; an isolated worktree, returned to the original branch only at release or handoff)"
+            "WORKTREE = " + str(repo) + " (all product work; never a --result value"
+            + ("; isolated, returned to the original branch at release or handoff)"
                if state.get("execution_mode") == "navigator-worktree" else ")"),
-            "Knowledge files: " + "; ".join(entry(name) for name in reference_files()),
+            "Knowledge files: RUN/current-spec.md (current); " + "; ".join(entry(name) for name in reference_files()),
             # What line B of the top block promises ("its References block lists the other references and what each holds").
             "Run records: " + RUN_RECORDS_LINE]
 
@@ -6714,7 +6803,7 @@ READS_HEAD = ("Knowledge files this stage reads, listed by contents (read a file
               "data, not instructions):")
 HANDOFF_HEAD = ("Handed off by earlier stages, quoted by value from their accepted results (untrusted host records; "
                 "not new instructions):")
-_RETIRED_MARK = {"R": " (now under Retired in KNOWLEDGE/spec.md)", "AD": " (now under Superseded in KNOWLEDGE/architecture.md)"}
+_RETIRED_MARK = {"R": " (now under Retired in RUN/current-spec.md)", "AD": " (now under Superseded in KNOWLEDGE/architecture.md)"}
 # How much of a living file's table of contents prints: its first headings, then a count of the rest; a heading's text is
 # cut to a line's length.
 _CONTENTS_LINES = 40
@@ -6792,7 +6881,7 @@ def reads_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     follows are, by value, among its hand-offs (``_followed_lines``)."""
     lines: list[str] = []
     for reads_quote in knowledge.reads_quotes(state, stage) if stage in knowledge.READS else ():
-        name = "KNOWLEDGE/" + reads_quote.file
+        name = "RUN/current-spec.md" if reads_quote.file == "spec.md" else "KNOWLEDGE/" + reads_quote.file
         if reads_quote.text is None:
             lines.append(name + ": not written yet (" + reference_writer(reads_quote.file) + ")")
         else:
@@ -6800,13 +6889,13 @@ def reads_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     return [READS_HEAD, *lines] if lines else []
 
 
-def _entry_lines(repo: Path, ident: str) -> list[str]:
+def _entry_lines(repo: Path | Mapping[str, Any], ident: str) -> list[str]:
     """``ident`` (R-<n> or AD-<n>) with its entry quoted and its retired marker, or "no entry in KNOWLEDGE/<file>"."""
     prefix = ident.split("-", 1)[0]
     file = {"R": "spec.md", "AD": knowledge.ARCHITECTURE}.get(prefix)
     text = knowledge.entry_text(repo, ident) if file else None
     if text is None:
-        return ["- " + ident + ": no entry in KNOWLEDGE/" + (file or "spec.md or KNOWLEDGE/" + knowledge.ARCHITECTURE)]
+        return ["- " + ident + ": no entry in " + (reference_name(file) if file else "RUN/current-spec.md or KNOWLEDGE/" + knowledge.ARCHITECTURE)]
     entry = knowledge.entries(repo, file).get(ident)
     return ["- " + ident + (_RETIRED_MARK[prefix] if entry is not None and entry.retired else "") + ":",
             *_quoted(text.rstrip("\n"))]
@@ -6854,7 +6943,7 @@ def _added_whole_file(chunk: str) -> str | None:
 def _new_file_pointer(name: str, text: str, listed: bool) -> list[str]:
     """The lines that stand for the diff of a file new since the baseline (its diff is the whole file): its name and size,
     then its contents, unless the same packet lists them above (``listed``, ``reads_lines``)."""
-    lead = "KNOWLEDGE/" + name + ": new since the baseline, so its diff is the whole file, not printed here"
+    lead = ("RUN/current-spec.md" if name == "spec.md" else "KNOWLEDGE/" + name) + ": new since the baseline, so its diff is the whole file, not printed here"
     if listed:
         return [lead + " (" + _size(text) + "; its contents are listed above)"]
     return _file_lines(name, text, lead)
@@ -6862,6 +6951,8 @@ def _new_file_pointer(name: str, text: str, listed: bool) -> list[str]:
 
 def _diff_chunk_name(path: str) -> str:
     """The living file a diff chunk is about ("spec.md"), or "" for a path outside KNOWLEDGE."""
+    if path == "RUN/current-spec.md":
+        return "spec.md"
     return path[len(knowledge.HOME) + 1:] if path.startswith(knowledge.HOME + "/") else ""
 
 
@@ -6881,7 +6972,7 @@ def _spec_diff_lines(diff: str, listed: Collection[str] = ()) -> list[str]:
     return lines
 
 
-def _followed_lines(repo: Path, label: str, value: Any) -> list[str]:
+def _followed_lines(repo: Path | Mapping[str, Any], label: str, value: Any) -> list[str]:
     """The followed R-<n> and AD-<n> entries, each quoted by value with its retired marker: the requirement and decision
     rows the stage follows are the only part of the living files a packet quotes (owner decision D1, 2026-10-17)."""
     return [label + ":", *(line for ident, _text in value for line in _entry_lines(repo, str(ident)))]
@@ -6923,7 +7014,7 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any, listed: Col
     if value is None:
         return [label + ": not recorded by " + str(source.stage)]
     if source.key == "follows":
-        return _followed_lines(repo, label, value) if value else [label + ": none"]
+        return _followed_lines(state, label, value) if value else [label + ": none"]
     if source.key == "criteria":
         return [label + ":", *("- " + layers.criterion_label(row) + ": " + _one_line(row.get("text"))
                                for row in value if isinstance(row, Mapping))]
@@ -7157,10 +7248,10 @@ def _knowledge_lines(root: Path, state: Mapping[str, Any], stage: str) -> list[s
     lines = list(knowledge.stage_lines(state, stage))
     if stage in stage_spec.INNER:
         # The References block names the knowledge home and its files; an inner stage needs no second description.
-        lines = [line for line in lines if not line.startswith("Repository knowledge home")]
+        lines = [line for line in lines if not line.startswith(("Repository knowledge home", "Current-run spec:"))]
     if stage == "plan":  # step-plan's duty states the AD-<n> rules itself (re-cut, 2026-10-11)
         lines.append(
-            "KNOWLEDGE/architecture.md is how the product is built, apart from what it must do (that is KNOWLEDGE/spec.md): it holds "
+            "KNOWLEDGE/architecture.md is how the product is built, apart from what it must do (that is RUN/current-spec.md): it holds "
             + knowledge.ARCHITECTURE_HOLDS + ". Start from the committed file and keep every decision ID (AD-<n>): "
             "change a decision in place, or move one that no longer holds under '## Superseded' with the reason and "
             "its replacement's ID. ShipLoop refuses a version that loses an earlier ID. Name a credential by its "
@@ -7199,7 +7290,7 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
                      + (" or this item's carry-forward" if stage in assumptions.CARRY_FORWARD_PRODUCERS else "")
                      + ", or evidence files that do not exist")
     if stage == "step-plan":
-        gates.append("a missing follows list, or a follows ID with no entry in KNOWLEDGE/spec.md or KNOWLEDGE/architecture.md")
+        gates.append("a missing follows list, or a follows ID with no entry in RUN/current-spec.md or KNOWLEDGE/architecture.md")
         gates.append("a focused command that only reruns an earlier item's test IDs, starts with a file guard, or lacks "
                      "an ID per criterion")
         gates.append("a criterion without confirm, an executed one whose only commands search text, or an inspected "
@@ -7216,14 +7307,14 @@ def _stage_gates(stage: str, state: Mapping[str, Any]) -> list[str]:
     gates.extend(_RECORDED_GATES[field] for field, owner in RECORDED_COMMANDS.items() if owner == stage)
     gates.extend(_INNER_GATES.get(stage, ()))
     if stage == primary.STAGE:
-        gates.append("a missing primary list, or a primary ID with no current entry in KNOWLEDGE/spec.md")
+        gates.append("a missing primary list, or a primary ID with no current entry in RUN/current-spec.md")
     if stage in primary.QUEUE_STAGES:
         gates.append("a primary requirement in no item's follows")
     if stage in ("spec", "plan", "step-plan"):
         gates.append("a change to KNOWLEDGE/ that loses an earlier requirement (R-<n>) or decision (AD-<n>) ID")
     if stage in unverified.STAGES:
         gates.append("a missing unverified list, an entry that is incomplete or still holds a template placeholder, "
-                     "a requirement with no current entry in KNOWLEDGE/spec.md, a due_stage that is not a later stage, "
+                     "a requirement with no current entry in RUN/current-spec.md, a due_stage that is not a later stage, "
                      "or a primary requirement's lower_layer_check that names no test ShipLoop's test runs passed for it")
     if stage in follow_on.STAGES:
         gates.append("a missing follow_on list, an entry that is incomplete or still holds a template placeholder, a "
@@ -7632,7 +7723,7 @@ def _document_step_lines(state: Mapping[str, Any], stage: str, work_item: str | 
     head = f"Step {view.step['id']} ({view.number} of {len(view.steps)}), built"
     lines = [head + (": " + _first_sentence(view.step.get("task"), 200) if stage == "test" else
                      " and tested: " + _first_sentence(view.step.get("task"), 200)
-                     + " A line this step adds to KNOWLEDGE/spec.md ends (" + str(work_item) + "/"
+                     + " A line this step adds to RUN/current-spec.md ends (" + str(work_item) + "/"
                      + str(view.step["id"]) + ").")]
     return lines + [_skills_line(view.step, stage, "Skills for this stage")]
 
@@ -7922,7 +8013,7 @@ def _reviewed_input_lines(root: Path, state: Mapping[str, Any], stage: str, work
     quotes = knowledge.reads_quotes(state, stage) if stage in knowledge.READS else []
     if quotes:
         lines.append("- Knowledge files, listed there by contents: " + "; ".join(
-            "KNOWLEDGE/" + quote.file + " (" + (_size(quote.text) if quote.text is not None else "not written yet") + ")"
+            reference_name(quote.file) + " (" + (_size(quote.text) if quote.text is not None else "not written yet") + ")"
             for quote in quotes) + ".")
     keys = [key for key in CONSUMES.get(stage, ()) if key != "criteria"]
     if keys:
@@ -7938,6 +8029,7 @@ def _reviewed_input_lines(root: Path, state: Mapping[str, Any], stage: str, work
         lines.append("Revisit: " + str(workitem) + " is back at " + stage + " (send-back " + str(sent.count)
                      + "); " + previous + "the send-back result that sent it back: "
                      "RUN/results/" + sent.sent_back + ".md.")
+        lines.extend(_status_replan_lines(state, stage, workitem))
     return lines
 
 
@@ -8467,13 +8559,17 @@ def _spec_diff_section(state: Mapping[str, Any], root: Path | None) -> list[str]
     except OSError:
         baseline = ""
     lines = ["<h2>Spec and architecture changes</h2>"]
+    comparison = ("the exact prior snapshots" if state.get("spec_root") else
+                  "the recorded Git baseline " + baseline[:12])
     if found is None:
         lines.append("<p>not computed: " + _e(state["repo"]) + " is not a Git checkout, or the run has no baseline.</p>")
     elif not found:
-        lines.append("<p>none since the run began (baseline " + _e(baseline[:12]) + ").</p>")
+        lines.append("<p>none since the run began, compared with " + _e(comparison) + ".</p>")
     else:
-        lines += ["<p>The uncut diff of docs/shiploop/spec.md and architecture.md since the run began (baseline "
-                  + _e(baseline[:12]) + "):</p>", "<pre>" + _e(found) + "</pre>"]
+        lines += ["<p>The uncut current-spec and architecture diff against " + _e(comparison)
+                  + ":</p>", "<pre>" + _e(found) + "</pre>"]
+    if state.get("spec_root") and baseline:
+        lines.append("<p>Run-start Git commit: " + _e(baseline[:12]) + "; the diff above uses stored snapshots.</p>")
     return lines
 
 
@@ -8750,13 +8846,14 @@ def red_check_command(core: Any, argv: list[str]) -> int:
         state = store.read_record(root / "state.md")
         try:
             validate(state)
+            current_spec.assert_binding(root, state)
             stage, action, workitem = _active_cursor(state)
             _need(stage in test_loop.STAGES and isinstance(action, Mapping) and action["id"] == args.action,
                   "red-check runs only for the current test action")
             draft = _submitted_result(root, args, state=state, core=core) if args.result else None
             ok, lines = test_loop.red_check(root, state, workitem or "", args.action, draft,
                                             base_commit=test_base_commit(root, workitem or ""))
-        except (NavigatorError, test_loop.TestLoopError) as exc:
+        except (NavigatorError, current_spec.SpecError, test_loop.TestLoopError) as exc:
             print("ShipLoop red-check could not run: " + str(exc), file=sys.stderr)
             return 3
     print("\n".join(lines))
@@ -8795,7 +8892,55 @@ def save(root: Path, state: Mapping[str, Any], extra_writes: Mapping[str, str] |
     """Persist one state transition under the caller-held ShipLoop lock."""
     validate(state)
     writes = dict(extra_writes or {})
+    _need("state.md" not in writes, "child evidence cannot replace parent state")
     root = Path(root)
+    _need(not root.is_symlink(), "run root must not be a symlink")
+    root.mkdir(parents=True, exist_ok=True)
+    root = root.resolve()
+    bootstrapped = not state.get("spec_root") and not (root / "state.md").exists()
+    if not state.get("spec_root"):
+        _need(isinstance(state, dict), "save needs a mutable unpersisted state")
+        try:
+            if bootstrapped:
+                initial = current_spec.initialize_writes(root, state)
+                state["spec_root"] = str(root)
+                store.transaction(root, {**initial, "state.md": store.dumps(dict(state), "ShipLoop navigator state")})
+            else:
+                # Pure graph snapshots may have been derived before the first
+                # save bound their run. Attach only the already-persisted same
+                # identity; never initialize/reseed an existing run here.
+                recorded = store.read_record(root / "state.md")
+                validate(recorded)
+                _need(recorded.get("spec_root") == str(root)
+                      and all(recorded.get(key) == state.get(key) for key in ("run_id", "repo")),
+                      "persisted run has no matching current-spec binding; refusing to reseed")
+                state["spec_root"] = str(root)
+                current_spec.assert_binding(root, state)
+        except current_spec.SpecError as exc:
+            raise NavigatorError(str(exc)) from exc
+    try:
+        current_spec.assert_binding(root, state)
+        persisted = store.read_record(root / "state.md") if not bootstrapped and (root / "state.md").is_file() else {}
+        newly_accepted = state["history"][len(persisted.get("history", [])):]
+        for row in newly_accepted:
+            if row["stage"] == "step-plan" and row["outcome"] == "done":
+                writes.update(current_spec.step_snapshot_writes(state, row["action"]))
+        done = [row for row in newly_accepted if row["outcome"] == "done"]
+        if done:
+            writes.update(current_spec.accepted_writes(state, done[-1]["action"]))
+        active_stage, _active_action, active_item = _active_cursor(state)
+        if (active_stage == "implement" and active_item and not state.get("active_improve")
+                and step_view(state, str(active_item)) is not None):
+            key = _step_spec_key(state, str(active_item))
+            old_stage, _old_action, old_item = _active_cursor(persisted) if persisted else (None, None, None)
+            old_key = (_step_spec_key(persisted, str(old_item)) if old_stage == "implement" and old_item
+                       and step_view(persisted, str(old_item)) is not None else None)
+            if old_key == key:
+                current_spec.step_baseline(state, key)
+            else:
+                writes.update(current_spec.step_snapshot_writes(state, key))
+    except current_spec.SpecError as exc:
+        raise NavigatorError(str(exc)) from exc
     try:
         planning_revision.validate_archives(state, root, writes)
     except planning_revision.PlanningRevisionError as exc:
@@ -9384,6 +9529,46 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
           _small_pass_refusal(number, trend or [], child["stage"], review, command_again))
     repo = Path(state["repo"])
     changes = improve_changes.review_changes(root, repo, child["action_id"])
+    spec_now = improve_changes.current_spec_snapshot(state)
+    bind_path = root / improve_changes.bind_path(child["action_id"])
+    try:
+        bind = store.read_record(bind_path)
+    except (OSError, store.StorageError):
+        bind = None
+    _need(not state.get("spec_root") or
+          (spec_now is not None and isinstance(bind, Mapping)
+           and isinstance(bind.get("current_spec"), str)
+           and re.fullmatch(r"[0-9a-f]{64}", bind["current_spec"]) is not None),
+          "This Improve review has no valid current-spec binding; restart the review before recording a pass: "
+          + _callback(core, root, "improve-start", action=improve_id(state)) + " --restart-stopped")
+    spec_before_digest: str | None = None
+    spec_before_text: str | None = None
+    if spec_now is not None:
+        if number == 1:
+            spec_before_digest = bind.get("current_spec") if isinstance(bind, Mapping) else None
+            baseline_path = root / improve_changes.bind_spec_path(child["action_id"])
+        else:
+            previous_record = reviews / ("pass-" + str(number - 1) + ".json")
+            try:
+                previous_facts = json.loads(previous_record.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                previous_facts = None
+            spec_before_digest = (previous_facts.get("current_spec")
+                                  if isinstance(previous_facts, Mapping) else None)
+            baseline_path = reviews / improve_changes.spec_pass_path(number - 1)
+        try:
+            baseline_raw = baseline_path.read_bytes()
+            spec_before_text = baseline_raw.decode("utf-8")
+        except (OSError, UnicodeDecodeError):
+            spec_before_text = None
+        _need(isinstance(spec_before_digest, str) and re.fullmatch(r"[0-9a-f]{64}", spec_before_digest) is not None
+              and spec_before_text is not None
+              and hashlib.sha256(spec_before_text.encode("utf-8")).hexdigest() == spec_before_digest,
+              "This Improve review is missing its exact prior current-spec snapshot; restart and rebind it before "
+              "recording a pass: " + _callback(core, root, "improve-start", action=improve_id(state))
+              + " --restart-stopped")
+    spec_changed = (None if spec_now is None or spec_before_digest is None
+                    else spec_now[0] != spec_before_digest)
     committed = ""
     if not no_commit and improve_changes.uncommitted(changes, {}):
         message_path = improve_commit_message_path(child)
@@ -9402,13 +9587,13 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
         changes = improve_changes.review_changes(root, repo, child["action_id"])
     checks = reviews / CHECK_FILE
     changed = list(changes[0]) if changes is not None else None
-    bind = store.read_record(root / improve_changes.bind_path(child["action_id"])) if changes is not None else {}
+    bind = bind if isinstance(bind, Mapping) else {}
     # The result block the review edits in place (a step plan, a test spec) lies outside the tree (advisors panel
     # 2026-10-25): its fingerprint against the bind's says whether the review changed it.
     result_now = improve_changes.result_identity(root, child["action_id"])
     bound_result = bind.get("result") if isinstance(bind, Mapping) else None
     result_edited = None if result_now is None or bound_result is None else result_now != bound_result
-    if changed == [] and result_edited:
+    if changed == [] and not spec_changed and result_edited:
         # A result-only edit keeps the review's own check evidence: the producer's summary says nothing about the
         # changed result, and a validation the review recorded (a replay) must survive the callback.
         candidate = next((path for path in (root / "inbox" / (child["action_id"] + "-final-result.md"),
@@ -9419,7 +9604,7 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
               "checked the changed result (what you validated, the method, what it showed) in " + str(checks)
               + " with a file-writing tool, after your last edit of the result, then run: " + command_again)
         checks_fact = "written by the review after its last edit of the result"
-    elif changed == []:
+    elif changed == [] and not spec_changed:
         if not (checks.is_file() and not checks.is_symlink() and not _shiploop_checks(checks)):
             store.atomic_write_text(checks, CHECKS_UNCHANGED_PREFIX + str(bind.get("tree", ""))[:12]
                                     + "); producer checks: " + _producer_checks(root, child["action_id"]) + "\n")
@@ -9432,6 +9617,10 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
               + " with a file-writing tool, then run: " + command_again)
         top = Path(str(bind.get("toplevel") or repo))
         edits = [(top / path).stat().st_mtime for path in (changed or ()) if (top / path).is_file()]
+        if spec_changed and state.get("spec_root"):
+            import shiploop_current_spec as current_spec
+
+            edits.append(current_spec.path(state).stat().st_mtime)
         last = max(edits, default=0.0)
         _need(checks.stat().st_mtime >= last,
               "Run this stage's checks again: " + str(checks) + " is older than the last edit this review made, so "
@@ -9451,9 +9640,13 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     except (OSError, ValueError, AttributeError):
         result_before = None
     result_changed = None if result_now is None or result_before is None else result_now != result_before
-    # Edited: either changed; unknown only when neither side was measured.
-    edited = (True if pass_changed or result_changed else
-              None if pass_changed is None and result_changed is None else False)
+    # The current spec is outside Git. Its independent digest still makes a
+    # candidate-only change count as a review edit.
+    edit_facts = [pass_changed, result_changed]
+    if spec_now is not None:
+        edit_facts.append(spec_changed)
+    edited = (True if any(value is True for value in edit_facts) else
+              None if all(value is None for value in edit_facts) else False)
     # The pass's size in lines, tree plus result; unknown when either side is (the convergence gate then never fires).
     text_now = improve_changes.result_text(root, child["action_id"])
     try:
@@ -9464,9 +9657,14 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     tree_lines = 0 if pass_changed is False else improve_changes.changed_lines(repo, before, tree)
     result_size = (0 if result_changed is False or (text_now is None and result_now is None)
                    else improve_changes.result_lines(text_before, text_now))
-    lines = None if tree_lines is None or result_size is None else tree_lines + result_size
+    spec_size = (0 if spec_changed is False else
+                 improve_changes.result_lines(spec_before_text, spec_now[1])
+                 if spec_now is not None else 0)
+    lines = None if tree_lines is None or result_size is None or spec_size is None else tree_lines + result_size + spec_size
     if text_now is not None:
         store.atomic_write_text(reviews / ("result-" + str(number) + ".json"), text_now)
+    if spec_now is not None:
+        store.atomic_write_text(reviews / improve_changes.spec_pass_path(number), spec_now[1])
     skill_fact = ("recorded " + str(call.get("at", "")) if call is not None else "not enforced (" + str(why) + ")")
     facts = ("ShipLoop facts: files changed since the bind: " + (", ".join(changed) if changed else
                                                                  "none" if changed == [] else "not measured")
@@ -9474,7 +9672,12 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
              + ("; not committed on the instruction: " + no_commit if no_commit else "")
              + "; result " + ("changed since the bind" if result_edited else "unchanged since the bind"
                               if result_edited is False else "not measured")
+             + "; current spec " + ("changed since the previous pass" if spec_changed else
+                                     "unchanged since the previous pass" if spec_changed is False else "not measured")
+             + (" (sha256 " + spec_now[0] + ")" if spec_now is not None else "")
              + "; this pass changed " + ("an unmeasured number of" if lines is None else str(lines)) + " lines"
+             + (" including " + ("an unmeasured number of" if spec_size is None else str(spec_size))
+                + " current-spec lines" if spec_now is not None else "")
              + "; checks.md " + checks_fact + "; improve skill call " + skill_fact + ".")
     report = {field: front[key] for key, field, _allowed in REVIEW_FRONT}
     report["evidence"] = (review.name + ": " + "; ".join(label + ": " + labels[label] for label in REVIEW_LABELS)
@@ -9484,7 +9687,9 @@ def _improve_pass(core: Any, root: Path, state: Mapping[str, Any], args: Any) ->
     store.atomic_write_text(report_path, json.dumps(report, ensure_ascii=False, indent=1) + "\n")
     store.atomic_write_text(reviews / ("pass-" + str(number) + ".json"), json.dumps({
         "pass": number, "label": front["classification"], "tree": tree, "changed": pass_changed,
-        "result": result_now, "result_changed": result_changed, "edited": edited, "lines": lines,
+        "result": result_now, "result_changed": result_changed, "current_spec": spec_now[0] if spec_now else None,
+        "current_spec_changed": spec_changed, "current_spec_lines": spec_size,
+        "result_changed": result_changed, "edited": edited, "lines": lines,
         "commit": committed or None, "skill_call": "y" if call is not None else "not enforced",
         "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}, indent=1) + "\n")
     inline = delegation(state) == guidance.INLINE
@@ -9720,7 +9925,9 @@ def _improve_restart(core: Any, root: Path, state: Mapping[str, Any], args: Any)
         saved_status = None
     # A complete loop the improve skill never ran is restarted too: complete's skill-call refusal names this exit (IMP-2).
     unreviewed = saved_status == "complete" and _skill_call_record(root, state, child) == (None, None)
-    _need(not receipt.exists() or saved_status == "stopped" or _unchanged_first_pass(child) or unreviewed,
+    stale_spec = (saved_status == "complete" and state.get("spec_root") and
+                  improve_changes.current_spec_changed_since_review(root, state, child["action_id"]) is not False)
+    _need(not receipt.exists() or saved_status == "stopped" or _unchanged_first_pass(child) or unreviewed or stale_spec,
           "this review is still running; continue it from its saved receipt " + str(receipt)
           + " (active: run its next_argv once; complete: run " + _callback(core, root, "complete",
                                                                          action=improve_id(state)) + ")")
@@ -9736,7 +9943,7 @@ def _improve_restart(core: Any, root: Path, state: Mapping[str, Any], args: Any)
                 owed, str(message_path), _callback(core, root, "improve-commit", action=improve_id(state),
                                                    message=str(message_path)),
                 _callback(core, root, "improve-start", action=improve_id(state)) + " --restart-stopped"))
-        for relative, text in improve_changes.bind_writes(root, Path(state["repo"]), child["action_id"]).items():
+        for relative, text in improve_changes.bind_writes(root, Path(state["repo"]), child["action_id"], state).items():
             store.atomic_write_text(root / relative, text)
     _start_improve(core, root, state, restart=receipt.exists())
     print("Improve review started again from " + str(improve_opening_path(child)) + "; its receipt is "
@@ -9788,6 +9995,12 @@ def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, s
     _check_submitted_awaiting(submitted)
     _check_submitted_delivery(state, action_id, current, submitted)
     _knowledge_gate(state, current, submitted)
+    if current == "handoff" and isinstance(submitted, Mapping) and submitted.get("outcome") == "done" and state.get("spec_root"):
+        try:
+            current_spec.check_reviewed(state)
+            spec_promotion.validate(state, submitted.get("spec_reconciliation"))
+        except (current_spec.SpecError, spec_promotion.PromotionError) as exc:
+            raise NavigatorError(str(exc)) from exc
     _handoff_gate(root, state, current, submitted, "complete", next_step=_next_step(root, action_id, "complete"))
     _check_submitted_request(state, current, submitted)
     preparatory = _inner_gates(root, state, stage, submitted, count=count)
@@ -9841,6 +10054,17 @@ def accept_effects(core: Any, root: Path, before: Mapping[str, Any], after: dict
     writes: dict[str, str] = {}
     if advance:
         after, writes, payload = _transition(core, root, before, after)
+    reviewed = before.get("active_improve")
+    if (advance and after.get("spec_root") and isinstance(reviewed, Mapping)
+            and reviewed["action_id"] in after.get("accepted", {})
+            and after["accepted"][reviewed["action_id"]].get("outcome") == "done"
+            and reviewed["action_id"] not in before.get("improve_results", {})):
+        try:
+            pass_digest = improve_changes.current_spec_review_digest(root, before, reviewed["action_id"])
+            writes.update(current_spec.reviewed_writes(after, reviewed["action_id"], pass_digest))
+        except current_spec.SpecError as exc:
+            raise NavigatorError(str(exc) + ": " + _callback(
+                core, root, "improve-start", action=reviewed["action_id"]) + " --restart-stopped") from exc
     save(root, after, {**writes, **(extra_writes or {})})
     _lint_finish(root, payload)
     if advance:
@@ -9929,7 +10153,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     updated["improve_skill"] = selected["skill_card"]
                     updated["revision"] += 1
                     for relative, text in improve_changes.bind_writes(root, Path(state["repo"]),
-                                                                      action_id).items():
+                                                                      action_id, state).items():
                         store.atomic_write_text(root / relative, text)
             elif improve_import:
                 prior = state["improve_results"].get(action_id)
@@ -10121,6 +10345,11 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
             updated = owner_notes.deliver(root, updated, action_id)
             terminal_knowledge_closed = _is_new_terminal_handoff(state, updated)
             if terminal_knowledge_closed:
+                try:
+                    current_spec.check_reviewed(state)
+                    spec_promotion.promote(root, state, action_id, submitted.get("spec_reconciliation"))
+                except (current_spec.SpecError, spec_promotion.PromotionError) as exc:
+                    raise NavigatorError(str(exc) + _PENDING) from exc
                 _knowledge_close(state, updated, root, terminal=True)
             if completion_guard is not None:
                 completion_guard(state, updated)

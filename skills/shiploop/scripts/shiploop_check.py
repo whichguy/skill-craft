@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import shiploop_current_spec as current_spec
 import shiploop_expectations as expectations
 import shiploop_lint as lint
 import shiploop_loop_contract as loop_contract
@@ -60,6 +61,9 @@ def answer_key(root: Path, state: Mapping[str, Any], action_id: str, stage: str 
         "version": reference.package_version(),
         "contract": contract,
         "draft": draft_sha,
+        "current_spec": current_spec.digest(state) if state.get("spec_root") else None,
+        "aggregate_spec": (_sha((Path(str(state["repo"])) / "docs/shiploop/spec.md").read_bytes())
+                           if (Path(str(state["repo"])) / "docs/shiploop/spec.md").is_file() else None),
         "tree": test_loop.working_tree(root, Path(str(state["repo"]))) or None,
         "base": {"tree": (base or {}).get("tree"),
                  "preparatory": expectations.preparatory_commit(root, work_item) if work_item else None},

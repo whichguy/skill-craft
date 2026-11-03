@@ -61,7 +61,7 @@ def packets(planning_review: str = "stage", state_out: "dict | None" = None) -> 
         found = {}
 
         def cold(current):
-            store.write_record(run / "state.md", current)
+            navigator.save(run, current)
             return navigator.render(None, run, store.read_record(run / "state.md"))
 
         for _ in range(120):
@@ -233,10 +233,10 @@ class PacketCompletenessTests(unittest.TestCase):
         "system_commands": {"system-test-author"},
         "consumer_checks": {"release-plan"},
         "consumer_entry": {"release-plan"},
-        # The closes, plus the stages whose docs/shiploop change can lose an R-<n> or AD-<n> ID (L4 of the
-        # architecture-file journal, 2026-10-10), plus product-acceptance, whose unverified rows name a requirement with
-        # an entry in KNOWLEDGE/spec.md (run-5 batch F6).
-        "KNOWLEDGE": {"prepare", "test-spec", "release-plan", "spec", "plan", "step-plan", "product-acceptance"},
+        # Knowledge-home closes and ID-retention checks stay under KNOWLEDGE; spec and product-acceptance check the
+        # run candidate directly (run-5 batch F6).
+        "KNOWLEDGE": {"prepare", "release-plan", "spec", "plan", "step-plan"},
+        "RUN/current-spec.md": {"spec", "product-acceptance"},
         "unverified": {"product-acceptance"},
         "due_stage": {"product-acceptance"},
         # The follow-on list the handoff classifies (design 4.4); its refusals are the handoff's gates.
@@ -280,10 +280,8 @@ class PacketCompletenessTests(unittest.TestCase):
         # release-verify runs the consumer checks and closes the knowledge home.  Its line named only the run, so the
         # docs/shiploop gate (KNOWLEDGE in the packet's References symbols) was met first as a refusal in 4 runs (packet
         # review 2026-10-10, P-rv-1).
-        # test-spec's close requires the item's test-spec.md under docs/shiploop, and its row now runs the loop
-        # receipt check too, so its line belongs to this group (8-stage inner loop, 2026-10-10).
-        # document: its spec write-back gate on KNOWLEDGE/spec.md (design T §9.1 2b-3).
-        closes = {"release-verify", "test-spec", "step-plan", "document"}  # step-plan: the ID-retention line (L4)
+        # test-spec and document protect RUN/current-spec.md; step-plan also protects architecture in KNOWLEDGE/.
+        closes = {"release-verify", "step-plan"}  # step-plan: the ID-retention line (L4)
         for (stage, kind), packet in sorted(self.found.items()):
             row = stage_spec.stage(stage)
             if kind != "producer" or not row.complete_runs:
@@ -482,17 +480,19 @@ class ObservedHarmPacketTests(unittest.TestCase):
 
     # row 11b: a file written before a close names the close that refuses without it, taken from the gate itself.
     def refusals(self) -> dict:
-        """{close: the paths the real gate asks for when nothing is written}, on an empty repository, as the packet's
-        References symbols name them (the refusal prints absolute paths; the packet's prose prints KNOWLEDGE/)."""
+        """{close: the paths the real gate asks for when nothing is written}, on a bound empty run; convert its absolute
+        paths through that run's References symbols."""
         with tempfile.TemporaryDirectory(prefix="shiploop-knowledge-gate-") as temp:
             repo = Path(temp)
             subprocess.run(["git", "-C", str(repo), "init", "-q"], check=True, capture_output=True)
-            state = dict(self.state, repo=str(repo))
+            run = repo / "run"
+            run.mkdir()
+            state = navigator.new_state(str(repo), "Knowledge gate fixture.", delegation="inline")
+            navigator.save(run, state)
             found = {}
             for close in knowledge.CLOSES:
                 reply = knowledge.check(state, close)
-                found[close] = [navigator.symbolic(str(Path(self.state["repo"]) / Path(line[2:]).relative_to(repo)),
-                                                   repo / "run", self.state)
+                found[close] = [navigator.symbolic(line[2:], run, state)
                                 for line in reply.splitlines() if line.startswith("- /")]
             return found
 
@@ -505,7 +505,7 @@ class ObservedHarmPacketTests(unittest.TestCase):
                 continue
             lines = [line for line in self.found[(stage, "producer")].splitlines() if "refuses " in line]
             for name in names:
-                path = "KNOWLEDGE/" + name
+                path = navigator.reference_name(name)
                 later = [close for close in refusals if order.index(close) > order.index(stage) and path in refusals[close]]
                 if not later:
                     continue
@@ -561,7 +561,7 @@ class KnowledgeGroundingPacketTests(unittest.TestCase):
         state = navigator.new_state(str(repo), "Build a thing.", delegation="inline")
         for _ in range(80):
             if navigator.current_stage(state) == stage:
-                store.write_record(run / "state.md", state)
+                navigator.save(run, state)
                 return navigator.render(None, run, store.read_record(run / "state.md"))
             here, action = navigator.current_stage(state), navigator.current_action(state)["id"]
             extra = ({"work_items": [{"id": "W1", "title": "one", "context": "context"}]} if here == "plan" else
@@ -571,9 +571,8 @@ class KnowledgeGroundingPacketTests(unittest.TestCase):
                 state = navigator.finish_improve(state, action, {"summary": "Synthetic review"})
         self.fail("the walk did not reach " + stage)
 
-    def test_an_inner_packet_lists_every_living_file_and_marks_a_missing_one_with_its_writer(self) -> None:
-        """The References block lists the three living files in every packet; one that exists carries no marker, and a
-        missing architecture.md is shown as not written, not dropped."""
+    def test_an_inner_packet_separates_the_candidate_from_the_prior_aggregate(self) -> None:
+        """Every packet names the run candidate and accepted aggregate separately, plus maintained architecture/env."""
         living = tuple(navigator.reference_name(name) for name in knowledge.LIVING)
         with tempfile.TemporaryDirectory(prefix="shiploop-grounding-") as temp:
             repo = Path(temp).resolve()
@@ -587,13 +586,22 @@ class KnowledgeGroundingPacketTests(unittest.TestCase):
             block = reference_block(packet)
             for name in living:
                 with self.subTest(name):
-                    rows = [row for row in knowledge_entries(block) if row.startswith(name + ":")]
+                    rows = [row for row in knowledge_entries(block)
+                            if row == name or row.startswith(name + ":") or row.startswith(name + " (")]
                     self.assertEqual(len(rows), 1)
                     self.assertNotIn("not written yet", rows[0])
+            entries = knowledge_entries(block)
+            self.assertIn("RUN/current-spec.md (current)", entries)
+            prior = next(row for row in entries if row.startswith("KNOWLEDGE/spec.md:"))
+            self.assertEqual(prior, "KNOWLEDGE/spec.md: prior until handoff")
             (home / "architecture.md").unlink()
             block = reference_block(navigator.render(None, run, store.read_record(run / "state.md")))
             entries = knowledge_entries(block)
-            row = next(row for row in entries if row.startswith(navigator.reference_name(knowledge.ARCHITECTURE) + ":"))
+            self.assertIn("RUN/current-spec.md (current)", entries)
+            self.assertIn("KNOWLEDGE/spec.md: prior until handoff", entries)
+            architecture = navigator.reference_name(knowledge.ARCHITECTURE)
+            row = next(row for row in entries if row == architecture or row.startswith(architecture + ":")
+                       or row.startswith(architecture + " ("))
             self.assertTrue(row.endswith("(not written yet: " + navigator.reference_writer(knowledge.ARCHITECTURE) + ")"), row)
             self.assertEqual(navigator.reference_writer(knowledge.ARCHITECTURE), "test-strategy writes it")
 
@@ -637,8 +645,7 @@ def builds_on(block: list) -> list:
 
 
 def knowledge_entries(block: list) -> list:
-    """The block's knowledge-file entries ("KNOWLEDGE/spec.md: living spec (not written yet: ...)"), from the "Knowledge files"
-    line."""
+    """The candidate, accepted prior aggregate and maintained file entries from the "Knowledge files" line."""
     found = []
     for row in block:
         if row.startswith("Knowledge files: "):
@@ -722,8 +729,9 @@ class ProseLineGuardTests(unittest.TestCase):
         "ShipLoop navigator | step-plan | run x",
         navigator.REFERENCES_HEAD,
         "KNOWLEDGE = /r/docs/shiploop (knowledge home) · RUN = /r/run (run records) · GUIDES = /g (the skill's guides)",
-        "WORKTREE = /r (all product work; a working directory, never a --result value)",
-        "Knowledge files: KNOWLEDGE/spec.md: living spec",
+        "WORKTREE = /r (all product work; never a --result value)",
+        "Knowledge files: RUN/current-spec.md (current); KNOWLEDGE/spec.md: prior until handoff; "
+        "KNOWLEDGE/architecture.md; KNOWLEDGE/environment.md",
         loops.BLOCK_HEADING,
         loops.INVOKE_LINE,
         "python3 /s/until_loop_ephemeral.py start --receipt /r/run/loops/a-terminal.json < /r/run/loops/a-contract.json",
@@ -794,7 +802,7 @@ class ReferencesBlockTests(unittest.TestCase):
                     self.assertEqual(len(re.findall("(?m)(?:^| · )" + symbol + " = ", packet)), 1, symbol)
 
     def test_each_knowledge_file_is_listed_with_its_sections_or_its_writer(self) -> None:
-        """The files are the living files (knowledge_home.LIVING), each with its SECTIONS headings."""
+        """The current candidate and prior aggregate are distinct; architecture and environment keep their file entries."""
         self.assertEqual(navigator.reference_files(), list(knowledge.LIVING))
         for run, number, packet in self.each():
             block = reference_block(packet)
@@ -806,9 +814,17 @@ class ReferencesBlockTests(unittest.TestCase):
             for name in knowledge.LIVING:
                 symbol = navigator.reference_name(name)
                 with self.subTest(run=run, packet=number, file=symbol):
-                    rows = [row for row in entries if row.startswith(symbol + ":") or row.startswith(symbol + " (")]
+                    rows = [row for row in entries if row == symbol or row.startswith(symbol + ":")
+                            or row.startswith(symbol + " (")]
                     self.assertEqual(len(rows), 1)
                     self.assertNotIn("## ", rows[0])
+                    if name == "spec.md":
+                        self.assertEqual(rows[0], "RUN/current-spec.md (current)")
+                        prior = next(row for row in entries if row.startswith("KNOWLEDGE/spec.md:"))
+                        self.assertEqual(prior,
+                                         "KNOWLEDGE/spec.md: prior until handoff "
+                                         "(not written yet: ShipLoop promotes it at final handoff)")
+                        continue
                     writer = next(stage for stage in stage_spec.STAGES if name in knowledge.STAGE_FILES.get(stage, ()))
                     # Nothing exists in these walks, so every file is marked with the stage that writes it.
                     self.assertTrue(rows[0].endswith("(not written yet: " + writer + " writes it)"), rows[0])
@@ -889,10 +905,9 @@ class ReferencesBlockTests(unittest.TestCase):
             if run != "dry:halted":  # halted at intake: nothing earlier to build on
                 self.assertTrue(cited, run)
 
-    def test_a_packet_quotes_each_file_it_reads_whole_after_the_status(self) -> None:
-        """Consumer contract section 5 (D1): the packet quotes each file ``knowledge.READS`` gives the stage whole after
-        the progress block and the duties that follow it, or marks it not written yet.  Packet re-cut R3: the References
-        block carries no reads pointer (the quotes block names the files)."""
+    def test_a_packet_lists_each_file_it_reads_after_the_status(self) -> None:
+        """Each stage lists the path and contents outline for ``knowledge.READS`` after its status, or marks a missing
+        file. The spec path is the run candidate; architecture and environment remain in KNOWLEDGE."""
         for run, number, packet in self.each():
             stage = packet.split("ShipLoop navigator | ", 1)[1].split(" |", 1)[0]
             names = knowledge.READS.get(stage, ())
@@ -905,9 +920,12 @@ class ReferencesBlockTests(unittest.TestCase):
                     continue
                 after = packet.split("\nCurrent stage guidance:", 1)[1]
                 self.assertIn(navigator.READS_HEAD, after)
+                read_rows = after.splitlines()
                 for name in names:
-                    self.assertTrue(("KNOWLEDGE/" + name + " (source: KNOWLEDGE/" + name + ", whole file):") in after
-                                    or ("KNOWLEDGE/" + name + ": not written yet") in after, name)
+                    locator = navigator.reference_name(name)
+                    self.assertTrue(any(line.startswith(locator + " (")
+                                        or line.startswith(locator + ": not written yet")
+                                        for line in read_rows), locator)
 
 class PlantedPathTests(unittest.TestCase):
     """The guard fails on a literal absolute path under each root planted in prose, and the closed list prints the same path
@@ -1101,9 +1119,9 @@ class ProseSymbolsTests(unittest.TestCase):
         return {"repo": str(self.REPO)}
 
     def head(self) -> str:
-        return navigator.REFERENCES_HEAD + "\nHOME = " + str(self.REPO / "docs/shiploop") + " (knowledge home) · RUN = " \
+        return navigator.REFERENCES_HEAD + "\nKNOWLEDGE = " + str(self.REPO / "docs/shiploop") + " (knowledge home) · RUN = " \
             + str(self.RUN) + " (run records) · GUIDES = " + str(self.GUIDES) + " (the skill's guides)\n" \
-            + "WORKTREE = " + str(self.REPO) + " (all product work)\n"
+            + "WORKTREE = " + str(self.REPO) + " (all product work; never a --result value)\n"
 
     def converted(self, *body: str) -> list:
         """The body's lines after ``prose_symbols`` has run over a packet that defines the symbols."""
@@ -1117,6 +1135,7 @@ class ProseSymbolsTests(unittest.TestCase):
             "- intake: " + str(self.RUN / "results/nav-b.md") + "; full summary and evidence_refs also in state.md accepted.nav-b",
             "Coding decision guide: " + str(self.GUIDES / "coding-guidance.md") + "#select-guidance",
             "- " + str(self.RUN / "notes/discovery.md"),
+            "Current-run spec: " + str(self.RUN / "current-spec.md"),
             "- " + str(self.REPO / "docs/shiploop/spec.md"),
             "State: " + str(self.RUN / "state.md") + " (results/, inbox/ beside it) · Scratch directory (x): "
             + str(self.RUN / "scratch"),
@@ -1129,6 +1148,7 @@ class ProseSymbolsTests(unittest.TestCase):
             "- intake: RUN/results/nav-b.md; full summary and evidence_refs also in state.md accepted.nav-b",
             "Coding decision guide: GUIDES/coding-guidance.md#select-guidance",
             "- RUN/notes/discovery.md",
+            "Current-run spec: RUN/current-spec.md",
             "- KNOWLEDGE/spec.md",
             "State: RUN/state.md (results/, inbox/ beside it) · Scratch directory (x): RUN/scratch",
             "Repository knowledge index (host-authored, if present): WORKTREE/SHIPLOOP.md",

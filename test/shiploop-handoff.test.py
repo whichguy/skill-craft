@@ -32,9 +32,11 @@ sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(ROOT / "test"))
 import shiploop_expectations as expectations  # noqa: E402
 import shiploop_head_plans as plans  # noqa: E402
+import shiploop_current_spec as current_spec  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_primary as primary  # noqa: E402
+import shiploop_spec_promotion as spec_promotion  # noqa: E402
 import shiploop_test_layers as layers  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 from shiploop_improve_route import with_route  # noqa: E402
@@ -133,7 +135,7 @@ class ReadsTests(RepoCase):
 
 class QuotedBelowTests(RepoCase):
     """A duty says a file is "quoted below" only for a stage whose packet quotes it (U11, rev 4 Step 8.1): the spec duty
-    said so of KNOWLEDGE/spec.md while the spec stage reads nothing whole, so a cleared model looked for a quote that is not
+    said so of RUN/current-spec.md while the spec stage reads nothing whole, so a cleared model looked for a quote that is not
     in its packet."""
 
     def duties(self):
@@ -145,9 +147,13 @@ class QuotedBelowTests(RepoCase):
     def test_a_duty_names_a_file_as_quoted_below_only_when_its_stage_reads_that_file_whole(self) -> None:
         said = set()
         for stage, text in self.duties():
-            for found in re.finditer(r"KNOWLEDGE/([\w.]+)[^\n]{0,80}\(quoted below\)", text):
+            files = re.finditer(
+                r"KNOWLEDGE/([\w.]+)[^\n]{0,80}\(quoted below\)|RUN/current-spec\.md for new or changed outcomes",
+                text,
+            )
+            for found in files:
                 said.add(stage)
-                self.assertIn(found.group(1), EXPECTED_READS[stage], stage + " says " + found.group(0))
+                self.assertIn(found.group(1) or "spec.md", EXPECTED_READS[stage], stage + " says " + found.group(0))
         self.assertEqual(said, {"test-strategy"})      # the one stage that quotes the spec and says so
 
     def test_the_spec_stage_quotes_nothing_so_its_duty_tells_it_to_read_the_file(self) -> None:
@@ -155,13 +161,13 @@ class QuotedBelowTests(RepoCase):
         self.home("spec.md", "## Requirements\n\n- R-1: Place a fleet.\n")
         self.assertEqual(navigator.reads_lines(self.state, "spec"), [])
         duty = " ".join(prompts.duty("spec", delegation="inline").split())
-        self.assertIn("Start from KNOWLEDGE/spec.md (read it whole)", duty)
+        self.assertIn("Start from RUN/current-spec.md (read it whole)", duty)
         self.assertNotIn("quoted below", duty)
 
     def test_test_strategy_lists_the_spec_by_contents_and_is_handed_the_spec_diff(self) -> None:
         self.home("spec.md", "## Requirements\n\n- R-1: Place a fleet.\n")
         lines = navigator.reads_lines(self.state, "test-strategy")
-        self.assertEqual(lines, [navigator.READS_HEAD, "KNOWLEDGE/spec.md (39 bytes, 3 lines), contents:", "  ## Requirements: R-1"])
+        self.assertEqual(lines, [navigator.READS_HEAD, "RUN/current-spec.md (39 bytes, 3 lines), contents:", "  ## Requirements: R-1"])
         self.assertEqual(navigator.CONSUMES["test-strategy"], ("spec_diff",))
 
 
@@ -445,9 +451,9 @@ class HandoffShapeTests(unittest.TestCase):
             canonical(value, stage)
         return str(caught.exception)
 
-    def test_the_state_version_is_eleven_and_older_runs_are_refused_with_the_fresh_run_hint(self) -> None:
-        self.assertEqual(navigator.STATE_VERSION, 11)
-        for version in (5, 6, 7, 8, 9, 10):
+    def test_the_state_version_is_twelve_and_older_runs_are_refused_with_the_fresh_run_hint(self) -> None:
+        self.assertEqual(navigator.STATE_VERSION, 12)
+        for version in (5, 6, 7, 8, 9, 10, 11):
             state = navigator.new_state("/tmp/repo", "add hello")
             state["version"] = version
             with self.subTest(version=version), self.assertRaises(navigator.NavigatorError) as caught:
@@ -1160,7 +1166,10 @@ class HandoffGateTests(GateCase):
         # _current_work_item short-circuits on it without touching work_items/work_index.
         bare = {"repo": str(self.repo), "work_items": [], "history": [], "accepted": {}, "stage": "plan"}
         # A case's optional mock (design T F5) is printed by the case refusal's shape, not the template.
-        shapes = str(navigator.HANDOFF_SHAPES) + expectations._TEST_CASE_SHAPE
+        with mock.patch.object(navigator.spec_promotion, "hashes",
+                               return_value={"current_sha256": "0" * 64, "prior_sha256": "1" * 64}):
+            handoff_template = navigator._result_template({**bare, "spec_root": "/bound"}, "handoff")
+        shapes = str(navigator.HANDOFF_SHAPES) + expectations._TEST_CASE_SHAPE + handoff_template
         for value in navigator.HANDOFF_PLACEHOLDERS:
             self.assertTrue(value == "R-<n>" or value.startswith("<") and value.endswith(">"), value)
             self.assertIn(value, shapes)                       # every placeholder is one a printed shape carries
@@ -1746,7 +1755,8 @@ class LongHomeCase(RepoCase):
 
     def diff_part(self, lines: list) -> list:
         start = next(i for i, line in enumerate(lines) if line.startswith("Spec and architecture changes since"))
-        end = next((i for i in range(start + 1, len(lines)) if not lines[i].startswith(("  ", "KNOWLEDGE/"))), len(lines))
+        end = next((i for i in range(start + 1, len(lines))
+                    if not lines[i].startswith(("  ", "KNOWLEDGE/", "RUN/current-spec.md"))), len(lines))
         return lines[start:end]
 
     def head_of_base(self) -> str:
@@ -1761,7 +1771,7 @@ class ContentsTests(LongHomeCase):
     def test_a_file_is_listed_by_path_size_and_contents_and_its_text_is_not_quoted(self) -> None:
         lines = navigator.reads_lines(self.state_at("plan"), "plan")
         self.assertEqual(lines[0], navigator.READS_HEAD)
-        start = lines.index("KNOWLEDGE/spec.md (" + str(len(self.spec.encode())) + " bytes, "
+        start = lines.index("RUN/current-spec.md (" + str(len(self.spec.encode())) + " bytes, "
                             + str(len(self.spec.splitlines())) + " lines), contents:")
         self.assertEqual(lines[start + 1:start + 5], [
             "  # Living spec",
@@ -1822,7 +1832,7 @@ class ContentsTests(LongHomeCase):
         self.assertEqual(part[1:], [
             "KNOWLEDGE/architecture.md: new since the baseline, so its diff is the whole file, not printed here ("
             + navigator._size(self.arch) + "; its contents are listed above)",
-            "KNOWLEDGE/spec.md: new since the baseline, so its diff is the whole file, not printed here ("
+            "RUN/current-spec.md: new since the baseline, so its diff is the whole file, not printed here ("
             + navigator._size(self.spec) + "; its contents are listed above)"])
         self.assertLess(lines.index(navigator.READS_HEAD), lines.index(navigator.HANDOFF_HEAD))  # "above" is true
         self.assertEqual(sum(line.startswith("  | +") for line in lines), 0)
@@ -1832,8 +1842,8 @@ class ContentsTests(LongHomeCase):
         for stage in ("carry-forward", "release-verify"):
             with self.subTest(stage=stage):
                 part = self.diff_part(self.block(stage))
-                spec = next(i for i, line in enumerate(part) if line.startswith("KNOWLEDGE/spec.md: new since"))
-                self.assertEqual(part[spec], "KNOWLEDGE/spec.md: new since the baseline, so its diff is the whole file, not printed "
+                spec = next(i for i, line in enumerate(part) if line.startswith("RUN/current-spec.md: new since"))
+                self.assertEqual(part[spec], "RUN/current-spec.md: new since the baseline, so its diff is the whole file, not printed "
                                              "here (" + navigator._size(self.spec) + "), contents:")
                 self.assertEqual(part[spec + 2], "  ## Requirements: " + " · ".join(
                     "R-%d Requirement number %d" % (n, n) for n in range(1, 31)))
@@ -1875,10 +1885,10 @@ class ContentsTests(LongHomeCase):
                 follows = lines.index("follows (W1 step-plan):")
                 self.assertEqual(lines[follows + 1], "- R-1:")
                 self.assertEqual(lines[follows + 2], "  | ### R-1 Requirement number 1")
-                self.assertIn("- R-31 (now under Retired in KNOWLEDGE/spec.md):", lines)
+                self.assertIn("- R-31 (now under Retired in RUN/current-spec.md):", lines)
                 self.assertIn("- AD-9 (now under Superseded in KNOWLEDGE/architecture.md):", lines)
                 self.assertIn("  | ### AD-1 Decision 1", lines)
-                self.assertIn("- R-99: no entry in KNOWLEDGE/spec.md", lines)      # an unknown ID is still said
+                self.assertIn("- R-99: no entry in RUN/current-spec.md", lines)      # an unknown ID is still said
                 self.assertEqual(sum("### R-1 Requirement number 1" in line for line in lines), 1)  # its entry, once
                 self.assertNotIn("  | ### R-2 Requirement number 2", lines)   # a row the stage does not follow
 
@@ -2013,34 +2023,38 @@ class SameBlockDuplicateTests(LongHomeCase):
 # block hashes as before.  Renumbered 2026-10-28 by design T section 9.1 2b-4c (verify retired): the two verify blocks
 # (25- and 34-verify) are gone and the walk's later packet numbers shift; every other block's hash, in order, is
 # unchanged.
+# Re-pinned 2026-11-02 for current-spec storage: 12 contents-locator lines now name RUN/current-spec.md. Replacing that
+# path with KNOWLEDGE/spec.md recovers every recorded hash exactly; the other 21 blocks are byte-for-byte unchanged.
+# Evidence: docs/experiments/intent-continuity-20261102/implementation/golden-role-diagnostic.json.
+# No content or size check was relaxed.
 SMALL_HOME_FINGERPRINTS: dict = {
-    "01-intake": "20425423036e",
+    "01-intake": "02eb1b99a18c",
     "02-discovery": "e3b0c44298fc",
     "03-research": "e3b0c44298fc",
     "04-spec": "e3b0c44298fc",
-    "06-test-strategy": "c3d1dcf21c01",
-    "08-plan": "c384b412d4d4",
+    "06-test-strategy": "db38547dd815",
+    "08-plan": "72a2dd1fcf77",
     "10-prepare": "7a195e151115",
-    "11-step-plan": "34d4ded0cbd4",
-    "13-test-spec": "603a3bd68476",
+    "11-step-plan": "04e379e21071",
+    "13-test-spec": "3f78099923af",
     "14-validate-existing": "fd56ae387ab8",
     "15-implement": "78542e80fa7e",
     "16-test": "9ac7795d7ff5",
-    "19-document": "1dac24adc67e",
+    "19-document": "009ae9afbcd3",
     "21-implement": "84d5d7f4412f",
     "22-test": "47512f89e19d",
-    "23-document": "68da442e2a67",
+    "23-document": "545a296fb71e",
     "25-carry-forward": "644fb96deb86",
-    "26-step-plan": "6d1756f3cf4b",
-    "27-test-spec": "a6f458c2ef70",
+    "26-step-plan": "c2a03d4dd193",
+    "27-test-spec": "d9bd3436c269",
     "28-validate-existing": "fd56ae387ab8",
     "29-implement": "7f5ec4c052ae",
     "30-test": "3aa81f32adf2",
-    "31-document": "b9bf90857943",
+    "31-document": "e79ff67287a8",
     "33-carry-forward": "50e264bc8291",
-    "35-system-test-author": "9c09062ca617",
+    "35-system-test-author": "b85b79dbdce2",
     "37-system-test": "5c1876049e88",
-    "38-product-acceptance": "d957aea6fbd1",
+    "38-product-acceptance": "b32ddb1b98de",
     "39-release-plan": "d18a852bbe13",
     "41-release-check": "283571c24c3a",
     "42-release": "283571c24c3a",
@@ -2109,7 +2123,7 @@ class WalkedBlockTests(unittest.TestCase):
                 for stage in ("document",):
                     block = next(lines for key, lines in blocks.items() if plans.stage_of(key) == stage)
                     self.assertIn("- R-1:", block, stage)
-                    self.assertTrue(any(line.startswith("KNOWLEDGE/spec.md: new since the baseline") for line in block), stage)
+                    self.assertTrue(any(line.startswith("RUN/current-spec.md: new since the baseline") for line in block), stage)
 
     def test_a_small_homes_blocks_are_the_ones_the_branch_recorded(self) -> None:
         """A home of a few hundred characters has no baseline here, so no diff, no pointer and no ID the entries' quote
@@ -2384,10 +2398,8 @@ class CaseRowCliTests(inner.RunDriver):
                            test_commands=[{"command": "true", "suite": "focused", "ids": ["TC-1", "TC-2"],
                                            "criteria": ["C1", "C2"]}, {"command": "true", "suite": "check"}]))
         state = self.drive_to("test-spec")
-        home = self.repo / knowledge.HOME
-        home.mkdir(parents=True, exist_ok=True)
-        (home / "spec.md").write_text("## Requirements\n\n- R-1: The change works.\n- R-2: Reload keeps it.\n",
-                                      encoding="utf-8")
+        candidate = current_spec.path(state)
+        candidate.write_text("## Requirements\n\n- R-1: The change works.\n- R-2: Reload keeps it.\n", encoding="utf-8")
         action = navigator.current_action(state)["id"]
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
@@ -2400,7 +2412,7 @@ class CaseRowCliTests(inner.RunDriver):
         self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
         lines = refused.stderr.splitlines()
         self.assertIn("test_cases[0] needs exactly id, criterion, requirement, oracle, red, green", lines[0])
-        self.assertEqual(lines[1], str(home / "spec.md") + " lists R-1, R-2.")
+        self.assertEqual(lines[1], str(candidate) + " lists R-1, R-2.")
         self.assertNotIn("R-3", refused.stderr)
         # The fixed result: the check accepts it and counts C2, which no case names and no non-focused command confirms.
         store.write_record(path, good, "result")
@@ -2427,9 +2439,8 @@ class CaseRowCliTests(inner.RunDriver):
                            test_commands=[{"command": "true", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
                                           {"command": "true", "suite": "check"}]))
         state = self.drive_to("test-spec")
-        home = self.repo / knowledge.HOME
-        home.mkdir(parents=True, exist_ok=True)
-        (home / "spec.md").write_text("## Requirements\n\n- R-1: An update changes a stored value.\n", encoding="utf-8")
+        candidate = current_spec.path(state)
+        candidate.write_text("## Requirements\n\n- R-1: An update changes a stored value.\n", encoding="utf-8")
         action = navigator.current_action(state)["id"]
         path = self.run_dir / "inbox" / (action + ".md")
         path.parent.mkdir(exist_ok=True)
@@ -2471,7 +2482,7 @@ class CaseRowCliTests(inner.RunDriver):
         self.start()
         state = self.drive_to("spec")
         knowledge_support.write_spec(state)
-        spec = self.repo / knowledge.HOME / "spec.md"
+        spec = current_spec.path(state)
         spec.write_text(spec.read_text(encoding="utf-8").replace(
             "R-1: Synthetic requirement.\n", "R-1: Synthetic requirement.\nR-2: The tests run with test -f a.py.\n"),
             encoding="utf-8")
@@ -2515,16 +2526,18 @@ class RequirementLinesTests(inner.RunDriver):
             + "\n\nBody text.\n\n## Retired\n\n- R-4: Dropped.\n")
 
     def packets(self, spec: str | None) -> tuple:
+        self._packet_run_number = getattr(self, "_packet_run_number", 0) + 1
+        self.run_dir = self.repo / "runs" / f"requirement-packets-{self._packet_run_number}"
+        self.run_dir.mkdir(parents=True)
         self.start()
         self.drive_to("step-plan")
         self.complete(dict(inner.DONE, paths=list(self.PATHS), criteria=[{"id": "C1", "text": "It works (R-1)."}],
                            test_commands=[{"command": "true", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]},
                                           {"command": "true", "suite": "check"}]))
         state = self.drive_to("test-spec")
-        home = self.repo / knowledge.HOME
-        home.mkdir(parents=True, exist_ok=True)
+        candidate = current_spec.path(state)
         if spec is not None:
-            (home / "spec.md").write_text(spec, encoding="utf-8")
+            candidate.write_text(spec, encoding="utf-8")
         whole = navigator.render(inner.CORE, self.run_dir, state)
         head = navigator.packet_head(inner.CORE, self.run_dir, state, self.run_dir / "packets" / "p.md")
         return state, whole, head
@@ -2532,13 +2545,13 @@ class RequirementLinesTests(inner.RunDriver):
     def test_each_requirement_is_listed_with_the_start_of_its_entry_in_the_head_and_the_file(self) -> None:
         _state, whole, head = self.packets(self.SPEC)
         long = ("A long heading requirement that goes on well past what a list of IDs needs to quote. " * 2).strip()
-        expected = ("Requirements in KNOWLEDGE/spec.md (a case's requirement names one of these): R-1 Alpha rule; "
+        expected = ("Requirements in RUN/current-spec.md (a case's requirement names one of these): R-1 Alpha rule; "
                     "R-2 Beta rule; this differs from R-1 and from R-10; R-3 " + long[:60].rstrip()
                     + "\u2026; R-4 (retired) Dropped")
         self.assertEqual(len(long[:60]), 60)
         for name, text in (("file", whole), ("head", head)):
             with self.subTest(name):
-                lines = [line for line in text.splitlines() if line.startswith("Requirements in KNOWLEDGE/spec.md")]
+                lines = [line for line in text.splitlines() if line.startswith("Requirements in RUN/current-spec.md")]
                 self.assertEqual(lines, [expected])
                 self.assertGreater(text.index(lines[0]), text.index("Result template:"))
 
@@ -2546,7 +2559,7 @@ class RequirementLinesTests(inner.RunDriver):
         import shiploop_head_budget as budget
         spec = "## Requirements\n\n" + "".join("- R-%d: Requirement %d %s\n" % (n, n, "x" * 70) for n in range(1, 101))
         _state, whole, head = self.packets(spec)
-        line = next(row for row in head.splitlines() if row.startswith("Requirements in KNOWLEDGE/spec.md"))
+        line = next(row for row in head.splitlines() if row.startswith("Requirements in RUN/current-spec.md"))
         self.assertLessEqual(len(line), 2_400)
         self.assertTrue(line.endswith(", R-99, R-100"), line[-40:])
         self.assertNotIn("Requirement 7 ", line)                                    # no text: the IDs alone
@@ -2555,13 +2568,13 @@ class RequirementLinesTests(inner.RunDriver):
         self.assertTrue(head.endswith(navigator.HEAD_END + "\n"))
         medium = "## Requirements\n\n" + "".join("- R-%d: Requirement %d %s\n" % (n, n, "x" * 70) for n in range(1, 21))
         _state, _whole, head = self.packets(medium)
-        line = next(row for row in head.splitlines() if row.startswith("Requirements in KNOWLEDGE/spec.md"))
+        line = next(row for row in head.splitlines() if row.startswith("Requirements in RUN/current-spec.md"))
         self.assertIn("R-20 Requirement 20 ", line)                                 # under the limit: the text stays
 
     def test_a_spec_with_no_entry_says_so_and_names_the_way_out_and_other_stages_have_no_such_line(self) -> None:
         state, whole, head = self.packets("# Spec\n\nNo requirement has an ID yet.\n")
         for text in (whole, head):
-            self.assertIn("KNOWLEDGE/spec.md lists no R-<n> entry: report send-back naming the missing requirement. A case's "
+            self.assertIn("RUN/current-spec.md lists no R-<n> entry: report send-back naming the missing requirement. A case's "
                           "requirement names an R-<n> that has an entry there.", text)
         self.assertEqual(navigator._requirement_lines(state, "step-plan"), [])
         self.assertEqual(navigator._requirement_lines(state, "implement"), [])
@@ -2747,17 +2760,56 @@ class LessonsReturnTests(_return_review.ReturnReviewCase):
     """The release-verify lessons commit reaches the user's branch on an isolated run (X1), through the real CLI."""
 
     LIVING = "# Living spec\n\n- R-1 one\n- R-2 two\n"
+    PRIOR_WITH_DEFERRED = (
+        "# Existing product intent\n\n"
+        "## Requirements\n\n"
+        "- R-1 A: the current behavior handles the first case.\n\n"
+        "- R-2 B: the sibling behavior remains available.\n\n"
+        "## Deferred\n\n"
+        "- R-3: defer the optional export until a later run.\n"
+    )
+    CURRENT_WITH_DEFERRED = (
+        "# Reconciled product intent\n\n"
+        "## Requirements\n\n"
+        "- R-1 A2: intentionally revise the first case while preserving its identifier.\n\n"
+        "- R-2 B: the sibling behavior remains available.\n\n"
+        "## Deferred\n\n"
+        "- R-3: defer the optional export until a later run.\n"
+    )
+
+    def seed_prior_aggregate(self, text: str) -> Path:
+        """Commit the source aggregate before workspace start so the run snapshots the actual prior bytes."""
+        path = self.repo / knowledge.HOME / "spec.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(text.encode("utf-8"))
+        self.git("add", knowledge.HOME + "/spec.md")
+        self.git("commit", "-qm", "seed prior product spec")
+        return path
+
+    def start(self, name: str, *extra: str) -> tuple[Path, Path]:
+        aggregate = self.repo / knowledge.HOME / "spec.md"
+        if not aggregate.exists():
+            self.seed_prior_aggregate(self.LIVING)
+        return super().start(name, *extra)
+
+    def synthetic_spec_review(self, run: Path, candidate: str | None = None) -> dict:
+        """Use the graph walk's explicitly synthetic accepted Improve row to bind fixture bytes; no review runtime/model runs."""
+        return super().synthetic_spec_review(run, candidate)
 
     def return_all(self, root: Path) -> None:
         self.plan_return(root)
         self.review(root, "--keep", *self.dispositions(root))
         self.do_return(root)
 
-    def complete(self, run: Path, code: int = 0):
+    def complete(self, run: Path, code: int = 0, *, review: bool = True, submitted: dict | None = None):
         state = store.read_record(run / "state.md")
+        if review:
+            state = self.synthetic_spec_review(run)
         action = navigator.current_action(state)
         result = run / "inbox" / f"{action['id']}.md"
-        store.write_record(result, {"outcome": "done", "summary": "Handed off.", "follow_on": []}, "ShipLoop navigator result")
+        record = submitted or self.handoff_result(
+            state, "No candidate spec clauses changed; the candidate matches the initialized prior aggregate.")
+        store.write_record(result, record, "ShipLoop navigator result")
         return self.cli("complete", "--run-dir", str(run), "--action", action["id"], "--result", str(result), code=code)
 
     def test_an_isolated_release_verify_that_changes_no_home_file_returns_its_lessons_commit_and_hands_off(self) -> None:
@@ -2766,7 +2818,6 @@ class LessonsReturnTests(_return_review.ReturnReviewCase):
         current receipt and the next run's intake finds the lessons there."""
         root, worktree = self.start("empty lessons")
         self.write(worktree, "app.js", "product\n")
-        self.write(worktree, "docs/shiploop/spec.md", self.LIVING)
         self.commit(worktree, "work item and knowledge")
         run = self.at(root, "release")
         self.return_all(root)
@@ -2799,7 +2850,6 @@ class LessonsReturnTests(_return_review.ReturnReviewCase):
         root, worktree = self.start("working tree lessons")
         self.write(worktree, "app.js", "product\n")
         self.write(worktree, "scratch.log", "run-local\n")
-        self.write(worktree, "docs/shiploop/spec.md", self.LIVING)
         self.commit(worktree, "work item and knowledge")
         run = self.at(root, "release")
         self.plan_return(root)
@@ -2845,7 +2895,6 @@ class LessonsReturnTests(_return_review.ReturnReviewCase):
         root, worktree = self.start("no retire")
         own = "docs/shiploop/features/" + knowledge.run_label(store.read_record(root / "run" / "state.md")) + "/spec.md"
         self.write(worktree, "app.js", "product\n")
-        self.write(worktree, "docs/shiploop/spec.md", self.LIVING)
         self.write(worktree, own, "Adds: R-1.\n")       # what an earlier version's retire would have removed at handoff
         self.commit(worktree, "work item and knowledge")
         old[own] = "Adds: R-1.\n"
@@ -2859,6 +2908,70 @@ class LessonsReturnTests(_return_review.ReturnReviewCase):
         self.assertFalse([subject for subject in subjects if subject.startswith("docs(shiploop): retire ")], subjects)
         for relative, text in old.items():
             self.assertEqual((self.repo / relative).read_text(encoding="utf-8"), text)
+
+    def test_workspace_handoff_returns_the_full_reviewed_candidate_after_release_return(self) -> None:
+        prior = self.seed_prior_aggregate(self.PRIOR_WITH_DEFERRED)
+        prior_bytes = prior.read_bytes()
+        root, worktree = self.start("promote full current spec")
+        self.write(worktree, "app.js", "product\n")
+        self.commit(worktree, "product change")
+        run = self.at(root, "release")
+        state = store.read_record(run / "state.md")
+        candidate = current_spec.path(state)
+        candidate_bytes = self.CURRENT_WITH_DEFERRED.encode("utf-8")
+        candidate.write_bytes(candidate_bytes)
+
+        # Release's earlier verified return delivers the worktree with the unchanged aggregate; the run candidate is separate.
+        self.return_all(root)
+        self.assertEqual(prior.read_bytes(), prior_bytes)
+        self.assertEqual((worktree / knowledge.HOME / "spec.md").read_bytes(), prior_bytes)
+
+        run = self.at(root, "handoff")
+        state = self.synthetic_spec_review(run)
+        reconciliation = self.handoff_result(
+            state, "Changed A to A2, retained sibling B and deferred R-3, and preserved all prior requirement IDs.")
+
+        # The candidate changed after its synthetic Improve record, so terminal evaluation must refuse before journaling
+        # or changing either aggregate. This is a mechanics fixture; it does not claim a live/model Improve review.
+        candidate.write_bytes(candidate_bytes + b"\npost-review edit\n")
+        refused = self.complete(run, code=2, review=False, submitted=reconciliation)
+        self.assertIn("RUN/current-spec.md changed after its accepted Improve", refused.stderr)
+        self.assertEqual(store.read_record(run / "state.md")["status"], "active")
+        self.assertEqual((worktree / knowledge.HOME / "spec.md").read_bytes(), prior_bytes)
+        self.assertEqual(prior.read_bytes(), prior_bytes)
+        self.assertFalse((run / spec_promotion.JOURNAL).exists())
+
+        candidate.write_bytes(candidate_bytes)
+        finished = self.complete(run, review=False, submitted=reconciliation)
+        self.assertEqual(store.read_record(run / "state.md")["status"], "done", finished.stderr)
+        self.assertEqual((worktree / knowledge.HOME / "spec.md").read_bytes(), candidate_bytes)
+        self.assertEqual(prior.read_bytes(), candidate_bytes)
+        journal = store.read_record(run / spec_promotion.JOURNAL)
+        self.assertEqual(journal["status"], "promoted")
+        self.assertEqual(journal["candidate_sha256"], current_spec.digest(state))
+
+    def test_direct_non_git_handoff_promotes_its_exact_candidate_without_workspace_return(self) -> None:
+        repo = self.base / "direct non-git repo"
+        repo.mkdir()
+        prior = repo / knowledge.HOME / "spec.md"
+        prior.parent.mkdir(parents=True)
+        prior.write_bytes(self.PRIOR_WITH_DEFERRED.encode("utf-8"))
+        run = self.base / "direct non-git run"
+        self.cli("init", "--repo", str(repo), "--run-dir", str(run), "--prompt", "Exercise direct spec promotion.")
+        self.assertFalse((repo / ".git").exists())
+        state = _return_review.advance_to(store.read_record(run / "state.md"), "handoff")
+        self.assertEqual(state["execution_mode"], "navigator")
+        navigator.save(run, state)
+        candidate_bytes = self.CURRENT_WITH_DEFERRED.encode("utf-8")
+        current_spec.path(state).write_bytes(candidate_bytes)
+        state = self.synthetic_spec_review(run)
+
+        done = self.complete(run, review=False, submitted=self.handoff_result(
+            state, "Changed A to A2, retained sibling B and deferred R-3, and preserved all prior requirement IDs."))
+
+        self.assertEqual(store.read_record(run / "state.md")["status"], "done", done.stderr)
+        self.assertEqual(prior.read_bytes(), candidate_bytes)
+        self.assertEqual(store.read_record(run / spec_promotion.JOURNAL)["status"], "promoted")
 
 
 # ------------------------------------------------------------------------- scope of quoted inputs (efficiency plan U17)

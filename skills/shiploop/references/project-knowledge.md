@@ -10,6 +10,25 @@ be reused only after the current [delivery-authority revalidation](delivery-auth
 The current request may narrow or override it; an explicit source-only scope
 wins over an otherwise applicable standing delivery permission.
 
+## Current spec versus accepted prior intent
+
+For each new ShipLoop run, `KNOWLEDGE/spec.md` remains the accepted aggregate
+from earlier work while `RUN/current-spec.md` holds this run's full candidate,
+initialized from the exact aggregate at run start. `RUN/spec/prior-spec.md`
+preserves that starting text; the binding records an absent source explicitly.
+The same run-start snapshot applies to architecture and environment. Current
+stages use the candidate for requirement reads, updates and checks. Only the
+script promotes the accepted, reviewed candidate at final handoff.
+
+Treat prior requirements and architecture decisions as constraints and design
+basis, not an automatic backlog. The reviewed overall and step plans assign only
+current new or changed outcomes and evidenced necessary prerequisites. Reuse
+achieved behavior; keep accepted deferred work deferred. A `follows` reference
+alone does not require reimplementation. An explicit current request can replace
+its conflicting clause; keep unaffected requirements, stable IDs, history,
+alternatives and rationale. Code and test results establish implementation
+status, not the original approved intent.
+
 ## New work versus recovery
 
 - **Continue the same request:** recover its exact run with `next`; reconcile
@@ -298,16 +317,16 @@ First locate the repository's maintained requirements, living spec, API contract
 or policy documents. Reuse their existing organization and link the relevant
 sections; do not create a competing copy. If a small repository explicitly keeps
 its contract in the README, that is an adequate home. Otherwise, when no suitable
-home exists, the living spec is **`docs/shiploop/spec.md`** in ShipLoop's
-[repository knowledge home](#repository-knowledge-home).
+home exists, the accepted aggregate is **`docs/shiploop/spec.md`** in ShipLoop's
+[repository knowledge home](#repository-knowledge-home). Each run edits its full
+candidate in `RUN/current-spec.md` and promotes it only at final handoff.
 Use the README as the overview and link to this home; a host-authored
 `SHIPLOOP.md` index may link it too. Neither link is a second specification.
 Keep these files in the product repository, outside disposable run/workspace
 state, and include intended durable changes in the product return. No new
 requirements database, schema, graph stage, or exhaustive legacy rewrite is needed.
-ShipLoop keeps requirement IDs only in `docs/shiploop/spec.md`
-(see [Repository knowledge home](#repository-knowledge-home)); a team document it
-links is read, never checked.
+The aggregate holds accepted requirement IDs; the bound run candidate temporarily
+holds their full current-run copy. A team document it links is read, never checked.
 
 The stack, the structure and the decisions behind them have one home too:
 **`docs/shiploop/architecture.md`**. It records how the product is built; the living
@@ -389,10 +408,10 @@ reference to skill guidance is not a reference to the product's actual contract.
 | Material and home | Writer | Reader and handoff |
 | --- | --- | --- |
 | Guidance under the selected ShipLoop package's `references/` | Skill maintainers, not a product run | The current packet selects applicable guidance, including the [requirements definition guide](requirements-definition.md). |
-| Accepted product requirements in the existing repo-owned home, otherwise `docs/shiploop/spec.md` | Authorized product work in the execution checkout | Discovery/spec, affected plans, tests, Improve and acceptance read relevant sections; README and `SHIPLOOP.md` link to them for later runs. |
+| Accepted requirements in `docs/shiploop/spec.md`; full current-run candidate in `RUN/current-spec.md` | Spec/planning stages edit the candidate; final handoff reconciles and the script promotes it | Current packets read the candidate and its immutable prior snapshot; later runs start from the accepted aggregate. README and `SHIPLOOP.md` link to durable product docs. |
 | Product code, tests and enduring case documentation in the repository | Assigned implementation/test/documentation work | Requirement sections point to relevant test paths/selectors; plans and checks point back to the clauses they establish. Planned tests remain labeled planned until authored and executed. |
 | Reusable repo-local skills in the existing product skill layout | Authorized skill/documentation work | Later planners discover them through the repo index; [skill documentation](testing-and-documentation.md#reusable-product-skills) links the same product clauses/code/tests or accepts source locators as inputs, never another copied spec. |
-| The living spec, environment and architecture under `docs/shiploop/` | The stages that own them; ShipLoop checks and commits them at each close | Later runs start from them ([repository knowledge home](#repository-knowledge-home)). |
+| Accepted spec aggregate under `docs/shiploop/`; environment and architecture there | The spec candidate is script-promoted at final handoff; owning stages maintain environment and architecture | Later runs start from the aggregate, environment and architecture ([repository knowledge home](#repository-knowledge-home)). |
 | Run evidence under the run directory | The active protocol's host/result and script-owned write routes | Dependent actions read result `evidence_refs`, work-item `context`, or that protocol's context reader. Anything a later run needs goes into `docs/shiploop/`. |
 | Prior current-system baseline in run notes or at a retrievable immutable source revision | Discovery/research within the active stage's authority | Spec, test strategy, plans and Improve reopen selected sections and evidence limits; authorized documentation work retains useful recovered knowledge in the durable product home. Preserve the prior as-of account when later evidence changes. |
 | Improve contract, `review-<n>.md` passes and `checks.md` under the packet's child locations | Selected Improve and its bound Until Loop adapter | Child recovery reads its own contract/state; ShipLoop imports the matching review and check files itself, with no separate record to submit. Child runtime files stay out of product returns. |
@@ -510,40 +529,31 @@ yourself. ShipLoop never commits `SHIPLOOP.md`: it is the host's file.
 
 ## Repository knowledge home
 
-Owner decision 2026-09-26: planning knowledge outlives the run. ShipLoop keeps it
-in the product repository under `docs/shiploop/`, commits it at the end of
-planning, and later runs inherit it.
+Owner decision 2026-11-02: the product repository keeps the accepted aggregate at
+`docs/shiploop/spec.md`; the run keeps its full candidate at `RUN/current-spec.md`.
+ShipLoop copies the exact prior spec, architecture and environment into immutable
+`RUN/spec/prior-*.md` snapshots and records absence in `RUN/spec/binding.md`.
 
 | Path | Holds |
 | --- | --- |
-| `docs/shiploop/spec.md` | The living product spec: every accepted requirement with a stable ID (`R-<n>`) and its acceptance lines inside it, a `Retired` section with reasons. Sections: `## Requirements`, `## Non-functional requirements`, `## Retired` |
+| `docs/shiploop/spec.md` | The accepted aggregate: requirements with stable `R-<n>` IDs and acceptance lines, plus `Retired` reasons. The run candidate is the full copy in `RUN/current-spec.md`; `RUN/spec/prior-spec.md` and the binding preserve its exact starting state and absence. Sections: `## Requirements`, `## Non-functional requirements`, `## Retired` |
 | `docs/shiploop/environment.md` | Targets and accounts by alias (never credentials), the working test, deploy, dry-run and confirm commands, platform facts and the run that verified each; each harness and suite with its files and command, and the system-test catalog; the test-ID scheme and the one command that lists the IDs already taken (the test code is the one home of the IDs); the standing release and rollback procedure, under the heading the run uses. Sections: `## Targets and runtimes`, `## Commands`, `## Skills` (the repository's local skill directory), `## Harnesses and suites`, `## ID convention`, `## Access and accounts`, `## Platform facts` |
 | `docs/shiploop/architecture.md` | How the product is built, apart from what it must do: the stack (language, frameworks, dependencies and why), the structure (modules and who owns each), conventions, interfaces and boundaries, and the real-boundary checks a local test cannot prove (each with its owner), and the decisions as stable IDs (`AD-<n>`: choice, why, alternatives, status) with a `Superseded` section. Runtime versions and working commands stay in `environment.md`. It records names and shapes (a credential's alias and mechanism), never secret values. It links the repository's own architecture or ADR documents instead of copying them. Sections: `## Stack`, `## Structure`, `## Conventions`, `## Interfaces and boundaries`, `## Real-boundary checks`, `## Decisions`, `## Superseded` |
 
-The living files are `spec.md`, `environment.md` and `architecture.md` (consumer
-contract, 2026-10-11): an older home's `README.md` and `test-strategy.md` are left in
-place, and nothing requires, writes or names them. Each packet names the home and the files its stage keeps up to date. At three
-closes (`prepare`, `release-plan`, `release-verify`) ShipLoop
-refuses `done` until that close's files exist, refuses a living spec or architecture whose uncommitted version no
-longer mentions an earlier committed requirement (`R-<n>`) or decision (`AD-<n>`)
-ID (the base is the last commit, so a drop a review already committed through
-`improve-commit` is not seen), and then commits exactly `docs/shiploop/`
-(`docs(shiploop): record <run> knowledge at <stage>`). After any other accepted
-stage that changed `docs/shiploop/`, ShipLoop applies the same ID check
-(refusing that stage's `done` on a failure) and commits it
-(`... knowledge after <stage>`); the model never commits the home itself. On the inline route a step's
-edits to the home go into that step's one commit instead, after its `document` stage, which reflects on what the step
-showed in all three files, and its review ([navigator.md](navigator.md#step-commits)). The last close is at
-`release-verify` so the commit returns with the workspace. The return plan keeps
-`docs/shiploop/**`. Files an earlier run wrote in older homes
-(`docs/requirements.md`, `docs/current-system.md`, ShipLoop-authored only) move
-into this home; a team's own requirements document is
-linked, not copied. A later run reads these files as evidence, not as a
-protocol to import: discovery re-verifies recorded environment facts cheaply
-instead of rediscovering them, spec starts from the living spec, and release
-planning starts from the recorded commands.
+The 2026-10-11 close-and-commit contract for `spec.md` is superseded: it described
+the spec as a repository file edited throughout a run. Now the accepted aggregate
+stays untouched while the run edits `RUN/current-spec.md`; discovery and planning
+use the bound prior snapshots and revalidate volatile environment facts. Final
+handoff records semantic reconciliation against the prior, request and delivered
+evidence. The script promotes exactly the accepted, reviewed candidate; a changed
+candidate must be restored to its reviewed snapshot or returned as corrective
+add-work and reviewed before promotion. The model never edits the aggregate at
+handoff. `environment.md` and `architecture.md` remain maintained repository
+knowledge; their sections and stage ownership are separate from the spec lifecycle.
+Older `README.md`, `test-strategy.md` and `features/` folders stay in place and are
+not required or written. A team's own requirements document is linked, not copied.
 
-**Named sections.** The three living files have the sections in their rows above
+**Named sections.** The candidate and the two maintained knowledge files use the sections in their rows above
 (`knowledge_home.SECTIONS`, the one list; a test pins that every heading a packet duty
 names for these files is in it), and a heading is created when the file lacks it. At
 the same three closes ShipLoop counts the sections a file lacks, as a notice, not a

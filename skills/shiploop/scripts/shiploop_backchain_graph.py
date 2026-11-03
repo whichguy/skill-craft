@@ -78,8 +78,18 @@ def _current_action(core: Any, run_dir: Optional[str]) -> Tuple[Optional[Path], 
     if not (root / "state.md").is_file():
         return None, None, f"no ShipLoop run at {root}"
     try:
-        state = store.read_record(root / "state.md")
+        loader = getattr(core, "load_state", None)
+        if callable(loader):
+            state = loader(root)
+        else:
+            state = store.read_record(root / "state.md")
+            navigator.validate(state)
+            import shiploop_current_spec as current_spec
+
+            current_spec.assert_binding(root, state)
         action = navigator.current_action(state)["id"]
+    except SystemExit as exc:
+        return None, None, f"run state at {root} cannot be loaded: {exc}"
     except Exception as exc:  # noqa: BLE001 - any unreadable state only skips the files
         return None, None, f"run state at {root} cannot be read: {type(exc).__name__}: {exc}"
     if not isinstance(action, str) or not _ACTION_RE.fullmatch(action):
@@ -98,6 +108,12 @@ def _record_dir(root: Path, action: str) -> Path:
 def record(root: Path, action: str, data: bytes, record_: Dict[str, Any]) -> Path:
     """Write ``candidate-<sha12>.json`` once and ``check-<sha12>.json`` when it changed; returns the receipt path."""
     import shiploop_store as store
+    import shiploop_navigator as navigator
+    import shiploop_current_spec as current_spec
+
+    state = store.read_record(root / "state.md")
+    navigator.validate(state)
+    current_spec.assert_binding(root, state)
 
     directory = _record_dir(root, action)
     digest = record_["candidate_sha256"][:12]
