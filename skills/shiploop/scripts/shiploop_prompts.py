@@ -1501,8 +1501,8 @@ preparatory commit); a mismatch there is a send-back.
     "carry-forward": """\
 1. **Knowledge home.** Open current spec, architecture and environment even unchanged. Reconcile affected current
    claims with accepted evidence; keep as-of history and checks not due. Update in place
-   under these sections, with no new ## heading for this item's results;
-   - KNOWLEDGE/environment.md ## Commands: every worked command, retaining observed runtime/target/prerequisites.
+   under the sections named here, with no new ## heading for this item's results;
+   - KNOWLEDGE/environment.md ## Commands: worked commands; keep observed runtime/target/prerequisites.
    - KNOWLEDGE/architecture.md ## Decisions: this item's added AD-<n>; superseded ones move to ## Superseded, never deleted.
    - KNOWLEDGE/environment.md ## Harnesses and suites: focused/smoke/full suites and commands; harness and case locators;
      fixture lifecycle; each test facility's locator, interface, readiness or gap, owner, revalidation condition.
