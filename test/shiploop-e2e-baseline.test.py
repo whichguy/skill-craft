@@ -2342,20 +2342,37 @@ class ScorecardTest(unittest.TestCase):
         # runs (2026-11-01 reading), 19% edited, so the block now carries the reviewed count and the editing count.
         cases = 0
 
-        def efficiency(reviews):
+        def efficiency(reviews, children=None):
             nonlocal cases
             cases += 1
             run_dir = self.run_folder(f"day/yield-{cases}", {"case": "hello", "pass": True}, tmp_writes=[])
-            (run_dir / "metrics.json").write_text(json.dumps({"tmp_writes": [], "improve_reviews": reviews}))
-            return scorecard.score(run_dir)["efficiency"]
+            metrics_json = {"tmp_writes": [], "improve_reviews": reviews}
+            if children is not None:
+                metrics_json["improve_children"] = children
+            (run_dir / "metrics.json").write_text(json.dumps(metrics_json))
+            return scorecard.score(run_dir)
 
-        found = efficiency({"children": 10, "passes": 12, "edited_children": 2, "max_passes": 2, "per_child": []})
+        found = efficiency({"children": 10, "passes": 12, "edited_children": 2, "max_passes": 2, "per_child": []})["efficiency"]
         self.assertEqual((found["improve_reviews"], found["improve_editing_reviews"]), (10, 2))
         # An unmeasured reader is unknown, never a measured zero (metrics returns None beside its reason).
         unknown = efficiency({"children": None, "passes": None, "edited_children": None, "max_passes": None,
-                              "per_child": [], "unmeasured": "no selected ShipLoop run"})
+                              "per_child": [], "unmeasured": "no selected ShipLoop run"})["efficiency"]
         self.assertIsNone(unknown["improve_reviews"])
         self.assertIsNone(unknown["improve_editing_reviews"])
+        # The 2.9.0 shape that kept this metric off the card: 10 child directories, and a reader that attributed none of
+        # them. That reader FAILED; its 0 is not an observed zero, so both figures are unknown with that reason.
+        failed = efficiency({"children": 0, "passes": 0, "edited_children": 0, "max_passes": 0, "per_child": []},
+                            children=10)
+        self.assertIsNone(failed["efficiency"]["improve_reviews"])
+        self.assertIsNone(failed["efficiency"]["improve_editing_reviews"])
+        self.assertIn("attributed none of the run's 10 Improve children",
+                      failed["unmeasured"]["efficiency.improve_reviews"])
+        # A run with no Improve children is the honest zero both readers agree on, and stays a measured 0.
+        nothing = efficiency({"children": 0, "passes": 0, "edited_children": 0, "max_passes": 0, "per_child": []},
+                             children=0)
+        self.assertEqual((nothing["efficiency"]["improve_reviews"],
+                          nothing["efficiency"]["improve_editing_reviews"]), (0, 0))
+        self.assertNotIn("efficiency.improve_reviews", nothing["unmeasured"])
         # A metrics.json from before the reader existed makes both unknown with a reason, never a 0.
         run_dir = self.run_folder("day/yield-absent", {"case": "hello", "pass": True}, tmp_writes=[])
         (run_dir / "metrics.json").write_text(json.dumps({"tmp_writes": []}))

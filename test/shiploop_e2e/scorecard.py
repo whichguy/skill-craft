@@ -37,8 +37,9 @@ The parts, each read from records the harness already writes:
   reader was new: on the 2.9.0 runs it read 0 children beside 10 Improve children. That reader has since been corrected
   (it now reads a child's ``reviews`` folder one level down as well as two), and over 113 saved runs it agrees with the
   children's own ``passes.md`` records in 108; the 5 differences are all it COUNTING a bound child whose stage never
-  completed, which the passes files cannot show. Its figures are in their own efficiency fields (``improve_reviews``,
-  ``improve_editing_reviews``) and decide nothing.
+  completed, which the passes files cannot show. Its figures ride in their own efficiency fields (``improve_reviews``,
+  ``improve_editing_reviews``) and decide nothing. The 2.9.0 shape itself stays caught: a reader that attributes none of
+  a run's Improve children is reported unknown with that reason, never as an observed 0.
 * ``efficiency`` (the target): minutes, cost, turns, ``tokens`` (processed: input, cache reads, cache writes and output)
   and ``output_tokens`` (``scorecard/6``, build step 8). Cost, turns and tokens are added over every reported session,
   stops and resumes included, and ``totals_lower_bound`` says when a launched session never reported, so they cover part
@@ -361,9 +362,22 @@ def efficiency(run_metrics: dict, unmeasured: dict) -> dict:
     tokens = run_metrics.get("tokens") if isinstance(run_metrics.get("tokens"), dict) else {}
     # Improve's yield beside its cost: how many of its children changed anything. A review schedule (whether a stage's
     # review earns its slot) cannot be judged from minutes alone; 19% of 808 saved children edited (2026-11-01 reading).
+    #
+    # A reader that saw the run's Improve children but attributed none of them FAILED to read, and is unknown, not an
+    # observed zero: the 2.9.0 runs are exactly this shape (0 review children beside 10 directories), so reporting its 0
+    # would resurrect the reading that kept this metric off the card. A run with NO Improve children has the honest zero
+    # both readers agree on, and an unreadable reader is unknown through its own reason.
     reviews = run_metrics.get("improve_reviews") if isinstance(run_metrics.get("improve_reviews"), dict) else {}
+    children = run_metrics.get("improve_children") if isinstance(run_metrics.get("improve_children"), int) else None
     reviewed = reviews.get("children") if isinstance(reviews.get("children"), int) else None
+    if reviewed == 0 and children:
+        reviewed, attribution = None, ("the Improve review reader attributed none of the run's " + str(children)
+                                       + " Improve children")
+    else:
+        attribution = None
     editing = reviews.get("edited_children") if isinstance(reviews.get("edited_children"), int) else None
+    if reviewed is None and editing is not None and attribution is not None:
+        editing = None
     block = {"minutes": minutes, "cost_usd": run_metrics.get("cost_usd"),
              "totals_lower_bound": metrics.lower_bound(run_metrics), "turns": run_metrics.get("turns"),
              "tokens": tokens.get("processed"), "output_tokens": tokens.get("output"),
@@ -379,8 +393,10 @@ def efficiency(run_metrics: dict, unmeasured: dict) -> dict:
                "tokens": unmeasured_run.get("tokens_processed") or "the metrics predate run tokens (build step 8): regrade",
                "output_tokens": unmeasured_run.get("tokens_output") or "the metrics predate run tokens (build step 8): regrade",
                "planning_minutes": "the planning window did not close",
-               "improve_reviews": reviews.get("unmeasured") or "the metrics predate Improve review records",
-               "improve_editing_reviews": reviews.get("unmeasured") or "the metrics predate Improve review records",
+               "improve_reviews": attribution or reviews.get("unmeasured")
+               or "the metrics predate Improve review records",
+               "improve_editing_reviews": attribution or reviews.get("unmeasured")
+               or "the metrics predate Improve review records",
                "reorientation_minutes": (run_metrics.get("fresh_starts_unmeasured") or "no fresh-start record"),
                "fresh_starts": (run_metrics.get("fresh_starts_unmeasured") or "no fresh-start record"),
                "calls_before_grounding": "a measured fresh start records no calls before grounding"}
