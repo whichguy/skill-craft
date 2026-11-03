@@ -50,6 +50,28 @@ records intact. If Improve changes current facts successors need,
 return a revised producer result through its existing `--final-result` route;
 earlier accepted step results stay historical.
 
+Inherited operational/factual instructions are not history by default. For each
+current-looking variant, state its applicability to the active plan, target or
+condition and its known basis. When accepted evidence identifies the applicable
+procedure for a target/condition, reconcile conflicting same-target guidance
+in place. Treat an unqualified conflicting procedure with no known basis for
+a distinct target/condition as displaced for that target, and mark accurate
+displaced text historical with its basis rather than leaving two apparent
+current procedures; keep valid other-target/condition alternatives current. An approved plan or verified
+source may establish applicability without executing a command; it does not
+prove an operation ran. Preserve accurate as-of history verbatim where
+appropriate, deferred intent, not-due checks and unknowns; missing evidence does
+not prove absence. Keep run-specific values in cited durable results/receipts.
+A plan cannot authorize its own change to accepted R/AD intent: only a current
+explicit user request, prior owner decision or standing authorization can
+supply that authority, and an approved plan must trace it. An explicit incoming
+user override needs no duplicate ID or reapproval. Code observation establishes
+implementation facts, not permission to redefine intent. Without one of those
+authority sources, retain accepted intent and use the existing
+gap/corrective/review route. Record current decisions and their basis inside
+active R/AD entries in their existing sections; do not append a duplicate-ID
+current supplement after ## Superseded.
+
 Keep completed evidence separate from future plans. Update appropriate project
 knowledge (see
 [retain learnings for the next invocation](project-knowledge.md#retain-learnings-for-the-next-invocation))

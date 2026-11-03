@@ -1474,8 +1474,8 @@ preparatory commit); a mismatch there is a send-back.
 2. **Observe and write.** Run each changed behaviour; update README, API, user, operator, error and design docs with
    observed behaviour, visible errors, diagnostic controls, limits and caveats. Link the authoritative home
    (Documentation guidance). Write only observed working behaviour in repository docs, never just run notes.
-3. **Reflect.** Open current spec, architecture and environment, even unchanged. Reconcile affected current claims
-   with this step's observations, including checks now executed; preserve as-of history and checks not due.
+3. **Reflect.** Open current spec, architecture and environment even unchanged. Reconcile step facts and displaced
+   operational guidance in place; keep accurate history, alternatives, unknowns and not-due checks.
    Record what the step showed:
    - RUN/current-spec.md: a line inside the R-<n> entry it concerns, ending with this step's mark (<item>/<step>): a
      vague clause this step made precise, stated as observable behaviour, or the files and test file that now meet it.
@@ -1499,11 +1499,12 @@ preparatory commit); a mismatch there is a send-back.
    observed here, naming it.
 """,
     "carry-forward": """\
-1. **Knowledge home.** Open current spec, architecture and environment even unchanged. Reconcile affected current
-   claims with accepted evidence; keep as-of history and checks not due. Update in place
-   under the sections named here, with no new ## heading for this item's results;
+1. **Knowledge home.** Open current spec, architecture and environment even unchanged. Reconcile current facts and
+   displaced guidance; keep history, alternatives, unknowns and not-due checks.
+   Update in place under the sections named here, with no new ## heading for this item's results;
    - KNOWLEDGE/environment.md ## Commands: worked commands; keep observed runtime/target/prerequisites.
-   - KNOWLEDGE/architecture.md ## Decisions: this item's added AD-<n>; superseded ones move to ## Superseded, never deleted.
+   - KNOWLEDGE/architecture.md ## Decisions: decision/basis inside active AD-<n> entries; superseded ones move to
+     ## Superseded, never deleted.
    - KNOWLEDGE/environment.md ## Harnesses and suites: focused/smoke/full suites and commands; harness and case locators;
      fixture lifecycle; each test facility's locator, interface, readiness or gap, owner, revalidation condition.
    - KNOWLEDGE/architecture.md ## Real-boundary checks: each pending full-suite and real-boundary check with its owner.
@@ -1693,7 +1694,8 @@ preparatory commit); a mismatch there is a send-back.
 2. Write the release steps in `summary`: target and candidate identity, permission, prerequisites, user impact,
    monitoring, stop conditions. Keep the standing procedure any release repeats (steps, commands, rollback; no candidate
    identity, commit IDs or dates) in KNOWLEDGE/environment.md (item 8), in the release section the file already has,
-   updated in place, else in one new section. Every operation the user-visible outcome needs is a
+   updated in place, else in one new section. Reconcile every conflicting same-target recipe in place; adding a new
+   paragraph does not retire the old instruction. Label history; retain alternatives/unknowns. Every operation the user-visible outcome needs is a
    named step with its exact command and authorization status: the deploy, each access or visibility change (for
    example granting a role or permission, activating an app or menu entry), each browser session a consumer check needs with
    its browser tool. A step no approval covers is a pending approval named now. Keep source return, artifact
@@ -1702,10 +1704,10 @@ preparatory commit); a mismatch there is a send-back.
    operation guidance, State and data assessment).
 3. Record each step's delivery authority in `summary`. A plan authorizes and performs no external operation; a
    required target or authority gap is blocked.
-4. Write the rollback procedure in `summary` and KNOWLEDGE/environment.md ## Commands. Isolated run: write it for the
-   source return the packet states (return route and rollback recipes come from workspace.md), as plain `git`
-   commands with that route's SHAs and branch names, never this run's absolute paths, never for another route
-   (Workspace return guidance). Source return happens at release or handoff, not here. Use an authorized delivery
+4. Write this run's rollback in `summary`; keep the repeatable procedure in KNOWLEDGE/environment.md ## Commands.
+   Isolated run: use the source-return route stated in the packet (Workspace return guidance), as plain `git`
+   commands. Cite the durable plan/receipt in `evidence_refs`; keep this route's SHAs and branch names with that run,
+   never absolute run paths or another route. Source return happens at release or handoff, not here. Use an authorized delivery
    route from the execution checkout when available (Environment promotion guidance). If the return must precede
    the consumer checks, record the ordering conflict and keep the disposition incomplete; never claim an earlier
    check observed a future return-triggered effect.
@@ -1861,8 +1863,9 @@ preparatory commit); a mismatch there is a send-back.
    proves implementation, not intent. A stale candidate claim or post-review drift needs restoration of accurate
    reviewed bytes or add-work for a corrective item and review before handoff. Do not edit the candidate here.
    Return `spec_reconciliation` exactly as `{"current_sha256":"<printed 64-hex>","prior_sha256":"<printed 64-hex>","summary":"<nonblank>"}`; copy both packet hashes (absent prior: SHA-256 of empty bytes). ShipLoop promotes only this reviewed, digest-bound candidate.
-6. Reconcile current environment/architecture facts in KNOWLEDGE from accepted observations before a return here;
-   keep as-of history, checks not due and observed command conditions. Isolated run: handoff needs a current return
+6. Reconcile current environment/architecture facts in KNOWLEDGE from accepted evidence before a return here;
+   update displaced operational guidance in place. Keep accurate history, not-due checks, valid alternatives, unknowns
+   and observed command conditions; cite run-specific values in durable results/receipts. Isolated run: handoff needs a current return
    receipt. If release did not return the candidate, run the packet's
    plan-return, decide every undecided path with review-return, run its return command (Workspace return guidance);
    receipt path in `evidence_refs`.
