@@ -33,8 +33,12 @@ The parts, each read from records the harness already writes:
 * ``fidelity`` (a floor): the engine ended done, with no open unverified entry and no skipped evidence. An entry whose due
   stage was accepted later without restating the list is unknown, and the floor is ``unobserved`` (``scorecard/5``). Edits of script-owned
   files, refusals and retired glossary terms in ShipLoop's replies (``nomenclature``, S-16) are reported beside it; the
-  edit list is a heuristic to confirm (SPEC), so it decides nothing. ``improve_reviews`` is left out: on the 2.9.0 runs it
-  reads 0 children beside 10 Improve children, a reader that has not followed the Improve route's change.
+  edit list is a heuristic to confirm (SPEC), so it decides nothing. ``improve_reviews`` was left out here while its
+  reader was new: on the 2.9.0 runs it read 0 children beside 10 Improve children. That reader has since been corrected
+  (it now reads a child's ``reviews`` folder one level down as well as two), and over 113 saved runs it agrees with the
+  children's own ``passes.md`` records in 108; the 5 differences are all it COUNTING a bound child whose stage never
+  completed, which the passes files cannot show. Its figures are in their own efficiency fields (``improve_reviews``,
+  ``improve_editing_reviews``) and decide nothing.
 * ``efficiency`` (the target): minutes, cost, turns, ``tokens`` (processed: input, cache reads, cache writes and output)
   and ``output_tokens`` (``scorecard/6``, build step 8). Cost, turns and tokens are added over every reported session,
   stops and resumes included, and ``totals_lower_bound`` says when a launched session never reported, so they cover part
@@ -355,11 +359,17 @@ def efficiency(run_metrics: dict, unmeasured: dict) -> dict:
         unmeasured["efficiency.reorientation_minutes"] = (f"{len(starts) - len(measured)} of {len(starts)} fresh starts "
                                                           "have no measured re-orientation: a lower bound")
     tokens = run_metrics.get("tokens") if isinstance(run_metrics.get("tokens"), dict) else {}
+    # Improve's yield beside its cost: how many of its children changed anything. A review schedule (whether a stage's
+    # review earns its slot) cannot be judged from minutes alone; 19% of 808 saved children edited (2026-11-01 reading).
+    reviews = run_metrics.get("improve_reviews") if isinstance(run_metrics.get("improve_reviews"), dict) else {}
+    reviewed = reviews.get("children") if isinstance(reviews.get("children"), int) else None
+    editing = reviews.get("edited_children") if isinstance(reviews.get("edited_children"), int) else None
     block = {"minutes": minutes, "cost_usd": run_metrics.get("cost_usd"),
              "totals_lower_bound": metrics.lower_bound(run_metrics), "turns": run_metrics.get("turns"),
              "tokens": tokens.get("processed"), "output_tokens": tokens.get("output"),
              "refusals": len(run_metrics["shiploop_failures"]) if isinstance(run_metrics.get("shiploop_failures"), list) else None,
              "improve_children": run_metrics.get("improve_children"), "planning_minutes": planning,
+             "improve_reviews": reviewed, "improve_editing_reviews": editing,
              "reorientation_minutes": reorientation, "fresh_starts": len(starts) if isinstance(starts, list) else None,
              "calls_before_grounding": grounding_calls}
     unmeasured_run = run_metrics.get("unmeasured") or {}
@@ -369,6 +379,8 @@ def efficiency(run_metrics: dict, unmeasured: dict) -> dict:
                "tokens": unmeasured_run.get("tokens_processed") or "the metrics predate run tokens (build step 8): regrade",
                "output_tokens": unmeasured_run.get("tokens_output") or "the metrics predate run tokens (build step 8): regrade",
                "planning_minutes": "the planning window did not close",
+               "improve_reviews": reviews.get("unmeasured") or "the metrics predate Improve review records",
+               "improve_editing_reviews": reviews.get("unmeasured") or "the metrics predate Improve review records",
                "reorientation_minutes": (run_metrics.get("fresh_starts_unmeasured") or "no fresh-start record"),
                "fresh_starts": (run_metrics.get("fresh_starts_unmeasured") or "no fresh-start record"),
                "calls_before_grounding": "a measured fresh start records no calls before grounding"}

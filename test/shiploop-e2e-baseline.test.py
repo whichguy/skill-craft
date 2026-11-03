@@ -2336,6 +2336,33 @@ class ScorecardTest(unittest.TestCase):
         self.assertEqual((found["reorientation_minutes"], found["fresh_starts"], found["calls_before_grounding"]), (12.0, 2, 2))
         self.assertIsNone(efficiency(two[:1] + [{"measured": True, "seconds": 60.0}])["calls_before_grounding"], "one unmeasured: unknown, not 2")
 
+    def test_efficiency_reports_improve_yield_so_a_review_schedule_can_be_judged(self):
+        # Improve is a measured cost (metrics.improve_reviews) but its YIELD was not on the card: a reader could see how
+        # long reviews took and never how often they changed anything. Replayed over 808 Improve children in 99 saved
+        # runs (2026-11-01 reading), 19% edited, so the block now carries the reviewed count and the editing count.
+        cases = 0
+
+        def efficiency(reviews):
+            nonlocal cases
+            cases += 1
+            run_dir = self.run_folder(f"day/yield-{cases}", {"case": "hello", "pass": True}, tmp_writes=[])
+            (run_dir / "metrics.json").write_text(json.dumps({"tmp_writes": [], "improve_reviews": reviews}))
+            return scorecard.score(run_dir)["efficiency"]
+
+        found = efficiency({"children": 10, "passes": 12, "edited_children": 2, "max_passes": 2, "per_child": []})
+        self.assertEqual((found["improve_reviews"], found["improve_editing_reviews"]), (10, 2))
+        # An unmeasured reader is unknown, never a measured zero (metrics returns None beside its reason).
+        unknown = efficiency({"children": None, "passes": None, "edited_children": None, "max_passes": None,
+                              "per_child": [], "unmeasured": "no selected ShipLoop run"})
+        self.assertIsNone(unknown["improve_reviews"])
+        self.assertIsNone(unknown["improve_editing_reviews"])
+        # A metrics.json from before the reader existed makes both unknown with a reason, never a 0.
+        run_dir = self.run_folder("day/yield-absent", {"case": "hello", "pass": True}, tmp_writes=[])
+        (run_dir / "metrics.json").write_text(json.dumps({"tmp_writes": []}))
+        card = scorecard.score(run_dir)
+        self.assertIsNone(card["efficiency"]["improve_reviews"])
+        self.assertIn("predate Improve review records", card["unmeasured"]["efficiency.improve_reviews"])
+
     def test_a_host_build_that_changed_mid_run_voids_attribution_and_timing(self):
         # inner-loop, 2026-10-25: Grok 1.0.62 to 1.0.70 between two chess runs alone blocked the deploy.
         launches = [{"host": "grok", "host_build": "grok 1.0.62 (aaa)"}, {"host": "grok", "host_build": "grok 1.0.70 (bbb)"}]
