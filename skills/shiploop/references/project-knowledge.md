@@ -408,12 +408,34 @@ into binding conditions merely because an earlier agent wrote them down.
    Improve reviews requirement drift as part of its existing scoped campaign;
    no second review counter or extra campaign is introduced. Do not widen a
    step merely to audit every unrelated feature.
-4. **Document/carry-forward, product acceptance and handoff:** reconcile the
-   maintained record with accepted changes and actual evidence. Keep unmet
+4. **Knowledge writers and final checks:** each stage that maintains project
+   knowledge reconciles its authorized files with accepted changes and actual
+   evidence. Product acceptance and handoff check that reconciliation. Keep unmet
    requirements, proposals and verification limits explicit. Check links and
    confirm required intent survives without old run folders; preserve unrelated
-   content and reconcile concurrent edits. Summarize supersession rationale
-   next to the replacement rather than accumulating a second current spec.
+   content and reconcile concurrent edits. Inherited operational/factual
+   instructions are not history by default. For each current-looking variant,
+   state its applicability to the active plan, target or condition and its
+   known basis. When accepted evidence identifies the applicable procedure for
+   a target/condition, reconcile conflicting same-target guidance in place. An
+   unqualified conflicting instruction with no known basis for a distinct
+   target/condition is displaced for that target: make the applicable
+   procedure current and mark accurate displaced text historical/superseded
+   with its basis, rather than leaving two apparent current procedures. Keep
+   valid other-target/condition procedures current. An approved plan or verified source may establish
+   applicability without executing a command; it does not prove an operation
+   ran. Preserve accurate as-of facts verbatim where appropriate, deferred
+   intent, not-due checks and unknowns; missing evidence does not prove absence.
+   Keep run-specific values in durable result/receipt locators, not standing
+   procedure. A plan cannot authorize its own change to accepted R/AD intent:
+   only a current explicit user request, prior owner decision or standing
+   authorization can supply that authority, and an approved plan must trace it.
+   An explicit incoming user override needs no duplicate ID or reapproval.
+   Code/implementation evidence establishes facts, not permission to redefine
+   intent. Without one of those authority sources, retain accepted intent and
+   use the existing gap/corrective/review route. Record current decisions and
+   their basis inside active R/AD entries in their existing sections; do not
+   append a duplicate-ID current supplement after ## Superseded. Summarize supersession rationale next to the replacement rather than accumulating a second current spec.
 
 Resume an interrupted request through its saved run; start each new feature
 with its own prompt and run identity. The maintained contract persists across
