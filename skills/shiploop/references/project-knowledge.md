@@ -39,10 +39,16 @@ command and runtime, target or prerequisite that made a regression observable;
 a different default command need not exercise that condition. If Improve changes
 facts needed by successors, refresh the producer through its existing
 `--final-result` route; never edit accepted state or generated result records.
-At final handoff the reviewed candidate spec remains read-only; a candidate
-correction needs the existing corrective-work and review route. Environment and
-architecture may reconcile final facts before their existing terminal commit
-and any required follow-up return.
+Retain only conditions the observations establish; missing runtime, target or
+prerequisite facts remain unknown, never inferred or a reason to rewrite true
+as-of evidence. At final handoff reconcile the reviewed candidate by read-only
+assessment. A stale current claim needs the existing corrective-work and review
+route even when its digest has not drifted; never edit the candidate here.
+Reconcile environment and architecture in the work area before a handoff return.
+If the returned-project check finds a later fact or link repair, edit the work
+area's knowledge home. The terminal callback commits it and performs the guarded
+knowledge follow-up return before completion; never repair the source checkout
+directly.
 
 ## New work versus recovery
 

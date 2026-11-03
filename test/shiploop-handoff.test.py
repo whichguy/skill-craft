@@ -2882,15 +2882,25 @@ class LessonsReturnTests(_return_review.ReturnReviewCase):
         self.assertIn("<pre>" + html.escape(message) + "</pre>", report)
 
     def test_handoff_makes_no_retire_commit_and_leaves_an_old_feature_folder_untouched(self) -> None:
-        """Consumer contract 4c: the retire step is gone.  An earlier version's feature folder in the repository is history:
-        handoff neither removes nor rewrites it, and no commit after the return is ShipLoop's retire."""
+        """Consumer contract 4c: preserve history and return terminal knowledge before handoff completes."""
         old = {"docs/shiploop/features/old-run-aaaaaa/spec.md": "Adds: R-1.\n",
                "docs/shiploop/features/README.md": "# Features\n\nShipLoop writes this list from the folders beside it\n",
                "docs/shiploop/test-strategy.md": "# Test strategy\n", "docs/shiploop/README.md": "# Home\n"}
+        environment = "docs/shiploop/environment.md"
+        as_of_line = "As of: 2026-11-01 (fixture baseline).\n"
+        planned_environment = ("# Environment\n\n" + as_of_line
+                               + "Status: PLANNED (fixture-only; no API test execution).\n")
+        final_environment = (
+            "# Environment\n\n" + as_of_line
+            + "## Accepted facts (fixture-only)\n"
+            + "- Status: PASS (synthetic accepted fact; no API test execution).\n"
+            + "- Command label: `fixture-only: API smoke-check` (synthetic; not executed).\n"
+        )
         for relative, text in old.items():
             path = self.repo / relative
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(text, encoding="utf-8")
+        self.write(self.repo, environment, planned_environment)
         self.git("add", "-A")
         self.git("commit", "-qm", "an earlier ShipLoop version's home")
         root, worktree = self.start("no retire")
@@ -2901,10 +2911,35 @@ class LessonsReturnTests(_return_review.ReturnReviewCase):
         old[own] = "Adds: R-1.\n"
         run = self.at(root, "handoff")
         self.return_all(root)
-        self.write(worktree, "docs/shiploop/environment.md", "# Environment\n")   # a knowledge commit at the handoff
+        first_receipt = store.read_record(root / "return-receipt.md")
+        self.assertEqual(first_receipt["kind"], "fast-forward-merge")
+        self.assertEqual(_return_review.workspace.completed_receipt(root, self.repo), first_receipt)
+        self.assertEqual(first_receipt["expected_source"]["head"],
+                         self.git("rev-parse", "HEAD").stdout.strip())
+        self.assertEqual(first_receipt["expected_source"]["tree"],
+                         self.git("rev-parse", "HEAD^{tree}").stdout.strip())
+        for checkout in (self.repo, worktree):
+            self.assertEqual((checkout / environment).read_text(encoding="utf-8"), planned_environment)
+
+        # Terminal acceptance commits this synthetic knowledge update and returns it before marking the run done.
+        self.write(worktree, environment, final_environment)
         done = self.complete(run)
         self.assertEqual(store.read_record(run / "state.md")["status"], "done")
         self.assertNotIn("feature spec", done.stdout + done.stderr)
+        for checkout in (self.repo, worktree):
+            self.assertEqual((checkout / environment).read_text(encoding="utf-8"), final_environment)
+        final_receipt = store.read_record(root / "return-receipt.md")
+        self.assertEqual(_return_review.workspace.completed_receipt(root, self.repo), final_receipt)
+        self.assertEqual(final_receipt["kind"], "fast-forward-merge")
+        self.assertEqual(final_receipt["expected_source"]["head"],
+                         self.git("rev-parse", "HEAD").stdout.strip())
+        self.assertEqual(final_receipt["expected_source"]["tree"],
+                         self.git("rev-parse", "HEAD^{tree}").stdout.strip())
+        self.assertEqual(final_receipt["candidate_fingerprint"]["head"],
+                         self.git("rev-parse", "HEAD", cwd=worktree).stdout.strip())
+        self.assertEqual(final_receipt["previous_receipt"], first_receipt)
+        self.assertNotEqual(final_receipt["expected_source"]["tree"], first_receipt["expected_source"]["tree"])
+        self.assertEqual(store.read_record(run / spec_promotion.JOURNAL)["status"], "promoted")
         subjects = self.git("log", "--format=%s").stdout.splitlines()
         self.assertFalse([subject for subject in subjects if subject.startswith("docs(shiploop): retire ")], subjects)
         for relative, text in old.items():

@@ -44,6 +44,11 @@ class PreparationCliTests(fx.RunDriver):
         home = tempfile.TemporaryDirectory(prefix="shiploop-preparation-home-")
         self.addCleanup(home.cleanup)
         git_fixture.isolate_git_environment(self, home.name)
+        # The workspace capability guard must not inherit host system/global filter configuration.
+        isolated_git_config = mock.patch.dict(
+            os.environ, {"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}, clear=False)
+        isolated_git_config.start()
+        self.addCleanup(isolated_git_config.stop)
         super().setUp()
 
     def open_prepare(self, before_prelude=None, *, already_started: bool = False) -> str:
