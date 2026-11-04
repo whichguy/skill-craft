@@ -6318,3 +6318,22 @@ block at all (0 of 1,041 runs); the overlap record is in `result.json` beside it
 file, found 0 misses. Two earlier false alarms in this session came the same way: `fidelity.commands` (the key is
 `distinct_commands`) and `fidelity.validation` (tested at lines 719/813/926). Read the file that holds the field before
 concluding from its absence.
+
+**Bounding the damage (same day, 2026-11-03).** The 1.32x figure above applies to a run's whole *span*, not to every
+figure in it. Re-deriving the Improve numbers separately for isolated and contended runs, from the run folders' own
+`improve/*/passes.md` bind-to-accept intervals:
+
+| group | runs | Improve child self-duration (median) | Improve share of run span |
+| --- | --- | --- | --- |
+| isolated (no overlapping span) | 79 | 27 s | 30% |
+| contended (2+ overlapping spans) | 76 | 26 s | 32% |
+
+So the figures I quoted earlier -- "Improve child median 25 s", "Improve is 33% of a run's span" -- are **not**
+materially distorted by contention: the isolated medians are 27 s and 30%, within the spread of the contended ones. The
++32% contamination lands on wall-clock span (setup, host turn latency, machine load), which is the headline duration and
+not the per-child work.
+
+What this does not rescue: any comparison of two arms on **elapsed minutes or stage seconds** across a mixed contended
+and isolated corpus, and the per-stage decomposition I computed earlier (step-plan 60 s, document 60 s, and so on),
+which was pooled across both groups and therefore mixes a 1.32x-inflated span with clean work. A re-run of that
+decomposition should restrict to isolated runs (62% of the corpus) or use `environment.overlap` as a covariate.
