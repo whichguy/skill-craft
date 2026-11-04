@@ -6361,3 +6361,43 @@ the per-corpus range, not the pooled number, and a future comparison must hold c
 Improve children change nothing in every corpus measured (the best case is 85% editing on 26 children, and the corpus
 that carries most of the evidence sits at 18%), and the reader itself is unchanged. The two diagnostic fields
 `improve_reviews`/`improve_editing_reviews` remain the right way to expose it, because they are reported per run.
+
+## Narrative relay round 2: the corrected wording raises compliance to 83%, pre-registered and confirmed (2026-11-03) — status: firm for this run's verdicts and its four predictions; interim for the effect size (n = 1)
+
+**Change under test.** c1830113 replaced 32eafa7e's "leave the status line to the hook where it has one, else paste
+it" with "show the narrative as its first line says; leave the status line to the host hook" -- two cases stated
+separately instead of one instruction a model could read as permission to skip both. The prior round measured 62% (5 of
+8) and 0 status-line pastes.
+
+**Pre-registration**, written before the run: P1 emissions 6-9; P2 compliance at least 62%; P3 status-line pastes 0;
+P4 no producer packet left with neither block.
+
+**Run.** `run.py --case hello --host codex --model gpt-6.1-terra --effort high --source checkout`, output
+`~/e2e-runs/2026-11-03/narrative-round2`, against the published 2.32.6 package (shiploop 1.30.7). Exit 0 in 804.4 s,
+131 turns, every verdict PASS (invoked, plugin, process, shiploop done, committed HEAD c20cbbe2 with 7 files and 0
+uncommitted product paths, both case checks).
+
+**Results, all four predictions confirmed:**
+
+| # | Prediction | Measured | |
+| --- | --- | --- | --- |
+| P1 | emissions 6-9 | **6** | PASS |
+| P2 | compliance >= 62% | **5 of 6 = 83%** (verbatim 5) | PASS |
+| P3 | status-line pastes 0 | **0** | PASS |
+| P4 | no producer packet with neither | **0 of 23** | PASS |
+
+**The P4 measure was wrong, not the behaviour.** The first pass counted 8 packets with neither block and read FAIL;
+all 8 were Improve packets, which carry neither by rule (the packet before them showed the step, the next shows the
+result). Re-measured over the 23 producer packets: 0 with neither. The prediction's wording should have excluded
+Improve from the start.
+
+**What this establishes and what it does not.**
+- The two-case wording performs better than the one-clause version on this case and host: 83% against 62%, with
+  emissions down from 8 to 6. That is the direction the correction intended.
+- n = 1 per wording, one case, one host. 5 of 6 against 5 of 8 is two more displays on six obligations; a Fisher
+  comparison is not meaningful at this size, and the honest reading is "no regression, and the failure mode the
+  previous round found is gone".
+- The strongest evidence here is P3 and P4 together: the specific defect the prior round exposed -- a step left with
+  neither display, because the card mentioned only the hook -- did not recur.
+- Elapsed time fell (804 s against 977 s) but stage seconds carry the 1.32x contention risk recorded above and one
+  run establishes nothing. turns fell 161 -> 131. Neither is claimed as an improvement.
