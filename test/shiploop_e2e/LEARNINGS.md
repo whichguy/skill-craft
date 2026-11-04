@@ -6833,3 +6833,33 @@ weakest point.
 **Method, and it is the same one that keeps recurring.** Seeds are apparatus, not behaviour, and any rate over "all runs"
 mixes them in. The corpus summariser already excludes copied repositories but not seeds; a `--non-seed` view would have
 prevented this, and the figures above are the argument for adding one.
+
+## The end-of-run rate belongs to COMPLETED runs: 66%, and "seed" was never the right filter (2026-11-04) — status: firm; two earlier figures withdrawn
+
+Two entries above try to correct an end-of-run relay rate and both pick the wrong population. The right split is not
+seed-versus-real, it is **completed versus truncated**.
+
+| population | last emission relayed |
+| --- | --- |
+| every run with an emission | 143/249 = **57%** |
+| **completed runs only** (`status: done`) | 82/124 = **66%** |
+
+**Why "seed" was the wrong filter.** My path match tested `"seed" in str(run)`, which selects
+`.../<case>/slice/.shiploop-runs/seed/run` — the run directory that a *slice experiment* creates, 415 of them in this
+corpus. Those are not synthetic stage recordings; they are real runs the slice apparatus cut short, and every one I opened
+reported `status: active`. Excluding them changed the rate because they are **truncated**, not because they are fake. The
+`result.json` `seeded` flag, which is the durable marker, matched exactly 1 run.
+
+**What the sequence of readings was, and why each moved.** 47% (all runs) -> 62% ("non-seed") -> 66% (completed). Each
+step was a better population, and the movement is entirely explained by what got excluded: truncated runs stop before
+their natural end, so their last emission is an arbitrary mid-run packet that is relayed less often than a real
+completion. A completion block is relayed about two times in three.
+
+**The rule this establishes.** A rate about how well a run *ends* can only be computed over runs that ended. Filtering by
+how a run was *made* is a proxy for that at best, and this corpus's path names make the proxy actively misleading: `seed`
+appears in a run-directory name for an unrelated apparatus.
+
+**The tool now carries the flag but on the wrong axis.** `corpus.py --seeds exclude` was added this turn on the belief
+that synthetic recordings were the problem; the durable flag matches 1 run and changes nothing. It is left in place because
+it is correct about what it names, but the useful view is `--status done`, which this entry's figures argue for and which is
+not yet built.
