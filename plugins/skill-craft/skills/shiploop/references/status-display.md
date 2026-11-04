@@ -240,7 +240,7 @@ open, a search is being typed or live updates are off.
    status line, the block's `Where` and `Next` rows on one line:
 
    ```text
-   Where: Work items > W2 "Add --version flag" (2 of 4) > Build > test · Next: test: write the specified tests and make every recorded command pass
+   Where: Work items > W2 "Add --version flag" (2 of 4) > Build > test · Next: test: write the specified tests and make every recorded command pass · Goal: Add a --version flag to cli.py
    ```
 
    An Improve packet carries neither: the packet before it showed the step under
