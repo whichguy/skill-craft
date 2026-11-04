@@ -6594,3 +6594,37 @@ and were unaffected -- but any round run from the marketplace would have measure
 **What to do differently.** Treat "published" as an intermediate state. After `release-push.py` reports pushed, refresh
 each host and read back the installed version and one distinctive string from the changed file; record any host that needs
 a person (Cursor) as unverified rather than assuming it followed.
+
+## The published package runs: marketplace round on 2.32.7 (2026-11-04) — status: firm for this run; the four earlier rounds of 2026-11-03 remain checkout-only
+
+The gap this closes. All four live rounds of 2026-11-03 used `--source checkout`, so they exercised the working tree and
+none measured the artefact a user installs. Two facts had been established separately and never together: the package
+files match source (`diff`), and the refreshed hosts carry that copy (read-back). Neither proves the installed package
+runs.
+
+**Pre-registered** before launch: M1 every verdict PASS; M2 the run records marketplace source and 2.32.7; M3 narrative
+emitted 6-9, relayed at least 4, zero status-line pastes; M4 no producer packet with neither block.
+
+**Run.** `run.py --case hello --host codex --model gpt-6.1-terra --effort high --source marketplace`, output
+`~/e2e-runs/2026-11-04/marketplace-hello`, against the marketplace-cached 2.32.7 (`--source checkout` bypassed entirely).
+
+| # | Prediction | Measured | |
+| --- | --- | --- | --- |
+| M1 | every verdict PASS | exit 0 in 874.5 s; invoked, plugin, process, shiploop done, committed (HEAD 6f336871, 7 files, 0 uncommitted product paths), both case checks | PASS |
+| M2 | marketplace source, 2.32.7 | `versions.source` marketplace, `versions.plugin_version` 2.32.7, `versions.shiploop_version` 1.30.8 | PASS |
+| M3 | emitted 6-9, relayed >= 4, pastes 0 | emitted 6, relayed 6, composed 9, pastes 0 | PASS |
+| M4 | no producer packet with neither | 0 | PASS |
+
+**M2's measure was wrong first, then corrected.** I read `result.json`'s top-level `source` and `plugin_version` and got
+`None`, which reads as a failure. Both live under `versions` (`versions.source`, `versions.plugin_version`); the top level
+has a `plugin` block with `registry_version` and `loaded` instead. Same class of error as the earlier `fidelity.commands`
+and `metrics.environment` misreads: look at the file's shape before concluding from a missing key.
+
+**What this establishes.** The published 2.32.7 package — the one three hosts now hold — runs a complete ShipLoop end to
+end and produces the same progress behaviour the checkout rounds measured: 6 emissions, all 6 relayed, no composed
+substitute for the block, no status-line paste. The narrative work of this session is verified on the artefact users
+install, not only on the tree it came from.
+
+**What it does not establish.** One case, one host, n = 1. It says the package runs and behaves as measured, not that 92%
+compliance generalises. The four 2026-11-03 rounds remain checkout-only evidence; a reader comparing them with this one is
+comparing a tree against a release, which is why `versions.source` is recorded in each row.
