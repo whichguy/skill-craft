@@ -4452,7 +4452,13 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         platform_before = earlier_platform.get("before")
     # Active time, not wall time: a Mac that slept 10 h spent run 5's 5 h cap with 3.8 h of work (2026-10-25);
     # time.monotonic stops during sleep (mach_absolute_time, CLOCK_MONOTONIC), time.time does not.
-    deadline = time.monotonic() + (args.timeout or float("inf"))
+    # The case's own `timeout` (seconds) is the floor for a case whose work outlives the usual cap: an explicit
+    # --timeout still wins, so a caller can always raise or lower it. chess-salesforce ran to the 4-hour cap with
+    # ShipLoop still active at test-spec of work item 4 of 4 (2026-10-18), and every one of its 124 saved runs was
+    # killed rather than finished; the case declares 8 hours so a full game build can complete without a hand-typed
+    # flag. A platform case's checks also cost time the timeout does not cover, which is why the cap is generous.
+    cap = args.timeout or (catalog().get(args.case, {}) if args.case else {}).get("timeout") or float("inf")
+    deadline = time.monotonic() + cap
     note_watcher = (owner_note.Watcher(out, the_cli, owner_note_at, lambda: live_run_dir(out)).start()
                     if owner_note_at and not regrade else None)
     start_watch = start_route.StartWatcher(out, stop_file).start() if args.stop_after_start and not regrade else None
@@ -4460,7 +4466,7 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
         # ShipLoop is done or blocked: no host is started, and the verdicts are computed from what is on disk.
         process = regraded_process(earlier_result.get("process"))
     else:
-        process = session(cli, work, out, env, args.timeout or float("inf"), watch=not args.quiet,
+        process = session(cli, work, out, env, cap, watch=not args.quiet,
                          fresh=follow_on is None and seeded is None and based is None,
                          first=resumed is None, translate=host.translator(),
                          stop_file=stop_file, kind="first" if resumed is None else "fresh",

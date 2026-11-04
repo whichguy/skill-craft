@@ -28,6 +28,7 @@ import socket
 import stat
 import subprocess
 import sys
+import types
 import tempfile
 import threading
 import time
@@ -956,16 +957,49 @@ class ExpectationTest(HarnessCase):
     def test_run_deadlines_count_active_time_and_strptime_is_loaded_at_start(self):
         """Run 5 (2026-10-24/25): a 10 h sleep spent the 5 h wall-clock cap after 3.8 h of work, and a mid-run
         interpreter swap removed the lazily imported _strptime. Deadlines read time.monotonic, which stops during
-        sleep, in run.py and slice.py alike; with no --timeout (the default since 2026-10-24) the deadline is infinite.
-        _strptime is imported at start."""
+        sleep, in run.py and slice.py alike. With no --timeout and no case default the deadline is infinite.
+        _strptime is imported at start.
+
+        A case may now declare its own `timeout` in seconds (2026-11-04): every one of chess-salesforce's 124 saved
+        runs was killed at a hand-typed 4-hour cap rather than finishing, so a platform case whose work outlives the
+        usual cap says so once in cases.json. An explicit --timeout still wins, which is what keeps a caller in
+        control; only the fallback changed.
+        """
         source = (ROOT / "test" / "shiploop_e2e" / "run.py").read_text(encoding="utf-8")
         for name in ("run.py", "slice.py"):
             text = (ROOT / "test" / "shiploop_e2e" / name).read_text(encoding="utf-8")
             wall = [line.strip() for line in text.splitlines() if "deadline" in line and "time.time()" in line]
             self.assertEqual(wall, [], name)
-            self.assertIn('deadline = time.monotonic() + (args.timeout or float("inf"))', text, name)
+        # The monotonic clock is the point; the cap's source is the case, then the flag, then unbounded.
+        self.assertIn("deadline = time.monotonic() + cap", source)
+        self.assertIn('cap = args.timeout or (catalog().get(args.case, {}) if args.case else {}).get("timeout") '
+                      'or float("inf")', source)
+        self.assertIn('deadline = time.monotonic() + (args.timeout or float("inf"))', 
+                      (ROOT / "test" / "shiploop_e2e" / "slice.py").read_text(encoding="utf-8"))
         self.assertRegex(source, r"(?m)^import _strptime\b")
         self.assertIn("_strptime", sys.modules)  # importing run loaded it
+
+    def test_a_platform_case_declares_its_own_timeout_and_the_flag_still_wins(self):
+        """chess-salesforce ran to a hand-typed 4-hour cap with ShipLoop still active at test-spec, and all 124 of its
+        saved runs were killed rather than finished (2026-10-18 and after). A case whose work outlives the usual cap
+        says so once in cases.json; a caller can still override it.
+        """
+        cases = run.catalog()
+        for case in ("chess-salesforce", "battleship-salesforce", "battleship-salesforce-ui",
+                     "gym-membership-salesforce"):
+            with self.subTest(case=case):
+                self.assertEqual(cases[case].get("timeout"), 8 * 3600,
+                                 "a hosted-platform case declares 8 hours")
+        self.assertIsNone(cases["hello"].get("timeout"), "an ordinary case stays uncapped")
+
+        # Resolution: the flag wins, then the case, then unbounded.
+        def cap(case, flag):
+            args = types.SimpleNamespace(timeout=flag, case=case)
+            return args.timeout or (run.catalog().get(args.case, {}) if args.case else {}).get("timeout") \
+                or float("inf")
+        self.assertEqual(cap("chess-salesforce", None), 8 * 3600)
+        self.assertEqual(cap("chess-salesforce", 600), 600, "an explicit --timeout wins")
+        self.assertEqual(cap("hello", None), float("inf"))
 
     def test_budget_is_should_level_and_read_from_the_run_timeline(self):
         run_dir = self.tmp / "run"
