@@ -6991,3 +6991,29 @@ without the isolated rerun.
 
 **What is unchanged.** No code was altered for this entry. `corpus.py` was changed four times today; neither failing suite
 imports it (`grep corpus shiploop-e2e-test-adequacy.test.py` is empty), and both pass in isolation.
+
+## I5's M1 baseline is unrecoverable: no saved run was built by 1.21.0 (2026-11-04) — status: firm for the version census; the decision needs a fresh baseline or a fresh measurement
+
+The open decision on `--planning-review none` is gated on M1 to M4 in `docs/shiploop-planning-review-plan-2026-10-05.md`.
+M1 compares a new probe against a **1.21.0** baseline: authoring minutes per stage (spec 4.0, test-strategy 5.5, plan 6.2,
+step-plan 2.7, test-spec 1.5; 26.8 in all), document bytes (spec 19,151, test-strategy 20,880, test-spec 11,162), and a
+72.7-minute window.
+
+**No saved run records that build.** Of 3,720 runs carrying `shiploop_version` in `result.json`, the census has no 1.21.x
+at all: the largest populations are 1.9.0 (606), 0.58.0 (516), 0.54.0 (516), 0.56.0 and 0.57.0 (387 each), 0.51.0 (258),
+1.23.3 (210). So M1's control cannot be recomputed from the corpus, and a new run would measure a build **eight releases
+newer** than the baseline it is compared against.
+
+**Two ways to read that, and the difference matters.** (a) M1 is unanswerable as written and the decision needs its
+comparison restated against a build that exists (1.23.3, or the current one, measured twice). (b) The 1.21.0 numbers
+survive only as constants in the plan document, so a probe today can be compared to them only on the quantities that are
+counts of the documents themselves -- bytes, and stage minutes from timestamps -- not on anything the engine has changed
+since.
+
+**What I am not doing.** Running M1 anyway and reporting a comparison to 1.21.0 would be the error this file has corrected
+six times: a figure presented against a population it did not come from. The honest statement is that the gate's control
+has expired, and restating it is a decision about what the measurement is for -- the owner's, not mine to redefine.
+
+**Method note.** This census took three attempts: `metrics.json` has no version field (0 of 1,041), a top-level
+`shiploop_version` key finds nothing (0), and `result.json`'s `versions.shiploop_version` finds 3,720. The first two
+readings would have licensed "no run records a version", which is false.
