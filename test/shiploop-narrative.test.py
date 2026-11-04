@@ -134,6 +134,23 @@ class NarrativeTests(unittest.TestCase):
         at_prepare = self.driver.produce(self.driver.advance_to(self.driver.state(), "prepare"))
         self.assertTrue(navigator.narrative_facts(at_prepare)["milestone"])
 
+    def test_the_status_display_reference_names_exactly_the_milestone_stages_the_code_uses(self) -> None:
+        """The reference described the OLD rule ("an accepted preparation or release stage, the end of a work-item stage
+        phase") for a day after the code narrowed it, because nothing compared the two: I found it only by grepping for
+        the phrase by hand. This pins them together, so a change to `_MILESTONE_STAGES` fails here until the reference
+        says the same thing in the same words.
+        """
+        reference = (Path(__file__).resolve().parents[1] / "skills" / "shiploop" / "references"
+                     / "status-display.md").read_text(encoding="utf-8")
+        sentence = " ".join(reference.split())
+        for stage in navigator._MILESTONE_STAGES:
+            self.assertIn(f"`{stage}`", sentence,
+                          f"status-display.md must name the milestone stage {stage} the code uses")
+        # The old rule's wording must be gone: it described 20 of 23 stages and the code fires on five plus the start.
+        for stale in ("the end of a work-item stage phase", "an accepted preparation or release stage"):
+            self.assertNotIn(stale, sentence,
+                             "status-display.md still describes the pre-2026-11-03 milestone rule")
+
     def test_an_improve_stage_is_never_a_milestone_and_its_packet_carries_no_progress(self) -> None:
         """The milestone test reads the last accepted step, which an Improve child does not change: the reviewed result
         is accepted only when the child completes.  So every Improve packet repeated the narrative of the producer
