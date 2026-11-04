@@ -6558,3 +6558,39 @@ would lose pace if the block went.
 a run whose model never composed text is not counted at all. `Achieved` at 97% is a lower bound on redundancy -- it counts
 a run that mentioned one completed thing, however briefly. The corpus is Codex and Claude runs of 2026-10-31 to 11-03,
 and it carries the contention and build-mix limits recorded above.
+
+## Publishing is not delivery: four releases landed on no host until they were refreshed (2026-11-04) — status: firm for the host states read here
+
+This session shipped 2.32.4 through 2.32.7 and I reported them as published. They were, and they reached no host.
+
+**What the hosts actually held before the refresh**, read from their caches:
+
+| Host | Installed | Carried the session's changes |
+| --- | --- | --- |
+| Claude | 2.32.2 | no |
+| Codex | 2.32.2 | no |
+| Cursor | 2.32.1 (cache keyed by commit `f5fb7d64`) | no |
+| Grok | local install under `~/.grok/marketplace-cache/<hash>/` | no |
+
+**The refresh, and what each verb is.** `docs/skill-release-checklist.md` step 5 says users refresh with a host
+command, and that anything not run stays unverified. Following it:
+
+- **Codex**: `codex plugin marketplace upgrade whichguy` -> 2.32.7, with both changes present in the installed tree.
+- **Claude**: `claude plugin marketplace update whichguy` refreshed the *marketplace* only; the plugin stayed at 2.32.2.
+  `claude plugin update skill-craft@whichguy` then moved it 2.32.2 -> 2.32.7. Two verbs, and the first alone is not
+  enough.
+- **Grok**: `grok plugin marketplace upgrade` does not exist; the verb is `update`. It synced the marketplace, and the
+  plugin is a **local** install pointing at `~/.grok/marketplace-cache/<hash>/plugins/skill-craft`, so the sync updated
+  it in place. It carries the changes; its cache path is not `~/.grok/plugins/cache/`, which is why a check of that path
+  reported it absent.
+- **Cursor**: no CLI refresh. `docs/distribution.md` puts it in the desktop UI (**Customize -> Browse Marketplace**), so it
+  remains at 2.32.1 here and is recorded as unverified rather than refreshed.
+
+**Why this matters for every figure in this file.** A run measured against a *stale host cache* measures an older build
+than the one the session shipped. The live rounds in this file all ran `--source checkout`, so they used the working tree
+and were unaffected -- but any round run from the marketplace would have measured the previous release without saying so.
+`metrics.json` records `plugin_version` and `source` for exactly this reason; the guard is to read them.
+
+**What to do differently.** Treat "published" as an intermediate state. After `release-push.py` reports pushed, refresh
+each host and read back the installed version and one distinctive string from the changed file; record any host that needs
+a person (Cursor) as unverified rather than assuming it followed.
