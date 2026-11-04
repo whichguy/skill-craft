@@ -124,7 +124,11 @@ class LedgerHoldsTests(unittest.TestCase):
             condition = row.get("when", {}).get("file_has")
             applies[row["id"]] = sum(1 for p in self.packets if p["kind"] in row["kinds"] and (not condition or condition in p["file"]))
         self.assertTrue(all(count > 0 for count in applies.values()), applies)
-        self.assertGreaterEqual(applies["narrative"], 40)
+        # Decision 2026-11-03: the narrative is shown only at the run-level boundaries (prepare, a work item's
+        # carry-forward, product-acceptance, release, handoff, and the start of a run), because asking at 20 of 23
+        # stages produced 61% compliance over 2,111 emissions while the narrowed set produced 11 of 12 over two live
+        # rounds. The floor falls with it: this fixture renders 12 narrative packets, not the 40 the old rule gave.
+        self.assertGreaterEqual(applies["narrative"], 8)
         # Decision 20 (owner 2026-10-18): only the test stage still prints the argument ("Exit when ALL of these
         # hold"), so "until-loop" now applies to far fewer packets; "until-loop-no-argument" covers every other
         # looped stage, which used to be "until-loop"'s whole count.

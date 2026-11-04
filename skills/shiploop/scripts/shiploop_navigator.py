@@ -5756,6 +5756,9 @@ def status_line(state: Mapping[str, Any]) -> str:
     (2026-11-03: `discovery` lost the request's stated aim when the narrative was narrowed, caught by a contract test).
     The field is ``Goal:``, not ``Run:``: the status block already has a ``Run:`` line meaning preparation/work-item/
     release progress, and a second meaning for the same label would mislead a reader comparing the two.
+    It rides on every non-milestone packet, so it grew each journalled printed head by ``' · Goal: '`` plus the goal's
+    length; those stages' entries in ``head_table.json`` were raised by that amount with the reason recorded there
+    (2026-11-03), rather than capping the goal short enough to fit the old numbers.
     """
     label, text = _status_next(state)
     goal = _status_text(_title_from_prompt(state["prompt"]), 90)
