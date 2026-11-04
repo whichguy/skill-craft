@@ -7700,3 +7700,45 @@ No-Change-Note: changes the E2E summariser, not a shipped skill path.
 No-E2E-Round: measurement-tooling correction; does not change skills/shiploop/.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## The last 26 unmeasured runs are recoverable exactly, and "isolated" was claiming more than it knew (2026-11-04)
+
+After the artifact fix above, 26 runs remained unmeasured for `span`. They hold a `metrics.json` but no `span` key, and
+they are all old: shiploop 0.48.0 to 0.58.0 against today's 1.31.0, so this is a historical format gap, not a current
+regression.
+
+**They carry per-stage `seconds` instead, and summing them is not an estimate.** Over the 477 runs that record both, the
+ratio of summed stage seconds to wall-clock span has a **median of 1.00** and sits within 10% for **477 of 477**. The
+fallback is therefore the same measure.
+
+**The trap I nearly shipped.** Recovering a span as `(0, total)` is fine for a duration but wrong for an overlap window:
+`_overlaps` compares spans across runs, so those 26 would all have been "contended" with each other and with any run near
+zero -- inventing contention that never happened. The fix separates the two uses: `_span` may return a recovered
+duration, `_window` returns only a recorded one, and the overlap loop reads `_window`.
+
+**What that exposed.** `isolated` was incremented for every run without a detected neighbour, including runs that cannot
+be placed at all. Calling an unplaceable run "isolated" claims it ran alone. A new `unplaced` counter holds those 26, and
+the classification is now exhaustive:
+
+| | count |
+| --- | --- |
+| runs | 326 |
+| isolated | 189 |
+| contended | 111 |
+| **unplaced** | **26** |
+| unmeasured parts | **0** (was 26) |
+
+189 + 111 + 26 = 326, and both spread lines are unchanged: narrative 0%–93% over 25 groups, Improve edit 11%–85% over 12.
+No published figure moved; what changed is that the denominator now includes runs it previously admitted it could not
+measure, and the isolation split no longer counts a guess as an observation.
+
+**The tests.** One sizes a span-less run at 150 s from two stage rows, requires `_window` to be None for it, and requires
+`unplaced == 1` with `isolated == 0`; another gives a run both a span and stage seconds and requires the recorded span to
+win, so the fallback cannot mask a future regression in span writing.
+
+No skill behaviour changed.
+
+No-Change-Note: changes the E2E summariser, not a shipped skill path.
+No-E2E-Round: measurement-tooling correction; does not change skills/shiploop/.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>

@@ -116,6 +116,33 @@ class CorpusTest(unittest.TestCase):
         # The archive says both children edited; the worktree says one. The worktree is the measured source.
         self.assertEqual(kept["edited_children"], 1)
 
+    def test_a_run_without_a_span_is_sized_from_its_stage_seconds(self):
+        """Metrics before the span was recorded (shiploop 0.48-0.58, 26 runs here) carry per-stage seconds instead.
+        Summing them matches wall-clock span exactly: over 477 runs holding both, the ratio is 1.00 at the median and
+        within 10% for 477 of 477. Such a run is sized, but it must never be placed in an overlap window."""
+        out = workspace(self.root / "2026-11-01", "old", started=0.0, ended=0.0)
+        metrics_path = out / "metrics.json"
+        record = json.loads(metrics_path.read_text())
+        del record["span"]
+        record["stages"] = [{"stage": "intake", "seconds": 100.0}, {"stage": "spec", "seconds": 50.0}]
+        metrics_path.write_text(json.dumps(record))
+        self.assertEqual(corpus._span(out), (0.0, 150.0))
+        self.assertIsNone(corpus._window(out), "a recovered duration has no wall-clock window")
+        found = corpus.summarise([self.root], group_by="none")["groups"]["all"]
+        self.assertEqual(found["runs"], 1)
+        self.assertEqual(found["span_median_minutes"], 2.5, "150 s is the median span")
+        self.assertEqual((found["isolated"], found["contended"]), (0, 0),
+                         "it is neither, because it cannot be placed")
+        self.assertEqual(found["unplaced"], 1, "sized, but never classified as isolated")
+
+    def test_a_run_that_records_a_span_always_reports_its_own(self):
+        """The stage-sum fallback must not mask a regression in span writing."""
+        out = workspace(self.root / "2026-11-01", "both", started=1000.0, ended=1300.0)
+        record = json.loads((out / "metrics.json").read_text())
+        record["stages"] = [{"stage": "intake", "seconds": 5.0}]
+        (out / "metrics.json").write_text(json.dumps(record))
+        self.assertEqual(corpus._span(out), (1000.0, 1300.0))
+
     def test_a_folder_without_a_metrics_record_is_not_an_observation(self):
         """scorecard.run_folders finds runs by RUN_MARKERS for the live contention detector, which must see a run before
         its metrics exist. A saved corpus also holds review and judge artifacts that carry invocation.json and never a

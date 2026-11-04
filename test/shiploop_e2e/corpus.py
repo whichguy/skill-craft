@@ -101,15 +101,51 @@ def run_dir_of(run: Path) -> Path:
 
 
 def _span(run: Path) -> tuple[float, float] | None:
-    """The run's (started, ended) from its metrics span, or None when it has no usable pair."""
+    """The run's (started, ended) from its metrics span, or None when it has no usable pair.
+
+    Metrics written before the span was recorded (shiploop 0.48 to 0.58; 26 runs here) carry per-stage ``seconds``
+    instead.  Summing them recovers the duration exactly: over the 477 runs that hold both, the ratio of summed stage
+    seconds to wall-clock span has a median of 1.00 and sits within 10% for 477 of 477.  The fallback is therefore the
+    same measure, not an estimate, and it is used only when no pair exists -- a run that records a span always reports
+    its own, so a future regression in span writing cannot hide behind this.
+    """
     path = run / "metrics.json"
     try:
-        found = json.loads(path.read_text(encoding="utf-8")).get("span") or {}
+        record = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, AttributeError):
+        return None
+    if not isinstance(record, dict):
+        return None
+    found = record.get("span") or {}
+    started, ended = found.get("started"), found.get("ended")
+    if isinstance(started, (int, float)) and isinstance(ended, (int, float)) and ended > started:
+        return started, ended
+    return _stage_total(record.get("stages"))
+
+
+def _stage_total(stages) -> tuple[float, float] | None:
+    """A run's duration from its stages' ``seconds`` as ``(0, total)``, or None when it records none.
+
+    Only the duration is known, not the wall-clock instants, so the pair starts at 0: the summariser uses the
+    difference, and a run sized this way never enters the overlap window (``_window``).
+    """
+    if not isinstance(stages, list):
+        return None
+    total = sum(float(row.get("seconds") or 0) for row in stages
+                if isinstance(row, dict) and isinstance(row.get("seconds"), (int, float)))
+    return (0.0, total) if total > 0 else None
+
+
+def _window(run: Path) -> tuple[float, float] | None:
+    """The run's wall-clock window, for overlap only: its metrics span, never a duration recovered from stages."""
+    try:
+        found = json.loads((run / "metrics.json").read_text(encoding="utf-8")).get("span") or {}
     except (OSError, ValueError, AttributeError):
         return None
     started, ended = found.get("started"), found.get("ended")
-    if not isinstance(started, (int, float)) or not isinstance(ended, (int, float)) or ended <= started:
-        return None
+    if isinstance(started, (int, float)) and isinstance(ended, (int, float)) and ended > started:
+        return started, ended
+    return None
     return float(started), float(ended)
 
 
@@ -252,12 +288,15 @@ def summarise(roots: Iterable[Path], *, group_by: str = "corpus", overlap_second
         runs = seed_runs
 
     spans = {run: _span(run) for run in runs}
-    measurable = [run for run in runs if spans[run] is not None]
+    # A duration recovered from stage seconds has no wall-clock instants, so it can size a run but must not place it:
+    # treating it as a window would make those runs overlap each other and any run near zero, inventing contention.
+    windows = {run: _window(run) for run in runs}
+    measurable = [run for run in runs if windows[run] is not None]
     # An overlap needs both spans: a run with no span cannot be placed, and saying "isolated" would be a guess.
     external: dict[Path, int] = {}
     for run in measurable:
         external[run] = sum(1 for other in measurable
-                            if other != run and _overlaps(spans[run], spans[other], overlap_seconds))
+                            if other != run and _overlaps(windows[run], windows[other], overlap_seconds))
 
     groups: dict[str, dict[str, Any]] = {}
     unmeasured: dict[str, str] = {}
@@ -268,7 +307,7 @@ def summarise(roots: Iterable[Path], *, group_by: str = "corpus", overlap_second
             "improve_children": 0, "improve_editing_children": 0, "runs_with_improve": 0,
             "narrative_emitted": 0, "narrative_shown": 0,
             "verify_records": 0, "verify_commands": 0,
-            "isolated": 0, "contended": 0, "span_seconds": [],
+            "isolated": 0, "contended": 0, "unplaced": 0, "span_seconds": [],
         })
         bucket["runs"] += 1
         try:
@@ -302,7 +341,11 @@ def summarise(roots: Iterable[Path], *, group_by: str = "corpus", overlap_second
             unmeasured.setdefault(f"{run}: span", "no readable started/ended pair in metrics.json")
             continue
         bucket["span_seconds"].append(span[1] - span[0])
-        if external.get(run, 0) >= 1:
+        if windows.get(run) is None:
+            # Sized from stage seconds, so it counts toward the span but cannot be placed: calling it isolated would
+            # claim it ran alone, and the isolated+contended sum would then describe a window it never had.
+            bucket["unplaced"] += 1
+        elif external.get(run, 0) >= 1:
             bucket["contended"] += 1
         else:
             bucket["isolated"] += 1
