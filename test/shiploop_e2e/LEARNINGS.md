@@ -6289,3 +6289,32 @@ a `commands` array (what was requested) and once in a `runs` array (what execute
 evidence of two genuinely different measurement intentions. No step-proof mapping gap was demonstrated: `step-proof`
 records are `*-verify*.md` files like the rest and are counted on both paths; the unmapped-step-proof concern in the same
 entries is about the *fidelity* summary's gate list, which is a separate reader and was not part of these counts.
+
+## D-EXTERNAL-CONTENTION: the detector works; contended runs are 1.32x longer (2026-11-03) — status: firm for the figures; no run executed
+
+The finding asked whether timing qualification has a blind spot. Measured on `result.json` (where the overlap record
+actually lives) over 286 runs that carry both records:
+
+- **The overlap detector misses nothing in this corpus.** All 108 externally contended runs recorded their overlap; 0
+  were contended without a record. The 2026-10-16 audit's "empty scoped records coexist with external run overlap" does
+  not reproduce here. Its own note that "runs outside this root are unseen" is a real limit of the design
+  (`environment.overlap` reads siblings under `runs_root`), but in this corpus it has no instances: of 844 overlaps that
+  a first pass appeared to miss, 822 were under the same root and were in fact recorded once the right file was read.
+- **Contention does cost time.** Isolated runs (no overlapping span at all): n=178, median 10.0 min. Contended runs (two
+  or more overlapping spans): n=76, median 13.2 min, a ratio of **1.32x**. Case-controlled, the ratio is 1.48x for
+  csv-report (28 vs 17), 1.48x for hello (15 vs 27) and 1.52x for hello-hook-continuation (4 vs 29); battleship goes the
+  other way at 0.30x on 8 isolated against 5 contended, which is too few to read and is a different question.
+- **What follows for every figure in this file.** Any duration, stage-seconds or Improve-child figure recorded from a
+  contended run carries a median +32% (up to +52% by case). The figures most exposed are the ones I have quoted most:
+  "Improve child median 25 s", "Improve is 33% of a run's span", the per-stage decomposition, and the no-edit vs edited
+  child split. They were computed without separating contended from isolated runs.
+- **What does NOT follow.** No product verdict is affected: contention changes elapsed time, not checks, `passed` or
+  `committed`. And no engine change is warranted — `environment.overlap` already records the condition, so this is a
+  measurement discipline, not a defect.
+
+**Method correction, recorded because it recurred three times in one session.** `metrics.json` has no `environment`
+block at all (0 of 1,041 runs); the overlap record is in `result.json` beside it. Reading the wrong file produced
+"844 runs recorded no overlap (81%)" and then "822 same-root misses", both false. The third reader, keyed on the right
+file, found 0 misses. Two earlier false alarms in this session came the same way: `fidelity.commands` (the key is
+`distinct_commands`) and `fidelity.validation` (tested at lines 719/813/926). Read the file that holds the field before
+concluding from its absence.
