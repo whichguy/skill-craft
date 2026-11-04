@@ -7196,3 +7196,30 @@ hosted platform with deploy and test ordering -- are the ones measured by `check
 cases spanning a one-line print, a parsing CLI and a game would be enough for the owner to decide the default on; the
 remaining question would be whether any case ever needs a planning review, which the three-cell sample cannot answer
 either way.
+
+## The saved corpus cannot answer the checkers planning-review question (2026-11-04) — status: firm for the counts; the live run is the only source
+
+Before the live `checkers` run finishes I tried to answer M2 from the 511 saved checkers runs, and failed twice for two
+different reasons. Both are worth recording because each looked like data.
+
+**First mistake: a version filter that matched nothing.** I required `versions.shiploop_version` to be one of the six most
+recent builds, which excluded every saved checkers run (they are 0.56.0 to 0.59.0) and returned "planning children: 0". A
+zero from a filter is not a measurement.
+
+**Second mistake: a count that mixed two things.** "511 checkers runs" is right, and so is "8 have an Improve directory".
+Of the 511:
+
+| | count |
+| --- | --- |
+| checkers `result.json` files | 511 |
+| with `.shiploop-runs/*/run` | 511 |
+| **with an `improve/` directory** | **8** |
+| those 8 readable by `metrics.improve_reviews` | **0** |
+
+The 503 without an Improve directory predate the stage or ran `--planning-review none`. The 8 that have one all report
+"review notes are missing for one or more of this run's bound Improve children" -- the child was recorded but its review
+notes were not retained, which is the same evidence-retention gap the `improve_reviews` reader names elsewhere.
+
+**So the checkers question has no saved-run answer.** It rests entirely on the live run now executing. That is the opposite
+of the assumption I started from ("511 runs, surely enough"), and it is the reason the live rounds in this file are not
+decoration: for a per-case question about review behaviour, the saved corpus is often empty.
