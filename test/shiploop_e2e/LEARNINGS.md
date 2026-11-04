@@ -7488,3 +7488,40 @@ No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a sh
 No-E2E-Round: verification record for the already-published release; does not change skills/shiploop/.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## ShipLoop's refusals are mostly the guards working, and 49.5% of my first count was fixtures (2026-11-04)
+
+Looking for a next improvement, I ranked refusal signatures across the corpus. Two corrections were needed before
+any number was usable.
+
+**First correction: 6,083 entries were not refusals.** My scan took every element of `shiploop_failures` and found 49.5%
+of runs "blank", which read as a measurement of unreadable refusals. Printing one showed `{}` -- empty dicts in fixture
+`metrics.json` files under `test/fixtures/scorecard/runs/` and in copied experiment trees. Filtering to entries that
+carry a `line`, and excluding `test/fixtures` and `docs/experiments` paths, cut 8,400 apparent refusal-bearing runs to
+**315 with 1,057 real refusals**.
+
+**Second correction: the population, not the signature, is the finding.** Ranked by runs affected:
+
+| runs | share | refusal |
+| --- | --- | --- |
+| 78 | 24.8% | mutation check: N of N mutants survived the focused tests |
+| 49 | 15.6% | `red_na` is a non-empty list of {id, reason, ...} |
+| 33 | 10.5% | mutation check (the "check says no" variant) |
+| 25 | 7.9% | step S1's proof must be one nonblank command line |
+| 22 | 7.0% | this review changed the step-plan result |
+| 11 | 3.5% | open plan assumptions A2 name W1 as `due_item` |
+
+The assumptions refusal is the one that appeared first in all three of today's runs, which is what drew me to it -- but
+at 3.5% of runs it is tenth, not first. **Three recent runs are not a sample of the corpus**, the same error as reading
+csv-report's two docstrings as "review is nearly idle".
+
+**The mutation refusal is behaving.** Of 29 runs whose refusals include it, 27 ended `engine_status: done` and passed;
+median refusals per run 4, mean 8.1. The refusal lists every surviving mutant, states the disposition format, and says
+explicitly not to weaken an oracle. Models comply rather than looping. Nothing here justifies relaxing it.
+
+No skill behaviour changed.
+
+No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
+No-E2E-Round: corpus analysis of existing refusals; does not change skills/shiploop/.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
