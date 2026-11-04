@@ -7430,3 +7430,31 @@ No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a sh
 No-E2E-Round: fixes the measurement reader and records it; does not change skills/shiploop/.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## The archive is proven in a live run: three passes survive where one did (2026-11-04)
+
+The round above said the honest gap was that no live run had executed the new import path. `archive-live2` (csv-report,
+codex, gpt-6.1-terra, `--planning-review stage`, checkout source) closed it. Every Improve child in the run now carries
+`reviews/` beside `evidence/`, `passes.md` and `receipt.json`, and the reader resolves them:
+8 children, 10 passes, 2 edited, max passes 3, no unmeasured reason.
+
+The case the change was written for is `step-plan-a1bf5083`, three passes, archived in full:
+
+| pass | label | what it found |
+| --- | --- | --- |
+| 1 | non-trivial | "The original proof checked ..." |
+| 2 | non-trivial | "C1 required half-even ties but proof lacked ..." |
+| 3 | trivial | "Proof asserts complete aggregation, malforme..." |
+
+Before this change only pass 3 survived -- the pass that found nothing -- and `passes.md` would have recorded that passes 1
+and 2 edited without saying what they found. The reader reports `edited=True` on `basis="tree and result"` from the
+archived `pass-1.json`, which records `changed: False` and `result_changed: True`: the edit was to the step plan's result,
+outside the tree, so a tree-only reader would have called that pass unchanged. That is the same trap the 2026-10-25
+advisors-panel fix addressed, now visible in an archived run rather than only in a live one.
+
+No skill behaviour changed by this entry.
+
+No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
+No-E2E-Round: this entry IS the E2E round for the archive change (6b422e09, a3facda8, 3b74246d).
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
