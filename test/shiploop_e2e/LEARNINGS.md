@@ -6777,3 +6777,30 @@ interchangeably, which is the same distinction the correction earlier in this fi
 **Limit of this sample.** Four of the twenty are seed or mid-run cases rather than completed runs, so the denominator of
 "completed runs with a missed final narrative" is closer to 15. Reading 20 in corpus order is not a random sample; it is
 enough to withdraw a false claim, not enough to put a rate on the consequence.
+
+## The 69% narrative figure is a two-corpus number; the whole corpus gives 55% (2026-11-04) — status: firm for both figures; the scope must travel with the number
+
+I have quoted "69%" for narrative relay repeatedly, including in a commit message and in the summary of a decision handed to
+the owner. Re-measured with the same reader over a wider scope:
+
+| Scope | emissions | shown | rate |
+| --- | --- | --- | --- |
+| every corpus under `~/e2e-runs*` | 4,830 | 2,640 | **55%** |
+| the 2026-10-31 + 2026-11-01 folders only | 1,850 | 1,280 | **69%** |
+| the two live rounds after the wording change | 12 | 11 | 92% |
+
+**69% is the two-corpus figure.** It came from the reading that corrected the repeated-body double count, and that reading
+was taken over the two folders I had open at the time, not over the corpus. Quoting it without the scope made it look like a
+general rate. The general rate is **55%**.
+
+**This is the same error the file already records for Improve yield** ("19% in its own corpus, 11-85% across corpora"), and
+it is now recorded for narrative too. The lesson is identical and I did not apply it: a rate computed over a convenient
+subset must carry its scope, and a number quoted in a decision summary must be the widest defensible one.
+
+**What does not change.** The three live rounds of 2026-11-03/04 remain the only post-change evidence, and they measured
+83%, 100% and 100% on the marketplace build. Those are n = 3 with 18 obligations; the pre-change corpus is 55% over 4,830
+emissions. The direction of the change still holds; the *size* was overstated by quoting a favourable subset.
+
+**What the owner's decision now rests on.** Not "92% versus 61%", but "18 of 18 obligations relayed across three
+post-change rounds, against 55% (2,640 of 4,830) before". The second number is the honest denominator, and it makes the
+change look better, not worse.
