@@ -7223,3 +7223,28 @@ notes were not retained, which is the same evidence-retention gap the `improve_r
 **So the checkers question has no saved-run answer.** It rests entirely on the live run now executing. That is the opposite
 of the assumption I started from ("511 runs, surely enough"), and it is the reason the live rounds in this file are not
 decoration: for a per-case question about review behaviour, the saved corpus is often empty.
+
+## The archived review is the last pass, and that is not the gap it looks like (m2-checkers, 2026-11-04)
+
+Checkers ran planning review for real: **2 of 5 planning children edited**, and both edits came from the *first* pass.
+`spec` found "acceptance lacked concrete move sequence and malformed API boundaries" (committed `583e6a74`, 18 lines);
+`test-strategy` found "local Chrome exists despite no browser connector" and rewrote the verification route (`731a4ef`,
+23 lines). Both then took a second pass that correctly found nothing and exited `satisfied`. Find, fix, re-verify, stop.
+
+**I misread the trail and then corrected it.** `improve/<id>/evidence/01-review-2.md` holds only the terminal pass, and its
+body says `Changed: none`, so a reader auditing the archive concludes review was idle. My first conclusion was that the
+archive "preserves the pass that found nothing and discards the pass that did the work." That was wrong:
+`improve/<id>/passes.md` carries one row per pass with label, edited, lines and seconds -- for `spec`,
+`pass 1 | non-trivial | edited=y | 2 lines` then `pass 2 | trivial | edited=n | 0 lines`. The finding and the fix are both
+recorded.
+
+What is actually unarchived is the pass-1 review *prose*: it lives only in the worktree's
+`.shiploop-improve/<stage>-<id>/reviews/review-1.md`, which is disposable. A later reader learns that pass 1 found a
+defect but not what it said. `metrics.improve_reviews` reads the worktree, which is why it counted 2 of 5 correctly while
+my hand-parsing of `evidence/` counted 0 -- **the reader was right and my parse was wrong**, the same direction as the
+earlier narrative and verify-count corrections.
+
+**Third pattern, and the spread is the point.** Across four cases planning review has now shown: hello 0 edits, csv-report
+2 edits both docstrings, checkers 2 edits both material. Two of three cases have real findings, so the earlier
+"1-in-8 docstring" reading was an artifact of small samples rather than a property of the stage. Any I5 default decision
+needs enough cases to see this spread, and four is not enough.
