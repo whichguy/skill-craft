@@ -3,6 +3,29 @@
 One entry per live run, newest last. Each entry is committed on its own with a
 detailed message; read the last three commit messages before the next run or change.
 
+## Read this before quoting any number from this file
+
+The file is append-only, so a corrected claim stays where it was written and the correction
+appears later. Six figures shifted under scrutiny in two days (2026-11-03/04), each because a
+measurement was taken over the wrong population or through a proxy that counted tokens instead of
+meaning. Before quoting a rate:
+
+- **Say which population it is over.** The same metric legitimately reads 55% over all runs, 53%
+  over non-seed runs, 66% over completed runs, and 100% over three post-change rounds. Only the
+  last of those is about the current wording.
+- **Recompute rather than cite.** `python3 test/shiploop_e2e/corpus.py ~/e2e-runs` prints the
+  figures with their group, their basis and a spread line; `--status done` restricts to runs that
+  ended, which is the right population for anything about how a run ends. Several rates in this
+  file predate that tool and were computed by throwaway scripts.
+- **Treat a missing key as unknown, not as zero or as a failure.** Five readings here were wrong
+  for that reason alone (`fidelity.commands` is `distinct_commands`; `metrics.json` has no
+  `environment` block; `result.json` keeps plugin/source under `versions`; a state.md carries
+  several `"status"` keys; a run's state may be under `shiploop-state/`).
+- **A regex over prose measures tokens, not meaning.** "Runs end silently" survived two regexes and
+  died on the first hand-read: 15 of 20 runs reported completion in their own words.
+- **A tier result is only as good as the machine.** Load average 9 to 13 produced two false
+  failures in a 187-suite run; rerun a failing suite alone before diagnosing it.
+
 ## How expectations are set and mismatches decided (from 2026-10-04)
 
 Every expectation names its source in `cases.json`: `checks_source` (the request),
