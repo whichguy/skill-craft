@@ -7121,3 +7121,28 @@ decided on the case least likely to need the review.**
 **What M2 would need.** The same measurement on a case with a non-trivial plan: run `none`, then run the `stage` review
 over its planning documents post hoc, and count warranted findings by class. One such case would either confirm the
 1-in-8 or overturn it, and `csv-report` costs one run rather than `battleship`'s 40-60 minutes.
+
+## A stale host is not a slower host: Cursor's cached copy carries the wording this session replaced (2026-11-04) — status: firm for the read; the fix needs a person
+
+The delivery entry above says three hosts were refreshed and Cursor was left at 2.32.1 because it has no CLI refresh. That
+reads like a version-lag footnote. It is not: the cached copy carries the **old** progress instruction.
+
+**What Cursor loads** (`~/.cursor/plugins/cache/whichguy/skill-craft/f5fb7d64...`, plugin.json version 2.32.1):
+
+- `SKILL.md:299` -- "Tell the user at most one line per completed step, and when ..."
+- no `_MILESTONE_STAGES` and no `Goal:` field in `shiploop_navigator.py` (0 matches for either).
+
+**What shipped** (1.30.8): `SKILL.md:298` -- "Show the narrative as its first line says; leave the status line to the host
+hook", the narrowed milestone set, and the `Goal:` field.
+
+So Cursor users are running the wording that produced compose-instead-of-relay, on the host whose `afterShellExecution`
+hook has no output field -- the one surface where the model's own text is the only progress channel. The two findings
+compound: the old card invites the model to compose, and the host has no hook to cover for it.
+
+**Why this is a finding and not a note.** A version number lagging is harmless when the change is internal. This one is the
+instruction itself, and the evidence for what the old instruction does is in this file: 62% (5 of 8) in the round that
+shipped it, against 100% in the two rounds after the replacement. A host left behind is running the measured-worse version.
+
+**The fix is not mine to make.** `docs/distribution.md` puts Cursor's update in the desktop UI (Customize -> Browse
+Marketplace), so it needs a person at the machine. Recorded here so the next reader knows Cursor is on a build this file's
+own evidence argues against, rather than merely "one release behind".
