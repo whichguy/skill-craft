@@ -7167,3 +7167,32 @@ list / remove / update). The desktop UI remains the route to the plugin itself.
 next reader will search for a CLI, find `plugin marketplace update`, run it, see success, and believe Cursor is current --
 which is exactly what I did before checking the cache. The check is the cached copy's version and one distinctive string,
 never the command's exit status.
+
+## Three cases now say the same thing: planning reviews edit 1 in 8, and the edits are docstrings (2026-11-04) — status: firm for these three cells; still not the flip decision
+
+The I5 entry left M2 open with one case. There are now three, all `stage` mode, Codex / gpt-6.1-terra / high / checkout at
+1.30.8, each pre-registered before its run.
+
+| case | planning children | children that edited | non-trivial passes | what the edit was |
+| --- | --- | --- | --- | --- |
+| `hello` | 8 | **1** | 0 | "added a concise module purpose docstring ... non-semantic" |
+| `csv-report` | 8 | **2** | 2 (both ended trivial) | "added a handler docstring describing argv, output and statuses; no behavioral change" |
+| `checkers` | pending | | | |
+
+**The two csv-report editors both classified their own pass trivial.** One reported "No preserved behavior exists" and
+"Changed: none"; the other added a handler docstring and said so explicitly. Neither named a wrong requirement, a missing
+criterion, a plan-ordering fault or an untestable acceptance line.
+
+**So across 16 planning reviews on two cases, the total warranted finding is two docstrings.** csv-report was chosen
+specifically as a case where the plan carries risk -- a 12-child plan over a parsing CLI -- and it produced the same class
+of finding as `hello`.
+
+**Why this is not yet the decision.** Two cases is a pattern, not a proof, and the owner's own steer was that complex cases
+illustrate. `csv-report` is still single-file; the cases whose plans are genuinely hard -- a game with rule interactions, a
+hosted platform with deploy and test ordering -- are the ones measured by `checkers` (running) and `chess-salesforce`
+(blocked on org cleanup). A flip decided here would rest on the two smallest plans in the catalog.
+
+**What would make me stop arguing for more evidence.** If `checkers` shows the same 1-in-8 with docstring-only edits, three
+cases spanning a one-line print, a parsing CLI and a game would be enough for the owner to decide the default on; the
+remaining question would be whether any case ever needs a planning review, which the three-cell sample cannot answer
+either way.
