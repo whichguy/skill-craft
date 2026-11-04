@@ -7146,3 +7146,24 @@ shipped it, against 100% in the two rounds after the replacement. A host left be
 **The fix is not mine to make.** `docs/distribution.md` puts Cursor's update in the desktop UI (Customize -> Browse
 Marketplace), so it needs a person at the machine. Recorded here so the next reader knows Cursor is on a build this file's
 own evidence argues against, rather than merely "one release behind".
+
+**Correction: `cursor-agent` has a plugin CLI, and it is marketplace-only (2026-11-04).** The entry above says Cursor's
+refresh needs a person because `docs/distribution.md` puts it in the desktop UI. That is what the doc says and it is
+incomplete: `cursor-agent plugin marketplace update whichguy` exists and runs -- it reported "Updated marketplace whichguy:
+1 plugin indexed" -- but the installed plugin did not move.
+
+| after `cursor-agent plugin marketplace update whichguy` | value |
+| --- | --- |
+| marketplace re-index | succeeded, 1 plugin indexed |
+| cache directory | still `f5fb7d64...` |
+| `plugin.json` version | still 2.32.1 |
+| `_MILESTONE_STAGES` in the cached navigator | still 0 |
+
+So the CLI has the same two-verb shape as Claude's: a marketplace update refreshes the index, and the plugin's own install
+is a separate step that `cursor-agent plugin` does not expose (it lists only `marketplace`, whose subcommands are add /
+list / remove / update). The desktop UI remains the route to the plugin itself.
+
+**What to keep from this.** "No CLI" was wrong; "no CLI route to the plugin" is right. The distinction matters because the
+next reader will search for a CLI, find `plugin marketplace update`, run it, see success, and believe Cursor is current --
+which is exactly what I did before checking the cache. The check is the cached copy's version and one distinctive string,
+never the command's exit status.
