@@ -6750,3 +6750,30 @@ consistent: a regex over text counts tokens, not the thing the sentence means.
 
 **What would answer it.** Read 20 of the 106 runs by hand and classify whether a user would know the run finished, or
 have a model read them; a regex will not do it.
+
+## The hand-read: a missed final narrative usually still leaves a clear completion report (2026-11-04) — status: firm for these 20; the earlier proxies are withdrawn
+
+The entry above left this unmeasured and said a regex would not do it. Reading 20 runs by hand, taken in the order the
+corpus yields them, gives the answer the proxies got wrong.
+
+| Class | Count | Example |
+| --- | --- | --- |
+| reports what happened, in the model's own words | **15** | "Created hello.py and test_hello.py. The unittest passed in the returned checkout..." |
+| no model text at all | 1 | a `hello-sonnet-floor` run whose events carry no text |
+| text, but not a completion report | 4 | mid-run text ("I'm awaiting your decision on the required records.") or a **seed** run, where the stage suite recorded the stage without doing the work |
+
+So in 15 of 20 the user is told what happened even though the narrative block was not relayed -- the model writes its own
+completion sentence, naming the files it created and whether the tests passed. Several also stated the honest gap: "the
+work has **not** been returned to your checkout", "the run is paused on a documentation conflict".
+
+**The three earlier readings are withdrawn, not reconciled.** 63% silent (text after the final emission only), 40%
+(completion-word regex), and the implied "the end of a run is poorly reported" all measured a token pattern rather than
+what the user is told. The hand-read is the measurement; the proxies are noise.
+
+**What is still true.** The narrative *block* is relayed 47% of the time at the end of a run, lower than the first
+emission (74%). That is a fact about the block's display, not about the user's information. The two must not be quoted
+interchangeably, which is the same distinction the correction earlier in this file makes for the whole metric.
+
+**Limit of this sample.** Four of the twenty are seed or mid-run cases rather than completed runs, so the denominator of
+"completed runs with a missed final narrative" is closer to 15. Reading 20 in corpus order is not a random sample; it is
+enough to withdraw a false claim, not enough to put a rate on the consequence.
