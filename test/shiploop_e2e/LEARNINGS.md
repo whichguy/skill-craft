@@ -6464,3 +6464,30 @@ the product.
 **Cost of this attempt.** 40 minutes of host time for a discarded measurement. The pre-registration is what makes it
 discardable rather than a result; without it, 2 of 6 would have been recorded as a generalisation failure and directly
 contradicted the two earlier rounds.
+
+### What the discarded run still shows: the model composes its own progress instead of relaying (2026-11-03) — status: firm for this run's text; the cause is unresolved
+
+The battleship run is discarded for *compliance*, but its transcript answers a different question the two hello rounds
+could not, because those finished in 13 minutes with 6 emissions. Over 40 minutes and 35 stages the model produced **21
+text events**, and read in order:
+
+- Emissions 1 and 2 (intake, step-plan) were **shown verbatim**.
+- Emissions 3 to 6 (step-plan, system-test-author, system-test-author, release-plan) were **not shown**.
+- Between them the model wrote **17 progress sentences of its own**: "The starting workspace is empty, and Node is
+  available...", "The requested behavior and the default fleet rules are specified...", "The test strategy now separates
+  automated rule and HTTP checks...". Every one is substantive, none is a verbatim narrative, and each lands every few
+  stages.
+
+So the failure is not silence. On a long run the model reports progress continuously in its own words and does not relay
+the block. That is the exact behaviour the card's "Compose no progress sentence of your own in place of either" forbids,
+and it survived that sentence's addition in c1830113.
+
+**Why this matters more than the compliance number.** A metric that counts verbatim relays reads this as 33% compliance
+and suggests the model is ignoring the user. The transcript shows the opposite: the user was updated 19 times. The
+measure and the behaviour diverge, and the measure is the one in LEARNINGS.md.
+
+**Unresolved, and not to be guessed at.** Two explanations fit and this run cannot separate them: (a) the model treats a
+long run's own summaries as better progress reporting than a block that repeats the same headings, or (b) the relay
+obligation is only salient early, and later it competes with the stage's real work. A discriminating experiment would give
+one run a card that says only "relay, never compose" with no status-line sentence, and another the current text, on the
+same long case -- which needs the ~60-minute budget the entry above prices. Until then no wording change is justified.
