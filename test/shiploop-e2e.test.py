@@ -3631,6 +3631,33 @@ class MetricsTest(unittest.TestCase):
             self.assertEqual(metrics.verifications(Path(tmp) / "run"),
                              {"records": 2, "passed": 1, "could_not_run": 0, "commands": 3, "red": 0})
 
+    def test_a_verify_record_that_lists_its_request_counts_only_what_ran(self):
+        """A record carrying both a `commands` array (the request) and a `runs` array (what executed) held each command
+        twice, so counting `"command":` occurrences read 374 recorded commands as 523 over the saved runs and made this
+        reader disagree with fidelity.validation on 89 of 90 runs (found 2026-11-03; 149 of 374 records carry both)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tests = Path(tmp) / "run" / "tests"
+            tests.mkdir(parents=True)
+            (tests / "nav-1-verify1.md").write_text(json.dumps({
+                "schema": "shiploop-test-loop/v1", "passed": True,
+                "commands": [{"command": "a", "suite": "focused"}, {"command": "b", "suite": "regression"}],
+                "runs": [{"command": "a", "suite": "focused", "exit": 0}, {"command": "b", "suite": "regression", "exit": 0}],
+            }))
+            found = metrics.verifications(Path(tmp) / "run")
+        self.assertEqual(found["commands"], 2, "the two that ran, not the two requested plus the two that ran")
+        self.assertEqual(found["records"], 1)
+        self.assertEqual(found["passed"], 1)
+
+    def test_a_verify_record_with_no_runs_array_counts_no_executed_command(self):
+        """A record that only lists its request ran nothing this reader can see; it must not claim commands ran."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tests = Path(tmp) / "run" / "tests"
+            tests.mkdir(parents=True)
+            (tests / "nav-1-verify1.md").write_text('{"passed": false, "commands": [{"command": "a"}]}')
+            (tests / "nav-2-verify1.md").write_text("not json at all")
+            found = metrics.verifications(Path(tmp) / "run")
+        self.assertEqual((found["records"], found["commands"]), (2, 0))
+
     def test_progress_reports_only_what_is_new_and_never_a_run_marker(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)

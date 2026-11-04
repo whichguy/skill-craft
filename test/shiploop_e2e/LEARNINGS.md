@@ -6262,3 +6262,30 @@ copy "skipped".
 - **Comparability.** Rows recorded before this change carry the old per-packet `narrative` block. They are not regraded:
   the reader is a record, and a reader change is a future measurement, not a correction of past ones. A comparison
   across the boundary must recompute the old rows or restrict itself to rows on one side of it.
+
+## The verification-reader disagreement, resolved: the regex counted the request as well as the run (2026-11-03) — status: firm for the counts and the reader; no live run
+
+Two earlier entries left this open ("metrics counts eight commands while fidelity counts five", "25 command keys versus
+15 executed runs"). The cause is not a parsing edge case. A verify record may carry the command twice, by design: once in
+a `commands` array (what was requested) and once in a `runs` array (what executed).
+
+- **Prevalence.** 149 of 374 verify records in the saved corpus carry both arrays (40%).
+- **Effect.** `metrics.verifications` counted every `"command":` occurrence, so it read 523 recorded commands where 374
+  executed rows existed, and `fidelity.reader_disagreement` flagged it on **89 of 90** runs. The two readers were never
+  wrong about a record's `passed`, `could_not_run` or `red`; only `commands` diverged, and always upward.
+- **Fix.** `metrics.verifications` counts the `runs` array only, sectioned from the record text (this reader serves
+  baselines and must not start depending on a JSON schema). Both readers now agree on **0 of 90 disagreements** and the
+  corpus total is 602 executed commands rather than the inflated count.
+- **Tests.** Two new hermetic cases: a record carrying both arrays must count only the `runs` rows (it read 4 where 2
+  ran), and a record with `commands` but no `runs`, or unreadable text, must count 0 executed commands. Both fail on the
+  old reader and pass on the fixed one. The old test used records with only a `runs` array, which is why the defect
+  survived: the duplicate shape was never in a fixture.
+
+**Comparability.** A baseline row recorded before this change carries the inflated `script_verifications.commands`.
+`records`, `passed`, `could_not_run` and `red` are unaffected, so a comparison over those stays valid; a comparison over
+`commands` must recompute the old rows or stay on one side of the boundary.
+
+**What the earlier entries should be read as now.** Their "14 versus 10" and "25 versus 15" figures are this defect, not
+evidence of two genuinely different measurement intentions. No step-proof mapping gap was demonstrated: `step-proof`
+records are `*-verify*.md` files like the rest and are counted on both paths; the unmapped-step-proof concern in the same
+entries is about the *fidelity* summary's gate list, which is a separate reader and was not part of these counts.

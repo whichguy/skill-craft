@@ -2426,6 +2426,12 @@ def verifications(run_dir: Path | None) -> dict:
     ``red`` counts the records in which a command ran red (a run whose own status is `red`): the test stage's base run
     on the base checkout passes because red is what it accepts, so ``passed`` includes it. What ran is counted, not
     what the record expected.
+
+    ``commands`` counts the ``runs`` rows -- the commands that actually executed -- not every ``"command":`` key in
+    the file. A record that carries both a ``commands`` array (the request) and a ``runs`` array (what executed) holds
+    each command twice, so counting occurrences read 374 recorded commands as 523 and made this reader disagree with
+    fidelity.validation on 89 of 90 saved runs (found 2026-11-03; 149 of 374 records carry both arrays). Both readers
+    now count executed rows, which is the number this field's docstring always described.
     """
     records = sorted(run_dir.rglob("*-verify*.md")) if run_dir and run_dir.is_dir() else []
     passed = commands = could_not_run = red = 0
@@ -2434,8 +2440,32 @@ def verifications(run_dir: Path | None) -> dict:
         passed += bool(re.search(r'"passed"\s*:\s*true', text))
         could_not_run += bool(re.search(r'"disposition"\s*:\s*"could-not-run"', text))
         red += bool(re.search(r'"status"\s*:\s*"red"', text))
-        commands += len(re.findall(r'"command"\s*:', text))
+        commands += len(_RUN_ROWS(text))
     return {"records": len(records), "passed": passed, "could_not_run": could_not_run, "commands": commands, "red": red}
+
+
+# One executed row of a verify record: the ``runs`` array's objects. Read as text, not JSON, because this reader serves
+# baselines that must not start depending on a schema it cannot see; a record whose text it cannot section keeps its
+# occurrence count, so an unreadable record over-counts rather than silently reading 0.
+def _RUN_ROWS(text: str) -> list:
+    """The ``"command":`` occurrences inside a verify record's ``runs`` array ([] when it has none)."""
+    start = text.find('"runs"')
+    if start < 0:
+        return []
+    depth, index = 0, text.find("[", start)
+    if index < 0:
+        return []
+    begin = index
+    while index < len(text):
+        char = text[index]
+        if char == "[":
+            depth += 1
+        elif char == "]":
+            depth -= 1
+            if depth == 0:
+                break
+        index += 1
+    return re.findall(r'"command"\s*:', text[begin:index])
 
 
 def current_stage(state: dict) -> str | None:
