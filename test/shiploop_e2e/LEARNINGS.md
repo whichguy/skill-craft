@@ -6432,3 +6432,35 @@ on 92%; they can say the corrected wording did not regress and every obligation 
   result encouraging rather than conclusive.
 - The denominator is 6 a run, not 21, so one miss moves the rate 17 points. That is why the finding is stated with the
   counts rather than the percentage alone.
+
+## Multi-item narrative round: discarded (timeout), and it shows the outer loop re-planning (2026-11-03) — status: no claim; the run is an incomplete measurement
+
+**Pre-registered** for generalisation: battleship on Codex high, G1 done and all verdicts PASS, G2 emissions scale with
+items, G3 compliance >= 62%, G4 no status pastes and no producer packet with neither block. The pre-registration also
+said a timeout discards the run and no claim follows, and the budget was stated up front (40 min) rather than chosen
+afterwards because a saved battleship run once took 222 minutes.
+
+**It timed out.** `process` FAIL at 2401.2 s (rc=-9), engine `active` at `release-plan`, `shiploop` FAIL active,
+`committed` FAIL (0 files in HEAD). So **no claim is drawn about narrative compliance from this run**, and its 2-of-6
+does not contradict the 11-of-12 from the two hello rounds. Two of its four skips are packets stamped at +37.2 and +38.4
+minutes against a 40-minute kill, so they may be deadline truncation rather than model behaviour, and the event stream
+carries no per-event timestamps to separate the two.
+
+**What the run did show, which is worth having.** Thirty-five recorded stages, and the outer loop working as designed:
+
+- `implement` reported **send-back** at stage 11, after `step-plan` had already taken 265 s: the proof-order fault again
+  (`step S1's Proof runs test/game.test.js, which the item base does not have`), the known path-named miss class.
+- `product-acceptance` reported **add-work**, and a second work item was planned and completed: `step-plan` through
+  `carry-forward` ran a second time (49/32/0/35/66/83/78 s), then `system-test-author`, `system-test` and
+  `product-acceptance` again.
+- The run then reached `release-plan` and was killed there. Every stage before it had completed.
+
+So a full battleship request with an add-work cycle costs more than 40 minutes on this host: the two items alone are about
+11 minutes of inner loop, the two system-test rounds about 6, and planning about 6. That is a scheduling fact for the
+next run rather than a compliance result -- the next attempt at a multi-item narrative measurement needs a budget of
+about 60 minutes, not 40, and the case or the effort level needs to come down if the point is the narrative rather than
+the product.
+
+**Cost of this attempt.** 40 minutes of host time for a discarded measurement. The pre-registration is what makes it
+discardable rather than a result; without it, 2 of 6 would have been recorded as a generalisation failure and directly
+contradicted the two earlier rounds.
