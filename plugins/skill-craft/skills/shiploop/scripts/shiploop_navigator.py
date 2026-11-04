@@ -2428,7 +2428,15 @@ def _symbolic_lines(lines: list[str], core: Any, root: Path, state: Mapping[str,
     return prose_symbols("\n".join(lines), core, Path(root), state, defined=True).split("\n")
 
 
-_GROUP_ENDS = frozenset(stages[-1] for _, stages in guidance.INNER_GROUPS)
+# The stages whose acceptance is a real boundary in the run, so the packet shows the whole narrative there and a status
+# line everywhere else.  Measured 2026-11-03 over 102 saved runs: the earlier rule (every prelude stage, every outer
+# stage, every inner group end) fired on 20 of 23 stages, and the model showed the narrative at only 61% of the 2,111
+# emissions (median 70% a run, 5 runs at zero).  A narrative the model must show 20 times an item run is a chore it
+# drops; the same summary at the boundaries a person actually looks for is one it keeps.  The boundaries are: the start
+# of the run (no accepted stage yet), preparation complete (work items begin), each item's carry-forward (the queue
+# moved), and the outer outcomes a reader asks about (accepted, released, handed off).  The prelude is a median 26% of a
+# run, so `prepare` keeps the first two thirds of it from running silent.  Every other stage keeps the one-line status.
+_MILESTONE_STAGES = frozenset(("prepare", "carry-forward", "product-acceptance", "release", "handoff"))
 # Where the entry point says the host shows a status hook's message to the user.
 HOOK_DISPLAY_ENTRYPOINTS = frozenset(("cli",))
 
@@ -2544,12 +2552,11 @@ def narrative_facts(state: Mapping[str, Any], timeline: Mapping[str, Any] | None
     # An Improve stage's packets are never milestones: the step it reviews is accepted only when it completes, so the last
     # accepted step is still the one the producer packet before it showed (8 of 11 Improve packets of a live run repeated
     # that narrative, packet review F6, 2026-10-17).  A stopped run is one, child or not.
-    # A step's document ends the Build group only after the item's last step: between steps the next step's build
-    # follows it within the group (design T §8), so the packet shows the status line, not the narrative.
-    group_end = last is not None and last["stage"] in _GROUP_ENDS and not (
-        last["stage"] == "document" and _is_inner_root(state) and _between_steps(state))
+    # Otherwise the milestone set is _MILESTONE_STAGES: the boundaries a reader looks for, not every prelude and outer
+    # stage (see its note for the 61%-shown measurement that narrowed it).  A run before its first accepted stage is the
+    # start, and a run between an item's steps shows the status line.
     milestone = status != "active" or (state.get("active_improve") is None and (
-        last is None or last["stage"] in prelude or last["stage"] in outer or group_end))
+        last is None or last["stage"] in _MILESTONE_STAGES))
     return {
         "goal": _status_text(_title_from_prompt(state["prompt"]), 90),
         "phases": phases,
@@ -5740,13 +5747,19 @@ def _status_next(state: Mapping[str, Any]) -> tuple[str, str]:
 
 
 def status_line(state: Mapping[str, Any]) -> str:
-    """The one progress line of a packet that is not a milestone: the status block's Where and Next rows.
+    """The one progress line of a packet that is not a milestone: the status block's Where and Next, then the goal.
 
     Owner, 2026-10-17 (packet review F6): one progress block per packet; status.md and ``status`` keep the full block.
     Cleaned like the block (no commands, paths, control characters or ``===`` runs), so it is safe to show verbatim.
+    The goal is appended, never prefixed: the hooks find this line by matching a leading ``Where:`` (shiploop_status_hook
+    ``LINE``), and the narrative's title was otherwise the only place a non-milestone packet carried the run's own words
+    (2026-11-03: `discovery` lost the request's stated aim when the narrative was narrowed, caught by a contract test).
+    The field is ``Goal:``, not ``Run:``: the status block already has a ``Run:`` line meaning preparation/work-item/
+    release progress, and a second meaning for the same label would mislead a reader comparing the two.
     """
     label, text = _status_next(state)
-    return f"Where: {_status_where(state)} · {label}: {text}"
+    goal = _status_text(_title_from_prompt(state["prompt"]), 90)
+    return f"Where: {_status_where(state)} · {label}: {text} · Goal: {goal}"
 
 
 def status_block(state: Mapping[str, Any]) -> str:
