@@ -7017,3 +7017,34 @@ has expired, and restating it is a decision about what the measurement is for --
 **Method note.** This census took three attempts: `metrics.json` has no version field (0 of 1,041), a top-level
 `shiploop_version` key finds nothing (0), and `result.json`'s `versions.shiploop_version` finds 3,720. The first two
 readings would have licensed "no run records a version", which is false.
+
+## I5 does have both arms in the corpus, and the comparison is unusable: different cases, different hosts (2026-11-04) — status: firm for the confound; the mode effect stays unmeasured
+
+The entry above says I5's 1.21.0 control has expired. That is true of M1's *plan*, and it is not the same as having no
+data: the corpus carries **3,850 runs with a recorded `planning_review`**, 2,430 `stage` and 1,420 `none`. Four builds have
+both arms on the same version.
+
+**A first comparison looked decisive and is worthless.**
+
+| build | stage (n) | stage median | none (n) | none median | ratio |
+| --- | --- | --- | --- | --- | --- |
+| 0.56.0 | 258 | 5.9 min | 129 | 23.3 min | 3.97x |
+| 0.57.0 | 258 | 6.3 min | 129 | 15.7 min | 2.51x |
+| 0.58.0 | 261 | 4.8 min | 136 | 23.2 min | 4.79x |
+
+That reads as "`none` takes two to five times longer", which contradicts the reason the mode exists. It is not a mode
+effect: the arms are different populations.
+
+- **`stage`** across those builds: checkers 389 and battleship 388, on **Claude** (777 runs).
+- **`none`**: a `custom` case 387 and `hello` 7, on **Grok** (387) and Claude (7).
+
+Different cases, different hosts, different work. The 2.5-4.8x is case and host, not mode, and quoting it would be the
+seventh measurement in this file to be corrected for population.
+
+**What this changes about the I5 decision.** It is not blocked on data: 1,420 `none` runs exist. It is blocked on there
+being **no cell where the two modes ran the same case on the same host at the same build**. Producing one is a
+measurement choice -- a single case, both modes, one build -- and it costs two runs, not the 60-minute battleship round
+priced earlier. That is the cheapest path to answering I5 that this corpus reveals.
+
+**Method.** The build was joined from `state.md`'s `planning_review` to `result.json`'s `versions.shiploop_version`; neither
+file carries both, and a check of either alone shows no cell at all.
