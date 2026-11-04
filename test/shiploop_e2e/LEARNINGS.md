@@ -6524,3 +6524,37 @@ should see, which is the owner's, and this correction does not choose it.
 **Method note.** The first entry was written from counts (2 shown of 6) and a rule citation. Reading what each artefact
 actually said -- the block's five Achieved lines against four composed sentences -- is what changed the reading. Same
 lesson as the corpus figures: the count answered a narrower question than the one I asked of it.
+
+## What the model's own updates do and do not replace: pace and phase, not achieved (2026-11-03) — status: firm for the corpus counts; the product choice stays the owner's
+
+The correction above established that composed sentences are not a failure to report. It left open whether the relayed
+block carries anything a user would miss. That is measurable from the corpus without a new run: for every saved run with
+both narrative emissions and composed text, does the composed text carry each run-level fact the block provides?
+
+**196 runs.** Regex presence per fact, deliberately generous (any mention counts):
+
+| Run-level fact the block provides | Composed text carried it |
+| --- | --- |
+| **Achieved** (what completed) | **190 (97%)** |
+| **Ahead** (what comes next) | 101 (52%) |
+| **Phase** (preparation / work items / release with progress) | 33 (17%) |
+| **Pace** (N steps in M minutes) | **4 (2%)** |
+
+The pace figure holds under a tighter pattern (`\d+ steps in` or `\d+ of \d+ steps|stages`) at the same 4 runs, and the
+four matches are single-line mentions rather than the block's structured row.
+
+**What this means for the question the correction left open.** The model's own updates substantially duplicate the
+block's *achieved* list -- so for "what got done", the block is largely redundant. They almost never supply *pace*, and
+rarely *phase* progress. So the block is not replaceable in one dimension (pace, 2%) and is redundant in another
+(achieved, 97%).
+
+**What follows, and what does not.** A change that drops the narrative relay entirely would lose the pace and phase
+signal for essentially every run. A change that keeps only the pace and phase rows would lose nothing measured here and
+would cut the block to a fraction of its size. Both are product choices about what the user should see, and this evidence
+prices them rather than choosing: 97% of the `Achieved` rows duplicate text the user already received, while 98% of runs
+would lose pace if the block went.
+
+**Limits.** Presence regexes, not comprehension: a composed sentence mentioning a time is not the same as a pace row, and
+a run whose model never composed text is not counted at all. `Achieved` at 97% is a lower bound on redundancy -- it counts
+a run that mentioned one completed thing, however briefly. The corpus is Codex and Claude runs of 2026-10-31 to 11-03,
+and it carries the contention and build-mix limits recorded above.
