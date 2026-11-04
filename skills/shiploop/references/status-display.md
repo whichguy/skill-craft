@@ -245,9 +245,13 @@ open, a search is being typed or live updates are off.
 
    An Improve packet carries neither: the packet before it showed the step under
    review, and the next producer packet shows the result. The progress orients
-   the owner, which does not reprint it: it tells the user at most one line per
-   step and, when the user asks for the full status, shows the block that
-   `status` prints, unchanged.
+   the owner, which does not reprint it: it composes no progress sentence of its
+   own, shows the narrative at a milestone as that narrative's first line says,
+   and leaves the status line to the host status hook. When the user asks for the
+   full status, it shows the block that `status` prints, unchanged. Measured
+   2026-11-03 over 116 recorded runs, no run pasted a status line into its own
+   text, and none needed to: the block reaches the user from the packet and the
+   hook, or from the next narrative.
 2. **`<run>/status.md`**, rewritten by every saved transition in the same
    journaled transaction as `state.md`, and **`shiploop status --run-dir=…`**,
    which prints the full block read-only. `status` takes the run lock like `next`,
@@ -279,13 +283,16 @@ At milestones a packet carries a script-rendered narrative between
 the status line: the goal, a
 progress bar per phase, what has been achieved, what is happening now, what
 comes next and the run's observed pace. A milestone is the first producer packet
-after one of these: the start of a run, an accepted preparation or release
-stage, the end of a work-item stage phase (Plan, Validate existing, Build,
-Carry forward); and every paused, blocked, awaiting, halted or done
-packet. An Improve packet is never one: the step it reviews is accepted only
-when it completes, so the last accepted step is still the one the packet before
-it showed (a live run repeated that narrative on 8 of 11 Improve packets until
-2026-10-17). Other packets carry no narrative.
+after one of these: the start of a run, `prepare`, a work item's `carry-forward`,
+`product-acceptance`, `release` and `handoff`; and every paused, blocked,
+awaiting, halted or done packet. That set is the boundaries a reader looks for,
+not every prelude and outer stage: asked at 20 of 23 stages, a live corpus of 102
+runs showed the narrative at 61% of 2,111 emissions (median 70% a run, 5 runs at
+zero), so the rule narrowed to the boundaries and a one-item run now asks 6 times
+instead of 21 (2026-11-03). An Improve packet is never one: the step it reviews is
+accepted only when it completes, so the last accepted step is still the one the
+packet before it showed (a live run repeated that narrative on 8 of 11 Improve
+packets until 2026-10-17). Other packets carry no narrative.
 
 ```markdown
 #### 🚢 ShipLoop — Add a --version flag to the CLI.
