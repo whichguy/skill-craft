@@ -5,7 +5,7 @@ description: >-
   script's current action packet, and submit its exact callback until
   the script reports completion with an HTML achievement report. Use when the
   user says shiploop, ship the project, or requests a durable delivery loop.
-version: 1.30.5
+version: 1.30.6
 allowed-tools: all
 license: MIT
 platforms:
@@ -295,11 +295,9 @@ Each packet carries one script-rendered **progress block**: at a milestone the
 **narrative** (achieved, now, ahead, pace), whose first line says whether to paste
 it to the user as written or whether the host already showed it; otherwise one
 **status line** (`Where: … · Next: … · Goal: …`). An Improve packet carries neither.
-Relay a progress block; never compose one. A narrative is shown as its first line says:
-paste it, or let the hook that showed it stand. A status line is shown by the host's hook
-where it has one, else pasted by you: never paraphrase, shorten or extend either, and never
-leave a completed step with neither. For the full status, show the
-**status block** that `shiploop status` prints
+Show the narrative as its first line says; leave the status line to the host hook.
+Compose no progress sentence of your own in place of either, and when the user asks
+for the full status show the **status block** that `shiploop status` prints
 (also in `status.md`) unchanged; see [status display](references/status-display.md).
 If the user asks what has run, what is scheduled, what a step was sent or how
 planning expanded the request, run `shiploop trace --run-dir RUN` (`--action ID`,
