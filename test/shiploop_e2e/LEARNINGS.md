@@ -6804,3 +6804,32 @@ emissions. The direction of the change still holds; the *size* was overstated by
 **What the owner's decision now rests on.** Not "92% versus 61%", but "18 of 18 obligations relayed across three
 post-change rounds, against 55% (2,640 of 4,830) before". The second number is the honest denominator, and it makes the
 change look better, not worse.
+
+## Corrected: the last narrative is relayed 62%, not 47% — the 47% counted seed runs (2026-11-04) — status: firm for the non-seed figures; the 47% is withdrawn
+
+The entry above reports "the last emission is shown 47% (91 of 193)". That denominator includes **27 seed runs**, which are
+the stage suite's synthetic recordings: no model ran, so they cannot relay anything. Including them drags the end-of-run
+rate down and makes the run's completion block look worse reported than it is.
+
+**Excluding seeds:**
+
+| measure | included seeds (withdrawn) | non-seed only |
+| --- | --- | --- |
+| all emissions relayed | 55% (from the corpus tool) | **53%** (1,633 of 3,064) |
+| last emission relayed | **47%** (91 of 193) | **62%** (88 of 142) |
+
+The all-emissions rate barely moves; the *last*-emission rate moves 15 points, because seeds cluster at the end of runs
+their suite constructs.
+
+**By the stage of the final packet**, in non-seed runs: `done` 82 of 123 = **67%**, `implement` 52 of 63 = 83%. Every one
+of the 27 `system-test-author` finals that made the old curve look catastrophic is a seed.
+
+**What this changes.** The earlier reading — "the block that says the run finished is the least likely to be shown" — was
+an artifact of a synthetic population. In real runs the completion block is relayed **more** often than the average (67% at
+`done` against 53% overall), not less. The positional decay measured before the last emission (74% -> 62% -> ... -> 46%)
+stands, because it was measured across emissions within runs; what does not stand is the claim that the end of a run is the
+weakest point.
+
+**Method, and it is the same one that keeps recurring.** Seeds are apparatus, not behaviour, and any rate over "all runs"
+mixes them in. The corpus summariser already excludes copied repositories but not seeds; a `--non-seed` view would have
+prevented this, and the figures above are the argument for adding one.
