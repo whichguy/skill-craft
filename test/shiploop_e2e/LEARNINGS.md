@@ -6401,3 +6401,34 @@ Improve from the start.
   neither display, because the card mentioned only the hook -- did not recur.
 - Elapsed time fell (804 s against 977 s) but stage seconds carry the 1.32x contention risk recorded above and one
   run establishes nothing. turns fell 161 -> 131. Neither is claimed as an improvement.
+
+## Narrative relay replication: 6/6, so the two-case wording holds at 92% over two runs (2026-11-03) — status: firm that it replicates on this case and host; the effect size stays a range, not a point
+
+The prior entry left 83% as n = 1. This run tested only whether it replicates. Same case, host, model, effort and
+source; pre-registered before launch.
+
+| # | Prediction | Measured | |
+| --- | --- | --- | --- |
+| R1 | emissions 6-9 | **6** | PASS |
+| R2 | compliance >= 62% (the prior floor) | **6 of 6 = 100%**, 0 skipped | PASS |
+| R3 | status-line pastes 0 | **0** | PASS |
+| R4 | no PRODUCER packet with neither block | **0** | PASS |
+
+Verdicts: exit 0, every verdict PASS, `committed` HEAD 26ee642f with 7 files and 0 uncommitted product paths. R4's
+measure excluded Improve packets from the start, which is the error the previous entry recorded.
+
+**Pooled with round 2, read as a range and never a point estimate:** 11 of 12 obligations shown = 92%, from 83% and
+100% on runs of 6 each. Against the **69%** the same reader gives the pre-change corpus (1,280 of 1,850 distinct bodies
+over 102 runs), the two-case wording is a substantial improvement rather than noise: the pre-change rate was a
+population, the post-change runs are two samples, and both sit far above it. Two runs cannot put a confidence interval
+on 92%; they can say the corrected wording did not regress and every obligation but one was met.
+
+**What the two runs together establish, and what they cannot.**
+- The failure the 62% round found (a step left with neither block, because the card mentioned only the hook) did not
+  recur in either run: 0 of 46 producer packets across both.
+- Status-line pastes stayed at 0, so the separation of the two cases did not push the model to compose progress itself.
+- Both runs are `hello` on Codex at high effort. Another host, another case and a longer run are unmeasured. Codex is
+  also the host whose hook drops the systemMessage, so it is the harder case for the narrative path -- which makes the
+  result encouraging rather than conclusive.
+- The denominator is 6 a run, not 21, so one miss moves the rate 17 points. That is why the finding is stated with the
+  counts rather than the percentage alone.
