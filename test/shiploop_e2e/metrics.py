@@ -1089,6 +1089,11 @@ def _review_folders(root: Path) -> set:
 
 
 def _improve_review_records(root: Path, run_dir: Path, *, bound_repo: bool) -> dict:
+    # A source that is not there is unmeasured, not zero: an absent or unreadable root must not read as a complete
+    # count of no reviews. `_review_folders` tolerates a missing root for the fallback probe, so the primary read
+    # says so itself before it scans.
+    if not root.is_dir():
+        raise FileNotFoundError("no Improve review root at " + str(root))
     # Explicit directory reads surface permission errors that glob can silently treat as an empty match.
     folders = _review_folders(root)
     children = []

@@ -7399,3 +7399,34 @@ this round can say is where its evidence stops.
 No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## The fallback I added re-broke the silent zero, and the suite caught it (2026-11-04)
+
+`a3facda8` added a run-directory fallback to `metrics.improve_reviews`. Refactoring the shared directory scan into
+`_review_folders`, I made it return an empty set for a root that does not exist. The original raised. Two guards in
+`test/shiploop-e2e.test.py` caught the difference on the next full run:
+
+* `test_recorded_missing_repo_cannot_fall_back_to_an_unrelated_worktree` -- a recorded repo path that no longer exists must
+  report `passes: None` with a reason, not fall back to a decoy worktree beside the run;
+* `test_missing_review_evidence_is_unknown_not_zero` -- a run directory with no review source at all must report every
+  count as `None`, never `0`.
+
+Both failed with `0 is not None`. The fallback had turned "I could not read this" into "I read it and found none", which is
+the single error this file has corrected more times than any other: narrative 61%→69%, verify double-count, Improve share
+58%→33%, checkers "511 runs" vs 8 with evidence, the Goal field reported absent while on every line, and three of my own
+grep filters returning zeros that were filter failures.
+
+**The fix.** `_improve_review_records` refuses a root that is not a directory before it scans, so the primary read still
+distinguishes absent from empty; `_review_folders` keeps tolerating a missing root because the fallback probe needs to ask
+"are there notes here?" without raising. 519 tests in `shiploop-e2e` and 10 in the corpus suite pass.
+
+**The lesson worth keeping.** The fallback was correct in intent and wrong in one line, and the only reason it did not ship
+is that this repository had already written the guard for that exact mistake. A guard written from a past regression is
+cheap; the same guard re-derived from scratch each time is not.
+
+No skill behaviour changed.
+
+No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
+No-E2E-Round: fixes the measurement reader and records it; does not change skills/shiploop/.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
