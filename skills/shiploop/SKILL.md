@@ -295,9 +295,10 @@ Each packet carries one script-rendered **progress block**: at a milestone the
 **narrative** (achieved, now, ahead, pace), whose first line says whether to paste
 it to the user as written or whether the host already showed it; otherwise one
 **status line** (`Where: … · Next: … · Goal: …`). An Improve packet carries neither.
-Relay a progress block; never compose one: show the narrative as its first line says,
-or let the host status hook show the status line, and never paraphrase, shorten or
-extend either into your own progress sentence. For the full status, show the
+Relay a progress block; never compose one. A narrative is shown as its first line says:
+paste it, or let the hook that showed it stand. A status line is shown by the host's hook
+where it has one, else pasted by you: never paraphrase, shorten or extend either, and never
+leave a completed step with neither. For the full status, show the
 **status block** that `shiploop status` prints
 (also in `status.md`) unchanged; see [status display](references/status-display.md).
 If the user asks what has run, what is scheduled, what a step was sent or how

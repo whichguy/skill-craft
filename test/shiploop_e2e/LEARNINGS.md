@@ -6184,3 +6184,43 @@ Learning records: LR-20261031-382fba (test/shiploop_e2e/learning-records.jsonl)
 Next
 
 - no independently admitted ShipLoop finding to apply; retained challenges need disposition
+
+## Narrative at run boundaries, and relay-not-compose: live round on the Codex harness, Terra 6.1 high (2026-11-03) — status: firm for this run's verdicts; interim for compliance (n = 1)
+
+**Change under test.** d7734abe narrowed the run narrative to real boundaries (`prepare`, `carry-forward`,
+`product-acceptance`, `release`, `handoff`, plus the run's start) and appended the run's goal to the status line; 55e87728
+rewrote the card's progress paragraph to say relay a progress block, never compose one. The question: does a real model
+show the progress it is asked for more often, now that it is asked about 6 times a run instead of 21?
+
+**Run.** `run.py --case hello --host codex --model gpt-6.1-terra --effort high --source checkout`, output
+`~/e2e-runs/2026-11-03/narrative-relay-hello`. One subject process, exit 0 in 977.0 s, 161 turns, cost not reported,
+9 Improve children. Every verdict passed: invoked `/skill-craft:shiploop` PASS, plugin `skill-craft@whichguy 2.32.3`
+PASS, `shiploop` done PASS, `committed` PASS (HEAD c0a82c29, 5 files, 0 uncommitted product paths), both case checks
+PASS (`test "$(python3 hello.py)" = 'Hello, world!'`, `python3 -m unittest -q`). Packet copies: 36 prints, 0 reprints.
+Gates that fired and caught: `missing_result_file` 1, `expectations_gate` 1, `handoff_step_notes` 1.
+
+**Narrative result — the wording did not raise compliance.**
+`metrics.narrative`: 8 emissions, 5 shown, 5 verbatim = 62%, against the recorded 61% over 2,111 emissions in 102 runs.
+Emissions fell as designed (8 for this one-item run against a 21-emission rule). Skipped stages: `release-plan`,
+`release-verify`, and one with no stage recorded. So the reduction is confirmed and the relay rule is not: with n = 1
+this run neither shows an improvement nor proves there is none.
+
+**The status line was never shown, which the card's wording caused.** The model's own text (14 text events) contains the
+narrative marker `🚢` and the word `Preparation`, and contains `Where:` **zero** times. The card said "or let the host
+status hook show the status line"; under Codex that hook wrote no status display for these steps, so following the card
+literally left 3 of 8 steps with neither a narrative nor a status line. That is a defect this round found in the change
+under test, not in the model.
+
+**Correction made after the round (not measured live).** The card now distinguishes the two cases: a narrative is shown
+as its first line says (paste it, or let the hook that showed it stand), and a status line is shown by the host's hook
+where it has one, else pasted by the model — with "never leave a completed step with neither" stated explicitly. This
+paragraph is in SKILL.md at 30,258 bytes against the 30,500-byte ledger limit, so the rule had to fit in 242 bytes of
+remaining headroom.
+
+**What this does not establish.** One run, one case, one host, one effort: the 62% is a single sample, and the
+compliance question needs the k-run harness or a second host before any claim. The corrected wording is unmeasured. The
+`Goal:` field on the status line was never exercised, because no status line was shown at all.
+
+**Evidence.** `~/e2e-runs/2026-11-03/narrative-relay-hello/{metrics.json,events.jsonl,result.json}` and its
+`.shiploop-runs/work-20261104-050008-68bb18/run/` records; the earlier corpus baseline is the 102-run reading recorded in
+d7734abe's message.
