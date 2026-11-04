@@ -7782,3 +7782,47 @@ No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a sh
 No-E2E-Round: corpus measurement; does not change skills/shiploop/.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## "Composed progress messages" counted stream chunks, inflating the mean 17x (2026-11-04)
+
+Checking the narrative metric against the full corpus, `composed` had a median of 15 and a **max of 7,659** in a run with
+only 33 narrative emissions. That is not a count of messages.
+
+**What it was counting.** `chess-sf-full-12a23d` writes **8,011 `text` events** whose median length is **4 characters** --
+`"I'll"`, `" start"`, `" Ship"`. The reader incremented once per text-bearing event, so one streamed reply became hundreds
+of "messages". Grouping consecutive chunks into messages gives **139**, which matches the transcript: each is a coherent
+111-167 character update.
+
+**Two more faults the fix exposed.**
+* `thought` events (35,613 in that run) and blank `text` chunks do not end a message; treating them as boundaries split
+  139 messages into 439. Reasoning, `usage` and `available_commands` interleave *inside* a streamed reply; a tool call
+  ends it.
+* The relayed-block test read one chunk (`"#### 🚢 ShipLoop" not in said`) rather than the whole message, so a streamed
+  block whose heading arrived in a different chunk could be counted as the model's own progress.
+
+**What changed across the corpus.**
+
+| | before | after |
+| --- | --- | --- |
+| median | 15 | 14 |
+| **mean** | **307** | **17.8** |
+| **max** | **7,659** | **272** |
+
+Both spread lines are unchanged (narrative relay 0%-100% over 33 groups, Improve edit 11%-85% over 17), because `composed`
+is reported beside the relay rate, never inside it.
+
+**What this invalidates.** Every composed-versus-relayed comparison in this file that used a per-run `composed` count as a
+quantity: the "196 runs, Achieved 97%, Pace 2%" table used presence regexes over composed text, so its percentages stand,
+but any reading of "the model wrote N updates" from this field before today over-counted by up to 17x. The pace and phase
+conclusions rest on *whether* text mentioned a fact, not on how many messages there were, so they are unaffected.
+
+**The tests.** One streams one message through five events (text, thought, text, usage, blank text) and requires
+`composed == 2` for two real messages; reverting to the per-chunk test makes it read 4. The two existing fixtures were
+corrected to place a tool call where they meant a message boundary.
+
+No skill behaviour changed.
+
+No-Change-Note: changes the E2E reader, not a shipped skill path.
+No-E2E-Round: measurement-tooling correction; does not change skills/shiploop/.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>

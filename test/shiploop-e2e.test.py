@@ -3517,7 +3517,8 @@ class MetricsTest(unittest.TestCase):
                 {"type": "tool_call_update", "toolCallId": "a", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("intake")}},
                 # Grok repeats an update; one tool call is one emission.
                 {"type": "tool_call_update", "toolCallId": "a", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("intake")}},
-                {"type": "text", "data": "Starting.\n" + self.NARRATIVE_BODY[:half]},
+                {"type": "text", "data": "Starting.\n"},
+                {"type": "text", "data": self.NARRATIVE_BODY[:half]},
                 {"type": "text", "data": self.NARRATIVE_BODY[half:]},
                 {"type": "tool_call", "toolCallId": "b", "rawInput": {"command": "shiploop complete"}},
                 # A distinct body per stage: narrative() counts one obligation per distinct body (2026-11-03),
@@ -3528,6 +3529,7 @@ class MetricsTest(unittest.TestCase):
                 {"type": "tool_call", "toolCallId": "c", "rawInput": {"command": "shiploop complete"}},
                 {"type": "tool_call_update", "toolCallId": "c", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet(
                     "research", body="#### \U0001f6a2 ShipLoop \u2014 Add a flag\n`\u2591\u2591` **Preparation 3/7**\n")}},
+                {"type": "thought", "data": "thinking"},                                    # ends the message
                 {"type": "text", "data": "\U0001f6a2 ShipLoop \u2014 Add a flag\nsomething else"},  # heading only
                 # The CLI hook shows this one; the model is not asked to.
                 {"type": "tool_call", "toolCallId": "d", "rawInput": {"command": "shiploop complete"}},
@@ -3615,6 +3617,7 @@ class MetricsTest(unittest.TestCase):
                  "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet(
                      "discovery", body="#### \U0001f6a2 ShipLoop \u2014 Add a flag\n`\u2591\u2591` **Preparation 2/7**\n")}},
                 {"type": "text", "data": "The fleet rules are specified."},                   # composed
+                {"type": "tool_call", "toolCallId": "bb", "rawInput": {"command": "shiploop check"}},
                 {"type": "text", "data": "All eight tests pass."},                            # composed
             ]
             (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in stream) + "\n")
@@ -3624,6 +3627,29 @@ class MetricsTest(unittest.TestCase):
         report = metrics.summary_lines({**metrics.collect(out), "narrative": story})
         self.assertIn("narrative relayed 0/2", report[-1])
         self.assertIn("3 composed progress message(s)", report[-1])
+
+    def test_a_streamed_message_is_one_composed_update_not_one_per_chunk(self):
+        """A host streams a reply as many tiny `text` events (median 4 characters: "I'll", " start", " Ship"), so a
+        count per event read one message as 7,659 (chess-sf-full-12a23d, 2026-11-04). Its 8,011 chunks are 139 messages,
+        and reasoning, bookkeeping and blank chunks interleave inside a message without ending it; a tool call does."""
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            stream = [
+                {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "shiploop init"}},
+                {"type": "tool_call_update", "toolCallId": "a",
+                 "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("intake")}},
+                {"type": "text", "data": "The workspace"},          # one message...
+                {"type": "thought", "data": "reasoning"},           # ...interleaved with reasoning...
+                {"type": "text", "data": " is empty"},              # ...continues...
+                {"type": "usage", "data": ""},                      # ...and bookkeeping...
+                {"type": "text", "data": ""},                       # ...and a blank chunk: still one message
+                {"type": "text", "data": "."},
+                {"type": "tool_call", "toolCallId": "c", "rawInput": {"command": "shiploop check"}},
+                {"type": "text", "data": "All eight tests pass."},  # a second message
+            ]
+            (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in stream) + "\n")
+            story = metrics.narrative(out)
+        self.assertEqual(story["composed"], 2, "two messages, not seven chunks")
 
     def test_run_without_narrative_reports_nothing(self):
         with tempfile.TemporaryDirectory() as tmp:

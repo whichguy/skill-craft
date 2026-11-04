@@ -2372,6 +2372,13 @@ def _assistant_text(event: dict) -> str:
     return ""
 
 
+# Events that carry no message text but do not end one: reasoning, bookkeeping and whitespace chunks interleave with a
+# streamed reply.  A `text` event with blank data is still one chunk of the stream -- counting it as a boundary split 139
+# messages into 440 on chess-sf-full-12a23d (2026-11-04).  A tool call or a narrative print does end the message.
+STREAM_NOISE = frozenset(("thought", "usage", "available_commands", "auto_compact_started", "auto_compact_completed",
+                          "text"))
+
+
 def _lines(text: str) -> list[str]:
     """Non-blank lines, whitespace-collapsed; a heading's leading marks do not change what it says."""
     return [" ".join(line.lstrip("#").split()) for line in text.splitlines() if line.lstrip("#").strip()]
@@ -2397,6 +2404,11 @@ def narrative(out: Path, run_dir: Path | None = None) -> dict:
     emissions: list[dict] = []
     seen: set = set()
     composed = 0
+    # A streamed message arrives as many tiny `text` events (median 4 characters: "I'll", " start", " Ship"), so a
+    # count per event read one message as 7,659 of them (chess-sf-full-12a23d, 2026-11-04). A message starts when a
+    # text-bearing event follows one that carries no text: consecutive chunks are one message.
+    said_before = False
+    message = ""
     for _, event in events(out / "events.jsonl"):
         call, output = _tool_output(event)
         match = NARRATIVE.search(output) if output else None
@@ -2406,13 +2418,25 @@ def narrative(out: Path, run_dir: Path | None = None) -> dict:
             body = match.group("body")
             emissions.append({"stage": stage.group("stage") if stage else None,
                               "body": body, "lines": _lines(body), "text": ""})
+            said_before = False
+            message = ""
         elif emissions:
             said = _assistant_text(event)
             emissions[-1]["text"] += said
-            # A progress sentence of the model's own: assistant text that is not the relayed block. Counted because a
-            # run can relay 2 of 6 blocks while writing 21 updates, and the relay count alone reads as silence.
-            if said.strip() and "#### \U0001f6a2 ShipLoop" not in said:
-                composed += 1
+            if said.strip():
+                message += said
+                # A progress message of the model's own: assistant text that is not the relayed block. Counted because
+                # a run can relay 2 of 6 blocks while writing 21 updates, and the relay count alone reads as silence.
+                # The heading test reads the WHOLE message, not one chunk: a streamed block arrives in pieces, so a
+                # chunk-level test can miss a heading another piece carried and count a relayed block as composed.
+                if not said_before and "#### \U0001f6a2 ShipLoop" not in message:
+                    composed += 1
+                said_before = True
+            elif event.get("type") not in STREAM_NOISE:
+                # A tool call ends the message; a thought between chunks does not (one run split 139 messages into 439
+                # when every `thought` event was treated as a boundary).
+                said_before = False
+                message = ""
     # One obligation per distinct body: any occurrence shown satisfies it.
     bodies: dict[str, dict] = {}
     for emission in emissions:
