@@ -7458,3 +7458,33 @@ No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a sh
 No-E2E-Round: this entry IS the E2E round for the archive change (6b422e09, a3facda8, 3b74246d).
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## The released commit verifies clean; the group's one failure was load, and it moved (2026-11-04)
+
+After publishing 2.33.0 / 1.31.0 at `69de2afa`, the full `shiploop` group (130 suites) reported one failure twice, and a
+different one each time:
+
+| run | failing suite | under load |
+| --- | --- | --- |
+| `/tmp/shp-r2` (09:11, before `3b74246d`) | `shiploop-e2e`, the two silent-zero guards | peak 74.9 |
+| `/tmp/shp-final2` (10:12, on the released commit) | `shiploop-e2e-ticket-comments`, one retention check | peak 58.8 |
+
+`shp-r2` started before the `3b74246d` fix existed, so its two failures are the ones already corrected. `final2` ran on the
+released tree and failed a different suite that my change does not touch; run alone at load 6.85 it passes 17 of 17, and
+`shiploop-e2e` alone passes 519 of 519. Both spikes trace to `node` processes from other sessions (up 3 days), not to this
+work: the group is load-sensitive above roughly 9, which is already recorded here.
+
+**The one figure that matters for the release.** `shiploop-e2e` -- the suite covering `metrics.improve_reviews`, which
+`3b74246d` changed -- passes 519 of 519 on the released commit. The group's failure was a different suite, reproduced only
+under load, and green alone.
+
+Recording the movement matters as much as the result: two runs, two different single failures, both green in isolation, is
+the signature of environment rather than defect. A session that saw only one of them could reasonably have concluded the
+opposite.
+
+No skill behaviour changed.
+
+No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
+No-E2E-Round: verification record for the already-published release; does not change skills/shiploop/.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
