@@ -7826,3 +7826,40 @@ No-Change-Note: changes the E2E reader, not a shipped skill path.
 No-E2E-Round: measurement-tooling correction; does not change skills/shiploop/.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## The pace/phase finding holds on the full corpus, and it cannot be re-derived by the shipped reader (2026-11-04)
+
+The 2026-11-03 entry ("what the model's own updates do and do not replace") rests on a one-off script over 196 runs.
+Asked whether the `composed` chunk fix invalidated it, the answer required re-deriving rather than reasoning.
+
+**It does not, and the reason is structural.** `metrics.narrative` returns counts and stage names only -- never text, on
+purpose (`keeps counts and stage names only, never narrative text`). The pace/phase measurement read the model's actual
+sentences, so it could not have been reading the chunk-level `composed` counter at all. The fix redefined *how many*
+messages there are; this measurement asks *whether* any message mentioned a fact.
+
+**Re-derived over the full corpus**, grouping messages with the same boundary rule the reader now uses:
+
+| Run-level fact | Published (196 runs) | Re-derived (399 runs) |
+| --- | --- | --- |
+| Achieved | 97% | **94%** |
+| Phase | 17% | **9%** |
+| **Pace** | **2%** | **1%** |
+| Ahead | 52% | not re-derived (no pattern carried over) |
+
+7092 composed messages across 399 runs. Both figures move **down**, so the conclusion strengthens: the block's `Achieved`
+rows substantially duplicate what composed updates already say, and composed text almost never supplies `Pace`.
+
+**The gap this exposes.** The headline table behind an owner decision is not reproducible with the shipped tool: nothing
+in `corpus.py` or `metrics.py` can recover composed text by design. Anyone auditing "Pace 2%" must write the same
+throwaway script. That is the situation `corpus.py` was created to end for the other three figures.
+
+**Not fixed here, and why.** Exposing composed text would put model prose into a metrics record that currently holds none,
+which is a deliberate privacy and size choice (`never narrative text`) rather than an oversight. Changing it is a design
+decision, not a measurement fix, so this entry records the finding and the gap instead of opening the record.
+
+No skill behaviour changed.
+
+No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
+No-E2E-Round: corpus verification; does not change skills/shiploop/.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
