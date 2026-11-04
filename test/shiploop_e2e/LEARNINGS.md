@@ -7308,3 +7308,37 @@ No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a sh
 No-E2E-Round: verifies already-shipped behaviour in a live run; does not change skills/shiploop/.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## 74% of multi-pass reviews do their editing before the final pass (2026-11-04)
+
+Following the checkers correction, the obvious question is how general it is: when a review takes several passes, where
+does the edit happen? Reading through each run's `state.md` `repo` pointer into `.shiploop-improve/<stage>-<id>/reviews`
+and matching `review-<n>.md` against its `pass-<n>.json` record:
+
+| | count |
+| --- | --- |
+| children with review notes | 1,854 |
+| multi-pass | 601 |
+| **edit at a NON-final pass** | **447 (74% of multi-pass)** |
+
+Examples: `step-plan-affaf60f` edited on passes 1, 2 and 3 of 4 before a clean pass 4; `test-strategy-d910dffa`,
+`test-strategy-f431c351` and `release-plan-49f9e92e` all edited on pass 1 of 2.
+
+**Why this matters more than the count.** A review's *last* pass is the one archived in
+`improve/<id>/evidence/NN-review-<n>.md` (the receipt's terminal trivial streak), and a converging review's last pass is
+by construction the clean one. So the archived prose says `Changed: none` in three quarters of multi-pass cases -- exactly
+the reading that made me conclude review was idle in two earlier cases. The archive is not wrong; it holds the pass that
+ended the loop, and the loop ends when a pass finds nothing.
+
+**My third filter error of the day, and how it surfaced.** The first version of this scan globbed
+`**/.shiploop-runs/*/run/improve/*/reviews` and returned 0 for all three counts. The reviews are not there: they live in
+the worktree named by the run's `state.md` `repo`, or in `<run>/../worktree/.shiploop-improve`. Zero across three
+independent counters was the signal that the filter was wrong, not that 1,854 children had no notes. Following the `repo`
+pointer found them.
+
+No skill behaviour changed.
+
+No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
+No-E2E-Round: corpus measurement; does not change skills/shiploop/.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
