@@ -6491,3 +6491,36 @@ long run's own summaries as better progress reporting than a block that repeats 
 obligation is only salient early, and later it competes with the stage's real work. A discriminating experiment would give
 one run a card that says only "relay, never compose" with no status-line sentence, and another the current text, on the
 same long case -- which needs the ~60-minute budget the entry above prices. Until then no wording change is justified.
+
+### Correction: composing is not a failure to report, and the metric measures the wrong thing (2026-11-03) — status: firm for the transcript comparison; the product question is open, not the measurement
+
+The entry above calls compose-instead-of-relay "the exact behaviour the card forbids" and treats it as a failure. Read
+against what the two actually tell a user, that framing does not hold.
+
+**What the relayed block carries** (release-plan instance): a phase progress bar (`Release 3/9`), an **Achieved** list of
+five completed items and accepted stages, the **Now** line, what is **Ahead** by stage, and **Pace** (34 steps in 38 min).
+
+**What the composed sentences carried**, 21 of them over the run: "The starting workspace is empty, and Node is
+available...", "The test strategy now separates automated rule and HTTP checks from the browser check...", "All eight
+automated tests pass, and the game has passed its local HTTP and rules checks."
+
+They are not substitutes and neither is strictly better. The block gives the run-level picture -- phase, what is done,
+what is next, pace -- that no sentence reproduces. The sentences give stage-level specifics -- what a test actually
+showed, why a probe was limited -- that the block does not. A user reading only the transcript saw the phase (a bar
+appeared), what was achieved, and what was ahead; 726 words in 21 messages. The **pace** line is the one run-level fact
+the sentences never gave.
+
+**So the earlier entry's conclusion was wrong in both directions.** It is not that the model "ignored the user" (it wrote
+21 updates); it is also not that the blocks were unnecessary (they carry the achieved/ahead/pace structure). What the
+metric counts -- verbatim relay -- is a proxy for a display contract, not for whether the user was informed, and on a long
+run the two diverge sharply. **A compliance percentage from this metric must not be read as an information measure.**
+
+**What this does not settle.** Whether ShipLoop should keep asking for the verbatim block at all. The arguments for
+keeping it: the achieved/ahead/pace structure is the run-level view the composed sentences lack, and a host hook renders
+the same block where the host supports one. Against: on a long run a model reliably writes its own updates and the
+duplicate structured block adds a second summary of the same stages. That is a product trade-off about what the user
+should see, which is the owner's, and this correction does not choose it.
+
+**Method note.** The first entry was written from counts (2 shown of 6) and a rule citation. Reading what each artefact
+actually said -- the block's five Achieved lines against four composed sentences -- is what changed the reading. Same
+lesson as the corpus figures: the count answered a narrower question than the one I asked of it.
