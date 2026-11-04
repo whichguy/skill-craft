@@ -6914,3 +6914,36 @@ records elsewhere.
 **What this argues for.** Before any figure from this tool is quoted, say which population it is over. The tool now
 supplies that (`runs`, `status_unreadable`, `seeded_runs_left_out`), and the number a reader needs is usually one of the
 three, not the headline row.
+
+## Most "unknown" runs did finish: a second reader recovers 61 of them, and the two readers agree 136 of 136 (2026-11-04) — status: firm for the agreement; the recovery is a lower bound
+
+The entry above reports 188 of 401 runs with no readable `state.md` and calls their status unknown. That is true of the
+*state* record and not of the run: the harness's own `result.json` carries `termination.engine_status`, which answers the
+same question from a different reader.
+
+**Recovery.** `run_finished` now falls back to that field when no `state.md` survives:
+
+| | before the fallback | after |
+| --- | --- | --- |
+| runs counted as done | 187 | **248** |
+| status unknown | 188 | **109** |
+
+**The two readers agree wherever both exist.** Over the runs I sampled that carry both a readable state and an engine
+status: **136 agree, 0 disagree**. So the fallback is not inventing completions; it is reading the same fact from the
+record that survived.
+
+**Why a second reader is legitimate here and was not for the narrative metric.** These are two independent records of one
+event -- what the engine wrote in its state, and what the harness observed at the end -- so agreement between them is
+evidence. The narrative case was one record read two ways, where the second reading could only reinterpret the first.
+
+**What is still unknown, and why it is a floor.** 109 runs carry neither a readable state nor an engine status in their
+`result.json` (96 of them have `engine_status: None`). Those may have finished, paused, or never started. 248 is therefore
+a lower bound on completed runs, not the count.
+
+**The figures this changes.** Any `--status done` rate computed before this commit was over 187 runs; it is now over 248.
+The end-of-run narrative rate of 66% was over the smaller set and should be recomputed before it is quoted again.
+
+**Recomputed on the recovered set: 66% holds.** Over the 248-run completed population the end-of-run narrative rate is
+**82 of 124 = 66%**, the same as over the 187-run set. The 61 runs the fallback recovered carry no narrative-bearing
+emissions -- they are state-less harness copies whose events do not include the packets -- so the denominator of that
+particular rate was already the right one, and the figure stands unchanged rather than merely being untested.

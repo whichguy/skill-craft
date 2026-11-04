@@ -181,7 +181,20 @@ def run_finished(run: Path) -> bool | None:
         if isinstance(record, dict) and record.get("status"):
             return record["status"] == "done"
         unreadable = False
-    return None if unreadable else False
+    if unreadable:
+        # No state.md survived. The harness's own result.json records what the engine reported at the end
+        # (`termination.engine_status`), which answers the same question from a different reader: 61 of the 188
+        # state-less runs in this corpus say "done" there. A run with neither stays unknown.
+        try:
+            recorded = json.loads((root / "result.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+        ended = (recorded.get("termination") or {}).get("engine_status") if isinstance(recorded, dict) else None
+        ended = ended or (recorded.get("engine_status") if isinstance(recorded, dict) else None)
+        if ended is None:
+            return None
+        return ended == "done"
+    return False
 
 
 def summarise(roots: Iterable[Path], *, group_by: str = "corpus", overlap_seconds: float = 60.0,
