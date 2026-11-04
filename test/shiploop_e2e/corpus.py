@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -136,8 +137,55 @@ def group_of(run: Path, roots: Iterable[Path]) -> str:
     return "other"
 
 
-def summarise(roots: Iterable[Path], *, group_by: str = "corpus", overlap_seconds: float = 60.0) -> dict:
-    """Every figure over the runs found under ``roots``, grouped, with what it could not measure named."""
+def is_seed(run: Path) -> bool:
+    """Whether this run was seeded: the stage suite recorded its early stages without a model doing them.
+
+    A seed writes ``"seeded"`` into its ``result.json`` (`run.py` sets it when it records stages instead of running
+    them), which is the durable marker; the folder path is not, because a seed can live anywhere. This matters for
+    rates: on 2026-11-04 a narrative relay measure that included 27 seeds read the last emission at 47% where the
+    non-seed figure is 62%, and every one of the 27 ``system-test-author`` finals that made the curve look
+    catastrophic was a seed. A seed cannot relay a block, so counting one measures the apparatus, not the model.
+    """
+    try:
+        found = json.loads((Path(run) / "result.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return bool(found.get("seeded")) if isinstance(found, dict) else False
+
+
+def run_finished(run: Path) -> bool:
+    """Whether the navigator recorded this run as ``status: done``; False when its state cannot be read.
+
+    Read with ``shiploop_store.read_record``, not a status regex: a state.md carries several ``"status"`` keys (a hook
+    or command record can precede the run's own), and a first version of this matched ``"available"`` from one of them
+    and reported 51 completed runs where the record says 124.
+    """
+    import shiploop_store as store  # the navigator's own reader
+
+    candidates = [Path(run) / "state.md"] if (Path(run) / "state.md").is_file() else []
+    candidates += sorted((Path(run) / ".shiploop-runs").glob("*/run/state.md"))[-1:]
+    for state in candidates:
+        try:
+            record = store.read_record(state)
+        except Exception:  # noqa: BLE001 - a state this reader cannot parse is not a completed run
+            continue
+        if isinstance(record, dict) and record.get("status"):
+            return record["status"] == "done"
+    return False
+
+
+def summarise(roots: Iterable[Path], *, group_by: str = "corpus", overlap_seconds: float = 60.0,
+              seeds: str = "exclude", status: str = "any") -> dict:
+    """Every figure over the runs found under ``roots``, grouped, with what it could not measure named.
+
+    ``seeds`` is ``exclude`` (default), ``only``, or ``include``. Exclusion is the default because a seed runs no
+    model: including one puts apparatus into a behaviour rate (see ``is_seed``).
+
+    ``status`` is ``any`` (default), ``done`` or ``unfinished``, from each run's own ``state.md``. A rate about how
+    well a run ends belongs to ``done``: a truncated run stops before its natural end, so its last emission is an
+    arbitrary mid-run packet. On 2026-11-04 this distinction moved the end-of-run relay rate from 57% (all runs) to
+    66% (completed), and it is the split that matters -- not ``seeds``, whose durable flag matches one run here.
+    """
     roots = [Path(root) for root in roots]
     runs: list[Path] = []
     missing: list[str] = []
@@ -147,6 +195,18 @@ def summarise(roots: Iterable[Path], *, group_by: str = "corpus", overlap_second
             continue
         runs += [folder for folder in scorecard.run_folders([root])]
     runs = sorted(run for run in dict.fromkeys(runs) if is_observation(run))
+    if seeds not in ("exclude", "only", "include"):
+        raise ValueError("seeds must be exclude, only or include")
+    if status not in ("any", "done", "unfinished"):
+        raise ValueError("status must be any, done or unfinished")
+    if status != "any":
+        wanted = status == "done"
+        runs = [run for run in runs if run_finished(run) is wanted]
+    seed_runs = [run for run in runs if is_seed(run)]
+    if seeds == "exclude":
+        runs = [run for run in runs if run not in set(seed_runs)]
+    elif seeds == "only":
+        runs = seed_runs
 
     spans = {run: _span(run) for run in runs}
     measurable = [run for run in runs if spans[run] is not None]
@@ -212,7 +272,8 @@ def summarise(roots: Iterable[Path], *, group_by: str = "corpus", overlap_second
             if children else None
         bucket["narrative_shown_rate"] = round(100 * bucket["narrative_shown"] / emitted, 1) if emitted else None
         bucket["span_median_minutes"] = round(spans_seen[len(spans_seen) // 2] / 60, 1) if spans_seen else None
-    return {"group_by": group_by, "bases": BASES, "roots": [str(root) for root in roots],
+    return {"group_by": group_by, "seeds": seeds, "status": status, "seeded_runs_left_out": len(seed_runs) if seeds == "exclude" else 0,
+            "bases": BASES, "roots": [str(root) for root in roots],
             "missing_roots": missing, "groups": groups, "unmeasured": unmeasured}
 
 
@@ -274,9 +335,17 @@ def main(argv: list[str] | None = None) -> int:
                         help="per corpus directory (default) or one pooled total")
     parser.add_argument("--overlap-seconds", type=float, default=60.0,
                         help="shared span that counts as an overlap (default 60)")
+    parser.add_argument("--seeds", choices=("exclude", "only", "include"), default="exclude",
+                        help="seeded runs (stages recorded without a model) are excluded by default: they cannot "
+                             "relay a narrative, so counting one measures the apparatus, not the model")
+    parser.add_argument("--status", choices=("any", "done", "unfinished"), default="any",
+                        help="restrict to runs whose own state.md says done, or to the rest; a rate about how well a "
+                             "run ends belongs to done")
     parser.add_argument("--json", action="store_true", help="print the summary as JSON")
     args = parser.parse_args(argv)
-    summary = summarise(args.roots, group_by=args.group_by, overlap_seconds=args.overlap_seconds)
+    summary = summarise(args.roots, group_by=args.group_by, overlap_seconds=args.overlap_seconds,
+                        seeds=args.seeds,
+                        status=args.status)
     print(json.dumps(summary, indent=1, sort_keys=True) if args.json else render(summary))
     return 0
 

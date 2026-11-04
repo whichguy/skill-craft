@@ -6863,3 +6863,25 @@ appears in a run-directory name for an unrelated apparatus.
 that synthetic recordings were the problem; the durable flag matches 1 run and changes nothing. It is left in place because
 it is correct about what it names, but the useful view is `--status done`, which this entry's figures argue for and which is
 not yet built.
+
+## A status filter exists now, and its first contrast is not usable (2026-11-04) — status: firm for the mechanism; the 24%-vs-49% gap is not a finding
+
+`corpus.py --status done|unfinished|any` reads each run's own `state.md` through `shiploop_store.read_record` and filters
+before every figure. Written because the end-of-run rate in the entries above needed a population of runs that ended, and
+because "seed" was the wrong axis.
+
+**The mechanism was wrong on its first attempt and is worth recording.** Matching `"status"` with a regex found
+`"status": "available"` from a hook record that precedes the run's own status in `state.md`, and reported 51 completed runs
+where the record says 187. `shiploop_store.read_record` gives the top-level value; a regex over the file does not.
+
+**The split, on the current corpus:** 187 done, 214 unfinished, 401 total.
+
+**The contrast it exposes is not usable yet.** Completed runs show an Improve edit rate of 24.3% (316 of 1,303 children);
+unfinished runs 49.3% (35 of 71). That looks like a large difference and it is not: the unfinished group carries **71
+children in total**, and **no corpus appears in both groups with 20 or more children**, so there is nothing to hold
+constant. It may be that runs which pause have different review behaviour, or it may be that the two populations are made
+of different cases and builds. This corpus cannot tell them apart, and quoting "unfinished runs edit twice as often" would
+be the same error as quoting 69% as a general narrative rate.
+
+**What it is good for.** The end-of-run narrative rate: 66% over completed runs, against 57% over all runs. That use is
+sound because the population is defined by the question (how well does a run end -> runs that ended).
