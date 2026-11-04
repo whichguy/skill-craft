@@ -7282,3 +7282,29 @@ No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a sh
 No-E2E-Round: records corpus measurement of existing gate behaviour; does not change skills/shiploop/.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## The Goal field rides every status line; three of my greps said otherwise (m2-checkers, 2026-11-04)
+
+`55e87728` added `· Goal: <request>` to the status line, capped at 90 characters. Verifying it in a live run, I reported
+"0 status lines, 0 with Goal" and then "12 of 32" before finding the truth: **16 of 16 status-line events carry it.**
+
+Three separate filter errors, each returning a confident zero:
+
+1. I globbed `*.log`, `*.txt`, `*.jsonl` under the run root and summed `rg -c` per file. The status lines live in the run's
+   `events.jsonl`, and my per-file summation reported 0 -- a zero from a filter that could not see the file, not a measurement.
+2. Counting with `rg -o 'Where: ' | wc -l` gave 32 for 16 events, because each event carries the status line twice (packet
+   head and the relayed copy). I compared 32 against a Goal count taken per line and produced a fake shortfall.
+3. Parsing per event instead of per occurrence gives 16 events, every one with `Goal:`. The built script confirms it at
+   `shiploop_navigator.py:5765`: `Where: … · <label>: … · Goal: {goal}`.
+
+**The rule this file keeps relearning.** A count is only a measurement when the filter is shown to reach the population.
+Every correction in this file has the same shape -- narrative 61%→69%, verify double-count, Improve share 58%→33%, checkers
+"511 runs" vs 8 with evidence, and now a status field reported absent that was present in every line. Before quoting a zero,
+print one raw matching line; if that is impossible, the filter is wrong, not the system.
+
+No skill behaviour changed.
+
+No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
+No-E2E-Round: verifies already-shipped behaviour in a live run; does not change skills/shiploop/.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
