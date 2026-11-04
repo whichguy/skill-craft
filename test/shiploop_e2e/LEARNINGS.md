@@ -6337,3 +6337,27 @@ What this does not rescue: any comparison of two arms on **elapsed minutes or st
 and isolated corpus, and the per-stage decomposition I computed earlier (step-plan 60 s, document 60 s, and so on),
 which was pooled across both groups and therefore mixes a 1.32x-inflated span with clean work. A re-run of that
 decomposition should restrict to isolated runs (62% of the corpus) or use `environment.overlap` as a covariate.
+
+## The Improve yield figure is corpus-dependent: 18% in its original scope, 11-85% across corpora (2026-11-03) — status: firm for the figures; interim for the cause
+
+f98791a4 shipped "19% of 808 Improve children edited" and it is quoted in the 2.32.3 release note's reasoning. Re-derived
+on the current corpus, the same reader gives:
+
+- **Within the corpus the claim named** (the 2026-10-29 to 2026-11-01 folders): 898 children, 162 edited = **18%**. The
+  shipped figure is correct for its stated scope; 19% was rounding.
+- **Across every corpus** under `~/e2e-runs*`: 1,258 children, 323 edited = **26%**.
+- **Per corpus the rate ranges 11% to 85%**: 2026-10-30 11% (122 children), 2026-11-01 18% (681), 2026-10-31 33% (78),
+  20261026 65% (52), e6d2-deepseek-20261028 84% (38), 20261027 85% (26).
+
+**Size does not explain it.** Correlation between a corpus's children-per-run and its edit rate is -0.11 over 16 corpora,
+so "small runs edit more per child" is not the mechanism. Whatever drives it lives in what differs between those folders:
+build, model, case and review schedule, which this reader does not separate.
+
+**What this means for the shipped figure.** "19% of Improve children edit" is a true statement about one corpus and a
+misleading one about Improve in general. Any reader using it to decide whether a stage's review earns its slot needs
+the per-corpus range, not the pooled number, and a future comparison must hold corpus, build and model fixed.
+
+**What it does not change.** The two facts the scorecard change was justified by are unaffected: a large share of
+Improve children change nothing in every corpus measured (the best case is 85% editing on 26 children, and the corpus
+that carries most of the evidence sits at 18%), and the reader itself is unchanged. The two diagnostic fields
+`improve_reviews`/`improve_editing_reviews` remain the right way to expose it, because they are reported per run.
