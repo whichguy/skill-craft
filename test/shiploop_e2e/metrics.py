@@ -2376,6 +2376,7 @@ def narrative(out: Path, run_dir: Path | None = None) -> dict:
     """
     emissions: list[dict] = []
     seen: set = set()
+    composed = 0
     for _, event in events(out / "events.jsonl"):
         call, output = _tool_output(event)
         match = NARRATIVE.search(output) if output else None
@@ -2386,7 +2387,12 @@ def narrative(out: Path, run_dir: Path | None = None) -> dict:
             emissions.append({"stage": stage.group("stage") if stage else None,
                               "body": body, "lines": _lines(body), "text": ""})
         elif emissions:
-            emissions[-1]["text"] += _assistant_text(event)
+            said = _assistant_text(event)
+            emissions[-1]["text"] += said
+            # A progress sentence of the model's own: assistant text that is not the relayed block. Counted because a
+            # run can relay 2 of 6 blocks while writing 21 updates, and the relay count alone reads as silence.
+            if said.strip() and "#### \U0001f6a2 ShipLoop" not in said:
+                composed += 1
     # One obligation per distinct body: any occurrence shown satisfies it.
     bodies: dict[str, dict] = {}
     for emission in emissions:
@@ -2413,7 +2419,7 @@ def narrative(out: Path, run_dir: Path | None = None) -> dict:
         with_headline += bool(str(result.get("headline") or "").strip())
     return {"emitted": len(bodies), "shown": shown, "verbatim": verbatim, "skipped": skipped,
             "raw_emissions": len(emissions), "repeated": len(emissions) - len(bodies),
-            "results": results, "with_headline": with_headline}
+            "composed": composed, "results": results, "with_headline": with_headline}
 
 
 def verifications(run_dir: Path | None) -> dict:
@@ -2762,8 +2768,13 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
         lines.append(tool_use_text(metrics["tool_use"]))
     story = metrics.get("narrative") or {}
     if story.get("emitted") or story.get("results"):
-        lines.append(f"narrative shown {story['shown']}/{story['emitted']} (verbatim {story['verbatim']})"
-                     + (f", skipped at {', '.join(str(s) for s in story['skipped'][:5])}" if story["skipped"] else "")
+        # Named as the display contract it is, not as "compliance": on a long recorded run a model relayed 2 of 6 blocks
+        # while writing 21 progress sentences of its own, so a reader taking this as "how often the user was told" would
+        # be wrong by a wide margin (LEARNINGS 2026-11-03, the battleship round and its correction). `composed` is that
+        # count, present when the reader could measure it.
+        lines.append(f"narrative relayed {story['shown']}/{story['emitted']} (verbatim {story['verbatim']})"
+                     + (f", not relayed at {', '.join(str(s) for s in story['skipped'][:5])}" if story["skipped"] else "")
+                     + (f", {story['composed']} composed progress message(s)" if story.get("composed") is not None else "")
                      + f"; headlines {story['with_headline']}/{story['results']} results")
     timed = [s for s in metrics["stages"] if s.get("seconds") is not None]
     if timed:

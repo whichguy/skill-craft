@@ -3507,11 +3507,12 @@ class MetricsTest(unittest.TestCase):
             story = metrics.narrative(out, run_dir)
             report = metrics.summary_lines({**metrics.collect(out, run_dir), "narrative": story})
         self.assertEqual(story, {"emitted": 3, "shown": 2, "verbatim": 1, "skipped": ["discovery"],
-                                 "raw_emissions": 3, "repeated": 0, "results": 2, "with_headline": 1})
+                                 "raw_emissions": 3, "repeated": 0, "composed": 3, "results": 2,
+                                 "with_headline": 1})
         # Each distinct body is one obligation (2026-11-03). The fixture's second `intake` update is the same tool
         # call, which the reader already collapses before counting, so it contributes no repeat either way.
         self.assertEqual(story["emitted"] + story["repeated"], story["raw_emissions"])
-        self.assertIn("narrative shown 2/3 (verbatim 1), skipped at discovery; headlines 1/2 results", report[-1])
+        self.assertIn("narrative relayed 2/3 (verbatim 1), not relayed at discovery", report[-1])
         self.assertNotIn("Add a flag", json.dumps(story))
 
     def test_narrative_reads_claude_tool_results_and_text_blocks(self):
@@ -3563,13 +3564,40 @@ class MetricsTest(unittest.TestCase):
         self.assertEqual((story["raw_emissions"], story["repeated"]), (4, 3))
         self.assertEqual(story["emitted"] + story["repeated"], story["raw_emissions"])
 
+    def test_composed_progress_is_counted_beside_the_relayed_block_never_instead_of_it(self):
+        """A run can relay few blocks and still update the user constantly: the battleship round of 2026-11-03 relayed
+        2 of 6 and wrote 18 progress sentences of its own. Counting only the relay read that as silence, and I reported
+        it as one. The reader counts both, so a reader of metrics.json sees the difference.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            stream = [
+                {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "shiploop complete"}},
+                {"type": "tool_call_update", "toolCallId": "a",
+                 "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("intake")}},
+                {"type": "text", "data": "The workspace is empty and Node is available."},   # composed
+                {"type": "tool_call", "toolCallId": "b", "rawInput": {"command": "shiploop complete"}},
+                {"type": "tool_call_update", "toolCallId": "b",
+                 "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet(
+                     "discovery", body="#### \U0001f6a2 ShipLoop \u2014 Add a flag\n`\u2591\u2591` **Preparation 2/7**\n")}},
+                {"type": "text", "data": "The fleet rules are specified."},                   # composed
+                {"type": "text", "data": "All eight tests pass."},                            # composed
+            ]
+            (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in stream) + "\n")
+            story = metrics.narrative(out)
+        self.assertEqual((story["emitted"], story["shown"]), (2, 0), "neither block was relayed")
+        self.assertEqual(story["composed"], 3, "three progress sentences of the model's own")
+        report = metrics.summary_lines({**metrics.collect(out), "narrative": story})
+        self.assertIn("narrative relayed 0/2", report[-1])
+        self.assertIn("3 composed progress message(s)", report[-1])
+
     def test_run_without_narrative_reports_nothing(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
             (out / "events.jsonl").write_text(json.dumps({"type": "text", "data": "hi"}) + "\n")
             m = metrics.collect(out)
         self.assertEqual(m["narrative"], {"emitted": 0, "shown": 0, "verbatim": 0, "skipped": [],
-                                          "raw_emissions": 0, "repeated": 0, "results": 0, "with_headline": 0})
+                                          "raw_emissions": 0, "repeated": 0, "composed": 0, "results": 0, "with_headline": 0})
         self.assertFalse(any(line.startswith("narrative") for line in metrics.summary_lines(m)))
 
     def test_glue_is_defined_by_shiploop_paths_and_verbs_not_by_product_tools(self):
