@@ -6652,3 +6652,36 @@ predates the fix; the correction entry follows it.
 claims remain in place because the file is append-only by design. A reader arriving at a line from a citation, a grep, or
 a commit message needs one place that says which numbers are still live. This is that place for the three figures I
 touched; it is not a general index.
+
+## The relay decay is positional: 74% at the first emission, 46% from the sixth (2026-11-04) — status: firm for the curve; the paired-card experiment stays unrun
+
+The entry of 2026-11-03 said the cause of compose-instead-of-relay was unresolved and that separating its two candidate
+explanations needed a ~60-minute paired run with two card variants. That was wrong about the cost: the corpus already
+answers the first half, because if the obligation were salient only early, compliance should decay with emission
+position, and the corpus has 2,654 emissions in 249 runs to measure it.
+
+**Position curve** (emission index within a run, then shown/emitted):
+
+| emission # | shown | n | rate |
+| --- | --- | --- | --- |
+| 1 | 185 | 249 | **74%** |
+| 2 | 119 | 193 | 62% |
+| 3 | 113 | 187 | 60% |
+| 4 | 99 | 178 | 56% |
+| 5 | 99 | 162 | 61% |
+| 6+ | 1,113 | 2,395 | **46%** |
+
+Monotone apart from a small rebound at 5. Paired within runs: of the 249 runs, 185 showed their first emission and those
+runs averaged **44%** on their later emissions.
+
+**What this establishes.** The relay obligation decays with position inside a run. A model starting a run shows the first
+block about three times in four and settles near one in two by the sixth. That is the early-salience explanation, and it
+fits the battleship round exactly: it showed emissions 1 and 2 and then none of 3 to 6.
+
+**What it does not establish.** Position correlates with duration and with stage, so this is not yet proof that *salience*
+rather than *elapsed time* or *stage type* is the driver. The paired-card experiment would separate those, and it stays
+unrun -- but its purpose narrows: it is no longer needed to show that decay exists, only to show which of the three
+drivers causes it.
+
+**Cost.** Zero; this re-reads records already on disk with `metrics.narrative` and the event stream. The 2026-11-03 entry
+priced a 60-minute experiment for a question the corpus could answer in 23 seconds.
