@@ -6224,3 +6224,12 @@ compliance question needs the k-run harness or a second host before any claim. T
 **Evidence.** `~/e2e-runs/2026-11-03/narrative-relay-hello/{metrics.json,events.jsonl,result.json}` and its
 `.shiploop-runs/work-20261104-050008-68bb18/run/` records; the earlier corpus baseline is the 102-run reading recorded in
 d7734abe's message.
+
+**Follow-up from the baseline row (fc381efe).** The row shows an `implement` send-back at 39 s, then a re-planned
+`step-plan` at 123 s and a second `test-spec` at 24 s: about 2 minutes of the 977 s run, and the largest single
+inefficiency it records. This is the proof-order family again — a step Proof needing a test the item base does not have
+— which the shipped rule (rule C, 9870c6f6) refuses when the Proof names a *path*. Here the proof was a `python3 -`
+inline script, which `command_paths` cannot see, so the rule did not fire. That is the known miss class recorded in
+cc828f73 ("9 of 12 implement send-backs were this fault"; the shipped rule catches paths, not prose or inline code), and
+this round adds one more instance to it. No new rule is proposed here: the registered C′ variant was rejected at 5 false
+refusals of 10, and one instance of a known miss does not change that evidence.
