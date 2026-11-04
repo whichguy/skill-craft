@@ -7089,3 +7089,35 @@ one build, so the *direction* is what this cell supports, not the magnitude.
 
 **Cost.** Two hello runs, about 15 minutes each, run in parallel. The 60-minute battleship round priced earlier was never
 needed.
+
+## M2 proxy on the same cell: 7 of 8 planning reviews found nothing, and the eighth added a docstring (2026-11-04) — status: firm for this cell; one case, and the escape proxy is not M2 itself
+
+The entry above measured I5's speed half: `none` saves 2.1 planning minutes and produces documents within 5% of
+`stage`. That leaves the question the review exists for -- do the planning reviews catch defects the documents need?
+
+**M2's own method** is to run the `stage` review post hoc over a `none` run's documents on a scratch copy and count
+warranted findings. This is the cheaper proxy the *stage* arm already provides: what did its eight planning reviews
+actually find?
+
+| | children | passes | passes that edited |
+| --- | --- | --- | --- |
+| `stage` arm | 8 | 8 | **1** |
+
+**The one edited review** (`nav-e0fb2c7d`) reported: "Changed: Added a concise module purpose docstring to each Python
+file. These are non-semantic and preserve output and test behavior." It classified the pass **trivial** and the exit
+satisfied. So across eight planning reviews on this case, the total warranted finding was a documentation convention --
+not a wrong requirement, a missing criterion, or a plan defect.
+
+**What that supports.** For a `hello`-sized request on this host, the planning reviews spent about 2 minutes and 4
+Improve children to add one purpose line. That is a real cost-for-value ratio, and it is the direction I5's flip would
+bet on.
+
+**What it does not support, and this is the limit that matters.** `hello` is the smallest case in the catalog: one work
+item, one requirement, five lines of code. M2's purpose is to find whether reviews catch defects on documents that *need*
+review -- and a case this small may have none to find. The 1-of-8 result says nothing about `battleship`, `csv-report` or
+a Salesforce case, where the plan is the artefact that carries the risk. **A flip decided on this cell alone would be
+decided on the case least likely to need the review.**
+
+**What M2 would need.** The same measurement on a case with a non-trivial plan: run `none`, then run the `stage` review
+over its planning documents post hoc, and count warranted findings by class. One such case would either confirm the
+1-in-8 or overturn it, and `csv-report` costs one run rather than `battleship`'s 40-60 minutes.
