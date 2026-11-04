@@ -2806,8 +2806,7 @@ class ImprovePassTests(ImproveCliFixture):
         receipt names only the trivial streak, so the archive kept the pass that found nothing while the pass that did the
         work stayed in the worktree, which is not kept. passes.md records that a pass edited, not what it found."""
         self.begin()
-        self.write_review(1, label="non-trivial", exit="unsatisfied", found="the acceptance cases were vague.",
-                          changed="the acceptance cases.", why="it rewrote them.")
+        self.edited_pass(1, "The acceptance cases were vague.\n", found="the acceptance cases were vague.")
         done, _complete, _again = self.printed(self.invoke(*self.pass_args()).stdout)
         self.run_done(done)
         self.write_review(2)
@@ -2815,8 +2814,11 @@ class ImprovePassTests(ImproveCliFixture):
         self.run_done(done2)
         self.run_argv(shlex.split(complete))
         archive = self.run / "improve" / self.action / "reviews"
-        self.assertEqual(sorted(path.name for path in archive.iterdir()), ["review-1.md", "review-2.md"])
+        # Each pass travels with its record: prose alone would make a later reader call the pass "not recorded".
+        self.assertEqual(sorted(path.name for path in archive.iterdir()),
+                         ["pass-1.json", "pass-2.json", "review-1.md", "review-2.md"])
         self.assertIn("the acceptance cases were vague.", (archive / "review-1.md").read_text(encoding="utf-8"))
+        self.assertTrue(json.loads((archive / "pass-1.json").read_text(encoding="utf-8"))["edited"])
         # The receipt's own numbered evidence keeps its names: the new copies sit beside it, not over it.
         evidence = self.run / "improve" / self.action / "evidence"
         self.assertTrue(any(path.name.endswith("-review-2.md") for path in evidence.iterdir()))
