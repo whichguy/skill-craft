@@ -576,7 +576,9 @@ the full queue/history and actual evidence for execution claims. Before
 Every packet but an Improve packet also carries one script-rendered progress
 block: at milestones the [run narrative](status-display.md#run-narrative), whose
 first line says whether the owner pastes it to the user as written or the host's
-hook already showed it; otherwise one status line, `Where: … · Next: …`. The
+hook already showed it; otherwise one status line, `Where: … · Next: … · Goal: …`
+(the trailing goal names the run's own request, so a packet between milestones still
+says what the run is for; the owner does not paste it). The
 full [status block](status-display.md) (between `=== ShipLoop status ===` and
 `=== end ShipLoop status ===`: where the run is, the phase and item maps, what
 was just accepted, what comes next, the item's plan sentence and the completed
