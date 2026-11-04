@@ -7622,3 +7622,39 @@ No-Change-Note: records an owner decision on the existing default; no source cha
 No-E2E-Round: records a decision and the evidence behind it; does not change skills/shiploop/.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## The chess Salesforce case passes on a cleaned org, and the archive holds there too (2026-11-04)
+
+After the org cleanup, `chess-salesforce` (codex, gpt-6.1-terra, high, checkout source) **passed in 60 minutes**, all
+three checks green:
+
+| check | result |
+| --- | --- |
+| `tests --org de --prefix SLChess --min-tests 8` | PASS |
+| `rules` (harness-owned anonymous Apex: perft counts, literal positions, mate/stalemate, two full games) | PASS |
+| `platform` (cleanup ran, 87 guarded calls, guard saw 34 sf-looking commands) | PASS |
+
+The deployed project was real, not a stub: `SLChessEngine` (97 lines: FEN parse, move generation, king tracking, move
+cache), `SLChessEngineTest`, `SLChessController`, the `slChessBoard` LWC, the `SLChess_Board` tab and the `SLChess` app.
+The run removed its own metadata: preflight afterwards reports no SLChess item in 13 metadata types.
+
+**Improve on this case: 15 children, 22 passes, 6 edited, max 3 passes.** That is the highest child count of the cases
+read and the first chess figure with readable review evidence -- earlier chess runs reported 0 children because their
+reviews were unreadable (`metrics.improve_reviews` docstring records runs 3, 4 and 5 reading 0 until 2026-10-25).
+
+**The archive holds on a second case.** Six children carry `reviews/` with both passes and both records
+(`review-1.md`, `review-2.md`, `pass-1.json`, `pass-2.json`), and pass 1 on all three inspected children is
+`non-trivial / unsatisfied`, which is exactly the shape that used to be discarded. `archive-live2` showed it on
+csv-report; this shows it on a hosted-platform case that deploys and removes real metadata.
+
+**What is not compared.** The harness records `baseline: nothing compared` -- one earlier chess-salesforce row exists but
+none with codex/gpt-6.1-terra/high -- and `quality: not observed`, because the case declares no mutation command and no
+held-out acceptance. So this run proves the case passes on a clean org; it does not place the run against an earlier
+result.
+
+No skill behaviour changed.
+
+No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
+No-E2E-Round: this entry IS the E2E round for the chess case after the archive release.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
