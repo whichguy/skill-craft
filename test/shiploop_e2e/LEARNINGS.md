@@ -7863,3 +7863,44 @@ No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a sh
 No-E2E-Round: corpus verification; does not change skills/shiploop/.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## The pace figure is 1%, and getting there took three wrong numbers (2026-11-04)
+
+The 2026-11-03 pace/phase finding was not reproducible by the shipped tool, because `metrics.narrative` returns counts
+and never text. `narrative()` now also reports `run_level`: how many of the block's run-level facts appear in the model's
+own words, as counts, still with no prose in the record.
+
+**I reported the pace figure three times and was wrong twice.**
+
+| measurement | pace | what was wrong |
+| --- | --- | --- |
+| throwaway script (196 runs, first) | 2% | plausible, but not reproducible |
+| throwaway script (399 runs, reported to the owner as "verified") | 1% | right answer, wrong method -- I had not checked it against a shipped path |
+| `run_level`, first version | **11%** | counted the relayed block's `#### 🚢 ShipLoop — <request>` heading, whose title contains digits and prepositions that trip the pattern |
+| `run_level`, after dropping headings | **10%** | still counted the block's own `**⏱ Pace** — 21 steps in 2 h 46 min` row, because the filter only dropped lines matching the *paired* emission's body, and a re-shown block carries a body from an earlier emission |
+| `run_level`, after dropping block row markers | **1%** | matches the model's real sentences: "Preparation is 3 of 7 steps done" |
+
+**The distinction the last fix rests on.** A block row is *shown*; it is not *written*. Counting it reports every relay as
+if the model had supplied the fact, which is exactly the question the measurement exists to answer the other way.
+
+**Final figures over 399 runs with emissions and composed text**, replacing the table above:
+
+| run-level fact | model's own words |
+| --- | --- |
+| Achieved | **88%** |
+| Phase | **10%** |
+| **Pace** | **1%** |
+
+The conclusion holds and is now reproducible with `python3 test/shiploop_e2e/corpus.py`-adjacent code rather than a
+throwaway: the model's updates duplicate what the block calls Achieved, and almost never supply Pace.
+
+**What I got wrong in process.** I told the owner the narrative decision "rests on verified numbers" when the 1% had
+never been checked against a shipped path. The 1% turned out right; the claim did not, because the check that would have
+justified it is the one I skipped. Reporting a number and reporting it as verified are different acts.
+
+No skill behaviour changed.
+
+No-Change-Note: changes the E2E reader, not a shipped skill path.
+No-E2E-Round: measurement-tooling correction; does not change skills/shiploop/.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>

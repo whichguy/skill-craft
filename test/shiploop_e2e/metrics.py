@@ -2438,6 +2438,7 @@ def narrative(out: Path, run_dir: Path | None = None) -> dict:
                 said_before = False
                 message = ""
     # One obligation per distinct body: any occurrence shown satisfies it.
+    reported: set[str] = set()
     bodies: dict[str, dict] = {}
     for emission in emissions:
         entry = bodies.setdefault(emission["body"], {"stage": emission["stage"], "lines": emission["lines"],
@@ -2446,6 +2447,7 @@ def narrative(out: Path, run_dir: Path | None = None) -> dict:
         if emission["lines"] and emission["lines"][0] in said:
             entry["shown"] = True
             entry["verbatim"] = entry["verbatim"] or all(line in said for line in emission["lines"])
+        reported.add(emission["text"])
     shown = sum(1 for entry in bodies.values() if entry["shown"])
     verbatim = sum(1 for entry in bodies.values() if entry["verbatim"])
     skipped = [entry["stage"] for entry in bodies.values() if not entry["shown"]]
@@ -2463,7 +2465,50 @@ def narrative(out: Path, run_dir: Path | None = None) -> dict:
         with_headline += bool(str(result.get("headline") or "").strip())
     return {"emitted": len(bodies), "shown": shown, "verbatim": verbatim, "skipped": skipped,
             "raw_emissions": len(emissions), "repeated": len(emissions) - len(bodies),
-            "composed": composed, "results": results, "with_headline": with_headline}
+            "composed": composed, "results": results, "with_headline": with_headline,
+            "run_level": _run_level(_model_text(emissions))}
+
+
+# The run-level facts the milestone block carries, as the reader can test them without keeping the prose.  The
+# 2026-11-03 pace/phase finding -- the block's Achieved rows duplicate what the model already writes, and Pace almost
+# never appears -- rested on a one-off script because this reader returns no text.  Counting presence here makes that
+# finding re-derivable by the shipped tool while still keeping every sentence out of the record.
+RUN_LEVEL_FACTS = {
+    "achieved": re.compile(r"\b(?:now (?:works|passes)|passes|completed|done|built|finished|verified)\b", re.I),
+    "phase": re.compile(r"\b(?:Preparation|Work items?|Release)\b[^\n]{0,40}\d+\s*(?:/|of)\s*\d+", re.I),
+    "pace": re.compile(r"\d+\s+steps?\s+in\b|\d+\s+of\s+\d+\s+(?:steps|stages)", re.I),
+}
+
+
+def _model_text(emissions) -> str:
+    """The model's own words beside each emission, with the relayed blocks removed.
+
+    A block's own lines are not the model's composition: they were shown, not written, so including them would report
+    every relay as if the model had supplied the fact.  Two things are dropped: any line that appears in an emitted body,
+    and any line carrying a block row marker (``**⏱ Pace** — 21 steps in 2 h 46 min``), which is how a relayed block
+    reads even when it came from a body paired with a different emission.
+    """
+    relayed = {line for emission in emissions for line in emission["lines"]}
+    kept = []
+    for emission in emissions:
+        for line in _lines(emission["text"]):
+            if line in relayed or "ShipLoop" in line or "\U0001f6a2" in line:
+                continue
+            if any(marker in line for marker in BLOCK_ROW_MARKERS):
+                continue
+            kept.append(line)
+    return "\n".join(kept)
+
+
+# How a relayed milestone block names its rows.  A line carrying one is the block's, not the model's own sentence: the
+# 2026-11-04 measurement first counted `**⏱ Pace** — 21 steps in 2 h 46 min` as composed text and read pace at 10% when
+# the model rarely writes pace at all.
+BLOCK_ROW_MARKERS = ("\u23f1 Pace", "**Achieved**", "**Now**", "**Ahead**", "**Phase**")
+
+
+def _run_level(text: str) -> dict:
+    """Which run-level facts the model's own updates carried, as counts of messages, never the text."""
+    return {name: len(pattern.findall(text)) for name, pattern in RUN_LEVEL_FACTS.items()}
 
 
 def verifications(run_dir: Path | None) -> dict:

@@ -3544,7 +3544,9 @@ class MetricsTest(unittest.TestCase):
             report = metrics.summary_lines({**metrics.collect(out, run_dir), "narrative": story})
         self.assertEqual(story, {"emitted": 3, "shown": 2, "verbatim": 1, "skipped": ["discovery"],
                                  "raw_emissions": 3, "repeated": 0, "composed": 3, "results": 2,
-                                 "with_headline": 1})
+                                 "with_headline": 1,
+                                 # presence counts of run-level facts in the model's own words, never the prose
+                                 "run_level": {"achieved": 0, "phase": 0, "pace": 0}})
         # Each distinct body is one obligation (2026-11-03). The fixture's second `intake` update is the same tool
         # call, which the reader already collapses before counting, so it contributes no repeat either way.
         self.assertEqual(story["emitted"] + story["repeated"], story["raw_emissions"])
@@ -3657,7 +3659,8 @@ class MetricsTest(unittest.TestCase):
             (out / "events.jsonl").write_text(json.dumps({"type": "text", "data": "hi"}) + "\n")
             m = metrics.collect(out)
         self.assertEqual(m["narrative"], {"emitted": 0, "shown": 0, "verbatim": 0, "skipped": [],
-                                          "raw_emissions": 0, "repeated": 0, "composed": 0, "results": 0, "with_headline": 0})
+                                          "raw_emissions": 0, "repeated": 0, "composed": 0, "results": 0, "with_headline": 0,
+                                          "run_level": {"achieved": 0, "phase": 0, "pace": 0}})
         self.assertFalse(any(line.startswith("narrative") for line in metrics.summary_lines(m)))
 
     def test_glue_is_defined_by_shiploop_paths_and_verbs_not_by_product_tools(self):
