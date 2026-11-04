@@ -2801,6 +2801,26 @@ class ImprovePassTests(ImproveCliFixture):
         self.assertTrue(cells[7].isdigit(), row)
         self.assertEqual(cells[8], "not enforced")  # no Claude session bound this suite's run
 
+    def test_an_import_archives_every_review_pass_not_only_the_receipts_streak(self):
+        """74% of multi-pass reviews edit before their final pass (test/shiploop_e2e/LEARNINGS.md, 2026-11-04), and the
+        receipt names only the trivial streak, so the archive kept the pass that found nothing while the pass that did the
+        work stayed in the worktree, which is not kept. passes.md records that a pass edited, not what it found."""
+        self.begin()
+        self.write_review(1, label="non-trivial", exit="unsatisfied", found="the acceptance cases were vague.",
+                          changed="the acceptance cases.", why="it rewrote them.")
+        done, _complete, _again = self.printed(self.invoke(*self.pass_args()).stdout)
+        self.run_done(done)
+        self.write_review(2)
+        done2, complete, _again2 = self.printed(self.invoke(*self.pass_args()).stdout)
+        self.run_done(done2)
+        self.run_argv(shlex.split(complete))
+        archive = self.run / "improve" / self.action / "reviews"
+        self.assertEqual(sorted(path.name for path in archive.iterdir()), ["review-1.md", "review-2.md"])
+        self.assertIn("the acceptance cases were vague.", (archive / "review-1.md").read_text(encoding="utf-8"))
+        # The receipt's own numbered evidence keeps its names: the new copies sit beside it, not over it.
+        evidence = self.run / "improve" / self.action / "evidence"
+        self.assertTrue(any(path.name.endswith("-review-2.md") for path in evidence.iterdir()))
+
     def test_a_result_only_edit_is_an_edit_and_needs_the_reviews_own_check_of_the_changed_result(self):
         """Advisors panel 2026-10-25: a step plan's or test spec's result lies outside the tree, so a review that edited only
         its result read "tree changed: n" (test-spec reviews: 0 of 9 edited by that column, 5 of 9 in fact), and ShipLoop's

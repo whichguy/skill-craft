@@ -7342,3 +7342,29 @@ No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a sh
 No-E2E-Round: corpus measurement; does not change skills/shiploop/.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## Checkers passes and edits 4 of 10 Improve children (2026-11-04)
+
+`m2-checkers`, shiploop 1.30.8, whole run PASS in about 25 min: 10 Improve children, 14 passes, **4 edited**, max passes 2.
+The four that edited span `spec`, `test-strategy`, `document` and a second `step-plan`; the six that did not span
+`carry-forward`, `plan`, `release-plan`, `system-test-author` and two step-plans.
+
+Two findings from the earlier passes of this same run, both landed as commits: the spec lacked a replayable move sequence
+and malformed its API boundaries (`583e6a74`, +18 lines), and the test strategy assumed a browser connector that was absent
+while a local Chrome existed (`731a4ef`, +23 lines). Both then converged on a clean pass 2.
+
+**The case settles the small-sample reading.** Combined with hello (0 edits), csv-report (2 edits, both docstrings) and
+this run (4 edits, two of them material), review's yield is case-dependent: 0, 2 and 4 edits over three read cases, with
+the nature varying from typographic to substantive. Earlier I read csv-report's two docstrings as "review is nearly idle";
+checkers shows that reading came from one small sample and does not generalize.
+
+**Why this does not settle the I5 default.** Four cases cannot estimate a rate, and the option is a product trade-off
+(speed against catching a defect) rather than a fact about the corpus. The measurement is recorded so the decision has
+numbers under it, not to make the decision here.
+
+No skill behaviour changed.
+
+No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
+No-E2E-Round: this commit records the round's result; the skill change that shipped beside it carries its own note.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
