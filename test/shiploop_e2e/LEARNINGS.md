@@ -7559,3 +7559,38 @@ No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a sh
 No-E2E-Round: corpus analysis of existing refusals; does not change skills/shiploop/.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## The chess org cleanup needed a snapshot from before the items existed, and found a second leftover (2026-11-04)
+
+`chess-salesforce` preflight refused: org `de` held `SLChessBudgetTest`, `SLChessController`, `SLChessEngine`,
+`SLChessRulesTest`, `slChessBoard`, `SLChess_Board` (FlexiPage and CustomTab) and the `SLChess` CustomApplication -- eight
+items, not the four the refusal's first line names.
+
+**Cleanup refused to run without evidence, and that is the design.** It removes only prefixed items **absent from
+`before.json`**, so it can tell this run's metadata from the org's own. No snapshot existed for a run that never got far
+enough to take one, and the local `platform/` held only `cleanup.json`.
+
+**The snapshot that worked predates the items.** `e2e-runs/20261024/chess-sf-full-12a23d/platform/before.json` records
+org `de`, prefix `SLChess`, and the baseline before the run: 9 Apex classes (the org's `DeveloperEditionUtils`,
+`PostInstallScript`, and the `SLBattle*` set), 14 bundles. The four `SLChess*` classes carry `LastModifiedDate`
+2026-10-25T16:35:20 -- one day after that snapshot, one deployment, ten days before this session. Nothing in the baseline
+had changed (`removed since snapshot: []`), so the snapshot was still a valid description of the org.
+
+Cleanup removed exactly the eight SLChess items and verified the result by name across 13 types with `LastModifiedDate`
+unchanged on 23 baseline items. Preflight now reports "no SLChess*/slChess* item in 13 metadata types".
+
+**What the run did not report before.** The same query shows a *second* leftover family that is not this case's:
+`SLBtl589079Controller`, `SLBtl589079Engine`, `SLBtl589079EngineTest`, `SLBtl589079` CustomApplication, `SLBtl589079_Board`
+CustomTab, `slBtl589079Board` bundle and `SLBtl589079_Access` PermissionSet. Cleanup left all seven alone and said so -- a
+different case's prefix is reported, never removed. They are still in the org and need their own decision.
+
+**The general lesson.** A cleanup that deletes by prefix alone would have taken the `SLBtl589079` items too, and one that
+ran without a snapshot would have taken whatever it found. Requiring the snapshot is what made an otherwise destructive
+step safe to authorize, and reporting the unrelated prefix is what made it complete.
+
+No skill behaviour changed.
+
+No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
+No-E2E-Round: operates the existing salesforce check script against an org; does not change skills/shiploop/.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
