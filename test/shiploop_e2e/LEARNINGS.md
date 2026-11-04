@@ -7048,3 +7048,44 @@ priced earlier. That is the cheapest path to answering I5 that this corpus revea
 
 **Method.** The build was joined from `state.md`'s `planning_review` to `result.json`'s `versions.shiploop_version`; neither
 file carries both, and a check of either alone shows no cell at all.
+
+## I5 measured on a real cell: `none` saves 2.1 planning minutes and 40% of Improve children, documents within 5% (2026-11-04) — status: firm for this cell; one run per arm
+
+The entry above established that the corpus has no cell where both modes ran the same case, host and build, and that
+producing one costs two runs. This is that cell.
+
+**Pre-registered** before launch: I1 arm B starts no Improve child during planning; I2 B's planning window is shorter; I3
+both arms reach done with every verdict PASS; I4 B's planning documents are not smaller by more than 25%, which is the
+quality guard -- a much smaller document would suggest the review's work is now simply skipped.
+
+**Run.** `hello`, codex, gpt-6.1-terra, high, `--source checkout` at 1.30.8, one run per arm:
+`--planning-review stage` against `--planning-review none`, outputs under `~/e2e-runs/2026-11-04/i5-{stage,none}`.
+
+| | stage | none | |
+| --- | --- | --- | --- |
+| verdicts | all PASS | all PASS | I3 PASS |
+| planning window | 5.3 min | **3.2 min** | I2 PASS |
+| Improve children | 8 | **4** | I1 PASS |
+| whole run span | 14.8 min | 11.8 min | |
+| turns | 140 | 120 | |
+
+**The quality guard held, and it is the important half.** Document sizes, none against stage:
+
+| stage | stage | none | delta |
+| --- | --- | --- | --- |
+| spec | 727 | 691 | -5% |
+| test-strategy | 1267 | 1262 | -0% |
+| plan | 5835 | 4960 | -15% |
+| step-plan | 2762 | 2683 | -3% |
+| test-spec | 1884 | 1707 | -9% |
+
+Median -5% (I4 asks for no worse than -25%). So `none` did not produce meaningfully thinner planning documents; it
+produced the same documents without the planning reviews.
+
+**What this does not settle.** This is the *speed* half of I5. M1 to M4 also ask whether the reviews catch defects the
+documents need (M2's escape proxy: run the `stage` review post hoc over a `none` run's documents and count warranted
+findings). One run per arm, one case, one host: 2.1 minutes is inside the spread this file records for repeated runs of
+one build, so the *direction* is what this cell supports, not the magnitude.
+
+**Cost.** Two hello runs, about 15 minutes each, run in parallel. The 60-minute battleship round priced earlier was never
+needed.
