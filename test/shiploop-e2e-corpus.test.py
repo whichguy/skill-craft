@@ -26,6 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 
 import corpus  # noqa: E402
+import metrics  # noqa: E402
 
 
 def packet(stage: str, body: str) -> str:
@@ -78,6 +79,41 @@ class CorpusTest(unittest.TestCase):
         found = corpus.summarise([self.root], group_by="none")["groups"]["all"]
         self.assertEqual((found["improve_children"], found["improve_editing_children"]), (4, 1))
         self.assertEqual(found["improve_edit_rate"], 25.0)
+
+    def test_a_run_whose_worktree_is_gone_reads_its_archived_reviews(self):
+        """The worktree is disposable and the import archives every pass under the run (2026-11-04), so a saved run must
+        still report its reviews rather than "notes are missing" once the worktree is deleted."""
+        import shutil
+        out = workspace(self.root / "2026-11-01", "archived", started=1000.0, ended=2000.0, children=2, edited=1)
+        work = out / ".shiploop-runs" / "work-1"
+        live = metrics.improve_reviews(work / "run")
+        self.assertEqual((live["children"], live["edited_children"]), (2, 1))
+        # Move the worktree's notes to where the import now puts them, then drop the worktree.
+        archive = work / "run" / "improve"
+        for reviews in (work / "worktree" / ".shiploop-improve").glob("*/reviews"):
+            destination = archive / reviews.parent.name / "reviews"
+            destination.mkdir(parents=True)
+            for path in reviews.iterdir():
+                shutil.copy2(path, destination / path.name)
+        shutil.rmtree(work / "worktree")
+        saved = metrics.improve_reviews(work / "run")
+        self.assertEqual((saved["children"], saved["edited_children"]), (2, 1),
+                         "the archived passes carry the same count the worktree did")
+        self.assertIsNone(saved.get("unmeasured"))
+
+    def test_the_worktree_still_wins_when_both_sources_exist(self):
+        """Preferring the archive would move every figure measured from a live worktree, so it is only a fallback."""
+        out = workspace(self.root / "2026-11-01", "both", started=1000.0, ended=2000.0, children=2, edited=1)
+        work = out / ".shiploop-runs" / "work-1"
+        archive = work / "run" / "improve"
+        for reviews in (work / "worktree" / ".shiploop-improve").glob("*/reviews"):
+            destination = archive / reviews.parent.name / "reviews"
+            destination.mkdir(parents=True)
+            (destination / "review-1.md").write_text("a review\n")
+            (destination / "pass-1.json").write_text(json.dumps({"edited": True, "lines": [9]}))
+        kept = metrics.improve_reviews(work / "run")
+        # The archive says both children edited; the worktree says one. The worktree is the measured source.
+        self.assertEqual(kept["edited_children"], 1)
 
     def test_a_run_inside_a_copied_repository_is_not_an_observation(self):
         """docs/experiments and test/fixtures trees under a corpus hold fixture runs, not observations."""

@@ -9535,19 +9535,28 @@ def _shiploop_checks(checks: Path) -> bool:
 
 
 def _review_pass_archives(child: Mapping[str, Any]) -> dict[str, str]:
-    """Archive every review pass's prose, not only the trivial streak the receipt lists (2026-11-04).
+    """Archive every review pass's prose and pass record, not only the trivial streak the receipt lists (2026-11-04).
 
     The receipt names the review files the loop ended on, and a converging review ends on the pass that found
     nothing: of 601 multi-pass children in the saved corpus, 447 (74%) did their editing at an earlier pass
     (test/shiploop_e2e/LEARNINGS.md).  ``passes.md`` records that those passes edited but not what they found, and the
-    worktree that holds ``review-<n>.md`` is not kept, so the findings were unreadable after the run.  These copies sit
-    beside it under a distinct prefix: the receipt's own evidence keeps its numbered names, and a run can hold both.
+    worktree that holds ``review-<n>.md`` is not kept, so the findings were unreadable after the run.  The pass record
+    travels with its review so a later reader can still tell which pass edited, rather than reading the archived prose
+    as an unrecorded pass.  These copies sit beside the receipt's own evidence, whose numbered names stay untouched.
     """
     reviews = improve_reviews_dir(child)
-    found = sorted((int(match.group(1)), path) for path in (reviews.iterdir() if reviews.is_dir() else ())
+    if not reviews.is_dir():
+        return {}
+    found = sorted((int(match.group(1)), path) for path in reviews.iterdir()
                    if (match := REVIEW_FILE.fullmatch(path.name)) and path.is_file())
-    return {"improve/" + child["action_id"] + "/reviews/review-" + str(number) + ".md":
-            path.read_text(encoding="utf-8", errors="replace") for number, path in found}
+    writes: dict[str, str] = {}
+    for number, path in found:
+        prefix = "improve/" + child["action_id"] + "/reviews"
+        writes[prefix + "/review-" + str(number) + ".md"] = path.read_text(encoding="utf-8", errors="replace")
+        record = reviews / ("pass-" + str(number) + ".json")
+        if record.is_file():
+            writes[prefix + "/pass-" + str(number) + ".json"] = record.read_text(encoding="utf-8", errors="replace")
+    return writes
 
 
 def _passes_text(root: Path, state: Mapping[str, Any], child: Mapping[str, Any], not_enforced: str | None) -> str:

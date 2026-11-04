@@ -1060,14 +1060,23 @@ def improve_reviews(run_dir: Path | None) -> dict:
             root = Path(repo) / ".shiploop-improve"
         else:
             root = run_dir.parent / "worktree" / ".shiploop-improve"
+        # The worktree is disposable and the import now archives every pass under the run (2026-11-04), so a saved run
+        # whose worktree is gone still has its reviews. Prefer the worktree when it holds notes: that is the source
+        # every existing figure was measured from, and a fallback must not move them.
+        if not _review_folders(root):
+            archived = run_dir / "improve"
+            if _review_folders(archived):
+                return _improve_review_records(archived, run_dir, bound_repo="repo" in state)
         return _improve_review_records(root, run_dir, bound_repo="repo" in state)
     except OSError as error:
         return {**unavailable, "unmeasured": f"Improve review evidence is unavailable: {error}"}
 
 
-def _improve_review_records(root: Path, run_dir: Path, *, bound_repo: bool) -> dict:
-    # Explicit directory reads surface permission errors that glob can silently treat as an empty match.
+def _review_folders(root: Path) -> set:
+    """Every ``reviews`` folder under a review root, one or two levels deep, without raising on a missing root."""
     folders = set()
+    if not root.is_dir():
+        return folders
     for child in root.iterdir():
         if child.is_dir():
             for entry in child.iterdir():
@@ -1076,6 +1085,12 @@ def _improve_review_records(root: Path, run_dir: Path, *, bound_repo: bool) -> d
                         folders.add(entry)
                     else:
                         folders.update(path for path in entry.iterdir() if path.name == "reviews" and path.is_dir())
+    return folders
+
+
+def _improve_review_records(root: Path, run_dir: Path, *, bound_repo: bool) -> dict:
+    # Explicit directory reads surface permission errors that glob can silently treat as an empty match.
+    folders = _review_folders(root)
     children = []
     try:
         binds = sorted(path for path in (run_dir / "improve").iterdir()
