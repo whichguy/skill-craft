@@ -9534,6 +9534,31 @@ def _shiploop_checks(checks: Path) -> bool:
         return False
 
 
+def _review_pass_archives(child: Mapping[str, Any]) -> dict[str, str]:
+    """Archive every review pass's prose and pass record, not only the trivial streak the receipt lists (2026-11-04).
+
+    The receipt names the review files the loop ended on, and a converging review ends on the pass that found
+    nothing: of 601 multi-pass children in the saved corpus, 447 (74%) did their editing at an earlier pass
+    (test/shiploop_e2e/LEARNINGS.md).  ``passes.md`` records that those passes edited but not what they found, and the
+    worktree that holds ``review-<n>.md`` is not kept, so the findings were unreadable after the run.  The pass record
+    travels with its review so a later reader can still tell which pass edited, rather than reading the archived prose
+    as an unrecorded pass.  These copies sit beside the receipt's own evidence, whose numbered names stay untouched.
+    """
+    reviews = improve_reviews_dir(child)
+    if not reviews.is_dir():
+        return {}
+    found = sorted((int(match.group(1)), path) for path in reviews.iterdir()
+                   if (match := REVIEW_FILE.fullmatch(path.name)) and path.is_file())
+    writes: dict[str, str] = {}
+    for number, path in found:
+        prefix = "improve/" + child["action_id"] + "/reviews"
+        writes[prefix + "/review-" + str(number) + ".md"] = path.read_text(encoding="utf-8", errors="replace")
+        record = reviews / ("pass-" + str(number) + ".json")
+        if record.is_file():
+            writes[prefix + "/pass-" + str(number) + ".json"] = record.read_text(encoding="utf-8", errors="replace")
+    return writes
+
+
 def _passes_text(root: Path, state: Mapping[str, Any], child: Mapping[str, Any], not_enforced: str | None) -> str:
     """``RUN/improve/<action>/passes.md`` at import (IMP-11): one row per review pass, from the files it left."""
     import shiploop_standalone_improve as standalone
@@ -10003,7 +10028,8 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                     _improve_change_gate(core, root, state, action_id, child, receipt)
                     _duplicate_review_gate(core, root, state, child)
                     record, extra_writes = standalone.complete(child, receipt)
-                    extra_writes = {**extra_writes, "improve/" + action_id + "/" + PASSES_FILE:
+                    extra_writes = {**extra_writes, **_review_pass_archives(child),
+                                    "improve/" + action_id + "/" + PASSES_FILE:
                                     _passes_text(root, state, child, not_enforced)}
                     record["submission"] = deepcopy(receipt)
                     record["improve_action"] = child["improve_action"]
