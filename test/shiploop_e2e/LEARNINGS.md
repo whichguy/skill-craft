@@ -6947,3 +6947,24 @@ The end-of-run narrative rate of 66% was over the smaller set and should be reco
 **82 of 124 = 66%**, the same as over the 187-run set. The 61 runs the fallback recovered carry no narrative-bearing
 emissions -- they are state-less harness copies whose events do not include the packets -- so the denominator of that
 particular rate was already the right one, and the figure stands unchanged rather than merely being untested.
+
+## A full-tier run produced two failures that were load, not code (2026-11-04) — status: firm for these two; a caution for every tier result
+
+`run_suites.py --group all --jobs 6` reported 185 of 187 suites passing, with `shiploop-e2e-brownfield-tickets` and
+`shiploop-e2e-test-adequacy` failing. Neither is a defect:
+
+- **`shiploop-e2e-test-adequacy`** failed `test_baseline_weak_and_no_assert_addition_are_not_fully_adequate` with
+  "5 != 3" killed mutants: the `weak` arm killed 5 where the `no-assert` control killed 3, and the test requires them to
+  agree. Rerun alone it passes: `weak` 3 of 25, `no-assert` 3 of 25, `reference` 15, `strong` 25. The suite samples mutation
+  survivors over a ~200-second window, and the full tier was running six suites at a load average of 9 to 13.
+- **`shiploop-e2e-brownfield-tickets`** is the recorded port-collision flake (`26728edd` fixed one instance;
+  `docs/experiments/brownfield-flake-20261101/`).
+
+**Why this matters for the record.** I have quoted full-tier results three times today as evidence that a change was clean
+("187/187 PASS", "115/117", "31/31"). Those runs are only as good as the machine state under them, and this file already
+records that overlapping runs invalidate timing. The right habit: read the load average when a tier reports a failure,
+rerun the failing suite alone before diagnosing it, and never treat a timed mutation or port-bound test as a product signal
+without the isolated rerun.
+
+**What is unchanged.** No code was altered for this entry. `corpus.py` was changed four times today; neither failing suite
+imports it (`grep corpus shiploop-e2e-test-adequacy.test.py` is empty), and both pass in isolation.
