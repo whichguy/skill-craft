@@ -6885,3 +6885,32 @@ be the same error as quoting 69% as a general narrative rate.
 
 **What it is good for.** The end-of-run narrative rate: 66% over completed runs, against 57% over all runs. That use is
 sound because the population is defined by the question (how well does a run end -> runs that ended).
+
+## The status filter works, and 47% of this corpus has no readable status at all (2026-11-04) — status: firm for the counts; a limit on every `--status` figure
+
+Adding `--status` exposed something larger than the rate it was built for: **188 of 401 runs have no readable `state.md`**,
+so their status is unknown and they take part in neither group.
+
+| what the run folder holds | count |
+| --- | --- |
+| a readable state (one of three layouts) | 213 |
+| a `state.md` at some depth this reader does not look | 9 |
+| **no `state.md` anywhere** | **179** |
+
+Three layouts are now handled: `<run>/state.md`, `<run>/.shiploop-runs/<work>/run/state.md`, and
+`<run>/shiploop-state/state.md`. The third exists because a run copied out of its workspace keeps its state in a
+`shiploop-state/` folder beside the harness records -- 189 runs first reported as unknown, of which that layout resolved
+one. The other 188 are mostly copies whose state was never retained.
+
+**Why this matters more than the filter.** Every `--status done` figure is computed over 187 runs, not 401. The
+end-of-run narrative rate of 66% is a rate over runs whose state survives, and the 214 "unfinished" runs are themselves
+only the readable ones. A reader who takes "187 done" as "187 of 401 completed" would be wrong; the honest statement is
+"187 of the 213 whose state could be read."
+
+**An unreadable status is `None`, not `False`,** and the summary names it in `status_unreadable`. A first version returned
+`False`, which made `--status done` report zero runs when its reader failed -- the unknown-read-as-zero defect this file
+records elsewhere.
+
+**What this argues for.** Before any figure from this tool is quoted, say which population it is over. The tool now
+supplies that (`runs`, `status_unreadable`, `seeded_runs_left_out`), and the number a reader needs is usually one of the
+three, not the headline row.

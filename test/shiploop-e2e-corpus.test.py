@@ -122,6 +122,32 @@ class CorpusTest(unittest.TestCase):
         self.assertTrue(any("span" in key for key in summary["unmeasured"]),
                         "a run with no span is counted and its missing measure is named")
 
+    def test_an_unreadable_status_is_unknown_not_unfinished(self):
+        """A filter that reads "cannot read" as "did not finish" reports zero completed runs when its reader fails.
+
+        A first version of `run_finished` returned False for an unreadable state, so `--status done` would have
+        reported no completed runs at all rather than failing loudly -- the same "unknown read as zero" defect this
+        repository's records warn about.
+        """
+        from unittest import mock
+
+        import shiploop_store
+
+        out = workspace(self.root / "2026-11-01", "unreadable", started=1000.0, ended=2000.0)
+        run_dir = next((out / ".shiploop-runs").glob("*/run"))
+        # The navigator's own record format: read_record refuses raw JSON by design, so the fixture uses the block.
+        (run_dir / "state.md").write_text("# ShipLoop state\n\n```shiploop-state\n"
+                                          + json.dumps({"status": "done", "history": []}, indent=1)
+                                          + "\n```\n")
+        self.assertIs(corpus.run_finished(out), True)
+        with mock.patch.object(shiploop_store, "read_record", side_effect=RuntimeError("cannot read")):
+            self.assertIsNone(corpus.run_finished(out), "unreadable is unknown, never 'not done'")
+        # And the summary names it rather than dropping it into either group.
+        with mock.patch.object(shiploop_store, "read_record", side_effect=RuntimeError("cannot read")):
+            summary = corpus.summarise([self.root], status="done")
+        self.assertEqual(summary["groups"], {}, "no run is claimed as done when none can be read")
+        self.assertTrue(any("unreadable" in part for part in summary["status_unreadable"]))
+
     def test_a_missing_root_is_reported_not_silently_empty(self):
         summary = corpus.summarise([Path(tempfile.gettempdir()) / "definitely-not-a-corpus-xyz"])
         self.assertEqual(summary["missing_roots"], [str(Path(tempfile.gettempdir()) / "definitely-not-a-corpus-xyz")])

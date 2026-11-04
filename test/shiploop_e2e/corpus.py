@@ -153,25 +153,35 @@ def is_seed(run: Path) -> bool:
     return bool(found.get("seeded")) if isinstance(found, dict) else False
 
 
-def run_finished(run: Path) -> bool:
-    """Whether the navigator recorded this run as ``status: done``; False when its state cannot be read.
+def run_finished(run: Path) -> bool | None:
+    """Whether the navigator recorded this run as ``status: done``; ``None`` when its state cannot be read.
 
     Read with ``shiploop_store.read_record``, not a status regex: a state.md carries several ``"status"`` keys (a hook
     or command record can precede the run's own), and a first version of this matched ``"available"`` from one of them
     and reported 51 completed runs where the record says 124.
+
+    ``None`` rather than False for an unreadable state, because the two mean opposite things to a filter: False says
+    "this run did not finish", None says "this run's status is unknown". Returning False for both made ``--status done``
+    report zero runs when the reader was unavailable, which reads as "no run ever completes".
     """
     import shiploop_store as store  # the navigator's own reader
 
-    candidates = [Path(run) / "state.md"] if (Path(run) / "state.md").is_file() else []
-    candidates += sorted((Path(run) / ".shiploop-runs").glob("*/run/state.md"))[-1:]
+    unreadable = True
+    root = Path(run)
+    candidates = [root / "state.md"] if (root / "state.md").is_file() else []
+    candidates += sorted((root / ".shiploop-runs").glob("*/run/state.md"))[-1:]
+    # A run copied out of its workspace keeps its state under `shiploop-state/` beside the harness records; 189 of 401
+    # runs in this corpus use this layout, and missing it made `--status done` silently drop half the corpus as unknown.
+    candidates += [root / "shiploop-state" / "state.md"] if (root / "shiploop-state" / "state.md").is_file() else []
     for state in candidates:
         try:
             record = store.read_record(state)
-        except Exception:  # noqa: BLE001 - a state this reader cannot parse is not a completed run
+        except Exception:  # noqa: BLE001 - one unreadable state is not a verdict
             continue
         if isinstance(record, dict) and record.get("status"):
             return record["status"] == "done"
-    return False
+        unreadable = False
+    return None if unreadable else False
 
 
 def summarise(roots: Iterable[Path], *, group_by: str = "corpus", overlap_seconds: float = 60.0,
@@ -199,9 +209,17 @@ def summarise(roots: Iterable[Path], *, group_by: str = "corpus", overlap_second
         raise ValueError("seeds must be exclude, only or include")
     if status not in ("any", "done", "unfinished"):
         raise ValueError("status must be any, done or unfinished")
+    unknown_status = []
     if status != "any":
         wanted = status == "done"
-        runs = [run for run in runs if run_finished(run) is wanted]
+        kept = []
+        for run in runs:
+            finished = run_finished(run)
+            if finished is None:
+                unknown_status.append(str(run))
+            elif finished is wanted:
+                kept.append(run)
+        runs = kept
     seed_runs = [run for run in runs if is_seed(run)]
     if seeds == "exclude":
         runs = [run for run in runs if run not in set(seed_runs)]
@@ -273,6 +291,7 @@ def summarise(roots: Iterable[Path], *, group_by: str = "corpus", overlap_second
         bucket["narrative_shown_rate"] = round(100 * bucket["narrative_shown"] / emitted, 1) if emitted else None
         bucket["span_median_minutes"] = round(spans_seen[len(spans_seen) // 2] / 60, 1) if spans_seen else None
     return {"group_by": group_by, "seeds": seeds, "status": status, "seeded_runs_left_out": len(seed_runs) if seeds == "exclude" else 0,
+            "status_unreadable": unknown_status,
             "bases": BASES, "roots": [str(root) for root in roots],
             "missing_roots": missing, "groups": groups, "unmeasured": unmeasured}
 
