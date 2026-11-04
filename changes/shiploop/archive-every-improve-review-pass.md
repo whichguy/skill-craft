@@ -30,15 +30,27 @@ none, because it reads as evidence of idleness.
 
 ## What changed
 
-`_review_pass_archives` copies every `review-<n>.md` the child left into
-`improve/<action>/reviews/review-<n>.md` at import. The receipt's own numbered evidence
-copies keep their existing names and contents, so nothing already recorded moves.
+`_review_pass_archives` copies every `review-<n>.md` and its `pass-<n>.json` record
+the child left into `improve/<action>/reviews/` at import. The receipt's own numbered
+evidence copies keep their existing names and contents, so nothing already recorded
+moves. Cost is small: non-final passes add a median of 2,632 bytes per multi-pass child
+(mean 4,168) across the 601 measured children.
 
-Cost is small: non-final passes add a median of 2,632 bytes per multi-pass child (mean
-4,168) across the 601 measured children.
+`metrics.improve_reviews` then reads those files when the worktree is gone. It prefers
+the worktree and falls back only when the worktree holds no notes, because every figure
+measured so far came from the worktree and a fallback that outweighed it would move the
+numbers rather than extend them. Two tests hold that line: one deletes the worktree and
+requires the same counts from the archive, the other keeps both sources and requires the
+worktree's numbers to win.
+
+The `pass-<n>.json` copy matters for the same reason as the prose. Without it a fallback
+reader sees review text with no record beside it and reports `edited` as "not recorded" —
+a silent zero of exactly the kind the earlier measurements had to correct.
 
 ## What this does not do
 
 It does not change the receipt contract, the convergence gate, or what counts as
-satisfied. It archives prose the run already produced; it proves nothing new about
-whether a review was genuine.
+satisfied. It archives what the run already produced and reads what it archived; it
+proves nothing new about whether a review was genuine. Runs saved before this change
+keep the old behaviour and still report their reviews as missing when the worktree is
+gone.

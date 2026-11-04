@@ -7368,3 +7368,34 @@ No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a sh
 No-E2E-Round: this commit records the round's result; the skill change that shipped beside it carries its own note.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## E2E round for the review-pass archive: hermetic proof, no live round (2026-11-04)
+
+`6b422e09` and `a3facda8` change where review passes are stored and how a saved run is read. This round records what was
+measured for them and, deliberately, what was not.
+
+**Proven.**
+* The import writes every pass. `test/shiploop-actual-improve-cli.test.py` drives a real two-pass review whose first pass
+  edits and whose second is the trivial streak the receipt names, then asserts both files reach
+  `improve/<action>/reviews/` and that the receipt's own numbered evidence still sits beside them. Removing the call makes
+  the test fail with `FileNotFoundError` on that directory, so it pins the behaviour rather than the current output.
+* The reader falls back only when the worktree is gone. One corpus test moves a worktree's notes into the archive and
+  deletes the worktree, requiring the same 2 children / 1 edited and no unmeasured reason; another keeps both sources and
+  requires the worktree's 1 edited to win over the archive's 2. Removing the fallback fails the first.
+* The helper ignores what it should: through the real binding it archives `review-2.md` and skips `checks.md`,
+  `review-x.md` and `review-007.md`.
+* `shiploop-navigator-contract` 149 tests, `shiploop-actual-improve-cli` 101 tests and the 14-suite quick group pass.
+  `test/shiploop-package-integrity.test.py` passes, so the package still builds from source.
+
+**Not proven, and this is the honest gap.** No live run has executed the new import path. `m2-checkers` (the round that
+finished minutes before the change) passed on 1.30.8 and produced the 10-children / 14-passes / 4-edited figures this
+change is justified by, but it ran the code before the archive existed, so its own `improve/` folders hold only the
+receipt's evidence and no `reviews/`. The next live run is what would show the archive populated by a real import, and
+until one runs the change rests on the hermetic proof above.
+
+That gap is recorded rather than papered over. The preflight asked for a round after the change, and the strongest thing
+this round can say is where its evidence stops.
+
+No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
