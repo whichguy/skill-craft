@@ -2363,6 +2363,15 @@ def narrative(out: Path, run_dir: Path | None = None) -> dict:
     An emission is a ShipLoop tool result whose narrative section asks the model to
     show it. It counts as shown when the narrative's heading appears in the model's
     text before the next emission, and verbatim when every narrative line does.
+
+    Counted per distinct body, not per emission (2026-11-03). The same narrative reaches a packet more than
+    once -- a reprint, a resume, a packet read again -- and keying only on the tool call made each copy its own
+    obligation: one recorded run emitted the identical body 22 times and 4 of those were scored "skipped" because
+    the model had shown that block 18 times already and did not repeat it a 19th. Over 102 runs that inflated the
+    denominator by 261 of 2,111 emissions (12%, in 67% of runs) and read compliance as 61% when the distinct bodies
+    were 69% shown. ``emissions``/``shown``/``verbatim`` therefore count distinct bodies, ``raw_emissions`` keeps
+    the per-packet count for the reader that wants it, and ``repeated`` is how many emissions repeated a body.
+    A body counts as shown when any of its occurrences was shown.
     Keeps counts and stage names only, never narrative text.
     """
     emissions: list[dict] = []
@@ -2373,19 +2382,23 @@ def narrative(out: Path, run_dir: Path | None = None) -> dict:
         if match and call not in seen and "Show the user" in match.group("rule"):
             seen.add(call)
             stage = PACKET_STAGE.search(output)
+            body = match.group("body")
             emissions.append({"stage": stage.group("stage") if stage else None,
-                              "lines": _lines(match.group("body")), "text": ""})
+                              "body": body, "lines": _lines(body), "text": ""})
         elif emissions:
             emissions[-1]["text"] += _assistant_text(event)
-    shown = verbatim = 0
-    skipped = []
+    # One obligation per distinct body: any occurrence shown satisfies it.
+    bodies: dict[str, dict] = {}
     for emission in emissions:
+        entry = bodies.setdefault(emission["body"], {"stage": emission["stage"], "lines": emission["lines"],
+                                                     "shown": False, "verbatim": False})
         said = set(_lines(emission["text"]))
         if emission["lines"] and emission["lines"][0] in said:
-            shown += 1
-            verbatim += all(line in said for line in emission["lines"])
-        else:
-            skipped.append(emission["stage"])
+            entry["shown"] = True
+            entry["verbatim"] = entry["verbatim"] or all(line in said for line in emission["lines"])
+    shown = sum(1 for entry in bodies.values() if entry["shown"])
+    verbatim = sum(1 for entry in bodies.values() if entry["verbatim"])
+    skipped = [entry["stage"] for entry in bodies.values() if not entry["shown"]]
     results = with_headline = 0
     for path in sorted((run_dir / "results").glob("*.md")) if run_dir and (run_dir / "results").is_dir() else []:
         block = STATE_BLOCK.search(path.read_text(errors="replace"))
@@ -2398,7 +2411,8 @@ def narrative(out: Path, run_dir: Path | None = None) -> dict:
             continue
         results += 1
         with_headline += bool(str(result.get("headline") or "").strip())
-    return {"emitted": len(emissions), "shown": shown, "verbatim": verbatim, "skipped": skipped,
+    return {"emitted": len(bodies), "shown": shown, "verbatim": verbatim, "skipped": skipped,
+            "raw_emissions": len(emissions), "repeated": len(emissions) - len(bodies),
             "results": results, "with_headline": with_headline}
 
 

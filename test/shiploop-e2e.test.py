@@ -3461,9 +3461,12 @@ class MetricsTest(unittest.TestCase):
     NARRATIVE_BODY = ("#### \U0001f6a2 ShipLoop \u2014 Add a flag\n`\u2588\u2591` **Preparation 1/7**\n\n"
                       "**\u25b6\ufe0f Now** \u2014 **spec**: define behavior\n")
 
-    def packet(self, stage: str, rule: str = "Show the user this narrative exactly as written, as Markdown.") -> str:
+    def packet(self, stage: str, rule: str = "Show the user this narrative exactly as written, as Markdown.",
+               body: str | None = None) -> str:
+        """A ShipLoop packet print. ``body`` defaults to the one narrative; pass a different one to make two
+        emissions distinct, since narrative() now counts one obligation per distinct body (2026-11-03)."""
         return (f"ShipLoop navigator | {stage} | revision 3\nCallback: x\n\n=== ShipLoop narrative ===\n{rule}\n\n"
-                f"{self.NARRATIVE_BODY}=== end ShipLoop narrative ===\n")
+                f"{self.NARRATIVE_BODY if body is None else body}=== end ShipLoop narrative ===\n")
 
     def result_record(self, run_dir: Path, name: str, result: dict) -> None:
         body = json.dumps({"action": name, "result": result, "stage": "intake", "workitem": None}, indent=2)
@@ -3483,10 +3486,14 @@ class MetricsTest(unittest.TestCase):
                 {"type": "text", "data": "Starting.\n" + self.NARRATIVE_BODY[:half]},
                 {"type": "text", "data": self.NARRATIVE_BODY[half:]},
                 {"type": "tool_call", "toolCallId": "b", "rawInput": {"command": "shiploop complete"}},
-                {"type": "tool_call_update", "toolCallId": "b", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("discovery")}},
+                # A distinct body per stage: narrative() counts one obligation per distinct body (2026-11-03),
+                # so identical bodies would collapse and this test would stop testing skip/verbatim per stage.
+                {"type": "tool_call_update", "toolCallId": "b", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet(
+                    "discovery", body="#### \U0001f6a2 ShipLoop \u2014 Add a flag\n`\u2591\u2591` **Preparation 2/7**\n")}},
                 {"type": "text", "data": "Moving on to discovery."},
                 {"type": "tool_call", "toolCallId": "c", "rawInput": {"command": "shiploop complete"}},
-                {"type": "tool_call_update", "toolCallId": "c", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("research")}},
+                {"type": "tool_call_update", "toolCallId": "c", "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet(
+                    "research", body="#### \U0001f6a2 ShipLoop \u2014 Add a flag\n`\u2591\u2591` **Preparation 3/7**\n")}},
                 {"type": "text", "data": "\U0001f6a2 ShipLoop \u2014 Add a flag\nsomething else"},  # heading only
                 # The CLI hook shows this one; the model is not asked to.
                 {"type": "tool_call", "toolCallId": "d", "rawInput": {"command": "shiploop complete"}},
@@ -3500,7 +3507,10 @@ class MetricsTest(unittest.TestCase):
             story = metrics.narrative(out, run_dir)
             report = metrics.summary_lines({**metrics.collect(out, run_dir), "narrative": story})
         self.assertEqual(story, {"emitted": 3, "shown": 2, "verbatim": 1, "skipped": ["discovery"],
-                                 "results": 2, "with_headline": 1})
+                                 "raw_emissions": 3, "repeated": 0, "results": 2, "with_headline": 1})
+        # Each distinct body is one obligation (2026-11-03). The fixture's second `intake` update is the same tool
+        # call, which the reader already collapses before counting, so it contributes no repeat either way.
+        self.assertEqual(story["emitted"] + story["repeated"], story["raw_emissions"])
         self.assertIn("narrative shown 2/3 (verbatim 1), skipped at discovery; headlines 1/2 results", report[-1])
         self.assertNotIn("Add a flag", json.dumps(story))
 
@@ -3512,7 +3522,10 @@ class MetricsTest(unittest.TestCase):
                                                           "content": [{"type": "text", "text": self.packet("intake")}]}]}},
                 {"type": "assistant", "message": {"content": [{"type": "text", "text": self.NARRATIVE_BODY.replace("#### ", "")}]}},
                 {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "t2",
-                                                          "content": self.packet("discovery")}]}},
+                                                          "content": self.packet(
+                                                              "discovery",
+                                                              body="#### \U0001f6a2 ShipLoop \u2014 Add a flag\n"
+                                                                   "`\u2588\u2591` **Preparation 2/7**\n")}]}},
             ]
             (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in stream) + "\n")
             story = metrics.narrative(out)
@@ -3520,13 +3533,43 @@ class MetricsTest(unittest.TestCase):
                          (2, 1, 1, ["discovery"]))
         self.assertEqual((story["results"], story["with_headline"]), (0, 0))
 
+    def test_a_repeated_narrative_body_is_one_obligation_not_one_per_packet(self):
+        """A packet's narrative can reach the model more than once; a run that shows it once has met it.
+
+        Measured 2026-11-03 over 102 saved runs: 261 of 2,111 emissions repeated a body already emitted (12%, in
+        67% of runs), and one run emitted the identical body 22 times, four of which were scored "skipped" because
+        the model showed that block 18 times already. Counting per packet read compliance as 61% when the distinct
+        bodies were 69% shown, which is a 9-point understatement of the same behaviour.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            body = "#### \U0001f6a2 ShipLoop \u2014 Add a flag\n`\u2588\u2591` **Preparation 1/7**\n"
+            stream = [
+                {"type": "tool_call", "toolCallId": "a", "rawInput": {"command": "shiploop complete"}},
+                {"type": "tool_call_update", "toolCallId": "a",
+                 "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("intake", body=body)}},
+                {"type": "text", "data": self.NARRATIVE_BODY},
+                # The same narrative reaches three further packets, and the model does not paste it again.
+                *[item for call in ("b", "c", "d") for item in (
+                    {"type": "tool_call", "toolCallId": call, "rawInput": {"command": "shiploop complete"}},
+                    {"type": "tool_call_update", "toolCallId": call,
+                     "rawOutput": {"exit_code": 0, "output_for_prompt": self.packet("intake", body=body)}},
+                    {"type": "text", "data": "Continuing."})],
+            ]
+            (out / "events.jsonl").write_text("\n".join(json.dumps(e) for e in stream) + "\n")
+            story = metrics.narrative(out)
+        self.assertEqual((story["emitted"], story["shown"], story["skipped"]), (1, 1, []),
+                         "one body asked four times and shown once is one met obligation")
+        self.assertEqual((story["raw_emissions"], story["repeated"]), (4, 3))
+        self.assertEqual(story["emitted"] + story["repeated"], story["raw_emissions"])
+
     def test_run_without_narrative_reports_nothing(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
             (out / "events.jsonl").write_text(json.dumps({"type": "text", "data": "hi"}) + "\n")
             m = metrics.collect(out)
         self.assertEqual(m["narrative"], {"emitted": 0, "shown": 0, "verbatim": 0, "skipped": [],
-                                          "results": 0, "with_headline": 0})
+                                          "raw_emissions": 0, "repeated": 0, "results": 0, "with_headline": 0})
         self.assertFalse(any(line.startswith("narrative") for line in metrics.summary_lines(m)))
 
     def test_glue_is_defined_by_shiploop_paths_and_verbs_not_by_product_tools(self):

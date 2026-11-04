@@ -6233,3 +6233,32 @@ inline script, which `command_paths` cannot see, so the rule did not fire. That 
 cc828f73 ("9 of 12 implement send-backs were this fault"; the shipped rule catches paths, not prose or inline code), and
 this round adds one more instance to it. No new rule is proposed here: the registered C′ variant was rejected at 5 false
 refusals of 10, and one instance of a known miss does not change that evidence.
+
+### Correction of 2026-11-03: the compliance baseline was measured wrong (69%, not 61%)
+
+The entry above compares a live run's 62% against "61% over 2,111 emissions in 102 runs". That baseline was
+miscalibrated by the reader, and so was the 62% itself: both used `metrics.narrative`, which keyed its emission set on the
+packet's tool-call id. When the same narrative reaches more than one packet -- a reprint, a resume, a page read again --
+each copy became its own obligation, so a run that showed a block once and did not repeat it for a later copy scored that
+copy "skipped".
+
+- **Size of the error.** Over the same 102 runs: 2,111 raw emissions, 1,850 distinct bodies, so 261 repeats (12%), in 68
+  of the 102 runs (67%). One run (`shiploop-hello-codex-floor-2c31ea`) emitted the identical body 22 times: 18 shown, 4
+  scored skipped purely because the model did not repeat a block it had already shown.
+- **Corrected figure.** 1,280 of 1,850 distinct bodies shown = **69%**, against the 61% reported above. The understatement
+  was 8-9 points, and it moved in the direction that made the model look worse than it is.
+- **What the fix is.** `metrics.narrative` now counts one obligation per distinct body, reports `emitted`/`shown`/
+  `verbatim`/`skipped` on that basis, and keeps `raw_emissions` and `repeated` for a reader who wants the per-packet
+  count. A body counts as shown when any of its occurrences was shown. A new test
+  (`MetricsTest.test_a_repeated_narrative_body_is_one_obligation_not_one_per_packet`) fails on the old reader
+  (`4 emitted, 3 skipped`) and passes on the fixed one (`1 emitted, 0 skipped`).
+
+- **What this changes about the earlier conclusion.** The narrow finding stands: asking at 6 boundaries instead of 21
+  reduced the *number* of obligations, which the live run confirmed (8 emissions). What does not stand is the implied
+  compliance gap: at 69% the model follows roughly seven in ten narrative requests, and the n=1 live run's 62% is
+  within that band rather than evidence of a floor. Neither number supports a claim that the relay wording helped or
+  hurt, and the earlier entry's "does not raise compliance" should be read as "not measured", not as a measured null.
+
+- **Comparability.** Rows recorded before this change carry the old per-packet `narrative` block. They are not regraded:
+  the reader is a record, and a reader change is a future measurement, not a correction of past ones. A comparison
+  across the boundary must recompute the old rows or restrict itself to rows on one side of it.
