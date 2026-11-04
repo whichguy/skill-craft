@@ -6720,3 +6720,33 @@ is now narrow: position-versus-stage, not whether decay exists, and not elapsed 
 **Method note, third time in this session.** Each of these three controls came from records already on disk, in under a
 minute. Twice now I have priced a live experiment for a question the corpus answers for free. The rule to follow: before
 pricing a run, stratify the existing corpus by the candidate confounders and see which survive.
+
+## The run's last narrative is missed 55% of the time — and I could not measure whether the user is left uninformed (2026-11-04) — status: firm for the last-emission rate; unmeasured for the consequence
+
+Following the positional decay, the practical question is whether the *end* of a run is well reported, since that is where the
+user learns the work finished.
+
+**The last narrative is shown less often than the middle.** Of 249 runs, the first emission is shown 74%, middle emissions
+50%, and the **last emission 47%** (91 of 193). So the block that says the run finished is the least likely to be shown,
+and the positional curve has no rebound at the end.
+
+**Whether the user is then left uninformed: I could not measure it, and two attempts both failed.**
+
+- Attempt 1 counted model text *after* the final emission and reported 64 of 102 runs (63%) with nothing at all. Reading
+  one of them showed the error: that run's completion message ("Created hello.py and test_hello.py...") came **before**
+  the final emission, not after. The measure only looked forward from a fixed point.
+- Attempt 2 searched all of a run's model text for a completion-like sentence and reported 40%. Its regex matched
+  "compare its **complete** output" and "the resumed implementation **passed** its exact-output proof" — neither is a
+  completion report. The measure counts words, not meaning.
+
+**What is actually established.** The last narrative is relayed 47% of the time, lower than the first (74%) and than the
+middle (50%). **What is not:** whether a missed last narrative leaves the user without a completion signal. That needs
+either a hand-read sample or a semantic check, and both of my cheap proxies produced a number I would not defend.
+
+**Cost of getting this wrong.** The first attempt would have supported "63% of runs end silently", which the very first
+sample disproved. Recording it as a rate is exactly the kind of measurement this file has had to correct five times today
+(`fidelity.commands`, `metrics.environment`, `versions`, the 61% narrative rate, the 58% interval). The pattern is
+consistent: a regex over text counts tokens, not the thing the sentence means.
+
+**What would answer it.** Read 20 of the 106 runs by hand and classify whether a user would know the run finished, or
+have a model read them; a regex will not do it.
