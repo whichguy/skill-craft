@@ -190,6 +190,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-brownfield-tickets.test.py",
     "test/shiploop-e2e-test-adequacy.test.py",
     "test/shiploop-e2e-delta.test.py",
+    "test/shiploop-e2e-corpus.test.py",
     "test/shiploop-e2e-incremental-pilot.test.py",
     "test/shiploop-e2e-ticket-comments.test.py",
     "test/shiploop-e2e-ticket-sla.test.py",
@@ -444,6 +445,10 @@ _DURATION_SECONDS = {
     # The follow-on chain and the delta ledger (chains.py; test/shiploop_e2e/delta.py): 80 tests on synthetic Git repositories, one
     # fake event stream and the eight saved runs of the ticket pair (docs/experiments/multipass-20261031/). 3.3 s locally on 2026-10-31.
     "test/shiploop-e2e-delta.test.py": 5.0,
+    # The corpus summariser (test/shiploop_e2e/corpus.py): 6 tests on synthetic saved-run folders, pinning the three mistakes
+    # earlier ad-hoc scripts made -- reading the workspace instead of the nested run dir, counting fixture runs inside a copied
+    # repository, and grouping by root name. Under a second locally on 2026-11-03.
+    "test/shiploop-e2e-corpus.test.py": 1.0,
     # The third link of the ticket chain, ticket-comments (reference_ticket_comments.py): 17 tests; the calibration builds the base, the
     # reference and seven defects and grades the case's three checks on each (real node, a server a check), the reference and the
     # base then run the whole chain's 13 checks, and the reference runs the 14 hidden checks the link inherits. 45 s locally on

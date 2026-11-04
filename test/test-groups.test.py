@@ -121,9 +121,10 @@ class TestGroupTests(unittest.TestCase):
         # Core gains backchain-graph (2026-11-01: Backchain's validator moved out of ShipLoop with its parity tests)
         # and backchain-toolkit (its command line).
         # Registered predecessors, their runner wiring and intent lifecycle calibration add three (2026-11-02).
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 129)
+        # The corpus summariser adds one (2026-11-03), so a figure can be re-derived by the code that produced it.
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 130)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 55)
-        self.assertEqual(len(suite_catalog.SUITES), 186)
+        self.assertEqual(len(suite_catalog.SUITES), 187)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -803,7 +804,7 @@ class E2EFamilySelectionTest(unittest.TestCase):
               "shiploop-e2e-scope-discovery", "shiploop-e2e-stage-oracle", "shiploop-e2e-stage-build", "shiploop-e2e-stages",
               "shiploop-e2e-stage-live", "shiploop-e2e-stage-report",
               "shiploop-e2e-run-trace", "shiploop-e2e-brownfield", "shiploop-e2e-brownfield-tickets", "shiploop-e2e-test-adequacy",
-              "shiploop-e2e-delta", "shiploop-e2e-incremental-pilot", "shiploop-e2e-ticket-comments", "shiploop-e2e-ticket-sla", "shiploop-e2e-user-chain",
+              "shiploop-e2e-delta", "shiploop-e2e-corpus", "shiploop-e2e-incremental-pilot", "shiploop-e2e-ticket-comments", "shiploop-e2e-ticket-sla", "shiploop-e2e-user-chain",
               "shiploop-e2e-user-directory",
               "shiploop-e2e-lifecycle", "shiploop-e2e-discovery", "shiploop-e2e-qualification",
               "shiploop-e2e-roles", "shiploop-e2e-epoch", "shiploop-e2e-learning-records", "shiploop-e2e-cycle",
