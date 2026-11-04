@@ -127,6 +127,24 @@ class CorpusTest(unittest.TestCase):
         self.assertEqual(summary["missing_roots"], [str(Path(tempfile.gettempdir()) / "definitely-not-a-corpus-xyz")])
         self.assertIn("not a folder", corpus.render(summary))
 
+    def test_the_rendered_spread_names_both_ends_so_a_pooled_rate_cannot_be_quoted_alone(self):
+        """A single pooled rate hid a 0-to-93 point range across groups; I quoted a two-corpus 69% as a general
+        figure on 2026-11-04 for exactly that reason. The spread line makes the range the headline, and it ignores
+        groups too small for a rate to mean anything: a first version read a meaningless 0-to-100 from one-run groups.
+        """
+        workspace(self.root / "2026-11-01", "a1", started=1000.0, ended=2000.0, children=25, edited=25)
+        workspace(self.root / "2026-10-31", "b1", started=5000.0, ended=6000.0, children=25, edited=0)
+        # A one-run group whose rate is 100% by arithmetic must not set the high end.
+        (self.root / "tiny").mkdir()
+        workspace(self.root / "tiny", "c1", started=9000.0, ended=9500.0, children=1, edited=1)
+        text = corpus.render(corpus.summarise([self.root], group_by="corpus"))
+        self.assertIn("spread Improve edit: 0% (2026-10-31) to 100% (2026-11-01)", text)
+        self.assertNotIn("(tiny)", text, "a group below MIN_GROUP takes no part in the spread")
+        # Pooling hides it, and the pooled heading says so.
+        pooled = corpus.render(corpus.summarise([self.root], group_by="none"))
+        self.assertIn("the per-corpus spread is hidden", pooled)
+        self.assertNotIn("spread Improve edit", pooled)
+
 
 if __name__ == "__main__":
     unittest.main()

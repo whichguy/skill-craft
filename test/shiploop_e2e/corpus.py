@@ -60,6 +60,10 @@ BASES = {
 # corpus carries `docs/experiments/...` and `test/fixtures/...` runs that are fixtures, not observations. Counting them
 # inflated a first pass to 2,419 runs with 1,603 unmeasurable spans (2026-11-03), which is the same "read the wrong
 # folder" error that produced three false alarms that day. A caller who wants them names the folder directly.
+# The fewest emissions or children a group needs before its rate takes part in a spread: below this, a rate is 0% or
+# 100% by arithmetic rather than by behaviour, and a first version of the spread line read a meaningless 0-to-100.
+MIN_GROUP = 20
+
 NOT_OBSERVATIONS = ("/docs/experiments/", "/test/experiments/", "/test/fixtures/", "/fixtures/",
                     "/marketplace-cache/", "/.tmp/", "/node_modules/", "/home/")
 
@@ -232,6 +236,24 @@ def render(summary: Mapping[str, Any]) -> str:
         lines.append("  " + cells)
     lines.append("  bases: " + "; ".join(f"{key} = {value}" for key, value in summary["bases"].items()
                                          if key != "overlap"))
+    # The spread, stated rather than left to eyeball across rows. A single pooled rate for this corpus would read
+    # 55% narrative relay while the groups run from 2% to 70%; quoting one number without its group is how a
+    # two-corpus figure (69%) got reported as a general one on 2026-11-04. This line makes the range the headline.
+    # Groups below MIN_GROUP are left out: a one-run corpus reports 0% or 100% by arithmetic, not by behaviour, and
+    # including those widened a first version of this line to a meaningless 0-to-100.
+    if summary["group_by"] == "corpus" and len(summary["groups"]) > 1:
+        for key, count, label in (("narrative_shown_rate", "narrative_emitted", "narrative relayed"),
+                                  ("improve_edit_rate", "improve_children", "Improve edit")):
+            values = [(row[key], name) for name, row in summary["groups"].items()
+                      if row.get(key) is not None and row.get(count, 0) >= MIN_GROUP]
+            if len(values) < 2:
+                continue
+            low, high = min(values), max(values)
+            span = high[0] - low[0]
+            if span >= 10:
+                lines.append(f"  spread {label}: {low[0]:.0f}% ({low[1]}) to {high[0]:.0f}% ({high[1]}), "
+                             f"{span:.0f} points over {len(values)} groups of {MIN_GROUP}+ "
+                             f"-- quote a rate only with its group")
     if summary["unmeasured"]:
         lines.append(f"  unmeasured: {len(summary['unmeasured'])} part(s); --json names each")
     return "\n".join(lines)
