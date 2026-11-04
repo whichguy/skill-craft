@@ -7658,3 +7658,45 @@ No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a sh
 No-E2E-Round: this entry IS the E2E round for the chess case after the archive release.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## 82 of the summariser's "unmeasured" runs were review artifacts, not runs (2026-11-04)
+
+`corpus.py` reported **108 unmeasured parts**, all of them `span`. Every one traced to the same reason: no readable
+`started`/`ended` pair in `metrics.json`. Looking at the folders, most had **no `metrics.json` at all** -- they were
+`normal-ticket-review-01`, `00`, `01`, `02` and similar under
+`shiploop-gym-salesforce-…/test-adequacy-qualification-20261031/`, carrying `invocation.json`, `controller.stderr.log`
+and a `result.json` whose keys are `judge_process`, `judge_validity`, `review_sha256`, `routes`. They are the review and
+judge artifacts of a qualification experiment, not ShipLoop runs.
+
+**Why they were counted.** `corpus.summarise` discovers runs with `scorecard.run_folders`, which matches
+`RUN_MARKERS = ("timeline.jsonl", "invocation.json", LOCK_NAME)`. That rule exists for the **live** contention detector,
+which must see a run from its first minute, before any metrics exist. Applied to a **saved** corpus it also matches
+artifacts that will never produce a metrics record.
+
+**What the measurement showed.** Of the 82 observation folders without `metrics.json`, **none** contained a `state.md`.
+The only real run among them was `20261004/v1200-battleship-luna`, abandoned before it wrote `metrics.json` or
+`result.json`.
+
+**The change.** `is_observation` now also requires `metrics.json`, the record every figure is read from. A folder that
+cannot be measured leaves the denominator instead of being counted and reported unmeasured -- the same correction as
+reading the workspace folder instead of the run inside it (2026-11-03).
+
+| | before | after |
+| --- | --- | --- |
+| unmeasured parts | 108 | **26** |
+| narrative spread line | 0%–93% (25 groups) | unchanged |
+| Improve edit spread line | 11%–85% (12 groups) | unchanged |
+
+The 26 that remain are real runs with a `metrics.json` but no readable span (`20261003/batch-sonnet/*` and others): honest
+gaps, still reported.
+
+**The test.** One asserts a judge artifact is found by `run_folders` (the live rule still must see it) and rejected by
+`is_observation`, and that only the folder with a metrics record counts toward `runs`. Replacing the new line with
+`return True` fails it.
+
+No skill behaviour changed.
+
+No-Change-Note: changes the E2E summariser, not a shipped skill path.
+No-E2E-Round: measurement-tooling correction; does not change skills/shiploop/.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>

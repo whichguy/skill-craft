@@ -27,6 +27,7 @@ sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 
 import corpus  # noqa: E402
 import metrics  # noqa: E402
+import scorecard  # noqa: E402
 
 
 def packet(stage: str, body: str) -> str:
@@ -114,6 +115,20 @@ class CorpusTest(unittest.TestCase):
         kept = metrics.improve_reviews(work / "run")
         # The archive says both children edited; the worktree says one. The worktree is the measured source.
         self.assertEqual(kept["edited_children"], 1)
+
+    def test_a_folder_without_a_metrics_record_is_not_an_observation(self):
+        """scorecard.run_folders finds runs by RUN_MARKERS for the live contention detector, which must see a run before
+        its metrics exist. A saved corpus also holds review and judge artifacts that carry invocation.json and never a
+        metrics record: 82 of them were counted as observations on 2026-11-04 and reported as unmeasured spans."""
+        artifact = self.root / "2026-11-01" / "normal-ticket-review-01"
+        artifact.mkdir(parents=True)
+        (artifact / "invocation.json").write_text("{}")
+        (artifact / "result.json").write_text(json.dumps({"judge_process": {}, "review_validity": {}}))
+        self.assertTrue(scorecard.run_folders([self.root]), "the marker rule still finds it for a live run")
+        self.assertFalse(corpus.is_observation(artifact))
+        workspace(self.root / "2026-11-01", "real", started=1000.0, ended=2000.0)
+        found = corpus.summarise([self.root], group_by="none")["groups"]["all"]
+        self.assertEqual(found["runs"], 1, "only the folder with a metrics record counts")
 
     def test_a_run_inside_a_copied_repository_is_not_an_observation(self):
         """docs/experiments and test/fixtures trees under a corpus hold fixture runs, not observations."""

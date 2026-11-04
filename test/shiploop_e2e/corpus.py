@@ -70,9 +70,21 @@ NOT_OBSERVATIONS = ("/docs/experiments/", "/test/experiments/", "/test/fixtures/
 
 
 def is_observation(run: Path) -> bool:
-    """Whether ``run`` is a recorded observation rather than a fixture inside a copied repository."""
+    """Whether ``run`` is a recorded observation rather than a fixture inside a copied repository.
+
+    It must also hold ``metrics.json``, the record every figure here is read from.  ``scorecard.run_folders`` finds a
+    run by ``RUN_MARKERS`` -- ``timeline.jsonl``, ``invocation.json`` or a lock -- because the live contention detector
+    must see a run from its first minute, before any metrics exist.  For a SAVED corpus that rule also matches review
+    and judge artifacts of an experiment, which carry ``invocation.json`` and ``result.json`` but never a metrics
+    record: on 2026-11-04 that counted 82 non-runs as observations and reported every one as an unmeasured span.  Of
+    those 82, none contained a ``state.md``; the one real instance was an abandoned run that never wrote metrics.
+    Requiring the record the figures are read from keeps a folder that cannot be measured out of the denominator
+    instead of counting it and calling it unmeasured (the same error as reading the workspace folder, 2026-11-03).
+    """
     text = "/" + str(Path(run).resolve()).strip("/") + "/"
-    return not any(marker in text for marker in NOT_OBSERVATIONS)
+    if any(marker in text for marker in NOT_OBSERVATIONS):
+        return False
+    return (Path(run) / "metrics.json").is_file()
 
 
 def run_dir_of(run: Path) -> Path:
