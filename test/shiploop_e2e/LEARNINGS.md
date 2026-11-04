@@ -7248,3 +7248,37 @@ earlier narrative and verify-count corrections.
 2 edits both docstrings, checkers 2 edits both material. Two of three cases have real findings, so the earlier
 "1-in-8 docstring" reading was an artifact of small samples rather than a property of the stage. Any I5 default decision
 needs enough cases to see this spread, and four is not enough.
+
+## The skill-call gate is inert on 85% of runs, and where it fires it costs 8 s (2026-11-04)
+
+Checkers' `passes.md` shows `skill call recorded: not enforced` on every pass, which reads like a broken gate. It is
+working as designed: `_skill_call_gate` (`shiploop_navigator.py:409`) requires a Claude Code hook record in
+`skill-calls.jsonl`, and on any other host it returns a reason instead of enforcing. The docstring names the failure it
+was built for -- "3 of 4 reviews faked by a script in one run" -- which is a Claude-specific observation.
+
+**How true that is across the corpus.** Of 343 runs with a `skill-calls.jsonl`, 292 (85%) carry a `gate: not enforced`
+note and 51 record a real skill call. By host: codex 119 and grok 19 gate-note runs, 0 real calls; claude 19 real-call
+runs. The gate therefore protects one host and is inert on the other two, and on 154 runs the host is not recorded at all.
+
+**What else catches a faked review.** `_duplicate_review_gate` (`shiploop_navigator.py:382`) is host-neutral: it refuses a
+review of at least three sentences whose sentences all but one appear in another Improve stage's review of the same run.
+That is what actually catches the "three of four reviews from one template" case on codex and grok. It did not fire once
+in the scanned corpus, which is consistent with it being a copy detector rather than a general fake detector.
+
+**Where the gate can fire, it does, and it is cheap.** A trace scan finds 19 runs containing the gate's refusal text. All
+19 are unfinished runs for unrelated reasons. Scanning `improve-pass` calls that exited non-zero, 83 were refused, 76
+later succeeded on the same action, and the remaining 7 belong to runs that stopped: recovery is a median **8 s** (mean
+13, max 100). That matches the earlier refusal experiment (median 7 s, no token cost): a refusal here redirects to the
+named action rather than burning a loop.
+
+**What this does not establish.** Nothing here says the gate should be widened to other hosts -- no record exists to
+enforce against, and a host-neutral substitute would have to infer invocation, which is a different and unmeasured
+design. It also does not say 85% of reviews were faked: the corpus cannot tell an unhooked real call from a skipped one,
+which is exactly the ambiguity the note records.
+
+No skill behaviour changed.
+
+No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
+No-E2E-Round: records corpus measurement of existing gate behaviour; does not change skills/shiploop/.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
