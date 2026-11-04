@@ -6685,3 +6685,38 @@ drivers causes it.
 
 **Cost.** Zero; this re-reads records already on disk with `metrics.narrative` and the event stream. The 2026-11-03 entry
 priced a 60-minute experiment for a question the corpus could answer in 23 seconds.
+
+## Separating the decay's drivers: time is out, position survives, stage type is not settled (2026-11-04) — status: firm for the time control; thin for stage type
+
+The entry above says the positional decay is not yet proof of *salience* rather than *elapsed time* or *stage type*. Two of
+those three can be separated from the corpus, and one of them is now out.
+
+**Elapsed time is ruled out.** Splitting the 3,213 emissions by run duration and comparing the first emission against the
+sixth onward *within each duration band*:
+
+| band | first emission | 6th or later | gap |
+| --- | --- | --- | --- |
+| short runs (<= 10 min) | 38/48 = 79% | 229/387 = 59% | **+20 pt** |
+| long runs (> 10 min) | 89/133 = 67% | 884/1,952 = 45% | **+22 pt** |
+
+The gap is nearly identical in both bands. If elapsed time drove the decay, a 5-minute run and a 40-minute run would not
+show the same first-to-later drop; they do. So the driver is position within the sequence, not clock time.
+
+**Stage type is not settled, and the evidence is thin.** Per-stage rates vary widely (intake 80%, implement 39%), which
+could be stage or could be position, since stages occupy different slots. The clean comparison is a stage that appears
+both as the first emission and later:
+
+- `implement`: 52/54 = 96% as first, 71/265 = 27% later, **+70 pt**.
+- `step-plan`: 13/48 = 27% as first, 81/194 = 42% later, **-15 pt**.
+
+Only these two have 15 or more instances in both slots, and they disagree in sign. The median is +27 pt, but a median of
+two with opposite signs is not a finding. One reading is that `implement`'s emissions are late in a run and `step-plan`'s
+early, so slot and stage are entangled in this corpus and cannot be separated without an experiment that holds one fixed.
+
+**What remains, and its cost.** A run whose emissions are all the same stage, or a card that makes the obligation
+explicit at every position, would separate them. That is the paired-card experiment the earlier entry priced. Its purpose
+is now narrow: position-versus-stage, not whether decay exists, and not elapsed time.
+
+**Method note, third time in this session.** Each of these three controls came from records already on disk, in under a
+minute. Twice now I have priced a live experiment for a question the corpus answers for free. The rule to follow: before
+pricing a run, stratify the existing corpus by the candidate confounders and see which survive.
