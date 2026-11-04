@@ -7594,3 +7594,31 @@ No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a sh
 No-E2E-Round: operates the existing salesforce check script against an org; does not change skills/shiploop/.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## Owner decision: planning review stays `stage` by default (2026-11-04)
+
+Asked whether to change `DEFAULT_PLANNING_REVIEW` (`shiploop_stage_spec.py:689`, currently `"stage"`), the owner chose
+**keep `stage`**. No code change; the shipped value already matches the decision.
+
+**The measurement the decision rested on.** Same case and host, `--planning-review stage` against `none`: planning window
+5.3 → 3.2 minutes (2.1 saved), Improve children 8 → 4, documents within −5% of the −25% guard.
+
+**What review has caught.** Across the cases read for this: checkers' spec lacked a replayable move sequence and
+malformed its API boundaries (`583e6a74`, +18 lines) and its test-strategy assumed a browser connector that did not exist
+while a local Chrome did (`731a4ef`, +23 lines); csv-report's two edits were docstrings; hello's review changed nothing.
+Yield across cases: 0, 2 and 4 edits.
+
+**Why the decision is the owner's and not the corpus's.** Four read cases cannot estimate a rate, the spread is
+case-dependent, and flipping the default would change comparability with every earlier baseline run -- a one-way change
+for measurement purposes. The evidence supports "review sometimes catches something real" and does not support a claim
+about how often.
+
+**What would reopen it.** A larger same-case sample of each mode, or a decision that 2.1 planning minutes per run matters
+more than the defects review has caught.
+
+No skill behaviour changed.
+
+No-Change-Note: records an owner decision on the existing default; no source change.
+No-E2E-Round: records a decision and the evidence behind it; does not change skills/shiploop/.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
