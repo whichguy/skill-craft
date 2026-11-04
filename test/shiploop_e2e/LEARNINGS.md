@@ -7525,3 +7525,37 @@ No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a sh
 No-E2E-Round: corpus analysis of existing refusals; does not change skills/shiploop/.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## Refusals do not predict failure, and 39% of them are previews (2026-11-04)
+
+Following the refusal ranking, the obvious next hypothesis is that refusals mark friction worth removing. The corpus
+does not support it.
+
+**Refusals barely separate passing runs from failing ones.** Over 326 runs carrying both a refusal list and a `pass`
+verdict:
+
+| | runs | median refusals | mean | p90 |
+| --- | --- | --- | --- | --- |
+| pass=True | 257 | **0** | 2.0 | 5 |
+| pass=False | 69 | **1** | 2.5 | 9 |
+
+A one-refusal difference in medians and half a refusal in means, with the p90 gap the only separating feature. Whatever
+fails a run, it is not "the guard refused it".
+
+**Two thirds of refusals are not the guard rejecting a model.** Of 1,057 real refusals, 416 (39.4%) carry
+`check_only: true` -- the model's own `--check-only` preview of a draft, which is the documented way to test a result
+before submitting it. Subtracting those, the corpus shows roughly 640 actual rejections over 315 runs.
+
+**Repeats are rare and concentrated.** Only 49 refusals (4.6%, in 30 runs) repeat the immediately preceding line. The
+largest cluster -- `evidence_refs cite files that do not exist`, appearing 14 times -- is **one run**
+(`e6d2-deepseek-20261028/E6D2-K4/T/1/slice`); 18 runs contain that refusal at all, mostly once or twice. A single model
+looping on a clear message is not a message defect, and the corpus cannot say which it was without reading that run.
+
+**What would justify a change, and does not exist here.** A refusal that is ambiguous, or whose remedy the model cannot
+execute, would show as repeats spread across many runs. The observed repeats are one run each. I found no such case, so
+no skill behaviour changed.
+
+No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
+No-E2E-Round: corpus analysis of existing refusals; does not change skills/shiploop/.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
