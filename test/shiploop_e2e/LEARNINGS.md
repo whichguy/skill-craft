@@ -6628,3 +6628,27 @@ install, not only on the tree it came from.
 **What it does not establish.** One case, one host, n = 1. It says the package runs and behaves as measured, not that 92%
 compliance generalises. The four 2026-11-03 rounds remain checkout-only evidence; a reader comparing them with this one is
 comparing a tree against a release, which is why `versions.source` is recorded in each row.
+
+## Reading this file's percentages: three different denominators for "Improve's share" (2026-11-04) — status: firm; a navigation note, not a new measurement
+
+This file now carries three percentages for how much of a run Improve takes, and they are not in conflict. A reader who
+takes one for another will get a wrong number by a factor of two.
+
+| Figure | Denominator | Where | What it answers |
+| --- | --- | --- | --- |
+| **54% and 58%** | the **planning window** (Luna xhigh 203.4 of 375.9 min; Grok medium 42.4 of 72.7) | 2026-10-05, lines ~1394 and ~1422 | how much of preparation-to-plan Improve took |
+| **33%** | a run's whole **span**, measured as summed child self-time (bind -> accept) over the run | 2026-11-03 | what share of the whole run Improve occupies |
+| **58%** (the one I corrected) | the interval ending at an **Improve accept**, which includes the producer work that ran while the child was bound | my own claim of 2026-11-03, retracted the same day | nothing; it was a measurement error |
+
+So "58%" appears twice with different meanings: the 2026-10-05 figure is a planning-window share and stands; my 2026-11-03
+figure was a span-interval error and is retracted in the entry that corrected it. Same number, unrelated measurements.
+
+**For the narrative metric, the corrected figure is 69%, not 61%.** The 2026-11-03 entry near line 6203 quotes "the
+recorded 61% over 2,111 emissions in 102 runs"; that reading counted repeated narrative bodies as separate obligations
+and was corrected the same day to 1,280 of 1,850 distinct bodies = 69%. The 61% appears in that entry because the entry
+predates the fix; the correction entry follows it.
+
+**Why this note exists.** I appended ten entries this session, several of which correct earlier ones, and the corrected
+claims remain in place because the file is append-only by design. A reader arriving at a line from a citation, a grep, or
+a commit message needs one place that says which numbers are still live. This is that place for the three figures I
+touched; it is not a general index.
