@@ -7742,3 +7742,43 @@ No-Change-Note: changes the E2E summariser, not a shipped skill path.
 No-E2E-Round: measurement-tooling correction; does not change skills/shiploop/.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## The corpus is 18 roots, not 3: 1,386 runs and 0 unmeasured parts (2026-11-04)
+
+Every corpus figure in this file was measured over `~/e2e-runs`, `~/e2e-runs2` and `~/e2e-runs3`. There are **18** roots:
+`e2e-runs`, `-brownfield`, `-brownfield-interrupted`, `-f31`, `-hostonly`, `-multipass`, `-outcome`, `-owner-note`, `-pf`,
+`-qb`, `-qr`, `-r3`, `-s7`, `-sp`, `-startroute`, `-tl`, `-x4`, `-xr`. Two of the three I had been passing do not exist.
+
+Over all 18, with the summariser's changes above:
+
+| | value |
+| --- | --- |
+| runs | **1,386** (was 326) |
+| groups | 55 |
+| Improve children | 2,829 |
+| Improve edit rate, pooled | 25.6% |
+| narrative relayed, pooled | 57.8% |
+| verify records | 2,621 |
+| **unmeasured parts** | **0** |
+| isolated / contended / unplaced | 1,079 / 281 / 26 |
+
+**What this changes and what it does not.** The spread lines get wider and better supported: narrative now runs
+**0% to 100%** over **33** groups of 20+ (was 0–93% over 25), Improve edit stays 11% to 85% over 17 groups (was 12). The
+pooled figures are recorded for completeness only -- the tool's own line says a pooled rate describes none of its groups,
+and 25.6% sits between corpora whose rates range 11% to 85%.
+
+**The 26 unplaced runs are now confirmed as the whole of that category**, not an artifact of a partial corpus: the count
+did not change when the sample quadrupled, which is what a real historical boundary (shiploop 0.48–0.58 metrics) looks
+like.
+
+**Why I missed it.** I globbed `~/e2e-runs ~/e2e-runs2 ~/e2e-runs3` early in the session because those names appeared in
+an earlier entry, and never listed the directory again. A corpus command that silently reports "not a folder: e2e-runs2,
+e2e-runs3" while still printing a full table is easy to read as success -- it was the first line of output and I had
+scrolled past it repeatedly.
+
+No skill behaviour changed.
+
+No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
+No-E2E-Round: corpus measurement; does not change skills/shiploop/.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
