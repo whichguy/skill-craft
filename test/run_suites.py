@@ -271,6 +271,14 @@ def _terminate_process_group(process: subprocess.Popen[str]) -> str | None:
 
 # Overrides that would send a suite's state to the developer's own directories, so a suite never inherits them.
 _STATE_OVERRIDES = ("UNTIL_LOOP_STATE_DIR", "SHIPLOOP_KEEPALIVE_HOME")
+# Overrides that would change every Git call a suite makes.  A shell with `GIT_CONFIG_COUNT=1, GIT_CONFIG_KEY_0=
+# core.quotePath, GIT_CONFIG_VALUE_0=false` set is a common local setup, and ask-agent's workspace guard refuses it by
+# design ("prepare refuses Git context environment overrides").  Inherited, it failed three suites that shell out to Git --
+# ask-agent-parallel, agent-harness-audit and install-arbitrary-skill -- on 2026-11-04, and all three passed with these
+# unset.  A suite's Git identity and configuration must come from the fixture, never from the developer's shell.
+_GIT_CONTEXT_OVERRIDES = ("GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0",
+                          "GIT_CONFIG_KEY_1", "GIT_CONFIG_VALUE_1", "GIT_CONFIG_KEY_2", "GIT_CONFIG_VALUE_2")
+_INHERITED_OVERRIDES = _STATE_OVERRIDES + _GIT_CONTEXT_OVERRIDES
 
 
 def _state_home_error(state_home: Path) -> str | None:
@@ -322,15 +330,15 @@ def run_process(
 
     ``on_start`` receives the process once it exists, so a parallel caller can
     stop its group when the run is interrupted.  The process gets its own
-    ``XDG_STATE_HOME`` and none of ``_STATE_OVERRIDES``, so a suite that forgets
-    to isolate its state cannot write the developer's; one that leaves anything
-    in that home fails.
+    ``XDG_STATE_HOME`` and none of ``_INHERITED_OVERRIDES`` -- the state overrides, so a suite that forgets to isolate its
+    state cannot write the developer's, and the Git context overrides, so a developer's ``GIT_CONFIG_*`` shell setup cannot
+    reach a suite's Git calls.  One that leaves anything in that home fails.
     """
 
     # Resolved: macOS temporary paths sit under the /var symlink, which Until Loop refuses as a state root.
     with _scratch_directory("skill-craft-suite-state-") as name:
         state_home = Path(name).resolve()
-        environment = {key: value for key, value in os.environ.items() if key not in _STATE_OVERRIDES}
+        environment = {key: value for key, value in os.environ.items() if key not in _INHERITED_OVERRIDES}
         # Ordinary hermetic fixtures must not leave per-run observers.
         # Progress integration tests explicitly enable and stop their own.
         # No bytecode: the runner's own `python3 -B` does not reach the processes it starts, and a suite that created

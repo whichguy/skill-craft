@@ -943,5 +943,41 @@ class SelectionByReaderTest(unittest.TestCase):
                 self.assertGreaterEqual(selected, {"shiploop-reference-routing", "shiploop-guidance"})
 
 
+class SuiteEnvironmentIsolationTest(unittest.TestCase):
+    """What the runner hands a suite, and what it must never hand it."""
+
+    def test_the_runner_strips_git_context_overrides_from_every_suite(self) -> None:
+        """A developer's GIT_CONFIG_* shell setup changed what three suites did, on 2026-11-04.
+
+        `GIT_CONFIG_COUNT=1, GIT_CONFIG_KEY_0=core.quotePath, GIT_CONFIG_VALUE_0=false` in the shell is a common local
+        setup.  ask-agent's workspace guard refuses it by design, so ask-agent-parallel, agent-harness-audit and
+        install-arbitrary-skill all failed with "prepare refuses Git context environment overrides" -- and all three
+        passed once it was unset.  A suite's Git identity and configuration come from its fixture, never from the shell
+        that happened to start it.
+        """
+        import run_suites
+
+        self.assertIn("GIT_CONFIG_COUNT", run_suites._INHERITED_OVERRIDES)
+        for key in ("GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0"):
+            self.assertIn(key, run_suites._INHERITED_OVERRIDES)
+        # The state overrides it already carried must stay.
+        for key in ("UNTIL_LOOP_STATE_DIR", "SHIPLOOP_KEEPALIVE_HOME"):
+            self.assertIn(key, run_suites._INHERITED_OVERRIDES)
+
+    def test_a_suite_gets_the_state_overrides_and_the_git_overrides_removed(self) -> None:
+        import os
+        import run_suites
+        from unittest import mock
+
+        planted = {"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.quotePath", "GIT_CONFIG_VALUE_0": "false",
+                   "UNTIL_LOOP_STATE_DIR": "/tmp/elsewhere", "PATH": "/usr/bin:/bin"}
+        with mock.patch.dict(os.environ, planted, clear=False):
+            environment = {key: value for key, value in os.environ.items()
+                           if key not in run_suites._INHERITED_OVERRIDES}
+        for removed in ("GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0", "UNTIL_LOOP_STATE_DIR"):
+            self.assertNotIn(removed, environment)
+        self.assertIn("PATH", environment, "everything else is inherited")
+
+
 if __name__ == "__main__":
     unittest.main()
