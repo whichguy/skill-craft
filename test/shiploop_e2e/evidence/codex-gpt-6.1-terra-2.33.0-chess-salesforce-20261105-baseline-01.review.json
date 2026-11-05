@@ -1,0 +1,133 @@
+{
+  "schema": "run-review-export/v2",
+  "docs": {
+    "reviews": {
+      "codex-gpt-6.1-terra-2.33.0-chess-salesforce-20261105-baseline-01": {
+        "summary": [
+          "Raw marketplace baseline: functional PASS in 69.1 minutes, with 12 native tests and 28 rules markers passing; test-owned cleanup verified its declared metadata scope.",
+          "Requested subject was Terra 6.1 xhigh; served-model identity and dollar cost were unavailable. This run is not a comparative efficiency result.",
+          "The explicit code-knowledge review found useful structure and error handling, partial rationale/contract coverage, and no established need for a tombstone.",
+          "The independent judge supported the omitted reusable-test definitions and disputed one planning-parser explanation. Both findings remain investigations, with no generic implementation admitted.",
+          "Authenticated UI acceptance and four missing completion receipts remain unproven. A separate apparatus interpretation now recognizes eight existing step-proof receipts and preserves those four warnings.",
+          "Keep the accepted ShipLoop baseline, retain the learning, and rerun raw chess using the repaired measurement and explicit review criterion."
+        ],
+        "basis": {},
+        "reviewedAt": "2026-11-05T17:16:21.353836+00:00"
+      }
+    },
+    "observations": {
+      "chess-baseline-code-knowledge": {
+        "title": "Code knowledge was assessed; rationale and contract gaps remain",
+        "criterion": "P5",
+        "kind": "decision",
+        "status": "open",
+        "run": "codex-gpt-6.1-terra-2.33.0-chess-salesforce-20261105-baseline-01",
+        "phase": 3,
+        "effect": "bent",
+        "expected": "Code craft retains useful contracts, error behavior, and explanations of consequential non-obvious decisions; tombstones apply only when a tempting rejected approach could return.",
+        "observed": "The fresh review found adequate structure for exercised behavior, domain errors and UI failure cleanup. It found incomplete nearby rationale for make/unmake and cache-copy invariants and broad malformed-FEN contract claims that were not fully substantiated. No executed malformed-FEN failure, warranted missing tombstone or stale warning was established.",
+        "evidence": "/Users/dadleet/e2e-runs/2026-11-05/chess-improvement/baseline-01/review-knowledge-01/events.jsonl; work/force-app/main/default/classes/SLChessEngine.cls; work/force-app/main/default/lwc/slChessBoard/slChessBoard.js; f97f2a074976f451bc9d34378d6198598c9ef9ae",
+        "advice": "Use the explicit code-knowledge lens on the rerun and retain concrete sufficiency judgments. Do not add comments or tombstones by count, and do not infer a generic prompt defect from one minor rationale gap.",
+        "createdAt": "2026-11-05T17:16:21.353836+00:00"
+      },
+      "chess-baseline-portable-tests": {
+        "title": "Four reusable local checks were omitted from the delivered repository",
+        "criterion": "P5",
+        "kind": "defect",
+        "status": "open",
+        "run": "codex-gpt-6.1-terra-2.33.0-chess-salesforce-20261105-baseline-01",
+        "phase": 4,
+        "effect": "broken",
+        "expected": "Reusable product-owned test definitions and portable invocation instructions survive repository return under S-11.",
+        "observed": "The delivered environment invokes four absolute run-scratch scripts and explicitly says they are not portable. The 18-file delivered tree contains none of those scripts; the retained board script includes error and contrast regressions. The independent judge supports the omission; no implementation candidate is admitted.",
+        "evidence": "/Users/dadleet/e2e-runs/2026-11-05/chess-improvement/baseline-01/work/docs/shiploop/environment.md; /Users/dadleet/e2e-runs/2026-11-05/chess-improvement/baseline-01/review-judge-knowledge-01/verdict.json; LR-20261105-9d39bf",
+        "advice": "Investigate the existing authoring-to-return handoff with a cold restore and neutral controls before choosing a generic repair. Preserve disposable probes and maintained external test packages as distinct cases.",
+        "createdAt": "2026-11-05T17:16:21.353836+00:00"
+      },
+      "chess-baseline-ui-open": {
+        "title": "Authenticated interactive acceptance is still unverified",
+        "criterion": "P5",
+        "kind": "decision",
+        "status": "open",
+        "run": "codex-gpt-6.1-terra-2.33.0-chess-salesforce-20261105-baseline-01",
+        "phase": 6,
+        "effect": "broken",
+        "expected": "A fidelity pass requires the existing deferred-acceptance obligations to be settled by evidence under S-9 and S-14.",
+        "observed": "All four outer checks passed, including 12 Apex tests and 28 rules markers. The handoff still records authenticated board interaction and app access as unverified. This is a functional pass, not full fidelity acceptance.",
+        "evidence": "/Users/dadleet/e2e-runs/2026-11-05/chess-improvement/baseline-01/result.json; /Users/dadleet/e2e-runs/2026-11-05/chess-improvement/baseline-01/metrics.json fidelity.end_state; /Users/dadleet/e2e-runs/2026-11-05/chess-improvement/baseline-01/review-knowledge-01.json",
+        "advice": "Keep the functional pass and open interactive acceptance separate. A subsequent UI observation must have its own declared setup and cannot retroactively change this run.",
+        "createdAt": "2026-11-05T17:16:21.353836+00:00"
+      },
+      "chess-baseline-planning-cause": {
+        "title": "Two planning send-backs occurred; one proposed cause was disputed",
+        "criterion": "B5",
+        "kind": "recovered",
+        "status": "open",
+        "run": "codex-gpt-6.1-terra-2.33.0-chess-salesforce-20261105-baseline-01",
+        "phase": 3,
+        "effect": "bent",
+        "expected": "Reviewed plans distinguish source inspections, deployment proof and executable test reporting without requiring future behavior to pass early.",
+        "observed": "The review records two send-backs and 657.079 seconds from the second send-back to the interrupted step. The judge reproduced the navigation output through the shipped named-ID fallback and disputed the claimed reporting incompatibility. Recovery time is observed, not promised savings.",
+        "evidence": "/Users/dadleet/e2e-runs/2026-11-05/chess-improvement/baseline-01/review-knowledge-01.json; /Users/dadleet/e2e-runs/2026-11-05/chess-improvement/baseline-01/review-judge-knowledge-01/verdict.json; LR-20261105-884ad2",
+        "advice": "Investigate the source-search mismatch and remaining coverage question while retaining the judge counterexample. Do not turn the disproven parser explanation into a prompt or script change.",
+        "createdAt": "2026-11-05T17:16:21.353836+00:00"
+      }
+    },
+    "actions": {
+      "chess-code-knowledge-rerun": {
+        "title": "Assess code knowledge on the next full run",
+        "criterion": "P5",
+        "kind": "gather-evidence",
+        "effort": "L",
+        "recommended": true,
+        "status": "planned",
+        "ref": "f97f2a074976f451bc9d34378d6198598c9ef9ae",
+        "findings": [
+          "chess-baseline-code-knowledge"
+        ],
+        "goal": "Do: run the existing raw chess loop and obtain the explicit code-knowledge review and fresh judge. Files and symbols: test/shiploop_e2e/review.py QUESTIONS and the next retained run. Test: existing chess E2E case plus fresh review and judge. Done when: code structure, contracts, error paths, rationale and warranted tombstones each have evidence or an explicit limit.",
+        "why": "The owner requested these sufficiency judgments; this measures review coverage without inventing a comment quota."
+      },
+      "chess-portable-cold-restore": {
+        "title": "Reproduce the portable-suite gap before choosing a repair",
+        "criterion": "P5",
+        "kind": "gather-evidence",
+        "effort": "S",
+        "recommended": true,
+        "status": "open",
+        "findings": [
+          "chess-baseline-portable-tests"
+        ],
+        "goal": "Do: inspect a cold delivery where the original run scratch directory is unavailable and distinguish reusable tests from disposable probes and maintained external packages. Files and symbols: the retained delivery/work.bundle and docs/shiploop/environment.md. Test: attempt the documented local suite in that isolated copy and retain its terminal result. Done when: the missing dependencies and the narrowest warranted handoff change are demonstrated or refuted.",
+        "why": "The omission is independently supported; the best generic correction is not yet validated."
+      },
+      "chess-ui-retain-limit": {
+        "title": "Preserve the interactive acceptance limit in this baseline",
+        "criterion": "P5",
+        "kind": "accept",
+        "effort": "S",
+        "recommended": true,
+        "status": "built",
+        "ref": "/Users/dadleet/e2e-runs/2026-11-05/chess-improvement/baseline-01/review-knowledge-01.json",
+        "findings": [
+          "chess-baseline-ui-open"
+        ],
+        "goal": "Do: retain the original functional result and the two open interactive acceptance entries without a fidelity-pass claim. Files and symbols: test/shiploop_e2e/LEARNINGS.md and this run review. Test: none; this records a known limit. Done when: the retained learning distinguishes the passed checks from unobserved interactive behavior.",
+        "why": "The original case did not declare a browser; adding evidence later would be a separate observation."
+      },
+      "chess-planning-investigate": {
+        "title": "Use the counterexample in the planning investigation",
+        "criterion": "B5",
+        "kind": "gather-evidence",
+        "effort": "S",
+        "recommended": true,
+        "status": "open",
+        "findings": [
+          "chess-baseline-planning-cause"
+        ],
+        "goal": "Do: compare source-search, deployment-proof and custom-runner planning examples against the shipped verifier, preserving its named-ID fallback. Files and symbols: test/shiploop_e2e/learning-records.jsonl and skills/shiploop/scripts/shiploop_test_loop.py. Test: neutral command-output probes including the judge counterexample. Done when: a specific remaining compatibility or coverage gap is supported without treating all custom runners as invalid.",
+        "why": "The judge directly contradicted part of the initial explanation, so that explanation cannot justify a change."
+      }
+    }
+  }
+}
