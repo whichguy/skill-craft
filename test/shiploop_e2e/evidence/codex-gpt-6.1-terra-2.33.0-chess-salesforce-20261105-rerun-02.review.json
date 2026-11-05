@@ -1,0 +1,150 @@
+{
+  "schema": "run-review-export/v2",
+  "docs": {
+    "reviews": {
+      "codex-gpt-6.1-terra-2.33.0-chess-salesforce-20261105-rerun-02": {
+        "summary": [
+          "Second raw marketplace run: functional PASS in 72.3 minutes; 12 Apex methods, 28 rule checks and declared cleanup pass.",
+          "Code-knowledge review finds useful structure and error handling, partial nearby rationale and stale living-document claims, with no supported missing-tombstone finding.",
+          "Six returned local tests pass a separate cold replay. This is contrary evidence to a universal retention defect, not a generic fix.",
+          "Fresh review and independent judge are valid. No implementation is admitted; prerequisite readiness and retention remain investigations. The existing minor F31 disposition is preserved.",
+          "Corrected trace interpretation removes four false receipt warnings; UI rendering and actual access remain unverified. This is not a full-fidelity pass.",
+          "Retain the accepted ShipLoop baseline and the measured apparatus repairs. The two same-package runs show no speedup and do not qualify the separately published 2.34.0 release."
+        ],
+        "basis": {},
+        "reviewedAt": "2026-11-05T19:47:09.985503+00:00"
+      }
+    },
+    "observations": {
+      "chess-rerun-code-knowledge": {
+        "title": "Code knowledge is assessed; nearby rationale and living-document freshness remain incomplete",
+        "criterion": "P5",
+        "kind": "decision",
+        "status": "open",
+        "run": "codex-gpt-6.1-terra-2.33.0-chess-salesforce-20261105-rerun-02",
+        "phase": 3,
+        "effect": "bent",
+        "expected": "Preserve useful code knowledge and support delivery claims with actual evidence.",
+        "observed": "Fresh review finds appropriate engine/controller/client separation, illegal-move checks before mutation, copied cached move lists and UI failure cleanup for the observed contract. Malformed FEN is outside the delivered specification. Cache lifetime/copy ownership and temporary board-restoration rationale are not explained beside the implementation; architecture AD-5 carries part of it. Current-looking environment/architecture claims also contradict later successful deployment and the cache decision. No supported missing-tombstone case was found.",
+        "evidence": "/Users/dadleet/e2e-runs/2026-11-05/chess-improvement/rerun-02/review-knowledge-02/response.md; work/force-app/main/default/classes/SLChessEngine.cls; work/docs/shiploop/environment.md:25; work/docs/shiploop/architecture.md:22; f97f2a074976f451bc9d34378d6198598c9ef9ae",
+        "advice": "Retain the concrete sufficiency judgments. Judge rationale, contracts and errors by usefulness and evidence, not comment counts. Do not reopen the earlier rejected knowledge-maintenance candidate from this observation alone.",
+        "createdAt": "2026-11-05T19:47:09.985503+00:00"
+      },
+      "chess-rerun-portable-tests": {
+        "title": "Returned local tests survive a cold delivery in this run",
+        "criterion": "P5",
+        "kind": "recovered",
+        "status": "open",
+        "run": "codex-gpt-6.1-terra-2.33.0-chess-salesforce-20261105-rerun-02",
+        "phase": 6,
+        "effect": "bent",
+        "expected": "Preserve useful code knowledge and support delivery claims with actual evidence.",
+        "observed": "The returned 26-file tree retains review-added depth-two assertions and local helpers under tests/. A separate bundle restore with the original run root unreadable passes all six local tests, with zero failures, skips or cancellations and a working control. The earlier same-package delivery failed all four documented scratch-based commands. The judge supports this counterevidence, not an adopted repair or reliability gain.",
+        "evidence": "/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/cold-rerun-02-v2/receipt.json; /Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/cold-delivery-probe/receipt.json; /Users/dadleet/e2e-runs/2026-11-05/chess-improvement/rerun-02/review-judge-knowledge-02/verdict.json; work/tests/run-all.sh; LR-20261105-9d39bf",
+        "advice": "Keep LR-20261105-9d39bf open and narrow its diagnosis to the authoring-to-return boundary. The cold replay is complete; use reusable, disposable and legitimate external-runner controls before selecting a generic repair.",
+        "createdAt": "2026-11-05T19:47:09.985503+00:00"
+      },
+      "chess-rerun-ui-open": {
+        "title": "Interactive Lightning acceptance and actual user access remain unverified",
+        "criterion": "P5",
+        "kind": "decision",
+        "status": "open",
+        "run": "codex-gpt-6.1-terra-2.33.0-chess-salesforce-20261105-rerun-02",
+        "phase": 6,
+        "effect": "broken",
+        "expected": "Preserve useful code knowledge and support delivery claims with actual evidence.",
+        "observed": "All four outer checks pass, including 12 Apex methods and 28 rule checks. The six local tests cover mocked component state and metadata, not DOM rendering, real transport or accessibility. Desktop automation was denied; handoff explicitly retains rendered interaction and intended-user access as open. Functional PASS is preserved; the deferred-acceptance rule does not permit a full-fidelity pass.",
+        "evidence": "/Users/dadleet/e2e-runs/2026-11-05/chess-improvement/rerun-02/result.json; /Users/dadleet/e2e-runs/2026-11-05/chess-improvement/rerun-02/review-knowledge-02/response.md; .shiploop-runs/work-20261105-172612-9d935d/run/results/nav-c161af3334c644f08d25d027d7b64156.md",
+        "advice": "Keep the acceptance items open. A capable, authorized target environment and actual user interaction are required to close them; a local stand-in or successful denial check cannot substitute.",
+        "createdAt": "2026-11-05T19:47:09.985503+00:00"
+      },
+      "chess-rerun-automatic-validation": {
+        "title": "Four frozen receipt warnings are positively explained by automatic validation",
+        "criterion": "P5",
+        "kind": "recovered",
+        "status": "fixed",
+        "run": "codex-gpt-6.1-terra-2.33.0-chess-salesforce-20261105-rerun-02",
+        "phase": 3,
+        "effect": "bent",
+        "expected": "Preserve useful code knowledge and support delivery claims with actual evidence.",
+        "observed": "The original metrics retain four missing-loop warnings. The corrected reader proves each action was accepted automatically by a different successful command with matching expectation evidence. It preserves needs, records waived:[loop], leaves no declared receipt missing in this run, and recognizes all eight step-proof receipts. Original metrics, result, trace, state and test/expectation artifacts are unchanged.",
+        "evidence": "/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/fidelity-auto-validation/rerun-02-interpretation.json; 9ce5f8a37ce22cdd1fff27a0e5860630e35811e9; /Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/closeout-verification/receipt.md",
+        "advice": "Read the external interpretation beside the original metrics. This is a verified apparatus correction, not proof of UI acceptance, successful unmeasured native counts or a generic ShipLoop improvement.",
+        "createdAt": "2026-11-05T19:47:09.985503+00:00"
+      },
+      "chess-rerun-facility-readiness": {
+        "title": "An unproven execution facility survived plan review",
+        "criterion": "P5",
+        "kind": "decision",
+        "status": "open",
+        "run": "codex-gpt-6.1-terra-2.33.0-chess-salesforce-20261105-rerun-02",
+        "phase": 3,
+        "effect": "bent",
+        "expected": "Preserve useful code knowledge and support delivery claims with actual evidence.",
+        "observed": "Plan review acknowledged that authenticated Chrome access was unproven. Later automation denial caused a send-back and 124+43 seconds of replanning/test specification. The judge supports investigation at medium confidence because existing guidance already addresses prerequisites. The separate 131+44-second criterion-timing send-back is minor evidence for the existing F31 investigation, not a new duplicate fix.",
+        "evidence": "/Users/dadleet/e2e-runs/2026-11-05/chess-improvement/rerun-02/review-judge-knowledge-02/verdict.json; LR-20261105-0542a3; .shiploop-runs/work-20261105-172612-9d935d/worktree/.shiploop-improve/step-plan-f910a326/reviews/review-1.md",
+        "advice": "Investigate available, unavailable and future-artifact cases without weakening the required behavior or bypassing the run guard. Earlier detection could improve planning but cannot supply missing authenticated access. Preserve the existing F31 disposition.",
+        "createdAt": "2026-11-05T19:47:09.985503+00:00"
+      }
+    },
+    "actions": {
+      "chess-rerun-craft-assessment": {
+        "title": "Retain explicit code-knowledge evaluation",
+        "criterion": "P5",
+        "kind": "gather-evidence",
+        "effort": "S",
+        "recommended": true,
+        "status": "done",
+        "findings": [
+          "chess-rerun-code-knowledge"
+        ],
+        "ref": "f97f2a074976f451bc9d34378d6198598c9ef9ae",
+        "goal": "Do: inspect delivered code and retained knowledge through the existing Quality lens and preserve the full answer. Files: test/shiploop_e2e/review.py. Test: fresh reviews and independent judges on both raw runs. Done when: structure, contracts, errors, rationale and warranted tombstones have concrete evidence or an explicit limit.",
+        "why": "The owner asked for sufficiency judgments. Both runs received them, and the raw narrative now remains readable."
+      },
+      "chess-rerun-reader-correction": {
+        "title": "Preserve positive automatic-validation provenance",
+        "criterion": "P5",
+        "kind": "fix-harness",
+        "effort": "S",
+        "recommended": true,
+        "status": "done",
+        "findings": [
+          "chess-rerun-automatic-validation"
+        ],
+        "ref": "9ce5f8a37ce22cdd1fff27a0e5860630e35811e9",
+        "goal": "Do: recognize the proved automatic route without waiving normal callbacks or other checks. Files: test/shiploop_e2e/fidelity.py and run_trace.py. Test: fail-first regressions, complete affected suites and immutable run interpretations. Done when: only positively proved automatic loop requirements are waived.",
+        "why": "Three baseline and four rerun warnings were false positives; the genuine baseline document gap remains visible."
+      },
+      "chess-rerun-facility-experiment": {
+        "title": "Investigate prerequisite readiness with neutral controls",
+        "criterion": "P5",
+        "kind": "gather-evidence",
+        "effort": "M",
+        "recommended": true,
+        "status": "open",
+        "findings": [
+          "chess-rerun-facility-readiness",
+          "chess-rerun-ui-open"
+        ],
+        "ref": "LR-20261105-0542a3",
+        "goal": "Do: compare existing guidance on available, unavailable and future-artifact execution facilities. Files: ShipLoop planning/review prompts and testing-and-documentation.md. Test: neutral controls that preserve required acceptance and reject hollow proof. Done when: a specific improvement or a retain-baseline decision is measured; actual UI acceptance remains open until separately observed in an authorized capable environment.",
+        "why": "The judge supports investigation, but no generic implementation is admitted and a new gate is not yet justified."
+      },
+      "chess-rerun-retention-experiment": {
+        "title": "Narrow the reusable-test ownership investigation",
+        "criterion": "P5",
+        "kind": "gather-evidence",
+        "effort": "M",
+        "recommended": true,
+        "status": "open",
+        "findings": [
+          "chess-rerun-portable-tests"
+        ],
+        "ref": "LR-20261105-9d39bf",
+        "goal": "Do: compare the failing scratch-authored handoff with this successful product-owned handoff. Files: ShipLoop repeatable-test and delivery guidance. Test: neutral reusable-test, disposable-probe and legitimate external-runner controls; both cold chess replays are already complete. Done when: the failure condition and a bounded retain-baseline or candidate decision are supported by evidence.",
+        "why": "Same-package variation disproves a universal failure claim while preserving the first run's real omission."
+      }
+    }
+  }
+}

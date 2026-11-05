@@ -8081,3 +8081,86 @@ the document rerun, authenticated UI acceptance, unavailable native-test counts 
 Evidence is under the campaign root's `fidelity-auto-validation/` and `closeout-verification/`; the catalog-bound
 interpretation is `fidelity-auto-validation/baseline-01-interpretation.json`. Preserve the older interpretation as
 history and use this correction when assessing what the warnings mean.
+
+## The raw chess loop reruns, evaluates code knowledge, and retains measured apparatus improvements (2026-11-05)
+
+The authorized prepare/run/evaluate/change/rerun cycle completed two raw marketplace runs. Keep the apparatus
+repairs and these findings; no generic ShipLoop implementation is admitted by the fresh review and judge.
+This is a completed bounded cycle, not a claim that all learning is exhausted or full fidelity has passed.
+
+Rerun-02 used frozen source `e871a973aaad6e4501347303b50a7afaff97436f`, clean before and after, with the existing
+`chess-salesforce` case, Codex `gpt-6.1-terra` / `xhigh`, marketplace source, no seed or new limit. Both subjects
+consumed skill-craft 2.33.0 / ShipLoop 1.31.0, digest `4c0766ea8e7a`, on Codex CLI 0.166.0. Requested model and
+effort are recorded; served-model identity and dollar cost remain unobserved. Another session published 2.34.0 /
+ShipLoop 1.32.0 during this work. Its accepted history is preserved on main; neither chess run qualifies that release.
+
+| Measured outcome | Baseline-01 | Rerun-02 |
+| --- | --- | --- |
+| Outer functional checks | 4/4 pass | 4/4 pass |
+| Apex test methods / rule checks | 12 / 28 pass | 12 / 28 pass |
+| Host elapsed / turns | 4147.7 seconds / 437 | 4340.4 seconds / 456 |
+| Processed / output tokens | 100,832,397 / 143,431 | 105,585,099 / 166,087 |
+| Returned tracked files | 18 | 26 |
+| Cold local replay | Four documented scratch helpers unavailable; control passes | Six returned local tests pass; control passes |
+| Missing declared receipts after the separately recorded reader correction | One document rerun | None; four positive automatic-validation waivers |
+| Authenticated UI and actual access | Unverified | Unverified |
+
+The rerun exits 0 after one session with no resume. It returns clean commit
+`bed7bd7efbd489515f00c88908374e14d404c161`, tree `3985358f0d6eb9304c5c73906f4ac0b7e35b61ee`, with 20 product
+commits. Cleanup exits 0: names match the before snapshot across 13 metadata types and LastModifiedDate is unchanged
+on 27 baseline Apex/LWC items. This is the declared metadata scope, not arbitrary record or byte-for-byte restoration.
+Its first launcher attempt was blocked by the sandbox before model/org work; the escalated subject ran once.
+
+**The explicit craft assessment answers the owner's code-knowledge question.** Structure, illegal-move rejection,
+cache-copy behavior and UI error cleanup are appropriate for the observed contract. Malformed FEN is outside the
+delivered specification, so partial parser checks do not establish comprehensive support. Nearby rationale remains
+incomplete for cache lifetime/copy ownership and temporary board restoration; architecture AD-5 explains part of it.
+Living documents also retain current-looking contradictions about deployment, passed tests and the cache. No
+substantive rejected approach warrants a missing-tombstone finding. Useful explanations and accurate contracts are
+the criterion; neither a comment quota nor a marker is one. This observation does not reopen the earlier rejected
+knowledge-maintenance experiment or authorize a duplicate generic fix.
+
+Fresh configured Astra xhigh review and a separate Astra xhigh judge each exit 0 with valid results, in 723.0 and
+247.3 seconds. The judge binds review SHA256 `36fdc2af94aec19903a4952b6984785dd569db3504fc019e5957b65d18e8764d`.
+The new `response.md` is exactly the 26,990-byte final reviewer answer, preserves the qualitative assessment, and
+extracts the same discoveries as the structured review. Its readable link resolves. Narrative preservation is not
+automatic validation of every statement; discovery admission still belongs to the independent judge.
+
+The judge supports `LR-20261105-0542a3`, investigating a proof whose execution facility remained unproven during
+review. Later browser-automation denial caused 124+43 seconds of replanning/test specification. Existing guidance
+already discusses prerequisites, so confidence in a new wording fix is medium; earlier detection cannot supply
+authenticated access. A different 131+44-second criterion-timing send-back is supported but minor and belongs to the
+existing F31 investigation. Its direct behavioral proof had passed. Preserve that prior disposition instead of
+creating a duplicate candidate or counting productive implementation time as promised savings.
+
+The judge also appends counterevidence to `LR-20261105-9d39bf`: review-added depth-two assertions and the local
+board/metadata tests were returned this time under the same package. The separate cold replay restores the exact
+bundle, denies child access to the original run root, observes EPERM, passes a local control, then passes all six
+returned local tests with no failure, cancellation, skip or todo. Original bundle/result/metrics/test bytes and stats
+remain unchanged. Two failed probe attempts are retained: nested sandbox execution was unavailable, then the escalated
+probe misread Node's human-readable output as TAP before any product tests ran. The corrected v2 probe explicitly
+selects TAP. This is measurement repair, not a product repair. No Salesforce or browser command runs in the cold probe.
+The contrast constrains the retention diagnosis; it proves neither a universal defect nor an adopted reliability fix.
+
+The harness ingests the two material investigations through its existing append-only ledger. Both remain owner-held
+investigations; implementation admission is zero. No new ShipLoop candidate, score, gate, model default, loop cap,
+package release or host refresh comes from this cycle. The case still has no separate held-out/mutation quality
+measure; the explicit code-knowledge review is a different assessment. Fifteen focused rows have unknown structured
+counts despite retained successful native output. UI/access obligations remain open, so no full-fidelity pass follows
+from the unchanged public functional PASS or from complete receipt discovery. Two differing outputs with differing
+evaluator digests are diagnostic observations, not a registered promotion/5 comparison; there is no measured speedup.
+
+The integrated apparatus commit `dbbbb3206f2e1d30d180bca57ebce40b3899c77f` passes exact CI 42093537911:
+all four required jobs, 67 selected/completed/passed suites, none omitted, including 51 E2E-family suites and actual
+Improve CLI. Local affected checks pass 901 tests plus Ruff and whitespace checks. The shared checkout was not reset;
+the isolated merge preserved both appended journals and all individual commits. This final learning/data entry still
+requires its own CI result; the code-validation evidence is the exact preceding head, not a claim about an unrun head.
+
+Raw evidence: `/Users/dadleet/e2e-runs/2026-11-05/chess-improvement/rerun-02/`, including result/metrics, the cleanup
+record, `review-knowledge-02/response.md`, structured review and `review-judge-knowledge-02/verdict.json`.
+The campaign evidence root holds `campaign-comparison-facts.json`, `fidelity-auto-validation/rerun-02-interpretation.json`,
+`cold-rerun-02-v2/receipt.json`, `cold-rerun-probe-repair.json`, `narrative-retention-live-proof.json` and
+`ci-dbbbb320/`. The [compact run facts](evidence/codex-gpt-6.1-terra-2.33.0-chess-salesforce-20261105-rerun-02.json)
+and [authored review](evidence/codex-gpt-6.1-terra-2.33.0-chess-salesforce-20261105-rerun-02.review.json) use a unique key.
+The latter validates with ten documents and zero errors/warnings. A local HTML copy uses the existing template; the
+earlier local-file browser security block remains in effect, so no visual check or shared-page update is claimed.
