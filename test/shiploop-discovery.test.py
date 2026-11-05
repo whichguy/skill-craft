@@ -216,6 +216,25 @@ class InteractionGuidanceTests(unittest.TestCase):
                 positions.append(position)
         self.assertEqual(positions, sorted(positions))
 
+    def test_new_ui_direction_is_routed_before_concrete_design_and_keeps_scope_guards(self) -> None:
+        for stage in ("spec", "plan"):
+            label, locator = next(row for row in navigator_prompts.STAGE_REFERENCES[stage]
+                                  if row[0] == "UI visual-direction guide")
+            file, anchor = locator.split("#")
+            guide = (ROOT / "skills/shiploop/references" / file).read_text()
+            self.assertEqual(anchor, "light-expressive-starting-point")
+            self.assertIn("## Light expressive starting point", guide)
+            normalized = " ".join(guide.split())
+            for guard in ("Explicit visual constraints, established product identity and platform conventions "
+                          "take precedence", "missing design documents do not erase",
+                          "new screen within an existing product", "Terminal interfaces and static rendered documents",
+                          "plain styling alone does not justify a redesign", "present light first",
+                          "native interfaces follow their platform's appearance policy"):
+                self.assertIn(guard, normalized)
+        planning = self.guide.read_text()
+        self.assertIn("platforms/ui.md#light-expressive-starting-point", planning)
+        self.assertIn("plan-record.md#concrete-ui-direction", planning)
+
     def test_v3_step_plan_and_improve_cue_shared_and_ui_interactions(self) -> None:
         """Routing cues name the applicable concerns without testing design quality."""
         producer = navigator_prompts.prompt("step-plan").lower()

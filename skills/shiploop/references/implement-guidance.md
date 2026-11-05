@@ -17,7 +17,9 @@ the packet. A consideration the step does not touch needs no line.
    content, the documentation a criterion requires), placed per ## Structure. Note changed usage or operations for the
    document stage.
 2. **Interactions** (the criteria; ## Interfaces and boundaries; interaction AD-n). People: what they see and do;
-   waiting, error and empty states; accessible use. Systems: contracts, untrusted input and its validation, who may do
+   only the art-direction, task-hierarchy and visual-state choices selected by this step's criteria, including the
+   visual choices of the AD sections they explicitly select; use the cited AD ID and knowledge-file section. Waiting, error and empty
+   states; accessible use. Systems: contracts, untrusted input and its validation, who may do
    what, sensitive output, slow, failed or repeated messages, compatibility with existing consumers.
 3. **Building** (## Stack; environment.md ## Commands): a valid artifact, built or validated the project's way; no tool
    or dependency without a present need, and any added one recorded.

@@ -671,29 +671,82 @@ class PlanRecordTests(unittest.TestCase):
                                                     plans.CASE["work_item"]["context"]))
         self.assertFalse(prompts.names_interactions(plans.SECOND_ITEM["title"], plans.SECOND_ITEM["context"]))
         for text in ("Add an inline-editable list view", "Accept report-complete events", "keep the client state",
-                     "recover the subscription cursor after reconnect", "a settings screen with a save button"):
+                     "recover the subscription cursor after reconnect", "a settings screen with a save button",
+                     "Build a new website", "Build a dashboard", "Create a graphical app", "Create a web app",
+                     "Build a new application", "Build a web application", "Create a web page", "Create a web site",
+                     "Create a landing page", "Create a mobile application"):
             with self.subTest(text=text):
                 self.assertTrue(prompts.names_interactions("Fix a parser.", text))
+        for text in ("Add a CLI export flag", "Process files in a headless worker", "State the rule in the README"):
+            with self.subTest(non_interaction=text):
+                self.assertFalse(prompts.names_interactions(text))
+
+    def test_no_style_graphical_requests_receive_the_default_before_step_planning(self) -> None:
+        """The spec head supplies the conditional starting direction before a plan can choose an unrelated style."""
+        walk = lambda case, route, work, run_dir: plans.full_walk(  # noqa: E731
+            case, route, work, run_dir, lint="report")
+        for request in ("Build a new website", "Build a dashboard", "Build a notes app",
+                        "Build a web application for shared expenses"):
+            case = dict(plans.CASE, prompt=request,
+                        work_item={"id": "W1", "title": request, "context": "No existing product or visual style."})
+            for route in ("inline", "ask-agent"):
+                rows = packets.offline_renders(case, route, run_dir_length=LIVE_RUN_DIR,
+                                               cli_path_length=CLI_PATH_LENGTH, walk=walk)
+                for stage in ("spec", "step-plan"):
+                    row = next(row for key, row in rows.items() if plans.stage_of(key) == stage)
+                    with self.subTest(request=request, route=route, stage=stage):
+                        text = " ".join(row["printed"].split())
+                        self.assertTrue(row["head"])
+                        self.assertLessEqual(len(row["printed"]), HOST_CUT)
+                        self.assertTrue(row["printed"].endswith(navigator.HEAD_END + "\n"))
+                        if stage == "spec":
+                            self.assertIn("For a new graphical UI", text)
+                            self.assertIn("fill unspecified visual choices", text)
+                            self.assertIn("explicit visual constraints, established product identity "
+                                          "and platform conventions take precedence", text)
+                            self.assertIn("UI visual-direction guide", text)
+                        else:
+                            self.assertIn("first UI planning records or reuses an AD-<n>", text)
 
     def test_an_interaction_item_step_plan_head_prints_the_bullet_within_the_cut(self) -> None:
         """Unit U7 left a UI item's step plan with only the guide's pointer; the bullet is back in its head, and the head
-        still fits the 20,000-character host print at the normal install (the context excerpt at its 400-character cap)."""
+        still fits the 20,000-character host print at both measured run-directory lengths."""
         case = dict(plans.CASE, prompt="Add a list view people reorder by drag and drop, with keyboard paths and an undo "
                                        "button; keep the list state in the client.")
         case["work_item"] = {"id": "W1", "title": "List view with drag-and-drop reordering and keyboard paths",
                              "context": ("Reuse the existing list component; animate moves with a reduced-motion "
                                          "alternative; state owner: the client store. ") * 8}
+        walk = lambda active_case, route, work, run_dir: plans.full_walk(  # noqa: E731
+            active_case, route, work, run_dir, lint="report")
         for delegation in ("inline", "ask-agent"):
-            rows = packets.offline_renders(case, delegation, run_dir_length=INSTALL_RUN_DIR,
-                                           cli_path_length=CLI_PATH_LENGTH)
-            printed = next(row["printed"] for key, row in rows.items() if plans.stage_of(key) == "step-plan")
-            with self.subTest(route=delegation):
-                self.assertLessEqual(len(printed), HOST_CUT)
-                flat = " ".join(printed.split())
-                for cue in ("a Design basis paragraph", "Give baseline and delta;", "planned recovery checks;",
-                            "design guidance identity and version or digest (or named fallback)", "GUIDES/plan-record.md"):
-                    self.assertIn(cue, flat)
-                self.assertTrue(printed.endswith(navigator.HEAD_END + "\n"))
+            for length in (INSTALL_RUN_DIR, LIVE_RUN_DIR):
+                rows = packets.offline_renders(case, delegation, run_dir_length=length,
+                                               cli_path_length=CLI_PATH_LENGTH, walk=walk)
+                packet = next(row for key, row in rows.items() if plans.stage_of(key) == "step-plan")
+                printed = packet["printed"]
+                with self.subTest(route=delegation, run_dir=length):
+                    self.assertTrue(packet["head"])
+                    self.assertLessEqual(len(printed), HOST_CUT)
+                    self.assertTrue(printed.endswith(navigator.HEAD_END + "\n"))
+                    flat = " ".join(printed.split())
+                    for cue in ("a Design basis paragraph", "Give baseline and delta;", "planned recovery checks;",
+                                "design guidance identity and version or digest (or named fallback)",
+                                "the spec's UI criteria this step meets (first UI planning records or reuses an AD-<n> "
+                                "for the authorized art direction, task hierarchy, design system, tokens, components and "
+                                "theme; visual criteria state selected observable choices and cite that AD's ID and "
+                                "knowledge-file section)", "GUIDES/plan-record.md"):
+                        self.assertIn(cue, flat)
+
+                plain_rows = packets.offline_renders(plans.CASE, delegation, run_dir_length=length,
+                                                     cli_path_length=CLI_PATH_LENGTH, walk=walk)
+                plain_packet = next(row for key, row in plain_rows.items() if plans.stage_of(key) == "step-plan")
+                plain = plain_packet["printed"]
+                with self.subTest(route=delegation, run_dir=length, non_ui=True):
+                    self.assertTrue(plain_packet["head"])
+                    self.assertTrue(plain.endswith(navigator.HEAD_END + "\n"))
+                    flat_plain = " ".join(plain.split())
+                    self.assertNotIn("the spec's UI criteria this step meets", flat_plain)
+                    self.assertNotIn("first UI planning records or reuses an AD-<n>", flat_plain)
 
     def test_the_guide_is_a_stage_reference_with_a_heading_for_its_locator(self) -> None:
         label, locator = next(row for row in plans.prompts.STAGE_REFERENCES["step-plan"] if row[0] == "Plan record guide")

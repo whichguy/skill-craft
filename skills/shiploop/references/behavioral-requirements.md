@@ -200,10 +200,20 @@ Distinguish accepted requirements from observed practice or defects. Reuse an
 adequate premise and specify the feature delta; missing design documents do not
 mean a new product. Preserve platform conventions on web/native/mobile clients.
 
+For a new graphical UI, fill unspecified visual choices from the
+[light expressive starting point](platforms/ui.md#light-expressive-starting-point).
+Explicit visual constraints, established product identity and platform conventions
+take precedence; new screens within an existing product inherit its identity.
+Carry the chosen direction from the spec into the
+existing UI AD and selected step criteria using the
+[concrete UI procedure](plan-record.md#concrete-ui-direction).
+
 At the first consequential UI decision, discover, read and apply suitable design
 guidance available through the current host's capability/skill discovery (such
 as frontend-design). Record its actual identity/version or content digest and
-applicable decisions. Do not wait until the `carry-forward` skill decision.
+applicable decisions. Apply this guidance within the chosen direction and
+precedence above; it does not silently replace them. Do not wait until the
+`carry-forward` skill decision.
 An absent optional skill uses repository guidance and this section as fallback;
 do not install a skill, hard-code host paths or claim unexecuted skill use.
 

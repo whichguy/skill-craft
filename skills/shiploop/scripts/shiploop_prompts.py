@@ -218,6 +218,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Behavior-model guidance", "behavioral-requirements.md#behavior-model"),
         ("Behavior traceability guidance", "behavioral-requirements.md#traceability-and-review"),
+        ("UI visual-direction guide", "platforms/ui.md#light-expressive-starting-point"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
         ("Service discovery guidance", "service-discovery.md#verification"),
     ),
@@ -238,6 +239,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("UI planning ownership guide", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
+        ("UI visual-direction guide", "platforms/ui.md#light-expressive-starting-point"),
     ),
     "prepare": (
         ("Environment preparation guidance", "environment-lifecycle.md#plan-preparation-before-its-first-consumer"),
@@ -807,8 +809,9 @@ _PLAN_RECORD_INTERACTIONS = """\
      Interaction design guide's matching subsections and, for services, Service discovery guidance; copy no prior
      plan. Give baseline and delta; actors, events, connections and state owner; planned recovery checks; for UI the
      component, interaction and skin premises, design guidance identity and version or digest (or named fallback),
-     the spec's UI criteria this step meets (the first UI step records the design system, tokens, components and
-     theme, as an AD-<n>), and the rich interactions planned (a human-facing UI takes the ambition the request states, and with none stated
+     the spec's UI criteria this step meets (first UI planning records or reuses an AD-<n> for the authorized art direction,
+     task hierarchy, design system, tokens, components and theme; visual criteria state selected observable choices and
+     cite that AD's ID and knowledge-file section), and the rich interactions planned (a human-facing UI takes the ambition the request states, and with none stated
      defaults to ambitious and highly interactive: direct manipulation, inline editing, live preview, keyboard paths,
      animated transitions; give the reason for any scaled back); the UI decisions this step owns (UI planning
      ownership guide); locators of sources and checks.
@@ -820,7 +823,8 @@ _PLAN_RECORD_INTERACTIONS = """\
 # rule in the README").
 INTERACTION_CUES = re.compile(
     r"\b(?:ui|ux|gui|user interface|interfaces?|screens?|views?|components?|buttons?|clicks?|keyboard|mouse|touch|"
-    r"drag|forms?|display\w*|render\w*|layouts?|browsers?|front-?end|interactive|interactions?|animat\w*|"
+    r"drag|forms?|display\w*|render\w*|layouts?|browsers?|web ?(?:sites?|pages?)|landing pages?|dashboards?|"
+    r"apps?|applications?|front-?end|interactive|interactions?|animat\w*|"
     r"notifications?|events?|connections?|reconnect\w*|subscri\w*|websockets?|sockets?|sessions?|stateful|"
     r"(?:service|client|server|shared|session|application|app|ui|user|live|persistent|stored) state|"
     r"state (?:owner\w*|store|sync\w*)|real-?time|webhooks?|playable|players?)\b",
@@ -1009,11 +1013,14 @@ DUTIES = {
    guide): operating conditions, a numeric bound inside any hard platform limit or an observable acceptance line,
    verification method, justified exclusion, or an unresolved bound. Invent no bound. A material requirement conflict goes in `summary` as open and
    keeps dependent work unready. A deliverable with a user interface (a page, an app screen, a rendered report, a
-   terminal interface) gets a non-functional requirement for a deliberately designed, polished interface, never a
-   default one, with observable criteria: a consistent visual system (spacing and type scales, a palette with a light
+   terminal interface) gets a non-functional requirement for a deliberately designed, polished interface, not
+   unstyled scaffolding, with
+   observable criteria: a consistent visual system (spacing and type scales, a palette with a light
    and a dark theme); designed empty, loading and error states; a layout that works at a narrow and a wide width with
    no horizontal overflow; visible focus states and WCAG AA contrast; motion only where it explains a change,
-   honoring reduced motion; one icon set.
+   honoring reduced motion; one icon set. For a new graphical UI, fill unspecified visual choices from the UI
+   visual-direction guide's light expressive starting point; explicit visual constraints, established product identity
+   and platform conventions take precedence. Record the starting direction here; the plan chooses its concrete treatment.
 7. State and data assessment: under the R-<n> it affects in KNOWLEDGE/spec.md, write the affected resources, target
    identities, before and after invariants, recovery, applicable checks and unknowns.
 8. For each service boundary specify verifiable contracts (Service discovery guidance): current authority, freshness

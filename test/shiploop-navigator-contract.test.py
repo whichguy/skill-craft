@@ -5102,10 +5102,11 @@ class PlatformTestingGuideTests(unittest.TestCase):
 class InterfaceCriteriaDutyTests(unittest.TestCase):
     """Plan P4 (owner, 2026-10-28: "an extra fancy UI whenever we develop something"): a deliverable with an interface gets
     a deliberately designed one, and the criteria are observations a capture can show, never model taste.  The spec states
-    them, the step plan's Design basis names the ones a step meets, and test-spec and product-acceptance close a UI
-    criterion only on the rendered interface in both themes and at both widths.  No stack or library is named."""
+    them, the step plan's Design basis names the ones a step meets and records art direction and task hierarchy in its
+    first UI decision, and UI criteria cite applicable observable choices from that AD.  Test-spec and product-acceptance
+    close a UI criterion only on the rendered interface in both themes and at both widths.  No stack or library is named."""
 
-    CRITERIA = ("deliberately designed, polished interface, never a default one", "spacing and type scales",
+    CRITERIA = ("deliberately designed, polished interface", "spacing and type scales",
                 "a palette with a light and a dark theme", "designed empty, loading and error states",
                 "a narrow and a wide width with no horizontal overflow", "visible focus states and WCAG AA contrast",
                 "honoring reduced motion", "one icon set")
@@ -5122,8 +5123,9 @@ class InterfaceCriteriaDutyTests(unittest.TestCase):
 
     def test_the_step_plan_names_the_ui_criteria_a_step_meets_and_the_one_design_system_decision(self) -> None:
         text = " ".join(prompts._PLAN_RECORD_INTERACTIONS.split())
-        self.assertIn("the spec's UI criteria this step meets (the first UI step records the design system, tokens, "
-                      "components and theme, as an AD-<n>)", text)
+        self.assertIn("the spec's UI criteria this step meets (first UI planning records or reuses an AD-<n> for the "
+                      "authorized art direction, task hierarchy, design system, tokens, components and theme; visual "
+                      "criteria state selected observable choices and cite that AD's ID and knowledge-file section)", text)
 
     def test_test_spec_and_acceptance_close_a_ui_criterion_only_on_the_rendered_interface(self) -> None:
         self.assertIn("A UI criterion's row observes the rendered interface in both themes and at both widths "
