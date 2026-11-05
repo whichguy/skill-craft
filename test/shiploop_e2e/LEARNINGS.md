@@ -7904,3 +7904,71 @@ No-Change-Note: changes the E2E reader, not a shipped skill path.
 No-E2E-Round: measurement-tooling correction; does not change skills/shiploop/.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+
+## Raw Salesforce chess completes; explicit code-knowledge review separates delivery from fidelity (2026-11-05)
+
+The authorized prepare/run/evaluate/change/rerun campaign completed its first raw marketplace run.
+Retain the accepted ShipLoop baseline: the fresh review and independent judge admitted no generic implementation.
+The changes retained so far improve the E2E apparatus and its evaluation coverage; the next full run will exercise them.
+
+Source was frozen at `1178fcfb4195add953fe9fbb011ef3d5479e8d03`, clean before and after. The command was
+`python3 -B test/shiploop_e2e/run.py --case chess-salesforce --host codex --model gpt-6.1-terra --effort xhigh --source marketplace --output /Users/dadleet/e2e-runs/2026-11-05/chess-improvement/baseline-01 --baseline /Users/dadleet/e2e-runs/2026-11-05/chess-improvement/baselines.jsonl --quiet`.
+No seed, planning override or new limit was supplied. The consumed package was skill-craft 2.33.0 / ShipLoop 1.31.0,
+recorded digest `4c0766ea8e7a`. Requested model and effort are known; served-model identity is unobserved.
+
+**The functional pass does not settle the code-knowledge and fidelity questions.**
+
+| Evaluation | Observed result | Scope or remaining limit |
+| --- | --- | --- |
+| Functional delivery | All four case checks pass; 12 Apex tests pass; 28/28 rule markers pass. | Authenticated board interaction and app access remain unverified. |
+| Code structure and errors | Fresh review finds appropriate engine/controller/UI separation, domain errors and UI failure cleanup for exercised behavior. | Broad malformed-FEN contract claims are not fully substantiated; no executed malformed-FEN failure was established. |
+| Comments and retained rationale | Public contracts exist. | Make/unmake and cache-copy invariants lack nearby rationale; usefulness, not comment count, is the criterion. |
+| Tombstones | No stale warning or warranted missing tombstone was established. | No substantive rejected approach requiring a warning was shown; absence alone is not a defect. |
+| Durable verification knowledge | Native Apex tests and the three living knowledge files were returned. | Four reusable local regression scripts remain only in run scratch, including reviewed board/error/contrast checks. |
+| Fidelity receipts | 11 verification records pass, covering 47 command runs. A new external reader interpretation recognizes eight existing step-proof receipts. | Three validate-existing terminal receipts and one document rerun receipt remain missing; 18 focused rows lack structured counts. |
+| Cost and time | 4147.7 seconds, 437 turns, one session, no resume; 100,832,397 processed and 143,431 output tokens. | Dollars are unknown. This single run does not establish comparative efficiency. |
+| Cleanup | The recorded cleanup returned success: names matched the baseline across 13 metadata types, and LastModifiedDate was unchanged for 27 baseline Apex/LWC items. | This is the declared metadata scope, not proof of complete remote data or byte-for-byte restoration. |
+
+The product returned clean commit `22e57d2cece925e9db2e1574e006fc7d8cb7e47a` with 18 tracked files. An initial
+launcher attempt failed because its output leaf already existed; no subject started. Only that empty run-owned leaf
+was removed. The subsequent launch was the sole real subject run, not a hidden retry.
+
+The explicit code-knowledge lens is `f97f2a074976f451bc9d34378d6198598c9ef9ae`. ShipLoop already had the relevant
+Code craft obligations, so the change makes the repository E2E reviewer assess their sufficiency rather than adding
+another implementation gate. Existing parsing/discovery/qualification checks pass 38 tests. Fresh Astra xhigh review
+and a separate Astra xhigh judge both exited 0 and produced valid results (752.7 and 285.7 seconds respectively).
+The judge binds review SHA256 `0a3061e00ac506817b65cef8fe7644e7a30ff08424420fea3bfab54896ccf6f5`.
+
+The judge supports the missing reusable-test definitions, now retained as investigation `LR-20261105-9d39bf`.
+It disputes part of the planning explanation in `LR-20261105-884ad2`: the recorded navigation output passes through
+the shipped named-ID fallback. Two send-backs and 657.079 seconds returning to the interrupted step are observed;
+that duration is not promised savings, and the disproven parser explanation does not justify a fix. Both records were
+appended through the harness and remain investigations. The existing retention duty in
+`9e1998b00fae5b7e5f7cd3d313d746c8b7084ba2` is compatible with
+`091f3cee105c529d716520e6fcf1067034edb72e`'s collision-safe temporary scratch policy; the unresolved boundary is
+which authored test definitions must move into the returned product.
+
+The apparatus repairs are separate: `d4ce3289537279fcaf979150ed096aa91cc43841` requires the expected calibration
+rejection rather than any failed exit; `3e0b6e6b851fafae6187bc34547e49e1f28a6cf5` counts cumulative resumed Codex
+usage once per verified thread; and `57afe99d28c6a1f965d29853f09850828561557b` recognizes step-proof as its own
+receipt kind. The last change passes 141 fidelity tests and 688 consumer tests. The original baseline metrics,
+result, state and eight proof receipts remain byte/stat-identical; its new interpretation is external and preserves
+all four missing-record warnings. The resumed-thread fix was independently checked against the Nov. 4 root usage,
+not invoked as a benefit on this single-session baseline. The earlier selector repair `1178fcfb` passed exact GitHub
+CI 42050376619; CI on the newer apparatus is still pending at this learning entry.
+
+Raw evidence: `/Users/dadleet/e2e-runs/2026-11-05/chess-improvement/baseline-01/`, including
+`review-knowledge-01.json`, `review-knowledge-01/events.jsonl` (the sufficiency narrative),
+`review-judge-knowledge-01/verdict.json` and `platform/cleanup-record.json`.
+The [compact run facts](evidence/codex-gpt-6.1-terra-2.33.0-chess-salesforce-20261105-baseline-01.json) and
+[validated review](evidence/codex-gpt-6.1-terra-2.33.0-chess-salesforce-20261105-baseline-01.review.json) have a unique
+run key so the same-day rerun will not overwrite them. The review validates with nine documents, zero failures and
+zero warnings. The selected Run Review exporter produced a local HTML copy with those findings under the campaign's
+`review-baseline-01/` evidence directory. Browser security blocked opening its local file URL, so the rendered copy
+was not visually inspected. Shared-page publication is unavailable with the exposed tools; no page update is claimed.
+
+Continue with raw marketplace chess on the repaired apparatus, retaining the same model/effort and existing limits.
+Record the rerun's code-knowledge assessment and functional/fidelity results separately. No new ShipLoop package,
+release qualification, broad quality improvement, UI acceptance or convergence is claimed by this entry. Another
+session's concurrent `4a72cf2a21d9091b423c8cc34730ea2c9d587e14` source change was not used or qualified by this run.
