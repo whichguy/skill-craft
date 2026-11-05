@@ -628,7 +628,9 @@ def _plan(state: Mapping[str, Any], accepted_at: Mapping[str, Any], improve_resu
     import shiploop_navigator as navigator
     import shiploop_prompts as guidance
 
-    prelude, inner, outer = navigator.graph(state)
+    # `graph` is the protocol's stage tuples, which `shiploop_prompts` owns (navigator.graph only returns them): read
+    # them from the owner, so this call does not depend on the navigator module at all (2026-11-05).
+    prelude, inner, outer = guidance.PRELUDE, guidance.INNER, guidance.OUTER
     try:
         done, _ = navigator._accepted_done(state)
     except (KeyError, TypeError, ValueError):

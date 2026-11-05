@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import shlex
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Mapping
 
 import shiploop_knowledge_home as knowledge
 import shiploop_prompts as prompts
@@ -282,8 +282,3 @@ def _current_action(state: Mapping[str, Any]) -> dict[str, Any] | None:
     if not isinstance(state.get("action"), Mapping):
         return None
     return {**state["action"], "stage": state["stage"], "workitem": None}
-
-
-def stages_named(names: Iterable[str]) -> set[str]:
-    """Stage names with any ``item:`` prefix removed."""
-    return {name[5:] if name.startswith("item:") else name for name in names}
