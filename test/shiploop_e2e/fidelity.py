@@ -27,6 +27,7 @@ import shlex
 
 import metrics
 import run_trace
+import shiploop_expectations
 
 SCHEMA = "shiploop-e2e-fidelity/v1"
 # Files the engine keeps beside a run (shiploop_workspace.MANIFEST, RETURN_PLAN, RETURN_RECEIPT): script-owned, and named in a
@@ -334,6 +335,55 @@ def _records(run_dir: Path, action: str, improved: dict) -> list[str]:
     return found
 
 
+def _automatic_validate_existing_loop_waiver(run_dir: Path, action: str, work_item, records: list[str], needs: list[str],
+                                             lacks: list[str], traced: dict | None) -> bool:
+    """Prove the one script route that can complete validate-existing without its own loop receipt."""
+    if ("expectation" not in needs or "expectation" not in records or "loop" not in lacks
+            or not isinstance(action, str) or not isinstance(work_item, str) or not work_item):
+        return False
+    if not isinstance(traced, dict) or traced.get("error") or traced.get("covers") is not True:
+        return False
+    packets, completes, attempts = traced.get("packets"), traced.get("completes"), traced.get("complete_attempts")
+    if not isinstance(packets, dict) or packets.get(action) or not isinstance(completes, list) or not isinstance(attempts, list):
+        return False
+    if any(not isinstance(row, dict) or not isinstance(row.get("i"), int) for row in attempts):
+        return False
+    # Any completion attempt on this action contradicts the script route, including a check-only callback.
+    if any(row.get("action") == action for row in attempts):
+        return False
+
+    automatic_acceptance = False
+    for complete in completes:
+        if (not isinstance(complete, dict) or complete.get("accepted") is not True
+                or not isinstance(complete.get("action"), str) or not complete["action"] or complete["action"] == action
+                or not isinstance(complete.get("accepted_steps"), list)):
+            continue
+        successful_command = any(
+            attempt.get("i") == complete.get("i") and attempt.get("action") == complete.get("action")
+            and attempt.get("check_only") is False and attempt.get("held") is False
+            and attempt.get("crashed") is False and attempt.get("exit") == 0
+            for attempt in attempts
+        )
+        if not successful_command:
+            continue
+        if any(isinstance(step, dict) and step.get("action") == action and step.get("stage") == "validate-existing"
+               and step.get("item") == work_item and step.get("outcome") == "done"
+               for step in complete["accepted_steps"]):
+            automatic_acceptance = True
+            break
+    if not automatic_acceptance:
+        return False
+
+    try:
+        record = shiploop_expectations.read_record(run_dir, action)
+    except Exception:  # noqa: BLE001 - malformed or unreadable evidence cannot prove the automatic route
+        return False
+    results = record.get("results") if isinstance(record, dict) else None
+    return (isinstance(record, dict) and record.get("action") == action and record.get("work_item") == work_item
+            and isinstance(results, list) and bool(results)
+            and all(isinstance(result, dict) and result.get("matches") is True for result in results))
+
+
 def evidence(run_dir: Path | None, state: dict, declared: dict | None) -> dict:
     """One row per accepted action (state.md's history, in order) with the class of evidence it rests on.
 
@@ -345,7 +395,9 @@ def evidence(run_dir: Path | None, state: dict, declared: dict | None) -> dict:
     gate when the run's lint option is off) and `lacks` the ones the action has none of; `declared_script_run_without_record` names a
     done, not skipped stage that declares a script-run check and lacks any of them, so one script's record does not stand in for
     another's. A run RUN_KIND does not know makes `needs` None, is not judged and is named in `unmapped_runs`. A reading aid, not a
-    target: citing any file makes a row `file`."""
+    target: citing any file makes a row `file`. `waived` names a normally declared kind omitted from `lacks` only when the trace
+    proves another action's successful completion automatically accepted this action at `validate-existing`, with its current,
+    action-bound expectations all matching; that route has no loop-terminal receipt by design."""
     history = state.get("history") if isinstance(state, dict) else None
     if run_dir is None or not isinstance(history, list):
         raise Unmeasured("state.md records no history (no ShipLoop run directory, or one of another layout)")
@@ -354,6 +406,7 @@ def evidence(run_dir: Path | None, state: dict, declared: dict | None) -> dict:
     counts = {"script": 0, "loop": 0, "file": 0, "note": 0, "sentence": 0, "skipped": 0, "unclassified": 0}
     kinds = dict.fromkeys(RECORD_KINDS, 0)
     rows, missing, unmapped = [], [], set()
+    traced, trace_read = None, False
     lint_off = state.get("lint") == "off"
     for item in history:
         if not isinstance(item, dict) or not isinstance(item.get("action"), str):
@@ -382,11 +435,24 @@ def evidence(run_dir: Path | None, state: dict, declared: dict | None) -> dict:
         unknown = [name for name in runs if name not in RUN_KIND]
         unmapped.update(unknown)
         needs = None if declared is None or unknown else sorted({kind for kind in known if not (lint_off and kind == "lint")})
-        lacks = None if needs is None else [kind for kind in needs if kind not in records]
+        waived = []
+        if (run_dir is not None and item.get("stage") == "validate-existing" and check == "script-run"
+                and item.get("outcome") == "done" and needs is not None and "loop" in needs
+                and "loop" not in records):
+            if not trace_read:
+                traced = run_trace.read(run_dir)
+                trace_read = True
+            if _automatic_validate_existing_loop_waiver(run_dir, action, item.get("workitem"), records, needs,
+                                                         [kind for kind in needs if kind not in records], traced):
+                waived = ["loop"]
+        lacks = None if needs is None else [kind for kind in needs if kind not in records and kind not in waived]
         if check == "script-run" and item.get("outcome") == "done" and klass != "skipped" and lacks:
             missing.append(item.get("stage"))
-        rows.append({"action": action, "stage": item.get("stage"), "work_item": item.get("workitem"), "outcome": item.get("outcome"),
-                     "declared": check, "needs": needs, "lacks": lacks, "class": klass, "records": records, "refs": refs})
+        row = {"action": action, "stage": item.get("stage"), "work_item": item.get("workitem"), "outcome": item.get("outcome"),
+               "declared": check, "needs": needs, "lacks": lacks, "class": klass, "records": records, "refs": refs}
+        if waived:
+            row["waived"] = waived
+        rows.append(row)
     return {"counts": counts, "records": kinds,
             "declared_script_run_without_record": None if declared is None else missing,
             "unmapped_runs": sorted(unmapped), "stages": rows}

@@ -180,6 +180,36 @@ class TracedRun(unittest.TestCase):
 
     # --- the reader ---------------------------------------------------------------------------------------------------
 
+    def test_complete_projection_keeps_accepted_steps_and_all_complete_attempts(self):
+        events = [
+            {"kind": "command", "i": 1, "verb": "complete", "action": "nav-parent", "exit": 0,
+             "accepted": [{"action": "nav-auto", "stage": "validate-existing", "item": "W1", "outcome": "done"}]},
+            {"kind": "command", "i": 2, "verb": "complete", "action": "nav-auto", "check_only": True, "exit": 0},
+            {"kind": "command", "i": 3, "verb": "complete", "action": "nav-held", "held": ["owner-note"], "exit": 0},
+            {"kind": "command", "i": 4, "verb": "complete", "action": "nav-crashed", "crashed": "RuntimeError", "exit": 1},
+        ]
+        with tempfile.TemporaryDirectory() as temp:
+            run_dir = Path(temp)
+            (run_dir / run_trace.FILE).write_text("{}\n")
+            model = {"run": {"capped": False, "traced_since": None, "untraced_steps": 0, "status": "active"},
+                     "events": events, "counts": {}, "notes": []}
+            with mock.patch.object(shiploop_trace, "build", return_value=model), \
+                    mock.patch.object(store, "read_record", return_value={"accepted": {}}):
+                traced = run_trace.read(run_dir)
+
+        self.assertEqual(traced["completes"], [
+            {"i": 1, "action": "nav-parent", "accepted": True,
+             "accepted_steps": [{"action": "nav-auto", "stage": "validate-existing", "item": "W1", "outcome": "done"}]},
+            {"i": 3, "action": "nav-held", "accepted": True, "accepted_steps": []},
+            {"i": 4, "action": "nav-crashed", "accepted": False, "accepted_steps": []},
+        ])
+        self.assertEqual(traced["complete_attempts"], [
+            {"i": 1, "action": "nav-parent", "check_only": False, "held": False, "crashed": False, "exit": 0},
+            {"i": 2, "action": "nav-auto", "check_only": True, "held": False, "crashed": False, "exit": 0},
+            {"i": 3, "action": "nav-held", "check_only": False, "held": True, "crashed": False, "exit": 0},
+            {"i": 4, "action": "nav-crashed", "check_only": False, "held": False, "crashed": True, "exit": 1},
+        ])
+
     def test_the_reader_holds_every_failure_print_and_hook_with_its_text(self):
         traced = run_trace.read(self.run_dir)
         self.assertTrue(run_trace.covers(traced))

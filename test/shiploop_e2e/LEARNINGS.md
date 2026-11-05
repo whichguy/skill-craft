@@ -7972,3 +7972,34 @@ Continue with raw marketplace chess on the repaired apparatus, retaining the sam
 Record the rerun's code-knowledge assessment and functional/fidelity results separately. No new ShipLoop package,
 release qualification, broad quality improvement, UI acceptance or convergence is claimed by this entry. Another
 session's concurrent `4a72cf2a21d9091b423c8cc34730ea2c9d587e14` source change was not used or qualified by this run.
+
+## Automatic validation corrects three receipt warnings, while one remains open (2026-11-05)
+
+The preceding entry and `57afe99d28c6a1f965d29853f09850828561557b` described all four baseline missing-record
+warnings as unproven. Three were false positives. The producer introduced in
+`d738804388a68a100a2dc9b4b0bba246fa44df22` accepts `validate-existing` itself when every expectation matches,
+advances without a model packet, and therefore does not request a loop-terminal receipt. Each of the three actions
+has a matching expectation record and appears in another successful completion command's accepted-step trace.
+The document action used the normal route and still has no action-scoped rerun receipt.
+
+The repaired harness reads that positive provenance through the existing trace reader. It requires covered trace,
+a successful different-action completion, exact action/stage/item acceptance, no target packet or completion attempt,
+and a current-schema action/work-item-bound expectation receipt with nonempty, literal all-matching results.
+Expected broken behavior may legitimately exit nonzero. Summary wording and missing packet files alone cannot
+justify a waiver. Declared `needs` stay visible; `waived: ["loop"]` explains the sole kind removed from `lacks`.
+Missing or malformed evidence, other required checks and unknown run kinds remain conservative.
+
+Fail-first checks reproduce the original warning and missing trace projection. The final focused checks pass;
+the complete affected suites pass 148 fidelity, 27 trace-reader and 688 report-consumer tests. The adjacent full-answer
+retention change passes 38 review parsing/discovery/qualification tests: 901 total, each command once with exit 0,
+no retry or skipped required check. Ruff and whitespace checks pass. Independent read-only review found no
+actionable issue. The full reviewer answer now has an explicitly unvalidated `response.md` beside its structured
+result; preserving qualitative sufficiency judgments does not admit them as generic improvements.
+
+A separate interpretation using the baseline's installed 2.33 stage catalog recognizes exactly three automatic
+validations, leaves only `document` missing, and retains the eight distinct step-proof records. Original metrics,
+result, state, trace, expectation and proof bytes, sizes and mtimes are unchanged. This correction does not settle
+the document rerun, authenticated UI acceptance, unavailable native-test counts or generic ShipLoop qualification.
+Evidence is under the campaign root's `fidelity-auto-validation/` and `closeout-verification/`; the catalog-bound
+interpretation is `fidelity-auto-validation/baseline-01-interpretation.json`. Preserve the older interpretation as
+history and use this correction when assessing what the warnings mean.

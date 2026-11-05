@@ -31,12 +31,15 @@ from pathlib import Path
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
+ENGINE = ROOT / "skills" / "shiploop" / "scripts"
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
+sys.path.insert(0, str(ENGINE))
 import metrics  # noqa: E402
+import shiploop_expectations  # noqa: E402
+import shiploop_store as store  # noqa: E402
 
 FIXTURES = ROOT / "test" / "fixtures" / "fidelity"
 EXPORTER = ROOT / "skills" / "shiploop-run-review" / "scripts" / "export.py"
-ENGINE = ROOT / "skills" / "shiploop" / "scripts"
 
 CLAUDE = ("r1-battleship-sonnet", "r2-battleship-sonnet", "r3-battleship-sonnet", "r1-checkers-sonnet", "r2-checkers-sonnet",
           "r3-checkers-sonnet", "v1230-battleship-sonnet")
@@ -443,6 +446,116 @@ class EvidenceTest(unittest.TestCase):
                 "accepted": accepted if accepted is not None else {
                     a: {"outcome": o, "summary": "did it", "evidence_refs": ["/r/.shiploop-runs/w/worktree/x.md"]}
                     for a, s, o in history}}
+
+    def automatic_validation_trace(self):
+        return {"covers": True,
+                "completes": [{"i": 1, "action": "nav-parent", "accepted": True,
+                               "accepted_steps": [{"action": "nav-parent", "stage": "test-spec", "item": "W1", "outcome": "done"},
+                                                  {"action": "nav-auto", "stage": "validate-existing", "item": "W1", "outcome": "done"}]}],
+                "complete_attempts": [{"i": 1, "action": "nav-parent", "check_only": False, "held": False, "crashed": False, "exit": 0}],
+                "packets": {}}
+
+    def expectation_record(self, *, action="nav-auto", work_item="W1", results=None, schema=None):
+        return {"schema": schema or shiploop_expectations.SCHEMA, "action": action, "work_item": work_item,
+                "place": "checkout", "checkout": {},
+                "results": results if results is not None else [{"id": "E1", "state": "absent", "exit": 0, "matches": True}]}
+
+    def automatic_validation_evidence(self, trace, record, *, runs=None, summary="ShipLoop ran every expectation check"):
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            if record is not None:
+                record_path = run_dir / "expectations" / "nav-auto.md"
+                record_path.parent.mkdir(parents=True)
+                if record == "unreadable":
+                    record_path.write_text("not a record\n")
+                else:
+                    record_path.write_text(store.dumps(record, "ShipLoop expectation checks"))
+            state = self.run_state([("nav-auto", "validate-existing", "done")],
+                                   accepted={"nav-auto": {"outcome": "done", "summary": summary, "evidence_refs": []}})
+            state["history"][0]["workitem"] = "W1"
+            declared = {"validate-existing": {"check": "script-run",
+                                               "runs": list(runs or ("loop-terminal", "expectation-check"))}}
+            with mock.patch.object(self.fidelity.run_trace, "read", return_value=trace):
+                return self.fidelity.evidence(run_dir, state, declared)
+
+    def test_a_traced_different_action_and_matching_expectations_waive_only_the_auto_loop_requirement(self):
+        expected_broken = [{"id": "E1", "state": "broken", "exit": 1, "matches": True}]
+        evidence = self.automatic_validation_evidence(self.automatic_validation_trace(),
+                                                       self.expectation_record(results=expected_broken))
+        row = evidence["stages"][0]
+        self.assertEqual(row["needs"], ["expectation", "loop"])
+        self.assertEqual(row["lacks"], [])
+        self.assertEqual(row["waived"], ["loop"])
+        self.assertEqual(evidence["declared_script_run_without_record"], [])
+
+    def test_a_proven_auto_acceptance_keeps_other_declared_requirements(self):
+        evidence = self.automatic_validation_evidence(self.automatic_validation_trace(), self.expectation_record(),
+                                                       runs=("loop-terminal", "expectation-check", "test-rerun"))
+        row = evidence["stages"][0]
+        self.assertEqual(row["needs"], ["expectation", "loop", "verify"])
+        self.assertEqual(row["lacks"], ["verify"])
+        self.assertEqual(row["waived"], ["loop"])
+        self.assertEqual(evidence["declared_script_run_without_record"], ["validate-existing"])
+
+    def test_summary_or_a_model_callback_cannot_impersonate_the_auto_acceptance(self):
+        summary_only = self.automatic_validation_trace()
+        summary_only["completes"][0]["accepted_steps"] = []
+        callback = self.automatic_validation_trace()
+        callback["completes"] = [{"i": 1, "action": "nav-auto", "accepted": True,
+                                  "accepted_steps": [{"action": "nav-auto", "stage": "validate-existing", "item": "W1", "outcome": "done"}]}]
+        callback["complete_attempts"].append({"i": 2, "action": "nav-auto", "check_only": True, "held": False, "crashed": False,
+                                               "exit": 0})
+        empty_parent = self.automatic_validation_trace()
+        empty_parent["completes"][0]["action"] = ""
+        empty_parent["complete_attempts"][0]["action"] = ""
+        for trace in (None, {"error": "trace unreadable"}, summary_only, callback, empty_parent,
+                      {key: value for key, value in self.automatic_validation_trace().items() if key != "complete_attempts"}):
+            with self.subTest(trace=trace):
+                evidence = self.automatic_validation_evidence(trace, self.expectation_record())
+                row = evidence["stages"][0]
+                self.assertEqual(row["lacks"], ["loop"])
+                self.assertNotIn("waived", row)
+                self.assertEqual(evidence["declared_script_run_without_record"], ["validate-existing"])
+
+    def test_a_packet_contradicts_an_automatic_validate_existing_acceptance(self):
+        trace = self.automatic_validation_trace()
+        trace["packets"] = {"nav-auto": [{"i": 2, "stage": "validate-existing"}]}
+        evidence = self.automatic_validation_evidence(trace, self.expectation_record())
+        self.assertEqual(evidence["stages"][0]["lacks"], ["loop"])
+        self.assertNotIn("waived", evidence["stages"][0])
+
+    def test_the_auto_acceptance_requires_a_readable_action_bound_nonempty_all_matching_expectation_record(self):
+        cases = {
+            "missing": None,
+            "unreadable": "unreadable",
+            "wrong action": self.expectation_record(action="nav-other"),
+            "wrong work item": self.expectation_record(work_item="W2"),
+            "old schema": self.expectation_record(schema="shiploop-expectations/v0"),
+            "empty": self.expectation_record(results=[]),
+            "failed": self.expectation_record(results=[{"id": "E1", "state": "works", "exit": 1, "matches": False}]),
+            "missing matches": self.expectation_record(results=[{"id": "E1", "state": "works", "exit": 0}]),
+        }
+        for case, record in cases.items():
+            with self.subTest(case=case):
+                evidence = self.automatic_validation_evidence(self.automatic_validation_trace(), record)
+                row = evidence["stages"][0]
+                self.assertEqual(row["lacks"], ["expectation", "loop"] if case == "missing" else ["loop"])
+                self.assertNotIn("waived", row)
+                self.assertEqual(evidence["declared_script_run_without_record"], ["validate-existing"])
+
+    def test_a_partial_trace_cannot_waive_the_loop_requirement(self):
+        trace = self.automatic_validation_trace()
+        trace["covers"] = False
+        evidence = self.automatic_validation_evidence(trace, self.expectation_record())
+        self.assertEqual(evidence["stages"][0]["lacks"], ["loop"])
+        self.assertNotIn("waived", evidence["stages"][0])
+
+    def test_a_held_command_cannot_prove_automatic_acceptance(self):
+        trace = self.automatic_validation_trace()
+        trace["complete_attempts"][0]["held"] = True
+        evidence = self.automatic_validation_evidence(trace, self.expectation_record())
+        self.assertEqual(evidence["stages"][0]["lacks"], ["loop"])
+        self.assertNotIn("waived", evidence["stages"][0])
 
     def test_a_stage_declaring_two_scripts_is_listed_when_one_of_them_left_no_record(self):
         # Review A1: test-green and regression declare [lint-gate, test-loop]; a lint record alone must not satisfy them. The deletion

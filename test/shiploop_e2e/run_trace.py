@@ -9,6 +9,9 @@ gives the harness's readers one shape:
 
 - ``failures``: every traced command that exited non-zero, in order (a failed check included and flagged: ``shiploop check``, or ``complete --check-only`` before it; as the
   host stream counted them), with the stage the run was in, the action, the refusal text and its first line;
+- ``completes``: non-check-only ``complete`` commands with their existing accepted bit and the accepted action/stage/item/outcome
+  rows they recorded; ``complete_attempts`` also includes check-only, held and crashed ``complete`` commands, for provenance checks
+  that must reject any callback on a script-accepted action;
 - ``packets``: per action, every print, with its text as sent, its size as printed and whether it repeated an earlier one;
 - ``hooks``: every keepalive stop decision with its text, and every session end the host reported (``hook=session-end``);
 - ``notes``: every owner note and where it stands (waiting, shown, delivered), as ``shiploop trace`` reads it.
@@ -81,12 +84,19 @@ def read(run_dir: Path | str | None) -> dict | None:
     except Exception as exc:  # noqa: BLE001 - a record, never a refusal: the reader falls back to the stream
         return {"error": f"{type(exc).__name__}: {' '.join(str(exc).split())[:300]}"}
     facts, events = model["run"], model["events"]
-    failures, completes, packets, hooks = [], [], {}, []
+    failures, completes, complete_attempts, packets, hooks = [], [], [], {}, []
     for event in events:
         owner = event.get("action") or event.get("for_action")
-        if event["kind"] == "command" and event.get("verb") == "complete" and not event.get("check_only"):
-            completes.append({"i": event["i"], "action": event.get("action") or (event.get("cursor") or [None])[0],
-                              "accepted": event.get("exit") == 0})
+        if event["kind"] == "command" and event.get("verb") == "complete":
+            action = event.get("action") or (event.get("cursor") or [None])[0]
+            complete_attempts.append({"i": event["i"], "action": action, "check_only": bool(event.get("check_only")),
+                                      "held": bool(event.get("held")), "crashed": bool(event.get("crashed")),
+                                      "exit": event.get("exit")})
+            if not event.get("check_only"):
+                accepted_steps = [{key: row.get(key) for key in ("action", "stage", "item", "outcome")}
+                                  for row in event.get("accepted") or [] if isinstance(row, dict)]
+                completes.append({"i": event["i"], "action": action, "accepted": event.get("exit") == 0,
+                                  "accepted_steps": accepted_steps})
         # A callback held once for owner notes refused nothing, and a command interrupted or crashed before it answered
         # (``crashed``) is not ShipLoop's answer: neither is a failure here, as neither is a refusal to shiploop_trace.
         if (event["kind"] == "command" and event.get("exit") not in (0, None) and event.get("verb") not in ROUTED_VERBS
@@ -120,7 +130,8 @@ def read(run_dir: Path | str | None) -> dict | None:
     return {
         "file": FILE, "covers": reason is None, "partial": reason, "traced_since": facts.get("traced_since"),
         "untraced_steps": facts.get("untraced_steps"), "seeded_steps": len(unseen) - len(missed),
-        "failures": failures, "completes": completes, "packets": packets, "hooks": hooks, "counts": model["counts"],
+        "failures": failures, "completes": completes, "complete_attempts": complete_attempts,
+        "packets": packets, "hooks": hooks, "counts": model["counts"],
         "run_dir": str(run), "status": facts.get("status"), "notes": model.get("notes") or [],
     }
 
