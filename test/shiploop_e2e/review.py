@@ -11,7 +11,8 @@ with read-only instructions, and asks three questions:
 
 Discoveries may challenge the current design or reveal a missing expectation.
 A fresh independent judge admits material improvements within current authority;
-design challenges remain owner/investigation work. Writes review.json and review.md.
+design challenges remain owner/investigation work. Writes review.json and review.md;
+the assessment directory's response.md retains the full, unvalidated reviewer answer.
 
   python3 test/shiploop_e2e/review.py /tmp/shiploop-e2e/battleship-...
 """
@@ -594,7 +595,11 @@ def review(run_dir: Path, *, host: str | None = None, model: str | None = None, 
         argv[sandbox_index + 1] = "read-only"
     process = hosts.run_agent(argv, run_dir, env, stage / "events.jsonl", stage / "stderr.txt", timeout,
                               translate=agent.translator())
-    found = hosts.last_json_object(hosts.final_text(stage / "events.jsonl"))
+    response = hosts.final_text(stage / "events.jsonl")
+    # Sufficiency judgments need not be discoveries. Preserve that narrative without
+    # promoting it to a validated finding or losing it when the JSON is rendered.
+    (stage / "response.md").write_text(response)
+    found = hosts.last_json_object(response)
     checked = validity(found, process)
     parsed = found if found is not None else {"outcome": f"reviewer produced no JSON ({process['status']})"}
     if checked["status"] != "valid" and not isinstance(parsed.get("outcome"), str):
@@ -608,7 +613,8 @@ def review(run_dir: Path, *, host: str | None = None, model: str | None = None, 
     # An unusable review hands nothing on: its findings, if any, are not evidence the improver may act on.
     parsed["actionable"] = actionable(parsed) if checked["status"] == "valid" else []
     review_json.write_text(json.dumps(parsed, indent=2) + "\n")
-    review_markdown.write_text(render_markdown(parsed))
+    review_markdown.write_text(render_markdown(parsed) +
+                               f"\nFull reviewer answer (unvalidated): [{stage.name}/response.md]({stage.name}/response.md)\n")
     return parsed
 
 
