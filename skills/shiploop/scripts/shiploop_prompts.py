@@ -255,6 +255,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("UI planning ownership guide", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
+        ("UI visual-direction guide", "platforms/ui.md#light-expressive-starting-point"),
     ),
     "test-spec": (
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
@@ -800,6 +801,11 @@ def summary_placeholder(stage: str) -> str:
 _BACKCHAIN_ITEM = "<<backchain item>>"
 _ITEM_COMMIT = "<<item commit rule>>"
 
+_PLAN_UI_CRITERIA = """\
+   - Each step adding or changing visible UI has a criterion selecting the spec's UI requirements and applicable AD
+     choices: AD ID/file/section, observable visual anchors, and a rendered check at the required widths and themes.
+"""
+
 # Step-plan duty 9's interaction topic, printed in the duty for an item that may change interactions, UI or service
 # state.  Print-order unit U7 moved it to references/plan-record.md to fit the 20,000-character host print, which left
 # a UI item's step plan with only a pointer a cold model rarely opens; the duty now prints it whenever the request or
@@ -809,9 +815,8 @@ _PLAN_RECORD_INTERACTIONS = """\
      Interaction design guide's matching subsections and, for services, Service discovery guidance; copy no prior
      plan. Give baseline and delta; actors, events, connections and state owner; planned recovery checks; for UI the
      component, interaction and skin premises, design guidance identity and version or digest (or named fallback),
-     the spec's UI criteria this step meets (first UI planning records or reuses an AD-<n> for the authorized art direction,
-     task hierarchy, design system, tokens, components and theme; visual criteria state selected observable choices and
-     cite that AD's ID and knowledge-file section), and the rich interactions planned (a human-facing UI takes the ambition the request states, and with none stated
+     first UI planning reads the UI visual-direction guide and records or reuses an AD-<n> for the authorized art direction,
+     task hierarchy, design system, tokens, components and theme; and the rich interactions planned (a human-facing UI takes the ambition the request states, and with none stated
      defaults to ambitious and highly interactive: direct manipulation, inline editing, live preview, keyboard paths,
      animated transitions; give the reason for any scaled back); the UI decisions this step owns (UI planning
      ownership guide); locators of sources and checks.
@@ -1018,8 +1023,8 @@ DUTIES = {
    observable criteria: a consistent visual system (spacing and type scales, a palette with a light
    and a dark theme); designed empty, loading and error states; a layout that works at a narrow and a wide width with
    no horizontal overflow; visible focus states and WCAG AA contrast; motion only where it explains a change,
-   honoring reduced motion; one icon set. For a new graphical UI, fill unspecified visual choices from the UI
-   visual-direction guide's light expressive starting point; explicit visual constraints, established product identity
+   honoring reduced motion; one icon set. For a new graphical UI, first read the UI visual-direction guide, then
+   fill unspecified visual choices from its light expressive starting point; explicit visual constraints, established product identity
    and platform conventions take precedence. Record the starting direction here; the plan chooses its concrete treatment.
 7. State and data assessment: under the R-<n> it affects in KNOWLEDGE/spec.md, write the affected resources, target
    identities, before and after invariants, recovery, applicable checks and unknowns.
@@ -1283,6 +1288,7 @@ Change no product file in this stage.
    - A new or changed public entry point: a criterion that it checks its arguments, executed by its rejection tests,
      and one that it carries a contract docstring (Code craft 2-3), searched.
    - Where a criterion names an exact value, a count or a prefix match proves nothing.
+""" + _PLAN_UI_CRITERIA + """\
 4. **`steps`**: every implementation step in order (one is fine); ShipLoop issues one implement packet per step.
    - Size each as one behaviour-level change its proof shows: at most 4 criteria and 3 product files (a file that
      only describes another changed file counts with it; tests, docs and its proof script do not). A second module
@@ -2336,8 +2342,8 @@ def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "sta
     ``execution_mode``) picks what the commit rule says about a file the item commit leaves.  ``one_step_item`` is the
     item's ID when the run has one work item with one step and no pending item (``shiploop_loops.one_step_run``): the
     carry-forward duty then prints items 2 and 3 short; every other stage ignores it.  ``interactions`` False (the
-    navigator's ``names_interactions`` found no cue in the request or the step-plan item) leaves step-plan duty 9's
-    interaction bullet out, keeping its pointer to the Plan record guide; the catalog renders the bullet.
+    navigator's ``names_interactions`` found no cue in the request or the step-plan item) leaves duty 9's interaction
+    bullet out. Duty 3's UI criterion rule remains conditional on the step changing visible UI, not on the cue.
     """
     _require_stage(stage)
     _require_delegation(delegation)

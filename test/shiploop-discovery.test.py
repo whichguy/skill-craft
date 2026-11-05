@@ -217,7 +217,7 @@ class InteractionGuidanceTests(unittest.TestCase):
         self.assertEqual(positions, sorted(positions))
 
     def test_new_ui_direction_is_routed_before_concrete_design_and_keeps_scope_guards(self) -> None:
-        for stage in ("spec", "plan"):
+        for stage in ("spec", "plan", "step-plan"):
             label, locator = next(row for row in navigator_prompts.STAGE_REFERENCES[stage]
                                   if row[0] == "UI visual-direction guide")
             file, anchor = locator.split("#")

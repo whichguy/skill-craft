@@ -5121,11 +5121,14 @@ class InterfaceCriteriaDutyTests(unittest.TestCase):
             with self.subTest(phrase=phrase):
                 self.assertIn(phrase, duties)
 
-    def test_the_step_plan_names_the_ui_criteria_a_step_meets_and_the_one_design_system_decision(self) -> None:
+    def test_the_step_plan_requires_visual_criteria_and_the_one_design_system_decision(self) -> None:
         text = " ".join(prompts._PLAN_RECORD_INTERACTIONS.split())
-        self.assertIn("the spec's UI criteria this step meets (first UI planning records or reuses an AD-<n> for the "
-                      "authorized art direction, task hierarchy, design system, tokens, components and theme; visual "
-                      "criteria state selected observable choices and cite that AD's ID and knowledge-file section)", text)
+        self.assertIn("first UI planning reads the UI visual-direction guide and records or reuses an AD-<n> for the "
+                      "authorized art direction, task hierarchy, design system, tokens, components and theme", text)
+        criteria = " ".join(prompts._PLAN_UI_CRITERIA.split())
+        self.assertIn("Each step adding or changing visible UI has a criterion selecting the spec's UI requirements "
+                      "and applicable AD choices", criteria)
+        self.assertIn("AD ID/file/section, observable visual anchors, and a rendered check", criteria)
 
     def test_test_spec_and_acceptance_close_a_ui_criterion_only_on_the_rendered_interface(self) -> None:
         self.assertIn("A UI criterion's row observes the rendered interface in both themes and at both widths "

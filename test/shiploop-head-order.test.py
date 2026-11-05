@@ -706,7 +706,10 @@ class PlanRecordTests(unittest.TestCase):
                                           "and platform conventions take precedence", text)
                             self.assertIn("UI visual-direction guide", text)
                         else:
-                            self.assertIn("first UI planning records or reuses an AD-<n>", text)
+                            self.assertIn("first UI planning reads the UI visual-direction guide", text)
+                            self.assertIn("Each step adding or changing visible UI has a criterion", text)
+                            self.assertLess(text.index("Each step adding or changing visible UI"),
+                                            text.index("4. **`steps`**"))
 
     def test_an_interaction_item_step_plan_head_prints_the_bullet_within_the_cut(self) -> None:
         """Unit U7 left a UI item's step plan with only the guide's pointer; the bullet is back in its head, and the head
@@ -731,10 +734,10 @@ class PlanRecordTests(unittest.TestCase):
                     flat = " ".join(printed.split())
                     for cue in ("a Design basis paragraph", "Give baseline and delta;", "planned recovery checks;",
                                 "design guidance identity and version or digest (or named fallback)",
-                                "the spec's UI criteria this step meets (first UI planning records or reuses an AD-<n> "
-                                "for the authorized art direction, task hierarchy, design system, tokens, components and "
-                                "theme; visual criteria state selected observable choices and cite that AD's ID and "
-                                "knowledge-file section)", "GUIDES/plan-record.md"):
+                                "first UI planning reads the UI visual-direction guide and records or reuses an AD-<n>",
+                                "Each step adding or changing visible UI has a criterion selecting the spec's UI requirements",
+                                "AD ID/file/section, observable visual anchors, and a rendered check",
+                                "GUIDES/plan-record.md"):
                         self.assertIn(cue, flat)
 
                 plain_rows = packets.offline_renders(plans.CASE, delegation, run_dir_length=length,
@@ -745,8 +748,9 @@ class PlanRecordTests(unittest.TestCase):
                     self.assertTrue(plain_packet["head"])
                     self.assertTrue(plain.endswith(navigator.HEAD_END + "\n"))
                     flat_plain = " ".join(plain.split())
-                    self.assertNotIn("the spec's UI criteria this step meets", flat_plain)
-                    self.assertNotIn("first UI planning records or reuses an AD-<n>", flat_plain)
+                    # A keyword miss must not remove the semantic criterion rule. It applies only to a UI-changing step.
+                    self.assertIn("Each step adding or changing visible UI has a criterion", flat_plain)
+                    self.assertNotIn("first UI planning reads the UI visual-direction guide", flat_plain)
 
     def test_the_guide_is_a_stage_reference_with_a_heading_for_its_locator(self) -> None:
         label, locator = next(row for row in plans.prompts.STAGE_REFERENCES["step-plan"] if row[0] == "Plan record guide")
