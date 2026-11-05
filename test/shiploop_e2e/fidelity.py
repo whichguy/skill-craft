@@ -35,14 +35,15 @@ WORKSPACE_FILES = ("return-plan.md", "return-receipt.md", "workspace.md")
 VERIFY_SCHEMA = "shiploop-test-loop/v1"
 # The suites whose rows are tests: a row with no count does not show that a test ran. A check row is judged by its exit code.
 TEST_SUITES = ("focused", "regression")
-RECORD_KINDS = ("verify", "lint", "loop", "expectation", "backchain", "improve")
-SCRIPT_KINDS = ("verify", "lint", "loop", "expectation", "backchain")
+RECORD_KINDS = ("verify", "step-proof", "lint", "loop", "expectation", "backchain", "improve")
+SCRIPT_KINDS = ("verify", "step-proof", "lint", "loop", "expectation", "backchain")
 # The record kind each run a stage declares at `done` (the stage table's complete_runs) leaves behind: the lint gate writes
 # lint/<action>.gate<N>.md, the test runs (the test stage's base run and loop, verify's rerun) write tests/<action>-verify<N>.md,
-# an inner stage's Until Loop terminal check reads the receipt loops/<action>-terminal.json, and validate-existing's expectation
-# checks write expectations/<action>.md. A run this table does not know is not judged (`unmapped_runs`).
+# implement's per-step Proof writes tests/<action>-step-proof<N>.md, an inner stage's Until Loop terminal check reads the receipt
+# loops/<action>-terminal.json, and validate-existing's expectation checks write expectations/<action>.md. A run this table does not
+# know is not judged (`unmapped_runs`).
 RUN_KIND = {"lint-gate": "lint", "test-base": "verify", "test-loop": "verify", "test-rerun": "verify", "loop-terminal": "loop",
-            "expectation-check": "expectation"}
+            "step-proof": "step-proof", "expectation-check": "expectation"}
 REFUSAL_LIMITS = ("a repeat needs a known stage (the stage join is whole seconds and needs timeline.jsonl) and the same whole first line as the "
                   "refusal just before it; the same line twice is a pointer, neutral about cause (a remedy that misled or an honest second "
                   "failed try); a result the host saved to a file is not read")
@@ -318,6 +319,8 @@ def _records(run_dir: Path, action: str, improved: dict) -> list[str]:
     found = []
     if any(run_dir.glob(f"tests/{action}-verify*.md")):
         found.append("verify")
+    if any(run_dir.glob(f"tests/{action}-step-proof[0-9]*.md")):
+        found.append("step-proof")
     if any(run_dir.glob(f"lint/{action}.gate*.md")):  # the gate the script ran at done; an advisory pass is supporting output
         found.append("lint")
     if (run_dir / "loops" / f"{action}-terminal.json").is_file():
@@ -334,9 +337,9 @@ def _records(run_dir: Path, action: str, improved: dict) -> list[str]:
 def evidence(run_dir: Path | None, state: dict, declared: dict | None) -> dict:
     """One row per accepted action (state.md's history, in order) with the class of evidence it rests on.
 
-    Precedence: skipped (the engine's own not-applicable entry), script (a verify, lint, Until Loop terminal or backchain-check record
-    the script wrote), loop (an Improve child), file (a cited file that is neither the stage's own nor a model note), note (only
-    model-authored notes), sentence (nothing beyond its own packet, inbox or result file). `records` lists every kind found, because
+    Precedence: skipped (the engine's own not-applicable entry), script (a verify, step-proof, lint, Until Loop terminal or
+    backchain-check record the script wrote), loop (an Improve child), file (a cited file that is neither the stage's own nor a model
+    note), note (only model-authored notes), sentence (nothing beyond its own packet, inbox or result file). `records` lists every kind found, because
     the precedence hides a review loop behind a script record. `declared` is the check the stage table declares for the stage
     (None when the table could not be read). `needs` is the record kinds the stage's declared runs leave (RUN_KIND; without a lint
     gate when the run's lint option is off) and `lacks` the ones the action has none of; `declared_script_run_without_record` names a

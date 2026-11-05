@@ -376,7 +376,7 @@ class EvidenceTest(unittest.TestCase):
         for row in loops:
             self.assertEqual(row["records"], ["improve"])
         counts = replay("r3-battleship-sonnet")["block"]["evidence"]["records"]
-        self.assertEqual(set(counts), {"verify", "lint", "loop", "expectation", "backchain", "improve"})
+        self.assertEqual(set(counts), {"verify", "step-proof", "lint", "loop", "expectation", "backchain", "improve"})
         self.assertEqual(counts["improve"], 8, "7 loop rows and the carry-forward that also carries a verify record")
 
     def test_an_improve_child_is_found_by_its_receipt_or_by_its_improve_results_entry(self):
@@ -485,6 +485,47 @@ class EvidenceTest(unittest.TestCase):
             "test": (["lint", "loop", "verify"], ["lint", "loop", "verify"]),
             "verify": (["lint", "loop", "verify"], ["lint", "loop", "verify"]),
             "implement": (["lint", "loop"], ["lint", "loop"]), "document": (["loop"], ["loop"]), "intake": ([], [])})
+
+    def test_a_step_proof_receipt_satisfies_its_own_declared_check(self):
+        declared = {"implement": {"check": "script-run", "runs": ["step-proof"]}}
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            tests = run_dir / "tests"
+            tests.mkdir(parents=True)
+            (tests / "nav-1-step-proof1.md").write_text("passed")
+            evidence = self.fidelity.evidence(run_dir, self.run_state([("nav-1", "implement", "done")]), declared)
+
+        row = evidence["stages"][0]
+        self.assertEqual((row["records"], row["needs"], row["lacks"], row["class"]),
+                         (["step-proof"], ["step-proof"], [], "script"))
+        self.assertEqual(evidence["records"]["step-proof"], 1)
+        self.assertEqual(evidence["declared_script_run_without_record"], [])
+        self.assertEqual(evidence["unmapped_runs"], [])
+
+    def test_a_missing_step_proof_receipt_leaves_its_declared_check_unsatisfied(self):
+        declared = {"implement": {"check": "script-run", "runs": ["step-proof"]}}
+        with tempfile.TemporaryDirectory() as tmp:
+            evidence = self.fidelity.evidence(Path(tmp) / "run", self.run_state([("nav-1", "implement", "done")]), declared)
+
+        row = evidence["stages"][0]
+        self.assertEqual((row["needs"], row["lacks"]), (["step-proof"], ["step-proof"]))
+        self.assertEqual(evidence["declared_script_run_without_record"], ["implement"])
+        self.assertEqual(evidence["unmapped_runs"], [])
+
+    def test_an_ordinary_verify_receipt_does_not_satisfy_a_declared_step_proof(self):
+        declared = {"implement": {"check": "script-run", "runs": ["step-proof"]}}
+        with tempfile.TemporaryDirectory() as tmp:
+            run_dir = Path(tmp) / "run"
+            tests = run_dir / "tests"
+            tests.mkdir(parents=True)
+            (tests / "nav-1-verify1.md").write_text("passed")
+            evidence = self.fidelity.evidence(run_dir, self.run_state([("nav-1", "implement", "done")]), declared)
+
+        row = evidence["stages"][0]
+        self.assertEqual(row["records"], ["verify"])
+        self.assertEqual((row["needs"], row["lacks"]), (["step-proof"], ["step-proof"]))
+        self.assertEqual(evidence["declared_script_run_without_record"], ["implement"])
+        self.assertEqual(evidence["unmapped_runs"], [])
 
     def test_a_run_with_the_lint_option_off_does_not_need_a_lint_gate_record(self):
         declared = {"implement": {"check": "script-run", "runs": ["lint-gate"]}, "test-green": {"check": "script-run", "runs": ["lint-gate", "test-loop"]}}
@@ -1515,7 +1556,7 @@ class BuildTest(unittest.TestCase):
         joined = "\n".join(lines)
         self.assertIn("script 15, loop 7, file 1, note 12, sentence 0, skipped 2, unclassified 0 (records:", lines[0])
         self.assertTrue(lines[3].startswith("refusals (heuristic, no repeat flagged is not proof) 5, repeated 1: "), lines[3])
-        self.assertIn("(records: verify 10, lint ", lines[0])
+        self.assertIn("(records: verify 10, step-proof 0, lint ", lines[0])
         self.assertIn(", improve 8)", lines[0], "the precedence hides a review loop behind a script record; the records line shows it")
         self.assertIn("script-owned edits 1", joined)
         self.assertIn("no hit is not proof", joined)
