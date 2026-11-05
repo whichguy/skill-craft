@@ -241,7 +241,11 @@ Check every planned verification surface, not only what discovery itself reads:
 the deploy target, and each post-deploy browser, API or remote-test check the
 test strategy names. For each, find the route the run can use without the user,
 such as a browser session the platform CLI issues from its existing
-authentication, and prove it with one bounded read. Record each route in the
+authentication, and prove it with one bounded read. For an existing UI, first
+attempt its intended entry in the selected browser context; discover and use an
+adjacent authentication route only when that attempt shows sign-in is needed.
+Use only the target identity and credential scope sufficient for the checks,
+then return to the same UI entry. Record each route in the
 discovery evidence so the checking stage reuses it. Runs are unattended: access
 no such route provides becomes an open item (what is needed, who can grant it),
 and the checks that need it wait while every other stage continues; prompt the
@@ -267,6 +271,11 @@ sanitized evidence. Normal supported tool-managed authentication and tool
 configuration metadata without session material remain allowed. Builders and
 reviewers must not read, decode, retain, or report local authentication,
 session, or credential-store contents.
+
+An authorized credential provider may fill or privately pass the selected login
+needed by the test without exposing its secret values to the builder or reviewer.
+Use the provider's supported interface, not its raw backing files. See the
+[UI authentication route](testing-and-documentation.md#lightweight-and-browser-checks).
 
 | Observation | Next action |
 | --- | --- |

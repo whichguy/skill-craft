@@ -1396,12 +1396,12 @@ class GuidanceTests(unittest.TestCase):
         self.assertIn("compact current locator, decision, rationale", improve_packet)
 
     def test_cold_packets_keep_the_latest_done_root_test_strategy(self) -> None:
-        """Strategy locators survive later evidence without reading it into packets."""
+        """The accepted harness-definition locator remains reachable through later cold packets."""
         item_context = (
             "Current item: retain the accepted fixture setup decision; revalidate it "
             "against the changed boundary before reusing it."
         )
-        strategy_ref = "docs/testing.md#accepted-strategy"
+        strategy_ref = "KNOWLEDGE/environment.md#harnesses-and-suites"
         hidden_tail = "UNTRUSTED-STRATEGY-TAIL-MUST-NOT-BE-RENDERED"
         long_ref = "untrusted://strategy/" + ("x" * 2600) + hidden_tail
         checkpoints = {"step-plan", "test-spec", "test", "system-test-author"}
@@ -2581,39 +2581,85 @@ class SettledFactTests(unittest.TestCase):
         self.assertIn("default test command", text)
         # Live finding (Grok 2026-10-07): `Chrome --version` passed as the probe, then the page never loaded.
         self.assertIn("not reading a version", text)
-        self.assertIn("access gap", text)
+        self.assertIn("unresolved external access stays unverified", text)
 
-    def test_test_strategy_probes_a_host_tool_against_a_stand_in_because_the_product_does_not_exist_yet(self) -> None:
-        """Batch 1009 P4 (round 1, Grok `none` run): the strategy's browser probe was a curl to the product's address
-        (connection refused), a server that cannot exist before the product does, and it concluded "no browser"; the
-        real access gap surfaced about 40 minutes later at system-test-author and cost 21 minutes of Chrome flag
-        iteration.  A probe has to be answerable now, so it runs against a page the stage writes itself."""
+    def test_test_strategy_packet_discovers_tools_from_the_host_and_repository(self) -> None:
+        """Packet structure only: live host discovery and rendered interaction are verified separately."""
         sys.path.insert(0, str(SCRIPTS))
         import shiploop_prompts as prompts
-        text = self.duty("test-strategy")
-        for phrase in (
-            "Before the product exists, probe a stand-in",
-            "a one-line page in RUN/scratch",
-            "opened by `file:` URL or a throwaway static server you stop",
-            "its title read back",
-        ):
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, text)
-        # The earlier obligations stay: the probe is the case's first step, a failed probe is a recorded access gap,
-        # and the case keeps its own opt-in command.
-        for kept in ("probe it now by doing the case's first step, not reading a version",
-                     "Record only a failed probe as an access gap under ## Real-boundary checks with the requirement "
-                     "left unobserved",
-                     "Give the case its own opt-in command or flag"):
-            with self.subTest(kept=kept):
-                self.assertIn(kept, text)
-        # and a host reads it in the packet it is given, under either delegation
         for delegation in (prompts.INLINE, prompts.ASK_AGENT):
             with self.subTest(delegation=delegation):
-                packet = " ".join(prompts.prompt("test-strategy", delegation=delegation).split())
-                self.assertEqual(packet.count("probe a stand-in"), 1)
-        # The sentence is conditional: a run on an existing product that is already running does not meet it as a fact.
-        self.assertNotIn("The product does not exist yet", text)
+                packet = normalized(prompts.prompt("test-strategy", delegation=delegation))
+                for phrase in (
+                    "automatically discover relevant testing tools through the host's exposed catalog",
+                    "connected browser capabilities and repository testing facilities",
+                    "Read the selected tool's supported invocation before using it",
+                    "a catalog entry proves exposure, not readiness",
+                    "Name it and probe it now by doing the case's first step, not reading a version, or reuse a current "
+                    "probe covering the same capability and setup for cases sharing that route",
+                    "Before the product exists, probe a stand-in in RUN/scratch",
+                    "read its title, perform a harmless interaction and observe the changed rendered state",
+                ):
+                    with self.subTest(delegation=delegation, phrase=phrase):
+                        self.assertIn(phrase, packet)
+
+    def test_test_strategy_packet_prefers_devtools_conditionally_and_keeps_regressions(self) -> None:
+        """The preference is conditional, and does not replace a capable repository runner."""
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_prompts as prompts
+        packet = normalized(prompts.prompt("test-strategy", delegation=prompts.INLINE))
+        for phrase in (
+            "Prefer available, suitable Chrome DevTools for browser inspection and interaction",
+            "keep an adequate existing regression runner",
+            "try another discovered supported route before declaring the capability unavailable",
+            "fallback reason under KNOWLEDGE/environment.md ## Harnesses and suites",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, packet)
+
+    def test_test_strategy_packet_separates_runtime_session_and_target_and_limits_fallbacks(self) -> None:
+        """One failed invocation stays local to that route; authorization boundaries remain binding."""
+        sys.path.insert(0, str(SCRIPTS))
+        import shiploop_prompts as prompts
+        packet = normalized(prompts.prompt("test-strategy", delegation=prompts.ASK_AGENT))
+        for phrase in (
+            "A failed import, missing PATH executable or connection failure describes one route",
+            "repair authorized setup or try another discovered supported route before declaring the capability unavailable",
+            "Never bypass a denied route or access control",
+            "separate runtime readiness, session readiness and target access",
+            "Missing feasible setup is `prerequisite` work, including at e2e",
+            "unresolved external access stays unverified with the affected requirement and revalidation condition",
+            "Cite outputs in `evidence_refs` and carry the definition locator forward",
+            "Give the case its own opt-in command or flag so the default test command passes without the tool",
+            "A stand-in proves capability, not product behavior",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, packet)
+
+    def test_ui_entry_precedes_minimal_authentication_and_the_same_check_resumes(self) -> None:
+        """Auth is conditional on the actual UI response, and its success is not the UI assertion."""
+        for delegation in (prompts.INLINE, prompts.ASK_AGENT):
+            packet = normalized(prompts.prompt("test-strategy", delegation=delegation))
+            self.assertLess(packet.index("For an existing UI, attempt its intended entry first"),
+                            packet.index("Only if sign-in is needed"))
+            for phrase in (
+                "existing platform CLI session, credential provider or other authorized route",
+                "least account and credential scope sufficient for the tests",
+                "carry secrets only through supported private handoff",
+                "return to the same UI check after sign-in",
+                "Ask only for an indispensable user step",
+                "Sign-in success is not feature permission or a passing UI test",
+            ):
+                with self.subTest(delegation=delegation, phrase=phrase):
+                    self.assertIn(phrase, packet)
+        guide = (REFERENCES / "testing-and-documentation.md").read_text()
+        for phrase in ("1Password", "without credential work", "unrelated vault items",
+                       "an authenticated access denial", "post-auth UI observation"):
+            self.assertIn(phrase, normalized(guide))
+        platform = (REFERENCES / "platforms/salesforce.md").read_text()
+        self.assertIn("Attempt the intended UI entry first", platform)
+        self.assertIn("Do not bypass a run guard", normalized(platform))
+        self.assertNotIn("At discovery, run it once (without opening the page)", platform)
 
 
 class ConsumerCheckLocationTests(unittest.TestCase):

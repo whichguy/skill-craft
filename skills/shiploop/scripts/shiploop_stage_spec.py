@@ -272,6 +272,8 @@ _ROWS = (
         reads=("intake", "discovery", "research"),
         blocks=frozenset({"backchain", "interaction-design"}),
     ),
+    # A failed import or launch is evidence about one route. Keep discovery and failure attribution in the
+    # printed exit as well as the duty: a cold host may read only this head, and runtime success does not prove access.
     Stage(
         "test-strategy", "prelude",
         goal='Map each requirement to the checks that prove it: harnesses and commands in KNOWLEDGE/environment.md, boundaries in KNOWLEDGE/architecture.md.',
@@ -279,11 +281,15 @@ _ROWS = (
         done_when=(
             "every acceptance line the spec changes add or change, and each preserved behaviour they touch, maps to a "
             "check, its surface and the stage it is due, and the existing suite covers the rest",
-            "the test harness is selected or revalidated, with setup and isolation stated",
+            "testing tools are discovered through the host and repository, preferring available, suitable Chrome DevTools "
+            "for browser work, with selected harnesses' setup and isolation stated",
             "planned checks are marked planned, not passed",
-            "each case that needs a host tool (a browser, a device, an account, a service) names it and cites the "
-            "output of probing it now by doing the case's first step, against a stand-in while the product does not "
-            "exist, and only a failed probe is recorded as the access gap, with the requirement it leaves unobserved",
+            "each case that needs a host tool (a browser, a device, an account, a service) names its route and cites "
+            "a current probe covering the needed capability and setup, against a stand-in while the product does not "
+            "exist, and a failed route is diagnosed before declaring the capability unavailable, separating repairable "
+            "setup from session or target access and naming the requirement left unobserved",
+            "an existing UI is attempted before auth work, and needed sign-in uses the least sufficient authorized "
+            "route before retrying the same UI check or naming the indispensable user step",
         ),
         test="Choose target-native tests across unit, integration, system and consumer layers.",
         deploy="Plan which checks run against the deployed target, and how.",
