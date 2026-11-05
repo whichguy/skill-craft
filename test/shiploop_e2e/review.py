@@ -59,6 +59,15 @@ Inspect these areas across the three categories:
   rework? Could a smaller script/template change help before a structural change?
 - Quality: were checks discriminating, negative cases meaningful and actual
   target behaviour verified? A green app does not discharge every obligation.
+  Inspect the delivered code against ShipLoop's Code craft guidance: are code
+  structure, public contracts, input validation and error paths sufficient?
+  Do non-obvious decisions, invariants and workarounds retain accurate rationale
+  beside the code? Where run evidence shows a tempting rejected or removed
+  approach, does a useful tombstone preserve why it must not return and its
+  replacement or regression reference? Check warnings for staleness; absence
+  without that trigger is not a defect. Judge usefulness, not comment counts or
+  a required marker. State sufficiency with concrete evidence, gaps or
+  unobserved/not-applicable limits in the narrative.
 - Recovery: did callbacks, missing-done continuation, fresh context and handoff
   preserve decisions and continue the same action without replaying work?
 - Efficiency: consider quality before measured cost/time across planning,
