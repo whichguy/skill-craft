@@ -672,11 +672,11 @@ class TestLayerGateTests(RepoCase):
     command that runs something besides a text search, searched, or inspected against an unverified row."""
 
     UI = {"code": "board component", "layer": "unit", "harness": "none found", "status": "unverified",
-          "reason": "no browser tool"}
+          "reason": "no suitable unit-test route recorded"}
     UNIT = {"code": "board component", "layer": "unit", "harness": "the component test runner",
             "status": "available", "reason": "the repository's runner"}
-    E2E = {"code": "board component", "layer": "e2e", "harness": "none", "status": "unverified",
-           "reason": "no browser tool on this host"}
+    E2E = {"code": "board component", "layer": "e2e", "harness": "Chrome DevTools against the hosted target",
+           "status": "unverified", "reason": "the required target account is not authorized for this run"}
 
     def refused(self, state: dict, stage: str, result: dict) -> str:
         with self.assertRaises(navigator.NavigatorError) as caught:
@@ -705,11 +705,10 @@ class TestLayerGateTests(RepoCase):
                                                                 dict(done, test_layers=[self.E2E], targets=[])))
         self.assertIn("repeats board component [unit]", self.refused(
             state, "test-strategy", dict(done, test_layers=[self.UNIT, self.UNIT], targets=[])))
-        # The named exits: the missing harness becomes prerequisite work; an e2e layer with no runner may stay.
+        # A missing feasible local harness becomes prerequisite work; external target access may remain unverified.
         navigator._check_submitted_layers(state, "test-strategy",
                                           dict(done, test_layers=[dict(self.UI, status="prerequisite",
                                                                     harness="the component test runner")], targets=[]))
-        navigator._check_submitted_layers(state, "test-strategy", dict(done, test_layers=[self.UNIT, self.E2E], targets=[]))
         navigator._check_submitted_layers(state, "test-strategy",
                                           dict(done, test_layers_na="The run writes documents only.", targets=[]))
         stateful = {"target": "the shared org", "keeps_state": "yes", "base_state_route": "n/a"}
@@ -774,6 +773,31 @@ class TestLayerGateTests(RepoCase):
         self.assertIn(layers.HARNESS_RUN_TEMPLATE["command"], template)
         # No prerequisite row: no field asked for.
         navigator._check_submitted_layers(self.strategy_state([self.UNIT], stage="prepare"), "prepare", done)
+
+    def test_prepare_e2e_prerequisite_requires_a_saved_readable_one_test_run(self) -> None:
+        e2e = dict(self.E2E, status="prerequisite", reason="the discovered host route needs setup")
+        state = self.strategy_state([e2e], stage="prepare")
+        done = {"outcome": "done", "summary": "s"}
+        run = {"code": "board component", "layer": "e2e", "command": "python3 test/stand-in-browser.test.py"}
+
+        self.assertIn("lists harness_runs", self.refused(state, "prepare", done))
+        self.assertIn("no run for the prerequisite rows board component [e2e]",
+                      self.refused(state, "prepare", dict(done, harness_runs=[])))
+
+        title_only = self.repo / "stand-in-title.txt"
+        title_only.write_text("Stand-in page title: Browser route is alive\n", encoding="utf-8")
+        message = self.refused(state, "prepare", dict(done, harness_runs=[dict(run, evidence=str(title_only))]))
+        self.assertIn("shows no test run ShipLoop can read", message)
+
+        ran = self.repo / "e2e-one-test.txt"
+        ran.write_text("Tests: 1 passed, 1 total\n", encoding="utf-8")
+        navigator._check_submitted_layers(state, "prepare", dict(done, harness_runs=[dict(run, evidence=str(ran))]))
+
+    def test_external_target_access_can_remain_unverified_for_e2e(self) -> None:
+        state = self.strategy_state([self.UNIT, self.E2E])
+        navigator._check_submitted_layers(state, "test-strategy",
+                                          {"outcome": "done", "summary": "s", "test_layers": [self.UNIT, self.E2E],
+                                           "targets": []})
 
     def test_an_inspected_criterion_names_code_and_a_layer_with_no_runner(self) -> None:
         state = self.strategy_state([self.UNIT, self.E2E])
@@ -847,7 +871,8 @@ class TestLayerGateTests(RepoCase):
                                       "base_state_route": "a destructive deploy first"},
                                      {"target": "the checkout", "keeps_state": "no", "base_state_route": "n/a"}])
         self.assertIn("- unit · the component test runner · available: board component, rules", lines)
-        self.assertIn("- e2e · none · unverified (no browser tool on this host): board component", lines)
+        self.assertIn("- e2e · Chrome DevTools against the hosted target · unverified "
+                      "(the required target account is not authorized for this run): board component", lines)
         self.assertIn("- the shared org: keeps state yes; base state: a destructive deploy first", lines)
         self.assertIn("- the checkout: keeps state no", lines)
         self.assertEqual(layers.criterion_label({"id": "C2", "confirm": "inspected", "code": "board component",
@@ -2740,7 +2765,6 @@ class ReportTests(RepoCase):
 
 
 _return_review = _load("shiploop_return_review_for_handoff", "shiploop-return-review.test.py")
-import shiploop_store as store  # noqa: E402
 
 
 class LessonsReturnTests(_return_review.ReturnReviewCase):
