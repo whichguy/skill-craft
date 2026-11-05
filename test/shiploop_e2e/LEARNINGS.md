@@ -7972,6 +7972,84 @@ Continue with raw marketplace chess on the repaired apparatus, retaining the sam
 Record the rerun's code-knowledge assessment and functional/fidelity results separately. No new ShipLoop package,
 release qualification, broad quality improvement, UI acceptance or convergence is claimed by this entry. Another
 session's concurrent `4a72cf2a21d9091b423c8cc34730ea2c9d587e14` source change was not used or qualified by this run.
+## The rules cannot be printed once per run, and the card's model could not survive a clear (2026-11-05)
+
+Measuring one archived run (`archive-live2`, 31 packets, 455,885 B) showed two different problems with the same shape.
+
+**The rules are restated, but they are not redundant.** `STAGE_RULES` is 537 B and printed in 22 of 31 packets: 11.7 KB
+per run of verbatim repetition, pointing at `reference#rules` which already holds the long form. Printing it once and
+pointing afterwards saved **294 B per packet** and would have brought `test-spec` back under the 16,000 B print limit.
+
+It does not survive contact with the obligations:
+
+| Compressed form | What broke |
+| --- | --- |
+| six rules reworded | `test/shiploop_e2e/packet_obligations.json` row `rules` needs all six anchors in the printed text (`surface: "head"`); the saving fell to **79 B** |
+| three rules dropped | `shiploop-run-review`'s recovery predicate needs the unattended sentence verbatim |
+| one rule dropped | `shiploop-stage-spec` counts three copies of the stuck-rule anchor |
+
+A 79 B saving against a 45 B margin is worse than no change: the next rule added silently pushes `test-spec` back over
+the limit with nothing to notice it. So `STAGE_RULES` stays on every producer packet, and the ledger and the two suites
+that enforce it are right.
+
+**The ownership model was the real gap.** The card's `## Follow the current packet` was 14,606 B -- 48% of the always-loaded
+card -- and its content appeared in **1%** of any packet and **0%** of `RUN/reference.md`. The packet reprints after a
+compaction; the card does not, and the card says not to re-read it. So the one model a compacted context most needs was
+the one thing nothing durable carried.
+
+It now lives at `RUN/reference.md#owner`, and the recovery block -- already printed by every packet -- says to read
+`#rules` and `#owner` after a clear. The card keeps a 2,143 B binding summary plus the pointer, including the stopping
+rule `shiploop-stage-spec` counts.
+
+| | before | after |
+| --- | --- | --- |
+| `SKILL.md` | 30,109 B (383 B headroom) | **17,645 B** (12,855 B headroom) |
+| `RUN/reference.md` | 18,3xx B | **19,045 B**, now with `#owner` |
+
+**Also removed:** `shiploop_context_index.stages_named`, called from nowhere in `skills/`, `test/` or `agents/`.
+
+**Coupling, partial.** `shiploop_trace._plan` called `navigator.graph`, a three-line wrapper returning
+`shiploop_prompts.PRELUDE/INNER/OUTER`; it reads those directly now, so that call no longer needs the navigator module.
+The rest stays: `owner_notes`, `lint` and three more `trace` sites need `validate` (which calls the 251-line
+`_validate_current_state`) and `lint_view`, so breaking that cycle means moving the state model out of navigator -- a
+larger change than this one should carry.
+
+No live run: every claim here is measured on saved packets and hermetic suites (149 navigator-contract, 36 head-order,
+15 obligations, 43 render-diff, 688 run-review, 29 trace, 3 auth-readiness, 18 navigator-v4, 12 stage-spec).
+
+No-Change-Note: the record of the round itself; the shipped change carries its own note in changes/shiploop/.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## test-adequacy's failure followed the load, not the change (2026-11-05)
+
+The full `shiploop` group (130 suites) failed one suite on the 2026-11-05 change: `shiploop-e2e-test-adequacy`, 392 s,
+`test_baseline_weak_and_no_assert_addition_are_not_fully_adequate` (`weak.killed == empty.killed`). The group ran through
+a load spike of **117**.
+
+Because I had just changed `reference.md`, `SKILL.md`, `prompts` adjacency and `trace`, this looked causal, so I tested it:
+
+| run | tree | load | result |
+| --- | --- | --- | --- |
+| 1 | pre-change worktree (`69de2afa`) | ~14 | **OK**, 23 tests, 321 s |
+| 2 | my tree | ~15 | FAIL, 392 s |
+| 3 | pre-change worktree | **17** | **FAIL**, same test, 473 s |
+
+The pre-change tree fails the same assertion at higher load. That suite samples mutation killing over JS fixture
+deliveries (`observer._apply_run`); it reads none of `reference.md`, `SKILL.md`, `shiploop_prompts.py` or
+`shiploop_trace.py`, so the change cannot reach it. The single failing test also took longer **alone** than the whole
+23-test suite had taken pre-change, which is the shape of resource starvation rather than a deterministic fault.
+
+**What the near-miss shows.** The first comparison -- pre-change passes, mine fails -- was one run each and pointed the
+wrong way. Re-running the control under the same conditions reversed it. A single pass/fail comparison between two trees
+is not a controlled experiment when the suite is load-sensitive; the control has to be re-run when the condition changes.
+
+No skill behaviour changed.
+
+No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
+No-E2E-Round: this entry is a round of its own.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
 
 ## Automatic validation corrects three receipt warnings, while one remains open (2026-11-05)
 
