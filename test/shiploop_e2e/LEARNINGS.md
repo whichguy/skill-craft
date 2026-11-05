@@ -7953,3 +7953,33 @@ No live run: every claim here is measured on saved packets and hermetic suites (
 No-Change-Note: the record of the round itself; the shipped change carries its own note in changes/shiploop/.
 
 Co-Authored-By: Cursor Agent <agent@cursor.com>
+
+## test-adequacy's failure followed the load, not the change (2026-11-05)
+
+The full `shiploop` group (130 suites) failed one suite on the 2026-11-05 change: `shiploop-e2e-test-adequacy`, 392 s,
+`test_baseline_weak_and_no_assert_addition_are_not_fully_adequate` (`weak.killed == empty.killed`). The group ran through
+a load spike of **117**.
+
+Because I had just changed `reference.md`, `SKILL.md`, `prompts` adjacency and `trace`, this looked causal, so I tested it:
+
+| run | tree | load | result |
+| --- | --- | --- | --- |
+| 1 | pre-change worktree (`69de2afa`) | ~14 | **OK**, 23 tests, 321 s |
+| 2 | my tree | ~15 | FAIL, 392 s |
+| 3 | pre-change worktree | **17** | **FAIL**, same test, 473 s |
+
+The pre-change tree fails the same assertion at higher load. That suite samples mutation killing over JS fixture
+deliveries (`observer._apply_run`); it reads none of `reference.md`, `SKILL.md`, `shiploop_prompts.py` or
+`shiploop_trace.py`, so the change cannot reach it. The single failing test also took longer **alone** than the whole
+23-test suite had taken pre-change, which is the shape of resource starvation rather than a deterministic fault.
+
+**What the near-miss shows.** The first comparison -- pre-change passes, mine fails -- was one run each and pointed the
+wrong way. Re-running the control under the same conditions reversed it. A single pass/fail comparison between two trees
+is not a controlled experiment when the suite is load-sensitive; the control has to be re-run when the condition changes.
+
+No skill behaviour changed.
+
+No-Change-Note: learning record only; test/shiploop_e2e/LEARNINGS.md is not a shipped skill path.
+No-E2E-Round: this entry is a round of its own.
+
+Co-Authored-By: Cursor Agent <agent@cursor.com>
