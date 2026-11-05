@@ -802,8 +802,10 @@ _BACKCHAIN_ITEM = "<<backchain item>>"
 _ITEM_COMMIT = "<<item commit rule>>"
 
 _PLAN_UI_CRITERIA = """\
-   - Each step adding or changing visible UI has a criterion selecting the spec's UI requirements and applicable AD
-     choices: AD ID/file/section, observable visual anchors, and a rendered check at the required widths and themes.
+   - For each step adding/changing visible UI, the criterion itself names spec UI requirements, selected AD ID and
+     exact KNOWLEDGE file/section, visual anchors and rendered checks at required widths/themes. Pass when those
+     choices render; functional or deferred checks do not substitute. Unconfirmable conditions stay open via the
+     route above.
 """
 
 # Step-plan duty 9's interaction topic, printed in the duty for an item that may change interactions, UI or service
@@ -1025,7 +1027,8 @@ DUTIES = {
    no horizontal overflow; visible focus states and WCAG AA contrast; motion only where it explains a change,
    honoring reduced motion; one icon set. For a new graphical UI, first read the UI visual-direction guide, then
    fill unspecified visual choices from its light expressive starting point; explicit visual constraints, established product identity
-   and platform conventions take precedence. Record the starting direction here; the plan chooses its concrete treatment.
+   and platform conventions take precedence. Record the named visual reference and starting appearance here. A new web UI
+   starts light with a dark option unless that precedence establishes another appearance policy; the plan chooses the concrete treatment.
 7. State and data assessment: under the R-<n> it affects in KNOWLEDGE/spec.md, write the affected resources, target
    identities, before and after invariants, recovery, applicable checks and unknowns.
 8. For each service boundary specify verifiable contracts (Service discovery guidance): current authority, freshness

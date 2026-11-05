@@ -45,7 +45,10 @@ At first UI planning, record or reuse the accepted art direction and task
 hierarchy alongside its design system, tokens, components and theme in an
 AD-<n> under KNOWLEDGE/architecture.md ## Decisions, with named sections for
 the choices a step can select. Record the decision before writing the criteria
-that cite it. For a new interface or an authorized visual
+that cite it. Reuse an AD only when it already records the concrete choices this
+step must select; otherwise complete its applicable named sections while preserving
+accepted premises. A preliminary direction alone is not those concrete choices.
+For a new interface or an authorized visual
 change, name the tone; focal activity and supporting
 hierarchy; typography and spacing; semantic palette and surfaces; shape and
 depth; and one useful detail that gives the product character. Include concrete
@@ -56,9 +59,9 @@ actual text and focus treatments through the existing rendered checks. For an
 existing product, preserve its accepted identity and components and record only
 the authorized delta; missing design documents do not imply a new interface.
 
-Each step that adds or changes visible UI selects its applicable visual choices
-in a criterion, including later screens. Cite the AD ID and exact knowledge-file
-and named section, and state a few observable
+Each step that adds or changes visible UI selects its applicable, confirmable
+visual choices in a visual criterion, including later screens. The criterion's
+own text cites the AD ID and exact knowledge-file and named section, and states a few observable
 relationships and necessary anchor values. Also retain the AD in the existing
 `follows` and context. Keep criteria concise: do not copy the complete token
 table from the AD into each criterion. A fresh
@@ -68,7 +71,10 @@ choices the step's criteria select are implementation work; other AD choices
 remain context and do not expand the step. Existing test-spec and acceptance rows observe
 the rendered interface, including the primary activity and important states,
 at the applicable widths and themes. Token declarations or an adjective such
-as modern are not rendered evidence.
+as modern are not rendered evidence. Functional counts or interactions do not
+confirm these visual choices. If no command can confirm a visual condition,
+retain its requirement and selected AD choices in the summary's existing open-item
+route, naming who can confirm it and how. Do not claim it verified.
 
 Let the user's task determine composition: for example, a game's board, pieces and turn
 state; a chat application's readable message groups, threads, artifacts and

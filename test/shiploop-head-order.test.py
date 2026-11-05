@@ -705,10 +705,12 @@ class PlanRecordTests(unittest.TestCase):
                             self.assertIn("explicit visual constraints, established product identity "
                                           "and platform conventions take precedence", text)
                             self.assertIn("UI visual-direction guide", text)
+                            self.assertIn("Record the named visual reference and starting appearance here", text)
+                            self.assertIn("starts light with a dark option unless that precedence", text)
                         else:
                             self.assertIn("first UI planning reads the UI visual-direction guide", text)
-                            self.assertIn("Each step adding or changing visible UI has a criterion", text)
-                            self.assertLess(text.index("Each step adding or changing visible UI"),
+                            self.assertIn("For each step adding/changing visible UI, the criterion itself names spec UI requirements", text)
+                            self.assertLess(text.index("For each step adding/changing visible UI"),
                                             text.index("4. **`steps`**"))
 
     def test_an_interaction_item_step_plan_head_prints_the_bullet_within_the_cut(self) -> None:
@@ -735,8 +737,10 @@ class PlanRecordTests(unittest.TestCase):
                     for cue in ("a Design basis paragraph", "Give baseline and delta;", "planned recovery checks;",
                                 "design guidance identity and version or digest (or named fallback)",
                                 "first UI planning reads the UI visual-direction guide and records or reuses an AD-<n>",
-                                "Each step adding or changing visible UI has a criterion selecting the spec's UI requirements",
-                                "AD ID/file/section, observable visual anchors, and a rendered check",
+                                "selected AD ID and exact KNOWLEDGE file/section",
+                                "visual anchors and rendered checks at required widths/themes",
+                                "functional or deferred checks do not substitute",
+                                "Unconfirmable conditions stay open via the route above",
                                 "GUIDES/plan-record.md"):
                         self.assertIn(cue, flat)
 
@@ -749,7 +753,7 @@ class PlanRecordTests(unittest.TestCase):
                     self.assertTrue(plain.endswith(navigator.HEAD_END + "\n"))
                     flat_plain = " ".join(plain.split())
                     # A keyword miss must not remove the semantic criterion rule. It applies only to a UI-changing step.
-                    self.assertIn("Each step adding or changing visible UI has a criterion", flat_plain)
+                    self.assertIn("For each step adding/changing visible UI, the criterion itself names spec UI requirements", flat_plain)
                     self.assertNotIn("first UI planning reads the UI visual-direction guide", flat_plain)
 
     def test_the_guide_is_a_stage_reference_with_a_heading_for_its_locator(self) -> None:
