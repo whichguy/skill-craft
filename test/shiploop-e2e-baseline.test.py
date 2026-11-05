@@ -1042,11 +1042,14 @@ class LaunchReconcileTest(unittest.TestCase):
     ACCEPTED = GrokSessionStartTest.ACCEPTED
 
     def launches(self, out: Path, rows: list[tuple]) -> None:
-        """sessions.jsonl with one start row per (start line, end line or None, host) and an end row where one ended."""
+        """sessions.jsonl with one start row per (start line, end line or None, host[, resumed session])."""
         lines = []
-        for n, (start, end, host) in enumerate(rows, 1):
-            lines.append({"row": "start", "n": n, "kind": "first" if n == 1 else "continued", "reason": "start",
-                          "host": host, "model": "m", "t": 1000.0 + n, "events_line": start})
+        for n, launch in enumerate(rows, 1):
+            start, end, host, *continued = launch
+            kind = "first" if n == 1 else "continued" if continued else "fresh"
+            lines.append({"row": "start", "n": n, "kind": kind, "reason": "start",
+                          "host": host, "model": "m", "t": 1000.0 + n, "events_line": start,
+                          "resumed_session": continued[0] if continued else None})
             if end is not None:
                 lines.append({"row": "end", "n": n, "t": 1100.0 + n, "events_line": end, "status": "exited", "returncode": 0})
         (out / "sessions.jsonl").write_text("".join(json.dumps(line) + "\n" for line in lines))
@@ -1102,17 +1105,121 @@ class LaunchReconcileTest(unittest.TestCase):
 
     def test_run_tokens_add_over_sessions_and_are_null_unless_every_session_gives_one(self):
         usage = {"input_tokens": 100, "cache_read_input_tokens": 50, "output_tokens": 10}
-        ended = lambda u: {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 0.5, "usage": u}
+        ended = lambda u, sid=None: {"type": "end", "stopReason": "end_turn", "num_turns": 1, "total_cost_usd": 0.5,
+                                    "sessionId": sid, "usage": u}
         both = self.collect([ended(usage), ended(usage)], [(0, 1, "grok"), (1, 2, "grok")])
         self.assertEqual((both["tokens"]["processed"], both["tokens"]["output"]), (320, 20))
         self.assertNotIn("tokens_processed", both["unmeasured"])
         one_bare = self.collect([ended(usage), ended(None)], [(0, 1, "grok"), (1, 2, "grok")])
         self.assertEqual((one_bare["tokens"]["processed"], one_bare["tokens"]["output"]), (None, None))
         self.assertEqual(one_bare["unmeasured"]["tokens_processed"], metrics.SESSION_WITHOUT_USAGE)
-        mixed = self.collect([ended(usage), ended(usage)], [(0, 1, "grok"), (1, 2, "codex")])
+        mixed = self.collect([ended(usage), ended(usage, "codex-thread")], [(0, 1, "grok"), (1, 2, "codex")])
         self.assertEqual(mixed["tokens"]["processed"], 160 + 110, "each session normalised by its own launch's host")
         recorded = self.collect(GrokSessionStartTest().stream(), [(0, 590, "grok"), (590, 617, "grok")])
         self.assertIsNone(recorded["tokens"]["processed"], "r1's end events carry no usage")
+
+    def test_codex_same_thread_uses_resumed_cumulative_total_once_after_an_ended_missing_usage(self):
+        thread = "codex-thread"
+        final_usage = {"input_tokens": 300, "cache_read_input_tokens": 250, "output_tokens": 30}
+        stream = [
+            {"type": "available_commands", "sessionId": thread},
+            {"type": "end", "sessionId": thread, "usage": None},
+            {"type": "available_commands", "sessionId": thread},
+            {"type": "end", "sessionId": thread, "usage": final_usage},
+        ]
+        m = self.collect(stream, [(0, 2, "codex"), (2, 4, "codex", thread)], "codex")
+        self.assertEqual((m["tokens"]["processed"], m["tokens"]["output"]), (330, 30))
+
+    def test_codex_same_thread_complete_cumulative_ends_count_only_the_latest(self):
+        thread = "codex-thread"
+        first = {"input_tokens": 100, "output_tokens": 10}
+        final = {"input_tokens": 300, "output_tokens": 30}
+        stream = [
+            {"type": "available_commands", "sessionId": thread},
+            {"type": "end", "sessionId": thread, "usage": first},
+            {"type": "available_commands", "sessionId": thread},
+            {"type": "end", "sessionId": thread, "usage": final},
+        ]
+        m = self.collect(stream, [(0, 2, "codex"), (2, 4, "codex", thread)], "codex")
+        self.assertEqual((m["tokens"]["processed"], m["tokens"]["output"]), (330, 30))
+
+    def test_codex_distinct_threads_with_equal_totals_are_both_counted(self):
+        usage = {"input_tokens": 100, "output_tokens": 10}
+        stream = [
+            {"type": "available_commands", "sessionId": "codex-thread-a"},
+            {"type": "end", "sessionId": "codex-thread-a", "usage": usage},
+            {"type": "available_commands", "sessionId": "codex-thread-b"},
+            {"type": "end", "sessionId": "codex-thread-b", "usage": usage},
+        ]
+        m = self.collect(stream, [(0, 2, "codex"), (2, 4, "codex")], "codex")
+        self.assertEqual((m["tokens"]["processed"], m["tokens"]["output"]), (220, 20))
+
+    def test_codex_missing_final_usage_does_not_reuse_an_earlier_thread_total(self):
+        thread = "codex-thread"
+        first = {"input_tokens": 100, "output_tokens": 10}
+        stream = [
+            {"type": "available_commands", "sessionId": thread},
+            {"type": "end", "sessionId": thread, "usage": first},
+            {"type": "available_commands", "sessionId": thread},
+            {"type": "end", "sessionId": thread, "usage": None},
+        ]
+        m = self.collect(stream, [(0, 2, "codex"), (2, 4, "codex", thread)], "codex")
+        self.assertEqual((m["tokens"]["processed"], m["tokens"]["output"]), (None, None))
+        self.assertEqual(m["unmeasured"]["tokens_processed"], metrics.SESSION_WITHOUT_USAGE)
+
+    def test_codex_malformed_latest_count_does_not_fall_back_or_sum_stale_output(self):
+        thread = "codex-thread"
+        first = {"input_tokens": 100, "output_tokens": 10}
+        malformed_latest = {"input_tokens": True, "output_tokens": 30}
+        stream = [
+            {"type": "available_commands", "sessionId": thread},
+            {"type": "end", "sessionId": thread, "usage": first},
+            {"type": "available_commands", "sessionId": thread},
+            {"type": "end", "sessionId": thread, "usage": malformed_latest},
+        ]
+        m = self.collect(stream, [(0, 2, "codex"), (2, 4, "codex", thread)], "codex")
+        self.assertEqual((m["tokens"]["processed"], m["tokens"]["output"]), (None, 30))
+
+    def test_codex_unended_launch_stays_unknown_even_after_a_resumed_end(self):
+        thread = "codex-thread"
+        usage = {"input_tokens": 300, "output_tokens": 30}
+        stream = [
+            {"type": "available_commands", "sessionId": thread},
+            {"type": "end", "sessionId": thread, "usage": usage},
+        ]
+        m = self.collect(stream, [(0, 2, "codex"), (2, None, "codex", thread)], "codex")
+        self.assertEqual((m["tokens"]["processed"], m["tokens"]["output"]), (None, None))
+
+    def test_codex_missing_or_malformed_thread_identity_stays_unknown(self):
+        usage = {"input_tokens": 100, "output_tokens": 10}
+        cases = ((None, None), ("", None), (42, None), ("codex-thread", "different-thread"))
+        for session_id, resumed_session in cases:
+            with self.subTest(session_id=session_id, resumed_session=resumed_session):
+                stream = [{"type": "available_commands", "sessionId": "codex-thread"},
+                          {"type": "end", "sessionId": session_id, "usage": usage}]
+                m = self.collect(stream, [(0, 2, "codex", resumed_session)], "codex")
+                self.assertEqual((m["tokens"]["processed"], m["tokens"]["output"]), (None, None))
+
+    def test_codex_continued_launch_without_resume_link_is_unknown_for_same_or_new_end_id(self):
+        cases = (("codex-thread", "codex-thread"), ("codex-thread-a", "codex-thread-b"))
+        for first_thread, continued_thread in cases:
+            with self.subTest(first_thread=first_thread, continued_thread=continued_thread):
+                stream = [
+                    {"type": "available_commands", "sessionId": first_thread},
+                    {"type": "end", "sessionId": first_thread, "usage": {"input_tokens": 100, "output_tokens": 10}},
+                    {"type": "available_commands", "sessionId": continued_thread},
+                    {"type": "end", "sessionId": continued_thread, "usage": {"input_tokens": 200, "output_tokens": 20}},
+                ]
+                # The fourth field explicitly marks a continued launch but records no link to its prior thread.
+                m = self.collect(stream, [(0, 2, "codex"), (2, 4, "codex", None)], "codex")
+                self.assertEqual((m["tokens"]["processed"], m["tokens"]["output"]), (None, None))
+
+    def test_codex_legacy_single_thread_stream_remains_measurable(self):
+        thread = "legacy-codex-thread"
+        usage = {"input_tokens": 100, "output_tokens": 10}
+        m = self.collect([{"type": "available_commands", "sessionId": thread},
+                          {"type": "end", "sessionId": thread, "usage": usage}], None, "codex")
+        self.assertEqual((m["tokens"]["processed"], m["tokens"]["output"]), (110, 10))
 
 
 class GrokSessionStartThroughMainTest(main_tests().PrintedCase):

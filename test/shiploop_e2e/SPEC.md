@@ -644,11 +644,13 @@ and two decisions are compared only under the same id.
       a lower bound.
     - A run without `sessions.jsonl`, or whose first recorded session starts after events already written, keeps the
       stream's count.
-  - *Tokens.* `efficiency.tokens` is the tokens the run's sessions processed: each reported session's input, cache reads,
-    cache writes and output, added over the sessions. Codex counts its cache reads inside its input, so they are not added
-    twice; the host of a session is its launch row's. `efficiency.output_tokens` is the output alone, which holds the
-    reasoning where the host reports reasoning inside it (Grok, Claude, Codex). Each is null, with its reason, when a
-    session reported no usage or its host is not known.
+  - *Tokens.* `efficiency.tokens` covers the run's input, cache reads, cache writes and output. Grok and Claude report
+    launch-local usage, added over sessions. Codex reports cumulative usage for a logical thread, so only that thread's
+    latest ended launch is counted; distinct thread IDs are added. Its cache reads are already inside its input.
+    The host of a session is its launch row's. A complete Codex continuation can cover an earlier ended launch whose
+    usage was absent, but an unusable latest total or ambiguous thread identity stays unmeasured. Missing launch ends
+    retain the reconciliation and lower-bound rules below. `efficiency.output_tokens` is output alone, including reasoning
+    where the host includes it (Grok, Claude, Codex). Unavailable totals stay null with their reasons.
   - *A lower bound is not a total.* Cost, turns and tokens are sums over sessions. When a launched session did not report,
     they cover only part of the run, and the card's `totals_lower_bound` is true (it was `cost_lower_bound`). The contract
     reads such an attempt's summed metrics as not measured: a candidate whose total may miss a session cannot claim to be

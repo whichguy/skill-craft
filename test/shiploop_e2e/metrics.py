@@ -1238,6 +1238,20 @@ def total_cost(sessions: list[dict]) -> float | None:
     return round(sum(costs), 4)
 
 
+def _launch_owners(launched: list[dict] | None, end_lines: list[int]) -> list[int | None] | None:
+    """The launch index whose event-line interval contains each host end, or None if the launch record is partial."""
+    if not launched or not all(isinstance(row.get("events_line"), int) for row in launched) or launched[0]["events_line"] > 0:
+        return None
+    bounds = []
+    for n, row in enumerate(launched):
+        stop = (row.get("end") or {}).get("events_line")
+        if not isinstance(stop, int):
+            stop = launched[n + 1]["events_line"] if n + 1 < len(launched) else None
+        bounds.append((row["events_line"], stop))
+    return [next((n for n, (low, high) in enumerate(bounds) if low <= line and (high is None or line < high)), None)
+            for line in end_lines]
+
+
 def reconcile_sessions(launched: list[dict] | None, end_lines: list[int]) -> dict | None:
     """The harness's launches (``sessionlog.read``) against the host's end events (their events.jsonl lines): ``{launched,
     unreported, hosts}``, where ``hosts`` names, for each end event in order, the host of the launch whose lines hold it.
@@ -1248,18 +1262,11 @@ def reconcile_sessions(launched: list[dict] | None, end_lines: list[int]) -> dic
     record cannot say: no sessions.jsonl, or a first launch that starts after events already written (a run resumed from
     one that predates the record), since the sessions before it went unrecorded.
     """
-    if not launched or not all(isinstance(row.get("events_line"), int) for row in launched) or launched[0]["events_line"] > 0:
+    owners = _launch_owners(launched, end_lines)
+    if owners is None:
         return None
-    bounds = []
-    for n, row in enumerate(launched):
-        stop = (row.get("end") or {}).get("events_line")
-        if not isinstance(stop, int):
-            stop = launched[n + 1]["events_line"] if n + 1 < len(launched) else None
-        bounds.append((row["events_line"], stop, row.get("host")))
-    owners = [next((n for n, (low, high, _) in enumerate(bounds) if low <= line and (high is None or line < high)), None)
-              for line in end_lines]
-    return {"launched": len(bounds), "unreported": len(bounds) - len({n for n in owners if n is not None}),
-            "hosts": [bounds[n][2] if n is not None else None for n in owners]}
+    return {"launched": len(launched), "unreported": len(launched) - len({n for n in owners if n is not None}),
+            "hosts": [launched[n].get("host") if n is not None else None for n in owners]}
 
 
 def session_tokens(usage, host: str | None) -> tuple[int | None, int | None]:
@@ -1285,20 +1292,96 @@ OLLAMA_COST = ("the run ran on Ollama (--backend ollama): Claude Code prices its
                "total_cost_usd is not this run's cost; the tokens are")
 SESSION_WITHOUT_USAGE = "a session reported no input or output count"
 SESSION_HOST_UNKNOWN = "a session's host is not known, and hosts count cache reads differently"
+CODEX_THREAD_ID_UNKNOWN = "a Codex session's thread id is missing, malformed or inconsistent with its launch"
+CODEX_LAUNCH_WITHOUT_END = "a Codex launch has no end event, so its thread's cumulative usage cannot make the run total exact"
 
 
-def run_tokens(sessions: list[dict], hosts: list[str | None]) -> tuple[int | None, int | None, str | None]:
-    """(processed, output, why) over every reported session, ``hosts`` naming each session's host: a figure only when every
-    session gives one, never a part of a total (the lower bound for sessions that never reported is the caller's)."""
+def _codex_end_indexes(hosts: list[str | None], session_ids: list[object] | None, launched: list[dict] | None,
+                       end_lines: list[int] | None, launch_record_present: bool,
+                       unreported: int | None) -> tuple[set[int] | None, str | None]:
+    """The final ended event for each Codex thread, or the reason its identity/launch coverage is incomplete."""
+    if session_ids is None or len(session_ids) != len(hosts):
+        return None, CODEX_THREAD_ID_UNKNOWN
+    codex_ends = [n for n, host in enumerate(hosts) if host == "codex"]
+    if launch_record_present:
+        owners = _launch_owners(launched, end_lines or [])
+        if owners is None or len(owners) != len(hosts):
+            return None, CODEX_THREAD_ID_UNKNOWN
+        launch_threads: dict[int, str] = {}
+        launch_end_indexes: dict[int, list[int]] = {}
+        for launch_index, row in enumerate(launched or []):
+            if row.get("host") != "codex":
+                continue
+            indexes = [n for n, owner in enumerate(owners) if owner == launch_index]
+            if not indexes:
+                return None, CODEX_LAUNCH_WITHOUT_END
+            if any(hosts[n] != "codex" for n in indexes):
+                return None, CODEX_THREAD_ID_UNKNOWN
+            ids = [session_ids[n] for n in indexes]
+            if any(not isinstance(value, str) or not value for value in ids) or len(set(ids)) != 1:
+                return None, CODEX_THREAD_ID_UNKNOWN
+            thread_id = ids[0]
+            resumed = row.get("resumed_session")
+            if row.get("kind") == "continued":
+                if not isinstance(resumed, str) or not resumed or resumed != thread_id:
+                    return None, CODEX_THREAD_ID_UNKNOWN
+            elif resumed is not None and (not isinstance(resumed, str) or not resumed or resumed != thread_id):
+                return None, CODEX_THREAD_ID_UNKNOWN
+            launch_threads[launch_index] = thread_id
+            launch_end_indexes[launch_index] = indexes
+        for n in codex_ends:
+            owner = owners[n]
+            if owner not in launch_threads or launch_threads[owner] != session_ids[n]:
+                return None, CODEX_THREAD_ID_UNKNOWN
+        latest_launch: dict[str, int] = {}
+        for launch_index, thread_id in launch_threads.items():
+            latest_launch[thread_id] = launch_index
+        return {launch_end_indexes[index][-1] for index in latest_launch.values()}, None
+
+    if unreported != 0:
+        return None, CODEX_LAUNCH_WITHOUT_END
+    latest_by_thread: dict[str, int] = {}
+    for n in codex_ends:
+        thread_id = session_ids[n]
+        if not isinstance(thread_id, str) or not thread_id:
+            return None, CODEX_THREAD_ID_UNKNOWN
+        latest_by_thread[thread_id] = n
+    return set(latest_by_thread.values()), None
+
+
+def run_tokens(sessions: list[dict], hosts: list[str | None], *, session_ids: list[object] | None = None,
+               launched: list[dict] | None = None, end_lines: list[int] | None = None,
+               launch_record_present: bool = False, unreported: int | None = None) -> tuple[int | None, int | None, str | None]:
+    """(processed, output, why) from host usage, with cumulative Codex ends counted once per reconciled thread.
+
+    Grok and Claude remain additive per ended launch. A Codex end is cumulative for its thread: use that thread's latest
+    launch only, and only when every recorded Codex launch has an end event and a consistent identity. Without a launch
+    record, the legacy stream path is measurable only when its starts show no unreported launch. Missing usage on an
+    ended earlier launch is superseded by a valid resumed total; missing launch ends and malformed latest usage are not.
+    Sessions on other hosts keep their per-launch totals, with unknown attribution or usage kept conservative.
+    """
     if not sessions:
         return None, None, NO_SESSION_USAGE
-    figures = [session_tokens(s.get("usage"), host) for s, host in zip(sessions, hosts)]
-    outputs = [o for _, o in figures]
-    output = sum(outputs) if all(o is not None for o in outputs) else None
-    if any(p is None for p, _ in figures):
-        return None, output, (SESSION_WITHOUT_USAGE if output is None or any(s.get("usage") is None for s in sessions)
-                              else SESSION_HOST_UNKNOWN)
-    return sum(p for p, _ in figures), output, None
+
+    codex_launches = any(row.get("host") == "codex" for row in launched or [])
+    codex_ends = any(host == "codex" for host in hosts)
+    selected = set(range(min(len(sessions), len(hosts))))
+    if codex_launches or codex_ends:
+        if len(hosts) != len(sessions) or any(host is None for host in hosts):
+            return None, None, SESSION_HOST_UNKNOWN
+        selected_codex, why = _codex_end_indexes(hosts, session_ids, launched, end_lines,
+                                                 launch_record_present, unreported)
+        if selected_codex is None:
+            return None, None, why
+        selected = {n for n, host in enumerate(hosts) if host != "codex"} | selected_codex
+
+    figures = [session_tokens(sessions[n].get("usage"), hosts[n]) for n in sorted(selected)]
+    outputs = [output for _, output in figures]
+    output = sum(outputs) if all(value is not None for value in outputs) else None
+    if any(processed is None for processed, _ in figures):
+        return None, output, (SESSION_WITHOUT_USAGE if output is None or
+                              any(sessions[n].get("usage") is None for n in sorted(selected)) else SESSION_HOST_UNKNOWN)
+    return sum(processed for processed, _ in figures), output, None
 
 
 # Why a planning figure is missing, recorded inside the `planning` block (never in the top-level `unmeasured` map).
@@ -2099,6 +2182,7 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     tools = ToolLog() if tools is None else tools
     turns: list[dict] = []
     sessions, compactions = [], 0
+    session_ids: list[object] = []  # preserve end-event thread identity for Codex accounting without exporting it
     truncated: set = set()
     cancelled: list[str] = []
     grok = False  # per-call `usage` events: the one stream shape the Grok-only counters below can be read from
@@ -2168,6 +2252,7 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
             sessions.append({"stop": session_stop(event), "turns": event.get("num_turns"),
                              "cost_usd": event.get("total_cost_usd"),
                              "usage": event.get("usage") if isinstance(event.get("usage"), dict) else None})
+            session_ids.append(event.get("sessionId"))
             if not calls_in_session:
                 unreported += event.get("num_turns") or 0
             calls_in_session = 0
@@ -2249,7 +2334,8 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     stages = per_stage(accepted, turns, tools.calls, stamps, pending, unmeasured, window_tokens)
     # The harness's launch record reconciles reported sessions with launches on every host (SPEC build step 8); without
     # it, Grok's stream cannot count a session that never reported, and the other hosts' starts are their stream's.
-    reconciled = reconcile_sessions(sessionlog.read(out), session_lines)
+    launch_record_present = (out / sessionlog.SESSIONS).is_file()
+    reconciled = reconcile_sessions(sessions_recorded, session_lines)
     if reconciled is not None:
         never, never_at_least = reconciled["unreported"], None
     else:
@@ -2259,7 +2345,10 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
             unmeasured["unreported_sessions"] = NO_SESSION_START
     used = runrecord.hosts_used(out)
     session_hosts = reconciled["hosts"] if reconciled is not None else [used[0] if len(used) == 1 else None] * len(sessions)
-    processed, output, why_tokens = run_tokens(sessions, session_hosts)
+    processed, output, why_tokens = run_tokens(sessions, session_hosts,
+                                               session_ids=session_ids,
+                                               launched=sessions_recorded, end_lines=session_lines,
+                                               launch_record_present=launch_record_present, unreported=never)
     on_ollama = any(record.get("backend") == "ollama" for _, record in runrecord.launches(out))
     if on_ollama:
         unmeasured["cost_usd"] = OLLAMA_COST
@@ -2291,8 +2380,8 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         # Context only: a call's input side is complete when it is sent. Its output count is a streaming
         # snapshot (about 1/17 of the session's own total on a recorded Claude run), so no output figure is built.
         # Codex is the exception: its rollouts report each call's own total (input plus output), see rollouts.py.
-        # The run's tokens, added over its reported sessions from the host's own whole-session usage (session_tokens);
-        # like cost and turns, a lower bound when a launched session never reported (lower_bound).
+        # The run's tokens use each host's own whole-session usage: per launch for Grok/Claude and latest cumulative end
+        # per Codex thread; incomplete Codex launch attribution stays unknown. A lower bound still marks other missing sessions.
         "tokens": {"input_peak": peak, "processed": processed, "output": output},
         "unmeasured": unmeasured,
         "cost_usd": None if on_ollama else total_cost(sessions),

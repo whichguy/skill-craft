@@ -2261,9 +2261,10 @@ folder above run folders is walked to them. Two cards are compared only when the
   `unobserved`, never a pass (SPEC, 2026-10-26). An item still on the latest list is open, and the floor fails.
 
 **The target** is `efficiency`: minutes, cost, turns, `tokens` and `output_tokens` (build step 8).
-- **Sums over sessions.** Cost, turns and tokens are added over every reported session, stops and resumes included.
-  `tokens` is each session's own input, cache reads, cache writes and output, with Codex's cache reads counted once,
-  inside its input.
+- **Totals across sessions.** Cost and turns add the reported session counts. Tokens cover input, cache reads, cache
+  writes and output: Grok and Claude usage adds across launches, while Codex's cumulative usage counts the latest ended
+  launch once per logical thread, then adds distinct threads. Codex's cache reads are already inside its input. A complete
+  continuation can cover absent earlier usage; missing final usage or ambiguous thread identity stays unmeasured.
 - **The lower-bound flag.** `totals_lower_bound` is true when a launched session never reported, so the sums cover only
   part of the run. `sessions.jsonl` makes that count exact on every host. A Grok run whose every launch reported is no
   longer a lower bound (the Grok gate's hello on 2.13.2: 4 launches, $26.49, 44.2M tokens), and the card line marks a
