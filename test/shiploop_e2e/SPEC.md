@@ -384,6 +384,26 @@ person does it prompt them: it ends its turn with the question (the
 It never blocks on standard input and never asks as a first resort (owner,
 2026-09-27).
 
+**New graphical UI direction, owner decision 2026-11-05 (S-8, S-13, S-14).**
+For a new graphical interface with no established product identity or different
+requested visual direction, use the light, expressive visual profile in the UI
+platform reference as the design starting point. The owner selected the light
+Gemini-like direction after rendered comparisons and explicitly chose "Default
+for new UIs". Record concrete task-specific choices through the existing design
+decisions and criteria; this is neither a fixed layout nor a required toolkit.
+Explicit requested visual constraints take precedence; preserve an existing
+product's accepted identity even without design documents, including new screens
+within that product, and respect the target platform's conventions. The default
+fills unspecified choices only. Existing responsive, dark-theme, interaction,
+accessibility and rendered-verification obligations remain in force.
+
+This requirement changes the expected design starting point of new no-style UI
+runs prospectively. Earlier frozen runs retain their original obligations.
+The owner's direction is not evidence of comparative quality, reliability or
+efficiency gains: those claims still require the existing comparison contract.
+Conformance must be observed on the source actually tested, with different-style
+and existing-product guards; no script, floor, baseline or loop policy changes.
+
 **S-15 The user can follow the run without the model composing status.** What
 the user sees about progress is rendered by ShipLoop's scripts from saved
 state: a short status at every step and, at milestones, a narrative of what is
