@@ -1078,12 +1078,28 @@ DUTIES = {
 10. Under KNOWLEDGE/environment.md ## ID convention declare each ID as tests will be titled, with one line as the
     runner prints it; choose IDs legal in the runner's test names (`TC_1` where a hyphen is not). """ + ID_WORD_RULE + """
     Nor does a name such as `test_TC_1_output` show `TC_1`.
-11. A case needing a host tool (browser, device, account, service): name it (the host's tool listing is the probe that
-    it exists) and probe it now by doing the case's first step, not reading a version. Before the product exists, probe a stand-in: a one-line page in RUN/scratch
-    opened by `file:` URL or a throwaway static server you stop, its title read back; for an account or service, a
-    harmless read. Cite the output in `evidence_refs`. Record only a failed probe as an access gap under
-    ## Real-boundary checks with the requirement left unobserved. Give the case its own opt-in command or flag so the
-    default test command passes without the tool.
+11. A case needing a host tool (browser, device, account, service): automatically discover relevant testing tools
+    through the host's exposed catalog, connected browser capabilities and repository testing facilities.
+    Prefer available, suitable Chrome DevTools for browser inspection and interaction; keep an adequate existing
+    regression runner. Read the selected tool's supported invocation before using it; a catalog entry proves
+    exposure, not readiness. Name it and probe it now by doing the case's first step, not reading a version,
+    or reuse a current probe covering the same capability and setup for cases sharing that route.
+    Before the product exists, probe a stand-in in RUN/scratch through a permitted route: read its title, perform
+    a harmless interaction and observe the changed rendered state. Stop any temporary server and close owned test
+    contexts. For an existing UI, attempt its intended entry first. Only if sign-in is needed, discover supported
+    auth through an existing platform CLI session, credential provider or other authorized route. Use the least
+    account and credential scope sufficient for the tests, carry secrets only through supported private handoff,
+    and return to the same UI check after sign-in. Ask only for an indispensable user step, such as MFA or consent.
+    Sign-in success is not feature permission or a passing UI test. For other account or service probes, use a
+    harmless authorized read. A failed import, missing PATH executable
+    or connection failure describes one route: diagnose it, repair authorized setup or try another discovered
+    supported route before declaring the capability unavailable. Never bypass a denied route or access control.
+    Record the selected route and invocation, probe evidence, failed alternatives and fallback reason under
+    KNOWLEDGE/environment.md ## Harnesses and suites; separate runtime readiness, session readiness and target
+    access. Missing feasible setup is `prerequisite` work, including at e2e; unresolved external access stays
+    unverified with the affected requirement and revalidation condition. Cite outputs in `evidence_refs` and carry
+    the definition locator forward. Give the case its own opt-in command or flag so the default test command
+    passes without the tool. A stand-in proves capability, not product behavior.
 12. A request naming a page or screen people use: plan a case driving it through its interface (browser or device)
     with its actions, expected visible outcomes, and tool named and probed as in item 11 (Consumer testing guide).
     Write it under ## Real-boundary checks as an ordered procedure from its start (actor, entry route, initial state),
