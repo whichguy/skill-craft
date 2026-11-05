@@ -896,11 +896,12 @@ class SelectionByReaderTest(unittest.TestCase):
     WORKSPACE = "skills/shiploop/scripts/shiploop_workspace.py"
     GUIDANCE_DOCS = ("coding-guidance.md", "house-style.md", "service-discovery.md", "repeatable-test-suites.md")
 
-    def test_the_e2e_journal_selects_the_two_suites_that_read_it(self) -> None:
-        self.assertEqual(suite_catalog.targeted([self.LEARNINGS]), {"shiploop-e2e", "release-preflight"})
+    def test_the_e2e_journal_selects_its_named_suites(self) -> None:
+        self.assertEqual(suite_catalog.targeted([self.LEARNINGS]),
+                         {"shiploop-e2e", "release-preflight", "shiploop-actual-improve-cli"})
         baseline = {suite.id for suite in suite_catalog.quick()}
         self.assertEqual({suite.id for suite in suite_catalog.quick([self.LEARNINGS])} - baseline,
-                         {"shiploop-e2e", "release-preflight"})
+                         {"shiploop-e2e", "release-preflight", "shiploop-actual-improve-cli"})
 
     def test_the_baseline_data_selects_its_named_suites(self) -> None:
         self.assertEqual(suite_catalog.targeted([self.BASELINES]),

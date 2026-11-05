@@ -735,8 +735,8 @@ _PATH_SUITE_IDS = {
     # _SHIPLOOP_PACKET_SOURCES.
     "test/shiploop_e2e/packet_obligations.json": ("shiploop-packet-obligations",),
     "test/shiploop_e2e/obligations.py": ("shiploop-packet-obligations",),
-    # The E2E journal and the baseline data are read by these suites alone (test-economy review 2026-10-17, row 1).
-    "test/shiploop_e2e/LEARNINGS.md": ("shiploop-e2e", "release-preflight"),
+    # Conservative named readers, including fixtures (test-economy review 2026-10-17, row 1).
+    "test/shiploop_e2e/LEARNINGS.md": ("shiploop-e2e", "release-preflight", "shiploop-actual-improve-cli"),
     "test/shiploop_e2e/baselines.jsonl": ("shiploop-e2e-baseline", "shiploop-e2e-platform", "shiploop-e2e",
                                       "shiploop-e2e-epoch"),
     # The workspace module is driven through the CLI by the return-review, handoff and knowledge suites (row 3).
