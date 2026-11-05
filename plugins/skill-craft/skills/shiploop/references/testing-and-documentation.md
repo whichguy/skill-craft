@@ -375,6 +375,35 @@ Make that choice during planning, before implementation. In the existing case
 record, name the available runner or manual procedure, why its observation is
 sufficient, and any setup/session/fixture prerequisites. Carry the selection
 into the step plan and validation; tool availability alone is not coverage.
+Automatically discover exposed testing tools and existing repository facilities
+as described in [harness selection](repeatable-test-suites.md#select-or-revalidate-the-harness).
+Prefer available, suitable Chrome DevTools for browser inspection and interaction;
+retain an adequate existing regression runner. Diagnose a failed route and probe
+supported alternatives before declaring browser capability unavailable. Keep
+runtime readiness separate from session readiness and access to the actual feature.
+When the UI exists, attempt its intended entry in the selected browser context
+first. If it opens with the required identity and role, continue testing without
+credential work. A login page, redirect or expired session triggers discovery of
+the smallest sufficient supported authentication route: an already authorized
+platform CLI's browser-login handoff, an existing SSO session, or an authorized
+credential provider such as 1Password. Inspect the selected interface and its
+target/account binding before using it. Reuse current task authority, request
+only an indispensable human action such as MFA, consent or unlocking the selected
+login, then return to the original entry and rerun the affected UI checks.
+
+Limit credential use to the target, test identity and required fields. Prefer
+supported autofill or private credential handoff over reading secrets into the
+conversation; never retain passwords, tokens or one-time login URLs in command
+output, traces or evidence. Do not create accounts, broaden permissions or read
+unrelated vault items merely to make a test run. Successful authentication does
+not establish feature authorization: an authenticated access denial remains a
+specific permission prerequisite, not a reason to cycle through more credentials.
+Record the non-secret entry, chosen auth method, required user step if any and
+the post-auth UI observation in the existing access/test notes. The
+[1Password browser guide](https://support.1password.com/getting-started-browser/)
+and [runtime secret-reference guide](https://developer.1password.com/docs/cli/secrets-scripts)
+describe supported options; their presence here does not establish local availability.
+
 The tool names below are examples, not a requirement to try or install every
 candidate. Use the host-supported browser connection and control route; a tool
 name does not authorize a different transport or access to a personal profile.

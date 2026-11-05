@@ -128,13 +128,21 @@ and [page types](https://developer.salesforce.com/docs/platform/lwc/guide/refere
 define the supported navigation contract. This supplements the generic
 [browser evidence guidance](../testing-and-documentation.md#lightweight-and-browser-checks).
 
-Open that browser session from the org's existing CLI authentication rather than
-asking the user to sign in: `sf org open --target-org <alias> --url-only --path
-<page>` prints a one-time front-door URL for the page, which a browser tool can
-open directly. At discovery, run it once (without opening the page) to prove the
-route, and record the alias and page path. Keep the URL out of evidence and
-logs: it is a session credential. Ask the user only when the CLI has no working
-authentication for the target org.
+Attempt the intended UI entry first in the selected browser context. If sign-in
+is needed, discover whether the authorized `sf` CLI already has authentication
+for that exact org and test user. Its supported `org open` flow can reuse that
+session; record the alias and non-secret page path and verify the resulting UI
+identity and role. `sf org open --target-org <alias> --url-only --path <page>`
+returns a one-time front-door URL, which is a session credential: use it only
+through a supported private handoff that consumes it without returning it in
+captured command output, browser traces or model-visible tool arguments. The
+ordinary `org open` browser handoff is another option when the host supports and
+authorizes that route. Do not bypass a run guard that denies either operation.
+If the CLI has no usable permitted session, consider the discovered SSO or
+credential-provider route and ask only for the necessary user action. After
+sign-in, retry the same feature entry and interaction; a logged-in org home or
+successful CLI command is not UI acceptance. See the official
+[org open command](https://github.com/salesforcecli/plugin-org#sf-org-open).
 
 ## CLI login
 

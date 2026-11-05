@@ -28,9 +28,20 @@ For an affected remote system or delivery route, apply
 [target-native test selection](#select-target-native-tests) before excluding its
 native checks; local file inventory alone cannot settle that decision.
 
-For browser behavior, consider Chrome DevTools or equivalent available inspection
-tools, and Playwright or equivalent browser automation, to inspect and test the
-actual end-browser surface. Pair these with `curl` or existing HTTP/API checks
+Automatically discover relevant testing tools through the host's exposed tool
+catalog, selected skills and capability documentation, then the repository's
+runner configuration, dependencies, helpers and CI commands. Include supported
+browser capabilities exposed by connected tools, not just top-level tool names.
+Include host-provided runtimes: a missing executable on shell PATH does not prove that
+the host lacks the capability. Read the chosen interface's actual invocation
+contract; do not guess a module export, launch option or private cache path.
+
+For browser behavior, prefer available, suitable Chrome DevTools for inspection
+and supported interaction. Keep an adequate existing regression runner; this
+preference does not require replacing its tests. When DevTools is unavailable or
+cannot make the needed observation, select another discovered, supported route,
+such as the host's browser control or Playwright, and record the reason. Pair
+these with `curl` or existing HTTP/API checks
 when both protocol and rendered behavior matter. Choose
 the tool by the observation needed, such as rendered DOM/CSS, console errors,
 network behavior, interaction, or performance. Apply the existing
@@ -40,6 +51,29 @@ inspection or a recorded flow alone is not a regression assertion: retain the
 useful finding as a repeatable test with an independent expected outcome and
 suite entry when feasible. Otherwise retain the exact manual procedure and
 evidence limits; do not count it as automated coverage.
+
+Probe the selected route with a harmless rendered action and observed state
+change before calling it ready. Before the product exists, use a disposable
+stand-in through a permitted route. A tool listing, version, imported module or
+page title alone does not establish interaction capability. Close test contexts
+and stop temporary servers the run owns. Keep the observations distinct:
+
+| Observation | What it establishes | Next action when it fails |
+| --- | --- | --- |
+| Tool runs a rendered stand-in interaction | Runtime and control route work | Diagnose invocation or connection; repair authorized setup or probe another discovered route. |
+| Intended UI entry opens in the selected context | Current session and target access | Retain runtime success; resolve required sign-in through supported adjacent tools, then retry the same UI entry. |
+| Current product responds to the required action | That case's observed behavior | Fix the product or a proven test defect, then rerun the affected case. |
+
+An import, PATH or connection failure belongs to that attempt, not every tool.
+Before declaring the capability unavailable, inspect other relevant exposed
+routes and existing supported runtimes. Do not retry through a denied transport,
+access another profile, grant credentials or install a persistent integration
+without authority. A feasible missing harness is prerequisite work even at e2e;
+a genuine external access gap stays unverified. Record attempted routes, exact
+non-secret failures, selected invocation, evidence, owner and revalidation
+condition in the existing harness definition and evidence_refs. Later packets
+reuse that locator; rediscover after a relevant failure or environment change,
+not on every test iteration. A new successful probe does not close product cases.
 
 At global planning, record the major harnesses and complementary diagnostic
 tools, their roles and selection rationale in existing test-strategy evidence.
