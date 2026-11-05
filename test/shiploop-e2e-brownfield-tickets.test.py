@@ -201,6 +201,8 @@ def agrees(case: Case, variant: str, kind: str, result) -> bool:
         return bool(result.get("observed")) and {row["id"] for row in result["checks"] if not row["pass"]} == case.expected[variant]
     if kind == "pristine":
         return (result.returncode != 0) == (variant in case.pristine)
+    if case is not ESCALATION and variant == "base":
+        return result.returncode != 0 and "no more than the base's" in result.stdout
     return (result.returncode != 0) == (case is not ESCALATION and variant == "base")
 
 
@@ -324,6 +326,53 @@ class SettleTest(unittest.TestCase):
         again, calls = self.graders(*[[False, False, False]] * REGRADES)
         self.assertEqual(agreed([False, False, False], [False, True, False], again), [False, False, False])
         self.assertEqual(len(calls), REGRADES)
+
+
+class SuiteAgreementTest(unittest.TestCase):
+    """A base's expected missing-tests failure must be distinguishable from an unrelated suite failure."""
+
+    @staticmethod
+    def result(returncode: int, stdout: str = "") -> subprocess.CompletedProcess:
+        return subprocess.CompletedProcess(args=[], returncode=returncode, stdout=stdout, stderr="")
+
+    @staticmethod
+    def graders(*grades):
+        calls = []
+
+        def again():
+            calls.append(len(calls))
+            return grades[len(calls) - 1]
+        return again, calls
+
+    def test_assignment_and_import_base_suite_requires_the_known_missing_tests_failure(self):
+        expected = self.result(1, "FAIL: the delivery's own node --test passes 117 tests, no more than the base's 117")
+        unrelated = self.result(1, "FAIL: the delivery's own node --test: 116 pass, 1 fail (rc 1); failing: restart")
+        for case in (ASSIGNMENT, IMPORT):
+            with self.subTest(case=case.name):
+                self.assertTrue(agrees(case, "base", "suite", expected))
+                self.assertFalse(agrees(case, "base", "suite", unrelated))
+
+    def test_assignment_and_import_base_suite_pass_does_not_agree_with_the_missing_tests_failure(self):
+        unexpected_pass = self.result(0, "no more than the base's 117")
+        for case in (ASSIGNMENT, IMPORT):
+            with self.subTest(case=case.name):
+                self.assertFalse(agrees(case, "base", "suite", unexpected_pass))
+
+    def test_escalation_base_and_nonbase_suite_cases_still_require_success(self):
+        success = self.result(0)
+        failure = self.result(1, "FAIL: unrelated test failure")
+        cases = ((case, variant) for case in GRADED_CASES for variant in case.builder.VARIANTS
+                 if not (case is not ESCALATION and variant == "base"))
+        for case, variant in cases:
+            with self.subTest(case=case.name, variant=variant):
+                self.assertTrue(agrees(case, variant, "suite", success))
+                self.assertFalse(agrees(case, variant, "suite", failure))
+
+    def test_an_unrelated_base_suite_failure_stays_disagreeing_after_bounded_settle(self):
+        unrelated = self.result(1, "FAIL: the delivery's own node --test: 116 pass, 1 fail (rc 1); failing: restart")
+        again, calls = self.graders(*[unrelated] * REGRADES)
+        final, done, repeated = settle(unrelated, lambda grade: agrees(ASSIGNMENT, "base", "suite", grade), again)
+        self.assertEqual((final.returncode, done, repeated, len(calls)), (1, REGRADES, True, REGRADES))
 
 
 class CaseDeclarationTest(unittest.TestCase):
