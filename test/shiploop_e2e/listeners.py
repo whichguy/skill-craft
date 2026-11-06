@@ -51,6 +51,12 @@ def _run(argv: list[str]) -> str:
     return done.stdout
 
 
+def listening_pids(port: int) -> set[int]:
+    """Every PID lsof reports with a TCP listener on `port`, across address families; raises Unobserved when lsof cannot say."""
+    text = _run(["lsof", "-nP", "-a", f"-iTCP:{port}", "-sTCP:LISTEN", "-Fp"])
+    return {int(line[1:]) for line in text.splitlines() if line.startswith("p") and line[1:].isdigit()}
+
+
 def _parse_fields(text: str) -> list[dict]:
     """lsof -F output: a `p<pid>` line opens a process, `c` its command, `u` its uid, `n` each file name."""
     processes: list[dict] = []

@@ -573,10 +573,16 @@ def load_checks(module: str, checks_dir: Path):
     return loaded
 
 
+def listening_pids(port: int) -> set[int]:
+    """Every process with a TCP listener on `port`; raises listeners.Unobserved when lsof cannot say."""
+    return listeners.listening_pids(port)
+
+
 def listening(proc: subprocess.Popen, port: int, start_text: str, refusals_log: Path, ports: list[int] | tuple) -> str | None:
-    """Wait until the product's server `proc` listens on `port`: None once it does, else why not (it exited, or the listen
-    ceiling passed)."""
+    """Wait until every process listening on `port` belongs to the product server's process group: None once it does, else why
+    not (it exited, listener ownership could not be verified, or the listen ceiling passed)."""
     end = time.monotonic() + LISTEN_CEILING_SECONDS
+    ownership = "no TCP listener on the port was visible in the process table"
     while True:
         if proc.poll() is not None:
             refused = count_refusals(refusals_log)
@@ -584,12 +590,31 @@ def listening(proc: subprocess.Popen, port: int, start_text: str, refusals_log: 
                     + (f"; it touched a declared port ({', '.join(map(str, ports))}) {refused} "
                        f"time{'s' if refused != 1 else ''}, so it may ignore PORT" if refused else ""))
         try:
-            socket.create_connection(("127.0.0.1", port), timeout=0.2).close()
-            return None
-        except OSError:
-            pass
+            pids = listening_pids(port)
+        except listeners.Unobserved as why:
+            ownership = f"listener ownership could not be verified ({why})"
+        else:
+            outside = []
+            unverified = []
+            for pid in sorted(pids):
+                try:
+                    group = os.getpgid(pid)
+                except OSError:
+                    unverified.append(pid)
+                else:
+                    if group != proc.pid:
+                        outside.append(pid)
+            if pids and not outside and not unverified:
+                return None
+            details = []
+            if outside:
+                details.append(f"listener pid(s) {', '.join(map(str, outside))} are outside candidate process group {proc.pid}")
+            if unverified:
+                details.append(f"listener ownership could not be verified for pid(s) {', '.join(map(str, unverified))}")
+            ownership = "; ".join(details) if details else "no TCP listener on the port was visible in the process table"
         if time.monotonic() >= end:
-            return f"the product's server ({start_text}) did not listen on PORT={port} within {LISTEN_CEILING_SECONDS} s"
+            return (f"the product's server ({start_text}) did not listen on PORT={port} within {LISTEN_CEILING_SECONDS} s; "
+                    f"{ownership}")
         time.sleep(POLL_SECONDS)
 
 

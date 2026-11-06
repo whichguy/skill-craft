@@ -2516,6 +2516,32 @@ class HttpCheckBindingTest(unittest.TestCase):
         with mock.patch.dict(os.environ, env or {}):
             return run.run_checks(work, [self.page_check], timeout=60)[0]
 
+    def test_a_candidate_listener_does_not_hide_a_sibling_listener_on_the_same_port(self):
+        spec = importlib.util.spec_from_file_location("shiploop_e2e_test_serve", run.HERE / "checks" / "serve.py")
+        serve = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(serve)
+        proc = mock.Mock()
+        proc.pid = 101
+        proc.returncode = None
+        proc.poll.return_value = None
+        stderr = self.tmp / "server.stderr"
+        stderr.write_text("")
+        clock = iter((0.0, 0.0))
+
+        def stop(message):
+            raise RuntimeError(message)
+
+        with mock.patch.object(serve, "READY_SECONDS", 1), \
+                mock.patch.object(serve.time, "monotonic", side_effect=lambda: next(clock)), \
+                mock.patch.object(serve, "listening_pids", return_value={101, 202}), \
+                mock.patch.object(serve, "in_group", side_effect=lambda pid, leader: pid == leader), \
+                mock.patch.object(serve, "fail", side_effect=stop) as fail:
+            with self.assertRaisesRegex(RuntimeError, "not by the candidate"):
+                serve.wait_for_candidate(proc, 49123, stderr)
+
+        fail.assert_called_once()
+        self.assertIn("202", fail.call_args.args[0])
+
     def test_the_audit_candidate_beside_a_sibling_on_the_check_port_fails(self):
         port, env = self.check_port()
         sibling = self.sibling(port)

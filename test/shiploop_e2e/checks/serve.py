@@ -52,8 +52,7 @@ def free_port() -> int:
 
 def listening_pids(port: int) -> set[int]:
     """The pids listening on TCP `port`; raises listeners.Unobserved where lsof cannot say."""
-    text = listeners._run(["lsof", "-nP", "-a", f"-iTCP:{port}", "-sTCP:LISTEN", "-Fp"])
-    return {int(line[1:]) for line in text.splitlines() if line.startswith("p") and line[1:].isdigit()}
+    return listeners.listening_pids(port)
 
 
 def in_group(pid: int, leader: int) -> bool:
@@ -79,10 +78,12 @@ def wait_for_candidate(proc: subprocess.Popen, port: int, stderr: Path) -> None:
             pids = listening_pids(port)
         except listeners.Unobserved as why:
             fail(f"cannot confirm who listens on port {port} ({why}), so no response is accepted")
-        if pids and any(in_group(pid, proc.pid) for pid in pids):
-            return
         if pids:
-            fail(f"port {port} is answered by pid {', '.join(map(str, sorted(pids)))}, not by the candidate (pid {proc.pid}), "
+            candidate = {pid: in_group(pid, proc.pid) for pid in pids}
+            if all(candidate.values()):
+                return
+            foreign = sorted(pid for pid, belongs in candidate.items() if not belongs)
+            fail(f"port {port} is answered by pid {', '.join(map(str, foreign))}, not by the candidate (pid {proc.pid}), "
                  f"so its responses are refused; candidate stderr: {tail(stderr)}")
         time.sleep(POLL_SECONDS)
     fail(f"the candidate did not listen on PORT={port} within {READY_SECONDS:.0f} s: {tail(stderr)}")

@@ -1180,7 +1180,14 @@ class AcceptanceRunTest(QualityCase):
         with mock.patch.object(quality.subprocess, "Popen", side_effect=spy):
             block = self.accept(self.block(f"{sys.executable} {REFERENCE}", ids=("secret-id",)), checks_dir=directory)
         self.assertTrue(block["observed"], block)
-        self.assertEqual(argvs, [[sys.executable, str(REFERENCE)]], "only the product's server was started")
+        server_argv = [sys.executable, str(REFERENCE)]
+        self.assertEqual([argv for argv in argvs if argv == server_argv], [server_argv], "the product server starts once")
+        lsof_argvs = [argv for argv in argvs if argv and argv[0] == "lsof"]
+        self.assertTrue(lsof_argvs, "listener ownership is checked through lsof")
+        self.assertEqual(len(argvs), 1 + len(lsof_argvs), "the only child commands are the product server and lsof")
+        self.assertTrue(all(len(argv) == 6 and argv[1:3] == ["-nP", "-a"]
+                            and argv[3].startswith("-iTCP:") and argv[3][6:].isdigit()
+                            and argv[4:] == ["-sTCP:LISTEN", "-Fp"] for argv in lsof_argvs), lsof_argvs)
         self.assertNotIn("secret-id", " ".join(" ".join(a) for a in argvs))
         self.assertNotIn("tmpmod", " ".join(" ".join(a) for a in argvs))
 
@@ -1199,6 +1206,55 @@ class AcceptanceRunTest(QualityCase):
         row = block["checks"][0]
         self.assertEqual((row["id"], row["source"], row["pass"]), ("red-moves-first", "quote for red-moves-first", True))
         self.assertLessEqual(len(row["note"]), 300)
+
+
+class AcceptanceServerOwnershipTest(unittest.TestCase):
+    """A reachable socket is ready only when every listener on the port belongs to the candidate group."""
+
+    def readiness(self, scan_output: str | None, groups: dict[int, int | BaseException] | None = None,
+                  scan_error: Exception | None = None) -> str | None:
+        proc = mock.Mock()
+        proc.pid = 101
+        proc.returncode = None
+        proc.poll.return_value = None
+        clock = iter((0.0, 0.0, 2.0))
+
+        def group(pid):
+            value = (groups or {})[pid]
+            if isinstance(value, BaseException):
+                raise value
+            return value
+
+        with mock.patch.object(quality, "LISTEN_CEILING_SECONDS", 1), \
+                mock.patch.object(quality.time, "monotonic", side_effect=lambda: next(clock)), \
+                mock.patch.object(quality.time, "sleep"), \
+                mock.patch.object(quality.listeners, "_run", side_effect=scan_error or None, return_value=scan_output or "") as scan, \
+                mock.patch.object(quality.os, "getpgid", side_effect=group), \
+                mock.patch.object(quality.socket, "create_connection") as connect:
+            why = quality.listening(proc, 49123, "candidate", Path("/unused/refusals"), ())
+        connect.assert_not_called()
+        if scan_error is None:
+            scan.assert_called_with(["lsof", "-nP", "-a", "-iTCP:49123", "-sTCP:LISTEN", "-Fp"])
+        return why
+
+    def test_a_foreign_listener_is_not_accepted_even_when_a_socket_connect_would_succeed(self):
+        why = self.readiness("p202\n", {202: 202})
+        self.assertIsNotNone(why, "the previous connect-only readiness accepted a sibling listener")
+        self.assertIn("202", why)
+
+    def test_candidate_ipv6_and_sibling_ipv4_listeners_on_one_port_are_both_checked(self):
+        # Both address families can hold the same numeric port; an `any(candidate)` check would accept this mixed result.
+        why = self.readiness("p101\np202\n", {101: 101, 202: 202})
+        self.assertIsNotNone(why, "one candidate listener does not make a sibling listener safe")
+        self.assertIn("202", why)
+
+    def test_unreadable_listener_ownership_never_counts_as_ready(self):
+        why = self.readiness(None, scan_error=listeners.Unobserved("lsof denied"))
+        self.assertIsNotNone(why)
+        self.assertIn("lsof denied", why)
+        why = self.readiness("p202\n", {202: ProcessLookupError("process ended")})
+        self.assertIsNotNone(why)
+        self.assertIn("could not be verified", why)
 
 
 # A product server for the Product tests: it answers GET with its GREETING, its HOLDOUT (or "-") and its working folder, and
