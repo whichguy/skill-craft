@@ -1,0 +1,636 @@
+{
+  "recorded_at": "2026-11-06T01:07:38.980590+00:00",
+  "classification": "Owner-requested UI-default diagnostics; not promotion/5 or comparative gain",
+  "owner_decision": "Light Gemini-like default for new graphical UIs; explicit constraints, existing identity and platform conventions retain precedence.",
+  "frozen_final_ui_source": {
+    "head": "893619c8a811595720f96a80a9d532c79510cee5",
+    "tree": "6cc4b5d852714a9f6b333a95744d89934680d297",
+    "content_fingerprint": "c969f3dd2957c1ce4ef244825dc511267685130f6bad8a746867990107ed1d55"
+  },
+  "full_runs": [
+    {
+      "id": "default-checkers-01",
+      "source_head": "5254a195794253cd3ae05959c4ed014de5d75f53",
+      "result_sha256": "781ff3f5381decde24a1210b22caa75ec26d3043ae0a71ecef77073f0c57f127",
+      "process": {
+        "status": "exited",
+        "returncode": 0,
+        "elapsed_seconds": 2362.6,
+        "stop": "end_turn",
+        "sessions": [
+          {
+            "status": "exited",
+            "returncode": 0,
+            "elapsed_seconds": 2362.6,
+            "stop": "end_turn",
+            "resumed": null,
+            "host": "codex"
+          }
+        ],
+        "resumes": 0,
+        "pass": true
+      },
+      "engine": "done",
+      "functional": {
+        "passed": 4,
+        "total": 4
+      },
+      "held_out": {
+        "passed": 6,
+        "total": 6
+      },
+      "mutation": {
+        "killed": 76,
+        "sites": 148,
+        "ratio": 0.5135,
+        "timeout": 4,
+        "port_refused": 2,
+        "port_refusals": 2,
+        "not_run": 0
+      },
+      "delivery": {
+        "before": {
+          "observed": true,
+          "head": "59fa336d10115c6b28df570b8ef1e7feb055a132",
+          "tree": "4b07f8c06ab7897100da213ed2888c4573b9d3da",
+          "status": [],
+          "bundle": "delivery/work.bundle",
+          "bundle_bytes": 27411
+        },
+        "after": {
+          "observed": true,
+          "head": "59fa336d10115c6b28df570b8ef1e7feb055a132",
+          "tree": "4b07f8c06ab7897100da213ed2888c4573b9d3da",
+          "status": []
+        }
+      },
+      "browser": {
+        "passed": 9,
+        "failed": 0
+      },
+      "observations": [
+        "Functional completion with unequal board row heights, traditional serif title and OS-following appearance; no theme control."
+      ],
+      "raw_evidence": "/Users/dadleet/Documents/Codex/experiments/shiploop-ui-prompt-20261105/integration/default-live-01/checkers"
+    },
+    {
+      "id": "default-checkers-03",
+      "source_head": "62290c1c9f2e457cb88f4729d67360190be339a9",
+      "result_sha256": "4331b9dbf29daf47e666e127efdf5fae0875304ca9d4a027c6a606971896d566",
+      "process": {
+        "status": "exited",
+        "returncode": 0,
+        "elapsed_seconds": 3160.9,
+        "stop": "end_turn",
+        "sessions": [
+          {
+            "status": "exited",
+            "returncode": 0,
+            "elapsed_seconds": 3160.9,
+            "stop": "end_turn",
+            "resumed": null,
+            "host": "codex"
+          }
+        ],
+        "resumes": 0,
+        "pass": true
+      },
+      "engine": "done",
+      "functional": {
+        "passed": 4,
+        "total": 4
+      },
+      "held_out": {
+        "passed": 6,
+        "total": 6
+      },
+      "mutation": {
+        "killed": 83,
+        "sites": 121,
+        "ratio": 0.686,
+        "timeout": 18,
+        "port_refused": 2,
+        "port_refusals": 3,
+        "not_run": 0
+      },
+      "delivery": {
+        "before": {
+          "observed": true,
+          "head": "826420d6b14322c95d62a9e1df41023d1e31cdb0",
+          "tree": "b200f9e844cfca5268ac492502bf9ca4ad0c5b34",
+          "status": [],
+          "bundle": "delivery/work.bundle",
+          "bundle_bytes": 25816
+        },
+        "after": {
+          "observed": true,
+          "head": "826420d6b14322c95d62a9e1df41023d1e31cdb0",
+          "tree": "b200f9e844cfca5268ac492502bf9ca4ad0c5b34",
+          "status": []
+        }
+      },
+      "browser": {
+        "passed": 9,
+        "failed": 0
+      },
+      "observations": [
+        "Own system review sent geometry back for correction; returned square cells passed independent rendered inspection.",
+        "OS-following appearance and no explicit theme control remain."
+      ],
+      "raw_evidence": "/Users/dadleet/Documents/Codex/experiments/shiploop-ui-prompt-20261105/integration/default-live-03/checkers"
+    },
+    {
+      "id": "default-checkers-04",
+      "source_head": "893619c8a811595720f96a80a9d532c79510cee5",
+      "source_tree": "6cc4b5d852714a9f6b333a95744d89934680d297",
+      "plugin_content_manifest_sha256": "eb381b5371ab8fa6402d74957892c88fbc5b624503b8dcbf00b5cfad075bfc27",
+      "result_sha256": "18ae601e8a957480508b100ea562e632709890c307a32ac2d450a96c422c2cf9",
+      "process": {
+        "status": "exited",
+        "returncode": 0,
+        "elapsed_seconds": 2270.8,
+        "stop": "end_turn",
+        "sessions": [
+          {
+            "status": "exited",
+            "returncode": 0,
+            "elapsed_seconds": 2270.8,
+            "stop": "end_turn",
+            "resumed": null,
+            "host": "codex"
+          }
+        ],
+        "resumes": 0,
+        "pass": true
+      },
+      "engine": "done",
+      "functional": {
+        "passed": 4,
+        "total": 4
+      },
+      "held_out": {
+        "passed": 6,
+        "total": 6
+      },
+      "mutation": {
+        "killed": 82,
+        "sites": 169,
+        "ratio": 0.4852,
+        "timeout": 7,
+        "port_refused": 2,
+        "port_refusals": 3,
+        "not_run": 0
+      },
+      "delivery": {
+        "before": {
+          "observed": true,
+          "head": "9b92c17101955603b8bcb56775d68c16d7e8608f",
+          "tree": "3dd2d2a8046d001596192c7dfcb04feead92f9bd",
+          "status": [],
+          "bundle": "delivery/work.bundle",
+          "bundle_bytes": 26692
+        },
+        "after": {
+          "observed": true,
+          "head": "9b92c17101955603b8bcb56775d68c16d7e8608f",
+          "tree": "3dd2d2a8046d001596192c7dfcb04feead92f9bd",
+          "status": []
+        }
+      },
+      "browser": {
+        "passed": 10,
+        "failed": 0,
+        "views": {
+          "desktop": {
+            "board": {
+              "bottom": 914.09375,
+              "height": 624,
+              "inside": true,
+              "width": 624,
+              "x": 237,
+              "y": 290.09375
+            },
+            "status": {
+              "bottom": 228.3203125,
+              "height": 43.1953125,
+              "inside": true,
+              "width": 240,
+              "x": 957,
+              "y": 185.125
+            },
+            "new_game": {
+              "bottom": 350.1484375,
+              "height": 45.1953125,
+              "inside": true,
+              "width": 114.515625,
+              "x": 957,
+              "y": 304.953125
+            },
+            "contrast": {
+              "label": "default-checkers-04-desktop",
+              "measured": 7,
+              "skipped": 6,
+              "failed": 0,
+              "failures": []
+            }
+          },
+          "mobile": {
+            "board": {
+              "bottom": 542.09375,
+              "height": 336,
+              "inside": true,
+              "width": 336,
+              "x": 27,
+              "y": 206.09375
+            },
+            "status": {
+              "bottom": 703.9375,
+              "height": 43.1953125,
+              "inside": true,
+              "width": 316,
+              "x": 37,
+              "y": 660.7421875
+            },
+            "new_game": {
+              "bottom": 825.765625,
+              "height": 45.1953125,
+              "inside": true,
+              "width": 114.515625,
+              "x": 37,
+              "y": 780.5703125
+            },
+            "contrast": {
+              "label": "default-checkers-04-mobile",
+              "measured": 5,
+              "skipped": 6,
+              "failed": 0,
+              "failures": []
+            }
+          },
+          "dark": {
+            "board": {
+              "bottom": 914.09375,
+              "height": 624,
+              "inside": true,
+              "width": 624,
+              "x": 237,
+              "y": 290.09375
+            },
+            "status": {
+              "bottom": 228.3203125,
+              "height": 43.1953125,
+              "inside": true,
+              "width": 240,
+              "x": 957,
+              "y": 185.125
+            },
+            "new_game": {
+              "bottom": 350.1484375,
+              "height": 45.1953125,
+              "inside": true,
+              "width": 114.515625,
+              "x": 957,
+              "y": 304.953125
+            },
+            "contrast": {
+              "label": "default-checkers-04-dark",
+              "measured": 7,
+              "skipped": 6,
+              "failed": 0,
+              "failures": []
+            }
+          },
+          "dark-mobile": {
+            "board": {
+              "bottom": 542.09375,
+              "height": 336,
+              "inside": true,
+              "width": 336,
+              "x": 27,
+              "y": 206.09375
+            },
+            "status": {
+              "bottom": 703.9375,
+              "height": 43.1953125,
+              "inside": true,
+              "width": 316,
+              "x": 37,
+              "y": 660.7421875
+            },
+            "new_game": {
+              "bottom": 825.765625,
+              "height": 45.1953125,
+              "inside": true,
+              "width": 114.515625,
+              "x": 37,
+              "y": 780.5703125
+            },
+            "contrast": {
+              "label": "default-checkers-04-dark-mobile",
+              "measured": 5,
+              "skipped": 6,
+              "failed": 0,
+              "failures": []
+            }
+          }
+        }
+      },
+      "observations": [
+        "Light first even with dark OS preference; explicit dark option; clear sans-serif hierarchy and warm rounded board frame.",
+        "Uniform square cells, board/turn/new-game control within observed phone and desktop viewports. No console errors.",
+        "Planning record abbreviates the named reference, token detail and selected visual anchors. This result does not establish perfect instruction compliance or universal quality.",
+        "Subject Chrome proof used a real-HTTP forwarding bridge with byte-identical served/rendered HTML; direct subject Chrome loopback unobserved. Parent IAB independently exercised the sealed delivered server through direct loopback HTTP."
+      ],
+      "harness_terminal": {
+        "exit_code": 0,
+        "completed_utc": "2026-11-06T01:03:15.575297+00:00",
+        "head_unchanged": true,
+        "source_clean": true,
+        "build_unchanged": true
+      },
+      "raw_evidence": "/Users/dadleet/Documents/Codex/experiments/shiploop-ui-prompt-20261105/integration/default-live-04/checkers"
+    }
+  ],
+  "chat": {
+    "04": {
+      "browser": {
+        "passed": 16,
+        "failed": 0
+      },
+      "contrast": {
+        "desktop": {
+          "label": "default-chat-04-desktop",
+          "measured": 51,
+          "skipped": 4,
+          "failed": 2,
+          "failures": [
+            {
+              "text": "Unread messages",
+              "ratio": 4.491206946466239,
+              "required": 4.5
+            },
+            {
+              "text": "Agent",
+              "ratio": 3.954768197359801,
+              "required": 4.5
+            }
+          ]
+        },
+        "mobile": {
+          "label": "default-chat-04-mobile",
+          "measured": 41,
+          "skipped": 3,
+          "failed": 2,
+          "failures": [
+            {
+              "text": "Unread messages",
+              "ratio": 4.491206946466239,
+              "required": 4.5
+            },
+            {
+              "text": "Agent",
+              "ratio": 3.954768197359801,
+              "required": 4.5
+            }
+          ]
+        },
+        "dark": {
+          "label": "default-chat-04-dark",
+          "measured": 51,
+          "skipped": 4,
+          "failed": 0,
+          "failures": []
+        },
+        "dark-mobile": {
+          "label": "default-chat-04-dark-mobile",
+          "measured": 41,
+          "skipped": 3,
+          "failed": 0,
+          "failures": []
+        }
+      },
+      "delivery": {
+        "created_utc": "2026-11-06T00:28:21.884762+00:00",
+        "source": "/Users/dadleet/Documents/Codex/experiments/shiploop-ui-prompt-20261105/integration/no-style-chat-04/app",
+        "copy": "/Users/dadleet/Documents/Codex/experiments/shiploop-ui-prompt-20261105/integration-review/products/default-chat-04",
+        "files": {
+          "index.html": "f80fb5aee746730db68e50518878c193672a7a67a17f56285c290a90164175d2",
+          "README.md": "fd36a199ac42bf1226c8a10372d5ddc43b69bd79e798a5f89d25d21b0038b2b7",
+          "checks.html": "bcc4b3429f2e0f61177cc1f75ac7ac514168aca3f4a5a9a2343cf6a9bd6faf88"
+        },
+        "note": "Fresh builder returned final; copied without changes before independent browser review. Inputs and source delivery remain frozen."
+      }
+    },
+    "05": {
+      "browser": {
+        "passed": 16,
+        "failed": 0
+      },
+      "contrast": {
+        "desktop": {
+          "label": "default-chat-05-desktop",
+          "measured": 51,
+          "skipped": 3,
+          "failed": 0,
+          "failures": []
+        },
+        "mobile": {
+          "label": "default-chat-05-mobile",
+          "measured": 41,
+          "skipped": 3,
+          "failed": 0,
+          "failures": []
+        },
+        "dark": {
+          "label": "default-chat-05-dark",
+          "measured": 51,
+          "skipped": 3,
+          "failed": 0,
+          "failures": []
+        },
+        "dark-mobile": {
+          "label": "default-chat-05-dark-mobile",
+          "measured": 41,
+          "skipped": 3,
+          "failed": 0,
+          "failures": []
+        }
+      },
+      "delivery": {
+        "at": "2026-11-06T00:37:06.224981+00:00",
+        "kind": "rendered correction of frozen no-style-chat-04; same design and prompt",
+        "source": "/Users/dadleet/Documents/Codex/experiments/shiploop-ui-prompt-20261105/integration/no-style-chat-05/app",
+        "public_copy": "/Users/dadleet/Documents/Codex/experiments/shiploop-ui-prompt-20261105/integration-review/products/default-chat-05",
+        "files": {
+          "README.md": {
+            "sha256": "fd36a199ac42bf1226c8a10372d5ddc43b69bd79e798a5f89d25d21b0038b2b7",
+            "bytes": 1067
+          },
+          "checks.html": {
+            "sha256": "bcc4b3429f2e0f61177cc1f75ac7ac514168aca3f4a5a9a2343cf6a9bd6faf88",
+            "bytes": 23174
+          },
+          "index.html": {
+            "sha256": "d5a4e08fbbadc05a65f28f8de45c509029812645fc2dbc97902db79807adeb0e",
+            "bytes": 60102
+          }
+        }
+      },
+      "additional_review": {
+        "checks": [
+          {
+            "name": "desktop close-channels control is hidden",
+            "pass": true
+          },
+          {
+            "name": "attachment filename and caption are separate visible rows",
+            "pass": true,
+            "detail": {
+              "children": [
+                {
+                  "height": 38,
+                  "tag": "SPAN",
+                  "text": "PDF",
+                  "x": 453,
+                  "y": 386
+                },
+                {
+                  "height": 34,
+                  "tag": "SPAN",
+                  "text": "onboarding-flow.pdfLocal sample \u00b7 4 screens",
+                  "x": 499,
+                  "y": 388
+                },
+                {
+                  "height": 17,
+                  "tag": "SPAN",
+                  "text": "onboarding-flow.pdf",
+                  "x": 499,
+                  "y": 388
+                },
+                {
+                  "height": 15,
+                  "tag": "SPAN",
+                  "text": "Local sample \u00b7 4 screens",
+                  "x": 499,
+                  "y": 407
+                }
+              ],
+              "html": "<span class=\"cove-file-icon\" aria-hidden=\"true\">PDF</span><span class=\"cove-card-copy\"><span class=\"cove-card-title\">onboarding-flow.pdf</span><span class=\"cove-card-caption\">Local sample \u00b7 4 screens</span></span>"
+            },
+            "method": "manual inspection of retained desktop and phone captures, backed by DOM rectangles; not an automated spacing assertion"
+          },
+          {
+            "name": "composer container has visible focus ring",
+            "pass": true,
+            "detail": [
+              {
+                "cls": "",
+                "color": "rgb(32, 38, 56)",
+                "outline": "none",
+                "width": "3px"
+              },
+              {
+                "cls": "cove-composer-box",
+                "color": "rgb(64, 89, 199)",
+                "outline": "solid",
+                "width": "2px"
+              },
+              {
+                "cls": "cove-composer",
+                "color": "rgb(32, 38, 56)",
+                "outline": "none",
+                "width": "3px"
+              },
+              {
+                "cls": "cove-conversation",
+                "color": "rgb(32, 38, 56)",
+                "outline": "none",
+                "width": "3px"
+              }
+            ]
+          },
+          {
+            "name": "phone drawer exposes close control",
+            "pass": true
+          },
+          {
+            "name": "phone close returns to conversation",
+            "pass": true
+          },
+          {
+            "name": "new chat starts light under dark OS preference",
+            "pass": true,
+            "detail": {
+              "background": "rgb(245, 247, 251)",
+              "osDark": true,
+              "overflow": false,
+              "reduced": true,
+              "theme": "light"
+            }
+          }
+        ],
+        "captures": {
+          "composer": "captures/default-chat-05-composer-focus.jpg"
+        },
+        "passed": 6,
+        "failed": 0
+      }
+    },
+    "classification": "Fresh native designer/builder diagnostic; 05 corrects 04 under the same prompt and design, not a new prompt arm or first-pass result."
+  },
+  "limits": [
+    "One sample per source version cannot establish reliability or causal quality gain.",
+    "Requested Codex gpt-6.1-terra/xhigh is recorded; no independent served-model verification is claimed.",
+    "The separate test-apparatus listener repair changes evaluator bytes and is not a retrospective regrade of these frozen runs."
+  ],
+  "source_verification": {
+    "focused_final_prompt_tests": 127,
+    "listener_fix_tests": {
+      "quality": 156,
+      "directory": 41,
+      "directory_abstract_base_skips": 1,
+      "http_binding": 5
+    },
+    "source_ci": {
+      "run_id": 42140079473,
+      "head": "f1399b5b8b9d3f4d7a721e9e8e2514ea9ce74994",
+      "status": "pending at record creation; actual terminal evidence remains external"
+    }
+  },
+  "original_opt_in_runs": {
+    "observed_utc": "2026-11-06T00:59:40Z",
+    "method": "read-only native codebase-mapper inspection of run/status.md, run/trace.jsonl, events.jsonl, stderr.txt and live process metadata",
+    "actions": "No edits, signals, messages to subjects, restarts, limits or cancellations",
+    "summary": "All four older frozen opt-in runs remain active; no dead host or pending user input observed. Not final-default release evidence.",
+    "runs": [
+      {
+        "id": "baseline-chat",
+        "stage": "system-test-author improve",
+        "last_meaningful_progress": "2026-11-06T00:58:20Z",
+        "observations": "End-of-work review accepted, reports 12 browser cases; preparing system checks. No external blocker."
+      },
+      {
+        "id": "candidate-chat",
+        "stage": "W1 test",
+        "last_stage_transition": "2026-11-06T00:40:31Z",
+        "recent_event": "2026-11-06T00:59:39Z",
+        "observations": "Delegated test worker preparing workflow send-back; prolonged stage but active work, no pending input."
+      },
+      {
+        "id": "baseline-chess",
+        "stage": "system-test-author improve",
+        "last_stage_transition": "2026-11-06T00:54:48Z",
+        "recent_event": "2026-11-06T00:58:48Z",
+        "observations": "Review checking delivery and retained chess-case catalog. No external blocker."
+      },
+      {
+        "id": "candidate-chess",
+        "stage": "W1 step-plan",
+        "last_stage_transition": "2026-11-06T00:31:11Z",
+        "recent_event": "2026-11-06T00:59:40Z",
+        "observations": "Successive validator findings on evidence_refs, test layer and E5 mapping; worker actively correcting. No proven external blocker."
+      }
+    ]
+  }
+}

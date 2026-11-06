@@ -8164,3 +8164,84 @@ The campaign evidence root holds `campaign-comparison-facts.json`, `fidelity-aut
 and [authored review](evidence/codex-gpt-6.1-terra-2.33.0-chess-salesforce-20261105-rerun-02.review.json) use a unique key.
 The latter validates with ten documents and zero errors/warnings. A local HTML copy uses the existing template; the
 earlier local-file browser security block remains in effect, so no visual check or shared-page update is claimed.
+
+## Owner-selected light UI default: full no-style games and a fresh chat handoff (2026-11-05)
+
+The owner selected the explicit Gemini C direction, asked for Buzz/Slack-like chat facilities, authorized autonomous
+iteration/merge/publication, and explicitly chose **Default for new UIs**. Adopt that requested direction while preserving
+explicit constraints, accepted existing identity and platform appearance policy. This is an owner-directed feature and
+retained diagnostic learning, not promotion/5 qualification, a causal quality gain or a reliability estimate.
+
+The [decision and validation record](../../docs/experiments/ui-default-20261105/README.md) and
+[compact facts](../../docs/experiments/ui-default-20261105/evidence.json) retain the original contrary preference
+(four model judges preferred B), the fresh handoff losses, the appointment phone-overlap failure, and the completed
+no-style runs. The original selected C and every unrepaired output remain available in the local gallery. The latest
+chat is explicitly a corrected copy of its first build under the same prompt and design, not a new prompt arm.
+
+| Completed no-style Checkers source | Outer / held-out | Independent rendered observation |
+| --- | --- | --- |
+| `5254a195794253cd3ae05959c4ed014de5d75f53` | 4/4 and 6/6 | Nine bounded browser checks passed but board rows collapsed; serif title and OS-following appearance missed the intended direction |
+| `62290c1c9f2e457cb88f4729d67360190be339a9` | 4/4 and 6/6 | Own system review added a geometry correction; nine independent checks passed with square cells; OS appearance and no theme control remained |
+| `893619c8a811595720f96a80a9d532c79510cee5` | 4/4 and 6/6 | Ten independent checks passed; light first under dark OS preference, dark control, uniform square cells, visible phone/desktop board, turn and new-game action |
+
+The final run used the unchanged named `checkers` case, requested Codex `gpt-6.1-terra`/`xhigh`, source-built unreleased
+candidate package, no seed and no added turn/time/spend/resume/loop cap. Its source tree was
+`6cc4b5d852714a9f6b333a95744d89934680d297`; the built-package content-manifest SHA256 was
+`eb381b5371ab8fa6402d74957892c88fbc5b624503b8dcbf00b5cfad075bfc27`. The launcher verifies clean unchanged source,
+unchanged build and terminal exit 0 at 2026-11-06T01:03:15.575297Z. The subject took 2270.8 seconds in one session with
+zero resumes; the engine completed. Returned clean HEAD `9b92c17101955603b8bcb56775d68c16d7e8608f`, tree
+`3dd2d2a8046d001596192c7dfcb04feead92f9bd`, was copied from Git objects for independent browser inspection.
+Requested model identity is known; independent served-model identity and dollar cost are not claimed.
+
+The final game renders a warm light canvas, rounded board frame and sans-serif hierarchy. Both 1440x1000 and 390x844
+views, in both themes, have uniform square cells and no horizontal overflow; the board, turn and new-game control are
+inside the viewport. Pointer and keyboard moves, illegal-move state preservation, reset and visible focus pass, with
+no console errors. Partial text samples measure 7/5/7/5 rows, exclude six unresolved rows per view and find no failure;
+this is not a full accessibility audit. The subject's browser proof used an HTTP forwarding bridge and byte comparison
+because direct Chrome loopback failed. Parent IAB review independently exercised the sealed server through direct HTTP.
+
+The first accepted final-source plan still abbreviates requested detail: it paraphrases the named reference, leaves
+AD-2 without concrete type/color/spacing values and says visual anchors without listing every selected choice. Retain
+that limitation instead of claiming universal instruction compliance. Functional checks did not establish visual quality
+in earlier runs. The final criterion duty and selected AD references make the expectation explicit without new schema,
+state, stage, gate or a change to required packet limits. The final measured full interaction walk peaks at 19,995
+characters against the unchanged 20,000 limit; the two over-budget drafts and the stale-ledger CI failure remain recorded.
+
+The fresh no-style chat design reached a fresh builder. Its first output passed all 16 interaction checks but had two
+light text-contrast failures, a desktop close control with no useful action and touching attachment metadata. The
+corrected copy passes the same 16 interactions plus six targeted observations, including light startup under dark OS
+preference and composer focus. Its text samples measure 51/41/51/41 rows with zero failures and three exclusions each.
+The first input-focus observer wrongly checked only the textarea; the actual container had a 2px ring. Preserve that
+observer correction separately from real product repairs. No remote messaging, agent execution or full accessibility
+conformance is established by these local sample products.
+
+Mutation observations for the three games are 76/148, 83/121 and 82/169 killed, with 4/18/7 timeouts and 2/3/3 individual
+port refusals. Different products, one sample per version and overlapping runs do not support comparative quality or
+speed claims. The four frozen older opt-in chat/chess runs remain active as of the retained 00:59 UTC status audit;
+no dead host or pending owner input was observed. They are not final-default evidence and no limit or cancellation is
+introduced. The second no-style launch was refused before model work while the first held its case lease; its distinct
+startup failure remains retained.
+
+Source qualification and apparatus qualification stay separate. Final UI focused checks pass 127 tests. Full CI
+42133217612 on that source completed all 263 selections but found one user-directory calibration mismatch: the exact
+wrong-route response strongly suggested another fixture's server, with no original PID retained. Separate apparatus
+commit `f1399b5b8b9d3f4d7a721e9e8e2514ea9ce74994` makes both readiness paths require every observed listener to
+belong to the candidate group. A live IPv6-candidate/IPv4-sibling collision was rejected by both guards; only the two
+experiment groups were cleaned up. Its local checks pass 156 quality tests, 41 directory tests (one abstract-base skip)
+and five HTTP binding tests. It changes evaluator bytes, not the UI prompts or grades; the frozen runs are not regraded.
+Full successor CI 42140079473 and release qualification remain pending when this record is written; terminal receipts
+will be retained externally. No future pass or publication is predeclared by this journal entry.
+
+Read and preserve the full learning messages in `d8212d8f13b356a2779c31c8bddf1f7f9eeaac82` (original owner choice and
+contrary model preferences), `596cb3818844090c562657089ecd0555a4370e78` (handoff limits and owner default decision),
+`5a65d62cf65c3cfacdae456170db9b256cebce4e` (first UI decision carrier and packet pressure),
+`855040644721fd5451c3fd86e522e4499a8ebcad` (printed locators do not prove consumption), and
+`b1433236089d4aef62906453d60675bcd422431b` (separate chess learning with no generic implementation admitted).
+This owner's UI direction does not reopen rejected knowledge-maintenance or loop-policy candidates.
+
+Raw evidence: `/Users/dadleet/Documents/Codex/experiments/shiploop-ui-prompt-20261105/integration/`, especially
+`default-live-01/`, `default-live-03/`, `default-live-04/`, `no-style-chat-04/`, `no-style-chat-05/`, `review/`,
+`verification-criterion-content-02/`, `packet-cost-criterion-content-03/`, `quality-server-identity-01/`,
+`verification-listener-identity-01/` (failed/incomplete first check) and `verification-listener-identity-02/`.
+The public local gallery excludes private runner homes and logs. The [copyable recipe](../../docs/experiments/ui-default-20261105/PROMPT-RECIPE.md)
+is a distilled explanation, not a verbatim runtime packet.
