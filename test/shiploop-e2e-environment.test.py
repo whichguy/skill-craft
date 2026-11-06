@@ -19,7 +19,6 @@ import os
 import re
 import shutil
 import signal
-import socket
 import stat
 import subprocess
 import sys
@@ -1513,7 +1512,7 @@ class CasesNeedTest(unittest.TestCase):
             with self.subTest(case=name):
                 self.assertTrue(set(needs) <= set(environment.NEEDS))
                 self.assertTrue(cases[name].get("needs_source"), "a need names the request that implies it")
-        self.assertEqual(sorted(declared), ["battleship", "battleship-salesforce-ui", "battleship-scoring", "checkers", "gym-membership-salesforce"])
+        self.assertEqual(sorted(declared), ["battleship", "battleship-salesforce-ui", "battleship-scoring", "checkers", "grok-chat-salesforce", "gym-membership-salesforce"])
 
 
 def facts(**kw) -> dict:

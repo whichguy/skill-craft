@@ -122,9 +122,10 @@ class TestGroupTests(unittest.TestCase):
         # and backchain-toolkit (its command line).
         # Registered predecessors, their runner wiring and intent lifecycle calibration add three (2026-11-02).
         # The corpus summariser adds one (2026-11-03), so a figure can be re-derived by the code that produced it.
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 130)
+        # Grok chat adds one opt-in scenario adapter suite (2026-11-06).
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 131)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 55)
-        self.assertEqual(len(suite_catalog.SUITES), 187)
+        self.assertEqual(len(suite_catalog.SUITES), 188)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -797,6 +798,7 @@ class E2EFamilySelectionTest(unittest.TestCase):
               "shiploop-e2e-packet-anatomy", "shiploop-e2e-render-diff", "shiploop-e2e-commit-counters", "shiploop-e2e-slice",
               "shiploop-e2e-chess-salesforce", "shiploop-e2e-battleship-salesforce", "shiploop-e2e-release-slice", "shiploop-e2e-platform",
               "shiploop-e2e-battleship-ui",
+              "shiploop-e2e-grok-chat-salesforce",
               "shiploop-e2e-gym-membership-salesforce", "shiploop-e2e-gym-ui",
               "shiploop-e2e-sf-guard", "shiploop-e2e-status-card",
               "shiploop-e2e-efficiency", "shiploop-e2e-dodges", "shiploop-e2e-owner-page", "shiploop-e2e-experiments",

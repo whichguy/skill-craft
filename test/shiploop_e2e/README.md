@@ -1395,6 +1395,13 @@ boundary against deliberate benchmark gaming.
 detectors, mixed behavior/byte suites and production edits, plus invalid observations, through the same observer used by live runs. A tests-only win
 has a narrow claim: compare normal application workflows too before adopting a generic ShipLoop change.
 
+### Salesforce Grok chat case
+
+[`grok-chat-salesforce`](GROK_CHAT.md) is an opt-in exploratory case with an elaborated
+prompt for an Apex/LWC assistant, guided setup and confirmed record changes.
+Its acceptance check currently returns UNKNOWN deliberately: source/deployment/Apex
+smoke checks cannot qualify the live chat, UI, authorization or code/comment review.
+
 ### What version is tested
 
 By default (`--source marketplace`) a run tests exactly what the `whichguy`

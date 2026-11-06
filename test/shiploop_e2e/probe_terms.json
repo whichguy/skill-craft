@@ -88,6 +88,9 @@
       "\\bbattle cell\\b",
       "\\bships left\\b"
     ],
+    "grok-chat-salesforce": [
+      "\\bSLGrokChat"
+    ],
     "gym-membership-salesforce": [
       "\\bSLGym",
       "\\bgym[- ]membership\\b",
