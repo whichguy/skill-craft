@@ -52,6 +52,44 @@ Inputs/outputs, artifacts, success vs failure (including empty/no-op), honest pr
 
 Host-agnostic prompt bodies; placeholders only; no model pins; no host-only sole procedure.
 
+#### Product UI continuity (**partial**; owner decision, 2026-11-06)
+
+Design choices must survive individual runs so later features extend a coherent
+product. The [repository knowledge home](../skills/shiploop/references/project-knowledge.md#repository-knowledge-home)
+is `docs/shiploop/` in the **product repository**. Requested look and appearance
+policy belong in `spec.md`; concrete choices belong in `architecture.md` as
+`AD-<n>` decisions under `## Decisions`, linking any product-owned design documents.
+Record the choice, rationale, scope and reusable token/component references.
+The existing [intent and verification guidance](../skills/shiploop/references/project-knowledge.md#record-intent-not-a-description-of-todays-code)
+distinguishes accepted intent, implementation and observed validation in those
+records. Run-local notes and conversation history are insufficient.
+
+The [UI planning procedure](../skills/shiploop/references/plan-record.md#concrete-ui-direction)
+requires later features to reopen applicable decisions, inspect the current
+interface and select concrete choices into their criteria. `architecture.md`
+remains the authoritative decision record: implementation packets reference its
+applicable decision IDs and sections and may carry relevant excerpts and selected
+constraints. Later architecture and design choices are written back to that same
+file. Preserve the current
+product identity, including reasonable choices made by unattended runs; those
+choices remain design decisions rather than newly binding user requirements.
+A change needs a reason from the request or current product evidence. Update the
+decision in place with its rationale, or move it under `## Superseded` with its
+reason and replacement; Git retains earlier versions. The existing
+[retention and read-back contract](../skills/shiploop/references/project-knowledge.md#retain-learnings-for-the-next-invocation)
+commits and returns the living files in Git-backed runs. It needs no additional
+execution-state field or journal.
+
+Script checks cover file presence and decision-ID retention; they do not prove
+that a model read or followed a decision. The [UI experiment record](experiments/ui-default-20261105/README.md#design-continuity-review-2026-11-06)
+retains an observed gap: the final game's UI decision stayed brief while concrete
+values lived only in code. The owner's light Gemini-like starting direction is
+governed by the **New graphical UI direction** clause (S-8, S-13, S-14) in the
+[standing specification](../test/shiploop_e2e/SPEC.md) and the shipped
+[UI profile](../skills/shiploop/references/platforms/ui.md#light-expressive-starting-point).
+It informs a new product's first choices; subsequent features inherit that
+product's recorded choices and established interface.
+
 ### Layer 2 — scripts (**implemented**)
 
 One CLI family per skill; injectable seams; scripts do not re-author planning policy.

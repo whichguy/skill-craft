@@ -2,7 +2,7 @@
 
 New graphical interfaces start from the owner's selected light Gemini-like direction. Explicit visual requests, an existing product identity and platform conventions take precedence. This is a chosen default supported by diagnostic examples, not a measured universal quality gain.
 
-The implementation is in the [UI profile](../../../skills/shiploop/references/platforms/ui.md#light-expressive-starting-point), [planning procedure](../../../skills/shiploop/references/plan-record.md#concrete-ui-direction), and [specification/criterion duties](../../../skills/shiploop/scripts/shiploop_prompts.py). The change makes art direction concrete before implementation: typography, spacing, color roles, placement of tonal surfaces, component shapes and important states belong in the existing design decision. Each visible-UI step selects the relevant section and carries observable choices into its criterion. Rendered inspection at the required sizes and themes remains necessary; functional checks alone did not catch the early visual defects. No toolkit, font download, new schema, gate or loop limit is introduced.
+The implementation is in the [UI profile](../../../skills/shiploop/references/platforms/ui.md#light-expressive-starting-point), [planning procedure](../../../skills/shiploop/references/plan-record.md#concrete-ui-direction), and [specification/criterion duties](../../../skills/shiploop/scripts/shiploop_prompts.py). The planning guidance requires concrete art direction before implementation: typography, spacing, color roles, placement of tonal surfaces, component shapes and important states belong in the existing design decision. Each visible-UI step selects the relevant section and carries observable choices into its criterion. Rendered inspection at the required sizes and themes remains necessary; functional checks alone did not catch the early visual defects. No toolkit, font download, new schema, gate or loop limit is introduced.
 
 | Retained diagnostic | What was observed | Consequence |
 | --- | --- | --- |
@@ -18,7 +18,66 @@ The final chat starts light even with a dark system preference, supports an expl
 
 The final source (`893619c8a811595720f96a80a9d532c79510cee5`) completed its no-style Checkers run in one subject session with no resume (2270.8 seconds). Its build and source were unchanged before/after. The final prompt's first accepted game plan retains a light starting theme, dark option, responsive rendering and focus checks. It still abbreviates some requested design detail: the specification paraphrases the named reference, AD-2 lacks concrete token values, and the criterion says “visual anchors” without enumerating every selected choice. Those are retained conformance limits. The rendered final output does carry the chosen light, rounded, task-focused direction; this does not establish perfect adherence to every planning instruction. The parent independently exercised the sealed server through direct loopback HTTP. The subject’s own Chrome proof used a real-HTTP forwarding bridge with byte-identical served/rendered HTML; direct subject Chrome loopback remains unobserved.
 
+## Design continuity review, 2026-11-06
+
+The owner clarified that decisions must remain in the product repository so
+subsequent feature additions stay directionally consistent. The existing
+`docs/shiploop/spec.md` and `architecture.md` are the durable home, with design
+choices recorded as `AD-<n>` entries and links to product-owned design documents.
+The [architecture decision](../../ARCHITECTURE.md#product-ui-continuity-partial-owner-decision-2026-11-06)
+records that ownership and the distinction between requested requirements,
+chosen product identity and observed validation.
+
+Reviewing the returned products exposes a persistence limit beyond the rendered
+results above. All three full Checkers runs (`default-live-01`, `-03`, `-04`)
+retain a short UI AD without concrete token values. In the final run, AD-2 is one
+sentence; color roles, radii and the responsive breakpoint have concrete values
+in `index.html`. The document stage nevertheless reported that “AD-2 already
+describes the implemented board and themes” and completed. Its C3 criterion and
+`follows` do select AD-2, so the decision linkage exists; the selected record is
+underspecified. Only the final run used the final planning duty text. These are
+observations about retained outputs, not new grades or evidence that every run
+loses design continuity.
+
+The final specification also names `platforms/ui.md` without a corresponding
+file in the delivered product. It retains the reference name, but the guidance
+is not self-contained there. Later work must be able to recover the product's
+actual decisions without the old run or a changing external skill reference.
+The read-only review and exact source locators are retained under the experiment's
+`integration/architecture-record-01/` evidence directory. The original products
+and results remain unchanged.
+
+A separate follow-on diagnostic used the published ShipLoop 1.33.0 runtime and
+a copy of the final Checkers product. A clearly labeled synthetic AD-4 recorded
+a future help panel below the board, a 32rem reading width, existing theme roles,
+and the rationale for keeping the board usable. The feature prompt requested
+only a How to play guide; it did not repeat that design. The fresh run read AD-4,
+selected it in the plan and implementation criterion, and returned the decision
+with its rationale and implementation/verification update. The implementation
+packet named the architecture file and included the selected AD text. R-5's
+earlier pending statement was explicitly labeled historical planning text.
+
+The run completed in one session without resumes (2205.7 seconds), with all four
+original game checks passing. Its own checks passed through the stated Chrome
+bridge; its failed direct-browser attempt remained open. Independent inspection
+of the returned product then passed at 1440×1000 and 390×844 in both themes:
+the guide stayed below the board, respected its width and existing theme/font,
+and caused no horizontal overflow. Keyboard toggles preserved selection, board,
+turn and message without network requests; two subsequent moves and reset
+succeeded through direct local HTTP. No console errors were observed.
+
+This tests consumption and retention of a **prepared** decision, not automatic
+creation of a detailed AD or a comparative quality gain. An inherited
+real-boundary paragraph still ambiguously says the product check has not run,
+beside more specific bridge/direct-transport records; retain that documentation
+limitation. The fixture, immutable source/build identity, packet and journal
+review, raw results and browser captures are in
+`integration/architecture-record-01/continuity-probe-01/`. No runtime change or
+new plugin release follows from this documentation and validation work.
+
 ## Evidence boundaries
+
+This section retains the original 2026-11-05 prepublication checkpoint.
 
 Each version has one diagnostic sample. The four original opt-in chat/chess full-workflow runs are separate frozen experiments and remain in progress when this record was written. None is a final-default comparison. Runs overlap, so elapsed times and mutation ratios are not used to claim a prompt speed or quality gain. Requested model/effort identity is recorded; independent served-model identity and dollar cost are not claimed.
 
