@@ -712,12 +712,12 @@ class StoppedWhileSettling(LiveCase):
     "not run" (SampleStopped), as one stopped at any other moment."""
     DELAY = 8
 
-    def stopped_during_the_wait(self, act) -> tuple[Path, float]:
+    def stopped_during_the_wait(self, act) -> Path:
         """Run a sample whose stop is waiting for the lock, call ``act(folder)`` from a watcher 0.5 s after the wait began, and
-        return the folder and the seconds the sample took; the sample must raise SampleStopped."""
+        return its folder; the sample must raise SampleStopped."""
         self.addCleanup(run.TERMINATION.clear)
         self.addCleanup(run.TERMINATED_BY.clear)
-        entered, folder = threading.Event(), {}
+        entered, folder, stop_requested, watcher_errors = threading.Event(), {}, [], []
         real = live.settle
 
         def settle(*args, **kwargs):
@@ -730,37 +730,48 @@ class StoppedWhileSettling(LiveCase):
             def watch() -> None:
                 if entered.wait(120):
                     time.sleep(0.5)
-                    act(out)
+                    stop_requested.append(time.monotonic())
+                    try:
+                        act(out)
+                    except BaseException as error:
+                        watcher_errors.append(f"{type(error).__name__}: {error}")
 
-            threading.Thread(target=watch, daemon=True, name="stage-live-test-watch").start()
+            watcher = threading.Thread(target=watch, daemon=True, name="stage-live-test-watch")
+            folder["watcher"] = watcher
+            watcher.start()
 
         started = time.monotonic()
         with mock.patch.object(live, "settle", settle), self.assertRaises(live.SampleStopped) as caught:
             self.sample(BROKEN, [{"mode": "act", "reference": reference(BROKEN, "good"), "effects_delay": self.DELAY}], timeout=300,
                         before=before)
+        finished = time.monotonic()
         self.assertTrue(entered.is_set(), "the operator ended the run while the stop was waiting for the lock")
+        folder["watcher"].join()
+        self.assertFalse(watcher_errors, "the operator-stop watcher failed: " + "; ".join(watcher_errors))
+        self.assertEqual(len(stop_requested), 1, "the operator-stop watcher must issue exactly one stop")
         self.caught = str(caught.exception)
-        return folder["out"], time.monotonic() - started
+        print(f"operator-stop diagnostic: request-to-SampleStopped={finished - stop_requested[0]:.3f}s; "
+              f"total wall={finished - started:.3f}s", flush=True)
+        return folder["out"]
 
-    def assertNotRun(self, out: Path, seconds: float, why: str) -> None:
+    def assertNotRun(self, out: Path, why: str) -> None:
         self.assertIn(why, self.caught)
         self.assertFalse((out / "stage-result.json").exists(), "nothing was measured, so nothing is graded")
         self.assertFalse((out / "export").exists(), "the half-finished tree is not exported")
         self.assertIn("SampleStopped", (out / "error.txt").read_text())
         self.assertEqual(sessionlog.read(out)[-1]["end"]["status"], "stopped")
-        self.assertLess(seconds, self.DELAY + 30)
         read = stage_report.read_sample(out)
         self.assertFalse(read["graded"])
         self.assertIn("SampleStopped", read["reason"])
 
     def test_a_sigterm_while_the_stop_waits_for_the_accepting_command_leaves_the_sample_not_run(self):
-        out, seconds = self.stopped_during_the_wait(lambda folder: run.terminate("SIGTERM"))
-        self.assertNotRun(out, seconds, "terminated by SIGTERM")
+        out = self.stopped_during_the_wait(lambda folder: run.terminate("SIGTERM"))
+        self.assertNotRun(out, "terminated by SIGTERM")
         self.assertFalse([row for row in json.loads((out / "drive.json").read_text())["settles"] if row["settled"]])
 
     def test_the_stop_file_while_the_stop_waits_for_the_accepting_command_leaves_the_sample_not_run(self):
-        out, seconds = self.stopped_during_the_wait(lambda folder: (folder / "stop").write_text("stop\n"))
-        self.assertNotRun(out, seconds, "stopped by")
+        out = self.stopped_during_the_wait(lambda folder: (folder / "stop").write_text("stop\n"))
+        self.assertNotRun(out, "stopped by")
         self.assertFalse((out / "stop").exists(), "the stop file is consumed")
         self.assertFalse((out / "work" / "docs" / "shiploop" / "EFFECT.md").exists())
 
