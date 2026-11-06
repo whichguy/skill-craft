@@ -4,6 +4,20 @@ Written by scripts/release.py.
 
 ## 2026-11-05
 
+### skill-craft 2.35.0
+
+- Skills: shiploop 1.33.0
+
+### shiploop 1.33.0
+
+- Default new graphical UIs to a light, expressive Gemini-like design direction,
+  while honoring explicit styles, existing product identity and platform conventions.
+  Carry concrete art direction and task hierarchy through the existing UI decision,
+  concise step criteria and rendered checks, without introducing a new gate or toolkit.
+- Require the planner's criteria to carry selected UI choices into rendered checks,
+  and explicitly read the visual-direction guide before choosing the UI treatment.
+- Keep selected design choices and rendered pass conditions in each UI step's visual criterion, complete an underspecified design decision before reusing it, and record the chosen starting appearance explicitly.
+
 ### skill-craft 2.34.1
 
 - Skills: shiploop 1.32.1

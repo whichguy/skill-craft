@@ -218,6 +218,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Current-system baseline guide", "current-system-baseline.md#planning-and-review-handoff"),
         ("Behavior-model guidance", "behavioral-requirements.md#behavior-model"),
         ("Behavior traceability guidance", "behavioral-requirements.md#traceability-and-review"),
+        ("UI visual-direction guide", "platforms/ui.md#light-expressive-starting-point"),
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
         ("Service discovery guidance", "service-discovery.md#verification"),
     ),
@@ -238,6 +239,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("Decision carry-forward guidance", "project-knowledge.md#carry-context-into-the-new-plan"),
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("UI planning ownership guide", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
+        ("UI visual-direction guide", "platforms/ui.md#light-expressive-starting-point"),
     ),
     "prepare": (
         ("Environment preparation guidance", "environment-lifecycle.md#plan-preparation-before-its-first-consumer"),
@@ -253,6 +255,7 @@ STAGE_REFERENCES: dict[str, tuple[tuple[str, str], ...]] = {
         ("State and data assessment", "requirements-definition.md#state-and-data-change-assessment"),
         ("Service discovery guidance", "service-discovery.md#development-handoff"),
         ("UI planning ownership guide", "behavioral-requirements.md#allocate-ui-decisions-to-their-planning-owner"),
+        ("UI visual-direction guide", "platforms/ui.md#light-expressive-starting-point"),
     ),
     "test-spec": (
         ("Test-case planning guidance", "testing-and-documentation.md#test-cases"),
@@ -798,6 +801,13 @@ def summary_placeholder(stage: str) -> str:
 _BACKCHAIN_ITEM = "<<backchain item>>"
 _ITEM_COMMIT = "<<item commit rule>>"
 
+_PLAN_UI_CRITERIA = """\
+   - For each step adding/changing visible UI, the criterion itself names spec UI requirements, selected AD ID and
+     exact KNOWLEDGE file/section, visual anchors and rendered checks at required widths/themes. Pass when those
+     choices render; functional or deferred checks do not substitute. Unconfirmable conditions stay open via the
+     route above.
+"""
+
 # Step-plan duty 9's interaction topic, printed in the duty for an item that may change interactions, UI or service
 # state.  Print-order unit U7 moved it to references/plan-record.md to fit the 20,000-character host print, which left
 # a UI item's step plan with only a pointer a cold model rarely opens; the duty now prints it whenever the request or
@@ -807,8 +817,8 @@ _PLAN_RECORD_INTERACTIONS = """\
      Interaction design guide's matching subsections and, for services, Service discovery guidance; copy no prior
      plan. Give baseline and delta; actors, events, connections and state owner; planned recovery checks; for UI the
      component, interaction and skin premises, design guidance identity and version or digest (or named fallback),
-     the spec's UI criteria this step meets (the first UI step records the design system, tokens, components and
-     theme, as an AD-<n>), and the rich interactions planned (a human-facing UI takes the ambition the request states, and with none stated
+     first UI planning reads the UI visual-direction guide and records or reuses an AD-<n> for the authorized art direction,
+     task hierarchy, design system, tokens, components and theme; and the rich interactions planned (a human-facing UI takes the ambition the request states, and with none stated
      defaults to ambitious and highly interactive: direct manipulation, inline editing, live preview, keyboard paths,
      animated transitions; give the reason for any scaled back); the UI decisions this step owns (UI planning
      ownership guide); locators of sources and checks.
@@ -820,7 +830,8 @@ _PLAN_RECORD_INTERACTIONS = """\
 # rule in the README").
 INTERACTION_CUES = re.compile(
     r"\b(?:ui|ux|gui|user interface|interfaces?|screens?|views?|components?|buttons?|clicks?|keyboard|mouse|touch|"
-    r"drag|forms?|display\w*|render\w*|layouts?|browsers?|front-?end|interactive|interactions?|animat\w*|"
+    r"drag|forms?|display\w*|render\w*|layouts?|browsers?|web ?(?:sites?|pages?)|landing pages?|dashboards?|"
+    r"apps?|applications?|front-?end|interactive|interactions?|animat\w*|"
     r"notifications?|events?|connections?|reconnect\w*|subscri\w*|websockets?|sockets?|sessions?|stateful|"
     r"(?:service|client|server|shared|session|application|app|ui|user|live|persistent|stored) state|"
     r"state (?:owner\w*|store|sync\w*)|real-?time|webhooks?|playable|players?)\b",
@@ -1009,11 +1020,15 @@ DUTIES = {
    guide): operating conditions, a numeric bound inside any hard platform limit or an observable acceptance line,
    verification method, justified exclusion, or an unresolved bound. Invent no bound. A material requirement conflict goes in `summary` as open and
    keeps dependent work unready. A deliverable with a user interface (a page, an app screen, a rendered report, a
-   terminal interface) gets a non-functional requirement for a deliberately designed, polished interface, never a
-   default one, with observable criteria: a consistent visual system (spacing and type scales, a palette with a light
+   terminal interface) gets a non-functional requirement for a deliberately designed, polished interface, not
+   unstyled scaffolding, with
+   observable criteria: a consistent visual system (spacing and type scales, a palette with a light
    and a dark theme); designed empty, loading and error states; a layout that works at a narrow and a wide width with
    no horizontal overflow; visible focus states and WCAG AA contrast; motion only where it explains a change,
-   honoring reduced motion; one icon set.
+   honoring reduced motion; one icon set. For a new graphical UI, first read the UI visual-direction guide, then
+   fill unspecified visual choices from its light expressive starting point; explicit visual constraints, established product identity
+   and platform conventions take precedence. Record the named visual reference and starting appearance here. A new web UI
+   starts light with a dark option unless that precedence establishes another appearance policy; the plan chooses the concrete treatment.
 7. State and data assessment: under the R-<n> it affects in KNOWLEDGE/spec.md, write the affected resources, target
    identities, before and after invariants, recovery, applicable checks and unknowns.
 8. For each service boundary specify verifiable contracts (Service discovery guidance): current authority, freshness
@@ -1276,6 +1291,7 @@ Change no product file in this stage.
    - A new or changed public entry point: a criterion that it checks its arguments, executed by its rejection tests,
      and one that it carries a contract docstring (Code craft 2-3), searched.
    - Where a criterion names an exact value, a count or a prefix match proves nothing.
+""" + _PLAN_UI_CRITERIA + """\
 4. **`steps`**: every implementation step in order (one is fine); ShipLoop issues one implement packet per step.
    - Size each as one behaviour-level change its proof shows: at most 4 criteria and 3 product files (a file that
      only describes another changed file counts with it; tests, docs and its proof script do not). A second module
@@ -2329,8 +2345,8 @@ def duty(stage: str, *, delegation: str = ASK_AGENT, planning_review: str = "sta
     ``execution_mode``) picks what the commit rule says about a file the item commit leaves.  ``one_step_item`` is the
     item's ID when the run has one work item with one step and no pending item (``shiploop_loops.one_step_run``): the
     carry-forward duty then prints items 2 and 3 short; every other stage ignores it.  ``interactions`` False (the
-    navigator's ``names_interactions`` found no cue in the request or the step-plan item) leaves step-plan duty 9's
-    interaction bullet out, keeping its pointer to the Plan record guide; the catalog renders the bullet.
+    navigator's ``names_interactions`` found no cue in the request or the step-plan item) leaves duty 9's interaction
+    bullet out. Duty 3's UI criterion rule remains conditional on the step changing visible UI, not on the cue.
     """
     _require_stage(stage)
     _require_delegation(delegation)
