@@ -8451,3 +8451,58 @@ products/profiles/screenshots/transcripts outside the reusable skill/repository.
 Post-pilot apparatus follow-up: `177c063b47746a1eae825ba5e81daf3663708731` implements
 the calibrated fixture-name and capture repairs separately from this frozen result.
 The original baseline row and raw files are unchanged. Judged discovery record IDs: `LR-20261108-4bc6cb`, `LR-20261108-15e9e9`, `LR-20261031-382fba`, `LR-20261031-b5d300`.
+
+
+## 2026-11-08 — Command abort cleanup: focused owner admission
+
+The owner accepted Candidate C's cleanup subset in `1fd3a8839b1a48914660727cddf3d07303f54847` for
+`LR-20261108-15e9e9`. The frozen runtime and tests were in place before Hello02;
+the source commit records those same bytes later. The owner accepted possible
+lock residue and the focused checks below as the alternative to a new
+exposing/contrasting campaign for cleanup only.
+[Owner decision](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-owner-decision.json)
+
+The installed-package check establishes the interrupt behavior; Hello establishes
+functional delivery. The evidence supports these distinct claims:
+
+| Evidence | Observed | Limit |
+| --- | --- | --- |
+| [Hermetic checks](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-broad-parent-collection.json) | 320 methods passed, zero skips. | Parent verified terminal receipts after the worker handoff hit a usage limit. |
+| [Hello02](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-hello-medium-execution-02/completion-verification.json) | Functional PASS, done at revision 30; both public checks passed and the 395-file package matched. | Functional delivery only. |
+| [Installed attempt03, capture04](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-package-execution-medium-04/terminal.json) | PASS: one test, three interruption scenarios; same argv passed with the interruption fixture disabled. | Synthetic setup is separate from real terminal receipts. |
+| [Adverse controls](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-refutations-medium-01/handoff.md) | SIGKILL left a lock that prevented retry in one workload. Custom reaping reached a signal attempt; the spy sent no signal. | Stock CLI assumes one waiter and no native auto-reaping. |
+
+Hello01 remains BLOCKED before launch. Package attempts01 and 02 remain FAIL
+(missing support import; observer rejected valid setup). Capture03 remains
+INCOMPLETE because an old symlink blocked probe launch. Escaped and reaped-leader
+groups, launch-time interrupts and repeated interrupts are outside the cleanup
+coverage. Earlier writes remain in place.
+
+Later execution used Sol6.1/medium. The independent [Astra/high judgment](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-final-judgment-01/answer.md)
+recommended bounded retention with explicit owner approval; the [launch receipt](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-final-judgment-01/parse-receipt.json)
+records no fallback. Historical model identities and outcomes remain as recorded.
+Available-output recovery remains open and the ledger still folds to admitted.
+There is no promotion verdict, frozen regrade, or comparative quality or
+performance claim.
+
+External evidence root: `/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag`.
+See the [completed evidence](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-completed-evidence.json)
+and [frozen source inventory](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-post-refutations-freeze/source.json).
+
+## 2026-11-08 — Cleanup integration: isolate two test fixtures
+
+The owner-admitted cleanup in `1fd3a8839b1a48914660727cddf3d07303f54847` is unchanged after integration with released planning/model work and two independently reviewed fixture repairs. The combined source is `835180dc85f20f44271d23561f3c3374bc914d32`. The earlier Hello02 and installed-package interruption evidence still applies to the frozen cleanup bytes; no new live round or broader output recovery is claimed here.
+
+Publication checks exposed two test isolation defects. Their original failures and focused resolutions are separate observations:
+
+| Check | Retained result | Resolution and limit |
+| --- | --- | --- |
+| [Integrated quick bank](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-integrated-checks-01/integrated-verification-summary.json) | 85 selected/completed: 84 PASS, 1 FAIL. The chat-quality callback ran inside Git's subprocess wait before a request existed. | `6b20c847f2c06679396a4a27cffac07da2a1673c` gives the test a private clock. All 27 original methods pass; assertions and production behavior are unchanged. |
+| [Controlled clock proof](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-clock-verification-01/receipt.json) | Forced entry into the captured Git wait's fallback sleep reproduces baseline `StopIteration`/exit 1; candidate passes with a real sleep and no premature callback. | Both Git children exit 0 and are reaped. These are two repetitions of one existing method on POSIX CPython 3.15.1, not extra coverage. Original fallback cause and natural frequency remain unknown; the earlier direct-wait probe stays a failed prediction. |
+| [Preceding release CI](https://github.com/whichguy/skill-craft/actions/runs/42530567378) | Release `7e7f416a`: 198 catalog suites, 274 executions, 273 PASS and one security fixture setup failure. The run remains FAIL. | `9679c93692a84a4cd69346531bc9454e36692a61` snapshots fixture content before Git metadata exists. The disappearing-lock control reproduces the old failure; all seven unchanged tests pass. Actual evidence inventory stays strict. |
+
+Fresh Sol6.1/medium workers performed the focused checks. Separate Astra/high read-only reviews accepted each exact fixture patch. The [clock review](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-clock-astra-review-01/answer.md) and the security repair's full commit message retain evidence and limitations. Requested launch settings do not attest the provider-served model. These are fixture reliability repairs, with no generic ShipLoop or model-quality gain claimed.
+
+The integrated bank also created one undeclared ignored bytecode file, so its source-identity qualification remains INCOMPLETE. The parent recorded its hash and removed only that session-owned output. Its release dry run refused the incoming release because the pre-merge journal was not its descendant. This follow-up records the combined history after integration; it does not change the release rule or rewrite earlier entries. See the [diagnosis and cleanup record](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-integration-diagnosis.json).
+
+No broad bank was rerun to erase a failure. Exact new-source CI, generated-release verification and host refresh remain subsequent publication checks. All raw probes, logs and products stay in external evidence directories. The original cleanup acceptance remains bounded: SIGKILL can leave workload locks or previous writes, and available-output recovery remains open.
