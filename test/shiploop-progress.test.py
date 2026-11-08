@@ -77,14 +77,39 @@ class RunCase(unittest.TestCase):
     def wait_for(self, predicate, timeout=6):
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
-            if predicate():
-                return
+            observed = predicate()
+            if observed:
+                return observed
             time.sleep(.05)
         self.fail("observer did not reach expected file state within deadline")
 
     def page_contains(self, text):
         page = self.run / progress.PAGE
         return page.exists() and text in page.read_text()
+
+    def start_observer(self):
+        """Start once, then establish that the new observer actually published."""
+        self.assertFalse(progress.running(self.run), "fresh start requires a stopped observer")
+        status = self.run / progress.STATUS
+        previous = json.loads(status.read_text())["instance"] if status.is_file() else None
+        result = self.cli("view", "--run-dir", str(self.run), "--start", "--interval", ".1")
+        # The CLI's bounded startup check can return before its detached child publishes.
+        unconfirmed = (result.returncode == 2 and result.stdout == f"{self.run / progress.PAGE}\n"
+                       and not result.stderr)
+        self.assertTrue(result.returncode == 0 or unconfirmed,
+                        f"view --start exit={result.returncode}: stdout={result.stdout!r} stderr={result.stderr!r}")
+
+        def fresh_instance():
+            if not status.is_file():
+                return None
+            record = json.loads(status.read_text())
+            instance = record["instance"]
+            if (instance and instance != previous and record["status"] == "watching"
+                    and progress.running(self.run) and self.page_contains('data-mode="watch"')):
+                return instance
+            return None
+
+        return self.wait_for(fresh_instance)
 
     def watch(self):
         process = subprocess.Popen([sys.executable, "-B", str(CLI), "view", "--run-dir", str(self.run),
@@ -147,9 +172,7 @@ class ProgressTests(RunCase):
             self.assertLess(time.monotonic() - started, 3)
 
     def test_duplicate_start_and_cooperative_stop_then_restart(self):
-        first = self.cli_ok("view", "--run-dir", str(self.run), "--start", "--interval", ".1")
-        self.wait_for(lambda: (self.run / progress.STATUS).is_file())
-        identity = json.loads((self.run / progress.STATUS).read_text())["instance"]
+        identity = self.start_observer()
         self.cli_ok("view", "--run-dir", str(self.run), "--start")
         self.assertEqual(identity, json.loads((self.run / progress.STATUS).read_text())["instance"])
         self.cli_ok("view", "--run-dir", str(self.run), "--stop")
@@ -159,8 +182,7 @@ class ProgressTests(RunCase):
         self.assertFalse(progress.running(self.run))
         self.cli_ok("view", "--run-dir", str(self.run))
         self.assertEqual(json.loads((self.run / progress.STATUS).read_text())["status"], "snapshot")
-        self.cli_ok("view", "--run-dir", str(self.run), "--start", "--interval", ".1")
-        self.wait_for(lambda: json.loads((self.run / progress.STATUS).read_text())["instance"] != identity)
+        self.assertNotEqual(self.start_observer(), identity)
 
     def test_default_init_starts_observer_after_cli_exits(self):
         for path in self.run.iterdir():
@@ -387,7 +409,7 @@ class ViewerTests(RunCase):
                 self.assertFalse(progress.running(self.run))
 
     def test_serving_restarts_observation_after_it_was_stopped(self):
-        self.cli_ok("view", "--run-dir", str(self.run), "--start", "--interval", ".1")
+        self.start_observer()
         self.cli_ok("view", "--run-dir", str(self.run), "--stop")
         self.wait_for(lambda: not progress.running(self.run))
         self.assertTrue((self.run / progress.DISABLED).exists())
