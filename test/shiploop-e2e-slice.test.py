@@ -29,8 +29,6 @@ from unittest import mock
 import state_home
 
 state_home.isolate()
-# Slice fixtures exercise gates without detached progress writers in their temporary trees.
-os.environ["SHIPLOOP_PROGRESS"] = "off"
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
@@ -50,6 +48,7 @@ import shiploop_keepalive as keepalive  # noqa: E402
 import shiploop_knowledge_home as knowledge_home  # noqa: E402
 import shiploop_lint as lint  # noqa: E402
 import shiploop_navigator as nav  # noqa: E402
+import shiploop_progress as progress  # noqa: E402
 import shiploop_store as store  # noqa: E402
 import shiploop_test_loop as test_loop  # noqa: E402
 
@@ -60,7 +59,7 @@ IDENTITY = ["-c", "user.name=Fake host", "-c", "user.email=fake-host@example.inv
 # argv: scripts dir, CLI, run dir, mode (normal | overrun | grow), stages to pause at, and, for a keepalive session, its id and
 # the hook payload fixtures' directory. Prints nothing: the harness reads files only.
 FAKE_HOST = textwrap.dedent('''
-    import json, subprocess, sys, time
+    import json, os, subprocess, sys, time
     from pathlib import Path
     scripts, cli, run_dir, mode = sys.argv[1:5]
     pause_at = (sys.argv[5] if len(sys.argv) > 5 else "").split(",")  # stages to stay at once, e.g. "implement,test"
@@ -90,7 +89,9 @@ FAKE_HOST = textwrap.dedent('''
     git = ["git", "-C", str(worktree), "-c", "user.name=Fake host", "-c", "user.email=fake-host@example.invalid"]
     extra_outer = 2 if mode == "overrun" else 0
     while True:
-        packet = subprocess.run([sys.executable, cli, "next", f"--run-dir={run_dir}"], capture_output=True, text=True).stdout
+        # The harness can kill this host mid-command; only the synchronous seed may detach an observer.
+        packet = subprocess.run([sys.executable, cli, "next", f"--run-dir={run_dir}"], capture_output=True, text=True,
+                                env={**os.environ, "SHIPLOOP_PROGRESS": "off"}).stdout
         if session and not observed:
             observed = True
             hook("observe", next(line for line in packet.splitlines() if "SHIPLOOP-RUN" in line))
@@ -139,11 +140,36 @@ CASE = {"prompt": "Add src/feature.js exporting 1.", "work_item": {"id": "W1", "
         "expect_paths": ["src/feature.js"], "checks": ["test -f src/feature.js"]}
 
 
+def stop_seed_observer(out: Path) -> None:
+    root = out / ".shiploop-runs" / "seed" / "run"
+    if not root.is_dir():
+        return
+    progress.stop(root)
+    # A detached child can still be starting when the CLI returns. Check its exact fixture path in argv as
+    # well as the display lock: a child with no status yet can still create that lock during removal.
+    observer = f" {Path(progress.__file__).resolve()} --run-dir {root.resolve()} --watch "
+    deadline = time.monotonic() + 10
+    while True:
+        active = [row["pid"] for row in lifecycle.table().values() if observer in row["command"]]
+        if not active and not progress.running(root):
+            return
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise RuntimeError(f"Progress observer did not stop for {root}; matching processes: {active}")
+        time.sleep(min(0.05, remaining))
+
+
+def remove_slice_output(out: Path) -> None:
+    stop_seed_observer(out)
+    shutil.rmtree(out)
+
+
 class SliceCase(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-slice-")
-        self.addCleanup(self.temp.cleanup)
-        self.out = Path(self.temp.name)
+        # Register before seeding, which can start a writer before returning the run directory. Keep the tree
+        # for diagnosis if shutdown fails rather than letting a TemporaryDirectory finalizer remove it anyway.
+        self.out = Path(tempfile.mkdtemp(prefix="shiploop-slice-"))
+        self.addCleanup(remove_slice_output, self.out)
         self.work = self.out / "work"
         self.work.mkdir()
 
@@ -1014,7 +1040,9 @@ FAKE_CLAUDE = textwrap.dedent('''
         return True
 
     while True:
-        printed = subprocess.run([sys.executable, cli, "next", f"--run-dir={run_dir}"], capture_output=True, text=True).stdout
+        # As in FAKE_HOST, leave observer startup to the synchronous seed, outside the killable host.
+        printed = subprocess.run([sys.executable, cli, "next", f"--run-dir={run_dir}"], capture_output=True, text=True,
+                                 env={**os.environ, "SHIPLOOP_PROGRESS": "off"}).stdout
         shown(f"python3 {cli} next --run-dir={run_dir}", printed)
         state = store.read_record(run_dir / "state.md")
         stage = nav.current_stage(state)
@@ -1051,9 +1079,9 @@ class ClearThroughMainTests(unittest.TestCase):
     (the next session) continues from the ledger."""
 
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="shiploop-slice-main-")
-        self.addCleanup(self.temp.cleanup)
-        self.tmp = Path(self.temp.name).resolve()
+        self.tmp = Path(tempfile.mkdtemp(prefix="shiploop-slice-main-")).resolve()
+        self.outputs = []
+        self.addCleanup(self.cleanup_outputs)
         self.plugin = self.tmp / "plugin"
         (self.plugin / "skills").mkdir(parents=True)
         (self.plugin / "skills" / "shiploop").symlink_to(ROOT / "skills" / "shiploop")
@@ -1071,8 +1099,14 @@ class ClearThroughMainTests(unittest.TestCase):
         for number, handler in self.handlers.items():
             signal.signal(number, handler)
 
+    def cleanup_outputs(self):
+        for out in self.outputs:
+            stop_seed_observer(out)
+        shutil.rmtree(self.tmp)
+
     def main(self, holds: list[str], *flags: str, backend: tuple = ("--backend", "anthropic"), ready: str | None = None) -> dict:
         """The fake claude answers the Anthropic route unless ``backend`` names another; ``()`` is the slice's own default."""
+        self.outputs.append(self.out)
         config = self.tmp / "config.json"
         config.write_text(json.dumps({"prompts": str(self.prompts), "scripts": str(CLI.parent), "cli": str(CLI),
                                       "run_dir": str(self.run_dir), "holds": holds, "improve_of": "document"}))
@@ -1189,7 +1223,7 @@ class ClearThroughMainTests(unittest.TestCase):
                 (record,) = json.loads((self.out / step_slice.CLEAR_RECORD).read_text())
                 self.assertEqual(record["end_signal"], name)
                 self.assertEqual(json.loads((self.out / "invocation.json").read_text())["clear_signal"], name)
-                shutil.rmtree(self.out)
+                remove_slice_output(self.out)
                 self.prompts.unlink()
 
 
