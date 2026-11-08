@@ -40,15 +40,12 @@ def shiploop(*argv: str) -> subprocess.CompletedProcess:
 
 
 def _packet_path_from_stdout(stdout: str) -> Path | None:
-    """The ``Full packet: <path>`` locator an active-state head prints, if any."""
+    """The packet file to recover when stdout does not contain its complete body."""
     return head_packet_path(stdout)
 
 
 def _packet_file_text(stdout: str) -> str:
-    """The complete packet text: the referenced file for an active-state head,
-    or the stdout itself for a paused/blocked/halted/done print, which already
-    carries the full text and prints no ``Full packet:`` line.
-    """
+    """The complete packet text, recovered from its file only when stdout is incomplete."""
     path = _packet_path_from_stdout(stdout)
     return path.read_text(encoding="utf-8") if path is not None and path.is_file() else stdout
 
@@ -204,9 +201,12 @@ class RepeatPacketTests(KeepaliveTestCase):
         shiploop("pause", "--run-dir", str(self.run_dir), "--reason", "user asked")
         shiploop("resume", "--run-dir", str(self.run_dir))
         again = shiploop("next", "--run-dir", str(self.run_dir)).stdout
-        # Round 2: a packet at most PRINT_LIMIT prints whole; the "Full packet:" pointer is only for a larger one.
+        # Recovery prints the complete body at every size and does not append it twice from the pointer.
         self.assertIsNone(_packet_path_from_stdout(again), again)
-        self.assertLessEqual(len(again), nav.PRINT_LIMIT)
+        state = store.read_record(self.run_dir / "state.md")
+        packet = nav.packet_path(self.run_dir, state).read_text(encoding="utf-8")
+        self.assertEqual(again, packet + nav.HEAD_END + "\n")
+        self.assertEqual(again.splitlines().count(nav.HEAD_END), 1)
         self.assertIn("Original request (preserve user scope", again)
         repeated = shiploop("next", "--run-dir", str(self.run_dir))
         self.assertEqual(repeated.stdout, again)

@@ -126,7 +126,7 @@ def head_or_why(reply: str) -> tuple[str | None, str | None]:
         cut = closing_line.end()
     elif end < 0:
         return None, NOT_WHOLE_BEFORE_CLOSING
-    elif pointer is not None and (pointer.start() > end or any("ends with the line " + line in reply
+    elif pointer is not None and (pointer.start() > end or any(line in reply[pointer.start():].split("\n", 1)[0]
                                                                  for line in (HEAD_END, HEAD_END_UNTIL_R4))):
         # A layout that has the closing line (the pointer after the status block, or the pointer sentence that names the
         # closing line, near the top) cut before it: not a whole print.

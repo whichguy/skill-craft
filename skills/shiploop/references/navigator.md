@@ -307,11 +307,14 @@ See [the current runtime binding](../README.md#current-improve-and-until-loop-bi
 for the transition example and validation limits.
 
 Two pointer lines follow the header (`ShipLoop navigator | stage | revision N`) of a producer
-packet, whether printed whole, as a head or read from its file: `Lost context, or unsure? Run
+packet, whether printed or read from its file: `Lost context, or unsure? Run
 <CLI> next --run-dir=<RUN> (it reprints this step).` and `Full packet: <RUN>/packets/<id>.md - ...`,
-which says to open the packet file with a file tool when a print was cut (a complete print ends
-with the line `=== end ShipLoop print ===`; every head carries the duties and the result template),
-and that the file's References block lists the other references (the run's `reference.md` and `context-index.md`
+which says to open the packet file with a file tool before acting when output was truncated or
+elided, or the closing line `=== end ShipLoop print ===` is missing. That line detects a cut tail;
+it does not rule out a missing middle. ShipLoop prints the complete packet for every state,
+without a length-based cutoff; a host may still cut its tool output. Stopped and done packets
+also name their saved file. Owner notes precede stage guidance to keep their quoted content early. The pointer also explains
+that the file's References block lists the other references (the run's `reference.md` and `context-index.md`
 among them) and what each holds. The one legal callback for the current owner is the third line
 after the header, labelled `Callback for this stage` and giving the reason to run it exactly as
 printed (an Improve stage's packet labels it `Next command (` or
@@ -344,8 +347,8 @@ conversation without clearing, pausing for a clear or delegating (see
 conversation is the only writer and alone submits ShipLoop callbacks. After an
 unplanned reset or lost context, run the Recovery command and continue from the
 reprinted packet. ShipLoop issues one `implement` packet per step of the
-accepted step plan, in its order, in the execution checkout. Each packet, its
-printed head and the step's Improve hand-off, after its document stage, carry the same Step block (task,
+accepted step plan, in its order, in the execution checkout. Each complete packet and the step's
+Improve hand-off, after its document stage, carry the same Step block (task,
 criteria, Proof, dependencies, later steps) and end with the step's Until Loop;
 ShipLoop runs the step's Proof, its step-plan `proof`, at done. On the inline route it uses
 no Ask Agent, native worker or Plan Dispatcher; on both routes `step-plan` records
@@ -734,7 +737,7 @@ tests, docs and knowledge: `feat(<item>/<step>): <headline>` with the step's
 summary and its Key learnings, Key decisions, Evidence and Related commits
 sections, from the implement result's `learned`, `decisions`, `evidence_refs` and
 `learned_from`, then a Knowledge home section from the document result's
-`knowledge`. Each inline implement packet's head quotes the last two commits
+`knowledge`. Each inline implement packet quotes the last two commits
 that are not ShipLoop records (knowledge or leftover commits) as its look-back,
 one line each: the subject and its Key learnings. A
 redone step after a send-back names its own previous result and commit. A step

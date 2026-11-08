@@ -11,15 +11,14 @@
 work) and reports the packets of the item's inner loop as a cleared model would read them: the zero-cost check of a
 prompt edit's effect on packet size and shape before a live slice.
 
---text-dir writes each packet twice (`<NN>-<stage>.printed.txt`, what the host prints, a head when the packet passes
-navigator.PRINT_LIMIT; `<NN>-<stage>.whole.txt`, the packet file) and `manifest.json` (case, route, the lengths, the
+--text-dir writes each packet twice (`<NN>-<stage>.printed.txt`, the complete packet plus its closing marker;
+`<NN>-<stage>.whole.txt`, the packet file) and `manifest.json` (case, route, the lengths, the
 sizes, the commit): the input of render_diff.py (G-RENDER of the efficiency plan).  The text is fixed so two renders of
 one tree are byte-identical and two trees differ only where their packets do: ids are derived from a counter, the run
 directory and the CLI package root have the stated length (`--run-dir-length N` is the exact length of the run directory;
 `--cli-path-length N` is the exact length of the CLI path a packet prints, 96 for a plugin-cache install, where the bare
 `shiploop` of the default walk would otherwise print), and the checkout root and the interpreter print as fixed strings
-of the lengths of a normal install (INSTALL_ROOT_LENGTH, CANONICAL_PYTHON).  Sizes are measured on that text, and the
-choice between the whole packet and its head is made on it (the engine made it on the real paths).
+of the lengths of a normal install (INSTALL_ROOT_LENGTH, CANONICAL_PYTHON).  Sizes are measured on that text. Emission is complete regardless of those lengths; host cuts remain a separate observation.
 
 Writes packet-report.json and packet-report.md into the output directory (with --compare, packet-compare.md too) and
 prints the Markdown. It reads any E2E output directory: a run on shiploop 1.12.0 or later, whose run trace names every
@@ -403,10 +402,9 @@ def _walk(case: dict, delegation: str, temp: str, run_dir: Path):
 def offline_packets(case: dict, delegation: str = "inline", printed: bool = False, measure_for: Any = None) -> dict[str, str]:
     """{"<nn>-<stage>[-improve]": packet text} for one step case's inner loop, rendered from a cold read of state.md.
 
-    ``printed`` gives what `emit` prints for a packet over the limit (its head) instead of the packet file's text.  The text
+    ``printed`` gives `emit`'s complete output, including its closing marker, instead of the packet file's text. The text
     carries this machine's temporary directory and this checkout's paths; offline_renders gives the fixed text.
-    ``measure_for(work directory)`` returns the length function the limits are judged by (default ``len``): a test that
-    compares lengths at a reference install passes ``shiploop_head_budget.reference_measure``.
+    ``measure_for(work directory)`` remains accepted for render-tool compatibility; it cannot omit packet content.
     """
     found: dict[str, str] = {}
     with tempfile.TemporaryDirectory(prefix="shiploop-step-packets-") as temp:
@@ -415,9 +413,9 @@ def offline_packets(case: dict, delegation: str = "inline", printed: bool = Fals
         measure = measure_for(temp) if measure_for else len
         for key, cold_state in _walk(case, delegation, temp, run_dir):
             text = navigator.render(None, run_dir, cold_state)
-            if printed and measure(text) > navigator.PRINT_LIMIT and cold_state["status"] == "active":
-                # What emit prints for a packet over the limit: the head, with the rest in the file.
-                text = navigator.packet_head(None, run_dir, cold_state, navigator.packet_path(run_dir, cold_state), measure=measure)
+            if printed:
+                text = navigator.printed_text(None, run_dir, cold_state, navigator.packet_path(run_dir, cold_state), text,
+                                              measure=measure)
             found[key] = text
     return found
 
@@ -433,7 +431,7 @@ PACKAGE_TAIL = "/skills/shiploop"
 CANONICAL_PYTHON = "/usr/bin/python3"
 # The fixed roots (under /home so that packet_anatomy's path statistics count them as the absolute paths they stand for).
 INSTALL_BASE, WORK_BASE = "/home/install", "/home/render"
-HOST_CUT = 20_000  # the characters of shell output some hosts keep (navigator.PRINT_LIMIT's comment): Grok, 2026-09-27
+HOST_CUT = 20_000  # historical Grok shell-output observation (2026-09-27); not an emission cutoff
 
 
 def padded_path(base: str, length: int, fill: str = "p") -> str:
@@ -499,8 +497,8 @@ def offline_renders(case: dict, delegation: str = "inline", *, run_dir_length: i
     ``run_dir_length`` is the exact length of the run directory the packets name (default: this machine's temporary
     directory, as offline_packets); ``cli_path_length`` the exact length of the CLI path they print (default: the bare
     `shiploop`).  The ids are derived from a counter and the checkout root and the interpreter print as fixed strings, so
-    two renders of one tree are the same text whatever the temporary directory and the checkout path.  Whether a packet prints whole or as a
-    head is decided on that text.
+    two renders of one tree are the same text whatever the temporary directory and the checkout path. The head flag
+    describes actual omitted content rather than inferring it from a historical length threshold.
     """
     package_real = Path(navigator.__file__).resolve().parents[1]
     root_length = INSTALL_ROOT_LENGTH if cli_path_length is None else cli_path_length - len(PACKAGE_TAIL + CLI_TAIL)
@@ -524,7 +522,7 @@ def offline_renders(case: dict, delegation: str = "inline", *, run_dir_length: i
         canon = _Canon(work, package, root_length, scratch)
         found: dict[str, dict] = {}
         def at_install(text: str) -> int:
-            """The length a text has at the stated install: the limits are decided on it, not on this machine's paths."""
+            """The length at the stated install, retained for printed_text call compatibility."""
             return len(canon(text))
 
         for key, cold_state in (walk or _walk)(case, delegation, str(work), run_dir):
@@ -532,7 +530,7 @@ def offline_renders(case: dict, delegation: str = "inline", *, run_dir_length: i
             printed = navigator.printed_text(core, run_dir, cold_state, navigator.packet_path(run_dir, cold_state), real,
                                              measure=at_install)
             found[key] = {"whole": canon(real), "printed": canon(printed), "state": cold_state,
-                          "head": at_install(real) > navigator.PRINT_LIMIT and cold_state["status"] == "active"}
+                          "head": printed != real + navigator.HEAD_END + "\n"}
         run_dir_chars = len(str(run_dir))
     for row in found.values():
         row["run_dir_length"] = run_dir_chars
@@ -570,7 +568,7 @@ def write_text_dir(out: Path, name: str, delegation: str, renders: dict[str, dic
                 "run_dir_length": lengths.pop() if len(lengths) == 1 else None, "cli_path_length": cli_path_length,
                 "install_root_length": INSTALL_ROOT_LENGTH if cli_path_length is None
                 else cli_path_length - len(PACKAGE_TAIL + CLI_TAIL),
-                "python": CANONICAL_PYTHON, "print_limit": navigator.PRINT_LIMIT, "host_cut": HOST_CUT,
+                "python": CANONICAL_PYTHON, "print_limit": None, "host_cut": HOST_CUT,
                 "source": _source_facts(), "packets": rows}
     (out / MANIFEST).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return manifest
@@ -580,8 +578,9 @@ def render_text_summary(manifest: dict) -> str:
     where = (f"run dir {manifest['run_dir_length']}, CLI "
              f"{manifest['cli_path_length'] if manifest['cli_path_length'] is not None else 'bare'}")
     lines = [f"# Offline text render: {manifest['case']} ({manifest['delegation']}; {where})", "",
-             f"Printed text is a head when the packet passes {manifest['print_limit']} characters; the host cut is about "
-             f"{manifest['host_cut']}.", "",
+             ("Printed text is complete, without a length cutoff; " if manifest.get("print_limit") is None else
+              f"Historical rendering selected a head above {manifest['print_limit']} characters; ")
+             + f"the recorded host cut is about {manifest['host_cut']}.", "",
              "| packet | whole | printed | form | printed to host cut |", "|---|--:|--:|---|--:|"]
     for row in manifest["packets"]:
         lines.append(f"| {row['key']} | {row['whole']} | {row['printed']} | {'head' if row['head'] else 'whole'} "

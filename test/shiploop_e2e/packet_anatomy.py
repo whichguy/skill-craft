@@ -407,7 +407,7 @@ def classify(text: str) -> list[tuple[str, int]]:
             labels[i] = labels[i - 1] if i and labels[i - 1] else UNCLASSIFIED
             i += 1
             continue
-        if halted and not RULES_BY_SECTION["lint"].start.search(line):
+        if halted and not any(RULES_BY_SECTION[name].start.search(line) for name in ("lint", "head-end")):
             labels[i] = POST_HALT_LOOP
             i += 1
             continue

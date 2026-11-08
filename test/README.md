@@ -54,7 +54,7 @@ truthfully reports incomplete planning with a usable recovery action.
 |---|---|---|
 | Focused | `python3 -B test/<name>.test.py` | One module; useful while changing its contract |
 | Quick | `bash test/run-all.sh --group quick [--changed-from REF]` | A fixed light baseline (3 core, the mock replay, 12 ShipLoop boundary suites) plus the light suites matching files changed since REF, uncommitted and untracked included |
-| Prompt | `bash test/run-all.sh --group prompt [--changed-from REF]` | The four packet-size suites (`packet-completeness`, `step-packets`, `packet-recut`, `head-order`) and the packet obligation ledger (`packet-obligations`, whose anchors are literal prompt phrases), about 25 s, plus the light suites whose own files changed since REF: the loop while editing a ShipLoop prompt or packet source; quick is still the gate before a push |
+| Prompt | `bash test/run-all.sh --group prompt [--changed-from REF]` | The four packet-rendering suites (`packet-completeness`, `step-packets`, `packet-recut`, `head-order`) and the packet obligation ledger (`packet-obligations`, whose anchors are literal prompt phrases), about 25 s, plus the light suites whose own files changed since REF: the loop while editing a ShipLoop prompt or packet source; quick is still the gate before a push |
 | Ask-Agent component | `bash test/run-all.sh --group ask-agent` | Supported helper tests and ShipLoop consumers |
 | Composition component | `bash test/run-all.sh --group shiploop-composition` | Chain and Improve integration boundaries |
 | Full hermetic | `bash test/run-all.sh` | Core, all ShipLoop suites and the source E2E apparatus |

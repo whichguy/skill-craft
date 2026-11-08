@@ -101,7 +101,7 @@ class TextRenderTests(unittest.TestCase):
         self.assertEqual((manifest["case"], manifest["delegation"], manifest["run_dir_length"], manifest["cli_path_length"]),
                          ("node-fix-bug", "inline", 83, 96))
         self.assertEqual(manifest["text_format"], packets.TEXT_FORMAT)
-        self.assertEqual(manifest["print_limit"], navigator.PRINT_LIMIT)
+        self.assertIsNone(manifest["print_limit"])
         self.assertGreaterEqual(len(manifest["packets"]), 10)
         names = {row["key"] for row in manifest["packets"]}
         self.assertEqual(set(self.text["a83"]), {f"{key}.{form}.txt" for key in names for form in ("printed", "whole")})
@@ -110,11 +110,10 @@ class TextRenderTests(unittest.TestCase):
                 printed = self.text["a83"][row["key"] + ".printed.txt"]
                 whole = self.text["a83"][row["key"] + ".whole.txt"]
                 self.assertEqual((len(printed), len(whole)), (row["printed"], row["whole"]))
-                self.assertEqual(row["head"], len(whole) > navigator.PRINT_LIMIT)
-                # Every print ends with the end line (a whole print is the file plus it), so a cut one lacks it.
-                self.assertTrue(printed.endswith("\n" + navigator.HEAD_END + "\n"))
-                self.assertEqual(printed == whole + navigator.HEAD_END + "\n", not row["head"])
-        self.assertTrue(any(row["head"] for row in manifest["packets"]))
+                self.assertFalse(row["head"])
+                # Exact equality proves no source-selected head or dropped middle; the marker alone cannot.
+                self.assertEqual(printed, whole + navigator.HEAD_END + "\n")
+        self.assertTrue(any(row["whole"] > navigator.PRINT_LIMIT for row in manifest["packets"]))
         self.assertEqual(set(manifest["source"]), {"commit", "dirty"})
 
     def test_the_run_directory_has_exactly_the_stated_length_wherever_a_packet_prints_it(self):
@@ -135,8 +134,7 @@ class TextRenderTests(unittest.TestCase):
             self.assertGreater(len(paths), 20, name)
             self.assertEqual({len(path) for path in paths}, {96}, name)
             self.assertEqual({path for path in paths}, {next(iter(set(paths)))}, name)
-        # A head carries the callback and the recovery command at least; the pause line is an optional block that a full
-        # step-plan head may leave to the packet file (head budget, 2026-10-17), so two is the floor.
+        # The complete print retains both recovery and callback commands.
         head = self.text["a83"]["01-step-plan.printed.txt"]
         self.assertGreaterEqual(len(re.findall(r"python3 \S+ (?:complete|next)\b", head)), 2)
         bare = [m for text in self.text["bare"].values() for m in re.findall(r"python3 (\S+) (?:complete|next|pause)\b", text)]
@@ -178,22 +176,20 @@ class TextRenderTests(unittest.TestCase):
         self.assertGreaterEqual(len(set(ids)), 4)
         self.assertEqual(first["01-step-plan"]["whole"], self.text["a83"]["01-step-plan.whole.txt"])
 
-    def test_the_longer_run_directory_makes_longer_packets_and_a_packet_may_flip_between_whole_and_head(self):
+    def test_longer_run_paths_change_size_but_never_select_a_shorter_packet(self):
         short, long = ({row["key"]: row for row in self.manifests[name]["packets"]} for name in ("a83", "a163"))
         self.assertTrue(all(long[key]["whole"] > short[key]["whole"] for key in short))
-        # Since 2026-11-03 every non-improve packet prints a head at 83 characters: the status line gained a trailing
-        # " · Goal: <the run's request>" field (capped at 90) so a packet between milestones still names what the run is
-        # for, which cost each packet up to 99 characters. test-spec was the last whole print at 83 (15,946 before the
-        # field, 16,045 after, 45 over the limit); validate-existing already printed a head there since unit U8.
-        # The flip this test exists to show therefore has no instance left at these two run-directory lengths. What it
-        # protected still holds and is checked directly: the head carries the stage's duties, its result template and its
-        # references, so a model that reads only the print still knows what to do.
-        self.assertTrue(short["03-test-spec"]["head"], "test-spec now prints a head at 83")
-        self.assertTrue(long["03-test-spec"]["head"], "and still at 163")
+        for name in ("a83", "a163"):
+            for row in self.manifests[name]["packets"]:
+                key = row["key"]
+                with self.subTest(install=name, packet=key):
+                    self.assertFalse(row["head"])
+                    self.assertEqual(self.text[name][key + ".printed.txt"],
+                                     self.text[name][key + ".whole.txt"] + navigator.HEAD_END + "\n")
         for key in ("01-step-plan", "03-test-spec", "05-implement", "06-test", "07-document", "09-carry-forward"):
-            printed = (self.dirs["a83"] / f"{key}.printed.txt").read_text(encoding="utf-8")
+            printed = self.text["a83"][key + ".printed.txt"]
             for needed in ("Current stage guidance", "Result template", "References (symbols"):
-                self.assertIn(needed, printed, f"the {key} head must still carry {needed}")
+                self.assertIn(needed, printed, f"the {key} print must carry {needed}")
 
     def test_the_natural_run_directory_is_this_machines_temporary_directory_and_the_sizes_are_still_fixed(self):
         manifest = self.manifests["bare"]
@@ -202,7 +198,7 @@ class TextRenderTests(unittest.TestCase):
         render_to(again)
         self.assertEqual(read_all(again), self.text["bare"])
 
-    def test_the_ask_agent_route_prints_its_delegation_prefix_in_the_whole_text_only_and_is_its_own_manifest(self):
+    def test_the_ask_agent_route_keeps_its_delegation_prefix_in_both_forms_and_its_own_manifest(self):
         self.assertEqual(self.manifests["ask83"]["delegation"], "ask-agent")
         self.assertNotEqual(self.text["ask83"]["01-step-plan.whole.txt"], self.text["a83"]["01-step-plan.whole.txt"])
 
@@ -213,7 +209,7 @@ class TextRenderTests(unittest.TestCase):
         self.assertIn("shiploop-step-packets-", texts["01-step-plan"])
         printed = packets.offline_packets(CASE, printed=True)
         self.assertTrue(printed["01-step-plan"].rstrip("\n").endswith(navigator.HEAD_END))
-        self.assertFalse(printed["03-test-spec"].rstrip("\n").endswith(navigator.HEAD_END))
+        self.assertTrue(all(text.endswith(navigator.HEAD_END + "\n") for text in printed.values()))
 
     def test_the_options_are_refused_where_they_mean_nothing(self):
         directory = Path(self.temp.name) / "refused"

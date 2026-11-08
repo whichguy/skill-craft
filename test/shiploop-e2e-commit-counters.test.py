@@ -400,16 +400,16 @@ class ShipLoopOwnedTextTest(unittest.TestCase):
         source = (ROOT / "skills" / "shiploop" / "scripts" / "shiploop_navigator.py").read_text()
         for line in ('f"ShipLoop navigator | {stage} | revision {state[\'revision\']}"', 'f"Keepalive marker: {KEEPALIVE_MARKER} run='):
             self.assertIn(line, source)
-        # The pointer line is built by shiploop_prompts (plan 6.2): the path, then " - " and the sentence that names the
-        # closing line; the harness reads the path from it, and the closing line as a line, never as that sentence.
+        # The pointer line is built by shiploop_prompts (plan 6.2): it names file recovery for missing or elided output,
+        # and says a surviving closing marker cannot rule out a middle cut.
         import shiploop_prompts
         pointer = shiploop_prompts.packet_pointer("/r/run/packets/nav-a.md", shiploop_navigator.HEAD_END)
         self.assertEqual(counters.FULL_PACKET.search(pointer).group("path"), "/r/run/packets/nav-a.md")
-        self.assertIn("ends with the line " + counters.HEAD_END, pointer)
+        self.assertIn("missing the closing line " + counters.HEAD_END, pointer)
+        self.assertIn("does not rule out a middle cut", pointer)
 
     def test_a_print_cut_before_its_closing_line_is_cut_though_its_pointer_names_that_line(self):
-        """The packet's second pointer line quotes the closing line inside a sentence, and the first lines of every cut print
-        keep it: a reader that searched the text would find a closing line a cut print never had."""
+        """A print cut before its closing marker remains detectable, while the pointer offers file recovery."""
         import flow  # noqa: PLC0415
         import shiploop_navigator
         import shiploop_prompts
@@ -448,9 +448,13 @@ class ShipLoopOwnedTextTest(unittest.TestCase):
         import packets as packets_module
         import shiploop_navigator
         cases = json.loads((ROOT / "test" / "shiploop_e2e" / "step_cases.json").read_text())
-        printed = packets_module.offline_packets(cases["node-fix-bug"], printed=True)
-        heads = {key: text for key, text in printed.items() if text.rstrip().endswith(shiploop_navigator.HEAD_END)}
-        self.assertGreaterEqual(len(heads), 4, "the case no longer prints heads: pick a larger one")
+        rendered = packets_module.offline_renders(cases["node-fix-bug"])
+        for row in rendered.values():
+            self.assertEqual(row["printed"], row["whole"] + shiploop_navigator.HEAD_END + "\n")
+        # Short Improve instructions keep their existing no-pointer contract. A marker now ends those complete
+        # prints too; its presence alone does not identify a large producer packet with duties and a template.
+        heads = {key: row["printed"] for key, row in rendered.items() if row["state"].get("active_improve") is None}
+        self.assertGreaterEqual(len(heads), 4, "the case no longer has enough producer packets")
         for key, text in heads.items():
             with self.subTest(packet=key):
                 head, why = counters.head_or_why(text)

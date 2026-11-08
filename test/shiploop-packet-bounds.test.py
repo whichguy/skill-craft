@@ -122,24 +122,28 @@ class PacketBoundsTests(unittest.TestCase):
         self.assertIn("status_reason", packet)
         self.assertIn("Resume:", packet)
 
-    def test_a_long_paused_packet_prints_within_the_host_output_limit(self):
-        """X11 (e12_head_size.py): paused, halted and blocked packets printed whole past ~20 KB."""
+    def test_large_active_and_nonactive_packets_print_whole_past_old_limits(self):
+        """Normal emission preserves the complete body and marker regardless of packet size or run status."""
         import contextlib, io
         from unittest import mock
-        state = navigator.control(self.state(), "pause", reason="user asked")
-        store.write_record(self.run / "state.md", state)
-        for text, whole in (("short packet\n", True), (("x" * 60 + "\n") * 1000 + "TAIL\n", False)):
-            with self.subTest(whole=whole), mock.patch.object(navigator, "render", return_value=text):
+        active = self.state()
+        paused = navigator.control(active, "pause", reason="user asked")
+        text = "x" * 100_001 + "ACTIVE_OR_PAUSED_SUFFIX\n"
+        for state in (active, paused):
+            store.write_record(self.run / "state.md", state)
+            with self.subTest(status=state["status"]), mock.patch.object(navigator, "render", return_value=text):
                 printed = io.StringIO()
                 with contextlib.redirect_stdout(printed):
                     navigator.emit(None, self.run, state)
-                self.assertTrue(printed.getvalue().endswith("\n" + navigator.HEAD_END + "\n"))
-                if whole:
-                    self.assertEqual(printed.getvalue(), text + navigator.HEAD_END + "\n")
-                else:
-                    self.assertLessEqual(len(printed.getvalue()), navigator.PRINT_LIMIT)
-                    self.assertIn("Full packet: " + str(navigator.packet_path(self.run, state)), printed.getvalue())
+                expected = text + navigator.HEAD_END + "\n"
+                self.assertGreater(len(printed.getvalue()), 100_000)
+                self.assertEqual(printed.getvalue(), expected)
+                self.assertEqual(printed.getvalue().splitlines().count(navigator.HEAD_END), 1)
                 self.assertEqual(navigator.packet_path(self.run, state).read_text(), text)
+
+        path = navigator.packet_path(self.run, active)
+        measured = navigator.printed_text(None, self.run, active, path, text, measure=lambda _value: 10**9)
+        self.assertEqual(measured, text + navigator.HEAD_END + "\n")
 
     def test_an_improve_printing_does_not_overwrite_the_producer_packet_that_was_sent(self):
         """A reviewed stage printed its producer packet and then the Improve child's at the same path, so after a run the
@@ -328,8 +332,8 @@ LIMIT_KINDS = {
     "shiploop_expectations.OUTPUT_LIMIT": "display cut",
     "shiploop_lint.PAGE_BYTES": "display cut",
     "shiploop_narrative.NARRATIVE_LIMIT": "display cut",
-    "shiploop_navigator.PRINT_LIMIT": "display cut",
-    "shiploop_navigator.HEAD_LIMIT": "display cut",
+    "shiploop_navigator.PRINT_LIMIT": "legacy diagnostic threshold",
+    "shiploop_navigator.HEAD_LIMIT": "legacy compact-head helper",
     "shiploop_navigator.HEADLINE_SHOWN": "display cut",
     "shiploop_navigator._REQUIREMENT_LINE_LIMIT": "display cut",
     "shiploop_navigator._CONTENTS_LINES": "display cut",

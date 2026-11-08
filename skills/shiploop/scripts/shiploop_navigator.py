@@ -2013,8 +2013,8 @@ HEAD_END = "=== end ShipLoop print ==="
 # command line once, and the hooks see the verb the model types.
 HALT_LINE = "Halt (terminal; only on the user's explicit stop): the Pause command with `halt` in place of `pause`."
 
-# A packet at most this long prints whole; a longer active producer packet prints a head and keeps the whole in its file.
-# (Not the limit of any other command's output: see ``shiploop_protocol.OUTPUT_LIMIT``.)
+# Historical whole-print threshold, retained for diagnostic callers. Normal emission always prints the complete packet.
+# Other command output has its own contract: see ``shiploop_protocol.OUTPUT_LIMIT``.
 PRINT_LIMIT = 16_000
 
 # The most a printed head totals at a normal install (an 83-character run directory, a 96-character CLI path), and the
@@ -2034,14 +2034,12 @@ def scratch_dir(root: Path) -> Path:
 
 
 def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
-    """Write the full packet to a file and print a short head that points at it.
+    """Write and print the complete packet, with a closing marker on the print.
 
-    Every packet is complete, in its file: ``next`` is the recovery command and
-    rewrites it, since the script cannot know what the host kept. Printing only
-    the head keeps packets out of the host's shell-output limit and context; the
-    host reads the file, and the references it names, only as far as it needs.
-    Paused, blocked, awaiting, halted and done packets print whole unless they
-    pass ``PRINT_LIMIT``; then they print a pointer to the file and what fits.
+    ShipLoop does not select a shorter head based on packet length. The host may
+    still cut its tool output; a missing closing marker exposes a cut tail, and
+    the recovery pointer also covers middle elision. ``next``
+    rewrites the complete file without advancing the cursor.
     """
     timeline = load_timeline(root)
     scratch_dir(root).mkdir(exist_ok=True)
@@ -2093,20 +2091,12 @@ def emit(core: Any, root: Path, state: Mapping[str, Any]) -> str:
 
 def printed_text(core: Any, root: Path, state: Mapping[str, Any], path: Path, text: str,
                  timeline: Mapping[str, Any] | None = None, *, measure: Callable[[str], int] = len) -> str:
-    """What ``emit`` prints for the packet whose file holds ``text``: always ending with ``HEAD_END``.
+    """Print the complete packet and its closing marker without a length-based cutoff.
 
-    One packet, printed whole (owner, 2026-10-11): the head plus full-file split is only the fallback for a packet
-    longer than ``PRINT_LIMIT``.  ``measure`` gives a text's length for the limits (``len``; a tool that renders at a
-    stated install passes the length the text has there).
+    Retain the call signature for render tools; ``measure`` no longer selects or
+    omits packet content. Compact-head diagnostics call ``packet_head`` directly.
     """
-    if measure(text) <= PRINT_LIMIT:
-        return text + HEAD_END + "\n"
-    if state["status"] == "active":
-        return packet_head(core, root, state, path, timeline=timeline, measure=measure)
-    pointer = (f"Full packet: {path}\nThis packet is longer than a host's shell-output limit; the rest is "
-               "in that file. Read it with a file-reading tool before acting.\n\n")
-    body = text[:PRINT_LIMIT - len(pointer) - len(HEAD_END) - 1]
-    return pointer + body[:body.rfind("\n") + 1] + HEAD_END + "\n"
+    return text + HEAD_END + "\n"
 
 
 # --- one ordered list of blocks builds the printed head, the whole print and the packet file ----------------------------
@@ -2189,7 +2179,7 @@ def _select_head(blocks: list[_Block], measure: Callable[[str], int] = len) -> l
 
 def packet_head(core: Any, root: Path, state: Mapping[str, Any], path: Path,
                 timeline: Mapping[str, Any] | None = None, *, measure: Callable[[str], int] = len) -> str:
-    """The printed part of an active packet longer than ``PRINT_LIMIT``: what to do, in the order a reader cut short needs.
+    """Explicit compact-head rendering for diagnostics; normal emission prints the complete packet.
 
     The blocks of ``_producer_blocks`` in print order: the stage line, the two pointer lines and the callback, goal and
     loop, the status, the duties and rules, the stage's own inputs, the result template; then, while the head fits
@@ -2342,6 +2332,10 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
         guidance.OWNER_RULE,
         *([f"Delegation change: this action keeps {route}; actions issued after it use "
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else [])]))
+    # Keep owner instructions before long stage guidance: a host may elide the middle of a complete print.
+    # Their existing bounded quote block stays near the packet path and callback, so recorded quotes remain visible.
+    notes_block, notes_forms = owner_notes.packet_forms(root, state)
+    blocks.append(_Block("owner-notes", P1, notes_block, shrink=tuple(notes_forms)))
     blocks.append(_Block("goal", P0, _goal_lines(state, stage, root)))
     loop = _loop_lines(root, state, stage, action_id, workitem)
     # An inline implement step's packet puts its Step block right after Done when and ends with its loop, in the file and
@@ -2369,10 +2363,6 @@ def _producer_blocks(core: Any, root: Path, state: Mapping[str, Any], timeline: 
     # The restate rule sat only in the file-only list below, so 8 of 63 first submissions that had to restate were
     # refused (stage-prompt review, 2026-10-31): the head states it; the rows are in the template and the file.
     blocks.append(_Block("unverified-rule", P1, _unverified_rule(state, stage)))
-    # The owner's notes no accepted step has delivered yet: the owner's words, beside the reply above (owner decision
-    # 2026-10-26, docs/shiploop-owner-notes-design-2026-10.md).  A head with little room prints a shorter form.
-    notes_block, notes_forms = owner_notes.packet_forms(root, state)
-    blocks.append(_Block("owner-notes", P1, notes_block, shrink=tuple(notes_forms)))
     blocks.extend(_stage_input_blocks(core, root, state, stage, action_id, workitem, inner))
     blocks.append(_Block("result", P0, [
         *_result_contract_lines(root, state, stage, action_id, workitem), ""]))
@@ -6201,7 +6191,7 @@ def _render_lines(core: Any, root: Path, state: Mapping[str, Any], timeline: Map
     route = delegation(state)
     lines = [
         f"ShipLoop navigator | {stage} | revision {state['revision']}",
-        _recovery_pointer_line(core, root),
+        *_pointer_lines(core, root, state),
         guidance.OWNER_RULE,
         *([f"Delegation change: this action keeps {route}; actions issued after it use "
            f"{recorded_delegation(state)}."] if route != recorded_delegation(state) else []),
@@ -6307,8 +6297,7 @@ def _pointer_lines(core: Any, root: Path, state: Mapping[str, Any], path: Path |
 
 
 def _recovery_pointer_line(core: Any, root: Path) -> str:
-    """The first pointer line alone: the packets that have no packet file of their own to open (paused, halted, done, the
-    Improve packet that asks for a bind or a restart)."""
+    """The first pointer line alone, used by Improve's bind and restart handoffs."""
     return guidance.recovery_pointer(_callback(core, root, "next"))
 
 
@@ -6422,7 +6411,7 @@ def _case_lines(state: Mapping[str, Any], stage: str) -> list[str]:
 def _requirement_lines(state: Mapping[str, Any], stage: str) -> list[str]:
     """test-spec only: the R-<n> a case's ``requirement`` may name, each with the start of its entry in KNOWLEDGE/spec.md.
 
-    The quoted spec drops out of a printed head that passes ``PRINT_LIMIT``, and the result template can only print a
+    The quoted spec can be absent from a compact-head diagnostic or a host-cut print. The result template prints a
     placeholder where the plan does not say which requirement a criterion serves, so the IDs the gate accepts are listed
     beside the template (SPEC-3, 2026-10-17: a model copied an example ID from a refusal and wrote a spec entry to match).
     A spec that holds no entry says so and names the way out (``expectations.requirement_ids_text``).

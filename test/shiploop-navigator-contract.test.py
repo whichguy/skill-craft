@@ -146,20 +146,12 @@ def blocked_result(*, awaiting: dict | None = None, summary: str = "Synthetic pr
 
 
 def _packet_path_from_stdout(stdout: str) -> Path | None:
-    """The ``Full packet: <path>`` locator an active-state head prints, if any."""
+    """The packet file to recover when stdout does not contain its complete body."""
     return head_packet_path(stdout)
 
 
 def _with_packet_file(stdout: str) -> str:
-    """Append the full packet's file text when stdout only printed the head.
-
-    An active-state ``emit()`` now prints a short head with a ``Full packet:
-    <path>`` line and writes the complete packet to that file; a non-active
-    print (paused/blocked/halted/done) already carries the full text and has
-    no such line, so it passes through unchanged. Tests that used to find
-    packet content directly in CLI stdout can keep their assertions by
-    checking this combined text instead.
-    """
+    """Recover the file body only when stdout is missing some of its complete text."""
     packet_file = _packet_path_from_stdout(stdout)
     if packet_file is not None and packet_file.is_file():
         return stdout + "\n" + packet_file.read_text(encoding="utf-8")
@@ -586,11 +578,7 @@ class NavigatorContractTests(unittest.TestCase):
             navigator.save(root, current)
             expected_prefix = (prompts.IMPROVE_INNER_CONTEXT if current.get("active_improve")
                                else prompts.SERIAL_INNER_CONTEXT)
-            # The printed head no longer starts with the context prefix (it is
-            # not a stage step or run rule), but the full packet file render()
-            # writes is unchanged and still leads with it, so a host that opens
-            # the file before acting sees it first, as the recovery contract
-            # requires.
+            # The packet begins with the context prefix, and the complete emitted print preserves that same opening.
             cold = self._cold_next(root)
             if current.get("active_improve"):
                 # The Improve packet is two instructions (re-cut, 2026-10-11); the prefix opens the handoff body that
@@ -600,9 +588,7 @@ class NavigatorContractTests(unittest.TestCase):
                 self.assertIn(expected_prefix.strip(), route_text())      # moved to the route file, which the handoff names
                 self.assertIn(" · ROUTE = ", handoff)
             else:
-                # emit prints the whole packet when it fits PRINT_LIMIT, else a head and the file; either way the
-                # complete packet leads with the prefix.
-                # (``cold`` already ends with the file's text when the print was a head: read the file the pointer names)
+                # Read through the printed recovery pointer as well as checking the complete stdout body.
                 packet_path = packet_file_named(cold)
                 full = packet_path.read_text(encoding="utf-8") if packet_path else cold
                 self.assertTrue(full.startswith(expected_prefix), cold)
@@ -2418,9 +2404,8 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual((root / "state.md").read_bytes(), state_bytes)
         self.assertNotIn("Progress snapshot", cold)
         self.assertTrue(navigator.narrative.BEGIN in cold or navigator.status_line(state) in cold)
-        # Once in a packet printed whole; twice when a head was printed and the file was appended (the head carries the
-        # duties since 2026-10-16, so a reader of the printed text alone sees them).
-        self.assertEqual(cold.count("Current stage guidance:"), 2 if "Full packet:" in cold else 1)
+        # The file pointer is present in every producer packet, but complete emission does not append the file twice.
+        self.assertEqual(cold.count("Current stage guidance:"), 1)
         self.assertNotIn("Call this when done:", cold)
         self.assertIn("Callback for this stage ", cold)
 
@@ -2893,7 +2878,7 @@ class CliBoundaryRegressionTests(unittest.TestCase):
         self.assertEqual(initial.count("Current stage guidance:"), 1)
         # The first callback line is the only one: no second "Call this when done:" and no "Write the structured
         # result to:" line (the callback's --result names the file).
-        # emit prints the whole packet at or below PRINT_LIMIT: no head (its "Full packet:" line names the file the print holds).
+        # Normal emission prints the complete packet; its pointer names the same file without implying a head was emitted.
         self.assertIsNone(_packet_path_from_stdout(started.stdout), started.stdout)
         self.assertEqual(started.stdout.count("Callback for this stage "), 1)
         self.assertNotIn("Call this when done:", initial)

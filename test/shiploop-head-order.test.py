@@ -1,22 +1,15 @@
 #!/usr/bin/env python3
-"""The order and the budget of what a packet prints (efficiency plan U7, rev 6 section 6.1 and the 2026-10-17 cut addendum).
+"""Packet ordering and complete emission, with explicit legacy compact-head checks.
 
-One ordered list of blocks builds the printed head, the whole print and the packet file.  What this suite checks, on a
-two-item run with multi-step plans through every stage of the graph (test/shiploop_head_plans.py):
+An ordered list of blocks builds the packet file and the normal complete print. On a two-item run with multi-step plans,
+this suite checks both routes through every stage of the graph (test/shiploop_head_plans.py):
 
-- every print ends with the HEAD_END line, so a cut (a host's, or the model's own `head -N`) is detectable;
-- the printed text of every stage, on both routes, is at most 20,000 characters at the normal install (an 83-character run
-  directory, the 96-character CLI path of a plugin-cache install), and the required text of a head (the callback, goal,
-  Until Loop block, status, duties and rules, the stage's own inputs and the result template; the two pointer lines are the
-  second and third line of the top block, in every print and in the file) ends before character 19,500: what follows is what
-  the packet file repeats whole;
-- a head holds every token the stage needs, at 83 and at the 163 characters of a live run: the P0 tokens (what to do and how it
-  is checked) and the P1 tokens (the stage's own input: the work item, the Step block with its task, Proof and skills, the
-  test floors and base-run rule, the rerun list and lint mode, the queue rule, the mismatch rows, the Improve lessons);
-- Grok keeps the first and last ~10,000 characters of a print over 20,000 and drops the middle: whatever it drops holds no
-  required token;
-- the order of the blocks (plan 6.1), the one progress block (the narrative at a milestone, else the status line) inside
-  the status hook's window, one Keepalive marker, no line the generator prints twice in a head.
+- each normal print is exactly the complete packet followed by one HEAD_END marker; a missing marker exposes a cut tail,
+  while host middle elision requires the separate file-recovery instruction;
+- active producer prints preserve the P0 and P1 tokens for their action, checks, status, duties, rules, inputs and result;
+- Grok's simulated middle cut remains visible, and the packet-file recovery pointer does not depend on the closing marker;
+- print order, the one progress block inside the status hook's window, and one Keepalive marker remain stable;
+- the explicitly requested legacy compact-head helper still selects required blocks before optional blocks.
 """
 from __future__ import annotations
 
@@ -50,7 +43,6 @@ CLI_PATH_LENGTH = 96          # a plugin-cache install: <root>/skills/shiploop/s
 INSTALL_RUN_DIR = 83          # the run directory a normal install has
 LIVE_RUN_DIR = 163            # the run directory of the live run the plan was measured on
 HOST_CUT = 20_000             # what Grok gives a model whole (measured 2026-10-17)
-REQUIRED_BOUND = 19_500       # the required text of a head ends before it, at the normal install
 GROK_PART = 10_000            # the first and the last characters Grok keeps of a longer print
 
 
@@ -162,45 +154,36 @@ def producers(delegation: str, run_dir_length: int, lint: str = "report"):
         seen[(item, stage)] = seen.get((item, stage), 0) + 1
 
 
-class PrintedHeadTests(unittest.TestCase):
-    def test_every_print_ends_with_head_end_and_none_is_empty(self) -> None:
+class PrintedPacketTests(unittest.TestCase):
+    def test_every_print_ends_with_one_head_end_marker(self) -> None:
         for delegation in ("inline", "ask-agent"):
             for key, row in renders(delegation, INSTALL_RUN_DIR).items():
                 with self.subTest(route=delegation, packet=key):
                     self.assertTrue(row["printed"].endswith("\n" + navigator.HEAD_END + "\n"))
-                    # as a line: the packet's second pointer line names the closing line inside a sentence, so the text
-                    # appears twice in a producer's print and a cut print still shows it near the top
+                    # The pointer sentence may mention the marker; the closing marker itself appears once as a line.
                     self.assertEqual(row["printed"].splitlines().count(navigator.HEAD_END), 1)
 
-    def test_the_packet_file_never_carries_the_end_line_and_a_whole_print_is_the_file_plus_it(self) -> None:
+    def test_every_normal_print_is_the_packet_file_plus_one_end_marker(self) -> None:
         for delegation in ("inline", "ask-agent"):
             for key, row in renders(delegation, INSTALL_RUN_DIR).items():
                 with self.subTest(route=delegation, packet=key):
                     self.assertNotIn(navigator.HEAD_END, row["whole"].splitlines())
-                    if not row["head"]:
-                        self.assertEqual(row["printed"], row["whole"] + navigator.HEAD_END + "\n")
+                    self.assertEqual(row["printed"], row["whole"] + navigator.HEAD_END + "\n")
+                    self.assertFalse(row["head"])
 
-    def test_the_printed_text_of_every_stage_fits_the_host_at_the_normal_install(self) -> None:
-        for delegation in ("inline", "ask-agent"):
-            for key, row in renders(delegation, INSTALL_RUN_DIR).items():
-                with self.subTest(route=delegation, packet=key):
-                    self.assertLessEqual(len(row["printed"]), HOST_CUT)
-
-    def test_the_required_text_of_a_head_ends_before_the_bound_at_the_normal_install(self) -> None:
+    def test_producer_prints_keep_every_required_token_at_the_normal_install(self) -> None:
         for delegation in ("inline", "ask-agent"):
             for key, row, p0, p1 in producers(delegation, INSTALL_RUN_DIR):
                 with self.subTest(route=delegation, packet=key):
-                    text = row["printed"]
                     for token in [token for token in p0 + p1 if token != navigator.HEAD_END]:
-                        self.assertIn(token, text)
-                        # to the end of the line that holds it: the pointer lines end the required text
-                        self.assertLessEqual(text.index("\n", text.index(token)), REQUIRED_BOUND, token)
+                        self.assertIn(token, row["printed"])
 
-    def test_a_head_holds_its_p0_and_p1_tokens_at_both_install_lengths(self) -> None:
+    def test_producer_prints_are_complete_at_both_install_lengths(self) -> None:
         for delegation in ("inline", "ask-agent"):
             for length in (INSTALL_RUN_DIR, LIVE_RUN_DIR):
                 for key, row, p0, p1 in producers(delegation, length):
                     with self.subTest(route=delegation, run_dir=length, packet=key):
+                        self.assertEqual(row["printed"], row["whole"] + navigator.HEAD_END + "\n")
                         for token in p0 + p1:
                             self.assertIn(token, row["printed"], token)
 
@@ -209,16 +192,16 @@ class PrintedHeadTests(unittest.TestCase):
                     ("ShipLoop navigator | improve | revision ", "Keepalive marker: SHIPLOOP-RUN run=",
                      ("Next command (", "1. Run the improve skill on the"))),  # unbound card, or bound; no progress block
         "paused": (lambda key, state: state["status"] == "paused",
-                   ("ShipLoop navigator | ", "Paused, unfinished: ", "Resume: python3 ", "Keepalive marker: SHIPLOOP-RUN run=",
+                   ("ShipLoop navigator | ", "Full packet: ", "Paused, unfinished: ", "Resume: python3 ", "Keepalive marker: SHIPLOOP-RUN run=",
                     "=== ShipLoop narrative ===")),
         "halted": (lambda key, state: state["status"] == "halted",
-                   ("ShipLoop navigator | ", "Halted, unfinished: ", "No callback is valid while halted.",
+                   ("ShipLoop navigator | ", "Full packet: ", "Halted, unfinished: ", "No callback is valid while halted.",
                     "Keepalive marker: SHIPLOOP-RUN run=", "=== ShipLoop narrative ===")),
         "done": (lambda key, state: state["status"] == "done",
-                 ("ShipLoop navigator | ", "It's all complete.", "Report: ", "=== ShipLoop narrative ===")),
+                 ("ShipLoop navigator | ", "Full packet: ", "It's all complete.", "Report: ", "=== ShipLoop narrative ===")),
     }
 
-    def test_improve_paused_halted_and_done_prints_hold_their_required_text_inside_the_bound(self) -> None:
+    def test_improve_paused_halted_and_done_prints_are_complete_and_keep_required_text(self) -> None:
         for delegation in ("inline", "ask-agent"):
             for length in (INSTALL_RUN_DIR, LIVE_RUN_DIR):
                 found = dict.fromkeys(self.OTHER_KINDS, 0)
@@ -229,27 +212,42 @@ class PrintedHeadTests(unittest.TestCase):
                         found[kind] += 1
                         with self.subTest(route=delegation, run_dir=length, kind=kind, packet=key):
                             text = row["printed"]
-                            self.assertLessEqual(len(text), HOST_CUT)
+                            self.assertEqual(text, row["whole"] + navigator.HEAD_END + "\n")
+                            self.assertEqual(text.splitlines().count(navigator.HEAD_END), 1)
+                            if kind in ("paused", "halted", "done"):
+                                path = packet_view.packet_file_named(text)
+                                self.assertIsNotNone(path)
+                                without_marker = text.replace("\n" + navigator.HEAD_END + "\n", "\n")
+                                self.assertEqual(packet_view.packet_file_named(without_marker), path)
                             for token in wanted:
                                 alternatives = token if isinstance(token, tuple) else (token,)
                                 hit = next((one for one in alternatives if one in text), None)
                                 self.assertIsNotNone(hit, token)
-                                self.assertLessEqual(text.index(hit) + len(hit), REQUIRED_BOUND, token)
                 self.assertTrue(all(found.values()), found)
 
-    def test_grok_view_of_a_print_over_the_cut_holds_every_required_token(self) -> None:
-        """Grok drops the middle of a print over 20,000 characters.  Whatever it drops may hold lines the file repeats, never a
-        P0 or P1 token: the check at the live install length, where the same stages are 1,400 characters longer."""
+    def test_a_host_middle_cut_can_hide_packet_content_but_keeps_an_independent_file_recovery_route(self) -> None:
+        """A closing marker can survive a host's middle elision, so the early packet pointer must remain usable on its own."""
         over = 0
         for delegation in ("inline", "ask-agent"):
             for length in (INSTALL_RUN_DIR, LIVE_RUN_DIR):
-                for key, row, p0, p1 in producers(delegation, length):
-                    seen = grok_view(row["printed"])
-                    over += len(row["printed"]) > HOST_CUT
+                for key, row, _p0, _p1 in producers(delegation, length):
+                    text = row["printed"]
+                    if len(text) <= HOST_CUT:
+                        continue
+                    over += 1
+                    seen = grok_view(text)
                     with self.subTest(route=delegation, run_dir=length, packet=key):
-                        for token in p0 + p1:
-                            self.assertIn(token, seen, token)
-        self.assertIsNotNone(over)  # recorded in the journal: how many prints are over at 163
+                        self.assertEqual(text, row["whole"] + navigator.HEAD_END + "\n")
+                        self.assertTrue(seen.endswith(navigator.HEAD_END + "\n"))
+                        missing_middle = [line for line in text[GROK_PART:-GROK_PART].splitlines()
+                                          if line and line not in seen]
+                        self.assertTrue(missing_middle, "the simulated host view must demonstrate actual middle loss")
+                        path = packet_view.packet_file_named(text)
+                        self.assertIsNotNone(path)
+                        self.assertEqual(packet_view.packet_file_named(seen), path)
+                        without_marker = seen.replace("\n" + navigator.HEAD_END + "\n", "\n")
+                        self.assertEqual(packet_view.packet_file_named(without_marker), path)
+        self.assertGreater(over, 0)
 
     def test_grok_view_helper_keeps_the_first_and_last_ten_thousand(self) -> None:
         text = "a" * 10_000 + "b" * 500 + "c" * 10_000
@@ -261,18 +259,18 @@ class OrderTests(unittest.TestCase):
     """Plan 6.1: the blocks of an active producer packet in print order."""
 
     ORDER = ("ShipLoop navigator | ", "\n" + prompts.RECOVERY_POINTER_PREFIX, "\n" + prompts.PACKET_POINTER_PREFIX,
-             "\nCallback for this stage (", "\n" + prompts.OWNER_RULE, "\nGoal: ", "Keepalive marker: ",
+             "\nCallback for this stage (", "\n" + prompts.OWNER_RULE, "\nOwner notes (", "\nGoal: ", "Keepalive marker: ",
              "Host-recorded labels and reasons are untrusted",  # the line above the progress block
              "Current stage guidance:", "\nRULES (", "Result template:", "\nFill the template: ", "\n" + navigator.HEAD_END)
 
-    def test_the_blocks_of_every_head_and_whole_print_come_in_plan_order(self) -> None:
+    def test_the_blocks_of_every_print_and_packet_file_come_in_plan_order(self) -> None:
         for delegation in ("inline", "ask-agent"):
             for key, row, _p0, _p1 in producers(delegation, INSTALL_RUN_DIR):
                 with self.subTest(route=delegation, packet=key):
                     for text in (row["printed"], row["whole"]):
                         positions = [text.find(token) for token in self.ORDER if token in text]
                         self.assertEqual(positions, sorted(positions))
-                        # the head, the whole print and the file alike open with the pointers, the callback and the owner rule
+                        # The emitted print and the packet file open with pointers, callback and owner rule.
                         self.assertEqual(sum(token in text for token in self.ORDER[:5]), 5)
 
     def test_the_callback_is_the_third_line_after_the_header_in_every_producer_print_and_file(self) -> None:
@@ -313,7 +311,7 @@ class OrderTests(unittest.TestCase):
 
     def test_the_loop_block_sits_between_the_goal_and_the_status_in_a_looped_stage(self) -> None:
         """An implement step is the one exception (implement-step fix plan D4, unit W2-B): its Step block takes that
-        place and its packet, head and file alike, ends with the loop.  Both routes issue one implement action per step
+        place and its packet print and file alike end with the loop. Both routes issue one implement action per step
         (design T §9.1 2c-1)."""
         for delegation in ("inline", "ask-agent"):
             for key, row, _p0, _p1 in producers(delegation, INSTALL_RUN_DIR):
@@ -352,7 +350,7 @@ class OrderTests(unittest.TestCase):
                         self.assertLess(row["printed"].index(shown) + len(shown), hook.WINDOW)
                         self.assertNotIn("=== ShipLoop status ===", row["whole"])
 
-    def test_a_print_names_the_keepalive_marker_once_and_a_head_repeats_no_long_line(self) -> None:
+    def test_a_print_names_the_keepalive_marker_once_and_repeats_no_long_line(self) -> None:
         for delegation in ("inline", "ask-agent"):
             for key, row, _p0, _p1 in producers(delegation, INSTALL_RUN_DIR):
                 with self.subTest(route=delegation, packet=key):
@@ -363,7 +361,7 @@ class OrderTests(unittest.TestCase):
                     repeated = {line[:90] for line in long_lines if long_lines.count(line) > 1}
                     self.assertEqual(repeated, set())
 
-    def test_the_hooks_still_read_a_head_and_a_whole_print(self) -> None:
+    def test_the_hooks_read_complete_prints(self) -> None:
         for delegation in ("inline", "ask-agent"):
             for key, row, _p0, _p1 in producers(delegation, INSTALL_RUN_DIR):
                 with self.subTest(route=delegation, packet=key):
@@ -478,12 +476,6 @@ class CitationTests(unittest.TestCase):
         ('"Consumer checks (release-verify)" line', "Consumer checks (release-verify)"),
         (prompts.BACKCHAIN_STUB, "Follow the packet's Backchain planning guide"),
     )
-    # Recorded gaps, (route, stage): a head whose required text leaves no room for what its guidance cites (plan: 19,436 of
-    # 20,000 before any lookup; ask-agent step-plan: its Backchain route paragraph, still over 18,000 of 20,000 after
-    # decision 20 (owner 2026-10-18) shrank its Until Loop block).  They close when the head's required text shrinks
-    # (packet review U5, U8); an entry that resolves fails the gap test, so it is removed then.
-    BUDGET_GAPS = {("inline", "plan"), ("ask-agent", "plan"), ("ask-agent", "step-plan")}
-
     @staticmethod
     def rows():
         """(fixture, route, key, row) of every active producer print of both fixtures."""
@@ -516,31 +508,17 @@ class CitationTests(unittest.TestCase):
 
     def test_every_label_a_print_cites_resolves_inside_the_print(self) -> None:
         for fixture, route, key, row in self.rows():
-            if (route, plans.stage_of(key)) in self.BUDGET_GAPS:
-                continue
             with self.subTest(fixture=fixture, route=route, packet=key):
                 self.assertEqual(self.unresolved(row), [])
 
-    def test_a_recorded_gap_is_a_head_short_of_room_whose_file_holds_what_it_cites(self) -> None:
-        open_gaps = set()
+    def test_the_complete_print_preserves_the_same_cited_material_as_its_packet_file(self) -> None:
         for fixture, route, key, row in self.rows():
-            missing = self.unresolved(row)
-            if (route, plans.stage_of(key)) not in self.BUDGET_GAPS or not missing:
-                continue
-            open_gaps.add((route, plans.stage_of(key)))
             with self.subTest(fixture=fixture, route=route, packet=key):
-                # The budget, not a defect: a head with little room left (less than the block the citation sits in),
-                # and the file holds every line the print leaves out.  Decision 20 (owner 2026-10-18) widened the
-                # room on ask-agent step-plan (its Until Loop block shrank), so the margin here is looser than plan's.
-                self.assertTrue(row["head"])
-                self.assertGreater(len(row["printed"]), navigator.HEAD_LIMIT - 2_200)
-                for token in missing:
-                    self.assertIn(token.lstrip("\n"), row["whole"])
-        self.assertEqual(open_gaps, self.BUDGET_GAPS)  # a gap that closed is removed from the list
+                self.assertEqual(row["printed"], row["whole"] + navigator.HEAD_END + "\n")
+                self.assertEqual(row["printed"].splitlines().count(navigator.HEAD_END), 1)
 
-    def test_an_inline_implement_head_prints_its_steps_criteria_by_value_and_the_hand_off_names_them(self) -> None:
-        """B6-2: the step's criteria print in the Step block (the hand-off held them only, and a head over the cut left
-        them out); the hand-off names them by ID, so the text is printed once."""
+    def test_an_inline_implement_print_includes_its_steps_criteria_and_the_hand_off_names_them(self) -> None:
+        """B6-2: the Step block prints criteria by value and the hand-off names them by ID, without duplicating the text."""
         seen = 0
         for key, row in renders("inline", INSTALL_RUN_DIR).items():
             state = row["state"]
@@ -556,9 +534,9 @@ class CitationTests(unittest.TestCase):
                     for criterion in wanted:
                         self.assertEqual(text.count(criterion["text"]), 1, criterion["id"])
                         self.assertLess(text.index("\nStep " + steps[done]["id"]), text.index(criterion["text"]))
-                    if navigator.HANDOFF_HEAD in text:  # the head may leave the hand-offs out; the file has them
-                        self.assertIn("criteria (" + item + " step-plan): " + ", ".join(c["id"] for c in wanted)
-                                      + " (printed in the Step block above)", text)
+                    self.assertIn(navigator.HANDOFF_HEAD, text)
+                    self.assertIn("criteria (" + item + " step-plan): " + ", ".join(c["id"] for c in wanted)
+                                  + " (printed in the Step block above)", text)
                 self.assertIn(navigator.HANDOFF_HEAD, row["whole"])
                 seen += 1
         self.assertGreaterEqual(seen, 3)
@@ -570,7 +548,7 @@ class BlockBudgetTests(unittest.TestCase):
     def block(self, name: str, tier: str, size: int = 100):
         return navigator._Block(name, tier, ["x" * size])
 
-    def test_the_head_limit_is_the_hosts_and_the_whole_print_limit_is_not_changed(self) -> None:
+    def test_legacy_head_helper_limits_and_other_command_limit_remain_independent(self) -> None:
         self.assertEqual(navigator.HEAD_LIMIT, HOST_CUT)
         self.assertEqual(navigator.PRINT_LIMIT, 16_000)
         self.assertEqual(protocol.OUTPUT_LIMIT, 16_000)
@@ -696,9 +674,8 @@ class PlanRecordTests(unittest.TestCase):
                     row = next(row for key, row in rows.items() if plans.stage_of(key) == stage)
                     with self.subTest(request=request, route=route, stage=stage):
                         text = " ".join(row["printed"].split())
-                        self.assertTrue(row["head"])
-                        self.assertLessEqual(len(row["printed"]), HOST_CUT)
-                        self.assertTrue(row["printed"].endswith(navigator.HEAD_END + "\n"))
+                        self.assertFalse(row["head"])
+                        self.assertEqual(row["printed"], row["whole"] + navigator.HEAD_END + "\n")
                         if stage == "spec":
                             self.assertIn("For a new graphical UI", text)
                             self.assertIn("fill unspecified visual choices", text)
@@ -713,9 +690,8 @@ class PlanRecordTests(unittest.TestCase):
                             self.assertLess(text.index("For each step adding/changing visible UI"),
                                             text.index("4. **`steps`**"))
 
-    def test_an_interaction_item_step_plan_head_prints_the_bullet_within_the_cut(self) -> None:
-        """Unit U7 left a UI item's step plan with only the guide's pointer; the bullet is back in its head, and the head
-        still fits the 20,000-character host print at both measured run-directory lengths."""
+    def test_an_interaction_item_step_plan_print_keeps_its_selected_design_basis(self) -> None:
+        """The selected UI planning enrichments remain in the complete packet at both measured run-directory lengths."""
         case = dict(plans.CASE, prompt="Add a list view people reorder by drag and drop, with keyboard paths and an undo "
                                        "button; keep the list state in the client.")
         case["work_item"] = {"id": "W1", "title": "List view with drag-and-drop reordering and keyboard paths",
@@ -730,9 +706,8 @@ class PlanRecordTests(unittest.TestCase):
                 packet = next(row for key, row in rows.items() if plans.stage_of(key) == "step-plan")
                 printed = packet["printed"]
                 with self.subTest(route=delegation, run_dir=length):
-                    self.assertTrue(packet["head"])
-                    self.assertLessEqual(len(printed), HOST_CUT)
-                    self.assertTrue(printed.endswith(navigator.HEAD_END + "\n"))
+                    self.assertFalse(packet["head"])
+                    self.assertEqual(printed, packet["whole"] + navigator.HEAD_END + "\n")
                     flat = " ".join(printed.split())
                     for cue in ("a Design basis paragraph", "Give baseline and delta;", "planned recovery checks;",
                                 "design guidance identity and version or digest (or named fallback)",
@@ -749,8 +724,8 @@ class PlanRecordTests(unittest.TestCase):
                 plain_packet = next(row for key, row in plain_rows.items() if plans.stage_of(key) == "step-plan")
                 plain = plain_packet["printed"]
                 with self.subTest(route=delegation, run_dir=length, non_ui=True):
-                    self.assertTrue(plain_packet["head"])
-                    self.assertTrue(plain.endswith(navigator.HEAD_END + "\n"))
+                    self.assertFalse(plain_packet["head"])
+                    self.assertEqual(plain, plain_packet["whole"] + navigator.HEAD_END + "\n")
                     flat_plain = " ".join(plain.split())
                     # A keyword miss must not remove the semantic criterion rule. It applies only to a UI-changing step.
                     self.assertIn("For each step adding/changing visible UI, the criterion itself names spec UI requirements", flat_plain)
@@ -761,7 +736,7 @@ class PlanRecordTests(unittest.TestCase):
         self.assertEqual(locator, "plan-record.md#topics-the-item-touches")
         self.assertIn("## Topics the item touches", self.GUIDE.read_text())
 
-    def test_a_step_plan_head_carries_the_trigger_words_in_both_routes_at_both_lengths(self) -> None:
+    def test_a_step_plan_print_carries_the_trigger_words_in_both_routes_at_both_lengths(self) -> None:
         for delegation in ("inline", "ask-agent"):
             for length in (INSTALL_RUN_DIR, LIVE_RUN_DIR):
                 for key, row, _p0, _p1 in producers(delegation, length):
@@ -792,11 +767,8 @@ class EmitTests(unittest.TestCase):
             self.assertNotIn(navigator.HEAD_END, text.splitlines())  # the file has no closing line; its line B only names it
 
 
-class PrimaryRequirementHeadTests(unittest.TestCase):
-    """Review of plan F3: the plan and carry-forward packets print the spec's primary requirements as required text, but the
-    walk behind the head budgets records none, so the block was never measured.  A real spec has several; the plan head,
-    which has the least room, ends its required text before the bound for any number of them (the block lists at most
-    ``primary.PRIMARY_SHOWN`` IDs), and no head passes the host cut."""
+class PrimaryRequirementPacketTests(unittest.TestCase):
+    """Review of plan F3: complete plan and carry-forward prints preserve the spec's primary requirement line."""
 
     def render(self, route: str, ids: list[str]) -> dict:
         import shiploop_primary as primary
@@ -811,15 +783,14 @@ class PrimaryRequirementHeadTests(unittest.TestCase):
         return {plans.stage_of(key): row["printed"] for key, row in rows.items()
                 if plans.stage_of(key) in ("plan", "carry-forward") and plans.is_producer(key, row["state"])}
 
-    def test_the_plan_and_carry_forward_heads_hold_the_bound_with_one_six_and_thirty_primary_requirements(self) -> None:
+    def test_the_plan_and_carry_forward_prints_keep_one_six_and_thirty_primary_requirements(self) -> None:
         for route in ("inline", "ask-agent"):
             for count in (1, 6, 30):
                 with self.subTest(route=route, primary=count):
                     ids = ["R-" + str(n) for n in range(1, count + 1)]
                     for stage, printed in self.render(route, ids).items():
-                        self.assertLessEqual(len(printed), HOST_CUT, stage)
                         self.assertIn("Primary requirements (spec primary)", printed, stage)
-                        self.assertLessEqual(printed.index("\n", printed.index("Fill the template:")), REQUIRED_BOUND, stage)
+                        self.assertTrue(printed.endswith(navigator.HEAD_END + "\n"), stage)
 
 
 if __name__ == "__main__":

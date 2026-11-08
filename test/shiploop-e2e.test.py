@@ -868,7 +868,9 @@ class SeedTest(HarnessCase):
         packet = subprocess.run([sys.executable, str(self.CLI), "next", "--run-dir", seeded["run_dir"]],
                                 capture_output=True, text=True)
         self.assertEqual(packet.returncode, 0, packet.stderr)
-        self.assertTrue(packet.stdout.startswith("ShipLoop navigator | step-plan |"), packet.stdout[:200])
+        self.assertTrue(packet.stdout.startswith("Execute the prompt in a fresh context."), packet.stdout[:200])
+        self.assertIn("\nShipLoop navigator | step-plan |", packet.stdout)
+        self.assertTrue(packet.stdout.endswith("=== end ShipLoop print ===\n"))
 
     def test_seeded_run_opens_at_the_run_and_writes_no_baseline(self):
         shutil.rmtree(self.plugin / "skills")  # the real skills, and so the real CLI, replace the fixture's stub

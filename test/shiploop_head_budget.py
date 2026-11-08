@@ -1,21 +1,9 @@
-"""Test support: a printed packet's length at a reference install, and the journaled ceiling of each stage's head.
+"""Reference path-length measurements and historical compact-head budgets.
 
-Grok gives the model an output whole up to 20,000 characters and, above that, only its first and last ~10,000 with the middle
-elided (measured 2026-10-17, docs/experiments/shiploop-eff-evidence-20261017/plan/ADDENDUM-cut.md), and what is elided is
-never read. What a packet prints depends on where the run and the skill live: the run directory appears a dozen times in a
-head and the skill's path a few times, so the same text is 600 characters longer under a deep checkout than under a plugin
-cache, and a head over ``PRINT_LIMIT`` also drops its quoted knowledge, so its shape depends on those lengths too. A ceiling
-in a test must not move with the machine that runs it, so a test builds its packets inside ``reference_tmpdir`` (the run
-directory is exactly ``REFERENCE_RUN_DIR_LENGTH`` characters when the system temp directory allows it) and compares
-``at_reference_install``, which rewrites what remains (the skill's path to ``REFERENCE_ROOT_LENGTH`` characters, the bare
-``shiploop`` the offline walk prints to the ``REFERENCE_CLI_LENGTH``-character CLI path of a plugin-cache install).
-
-``test/shiploop_e2e/head_table.json`` holds, for every producer stage and route, the journaled value of the stage's printed head
-and of its whole text (a packet whose whole text fits ``PRINT_LIMIT`` prints whole, and which of the two a stage prints
-depends on the path lengths of the machine, near the limit).  A printed text above its value fails its test; a change that
-grows a packet says so by raising the value in the same commit, with the reason in the journal.  ``over_the_cut`` lists the
-heads above ``HOST_CUT`` today (a recorded gap that the print-order unit closes, not a goal); a head that newly crosses the cut
-fails even when its value is raised.
+Current emission prints every packet in full, independent of length. The normalizers below still make packet
+measurements comparable across checkouts. HOST_CUT records the 2026-10-17 Grok head/tail display observation;
+it is a host simulation threshold, not permission to omit packet content. The journaled head/whole table remains
+historical evidence and supports explicit compact-head diagnostics; it is not a cutoff for normal emission.
 """
 from __future__ import annotations
 
@@ -73,9 +61,8 @@ def at_reference_install(text: str, root: Path | str = ROOT, run_dir_length: int
 
 
 def mode_of(whole: str, print_limit: int) -> str:
-    """What ``emit`` prints for a packet whose full text is ``whole``: all of it (``whole``) when it fits ``print_limit``,
-    otherwise its ``head`` (the rest is in the packet file)."""
-    return "whole" if len(whole) <= print_limit else "head"
+    """Current emission always prints ``whole``; keep arguments for existing measurement callers."""
+    return "whole"
 
 
 @contextlib.contextmanager
