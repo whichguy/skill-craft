@@ -128,8 +128,9 @@ class TestGroupTests(unittest.TestCase):
         # Splitting the aggregate adds two; the full Grok case adds four suites (2026-11-07).
         # Roundtable adds one opt-in calibration suite (2026-11-07).
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 138)
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 57)
-        self.assertEqual(len(suite_catalog.SUITES), 197)
+        # The sport80 skill adds one core suite (2026-11-08): catalogue, CLI, drift and the in-page runtime under Node.
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 58)
+        self.assertEqual(len(suite_catalog.SUITES), 198)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
