@@ -129,8 +129,9 @@ class TestGroupTests(unittest.TestCase):
         # Roundtable adds one opt-in calibration suite (2026-11-07).
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 138)
         # The sport80 skill adds one core suite (2026-11-08): catalogue, CLI, drift and the in-page runtime under Node.
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 58)
-        self.assertEqual(len(suite_catalog.SUITES), 198)
+        # It lands beside the planning-score suite, which another session added at the same count (58 and 198), so both together make 59 and 199.
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 59)
+        self.assertEqual(len(suite_catalog.SUITES), 199)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -240,6 +241,11 @@ class TestGroupTests(unittest.TestCase):
             with self.subTest(path=path):
                 extra = {suite.id for suite in suite_catalog.quick((path,))} - baseline
                 self.assertEqual(extra, expected)
+
+    def test_planning_scoring_fixture_and_helper_changes_select_the_suite(self):
+        for name in ["compare.py", "replay.json", "rubric.md"]:
+            selected = {s.id for s in suite_catalog.select(["quick"], ["test/experiments/shiploop_spec_discovery/" + name])}
+            self.assertIn("planning-score", selected)
 
     def test_quick_reaches_the_consumers_of_shared_shiploop_sources(self) -> None:
         # Suites named after nothing in these paths still exercise them; a

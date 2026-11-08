@@ -329,6 +329,8 @@ _CORE_SUITES = (
     _suite("plan-dispatcher-scenarios", "core", "test/plan-dispatcher-scenarios.test.js", "node", "test/plan-dispatcher-scenarios.test.js"),
     _suite("plan-dispatcher-mutants", "core", "test/plan-dispatcher-mutants.test.py", "python3", "test/plan-dispatcher-mutants.test.py"),
     _suite("native-setup-pilot", "core", "test/native-setup-pilot.test.py", "python3", "-B", "test/native-setup-pilot.test.py"),
+    _suite("planning-score", "core", "test/experiments/shiploop_spec_discovery/test_scoring.py",
+           "python3", "-B", "test/experiments/shiploop_spec_discovery/test_scoring.py"),
     _suite("security-harness", "core", "test/experiments/shiploop_security/test_scope.py",
            "python3", "-B", "test/experiments/shiploop_security/test_scope.py"),
 )
@@ -548,6 +550,7 @@ _IN_PARALLEL_IDS = tuple(suite.id for suite in SUITES if "in-parallel" in suite.
 # -slice 81, -platform 75, -environment 65, -battleship-salesforce 45, -quality 43, -release-slice 37, -baseline 25,
 # -commit-counters 24.5, -sf-guard 20, the other seven 38 together); it was about 182 s for five suites on 2026-10-09.  Two data files are the exception, see _ROW_ONLY_PATHS.
 _PREFIX_SUITE_IDS = {
+    "test/experiments/shiploop_spec_discovery/": ("planning-score",),
     "test/experiments/shiploop_security/": ("security-harness",),
     "test/fixtures/backchain-chunks/": ("backchain-chunks",),
     "test/fixtures/native-setup-pilot/": ("native-setup-pilot",),

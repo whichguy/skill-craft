@@ -915,6 +915,13 @@ DUTIES = {
    uncertainty under ## Targets and runtimes. Inspecting a route authorizes no return, deploy or early handoff.
 5. Locate existing specs and quality policies (scope, status in `summary`); screen the applicable non-functional
    requirements (Requirements definition guide).
+   When asked to model another system, a new target still has a reference. Establish the requested fidelity:
+   inspiration, selected workflow or interface parity, or broad parity, including deliberate differences. For the
+   matching scope, inspect end-to-end interactions and consequential alternate states through available documents,
+   code and authorized observations; research or run a discriminating probe where an unresolved question could
+   change the spec. Record source version, actor and conditions, and evidence limits in existing notes. Carry
+   material unknowns to the affected requirements. Missing access does not establish absent behavior; observed
+   defects or incidental internal design are not automatically obligations.
 6. Check the repository index, README and AGENTS for skill links before proposing an implementation
    (Repository-local skill guidance). Record fit or no fit under ## Skills with a locator; for a chosen skill, its
    entrypoint, inputs and defaults, contract and revalidation condition. Edit no skill package.
@@ -1013,6 +1020,13 @@ DUTIES = {
    decision as an open gap under its R-<n> in KNOWLEDGE/spec.md. List in `primary` the R-<n> that carry the request's
    primary outcomes, what the user asked for directly: product-acceptance accepts one left unverified only with a
    passed lower-layer test.
+   Where another system is the reference, map intended parity and deliberate differences to source-backed
+   acceptance lines. Check the relevant workflows and consequential alternative states against the inspected
+   evidence, keeping observations, inferences and unknowns distinct. An unknown that could change required
+   behavior, its verification surface or a dependent prerequisite keeps only the affected work unready;
+   independent work may proceed. A known obligation that cannot be checked here follows the existing unverified
+   policy with its owner and due phase; unavailable access does not establish absent behavior. Reconcile later
+   discoveries through the existing correction routes.
 5. In each R-<n> this run adds or changes, state its basis as a source that stays true in later runs (the request's
    words with the date, or a decision ID; never 'current request'), preserved and changed behaviour, source-section
    locators, evidence limits, and pending implementation and checks. Title spec.md for the product, not for one request.
@@ -1141,6 +1155,11 @@ DUTIES = {
    item a row for each of ui, api, messaging, state, migrate-before, migrate-after, switchover, concurrency,
    platform-services, scale, security, observability, config, performance, accessibility: the template's row, or
    `{id, applies: "no", reason}`; one clause each.
+   Carry each acceptance line's required surface and completion condition into the owning item's context. For a
+   later or unavailable observation, retain its owner, due phase and unresolved status under the existing
+   completion and unverified policies. Opt-in execution or a lower-layer pass does not close a stronger explicit
+   acceptance condition. Correct conflicts through the existing routes; do not postpone an already-due check
+   simply to advance.
 4. Carry the initial baseline's evidence and classification into `evidence_refs` and each affected item's `context`
    (Initial repository baseline guide). A foundation repair, setup prerequisite or missing-test bootstrap goes in the
    earliest feasible item before the feature that depends on it; its readiness evidence is the original check's
