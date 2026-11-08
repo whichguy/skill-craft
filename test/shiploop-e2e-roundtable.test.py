@@ -22,6 +22,7 @@ HARNESS = ROOT / "test/shiploop_e2e"
 sys.path.insert(0, str(HARNESS))
 import boundary
 import chains
+import quality
 
 spec = importlib.util.spec_from_file_location("roundtable_accept", HARNESS / "checks/roundtable_accept.py")
 accept = importlib.util.module_from_spec(spec)
@@ -51,9 +52,35 @@ class CatalogTests(unittest.TestCase):
         files = set(boundary.oracle_files(HARNESS))
         withheld = set(boundary.held_out_files({name: CASES[name] for name in NAMES}))
         for relative in ("checks/roundtable_accept.py", "checks/roundtable_accept.cjs",
-                         "fixtures/roundtable/server.cjs", "fixtures/roundtable/reference.html"):
+                         "fixtures/roundtable/roundtable-fixture-server.cjs", "fixtures/roundtable/roundtable-positive-reference.html"):
             self.assertIn(HARNESS / relative, files)
             self.assertIn("test/shiploop_e2e/" + relative, withheld)
+
+    def marker_count(self, lines, block):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "events.jsonl"
+            path.write_text("".join(json.dumps({"type": "text", "data": line}) + "\n" for line in lines))
+            return quality.held_out_seen(path, [block])
+
+    def test_public_product_language_is_not_private_fixture_exposure(self):
+        public = ["node server.js", "read architecture.md as the design reference",
+                  "the read-only observer renders progress"]
+        for name in NAMES:
+            with self.subTest(case=name):
+                self.assertEqual(self.marker_count(public, CASES[name]["quality"]["acceptance"]), 0)
+
+    def test_actual_private_files_and_module_remain_detected(self):
+        for name in NAMES:
+            block = CASES[name]["quality"]["acceptance"]
+            markers = [block["module"], *block["calibration"], "test/shiploop_e2e/checks",
+                       "test/shiploop_e2e/cases.json", "E2E_CHECKS"]
+            for marker in markers:
+                for text in (marker, Path(marker).name, repr(marker), json.dumps(marker)):
+                    # The generic folder/catalog markers need their path, unlike private filenames.
+                    if text == Path(marker).name and marker in ("test/shiploop_e2e/checks", "test/shiploop_e2e/cases.json"):
+                        continue
+                    with self.subTest(case=name, text=text):
+                        self.assertEqual(self.marker_count(["read " + text], block), 1)
 
     def test_existing_chain_keeps_public_checks_and_final_acceptance(self):
         # Same lookup used by the runner; no new chain or acceptance-merging rule.
@@ -128,7 +155,7 @@ class BrowserCalibrationTests(unittest.TestCase):
     def server(self, fault="", alternate=False, variant=""):
         env = {**os.environ, "PORT":"0", "ROUNDTABLE_FAULT":fault,
                "ROUNDTABLE_VARIANT":variant or ("alternate" if alternate else "standard")}
-        process = subprocess.Popen(["node", str(FIXTURE / "server.cjs")], env=env,
+        process = subprocess.Popen(["node", str(FIXTURE / "roundtable-fixture-server.cjs")], env=env,
                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         try:
             line = process.stdout.readline()
@@ -188,6 +215,7 @@ class BrowserCalibrationTests(unittest.TestCase):
             ("rooms", "room-draft-leak", "design-own-draft"),
             ("rooms", "room-reply-leak", "reply-not-in-wrong-room"),
             ("rooms", "unread-stuck", "unread-cleared"),
+            ("rooms", "unread-resize-loss", "unread-survives-narrow-navigation"),
             ("agent-work", "late-complete", "late-response-stays-cancelled"),
             ("agent-work", "retry-overwrite", "retry-new-attempt"),
             ("agent-work", "result-draft-loss", "result-draft-retained"),

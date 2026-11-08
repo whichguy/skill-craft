@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const config = {fault:process.env.ROUNDTABLE_FAULT || '', variant:process.env.ROUNDTABLE_VARIANT || 'standard',
   alternate:['alternate','all-collapsed','modal-drawer'].includes(process.env.ROUNDTABLE_VARIANT)};
-const html = fs.readFileSync(path.join(__dirname,'reference.html'),'utf8').replace('/*CONFIG*/{}',JSON.stringify(config));
+const html = fs.readFileSync(path.join(__dirname,'roundtable-positive-reference.html'),'utf8').replace('/*CONFIG*/{}',JSON.stringify(config));
 http.createServer((request,response) => {
   if (request.method === 'GET') { response.writeHead(200,{'content-type':'text/html'}); return response.end(html); }
   if (request.method === 'POST' && request.url === '/api/agent') {

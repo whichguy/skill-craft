@@ -509,7 +509,8 @@ the existing `follows` / `--continue-from` path and a deterministic local demo a
 Each later case explicitly repeats the earlier hidden acceptance IDs because `chains.quality` selects the nearest
 declaration rather than merging checks. The browser observer uses the public accessible names and real local endpoint,
 retains screenshots at wide and narrow widths plus light/dark/error/empty/result states, and checks behavior on a
-separate delivered copy. Its source digests establish that the copy did not change during observation. Missing browser
+separate delivered copy. Nonzero unread counts are captured before and after narrow navigation. An open result is
+scrolled into view for narrow reading capture; this does not prove automatic repositioning after resize. Its source digests establish that the copy did not change during observation. Missing browser
 evidence stays unknown. These checks do not judge elegance, establish real-device behavior, or prove that reading
 `architecture.md` caused design continuity. The public knowledge check only retains requirement/decision IDs; inspect
 their meaning and the rendered interface independently, including justified amendments.
@@ -532,7 +533,7 @@ The authored controls share behavior but vary presentation and response processi
 colors across widths, collapsed navigation, message markup, status wording, and delayed dispatch/rendering).
 Twenty-one valid combinations must pass, including sibling task panels in either display order, finite theme transitions, modal navigation,
 contextual page titles and paragraph rendering of multiline messages;
-twelve single-defect controls must fail their designated observation.
+thirteen single-defect controls must fail their designated observation, including unread state lost on resize.
 They validate the observer, not generated-product quality. A live pilot starts from committed evaluator/case bytes,
 records actual model/effort controls, and preserves the unedited predecessor. It is exploratory evidence; a production
 prompt change still needs the existing registered comparison and independent review requirements.

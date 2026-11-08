@@ -132,5 +132,9 @@ async function runTask(item,origin) {
   catch{if(item.status==='Cancelled')return;item.status='Failed';}
   render();
 }
+if(fault==='unread-resize-loss') window.addEventListener('resize',()=>{
+  for(const room of Object.values(rooms))room.unread=0;
+  render();
+});
 render();
 </script></body></html>

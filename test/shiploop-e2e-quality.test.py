@@ -1494,8 +1494,8 @@ class EventFactsTest(QualityCase):
                                                           "test/shiploop_e2e/checks/user_team_casefold_accept.py",
                                                           "test/shiploop_e2e/checks/user_team_listing_accept.py",
                                                           "test/shiploop_e2e/checks/user_teams_accept.py",
-                                                          "test/shiploop_e2e/fixtures/roundtable/reference.html",
-                                                          "test/shiploop_e2e/fixtures/roundtable/server.cjs"])
+                                                          "test/shiploop_e2e/fixtures/roundtable/roundtable-fixture-server.cjs",
+                                                          "test/shiploop_e2e/fixtures/roundtable/roundtable-positive-reference.html"])
         for path in boundary.held_out_files(cases):
             self.assertTrue((ROOT / path).is_file(), path)
 

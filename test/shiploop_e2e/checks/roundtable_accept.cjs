@@ -241,6 +241,12 @@ async function roomChecks() {
   check('other-draft-untouched', await message().inputValue() === 'design draft');
   await roomControl('Launch plan');
   await visible(button('Launch plan, 1 unread'), 'inactive-unread');
+  await snapshot('rooms-unread-wide');
+  await page.setViewportSize({width:320,height:844}); await settle();
+  await roomControl('Launch plan');
+  await visible(button('Launch plan, 1 unread'), 'unread-survives-narrow-navigation');
+  await snapshot('rooms-unread-narrow');
+  await page.setViewportSize({width:1440,height:1000}); await settle();
   await chooseRoom('Launch plan');
   await shownText('Demo reply: ' + text, 'origin-reply');
   await roomControl('Launch plan');
@@ -302,6 +308,10 @@ async function agentWorkChecks() {
   check('useful-result', ['Next steps','Confirm scope','Assign an owner','Review delivery'].every(text => resultText.includes(text)));
   await snapshot('result-wide');
   await page.setViewportSize({width:390,height:844}); await settle();
+  // Reveal the open region for visual review; resize alone may leave it below
+  // the transcript's scroll viewport. This is a scroll, not proof of auto-focus.
+  await result.scrollIntoViewIfNeeded();
+  await visible(result, 'result-region-narrow');
   await snapshot('result-narrow');
   await click(button('Close result'),'close-result');
   check('result-focus-return', await open.evaluate(e => document.activeElement === e));

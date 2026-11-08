@@ -2324,8 +2324,8 @@
         "module": "roundtable_accept",
         "calibration": [
           "test/shiploop_e2e/checks/roundtable_accept.cjs",
-          "test/shiploop_e2e/fixtures/roundtable/server.cjs",
-          "test/shiploop_e2e/fixtures/roundtable/reference.html"
+          "test/shiploop_e2e/fixtures/roundtable/roundtable-fixture-server.cjs",
+          "test/shiploop_e2e/fixtures/roundtable/roundtable-positive-reference.html"
         ],
         "start": "node server.js",
         "source": "independent browser actions from the visible functional requests; calibrated with authored positive alternatives and single-defect fixtures under test/shiploop_e2e/fixtures/roundtable; visual quality and AD continuity are separately reviewed, not inferred from these checks",
@@ -2358,8 +2358,8 @@
         "module": "roundtable_accept",
         "calibration": [
           "test/shiploop_e2e/checks/roundtable_accept.cjs",
-          "test/shiploop_e2e/fixtures/roundtable/server.cjs",
-          "test/shiploop_e2e/fixtures/roundtable/reference.html"
+          "test/shiploop_e2e/fixtures/roundtable/roundtable-fixture-server.cjs",
+          "test/shiploop_e2e/fixtures/roundtable/roundtable-positive-reference.html"
         ],
         "start": "node server.js",
         "source": "independent browser actions from the visible functional requests; calibrated with authored positive alternatives and single-defect fixtures under test/shiploop_e2e/fixtures/roundtable; visual quality and AD continuity are separately reviewed, not inferred from these checks",
@@ -2401,8 +2401,8 @@
         "module": "roundtable_accept",
         "calibration": [
           "test/shiploop_e2e/checks/roundtable_accept.cjs",
-          "test/shiploop_e2e/fixtures/roundtable/server.cjs",
-          "test/shiploop_e2e/fixtures/roundtable/reference.html"
+          "test/shiploop_e2e/fixtures/roundtable/roundtable-fixture-server.cjs",
+          "test/shiploop_e2e/fixtures/roundtable/roundtable-positive-reference.html"
         ],
         "start": "node server.js",
         "source": "independent browser actions from the visible functional requests; calibrated with authored positive alternatives and single-defect fixtures under test/shiploop_e2e/fixtures/roundtable; visual quality and AD continuity are separately reviewed, not inferred from these checks",
