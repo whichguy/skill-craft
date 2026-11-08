@@ -14,7 +14,17 @@ The candidate adds a duty inside the existing plan producer after accepted-sourc
 
 No additional navigator stage or Until Loop was tested. The accepted spec and earlier records were synthetic seeds; test strategy, its Improve, plan production and Plan Improve ran live. The [registration](retained/protocol/registration.json) and [obligations](retained/protocol/obligations.json) define the comparison. The frozen candidate and complete apparatus remain in the [experiment commit](https://github.com/whichguy/skill-craft/tree/82046998cbcdef05cfdf2459d22c6dc6ecbb7dfa/docs/experiments/preplan-pilot-20261108).
 
-## What the cases showed
+## What we learned: earlier confidence, comparable final plans
+
+The import cases make the benefit concrete. The existing adapter could commit rows individually, so a caller's outer transaction could not safely guarantee an all-or-nothing batch. Both flows recognized that hazard during shared test-strategy work. The remaining question was whether a private candidate could be prepared and published safely. The early duty investigated that mechanism before defining dependent work; the current flow initially kept it conditional and resolved more during Plan Improve.
+
+![Both atomic-import repetitions reached comparable accepted plans. The early duty established publication feasibility before the first plan; the current flow resolved more of it during Plan Improve.](report-learning.svg)
+
+*The early duty moved useful investigation ahead of step definition. It did not eliminate later review or demonstrate a better accepted plan. This illustrates evidence ordering, not elapsed time.*
+
+This sharpens the reason to keep Plan Improve. An early experiment asks **“Can this mechanism work?”** After decomposition, review can ask **“Do these particular steps, interfaces and checks fit together?”** Handle lifetime, cleanup, helper ownership and acceptance fixtures still needed attention. An experiment also cannot decide what the owner intends: observing what happens after publication does not settle whether an interrupted import must somehow restore an already-visible prior state. [Atomic-import reviews: repetition 1](retained/paired/atomic-1/judge.json), [repetition 2](retained/paired/atomic-2/judge.json)
+
+### How far the lesson extends
 
 | Case | Final comparison | Evidence and review work |
 | --- | --- | --- |
@@ -23,9 +33,14 @@ No additional navigator stage or Until Loop was tested. The accepted spec and ea
 | Supplied evidence | Both tied; repetition 1 is qualified: [1](retained/paired/evidence-1/judge.json), [2](retained/paired/evidence-2/judge.json) | Both reused the supplied adapter evidence. New probes addressed different publication questions. Early runs obtained those observations before their first plans; current runs obtained more during review. Review also clarified connection lifetime, cleanup constraints and implementation prerequisites. |
 | Unavailable service | Both tied: [1](retained/paired/unavailable-1/judge.json), [2](retained/paired/unavailable-2/judge.json) | Both kept service integration conditional on an approved sandbox and contract evidence while preserving independent local work. Neither treated the offline exception as remote readiness. A useful parser probe occurred during the shared test-strategy stage; no extra planning experiment was needed to rediscover the unavailable service. |
 
-The clearest benefit is a less provisional first plan in the import cases. That does not by itself establish less work overall: the current flow's first plan was explicitly conditional, and Plan Improve resolved the mechanism before the steps were accepted. The candidate moved some work earlier. Across cases, meaningful later review work did not consistently decrease.
+These cases suggest a useful selection question: **could an experiment's result change the approach, dependency order or a prerequisite before we define the steps?** That is a practical interpretation of the pilot, not a newly adopted ShipLoop rule.
 
-Plan Improve still has a distinct job after decomposition. Experiments can establish what a mechanism does; the chosen design can introduce additional assumptions about handle lifetime, cleanup, verification interfaces or acceptance semantics. In the atomic cases, observing pre- and post-commit states did not resolve the owner's meaning of an interruption after visible publication. The paired judges correctly retained that uncertainty and challenged individual grades that treated a clarification gate as automatically harmful.
+- When current evidence already answers the question, reuse it. The search cases had a supported mechanism before the new duty ran.
+- When an unresolved mechanism can be investigated usefully and within the available authority, a targeted probe can make the first plan firmer, as in the import cases.
+- When access is unavailable, keep dependent work conditional and let independent work proceed. Repeating an offline stub cannot establish a remote service contract.
+- When the uncertainty concerns the owner's intended behavior, retain that question explicitly. A successful technical probe cannot answer it on the owner's behalf.
+
+Across the cases, later review work did not consistently decrease. The conditional first plans were not false claims of readiness, and the paired judges corrected individual grades that treated clarification gates or minor bookkeeping as automatically harmful.
 
 ## Time and token evidence
 
@@ -60,7 +75,7 @@ Four constructed cases, two repetitions, one judge family and a small calibratio
 
 ## Decision and retained evidence
 
-**Defer default promotion.** The observed timing benefit supports investigating a lightweight pre-decomposition duty further, with Plan Improve reassessing the resulting plan. It does not yet justify another mandatory stage. These cases completed with the existing control flow and its Improve runtime; no additional Until Loop was needed or evaluated. A separate loop would need evidence that adaptive investigation adds value beyond those existing mechanisms. This is an inference from this pilot, consistent with the general principle of requiring measurable value from added workflow complexity in [Building effective agents](https://www.anthropic.com/research/building-effective-agents).
+**Defer default promotion.** The benefit of earlier evidence supports investigating a lightweight duty before step definition further, with Plan Improve reassessing the resulting plan. It does not yet justify another mandatory stage. These cases completed with the existing control flow and its Improve runtime; no additional Until Loop was needed or evaluated. A separate loop would need evidence that one probe produces a consequential new question requiring another probe, and that this adaptive investigation adds value beyond the existing mechanisms. This is an inference from this pilot, consistent with the general principle of requiring measurable value from added workflow complexity in [Building effective agents](https://www.anthropic.com/research/building-effective-agents).
 
 A stronger follow-up should use fresh realistic cases where the current flow commits to an unsupported choice that changes decomposition or causes meaningful downstream rework, then continue through implementation. Include both sufficient-evidence and unavailable-boundary controls, preserve exact prompts and models, and improve read isolation. No such follow-up or default change is claimed here.
 

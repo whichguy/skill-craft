@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="540" height="900" viewBox="0 0 540 900" role="img" aria-labelledby="title desc">
+  <title id="title">Earlier evidence, comparable accepted plans</title>
+  <desc id="desc">Observed in both atomic-import repetitions. Current flow: first plan leaves publication feasibility conditional; Plan Improve supplies probes and design repairs. Early duty: publication probe precedes the first plan; Plan Improve still repairs remaining details. Astra judged both final-plan pairs tied. This is evidence ordering, not elapsed time or implemented-product acceptance.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#65768b"/></marker>
+  </defs>
+  <style>
+    text{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;fill:#172b43}
+    .heading{font-size:28px;font-weight:700}
+    .label{font-size:22px;font-weight:700}
+    .body{font-size:21px}
+    .small{font-size:18px;fill:#455b73}
+    .arrow{stroke:#65768b;stroke-width:2;marker-end:url(#arrow)}
+  </style>
+  <rect width="540" height="900" rx="18" fill="#f5f7fb"/>
+  <text x="28" y="43" class="heading">Earlier evidence</text>
+  <text x="28" y="78" class="heading">Comparable accepted plans</text>
+  <text x="28" y="108" class="small">Both atomic-import repetitions</text>
+
+  <rect x="20" y="130" width="500" height="255" rx="16" fill="#e9eff8"/>
+  <text x="42" y="166" class="label">CURRENT FLOW</text>
+  <rect x="40" y="185" width="460" height="74" rx="10" fill="#ffffff" stroke="#9bacc2"/>
+  <text x="60" y="214" class="label">First plan</text>
+  <text x="60" y="242" class="body">Publication still conditional</text>
+  <path d="M270 261 V282" class="arrow"/>
+  <rect x="40" y="290" width="460" height="74" rx="10" fill="#ffffff" stroke="#9bacc2"/>
+  <text x="60" y="319" class="label">Plan Improve</text>
+  <text x="60" y="347" class="body">Probe + repair design details</text>
+
+  <rect x="20" y="405" width="500" height="350" rx="16" fill="#e3f3ee"/>
+  <text x="42" y="441" class="label">EARLY DUTY</text>
+  <rect x="40" y="460" width="460" height="66" rx="10" fill="#ffffff" stroke="#60a38e"/>
+  <text x="60" y="488" class="label">Publication probe</text>
+  <text x="60" y="514" class="body">Before defining dependent steps</text>
+  <path d="M270 528 V549" class="arrow"/>
+  <rect x="40" y="557" width="460" height="66" rx="10" fill="#ffffff" stroke="#60a38e"/>
+  <text x="60" y="585" class="label">First plan</text>
+  <text x="60" y="611" class="body">Uses supported mechanism</text>
+  <path d="M270 625 V646" class="arrow"/>
+  <rect x="40" y="654" width="460" height="80" rx="10" fill="#ffffff" stroke="#60a38e"/>
+  <text x="60" y="685" class="label">Plan Improve</text>
+  <text x="60" y="715" class="body">Still repairs remaining details</text>
+
+  <rect x="20" y="777" width="500" height="70" rx="12" fill="#172b43"/>
+  <text x="270" y="807" text-anchor="middle" style="fill:#ffffff;font-size:23px;font-weight:700">Both final-plan pairs: tie</text>
+  <text x="270" y="834" text-anchor="middle" style="fill:#dbe5f2;font-size:18px">Independent Astra judgments</text>
+  <text x="270" y="878" text-anchor="middle" class="small">Evidence ordering, not a time scale</text>
+</svg>
