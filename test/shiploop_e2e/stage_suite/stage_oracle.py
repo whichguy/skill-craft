@@ -545,7 +545,6 @@ def _oracle_helper_error(output: bytes, command: str, oracle_dir: Path, returnco
     def mentions_helper_path(value: str) -> bool:
         return any(path in value for path in helper_paths)
 
-    mentions_helper = mentions_helper_path(text)
     traceback = text.partition("Traceback (most recent call last):")[2]
     helper_frame = any(mentions_helper_path(line) and re.match(r"^\s*File [\"']", line) for line in traceback.splitlines())
     if helper_frame:
@@ -555,11 +554,13 @@ def _oracle_helper_error(output: bytes, command: str, oracle_dir: Path, returnco
     if helper_location and syntax_error:
         return "STAGE_ORACLE helper has invalid Python syntax"
 
-    lowered = text.lower()
-    launch_error = any(marker in lowered for marker in
-                       ("can't open file", "cannot open", "no such file or directory", "permission denied", "not found"))
-    if launch_error and (mentions_helper or
-                         (returncode in UNRUNNABLE and ("$STAGE_ORACLE/" in command or "${STAGE_ORACLE}/" in command))):
+    launch_markers = ("can't open file", "cannot open", "no such file or directory", "permission denied", "not found")
+    # Attribute a launch error to the helper on the same diagnostic line. A
+    # printed helper location followed by a candidate's "not found" is not one.
+    launch_lines = [line for line in text.splitlines() if any(marker in line.lower() for marker in launch_markers)]
+    if any(mentions_helper_path(line) for line in launch_lines) or (
+            launch_lines and returncode in UNRUNNABLE
+            and ("$STAGE_ORACLE/" in command or "${STAGE_ORACLE}/" in command)):
         return "STAGE_ORACLE helper could not be run"
     return None
 

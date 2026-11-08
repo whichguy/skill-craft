@@ -563,6 +563,14 @@ class Overshoot(unittest.TestCase):
                                                           self.accepted_row("B", "validate-existing")]))
         self.assertEqual(live.overshoot(state, "test-spec", "A", trace), [])
 
+    def test_a_refused_complete_before_the_unique_success_does_not_make_it_ambiguous(self):
+        state = self.history(("A", "test-spec", "done"), ("B", "validate-existing", "done"))
+        valid = self.complete_trace("A", [self.accepted_row("A", "test-spec"),
+                                          self.accepted_row("B", "validate-existing")])
+        refused = {**valid, "exit": 1, "rev": [12, 12], "accepted": []}
+        trace = self.trace_dir(refused, valid)
+        self.assertEqual(live.overshoot(state, "test-spec", "A", trace), [])
+
     def test_a_separate_later_stage_acceptance_still_counts_after_co_settlement(self):
         state = self.history(("A", "test-spec", "done"), ("B", "validate-existing", "done"), ("C", "implement", "done"))
         state["revision"] = 14
@@ -592,6 +600,8 @@ class Overshoot(unittest.TestCase):
         malformed_acceptance = self.complete_trace("A", [self.accepted_row("A", "test-spec"),
                                                           self.accepted_row("B", "validate-existing", "send-back")])
         for name, events in (("wrong action", (forged,)), ("duplicate proof", (valid, valid)),
+                             ("conflicting duplicate", (valid, malformed_acceptance)),
+                             ("conflicting duplicate reversed", (malformed_acceptance, valid)),
                              ("history mismatch", (malformed_acceptance,))):
             with self.subTest(name=name):
                 trace = self.trace_dir(*events)

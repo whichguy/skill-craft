@@ -571,37 +571,35 @@ def _complete_settled_indices(state: dict | None, stage: str, action_id: str, ru
     if not all(isinstance(row, dict) for row in trace_rows):
         return set()
 
-    matches: list[list[int]] = []
-    for event in trace_rows:
-        if (type(event.get("v")) is not int or event["v"] != 1 or event.get("kind") != "command"
-                or event.get("verb") != "complete"
-                or event.get("action") != action_id or type(event.get("exit")) is not int or event["exit"] != 0):
-            continue
-        accepted = event.get("accepted")
-        stage_pair, cursor_pair, revisions = event.get("stage"), event.get("cursor"), event.get("rev")
-        if not isinstance(accepted, list) or not accepted:
-            continue
-        if (not isinstance(stage_pair, list) or len(stage_pair) != 2 or stage_pair[0] != stage
-                or not isinstance(cursor_pair, list) or len(cursor_pair) != 2 or cursor_pair[0] != action_id
-                or not isinstance(revisions, list) or len(revisions) != 2
-                or any(type(value) is not int for value in revisions) or revisions[1] != revisions[0] + 1
-                or revisions[1] > revision):
-            continue
-
-        indices = list(range(own, own + len(accepted)))
-        if indices[-1] >= len(raw_history):
-            continue
-        for accepted_row, history_row in zip(accepted, (raw_history[index] for index in indices)):
-            expected = {"action": history_row.get("action"), "stage": history_row.get("stage"),
-                        "item": history_row.get("workitem"), "outcome": history_row.get("outcome")}
-            if not isinstance(accepted_row, dict) or accepted_row != expected:
-                break
-        else:
-            matches.append(indices)
-
-    if len(matches) != 1:
+    # Establish uniqueness before validating its payload; a conflicting success
+    # record cannot be ignored just because another record matches the history.
+    commands = [event for event in trace_rows
+                if type(event.get("v")) is int and event["v"] == 1 and event.get("kind") == "command"
+                and event.get("verb") == "complete" and event.get("action") == action_id
+                and type(event.get("exit")) is int and event["exit"] == 0]
+    if len(commands) != 1:
         return set()
-    return set(matches[0][1:])
+    event = commands[0]
+    accepted = event.get("accepted")
+    stage_pair, cursor_pair, revisions = event.get("stage"), event.get("cursor"), event.get("rev")
+    if not isinstance(accepted, list) or not accepted:
+        return set()
+    if (not isinstance(stage_pair, list) or len(stage_pair) != 2 or stage_pair[0] != stage
+            or not isinstance(cursor_pair, list) or len(cursor_pair) != 2 or cursor_pair[0] != action_id
+            or not isinstance(revisions, list) or len(revisions) != 2
+            or any(type(value) is not int for value in revisions) or revisions[1] != revisions[0] + 1
+            or revisions[1] > revision):
+        return set()
+
+    indices = list(range(own, own + len(accepted)))
+    if indices[-1] >= len(raw_history):
+        return set()
+    for accepted_row, history_row in zip(accepted, (raw_history[index] for index in indices)):
+        expected = {"action": history_row.get("action"), "stage": history_row.get("stage"),
+                    "item": history_row.get("workitem"), "outcome": history_row.get("outcome")}
+        if not isinstance(accepted_row, dict) or accepted_row != expected:
+            return set()
+    return set(indices[1:])
 
 
 def overshoot(state: dict | None, stage: str, action_id: str, run_dir: Path | None = None) -> list[str]:
