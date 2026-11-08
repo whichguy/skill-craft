@@ -1257,12 +1257,23 @@ class SummaryPlaceholderTests(unittest.TestCase):
         self.assertNotIn("verify", prompts.DUTIES)
         self.assertIn("key reference statements", prompts.summary_placeholder("plan"))
         self.assertNotIn("key reference statements", prompts.DUTIES["plan"])
-        # SP-8: duty 9 opens with the record's status and its scope; the closing sentence that said it is gone. Since the
-        # concern map (S2.2) it maps the plan's concerns first, then states the record's status and scope.
+        # Duty 9 maps the plan's concerns (S2.2), reassesses changed security boundaries, then scopes the plan record
+        # without making it another directive (SP-8).
         step_plan = flat(prompts.DUTIES["step-plan"])
-        self.assertIn("9. **Concerns and plan record.** Map each concern the plan gave this item to the steps that deliver "
-                      "it. Record in the item's `context` or the summary (each step's task and criteria stay its only "
-                      "directive), for the topics this item touches only:", step_plan)
+        before_knowledge = step_plan.split("10. **Knowledge.**", 1)[0]
+        instructions = (
+            "9. **Concerns and plan record.** Map each concern the plan gave this item to the steps that deliver it.",
+            "Reassess security at changed boundaries from the current item, even if the plan's security row says no "
+            "or is absent.",
+            "Put relevant protections and observable checks in the criteria; list checks due later as open items "
+            "in the summary.",
+            "Record in the item's `context` or the summary (each step's task and criteria stay its only directive), "
+            "for the topics this item touches only:",
+        )
+        for instruction in instructions:
+            self.assertIn(instruction, before_knowledge)
+        positions = [before_knowledge.index(instruction) for instruction in instructions]
+        self.assertEqual(positions, sorted(positions), "keep the concern and record instructions in duty order")
         self.assertEqual(step_plan.count("stay its only directive"), 1)
 
     def test_a_summary_still_equal_to_a_placeholder_is_refused_and_a_written_one_is_accepted(self) -> None:
