@@ -1,1 +1,6 @@
-{"fails": ["P2"], "why": "The implementation result claims rendered checks passed without carrying browser evidence or leaving the visual item pending."}
+{
+  "fails": [
+    "P2"
+  ],
+  "why": "Claims rendered success while the same result explicitly leaves TC-LAYOUT open; actual execution truth is a separate manual property."
+}

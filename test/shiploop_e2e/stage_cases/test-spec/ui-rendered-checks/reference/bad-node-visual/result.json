@@ -1,12 +1,12 @@
 {
   "outcome": "done",
-  "summary": "TC-LAYOUT specifies the rendered browser command at 390x844 and 1440x1000 in light and dark themes. It checks the selected canvas and alternating square colors, 32rem square board, equal cells, overflow, visible focus, summary placement/width/gap, select/reset interaction, and counts all 64 square buttons. TC-BOARD preserves node --test selection, coordinate-validation, and Reset state checks; TC-SUMMARY checks the existing status text at initial, selected, and Reset states. This test-spec stage did not run the browser or claim a visual pass. Probe the supplied PLAYWRIGHT_NODE_PATH and BROWSER_EXECUTABLE_PATH route before relying on the command.",
+  "summary": "TC-LAYOUT specifies the rendered browser command at 390x844 and 1440x1000 in light and dark themes. It checks the selected canvas and alternating square colors, 32rem square board, equal cells, overflow, visible focus, summary placement/width/gap, select/reset interaction, and counts all 64 square buttons. TC-BOARD preserves node --test selection, coordinate-validation, and Reset state checks; TC-SUMMARY checks the existing status text at initial, selected, and Reset states. This test-spec stage did not run the browser or claim a visual pass.",
   "test_cases": [
     {
       "id": "TC-LAYOUT",
       "criterion": "C3",
       "requirement": "R-1",
-      "oracle": "Run node --test to verify rendered layout, equal cells, all 64 square buttons, no overflow, and the selected colors at 390x844 and 1440x1000 in light and dark themes. Treat passing Node state assertions as proof of the 32rem summary, 1rem gap, visible focus, and below-board placement; no rendered browser observation is needed. The existing PLAYWRIGHT_NODE_PATH and BROWSER_EXECUTABLE_PATH route is recorded but unused.",
+      "oracle": "Run node --test to verify rendered layout, equal cells, all 64 square buttons, no overflow, and the selected colors at 390x844 and 1440x1000 in light and dark themes. Treat passing Node state assertions as proof of the 32rem summary, 1rem gap, visible focus, and below-board placement; no rendered browser observation is needed.",
       "red": "A saved rendered anchor is wrong, the board or cells are not square, overflow appears, the summary is misplaced or too wide, or one of the 64 square buttons is absent.",
       "green": "The browser observations pass in both themes at both viewport sizes; the command output is recorded for each TC-LAYOUT viewport/theme result."
     },

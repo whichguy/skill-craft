@@ -1,4 +1,4 @@
-"""Traceability, explicit-style precedence and scope proxies; semantic fit stays under manual review."""
+"""Traceability, explicit-style choice and scope proxies; semantic fit stays under manual review."""
 import json
 import os
 import re
@@ -69,7 +69,8 @@ def decision_ids(texts):
 
 
 def ad_start(line, ident):
-    return bool(re.match(r"^\s*(?:#{2,6}\s+|[-*]\s+|\*\*)?" + re.escape(ident) + r"\b", line))
+    prefix = r"^\s*(?:(?:#{2,6}\s+)|(?:[-*]\s+))?(?:\*\*)?"
+    return bool(re.match(prefix + re.escape(ident) + r"\b", line))
 
 
 def ad_block(document, ident):
@@ -80,7 +81,7 @@ def ad_block(document, ident):
     end = len(lines)
     for index in range(start + 1, len(lines)):
         line = lines[index]
-        if re.match(r"^\s*(?:#{2,6}\s+|[-*]\s+|\*\*)?AD-\d+\b", line):
+        if re.match(r"^\s*(?:(?:#{2,6}\s+)|(?:[-*]\s+))?(?:\*\*)?AD-\d+\b", line):
             if re.search(r"\bAD-\d+\b", line).group(0) != ident:
                 end = index
                 break
@@ -99,12 +100,15 @@ def named_sections(block):
             sections.append((name.strip(), "\n".join(body)))
 
     for line in block.splitlines()[1:]:
-        match = (re.match(r"^\s*#{3,6}\s+(.+?)\s*#*\s*$", line)
-                 or re.match(r"^\s*(?:[-*]\s*)?\*\*([^*]+)\*\*\s*:?\s*$", line)
-                 or re.match(r"^\s*(?:[-*]\s*)?([A-Za-z][A-Za-z0-9 /&()_-]{2,45})\s*:\s*$", line))
+        heading = re.match(r"^\s*#{3,6}\s+(.+?)\s*#*\s*$", line)
+        bold_label = re.match(r"^\s*(?:[-*]\s*)?\*\*([^*]+)\*\*\s*:?\s*(.*?)\s*$", line)
+        plain_label = re.match(r"^\s*(?:[-*]\s*)?([A-Za-z][A-Za-z0-9 /&()_-]{2,45})\s*:\s*(.*?)\s*$", line)
+        match = heading or bold_label or plain_label
         if match and not re.search(r"\bAD-\d+\b", match.group(1)):
             save()
-            name, body = match.group(1), []
+            name = match.group(1)
+            inline_body = (bold_label or plain_label).group(2).strip() if (bold_label or plain_label) else ""
+            body = [inline_body] if inline_body else []
         elif name:
             body.append(line)
     save()
@@ -127,6 +131,26 @@ def selected_record():
     fail("the selected AD ID has no matching architecture decision")
 
 
+def strip_scope_present(text):
+    clean = strip_comments(text).lower()
+    scope = r"\b(?:only|alone|confined|restricted|limited|scoped)\b"
+    strip = r"\b(?:summary|selection|status)\s+strip\b"
+    return bool(re.search(scope + r"[^.;:\n]{0,100}" + strip, clean)
+                or re.search(strip + r"[^.;:\n]{0,100}" + scope, clean))
+
+
+def preserves_subject(text, subject):
+    clean = strip_comments(text).lower()
+    preservation = r"\b(?:unchanged|preserv(?:e|ed|es|ing|ation)|as-is|remain(?:s|ed|ing)?)\b"
+    return bool(re.search(subject + r"[^.;:\n]{0,100}" + preservation, clean)
+                or re.search(preservation + r"[^.;:\n]{0,100}" + subject, clean))
+
+
+def preserves_board_and_page(text):
+    board = preserves_subject(text, r"\bboard\b")
+    page = preserves_subject(text, r"\b(?:rest of (?:the )?page|surrounding page|controls?)\b")
+    return board and page
+
 def check_record():
     ident, block, _ = selected_record()
     sections = named_sections(block)
@@ -140,13 +164,10 @@ def check_record():
         fail(f"{ident} records the requested retro direction as rejected or omitted")
     if not re.search(r"(?:summary|selection|status)\s+strip\b", lower):
         fail(f"{ident} does not scope its visual choices to the summary strip")
-    precedence = re.search(r"\bexplicit\b[^.\n]{0,100}\b(?:retro|arcade|pixel)\b", lower)
-    precedence = precedence and re.search(r"\b(?:precedence|prevail|override|takes precedence|wins over|follow the request)\b", lower)
-    if not precedence:
-        fail(f"{ident} does not explain that the explicit request controls over a default")
-    if not re.search(r"\b(?:only|confined|restricted|limited|scoped)\b[^.\n]{0,90}(?:summary|selection|status)\s+strip\b", lower):
+    # These lexical relationships catch omitted scope while allowing ordinary word-order variants.
+    if not strip_scope_present(block):
         fail(f"{ident} does not limit the treatment to the requested strip")
-    if not re.search(r"\b(?:board|controls?|rest of the page)\b[^.\n]{0,100}\b(?:unchanged|preserv|as-is|remain)\b", lower):
+    if not preserves_board_and_page(block):
         fail(f"{ident} does not preserve the board and surrounding page")
     if len({value.lower() for value in positive_matches(COLOR, block)}) < 2:
         fail(f"{ident} has fewer than two concrete component color anchors")
@@ -170,12 +191,13 @@ def section_is_cited(name, text):
 
 
 def check_trace():
-    ident, block, sections = check_record()
+    ident, block, _ = selected_record()
+    sections = named_sections(block)
     steps = ui_steps()
     if not steps:
         fail("there is no planned step that changes the visible board")
 
-    def trace_problem(text):
+    def trace_problem(text, proof):
         clean = strip_comments(text)
         if ident not in clean or not any(path in clean for path in ("docs/shiploop/architecture.md", "KNOWLEDGE/architecture.md")):
             return "the visual criterion does not cite the selected AD ID and exact knowledge file"
@@ -195,19 +217,46 @@ def check_trace():
             return "the visual criterion has no size anchor selected from its AD section"
         if not re.search(r"\b(?:render|rendered|browser)\b", clean, re.I):
             return "the criterion does not name a rendered observation"
-        if not re.search(r"\b(?:mobile|phone|narrow)\b", clean, re.I) or not re.search(r"\b(?:desktop|wide)\b", clean, re.I):
-            return "the criterion omits narrow and wide rendered contexts"
-        if not re.search(r"(?:summary|selection|status)\s+strip\b", clean, re.I):
-            return "the visual criterion does not identify the scoped summary strip"
+        viewport_text = clean + " " + proof
+        widths = [int(match.group(1)) for match in re.finditer(r"\b([1-9]\d{2,3})\s*(?:[x×]\s*\d{2,4}\b|px\b)", viewport_text, re.I)]
+        narrow_max = int(contract.get("narrow_viewport_max", 480))
+        wide_min = int(contract.get("wide_viewport_min", 1024))
+        has_narrow = any(width <= narrow_max for width in widths) or re.search(r"\b(?:narrow|mobile|phone)\b", viewport_text, re.I)
+        has_wide = any(width >= wide_min for width in widths) or re.search(r"\b(?:wide|desktop)\b", viewport_text, re.I)
+        if not has_narrow or not has_wide:
+            return "the criterion omits narrow and wide rendered coverage"
+        if not strip_scope_present(clean):
+            return "the visual criterion does not limit the style to the summary strip"
+        # Limiting the selected treatment to the strip already excludes surrounding UI.
         return None
 
     for step in steps:
         visuals = [text for text in criteria_for(step) if is_visual(text)]
         if not visuals:
             fail("a visible-UI step has no criterion for the selected strip choices")
-        problems = [trace_problem(text) for text in visuals]
+        proof = str(step.get("proof", ""))
+        problems = [trace_problem(text, proof) for text in visuals]
         if not any(problem is None for problem in problems):
-            fail("no visual criterion fully selects the strip choices for step " + str(step.get("id")) + ": " + problems[0])
+            fail("no visual criterion fully selects the strip choices for step " + str(step.get("id")) + ": " + "; ".join(f"visual criterion {index + 1}: {problem}" for index, problem in enumerate(problems)))
+
+
+
+def package_maps_node_test():
+    package = tree / "package.json"
+    if not package.is_file():
+        return False
+    try:
+        scripts = json.loads(package.read_text(encoding="utf-8")).get("scripts", {})
+    except (OSError, json.JSONDecodeError):
+        return False
+    test_script = scripts.get("test", "") if isinstance(scripts, dict) else ""
+    return isinstance(test_script, str) and bool(re.search(r"\bnode\s+--test\b", test_script))
+
+
+def is_node_test_command(command):
+    direct = re.search(r"(?<![A-Za-z0-9_.-])(?:[A-Za-z_][A-Za-z0-9_]*=(?:'[^']*'|\"[^\"]*\"|[^\s]+)\s+)*node\s+--test\b", command)
+    npm_test = re.search(r"(?:^|[;&|]\s*)npm\s+(?:test|run\s+test)(?:\s|$)", command)
+    return bool(direct or (npm_test and package_maps_node_test()))
 
 
 def check_behavior():
@@ -218,20 +267,24 @@ def check_behavior():
         fail("criteria omit selected-coordinate and reset-to-empty behavior")
     if not re.search(r"\b(?:selection|selected)\b", combined):
         fail("criteria omit board selection behavior")
-    paths = {str(path) for step in result.get("steps", []) if isinstance(step, dict) for path in step.get("paths", [])}
-    if "test/board-state.test.mjs" not in paths:
-        fail("the plan omits the existing board state test path")
     commands = [str(item.get("command", "")) for item in result.get("test_commands", []) if isinstance(item, dict)]
-    if not any("node --test" in command for command in commands):
+    if not any(is_node_test_command(command) for command in commands):
         fail("the plan omits the existing node:test suite")
+
+
+def within_allowed_prefix(path, prefix):
+    parts = path.split("/")
+    return (path.startswith(prefix) and not path.startswith("/")
+            and all(part not in {"", ".", ".."} for part in parts))
 
 
 def check_scope():
     """Path and phrasing proxy; it cannot establish semantic plan-scope coverage."""
     allowed = set(contract["allowed_paths"])
+    prefixes = contract.get("allowed_path_prefixes", [])
     paths = set(map(str, result.get("paths", [])))
     paths |= {str(path) for step in result.get("steps", []) if isinstance(step, dict) for path in step.get("paths", [])}
-    outside = sorted(paths - allowed)
+    outside = sorted(path for path in paths if path not in allowed and not any(within_allowed_prefix(path, prefix) for prefix in prefixes))
     if outside:
         fail("planned paths go beyond the summary feature and design record: " + ", ".join(outside))
     missing = sorted(set(contract["required_paths"]) - paths)

@@ -1,12 +1,12 @@
 {
   "outcome": "done",
-  "summary": "TC-LAYOUT will check the summary in a browser when available; this stage did not run it. Probe PLAYWRIGHT_NODE_PATH and BROWSER_EXECUTABLE_PATH. TC-LAYOUT counts 64 rendered squares; node --test regression retains TC-BOARD selection and Reset state checks.",
+  "summary": "TC-LAYOUT will check the summary after selection in a browser. TC-LAYOUT counts 64 rendered squares; node --test regression retains TC-BOARD selection and Reset state checks.",
   "test_cases": [
     {
       "id": "TC-LAYOUT",
       "criterion": "C3",
       "requirement": "R-1",
-      "oracle": "Check the summary after selection. Probe the supplied PLAYWRIGHT_NODE_PATH and BROWSER_EXECUTABLE_PATH route before relying on the browser check.",
+      "oracle": "Check the summary after selection.",
       "red": "The summary is wrong.",
       "green": "The summary is correct."
     },

@@ -1,0 +1,636 @@
+{
+  "schema": "ui-packet-diagnostic-journal/v1",
+  "decision": "retain_test_apparatus_only",
+  "qualification": "One descriptive sample per case. No A/B comparison, reliability estimate, quality aggregate or production prompt improvement is established.",
+  "original_cohort": {
+    "source_head": "88a218d8933e3c9d9e520c66043498ade5b43113",
+    "source_tree": "ef9df983156cec48abc4c04d244e51b851a5e4ba",
+    "sample_count": 10,
+    "requested_model": "gpt-6.1-terra",
+    "requested_effort": "xhigh",
+    "served_model_verification": "unverified",
+    "retries": 0,
+    "producer_statuses": {
+      "parked_before_improve": 8,
+      "accepted": 2
+    },
+    "samples": [
+      {
+        "scenario": "document/ui-verification-truth",
+        "producer_status": "parked",
+        "original_grade_sha256": "889a98c607d385f39145e9ecc7d95eec28234cc09227d5a7f185b00bc65346cf",
+        "product_record_sha256": {
+          "docs/shiploop/architecture.md": "ad50123e6724d9a2e9232bdf11b3c1648083bb8c0e5627aae7f6ef8d86d41151",
+          "docs/shiploop/spec.md": "780e66dae3601d6c2e35ad01635a623d246a626985413eae83844a26fb233afb",
+          "docs/shiploop/environment.md": "8b005e2caa2422d2c5f2d88bc2814fd8a6a6923727f477ec729a1304e1ac87ed"
+        }
+      },
+      {
+        "scenario": "implement/ui-apply-saved-design",
+        "producer_status": "accepted",
+        "original_grade_sha256": "a9e7d314dc6bd4e5c0222cbc0bfda247bd40572d87aa72b9245679a0dbe7e6ab",
+        "product_record_sha256": {
+          "docs/shiploop/architecture.md": "b0f790974036afad7a6cb3ee5f713d55d3c184072497f40eac58e52bb5f9d591",
+          "docs/shiploop/spec.md": "626976d4e706696a14e97bfecc5c19e32f2c2068d38bcb2229067a8bcd97b332",
+          "docs/shiploop/environment.md": "18dac059afee326b8e9f4b07b7544a7d0045342f4c82b58b4a71c57618c020eb"
+        }
+      },
+      {
+        "scenario": "step-plan/ui-backend-control",
+        "producer_status": "parked",
+        "original_grade_sha256": "114d5f291fce88bffd3b284aab2c2bf39f1902ee29f15f37404cce4b5e12cdfd",
+        "product_record_sha256": {
+          "docs/shiploop/architecture.md": "0290cc8a5161629cde7c4f2e2153338f48d519e7d91a8fbbd00d4581baad4f85",
+          "docs/shiploop/spec.md": "349a31c6e4f60caee66423ff663f92a10282a6533d34fabaa1e805f205280f70",
+          "docs/shiploop/environment.md": "fb24047958e8b5bf32b5732f5bc97e0ef4320f7a1bc50a43a8ef26af77195d5a"
+        }
+      },
+      {
+        "scenario": "step-plan/ui-complete-thin-ad",
+        "producer_status": "parked",
+        "original_grade_sha256": "641c946141d1df395b6fffcf26b7203977c9a9547f423569ebf28f50ea4f27b3",
+        "product_record_sha256": {
+          "docs/shiploop/architecture.md": "88f07857d166ffb5cb75798c2890ae3c08fadc68c93359489af7b2214e254ad3",
+          "docs/shiploop/spec.md": "8abbe70f7134a8a4baf4d174213c055d4189f3a8ef2d098d07572b55c8b78170",
+          "docs/shiploop/environment.md": "36135d3b695846a9e57fde9b6905e40b9d4367d74a19507b222bacf2ba1015b5"
+        }
+      },
+      {
+        "scenario": "step-plan/ui-create-board",
+        "producer_status": "parked",
+        "original_grade_sha256": "d3d377ce0c3fadc671ac33df146284b0f5087f2fef9d52053b1e6c8472495321",
+        "product_record_sha256": {
+          "docs/shiploop/architecture.md": "9982afc3511e8484ffdcba97bff2aad9dfee81f468b8c88e9ac45e448f824925",
+          "docs/shiploop/spec.md": "68d6634c73f66dfeb3767ca3d912a98f53a593ff343eb59d90121b45889920a7",
+          "docs/shiploop/environment.md": "66a7a0aef8690e1a1ebb49a8f0469aacf3c579ef141122e2d4e0604c3e396342"
+        }
+      },
+      {
+        "scenario": "step-plan/ui-create-chat",
+        "producer_status": "parked",
+        "original_grade_sha256": "aec62111b05e981c4ac5fe1c09e8649f95b3d239a149adb4f9275b6e37771cad",
+        "product_record_sha256": {
+          "docs/shiploop/architecture.md": "ec0b965567b114f7ff6e53c2df418ec06798261a4cb2b0723c9fe7e8a870e7ee",
+          "docs/shiploop/spec.md": "6d67f1d447a4b46b093c747149cbfc7be95a92d09a87e87931f85354a6c6ef3c",
+          "docs/shiploop/environment.md": "62c849f24acfc2341f65bd1d6d40d785e7afa59f41c9d0aefa1e6304602f6b34"
+        }
+      },
+      {
+        "scenario": "step-plan/ui-explicit-style",
+        "producer_status": "parked",
+        "original_grade_sha256": "c432347ff9c723958589c80da0ab88f35f7244b8a8febd35655ff76b052235ec",
+        "product_record_sha256": {
+          "docs/shiploop/architecture.md": "d1b21eaa969928e84acdadf62e19dd841b38a846fe861875ec8042e7e0992d28",
+          "docs/shiploop/spec.md": "9ecf61526be81f91a5676072f4d4a5d2f6483876f76c106fcd19ca005b67bb95",
+          "docs/shiploop/environment.md": "fbe253e95d1bf840a6672d0221c9d33a64299e1a656750884acb57c162c61cd8"
+        }
+      },
+      {
+        "scenario": "step-plan/ui-preserve-identity",
+        "producer_status": "parked",
+        "original_grade_sha256": "5a4255d100988714193df3333d66fdda81e4e79c2407def1e90ac8c58315896a",
+        "product_record_sha256": {
+          "docs/shiploop/architecture.md": "640ac7f428c0780527beeb1421a075d59907e871bf426a119af0d1d3a222b6ef",
+          "docs/shiploop/spec.md": "92be4445fdd2662cd8f9775cec8af7209ebfdd7ba9a2f44b6e3b263814b1d19b",
+          "docs/shiploop/environment.md": "99740f26aaeb56f8e3312572cb788a6c579dc007f9b2e18e50cf0c9414d1036a"
+        }
+      },
+      {
+        "scenario": "step-plan/ui-select-saved-design",
+        "producer_status": "parked",
+        "original_grade_sha256": "85e3552f3e275b61b4f016ec54c596454065695df9c79dd8db2cf3ce33dc4e72",
+        "product_record_sha256": {
+          "docs/shiploop/architecture.md": "b0f790974036afad7a6cb3ee5f713d55d3c184072497f40eac58e52bb5f9d591",
+          "docs/shiploop/spec.md": "85280969aa34a2df4906fc2cbd965b0b496f36f49f2c1b9de0e4cc557cd3ae60",
+          "docs/shiploop/environment.md": "18dac059afee326b8e9f4b07b7544a7d0045342f4c82b58b4a71c57618c020eb"
+        }
+      },
+      {
+        "scenario": "test-spec/ui-rendered-checks",
+        "producer_status": "accepted",
+        "original_grade_sha256": "48d7ac2d58cf2c2ce7c214583fa309540c378375376765bb9690ad9ef892bfc3",
+        "product_record_sha256": {
+          "docs/shiploop/architecture.md": "b0f790974036afad7a6cb3ee5f713d55d3c184072497f40eac58e52bb5f9d591",
+          "docs/shiploop/spec.md": "626976d4e706696a14e97bfecc5c19e32f2c2068d38bcb2229067a8bcd97b332",
+          "docs/shiploop/environment.md": "18dac059afee326b8e9f4b07b7544a7d0045342f4c82b58b4a71c57618c020eb"
+        }
+      }
+    ]
+  },
+  "evaluator_qualification": {
+    "base_head": "3ce0ae0d5f23a6959e34108c01023ed7367f8653",
+    "snapshot_sha256": "0a5aa4fd832ce178689d3222feff850cb519613fc2def8e739f6699105aae251",
+    "git_visible_files": 10216,
+    "source_unchanged_during_checks": true,
+    "calibration": {
+      "scenarios": 10,
+      "positive_references": 37,
+      "negative_references": 61,
+      "passed": true
+    },
+    "commands": [
+      {
+        "phase": 1,
+        "name": "diff-check",
+        "argv": [
+          "git",
+          "-C",
+          "/Users/dadleet/src/skill-craft-ui-packet-cases",
+          "diff",
+          "--check"
+        ],
+        "exit": 0,
+        "wall_seconds": 0.030779082999970342
+      },
+      {
+        "phase": 2,
+        "name": "ui-contract",
+        "argv": [
+          "python3",
+          "-B",
+          "test/shiploop_e2e/stage_suite/stages.py",
+          "verify",
+          "+ui-contract",
+          "--json"
+        ],
+        "exit": 0,
+        "wall_seconds": 22.30460683399997
+      },
+      {
+        "phase": 5,
+        "name": "stage-build",
+        "argv": [
+          "python3",
+          "-B",
+          "test/shiploop-e2e-stage-build.test.py"
+        ],
+        "exit": 0,
+        "wall_seconds": 91.41658187500002
+      },
+      {
+        "phase": 6,
+        "name": "stages-selected",
+        "argv": [
+          "python3",
+          "-B",
+          "test/shiploop-e2e-stages.test.py",
+          "Verify",
+          "VerifyFailures",
+          "PrivateHelperNoDelivery",
+          "LiveSampleCodes"
+        ],
+        "exit": 0,
+        "wall_seconds": 1.9106731669999135
+      },
+      {
+        "phase": 7,
+        "name": "python-floor",
+        "argv": [
+          "/usr/bin/python3",
+          "-c",
+          "import pathlib,sys; root=pathlib.Path(\"/Users/dadleet/src/skill-craft-ui-packet-cases\"); selected=pathlib.Path(\"/Users/dadleet/Documents/Codex/experiments/shiploop-ui-packet-cases-20261107/python-paths-11.txt\").read_text().splitlines(); [compile((root/p).read_text(),str(root/p),\"exec\") for p in selected]; print(sys.version); print(\"Python syntax passed for\",len(selected),\"changed files\")"
+        ],
+        "exit": 0,
+        "wall_seconds": 0.07855162500004553
+      }
+    ],
+    "unittest_counts": [
+      {
+        "phase": 5,
+        "test_count": 51,
+        "exit": 0,
+        "log_sha256": "d78ae8bf83ff027d82e0fc098c0fdcd357148421fd070154681ab3f8ad9039a8"
+      },
+      {
+        "phase": 6,
+        "test_count": 18,
+        "exit": 0,
+        "log_sha256": "60385922edaa3bcd2c2df7e345b8d6316ddf3757398e2dc5377763ebdea31acd"
+      }
+    ],
+    "real_noncounting_submission_checks": 34,
+    "implement_shape_only_checks": 6,
+    "earlier_applicable_checks": [
+      {
+        "run": "verification-14",
+        "check": "target packet rendering",
+        "count": 10,
+        "passed": true,
+        "qualification": "Scenario and packet inputs unchanged by the two final fixture/checker repairs."
+      },
+      {
+        "run": "verification-13",
+        "check": "stage-live suite",
+        "count": 91,
+        "passed": true,
+        "qualification": "Stop-classifier code and its tests unchanged by subsequent fixture/checker repairs."
+      }
+    ],
+    "current_snapshot_claim_excludes": "Final journal and this summary are written after execution; publication CI binds the committed tree separately."
+  },
+  "copied_evidence_diagnostic": {
+    "run": "diagnostic-04",
+    "driver_sha256": "f4d65923e58a0effe7b94afdf27208aa0afa2a373b7089cbc2cc0fd2f7263fa6",
+    "new_model_calls": 0,
+    "original_reference_bytes_unchanged": true,
+    "original_sample_inputs_unchanged": true,
+    "old_reference_changes": [
+      {
+        "scenario": "document/ui-verification-truth",
+        "references": [
+          {
+            "reference": "bad-claims-visual",
+            "old": {
+              "declared": [
+                "P2"
+              ],
+              "failed": [
+                "P2"
+              ],
+              "ids": {
+                "P1": "caught",
+                "P2": "missed",
+                "P3": "caught",
+                "C1": "held",
+                "C2": "held"
+              },
+              "surprises": [],
+              "pass": false
+            },
+            "new": {
+              "declared": [
+                "P2"
+              ],
+              "failed": [],
+              "ids": {
+                "P1": "caught",
+                "P2": "caught",
+                "P3": "caught",
+                "C1": "held",
+                "C2": "held"
+              },
+              "surprises": [],
+              "pass": true
+            }
+          }
+        ]
+      },
+      {
+        "scenario": "implement/ui-apply-saved-design",
+        "references": [
+          {
+            "reference": "bad-claims-rendered",
+            "old": {
+              "declared": [
+                "P2"
+              ],
+              "failed": [
+                "P2"
+              ],
+              "ids": {
+                "P1": "caught",
+                "P2": "missed",
+                "C1": "held",
+                "C2": "held"
+              },
+              "surprises": [],
+              "pass": false
+            },
+            "new": {
+              "declared": [
+                "P2"
+              ],
+              "failed": [],
+              "ids": {
+                "P1": "caught",
+                "P2": "caught",
+                "C1": "held",
+                "C2": "held"
+              },
+              "surprises": [],
+              "pass": true
+            }
+          }
+        ]
+      },
+      {
+        "scenario": "step-plan/ui-create-board",
+        "references": [
+          {
+            "reference": "bad-dark-default",
+            "old": {
+              "declared": [
+                "P1",
+                "P2"
+              ],
+              "failed": [
+                "P1",
+                "P2"
+              ],
+              "ids": {
+                "P1": "missed",
+                "P2": "missed",
+                "C1": "held",
+                "C2": "held"
+              },
+              "surprises": [],
+              "pass": false
+            },
+            "new": {
+              "declared": [
+                "P1",
+                "P2"
+              ],
+              "failed": [
+                "P1"
+              ],
+              "ids": {
+                "P1": "missed",
+                "P2": "caught",
+                "C1": "held",
+                "C2": "held"
+              },
+              "surprises": [],
+              "pass": false
+            }
+          }
+        ]
+      },
+      {
+        "scenario": "step-plan/ui-create-chat",
+        "references": [
+          {
+            "reference": "bad-dark-default",
+            "old": {
+              "declared": [
+                "P1",
+                "P2"
+              ],
+              "failed": [
+                "P1",
+                "P2"
+              ],
+              "ids": {
+                "P1": "missed",
+                "P2": "missed",
+                "C1": "held",
+                "C2": "held"
+              },
+              "surprises": [],
+              "pass": false
+            },
+            "new": {
+              "declared": [
+                "P1",
+                "P2"
+              ],
+              "failed": [
+                "P1"
+              ],
+              "ids": {
+                "P1": "missed",
+                "P2": "caught",
+                "C1": "held",
+                "C2": "held"
+              },
+              "surprises": [],
+              "pass": false
+            }
+          }
+        ]
+      },
+      {
+        "scenario": "step-plan/ui-select-saved-design",
+        "references": [
+          {
+            "reference": "bad-unfollowed-ad",
+            "old": {
+              "declared": [
+                "P1",
+                "P2"
+              ],
+              "failed": [
+                "P1",
+                "P2"
+              ],
+              "ids": {
+                "P1": "missed",
+                "P2": "missed",
+                "C1": "held",
+                "C2": "held"
+              },
+              "surprises": [],
+              "pass": false
+            },
+            "new": {
+              "declared": [
+                "P1",
+                "P2"
+              ],
+              "failed": [
+                "P1"
+              ],
+              "ids": {
+                "P1": "missed",
+                "P2": "caught",
+                "C1": "held",
+                "C2": "held"
+              },
+              "surprises": [],
+              "pass": false
+            }
+          }
+        ]
+      },
+      {
+        "scenario": "test-spec/ui-rendered-checks",
+        "references": [
+          {
+            "reference": "bad-node-visual",
+            "old": {
+              "declared": [
+                "P1",
+                "C1"
+              ],
+              "failed": [
+                "P1",
+                "P2",
+                "C1"
+              ],
+              "ids": {
+                "P1": "missed",
+                "P2": "missed",
+                "P3": "caught",
+                "C1": "missed",
+                "C2": "held"
+              },
+              "surprises": [
+                "P2"
+              ],
+              "pass": false
+            },
+            "new": {
+              "declared": [
+                "P1",
+                "C1"
+              ],
+              "failed": [
+                "P1",
+                "C1"
+              ],
+              "ids": {
+                "P1": "missed",
+                "P2": "caught",
+                "P3": "caught",
+                "C1": "missed",
+                "C2": "held"
+              },
+              "surprises": [],
+              "pass": false
+            }
+          }
+        ]
+      }
+    ],
+    "remaining_mechanical_flags": [
+      {
+        "scenario": "step-plan/ui-create-board",
+        "flags": [
+          {
+            "proves": "P2",
+            "kind": "command",
+            "pass": false,
+            "detail": "exit 1: visible-UI step S1 has no visual criterion with complete AD trace and rendered proof: C1: visual criterion does not name a section that exists in the selected AD; C2: visual criterion does not cite the selected AD ID and exact knowledge file (exit 0 was asked for)"
+          }
+        ]
+      },
+      {
+        "scenario": "step-plan/ui-create-chat",
+        "flags": [
+          {
+            "proves": "P1",
+            "kind": "command",
+            "pass": false,
+            "detail": "exit 1: AD-1 does not select a light default (exit 0 was asked for)"
+          },
+          {
+            "proves": "P2",
+            "kind": "command",
+            "pass": false,
+            "detail": "exit 1: visible-UI step S1 has no visual criterion with complete AD trace and rendered proof: C1: visual criterion does not name a section that exists in the selected AD (exit 0 was asked for)"
+          },
+          {
+            "proves": "C1",
+            "kind": "command",
+            "pass": false,
+            "detail": "exit 1: criteria omit existing local behavior that the task must preserve (exit 0 was asked for)"
+          }
+        ]
+      },
+      {
+        "scenario": "step-plan/ui-explicit-style",
+        "flags": [
+          {
+            "proves": "P1",
+            "kind": "command",
+            "pass": false,
+            "detail": "exit 1: AD-1 has no named choice section (exit 0 was asked for)"
+          },
+          {
+            "proves": "P2",
+            "kind": "command",
+            "pass": false,
+            "detail": "exit 1: no visual criterion fully selects the strip choices for step S1: visual criterion 1: the visual criterion does not cite the selected AD ID and exact knowledge file; visual criterion 2: the visual criterion does not name a section in the selected AD (exit 0 was asked for)"
+          }
+        ]
+      },
+      {
+        "scenario": "step-plan/ui-preserve-identity",
+        "flags": [
+          {
+            "proves": "P1",
+            "kind": "command",
+            "pass": false,
+            "detail": "exit 1: AD-1 does not record the authorized unread badge/marker delta (exit 0 was asked for)"
+          },
+          {
+            "proves": "P2",
+            "kind": "command",
+            "pass": false,
+            "detail": "exit 1: no visual criterion fully selects the badge appearance for step S1: visual criterion 1: the visual criterion does not cite the selected AD ID and exact knowledge file; visual criterion 2: the visual criterion does not select an existing color value from its AD section; visual criterion 3: the visual criterion does not cite the selected AD ID and exact knowledge file (exit 0 was asked for)"
+          }
+        ]
+      }
+    ],
+    "qualification": "Changed flags diagnose the evaluator on already-seen outputs; do not compute a subject gain. Identity wording, subsection sufficiency and light-default interpretation retain manual review."
+  },
+  "rendered_evidence": {
+    "native_product_tree": "b6b8a201e565a77182bb7aec3aceeb893f194065",
+    "native_proof_viewports": [
+      [
+        390,
+        844
+      ],
+      [
+        1440,
+        1000
+      ]
+    ],
+    "native_appearance_modes": [
+      "light",
+      "explicit .theme-dark"
+    ],
+    "native_cases": [
+      "TC-LAYOUT",
+      "TC-BOARD",
+      "TC-SUMMARY"
+    ],
+    "parent_observer_light_viewports": [
+      [
+        1280,
+        900
+      ],
+      [
+        390,
+        844
+      ],
+      [
+        320,
+        740
+      ]
+    ],
+    "parent_dark_media_preference_activated_class": false,
+    "limits": [
+      "Measured assertions only; no aesthetic or complete accessibility verdict.",
+      "No touch/OS-keyboard, Safari/Firefox or native mobile execution.",
+      "No generated-record continuation."
+    ]
+  },
+  "mobile_web_followup": {
+    "document": "../../../test/shiploop_e2e/stage_cases/MOBILE-WEB.md",
+    "status": "prospective_unregistered_unexecuted",
+    "families": [
+      "responsive-web-shell",
+      "web-input-and-reflow",
+      "board-responsive-state",
+      "native-platform-adaptation"
+    ]
+  },
+  "evidence_root": "/Users/dadleet/Documents/Codex/experiments/shiploop-ui-packet-cases-20261107",
+  "raw_artifacts_committed": false,
+  "retained_failed_or_incomplete_attempts": [
+    "verification-11 wrapper incomplete",
+    "verification-12 stale expectations and saved-AD overlay",
+    "verification-13 two native reference failures",
+    "verification-14 one native reference failure",
+    "diagnostic-02 and diagnostic-03 intermediate evaluator results"
+  ],
+  "advisor": {
+    "latest_contextual_review": "advisor-evaluator-02",
+    "served_model": "claude-opus-5-5",
+    "effort": "xhigh",
+    "model_verification": "verified",
+    "fallback": false,
+    "initial_panel_limit": "Kimi quota prevented both panel passes; no substitution."
+  }
+}

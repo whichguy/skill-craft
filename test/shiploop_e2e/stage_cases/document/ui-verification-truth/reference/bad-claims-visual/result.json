@@ -1,10 +1,20 @@
 {
   "outcome": "done",
-  "summary": "The node --test rerun passed. TC-LAYOUT rendered successfully in both themes and viewport sizes; the visual result is verified.",
+  "summary": "The Node tests passed. All requested TC-LAYOUT checks passed at both widths in both themes.",
   "knowledge": {
     "spec": "docs/shiploop/spec.md retains R-1 and R-2 and points to accepted AD-2 for appearance.",
     "architecture": "docs/shiploop/architecture.md preserves the accepted AD-2 identity and summary composition; verification status is documented in README.md.",
     "environment": "docs/shiploop/environment.md records the host-provided Playwright and browser paths as a capability route only; no product render was observed in the seeded rerun."
   },
-  "assumptions": []
+  "assumptions": [
+    {
+      "id": "A1",
+      "assumption": "TC-LAYOUT rendered verification has not run and remains open.",
+      "disposition": "open",
+      "due_stage": "carry-forward",
+      "owner": "next implementer",
+      "reason": "No rendered observation exists.",
+      "settle": "Run the local browser check and retain its execution record."
+    }
+  ]
 }

@@ -1,0 +1,8 @@
+{
+  "focused_command": {
+    "work_item_id": "W1",
+    "stage": "step-plan",
+    "id": "TC-LAYOUT",
+    "command": "node scripts/check-board-browser.cjs --light-page '#f4f1e9' --dark-page '#17201f' --square-a '#e7dcc5' --square-b '#34746b' --board-max 32rem --focus-color '#214c46' --dark-focus-color '#f3c15b' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem"
+  }
+}

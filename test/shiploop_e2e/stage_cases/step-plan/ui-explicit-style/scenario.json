@@ -102,9 +102,10 @@
     {
       "proves": "C2",
       "changed_only": [
-        "docs/shiploop/architecture.md"
+        "docs/shiploop/architecture.md",
+        "docs/shiploop/environment.md"
       ],
-      "why": "Planning may write its durable design record but does not implement product files. This checks tree scope, not semantic scope in the proposed plan."
+      "why": "Planning may update its canonical architecture and environment records but does not implement product files. This checks actual tree scope, not semantic scope in the proposed plan."
     }
   ],
   "live": {

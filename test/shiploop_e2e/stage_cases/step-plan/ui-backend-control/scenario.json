@@ -19,7 +19,7 @@
     {
       "id": "P1",
       "what": "The plan addresses the requested partial-last-page pagination defect with a concrete criterion.",
-      "signature": "paginate plus last/partial/page result in a criterion"
+      "signature": "The final page returns the exact remaining item and correct page count."
     }
   ],
   "controls": [
@@ -41,7 +41,7 @@
     },
     {
       "proves": "P1",
-      "packet_contains": "paginate"
+      "packet_contains": "(?i)(partial|last|final).{0,30}page"
     },
     {
       "proves": "C1",
@@ -58,7 +58,7 @@
     {
       "proves": "P1",
       "field": "criteria[*].text",
-      "matches": "(?is)paginate.*(?:partial|last|\\[5\\])",
+      "matches": "(?is)(?=.*(?:page\\s*[:=]\\s*3|\\bpage\\s+3\\b))(?=.*(?:pages\\s*[:=]\\s*3|\\b3\\s+pages\\b))(?=.*(?:items\\s*[:=]\\s*\\[\\s*5\\s*\\]|\\[\\s*5\\s*\\]|\\b(?:remaining\\s+)?item\\s+(?:is|=)\\s+5\\b))",
       "any": true
     },
     {

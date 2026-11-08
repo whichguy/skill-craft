@@ -4,7 +4,7 @@
 
 ### AD-2 — Board interface
 
-Status: accepted identity preserved; the requested summary placement is authorized. Implementation and rendered verification of that placement are pending.
+Status: accepted identity preserved; the requested summary placement is authorized.
 
 #### Appearance and tokens
 

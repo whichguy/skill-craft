@@ -1,0 +1,10 @@
+{
+  "outcome": "done",
+  "summary": "TC-LAYOUT passed in all requested contexts.",
+  "not_covered": [
+    {
+      "behaviour": "TC-LAYOUT at 1440x1000 and in dark appearance.",
+      "reason": "Pending; only the narrow light context was observed."
+    }
+  ]
+}

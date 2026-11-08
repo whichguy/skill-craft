@@ -445,6 +445,23 @@ class VerifyFailures(Temp):
 
 
 class PrivateHelperNoDelivery(Temp):
+    def test_test_spec_command_reference_resolves_to_the_seeded_focused_procedure(self):
+        root = HARNESS / "stage_cases" / "test-spec" / "ui-rendered-checks"
+        scenario = json.loads((root / "scenario.json").read_text())
+        focused = json.loads((root / "oracle" / "contract.json").read_text())["focused_command"]
+        self.assertEqual(focused["work_item_id"], scenario["request"]["work_item"]["id"])
+        commands = scenario["seed_records"][focused["stage"]]["test_commands"]
+        matches = [row for row in commands if row.get("suite") == "focused"
+                   and focused["id"] in row.get("ids", [])]
+        self.assertEqual([row["command"] for row in matches], [focused["command"]])
+
+    def test_generic_ui_plan_helpers_share_one_contract_driven_implementation(self):
+        root = HARNESS / "stage_cases" / "step-plan"
+        copies = [root / name / "oracle" / "check_plan.py" for name in
+                  ("ui-create-board", "ui-create-chat", "ui-select-saved-design")]
+        self.assertEqual(len({path.read_bytes() for path in copies}), 1,
+                         "mode and saved-AD differences belong in contract.json, not drifting helper copies")
+
     def test_ui_contract_helpers_do_not_crash_when_no_result_is_delivered(self):
         scenarios = [sc for sc in sb.discover() if "ui-contract" in sc.tags]
         self.assertTrue(scenarios, "the shipped ui-contract scenarios must be discoverable")

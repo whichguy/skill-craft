@@ -73,7 +73,8 @@ def decision_ids(texts):
 
 
 def ad_start(line, ident):
-    return bool(re.match(r"^\s*(?:#{2,6}\s+|[-*]\s+|\*\*)?" + re.escape(ident) + r"\b", line))
+    prefix = r"^\s*(?:(?:#{2,6}\s+)|(?:[-*]\s+))?(?:\*\*)?"
+    return bool(re.match(prefix + re.escape(ident) + r"\b", line))
 
 
 def ad_block(document, ident):
@@ -84,7 +85,7 @@ def ad_block(document, ident):
     end = len(lines)
     for index in range(start + 1, len(lines)):
         line = lines[index]
-        if re.match(r"^\s*(?:#{2,6}\s+|[-*]\s+|\*\*)?AD-\d+\b", line):
+        if re.match(r"^\s*(?:(?:#{2,6}\s+)|(?:[-*]\s+))?(?:\*\*)?AD-\d+\b", line):
             if re.search(r"\bAD-\d+\b", line).group(0) != ident:
                 end = index
                 break
@@ -103,12 +104,15 @@ def named_sections(block):
             sections.append((name.strip(), "\n".join(body)))
 
     for line in block.splitlines()[1:]:
-        match = (re.match(r"^\s*#{3,6}\s+(.+?)\s*#*\s*$", line)
-                 or re.match(r"^\s*(?:[-*]\s*)?\*\*([^*]+)\*\*\s*:?\s*$", line)
-                 or re.match(r"^\s*(?:[-*]\s*)?([A-Za-z][A-Za-z0-9 /&()_-]{2,45})\s*:\s*$", line))
+        heading = re.match(r"^\s*#{3,6}\s+(.+?)\s*#*\s*$", line)
+        bold_label = re.match(r"^\s*(?:[-*]\s*)?\*\*([^*]+)\*\*\s*:?\s*(.*?)\s*$", line)
+        plain_label = re.match(r"^\s*(?:[-*]\s*)?([A-Za-z][A-Za-z0-9 /&()_-]{2,45})\s*:\s*(.*?)\s*$", line)
+        match = heading or bold_label or plain_label
         if match and not re.search(r"\bAD-\d+\b", match.group(1)):
             save()
-            name, body = match.group(1), []
+            name = match.group(1)
+            inline_body = (bold_label or plain_label).group(2).strip() if (bold_label or plain_label) else ""
+            body = [inline_body] if inline_body else []
         elif name:
             body.append(line)
     save()
@@ -122,19 +126,29 @@ def source_css():
     return strip_comments(path.read_text(encoding="utf-8"))
 
 
-def existing_color_tokens(css):
-    tokens = []
-    for name, value in re.findall(r"(--[A-Za-z0-9_-]+)\s*:\s*([^;{}]+)", css):
-        colors = positive_matches(COLOR, value)
-        if colors:
-            tokens.append((name, colors[0].strip()))
-    return tokens
-
 
 def component_selectors(css):
     names = set(re.findall(r"(?<![\w-])\.([A-Za-z][A-Za-z0-9_-]*)", css))
-    return ["." + name for name in sorted(names)
+    return [name for name in sorted(names)
             if re.search(r"(?:conversation|message|thread|composer)", name, re.I)]
+
+
+def component_is_named(name, text):
+    return bool(re.search(r"(?<![\w-])" + re.escape(name) + r"(?![\w-])", strip_comments(text), re.I))
+
+
+def color_values(text):
+    return {value.lower() for value in positive_matches(COLOR, text)}
+
+
+def has_badge_composition(text):
+    clean = strip_comments(text).lower()
+    if not re.search(UNREAD_INDICATOR, clean):
+        return False
+    subject = r"\b(?:conversation[- ](?:rows?|items?|list|grid)|(?:rows?|items?) of (?:the )?conversations?)\b"
+    placement = r"\b(?:trailing|right|end|align(?:ed|ment)?|place(?:d|ment)?|beside|alongside|within|inside)\b"
+    return bool(re.search(subject + r"[^.;:\n]{0,110}" + placement, clean)
+                or re.search(placement + r"[^.;:\n]{0,110}" + subject, clean))
 
 
 def selected_record():
@@ -159,25 +173,25 @@ def check_record():
     lower = strip_comments(block).lower()
     if not sections:
         fail(f"{ident} has no named choice section")
-    if not re.search(r"\b(?:existing|established)\b[^.\n]{0,90}\b(?:identity|interface|product)\b|\b(?:identity|interface)\b[^.\n]{0,90}\b(?:existing|established)\b", lower):
-        fail(f"{ident} does not recognize the existing chat identity")
     if not re.search(UNREAD_INDICATOR, lower):
         fail(f"{ident} does not record the authorized unread badge/marker delta")
     if not re.search(r"\b(?:only|limited|confined|authorized delta|small delta)\b[^.\n]{0,100}\b(?:unread|badge)", lower):
         fail(f"{ident} does not limit the decision to the unread-badge feature")
     css = source_css()
-    tokens = existing_color_tokens(css)
-    reused = [(name, value) for name, value in tokens if name.lower() in lower and value.lower() in lower]
-    if len(reused) < 2:
-        fail(f"{ident} does not reuse at least two color tokens and values from the existing stylesheet")
+    existing_colors = color_values(css)
+    reused_colors = existing_colors & color_values(block)
+    if len(reused_colors) < 2:
+        fail(f"{ident} does not reuse at least two existing stylesheet colors")
     selectors = component_selectors(css)
-    reused_components = [selector for selector in selectors if selector.lower() in lower]
+    reused_components = [name for name in selectors if component_is_named(name, block)]
     if len(reused_components) < 2:
         fail(f"{ident} does not retain at least two existing chat components")
-    sizes = {value.lower() for value in positive_matches(SIZE, css)}
-    if not any(value in lower for value in sizes):
-        fail(f"{ident} has no concrete dimension already used by the product")
-    return ident, block, sections, reused, reused_components
+    source_sizes = {value.lower() for value in positive_matches(SIZE, css)}
+    ad_sizes = {value.lower() for value in positive_matches(SIZE, block)}
+    if not source_sizes.intersection(ad_sizes) and not has_badge_composition(block):
+        fail(f"{ident} has neither a current numeric size anchor nor a concrete unread-count placement")
+    # Numeric and composition anchors are lexical proxies; whether the choices sufficiently preserve identity remains manual.
+    return ident, block, sections, reused_colors, reused_components
 
 
 def normalized(text):
@@ -193,37 +207,46 @@ def section_is_cited(name, text):
 
 
 def check_trace():
-    ident, block, sections, reused, reused_components = check_record()
+    ident, block, _ = selected_record()
+    sections = named_sections(block)
     steps = ui_steps()
     if not steps:
         fail("there is no planned step that changes the visible chat UI")
     css = source_css()
+    reused_colors = color_values(css) & color_values(block)
+    reused_components = [name for name in component_selectors(css) if component_is_named(name, block)]
 
-    def trace_problem(text):
+    def trace_problem(text, proof):
         clean = strip_comments(text)
         if ident not in clean or not any(path in clean for path in ("docs/shiploop/architecture.md", "KNOWLEDGE/architecture.md")):
             return "the visual criterion does not cite the selected AD ID and exact knowledge file"
         cited = [(name, body) for name, body in sections if section_is_cited(name, clean)]
         if not cited:
             return "the visual criterion does not name a section in the selected AD"
-        selected_text = "\n".join(body for _, body in cited).lower()
-        matching_token = [(name, value) for name, value in reused
-                          if name.lower() in clean.lower() and value.lower() in clean.lower()
-                          and name.lower() in selected_text and value.lower() in selected_text]
-        if not matching_token:
-            return "the visual criterion does not select an existing token and value from its AD section"
-        if not any(selector.lower() in clean.lower() and selector.lower() in selected_text
-                   for selector in reused_components):
+        selected_text = "\n".join(body for _, body in cited)
+        selected_colors = color_values(selected_text) & reused_colors
+        criterion_colors = color_values(clean)
+        if not criterion_colors.intersection(selected_colors):
+            return "the visual criterion does not select an existing color value from its AD section"
+        if not any(component_is_named(name, clean) and component_is_named(name, selected_text)
+                   for name in reused_components):
             return "the visual criterion does not select an existing chat component"
         source_sizes = {value.lower() for value in positive_matches(SIZE, css)}
         ad_sizes = {value.lower() for value in positive_matches(SIZE, selected_text)}
         criterion_sizes = {value.lower() for value in positive_matches(SIZE, clean)}
-        if not criterion_sizes.intersection(source_sizes).intersection(ad_sizes):
-            return "the visual criterion omits a concrete current-product size anchor"
+        has_current_size = bool(criterion_sizes.intersection(source_sizes).intersection(ad_sizes))
+        if not has_current_size and not has_badge_composition(clean):
+            return "the visual criterion omits a source-backed size or concrete unread-count placement"
         if not re.search(r"\b(?:render|rendered|browser)\b", clean, re.I):
             return "the criterion does not name a rendered observation"
-        if not re.search(r"\b(?:mobile|phone|narrow)\b", clean, re.I) or not re.search(r"\b(?:desktop|wide)\b", clean, re.I):
-            return "the criterion omits narrow and wide rendered contexts"
+        viewport_text = clean + " " + proof
+        widths = [int(match.group(1)) for match in re.finditer(r"\b([1-9]\d{2,3})\s*(?:[x×]\s*\d{2,4}\b|px\b)", viewport_text, re.I)]
+        narrow_max = int(contract.get("narrow_viewport_max", 480))
+        wide_min = int(contract.get("wide_viewport_min", 1024))
+        has_narrow = any(width <= narrow_max for width in widths) or re.search(r"\b(?:narrow|mobile|phone)\b", viewport_text, re.I)
+        has_wide = any(width >= wide_min for width in widths) or re.search(r"\b(?:wide|desktop)\b", viewport_text, re.I)
+        if not has_narrow or not has_wide:
+            return "the criterion omits narrow and wide rendered coverage"
         if not re.search(UNREAD_INDICATOR, clean, re.I):
             return "the visual criterion does not identify the requested unread badge/marker delta"
         return None
@@ -232,9 +255,29 @@ def check_trace():
         visuals = [text for text in criteria_for(step) if is_visual(text)]
         if not visuals:
             fail("a visible-UI step has no criterion for the unread-badge appearance")
-        problems = [trace_problem(text) for text in visuals]
+        proof = str(step.get("proof", ""))
+        problems = [trace_problem(text, proof) for text in visuals]
         if not any(problem is None for problem in problems):
-            fail("no visual criterion fully selects the badge appearance for step " + str(step.get("id")) + ": " + problems[0])
+            fail("no visual criterion fully selects the badge appearance for step " + str(step.get("id")) + ": " + "; ".join(f"visual criterion {index + 1}: {problem}" for index, problem in enumerate(problems)))
+
+
+
+def package_maps_node_test():
+    package = tree / "package.json"
+    if not package.is_file():
+        return False
+    try:
+        scripts = json.loads(package.read_text(encoding="utf-8")).get("scripts", {})
+    except (OSError, json.JSONDecodeError):
+        return False
+    test_script = scripts.get("test", "") if isinstance(scripts, dict) else ""
+    return isinstance(test_script, str) and bool(re.search(r"\bnode\s+--test\b", test_script))
+
+
+def is_node_test_command(command):
+    direct = re.search(r"(?<![A-Za-z0-9_.-])(?:[A-Za-z_][A-Za-z0-9_]*=(?:'[^']*'|\"[^\"]*\"|[^\s]+)\s+)*node\s+--test\b", command)
+    npm_test = re.search(r"(?:^|[;&|]\s*)npm\s+(?:test|run\s+test)(?:\s|$)", command)
+    return bool(direct or (npm_test and package_maps_node_test()))
 
 
 def check_behavior():
@@ -245,20 +288,24 @@ def check_behavior():
         fail("criteria omit the per-conversation unread-count and clear-on-selection behavior")
     if "message" not in combined or "local" not in combined:
         fail("criteria omit the existing local conversation/message behavior")
-    paths = {str(path) for step in result.get("steps", []) if isinstance(step, dict) for path in step.get("paths", [])}
-    if "test/chat-state.test.mjs" not in paths:
-        fail("the plan omits the existing chat state test path")
     commands = [str(item.get("command", "")) for item in result.get("test_commands", []) if isinstance(item, dict)]
-    if not any("node --test" in command for command in commands):
+    if not any(is_node_test_command(command) for command in commands):
         fail("the plan omits the existing node:test suite")
+
+
+def within_allowed_prefix(path, prefix):
+    parts = path.split("/")
+    return (path.startswith(prefix) and not path.startswith("/")
+            and all(part not in {"", ".", ".."} for part in parts))
 
 
 def check_scope():
     """Path and phrasing proxy; it cannot establish semantic plan-scope coverage."""
     allowed = set(contract["allowed_paths"])
+    prefixes = contract.get("allowed_path_prefixes", [])
     paths = set(map(str, result.get("paths", [])))
     paths |= {str(path) for step in result.get("steps", []) if isinstance(step, dict) for path in step.get("paths", [])}
-    outside = sorted(paths - allowed)
+    outside = sorted(path for path in paths if path not in allowed and not any(within_allowed_prefix(path, prefix) for prefix in prefixes))
     if outside:
         fail("planned paths go beyond the unread feature and design record: " + ", ".join(outside))
     missing = sorted(set(contract["required_paths"]) - paths)

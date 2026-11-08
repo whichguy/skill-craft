@@ -29,7 +29,7 @@
   "seed_records": {
     "step-plan": {
       "outcome": "done",
-      "summary": "TC-LAYOUT specifies saved summary placement, board geometry, and focus observations at mobile and desktop in light and dark themes. TC-BOARD and TC-SUMMARY retain the existing node --test selection, coordinate-validation, and Reset state checks. The host environment records a browser route to probe before relying on the rendered command; this plan describes checks, while execution status belongs in the test result.",
+      "summary": "TC-LAYOUT specifies saved summary placement, board geometry, focus observations, and the rendered procedure at mobile and desktop in light and dark themes. TC-BOARD and TC-SUMMARY retain the existing node --test selection, coordinate-validation, and Reset state checks. This plan defines checks; execution status belongs in the test result.",
       "criteria": [
         {
           "id": "C1",
@@ -196,13 +196,13 @@
   "planted": [
     {
       "id": "P1",
-      "what": "TC-LAYOUT specifies the rendered browser command and saved mobile/desktop, theme, board, status, focus, and 64-control observations.",
-      "signature": "TC-LAYOUT browser command, viewports, themes, summary max/gap"
+      "what": "TC-LAYOUT identifies the rendered procedure seeded for the focused command and specifies saved mobile/desktop, theme, board, summary, focus, and 64-control observations. Shared setup may live in the summary when TC-LAYOUT refers to it.",
+      "signature": "seeded rendered procedure, viewports, themes, summary max/gap"
     },
     {
       "id": "P2",
-      "what": "The test-spec result leaves rendered checks unrun here, directs a capability probe for the supplied host route, and makes no visual-pass claim.",
-      "signature": "pending/not run; PLAYWRIGHT_NODE_PATH and BROWSER_EXECUTABLE_PATH; no pass claim"
+      "what": "Planned GREEN conditions remain distinct from a completed rendered-pass claim. A summary with no such claim needs no literal pending marker or fresh browser-capability probe.",
+      "signature": "no completed-pass claim; no pending/probe duty"
     },
     {
       "id": "P3",
@@ -217,7 +217,7 @@
     },
     {
       "id": "C2",
-      "what": "The plan probes the supplied host browser route before use and adds no remote dependency or unrelated redesign."
+      "what": "The plan adds no remote dependency or unrelated redesign."
     }
   ],
   "render": [
@@ -254,23 +254,6 @@
     {
       "proves": "C2",
       "packet_contains": "R-2"
-    },
-    {
-      "proves": "P2",
-      "packet_contains": "KNOWLEDGE/environment\\.md \\(\\d+ bytes",
-      "why": "The packet indexes the actual environment record instead of duplicating all of its command text."
-    },
-    {
-      "proves": "P2",
-      "file": "docs/shiploop/environment.md",
-      "contains": "PLAYWRIGHT_NODE_PATH",
-      "why": "The packet-linked environment holds this capability fact; availability is not executed visual proof."
-    },
-    {
-      "proves": "P2",
-      "file": "docs/shiploop/environment.md",
-      "contains": "BROWSER_EXECUTABLE_PATH",
-      "why": "The packet-linked environment holds this capability fact; availability is not executed visual proof."
     }
   ],
   "oracle": [
@@ -281,7 +264,7 @@
     },
     {
       "proves": "P2",
-      "command": "python3 \"$STAGE_ORACLE/check.py\" pending",
+      "command": "python3 \"$STAGE_ORACLE/check.py\" claim",
       "exit": 0
     },
     {

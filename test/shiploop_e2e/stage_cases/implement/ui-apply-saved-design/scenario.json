@@ -231,8 +231,8 @@
     },
     {
       "id": "P2",
-      "what": "Report rendered verification based on evidence: leave TC-LAYOUT explicitly pending when it was not run, or record the browser command and its concrete TC-LAYOUT output when it was run; do not claim an unsupported visual pass.",
-      "signature": "not_covered pending or command/output evidence for TC-LAYOUT"
+      "what": "The result supplies not_covered and does not simultaneously claim rendered success and leave the same visual work open. Actual execution truth is withheld from automatic scoring and requires native receipt review.",
+      "signature": "reporting consistency only; manual verification truth"
     }
   ],
   "controls": [
@@ -311,7 +311,7 @@
       "proves": "P2",
       "command": "python3 \"$STAGE_ORACLE/check.py\" visual-truth",
       "exit": 0,
-      "why": "Accepts either an explicitly pending visual check or recorded rendered command output; does not launch a browser."
+      "why": "Checks reporting consistency only. Neither pasted output nor a locator proves execution; inspect native receipts separately."
     },
     {
       "proves": "C1",

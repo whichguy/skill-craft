@@ -10,6 +10,11 @@
     "reset"
   ],
   "mode": "new",
-  "required_themes": ["light", "dark"],
-  "render_command_prefix": "node scripts/check-board-browser.cjs"
+  "required_themes": [
+    "light",
+    "dark"
+  ],
+  "render_command_prefix": "node scripts/check-board-browser.cjs",
+  "narrow_viewport_max": 480,
+  "wide_viewport_min": 1024
 }

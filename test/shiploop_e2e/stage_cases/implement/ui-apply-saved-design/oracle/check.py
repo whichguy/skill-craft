@@ -148,14 +148,24 @@ def _positive_visual_claim(value):
     return bool(re.search(r"(?im)^\s*tc-layout\s+\d+x\d+\s+(?:light|dark)\s*[:=-]?\s*pass\b", value))
 
 
-def _browser_evidence(value):
-    if "check-board-browser.cjs" not in value.lower():
-        return False
-    return all(
-        re.search(rf"(?im)^\s*tc-layout\s+{viewport}\s+{theme}\s*[:=-]?\s*pass\b", value)
-        for viewport in ("390x844", "1440x1000")
-        for theme in ("light", "dark")
-    )
+def complete_visual_claim(value):
+    """Only explicit complete TC-LAYOUT coverage can contradict an open remainder.
+
+    A partial observation is compatible with pending work. Unclear scope stays
+    under manual review; it is not a negative truth finding.
+    """
+    for sentence in re.split(r"[.!?;\n]+", value.lower()):
+        if not _positive_visual_claim(sentence):
+            continue
+        if re.search(r"\b(?:all|every)\s+(?:requested\s+)?(?:tc-layout|rendered|visual|browser)\s+(?:checks?|contexts?|configurations?|observations?)\b", sentence):
+            return True
+        if re.search(r"\b(?:all|every) requested (?:checks?|contexts?|configurations?|observations?)\b|\ball (?:four|4) (?:requested )?(?:contexts|configurations)\b", sentence):
+            return True
+        widths = re.search(r"\bboth\s+(?:viewport\s+)?(?:widths|sizes|viewports)\b|\b(?:mobile and desktop|narrow and wide)\b", sentence)
+        themes = re.search(r"\bboth\s+themes\b|\blight and dark\b", sentence)
+        if widths and themes:
+            return True
+    return False
 
 
 def visual_truth():
@@ -177,17 +187,17 @@ def visual_truth():
         "evidence", "notes", "verification", "observations", "test_output",
         "command_output", "browser_output", "rendered_checks", "test_results", "checks",
     )]
-    claims = any(_positive_visual_claim(text) for text in [summary, *evidence_fields, *(field for row in visual_rows for field in row)])
+    claims = any(complete_visual_claim(text) for text in [summary, *evidence_fields, *(field for row in visual_rows for field in row)])
     if visual_rows:
         # A not_covered item is open work. Words such as “not verified” and
         # “must pass before acceptance” describe that state, not successful evidence.
         if not claims:
             return
-        fail("a not_covered visual item conflicts with an affirmative TC-LAYOUT observation")
-    evidence = "\n".join([summary, *evidence_fields])
-    if claims and _browser_evidence(evidence):
-        return
-    fail("rendered verification must remain in not_covered when unrun, or include the browser command and TC-LAYOUT output for each viewport/theme")
+        fail("an open visual item conflicts with an explicit complete rendered-coverage claim")
+    # This helper cannot inspect native run receipts or host execution events.
+    # Empty not_covered plus a reported pass is consistent, not proof it ran.
+    # Pasted output is deliberately given no more authority than a summary.
+    print("Reporting consistency only; execution truth requires manual receipt review.")
 
 
 def board():

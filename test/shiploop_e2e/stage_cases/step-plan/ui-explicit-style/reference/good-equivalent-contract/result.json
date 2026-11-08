@@ -1,0 +1,154 @@
+{
+  "outcome": "done",
+  "summary": "The selected-square strip keeps the explicit retro direction local to the requested addition and preserves existing board behavior. The architecture record and rendered check are planned.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "The selected-square summary strip alone receives the explicit retro arcade/pixel treatment immediately below the board, following AD-1 in docs/shiploop/architecture.md, sections Explicit direction and scope and Strip tokens and placement. Use panel #25202a, signal #efb849, 2px border and 0.875rem ui-monospace as selected anchors. Check a rendered browser at 390x844 and 1440x1000: the strip stays below the board without overlap or overflow, and its empty/selected states remain legible. Unchanged are the board, controls, current status and rest of page. This browser check is planned, not yet run. Serves R-2.",
+      "confirm": "executed"
+    },
+    {
+      "id": "C2",
+      "text": "When a square is selected, show its coordinate in the new strip. Reset clears the strip to Choose a square. Keep all 64 selectable squares, the current status announcement and local reset behavior. Planned regression command, not yet run: node --test test/board-state.test.mjs; require TC-BOARD to pass. Serves R-1.",
+      "confirm": "executed"
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Implement the selected-square summary strip with its explicit retro direction scoped to the strip (C1), selected-coordinate/reset behavior (C2), and a planned rendered browser observation helper.",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C2"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md",
+        "styles.css",
+        "src/board-ui.mjs",
+        "docs/shiploop/environment.md",
+        "scripts/measure-summary-render.mjs"
+      ],
+      "proof": "UI_DIAGNOSTIC=1 node scripts/measure-summary-render.mjs --viewports 390x844,1440x1000 --select-reset --keyboard-focus --out \"$(mktemp -d)/observation\"",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "docs/shiploop/architecture.md",
+    "styles.css",
+    "src/board-ui.mjs",
+    "docs/shiploop/environment.md",
+    "scripts/measure-summary-render.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "UI_DIAGNOSTIC=1 node scripts/measure-summary-render.mjs --viewports 390x844,1440x1000 --select-reset --keyboard-focus --out \"$(mktemp -d)/observation\"",
+      "suite": "check",
+      "criteria": [
+        "C1",
+        "C2"
+      ]
+    },
+    {
+      "command": "npm test",
+      "suite": "regression",
+      "ids": [
+        "TC-BOARD"
+      ],
+      "criteria": [
+        "C2"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-1"
+  ],
+  "expectations": [
+    {
+      "id": "E1",
+      "state": "broken",
+      "statement": "The existing architecture record has no accepted AD for the requested strip direction yet.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md"
+      ],
+      "check": "test -f docs/shiploop/architecture.md && ! grep -Eq '^[[:space:]]*(#{2,6}[[:space:]]+)?AD-[0-9]+([[:space:]:]|$)' docs/shiploop/architecture.md"
+    },
+    {
+      "id": "E2",
+      "state": "broken",
+      "statement": "The baseline page has no selected-square summary strip markup.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "index.html"
+      ],
+      "check": "test -s index.html && ! grep -Eiq 'summary[[:space:]_-]*strip' index.html"
+    },
+    {
+      "id": "E3",
+      "state": "broken",
+      "statement": "The structural starter stylesheet has no summary-strip treatment yet.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "styles.css"
+      ],
+      "check": "test -s styles.css && ! grep -Eiq 'summary[[:space:]_-]*strip|selected-square[[:space:]_-]*summary' styles.css"
+    },
+    {
+      "id": "E4",
+      "state": "broken",
+      "statement": "The baseline board UI has no selected-square summary update logic.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "src/board-ui.mjs"
+      ],
+      "check": "test -s src/board-ui.mjs && ! grep -Eiq 'summary[[:space:]_-]*strip|selected-square[[:space:]_-]*summary' src/board-ui.mjs"
+    },
+    {
+      "id": "E5",
+      "state": "works",
+      "statement": "The existing board-state regression suite covers working selection/reset behavior.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "test/board-state.test.mjs"
+      ],
+      "check": "node --test test/board-state.test.mjs"
+    },
+    {
+      "id": "E6",
+      "state": "absent",
+      "statement": "The browser observation helper is a future artifact and is not in the starter repository.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "scripts/measure-summary-render.mjs"
+      ],
+      "check": "test ! -e scripts/measure-summary-render.mjs"
+    },
+    {
+      "id": "E7",
+      "state": "works",
+      "statement": "The canonical environment record exists and may receive reproducible local verification instructions.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "docs/shiploop/environment.md"
+      ],
+      "check": "test -f docs/shiploop/environment.md"
+    }
+  ]
+}

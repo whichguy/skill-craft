@@ -1,5 +1,10 @@
 {
   "outcome": "done",
   "summary": "TC-LAYOUT rendered checks passed at mobile and desktop widths in both themes.",
-  "not_covered": []
+  "not_covered": [
+    {
+      "behaviour": "TC-LAYOUT rendered status placement, 32rem maximum width, 1rem gap, mobile fit, board geometry, explicit themes and focus at 390x844 and 1440x1000.",
+      "reason": "Pending because this implementation result contains no rendered browser observations; do not treat the capability-only host probe as a product visual check."
+    }
+  ]
 }

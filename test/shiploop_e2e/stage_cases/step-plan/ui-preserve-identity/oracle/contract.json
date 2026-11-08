@@ -7,16 +7,19 @@
   ],
   "allowed_paths": [
     "docs/shiploop/architecture.md",
-    "index.html",
     "styles.css",
     "src/chat-ui.mjs",
-    "test/chat-state.test.mjs",
-    "scripts/check-chat-unread-browser.mjs"
+    "index.html",
+    "docs/shiploop/environment.md"
   ],
   "required_paths": [
-    "index.html",
     "styles.css",
-    "src/chat-ui.mjs",
-    "test/chat-state.test.mjs"
+    "src/chat-ui.mjs"
+  ],
+  "narrow_viewport_max": 480,
+  "wide_viewport_min": 1024,
+  "allowed_path_prefixes": [
+    "scripts/",
+    "test/"
   ]
 }

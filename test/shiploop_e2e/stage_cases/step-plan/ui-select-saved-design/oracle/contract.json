@@ -20,5 +20,7 @@
     "summary",
     "coordinate",
     "choose a square"
-  ]
+  ],
+  "narrow_viewport_max": 480,
+  "wide_viewport_min": 1024
 }

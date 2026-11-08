@@ -1,12 +1,12 @@
 {
   "outcome": "done",
-  "summary": "TC-LAYOUT describes a browser observation for the AD-2 board composition at mobile and desktop sizes in both themes. TC-BOARD and TC-SUMMARY preserve the node state regression separately. No product rendering result is asserted by this specification; TC-LAYOUT remains pending until a browser output record is available.",
+  "summary": "TC-LAYOUT describes a browser observation for the AD-2 board composition at mobile and desktop sizes in both themes. TC-BOARD and TC-SUMMARY preserve the node state regression separately. This specification does not report a rendered result.",
   "test_cases": [
     {
       "id": "TC-LAYOUT",
       "criterion": "C3",
       "requirement": "R-1",
-      "oracle": "The existing design record is available as KNOWLEDGE/architecture.md, decision AD-2. Check the summary just after the board, no wider than 32rem and separated by 1rem. Before running node ./scripts/check-board-browser.cjs --light-page=\"#f4f1e9\" --dark-page=\"#17201f\" --square-a=\"#e7dcc5\" --square-b=\"#34746b\" --board-max=32rem --focus-color=\"#214c46\" --dark-focus-color=\"#f3c15b\" --dark-class=theme-dark --summary-below --summary-max=32rem --summary-gap=1rem, probe the host browser route. Observe equal square geometry, both viewport sizes (390x844 and 1440x1000), light/dark themes, focus visibility, no horizontal scroll, and all 64 controls.",
+      "oracle": "The existing design record is available as KNOWLEDGE/architecture.md, decision AD-2. Check the summary just after the board, no wider than 32rem and separated by 1rem. Run the seeded focused procedure node ./scripts/check-board-browser.cjs --light-page=\"#f4f1e9\" --dark-page=\"#17201f\" --square-a=\"#e7dcc5\" --square-b=\"#34746b\" --board-max=32rem --focus-color=\"#214c46\" --dark-focus-color=\"#f3c15b\" --dark-class=theme-dark --summary-below --summary-max=32rem --summary-gap=1rem. Observe equal square geometry, both viewport sizes (390x844 and 1440x1000), light/dark themes, focus visibility, no horizontal scroll, and all 64 controls.",
       "red": "The board or cells are not square, overflow appears, the existing summary is misplaced or exceeds its saved width/gap, focus is not visible, or a square button is absent.",
       "green": "The browser observations pass at both viewport sizes and themes; retain the per-viewport/theme TC-LAYOUT output lines."
     },

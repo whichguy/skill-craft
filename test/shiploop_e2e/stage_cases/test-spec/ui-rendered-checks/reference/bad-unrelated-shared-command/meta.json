@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "P1"
+  ],
+  "why": "The shared command is recorded against an unrelated work item, so it cannot resolve TC-LAYOUT in the selected W1 step plan."
+}

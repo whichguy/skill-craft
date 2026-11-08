@@ -1,0 +1,10 @@
+{
+  "outcome": "done",
+  "summary": "TC-LAYOUT 390x844 light: PASS. The remaining width and dark contexts were not run.",
+  "not_covered": [
+    {
+      "behaviour": "TC-LAYOUT at 1440x1000 and in dark appearance.",
+      "reason": "Pending; only the narrow light context was observed."
+    }
+  ]
+}

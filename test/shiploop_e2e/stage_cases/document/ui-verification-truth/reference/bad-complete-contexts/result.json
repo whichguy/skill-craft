@@ -1,0 +1,20 @@
+{
+  "outcome": "done",
+  "summary": "TC-LAYOUT passed in all requested contexts.",
+  "knowledge": {
+    "spec": "docs/shiploop/spec.md retains R-1 and R-2 and points to accepted AD-2 for appearance.",
+    "architecture": "docs/shiploop/architecture.md preserves the accepted AD-2 identity and summary composition; verification status is documented in README.md.",
+    "environment": "docs/shiploop/environment.md records the host-provided Playwright and browser paths as a capability route only; no product render was observed in the seeded rerun."
+  },
+  "assumptions": [
+    {
+      "id": "A1",
+      "assumption": "TC-LAYOUT in wide and dark contexts remains unobserved.",
+      "disposition": "open",
+      "due_stage": "carry-forward",
+      "owner": "next implementer",
+      "reason": "Only a narrow light observation was captured.",
+      "settle": "Run the remaining browser contexts and retain their records."
+    }
+  ]
+}

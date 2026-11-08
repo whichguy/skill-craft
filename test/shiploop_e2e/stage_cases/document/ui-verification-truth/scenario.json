@@ -246,24 +246,24 @@
   "planted": [
     {
       "id": "P1",
-      "what": "User-facing documentation explains the selected-square summary, placement, and concrete rerun commands, including the supplied rendered procedure.",
-      "signature": "README describes status below board plus node --test and browser command"
+      "what": "Canonical product documentation explains the summary and keeps concrete rerun commands in README or the environment record.",
+      "signature": "summary behavior and canonical rerun procedure"
     },
     {
       "id": "P2",
-      "what": "User-facing verification documentation preserves the implementation-stage TC-LAYOUT gap; it stays pending without a later browser observation, and any later pass is supported by recorded command output.",
-      "signature": "historical pending visual status or a later recorded browser output"
+      "what": "The result does not claim rendered success while listing current visual verification as an open assumption. A later real observation may close the historical gap. Execution truth is withheld from automatic scoring and requires host-event or native-receipt review.",
+      "signature": "reporting consistency only; manual verification truth"
     },
     {
       "id": "P3",
-      "what": "The document result's knowledge field names dispositions for spec.md, architecture.md, and environment.md.",
+      "what": "The knowledge field gives nonempty dispositions for spec, architecture and environment; its keys identify the living homes.",
       "signature": "knowledge keys spec, architecture, environment"
     }
   ],
   "controls": [
     {
       "id": "C1",
-      "what": "Accepted AD-2 remains accepted with its concrete saved anchors and scope; documentation does not rewrite the decision."
+      "what": "Accepted AD-2 preserves concrete choices and scope; operational rendered-pass history stays outside architecture decisions."
     },
     {
       "id": "C2",
@@ -327,7 +327,8 @@
     {
       "proves": "P2",
       "command": "python3 \"$STAGE_ORACLE/check.py\" pending",
-      "exit": 0
+      "exit": 0,
+      "why": "Current reporting consistency only; inspect actual execution events before judging a verification claim."
     },
     {
       "proves": "P3",

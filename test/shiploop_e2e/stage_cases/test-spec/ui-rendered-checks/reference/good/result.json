@@ -1,12 +1,12 @@
 {
   "outcome": "done",
-  "summary": "TC-LAYOUT specifies the supplied browser procedure for summary placement and measure, board/cell geometry, overflow, visible focus, selection/reset, and all 64 controls at 390x844 and 1440x1000 in both themes. TC-BOARD and TC-SUMMARY retain the existing node --test state assertions for selection, valid coordinates, and Reset. This specification records a rendered procedure; the browser route must be probed before relying on the command, and TC-LAYOUT remains pending until a later evidence record captures its output.",
+  "summary": "TC-LAYOUT specifies the supplied rendered procedure for summary placement and measure, board and cell geometry, overflow, focus, selection/reset, and all 64 controls at 390x844 and 1440x1000 in both themes. TC-BOARD and TC-SUMMARY preserve the existing node --test state checks. The GREEN criteria describe expected observations; this summary does not report a rendered result.",
   "test_cases": [
     {
       "id": "TC-LAYOUT",
       "criterion": "C3",
       "requirement": "R-1",
-      "oracle": "Use the accepted AD-2 record in docs/shiploop/architecture.md for the selected summary composition. Probe PLAYWRIGHT_NODE_PATH and BROWSER_EXECUTABLE_PATH, then run node scripts/check-board-browser.cjs --light-page '#f4f1e9' --dark-page '#17201f' --square-a '#e7dcc5' --square-b '#34746b' --board-max 32rem --focus-color '#214c46' --dark-focus-color '#f3c15b' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem. At 390x844 and 1440x1000 in light and dark themes, observe summary placement below the board, its 32rem cap and 1rem gap, square board/equal cells, no horizontal overflow, visible focus, and all 64 rendered square buttons.",
+      "oracle": "Use the accepted AD-2 record in docs/shiploop/architecture.md for the selected summary composition. Run the focused procedure seeded for TC-LAYOUT: node scripts/check-board-browser.cjs --light-page '#f4f1e9' --dark-page '#17201f' --square-a '#e7dcc5' --square-b '#34746b' --board-max 32rem --focus-color '#214c46' --dark-focus-color '#f3c15b' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem. At 390x844 and 1440x1000 in light and dark themes, observe summary placement below the board, its 32rem cap and 1rem gap, square board/equal cells, no horizontal overflow, visible focus, and all 64 rendered square buttons.",
       "red": "The board or cells are not square, overflow appears, the existing summary is misplaced or exceeds its saved width/gap, focus is not visible, or a square button is absent.",
       "green": "The browser observations pass at both viewport sizes and themes; retain the per-viewport/theme TC-LAYOUT output lines."
     },
