@@ -29,12 +29,12 @@ Keep the product small: an internal Lightning app, membership/profile records an
 
 ## Run it
 
-Use an authenticated, explicitly authorized `de` org and a browser runtime supported by the existing harness. The subject uses Terra 6.1 high; a later ShipLoop improver uses Sol 6.1 xhigh. Do not change campaign defaults or an earlier baseline to select those settings.
+Use an authenticated, explicitly authorized `de` org and a browser runtime supported by the existing harness. New subjects and later ShipLoop improvers default to GPT-6.1 Sol at high effort. Explicit per-run choices still apply; resumed runs and frozen campaigns retain their recorded settings.
 
 ```sh
 python3 -B test/shiploop_e2e/run.py \
   --case gym-membership-salesforce \
-  --host codex --model gpt-6.1-terra --effort high \
+  --host codex --model gpt-6.1-sol --effort high \
   --source marketplace --output /absolute/path/to/a/new-run
 ```
 

@@ -59,16 +59,17 @@ class ReviewDiscoveryContractTest(unittest.TestCase):
     def test_codex_reviewer_is_read_only_and_records_its_requested_role(self):
         with tempfile.TemporaryDirectory() as tmp:
             run_dir = Path(tmp)
-            agent = mock.Mock()
-            agent.env.return_value = {}
-            agent.argv.return_value = ["codex", "exec", "-s", "danger-full-access"]
-            agent.translator.return_value = None
-            with mock.patch.object(review.hosts, "host", return_value=agent), \
+            agent = review.hosts.CodexHost("fake-codex")
+            with mock.patch.object(agent, "env", return_value={}), \
+                    mock.patch.object(review.hosts, "host", return_value=agent), \
                     mock.patch.object(review.hosts, "run_agent", return_value=exited()) as launch, \
                     mock.patch.object(review.hosts, "final_text", return_value=json.dumps(review_payload([]))):
                 verdict = review.review(run_dir, skill_root=ROOT / "skills" / "shiploop")
             argv = launch.call_args.args[0]
             self.assertEqual(argv[argv.index("-s") + 1], "read-only")
+            self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.1-sol")
+            self.assertIn("model_reasoning_effort=high", argv)
+            self.assertNotIn("resume", argv, "an independent review starts a fresh session")
             self.assertEqual(verdict["driver"], {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"})
 
     def test_a_material_clause_free_challenge_is_valid_and_survives_as_owner_work(self):

@@ -122,6 +122,10 @@
     "test/shiploop-e2e-epoch.test.py": 31.23,
     "test/shiploop-e2e-experiments.test.py": 65.074,
     "test/shiploop-e2e-fidelity.test.py": 14.658,
+    "test/shiploop-e2e-grok-chat-full-oracle.test.py": 1,
+    "test/shiploop-e2e-grok-chat-full-quality.test.py": 1,
+    "test/shiploop-e2e-grok-chat-full-ui.test.py": 1,
+    "test/shiploop-e2e-grok-chat-full.test.py": 1,
     "test/shiploop-e2e-grok-chat-salesforce.test.py": 0.512,
     "test/shiploop-e2e-gym-membership-salesforce.test.py": 0.332,
     "test/shiploop-e2e-gym-ui.test.py": 0.973,
@@ -248,6 +252,38 @@
       "all_class_seconds": 206.46436829300092,
       "profile_source": "74974cc5d2a3894fb9c09a8bd27c1efaf1845bf9",
       "profile_tests": 521
+    },
+    "test/shiploop-e2e-grok-chat-full.test.py": {
+      "method": "Local command elapsed time rounded up to at least one second for initial scheduling; not observed Linux CI time.",
+      "local_seconds": 0.045,
+      "profile_source_commit": "cf211dab4409e0452235138a6b72dce6ac07655d",
+      "profile_tests": 5,
+      "commands_sha256": "5b69407e239c33cc6a61b49b76b5982156081588f745d6b548ff2c5036a800e1",
+      "evidence": "operator/apparatus-local-03/commands.json under the evidence root recorded in the profile source commit"
+    },
+    "test/shiploop-e2e-grok-chat-full-oracle.test.py": {
+      "method": "Local command elapsed time rounded up to at least one second for initial scheduling; not observed Linux CI time.",
+      "local_seconds": 0.374,
+      "profile_source_commit": "cf211dab4409e0452235138a6b72dce6ac07655d",
+      "profile_tests": 25,
+      "commands_sha256": "5b69407e239c33cc6a61b49b76b5982156081588f745d6b548ff2c5036a800e1",
+      "evidence": "operator/apparatus-local-03/commands.json under the evidence root recorded in the profile source commit"
+    },
+    "test/shiploop-e2e-grok-chat-full-ui.test.py": {
+      "method": "Local command elapsed time rounded up to at least one second for initial scheduling; not observed Linux CI time.",
+      "local_seconds": 0.292,
+      "profile_source_commit": "cf211dab4409e0452235138a6b72dce6ac07655d",
+      "profile_tests": 25,
+      "commands_sha256": "5b69407e239c33cc6a61b49b76b5982156081588f745d6b548ff2c5036a800e1",
+      "evidence": "operator/apparatus-local-03/commands.json under the evidence root recorded in the profile source commit"
+    },
+    "test/shiploop-e2e-grok-chat-full-quality.test.py": {
+      "method": "Local command elapsed time rounded up to at least one second for initial scheduling; not observed Linux CI time.",
+      "local_seconds": 0.796,
+      "profile_source_commit": "cf211dab4409e0452235138a6b72dce6ac07655d",
+      "profile_tests": 10,
+      "commands_sha256": "5b69407e239c33cc6a61b49b76b5982156081588f745d6b548ff2c5036a800e1",
+      "evidence": "operator/apparatus-local-03/commands.json under the evidence root recorded in the profile source commit"
     }
   }
 }

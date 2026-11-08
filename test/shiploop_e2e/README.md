@@ -1406,6 +1406,11 @@ prompt for an Apex/LWC assistant, guided setup and confirmed record changes.
 Its acceptance check currently returns UNKNOWN deliberately: source/deployment/Apex
 smoke checks cannot qualify the live chat, UI, authorization or code/comment review.
 
+[`grok-chat-salesforce-full`](GROK_CHAT_FULL.md) adds a frozen public interface,
+operator-prepared provider credentials, independent Apex and authenticated UI
+checks, and an attended source-bound quality review. It preserves the exploratory
+case and uses the existing Until Loop and default app cleanup.
+
 ### What version is tested
 
 By default (`--source marketplace`) a run tests exactly what the `whichguy`

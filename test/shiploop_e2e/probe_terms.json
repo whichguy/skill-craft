@@ -91,6 +91,9 @@
     "grok-chat-salesforce": [
       "\\bSLGrokChat"
     ],
+    "grok-chat-salesforce-full": [
+      "\\bSLGrokChat"
+    ],
     "gym-membership-salesforce": [
       "\\bSLGym",
       "\\bgym[- ]membership\\b",
