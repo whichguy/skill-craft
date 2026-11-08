@@ -1,0 +1,836 @@
+{
+  "request": "Extend this local Python inventory tool with a JSON batch-import command. Import must be all-or-nothing: any invalid record, adapter error or interrupted import leaves the previously visible inventory unchanged; successful publication exposes the complete new batch and preserves unrelated existing SKUs. Repeating a successful import is idempotent. Keep the installed adapter for applying rows unless evidence shows an alternative is needed. The adapter's batch behavior has not been characterized. No concurrent writers are in scope; readers can reopen the database between commands. Use only Python's standard library. Temporary local experiments on disposable databases are authorized. Do not mutate the retained seed inventory. Add automated CLI, invalid-middle-record, interrupted-publication and recovery checks as implementation work. Existing tests must remain passing.",
+  "obligations": {
+    "A1": "Chosen design prevents partially applied adapter writes becoming visible on invalid records, adapter failures and interruption; prevalidation alone is insufficient for runtime failures.",
+    "A2": "Preserves unrelated SKUs, publishes the whole accepted batch atomically, is idempotent on retry and defines recovery around publication.",
+    "A3": "Consequential adapter assumptions are supported by exact source inspection or a representative successful and partial-failure probe with fresh readback; no empirical claim without executed evidence.",
+    "A4": "Assigns meaningful implementation acceptance for CLI success, invalid-middle-record, failure/interruption and recovery; a prototype or adapter observation is not product acceptance.",
+    "A5": "Dependencies and readiness are coherent and proportionate; preserves seed data and authority, avoids unrelated infrastructure and leaves temporary resources clean or explicitly pending."
+  },
+  "plans": [
+    {
+      "action": "nav-79382798dba6492eb1396045f9885910",
+      "outcome": "done",
+      "initial": {
+        "assumptions": [
+          {
+            "assumption": "Installed adapter commits each row; caller transaction is insufficient; preserve adapter on private candidate.",
+            "check": "Invalid-middle and separate outer rollback both leave prefix visible on disposable live DB.",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/adapter_probe.json"
+            ],
+            "id": "A1"
+          },
+          {
+            "assumption": "Same-directory private copy/apply/replace supports baseline local precommit preservation and full publication.",
+            "check": "Kill mid-candidate/pre-replace, injected replace error, retries/idempotence and unrelated schema retention; actual outputs with first failed attempts retained.",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.json",
+              "TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md"
+            ],
+            "id": "A2"
+          },
+          {
+            "assumption": "Sidecars can remain after close; reject any live SQLite sidecars rather than assume safe main-file copy or mutate source to checkpoint.",
+            "check": "Open and closed WAL fixture retains sidecars; rejection leaves all file digests unchanged.",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.json"
+            ],
+            "id": "A3"
+          },
+          {
+            "assumption": "Stdlib runner and baseline usable; new deterministic helpers are missing, not feature passes.",
+            "disposition": "evidenced",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/baseline.json",
+              "TRIAL/.shiploop-runs/seed/run/scratch/planned_helper_command.json"
+            ],
+            "id": "A4"
+          },
+          {
+            "assumption": "Interrupted-import language must be reconciled with irreversible publication before success acknowledgment.",
+            "disposition": "open",
+            "due_item": "W2",
+            "id": "A5",
+            "reason": "User intent cannot be established by a local experiment; post-replace kill already proves complete new can be visible before acknowledgment.",
+            "settle": "Before W2 contract acceptance obtain explicit interpretation of commit-point semantics, or demonstrate a protocol satisfying literal requirement without silently weakening S2; retain all observed failure-window cases."
+          },
+          {
+            "assumption": "Provisional CLI/schema defaults AD-3, including duplicate reject and empty no-op, fit current request.",
+            "disposition": "open",
+            "due_item": "W2",
+            "id": "A6",
+            "reason": "No existing CLI/schema contract beyond installed adapter; these are interface choices, not runtime hypotheses.",
+            "settle": "W2 step-plan finalize exact CLI/validation/error contract, preserve S1-S3, document and cover TC_7."
+          },
+          {
+            "assumption": "No concurrent writers and readers may reopen between commands; only local stdlib runtime authorized.",
+            "disposition": "evidenced",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/request.md"
+            ],
+            "id": "A7"
+          },
+          {
+            "assumption": "Row worker process exit supplies connection-lifetime barrier; product stdin transport and supervisor must still be built and checked.",
+            "check": "Publication probe invokes installed adapter in short-lived subprocess before candidate observation/replacement.",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.json",
+              "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.py"
+            ],
+            "id": "A8"
+          },
+          {
+            "assumption": "Path identity, mode preservation, orphan ownership and worker stdin failure policy need exact implementation-level contracts.",
+            "disposition": "open",
+            "due_item": "W2",
+            "id": "A9",
+            "reason": "These are design refinements whose durable assertions belong to implementation, not missing publication feasibility evidence.",
+            "settle": "W2 step-plan define regular-file/canonical path behavior and current-owned cleanup; durable component/CLI tests exercise path/mode and worker failure cases with unchanged live state."
+          }
+        ],
+        "concerns": {
+          "W1": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "Terminal CLI/facility, no page/screen or visual design"
+            },
+            {
+              "applies": "no",
+              "id": "api",
+              "reason": "No network API; local Python seam belongs to state/CLI contract"
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "No asynchronous broker/event delivery"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Disposable fixture SQL and independent oracle HS_2",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "Existing inventory schema unchanged; no migration"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No schema retirement/migration"
+            },
+            {
+              "applies": "no",
+              "id": "switchover",
+              "reason": "Helper creates disposable fixtures only"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Child killed/waited before cleanup HS_1",
+              "id": "concurrency",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "platform-services",
+              "reason": "No hosted platform/service"
+            },
+            {
+              "applies": "no",
+              "id": "scale",
+              "reason": "No scale acceptance threshold requested"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Scratch-only fixtures, no retained seed writes",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Helper readiness, timeouts, child status/output HS_1",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Explicit owned scratch root and cwd",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "performance",
+              "reason": "No numerical performance target requested; avoid invented bounds"
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No graphical interface; terminal status/help covered in CLI cases"
+            }
+          ],
+          "W2": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "Terminal CLI/facility, no page/screen or visual design"
+            },
+            {
+              "applies": "no",
+              "id": "api",
+              "reason": "No network API; local Python seam belongs to state/CLI contract"
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "No asynchronous broker/event delivery"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Authoritative live path changes once, candidate discarded on failure; TC_1..10",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "Existing inventory schema unchanged; no migration"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No schema retirement/migration"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Single replace with precommit invariant and open A5",
+              "id": "switchover",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Writers excluded S6, readers reopen; closed worker before publish",
+              "id": "concurrency",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "platform-services",
+              "reason": "No hosted platform/service"
+            },
+            {
+              "applies": "no",
+              "id": "scale",
+              "reason": "No scale acceptance threshold requested"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Full input validation, canonical path/mode rules, no unrelated cleanup; TC_7/8/9",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Visible success/error/commit status with no false rollback claim; TC_1/3/8",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Explicit db/input paths; no hidden environment fault flag",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "performance",
+              "reason": "No numerical performance target requested; avoid invented bounds"
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No graphical interface; terminal status/help covered in CLI cases"
+            }
+          ]
+        },
+        "evidence_refs": [
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md",
+          "TRIAL/.shiploop-runs/seed/worktree/src/adapter.py",
+          "TRIAL/.shiploop-runs/seed/worktree/tests/test_baseline.py",
+          "TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/test-strategy-review-context.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/plan-dependency-audit.md",
+          "TRIAL/.shiploop-runs/seed/run/scratch/baseline.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/adapter_probe.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/adapter_probe.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.attempt1.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.attempt1.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.attempt2.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.attempt2.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/strategy_commands.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/planned_helper_command.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/plan_checks.json"
+        ],
+        "headline": "Two-item dependency plan selects private adapter worker and staged publication, with explicit interruption acceptance gap.",
+        "outcome": "done",
+        "summary": "Design basis and five-lens audit: notes/plan-dependency-audit.md. Inline audit only; no Backchain native subcall or extra model, so no Backchain graph/receipt claimed. W1 delivers validated reusable fixture/supervisor, W2 owns all product outcomes and durable CLI/invalid-middle/interruption/recovery tests. Baseline 1 pass only; new commands fail missing-module now. Copy/replace feasibility observed on disposable local SQLite; first two failed apparatus/oracle attempts retained, closed WAL sidecars rejected unchanged. No product source/tests authored, no acceptance passed. A5 remains an explicit W2 readiness gate: postcommit/no-ack interpretation cannot be proved from experiments. Input/path defaults remain step-plan refinements. No independent branches or file conflicts; queue serial; local delivery only, no external authorization needed. Runtime setup evidenced, no installation. This registered trial stops after actual Plan Improve when navigator reaches prepare.",
+        "work_items": [
+          {
+            "context": "Canonical requirements: docs/shiploop/spec.md R-1,R-2; RUN/request.md S1-S11. Current baseline: RUN/notes/current-system-baseline.md and scratch/baseline.json, 1 existing pass only at baseline13a31fa, no feature acceptance. Conventions: src/adapter.py and tests/test_baseline.py; stdlib only; no source/seed mutations during planning. Harness definition: docs/shiploop/environment.md Harnesses and suites and Commands; architecture AD-1..AD-6 and Real-boundary checks; RUN/notes/planning-experiments.md, adapter_probe.json and publication_probe.json. Revalidate source/runtime/adapter/target changes; use normal send-back/correction for invalidated premises. No external endpoint, account, network, dependency install or deployment authorized. This trial performs none of these items, stopping at prepare. Ready: Python/unittest/SQLite/process execution observed in baseline and publication probes; scratch writable; original source unchanged. Scope tests/import_support.py and tests/test_import_support.py only; reuse unittest runner, extend existing fixtures. Loadable seam tests.import_support imports stdlib and existing src.adapter only, never missing future CLI. Build scratch-rooted fixture with old=2,keep=9 and unrelated table/index, independent explicitly closed SQL snapshots, subprocess supervisor with bounded readiness/kill/wait and deterministic checkpoint communication. Supplier outputs: reusable fixture/supervisor plus HS_1 ready/kill/timeout/cleanup and HS_2 independent-oracle mismatch tests. Done: python3 -B -m unittest tests.test_import_support -v discovers and passes both HS cases, original baseline still passes; commands/evidence retained and fixture cleanup verified. These are stand-in facility checks, never feature acceptance. W2 may start dependent fault checks only after this supplier evidence. No product behavior, adapter edits or arbitrary retained-file cleanup.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-4"
+            ],
+            "id": "W1",
+            "title": "Build and validate disposable SQLite and subprocess checkpoint test facility"
+          },
+          {
+            "context": "Canonical requirements: docs/shiploop/spec.md R-1,R-2; RUN/request.md S1-S11. Current baseline: RUN/notes/current-system-baseline.md and scratch/baseline.json, 1 existing pass only at baseline13a31fa, no feature acceptance. Conventions: src/adapter.py and tests/test_baseline.py; stdlib only; no source/seed mutations during planning. Harness definition: docs/shiploop/environment.md Harnesses and suites and Commands; architecture AD-1..AD-6 and Real-boundary checks; RUN/notes/planning-experiments.md, adapter_probe.json and publication_probe.json. Revalidate source/runtime/adapter/target changes; use normal send-back/correction for invalidated premises. No external endpoint, account, network, dependency install or deployment authorized. This trial performs none of these items, stopping at prepare. Depends on W1 passing HS_1/2 and actual fixture/supervisor files; inspect evidence before using. Ready for contract freeze only after A5 commit-point interpretation is settled; literal rollback after published commit is not assumed achievable. Finalize input defaults AD-3 and path/sidecar rules in step-plan. Scope src/inventory.py public main(argv), import_json(db_path,input_path); private src/_inventory_apply.py runs installed src.adapter.apply once on candidate using JSON stdin, returns count/status and exits; tests/test_import.py and README plus maintained knowledge. No conflicting current src.inventory namespace exists. Tests load by defining unittest cases and lazy import/importlib or subprocess launch inside methods; missing feature must fail assertions rather than skip. Build validation \u2192 unique same-parent candidate (whole file copy if sidecar-free source, absent live stays absent) \u2192 candidate journal_mode DELETE \u2192 short-lived installed-adapter worker \u2192 process-exit barrier \u2192 independent candidate verification/close/fsync \u2192 live sidecar recheck \u2192 single os.replace \u2192 success response. Own connections explicitly closed; sqlite context alone does not close. Catchable failures stop worker then remove own candidate; SIGKILL orphan never promoted; no unrelated wildcard deletion/source checkpoint. No write to retained seed. TC_1 exact new/old/keep result; TC_2 invalid middle no live prefix; TC_3 real-write-then-adapter-error; TC_4 deterministic kill mid-candidate and pre-replace; TC_5 fresh command ignores orphan then successfully retries; TC_6 repeated logical state; TC_7 validation/error/empty/duplicate defaults; TC_8 input/copy/verify/replace failures and postcommit gap treatment; TC_9 adapter API/stdlib/schema/seed/baseline preservation; TC_10 absent target and journal-state rejection. Cover worker stdin/error/abnormal exit/count mismatch and no publication while worker alive. Done: focused tests.test_import nonzero cases TC_1..TC_10 and full unittest discovery including W1/old baseline pass; no skip/stand-in as product proof; real CLI stdout/stderr/status and reopened SQL recorded; failure before commit exact original, success complete new preserving unrelated content; seed digest unchanged; README command/recovery/journal/no-ack limitations accurate. Any unresolved A5 prevents full R-1 acceptance, even if other tests pass. Future release is local guarded workspace delivery, never remote deployment.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-1",
+              "AD-2",
+              "AD-3",
+              "AD-4",
+              "AD-5",
+              "AD-6"
+            ],
+            "id": "W2",
+            "title": "Implement JSON batch import with private adapter application and atomic publication"
+          }
+        ]
+      },
+      "final": {
+        "assumptions": [
+          {
+            "assumption": "Installed adapter commits each row; caller transaction is insufficient; preserve adapter on private candidate.",
+            "check": "Invalid-middle and separate outer rollback both leave prefix visible on disposable live DB.",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/adapter_probe.json"
+            ],
+            "id": "A1"
+          },
+          {
+            "assumption": "Same-directory private copy/apply/replace supports baseline local precommit preservation and full publication.",
+            "check": "Kill mid-candidate/pre-replace, injected replace error, retries/idempotence and unrelated schema retention; actual outputs with first failed attempts retained.",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.json",
+              "TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md"
+            ],
+            "id": "A2"
+          },
+          {
+            "assumption": "Sidecars can remain after close; reject any live SQLite sidecars rather than assume safe main-file copy or mutate source to checkpoint.",
+            "check": "Open and closed WAL fixture retains sidecars; rejection leaves all file digests unchanged.",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.json"
+            ],
+            "id": "A3"
+          },
+          {
+            "assumption": "Stdlib runner and baseline usable; new deterministic helpers are missing, not feature passes.",
+            "disposition": "evidenced",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/baseline.json",
+              "TRIAL/.shiploop-runs/seed/run/scratch/planned_helper_command.json"
+            ],
+            "id": "A4"
+          },
+          {
+            "assumption": "Interrupted-import language must be reconciled with irreversible publication before success acknowledgment.",
+            "disposition": "open",
+            "due_item": "W2",
+            "id": "A5",
+            "reason": "User intent cannot be established by a local experiment; post-replace kill already proves complete new can be visible before acknowledgment.",
+            "settle": "Before W2 contract acceptance obtain explicit interpretation of commit-point semantics, or demonstrate a protocol satisfying literal requirement without silently weakening S2; retain all observed failure-window cases."
+          },
+          {
+            "assumption": "Provisional CLI/schema defaults AD-3, including duplicate reject and empty no-op, fit current request.",
+            "disposition": "open",
+            "due_item": "W2",
+            "id": "A6",
+            "reason": "No existing CLI/schema contract beyond installed adapter; these are interface choices, not runtime hypotheses.",
+            "settle": "W2 step-plan finalize exact CLI/validation/error contract, preserve S1-S3, document and cover TC_7."
+          },
+          {
+            "assumption": "No concurrent writers and readers may reopen between commands; only local stdlib runtime authorized.",
+            "disposition": "evidenced",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/request.md"
+            ],
+            "id": "A7"
+          },
+          {
+            "assumption": "Row worker process exit supplies connection-lifetime barrier; product stdin transport and supervisor must still be built and checked.",
+            "check": "Publication probe invokes installed adapter in short-lived subprocess before candidate observation/replacement.",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.json",
+              "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.py"
+            ],
+            "id": "A8"
+          },
+          {
+            "assumption": "Regular single-link target guard, preserved file mode and real adapter JSON-stdin worker are feasible; choose explicit fail-closed path policy AD-7.",
+            "check": "Frozen transport probe rejects symlink/multilink/directory unchanged, real adapter stdin returns accepted2 before replace, preserved mode0600 and exact complete SQL.",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/.experiments/nav-7ad78dfe2a874f92b3f325565261bf5e/nav-79382798dba6492eb1396045f9885910/transport_probe.json",
+              "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/.experiments/nav-7ad78dfe2a874f92b3f325565261bf5e/nav-79382798dba6492eb1396045f9885910/transport_probe.py"
+            ],
+            "id": "A9"
+          }
+        ],
+        "concerns": {
+          "W1": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "Terminal CLI/facility, no page/screen or visual design"
+            },
+            {
+              "applies": "no",
+              "id": "api",
+              "reason": "No network API; local Python seam belongs to state/CLI contract"
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "No asynchronous broker/event delivery"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Disposable fixture SQL and independent oracle HS_2",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "Existing inventory schema unchanged; no migration"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No schema retirement/migration"
+            },
+            {
+              "applies": "no",
+              "id": "switchover",
+              "reason": "Helper creates disposable fixtures only"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Child killed/waited before cleanup HS_1",
+              "id": "concurrency",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "platform-services",
+              "reason": "No hosted platform/service"
+            },
+            {
+              "applies": "no",
+              "id": "scale",
+              "reason": "No scale acceptance threshold requested"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Scratch-only fixtures, no retained seed writes",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Helper readiness, timeouts, child status/output HS_1",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Explicit owned scratch root and cwd",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "performance",
+              "reason": "No numerical performance target requested; avoid invented bounds"
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No graphical interface; terminal status/help covered in CLI cases"
+            }
+          ],
+          "W2": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "Terminal CLI/facility, no page/screen or visual design"
+            },
+            {
+              "applies": "no",
+              "id": "api",
+              "reason": "No network API; local Python seam belongs to state/CLI contract"
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "No asynchronous broker/event delivery"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Authoritative live path changes once, candidate discarded on failure; TC_1..10",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "Existing inventory schema unchanged; no migration"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No schema retirement/migration"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Single replace with precommit invariant and open A5",
+              "id": "switchover",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Writers excluded S6, readers reopen; closed worker before publish",
+              "id": "concurrency",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "platform-services",
+              "reason": "No hosted platform/service"
+            },
+            {
+              "applies": "no",
+              "id": "scale",
+              "reason": "No scale acceptance threshold requested"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Full input validation, canonical path/mode rules, no unrelated cleanup; TC_7/8/9",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Visible success/error/commit status with no false rollback claim; TC_1/3/8",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "docs/shiploop/architecture.md#decisions; notes/plan-dependency-audit.md",
+              "applies": "yes",
+              "decision": "Explicit db/input paths; no hidden environment fault flag",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "performance",
+              "reason": "No numerical performance target requested; avoid invented bounds"
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No graphical interface; terminal status/help covered in CLI cases"
+            }
+          ]
+        },
+        "evidence_refs": [
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md",
+          "TRIAL/.shiploop-runs/seed/worktree/src/adapter.py",
+          "TRIAL/.shiploop-runs/seed/worktree/tests/test_baseline.py",
+          "TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/test-strategy-review-context.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/plan-dependency-audit.md",
+          "TRIAL/.shiploop-runs/seed/run/scratch/baseline.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/adapter_probe.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/adapter_probe.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.attempt1.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.attempt1.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.attempt2.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/publication_probe.attempt2.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/strategy_commands.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/planned_helper_command.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/plan_checks.json",
+          "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/nav-7ad78dfe2a874f92b3f325565261bf5e/planning-investigation.md",
+          "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/.experiments/nav-7ad78dfe2a874f92b3f325565261bf5e/nav-79382798dba6492eb1396045f9885910/transport_probe.py",
+          "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/.experiments/nav-7ad78dfe2a874f92b3f325565261bf5e/nav-79382798dba6492eb1396045f9885910/transport_probe.json"
+        ],
+        "headline": "Two-item dependency plan selects private adapter worker and staged publication, with explicit interruption acceptance gap.",
+        "outcome": "done",
+        "summary": "Design basis and five-lens audit: notes/plan-dependency-audit.md. Inline audit only; no Backchain native subcall or extra model, so no Backchain graph/receipt claimed. W1 delivers validated reusable fixture/supervisor, W2 owns all product outcomes and durable CLI/invalid-middle/interruption/recovery tests. Baseline 1 pass only; new commands fail missing-module now. Copy/replace feasibility observed on disposable local SQLite; first two failed apparatus/oracle attempts retained, closed WAL sidecars rejected unchanged. No product source/tests authored, no acceptance passed. A5 remains an explicit W2 readiness gate: postcommit/no-ack interpretation cannot be proved from experiments. Input/path defaults remain step-plan refinements. No independent branches or file conflicts; queue serial; local delivery only, no external authorization needed. Runtime setup evidenced, no installation. This registered trial stops after actual Plan Improve when navigator reaches prepare. Plan Improve confirmed real adapter stdin transport and mode preservation, selected explicit regular single-link target policy AD-7, settled A9 and added its durable TC_9 checks. All original refs and complete W1\u2192W2 queue retained; no upstream requirement changed. Second Improve pass corrected stale architecture ownership: all feature execution and semantic boundary now W2, facility producer W1; no test dropped or criterion changed.",
+        "work_items": [
+          {
+            "context": "Canonical requirements: docs/shiploop/spec.md R-1,R-2; RUN/request.md S1-S11. Current baseline: RUN/notes/current-system-baseline.md and scratch/baseline.json, 1 existing pass only at baseline13a31fa, no feature acceptance. Conventions: src/adapter.py and tests/test_baseline.py; stdlib only; no source/seed mutations during planning. Harness definition: docs/shiploop/environment.md Harnesses and suites and Commands; architecture AD-1..AD-6 and Real-boundary checks; RUN/notes/planning-experiments.md, adapter_probe.json and publication_probe.json. Revalidate source/runtime/adapter/target changes; use normal send-back/correction for invalidated premises. No external endpoint, account, network, dependency install or deployment authorized. This trial performs none of these items, stopping at prepare. Ready: Python/unittest/SQLite/process execution observed in baseline and publication probes; scratch writable; original source unchanged. Scope tests/import_support.py and tests/test_import_support.py only; reuse unittest runner, extend existing fixtures. Loadable seam tests.import_support imports stdlib and existing src.adapter only, never missing future CLI. Build scratch-rooted fixture with old=2,keep=9 and unrelated table/index, independent explicitly closed SQL snapshots, subprocess supervisor with bounded readiness/kill/wait and deterministic checkpoint communication. Supplier outputs: reusable fixture/supervisor plus HS_1 ready/kill/timeout/cleanup and HS_2 independent-oracle mismatch tests. Done: python3 -B -m unittest tests.test_import_support -v discovers and passes both HS cases, original baseline still passes; commands/evidence retained and fixture cleanup verified. These are stand-in facility checks, never feature acceptance. W2 may start dependent fault checks only after this supplier evidence. No product behavior, adapter edits or arbitrary retained-file cleanup.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-4"
+            ],
+            "id": "W1",
+            "title": "Build and validate disposable SQLite and subprocess checkpoint test facility"
+          },
+          {
+            "context": "Canonical requirements: docs/shiploop/spec.md R-1,R-2; RUN/request.md S1-S11. Current baseline: RUN/notes/current-system-baseline.md and scratch/baseline.json, 1 existing pass only at baseline13a31fa, no feature acceptance. Conventions: src/adapter.py and tests/test_baseline.py; stdlib only; no source/seed mutations during planning. Harness definition: docs/shiploop/environment.md Harnesses and suites and Commands; architecture AD-1..AD-6 and Real-boundary checks; RUN/notes/planning-experiments.md, adapter_probe.json and publication_probe.json. Revalidate source/runtime/adapter/target changes; use normal send-back/correction for invalidated premises. No external endpoint, account, network, dependency install or deployment authorized. This trial performs none of these items, stopping at prepare. Depends on W1 passing HS_1/2 and actual fixture/supervisor files; inspect evidence before using. Ready for contract freeze only after A5 commit-point interpretation is settled; literal rollback after published commit is not assumed achievable. Finalize input defaults AD-3 and path/sidecar rules in step-plan. Scope src/inventory.py public main(argv), import_json(db_path,input_path); private src/_inventory_apply.py runs installed src.adapter.apply once on candidate using JSON stdin, returns count/status and exits; tests/test_import.py and README plus maintained knowledge. No conflicting current src.inventory namespace exists. Tests load by defining unittest cases and lazy import/importlib or subprocess launch inside methods; missing feature must fail assertions rather than skip. Build validation \u2192 unique same-parent candidate (whole file copy if sidecar-free source, absent live stays absent) \u2192 candidate journal_mode DELETE \u2192 short-lived installed-adapter worker \u2192 process-exit barrier \u2192 independent candidate verification/close/fsync \u2192 live sidecar recheck \u2192 single os.replace \u2192 success response. Own connections explicitly closed; sqlite context alone does not close. Catchable failures stop worker then remove own candidate; SIGKILL orphan never promoted; no unrelated wildcard deletion/source checkpoint. No write to retained seed. TC_1 exact new/old/keep result; TC_2 invalid middle no live prefix; TC_3 real-write-then-adapter-error; TC_4 deterministic kill mid-candidate and pre-replace; TC_5 fresh command ignores orphan then successfully retries; TC_6 repeated logical state; TC_7 validation/error/empty/duplicate defaults; TC_8 input/copy/verify/replace failures and postcommit gap treatment; TC_9 adapter API/stdlib/schema/seed/baseline preservation; TC_10 absent target and journal-state rejection. Cover worker stdin/error/abnormal exit/count mismatch and no publication while worker alive. Done: focused tests.test_import nonzero cases TC_1..TC_10 and full unittest discovery including W1/old baseline pass; no skip/stand-in as product proof; real CLI stdout/stderr/status and reopened SQL recorded; failure before commit exact original, success complete new preserving unrelated content; seed digest unchanged; README command/recovery/journal/no-ack limitations accurate. Any unresolved A5 prevents full R-1 acceptance, even if other tests pass. Future release is local guarded workspace delivery, never remote deployment. Plan Improve AD-7 finalizes path/transport contract: canonical parent, reject existing final symlink, nonregular target or st_nlink!=1 before source mutation; preserve existing mode0600 where present, new restrictive mkstemp file. Worker uses static module plus JSON stdin, never row data in argv/shell. Probe evidence in frozen transport_probe.py/json; TC_9 must cover these real product policies. A9 now probed, not an unresolved prerequisite. A5 remains user-meaning gate, A6 interface defaults remain documented choices. Revalidate against different filesystem/runtime before portability claims.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-1",
+              "AD-2",
+              "AD-3",
+              "AD-4",
+              "AD-5",
+              "AD-6",
+              "AD-7"
+            ],
+            "id": "W2",
+            "title": "Implement JSON batch import with private adapter application and atomic publication"
+          }
+        ]
+      }
+    }
+  ],
+  "planning_artifacts": {
+    "TRIAL/.shiploop-runs/seed/worktree/docs/discovery.md": "# Supplied discovery\n\nThis is a constructed planning fixture. Source, tests and data are present; the baseline suite passed. Only existing behavior was tested. No new feature, atomicity or search acceptance is implied. No earlier decision experiment is supplied.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md": "# Architecture\n\n## Stack\n\nPython standard library, sqlite3 local persistence, argparse/json CLI. Retain installed adapter 2.3 for row application.\n\n## Structure\n\nExisting src/adapter.py and tests/test_baseline.py are exemplars. Proposed src/inventory.py owns main(argv), import_json(db_path,input_path) and private validation/candidate/publication functions; proposed src/_inventory_apply.py is a private worker calling adapter.apply from JSON on stdin and reporting result/errors. Proposed tests/import_support.py owns disposable DB and deterministic subprocess/checkpoint helpers; tests/test_import_support.py validates them without imports of the future CLI; tests/test_import.py owns durable feature assertions. All run in the same local Python package namespace (src.__init__ exists); imports resolve from repository cwd. No generic utils package or new external dependency. data/seed.json read-only; README updated during implementation.\n\nData map: inventory schema remains sku TEXT PRIMARY KEY, quantity INTEGER, owned by installed adapter; no migration/version table/new authoritative store. Candidate is disposable full database clone; live path remains authoritative until replace. No personal data specified. Preserve unrelated tables/indexes/triggers and quantities; worker inherits existing adapter SQL semantics. Orphans never promoted or wildcard-deleted. Only current invocation candidate/sidecars are removed on catchable failure after worker stops; interrupted leftovers may remain ignored. No live DB opened for read-write preflight/checkpoint.\n\n## Conventions\n\nSmall explicit functions, unittest, disposable fixtures, parameterized SQL, explicit connection closure. No source/test implementation in planning.\n\n## Interfaces and boundaries\n\napply(db_path, rows) returns accepted count, can raise after committing a prefix (adapter_probe.json). Direct live use and separate outer BEGIN/rollback cannot satisfy S2. Proposed CLI in environment.md. Validate full input, copy complete database to private candidate, apply through installed adapter, verify/close candidate, publish once. Copy all schema/data, not just inventory rows. Source preflight checks sidecars without opening live SQLite; copy complete quiescent main file to mkstemp in canonical target parent. Existing file mode must be preserved. Absent target starts only a private empty candidate. Normalize candidate journal_mode=DELETE; call installed adapter once in a short-lived worker and wait for process exit so its internal connection lifetime cannot survive publication. Use stdin for rows to avoid argv size limits. Candidate verification opens/closes explicitly, checks exact expected row effects and unrelated preservation, integrity and absent candidate sidecars. Recheck live sidecar absence, fsync candidate before replace, then os.replace candidate onto target. No post-replace operation may pretend rollback succeeded. Child errors, invalid counts, and every precommit I/O error prevent replacement. No concurrent writers; readers reopen between commands. Canonicalize target parent; reject existing symlink, nonregular file or st_nlink!=1 before mutation, preserving source file mode. New targets retain restrictive mkstemp mode. Path/open/mode errors fail before publication. Transport/mode/guard feasibility observed in Plan Improve frozen transport_probe.json; durable product assertions remain W2 work.\n\n## Real-boundary checks\n\nLocal disposable files only. Consumer CLI subprocess; observer fresh independent sqlite3 connection between commands per S6. Fixtures/IDs/due stages in environment.md Harnesses and suites. Probes are not product acceptance.\n\nTC_1 ordered walk: W2 creates old=2,keep=9 with adapter, closes it, writes [{\"sku\":\"old\",\"quantity\":7},{\"sku\":\"new\",\"quantity\":4}], invokes proposed CLI, checks exit0/accepted2, opens independent SQL \u2192 sorted [(keep,9),(new,4),(old,7)]. Derived by overwrite-by-SKU plus preservation; repeated result identical (TC_6). TC_2 inserts bad=-1 between valid rows; reject before publication \u2192 [(keep,9),(old,2)]. Walk manually checked against S1-S3 and existing adapter key semantics; product execution remains due W2. Missing CLI command is currently an expected failure, not a pass.\n\nTC_4 child signals readiness immediately before replace, parent kills/waits, then fresh live read. TC_5 restarts with orphan files and verifies no implicit promotion. TC_8 injects replace failure and requires old data. Use actual OS subprocess and SQLite; patch an internal seam in a test-only wrapper rather than adding a hidden production environment flag. No arbitrary sleeps.\n\nOpen semantic boundary owned by W2 before acceptance: atomic publication has a commit point. Precommit interruption must leave old; after publication but before success reporting, a kill can expose complete new. Literal rollback for every interruption including after publication conflicts with externally visible success because acknowledgment can itself be interrupted. Plan must retain this gap, resolve interpretation before claiming full S2, and never silently mark postcommit new as unconditional S2 pass. No concurrent writers/readers reopen make atomic single-path replacement a candidate, not proof.\n\nNo remote service/cache/authorization/event contract or browser is touched. No external endpoint/credential exists; external permission/deployed behavior cannot be claimed and is unnecessary for local scope. Process interruption, orphan handling, SQLite state and error diagnostics remain required. Process-kill tests do not prove host-power-loss durability.\n\n## Decisions\n\nAD-1: Retain standard library and installed adapter per S4,S7; baseline.json confirms existing single-row behavior only.\nAD-2: Reject direct live batch and separate outer transaction; adapter probes show committed prefix. Retain adapter on private candidate. Candidate-copy/publication selected from publication_probe.json for quiescent sidecar-free local databases; source mutation and caller transaction rejected. WAL/SHM/journal sidecars fail closed, even after close.\nAD-3: Provisional input defaults: list of objects, nonempty string sku, nonnegative integer quantity excluding bool, duplicate SKU reject, empty list no-op. New defaults are assumptions, not approved requirements.\n\nAD-4: Namespace/placement \u2014 local src.inventory public CLI and import_json seam, src._inventory_apply private worker, tests.import_support fixture/supervisor. Existing adapter API unchanged; no server, messaging, cache or unrelated search. Alternative modifying adapter rejected because isolating its existing behavior suffices. Status selected; W1 helper then W2 consumer.\nAD-5: Storage/publication \u2014 stage full sidecar-free source beside target, apply through worker, verify, single os.replace. Preserve inventory schema/unrelated content and source mode; absent target remains absent until publication. Alternative raw live transactions disproved. Quiescent local filesystem only; live sidecars rejected unchanged. Evidence planning-experiments.md/publication_probe.json; status selected with acceptance interpretation open (A5).\nAD-6: Interaction \u2014 one local request/response CLI, no persistent worker/service/cache. Zero network/quota cost; worker process ends before publish. Errors before commit visible on stderr/nonzero; success only after replace and result verification. Async messaging/after-ack processing not used; postcommit no-ack window explicitly open. Standard output failure after publication cannot truthfully be called a rolled-back import.\n\nAD-7: Path and worker transport \u2014 use regular single-link local DB target, canonical parent and no final symlink following; fail closed on other detected types. JSON rows sent on stdin to static private adapter worker; no shell interpolation or rows in argv. Existing0600 mode preserved by copy/replace, new candidate0600. Alternatives following aliases and large argv rejected for ambiguous publication and argument limits. Status selected from transport_probe.json, application coverage due W2.\n\n## Superseded\n\nSeed's undecided publication/search placement replaced with inventory-import scope; no search requested.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md": "# Environment\n\n## Targets and runtimes\n\nLocal Python 3.9.6, sqlite3 and filesystem; standard library only. No external endpoint, credential, browser or deployment is part of this CLI. Host exec_command runs Python; baseline.json proves unittest works. Remote native suites excluded because no remote runtime or release gate is affected, not because access was tested.\n\n## Commands\n\nCwd: owned worktree. Full suite includes every discovered test; currently only test_single_row_roundtrip. Cost under a second now, seconds after feature implementation. Each fixture must be a disposable directory in RUN/scratch; close connections and child processes, delete DBs and sidecars. Existing baseline uses its own disposable TemporaryDirectory and never writes seed.\n\n~~~sh\npython3 -B -m unittest discover -s tests -v\n~~~\n\nSmoke/preservation now: test_single_row_roundtrip only, under a second.\n\n~~~sh\npython3 -B -m unittest tests.test_baseline -v\n~~~\n\nFocused feature AFTER implementation: all TC_1..TC_10 in tests.test_import, seconds, no external setup. Currently exit1: module absent; expected-failure control of missing tests, not a feature assertion. Must later discover nonzero cases and every ID.\n\n~~~sh\npython3 -B -m unittest tests.test_import -v\n~~~\n\nFeature smoke AFTER implementation: TC_1,TC_2, same fixture lifecycle.\n\n~~~sh\npython3 -B -m unittest tests.test_import.BatchImport.test_cli_success tests.test_import.BatchImport.test_invalid_middle -v\n~~~\n\nProposed interface (unimplemented): python3 -B -m src.inventory import-json --db PATH --input PATH. Invoke with subprocess argv using sys.executable and captured output; success exit0 and JSON accepted row count; failure nonzero with useful stderr and no success object. README will own examples after implementation.\n\nHarness prerequisite AFTER W1: HS_1,HS_2 only; seconds, disposable stand-ins/SQLite under scratch. Currently missing-module exit1, not passed.\n\n~~~sh\npython3 -B -m unittest tests.test_import_support -v\n~~~\n\n## Skills\n\nInstalled ShipLoop and its selected inline Improve own navigation. No advisor/model launch. unittest, sqlite3, subprocess, tempfile, unittest.mock, os and json suffice.\n\n## Harnesses and suites\n\nDefinition locator: this section. Reuse tests/test_baseline.py and unittest discovery. Baseline revalidated 1 pass only (RUN/scratch/baseline.json includes exact argv, cwd, source HEAD, runtime and seed digest). No feature acceptance has run. Synthetic earlier stages and missing prior receipt/baseline are not evidence.\n\nProposed src/inventory.py unit/component tests and CLI e2e subprocess assertions live in proposed tests/test_import.py. Runtime and SQLite available; deterministic child handshake and feature test helpers are prerequisite facility work owned by W1 (facility producer), consumed by W2. Setup fresh DB beneath RUN/scratch with old=2,keep=9 via adapter; close connections; input file beside DB. Oracle opens new independent sqlite3 connection and asserts exact sorted rows, schema and visible status, never product read helpers. Cleanup waits/terminates children, then deletes directories. Revalidate when adapter, Python, OS, commands or publication mechanics change.\n\nAdapter 2.3 probe (adapter_probe.py/json): invalid middle row leaves old=7 committed; separate outer BEGIN/rollback leaves old=8. Booleans are accepted by adapter. Direct live apply and outer transaction are unsafe. Retain installed adapter on a private candidate, validate full input first. Candidate-copy, replace and interruption probe evidence: RUN/notes/planning-experiments.md and scratch/publication_probe.json. Selected scope: quiescent source, fail closed on any -wal/-shm/-journal before copy and immediately before replace; process-exit barrier for installed adapter; copy preserves complete data/schema. Both failed apparatus attempts retained. Postcommit interruption interpretation remains open.\n\nAll cases below are PLANNED, W2 owner, due implementation authoring then test/document execution. No source/tests are authored in planning. W1 first authors tests/import_support.py and tests/test_import_support.py: supervisor with bounded ready/kill/wait and fixture cleanup; HS_1 proves ready/kill/cleanup against disposable stand-in, HS_2 independent SQL fixture/oracle rejects changed snapshots. W2 consumes passing helper tests before running feature checkpoints. Worker src/_inventory_apply.py has component checks in tests/test_import.py (real adapter response, failure, stdin payload and process exit). Existing suite covers unaffected behavior.\n\n| ID | Requirement / surface | Before, action, independent expected result and control |\n| --- | --- | --- |\n| TC_1 | S1,S2 component + CLI e2e | old=2,keep=9; import old=7,new=4 \u2192 exact keep=9,new=4,old=7, exit0 accepted2; old-only/hardcoded success fails SQL oracle. |\n| TC_2 | S2,S10 unit + CLI | [old=7,bad=-1,new=4] \u2192 nonzero, exact old=2,keep=9, no new/bad. Direct adapter control exposes committed prefix. |\n| TC_3 | S2 component adapter error | All-valid input; forward real candidate write then raise adapter error; live exact snapshot unchanged, failure visible, no success. Always-success stub fails. |\n| TC_4 | S2,S10 subprocess interruption | Two kill checkpoints: after first candidate row and after complete candidate apply before replace; child handshake at each; kill and wait, reopen live \u2192 old=2,keep=9. Replacing before handshake fails. No sleep as ordering oracle. |\n| TC_5 | S10 CLI recovery | Start after TC_4 orphan candidate, run valid import \u2192 exact TC_1 result; never promote leftovers; retry once more for TC_6. |\n| TC_6 | S3 CLI idempotence | Import same batch twice \u2192 same exact sorted rows/count, accepted2 both, no duplicates/lost keep SKU. |\n| TC_7 | S2 unit + CLI validation | Malformed JSON, object root, missing fields, non-object row, empty/non-string SKU, bool/float/negative quantity \u2192 failure and unchanged SQL. Defaults: empty array no-op, duplicate SKU reject; provisional beyond adapter contract. |\n| TC_8 | S2 component publication failure | Inject source-open, candidate-copy, verification, input-read and replace errors before mutation \u2192 unchanged live, diagnostic, no success; catchable failures remove candidate. Post-replace kill needs semantic decision below. |\n| TC_9 | S4,S7,S9,S11 preservation | Spy forwards installed adapter.apply(candidate, rows), never live path; stdlib imports; unchanged read-only seed SHA256; baseline still passes; unrelated table/schema/index retained; existing0600 mode preserved, new file restrictive; symlink/hardlink/directory target rejected unchanged. Worker JSON stdin/status/count/error/process-exit covered with real installed adapter. |\n| TC_10 | S2 component storage | Absent target failure leaves absent, success complete new batch. Committed WAL source copied safely or unsupported state rejected unchanged; no concurrent writers. |\n\nNo latency/throughput bound requested; record timing diagnostically. Power loss, corruption, network filesystems and already-open reader refresh are unproven; no concurrent writers per S6. No browser/account capability is needed. Local OS process/filesystem/SQLite are the required real boundaries.\n\n## ID convention\n\nDescriptive legal method identifiers with docstrings starting exact standalone ID, e.g. TC_1 CLI success. unittest -v prints docstring descriptions. An embedded test_TC_1_output does not count. HS_1..HS_2 are facility docstring IDs; TC_1..TC_10 reserved, not implemented. Existing baseline retains name. List durable test IDs (currently no matches, exit1; after implementation require all ten):\n\n~~~sh\nrg '^\\s+\"\"\"(TC|HS)_[0-9]+ ' tests\n~~~\n\n## Access and accounts\n\nLocal read-only source/seed inspection, owned knowledge edits and disposable scratch probes authorized. No retained seed mutation or external access supplied. No live integration claim.\n\n## Platform facts\n\nsrc/adapter.py opens its own connection, commits per row. adapter_probe.json proves a separate caller transaction cannot roll that back. Runtime evidence baseline.json. Publication feasibility evidence is retained in planning-experiments.md/publication_probe.json and Plan Improve transport_probe.json; product assertions and unresolved commit-point meaning remain due W2.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md": "# Product specification\n\n## Requirements\n\nR-1: Extend this local Python inventory tool with a JSON batch-import command. Import must be all-or-nothing: any invalid record, adapter error or interrupted import leaves the previously visible inventory unchanged; successful publication exposes the complete new batch and preserves unrelated existing SKUs. Repeating a successful import is idempotent. Keep the installed adapter for applying rows unless evidence shows an alternative is needed. The adapter's batch behavior has not been characterized. No concurrent writers are in scope; readers can reopen the database between commands. Use only Python's standard library. Temporary local experiments on disposable databases are authorized. Do not mutate the retained seed inventory. Add automated CLI, invalid-middle-record, interrupted-publication and recovery checks as implementation work. Existing tests must remain passing.\n\n## Non-functional requirements\n\nR-2: Keep data loss and false success visible; preserve the existing baseline and require repeatable behavioral tests for the new command. Use only the stated local standard-library runtime.\n\n## Retired\n\nNone.\n",
+    "TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md": "# Current-system baseline\n\nSupplied earlier discovery/research stages are synthetic; missing notes/receipt are not reconstructed execution evidence. Current source inspection: src/adapter.py installed 2.3 apply(db_path,rows), SQLite inventory(sku TEXT PRIMARY KEY, quantity INTEGER); per-row commits. Only public client behavior is single-row round trip. No existing CLI, publication helper, migrations, other remote target, dependency manager or browser UI. Standard-library unittest tests/test_baseline.py is the only existing suite; baseline.json retains actual HEAD/runtime/command/output, 1 pass. Scope limits: no batch, crash, idempotence or new CLI acceptance. Preserve this pass and adapter API; source/test/seed untouched during planning. Fixture data/seed.json SHA256 c0e7ea780e229604490ace9e96f314051cb350db137ef09428c2e0863aa3d82a. Revalidate baseline only if relevant source/runtime/test content changes; postimplementation full suite must run again.\n",
+    "TRIAL/.shiploop-runs/seed/run/notes/plan-dependency-audit.md": "# Dependency and initial-plan reconciliation\n\nRoute: inline five-lens dependency audit from installed shiploop/references/backchain-planning.md, no native Backchain subcall, advisor, extra model or execution-graph artifact. Two cohesive independently checkable increments: W1 reusable fixture/supervisor facility; W2 CLI/candidate publication consumes it. No gratuitous item for review/tests/docs stages. Runtime setup already evidenced, no dependency install/provision/deploy. Missing synthetic research/discovery notes are recorded, not invented. Current direct evidence supplies baseline and adapter contract.\n\nW1 CLAIM: validated reusable isolated DB/subprocess checkpoint helper, not product atomicity. NEEDS: available stdlib unittest, sqlite3, subprocess, selectors, writable owned scratch; supplied by baseline/runtime and publication probe. SUPPLY: tests/import_support.py plus tests/test_import_support.py must demonstrate handshake, kill/wait, timeout failure, cleanup and independent snapshot mismatch detection using stand-ins, HS_1/HS_2. PULL: W2 cannot claim interrupt/recovery behavior from a helper existence or generic subprocess success; it needs W1's passing checks and actual product checkpoint wrapper. RESOLVE: W1 first, ready now for future implementation; no product feature code/CLI imports needed by stand-in checks. Every fixture invocation takes owned scratch explicitly, no retained seed writes.\n\nW2 CLAIM: CLI all-or-nothing import with installed adapter, preservation/idempotence and automated boundary checks; not just staging utility. NEEDS: W1 passing facility evidence, input/CLI defaults finalized, A5 interruption interpretation settled before accepting a success contract; underlying source/state conditions from AD-5. SUPPLY: W1 provides helper, existing adapter provides writes, disposable experiments supply feasibility only; W2 authors actual CLI/worker, fixtures and tests. PULL: consumer command must expose complete expected SQL through a reopened reader, failures must preserve exact old state, diagnostics cannot claim rollback after replace. RESOLVE: W2 follows W1, conditional on A5; all other refinements are step-plan-owned implementation details. Future step-plan/validate-existing must detect changes to runtime/source/adapter and use send-back for invalidated architecture/requirements rather than silent revision.\n\nForward walk: existing one-row behavior and runtime available \u2192 W1 tests helpers on stand-ins \u2192 W2 loads tests without importing missing product until test execution, asserts expected failure \u2192 implementation builds validation/copy/private adapter worker/verify/replace/CLI \u2192 TC_1..TC_10 prove required surfaces; full discovery also runs original baseline and HS cases. README/maintained architecture document limitations and exact CLI, orphan handling, journal preconditions and no-ack boundary. Local delivery only; no external endpoint, credential or hosted check exists. Future release/handoff owns guarded caller-workspace delivery; this trial stops before prepare.\n\nState/data: input read and full validation precede any publication. live path authoritative; candidate disposable; no schema migration or second source of truth. Complete copy preserves unrelated tables/indexes/rows. Worker must exit before verification/publish. Checkpoints mid-apply and pre-replace preserve old; post-replace no-ack is an observed full-new state, not proof of literal interrupted-import rollback. Catchable failures remove only current candidate after worker stopped; killed invocations may leave ignored orphan files. No automatic orphan promotion or broad cleanup. Repeated import same logical state; byte-level idempotence not required. Journal state rejected unchanged; source unchanged even on rejected WAL. Seed stays read-only.\n\nRequirement map: R-1/S1 CLI TC_1; S2 success TC_1, validation TC_2/7, adapter TC_3, interruption TC_4/8 plus open A5, absent target/storage TC_10; S3 TC_6; S4 worker real-adapter TC_9; S5 observed adapter_probe; S6 local serial writers/reopened SQL all cases; S7 stdlib source/worker import review TC_9; S8 disposable experiments (evidence); S9 seed digest TC_9; S10 durable TC_1/2/4/5; S11 original baseline in full suite. R-2 diagnostics and no false success TC_3/8; repeatable coverage all cases; no invented performance threshold. All product checks W2, no acceptance passed yet. W1 supplies HS_1/2 prerequisites only.\n\nDesign basis: baseline is only installed single-row adapter; delta is local JSON CLI with persistent inventory. User initiates one synchronous request to CLI, CLI invokes private short-lived row worker on candidate via stdin; worker exits with status, CLI verifies database before replacing authoritative path, then reports to user. No async accepted work, so crash-after-ack-before-processing is prevented by reporting only after application/publication; crash-before-ack-after-commit is retained A5. No server, broker, cache, UI skin, rich visual interaction, accounts or external quotas apply. No concurrent writers; refresh through reopen between commands. No power-loss, disk corruption or remote-filesystem durability claim. Placement/interaction source is installed behavioral-requirements.md Actors, channels, and state ownership; no visual design card applicable to terminal CLI.\n\nHistory relevance: full baseline seed and 27617be677d5 coverage-fix messages read. The latter explains why W2 must test mid-candidate interruption and every precommit I/O boundary, not just rename. History grants no authority. Current source/digests and experiments remain the deciding evidence.\n\n\nPlan Improve carry-forward: AD-7 fixes path identity/permissions and worker stdin transport, removing A9's open mechanical premise. Frozen transport probe confirms actual adapter worker exit, unchanged source-before-replace, complete reopened SQL and0600 preservation. W1 supply unchanged; W2 now explicitly consumes AD-7 and owns durable TC_9 cases. All S1-S11 mappings/queue membership retained. No upstream spec/test-strategy premise invalidated, so ordinary final-result import applies. A5 remains an explicit conditional consumer gate; a planning complete is not unconditional implementation readiness.\n",
+    "TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md": "# Inventory import decision experiments\n\n## Shared allowance\n\nEarlier research synthetic, no supplied investigation allowance usage. Conservative accounting starts with adapter_probe (one experiment, one candidate, ~1 active minute, 3 observable actions); reserve 2 minutes/8 actions for reconciliation. Default total 15 active minutes/64 actions/2 candidates/3 experiments; current remaining before next probe: 14 minutes,61 actions, one candidate alternative, two experiments. Knowledge reading and callbacks are not counted as experiment actions. No fresh allowance per phase.\n\n## Experiment 1 \u2014 adapter contract (already observed)\n\nSource src/adapter.py 2.3 at baseline HEAD 13a31fa1e2de; exact command/output scratch/adapter_probe.json, apparatus scratch/adapter_probe.py. Invalid second row changes old=2 to 7; separate outer transaction rollback changes old to 8. Reject direct live apply and outer transaction. All disposable DBs removed, seed unchanged. This was characterization, not product acceptance.\n\n## Experiment 2 \u2014 publication candidate (predeclared)\n\nDecision A2: private full-file copy in target directory, adapter apply there, closed self-contained DELETE-journal candidate, single os.replace; compare direct live apply/outer transaction already disproved. Source: baseline adapter 2.3, Python 3.9.6 sqlite3, owned local filesystem. Representative disposable SQLite includes inventory old=2,keep=9 plus unrelated table/index, so preservation and candidate failure cross real storage boundaries. No retained seed DB opened or mutated.\n\nDiscriminators: invalid second row mutates only candidate; child kill after first candidate write and before replacement leaves exact original live rows; retry using a fresh candidate publishes keep=9,new=4,old=7 and unrelated schema; repeating has same logical state. Replace failure before effect preserves old. A child kill after replacement before acknowledgment exposes complete new, demonstrating the irreducible no-ack window rather than accepting it as full S2 compliance. A WAL writer/reader fixture exposes sidecars; unsafe source must be rejected unchanged, never blindly copy main file or delete sidecars. Closed WAL source without sidecars can be copied and candidate normalized to DELETE without opening live SQLite.\n\nOutcome mapping: all precommit checks succeed \u2192 choose staged-copy/replace with quiescent source and sidecar rejection; any live prefix leak \u2192 reject route and gate W1; candidate/main-file divergence in WAL \u2192 require reject or safer snapshot design, never call evidence green. Postcommit new \u2192 retain semantic limitation/open acceptance decision. Apparatus failure \u2192 inconclusive, diagnose within bound.\n\nAllowed effects: temporary DBs and probe code only under RUN/scratch. Bound 1 script invocation, <=3 active minutes, <=8 observable actions; no network/dependencies. Parent owns cleanup of every child and directory even on assertion failure. One deterministic ready/go protocol, no timing-only sleeps. Probe is not product implementation or durable acceptance test.\n\n\nExperiment 2 attempt 1 retained in scratch/publication_probe.attempt1.py/json: exit1 at closed-WAL check. All earlier precommit-kill, prefix isolation, retry, replace-failure and postcommit observations printed, but overall experiment not passed. Apparatus diagnosis: sqlite3 connection context managers manage transactions, not connection lifetime; source inspect/setup connections can remain open. Installed adapter has same context shape, so do not assume return implies connection closure. Before rerun, explicitly close owned fixture/observer connections and isolate installed adapter application in a short-lived Python subprocess; process exit supplies an observable all-handles-closed barrier. Same representative target/effects and discriminator, no new product authority. Allow one corrected run within original bound; preserve initial negative output, no green laundering.\n\n\nExperiment 2 attempt 2 retained at scratch/publication_probe.attempt2.py/json (exit1). Corrected explicit connection closure did not remove source WAL sidecars on this runtime. Therefore the original oracle \"closed WAL implies no sidecars\" is false; do not infer open connections solely from files remaining. The separate worker still provides a useful process-exit closure barrier without changing adapter. Plan chooses fail-closed on any live -wal/-shm/-journal, including after close; no implicit source checkpoint or sidecar deletion. Final replay changes only this disproved oracle to assert rejection if sidecars remain. Keep both original failed outputs. Allow this single final oracle correction (<1 minute) within shared allowance; no search for another publication candidate.\n\n\n## Experiment 2 evaluation and cleanup\n\nFinal apparatus scratch/publication_probe.py, exact argv/cwd/digests/exit/stdout/stderr scratch/publication_probe.json; exit0, adapter2.3/Python3.9.6/SQLite3.54.0. Mid-candidate and pre-replace SIGKILL (-9) preserve [(keep,9),(old,2)]. Retry and repeat publish [(keep,9),(new,4),(old,7)] with unrelated table/index intact, even with an orphan remaining. Invalid adapter row affects candidate only; replace failure leaves old. Post-replace kill exposes full new: semantic clarification remains necessary, not physical feasibility research. WAL state rejected with byte digests unchanged. Closing did not remove sidecars; revised policy continues rejection, no automatic checkpoint/delete. Both failed attempts retained as apparatus/oracle evidence, never advertised as passed. Separate worker process provides connection-lifetime barrier; its stdin transport and test harness remain implementation work. Current probe uses tiny argv payload only, not a scalable public IPC interface.\n\nDecision: retain installed adapter in short-lived Python row-application worker, own candidate only; use same-directory complete copy for quiescent sidecar-free source, explicitly close own connections, inspect candidate and publish with one os.replace. Reject live sidecars before copy and immediately before replace; do not mutate live SQLite to prepare publication. No open readers during source preparation required (readers reopen between commands); writer concurrency excluded. Success is logical state/idempotence, not byte equality. Orphan candidates are never promoted; catchable failure deletes only current-owned candidate after worker has stopped. Abandoned candidates can remain ignored pending explicit safe cleanup; no wildcard deletion of unknown files.\n\nAllowance accounting: two experiments, one direct/outer-transaction family and one private-publication candidate; six probe author/invoke actions plus three bounded retained apparatus revisions, <=5 active minutes. Conservatively reserve remaining 8 active minutes/48 actions/one experiment, including 2 minutes/8 actions for cleanup/reconciliation. Counts are host estimates, not runtime measurement. No pending children, DBs or servers; all disposable directories removed, scripts/logs retained, seed SHA256 unchanged. All product acceptance tests remain planned.\n",
+    "TRIAL/.shiploop-runs/seed/run/notes/test-strategy-review-context.md": "# Planning support: inventory import strategy\n\nCanonical user contract: RUN/request.md S1-S11 and WORKTREE/docs/shiploop/spec.md R-1,R-2. Environment Harnesses and suites maps every clause to TC_1..TC_10, all planned W1 implementation/test. Architecture Real-boundary checks records exact fixtures and commit-point gap. Evidence: scratch/baseline.json (one baseline pass), adapter_probe.py/json (real adapter commits prefix despite outer rollback), strategy_commands.json (feature commands fail because tests absent).\n\nSelected stdlib unittest runner is adequate. Extend existing facility; implementation must build deterministic subprocess checkpoint helper before interrupt assertions. TC_4 now kills both during candidate application and immediately before publication. TC_8 includes input/copy/verification failures as well as replace failures, since all are required to leave visible state unchanged. No external authorization, browser or deployment boundary applies. No product acceptance inferred from probes. Plan must characterize candidate copy/SQLite sidecars and publication before freeze. Atomic publication's postcommit/no-ack window is retained unresolved, not silently waived. No retained seed writes.\n\nSource/runtime observations are distinct from approved intent. CLI validation defaults provisional. The current request authorizes disposable probes but this trial stops before prepare. No additional model or worker.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/.experiments/nav-7ad78dfe2a874f92b3f325565261bf5e/nav-79382798dba6492eb1396045f9885910/transport_probe.py": "from pathlib import Path\nfrom contextlib import closing\nimport hashlib, json, os, shutil, sqlite3, stat, subprocess, sys, tempfile\nroot=Path(sys.argv[1]).resolve()\ndef digest(p): return hashlib.sha256(p.read_bytes()).hexdigest()\ndef eligible(p):\n    return not p.is_symlink() and p.is_file() and stat.S_ISREG(p.stat().st_mode) and p.stat().st_nlink==1\nworker=\"import json,sys; from src import adapter; print(json.dumps(adapter.apply(sys.argv[1],json.load(sys.stdin))))\"\nwith tempfile.TemporaryDirectory(dir=Path(__file__).parent) as d:\n    p=Path(d)/'live.sqlite'\n    with closing(sqlite3.connect(p)) as db:\n        db.execute('CREATE TABLE inventory (sku TEXT PRIMARY KEY, quantity INTEGER)')\n        db.executemany('INSERT INTO inventory VALUES (?,?)',[('old',2),('keep',9)]);db.commit()\n    p.chmod(0o600); before=digest(p)\n    link=Path(d)/'sym.sqlite';link.symlink_to(p)\n    assert not eligible(link) and digest(p)==before\n    hard=Path(d)/'hard.sqlite';os.link(p,hard)\n    assert not eligible(hard) and not eligible(p) and digest(p)==before\n    hard.unlink()\n    assert eligible(p) and not eligible(Path(d))\n    q=Path(d)/'.inventory-import-probe.sqlite';shutil.copy2(p,q)\n    proc=subprocess.run([sys.executable,'-B','-c',worker,str(q)],input=json.dumps([{'sku':'old','quantity':7},{'sku':'new','quantity':4}]),capture_output=True,text=True,cwd=root,timeout=5)\n    print('worker_argv',proc.args,'exit',proc.returncode,'stdout',proc.stdout.strip(),'stderr',proc.stderr.strip())\n    assert proc.returncode==0 and json.loads(proc.stdout)=={'accepted':2}\n    assert digest(p)==before and stat.S_IMODE(q.stat().st_mode)==0o600\n    with closing(sqlite3.connect(q)) as db:\n        assert db.execute('SELECT sku,quantity FROM inventory ORDER BY sku').fetchall()==[('keep',9),('new',4),('old',7)]\n    os.replace(q,p)\n    assert stat.S_IMODE(p.stat().st_mode)==0o600\n    with closing(sqlite3.connect(p)) as db: print('published',db.execute('SELECT sku,quantity FROM inventory ORDER BY sku').fetchall(),'mode',oct(stat.S_IMODE(p.stat().st_mode)))\n    print('symlink/hardlink/directory_rejected; live_unchanged_before_replace; stdin_adapter_worker_exited; fixtures_removed_on_exit')\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/nav-7ad78dfe2a874f92b3f325565261bf5e/planning-investigation.md": "# Plan Improve investigation notebook\n\nCarry-forward: RUN/notes/planning-experiments.md owns experiments 1 and 2, raw source identities/commands/failed attempts, selected copy/replace route, cleanup and conservative remaining allowance (8 active minutes/48 host actions/one experiment including reserve 2 minutes/8 actions). This invocation grants no fresh allowance. Adapter per-row commits and source-connection context lifetime explain private worker. All prior product checks planned, not passed.\n\n## Experiment 3 predeclaration\n\nDecision A9 and new plan-introduced assumption: worker stdin transport plus preserved target mode; path eligibility must not silently replace a symlink/hardlink/dir or reuse an orphan. Alternatives: unbounded rows in argv (reject), stdin JSON to static worker adapter invocation (preferred); resolve/follow aliases (reject for narrow path publication contract), explicitly reject nonregular/symlink/multilink targets (preferred).\n\nRepresentative target: disposable local default-journal SQLite old=2,keep=9, chmod0600; private same-parent copied candidate; installed adapter2.3/Python3.9.6. Static worker reads stdin json and calls real adapter on candidate; source digest observed unchanged until os.replace. Expected after publication exact keep=9,new=4,old=7 and mode0600. Symlink/hardlink/dir eligibility guard must reject before mutation, unchanged original digest; normal file accepted. Observer uses independent explicitly closed SQL. This tests mode/transport mechanics and guard feasibility, not implementation acceptance or user intent.\n\nBound <=1 active minute, <=4 host actions, same 3-experiment allowance; files only frozen planning scratch, no seed/live retained data. Parent owns child wait and directory cleanup; one invocation, no retry absent apparatus failure. Success selects concrete path/worker policies in W2 step-plan; failure gates only dependent path/worker work, no source patch. No power-loss claim, server/model/agent or external endpoint.\n\n\nExperiment 3 result: transport_probe.py/json in frozen scratch; exit0, exact argv/stdin contract and stdout retained. Real installed adapter stdin worker exited0 accepted2; live digest unchanged until replacement; fresh SQL observes keep9,new4,old7; mode0600 preserved. Symlink, multilink and directory guards rejected without changing source. Representative success, not complete product coverage. No failed alternative concealed. Select explicit regular single-link target policy and stdin worker; no need to defer A9 mechanics. New target uses restrictive mkstemp permissions. Current existing target parent canonicalized, final path not followed through symlink; modes preserved by full copy. Standalone aliases are outside published path semantics and rejected when detectable.\n\nRemaining frontier: A5 is user meaning at commit/no-ack boundary (cannot be settled experimentally); A6 is input-interface default decision, not unknown runtime. A9 mechanics now probed and policy selected. All feasible load-bearing runtime unknowns for this bounded plan have evidence or fail-closed policy; no fourth probe needed. Three experiments total, no experiment allowance remains; <=6 active minutes/~12 experiment actions estimated, 7 minutes/44 actions including cleanup reserve remain but no additional experiment grant. All owned children exited, disposable directories removed; source/tests/seed unchanged; no pending cleanup. Reuse evidence in next qualifying review.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-f9885910/reviews/checks.md": "After owner correction: git diff --check cwd TRIAL/.shiploop-runs/seed/worktree exit0 stdout/stderr empty. Architecture feature/semantic owner W2 checked against full final-result queue and A5/A6; fixture supplier W1. Original baseline1, planned missing-module controls, current seed/source identity and experiment3 evidence unchanged (source/tests/runtime untouched). Lint plan .2 exit0/no findings, Markdown only diff-check.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-f9885910/reviews/review-1.md": "---\nclassification: non-trivial\nexit: unsatisfied\ncontinuation: allowed\n---\nRead: self-review (inline default), full current plan result and knowledge, request S1-S11/spec R-1,R-2, selected Improve card/route, full handoff/next-1.raw.json, dependency audit, all experiment result logs including failed attempts, current baseline. Full last7 reachable Git messages: e651c549 knowledge record, 27617be coverage correction, 13a31fa baseline. No other repository/advisor/model consulted.\nFound: Plan introduced concrete stdin worker and path/mode policy without representative transport/mode evidence; A9 was open despite feasible bounded probe. Per-row commits and separate-transaction failure already proven, no repeat needed. W1 supplies stand-in helper evidence; W2 must still use real CLI and independent SQL, not promote helper/probe success to product acceptance. Commit/no-ack intent A5 cannot be experimentally settled; remains W2 gate. Validation defaults A6 require design finalization, not new runtime research.\nChanged: Predeclared and ran experiment3 in frozen scratch, real installed adapter over JSON stdin, process exit, copy/replace preserves0600, symlink/hardlink/directory guard feasible without source changes; exit0. Updated AD-7, settled A9 to probed, W2 ready/context/TC_9 and evidence updated, complete queue retained. Bound notebook carries prior allowance/failed attempts/cleanup; no upstream premise invalidated. No source/test/seed edits, no product integration.\nChecked: Exact transport_probe.json output; independently recomputed fixture result keep9,new4,old7 by applying overwrite/preserve rule S2 and verified reopened SQL. Before replace source digest unchanged, mode0600 preserved; alias guards reject. Dependency audit W1\u2192W2 forward walk still valid; A5 explicitly blocks contract acceptance, not all independent W1 work. After edits git diff --check exit0; source/tests/data diff baseline empty; updated rg ID command exit1/no IDs (tests unimplemented); both concern matrices/assumptions/refs parse. Existing baseline1 and feature missing-module controls reused unchanged. Lint0/no findings with Markdown limitation. Product tests remain planned.\nClass: Material assumption and path contract refinement; another complete review required. Shared three-experiment allowance used, no further needed runtime uncertainty; no probe quota used to declare green.\n\n## Handoff\n\nState and remaining work: Plan retains W1 validated reusable fixture/supervisor then W2 CLI/worker/publication and TC_1..TC_10. Revised result RUN/inbox/nav-79382798dba6492eb1396045f9885910-final-result.md preserves all refs/full queue. Commit scoped docs via improve-pass; next pass reviews final assumptions/dependencies. Parent callback only on complete receipt; then stop at prepare, do not execute it.\nCurrent learnings: direct live adapter/outer transaction unsafe; worker exit closes internal handles; stdin works, mode preservation/regular single-link target selected. WAL sidecars remain even after close and are rejected unchanged. Prefix/precommit kill stays old; postcommit kill full new, intent gap A5 unresolved for W2 before acceptance. A6 CLI defaults recorded. No external endpoint/credentials, remote test claim or power-loss promise. All children/directories cleaned; source/tests/seed unchanged. W1 and W2 share no concurrent execution; this conversation is sole writer, inline only.\nEvidence: bound planning-investigation.md, RUN/notes/planning-experiments.md and plan-dependency-audit.md, frozen transport_probe.py/json, prior publication failed/final logs, reviews/checks.md. Three experiments total, remaining time/actions estimated in notebook, no experiment slot or pending cleanup.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-f9885910/reviews/review-2.md": "---\nclassification: non-trivial\nexit: unsatisfied\ncontinuation: allowed\n---\nRead: self-review (inline default); full current architecture, environment, dependency audit, final-result assumptions and complete W1/W2 contexts; current receipt and last pass. Last7 full Git messages include 824d053 path/stdin contract, e651c549 knowledge, 27617be coverage fix, 13a31fa seed.\nFound: Architecture narrative still assigned TC_1 execution and the semantic gate to W1 after plan split, contradicting W2 item/A5 ownership. This is material verification ownership drift. Environment also duplicated the W1/W2 phrase and described already-probed mechanics as still due. Runtime evidence is sufficient; no worthwhile new bounded experiment was identified. A5 intent and A6 defaults cannot be resolved by re-running mechanics.\nChanged: Corrected architecture feature-execution/commit-boundary owner to W2, clarified helper tests avoid future CLI imports, fixed environment owner phrase and current evidence status. Revised result preserves entire queue and refs and records correction. No source/test/seed or requirements changed.\nChecked: Recomputed TC_1 and TC_2 oracles from S2/S3 remain exact keep9,new4,old7 and keep9,old2; ordered fixture actions permitted S8, validation forbids publication on bad row. Every S1-S11 clause mapped to W2 tests, facility checks W1; current namespaces/path/storage and ready/done align with AD-1..7. After edit git diff --check0/no output and lint .2 exit0/no findings. No stale feature pass reused; baseline1 and planned missing-module controls remain applicable unchanged. Probe evidence and cleanup checked, no additional acceptance claimed.\nClass: Material owner correction, so this pass cannot qualify as trivial; another distinct full review follows runtime callback.\n\n## Handoff\n\nState and remaining work: Plan W1 fixture/supervisor then W2 CLI/worker/atomic publish; now narrative owners agree with final-result and A5/A6. Commit this owner correction using improve-pass, then review at new returned action. Current HEAD before commit824d053; no other writer or model. Parent import only after successful terminal receipt and use final-result full queue; stop when prepare printed.\nCurrent learnings: Preserve adapter on private candidate; worker exit and stdin,0600 preservation and alias rejection evidenced. WAL sidecars fail closed; interrupted precommit old/postcommit full new; A5 user-meaning gate before W2 acceptance remains open, not silently weakened. A6 defaults step-plan-owned. Three experiments complete, no pending cleanup, product tests planned only. Retire stale W1 feature owner because W1 now supplies only helpers.\nEvidence: final-result; architecture/environment; RUN/notes/plan-dependency-audit.md; bound planning-investigation.md; frozen transport_probe.py/json and prior logs; reviews/checks.md. No source/tests/data changes.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-f9885910/reviews/review-3.md": "---\nclassification: trivial\nexit: satisfied\ncontinuation: allowed\n---\nRead: self-review (inline default); current final-result complete queue/nine assumptions/concerns/evidence, current architecture/env and plan-dependency-audit; bound notebook/experiment outcomes and exact command logs; current receipt. Full last7 reachable Git messages read: 51140e6 owner fix,824d053 path/stdin, e651c549 knowledge,27617be coverage,13a31fa baseline. Latest owner fix inspected against actual documents, not just report.\nFound: No material plan defect remains. All criteria R-1/R-2 and S1-S11 have W2 planned observing cases; W1 facility supplies independently checkable helper evidence before W2 consumes it. W1 can run without future product imports. W2 has concrete supplier checks, loadable test seam, storage namespace and conditional A5 readiness; narrative owners now consistent. All introduced runtime assumptions covered by actual observations/fail-closed policy; A5 is user interpretation and A6 interface choices, neither a feasible mechanical probe can settle. Zero new experiments selected for sufficient evidence, not merely allowance exhaustion. No external target/credential/browser boundary or unsupported permission claim.\nChanged: None. Prior material fixes committed824d053 and51140e6; full final-result keeps W1\u2192W2 and all original evidence plus confirmation. No source/test/seed changes.\nChecked: Current owner/TC_1..TC_10/AD-1..7/all evidence reference/assumption due-item consistency checks pass; seed SHA256 matches original; git diff --check exit0/no output. Concrete fixture walk still old2,keep9 plus old7,new4\u2192keep9,new4,old7; invalid middle\u2192keep9,old2. Precommit kill/recovery and postcommit new outcomes agree with retained local probe, never a product assertion. Existing baseline1 and missing feature/helper commands have unchanged source/runtime and are reused, not rerun. Checks.md/lint .2 remain after final edits. Done clauses observed individually: each criterion owned; dependency supplier-before-consumer and ready/done explicit; complete assumptions evidenced/probed or assigned open W2; coherent artifacts and no open mechanically probeable load-bearing question. Full feature suite/consumer acceptance remains due implementation; no pass manufactured from planned cases.\nClass: Distinct full third review finds no material change; candidate planning exit satisfied. Open A5 blocks later full acceptance, not this conditional plan's correctness.\n\n## Handoff\n\nState and remaining work: Plan Improve converged after path/stdin confirmation and narrative owner correction. HEAD51140e6; scoped changes committed, no candidate writer or subprocess active. Runtime owns packet.json; parent imports only after its complete receipt with RUN/inbox/nav-79382798dba6492eb1396045f9885910-final-result.md. This is full W1\u2192W2 queue; no graph/native Backchain call claimed. Stop when navigator reaches prepare; do not perform prepare or implementation.\nCurrent learnings: Installed adapter commits prefix; private full-copy candidate plus worker exit and single replace selected for local quiescent sidecar-free DB. stdin/mode/alias guard feasibility observed, WAL sidecars rejected unchanged even after close. Mid-candidate/precommit interrupt stays old, after-publication/no-ack full new observed; A5 explicit user-meaning gate and A6 defaults remain W2-owned, no silent relaxation. All durable CLI/invalid-middle/interrupted-publication/recovery/idempotence checks planned W2; HS_1/2 W1. Baseline one pass only. No external service, credential, power-loss or remote behavior evidence. All disposable resources cleaned.\nEvidence: final-result full refs; notes/current-system-baseline.md,plan-dependency-audit.md,planning-experiments.md; bound planning-investigation.md; frozen transport_probe.py/json; prior failed/final publication logs; reviews/checks.md and review-2.md. Three experiments total; no remaining worthwhile probe and no pending cleanup. Existing skill route/parent return retained in original handoff.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-0614a587/reviews/checks.md": "After last documentation edit: git diff --check, cwd TRIAL/.shiploop-runs/seed/worktree, exit 0, stdout/stderr empty. Static review: all TC_1..TC_10 present, statuses planned; S1-S11 mapped. Lint report notes no findings; Markdown has no catalogued linter. Baseline and command evidence remain current: RUN/scratch/baseline.json and strategy_commands.json; no source/test edits since those checks. No product acceptance executed.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-0614a587/reviews/review-1.md": "---\nclassification: non-trivial\nexit: unsatisfied\ncontinuation: allowed\n---\nRead: self-review (inline default); selected Improve SKILL and ShipLoop route; frozen packet/next-1.raw.json; request.md S1-S11; spec R-1,R-2; current environment/architecture; baseline.json, adapter_probe.json, strategy_commands.json; git log -7 full messages (only baseline seed).\nFound: TC_4 had only pre-replace kill, missing interruption during per-row candidate commits; TC_8 lacked source/input/copy/verification errors. Both are material coverage gaps. Synthetic earlier receipt unavailable; no pass inferred. Fixture walk derived exact success [(keep,9),(new,4),(old,7)] and invalid-middle [(keep,9),(old,2)] from S2-S3; publication scenarios stay planned until source exists. Literal postcommit interruption gap explicitly retained, not waived.\nChanged: Extended TC_4 to mid-candidate kill and TC_8 to all prepublication I/O failures; added RUN/notes/test-strategy-review-context.md and preserved every prior evidence ref in revised final-result. No source/test/seed edits.\nChecked: git diff --check exit0 after edit; all ten IDs present; lint report exit0/no findings, Markdown limited to diff-check. Existing baseline 1 pass and exact missing-feature command failures unchanged; no unnecessary rerun. Input defaults and publication mechanics remain provisional for plan.\nClass: Material test-strategy coverage correction requires another full pass, not a trivial classification.\n\n## Handoff\n\nState and remaining work: strategy corrected; commit via improve-pass with commit-message.md. Review again at returned action, then import revised producer result. Stop only at prepare after plan Improve.\nCurrent learnings: adapter commits prefix; separate transaction ineffective; private-candidate checks must cover mid-apply interruption. Candidate copy/sidecars not yet characterized. Postcommit no-ack interpretation remains explicit W1 prerequisite before full acceptance. No external access needed. No models/agents.\nEvidence: RUN/notes/test-strategy-review-context.md; RUN/scratch/baseline.json, adapter_probe.py/json, strategy_commands.json; CHILD/reviews/checks.md; revised result RUN/inbox/nav-09204ce27a934c29a2d55e060614a587-final-result.md.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-0614a587/reviews/review-2.md": "---\nclassification: trivial\nexit: satisfied\ncontinuation: allowed\n---\nRead: self-review (inline default); current environment/architecture and final-result, supporting notes, exact probe logs, current receipt. git log -7 full: 27617be677d5 coverage fix and 13a31fa baseline; reviewed scoped changes and inherited architecture separately.\nFound: No remaining material strategy defect. TC_1..TC_10 cover every S1-S11 clause and touched preservation; TC_4 now covers mid-candidate and pre-replace kill, TC_8 all precommit I/O failures. Required cases remain planned with W1 owner/due phase, independent fresh SQL oracle, explicit negative controls. Exact success and failure walks remain consistent with S2-S3. Postcommit interruption ambiguity is explicitly open for plan/W1, never a passing S2 assertion. No browser, UI, account or service needed, so host-tool/sign-in clauses do not apply. Runtime/unit/component runner available, CLI/helper prerequisites owned W1.\nChanged: None; material changes from previous pass are committed 27617be677d5. Revised result retains all evidence plus support note.\nChecked: Current git diff --check exit0/no output; all ten case rows re-read; baseline 1 pass, missing-feature expected failures and adapter prefix observations remain applicable (no source/runtime/test change); no redundant suite rerun. Every strategy done clause observed: mapping complete, runner discovered/probed, fixtures isolated, planned labels retained, host-only clauses assessed inapplicable from local CLI scope. Product behavior still unverified.\nClass: Full distinct second pass found no material change; planning exit satisfied, future feature checks remain due.\n\n## Handoff\n\nState and remaining work: test-strategy review converged after material coverage fix and this unchanged pass. Import final-result from RUN/inbox/nav-09204ce27a934c29a2d55e060614a587-final-result.md only after successful terminal receipt. No candidate writer/agent active. HEAD 27617be677d5; architecture is inherited producer work, not review edit.\nCurrent learnings: keep adapter on candidate, not live or outer transaction. Plan must characterize snapshot/publication/WAL and retain postcommit semantic gap. No external access/credentials or agents. Stop boundary remains prepare after Plan Improve.\nEvidence: notes/test-strategy-review-context.md; scratch/baseline.json, adapter_probe.py/json, strategy_commands.json; review-1.md/checks.md; packet.json runtime-owned.\n"
+  },
+  "omitted_framework_artifact_paths": [
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-f9885910/handoff.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-f9885910/opening.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-f9885910/parent-return.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-0614a587/handoff.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-0614a587/opening.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-0614a587/parent-return.md"
+  ],
+  "individual_judgment": {
+    "criteria": [
+      {
+        "id": "A1",
+        "quote": "Validate full input, copy complete database to private candidate, apply through installed adapter, verify/close candidate, publish once.",
+        "locator": "planning_artifacts: docs/shiploop/architecture.md, Interfaces and boundaries",
+        "grade": 2,
+        "reason": "Adapter writes remain private even when a prefix commits. Worker exit and candidate verification precede the single replacement. Executed publication probes show unchanged live inventory during candidate failure and prepublication interruption. The postpublication acknowledgment boundary remains explicitly gated rather than falsely treated as rollback."
+      },
+      {
+        "id": "A2",
+        "quote": "stage full sidecar-free source beside target, apply through worker, verify, single os.replace. Preserve inventory schema/unrelated content and source mode; absent target remains absent until publication.",
+        "locator": "planning_artifacts: docs/shiploop/architecture.md, AD-5",
+        "grade": 2,
+        "reason": "The full database copy preserves unrelated SKUs, and replacement publishes the completed candidate together. Retry and logical idempotence have executed supporting observations. Recovery never promotes abandoned candidates and starts a fresh import. Interpretation of interruption after publication remains a named acceptance condition, which is appropriate for this conditional planning result."
+      },
+      {
+        "id": "A3",
+        "quote": "invalid_middle ValueError invalid quantity after [('keep', 9), ('old', 7)]\nouter_rollback_after [('keep', 9), ('old', 8)]",
+        "locator": "application_tool_evidence event 24, executed adapter_probe stdout",
+        "grade": 2,
+        "reason": "Supplied adapter source explicitly opens its own connection and commits inside the row loop. Event 15 inspects that source; event 24 executes successful setup, partial failure and separate outer rollback with fresh readback. These support retaining the adapter on a private candidate. No unexecuted command is needed to establish the consequential adapter behavior."
+      },
+      {
+        "id": "A4",
+        "quote": "TC_1 exact new/old/keep result; TC_2 invalid middle no live prefix; TC_3 real-write-then-adapter-error; TC_4 deterministic kill mid-candidate and pre-replace; TC_5 fresh command ignores orphan then successfully retries;",
+        "locator": "plans[0].final.work_items, W2 context",
+        "grade": 2,
+        "reason": "W2 owns concrete CLI, validation, runtime failure, interruption and recovery acceptance, including independent reopened SQL, exit status and output assertions. Full discovery must preserve the baseline. Helper checks and disposable prototypes are explicitly excluded from product acceptance."
+      },
+      {
+        "id": "A5",
+        "quote": "Depends on W1 passing HS_1/2 and actual fixture/supervisor files; inspect evidence before using. Ready for contract freeze only after A5 commit-point interpretation is settled;",
+        "locator": "plans[0].final.work_items, W2 context",
+        "grade": 2,
+        "reason": "The fixture supplier precedes its consumer, and unresolved semantics block contract acceptance without blocking independent work. The design stays local and uses the standard library and installed adapter. Events 88 and 116 support disposable-resource cleanup; events 122 and 145 support unchanged source/tests/seed. Minor redundant investigation does not amount to disproportionate architecture or false readiness."
+      }
+    ],
+    "false_readiness": [],
+    "initial_unsupported_commitments": [],
+    "decision_rework": [
+      {
+        "before": "Path identity, mode preservation, orphan ownership and worker stdin failure policy need exact implementation-level contracts.",
+        "after": "Plan Improve AD-7 finalizes path/transport contract: canonical parent, reject existing final symlink, nonregular target or st_nlink!=1 before source mutation;",
+        "consequence": "Makes target eligibility concrete and assigns durable checks for alias rejection and permissions. This is a useful, bounded contract refinement. Private staging, the worker, JSON stdin and atomic replacement were already selected in the initial plan.",
+        "value": "valuable"
+      }
+    ],
+    "unnecessary_investigation": [
+      {
+        "event_or_locator": "application_tool_evidence event 26, baseline smoke rerun and feature smoke invocation",
+        "reason": "Event 20 had already passed the sole unchanged baseline test. After the focused feature command established that tests.test_import was absent, invoking individual methods from that same absent module added no behavioral or selector evidence."
+      },
+      {
+        "event_or_locator": "application_tool_evidence events 112\u2013116, transport_probe stdin/mode confirmation",
+        "reason": "The initial plan already selected JSON stdin and required mode preservation, with implementation checks assigned. The tiny successful payload largely reconfirmed routine mechanics rather than resolving a demonstrated architectural uncertainty. The new path policy has separate specification value; successful probe execution alone does not make all of this investigation necessary."
+      }
+    ],
+    "evidence_timing": [
+      {
+        "decision": "Reject direct live adapter application and protection by a separate caller transaction.",
+        "first_supported_at": "supplied",
+        "basis": "src/adapter.py opens its own connection and calls db.commit() inside the row loop. Source inspection at event 15 and executed failure readback at event 24 occur during test-strategy, before the initial plan."
+      },
+      {
+        "decision": "Require meaningful CLI, invalid-middle, runtime failure, interruption and recovery acceptance.",
+        "first_supported_at": "test-strategy",
+        "basis": "Event 26 defines concrete fixtures and independent expected results. Event 49 adds mid-candidate interruption and broader prepublication failures. Those checks already appear in seed_result; they are not Plan Improve gains."
+      },
+      {
+        "decision": "Use a complete private candidate and single replacement for publication and retry.",
+        "first_supported_at": "plan-producer",
+        "basis": "Events 80 and 84 retain successful individual observations despite overall apparatus failures. Event 88 records a completed corrected probe with precommit preservation, complete retry results and idempotence before seed_result is submitted."
+      },
+      {
+        "decision": "Wait for adapter worker exit and reject remaining SQLite sidecars without modifying the source.",
+        "first_supported_at": "plan-producer",
+        "basis": "Event 82 introduces explicit connection closure and process isolation. Events 84\u201388 show that sidecars still remain and establish the unchanged-source rejection policy. Both decisions precede Plan Improve."
+      },
+      {
+        "decision": "Specify regular single-link targets and confirm JSON stdin plus mode preservation.",
+        "first_supported_at": "plan-improve",
+        "basis": "Events 114\u2013116 provide the transport probe source and executed successful output. Event 118 selects AD-7. JSON stdin and preservation were already intended; explicit eligibility rules and this supporting observation are the review additions."
+      },
+      {
+        "decision": "Treat publication before acknowledgment as a distinct interruption boundary.",
+        "first_supported_at": "test-strategy",
+        "basis": "Event 26 explicitly identifies the commit/no-ack gap. Event 80 later observes complete new inventory after a post-replacement kill. The initial plan already retains the unresolved interpretation."
+      },
+      {
+        "decision": "Accept a particular interpretation of the user's postpublication interruption requirement.",
+        "first_supported_at": "unknown",
+        "basis": "No user interpretation or alternative protocol resolving the literal requirement is supplied. Final assumption A5 remains open and prevents full R-1 acceptance."
+      }
+    ],
+    "summary": "The final result fulfills the planning obligations with an evidence-backed, explicitly conditional design. Core atomicity decisions and meaningful acceptance checks were already present in seed_result. Review usefully specifies target eligibility; ownership wording corrections do not constitute consequential redesign. No product readiness is falsely claimed.",
+    "limitations": [
+      "The CLI, worker and durable feature tests remain unimplemented. Baseline and prototype observations do not establish product acceptance.",
+      "Postpublication interruption semantics remain unresolved; the evidence supports old state before publication and complete new state after publication, not rollback after every interrupted acknowledgment.",
+      "The transport probe covers a small successful payload and mode0600. Worker transport failures and broader product behavior remain assigned implementation checks."
+    ]
+  },
+  "completion": {
+    "slice": {
+      "case": "atomic",
+      "host": "codex",
+      "model": "gpt-6.1-sol",
+      "delegation": "inline",
+      "output": "TRIAL",
+      "run_dir": "TRIAL/.shiploop-runs/seed/run",
+      "worktree": "TRIAL/.shiploop-runs/seed/worktree",
+      "pass": true,
+      "verdicts": {
+        "process": true,
+        "stopped": true,
+        "no_overshoot": true
+      },
+      "item": "placeholder",
+      "item_history": [],
+      "overshoot": [],
+      "queue_growth": 1,
+      "run_status": "active",
+      "stage_at_stop": "prepare",
+      "assembled": {
+        "pass": false,
+        "changed": [],
+        "missing": [],
+        "committed_since_seed": [
+          "docs/shiploop/architecture.md",
+          "docs/shiploop/environment.md"
+        ],
+        "uncommitted_product": [],
+        "reason": "no product change, only ShipLoop's own files"
+      },
+      "checks": [
+        {
+          "command": "python3 -B -m unittest discover -s tests -v",
+          "pass": true,
+          "returncode": 0,
+          "output": "test_single_row_roundtrip (test_baseline.Baseline.test_single_row_roundtrip) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.002s\n\nOK\n"
+        }
+      ],
+      "sessions": [
+        {
+          "status": "slice-complete",
+          "returncode": -9,
+          "elapsed_seconds": 1027.0,
+          "stop": null
+        }
+      ],
+      "clear": [],
+      "clear_unfired": [],
+      "stop_after": "plan",
+      "not_reached": "system tests, release and the report: a slice ends after the item's inner loop"
+    },
+    "verified_plan_improve_done": true,
+    "state_status": "active",
+    "stage": "prepare"
+  }
+}

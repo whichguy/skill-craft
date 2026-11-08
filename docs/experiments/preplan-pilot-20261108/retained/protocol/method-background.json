@@ -1,0 +1,16 @@
+{
+  "read_at": 1794122963.7436469,
+  "role": "Methodological background, not evidence of a ShipLoop treatment effect and not a change to the frozen protocol.",
+  "sources": [
+    {
+      "url": "https://www.anthropic.com/research/demystifying-evals-for-ai-agents",
+      "published": "2026-01-09",
+      "used_for": "Distinguish final environment outcomes from transcript claims, repeat stochastic trials, and calibrate model-based grading."
+    },
+    {
+      "url": "https://www.anthropic.com/research/building-effective-agents",
+      "published": "2024-12-19",
+      "used_for": "Evaluate added workflow complexity and use iterative refinement where it yields measurable value. The page flags tooling drift since publication; no tool or model recommendation is taken from it."
+    }
+  ]
+}

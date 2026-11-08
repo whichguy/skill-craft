@@ -1,0 +1,11 @@
+{
+  "time": 1794120934.5010638,
+  "reason": "Local Codex model cache reports Astra default context 272000 tokens. Full paired bundles repeat runtime receipts and hundreds of KB of command payloads already graded individually.",
+  "change": "Keep full initial/final plans, product documents, investigation/review/probe notes and individual judgments. Omit duplicate runtime receipt/handoff bodies and full command transcripts from paired view, explicitly disclose omissions. The individual view remains unchanged and contains raw application command evidence.",
+  "before_sha256": "01a7688dd0f3ad0ff88ecc698b69e7228a6c5646f5936d0d59737b0bcd1c91d1",
+  "after_sha256": "01bf6d1a2b4d1250302559c961b97e22406dba600291c98b5d63f327e2d11c3d",
+  "paired_calls_before_change": 0,
+  "subject_conditions_changed": false,
+  "single_judge_conditions_changed": false,
+  "selection": "Uniform path/type rule, no outcome-dependent selection. Critical empirical disagreement goes back to the retained raw individual bundle."
+}

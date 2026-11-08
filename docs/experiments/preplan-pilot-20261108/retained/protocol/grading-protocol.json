@@ -1,0 +1,8 @@
+{
+  "frozen_before_measured_subjects": true,
+  "time": 1794119421.4518862,
+  "grade_py_sha256": "b2ded474ef43e3c005f73afa7f34d505e692a6a653590766f4b8adc04988baa6",
+  "calibration": "judge-calibration.json",
+  "single_blind_first": true,
+  "pairwise_review": "Fresh Astra/xhigh context after individual grades; randomize order and compare full initial/final plan and decision evidence, no arm mapping. Descriptive only."
+}

@@ -1,0 +1,133 @@
+{
+  "completed": 1794124125.236151,
+  "results": [
+    {
+      "id": "sample-01",
+      "exit": 0,
+      "start": 1794119778.613766,
+      "end": 1794120631.632011,
+      "elapsed": 853.0182461738586,
+      "log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/sample-01.log"
+    },
+    {
+      "id": "sample-02",
+      "exit": 0,
+      "start": 1794119778.6138282,
+      "end": 1794120631.688382,
+      "elapsed": 853.0745537281036,
+      "log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/sample-02.log"
+    },
+    {
+      "id": "sample-03",
+      "exit": 0,
+      "start": 1794119778.613888,
+      "end": 1794120911.123413,
+      "elapsed": 1132.509526014328,
+      "log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/sample-03.log"
+    },
+    {
+      "id": "sample-04",
+      "exit": 0,
+      "start": 1794119778.613968,
+      "end": 1794120791.0159192,
+      "elapsed": 1012.4019513130188,
+      "log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/sample-04.log"
+    },
+    {
+      "id": "sample-05",
+      "exit": 0,
+      "start": 1794120911.123868,
+      "end": 1794121961.368545,
+      "elapsed": 1050.2446780204773,
+      "log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/sample-05.log"
+    },
+    {
+      "id": "sample-06",
+      "exit": 0,
+      "start": 1794120911.1239412,
+      "end": 1794121961.284297,
+      "elapsed": 1050.1603558063507,
+      "log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/sample-06.log"
+    },
+    {
+      "id": "sample-07",
+      "exit": 0,
+      "start": 1794120911.124043,
+      "end": 1794121648.484917,
+      "elapsed": 737.3608739376068,
+      "log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/sample-07.log"
+    },
+    {
+      "id": "sample-08",
+      "exit": 0,
+      "start": 1794120911.127062,
+      "end": 1794121961.398185,
+      "elapsed": 1050.271122932434,
+      "log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/sample-08.log"
+    },
+    {
+      "id": "sample-09",
+      "exit": 0,
+      "start": 1794121961.398617,
+      "end": 1794122691.267843,
+      "elapsed": 729.8692259788513,
+      "log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/sample-09.log"
+    },
+    {
+      "id": "sample-10",
+      "exit": 0,
+      "start": 1794121961.3986828,
+      "end": 1794122749.6840792,
+      "elapsed": 788.2853963375092,
+      "log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/sample-10.log"
+    },
+    {
+      "id": "sample-11",
+      "exit": 0,
+      "start": 1794121961.398773,
+      "end": 1794123105.9878552,
+      "elapsed": 1144.5890822410583,
+      "log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/sample-11.log"
+    },
+    {
+      "id": "sample-12",
+      "exit": 0,
+      "start": 1794121961.398825,
+      "end": 1794123171.817795,
+      "elapsed": 1210.4189701080322,
+      "log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/sample-12.log"
+    },
+    {
+      "id": "sample-13",
+      "exit": 0,
+      "start": 1794123171.818256,
+      "end": 1794123928.175015,
+      "elapsed": 756.3567590713501,
+      "log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/sample-13.log"
+    },
+    {
+      "id": "sample-14",
+      "exit": 0,
+      "start": 1794123171.818321,
+      "end": 1794123879.6457589,
+      "elapsed": 707.827437877655,
+      "log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/sample-14.log"
+    },
+    {
+      "id": "sample-15",
+      "exit": 0,
+      "start": 1794123171.818387,
+      "end": 1794124125.119448,
+      "elapsed": 953.3010609149933,
+      "log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/sample-15.log"
+    },
+    {
+      "id": "sample-16",
+      "exit": 0,
+      "start": 1794123171.81844,
+      "end": 1794124125.066965,
+      "elapsed": 953.248526096344,
+      "log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/sample-16.log"
+    }
+  ]
+}

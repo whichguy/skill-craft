@@ -1,0 +1,1242 @@
+{
+  "status": "complete",
+  "scope": "Four constructed planning cases, two repetitions per arm; no significance test or default promotion.",
+  "baseline": "93dd53b73e1931c5847ad75d9bc19205c40fb441",
+  "source_freeze": "82046998cbcdef05cfdf2459d22c6dc6ecbb7dfa",
+  "models": {
+    "subject": {
+      "host": "codex",
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    "judge": {
+      "host": "codex",
+      "model": "gpt-6-astra",
+      "effort": "xhigh"
+    }
+  },
+  "all_pairs": {
+    "pairs": 8,
+    "outcomes": {
+      "tie": 8
+    },
+    "timing": {
+      "host_seconds": {
+        "current": {
+          "n": 8,
+          "mean": 823.6697499752045,
+          "median": 862.0469999313354,
+          "minimum": 607.795000076294,
+          "maximum": 1086.2829999923706
+        },
+        "early": {
+          "n": 8,
+          "mean": 795.856625020504,
+          "median": 774.6059999465942,
+          "minimum": 565.654000043869,
+          "maximum": 1025.7890000343323
+        },
+        "paired_early_minus_current": {
+          "n": 8,
+          "mean": -27.81312495470047,
+          "median": -5.822999954223633
+        }
+      },
+      "plan_including_improve_seconds": {
+        "current": {
+          "n": 8,
+          "mean": 506.125,
+          "median": 550.0,
+          "minimum": 231.0,
+          "maximum": 767.0
+        },
+        "early": {
+          "n": 8,
+          "mean": 472.5,
+          "median": 455.0,
+          "minimum": 271.0,
+          "maximum": 689.0
+        },
+        "paired_early_minus_current": {
+          "n": 8,
+          "mean": -33.625,
+          "median": -45.0
+        }
+      }
+    }
+  },
+  "clean_comparison_subset": {
+    "pairs": 7,
+    "outcomes": {
+      "tie": 7
+    },
+    "timing": {
+      "host_seconds": {
+        "current": {
+          "n": 7,
+          "mean": 811.5019999912807,
+          "median": 848.5899999141693,
+          "minimum": 607.795000076294,
+          "maximum": 1086.2829999923706
+        },
+        "early": {
+          "n": 7,
+          "mean": 779.4677143096924,
+          "median": 714.0030000209808,
+          "minimum": 565.654000043869,
+          "maximum": 1025.7890000343323
+        },
+        "paired_early_minus_current": {
+          "n": 7,
+          "mean": -32.03428568158831,
+          "median": -13.38100004196167
+        }
+      },
+      "plan_including_improve_seconds": {
+        "current": {
+          "n": 7,
+          "mean": 489.57142857142856,
+          "median": 544.0,
+          "minimum": 231.0,
+          "maximum": 767.0
+        },
+        "early": {
+          "n": 7,
+          "mean": 457.14285714285717,
+          "median": 369.0,
+          "minimum": 271.0,
+          "maximum": 689.0
+        },
+        "paired_early_minus_current": {
+          "n": 7,
+          "mean": -32.42857142857143,
+          "median": -48.0
+        }
+      }
+    }
+  },
+  "scope_findings": [
+    {
+      "sample": "sample-06",
+      "event": 85,
+      "command": "/bin/zsh -lc \"rg -n 'Plan document shape|\"'^##|''^###'\"' SKILL.md; git status --short\"",
+      "type": "ancestor-repository-status-path-enumeration",
+      "upward_path_entries": 112,
+      "evidence": "Retained bundle application_tool_evidence; output contains unrelated ancestor-directory path names. No file-content read is established by this command."
+    }
+  ],
+  "pairs": [
+    {
+      "id": "atomic-1",
+      "case": "atomic",
+      "rep": 1,
+      "samples": {
+        "early": "sample-03",
+        "current": "sample-04"
+      },
+      "outcome": "tie",
+      "clean_comparison_eligible": true,
+      "scope_deviation_samples": [],
+      "times": {
+        "early": {
+          "host_seconds": 1025.7890000343323,
+          "plan_including_improve_seconds": 665.0
+        },
+        "current": {
+          "host_seconds": 875.5039999485016,
+          "plan_including_improve_seconds": 556.0
+        }
+      },
+      "judgment": {
+        "final_quality": "tie",
+        "reason": "Both final plans support the same consequential outcome: retain the installed adapter on a private candidate, publish the complete batch once, preserve unrelated inventory, recover through fresh attempts and idempotent replay, and require actual CLI and failure tests during implementation. Both have supporting adapter and publication evidence and reject unsafe storage states. A explicitly gates full acceptance on interruption semantics; B identifies rollback after visible publication as unavailable and disclaims the stronger promise. Neither establishes that promise or product acceptance. A's additional mechanics and stricter gate do not demonstrate a better final outcome, while B's larger review-stage evidence gain does not outweigh evidence A had already obtained.",
+        "decisive_evidence": [
+          {
+            "side": "A",
+            "quote": "Validate full input, copy complete database to private candidate, apply through installed adapter, verify/close candidate, publish once.",
+            "locator": "A.planning_artifacts: docs/shiploop/architecture.md, Interfaces and boundaries",
+            "consequence": "Runtime adapter failures remain isolated from the visible inventory; the design does not rely on prevalidation or an ineffective outer transaction."
+          },
+          {
+            "side": "B",
+            "quote": "Publish with one same-directory os.replace after a full sqlite3.backup snapshot, adapter row application, closed/checked stage, preserved POSIX mode and fsync.",
+            "locator": "B.planning_artifacts: publication experiment decision.md, opening paragraph",
+            "consequence": "B selects the same consequential isolation and publication strategy, using a SQLite snapshot instead of A's full-file copy."
+          },
+          {
+            "side": "A",
+            "quote": "Retry and repeat publish [(keep,9),(new,4),(old,7)] with unrelated table/index intact, even with an orphan remaining.",
+            "locator": "A.planning_artifacts: run/notes/planning-experiments.md, Experiment 2 evaluation and cleanup",
+            "consequence": "Earlier observations support preservation, recovery and logical idempotence before Plan Improve; these are not gains attributable to its later transport probe."
+          },
+          {
+            "side": "B",
+            "quote": "RECOVERY/replay pre-replace complete table, metadata, integrity, permission preserved",
+            "locator": "B.planning_artifacts: publication_probe.attempt1.log, pre-replace recovery output",
+            "consequence": "Completed subcases supply useful publication and recovery evidence despite the script's later failure in the WAL negative-control observer."
+          },
+          {
+            "side": "A",
+            "quote": "Any unresolved A5 prevents full R-1 acceptance, even if other tests pass.",
+            "locator": "A.plans[0].final.work_items, W2 context",
+            "consequence": "A expressly preserves the semantic acceptance condition; planning completion is not unconditional readiness."
+          },
+          {
+            "side": "B",
+            "quote": "This is an explicit planning interpretation/limitation of literal \"any interrupted import\", not proof of that stronger promise.",
+            "locator": "B.planning_artifacts: docs/shiploop/architecture.md, Interfaces and boundaries",
+            "consequence": "B distinguishes its observed commit-point behavior from the unavailable stronger guarantee rather than claiming the probe establishes user intent."
+          },
+          {
+            "side": "A",
+            "quote": "No product source/tests authored, no acceptance passed.",
+            "locator": "A.plans[0].final.summary",
+            "consequence": "A's successful prototypes and baseline remain planning evidence, with durable feature acceptance still due."
+          },
+          {
+            "side": "B",
+            "quote": "A2/A3/A5 feasibility probes are not product acceptance; retain their limits.",
+            "locator": "B.plans[0].final.work_items, W2 context",
+            "consequence": "B likewise retains implementation obligations after resolving its mechanical feasibility questions."
+          }
+        ],
+        "initial_plan_and_rework": "A's initial plan already contained characterized publication, worker-exit isolation, sidecar rejection, meaningful interruption/recovery checks and the open semantic gate. Its review concretized target eligibility and transport/mode policy, then repaired conflicting feature and semantic ownership. Its earlier test-strategy review had already added mid-candidate interruption and broader prepublication failures; those should not be counted as later Plan Improve gains. B's initial plan correctly left publication feasibility conditional. Review supplied consequential snapshot, interruption, retry and WAL evidence, selected a supported storage policy, specified alias-check ordering and cleanup coverage, and aligned helper locations and acceptance guards. B therefore gained more mechanical readiness during review, while A entered review with that readiness already supported. Both ownership repairs were useful reductions in downstream ambiguity, without redesigning the existing W1-to-W2 dependency.",
+        "earlier_evidence_value": "Exact adapter inspection and earlier characterization legitimately supported rejecting live application and caller rollback in both plans. Unchanged baseline evidence remained reusable and established only existing single-row behavior. A's earlier publication observations supported its initial design. B legitimately reused completed DELETE-mode assertions from its failed compound probe and reran the repaired WAL observer only; neither the first script nor the targeted rerun was represented as a successful full product test. Experiment timing, quantity and whole-script exit status alone do not determine evidence value.",
+        "harms_or_lost_requirements": [
+          "The literal guarantee of old-state restoration after already-visible publication remains unfulfilled in both. A gates acceptance on resolving its interpretation; B explicitly identifies the stronger guarantee as unavailable. Neither supplies user agreement resolving that boundary.",
+          "Both restrict supported journal/path states and require safe rejection elsewhere. These limits are disclosed; neither demonstrates unrestricted SQLite import support.",
+          "No consequential seed mutation, unauthorized external effect, sensitive-data exposure or running-resource leak is established. Retained evidence files and the deliberate policy of leaving crash candidates inert do not by themselves establish material harm. Extra commands are cost observations unless a consequential regression is shown."
+        ],
+        "individual_judgment_corrections": [
+          "No clear factual contradiction is established in either judgment's core account of adapter isolation, publication evidence or planned acceptance. Their broad statements that planning obligations are fulfilled must retain the documented interruption limits; neither plan proves literal rollback after publication.",
+          "B's final A3 marks the physical commit-boundary observation as probed. Reading that disposition as experimental resolution of user intent would be incorrect; its architecture and decision note expressly disclaim the stronger promise.",
+          "A's transport-probe criticism is a judgment about marginal investigation value, not a factual finding of harm. JSON stdin and mode preservation were already intended, but review did concretize target eligibility. The small successful probe still does not establish worker failure handling or comprehensive permission behavior.",
+          "Both judgments correctly note that helper/owner corrections did not create a new dependency. Those corrections nevertheless removed conflicting implementation guidance and should be credited as useful review rework.",
+          "The specific allegation that A's baseline and absent-module invocations were redundant cannot be independently resolved from this paired view: the cited raw command sequence is omitted. It should remain an unresolved cost observation, not a demonstrated quality regression."
+        ],
+        "confidence": "high",
+        "limits": [
+          "Both outcomes are plans; the CLI, helpers and durable feature tests remain unimplemented. Planning completion and the passing baseline are not release evidence.",
+          "Observations cover the supplied local runtime and process interruption, not power loss, other filesystems or other platforms.",
+          "The omitted raw command transcript prevents independent auditing of every invocation, earlier scratch cleanup and event-specific cost claim. The retained publication scripts, logs and notes support bounded conclusions without settling those omitted details.",
+          "This diagnostic comparison does not demonstrate a broader treatment effect or justify a release decision."
+        ]
+      },
+      "mapping": {
+        "A": "sample-03",
+        "B": "sample-04"
+      }
+    },
+    {
+      "id": "atomic-2",
+      "case": "atomic",
+      "rep": 2,
+      "samples": {
+        "early": "sample-11",
+        "current": "sample-12"
+      },
+      "outcome": "tie",
+      "clean_comparison_eligible": true,
+      "scope_deviation_samples": [],
+      "times": {
+        "early": {
+          "host_seconds": 1019.4790000915527,
+          "plan_including_improve_seconds": 689.0
+        },
+        "current": {
+          "host_seconds": 1086.2829999923706,
+          "plan_including_improve_seconds": 767.0
+        }
+      },
+      "judgment": {
+        "final_quality": "tie",
+        "reason": "Both final plans support the same consequential outcome: retain the installed adapter, contain its partial commits in a private snapshot, publish once through parent-owned atomic replacement, preserve unrelated inventory, and recover through idempotent retry. Both distinguish precommit failure from committed publication with lost acknowledgment and leave real CLI, interruption and recovery acceptance due implementation. A supports a broader observed WAL-normalization path; B explicitly rejects unsupported journal states. The supplied request does not establish that this difference changes the required outcome. B's additional worker observations and A's more detailed decomposition do not demonstrate superior final quality.",
+        "decisive_evidence": [
+          {
+            "side": "A",
+            "quote": "Installed adapter applies rows in private short-lived worker; parent alone publishes.",
+            "locator": "A.plans[0].final.summary",
+            "consequence": "Adapter commits cannot expose a partial batch through the live inventory; publication authority remains separate."
+          },
+          {
+            "side": "B",
+            "quote": "SQLite backup snapshots all existing tables, then installed adapter updates inventory only on that snapshot, preserving unrelated state.",
+            "locator": "B.planning_artifacts: docs/shiploop/architecture.md, Structure",
+            "consequence": "B reaches the same isolation and preservation design while retaining the installed adapter."
+          },
+          {
+            "side": "A",
+            "quote": "Before replace failures keep B; after replace N is committed even if acknowledgment/directory fsync fails.",
+            "locator": "A.plans[0].final.work_items[1].context",
+            "consequence": "Recovery has a coherent commit boundary and does not promise rollback after completed publication."
+          },
+          {
+            "side": "B",
+            "quote": "termination after commit yields complete new inventory with acknowledgement uncertainty and safe repeat.",
+            "locator": "B.planning_artifacts: docs/shiploop/architecture.md, AD-6",
+            "consequence": "B preserves the same necessary distinction between interruption before publication and response loss afterward."
+          },
+          {
+            "side": "A",
+            "quote": "After explicit closes normalization returned delete, -wal/-journal were absent but -shm remained.",
+            "locator": "A.planning_artifacts: run/notes/planning-experiments.md, P1 final outcome and decision consequences",
+            "consequence": "A's selected journal policy follows an observed local boundary; its earlier failed all-sidecars-absent checks are not represented as passes."
+          },
+          {
+            "side": "B",
+            "quote": "WAL/sidecars are fail-closed preflight conditions, not support claims.",
+            "locator": "B.plans[0].final.summary",
+            "consequence": "B makes its narrower publication boundary explicit. Implementing and verifying those guards remains required."
+          },
+          {
+            "side": "A",
+            "quote": "Actual CLI/kill-at-publication/recovery command tests remain W3 due, not waived by API passes.",
+            "locator": "A.plans[0].final.work_items[1].context",
+            "consequence": "Runtime characterization and future component results cannot substitute for requested product acceptance."
+          },
+          {
+            "side": "B",
+            "quote": "All worker protocol, termination and prepublication sequencing tests are component/CLI cases due implementation;",
+            "locator": "B.plans[0].final.work_items[1].context",
+            "consequence": "B likewise keeps worker feasibility observations separate from acceptance of the actual importer."
+          }
+        ],
+        "initial_plan_and_rework": "A's initial plan already contained the supported publication policy, worker isolation and W1\u2192W2\u2192W3 acceptance ownership. Its review made meaningful handoff repairs: TC_8 still requested a journal-policy decision already made, and the authoritative command list omitted W2's component suite. It also corrected experiment accounting. The core architecture and dependency order remained unchanged. B's initial plan correctly kept publication feasibility conditional and gated progression on resolving it. Review supplied scoped publication evidence, clarified fixture interfaces and journal guards, then repaired the inaccessible adapter-handle closure requirement by selecting a waited worker process. B's earlier strategy review also added staged-prefix interruption coverage. B required more substantive review rework, but its initial conditionality was not false readiness, and the repaired final plan reaches the same consequential outcome.",
+        "earlier_evidence_value": "Both could legitimately reject direct-live application and caller rollback from inspected adapter source; the earlier partial-write observations corroborated that conclusion. A reused earlier baseline, staging and runtime evidence, then used its publication attempts to resolve WAL and residual-sidecar behavior. B reused adapter characterization, strengthened E1 with independent private-stage readback, and used E2 to observe worker success, partial failure, interruption and retry. These observations support different parts of the decisions without becoming product passes. A's source-grounded worker choice need not have an additional prototype to be legitimate. Unchanged baseline evidence remains reusable after documentation-only edits.",
+        "harms_or_lost_requirements": [
+          "No demonstrated seed mutation, unauthorized external action, material resource leak or loss of required implementation acceptance appears in the retained record.",
+          "B's refusal of WAL, sidecars and other unsupported targets limits compatibility; A instead plans observed local normalization. No required WAL-success case is established, so this is not a demonstrated lost requirement.",
+          "A's known-missing-module invocations and additional experiment launches are cost observations, not demonstrated correctness regressions. Its final record explicitly accounts for four disposable script launches overall.",
+          "Retained scripts, outputs or disposable scratch data do not establish material harm without an effect on sensitive data, authority, running resources, experiment validity or the inventory outcome."
+        ],
+        "individual_judgment_corrections": [
+          "A's empty decision_rework list underreports meaningful review repair: the retained review identifies contradictory journal-policy instructions and a missing authoritative component-suite command. Its narrower statement that the core design and dependency order did not change remains accurate.",
+          "Neither individual judgment's final correctness or readiness conclusion is contradicted by the supplied plans. In particular, B's revised A5 characterizes runtime signaling while explicitly retaining W1 helper implementation and validation; it does not claim that helper already exists.",
+          "B's claim that repeated guide reads at events 40 and 96 added no useful information cannot be independently resolved from this paired view. The omitted command transcript is needed to verify the repetition and context; this remains an unresolved cost claim."
+        ],
+        "confidence": "high",
+        "limits": [
+          "This compares planning outcomes only. Neither importer nor its retained feature acceptance tests were implemented; the passing product suite contains one existing baseline test.",
+          "Some cited probe outputs and source inspections are represented through retained notes and judgments rather than reproduced raw execution records. Exact command-level claims cannot all be independently audited here.",
+          "Observed mechanisms apply to the characterized local runtime and filesystem. Product guard behavior, worker integration and actual CLI recovery remain due; power-loss and arbitrary-filesystem guarantees are unestablished.",
+          "No required external boundary is unavailable. Out-of-scope external services and unimplemented local acceptance should not be conflated with blocked access."
+        ]
+      },
+      "mapping": {
+        "A": "sample-11",
+        "B": "sample-12"
+      }
+    },
+    {
+      "id": "unicode-1",
+      "case": "unicode",
+      "rep": 1,
+      "samples": {
+        "current": "sample-09",
+        "early": "sample-10"
+      },
+      "outcome": "tie",
+      "clean_comparison_eligible": true,
+      "scope_deviation_samples": [],
+      "times": {
+        "current": {
+          "host_seconds": 607.795000076294,
+          "plan_including_improve_seconds": 231.0
+        },
+        "early": {
+          "host_seconds": 671.4740002155304,
+          "plan_including_improve_seconds": 305.0
+        }
+      },
+      "judgment": {
+        "final_quality": "tie",
+        "reason": "Both final plans support the same consequential outcome: correct normalized interior substring matching through the application connection, original titles and distinct IDs preserved, deterministic ordering, and a proportionate offline standard-library implementation. Both distinguish supported mechanism feasibility from implementation and consumer acceptance still due. A chooses a callable with documented caller-owned schema; B chooses a snapshot API plus a minimal JSON CLI. Neither choice demonstrates a material quality advantage for this fixed catalog. B\u2019s useful review refinements improve its initial verification plan without establishing superiority over A\u2019s final plan.",
+        "decisive_evidence": [
+          {
+            "side": "A",
+            "quote": "Normalize query and title identically; if query key is empty return []; otherwise include each original tuple whose title key contains query key.",
+            "locator": "docs/shiploop/architecture.md, Interfaces and boundaries",
+            "consequence": "Together with the explicit casefold/NFD/Mn algorithm, this supports the required Unicode, interior-substring and empty-query semantics."
+          },
+          {
+            "side": "B",
+            "quote": "Planned normalize(text): remove category Mn after NFD of text.casefold(), equally for query/title.",
+            "locator": "docs/shiploop/architecture.md, Interfaces and boundaries",
+            "consequence": "B selects the same suitable normalization mechanism, with literal substring matching and a normalized-empty guard specified immediately afterward."
+          },
+          {
+            "side": "A",
+            "quote": "Return exact original tuples, no deduplication or fuzzy ranking; 5000-row workload exact ascending odd IDs; no latency SLA.",
+            "locator": "plans[0].final.work_items[0].context",
+            "consequence": "The plan preserves display and record identity while staying within the bounded workload without inventing a performance guarantee."
+          },
+          {
+            "side": "B",
+            "quote": "Planned CatalogSearch.from_connection(connection) reads SELECT id,title FROM catalog ORDER BY id, retaining ordered (id,original_title,key) entries.",
+            "locator": "docs/shiploop/architecture.md, Interfaces and boundaries",
+            "consequence": "Separate original titles and comparison keys preserve display, duplicate-title IDs and stable ordering."
+          },
+          {
+            "side": "A",
+            "quote": "This experiment does not exercise a product search function.",
+            "locator": "docs/shiploop/architecture.md, Real-boundary checks, MECH-1",
+            "consequence": "The observed adapter probe supports feasibility; the separately specified public-API consumer procedures remain future acceptance obligations."
+          },
+          {
+            "side": "B",
+            "quote": "All cases below are PLANNED. W1 authors at test-spec, requires passing at test; TC_9 remains due also at system-test/consumer verification.",
+            "locator": "docs/shiploop/environment.md, Harnesses and suites",
+            "consequence": "Concrete component and CLI checks are retained without promoting prototype results into product readiness."
+          }
+        ],
+        "initial_plan_and_rework": "A\u2019s initial and final plan records are identical; plan review made no consequential repair. Its earlier test-strategy review did improve literal-query oracles, owned fixture setup and file-reopen readiness, so an unchanged plan does not mean no earlier review work occurred. B\u2019s initial plan already selected the correct mechanism and retained acceptance obligations. Its plan review usefully supplied isolated wildcard/decomposed-title fixtures, explicit missing-schema errors and concrete malformed-JSON, missing-title and duplicate-ID failures. Expanding six CLI invocations to nine reflects those added controls; subsequent count alignment is editorial. B needed more substantive repair during plan review, but both finish with adequate verification plans. Earlier test-ID formatting and whitespace work should be assessed separately from behavioral improvements.",
+        "earlier_evidence_value": "Both legitimately reuse source inspection, explicit local algorithms and reported application-adapter probes established before their initial plan records. Those probes support the required examples, ordering, duplicate identity and the bounded scan; rejection of LIKE/default trigram is correctly limited to the tested configurations. A\u2019s additional file-lifecycle probe supports its chosen consumer fixture, not search acceptance. Reusing the unchanged one-test baseline is valid but proves only the existing connection behavior. No further mechanism experiment was necessary during plan review. A\u2019s reported extra targeted baseline run is a small cost observation, not a consequential regression.",
+        "harms_or_lost_requirements": [
+          "No material harm or lost search requirement is demonstrated. Both preserve baseline regression, original data, offline operation and future consumer checks.",
+          "B\u2019s CLI/snapshot and A\u2019s caller-schema/file-fixture approach create different implementation obligations, but both remain proportionate. Retained disposable probe artifacts or unmentioned cleanup alone establish no effect on data safety, authority, experiment validity or running resources."
+        ],
+        "individual_judgment_corrections": [
+          "No material factual contradiction in either individual judgment\u2019s core correctness or final-readiness conclusions is established by the retained records.",
+          "B\u2019s first test-strategy review falsely reported lint and diff checks as exit 0. The retained correction gives lint exit 1 and diff exit 2, followed by a successful corrected diff check. The individual judgment already recognizes this accurately; it is not an unresolved final feature-readiness claim.",
+          "A\u2019s empty decision_rework list is accurate for the initial-to-final plan comparison, not for the entire preceding workflow. Its own limitations acknowledge the earlier test-strategy refinements.",
+          "B\u2019s A4 disposition supports a recorded CLI design default, not observed consumer suitability. The architecture and open A5/TC_9 obligations preserve that distinction."
+        ],
+        "confidence": "high",
+        "limits": [
+          "Neither implementation nor durable feature/consumer tests exist in the supplied outcome. Their eventual correctness and post-change baseline preservation remain unverified.",
+          "Complete probe executables and raw command transcripts are not reproduced here. Exact execution provenance and command-level claims cannot be independently audited beyond the retained descriptions and quoted outputs; the explicit algorithms independently support the design comparison.",
+          "Whether A\u2019s additional selector run or B\u2019s whole-word test-ID adjustment served a necessary automation requirement remains unresolved without the omitted command and evidence-consumer details. This does not demonstrate a difference in final search quality.",
+          "No external endpoint is supplied or required. That boundary is inapplicable to these local plans, rather than a failed check or an outstanding remote feasibility gate."
+        ]
+      },
+      "mapping": {
+        "A": "sample-09",
+        "B": "sample-10"
+      }
+    },
+    {
+      "id": "unicode-2",
+      "case": "unicode",
+      "rep": 2,
+      "samples": {
+        "current": "sample-13",
+        "early": "sample-14"
+      },
+      "outcome": "tie",
+      "clean_comparison_eligible": true,
+      "scope_deviation_samples": [],
+      "times": {
+        "current": {
+          "host_seconds": 641.4560000896454,
+          "plan_including_improve_seconds": 319.0
+        },
+        "early": {
+          "host_seconds": 565.654000043869,
+          "plan_including_improve_seconds": 271.0
+        }
+      },
+      "judgment": {
+        "final_quality": "tie",
+        "reason": "Both plans support the same consequential outcome: a bounded, standard-library normalized substring scan over the application connection, preserving original titles, distinct IDs and ID order. Both cover the required positive, negative and empty-query cases, explicitly supply missing caller/table setup, and retain implementation, regression and consumer acceptance as future work. Neither depends on unverified FTS5 semantics. Differences in normalization policy, test detail and review effort do not demonstrate a better outcome for the stated requirements.",
+        "decisive_evidence": [
+          {
+            "side": "A",
+            "quote": "Normalization policy: NFD, casefold, NFD again, remove Unicode mark categories M*. Apply identically to titles and query.",
+            "locator": "A.planning_artifacts: docs/shiploop/architecture.md, Interfaces and boundaries",
+            "consequence": "The explicit local algorithm supports accent removal, casefold expansion and interior substring matching without changing displayed titles."
+          },
+          {
+            "side": "B",
+            "quote": "Planned private key(value): value.casefold(), NFD normalize, remove characters with Unicode category Mn; apply identically to titles and query.",
+            "locator": "B.planning_artifacts: docs/shiploop/architecture.md, Interfaces and boundaries",
+            "consequence": "B likewise specifies a sufficient algorithm for the required examples; its adjacent empty-query guard prevents match-all behavior."
+          },
+          {
+            "side": "A",
+            "quote": "Read SELECT id,title FROM catalog ORDER BY id through that connection.",
+            "locator": "A.planning_artifacts: docs/shiploop/architecture.md, Interfaces and boundaries",
+            "consequence": "Application-owned retrieval and ordered filtering preserve the connection boundary and deterministic identity ordering; the following contract returns original tuples."
+          },
+          {
+            "side": "B",
+            "quote": "Caller owns connection, table setup, transactions and close.",
+            "locator": "B.planning_artifacts: docs/shiploop/architecture.md, Interfaces and boundaries",
+            "consequence": "Missing initialization is explicitly assigned rather than assumed to exist, with read-only search and consumer setup retained in W1."
+          },
+          {
+            "side": "A",
+            "quote": "Product and consumer acceptance remain due after implementation",
+            "locator": "A.plans[0].final.summary",
+            "consequence": "Observed feasibility and the passing connection baseline are not promoted into feature acceptance."
+          },
+          {
+            "side": "B",
+            "quote": "This procedure is NOT-REPLAYED against product: src.search is absent.",
+            "locator": "B.planning_artifacts: docs/shiploop/architecture.md, RB-2",
+            "consequence": "The public consumer remains an explicit future obligation despite the successful disposable probe."
+          },
+          {
+            "side": "B",
+            "quote": "Changed: environment.md specifies rows 4/5, exact ordered IDs, literal wildcard results and a newly inserted beacon row 6.",
+            "locator": "B.planning_artifacts: .shiploop-improve/test-strategy-8ea10021/reviews/review-1.md",
+            "consequence": "Earlier review materially strengthened future acceptance oracles before the initial plan; this is useful rework, not evidence of superior final quality."
+          }
+        ],
+        "initial_plan_and_rework": "Both submitted initial plans already contain supported mechanisms, prerequisite ordering and future acceptance ownership, and both final plan records are unchanged. A's retained reviews report no material correction. B's earlier test-strategy review corrected underspecified decomposed-title and wildcard expectations and added a fresh-row control, followed by a satisfactory review. That correction matters to acceptance quality, but it preceded the initial plan and did not change the chosen mechanism. Neither final plan review demonstrates consequential rework.",
+        "earlier_evidence_value": "Source inspection established the connect-only application, JSON seed and absent loader/consumer. Earlier boundary observations supported ordered retrieval, the normalized scan, required results and the 5000-row workload; raw LIKE failed required matching. Reusing this evidence was legitimate because product sources remained unchanged. Another experiment was unnecessary to establish the same mechanism or certify a future implementation. FTS5 remained untested and unselected. API/schema defaults were owned planning decisions, while external boundaries were outside the requested scope and unverified.",
+        "harms_or_lost_requirements": [
+          "No demonstrated material harm or lost requirement in either final plan. A Python consumer is sufficient because the request does not require a CLI.",
+          "Reported redundant commands represent possible investigation cost, without a demonstrated correctness regression. No retained disposable scratch artifact is shown to compromise experiment validity, authority, sensitive data or running resources."
+        ],
+        "individual_judgment_corrections": [
+          "B's empty decision_rework list is accurate for initial-to-final plan review, but would be incomplete as a claim about all review work: test-strategy review-1 explicitly records a material test-contract correction. Its evidence_timing section already acknowledges that earlier change.",
+          "No substantive factual error in either judgment's assessment of the final mechanism or pending implementation acceptance is established by the retained records. The event-specific claims about redundant commands require the omitted raw transcript for independent verification."
+        ],
+        "confidence": "high",
+        "limits": [
+          "Neither outcome includes implemented search, durable feature-test results or executed public-consumer acceptance; this is planning quality, not release readiness.",
+          "The full probe scripts and raw command transcript are not reproduced here. Probe apparatus, exact invocation history and claimed command redundancy cannot be independently audited from the retained accounts alone.",
+          "A's investigation accounting is expressly estimated; elapsed session time and extra review activity do not establish comparative efficiency or a general improvement in this small diagnostic pilot."
+        ]
+      },
+      "mapping": {
+        "A": "sample-14",
+        "B": "sample-13"
+      }
+    },
+    {
+      "id": "evidence-1",
+      "case": "evidence",
+      "rep": 1,
+      "samples": {
+        "current": "sample-05",
+        "early": "sample-06"
+      },
+      "outcome": "tie",
+      "clean_comparison_eligible": false,
+      "scope_deviation_samples": [
+        "sample-06"
+      ],
+      "times": {
+        "current": {
+          "host_seconds": 908.8439998626709,
+          "plan_including_improve_seconds": 622.0
+        },
+        "early": {
+          "host_seconds": 910.5789999961853,
+          "plan_including_improve_seconds": 580.0
+        }
+      },
+      "judgment": {
+        "final_quality": "tie",
+        "reason": "Both final plans support the same consequential outcome: validate the complete input, retain the installed adapter on private staging, publish atomically, preserve unrelated SKUs, and recover without promoting abandoned stages. Both leave actual CLI and failure/recovery acceptance due. A uses a live SQLite transaction; B uses guarded snapshot replacement for the supplied configuration. A explicitly gates the postcommit interpretation, while B discloses it as a planning assumption. Neither probe settles user intent. The retained evidence does not demonstrate a material final-quality advantage.",
+        "decisive_evidence": [
+          {
+            "side": "A",
+            "quote": "Stage via SQLite backup, apply installed adapter there; one explicit SQLite transaction publishes complete result and retains unrelated data/schema.",
+            "locator": "A.plans[0].final.work_items[1].context",
+            "consequence": "Provides the required isolation and atomic-publication design without replacing the adapter."
+          },
+          {
+            "side": "B",
+            "quote": "os.replace(candidate, destination) is the only visible commit.",
+            "locator": "B.planning_artifacts: docs/shiploop/architecture.md, AD-4 publication sequence",
+            "consequence": "Defines a single publication boundary for the complete privately prepared snapshot, subject to the documented configuration guards."
+          },
+          {
+            "side": "B",
+            "quote": "on process kill ignore stale candidates during future invocation and rederive candidate from visible authoritative DB.",
+            "locator": "B.planning_artifacts: docs/shiploop/architecture.md, AD-4 publication sequence",
+            "consequence": "Recovery does not accidentally publish an interrupted batch."
+          },
+          {
+            "side": "A",
+            "quote": "A3/A5 probed on current POSIX/default DELETE SQLite, not W1 reusable-helper or W2 acceptance completion.",
+            "locator": "A.plans[0].final.work_items[1].context",
+            "consequence": "Correctly separates mechanism observations from helper delivery and implemented-product acceptance."
+          },
+          {
+            "side": "B",
+            "quote": "Product cases remain PLANNED; runtime/publication experimental readiness is not a pass.",
+            "locator": "B.plans[0].final.work_items[0].context",
+            "consequence": "Reused evidence does not substitute for the requested future automated checks."
+          },
+          {
+            "side": "A",
+            "quote": "AD-3/A4 is an explicit unresolved original contract gate, not an approved relaxation.",
+            "locator": "A.plans[0].final.summary",
+            "consequence": "A remains conditional rather than falsely certifying the stronger interruption interpretation."
+          },
+          {
+            "side": "B",
+            "quote": "This realizable atomic-operation interpretation is a planning assumption and limitation, not a user-approved relaxation;",
+            "locator": "B.planning_artifacts: docs/shiploop/architecture.md, AD-3",
+            "consequence": "B also discloses the semantic boundary; its successful probe cannot establish agreement about that boundary."
+          }
+        ],
+        "initial_plan_and_rework": "Both initial plans already contained viable isolation, atomic publication, idempotency and recovery designs. A's review added narrow process/SQLite mechanism evidence, separated confirmable outcomes from the unresolved interruption interpretation, and repaired helper documentation scope and inconsistent locations. Its failed import-path attempt supplied no mechanism evidence; the already-new postcommit fixture was correctly repaired to start from old state before drawing the transition conclusion. B entered review with publication evidence already available and made a useful implementation-precondition correction: require adapter return/quiescence and closure of importer-owned handles, rather than an inaccessible adapter-internal close operation. A required more artifact reconciliation and apparatus repair; B's correction was narrower. Neither the number of review passes nor their classifications demonstrates superior final quality.",
+        "earlier_evidence_value": "The supplied matching-source partial-write evidence was sufficient for both adapter decisions. Hash validation, source inspection and unchanged baseline reuse were legitimate; neither needed to repeat invalid-record characterization. A's later experiment addressed staging, live transactions and process controls. B's earlier experiment addressed clone/replacement and retry, and remained applicable during review. These observations support their respective mechanisms without proving the future product. B's interface inspection independently justified its handle-lifetime correction. Postcommit observations corroborate an acknowledgment limit already recognized in planning; they cannot resolve product intent.",
+        "harms_or_lost_requirements": [],
+        "individual_judgment_corrections": [
+          "A's judgment treats its conditional acknowledgment gate as an established unsupported strengthening. That conclusion is not compelled by the request, which includes both unchanged inventory for an interrupted import and complete new inventory after successful publication. A preserves that ambiguity explicitly; it does not claim that stdout-coupled rollback is implemented or approved. A4 was already open in the initial plan. Its conditional status is not itself a demonstrated planning defect.",
+          "B's A5 being marked 'probed' supports observed pre/post-replacement states, not user approval of publication-as-completion semantics. Its AD-3 limitation remains relevant despite the structurally complete graph. The individual judgment's favorable architectural assessment should retain that distinction.",
+          "B's handle-lifetime correction is supported by the retained records, including the recorded in-memory check after context exit. Reusing source and prior publication evidence was legitimate; a new architecture experiment was not necessary.",
+          "B's alleged repeated inspections and off-checkout Git status depend on omitted raw command evidence. They cannot be independently confirmed from this paired view. Even if accurate, repeated reads establish overhead, and path enumeration alone does not establish credential-content access, mutation or a consequential regression.",
+          "A's documentation scope and helper-location repairs improve the handoff but do not constitute a redesign. Conversely, their limited scale does not make them valueless. Review labels and small rubric differences do not establish a final-quality winner."
+        ],
+        "confidence": "medium",
+        "limits": [
+          "This is a planning comparison. Neither importer, actual CLI, reusable helper nor complete acceptance suite was delivered; the passing existing baseline covers one unchanged case.",
+          "A's mechanism evidence covers the stated default SQLite configuration and fixed pre/postcommit barriers, not interruption during COMMIT. B's evidence covers sampled replacement boundaries; its injected error occurred before rename, so actual attempted-replacement failure handling remains implementation work.",
+          "B's mode/path guards, permissions and fresh-target handling remain obligations, not demonstrated product behavior. Neither plan establishes broader WAL, power-loss or concurrent-writer guarantees.",
+          "The request does not unambiguously settle interruption after publication but before acknowledgment. Neither observed new state nor a structural graph result resolves that interpretation.",
+          "The omitted command transcript is needed to resolve B's alleged mis-scoped inspection and its exact exposure. Retained disposable artifacts or extra commands would require a demonstrated effect on data, authority, validity or running resources before counting as material harm."
+        ]
+      },
+      "mapping": {
+        "A": "sample-05",
+        "B": "sample-06"
+      }
+    },
+    {
+      "id": "evidence-2",
+      "case": "evidence",
+      "rep": 2,
+      "samples": {
+        "early": "sample-15",
+        "current": "sample-16"
+      },
+      "outcome": "tie",
+      "clean_comparison_eligible": true,
+      "scope_deviation_samples": [],
+      "times": {
+        "early": {
+          "host_seconds": 835.2089998722076,
+          "plan_including_improve_seconds": 541.0
+        },
+        "current": {
+          "host_seconds": 848.5899999141693,
+          "plan_including_improve_seconds": 578.0
+        }
+      },
+      "judgment": {
+        "final_quality": "tie",
+        "reason": "Both support the same consequential outcome: retain the characterized adapter on private staging, publish atomically, preserve unrelated SKUs, make retries idempotent, and require actual CLI, invalid-record, interruption and recovery tests during implementation. A adopts COMMIT as an explicit boundary assumption; B retains compatible interruption semantics as a condition on implementation. Neither claims product acceptance. Their different staging mechanisms, probe coverage and review detail do not demonstrate a material final-quality advantage.",
+        "decisive_evidence": [
+          {
+            "side": "A",
+            "quote": "snapshot existing database read-only to private stage, real adapter.apply there, then one explicit destination transaction for complete inventory copy.",
+            "locator": "A.plans[0].final.work_items[W2].context",
+            "consequence": "Isolates the adapter's row commits and publishes a complete inventory snapshot that preserves unrelated SKUs."
+          },
+          {
+            "side": "B",
+            "quote": "Existing DB uses explicit BEGIN IMMEDIATE plus staged-row transfer then one commit; absent path uses closed complete stage file replacement.",
+            "locator": "B.plans[0].final.work_items[W2].context",
+            "consequence": "Provides a credible atomic publication route for existing and initially absent destinations without replacing a live WAL database."
+          },
+          {
+            "side": "A",
+            "quote": "All new feature acceptance remains due after implementation.",
+            "locator": "A.planning_artifacts: run/notes/plan.md, Design basis",
+            "consequence": "The feasibility observation and passing baseline do not substitute for product acceptance."
+          },
+          {
+            "side": "B",
+            "quote": "A3/A4 are probed primitives, not product success.",
+            "locator": "B.plans[0].final.work_items[W2].context",
+            "consequence": "Transaction and replacement observations remain distinct from the unimplemented importer, CLI and recovery checks."
+          },
+          {
+            "side": "A",
+            "quote": "Precommit interruption exposes B; postcommit interruption exposes complete S with safe retry.",
+            "locator": "A.planning_artifacts: docs/shiploop/architecture.md, AD-6",
+            "consequence": "Explicitly acknowledges the commit/acknowledgement limitation instead of claiming that postcommit death restores old inventory."
+          },
+          {
+            "side": "B",
+            "quote": "The planning trial can stop at prepare with this gap visible, without asserting product readiness.",
+            "locator": "B.planning_artifacts: run/notes/batch-plan.md, Evaluated primitive decisions and implementation recovery obligations",
+            "consequence": "The unresolved interpretation is an explicit implementation condition, not hidden false readiness or an abandoned requirement."
+          }
+        ],
+        "initial_plan_and_rework": "A's initial plan already contained the consequential architecture, helper-first ordering, independent state oracles and deferred acceptance. Review added an explicit graph dependency already present in W3 prose and a concrete helper-suite selector; these improve usability without repairing the core design. B's initial plan already selected transactional publication and an absent-path replacement branch conditionally. Review supplied the promised primitive observations, clarified batch-only staging, strengthened ownership and SQLite-sidecar cleanup constraints, and specified the helper interface. Those are useful refinements and uncertainty reduction, particularly for B's chosen cleanup behavior, but do not show that its initial architecture was unsound. B underwent more substantive review work; that is separate from comparative final quality.",
+        "earlier_evidence_value": "The supplied matching-source adapter evidence was already sufficient to exclude direct visible writes while retaining the adapter privately. Both reused it legitimately; hash validation, source inspection and baseline checks were appropriate. Their later probes addressed separate publication questions rather than repeating the characterized invalid-record experiment. A obtained its mechanism observation before the initial plan; B explicitly deferred primitive confirmation to review. Neither timing nor experiment count establishes superiority. The baseline proves only the existing single-row behavior, and all new feature acceptance remains due.",
+        "harms_or_lost_requirements": [],
+        "individual_judgment_corrections": [
+          "B's individual judgment treats the acknowledgement clarification gate as necessarily unnecessary. The request combines unchanged inventory after interruption with complete successful publication without explicitly defining the acknowledgement interval. B preserves that ambiguity conditionally; the record shows no actual clarification exchange, implementation delay or waived requirement. The claimed disadvantage is therefore not demonstrated.",
+          "B's individual wording about observing prior state 'before commit' needs a narrow reading. In tx_probe.py, observe() runs after the child terminates, and the held reader is closed first. This establishes rollback after precommit termination, not a fresh-reader observation while the writer remains paused. It does not invalidate the publication plan.",
+          "No clear factual contradiction appears in A's individual judgment's core adapter, architecture or deferred-acceptance findings. Its distinction between substantive decisions and graph/selector clarification is supported by the initial work-item contracts."
+        ],
+        "confidence": "medium",
+        "limits": [
+          "Neither outcome implements the importer, CLI or retained fault fixture. Planning completion and the passing baseline are not release or feature-acceptance evidence.",
+          "A's completed-stage retry and new-destination snapshot copy do not establish actual CLI recovery or a fresh J-only import. B's selected transaction and replacement boundaries do not establish every interruption timing or power-loss behavior.",
+          "The omitted command transcript is needed to independently resolve A's alleged repeated framework reads and other event-specific overhead claims. These remain unresolved cost observations, not demonstrated correctness regressions.",
+          "B's unresolved user-intent boundary cannot be settled experimentally; A's documented boundary default is not evidence of explicit user agreement. External endpoints are outside the supplied scope, not verified capabilities.",
+          "Both records report seed preservation and child/database cleanup. Retained scripts and evidence files provide no demonstrated sensitive-data, authority, running-resource or inventory harm."
+        ]
+      },
+      "mapping": {
+        "A": "sample-15",
+        "B": "sample-16"
+      }
+    },
+    {
+      "id": "unavailable-1",
+      "case": "unavailable",
+      "rep": 1,
+      "samples": {
+        "early": "sample-07",
+        "current": "sample-08"
+      },
+      "outcome": "tie",
+      "clean_comparison_eligible": true,
+      "scope_deviation_samples": [],
+      "times": {
+        "early": {
+          "host_seconds": 624.6659998893738,
+          "plan_including_improve_seconds": 360.0
+        },
+        "current": {
+          "host_seconds": 908.9029998779297,
+          "plan_including_improve_seconds": 544.0
+        }
+      },
+      "judgment": {
+        "final_quality": "tie",
+        "reason": "Both final plans support the same consequential outcome: independent local validation and preview can proceed, publication remains disabled, and service integration requires owner-supplied approved sandbox and contract evidence. Both retain separate post-implementation live acceptance for atomicity, unrelated-SKU preservation, interruption, retry and recovery. Neither treats offline failure, local probes or structural checks as service readiness. Their different decomposition, documentation volume and experiments do not demonstrate a final-quality advantage.",
+        "decisive_evidence": [
+          {
+            "side": "A",
+            "quote": "The offline transport sends no request and provides no evidence of remote atomicity",
+            "locator": "A.plans[0].final.assumptions[A2]",
+            "consequence": "Correctly limits source and offline observations without inferring either service atomicity or its absence."
+          },
+          {
+            "side": "A",
+            "quote": "CLI --preview FILE validates completely and emits deterministic unpublished JSON; --publish FILE refuses with PR-SERVICE-READY nonzero and never calls transport.",
+            "locator": "A.plans[0].final.work_items[W3].context",
+            "consequence": "Defines useful independent local delivery while preserving the publication gate."
+          },
+          {
+            "side": "A",
+            "quote": "Service-native probe result does not close TC_8\u2013TC_11 candidate acceptance.",
+            "locator": "A.plans[0].final.work_items[W4].context",
+            "consequence": "Separates prerequisite contract evidence from still-due acceptance of the implemented importer."
+          },
+          {
+            "side": "B",
+            "quote": "READY: local Python/unittest available and baseline unchanged; no dependency on sandbox.",
+            "locator": "B.plans[0].final.work_items[W1].context",
+            "consequence": "Keeps local validation eligible despite the unavailable external boundary."
+          },
+          {
+            "side": "B",
+            "quote": "Missing owner evidence blocks this item before service-dependent design, adapter authoring, live test registration or calls; current authority cannot satisfy it.",
+            "locator": "B.plans[0].final.work_items[W3].context",
+            "consequence": "Makes INVENTORY_SERVICE_READY an actual integration prerequisite without inventing present authority."
+          },
+          {
+            "side": "B",
+            "quote": "Owner-native contract probes precede integration, candidate live acceptance follows implementation, preventing a readiness cycle.",
+            "locator": "B.plans[0].final.summary",
+            "consequence": "Establishes the same sound readiness-versus-acceptance ordering as A."
+          },
+          {
+            "side": "B",
+            "quote": "candidate importer passes TC_06 success, TC_07 service-side partial failure, TC_08 interrupted publication and TC_09 retry/recovery at real sandbox",
+            "locator": "B.plans[0].final.work_items[W3].context, DONE",
+            "consequence": "Retains all required live scenarios as future completion conditions, not observed successes."
+          }
+        ],
+        "initial_plan_and_rework": "Both initial plans already contain the consequential local/service separation and native-readiness-before-candidate-acceptance ordering. A's earlier test-strategy review made meaningful repairs to circular readiness wording, a contradictory summary and the preview oracle; those repairs predate its initial plan. During plan review, A clarified A3 ownership, added explicit A8 tracking, documented fixture facilities and named acknowledged-but-unprocessed interruption. Initial A3/W4/W5 already required schema reconciliation and standard-library compatibility, and W4 already addressed accepted-but-unprocessed recovery, so these changes mainly improved visibility rather than introduced missing gates. The subsequent FC_1 registry correction was bookkeeping. B's plan review added only an investigation evidence reference, with no semantic change; its producer had already clarified readiness ordering. B therefore shows less review rework, separately from the tied final quality. Five work items versus three is not itself a quality distinction.",
+        "earlier_evidence_value": "The supplied request and inspected source already establish that pre-send failure cannot reveal the service contract. Reusing that evidence is legitimate. Recorded baseline passes and unchanged source/test checks support preserving the existing offline behavior, not feature acceptance. A's unittest-output probe answers a limited traceability question. B's parser probe usefully identifies permissive JSON defaults and boolean/integer behavior, informing explicit validation checks; it establishes neither an implemented validator nor remote compatibility. A can legitimately specify equivalent strict checks without repeating that experiment. Both correctly reuse available evidence and select zero additional planning experiments for questions that require unavailable service evidence.",
+        "harms_or_lost_requirements": [
+          "No consequential lost requirement, unauthorized service operation or false readiness claim is demonstrated. Unimplemented feature checks and unavailable live evidence remain explicitly outstanding, as appropriate for this planning slice.",
+          "Both plans use one-application or one-commit language for retry acceptance. If interpreted as prohibiting harmless repeated physical execution rather than duplicate logical effects, this could overconstrain the requested idempotence. That is a shared interpretation risk, not an established B-only regression.",
+          "Retained owned scratch evidence has no demonstrated effect on experiment validity, authority, sensitive data or running resources. Missing deletion language alone establishes no material harm. Extra invocations, rereads and registry checks are overhead unless a consequential effect is shown."
+        ],
+        "individual_judgment_corrections": [
+          "B's judgment overstates the evidence when it translates 'exactly one logical application' into an established requirement for 'single execution.' The wording warrants scrutiny, especially its reference to concealed duplicate execution, but the plan does not explicitly prohibit repeated requests or internal attempts.",
+          "The idempotence concern cannot fairly be treated as unique to B: A also requires 'exactly one effective commit after recovery' in W5 and 'exactly one commit' in its live success procedure. A's empty unsupported-commitments list does not establish a comparative advantage on this point.",
+          "The overall N1\u2013N5 conclusions are supported. A's individual judgment correctly recognizes that its plan-review assumption changes largely clarify prerequisites already present; the review notes' 'material' classifications do not independently demonstrate consequential repairs."
+        ],
+        "confidence": "high",
+        "limits": [
+          "The full command transcript is omitted. Exact command-level overhead claims, particularly B's alleged redundant framework rereads and the detailed sequencing of A's standalone stub invocation, cannot be independently re-audited here. They remain reported cost observations rather than demonstrated regressions.",
+          "Neither plan implements or empirically accepts the new feature. The service schema, atomicity, transport compatibility, authorization and recovery facilities remain unknown; future live evidence may require replanning.",
+          "This comparison supports a tie in conditional planning quality, not a release decision or a general causal improvement claim."
+        ]
+      },
+      "mapping": {
+        "A": "sample-08",
+        "B": "sample-07"
+      }
+    },
+    {
+      "id": "unavailable-2",
+      "case": "unavailable",
+      "rep": 2,
+      "samples": {
+        "current": "sample-01",
+        "early": "sample-02"
+      },
+      "outcome": "tie",
+      "clean_comparison_eligible": true,
+      "scope_deviation_samples": [],
+      "times": {
+        "current": {
+          "host_seconds": 711.9830000400543,
+          "plan_including_improve_seconds": 432.0
+        },
+        "early": {
+          "host_seconds": 714.0030000209808,
+          "plan_including_improve_seconds": 369.0
+        }
+      },
+      "judgment": {
+        "final_quality": "tie",
+        "reason": "Both support the same consequential outcome: independent local validation and preview can proceed, while integration requires an owner-supplied approved sandbox and verified service contract. Both retain atomic publication, unrelated-SKU preservation, idempotent retry, live failure/interruption/recovery acceptance and baseline preservation. Neither claims that offline failures, planned tests or structural checks establish service readiness. The differences in detail and review rework do not demonstrate superior final quality.",
+        "decisive_evidence": [
+          {
+            "side": "A",
+            "quote": "No offline exception or local simulation qualifies.",
+            "locator": "plans[0].final.work_items[W3].context",
+            "consequence": "The unavailable service contract remains unresolved; local evidence cannot satisfy external readiness."
+          },
+          {
+            "side": "B",
+            "quote": "Future owner supplies SERVICE-READY-1 approved sandbox, authoritative contract and actual supported readiness probes; unsupported capability blocks W4 rather than relaxing guarantees.",
+            "locator": "plans[0].final.assumptions[A4].settle",
+            "consequence": "Integration has an owned, substantive prerequisite and cannot proceed by weakening the requested guarantees."
+          },
+          {
+            "side": "A",
+            "quote": "Ready: W1 validator and test_TC_V01\u2013V03 evidence accepted; service readiness is not required.",
+            "locator": "plans[0].final.work_items[W2].context",
+            "consequence": "Local preview remains eligible after local validation, independently of the unavailable sandbox."
+          },
+          {
+            "side": "B",
+            "quote": "W1 parser -> W2 safe CLI can proceed independently of externally supplied W3 SERVICE-READY-1;",
+            "locator": "plans[0].final.summary",
+            "consequence": "The same useful local work remains available without inventing remote authority."
+          },
+          {
+            "side": "A",
+            "quote": "After integration, S01\u2013S04 remain due on the actual command and approved service, including success, partial failure, interrupted publication and recovery.",
+            "locator": "planning_artifacts: docs/shiploop/environment.md, External prerequisite INV-SERVICE-READY",
+            "consequence": "Readiness evidence does not replace subsequent implementation acceptance at the real boundary."
+          },
+          {
+            "side": "B",
+            "quote": "Execute TC06\u2013TC09 and concurrency/permission branches at approved real boundary with independent status/inventory/audit evidence; never accept local simulation.",
+            "locator": "plans[0].final.assumptions[A5].settle",
+            "consequence": "Publication, retry and recovery remain future live obligations rather than inferred local successes."
+          }
+        ],
+        "initial_plan_and_rework": "Both initial plans already established W1 \u2192 W2, independent external W3, and W2 + W3 \u2192 W4. A's review explicitly separated future sandbox execution from general activation, reducing a meaningful gate ambiguity; its initial W4 already included an approved opt-in live-test route, so a definite original deadlock is not established. B added an exact parser-only W1 confirmation command, removing ambiguity caused by the documented combined parser/CLI route. B also corrected experiment-allowance accounting and narrowed overlapping assumption ownership. These are useful bounded repairs, not new service evidence. B's earlier test-strategy readiness/acceptance correction preceded its initial plan and should be counted separately from Plan Improve rework.",
+        "earlier_evidence_value": "The request and inspected transport source already establish that the deliberate pre-request failure cannot distinguish service contracts. Actual baseline executions establish only local runner availability and existing exception behavior. Reusing those observations while source, tests and runtime remain unchanged is valid. Earlier strategy work already supplied the local/live separation and future acceptance procedures. Neither side needed an experiment to rediscover the offline limitation, and neither incorrectly treated provisional schema choices as empirically verified service facts.",
+        "harms_or_lost_requirements": [],
+        "individual_judgment_corrections": [
+          "No clear factual error is demonstrated in either judgment's core N1\u2013N5 conclusions. Both correctly distinguish observed baseline behavior, implementation acceptance still due and unavailable external readiness.",
+          "A's statement that no dependency demonstrably changed needs qualification: graph edges stayed fixed, but final W4 explicitly distinguished sandbox-test authority from general activation. This has practical clarification value, although the initial opt-in route limits any claim that review rescued an otherwise impossible plan.",
+          "B's parser-only correction improves the specified confirmation route; initial W1 already intended independent parser verification. It does not demonstrate a superior final architecture or a newly discovered service capability.",
+          "The alleged redundant commands or reads are cost observations, not demonstrated regressions. B's duplicate-read allegation cannot be independently confirmed from this paired record."
+        ],
+        "confidence": "high",
+        "limits": [
+          "Neither plan implements or verifies the new command. The observed passing suite covers one existing offline-transport test; planning completion is not feature acceptance.",
+          "Approved service access, contract guarantees, fault facilities and actual live outcomes remain unavailable. Both plans correctly remain conditional.",
+          "B's alleged duplicate reads at events 13/17 and the exact original allowance statement at event 127 require omitted raw evidence or the original note for independent verification. Retained review notes corroborate the accounting correction, but not every event-level allegation.",
+          "A rejects empty batches while B permits an empty preview. Both present this as a provisional local default, and the request specifies no empty-batch policy; this difference does not establish a lost requirement."
+        ]
+      },
+      "mapping": {
+        "A": "sample-01",
+        "B": "sample-02"
+      }
+    }
+  ],
+  "subjects": [
+    {
+      "id": "sample-01",
+      "case": "unavailable",
+      "rep": 2,
+      "arm": "current",
+      "cohort": 1,
+      "completion": true,
+      "plugin_identity_matches": true,
+      "score": 10,
+      "possible": 10,
+      "host_seconds": 711.9830000400543,
+      "tokens": {
+        "input_peak": 181084,
+        "processed": null,
+        "output": null
+      },
+      "criterion_set_valid": true,
+      "quote_failures": [],
+      "false_readiness_count": 0,
+      "material_rework_count": 0,
+      "unnecessary_investigation_count": 1,
+      "access_audit_findings": []
+    },
+    {
+      "id": "sample-02",
+      "case": "unavailable",
+      "rep": 2,
+      "arm": "early",
+      "cohort": 1,
+      "completion": true,
+      "plugin_identity_matches": true,
+      "score": 10,
+      "possible": 10,
+      "host_seconds": 714.0030000209808,
+      "tokens": {
+        "input_peak": 202887,
+        "processed": null,
+        "output": null
+      },
+      "criterion_set_valid": true,
+      "quote_failures": [],
+      "false_readiness_count": 0,
+      "material_rework_count": 1,
+      "unnecessary_investigation_count": 1,
+      "access_audit_findings": []
+    },
+    {
+      "id": "sample-03",
+      "case": "atomic",
+      "rep": 1,
+      "arm": "early",
+      "cohort": 1,
+      "completion": true,
+      "plugin_identity_matches": true,
+      "score": 10,
+      "possible": 10,
+      "host_seconds": 1025.7890000343323,
+      "tokens": {
+        "input_peak": 186661,
+        "processed": null,
+        "output": null
+      },
+      "criterion_set_valid": true,
+      "quote_failures": [],
+      "false_readiness_count": 0,
+      "material_rework_count": 1,
+      "unnecessary_investigation_count": 2,
+      "access_audit_findings": []
+    },
+    {
+      "id": "sample-04",
+      "case": "atomic",
+      "rep": 1,
+      "arm": "current",
+      "cohort": 1,
+      "completion": true,
+      "plugin_identity_matches": true,
+      "score": 10,
+      "possible": 10,
+      "host_seconds": 875.5039999485016,
+      "tokens": {
+        "input_peak": 200685,
+        "processed": null,
+        "output": null
+      },
+      "criterion_set_valid": true,
+      "quote_failures": [],
+      "false_readiness_count": 0,
+      "material_rework_count": 2,
+      "unnecessary_investigation_count": 0,
+      "access_audit_findings": []
+    },
+    {
+      "id": "sample-05",
+      "case": "evidence",
+      "rep": 1,
+      "arm": "current",
+      "cohort": 2,
+      "completion": true,
+      "plugin_identity_matches": true,
+      "score": 7,
+      "possible": 8,
+      "host_seconds": 908.8439998626709,
+      "tokens": {
+        "input_peak": 200077,
+        "processed": null,
+        "output": null
+      },
+      "criterion_set_valid": true,
+      "quote_failures": [],
+      "false_readiness_count": 0,
+      "material_rework_count": 2,
+      "unnecessary_investigation_count": 1,
+      "access_audit_findings": []
+    },
+    {
+      "id": "sample-06",
+      "case": "evidence",
+      "rep": 1,
+      "arm": "early",
+      "cohort": 2,
+      "completion": true,
+      "plugin_identity_matches": true,
+      "score": 7,
+      "possible": 8,
+      "host_seconds": 910.5789999961853,
+      "tokens": {
+        "input_peak": 197831,
+        "processed": null,
+        "output": null
+      },
+      "criterion_set_valid": true,
+      "quote_failures": [],
+      "false_readiness_count": 0,
+      "material_rework_count": 1,
+      "unnecessary_investigation_count": 2,
+      "access_audit_findings": []
+    },
+    {
+      "id": "sample-07",
+      "case": "unavailable",
+      "rep": 1,
+      "arm": "early",
+      "cohort": 2,
+      "completion": true,
+      "plugin_identity_matches": true,
+      "score": 10,
+      "possible": 10,
+      "host_seconds": 624.6659998893738,
+      "tokens": {
+        "input_peak": 156596,
+        "processed": null,
+        "output": null
+      },
+      "criterion_set_valid": true,
+      "quote_failures": [],
+      "false_readiness_count": 0,
+      "material_rework_count": 0,
+      "unnecessary_investigation_count": 1,
+      "access_audit_findings": []
+    },
+    {
+      "id": "sample-08",
+      "case": "unavailable",
+      "rep": 1,
+      "arm": "current",
+      "cohort": 2,
+      "completion": true,
+      "plugin_identity_matches": true,
+      "score": 10,
+      "possible": 10,
+      "host_seconds": 908.9029998779297,
+      "tokens": {
+        "input_peak": 228598,
+        "processed": null,
+        "output": null
+      },
+      "criterion_set_valid": true,
+      "quote_failures": [],
+      "false_readiness_count": 0,
+      "material_rework_count": 0,
+      "unnecessary_investigation_count": 2,
+      "access_audit_findings": []
+    },
+    {
+      "id": "sample-09",
+      "case": "unicode",
+      "rep": 1,
+      "arm": "current",
+      "cohort": 3,
+      "completion": true,
+      "plugin_identity_matches": true,
+      "score": 10,
+      "possible": 10,
+      "host_seconds": 607.795000076294,
+      "tokens": {
+        "input_peak": 153355,
+        "processed": null,
+        "output": null
+      },
+      "criterion_set_valid": true,
+      "quote_failures": [],
+      "false_readiness_count": 0,
+      "material_rework_count": 0,
+      "unnecessary_investigation_count": 1,
+      "access_audit_findings": []
+    },
+    {
+      "id": "sample-10",
+      "case": "unicode",
+      "rep": 1,
+      "arm": "early",
+      "cohort": 3,
+      "completion": true,
+      "plugin_identity_matches": true,
+      "score": 10,
+      "possible": 10,
+      "host_seconds": 671.4740002155304,
+      "tokens": {
+        "input_peak": 162025,
+        "processed": null,
+        "output": null
+      },
+      "criterion_set_valid": true,
+      "quote_failures": [],
+      "false_readiness_count": 1,
+      "material_rework_count": 1,
+      "unnecessary_investigation_count": 1,
+      "access_audit_findings": []
+    },
+    {
+      "id": "sample-11",
+      "case": "atomic",
+      "rep": 2,
+      "arm": "early",
+      "cohort": 3,
+      "completion": true,
+      "plugin_identity_matches": true,
+      "score": 10,
+      "possible": 10,
+      "host_seconds": 1019.4790000915527,
+      "tokens": {
+        "input_peak": 190704,
+        "processed": null,
+        "output": null
+      },
+      "criterion_set_valid": true,
+      "quote_failures": [],
+      "false_readiness_count": 0,
+      "material_rework_count": 0,
+      "unnecessary_investigation_count": 2,
+      "access_audit_findings": []
+    },
+    {
+      "id": "sample-12",
+      "case": "atomic",
+      "rep": 2,
+      "arm": "current",
+      "cohort": 3,
+      "completion": true,
+      "plugin_identity_matches": true,
+      "score": 10,
+      "possible": 10,
+      "host_seconds": 1086.2829999923706,
+      "tokens": {
+        "input_peak": 197106,
+        "processed": null,
+        "output": null
+      },
+      "criterion_set_valid": true,
+      "quote_failures": [],
+      "false_readiness_count": 0,
+      "material_rework_count": 2,
+      "unnecessary_investigation_count": 1,
+      "access_audit_findings": []
+    },
+    {
+      "id": "sample-13",
+      "case": "unicode",
+      "rep": 2,
+      "arm": "current",
+      "cohort": 4,
+      "completion": true,
+      "plugin_identity_matches": true,
+      "score": 10,
+      "possible": 10,
+      "host_seconds": 641.4560000896454,
+      "tokens": {
+        "input_peak": 171171,
+        "processed": null,
+        "output": null
+      },
+      "criterion_set_valid": true,
+      "quote_failures": [],
+      "false_readiness_count": 0,
+      "material_rework_count": 0,
+      "unnecessary_investigation_count": 2,
+      "access_audit_findings": []
+    },
+    {
+      "id": "sample-14",
+      "case": "unicode",
+      "rep": 2,
+      "arm": "early",
+      "cohort": 4,
+      "completion": true,
+      "plugin_identity_matches": true,
+      "score": 10,
+      "possible": 10,
+      "host_seconds": 565.654000043869,
+      "tokens": {
+        "input_peak": 159560,
+        "processed": null,
+        "output": null
+      },
+      "criterion_set_valid": true,
+      "quote_failures": [],
+      "false_readiness_count": 0,
+      "material_rework_count": 0,
+      "unnecessary_investigation_count": 2,
+      "access_audit_findings": []
+    },
+    {
+      "id": "sample-15",
+      "case": "evidence",
+      "rep": 2,
+      "arm": "early",
+      "cohort": 4,
+      "completion": true,
+      "plugin_identity_matches": true,
+      "score": 8,
+      "possible": 8,
+      "host_seconds": 835.2089998722076,
+      "tokens": {
+        "input_peak": 196859,
+        "processed": null,
+        "output": null
+      },
+      "criterion_set_valid": true,
+      "quote_failures": [],
+      "false_readiness_count": 0,
+      "material_rework_count": 0,
+      "unnecessary_investigation_count": 1,
+      "access_audit_findings": []
+    },
+    {
+      "id": "sample-16",
+      "case": "evidence",
+      "rep": 2,
+      "arm": "current",
+      "cohort": 4,
+      "completion": true,
+      "plugin_identity_matches": true,
+      "score": 7,
+      "possible": 8,
+      "host_seconds": 848.5899999141693,
+      "tokens": {
+        "input_peak": 205778,
+        "processed": null,
+        "output": null
+      },
+      "criterion_set_valid": true,
+      "quote_failures": [],
+      "false_readiness_count": 0,
+      "material_rework_count": 2,
+      "unnecessary_investigation_count": 1,
+      "access_audit_findings": []
+    }
+  ],
+  "interpretation_limits": [
+    "Pairwise judgments prioritize consequential final quality over raw rubric sums; retained corrections can qualify individual grades.",
+    "A tie means no demonstrated final-quality advantage in this record, not statistical equivalence or proof of no effect.",
+    "Counts of unnecessary investigation include extra reads or structural checks; they are not counts of experiments or material harms.",
+    "Earlier evidence may originate in the shared test-strategy stage before treatment; do not attribute that to the early plan duty.",
+    "Host and plan-stage times are descriptive under shared provider load and fixed four-subject cohorts; no generalized speed or monetary-cost claim.",
+    "Missing subject terminal token usage remains null; peak input context is not total token consumption.",
+    "Synthetic accepted prelude, planning-only boundary, one judge family and small calibration limit generalization.",
+    "Scope-deviation pairs remain visible and are excluded from the clean comparative subset; no result-driven reruns."
+  ]
+}
