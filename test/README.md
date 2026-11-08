@@ -83,8 +83,11 @@ suites; its packet sources (`shiploop_prompts.py`, `shiploop_navigator.py`,
 `shiploop_stage_spec.py`, `shiploop_loops.py`, `shiploop_narrative.py`) select the
 packet-size suites and the packet obligation ledger beside their hub consumers;
 and the `scripts/shiploop` entrypoint and `shiploop_protocol.py` select
-every light ShipLoop suite). Suites measured above two minutes and the E2E
-apparatus never run in quick. A pull request diffs from its merge base and a push
+the fixed hub consumers). Quick eligibility is explicit in `_FULL_ONLY_IDS`:
+the seven existing full-only suites remain excluded. Refreshed durations do not
+remove coverage. Previously eligible suites now measured above two minutes are
+listed in `_QUICK_OVER_BUDGET_IDS`; new over-budget costs require an explicit
+coverage decision. A pull request diffs from its merge base and a push
 from the previous `main` head. Only a push that contains a release commit (its
 `Skill-Craft-Release:` trailer), even under later ordinary commits, runs the
 full tier. Manual dispatch offers `quick` (the last commit's
@@ -120,8 +123,16 @@ wall time and the three slowest suites, the floor no job count goes under.
 Ctrl-C stops the suites already started. `--list` and help execute no suites. Listing prints one row per constituent
 entry, with family, ID and command. `core`, `shiploop` and `e2e-apparatus` can
 also run separately. The three `shiploop-1`/`2`/`3` groups partition ShipLoop using
-checked-in duration estimates and a deterministic fallback. They are scheduling
-slices of the same full inventory, not additional coverage.
+checked-in `suite_durations.json` costs and their receipt provenance. Every
+ShipLoop suite needs an explicit cost; the deterministic fallback remains for
+other scheduling inputs. These are scheduling slices of the same full inventory.
+
+The original `python3 test/shiploop-e2e.test.py` command still runs all 521 harness
+tests. The catalog schedules its `analysis`, `hosts`, and `resources` components
+once each, so they can run concurrently. Shared fixtures live in
+`shiploop-e2e-support.py`; the aggregate preserves imports used by other suites.
+Changing any of these files selects the E2E family. The three components count
+as one logical consumer when deciding whether a shared source is a hub.
 
 The quick baseline is three core suites (`test-groups`, `ci-policy`,
 `skill-frontmatter`), the apparatus's no-model mock replay

@@ -50,6 +50,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MAX_DEFAULT_JOBS = 8
 DEFAULT_JOBS = min(os.cpu_count() or 1, MAX_DEFAULT_JOBS)
 TOP_LEVEL_TEST_ALLOWLIST = frozenset({
+    # Compatibility command; its three constituent suites are cataloged once each.
+    "test/shiploop-e2e.test.py",
     # Explicit host-dependent checks are invoked through test/run-integration.sh.
     "test/advisors.test.sh",
     "test/cursor-imported-skills.test.sh",
