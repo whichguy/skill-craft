@@ -856,6 +856,19 @@ class Commands(Base):
                 self.assertIsNone(settled["caught"]["P1"])
                 self.assertFalse(settled["pass"])
 
+    def test_a_helper_location_and_separate_candidate_diagnostic_are_not_a_launch_error(self):
+        scenario = lay(self.dir / "helper-diagnostic", {
+            "oracle/check.py": "print(__file__)\nraise SystemExit('required candidate control not found')\n",
+        })
+        command = f"{shlex.quote(sys.executable)} -B \"$STAGE_ORACLE/check.py\""
+        for wanted, expected in ((0, False), ("nonzero", True)):
+            with self.subTest(exit=wanted):
+                found = self.run_one({"proves": "P1", "command": command, "exit": wanted}, scenario_dir=scenario)
+                self.assertEqual(found["pass"], expected, found)
+                self.assertNotIn("apparatus_error", found)
+                self.assertEqual(verdict(["P1"], [], [found])["caught"], {"P1": expected})
+        self.assertEqual(self.scratch_left(), [])
+
     def test_helper_errors_remain_indeterminate_through_a_symlinked_temporary_directory(self):
         alias = self.dir / "scratch-alias"
         alias.symlink_to(self.scratch_home, target_is_directory=True)
