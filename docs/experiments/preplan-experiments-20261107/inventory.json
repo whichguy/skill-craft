@@ -1,0 +1,643 @@
+{
+  "method": "Recount committed summaries and hash available primary traces; semantic screening is a separate review.",
+  "source_head": "0a148ea7d2ca07cff42f9ec6f2c5fa99b7c93160",
+  "source_inputs": [
+    {
+      "path": "docs/experiments/step-plan-review-20261101/runs.jsonl",
+      "sha256": "97f61983eac92a9a82230f0a5aa48d0816d92527863039607deb73d2545812fb"
+    },
+    {
+      "path": "docs/experiments/step-plan-review-20261101/sendbacks.jsonl",
+      "sha256": "800d834397a00a1f03186824dbeef0bc4442a79662a402b2b60795744729d03d"
+    },
+    {
+      "path": "docs/experiments/step-plan-review-20261101/sendback_classes.jsonl",
+      "sha256": "f3544e087987b4700a96a45dfce8d72681cfa35aa52c64e3e246a48a92ee9054"
+    },
+    {
+      "path": "docs/experiments/step-plan-review-20261101/README.md",
+      "sha256": "96d12b3b923ea0d9788c8139d59af3dd9ee887a2a9aeec54efef156a1622d98a"
+    },
+    {
+      "path": "docs/shiploop-question-driven-planning-journal.md",
+      "sha256": "16918b1f5c7a306d459fabf89e7dc46c0b3aed8d8a4757057073b8abe2b58c97"
+    },
+    {
+      "path": "docs/shiploop-question-record-verdicts-and-plan-2026-10-31.md",
+      "sha256": "5cb8905d70f94743fc2b4f385cad3cc24434bbc2d2c661681becf8e2fad699ea"
+    },
+    {
+      "path": "docs/shiploop-planning-experiments-results-2026-09-21.md",
+      "sha256": "c9e77917ae6438c8cde6d162831de8e50e7d548d02b5c3c1427422c833dcb845"
+    },
+    {
+      "path": "skills/shiploop/references/planning-experiments.md",
+      "sha256": "01c2ee48c89fe1480567e14e65426699599d695e9e6aa91704c03773550550d1"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_prompts.py",
+      "sha256": "2ce1b7ebfce34823155e2daaeb55f8b145a3d60866cf7a6d6b5944975bc11f3f"
+    },
+    {
+      "path": "skills/shiploop/scripts/shiploop_stage_spec.py",
+      "sha256": "ebf0e171cf630c8e64a9db6023680372ebcf056b70e90826205ed41a63786a76"
+    },
+    {
+      "path": "skills/improve/runtime/until-loop/ADAPTER.md",
+      "sha256": "de85fdc2873c6d07c197a32deb3a8188d297df6e1e59e22b75fcb78277322842"
+    }
+  ],
+  "summary": {
+    "run_records": 112,
+    "step_plan_actions": 178,
+    "sendback_records": 50,
+    "distinct_sendback_traces": 45,
+    "sendbacks_by_stage": {
+      "implement": 32,
+      "test": 6,
+      "test-spec": 12
+    },
+    "sendbacks_by_recorded_class": {
+      "focused-id-short": 9,
+      "needs-later-step": 2,
+      "other": 2,
+      "proof-command-defect": 8,
+      "proof-not-repeatable": 3,
+      "proof-test-no-path": 10,
+      "proof-test-path": 13,
+      "runner-ids-or-floor": 3
+    },
+    "primary_traces_present": 112,
+    "primary_traces_missing": 0,
+    "classification_matches": 50
+  },
+  "traces": [
+    {
+      "path": "~/e2e-runs/20261030/hello-terra-2243-5fb43e/.shiploop-runs/hello/trace.jsonl",
+      "present": true,
+      "sha256": "e356aa44c380a0535af2b691fdc01a11d9de8dc20da4473d6ab84cf40d296547"
+    },
+    {
+      "path": "~/e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship/.shiploop-runs/work-20261026-045417-6440d1/run/trace.jsonl",
+      "present": true,
+      "sha256": "976adaac02f6ea474ebb7939f58a94c255eba185bf4a15bea70f6d82cda312a3"
+    },
+    {
+      "path": "~/e2e-runs/20261026/live-sonnet-battleship-01b9b3/.shiploop-runs/work-20261026-180223-49ce7c/run/trace.jsonl",
+      "present": true,
+      "sha256": "32a5821a113c6aa5155a4ac68527fa4caf741ced54b39e8ef8ec3c69c20741e6"
+    },
+    {
+      "path": "~/e2e-runs/20261026/ds-flash-978478-battleship/.shiploop-runs/work-20261026-204158-139775/run/trace.jsonl",
+      "present": true,
+      "sha256": "984b2c8247e9d6b51b90bf1fe9bbab3d5235151246590fc6a3c3ff04689b310e"
+    },
+    {
+      "path": "~/e2e-runs/20261027/v2180-sonnet-battleship-36036c/.shiploop-runs/work-20261027-234612-373c7c/run/trace.jsonl",
+      "present": true,
+      "sha256": "afa621235dc88f7638e82f6aba6cc28a53cab434b4e641ece18b0755affaf28a"
+    },
+    {
+      "path": "~/e2e-runs/20261026/live-sonnet-hello-b01d1c/.shiploop-runs/work-20261026-180158-1b58a4/run/trace.jsonl",
+      "present": true,
+      "sha256": "1965129d2e74bf4e82b54b5fce7ace2b61643975a66a1e4751ad3ea5b7ee46e1"
+    },
+    {
+      "path": "~/e2e-runs/20261026/pilot-ollama-dsflash-993a9d-hello/.shiploop-runs/work-20261026-181830-936fda/run/trace.jsonl",
+      "present": true,
+      "sha256": "898ee2c9703d3feabb25b092b940bda64e5e68055c6950e30e52cda845190aa0"
+    },
+    {
+      "path": "~/e2e-runs/20261027/v2170-ds-battleship-759a03/.shiploop-runs/work-20261027-150517-62d689/run/trace.jsonl",
+      "present": true,
+      "sha256": "41cf0c9487534097ac652e5926e3e501a2f52ab2ae1e5fe4ff0a374b4fe7abe1"
+    },
+    {
+      "path": "~/e2e-runs/20261027/v2170-sonnet-battleship-491d9a/.shiploop-runs/work-20261027-103928-803b48/run/trace.jsonl",
+      "present": true,
+      "sha256": "bd6a284bc8a98809c0caf8a080388b640fead46cd7e6f981628b7edcf6dc018f"
+    },
+    {
+      "path": "~/e2e-runs/20261025/gate-2132-f7ba78-grok-hello/.shiploop-runs/work-20261026-034535-857137/run/trace.jsonl",
+      "present": true,
+      "sha256": "25d9887c59c59faa22413be53a12e7324e4e4ee5d0e872d1de88a4f7f3a0be67"
+    },
+    {
+      "path": "~/e2e-runs/20261030/hello-terra-2243-0c81bf/.shiploop-runs/work-20261031-014429-dd882e/run/trace.jsonl",
+      "present": true,
+      "sha256": "3ef26c2218f225290d7b17bfd28ec0cb1eab1cfb1e4e8ccba0f24694c4b257a9"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-29/shiploop-basic-repairs-44mijad9/live/run/.shiploop-runs/work-20261030-044511-0ca2b7/run/trace.jsonl",
+      "present": true,
+      "sha256": "7d0e4dde5c6738b78be9b620f2228c5c33b011c4c22bbfe99aa165a2a603315c"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-29/shiploop-learning-focus-192828-g585rz8u/run/.shiploop-runs/work-20261030-023020-5d000f/run/trace.jsonl",
+      "present": true,
+      "sha256": "70d8b3e360e63bb3c5a9b186d94e57dca5db2fd4241353744dfbbe05ca8e6bea"
+    },
+    {
+      "path": "~/e2e-runs/20261025/trace-verify-1131-b096ae/hello/.shiploop-runs/work-20261026-031340-d51452/run/trace.jsonl",
+      "present": true,
+      "sha256": "ed17edeec4fcb0cdcf39b5174ba388ea7ff9ae8752c07391e75760730c450c1a"
+    },
+    {
+      "path": "~/e2e-runs/20261025/gate-2132-f7ba78-grok-web/battleship-scoring/.shiploop-runs/work-20261026-082022-fb1de8/run/trace.jsonl",
+      "present": true,
+      "sha256": "a8a3dc5455b3574d5f3b064c1a49514f2d972e718cd07270b3d7653235c1afb9"
+    },
+    {
+      "path": "~/e2e-runs/20261025/trace-verify-4fd9f1/hello/.shiploop-runs/work-20261025-225710-c57c36/run/trace.jsonl",
+      "present": true,
+      "sha256": "9b6be4de514f57aae0ee98e7c63209a66a3eca1f566771b82a2aeff7faf53ddf"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-30/shiploop-hook-missing-done-c0rbhqfg/published-verification-01/.shiploop-runs/work-20261031-063257-3a228d/run/trace.jsonl",
+      "present": true,
+      "sha256": "8252d3b55a0f663ef911b6d1125a4a114abda950e29b8aac2828dc5a7ccb14fa"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-30/shiploop-serve-hello-fc0832/.shiploop-runs/work-20261031-020046-786efe/run/trace.jsonl",
+      "present": true,
+      "sha256": "776aebc3d08fa754ae2b0d9dfbbf8639ea52b7f9736ccc7ad2d424846073e44e"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-30/shiploop-hook-missing-done-c0rbhqfg/published-verification-02/.shiploop-runs/work-20261031-070733-111b9d/run/trace.jsonl",
+      "present": true,
+      "sha256": "594885e944ae462e3d2180b7621002a3a9622807437a544ee90ab79d371dae80"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-30/shiploop-hook-missing-done-c0rbhqfg/qualification-01/runs/control-hello-hook-continuation-1/.shiploop-runs/work-20261031-052758-b37064/run/trace.jsonl",
+      "present": true,
+      "sha256": "d1a369b6f1a78471f30aa4af58632ffecfbc58aa4bba061c1b6be4bb83fcd71f"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-30/shiploop-hook-missing-done-c0rbhqfg/qualification-01/runs/candidate-hello-hook-continuation-1/.shiploop-runs/work-20261031-053839-a43726/run/trace.jsonl",
+      "present": true,
+      "sha256": "281d3248b098cfcf0f9608fa2f0f8b018d3d939ebc114ccb75c5c1113f416dec"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-30/shiploop-salesforce-battleship-zbcb4i5d/run/.shiploop-runs/work-20261030-134151-bce807/run/trace.jsonl",
+      "present": true,
+      "sha256": "5f0432bc68f6c5a5db1a61399bafb058a69a2ad355d8e4114577f8bc1eacfd08"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-30/shiploop-ticket-recursive-0vy09rcr/candidate-run/run/.shiploop-runs/work-20261030-121931-8ee836/run/trace.jsonl",
+      "present": true,
+      "sha256": "85ac3dfeef1ad870ab857f0287fe60b76836e458fe87823e72f33feb4219fe3e"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-30/shiploop-ticket-recursive-0vy09rcr/control/run/.shiploop-runs/work-20261030-114016-83bdfe/run/trace.jsonl",
+      "present": true,
+      "sha256": "70a2ae07d9ddd12e769fa120b515c78ef6c5b57e5dba2c73196945085b020048"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp/qualification/runs/control-battleship/battleship-shiploop-run/trace.jsonl",
+      "present": true,
+      "sha256": "04d0b0b321337f2a3909153eda14ecd3482807005a72e97c7daa0f42cc858816"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-03/.shiploop-runs/work-20261031-122739-3e2dae/run/trace.jsonl",
+      "present": true,
+      "sha256": "a60c01461394cd0ba9bd783b0deee62c53b081da0631e01df398ec48928d4762"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-30/shiploop-sf-qualified-pv9hf_8a/development-01/run/.shiploop-runs/work-20261031-030317-734f4e/run/trace.jsonl",
+      "present": true,
+      "sha256": "fc13b7b3f544ca3014be0a8c86a7dc04826d788204559b9ccf278db6d95fdbae"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp/qualification-full-ui/runs/config-candidate/.shiploop-runs/work-20261030-185829-2bbbbe/run/trace.jsonl",
+      "present": true,
+      "sha256": "c44fb382ee0e974fa30b462b1ed0c925cb587ed38342daa3d86ada56b13532c4"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp/qualification-full-ui/runs/config-control/.shiploop-runs/work-20261030-184505-66963c/run/trace.jsonl",
+      "present": true,
+      "sha256": "6d8f621e0f82400ed494e16b1126ff6bcd856412de96d8c18ca65efb4db29418"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-30/shiploop-sf-fidelity-repair-htoehblp/qualification-full-ui/runs/battleship-candidate/.shiploop-runs/work-20261030-192802-b18b24/run/trace.jsonl",
+      "present": true,
+      "sha256": "2adbc3334f278c8d105a5d786f1c8e9f07a52e3dc9495cdd0eea32d463b6062e"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-02/.shiploop-runs/work-20261031-111656-6fa342/run/trace.jsonl",
+      "present": true,
+      "sha256": "a1f6d4cd631029c1a005bb4b70491f87d002abfd5b7a72c3f2d0ffa4185fb424"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/model-runs/csv-published-discovery-01/.shiploop-runs/work-20261031-212708-c946ec/run/trace.jsonl",
+      "present": true,
+      "sha256": "49086cedb8aafe27d49c0d8ab4a4f3bad24f75c29a65acb9f9fdd2573749c05a"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/startup-behavior-qualification-01/epoch/runs/control-csv-report-1/.shiploop-runs/work-20261101-081637-6e4982/run/trace.jsonl",
+      "present": true,
+      "sha256": "ce052ed6eac3179a4772b4dc18038b113a77411ac55a8e76176479f7b3a727b2"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/model-runs/ticket-assignment-published-discovery-01/.shiploop-runs/work-20261101-094725-c35aa5/run/trace.jsonl",
+      "present": true,
+      "sha256": "d3225909490077ac8fe97e1c678d19cb6c9ba297326a36e2922dfcf127dfa344"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/startup-behavior-qualification-01/epoch/runs/candidate-hello-startup-contract-1/.shiploop-runs/work-20261101-080534-526035/run/trace.jsonl",
+      "present": true,
+      "sha256": "a03ef664a4e2f429e560f21716971e160b8e6f1856d54d53a54bae3d897bc89f"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/startup-behavior-qualification-01/epoch/runs/candidate-csv-report-1/.shiploop-runs/work-20261101-083024-d93320/run/trace.jsonl",
+      "present": true,
+      "sha256": "ff661d21e3af5359c3c6fbd14f2429eaa0cbef4ec1f305e096994775a23796bb"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/test-adequacy-qualification-20261031/startup-behavior-qualification-01/epoch/runs/control-hello-startup-contract-1/.shiploop-runs/work-20261101-075303-5269e4/run/trace.jsonl",
+      "present": true,
+      "sha256": "773b30278bd2c3df7731ccf0d039aefa01b52ccc337796da028d29873cfa7d7a"
+    },
+    {
+      "path": "~/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-01/.shiploop-runs/work-20261031-104327-2692a2/run/trace.jsonl",
+      "present": true,
+      "sha256": "6a2ce28df497c9fec652233e3612b0c9b7019ca9f5455da2f27a7b80de61ce2b"
+    },
+    {
+      "path": "~/e2e-runs/20261028/pa-ds-battleship-4ed4e3/.shiploop-runs/work-20261028-173217-a07d74/run/trace.jsonl",
+      "present": true,
+      "sha256": "0edd3b143d21cb699fa6ae638713a24494412e14fa2bf6e0ff4ea3cfbae2f333"
+    },
+    {
+      "path": "~/e2e-runs/terra-high-user-listing/.shiploop-runs/work-20261031-015157-80cf2a/run/trace.jsonl",
+      "present": true,
+      "sha256": "71b15c251a45d43ff6d139f750653a16dc0aafda0510098fa3e3f7de598005f7"
+    },
+    {
+      "path": "~/e2e-runs-brownfield/20261028/bf-ds-ticket-escalation-09c33b/.shiploop-runs/work-20261029-005315-5834f6/run/trace.jsonl",
+      "present": true,
+      "sha256": "209e85bd7f995d6d8dbeec3a25dfad8d5e56c8d0870c43754be9f80fc1362758"
+    },
+    {
+      "path": "~/e2e-runs-brownfield/20261028/bf-ds-user-listing-09c33b/.shiploop-runs/work-20261028-235532-288781/run/trace.jsonl",
+      "present": true,
+      "sha256": "8215f565535546a5b8cb81692233b49a82320d4b2b68e9b3f4b743a0c9586799"
+    },
+    {
+      "path": "~/e2e-runs-brownfield/20261028/bf-ds-ticket-assignment-09c33b/.shiploop-runs/work-20261028-230157-1584ba/run/trace.jsonl",
+      "present": true,
+      "sha256": "7d2eda7212fd4b9d7c20d703a77bb8ab2c334bc822840b6c661b29f2dc8f2d34"
+    },
+    {
+      "path": "~/e2e-runs-brownfield/20261029/hooks-before-user-listing/.shiploop-runs/work-20261029-220314-f31031/run/trace.jsonl",
+      "present": true,
+      "sha256": "d263254501ec67fa6b9c8d8f1e6859e2a63f57891c03b376746a29efbbcead63"
+    },
+    {
+      "path": "~/e2e-runs-brownfield/20261029/bf-codex-r1-user-listing/.shiploop-runs/work-20261029-152234-81a017/run/trace.jsonl",
+      "present": true,
+      "sha256": "6e8cc1ddc98889f5fda32fd82d5fa7f1a9c163b69af9356753fe44b0ff32b0f3"
+    },
+    {
+      "path": "~/e2e-runs-brownfield/20261029/hooks-before-ticket-assignment/.shiploop-runs/work-20261029-220311-ed9820/run/trace.jsonl",
+      "present": true,
+      "sha256": "865a4ab8aedd697bf72a379db2c89c0b419bfb7d91fdd1437e1b50cd8423acdd"
+    },
+    {
+      "path": "~/e2e-runs-brownfield/20261029/bf-codex-r2-ticket-assignment/.shiploop-runs/work-20261029-160337-e2cb7e/run/trace.jsonl",
+      "present": true,
+      "sha256": "4f062e329c903d94473df511d73d9c59db0889935f0bf1b7e0f0bc00522f8440"
+    },
+    {
+      "path": "~/e2e-runs-brownfield/20261029/hooks-after-ticket-assignment/.shiploop-runs/work-20261030-003036-51198e/run/trace.jsonl",
+      "present": true,
+      "sha256": "2fab2599ee85539570396900151ec8a09a4e60e85961db835970270a43b18ed2"
+    },
+    {
+      "path": "~/e2e-runs-brownfield/20261029/bf-ds-r1-ticket-assignment/.shiploop-runs/work-20261029-142643-b5c43b/run/trace.jsonl",
+      "present": true,
+      "sha256": "f88682d8ea946498e5e75d5b58216e96eb01808b61e619cd1cd7ab1fca71f593"
+    },
+    {
+      "path": "~/e2e-runs-brownfield/20261029/bf-codex-r2-user-listing/.shiploop-runs/work-20261029-160341-f29b42/run/trace.jsonl",
+      "present": true,
+      "sha256": "32c0d840f2923eadab2a18bc61e7f722d6b32a0b067e31a952d90ab68d28ba9c"
+    },
+    {
+      "path": "~/e2e-runs-brownfield/20261029/bf-codex-r2-ticket-escalation/.shiploop-runs/work-20261029-162705-9e40b2/run/trace.jsonl",
+      "present": true,
+      "sha256": "a62421049be826b2098dd2656612cc438816706bf1f52bfbf20e8cc666a21202"
+    },
+    {
+      "path": "~/e2e-runs-brownfield/20261029/hooks-before-ticket-escalation/.shiploop-runs/work-20261030-001125-3239ed/run/trace.jsonl",
+      "present": true,
+      "sha256": "30e13862e428b90af5b733f3c50f6cf9820aa4abc4f340b78fb271ac7222214e"
+    },
+    {
+      "path": "~/e2e-runs-brownfield/20261029/hooks-after-ticket-escalation/.shiploop-runs/work-20261030-004732-321bfd/run/trace.jsonl",
+      "present": true,
+      "sha256": "b0b94dd1b18982edd06f9a93ff56529855444ffed663ebd8fd8aede71d7dd1d9"
+    },
+    {
+      "path": "~/e2e-runs-brownfield/20261029/hooks-after-user-listing/.shiploop-runs/work-20261030-000632-137142/run/trace.jsonl",
+      "present": true,
+      "sha256": "d3b935ce5de361695ca51f90be0a8a7d341590da04db91083680f308da1df227"
+    },
+    {
+      "path": "~/e2e-runs-brownfield/20261029/bf-codex-r1-ticket-escalation/.shiploop-runs/work-20261029-154207-70da0c/run/trace.jsonl",
+      "present": true,
+      "sha256": "c66dd2f7bf8dff7e011e825ce2c77e7a1f6d192899ea971fca0bc0a87506dd9d"
+    },
+    {
+      "path": "~/e2e-runs-brownfield/20261029/bf-codex-r1-ticket-assignment/.shiploop-runs/work-20261029-152155-42ab66/run/trace.jsonl",
+      "present": true,
+      "sha256": "b161fd90bf0f2438a1600ff85f603e5fae5c7df8cf633e7ee1852670d77534c0"
+    },
+    {
+      "path": "~/e2e-runs-brownfield-interrupted/20261029/hooks-after-user-listing/.shiploop-runs/work-20261029-221325-caf8ac/run/trace.jsonl",
+      "present": true,
+      "sha256": "230946be964bdeb560f4f491cccf181f9166d1548f525816091b3132d4ca37e8"
+    },
+    {
+      "path": "~/e2e-runs-hostonly/20261031/ui-live-2/battleship-run/trace.jsonl",
+      "present": true,
+      "sha256": "f7d98ccf187a2aad2692fd7b21a8b38f81e41a025607a3a83b723517dc549327"
+    },
+    {
+      "path": "~/e2e-runs-hostonly/20261031/ui-live-3/.shiploop-runs/work-20261101-030945-ceb81c/run/trace.jsonl",
+      "present": true,
+      "sha256": "8c888c2238ef0cc7f55bc6a1c716d98f1bfbbba5546558e5a4c3f75cac2dd89c"
+    },
+    {
+      "path": "~/e2e-runs-hostonly/20261031/sf-live-2/.shiploop-runs/work-20261101-014507-ffd2a3/run/trace.jsonl",
+      "present": true,
+      "sha256": "6b6a757d36b4bff5a90dae47e8cf8f413330e3267fb2363225e544a551d4b960"
+    },
+    {
+      "path": "~/e2e-runs-multipass/20261031/mp-codex-ticket-sla/.shiploop-runs/work-20261101-044047-2e7ccc/run/trace.jsonl",
+      "present": true,
+      "sha256": "04da4d39664087a384a8d43eaf2afb9cec5b86b6e6b667e2de2caf4a10a12d1b"
+    },
+    {
+      "path": "~/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/run/trace.jsonl",
+      "present": true,
+      "sha256": "3b29985188beafda170abe5d5c8d9d35b390422b6b5bd47d0c8f825ebcb8f20c"
+    },
+    {
+      "path": "~/e2e-runs-multipass/20261031/e2/B1-ticket-assignment/.shiploop-runs/work-20261101-014307-32ba7d/run/trace.jsonl",
+      "present": true,
+      "sha256": "7a810aa8a5e6c2ee28e3cc40367001470748602586ad570fe714b2d061bc06fd"
+    },
+    {
+      "path": "~/e2e-runs-multipass/20261031/e2/B2-ticket-assignment/.shiploop-runs/work-20261101-025242-20412f/run/trace.jsonl",
+      "present": true,
+      "sha256": "c5e0da2e302f119e842458c712893299ebd7f5cbe899d58cc0a41a434dae20ec"
+    },
+    {
+      "path": "~/e2e-runs-multipass/20261031/e2/A1-ticket-escalation/.shiploop-runs/work-20261101-012930-5b0f92/run/trace.jsonl",
+      "present": true,
+      "sha256": "0b569e15ed3caa27e9a252a5ff40750ac011af43861495db6dc53ab38497dcdf"
+    },
+    {
+      "path": "~/e2e-runs-multipass/20261031/e2/B1-ticket-escalation/.shiploop-runs/work-20261101-015920-6d7d18/run/trace.jsonl",
+      "present": true,
+      "sha256": "735b9bde6ad2e705c631d3b69d8e112b693682a21edd9b94b80ac040e41f8f84"
+    },
+    {
+      "path": "~/e2e-runs-multipass/20261031/e2/B3-ticket-assignment/.shiploop-runs/work-20261101-040207-dc0361/run/trace.jsonl",
+      "present": true,
+      "sha256": "0bcbfe6d159eb03ad47deb2a92f9edc94b4168161772ca8c34dce1b334581a7f"
+    },
+    {
+      "path": "~/e2e-runs-multipass/20261031/e2/A3-ticket-escalation/.shiploop-runs/work-20261101-034014-51f138/run/trace.jsonl",
+      "present": true,
+      "sha256": "de3328c91c189fa3cfe99cd73dd29f2976c531c5ca286ef353d7a2176f78d1f3"
+    },
+    {
+      "path": "~/e2e-runs-multipass/20261031/e2/A2-ticket-assignment/.shiploop-runs/work-20261101-021820-9c397e/run/trace.jsonl",
+      "present": true,
+      "sha256": "2cb28f17806549ac95bf807a38a612522dfacc5539200bf437c10a0b4daa85c2"
+    },
+    {
+      "path": "~/e2e-runs-multipass/20261031/e2/B2-ticket-escalation/.shiploop-runs/work-20261101-030713-3f0f7f/run/trace.jsonl",
+      "present": true,
+      "sha256": "d08596356e1a662e86ff0e38a928cd23ef3c2245132c6b54634dd886c9ae2e39"
+    },
+    {
+      "path": "~/e2e-runs-multipass/20261031/e2/A3-ticket-assignment/.shiploop-runs/work-20261101-032539-520c7a/run/trace.jsonl",
+      "present": true,
+      "sha256": "e977bc05fa3d4e0b01f9c4ece0cf060e9aebba77f68a608f1a21bc298325bfb3"
+    },
+    {
+      "path": "~/e2e-runs-multipass/20261031/e2/A2-ticket-escalation/.shiploop-runs/work-20261101-023359-d23524/run/trace.jsonl",
+      "present": true,
+      "sha256": "b6d9a58efcd31e345288ed12eb75b085277e0d90b801ae9856075167ad8c0101"
+    },
+    {
+      "path": "~/e2e-runs-multipass/20261031/e2/B3-ticket-escalation/.shiploop-runs/work-20261101-042114-785e5f/run/trace.jsonl",
+      "present": true,
+      "sha256": "c36696085d0cdd1bb2cf0b48f42b898104fbecc3ed17a56c5b75931fc49e8af3"
+    },
+    {
+      "path": "~/e2e-runs-multipass/20261031/e2/A1-ticket-assignment/.shiploop-runs/work-20261101-003408-a61e8a/run/trace.jsonl",
+      "present": true,
+      "sha256": "c21b2c8064a0ced3f1b914642d9bdef6aa01541a94607e4c677a4b1a0ac2bfb8"
+    },
+    {
+      "path": "~/e2e-runs-owner-note/20261028/pc-ds-hello-note-b45e87/.shiploop-runs/work-20261028-194550-435718/run/trace.jsonl",
+      "present": true,
+      "sha256": "bd28b682bedb3745566dfadee0a729fde2c4b8e5521d38e5b15a39d0ee96c86b"
+    },
+    {
+      "path": "~/e2e-runs-pf/20261031/user-listing-r1/.shiploop-runs/work-20261031-195942-5ace67/run/trace.jsonl",
+      "present": true,
+      "sha256": "85d43fbe7b35498a53cfd4ed197ab1cb4e7a1dc712e554a253b40ad1f0d77474"
+    },
+    {
+      "path": "~/e2e-runs-pf/20261031/hello-r1/.shiploop-runs/work-20261031-195922-1e11df/run/trace.jsonl",
+      "present": true,
+      "sha256": "34b87954991ab36b9d23875093beb44d52a7029097b2dc3a3811989a257ff16f"
+    },
+    {
+      "path": "~/e2e-runs-pf/20261031/ticket-assignment-r2/.shiploop-runs/work-20261031-202021-65c131/run/trace.jsonl",
+      "present": true,
+      "sha256": "62658960318770ad8a54e877c6071c99c4d407ffcbcd59254eb31c6577dd934d"
+    },
+    {
+      "path": "~/e2e-runs-pf/20261031/user-listing-r2/.shiploop-runs/work-20261031-200904-f20cc4/run/trace.jsonl",
+      "present": true,
+      "sha256": "c6072051332648abf7f4bf6adffc1fe5b0e2dd1e3e6a1c2d31ebe9f8b9284677"
+    },
+    {
+      "path": "~/e2e-runs-pf/20261031/hello-r2/.shiploop-runs/work-20261031-200802-f69fd9/run/trace.jsonl",
+      "present": true,
+      "sha256": "531e493cbc5867788253550e48738e4ef581384473b229c152784e5974ba17be"
+    },
+    {
+      "path": "~/e2e-runs-pf/20261031/ticket-assignment-r1/.shiploop-runs/work-20261031-200002-f5ed2d/run/trace.jsonl",
+      "present": true,
+      "sha256": "b66dfecb10a6287a41855d50baa93847e4587c06e08d5286cfc45bdca0c79de4"
+    },
+    {
+      "path": "~/e2e-runs-qr/20261031/A-user-listing-s1/.shiploop-runs/work-20261031-150840-4a85b8/run/trace.jsonl",
+      "present": true,
+      "sha256": "5191b920169e579fd9d6d8b487158e8ab438e67f2070b1dc810ce383a4ac8208"
+    },
+    {
+      "path": "~/e2e-runs-qr/20261031/B-ticket-assignment-s3/.shiploop-runs/work-20261031-161112-575e35/run/trace.jsonl",
+      "present": true,
+      "sha256": "b4705088ceb166d2dd3b93a0d5271b4589c8de114d6b9b65a1c12f7990121099"
+    },
+    {
+      "path": "~/e2e-runs-qr/20261031/B-ticket-assignment-s2/.shiploop-runs/work-20261031-155138-9c318f/run/trace.jsonl",
+      "present": true,
+      "sha256": "b406a667105441fa7807bc0c153b3a2a3ba881235c440191af9f7e6d87943f28"
+    },
+    {
+      "path": "~/e2e-runs-qr/20261031/B-user-listing-s1/.shiploop-runs/work-20261031-153236-aa17d8/run/trace.jsonl",
+      "present": true,
+      "sha256": "1518d9b90e6e84801a7982d48530b8762c670c5cdb59f70f21221cbf742be6c2"
+    },
+    {
+      "path": "~/e2e-runs-qr/20261031/A-ticket-assignment-s1/.shiploop-runs/work-20261031-150815-9602dc/run/trace.jsonl",
+      "present": true,
+      "sha256": "4a427daaaece5b300992c08f30678c65077f957c2f2ea961a71194678297add3"
+    },
+    {
+      "path": "~/e2e-runs-qr/20261031/B-user-listing-s2/.shiploop-runs/work-20261031-154220-f796fc/run/trace.jsonl",
+      "present": true,
+      "sha256": "e1b3dacef8e2613dbdcf4e32f9a04a09e4bd7690f3ae5d493d4d1ff25a531f04"
+    },
+    {
+      "path": "~/e2e-runs-qr/20261031/B-user-listing-s3/.shiploop-runs/work-20261031-160339-046b47/run/trace.jsonl",
+      "present": true,
+      "sha256": "27f30e6896bd2230b9da418764796de36f27b82e1a5405b0114ef603d04f1392"
+    },
+    {
+      "path": "~/e2e-runs-qr/20261031/A-user-listing-s3/.shiploop-runs/work-20261031-155212-085d78/run/trace.jsonl",
+      "present": true,
+      "sha256": "b355c2d7d93448898f6a6c1a4010c7a3330fee53d913bfac92a2c86ea990918d"
+    },
+    {
+      "path": "~/e2e-runs-qr/20261031/A-ticket-assignment-s2/.shiploop-runs/work-20261031-151722-2161a2/run/trace.jsonl",
+      "present": true,
+      "sha256": "cff9e8b679bb25335102adce1f6692ebbb6f7e63fd0ce0f6847890961a3101e7"
+    },
+    {
+      "path": "~/e2e-runs-qr/20261031/A-ticket-assignment-s3/.shiploop-runs/work-20261031-160343-b27468/run/trace.jsonl",
+      "present": true,
+      "sha256": "6febc8d663b5ab8878fe0917050f508f647dbe2d4e3bee56a08fdfbb6ecb76c8"
+    },
+    {
+      "path": "~/e2e-runs-qr/20261031/A-user-listing-s2/.shiploop-runs/work-20261031-152134-3d9827/run/trace.jsonl",
+      "present": true,
+      "sha256": "cd8480173d083a21c2c5ce2eebc332c6f153e1392422f45444405fb598ff9547"
+    },
+    {
+      "path": "~/e2e-runs-qr/20261031/B-ticket-assignment-s1/.shiploop-runs/work-20261031-153719-564ebc/run/trace.jsonl",
+      "present": true,
+      "sha256": "75b64ce5cb8cfa799af23c14716498b890c5cc1223f7c7be2637e0ba8d1574da"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/A-ticket-import-s2/.shiploop-runs/work-20261031-203642-5e72ee/run/trace.jsonl",
+      "present": true,
+      "sha256": "fafb3ed87ed876026f203345158f96ab67d0fb5c35d559fd205091e964f7b762"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/A-ticket-import-s4/.shiploop-runs/work-20261031-212652-3239d0/run/trace.jsonl",
+      "present": true,
+      "sha256": "865f31e68c93610b5635158b86cb2646f2a5e98027badbce3e7b6c90c84430b7"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/A-ticket-import-s5/.shiploop-runs/work-20261031-215056-4f9459/run/trace.jsonl",
+      "present": true,
+      "sha256": "98930cc1e6b9bb23590fda69bb7f50e4c18ee5b27fce4dc31babfad34262ce20"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/B-ticket-import-s7/.shiploop-runs/work-20261031-221508-a67d8d/run/trace.jsonl",
+      "present": true,
+      "sha256": "5bb4928da9be398e19d5ea9f53a933f62753ee0fda49efaf456e64eaf9ecd396"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/A-ticket-import-s3/.shiploop-runs/work-20261031-204734-0023cb/run/trace.jsonl",
+      "present": true,
+      "sha256": "087a2312610057dc9e7ee23f9349e4e5f96139a16317bc76c21140ffe8da4ea4"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/B-ticket-import-s3/.shiploop-runs/work-20261031-213036-40a1b3/run/trace.jsonl",
+      "present": true,
+      "sha256": "7e79f2b3a07a191d3848001904e893fc3f1d6c6669e6cf7eafa27c9c577d445d"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/P-ticket-import-s4/.shiploop-runs/work-20261031-235810-9c5044/run/trace.jsonl",
+      "present": true,
+      "sha256": "8e26bfc50cfaf961350032def2f6e8ec6c982dab7e8a4b0154003821a9b82b18"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/B-ticket-import-s1/.shiploop-runs/work-20261031-205955-a27959/run/trace.jsonl",
+      "present": true,
+      "sha256": "4db185b685b4f1c1cbaf62e74b1bea9f707ca4c7c79e5cf9ddfa74470feed11a"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/F-ticket-import-s1/.shiploop-runs/work-20261031-224028-faeb2e/run/trace.jsonl",
+      "present": true,
+      "sha256": "4b7d8102dd084f17c0da2c12d66bd8c431491436b04806a5a4c48837b64335f8"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/P-ticket-import-s3/.shiploop-runs/work-20261031-231911-b8e33a/run/trace.jsonl",
+      "present": true,
+      "sha256": "cd19f4c676514ed96fe5f6c25a3292744ad3ef3dc0e0fef24c039ba66a4bf2ce"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/B-ticket-import-s4/.shiploop-runs/work-20261031-214017-28ba3c/run/trace.jsonl",
+      "present": true,
+      "sha256": "8e521b12f19e0f7a6d66cc5929655ac8e270f0f27efd51d66b942629c7c27eee"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/P-ticket-import-s2/.shiploop-runs/work-20261031-230254-d42cae/run/trace.jsonl",
+      "present": true,
+      "sha256": "818d6d14e4284639f3ce73988d5101e6cd7c9b239d8b88ce1f4a57b735e4a060"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/F-ticket-import-s2/.shiploop-runs/work-20261031-225107-e621b0/run/trace.jsonl",
+      "present": true,
+      "sha256": "23f47b4690c6bd1a26f525b488b115e9c4ce7191b28177476171b00aa30f37e6"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/A-ticket-import-s6/.shiploop-runs/work-20261031-222420-1e3904/run/trace.jsonl",
+      "present": true,
+      "sha256": "d7437caf1996036d750973b4dff0e941ca4955201009f5ba4a99983d080dcb67"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/B-ticket-import-s2/.shiploop-runs/work-20261031-211522-3216a1/run/trace.jsonl",
+      "present": true,
+      "sha256": "0622788d13e3063ef8320f367a3f15ffa907eba078627d99dd2ae98be1abe650"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/F-ticket-import-s4/.shiploop-runs/work-20261031-234330-42eef7/run/trace.jsonl",
+      "present": true,
+      "sha256": "9c15c27e9264f03eef210e87df7b26f4c2f493d34b272b85c5fbbdb360a9008e"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/B-ticket-import-s5/.shiploop-runs/work-20261031-220044-7c32b8/run/trace.jsonl",
+      "present": true,
+      "sha256": "70d4f280564a86e9ec1db0a5484f67e2a33da6ab32a863fcd8160b88413c3b71"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/F-ticket-import-s3/.shiploop-runs/work-20261031-233220-7660d9/run/trace.jsonl",
+      "present": true,
+      "sha256": "8742d7c9357fbf7bc9ca16f5e35b40c1dd62e37a4cdfe3c5a351ebadca8c2f36"
+    },
+    {
+      "path": "~/e2e-runs-xr/20261031/P-ticket-import-s1/.shiploop-runs/work-20261031-222821-a4ad7f/run/trace.jsonl",
+      "present": true,
+      "sha256": "44cef4245ad038c8baf72d138e07d0319622daec8b2b1361707bc160a3bda29c"
+    }
+  ],
+  "limits": [
+    "Existing classifications are not a new blinded adjudication.",
+    "Trace presence and hashes do not mean every trace was reread semantically.",
+    "These are historical mixed-version runs, not trials of current ShipLoop.",
+    "Send-back records, actions and independent tasks are different denominators.",
+    "No model quality, causal benefit, latency or token improvement is measured."
+  ]
+}
