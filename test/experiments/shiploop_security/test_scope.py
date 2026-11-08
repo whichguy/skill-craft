@@ -44,13 +44,12 @@ class NativeScope(unittest.TestCase):
         ledger.chmod(0o644)
         (self.fixture / ".gitignore").write_text("*.log\n")
         (self.fixture / ".gitignore").chmod(0o644)
+        # Git's transient metadata is not part of the fixture-mode baseline.
+        self.before_fixture = scope.inventory(self.fixture)
         git(self.fixture, "init", "-q")
         git(self.fixture, "add", "src/ledger.json", ".gitignore")
         git(self.fixture, "-c", "user.name=Scratch", "-c", "user.email=scratch@example.invalid",
             "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", "commit", "-qm", "fixture")
-        self.before_fixture = scope.inventory(self.fixture)
-        # Fixture directory also contains its own .git; actual selections exclude it.
-        self.before_fixture = {k: v for k, v in self.before_fixture.items() if not k.startswith(".git/")}
 
     def worktree(self, mask, name):
         target = self.root / name
