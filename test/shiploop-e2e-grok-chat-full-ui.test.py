@@ -30,17 +30,25 @@ spec.loader.exec_module(ui)
 SOURCE_HEAD = "a" * 40
 METADATA_SHA256 = "b" * 64
 EXPECTED_HOST = "orgfarm-test.develop.lightning.force.com"
+CONVERSATION_ID = "a01000000000001AAA"
 
 
-def positive_observation(*, duplicate_create: bool = True) -> dict:
+def sha(text: str) -> str:
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def positive_observation(*, duplicate_create: bool = True, split_steps: tuple = ()) -> dict:
     calls = []
+    turns = []
+    action_ids = {"create": "create-a", "update": "update-a", "cancel": "cancel-a", "stale": "stale-a"}
 
     def add(method: str, *, status: str | None = None, operation: str | None = None,
-            action_id: str | None = None,
-            correlated: bool = False) -> None:
-        request_id = f"req-{len(calls) + 1};a"
+            action_id: str | None = None, correlated: bool = False, **fields) -> int:
+        sequence = len(calls) + 1
+        request_id = f"req-{sequence};a"
         call = {
             "method": method,
+            "request_sequence": sequence,
             "request_id": request_id,
             "response_id": request_id,
             "response_state": "SUCCESS",
@@ -48,26 +56,58 @@ def positive_observation(*, duplicate_create: bool = True) -> dict:
             "http_ok": True,
             "json_string_decoded_once": True,
             "ui_correlated": correlated,
+            **fields,
         }
+        if method in ui.TURN_METHODS | {"testConnection"}:
+            call.update(request_started_at=sequence * 10, response_completed_at=sequence * 10 + 5,
+                        server_request_id=f"server-{sequence}")
         if status is not None:
             call["result_status"] = status
         if operation is not None:
             call["result_operation"] = operation
         if action_id is not None:
-            call["action_id"] = action_id
+            call.update(action_id=action_id, request_action_id=action_id, card_action_id=action_id)
         calls.append(call)
+        return sequence
 
-    for method in ("getSetup", "saveSetup", "testConnection", "getSetup", "newConversation",
-                   "seedItems", "getConversation"):
+    for method in ("getSetup", "saveSetup"):
         add(method)
-    for _ in range(5):
-        add("sendMessage", correlated=True)
-    add("confirmAction", status="applied", operation="create", action_id="create-a", correlated=True)
-    if duplicate_create:
-        add("confirmAction", status="rejected", operation="create", action_id="create-a", correlated=True)
-    add("confirmAction", status="applied", operation="update", action_id="update-a", correlated=True)
-    add("confirmAction", status="stale", operation="update", action_id="stale-a", correlated=True)
-    add("cancelAction", status="cancelled", action_id="cancel-a", correlated=True)
+    add("testConnection", status="ok", correlated=True)
+    for method in ("getSetup", "newConversation", "seedItems", "getConversation"):
+        add(method)
+    methods = ["testConnection"]
+    conversation = {"request_conversation_id": CONVERSATION_ID, "result_conversation_id": CONVERSATION_ID}
+    for index, step in enumerate(ui.TURN_STEPS):
+        begin = None
+        execution_fields = {"message_sha256": sha(step)}
+        if step in split_steps:
+            token = sha(f"pending-{index}")
+            begin = add("beginMessage", status="working", correlated=True, **conversation,
+                        message_sha256=sha(step), client_request_id_sha256=sha(f"client-{index}"),
+                        issued_turn_token_sha256=token)
+            method = "executePendingMessage"
+            execution_fields = {"submitted_turn_token_sha256": token}
+        else:
+            method = "sendMessage"
+        if method not in methods:
+            methods.append(method)
+        execution = add(method, status="ready", correlated=True, **conversation, **execution_fields)
+        action = step.removesuffix("-proposal")
+        action_id = action_ids.get(action)
+        turns.append({
+            "step": step, "conversation_id": CONVERSATION_ID, "begin_request_sequence": begin,
+            "execution_request_sequence": execution, "proposal_action_id": action_id,
+            "before_message_count": 2 * index, "final_message_count": 2 * index + 2,
+            "before_history_sha256": sha(f"history-{index}"), "final_history_sha256": sha(f"history-{index+1}"),
+            "rendered_history_matched": True,
+        })
+        if action == "cancel":
+            add("cancelAction", status="cancelled", action_id=action_id, correlated=True)
+        elif action_id:
+            add("confirmAction", status="stale" if action == "stale" else "applied",
+                operation="create" if action == "create" else "update", action_id=action_id, correlated=True)
+            if action == "create" and duplicate_create:
+                add("confirmAction", status="rejected", operation="create", action_id=action_id, correlated=True)
 
     return {
         "schema": "shiploop-grok-chat-full-ui-observation/1",
@@ -83,6 +123,9 @@ def positive_observation(*, duplicate_create: bool = True) -> dict:
         "auth_required": True,
         "auth_used": True,
         "controller_calls": calls,
+        "conversation_id": CONVERSATION_ID,
+        "chat_turns": turns,
+        "live_callout_methods": methods,
         "setup_missing_without_chat_attempt": True,
         "setup_business_unchanged": True,
         "config_readback_match": True,
@@ -117,8 +160,7 @@ def positive_observation(*, duplicate_create: bool = True) -> dict:
         "safe_text_ok": True,
         "business_write_count": 2,
         "extra_write_count": 0,
-        "action_ids": {"create": "create-a", "update": "update-a",
-                       "cancel": "cancel-a", "stale": "stale-a"},
+        "action_ids": action_ids,
         "duplicate_attempted": True,
         "duplicate_delivery_count": 2 if duplicate_create else 1,
         "screenshots": 5,
@@ -139,6 +181,107 @@ class GrokChatFullUiValidatorTests(unittest.TestCase):
     def test_accepts_server_deduplicated_double_click_and_disabled_duplicate(self):
         self.assertEqual([], self.validate(positive_observation(duplicate_create=True)))
         self.assertEqual([], self.validate(positive_observation(duplicate_create=False)))
+
+    def test_name_fallback_uses_normalized_database_names_and_selected_id(self):
+        selected_id = "a02000000000001AAA"
+        other_id = "a02000000000002AAA"
+        name = "Shared item name"
+        selected = {"Id": selected_id, "Name": "Shared\u200b  item name"}
+        self.assertTrue(ui._unique_visible_item_name([selected], selected_id, name))
+        for duplicate in ("Shared  item name", "Shared\titem\u00a0name", "\ufeffShared i\u00adtem name\u3000"):
+            with self.subTest(duplicate=duplicate):
+                rows = [selected, {"Id": other_id, "Name": duplicate}]
+                self.assertFalse(ui._unique_visible_item_name(rows, selected_id, name))
+        self.assertFalse(ui._unique_visible_item_name([{"Id": other_id, "Name": name}], selected_id, name))
+        self.assertTrue(ui._unique_visible_item_name(
+            [selected, {"Id": other_id, "Name": "Shared\u0085item name"}], selected_id, name))
+        self.assertFalse(ui._unique_visible_item_name(
+            [selected] + [{"Id": f"other-{i}", "Name": f"Item {i}"} for i in range(500)], selected_id, name))
+
+    def test_accepts_five_split_turns_and_distinct_direct_and_split_interactions(self):
+        for steps in (ui.TURN_STEPS, ("create-proposal", "stale-proposal")):
+            with self.subTest(steps=steps):
+                value = positive_observation(split_steps=steps)
+                self.assertEqual([], self.validate(value))
+                self.assertIn("executePendingMessage", value["live_callout_methods"])
+                self.assertNotIn("beginMessage", value["live_callout_methods"])
+            with self.subTest(steps=steps, after_confirmation_bookkeeping=True):
+                value = positive_observation(split_steps=steps)
+                first_after_update = ui.TURN_STEPS.index("cancel-proposal")
+                for index, turn in enumerate(value["chat_turns"][first_after_update:], first_after_update):
+                    turn["before_message_count"] += 1
+                    turn["final_message_count"] += 1
+                    turn["before_history_sha256"] = sha(f"reconciled-history-{index}")
+                    turn["final_history_sha256"] = sha(f"reconciled-history-{index + 1}")
+                self.assertEqual([], self.validate(value))
+
+    def test_missing_malformed_or_reused_native_request_identity_is_incomplete(self):
+        for value in (None, "", "TID:unexpected-prefix", "a" * 85, "bad\nvalue", "server-3"):
+            with self.subTest(value=value):
+                observation = positive_observation()
+                call = next(row for row in observation["controller_calls"] if row["method"] == "sendMessage")
+                call["server_request_id"] = value
+                self.assertIn("controller-proof-missing", self.validate(observation))
+
+    def test_rejects_an_extra_connection_even_when_uncorrelated(self):
+        for correlated in (False, True):
+            with self.subTest(correlated=correlated):
+                value = positive_observation()
+                calls = value["controller_calls"]
+                connection = next(call for call in calls if call["method"] == "testConnection")
+                calls.append({**connection, "request_sequence": len(calls) + 1,
+                              "request_id": "extra;a", "response_id": "extra;a", "ui_correlated": correlated})
+                self.assertIn("controller-proof-missing", self.validate(value))
+
+    def test_split_projection_rejects_invalid_or_unmatched_proof(self):
+        for variant in ("wrong-conversation", "wrong-token", "wrong-id", "reused-client", "early-execute",
+                        "reused-token", "replayed-history", "no-render", "extra-execute", "wrong-card",
+                        "wrong-live-method", "duplicate-sequence", "wrong-proposal"):
+            with self.subTest(variant=variant):
+                value = positive_observation(split_steps=ui.TURN_STEPS)
+                calls = {call["request_sequence"]: call for call in value["controller_calls"]}
+                turn, next_turn = value["chat_turns"][:2]
+                begin = calls[turn["begin_request_sequence"]]
+                execute = calls[turn["execution_request_sequence"]]
+                if variant == "wrong-conversation":
+                    execute["result_conversation_id"] = "a01000000000002AAA"
+                elif variant == "wrong-token":
+                    execute["submitted_turn_token_sha256"] = "c" * 64
+                elif variant == "wrong-id":
+                    execute["response_id"] = "wrong;a"
+                elif variant == "early-execute":
+                    execute["request_started_at"] = begin["request_started_at"]
+                elif variant == "reused-client":
+                    calls[next_turn["begin_request_sequence"]]["client_request_id_sha256"] = begin["client_request_id_sha256"]
+                elif variant == "reused-token":
+                    calls[next_turn["begin_request_sequence"]]["issued_turn_token_sha256"] = begin["issued_turn_token_sha256"]
+                    calls[next_turn["execution_request_sequence"]]["submitted_turn_token_sha256"] = begin["issued_turn_token_sha256"]
+                elif variant == "replayed-history":
+                    next_turn["final_history_sha256"] = turn["final_history_sha256"]
+                elif variant == "no-render":
+                    turn["rendered_history_matched"] = False
+                elif variant == "extra-execute":
+                    value["controller_calls"].append({**execute, "request_sequence": max(calls) + 1})
+                elif variant == "wrong-card":
+                    next(call for call in calls.values() if call["method"] == "confirmAction")["card_action_id"] = "other"
+                elif variant == "wrong-live-method":
+                    value["live_callout_methods"] = ["testConnection", "sendMessage"]
+                elif variant == "duplicate-sequence":
+                    execute["request_sequence"] = begin["request_sequence"]
+                elif variant == "wrong-proposal":
+                    next_turn["proposal_action_id"] = "other"
+                self.assertIn("controller-proof-missing", self.validate(value))
+
+    def test_closed_projection_keeps_token_digests_and_drops_raw_capabilities(self):
+        value = positive_observation(split_steps=ui.TURN_STEPS)
+        begin = next(call for call in value["controller_calls"] if call["method"] == "beginMessage")
+        begin.update(turnToken="synthetic-raw-capability", params={"turnToken": "synthetic-raw-capability"})
+        turn = {**value["chat_turns"][0], "pending": {"token": "synthetic-raw-capability"}}
+        calls = ui._safe_controller_projection([value])
+        proof = ui._safe_chat_turn_projection({"chat_turn": turn})
+        self.assertEqual(begin["issued_turn_token_sha256"], calls[begin["request_sequence"] - 1]["issued_turn_token_sha256"])
+        self.assertEqual(turn["final_history_sha256"], proof["final_history_sha256"])
+        self.assertNotIn("synthetic-raw-capability", json.dumps([calls, proof]))
 
     def test_rejects_missing_or_wrong_host_and_stale_source(self):
         for host in (None, "wrong.lightning.force.com"):
@@ -360,6 +503,24 @@ class GrokChatFullUiValidatorTests(unittest.TestCase):
         self.assertEqual(0, shared.deletes)
 
     @unittest.skipUnless(shutil.which("node"), "Node.js is needed for the Aura parser calibration")
+    def test_server_identity_projection_excludes_headers_and_refuses_ambiguity(self):
+        program = r'''const h=require(process.argv[1]);
+const result={valid:h.serverRequestId({'x-sfdc-request-id':'1113000000b27bd678',
+  'x-request-id':'1113000000b27bd678','set-cookie':'synthetic-secret'}),errors:[]};
+for(const headers of [{},{'x-request-id':'only-generic-id'},
+  {'x-sfdc-request-id':'known','x-request-id':'different'},
+  {'x-sfdc-request-id':'TID:unexpected'}, {'x-sfdc-request-id':'x'.repeat(85)}]) {
+  try { h.serverRequestId(headers); result.errors.push(null); }
+  catch(e) { result.errors.push(e.reason); }
+}
+process.stdout.write(JSON.stringify(result));'''
+        observed = subprocess.run([shutil.which("node"), "-e", program, str(BROWSER)],
+                                  capture_output=True, text=True, check=True, timeout=30)
+        self.assertNotIn("synthetic-secret", observed.stdout)
+        self.assertEqual({"valid": "1113000000b27bd678", "errors": ["controller-proof-missing"] * 5},
+                         json.loads(observed.stdout))
+
+    @unittest.skipUnless(shutil.which("node"), "Node.js is needed for the Aura parser calibration")
     def test_aura_parser_binds_exact_request_response_and_decodes_once(self):
         program = r'''const h=require(process.argv[1]);
 const request=JSON.stringify({actions:[{id:'req-1;a',descriptor:'apex://SLGrokChatController/ACTION$getSetup',params:{}}]});
@@ -457,6 +618,86 @@ process.stdout.write(JSON.stringify(result));'''
         for name in ("beginMessage", "executePendingMessage"):
             self.assertEqual([{"reason": "chat-attempted-before-setup", "required": 0,
                                "failure": False}] * 2, result[name])
+
+    @unittest.skipUnless(shutil.which("node"), "Node.js is needed for the Send chain regression")
+    def test_aura_observer_and_turn_matching_reject_false_correlation(self):
+        program = r'''const h = require(process.argv[1]);
+const host = 'fixture.lightning.force.com';
+const conversationId = 'a01000000000001AAA';
+const message = 'Read this exact nonce-backed item.';
+const token = 'synthetic-capability';
+const clientRequestId = 'ui-request-1';
+const prior = [{role:'user',content:'Earlier question'},{role:'assistant',content:'Earlier answer'}];
+const user = {role:'user',content:message};
+const answer = {role:'assistant',content:'New answer'};
+const history = (messages, extra = {}) => ({
+  conversationId, messages, actions: [], toolCalls: [], status:'ready', ...extra
+});
+const before = h.normalizeResult('getConversation', JSON.stringify(history(prior)));
+const results = {};
+async function scenario(kind) {
+  const observer = new h.ApexObserver({}, host, {trackSplit:true});
+  let index = 0;
+  async function rpc(method, params, payload, options = {}) {
+    const id = `req-${++index};a`;
+    const timing = {startTime: 1000 + index * 100, responseEnd: 20};
+    if (options.early) timing.startTime -= 90;
+    const request = {
+      url: () => `https://${host}/aura`, method: () => 'POST', timing: () => timing,
+      postData: () => JSON.stringify({actions:[{id, descriptor:'aura://ApexActionController/ACTION$execute',
+        params:{classname:'SLGrokChatController',method,params}}]})
+    };
+    observer.onRequest(request);
+    if (observer.failure) throw observer.failure;
+    await observer.onResponse({
+      url:request.url, request:() => request, status:() => 200, finished:async () => null,
+      allHeaders:async () => ({'x-sfdc-request-id':`fixture-${index}`}),
+      text:async () => JSON.stringify({actions:[{id:options.id || id,state:'SUCCESS',
+        returnValue:{returnValue:JSON.stringify(payload),cacheable:false}}]})
+    });
+  }
+  const terminal = history([...prior,user,answer]);
+  const direct = {conversationId,message};
+  if (kind === 'direct' || kind === 'mixed') await rpc('sendMessage', direct, terminal);
+  if (kind !== 'direct') {
+    const begin = {...direct, clientRequestId};
+    if (kind === 'unexpected-param') begin.extra = true;
+    const pending = history([...prior,user], {status:'working',
+      pending:{token,requestId:kind === 'wrong-client-echo' ? 'wrong-request' : clientRequestId}});
+    await rpc('beginMessage', begin, pending);
+    const execId = kind === 'wrong-conversation' ? 'a01000000000002AAA' : conversationId;
+    const execute = {conversationId:execId,turnToken:kind === 'wrong-token' ? 'wrong-capability' : token};
+    const reply = kind === 'replay' ? history(prior) : {...terminal,conversationId:execId};
+    if (kind === 'wrong-response-conversation') reply.conversationId = 'a01000000000003AAA';
+    await rpc('executePendingMessage', execute, reply, {
+      id:kind === 'wrong-response-id' ? 'wrong;a' : null,early:kind === 'early-execute',
+    });
+    if (kind === 'extra-execute') await rpc('executePendingMessage', execute, terminal);
+  }
+  const turn = h.matchTurn(observer.records, before, conversationId, message);
+  return {method:turn.call.method, methods:observer.projection().map(call => call.method),
+    added:turn.added.messages.map(row => row.role), rawTokenRetained:JSON.stringify(observer.projection()).includes(token)};
+}
+(async () => {
+  for (const kind of ['direct','split','mixed','wrong-conversation','wrong-response-conversation','wrong-token',
+    'wrong-response-id','wrong-client-echo','replay','early-execute','extra-execute','unexpected-param']) {
+    try { results[kind] = await scenario(kind); }
+    catch (error) { results[kind] = {reason:error.reason || error.message}; }
+  }
+  process.stdout.write(JSON.stringify(results));
+})().catch(error => { process.stderr.write(String(error)); process.exitCode = 1; });'''
+        observed = subprocess.run([shutil.which("node"), "-e", program, str(BROWSER)],
+                                  capture_output=True, text=True, check=True, timeout=90)
+        result = json.loads(observed.stdout)
+        for case, methods in (("direct", ["sendMessage"]), ("split", ["beginMessage", "executePendingMessage"])):
+            self.assertEqual({"method": methods[-1], "methods": methods,
+                              "added": ["user", "assistant"], "rawTokenRetained": False}, result[case])
+        self.assertEqual({"reason": "controller-response-id-mismatch"}, result["wrong-response-id"])
+        self.assertEqual({"reason": "controller-response-invalid"}, result["wrong-response-conversation"])
+        self.assertEqual({"reason": "controller-action-invalid"}, result["unexpected-param"])
+        for case in ("mixed", "wrong-conversation", "wrong-token", "wrong-client-echo",
+                     "replay", "early-execute", "extra-execute"):
+            self.assertEqual({"reason": "controller-proof-missing"}, result[case], case)
 
     def test_dom_fixture_declares_accessible_controls_and_missing_send_is_detected(self):
         class ContractParser(HTMLParser):
