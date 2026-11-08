@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Calibrate the independent quality gate; no model, org or browser calls."""
+from contextlib import redirect_stdout
+from datetime import datetime, timezone
 import hashlib
 import importlib.util
+import io
 import json
+import os
 from pathlib import Path
+import runpy
 import subprocess
 import tempfile
 import unittest
@@ -14,6 +19,15 @@ PATH = ROOT / "test/shiploop_e2e/checks/grok_chat_full_quality.py"
 spec = importlib.util.spec_from_file_location("grok_quality", PATH)
 quality = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(quality)
+positive_observation = runpy.run_path(str(ROOT / "test/shiploop-e2e-grok-chat-full-ui.test.py"))["positive_observation"]
+
+BROWSER_BASE_MS = 1794182400000  # 2026-11-09T00:00:00Z
+USER_ID = "005000000000001AAA"
+TRACE_ID = "7tf000000000001AAA"
+
+
+def stamp(milliseconds):
+    return datetime.fromtimestamp(milliseconds // 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 class QualityGateTest(unittest.TestCase):
@@ -48,15 +62,585 @@ class QualityGateTest(unittest.TestCase):
             "evidence": [{"path": "review-evidence.txt", "sha256": hashlib.sha256(raw).hexdigest()}],
         }
 
-    def test_accepts_complete_review_and_reuses_same_source(self):
+    def deploy(self, call_id, *, full_package=True, exit_code=0, completed=True):
+        metadata = quality.ui.sf_guard.force_app_sha256(self.product)
+        rows = [{"ts": stamp(BROWSER_BASE_MS - 2000), "call": call_id,
+                 "argv": ["project", "deploy", "start", "--source-dir", "force-app", "--target-org", "de"],
+                 "decision": "allowed", "org": "de", "prefix": "SLGrokChat"}]
+        if completed:
+            rows.append({"ts": stamp(BROWSER_BASE_MS - 1000), "call": call_id,
+                         "end": True, "exit": exit_code, "interrupted": False,
+                         "source_binding": {"root": str(self.product), "before_sha256": metadata,
+                                            "after_sha256": metadata, "full_package": full_package,
+                                            "unchanged": True}})
+        with (self.platform / "sf-calls.jsonl").open("a") as ledger:
+            for row in rows:
+                ledger.write(json.dumps(row) + "\n")
+        return quality.ui._latest_successful_deploy(self.platform)
+
+    def register_ui(self, number, phase="builder"):
+        return quality.ui.register_ui_attempt(self.platform, phase, f"{number:032x}")
+
+    def write_ui(self, deploy, number, *, phase="builder", directory=None, **changes):
+        directory = directory or self.register_ui(number, phase)
+        value = positive_observation(split_steps=("create-proposal", "stale-proposal"))
+        value.update(
+            phase=phase, check_id=directory.name, checked_at=stamp(BROWSER_BASE_MS), deployment=deploy,
+            source_head=self.identity["head"], candidate_metadata_sha256=deploy["source_binding"]["after_sha256"],
+            org={"org_id": quality.ui.EXPECTED_ORG_ID, "lightning_host": value["route_host"], "user_id": USER_ID},
+        )
+        for call in value["controller_calls"]:
+            if "server_request_id" in call:
+                call["server_request_id"] += f"-{number}"
+                call["request_started_at"] = BROWSER_BASE_MS + call["request_started_at"] * 100 + 0.125
+                call["response_completed_at"] = BROWSER_BASE_MS + call["response_completed_at"] * 100 + 0.375
+        value.update(changes)
+        path = directory / "observation.json"
+        path.write_text(json.dumps(value))
+        ns = (BROWSER_BASE_MS + number * 1000) * 1_000_000
+        os.utime(directory, ns=(ns, ns))
+        return path
+
+    def live_requests(self):
+        return list((self.directory / "live-acceptance").glob("*/request.json"))
+
+    def live_receipt(self, request):
+        identity = request["identity"]
+        calls = request["browser_requests"]
+        times = {"baseline": stamp(BROWSER_BASE_MS), "expires": stamp(BROWSER_BASE_MS + 60_000)}
+        return {
+            "schema": quality.LIVE_RECEIPT_SCHEMA, "identity": dict(identity),
+            "trace_window": {"org_id": identity["org_id"], "user_id": identity["user_id"],
+                             "trace_flag_id": TRACE_ID, **times},
+            "joins": [{
+                "method": call["method"], "request_id": call["request_id"],
+                "request_started_at": call["started_ms"], "response_completed_at": call["completed_ms"],
+                "log_id": f"07L{index:012d}AAA", "trace_flag_id": TRACE_ID,
+                "org_id": identity["org_id"], "user_id": identity["user_id"], "window": dict(times),
+                "native_request_id": "TID:" + call["request_id"],
+                "body_sha256": hashlib.sha256(f"fixture-log-{index}".encode()).hexdigest(),
+                "log_started_at": stamp(call["started_ms"]), "outcome": "HTTP_200",
+                "endpoint": quality.ENDPOINT, "endpoint_kinds": ["HTTPS"],
+            } for index, call in enumerate(calls)],
+        }
+
+    def run_quality(self, phase="builder", wait_seconds=0):
+        output = io.StringIO()
+        with redirect_stdout(output):
+            code = quality.run(self.product, self.platform, phase, wait_seconds=wait_seconds)
+        return code, output.getvalue()
+
+    def test_accepts_exact_current_joins_and_reuses_review_across_phases(self):
         (self.directory / "review.json").write_text(json.dumps(self.valid()))
-        self.assertEqual(quality.run(self.product, self.platform, "builder", wait_seconds=0), 0)
-        self.assertEqual(quality.run(self.product, self.platform, "final", wait_seconds=0), 0)
+        deploy = self.deploy("12345678")
+        for number, phase in enumerate(("builder", "final"), 1):
+            ui_path = self.write_ui(deploy, number, phase=phase)
+            code, output = self.run_quality(phase)
+            self.assertEqual(code, 2)
+            self.assertEqual(len(self.live_requests()), number)
+            request_path = next(path for path in self.live_requests() if json.loads(path.read_text())["phase"] == phase)
+            self.assertIn(str(request_path), output)
+            request = json.loads(request_path.read_text())
+            self.assertEqual(request["identity"]["ui_receipt_sha256"], hashlib.sha256(ui_path.read_bytes()).hexdigest())
+            self.assertEqual([call["method"] for call in request["browser_requests"]], [
+                "testConnection", "sendMessage", "executePendingMessage", "sendMessage", "sendMessage",
+                "executePendingMessage",
+            ])
+            self.assertTrue(all(call["request_id"].endswith(f"-{number}") for call in request["browser_requests"]))
+            # Order is incidental. Exact request ID and one distinct log per join are decisive.
+            receipt = self.live_receipt(request)
+            receipt["joins"].reverse()
+            request_path.with_name("receipt.json").write_text(json.dumps(receipt))
+            self.assertEqual(self.run_quality(phase)[0], 0)
+            source_request = (self.directory / "request.json").read_bytes()
+            if phase == "builder":
+                first_request = source_request
+            else:
+                self.assertEqual(source_request, first_request)
+
+    def test_prior_review_and_deployment_joins_cannot_supply_a_new_deploy(self):
+        (self.directory / "review.json").write_text(json.dumps(self.valid()))
+        self.write_ui(self.deploy("aaaaaaaa"), 1)
+        self.assertEqual(self.run_quality()[0], 2)
+        (first,) = self.live_requests()
+        original_request = first.read_bytes()
+        receipt_a = self.live_receipt(json.loads(original_request))
+        first.with_name("receipt.json").write_text(json.dumps(receipt_a))
+        self.assertEqual(self.run_quality()[0], 0)
+
+        deploy_b = self.deploy("bbbbbbbb")
+        self.assertEqual(self.run_quality()[0], 2)  # The existing UI still points at A.
+        self.assertEqual(self.live_requests(), [first])
+        self.write_ui(deploy_b, 2)
+        self.assertEqual(self.run_quality()[0], 2)
+        (second,) = set(self.live_requests()) - {first}
+        request_b = json.loads(second.read_bytes())
+        self.assertEqual(request_b["identity"]["deployment_call_id"], "bbbbbbbb")
+        self.assertEqual(request_b["identity"]["source_sha256"], receipt_a["identity"]["source_sha256"])
+        # Even an operator writing A's receipt to B's callback cannot select old evidence.
+        second.with_name("receipt.json").write_text(json.dumps(receipt_a))
+        code, output = self.run_quality()
+        self.assertEqual(code, 1)
+        self.assertIn("live-acceptance-identity-mismatch", output)
+        self.assertEqual(quality.validate_live_receipt({**receipt_a, "identity": request_b["identity"]}, request_b),
+                         ["live-acceptance-request-mismatch"])
+        self.assertEqual(first.read_bytes(), original_request)
+        self.assertEqual(json.loads(first.with_name("receipt.json").read_bytes()), receipt_a)
 
     def test_missing_review_is_incomplete_and_retains_request(self):
-        self.assertEqual(quality.run(self.product, self.platform, "builder", wait_seconds=0), 2)
+        code, output = self.run_quality()
+        self.assertEqual(code, 2)
+        self.assertIn(str(self.directory / "live-acceptance/*/request.json"), output)
         request = json.loads((self.directory / "request.json").read_text())
         self.assertEqual(request["source"]["sha256"], self.identity["sha256"])
+
+    def test_actionable_findings_are_reported_without_ui_or_deployment(self):
+        review = self.valid()
+        review["findings"].append({"actionable": True, "message": "Missing authorization check"})
+        path = self.directory / "review.json"
+        for status in ("PASS", "FAIL"):
+            with self.subTest(status=status):
+                review["status"] = status
+                path.write_text(json.dumps(review))
+                with mock.patch.object(quality.time, "sleep", side_effect=AssertionError("current review failed")):
+                    code, output = self.run_quality(wait_seconds=quality.CHECK_SECONDS)
+                self.assertEqual(code, 1)
+                self.assertIn("actionable-findings-remain", output)
+                if status == "FAIL":
+                    self.assertIn("review-not-passed", output)
+                self.assertIn(str(path), output)
+                self.assertEqual(json.loads(path.read_bytes()), review)
+
+    def test_live_request_can_start_while_source_review_is_pending(self):
+        self.write_ui(self.deploy("aaaaaaaa"), 1)
+        self.assertEqual(self.run_quality()[0], 2)
+        (request_path,) = self.live_requests()
+        receipt = self.live_receipt(json.loads(request_path.read_bytes()))
+        request_path.with_name("receipt.json").write_text(json.dumps(receipt))
+        self.assertEqual(self.run_quality()[0], 2)
+
+    def test_incomplete_or_failed_latest_deploy_blocks_old_ui(self):
+        (self.directory / "review.json").write_text(json.dumps(self.valid()))
+        self.write_ui(self.deploy("aaaaaaaa"), 1)
+        self.assertEqual(self.run_quality()[0], 2)
+        (old_request,) = self.live_requests()
+        old_request.with_name("receipt.json").write_text(json.dumps(self.live_receipt(json.loads(old_request.read_bytes()))))
+        for call_id, fields in (("bbbbbbbb", {"completed": False}), ("cccccccc", {"exit_code": 1}),
+                                ("dddddddd", {"full_package": False})):
+            with self.subTest(fields=fields):
+                deploy = self.deploy(call_id, **fields)
+                if deploy:
+                    self.write_ui(deploy, int(call_id[0], 16))
+                self.assertEqual(self.run_quality()[0], 2)
+                self.assertEqual(self.live_requests(), [old_request])
+
+    def test_overlapping_deploys_need_a_subsequent_serial_deploy(self):
+        self.deploy("aaaaaaaa", completed=False)
+        deploy_b = self.deploy("bbbbbbbb")
+        self.write_ui(deploy_b, 1)
+        self.assertEqual(self.run_quality()[0], 2)
+        self.assertEqual(self.live_requests(), [])
+        with (self.platform / "sf-calls.jsonl").open("a") as ledger:
+            ledger.write(json.dumps({"call": "aaaaaaaa", "end": True, "exit": 0, "interrupted": False}) + "\n")
+        self.assertEqual(self.run_quality()[0], 2)
+        self.assertEqual(self.live_requests(), [])
+        self.write_ui(self.deploy("cccccccc"), 2)
+        self.assertEqual(self.run_quality()[0], 2)
+        self.assertEqual(len(self.live_requests()), 1)
+
+    def test_new_failed_or_incomplete_ui_attempt_cannot_fall_back(self):
+        (self.directory / "review.json").write_text(json.dumps(self.valid()))
+        deploy = self.deploy("aaaaaaaa")
+        self.write_ui(deploy, 1)
+        self.assertEqual(self.run_quality()[0], 2)
+        (old_request,) = self.live_requests()
+        old_request.with_name("receipt.json").write_text(json.dumps(self.live_receipt(json.loads(old_request.read_bytes()))))
+        for number, changes in enumerate(({"status": "failed"}, {"chat_turns": []}, {"mode": "observe"}), 2):
+            with self.subTest(changes=changes):
+                self.write_ui(deploy, number, **changes)
+                self.assertEqual(self.run_quality()[0], 2)
+                self.assertEqual(self.live_requests(), [old_request])
+        self.register_ui(5)
+        self.assertEqual(self.run_quality()[0], 2)
+        self.assertEqual(self.live_requests(), [old_request])
+
+    def test_late_completion_cannot_override_newer_ui_start(self):
+        (self.directory / "review.json").write_text(json.dumps(self.valid()))
+        deploy = self.deploy("aaaaaaaa")
+        for older, newer, failed in ((1, 2, False), (3, 4, True)):
+            with self.subTest(failed=failed):
+                prior = set(self.live_requests())
+                attempt_a = self.register_ui(older)
+                attempt_b = self.register_ui(newer)
+                if failed:
+                    self.write_ui(deploy, newer, directory=attempt_b, status="failed")
+                path_a = self.write_ui(deploy, older, directory=attempt_a)
+                b_ns = (BROWSER_BASE_MS + newer * 1000) * 1_000_000
+                a_ns = b_ns + 1_000_000_000
+                os.utime(attempt_b, ns=(b_ns, b_ns))
+                os.utime(attempt_a, ns=(a_ns, a_ns))
+                # Supply a valid A callback so that choosing A would earn a pass.
+                with mock.patch.object(quality, "latest_ui_path", return_value=path_a):
+                    self.assertEqual(self.run_quality()[0], 2)
+                    (request_a,) = set(self.live_requests()) - prior
+                    receipt_a = self.live_receipt(json.loads(request_a.read_bytes()))
+                    request_a.with_name("receipt.json").write_text(json.dumps(receipt_a))
+                    self.assertEqual(self.run_quality()[0], 0)
+                self.assertEqual(self.run_quality()[0], 2)
+                self.assertEqual(set(self.live_requests()), prior | {request_a})
+
+    def test_unregistered_and_malformed_ui_evidence_is_nonpass(self):
+        (self.directory / "review.json").write_text(json.dumps(self.valid()))
+        deploy = self.deploy("aaaaaaaa")
+        attempt_a = self.write_ui(deploy, 1)
+        self.assertEqual(self.run_quality()[0], 2)
+        (request_a,) = self.live_requests()
+        request_a.with_name("receipt.json").write_text(json.dumps(self.live_receipt(json.loads(request_a.read_bytes()))))
+        self.assertEqual(self.run_quality()[0], 0)
+
+        phase_dir = attempt_a.parent.parent
+        ledger = phase_dir / quality.ui.UI_ATTEMPT_LEDGER
+        registered = ledger.read_text()
+        ledger.unlink()
+        self.assertEqual(self.run_quality()[0], 2)
+        ledger.write_text(registered)
+        unregistered = phase_dir / f"{2:032x}"
+        unregistered.mkdir()
+        self.write_ui(deploy, 2, directory=unregistered)
+        self.assertEqual(self.run_quality()[0], 2)
+        (unregistered / "observation.json").unlink()
+        unregistered.rmdir()
+        for bad_line in ("invalid\n", f"{2:032x}", registered):
+            with self.subTest(bad_line=bad_line):
+                ledger.write_text(registered + bad_line)
+                self.assertEqual(self.run_quality()[0], 2)
+        self.assertEqual(self.live_requests(), [request_a])
+
+    def test_wrong_identity_window_request_and_closed_fields_are_rejected(self):
+        self.write_ui(self.deploy("aaaaaaaa"), 1)
+        self.assertEqual(self.run_quality()[0], 2)
+        (request_path,) = self.live_requests()
+        request = json.loads(request_path.read_bytes())
+        for field in request["identity"]:
+            with self.subTest(identity_field=field):
+                receipt = self.live_receipt(request)
+                receipt["identity"][field] = "f" * len(request["identity"][field])
+                self.assertEqual(quality.validate_live_receipt(receipt, request), ["live-acceptance-identity-mismatch"])
+        for key, value, reason in (
+            ("org_id", "00D000000000002AAA", "trace-window"),
+            ("user_id", "005000000000002AAA", "trace-window"),
+            ("trace_flag_id", "7tf000000000002AAA", "trace-window"),
+            ("baseline", stamp(BROWSER_BASE_MS + 4000), "join-time"),
+            ("expires", stamp(BROWSER_BASE_MS + 4000), "join-time"),
+        ):
+            with self.subTest(window_field=key):
+                receipt = self.live_receipt(request)
+                receipt["trace_window"][key] = value
+                if key in ("baseline", "expires"):
+                    for join in receipt["joins"]:
+                        join["window"][key] = value
+                self.assertEqual(quality.validate_live_receipt(receipt, request), ["live-acceptance-" + reason])
+        for key, value, reason in (
+            ("method", "beginMessage", "request-mismatch"),
+            ("request_id", "another-request", "request-mismatch"),
+            ("native_request_id", "TID:another-request", "request-mismatch"),
+            ("request_started_at", request["browser_requests"][0]["started_ms"] + 0.125, "request-mismatch"),
+            ("response_completed_at", request["browser_requests"][0]["completed_ms"] + 0.125, "request-mismatch"),
+            ("log_started_at", stamp(BROWSER_BASE_MS + 4000), "join-time"),
+            ("trace_flag_id", "7tf000000000002AAA", "trace-window"),
+            ("org_id", "00D000000000002AAA", "trace-window"),
+            ("user_id", "005000000000002AAA", "trace-window"),
+            ("window", {"baseline": stamp(BROWSER_BASE_MS)}, "trace-window"),
+            ("log_id", "invalid", "log-identity"),
+            ("body_sha256", "invalid", "callout-unproven"),
+            ("outcome", "HTTP_OTHER", "callout-unproven"),
+            ("endpoint", "https://example.invalid/v1/responses", "callout-unproven"),
+            ("endpoint_kinds", ["UNKNOWN"], "join-schema"),
+            ("headers", {}, "join-schema"),
+        ):
+            with self.subTest(join_field=key):
+                receipt = self.live_receipt(request)
+                receipt["joins"][0][key] = value
+                self.assertEqual(quality.validate_live_receipt(receipt, request), ["live-acceptance-" + reason])
+
+    def test_rejects_five_joins_method_index_and_duplicate_ids(self):
+        self.write_ui(self.deploy("aaaaaaaa"), 1)
+        self.assertEqual(self.run_quality()[0], 2)
+        (request_path,) = self.live_requests()
+        request = json.loads(request_path.read_bytes())
+        valid = self.live_receipt(request)
+        joins = valid["joins"]
+        for replacement, reason in (
+            (joins[:-1], "six-joins-required"),
+            ([{"method": join["method"]} for join in joins], "join-schema"),
+            ([joins[0], joins[0], *joins[2:]], "request-mismatch"),
+            ([joins[0], {**joins[1], "log_id": joins[0]["log_id"][:15]}, *joins[2:]], "log-identity"),
+            ([joins[0], {**joins[1], "native_request_id": joins[0]["native_request_id"]}, *joins[2:]],
+             "request-mismatch"),
+        ):
+            with self.subTest(reason=reason):
+                self.assertEqual(quality.validate_live_receipt({**valid, "joins": replacement}, request),
+                                 ["live-acceptance-" + reason])
+
+    def test_alias_requires_same_org_configured_resolution(self):
+        self.write_ui(self.deploy("aaaaaaaa"), 1)
+        self.assertEqual(self.run_quality()[0], 2)
+        (request_path,) = self.live_requests()
+        request = json.loads(request_path.read_bytes())
+        receipt = self.live_receipt(request)
+        join = receipt["joins"][0]
+        join["endpoint_kinds"] = ["HTTPS", "NAMED_CREDENTIAL"]
+        self.assertEqual(quality.validate_live_receipt(receipt, request), ["live-acceptance-join-schema"])
+        resolution = {"org_id": quality.ui.EXPECTED_ORG_ID, "user_id": USER_ID,
+                      "name": quality.ui.NAMED_CREDENTIAL, "named_credential_id": "0XAn00000000001AAA",
+                      "endpoint": "https://api.x.ai", "before_started_at": stamp(BROWSER_BASE_MS),
+                      "before_completed_at": stamp(BROWSER_BASE_MS + 1000),
+                      "after_started_at": stamp(BROWSER_BASE_MS + 4000),
+                      "after_completed_at": stamp(BROWSER_BASE_MS + 5000)}
+        for key, value in (("org_id", "00D000000000002AAA"), ("user_id", "005000000000002AAA"),
+                           ("name", "Another_Alias"), ("endpoint", "https://example.invalid"),
+                           ("before_completed_at", stamp(BROWSER_BASE_MS + 4000)),
+                           ("after_started_at", stamp(BROWSER_BASE_MS + 3000))):
+            with self.subTest(resolution_field=key):
+                join["endpoint_resolution"] = {**resolution, key: value}
+                self.assertEqual(quality.validate_live_receipt(receipt, request), ["live-acceptance-endpoint-resolution"])
+        join["endpoint_resolution"] = resolution
+        self.assertEqual(quality.validate_live_receipt(receipt, request), [])
+
+    def test_pending_live_callback_switches_to_new_deployment(self):
+        (self.directory / "review.json").write_text(json.dumps(self.valid()))
+        self.write_ui(self.deploy("aaaaaaaa"), 1)
+
+        def deploy_b():
+            (request_a,) = self.live_requests()
+            self.assertFalse(request_a.with_name("receipt.json").exists())
+            self.write_ui(self.deploy("bbbbbbbb"), 2)
+
+        def provide_current_callback():
+            requests = {json.loads(path.read_bytes())["identity"]["deployment_call_id"]: path
+                        for path in self.live_requests()}
+            request_a, request_b = requests["aaaaaaaa"], requests["bbbbbbbb"]
+            self.assertFalse(request_a.with_name("receipt.json").exists())
+            receipt_b = self.live_receipt(json.loads(request_b.read_bytes()))
+            request_b.with_name("receipt.json").write_text(json.dumps(receipt_b))
+
+        events = iter((deploy_b, provide_current_callback))
+        with mock.patch.object(quality.time, "sleep", side_effect=lambda _: next(events)()) as sleep:
+            self.assertEqual(self.run_quality(wait_seconds=10)[0], 0)
+        self.assertEqual(sleep.call_count, 2)
+        requests = {json.loads(path.read_bytes())["identity"]["deployment_call_id"]: path
+                    for path in self.live_requests()}
+        request_a, request_b = requests["aaaaaaaa"], requests["bbbbbbbb"]
+        self.assertFalse(request_a.with_name("receipt.json").exists())
+        receipt_a = self.live_receipt(json.loads(request_a.read_bytes()))
+        request_b.with_name("receipt.json").write_text(json.dumps(receipt_a))
+        code, output = self.run_quality()
+        self.assertEqual(code, 1)
+        self.assertIn("live-acceptance-identity-mismatch", output)
+        request = json.loads(request_b.read_bytes())
+        self.assertEqual(quality.validate_live_receipt({**receipt_a, "identity": request["identity"]}, request),
+                         ["live-acceptance-request-mismatch"])
+
+    def test_pending_live_callback_needs_independent_review_of_changed_source(self):
+        directory_a = self.directory
+        (directory_a / "review.json").write_text(json.dumps(self.valid()))
+        self.write_ui(self.deploy("aaaaaaaa"), 1)
+
+        def change_source():
+            self.assertEqual(len(self.live_requests()), 1)
+            (self.product / "force-app/Example.cls").write_text("public class Changed {}\n")
+            self.identity = quality.snapshot(self.product)
+            self.directory = self.platform / "grok-chat-quality" / self.identity["sha256"]
+
+        def deploy_b():
+            self.assertEqual(self.live_requests(), [])
+            self.write_ui(self.deploy("bbbbbbbb"), 2)
+
+        def provide_current_callback():
+            (path,) = self.live_requests()
+            request = json.loads(path.read_bytes())
+            self.assertEqual(request["identity"]["source_sha256"], self.identity["sha256"])
+            path.with_name("receipt.json").write_text(json.dumps(self.live_receipt(request)))
+
+        def review_current_source():
+            request = json.loads((self.directory / "request.json").read_bytes())
+            self.assertEqual(request["source"], self.identity)
+            (self.directory / "review.json").write_text(json.dumps(self.valid()))
+
+        events = iter((change_source, deploy_b, provide_current_callback, review_current_source))
+        with mock.patch.object(quality.time, "sleep", side_effect=lambda _: next(events)()) as sleep:
+            self.assertEqual(self.run_quality(wait_seconds=10)[0], 0)
+        self.assertEqual(sleep.call_count, 4)
+        (request_a,) = (directory_a / "live-acceptance").glob("*/request.json")
+        self.assertFalse(request_a.with_name("receipt.json").exists())
+
+    def test_late_source_review_and_callback_do_not_interrupt_new_source(self):
+        directory_a = self.directory
+        self.write_ui(self.deploy("aaaaaaaa"), 1)
+        original_requests = {}
+
+        def events():
+            (request_a,) = self.live_requests()
+            for path in (directory_a / "request.json", request_a):
+                original_requests[path] = path.read_bytes()
+            review_a = self.valid()
+            self.assertFalse((directory_a / "review.json").exists())
+            (self.product / "force-app/Example.cls").write_text("public class Changed {}\n")
+            self.identity = quality.snapshot(self.product)
+            self.directory = self.platform / "grok-chat-quality" / self.identity["sha256"]
+            attempt_b = self.register_ui(2)
+            yield
+
+            request = json.loads((self.directory / "request.json").read_bytes())
+            self.assertEqual(request["source"], self.identity)
+            self.assertFalse((attempt_b / "observation.json").exists())
+            self.assertEqual(self.live_requests(), [])
+            (directory_a / "review.json").write_text(json.dumps(review_a))
+            request_a.with_name("receipt.json").write_text(
+                json.dumps(self.live_receipt(json.loads(original_requests[request_a]))))
+            yield
+
+            self.assertEqual(self.live_requests(), [])
+            self.write_ui(self.deploy("bbbbbbbb"), 2, directory=attempt_b)
+            (self.directory / "review.json").write_text(json.dumps(self.valid()))
+            yield
+
+            (path,) = self.live_requests()
+            request = json.loads(path.read_bytes())
+            self.assertFalse(path.with_name("receipt.json").exists())
+            self.assertEqual(request["identity"]["source_sha256"], self.identity["sha256"])
+            self.assertEqual(request["identity"]["deployment_call_id"], "bbbbbbbb")
+            path.with_name("receipt.json").write_text(json.dumps(self.live_receipt(request)))
+            yield
+
+        timeline = events()
+        with mock.patch.object(quality.time, "sleep", side_effect=lambda _: next(timeline)) as sleep:
+            code, output = self.run_quality(wait_seconds=10)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(sleep.call_count, 4)
+        for path, original in original_requests.items():
+            self.assertEqual(path.read_bytes(), original)
+        self.assertFalse((directory_a / "check-builder.json").exists())
+        result = json.loads((self.directory / "check-builder.json").read_bytes())
+        self.assertEqual(result["source_sha256"], self.identity["sha256"])
+        (request_b,) = self.live_requests()
+        self.assertEqual(result["live_acceptance_request"], request_b.relative_to(self.platform).as_posix())
+
+    def test_failed_review_arriving_during_live_lookup_is_superseded(self):
+        directory_a = self.directory
+        review_a = {**self.valid(), "status": "FAIL"}
+        self.write_ui(self.deploy("aaaaaaaa"), 1)
+        lookup = quality.live_request
+
+        def lookup_and_switch(root, platform, phase, source):
+            live = lookup(root, platform, phase, source)
+            if source["sha256"] == review_a["source_sha256"]:
+                self.assertEqual(live["identity"]["deployment_call_id"], "aaaaaaaa")
+                self.assertFalse((directory_a / "review.json").exists())
+                (self.product / "force-app/Example.cls").write_text("public class Changed {}\n")
+                self.identity = quality.snapshot(self.product)
+                self.directory = self.platform / "grok-chat-quality" / self.identity["sha256"]
+                (directory_a / "review.json").write_text(json.dumps(review_a))
+            return live
+
+        def events():
+            (request_a,) = (directory_a / "live-acceptance").glob("*/request.json")
+            self.assertFalse(request_a.with_name("receipt.json").exists())
+            self.write_ui(self.deploy("bbbbbbbb"), 2)
+            yield
+
+            request = json.loads((self.directory / "request.json").read_bytes())
+            self.assertEqual(request["source"], self.identity)
+            (path,) = self.live_requests()
+            request_b = json.loads(path.read_bytes())
+            self.assertEqual(request_b["identity"]["source_sha256"], self.identity["sha256"])
+            self.assertEqual(request_b["identity"]["deployment_call_id"], "bbbbbbbb")
+            (self.directory / "review.json").write_text(json.dumps(self.valid()))
+            receipt = self.live_receipt(request_b)
+            self.assertEqual(len(receipt["joins"]), 6)
+            path.with_name("receipt.json").write_text(json.dumps(receipt))
+            yield
+
+        timeline = events()
+        with (mock.patch.object(quality, "live_request", side_effect=lookup_and_switch),
+              mock.patch.object(quality.time, "sleep", side_effect=lambda _: next(timeline)) as sleep):
+            code, output = self.run_quality(wait_seconds=10)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(sleep.call_count, 2)
+        self.assertFalse((directory_a / "check-builder.json").exists())
+        result = json.loads((self.directory / "check-builder.json").read_bytes())
+        self.assertEqual(result["source_sha256"], self.identity["sha256"])
+        self.assertEqual(result["status"], "PASS")
+        (request_b,) = self.live_requests()
+        self.assertEqual(result["live_acceptance_receipt_sha256"],
+                         hashlib.sha256(request_b.with_name("receipt.json").read_bytes()).hexdigest())
+
+    def test_superseded_failures_cannot_extend_the_observation_deadline(self):
+        now = 0
+        attempts = []
+
+        def lookup_and_switch(_root, platform, _phase, source):
+            nonlocal now
+            self.assertLess(len(attempts), 3)
+            self.identity = source
+            self.directory = platform / "grok-chat-quality" / source["sha256"]
+            attempts.append(self.directory)
+            review = {**self.valid(), "status": "FAIL"}
+            (self.product / "force-app/Example.cls").write_text(f"public class Churn{len(attempts)} {{}}\n")
+            (self.directory / "review.json").write_text(json.dumps(review))
+            if len(attempts) == 1:
+                now = quality.CHECK_SECONDS - 3
+            return None
+
+        def advance(seconds):
+            nonlocal now
+            now += seconds
+
+        with (mock.patch.object(quality, "live_request", side_effect=lookup_and_switch),
+              mock.patch.object(quality.time, "monotonic", side_effect=lambda: now),
+              mock.patch.object(quality.time, "sleep", side_effect=advance) as sleep):
+            code, output = self.run_quality(wait_seconds=quality.CHECK_SECONDS)
+        self.assertEqual(code, 2, output)
+        self.assertIn("source-review-superseded", output)
+        self.assertEqual(sleep.call_args_list, [mock.call(2), mock.call(1)])
+        self.assertEqual(now, quality.CHECK_SECONDS)
+        self.assertEqual(len(set(attempts)), 3)
+        self.assertTrue(all(not (path / "check-builder.json").exists() for path in attempts[:-1]))
+        result = json.loads((attempts[-1] / "check-builder.json").read_bytes())
+        self.assertEqual(result["status"], "UNKNOWN")
+        self.assertEqual(result["errors"], [])
+
+    def test_evidence_changed_during_wait_rejects_old_callback(self):
+        (self.directory / "review.json").write_text(json.dumps(self.valid()))
+        for index, change in enumerate(("ui", "deploy", "source"), 1):
+            with self.subTest(change=change):
+                first_id = index * 3
+                deploy = self.deploy(f"{first_id:08x}")
+                self.write_ui(deploy, first_id)
+
+                def provide_stale_callback(_):
+                    path = next(path for path in self.live_requests() if not path.with_name("receipt.json").exists())
+                    receipt = self.live_receipt(json.loads(path.read_bytes()))
+                    path.with_name("receipt.json").write_text(json.dumps(receipt))
+
+                validate = quality.validate_live_receipt
+
+                def change_after_receipt_selected(receipt, request):
+                    errors = validate(receipt, request)
+                    if change == "ui":
+                        self.write_ui(deploy, first_id + 1)
+                    elif change == "deploy":
+                        self.deploy(f"{first_id + 1:08x}")
+                    else:
+                        (self.product / "force-app/Example.cls").write_text("public class Changed {}\n")
+                    return errors
+
+                with (mock.patch.object(quality.time, "sleep", side_effect=provide_stale_callback) as sleep,
+                      mock.patch.object(quality, "validate_live_receipt", side_effect=change_after_receipt_selected)):
+                    code, output = self.run_quality(wait_seconds=1)
+                sleep.assert_called_once()
+                self.assertEqual(code, 1)
+                self.assertIn("live-acceptance-evidence-changed", output)
 
     def test_required_dimensions_and_independent_identity_cannot_be_omitted(self):
         for key in quality.DIMENSIONS:
@@ -110,8 +694,10 @@ class QualityGateTest(unittest.TestCase):
     def test_source_mutation_during_review_invalidates_result(self):
         (self.directory / "review.json").write_text(json.dumps(self.valid()))
         changed = dict(self.identity, sha256="1" * 64)
-        with mock.patch.object(quality, "snapshot", side_effect=[self.identity, changed]):
-            self.assertEqual(quality.run(self.product, self.platform, "final", wait_seconds=0), 1)
+        with mock.patch.object(quality, "snapshot", side_effect=[self.identity, self.identity, changed]):
+            code, output = self.run_quality("final")
+        self.assertEqual(code, 1)
+        self.assertIn("candidate-changed-during-review", output)
 
     def test_unsupported_phase_stops_before_candidate_or_platform_activity(self):
         with mock.patch.object(quality, "snapshot", side_effect=AssertionError("must not inspect")):

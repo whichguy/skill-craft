@@ -19,10 +19,18 @@ private class SLGrokChatOracleTest {
         'access restricted|access required|not authorized|not accessible|not found|not visible|' +
         'not allowed|not permitted|missing|crud|fls)( |$)'
     );
+    private static final Pattern APP_ACCESS_SCOPE = Pattern.compile(
+        '(^| )(app|application|object|item|field|record|crud|fls)( |$)'
+    );
+    private static final Pattern PROVIDER_ACCESS_SCOPE = Pattern.compile(
+        '(^| )(provider|upstream|http|callout|credential|principal|api|token)( |$)'
+    );
 
     @TestSetup
     static void setupOracleData() {
-        User admin = makeUser(true, 'goraclea', false);
+        // Administrator authority does not grant newly deployed custom-field access.
+        // Give this positive setup fixture app access; denial fixtures stay ungranted.
+        User admin = makeUser(true, 'goraclea', true);
         User owner = makeUser(false, 'goracleo', true);
         User outsider = makeUser(false, 'goracles', true);
         User noAccess = makeUser(false, 'goracleb', false);
@@ -51,8 +59,12 @@ private class SLGrokChatOracleTest {
             }
             update updates;
         }
+        SLGrokChatItem__c ownerChallenge = challengeItem(owner);
         System.runAs(outsider) {
             SLGrokChatController.newConversation();
+            // Do not assume an app seeds identical names for different users.
+            insert new SLGrokChatItem__c(Name = ownerChallenge.Name, Status__c = 'Open',
+                Notes__c = 'E2E-ForeignNonce-' + EncodingUtil.convertToHex(Crypto.generateAesKey(128)));
         }
         // A no-access user may be refused here. If threads are allowed, create it in
         // setup so the read test itself has no pending DML before its mock callout.
@@ -286,7 +298,14 @@ private class SLGrokChatOracleTest {
 
     private static String send(User actor, String conversationId, String message, ResponsesMock responder) {
         Test.setMock(HttpCalloutMock.class, responder);
-        return SLGrokChatController.sendMessage(conversationId, message);
+        // Start the measured request after fixture setup and entry into runAs.
+        // Mock invocation assertions still have to prove the transport was reached.
+        Test.startTest();
+        try {
+            return SLGrokChatController.sendMessage(conversationId, message);
+        } finally {
+            Test.stopTest();
+        }
     }
 
     private static Map<String, Object> requestBody(HttpRequest request) {
@@ -390,12 +409,56 @@ private class SLGrokChatOracleTest {
         if (!isStructuredFailure(envelope)) {
             return false;
         }
-        for (String field : new List<String>{'status', 'code', 'type', 'message', 'reason', 'detail', 'error', 'errors'}) {
-            if (matchesWords(ACCESS_DENIAL_WORDS, envelope.get(field))) {
-                return true;
+        // Provider authentication and principal permissions are separate from
+        // Salesforce app/data authorization. Free-text error wording is not proof.
+        for (Map<String, Object> detail : new List<Map<String, Object>>{
+            envelope, structuredObject(envelope.get('error'))
+        }) {
+            if (detail == null) continue;
+            Object scope = detail.get('scope');
+            Boolean explicitDataScope = scope instanceof String && new Set<String>{
+                'app', 'application', 'object', 'item', 'record', 'field', 'crud', 'fls'
+            }.contains(((String)scope).trim().toLowerCase());
+            for (String field : new List<String>{'code', 'type', 'status'}) {
+                Object discriminator = detail.get(field);
+                if (discriminator instanceof String &&
+                    !matchesWords(PROVIDER_ACCESS_SCOPE, discriminator) &&
+                    !matchesWords(PROVIDER_ACCESS_SCOPE, scope) &&
+                    matchesWords(ACCESS_DENIAL_WORDS, discriminator) &&
+                    (matchesWords(APP_ACCESS_SCOPE, discriminator) ||
+                     explicitDataScope)) {
+                    return true;
+                }
             }
         }
         return false;
+    }
+
+    private static void assertAppAccessDenialClassifier() {
+        for (String code : new List<String>{'APP_ACCESS_DENIED', 'ITEM_ACCESS_DENIED',
+                                           'FIELD_ACCESS_DENIED', 'OBJECT_FORBIDDEN', 'FLS_DENIED'}) {
+            System.assert(isAccessDenial(new Map<String, Object>{'status' => 'error', 'code' => code}),
+                          'A structured app/data denial must be recognized');
+        }
+        for (String code : new List<String>{'provider_unauthorized', 'PRINCIPAL_ACCESS_DENIED',
+                                           'PROVIDER_OBJECT_ACCESS_DENIED', 'AUTH_FAILED'}) {
+            System.assert(!isAccessDenial(new Map<String, Object>{
+                'status' => 'error', 'code' => code, 'message' => 'Object permission denied'
+            }), 'Provider failures and prose must not stand in for data authorization');
+        }
+        System.assert(!isAccessDenial(structuredObject('Provider permission denied')),
+                      'An unstructured provider exception is not an app-access denial');
+        System.assert(!isAccessDenial(new Map<String, Object>{
+            'status' => 'error', 'message' => 'Object permission denied'
+        }), 'An app/data denial needs a structured discriminator');
+        System.assert(!isAccessDenial(new Map<String, Object>{
+            'status' => 'error', 'error' => new Map<String, Object>{
+                'type' => 'unauthorized', 'scope' => 'external_credential_principal_application'
+            }
+        }), 'A nested provider/principal scope must not be classified as app authorization');
+        System.assert(isAccessDenial(new Map<String, Object>{
+            'status' => 'error', 'type' => 'unauthorized', 'scope' => 'object'
+        }), 'A recognized, exact data scope can qualify a structured denial');
     }
 
     private static Boolean isErrorResponse(Map<String, Object> result) {
@@ -566,10 +629,13 @@ private class SLGrokChatOracleTest {
         Test.setMock(HttpCalloutMock.class, responder);
         String raw;
         System.runAs(admin) {
+            Test.startTest();
             raw = SLGrokChatController.testConnection();
+            Test.stopTest();
         }
         Map<String, Object> result = asMap(raw);
-        System.assertEquals('ok', result.get('status'));
+        System.assertEquals('ok', result.get('status'),
+                            'Safe connection status/code: ' + result.get('status') + '/' + result.get('code'));
         System.assertEquals(MODEL, result.get('model'));
         System.assertEquals(1, responder.requests.size());
         assertResponsesRequest(responder.requests[0]);
@@ -732,7 +798,19 @@ private class SLGrokChatOracleTest {
         System.assert(responder.requests.size() >= 2);
         assertFunctionOutput(responder.requests[1], 'find_call', String.valueOf(item.Id));
         assertFunctionOutput(responder.requests[1], 'find_call', item.Name);
-        System.assert(!responder.requests[1].getBody().contains('Account'));
+        // Record text deliberately contains "Account" as an injection challenge.
+        // Deny actual foreign records, not harmless words inside permitted data.
+        User outsider = userByAlias('goracles');
+        List<SLGrokChatItem__c> foreignItems = [
+            SELECT Id, Notes__c FROM SLGrokChatItem__c WHERE OwnerId = :outsider.Id AND Name = :item.Name
+        ];
+        System.assert(!foreignItems.isEmpty(), 'The ownership challenge must contain same-name foreign items');
+        for (SLGrokChatItem__c foreignItem : foreignItems) {
+            System.assert(!responder.requests[1].getBody().contains(String.valueOf(foreignItem.Id)),
+                          'The provider must not receive the foreign item ID');
+            System.assert(!responder.requests[1].getBody().contains(foreignItem.Notes__c),
+                          'The provider must not receive the foreign nonce');
+        }
     }
 
     @IsTest
@@ -1071,6 +1149,7 @@ private class SLGrokChatOracleTest {
 
     @IsTest
     static void crudAndFlsDenialsDoNotExposeRecords() {
+        assertAppAccessDenialClassifier();
         User blocked = userByAlias('goracleb');
         SLGrokChatItem__c item = restrictedItem(blocked);
         String nonce = item.Notes__c;
@@ -1095,15 +1174,15 @@ private class SLGrokChatOracleTest {
                 if (existingThreads.isEmpty()) {
                     String createdRaw = SLGrokChatController.newConversation();
                     assertNonceAbsent(createdRaw, nonce);
-                    creationDenied = isErrorResponse(asMap(createdRaw));
+                    creationDenied = isAccessDenial(asMap(createdRaw));
                     System.assert(creationDenied, 'Expected the same typed app-access denial as setup');
                 } else {
-                    raw = SLGrokChatController.sendMessage(String.valueOf(existingThreads[0].Id),
-                                                          'Read a record without object or field access.');
+                    raw = send(blocked, String.valueOf(existingThreads[0].Id),
+                               'Read a record without object or field access.', responder);
                 }
             } catch (AuraHandledException expected) {
                 assertNonceAbsent(expected.getMessage(), nonce);
-                threw = true;
+                threw = isAccessDenial(structuredObject(expected.getMessage()));
             }
         }
         assertNonceAbsent(raw, nonce);
@@ -1129,7 +1208,7 @@ private class SLGrokChatOracleTest {
         if (outputs.isEmpty()) {
             // The controller may enforce app access before it creates a thread or runs the read tool.
             // That boundary can reject the user without calling the provider or returning a tool result.
-            System.assert((creationDenied || threw || isErrorResponse(result)) && responder.requests.size() <= 1,
+            System.assert((creationDenied || threw || isAccessDenial(result)) && responder.requests.size() <= 1,
                           'Expected a typed early denial or a structured access denial for the read');
             if (result != null && result.get('toolCalls') != null) {
                 for (Object rawCall : asList(result.get('toolCalls'))) {

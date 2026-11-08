@@ -101,6 +101,51 @@ jobs:
           path: ${{ runner.temp }}/hermetic-${{ matrix.group }}
           if-no-files-found: error
 
+  # These local browser fixtures exercise rendered evidence and RPC correlation.
+  # They need Chrome, but no Salesforce org, provider key or model session.
+  browser-fixtures:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.plan.outputs.source_sha }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 'latest'
+          check-latest: true
+          package-manager-cache: false
+      - name: Prepare browser fixture runtime
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/browser-fixtures"
+          npm install --prefix "$RUNNER_TEMP/browser-fixture-runtime" --no-save --package-lock=false --ignore-scripts playwright@latest 2>&1 | tee "$RUNNER_TEMP/browser-fixtures/install.log"
+          google-chrome --version | tee "$RUNNER_TEMP/browser-fixtures/chrome-version.log"
+      - name: Rendered UI evidence regressions
+        shell: bash
+        env:
+          PLAYWRIGHT_MODULE_PATH: ${{ runner.temp }}/browser-fixture-runtime/node_modules/playwright
+        run: |
+          export BROWSER_EXECUTABLE_PATH="$(command -v google-chrome)"
+          node --version | tee "$RUNNER_TEMP/browser-fixtures/node-version.log"
+          node -e 'console.log(require(process.env.PLAYWRIGHT_MODULE_PATH + "/package.json").version)' | tee "$RUNNER_TEMP/browser-fixtures/playwright-version.log"
+          node test/fixtures/grok-chat-full-ui/delayed-setup.cjs 2>&1 | tee "$RUNNER_TEMP/browser-fixtures/delayed-setup.log"
+          node test/fixtures/grok-chat-full-ui/setup-save-boundary.cjs 2>&1 | tee "$RUNNER_TEMP/browser-fixtures/setup-save-boundary.log"
+          node test/fixtures/grok-chat-full-ui/turn-and-action-correlation.cjs 2>&1 | tee "$RUNNER_TEMP/browser-fixtures/turn-and-action-correlation.log"
+      - name: Checkout unchanged
+        if: ${{ always() }}
+        env:
+          EXPECTED_SHA: ${{ needs.plan.outputs.source_sha }}
+        run: python3 -B test/ci_policy.py guard --expected-sha "$EXPECTED_SHA"
+      - name: Retain browser fixture evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: browser-fixtures
+          path: ${{ runner.temp }}/browser-fixtures
+          if-no-files-found: error
+
   # Versions, plugins/, catalogs and the README inventory change only in
   # release commits (scripts/release.py), whose output is verified against
   # their source; ordinary commits add a change note.
@@ -142,7 +187,7 @@ jobs:
   # Keep the established aggregate name; the plan/summary states its actual tier.
   hermetic:
     if: ${{ always() }}
-    needs: [plan, checks, release-boundary]
+    needs: [plan, checks, browser-fixtures, release-boundary]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -150,11 +195,13 @@ jobs:
         env:
           PLAN_RESULT: ${{ needs.plan.result }}
           CHECKS_RESULT: ${{ needs.checks.result }}
+          BROWSER_RESULT: ${{ needs.browser-fixtures.result }}
           BOUNDARY_RESULT: ${{ needs.release-boundary.result }}
           TIER: ${{ needs.plan.outputs.tier }}
           SOURCE_SHA: ${{ needs.plan.outputs.source_sha }}
         run: |
           test "$PLAN_RESULT" = success || exit 1
           test "$CHECKS_RESULT" = success || exit 1
+          test "$BROWSER_RESULT" = success || exit 1
           test "$BOUNDARY_RESULT" = success || exit 1
           printf 'CI %s passed for `%s`.\n' "$TIER" "$SOURCE_SHA" >> "$GITHUB_STEP_SUMMARY"

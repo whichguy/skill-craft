@@ -9,9 +9,11 @@ text, Notes values, Aura bodies, credentials, headers, or session URLs.
 from __future__ import annotations
 
 import argparse
+import fcntl
 import hashlib
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -41,6 +43,11 @@ ALLOWED_METHODS = frozenset({
     "getSetup", "saveSetup", "testConnection", "newConversation",
     "getConversation", "sendMessage", "confirmAction", "cancelAction", "seedItems",
 })
+TURN_METHODS = frozenset({"sendMessage", "beginMessage", "executePendingMessage"})
+OBSERVED_METHODS = ALLOWED_METHODS | TURN_METHODS
+TURN_STEPS = ("read-tool", "create-proposal", "update-proposal", "cancel-proposal", "stale-proposal")
+TURN_DIGEST_FIELDS = ("message_sha256", "client_request_id_sha256",
+                      "issued_turn_token_sha256", "submitted_turn_token_sha256")
 SAFE_STAGES = frozenset({
     "identity", "source", "deployment", "authenticate", "route", "render",
     "setup-missing", "setup-save", "connection", "seed", "read-tool",
@@ -64,10 +71,16 @@ SAFE_REASONS = frozenset({
     "database-state-mismatch", "screenshot-missing", "browser-provider-call", "evaluation-failed",
 })
 PHASES = frozenset({"builder", "final"})
+UI_ATTEMPT_LEDGER = "attempts.log"
+UI_ATTEMPT_ID_RE = re.compile(r"[a-f0-9]{32}")
 MODE_RE = re.compile(r"^(observe|run)$")
 SF_ID_RE = re.compile(r"^[A-Za-z0-9]{15}(?:[A-Za-z0-9]{3})?$")
 ACTION_ID_RE = re.compile(r"^[A-Za-z0-9._;:-]{1,128}$")
 SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
+SERVER_REQUEST_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,84}$")
+# ECMAScript whitespace, matching cardText in the browser helper.
+VISIBLE_WHITESPACE_RE = re.compile(r"[\t-\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+")
+INVISIBLE_NAME_CHARS = str.maketrans("", "", "\u200b\u00ad")
 
 
 class CheckFailure(RuntimeError):
@@ -307,6 +320,18 @@ def _items(shared, *, ids: list[str] | None = None, created_by: str | None = Non
     return _query(shared, query)
 
 
+def _unique_visible_item_name(rows: list[dict], selected_id: str, selected_name: str) -> bool:
+    def visible(value: str) -> str:
+        return VISIBLE_WHITESPACE_RE.sub(" ", value.translate(INVISIBLE_NAME_CHARS)).strip(" ")
+
+    expected = visible(selected_name)
+    # _items uses a 501-row limit. A saturated snapshot cannot prove uniqueness.
+    return len(rows) < 501 and bool(expected) and [
+        row.get("Id") for row in rows
+        if isinstance(row.get("Name"), str) and visible(row["Name"]) == expected
+    ] == [selected_id]
+
+
 def _set_item_notes(shared, record_id: str, value: str) -> None:
     safe_fixture_value = re.fullmatch(
         r"[A-Za-z0-9_-]{24,96}(?: <img src=x onerror=alert\(1\)>)?", value)
@@ -403,7 +428,8 @@ def _run_browser(worker: BrowserWorker, request: dict, *, timeout: int = 240) ->
 
 
 def _valid_call(value: object) -> bool:
-    return (isinstance(value, dict) and value.get("method") in ALLOWED_METHODS
+    return (isinstance(value, dict) and isinstance(value.get("method"), str)
+            and value["method"] in OBSERVED_METHODS
             and isinstance(value.get("request_id"), str)
             and ACTION_ID_RE.fullmatch(value["request_id"]) is not None
             and isinstance(value.get("response_id"), str)
@@ -412,6 +438,117 @@ def _valid_call(value: object) -> bool:
             and value.get("response_state") == "SUCCESS"
             and value.get("params_valid") is True and value.get("http_ok") is True
             and value.get("json_string_decoded_once") is True)
+
+
+def _valid_digest(value: object) -> bool:
+    return isinstance(value, str) and SHA256_RE.fullmatch(value) is not None
+
+
+def _timed_call(call: dict) -> bool:
+    start, end = call.get("request_started_at"), call.get("response_completed_at")
+    return (type(start) in (int, float) and type(end) in (int, float)
+            and 0 < start <= end < math.inf
+            and isinstance(call.get("server_request_id"), str)
+            and SERVER_REQUEST_ID_RE.fullmatch(call["server_request_id"]) is not None)
+
+
+def _turn_execution_methods(value: dict, calls: list) -> list[str] | None:
+    """Join the five render proofs to distinct, completed controller calls."""
+    turns = value.get("chat_turns")
+    conversation_id = value.get("conversation_id")
+    action_ids = value.get("action_ids")
+    if (not isinstance(turns, list) or len(turns) != len(TURN_STEPS)
+            or not isinstance(conversation_id, str) or not SF_ID_RE.fullmatch(conversation_id)
+            or not isinstance(action_ids, dict)):
+        return None
+    by_sequence = {}
+    for call in calls:
+        if not _valid_call(call):
+            return None
+        sequence = call.get("request_sequence")
+        if type(sequence) is not int or sequence <= 0 or sequence in by_sequence:
+            return None
+        by_sequence[sequence] = call
+    connection = [call for call in calls if call["method"] == "testConnection"]
+    if (len(connection) != 1 or not _timed_call(connection[0])
+            or connection[0].get("result_status") != "ok" or connection[0].get("ui_correlated") is not True):
+        return None
+
+    methods = ["testConnection"]
+    used_sequences = set()
+    execution_requests = {connection[0]["server_request_id"]}
+    client_ids, tokens, messages = set(), set(), set()
+    previous_step = connection[0]["request_sequence"]
+    previous_count, previous_history = -1, None
+    for step, turn in zip(TURN_STEPS, turns):
+        if (not isinstance(turn, dict) or turn.get("step") != step
+                or turn.get("conversation_id") != conversation_id
+                or turn.get("rendered_history_matched") is not True):
+            return None
+        before, final = turn.get("before_message_count"), turn.get("final_message_count")
+        before_digest, final_digest = turn.get("before_history_sha256"), turn.get("final_history_sha256")
+        if (type(before) is not int or type(final) is not int or before < max(0, previous_count)
+                or final < before + 2 or not _valid_digest(before_digest) or not _valid_digest(final_digest)
+                or before_digest == final_digest or (before == previous_count and before_digest != previous_history)):
+            return None
+        previous_count, previous_history = final, final_digest
+        execution = turn.get("execution_request_sequence")
+        begin = turn.get("begin_request_sequence")
+        if type(execution) is not int or execution <= previous_step or execution not in by_sequence:
+            return None
+        call = by_sequence[execution]
+        if (call["method"] not in {"sendMessage", "executePendingMessage"}
+                or call.get("result_status") != "ready" or not _timed_call(call)
+                or call["server_request_id"] in execution_requests):
+            return None
+        execution_requests.add(call["server_request_id"])
+        chain = [call]
+        if call["method"] == "executePendingMessage":
+            if type(begin) is not int or not previous_step < begin < execution or begin not in by_sequence:
+                return None
+            start = by_sequence[begin]
+            token = start.get("issued_turn_token_sha256")
+            client_id = start.get("client_request_id_sha256")
+            if (start["method"] != "beginMessage" or start.get("result_status") != "working"
+                    or start["request_id"] == call["request_id"] or not _valid_digest(token)
+                    or token != call.get("submitted_turn_token_sha256") or token in tokens
+                    or not _valid_digest(client_id) or client_id in client_ids
+                    or not _timed_call(start) or not _timed_call(call)
+                    or start["server_request_id"] == call["server_request_id"]
+                    or start["response_completed_at"] > call["request_started_at"]):
+                return None
+            tokens.add(token)
+            client_ids.add(client_id)
+            chain.insert(0, start)
+        elif begin is not None:
+            return None
+        message = chain[0].get("message_sha256")
+        if (not _valid_digest(message) or message in messages
+                or any(not _timed_call(entry) or entry.get("ui_correlated") is not True
+                       or entry.get("request_conversation_id") != conversation_id
+                       or entry.get("result_conversation_id") != conversation_id for entry in chain)):
+            return None
+        messages.add(message)
+        action = turn.get("proposal_action_id")
+        previous_step = execution
+        if step == "read-tool":
+            if action is not None:
+                return None
+        else:
+            if not isinstance(action, str) or action != action_ids.get(step.removesuffix("-proposal")):
+                return None
+            mutations = [entry["request_sequence"] for entry in calls
+                         if entry["method"] in ("confirmAction", "cancelAction")
+                         and entry.get("card_action_id") == action]
+            if not mutations or min(mutations) <= execution:
+                return None
+            previous_step = max(mutations)
+        used_sequences.update(entry["request_sequence"] for entry in chain)
+        if call["method"] not in methods:
+            methods.append(call["method"])
+    if used_sequences != {seq for seq, call in by_sequence.items() if call["method"] in TURN_METHODS}:
+        return None
+    return methods
 
 
 def validate_observation(value: object, *, mode: str, phase: str, expected_host: str,
@@ -449,25 +586,26 @@ def validate_observation(value: object, *, mode: str, phase: str, expected_host:
                 or value.get("acceptance_bound") is not False
                 or value.get("source_deployment_bound") is not False):
             errors.append("browser-result-invalid")
-        if value.get("observed_setup_status") not in {"missing", "ready", "error"}:
+        if value.get("observed_setup_status") not in ("missing", "ready", "error"):
             errors.append("ui-state-invalid")
         if value.get("screenshots") != 1:
             errors.append("screenshot-missing")
         return list(dict.fromkeys(errors))
 
-    needed_methods = {"getSetup", "saveSetup", "testConnection", "newConversation",
-                      "getConversation", "sendMessage", "confirmAction", "cancelAction", "seedItems"}
-    method_names = {call.get("method") for call in calls if isinstance(call, dict)}
+    needed_methods = ALLOWED_METHODS - {"sendMessage"}
+    method_names = {call["method"] for call in calls if _valid_call(call)}
     if not needed_methods.issubset(method_names):
         errors.append("controller-proof-missing")
     mutation_calls = [call for call in calls if isinstance(call, dict)
-                      and call.get("method") in {"confirmAction", "cancelAction"}]
-    if any(call.get("ui_correlated") is not True for call in mutation_calls):
+                      and call.get("method") in ("confirmAction", "cancelAction")]
+    if any(call.get("ui_correlated") is not True or call.get("card_action_id") != call.get("action_id")
+           or call.get("request_action_id") != call.get("action_id") for call in mutation_calls):
         errors.append("controller-proof-missing")
     confirm_calls = [call for call in mutation_calls if call.get("method") == "confirmAction"]
     cancel_calls = [call for call in mutation_calls if call.get("method") == "cancelAction"]
     action_ids = value.get("action_ids")
     if (not isinstance(action_ids, dict)
+            or set(action_ids) != {"create", "update", "cancel", "stale"}
             or any(not isinstance(action_ids.get(key), str) or not ACTION_ID_RE.fullmatch(action_ids[key])
                    for key in ("create", "update", "cancel", "stale"))
             or len(set(action_ids.values())) != 4):
@@ -478,7 +616,9 @@ def validate_observation(value: object, *, mode: str, phase: str, expected_host:
         errors.append("controller-proof-missing")
     actual_counts = {}
     for call in confirm_calls:
-        actual_counts[call.get("action_id")] = actual_counts.get(call.get("action_id"), 0) + 1
+        action_id = call.get("action_id")
+        if isinstance(action_id, str):
+            actual_counts[action_id] = actual_counts.get(action_id, 0) + 1
     by_action = {action_id: [call for call in confirm_calls if call.get("action_id") == action_id]
                  for action_id in expected_counts}
     create_results = by_action.get(action_ids.get("create"), [])
@@ -488,7 +628,7 @@ def validate_observation(value: object, *, mode: str, phase: str, expected_host:
             or not all(isinstance(call.get("action_id"), str) for call in mutation_calls)
             or any(actual_counts.get(action_id, 0) not in allowed for action_id, allowed in expected_counts.items())
             or not create_results or create_results[0].get("result_status") != "applied"
-            or any(call.get("result_status") not in {"applied", "rejected"}
+            or any(call.get("result_status") not in ("applied", "rejected")
                    or call.get("result_operation") != "create" for call in create_results)
             or len(update_results) != 1 or update_results[0].get("result_status") != "applied"
             or update_results[0].get("result_operation") != "update"
@@ -499,8 +639,8 @@ def validate_observation(value: object, *, mode: str, phase: str, expected_host:
             or value.get("duplicate_attempted") is not True
             or value.get("duplicate_delivery_count") != len(create_results)):
         errors.append("replay-mismatch")
-    send_calls = [call for call in calls if isinstance(call, dict) and call.get("method") == "sendMessage"]
-    if len(send_calls) != 5 or any(call.get("ui_correlated") is not True for call in send_calls):
+    execution_methods = _turn_execution_methods(value, calls)
+    if execution_methods is None or value.get("live_callout_methods") != execution_methods:
         errors.append("controller-proof-missing")
     if value.get("setup_missing_without_chat_attempt") is not True:
         errors.append("chat-attempted-before-setup")
@@ -555,22 +695,62 @@ def _screen_receipts(paths: dict[str, Path], platform_dir: Path) -> dict:
 
 
 def _safe_controller_projection(results: list[dict]) -> list[dict]:
-    calls = []
-    seen = set()
+    calls = {}
     for result in results:
         for call in result.get("controller_calls", []):
             if not isinstance(call, dict):
                 continue
-            key = (call.get("request_id"), call.get("response_id"), call.get("method"))
-            if key in seen:
-                continue
-            seen.add(key)
-            calls.append({name: call.get(name) for name in (
-                "method", "request_id", "response_id", "response_state", "params_valid",
+            sequence = call.get("request_sequence")
+            sequence = sequence if type(sequence) is int and sequence > 0 else None
+            key = ("sequence", sequence) if sequence is not None else (
+                "legacy", call.get("request_id"), call.get("method"))
+            projected = {name: call.get(name) for name in (
+                "method", "request_sequence", "request_id", "response_id", "response_state", "params_valid",
                 "http_ok", "json_string_decoded_once", "result_status", "result_operation", "result_record_id",
-                "result_conversation_id", "action_id", "ui_correlated",
-            ) if name in call})
-    return calls
+                "result_conversation_id", "request_conversation_id", "action_id", "request_action_id",
+                "card_action_id", "ui_correlated", "request_started_at", "response_completed_at",
+            ) if name in call}
+            projected.update({name: call[name] for name in TURN_DIGEST_FIELDS
+                              if _valid_digest(call.get(name))})
+            server_id = call.get("server_request_id")
+            if isinstance(server_id, str) and SERVER_REQUEST_ID_RE.fullmatch(server_id):
+                projected["server_request_id"] = server_id
+            previous = calls.get(key)
+            if previous is not None:
+                # Cumulative snapshots may add UI correlation, but must not revise
+                # a completed response. Retain a conflict as non-passing evidence.
+                stable = lambda value: {k: v for k, v in value.items()
+                                        if k not in {"ui_correlated", "card_action_id"}}
+                changed_request = any(previous.get(k) != projected.get(k) for k in (
+                    "method", "request_id", "request_sequence", "params_valid", "request_conversation_id",
+                    "request_action_id", "message_sha256", "client_request_id_sha256", "submitted_turn_token_sha256"))
+                previous_card = previous.get("card_action_id")
+                if previous_card is not None:
+                    changed_request |= projected.get("card_action_id", previous_card) != previous_card
+                    projected["card_action_id"] = previous_card
+                changed_response = (previous.get("response_state") != "PENDING"
+                                    and stable(previous) != stable(projected))
+                if changed_request or changed_response:
+                    projected["response_state"] = "CONFLICT"
+                projected["ui_correlated"] = (previous.get("ui_correlated") is True
+                                                or projected.get("ui_correlated") is True)
+            # A request can be pending in the route snapshot and complete later.
+            # Response ID belongs to its outcome, not to the request identity.
+            calls[key] = projected
+    return list(calls.values())
+
+
+def _safe_chat_turn_projection(result: dict) -> dict:
+    turn = result.get("chat_turn")
+    if not isinstance(turn, dict):
+        return {}
+    projected = {key: turn.get(key) for key in (
+        "step", "conversation_id", "proposal_action_id", "execution_request_sequence",
+        "begin_request_sequence", "before_message_count", "final_message_count", "rendered_history_matched",
+    )}
+    projected.update({key: turn[key] for key in ("before_history_sha256", "final_history_sha256")
+                      if _valid_digest(turn.get(key))})
+    return projected
 
 
 def _action_calls(result: dict, action_id: str) -> list[dict]:
@@ -603,6 +783,22 @@ def _request(mode: str, step: str, login_url: str | None, identity: dict, source
     return request
 
 
+def register_ui_attempt(platform_dir: Path, phase: str, check_id: str) -> Path:
+    attempts = platform_dir / "grok-chat-ui" / phase
+    attempts.mkdir(parents=True, mode=0o700, exist_ok=True)
+    artifact_dir = attempts / check_id
+    with (attempts / UI_ATTEMPT_LEDGER).open("a", encoding="ascii") as ledger:
+        fcntl.flock(ledger, fcntl.LOCK_EX)
+        if artifact_dir.exists():
+            raise FileExistsError(artifact_dir)
+        # The append is the start order. A process that stops after it still
+        # supersedes earlier attempts, even without an artifact directory.
+        ledger.write(check_id + "\n")
+        ledger.flush()
+        artifact_dir.mkdir(mode=0o700)
+    return artifact_dir
+
+
 def run_check(mode: str) -> int:
     if mode not in {"observe", "run"}:
         print("grok-chat-ui: invalid mode refused", file=sys.stderr)
@@ -616,8 +812,11 @@ def run_check(mode: str) -> int:
         print("grok-chat-ui: FAIL (run-scoped platform directory unavailable)", file=sys.stderr)
         return 1
     platform_dir = Path(platform_value).resolve()
-    artifact_dir = platform_dir / "grok-chat-ui" / phase / uuid.uuid4().hex
-    artifact_dir.mkdir(parents=True, mode=0o700, exist_ok=False)
+    try:
+        artifact_dir = register_ui_attempt(platform_dir, phase, uuid.uuid4().hex)
+    except OSError:
+        print("grok-chat-ui: FAIL (attempt registration unavailable)", file=sys.stderr)
+        return 1
     receipt_path = artifact_dir / "observation.json"
     started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     failure: CheckFailure | None = None
@@ -789,7 +988,8 @@ def run_check(mode: str) -> int:
                 create_action_id=create_action_id,
             ), timeout=180)
             browser_results.append(create_confirm)
-            created_rows = [row for row in _items(shared) if row.get("Name") == create_name]
+            after_create = _items(shared)
+            created_rows = [row for row in after_create if row.get("Name") == create_name]
             create_id = created_rows[0].get("Id") if len(created_rows) == 1 else None
             if (len(created_rows) != 1 or created_rows[0].get("Status__c") != "Open"
                     or created_rows[0].get("Notes__c") != create_notes
@@ -802,9 +1002,13 @@ def run_check(mode: str) -> int:
                     or any(call.get("result_status") == "rejected"
                            and call.get("result_record_id") not in (None, create_id) for call in create_calls)):
                 raise CheckFailure("create-confirm", "controller-proof-missing")
+            update_fields = {
+                **shared_fields,
+                "selected_name_unique": _unique_visible_item_name(after_create, selected_id, selected_name),
+            }
             update_result = _run_browser(browser_worker, _request(
                 mode, "update-proposal", login, identity, source_head or "", metadata_sha256, screenshots,
-                **shared_fields,
+                **update_fields,
             ), timeout=300)
             browser_results.append(update_result)
             update_action_id = update_result.get("action_id")
@@ -816,7 +1020,7 @@ def run_check(mode: str) -> int:
                 raise CheckFailure("update-proposal", "preconfirm-write")
             update_confirm = _run_browser(browser_worker, _request(
                 mode, "update-confirm", login, identity, source_head or "", metadata_sha256, screenshots,
-                **shared_fields, update_action_id=update_action_id,
+                **update_fields, update_action_id=update_action_id,
             ), timeout=180)
             browser_results.append(update_confirm)
             after_update = _items(shared, ids=[selected_id])
@@ -846,12 +1050,17 @@ def run_check(mode: str) -> int:
                 cancel_action_id=cancel_action_id,
             ), timeout=180)
             browser_results.append(cancel_confirm)
-            if any(row.get("Name") == cancel_name for row in _items(shared)):
+            after_cancel = _items(shared)
+            if any(row.get("Name") == cancel_name for row in after_cancel):
                 raise CheckFailure("cancel-confirm", "cancel-mismatch")
             stale_notes = secrets.token_urlsafe(20)
+            stale_fields = {
+                **shared_fields,
+                "selected_name_unique": _unique_visible_item_name(after_cancel, selected_id, selected_name),
+            }
             stale_proposal = _run_browser(browser_worker, _request(
                 mode, "stale-proposal", login, identity, source_head or "", metadata_sha256, screenshots,
-                **shared_fields, stale_notes=stale_notes,
+                **stale_fields, stale_notes=stale_notes,
             ), timeout=300)
             browser_results.append(stale_proposal)
             stale_action_id = stale_proposal.get("action_id")
@@ -864,7 +1073,7 @@ def run_check(mode: str) -> int:
             _set_item_notes(shared, selected_id, external_notes)
             stale_confirm = _run_browser(browser_worker, _request(
                 mode, "stale-confirm", login, identity, source_head or "", metadata_sha256, screenshots,
-                **shared_fields, stale_notes=stale_notes, external_notes=external_notes,
+                **stale_fields, stale_notes=stale_notes, external_notes=external_notes,
                 stale_action_id=stale_action_id, create_action_id=create_action_id,
                 update_action_id=update_action_id, cancel_action_id=cancel_action_id,
             ), timeout=180)
@@ -887,7 +1096,8 @@ def run_check(mode: str) -> int:
             final_receipt = {
                 "schema": "shiploop-grok-chat-full-ui-observation/1", "check_id": artifact_dir.name,
                 "checked_at": started, "phase": phase, "mode": mode, "status": "passed",
-                "org": {"org_id": identity["org_id"], "lightning_host": identity["lightning_host"]},
+                "org": {"org_id": identity["org_id"], "lightning_host": identity["lightning_host"],
+                        "user_id": user_id},
                 "source_head": source_head, "candidate_metadata_sha256": metadata_sha256,
                 "deployment": deployment, "cleared_config_rows": cleared_configs,
                 "conversation_id": conversation_id,
@@ -921,6 +1131,9 @@ def run_check(mode: str) -> int:
                 "business_write_count": 2, "extra_write_count": extra_write_count,
                 "action_ids": {"create": create_action_id, "update": update_action_id,
                                "cancel": cancel_action_id, "stale": stale_action_id},
+                "chat_turns": [_safe_chat_turn_projection(result) for result in (
+                    read_result, create_result, update_result, cancel_proposal, stale_proposal,
+                )],
                 "screenshots": 5,
                 "controller_calls": _safe_controller_projection(browser_results),
                 "database_projection": {
@@ -930,6 +1143,8 @@ def run_check(mode: str) -> int:
                     "final_owned_item_count": len(final_items), "extra_write_count": extra_write_count,
                 },
             }
+            final_receipt["live_callout_methods"] = (
+                _turn_execution_methods(final_receipt, final_receipt["controller_calls"]) or [])
             errors = validate_observation(final_receipt, mode=mode, phase=phase,
                 expected_host=identity["lightning_host"], source_head=source_head or "",
                 metadata_sha256=metadata_sha256)
@@ -965,6 +1180,7 @@ def run_check(mode: str) -> int:
         "deployment": deployment,
         "failure": {"stage": failure.stage if failure else "browser",
                     "reason_code": failure.reason if failure else "evaluation-failed"},
+        "chat_turns": [_safe_chat_turn_projection(result) for result in browser_results if "chat_turn" in result],
         "controller_calls": _safe_controller_projection(browser_results),
     }
     try:

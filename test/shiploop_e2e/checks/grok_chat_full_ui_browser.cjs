@@ -3,9 +3,11 @@
 // Bounded Grok chat UI journey. The trusted frontdoor URL arrives on stdin and
 // is never logged, returned, written, or included in an error.
 const fs = require('node:fs');
+const { createHash } = require('node:crypto');
 const path = require('node:path');
 const readline = require('node:readline');
 const { fileURLToPath } = require('node:url');
+const { isDeepStrictEqual } = require('node:util');
 const pinnedBrowser = require('./battleship_ui_browser.cjs');
 
 const CONTROLLER = 'SLGrokChatController';
@@ -16,6 +18,11 @@ const MODEL = 'grok-4.7';
 const METHODS = new Set([
   'getSetup', 'saveSetup', 'testConnection', 'newConversation',
   'getConversation', 'sendMessage', 'confirmAction', 'cancelAction', 'seedItems',
+]);
+const SPLIT_METHODS = new Set(['beginMessage', 'executePendingMessage']);
+const TURN_METHODS = new Set(['sendMessage', ...SPLIT_METHODS]);
+const CHAT_ATTEMPTS = new Set([
+  'testConnection', 'newConversation', ...TURN_METHODS,
 ]);
 const TOOL_NAMES = new Set([
   'get_context', 'describe_schema', 'find_items', 'read_item',
@@ -45,8 +52,31 @@ const SAFE_REASONS = new Set([
 ]);
 const SF_ID_RE = /^[A-Za-z0-9]{15}(?:[A-Za-z0-9]{3})?$/;
 const ACTION_ID_RE = /^[A-Za-z0-9._;:-]{1,128}$/;
+const SERVER_REQUEST_ID_RE = /^[A-Za-z0-9_-]{1,84}$/;
 const FIELDS = new Set(['Name', 'Status__c', 'Notes__c']);
 const SUCCESS_TOOL_STATES = new Set(['ok', 'success', 'completed', 'succeeded']);
+const CARD = 'article, li, fieldset, [role="article"], [role="listitem"], [role="group"]';
+const PROPOSAL_TEXT_BOUNDARY = 'article, li, [role="article"], [role="listitem"], [aria-label="Action status"]';
+const MESSAGE_METADATA = 'time[datetime], [aria-label="Message metadata"]';
+
+function digest(text) {
+  return createHash('sha256').update(text).digest('hex');
+}
+
+function serverRequestId(headers) {
+  // Retain only Salesforce's bounded correlation ID, never response headers.
+  // The operator joins this to the native ApexLog ID (observed as TID:<id>).
+  const value = headers && headers['x-sfdc-request-id'];
+  if (typeof value !== 'string' || !SERVER_REQUEST_ID_RE.test(value)
+      || headers['x-request-id'] !== undefined && headers['x-request-id'] !== value) {
+    throw stageError('controller', 'controller-proof-missing');
+  }
+  return value;
+}
+
+function nonemptyString(value) {
+  return typeof value === 'string' && !!value.trim();
+}
 
 function stageError(stage, reason) {
   const error = new Error('Grok chat UI check failed');
@@ -103,12 +133,14 @@ function requestMethod(action, controllerClass) {
     method = direct[2];
     params = action.params;
   } else return null;
-  if (controller !== controllerClass || typeof method !== 'string' || !METHODS.has(method)) return null;
+  if (controller !== controllerClass || (!METHODS.has(method) && !SPLIT_METHODS.has(method))) return null;
   if (params === undefined || params === null) params = {};
   if (!isRecord(params)) throw stageError('controller', 'controller-action-invalid');
   const expected = {
     getSetup: [], saveSetup: ['model', 'namedCredential'], testConnection: [], newConversation: [],
     getConversation: ['conversationId'], sendMessage: ['conversationId', 'message'],
+    beginMessage: ['conversationId', 'message', 'clientRequestId'],
+    executePendingMessage: ['conversationId', 'turnToken'],
     confirmAction: ['actionId'], cancelAction: ['actionId'], seedItems: [],
   }[method];
   if (!exactKeys(params, expected)) throw stageError('controller', 'controller-action-invalid');
@@ -116,14 +148,18 @@ function requestMethod(action, controllerClass) {
       && (params.namedCredential !== 'Grok_Chat_Model' || params.model !== 'grok-4.7')) {
     throw stageError('controller', 'controller-action-invalid');
   }
-  if ((method === 'getConversation' || method === 'sendMessage')
-      && !SF_ID_RE.test(params.conversationId || '')) throw stageError('controller', 'controller-action-invalid');
-  if (method === 'sendMessage' && (typeof params.message !== 'string' || !params.message.trim())) {
+  if ((method === 'getConversation' || TURN_METHODS.has(method))
+      && (typeof params.conversationId !== 'string' || !SF_ID_RE.test(params.conversationId))) {
+    throw stageError('controller', 'controller-action-invalid');
+  }
+  if ((method === 'sendMessage' || method === 'beginMessage') && !nonemptyString(params.message)
+      || method === 'beginMessage' && !nonemptyString(params.clientRequestId)
+      || method === 'executePendingMessage' && !nonemptyString(params.turnToken)) {
     throw stageError('controller', 'controller-action-invalid');
   }
   if ((method === 'confirmAction' || method === 'cancelAction')
       && !ACTION_ID_RE.test(params.actionId || '')) throw stageError('controller', 'controller-action-invalid');
-  return { id: action.id, method, params };
+  return { id: action.id, method, params, transport: execute ? 'lwc' : 'direct' };
 }
 
 function safeFieldMap(value) {
@@ -174,18 +210,18 @@ function normalizeToolCall(value) {
 }
 
 function normalizeConversation(value) {
-  if (!isRecord(value) || !SF_ID_RE.test(value.conversationId || '')
+  if (!isRecord(value) || typeof value.conversationId !== 'string' || !SF_ID_RE.test(value.conversationId)
       || !Array.isArray(value.messages) || !Array.isArray(value.actions) || !Array.isArray(value.toolCalls)) return null;
   const messages = [];
   for (const message of value.messages) {
-    if (!isRecord(message) || !['system', 'user', 'assistant', 'tool'].includes(message.role)
+    if (!isRecord(message) || !['system', 'developer', 'user', 'assistant', 'tool'].includes(message.role)
         || typeof message.content !== 'string') return null;
     messages.push({ role: message.role, content: message.content });
   }
   const actions = value.actions.map(normalizeAction);
   const toolCalls = value.toolCalls.map(normalizeToolCall);
   if (actions.some(item => item === null) || toolCalls.some(item => item === null)) return null;
-  return { conversationId: value.conversationId, messages, actions, toolCalls,
+  return { conversationId: value.conversationId, messages, actions, toolCalls, hasPending: value.pending != null,
     status: ['ready', 'working', 'error'].includes(value.status) ? value.status : null,
     code: typeof value.code === 'string' ? value.code : null };
 }
@@ -211,9 +247,27 @@ function normalizeResult(method, rawValue) {
     if (!SF_ID_RE.test(value.conversationId || '')) throw stageError('controller', 'controller-response-invalid');
     return { conversationId: value.conversationId };
   }
-  if (method === 'getConversation' || method === 'sendMessage') {
+  if (method === 'getConversation' || TURN_METHODS.has(method)) {
     const conversation = normalizeConversation(value);
     if (!conversation) throw stageError('controller', 'controller-response-invalid');
+    if (method === 'beginMessage') {
+      const pending = value.pending;
+      if (conversation.status !== 'working' || !isRecord(pending) || !nonemptyString(pending.token)
+          || Object.hasOwn(value, 'turnToken') && value.turnToken !== pending.token
+          || Object.hasOwn(value, 'turnStatus') && value.turnStatus !== 'working'
+          || Object.hasOwn(pending, 'status') && pending.status !== 'working') {
+        throw stageError('controller', 'controller-response-invalid');
+      }
+      // The capability exists only in the in-flight Aura payload. Keep digests
+      // even in the observer so a projection cannot retain the raw token.
+      conversation.pendingTokenDigest = digest(pending.token);
+      for (const name of ['requestId', 'message', 'messageHash']) {
+        if (Object.hasOwn(pending, name)) conversation[name] = pending[name];
+      }
+    } else if (TURN_METHODS.has(method)
+        && (conversation.hasPending || Object.hasOwn(value, 'turnStatus') && value.turnStatus !== 'completed')) {
+      throw stageError('controller', 'controller-response-invalid');
+    }
     return conversation;
   }
   if (method === 'confirmAction') {
@@ -240,26 +294,56 @@ function normalizeResult(method, rawValue) {
   throw stageError('controller', 'controller-response-invalid');
 }
 
-function parseAuraRequest(value, controllerClass) {
+function parseAuraRequest(value, controllerClass, trackSplit = true) {
   const actions = decodeAura(value, 'controller-action-invalid');
   const found = [];
   const seen = new Set();
+  const counts = new Map();
+  for (const action of actions) {
+    if (isRecord(action) && typeof action.id === 'string') counts.set(action.id, (counts.get(action.id) || 0) + 1);
+  }
   for (const action of actions) {
     if (!isRecord(action)) continue;
     let descriptor = action.descriptor;
     let target = null;
+    let method = null;
     if (typeof descriptor === 'string') {
-      const direct = /^apex:\/\/([^/]+)\/ACTION\$/.exec(descriptor);
+      const direct = /^apex:\/\/([^/]+)\/ACTION\$/i.exec(descriptor);
       const wrapped = /^(?:aura|apex):\/\/ApexActionController\/ACTION\$execute$/i.test(descriptor);
       target = direct ? direct[1] : (wrapped && isRecord(action.params) ? action.params.classname : null);
+      method = direct ? descriptor.slice(direct[0].length)
+        : (wrapped && isRecord(action.params) ? action.params.method : null);
     }
     if (target !== controllerClass) continue;
+    // Other supporting RPCs may share a batch. Only the documented split
+    // transport is eligible for a Send proof.
+    if (typeof method === 'string' && /^[A-Za-z][A-Za-z0-9_]*$/.test(method)
+        && !METHODS.has(method) && !(trackSplit && SPLIT_METHODS.has(method))) continue;
     const normalized = requestMethod(action, controllerClass);
-    if (!normalized || seen.has(normalized.id)) throw stageError('controller', 'controller-action-invalid');
+    if (!normalized || seen.has(normalized.id) || counts.get(normalized.id) !== 1) {
+      throw stageError('controller', 'controller-action-invalid');
+    }
     seen.add(normalized.id);
     found.push(normalized);
   }
   return found;
+}
+
+function chatAttempts(value) {
+  return decodeAura(value, 'controller-action-invalid').flatMap(action => {
+    if (!isRecord(action) || typeof action.descriptor !== 'string') return [];
+    const direct = /^apex:\/\/([^/]+)\/ACTION\$([A-Za-z][A-Za-z0-9_]*)$/i.exec(action.descriptor);
+    const wrapped = /^(?:aura|apex):\/\/ApexActionController\/ACTION\$execute$/i.test(action.descriptor);
+    const method = direct && direct[1] === CONTROLLER ? direct[2] : wrapped && isRecord(action.params)
+      && action.params.classname === CONTROLLER ? action.params.method : null;
+    return CHAT_ATTEMPTS.has(method) ? [method] : [];
+  });
+}
+
+function assertNoChatBeforeSetup(observer, cursor) {
+  if (observer.chatRequests.length !== cursor) {
+    throw stageError('setup-missing', 'chat-attempted-before-setup');
+  }
 }
 
 function pairAuraActions(requests, responseBody) {
@@ -268,10 +352,20 @@ function pairAuraActions(requests, responseBody) {
     const matches = responses.filter(action => isRecord(action) && action.id === request.id);
     if (matches.length !== 1) throw stageError('controller', 'controller-response-id-mismatch');
     const response = matches[0];
-    if (response.state !== 'SUCCESS' || typeof response.returnValue !== 'string') {
+    let rawValue = response.returnValue;
+    if (request.transport === 'lwc') {
+      // Salesforce wraps LWC ApexActionController results once at the transport
+      // layer. The application still returns one JSON String, never an object.
+      if (!isRecord(rawValue) || !exactKeys(rawValue, ['returnValue', 'cacheable'])
+          || typeof rawValue.cacheable !== 'boolean') {
+        throw stageError('controller', 'controller-response-invalid');
+      }
+      rawValue = rawValue.returnValue;
+    }
+    if (response.state !== 'SUCCESS' || typeof rawValue !== 'string') {
       throw stageError('controller', 'controller-response-invalid');
     }
-    const result = normalizeResult(request.method, response.returnValue);
+    const result = normalizeResult(request.method, rawValue);
     if ((result.conversationId && request.params.conversationId
           && result.conversationId !== request.params.conversationId)
         || (result.actionId && request.params.actionId
@@ -284,14 +378,19 @@ function pairAuraActions(requests, responseBody) {
 }
 
 class ApexObserver {
-  constructor(page, expectedHost) {
+  constructor(page, expectedHost, { trackSplit = false } = {}) {
     this.page = page;
     this.expectedHost = expectedHost;
+    // Exploration and setup-only calibration still track every pre-save chat
+    // attempt. A full run additionally parses every split RPC for acceptance.
+    this.trackSplit = trackSplit;
     this.records = [];
+    this.chatRequests = [];
     this.requestActions = new WeakMap();
     this.pending = new Set();
     this.failure = null;
     this.sequence = 0;
+    this.batch = 0;
   }
 
   attach() {
@@ -311,19 +410,31 @@ class ApexObserver {
     try { url = new URL(request.url()); } catch (_) { return; }
     if (url.pathname !== '/aura' || request.method().toUpperCase() !== 'POST') return;
     let actions;
-    try { actions = parseAuraRequest(request.postData() || '', CONTROLLER); }
+    try {
+      const body = request.postData() || '';
+      this.chatRequests.push(...chatAttempts(body).map(method => ({
+        // Playwright populates timing after request dispatch. Read its current
+        // browser timestamp at the gate rather than freezing an initial zero.
+        method, startedAt: () => typeof request.timing === 'function' ? request.timing().startTime : null,
+      })));
+      actions = parseAuraRequest(body, CONTROLLER, this.trackSplit);
+    }
     catch (error) { this.failure = this.failure || error; return; }
     if (!actions.length) return;
     if (url.protocol !== 'https:' || url.hostname.toLowerCase() !== this.expectedHost || url.port) {
       this.failure = this.failure || stageError('controller', 'host-mismatch');
       return;
     }
+    const batch = ++this.batch;
     const records = actions.map(action => {
+      const { turnToken, ...params } = action.params;
       const record = {
         sequence: ++this.sequence, method: action.method, request_id: action.id,
-        params: action.params, params_valid: true, response_id: null,
+        params, transport: action.transport, params_valid: true, response_id: null,
         response_state: 'PENDING', result: null, json_string_decoded_once: false,
+        batch,
       };
+      if (action.method === 'executePendingMessage') record.submittedTokenDigest = digest(turnToken);
       this.records.push(record);
       return record;
     });
@@ -346,26 +457,41 @@ class ApexObserver {
       return;
     }
     const pairs = pairAuraActions(records.map(record => ({ id: record.request_id,
-      method: record.method, params: record.params })), await response.text());
+      method: record.method, params: record.params, transport: record.transport })), await response.text());
+    const serverId = this.trackSplit ? serverRequestId(await response.allHeaders()) : null;
     for (let index = 0; index < records.length; index += 1) {
       const record = records[index];
       const pair = pairs[index];
       record.response_id = pair.response_id;
-      record.response_state = pair.response_state;
       record.http_ok = true;
       record.json_string_decoded_once = pair.json_string_decoded_once;
       record.result = pair.result;
+      if (serverId) record.server_request_id = serverId;
+      if (record.method === 'saveSetup' || this.trackSplit && (TURN_METHODS.has(record.method)
+          || ['testConnection', 'getConversation', 'confirmAction', 'cancelAction'].includes(record.method))) {
+        // Compare browser network times, not asynchronous Node callback order:
+        // the page can issue its next request before this observer reads the body.
+        if (await response.finished()) throw stageError('controller', 'controller-response-invalid');
+        const timing = request.timing();
+        if (!Number.isFinite(timing.startTime) || timing.startTime <= 0
+            || !Number.isFinite(timing.responseEnd) || timing.responseEnd < 0) {
+          throw stageError('controller', 'controller-response-invalid');
+        }
+        record.request_started_at = timing.startTime;
+        record.response_completed_at = timing.startTime + timing.responseEnd;
+      }
+      record.response_state = pair.response_state;
     }
   }
 
   mark() { return this.records.length; }
 
-  async waitFor(method, predicate = () => true, timeoutMs = 90000, startAt = 0) {
+  async waitFor(method, predicate = () => true, timeoutMs = 90000, startAt = 0, { dispatched = false } = {}) {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() <= deadline) {
       if (this.failure) throw this.failure;
       const match = this.records.slice(startAt).find(record => record.method === method
-        && record.response_state !== 'PENDING' && predicate(record));
+        && (dispatched || record.response_state !== 'PENDING') && predicate(record));
       if (match) return match;
       await this.page.waitForTimeout(100);
     }
@@ -377,11 +503,25 @@ class ApexObserver {
     if (this.failure) throw this.failure;
   }
 
+  assertTurnsAccounted() {
+    if (this.records.some(record => TURN_METHODS.has(record.method) && record.ui_correlated !== true)) {
+      throw stageError('controller', 'controller-proof-missing');
+    }
+  }
+
+  assertConnectionAccounted(connection) {
+    const records = this.records.filter(record => record.method === 'testConnection');
+    if (records.length !== 1 || records[0] !== connection || connection.result?.status !== 'ok') {
+      throw stageError('connection', 'connection-failed');
+    }
+  }
+
   projection() {
     return this.records.map(record => {
       const result = record.result || {};
       const output = {
-        method: record.method, request_id: record.request_id, response_id: record.response_id,
+        method: record.method, request_sequence: record.sequence,
+        request_id: record.request_id, response_id: record.response_id,
         response_state: record.response_state, params_valid: record.params_valid,
         json_string_decoded_once: record.json_string_decoded_once, http_ok: record.http_ok === true,
         ui_correlated: record.ui_correlated === true,
@@ -391,6 +531,18 @@ class ApexObserver {
       if (result.recordId) output.result_record_id = result.recordId;
       if (result.conversationId) output.result_conversation_id = result.conversationId;
       if (result.actionId) output.action_id = result.actionId;
+      if (record.params.actionId) output.request_action_id = record.params.actionId;
+      if (record.card_action_id) output.card_action_id = record.card_action_id;
+      if (record.server_request_id) output.server_request_id = record.server_request_id;
+      if (record.request_started_at) output.request_started_at = record.request_started_at;
+      if (record.response_completed_at) output.response_completed_at = record.response_completed_at;
+      if (TURN_METHODS.has(record.method)) {
+        output.request_conversation_id = record.params.conversationId;
+        if (record.params.message) output.message_sha256 = digest(record.params.message);
+        if (record.params.clientRequestId) output.client_request_id_sha256 = digest(record.params.clientRequestId);
+        if (record.submittedTokenDigest) output.submitted_turn_token_sha256 = record.submittedTokenDigest;
+        if (result.pendingTokenDigest) output.issued_turn_token_sha256 = result.pendingTokenDigest;
+      }
       return output;
     });
   }
@@ -424,49 +576,888 @@ async function button(page, label) {
 
 async function click(page, label) {
   const control = await button(page, label);
-  if (!await control.isEnabled()) throw stageError('render', 'ui-control-missing');
+  // Playwright waits for enabled actionability during legitimate async transitions.
   await control.click({ timeout: 30000 });
 }
 
-async function writeMessage(page, observer, conversationId, message) {
+async function enabledButton(page, label) {
+  const control = await button(page, label);
+  const deadline = Date.now() + 30000;
+  while (!await control.isEnabled()) {
+    if (Date.now() >= deadline) throw stageError('render', 'ui-control-missing');
+    await page.waitForTimeout(100);
+  }
+  return control;
+}
+
+async function testConnection(page, observer, timeoutMs = 120000) {
+  const control = await enabledButton(page, 'Test connection');
   const cursor = observer.mark();
-  const field = await input(page, 'Message');
-  await field.fill(message);
-  await click(page, 'Send');
-  const call = await observer.waitFor('sendMessage', record =>
-    record.params.conversationId === conversationId && record.params.message === message,
-  150000, cursor);
-  if (call.result.status !== 'ready') throw stageError('read-tool', 'ui-state-invalid');
-  const conversation = call.result;
-  const chatStatus = await (await region(page, 'Chat status')).innerText().catch(() => '');
-  if (!/ready/i.test(chatStatus)) throw stageError('render', 'ui-state-invalid');
-  return { call, conversation };
+  if (observer.records.some(record => record.method === 'testConnection')) {
+    throw stageError('connection', 'connection-failed');
+  }
+  await control.click({ timeout: 30000 });
+  const connection = await observer.waitFor('testConnection', () => true, timeoutMs, cursor);
+  await observer.settle();
+  observer.assertConnectionAccounted(connection);
+  connection.ui_correlated = true;
+  return connection;
+}
+
+function matchTurn(records, before, conversationId, message) {
+  const fail = () => { throw stageError('controller', 'controller-proof-missing'); };
+  if (!records.length) return null;
+  const [start, execute] = records;
+  const split = start.method === 'beginMessage';
+  if ((!split && (start.method !== 'sendMessage' || records.length !== 1))
+      || (split && (records.length > 2 || execute && execute.method !== 'executePendingMessage'))
+      || start.params.conversationId !== conversationId || start.params.message !== message
+      || execute && execute.params.conversationId !== conversationId) fail();
+  if (records.some(record => record.response_state === 'PENDING') || split && !execute) return null;
+  if (records.some(record => record.response_state !== 'SUCCESS'
+      || record.request_id !== record.response_id || record.result?.conversationId !== conversationId)) fail();
+
+  const user = { role: 'user', content: message };
+  const pendingMessages = [...before.messages, user];
+  if (before.hasPending || before.conversationId !== conversationId) fail();
+  if (split) {
+    const pending = start.result;
+    if (pending.status !== 'working' || !pending.pendingTokenDigest
+        || pending.pendingTokenDigest !== execute.submittedTokenDigest
+        || start.batch === execute.batch || start.request_id === execute.request_id
+        || !Number.isFinite(start.response_completed_at) || !Number.isFinite(execute.request_started_at)
+        || start.response_completed_at > execute.request_started_at
+        || !isDeepStrictEqual(pending.messages, pendingMessages)
+        || !isDeepStrictEqual(pending.actions, before.actions)
+        || !isDeepStrictEqual(pending.toolCalls, before.toolCalls)
+        || Object.hasOwn(pending, 'requestId') && pending.requestId !== start.params.clientRequestId
+        || Object.hasOwn(pending, 'message') && pending.message !== message
+        || Object.hasOwn(pending, 'messageHash') && pending.messageHash !== digest(message)) fail();
+  }
+
+  const call = execute || start;
+  const completed = call.result;
+  const replies = completed.messages.slice(pendingMessages.length);
+  const priorActions = new Map(before.actions.map(action => [action.actionId, action]));
+  const finalActions = new Map(completed.actions.map(action => [action.actionId, action]));
+  if (completed.status !== 'ready' || completed.hasPending
+      || !isDeepStrictEqual(completed.messages.slice(0, pendingMessages.length), pendingMessages)
+      || replies.at(-1)?.role !== 'assistant'
+      || replies.some(reply => !['tool', 'assistant'].includes(reply.role) || !nonemptyString(reply.content))
+      || !isDeepStrictEqual(completed.toolCalls.slice(0, before.toolCalls.length), before.toolCalls)
+      || priorActions.size !== before.actions.length
+      || finalActions.size !== completed.actions.length
+      || [...priorActions].some(([id, action]) => !isDeepStrictEqual(finalActions.get(id), action))) fail();
+  return { call, begin: split ? start : null, conversation: completed,
+    added: { messages: [user, ...replies], toolCalls: completed.toolCalls.slice(before.toolCalls.length),
+      actions: completed.actions.filter(action => !priorActions.has(action.actionId)) } };
+}
+
+function turnBaseline(records, conversationId) {
+  const sameConversation = record => record.response_state === 'SUCCESS'
+    && record.result?.conversationId === conversationId;
+  const latest = records.findLast(record => sameConversation(record)
+    && (record.method === 'getConversation' || TURN_METHODS.has(record.method)));
+  const anchor = records.findLast(record => sameConversation(record)
+    && TURN_METHODS.has(record.method) && record.result.status === 'ready' && record.ui_correlated) || latest;
+  if (!latest || latest.result.hasPending
+      || !isDeepStrictEqual(latest.result.messages.slice(0, anchor.result.messages.length), anchor.result.messages)
+      || !isDeepStrictEqual(latest.result.toolCalls, anchor.result.toolCalls)) {
+    return null;
+  }
+  const appended = latest.result.messages.slice(anchor.result.messages.length);
+  let actions = new Map(anchor.result.actions.map(action => [action.actionId, action]));
+  if (actions.size !== anchor.result.actions.length) return null;
+  let transitionSinceRead = null;
+  for (const record of records.slice(records.indexOf(anchor) + 1)) {
+    if (appended.length && ['confirmAction', 'cancelAction'].includes(record.method)
+        && actions.has(record.params.actionId) && record.ui_correlated !== true) return null;
+    if (record === latest) {
+      const snapshot = record.result.actions;
+      if (actions.size !== snapshot.length || new Set(snapshot.map(action => action.actionId)).size !== actions.size
+          || snapshot.some(action => !isDeepStrictEqual(actions.get(action.actionId), action))) return null;
+      // A fresh authoritative read can establish the bookkeeping prefix after
+      // a checked action. Its text carries no confirmation authority of its own.
+      if (appended.length && (record.method !== 'getConversation' || !transitionSinceRead
+          || !Number.isFinite(transitionSinceRead.response_completed_at) || !Number.isFinite(record.request_started_at)
+          || transitionSinceRead.response_completed_at > record.request_started_at
+          || appended.some(entry => !['tool', 'developer'].includes(entry.role)))) return null;
+      actions = new Map(snapshot.map(action => [action.actionId, action]));
+      transitionSinceRead = null;
+    }
+    // Only the first fully checked action delivery can advance the baseline.
+    // A retry's rejection never changes the stored result of a confirmation.
+    const transition = record.validatedTransition;
+    if (transition?.conversationId !== conversationId) continue;
+    const { proposal } = transition;
+    if (!isDeepStrictEqual(actions.get(proposal.actionId), proposal)) return null;
+    const { status, recordId = proposal.recordId } = record.result;
+    actions.set(proposal.actionId, { ...proposal, status, recordId });
+    transitionSinceRead = record;
+  }
+  return { history: { ...latest.result, actions: [...actions.values()] }, unreadTransition: transitionSinceRead };
+}
+
+async function hasVisible(locator) {
+  const elements = await locator.elementHandles();
+  try {
+    for (const element of elements) {
+      if (await element.isVisible()) return true;
+    }
+    return false;
+  } finally {
+    await Promise.all(elements.map(element => element.dispose()));
+  }
+}
+
+// Playwright's text locator can miss direct text nodes in an open shadow root.
+// Read rendered fragments under this exact element, following slots and hosts.
+// A text range supplies geometry even when no element wraps the text.
+function renderedTextTree(roots, { boundary, omit = [], omitSelector } = {}) {
+  const rootSet = new Set(Array.isArray(roots) ? roots : [roots]);
+  const isBoundary = element => rootSet.has(element) || boundary && element.matches(boundary);
+  const excluded = 'script, style, template, noscript, [hidden], [aria-hidden="true"]';
+  const visible = (element, style) => !element.matches(excluded) && style.display !== 'none'
+    && style.visibility === 'visible' && style.opacity !== '0' && style.contentVisibility !== 'hidden'
+    && style.clip !== 'rect(0px, 0px, 0px, 0px)' && style.clipPath !== 'inset(50%)';
+  const parent = node => node.assignedSlot || node.parentElement || node.getRootNode().host;
+  const normalize = text => text.replace(/[\u200b\u00ad]/g, '').replace(/\s+/g, ' ').trim();
+  const scrollable = /^(auto|scroll|overlay)$/;
+  let segmenter;
+  const range = document.createRange();
+  const clipBoxes = new WeakMap();
+  function insetClip(element, value) {
+    // The default reference box for HTML is the border box. Support plain
+    // rectangular insets where the border box can be mapped without transforms.
+    const match = /^(?:border-box )?inset\(([^()]*)\)(?: border-box)?$/.exec(value);
+    if (!match) return null;
+    const offsets = match[1].trim().split(/\s+/);
+    if (offsets.length > 4 || offsets.some(offset => !/^(?:0|[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:px|%))$/.test(offset))) {
+      return null;
+    }
+    for (let ancestor = element; ancestor; ancestor = parent(ancestor)) {
+      if (!(ancestor instanceof HTMLElement)) return null;
+      const style = getComputedStyle(ancestor);
+      if ([style.transform, style.rotate, style.scale, style.perspective, style.offsetPath]
+        .some(property => property !== 'none')) return null;
+    }
+    const rects = element.getClientRects();
+    const zoom = element.currentCSSZoom;
+    if (rects.length !== 1 || !Number.isFinite(zoom)) return null;
+    const [top, right = top, bottom = top, left = right] = offsets;
+    const rect = rects[0];
+    const pixels = (offset, size) => parseFloat(offset) * (offset.endsWith('%') ? size / 100 : zoom);
+    return {
+      left: rect.left + pixels(left, rect.width), right: rect.right - pixels(right, rect.width),
+      top: rect.top + pixels(top, rect.height), bottom: rect.bottom - pixels(bottom, rect.height),
+      clipX: true, clipY: true, shiftLeft: 0, shiftRight: 0, shiftUp: 0, shiftDown: 0, tolerance: 0,
+    };
+  }
+  function clipsFor(element) {
+    if (clipBoxes.has(element)) return clipBoxes.get(element);
+    const { overflowX, overflowY, overflowClipMargin, display, direction, position, clip, clipPath } = getComputedStyle(element);
+    const boxes = [];
+    if (!/^(inline|contents)$/.test(display) && (overflowX !== 'visible' || overflowY !== 'visible')) {
+      const viewport = element === document.scrollingElement;
+      const rect = element.getBoundingClientRect();
+      const scaleX = element.offsetWidth ? rect.width / element.offsetWidth : 1;
+      const scaleY = element.offsetHeight ? rect.height / element.offsetHeight : 1;
+      const left = viewport ? 0 : rect.left + element.clientLeft * scaleX;
+      const top = viewport ? 0 : rect.top + element.clientTop * scaleY;
+      const scrollWidth = scrollable.test(overflowX) ? (element.scrollWidth - element.clientWidth) : 0;
+      const scrollHeight = scrollable.test(overflowY) ? (element.scrollHeight - element.clientHeight) : 0;
+      const clipX = overflowX !== 'visible' && !(viewport && scrollable.test(overflowX));
+      const clipY = overflowY !== 'visible' && !(viewport && scrollable.test(overflowY));
+      // A rounded zero client size can still expose subpixel text. Require a
+      // zero border box extent and a local clip that cannot extend beyond it.
+      const local = element !== document.documentElement && element !== document.body;
+      const empty = local && (clipX && element.clientWidth === 0 && rect.width === 0
+        && (overflowX !== 'clip' || overflowClipMargin === '0px')
+        || clipY && element.clientHeight === 0 && rect.height === 0
+        && (overflowY !== 'clip' || overflowClipMargin === '0px'));
+      boxes.push({
+        left, top, right: left + element.clientWidth * scaleX, bottom: top + element.clientHeight * scaleY,
+        clipX, clipY, empty,
+        shiftLeft: scrollWidth > 0 ? (element.scrollLeft - (direction === 'rtl' ? 0 : scrollWidth)) * scaleX : 0,
+        shiftRight: scrollWidth > 0 ? (element.scrollLeft + (direction === 'rtl' ? scrollWidth : 0)) * scaleX : 0,
+        shiftUp: scrollHeight > 0 ? (element.scrollTop - scrollHeight) * scaleY : 0,
+        shiftDown: scrollHeight > 0 ? element.scrollTop * scaleY : 0,
+        tolerance: 0.5, // Client dimensions are rounded to integer CSS pixels.
+      });
+    }
+    // Scroll inside this element first, then apply its fixed clip path.
+    const path = display !== 'contents' && clipPath !== 'none' ? insetClip(element, clipPath) : undefined;
+    if (path) boxes.push(path);
+    // A positioned legacy clip or an unsupported clip path leaves the text
+    // range's visible geometry unknown.
+    const outOfFlow = position === 'absolute' || position === 'fixed';
+    const result = path === null || (clip !== 'auto' && outOfFlow) ? null : { boxes, outOfFlow };
+    clipBoxes.set(element, result);
+    return result;
+  }
+  function reachableRect(rect, boxes) {
+    let leftmost = rect.left;
+    let rightmost = rect.left;
+    let uppermost = rect.top;
+    let lowermost = rect.top;
+    for (const box of boxes) {
+      // Track where the whole fragment can fit, accounting for each scroll
+      // range. Non-scrollable clips never reveal more content.
+      if (box.clipX) {
+        leftmost = Math.max(leftmost + box.shiftLeft, box.left);
+        rightmost = Math.min(rightmost + box.shiftRight, box.right - rect.width);
+      }
+      if (box.clipY) {
+        uppermost = Math.max(uppermost + box.shiftUp, box.top);
+        lowermost = Math.min(lowermost + box.shiftDown, box.bottom - rect.height);
+      }
+      if (leftmost - rightmost > box.tolerance || uppermost - lowermost > box.tolerance) return false;
+    }
+    return true;
+  }
+  function possiblyVisibleRect(rect, boxes) {
+    let { left, right, top, bottom } = rect;
+    for (const box of boxes) {
+      // Track any surviving portion through nested clips and available scroll.
+      // Allow for rounded overflow dimensions when proving total exclusion.
+      if (box.clipX) {
+        left = Math.max(left + box.shiftLeft, box.left - box.tolerance);
+        right = Math.min(right + box.shiftRight, box.right + box.tolerance);
+      }
+      if (box.clipY) {
+        top = Math.max(top + box.shiftUp, box.top - box.tolerance);
+        bottom = Math.min(bottom + box.shiftDown, box.bottom + box.tolerance);
+      }
+      if (right <= left || bottom <= top) return false;
+    }
+    return true;
+  }
+  function textReachability(node, element) {
+    const boxes = [];
+    let outOfFlow = false;
+    let emptyClipReachability;
+    for (let ancestor = element; ancestor; ancestor = parent(ancestor)) {
+      const clips = clipsFor(ancestor);
+      if (!clips) return 'incomplete';
+      // A positioned descendant may have a containing block outside an overflow
+      // ancestor. Keep uncertain text incomplete so it cannot disappear from an exact match.
+      if (!emptyClipReachability && clips.boxes.some(box => box.empty)) {
+        emptyClipReachability = outOfFlow ? 'incomplete' : 'hidden';
+      }
+      boxes.push(...clips.boxes);
+      outOfFlow ||= clips.outOfFlow;
+    }
+    if (emptyClipReachability) return emptyClipReachability;
+    function rangeReachability() {
+      const rects = [...range.getClientRects()].filter(rect => rect.width > 0 && rect.height > 0);
+      if (!rects.length) return 'incomplete';
+      if (rects.every(rect => reachableRect(rect, boxes))) return 'complete';
+      return rects.some(rect => possiblyVisibleRect(rect, boxes)) ? 'incomplete' : 'hidden';
+    }
+    range.selectNodeContents(node);
+    const whole = rangeReachability();
+    if (whole !== 'incomplete') return whole;
+    // A line can be partially clipped, or scrollable a few glyphs at a time.
+    // Only those text nodes need the finer-grained geometry checks.
+    segmenter ??= new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+    let reachability;
+    for (const { segment, index } of segmenter.segment(node.data)) {
+      if (!normalize(segment)) continue;
+      range.setStart(node, index);
+      range.setEnd(node, index + segment.length);
+      const part = rangeReachability();
+      if (part === 'incomplete' || reachability && reachability !== part) return 'incomplete';
+      reachability = part;
+    }
+    return reachability ?? 'incomplete';
+  }
+  function visit(element, root) {
+    const style = getComputedStyle(element);
+    if (!visible(element, style) || omit.includes(element) || omitSelector && element.matches(omitSelector)
+        || element !== root && isBoundary(element)) return null;
+    const children = [];
+    const fragments = [];
+    let actionMarkup = element.hasAttribute('data-action-id');
+    let ownTextIncomplete = false;
+    const slots = element.localName === 'slot' ? element.assignedNodes({ flatten: true }) : [];
+    const nodes = slots.length ? slots : (element.shadowRoot || element).childNodes;
+    const summary = element.matches('details:not([open])')
+      ? Array.from(element.children).find(child => child.localName === 'summary') : null;
+    for (const node of summary ? [summary] : nodes) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        if (normalize(node.data)) {
+          const reachability = textReachability(node, element);
+          ownTextIncomplete ||= reachability === 'incomplete';
+          if (reachability !== 'complete') continue;
+        }
+        fragments.push(node.data);
+      } else if (node.nodeType === Node.ELEMENT_NODE) {
+        const child = visit(node, root);
+        if (!child) {
+          if (isBoundary(node)) actionMarkup = true;
+          continue;
+        }
+        actionMarkup ||= child.tree.actionMarkup;
+        children.push(child.tree);
+        fragments.push(child.tree.breaksLine ? '\n' + child.raw + '\n' : child.raw);
+      }
+    }
+    const raw = fragments.join('');
+    const singleLine = !children.some(child => child.breaksLine);
+    const textIncomplete = ownTextIncomplete || children.some(child => child.textIncomplete);
+    return {
+      raw, tree: { text: normalize(raw), firstLine: raw.split('\n').map(normalize).find(Boolean) ?? '',
+        singleLine, breaksLine: !singleLine || element.localName === 'br' || !/^(inline|contents)/.test(style.display),
+        label: element.getAttribute('aria-label'), children, actionMarkup, ownTextIncomplete, textIncomplete,
+        group: element.matches('fieldset, [role="group"]'),
+        heading: element.matches('h1, h2, h3, h4, h5, h6, [role="heading"]'),
+        button: element.matches('button, [role="button"]') },
+    };
+  }
+  function snapshot(root) {
+    for (let ancestor = root; ancestor; ancestor = parent(ancestor)) {
+      if (!visible(ancestor, getComputedStyle(ancestor))) return null;
+    }
+    return visit(root, root)?.tree ?? null;
+  }
+  return Array.isArray(roots) ? roots.map(snapshot) : snapshot(roots);
+}
+
+function cardText(value) {
+  return value.replace(/[\u200b\u00ad]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function hasCardText(tree, predicate) {
+  return !!tree && (predicate(tree) || tree.children.some(child => hasCardText(child, predicate)));
+}
+
+function nearestCard(element, { selector, expected }) {
+  for (let node = element; node; node = node.assignedSlot || node.parentElement || node.getRootNode().host) {
+    if (node.matches(selector)) return expected === undefined ? node : node === expected;
+  }
+  return expected === undefined ? null : false;
+}
+
+async function renderedHistory(page, messages) {
+  const conversation = page.getByRole('region', { name: 'Conversation', exact: true });
+  if (await conversation.count() !== 1 || !await conversation.isVisible()) return false;
+  const roles = /^(user|assistant)$/i;
+  const entries = name => conversation.getByRole('article', { name })
+    .or(conversation.getByRole('group', { name }))
+    .or(conversation.getByRole('listitem', { name }));
+  const headed = entries()
+    .filter({ has: page.getByRole('heading', { name: roles }) });
+  const cards = await entries(roles).or(headed).all();
+  const expected = messages.filter(message => ['user', 'assistant'].includes(message.role));
+  if (cards.length !== expected.length) return false;
+  for (const [index, locator] of cards.entries()) {
+    const { role, content } = expected[index];
+    const name = new RegExp(`^${role}$`, 'i');
+    const [card] = await locator.elementHandles();
+    if (!card) return false;
+    const headings = await locator.getByRole('heading', { name }).elementHandles();
+    try {
+      const labelled = await locator.and(entries(name)).count();
+      let roleHeading;
+      for (const heading of headings) {
+        if (!await heading.evaluate(nearestCard, { selector: CARD, expected: card })) continue;
+        const tree = await heading.evaluate(renderedTextTree);
+        if (tree?.text && !tree.textIncomplete) {
+          roleHeading = heading;
+          break;
+        }
+      }
+      if (!await card.isVisible() || !(labelled || roleHeading)) return false;
+      const options = { boundary: CARD, omitSelector: MESSAGE_METADATA };
+      const matches = async omit => {
+        const tree = await card.evaluate(renderedTextTree, { ...options, omit });
+        return tree && !tree.textIncomplete && tree.text === cardText(content);
+      };
+      // A role-labelled entry can use a body heading that happens to have
+      // the same name. Only the first owned role heading can be redundant.
+      if (!(labelled && await matches([])) && !(roleHeading && await matches([roleHeading]))) return false;
+    } finally {
+      await Promise.all([card, ...headings].map(handle => handle.dispose()));
+    }
+  }
+  return true;
+}
+
+async function writeMessage(page, observer, conversationId, message, timeoutMs = 150000) {
+  await expectConversation(observer, conversationId);
+  await observer.settle();
+  observer.assertTurnsAccounted();
+  const baseline = turnBaseline(observer.records, conversationId);
+  if (baseline?.unreadTransition) {
+    const reload = page.getByRole('button', { name: 'Reload history', exact: true });
+    let cursor = observer.records.indexOf(baseline.unreadTransition) + 1;
+    const forConversation = record => record.params.conversationId === conversationId;
+    // Let an app-initiated read finish before requesting another one.
+    if (!observer.records.slice(cursor).some(record => record.method === 'getConversation' && forConversation(record))) {
+      cursor = observer.mark();
+      if (await reload.count() === 1 && await reload.isVisible() && await reload.isEnabled()) {
+        await reload.click({ timeout: Math.min(30000, timeoutMs) });
+      } else {
+        await page.reload({ waitUntil: 'domcontentloaded', timeout: Math.min(60000, timeoutMs) });
+        await region(page, 'Conversation');
+      }
+    }
+    await expectConversation(observer, conversationId, cursor, undefined, Math.min(45000, timeoutMs));
+    await observer.settle();
+  }
+  await (await input(page, 'Message')).fill(message);
+  const send = await enabledButton(page, 'Send');
+  observer.assertTurnsAccounted();
+  const checked = turnBaseline(observer.records, conversationId);
+  if (!checked || checked.unreadTransition || !await renderedHistory(page, checked.history.messages)) {
+    throw stageError('render', 'ui-state-invalid');
+  }
+  const before = checked.history;
+  const cursor = observer.mark();
+  const turnRecords = () => observer.records.slice(cursor).filter(record => TURN_METHODS.has(record.method));
+  await send.click({ timeout: 30000 });
+  const deadline = Date.now() + timeoutMs;
+  let chain;
+  while (Date.now() <= deadline) {
+    if (observer.failure) throw observer.failure;
+    chain = matchTurn(turnRecords(), before, conversationId, message);
+    if (chain && await renderedHistory(page, chain.conversation.messages)
+        && await hasVisible(page.getByRole('region', { name: 'Chat status', exact: true })
+          .getByText(/^ready\b/i))) break;
+    chain = null;
+    await page.waitForTimeout(100);
+  }
+  if (!chain) throw stageError('controller', 'controller-proof-missing');
+  await observer.settle();
+  const { call, begin } = matchTurn(turnRecords(), before, conversationId, message);
+  if (begin && observer.records.slice(0, cursor).some(record => record.method === 'beginMessage'
+      && (record.params.clientRequestId === begin.params.clientRequestId
+        || record.result?.pendingTokenDigest === begin.result.pendingTokenDigest))) {
+    throw stageError('controller', 'controller-proof-missing');
+  }
+  call.ui_correlated = true;
+  if (begin) begin.ui_correlated = true;
+  return { ...chain, proof: {
+    conversation_id: conversationId, execution_request_sequence: call.sequence,
+    begin_request_sequence: begin ? begin.sequence : null,
+    before_message_count: before.messages.length, final_message_count: chain.conversation.messages.length,
+    before_history_sha256: digest(JSON.stringify(before.messages)),
+    final_history_sha256: digest(JSON.stringify(chain.conversation.messages)),
+    rendered_history_matched: true,
+  } };
 }
 
 function findAction(conversation, operation, predicate) {
-  return conversation.actions.find(action => action.operation === operation
-    && action.status === 'proposed' && predicate(action)) || null;
+  const matches = conversation.actions.filter(action => action.operation === operation
+    && action.status === 'proposed' && predicate(action));
+  return matches.length === 1 ? matches[0] : null;
 }
 
-async function proposalRegion(page, matchText) {
-  const regions = page.getByRole('region', { name: 'Proposed change', exact: true });
-  const count = await regions.count();
-  for (let index = 0; index < count; index += 1) {
-    const candidate = regions.nth(index);
-    if (await candidate.isVisible() && (await candidate.innerText()).includes(matchText)) return candidate;
+function labelledValues(tree, labels) {
+  if (!tree) return [];
+  const inline = new RegExp(`^(?:${labels})\\s*:\\s*(.+)$`, 'i');
+  const label = new RegExp(`^(?:${labels})\\s*:?$`, 'i');
+  function visit(node) {
+    const found = node.children.flatMap(visit);
+    const line = node.singleLine && inline.exec(node.text);
+    if (line) return found.length ? found : [line[1]];
+    if (!found.length && node.label && label.test(cardText(node.label)) && node.text && !label.test(node.text)) {
+      return [node.text];
+    }
+    for (const [index, child] of node.children.entries()) {
+      const next = node.children[index + 1];
+      if (label.test(child.text) && next?.text && !label.test(next.text)) found.push(next.text);
+    }
+    return found;
   }
-  throw stageError('render', 'proposal-missing');
+  return visit(tree);
 }
 
-async function actionStatus(page, status) {
-  const target = await region(page, 'Action status');
-  const deadline = Date.now() + 30000;
-  while (Date.now() < deadline) {
-    const text = (await target.innerText()).toLowerCase();
-    if (text.includes(status)) return text;
-    await page.waitForTimeout(150);
+const OPERATION_HEADING = /^(?:operation:\s*)?(create|update)\b/i;
+
+function readProposal(tree) {
+  function readFieldGroups(node, root = false) {
+    // An accessible group may be a nested action or just a field layout.
+    // Only the latter can contribute values to this proposal.
+    const group = node.group && !root;
+    if (group && (node.actionMarkup || hasCardText(node, child =>
+      child.heading && OPERATION_HEADING.test(child.text)
+      || child.button && /^(confirm|cancel)$/i.test(child.label || child.text)))) return null;
+    const parts = node.children.map(child => readFieldGroups(child)).filter(Boolean);
+    const textIncomplete = node.ownTextIncomplete || parts.some(part => part.textIncomplete);
+    const fields = parts.flatMap(part => part.fields);
+    const children = parts.map(part => part.header).filter(Boolean);
+    const intact = children.length === node.children.length && children.every((child, i) => child === node.children[i]);
+    const remainder = intact ? node : { ...node, text: '', singleLine: false, children };
+    const labels = new Set([node.label, ...children.map(child => child.text)].filter(label => FIELDS.has(label)));
+    if (labels.size === 1) {
+      const old = labelledValues(remainder, 'Old(?: value)?');
+      const next = labelledValues(remainder, 'New(?: value)?');
+      if (old.length || next.length) {
+        fields.push({ name: [...labels][0], old, next });
+        return { header: null, fields, textIncomplete };
+      }
+    }
+    // Evaluate target and operation positions after extracting fields. An
+    // old or new text value can itself begin with "Target:" or "Operation:".
+    const ownPosition = node.singleLine && /^(Operation|Target|Record ID|Name)$/i.test(node.label || '');
+    if (group && !ownPosition && labelledValues(remainder, 'Operation|Target|Record ID|Name').length) return null;
+    return { header: remainder, fields, textIncomplete };
   }
-  throw stageError('render', status === 'stale' ? 'stale-not-rejected' : 'ui-state-invalid');
+  const { header, fields, textIncomplete } = readFieldGroups(tree, true);
+  const operations = labelledValues(header, 'Operation');
+  const readHeadings = node => {
+    if (node.heading && OPERATION_HEADING.test(node.text)) operations.push(node.text);
+    node.children.forEach(readHeadings);
+  };
+  if (header) readHeadings(header);
+  return { header, fields, operations, textIncomplete, targets: labelledValues(header, 'Target'),
+    ids: labelledValues(header, 'Record ID'), names: labelledValues(header, 'Name') };
+}
+
+function proposalTarget(view, { name: expectedName, nameUnique }, action) {
+  const { targets, ids, names, fields } = view;
+  const name = cardText(expectedName);
+  const visibleNames = [...names];
+  const explicitIds = [...ids];
+  for (const value of targets) {
+    // A target can show the record ID alone or next to its name.
+    const namedId = /^(.*?)\s*\(([A-Za-z0-9]{15}(?:[A-Za-z0-9]{3})?)\)$/.exec(value);
+    if (namedId) {
+      if (namedId[1]) visibleNames.push(cardText(namedId[1]));
+      explicitIds.push(namedId[2]);
+    } else if (SF_ID_RE.test(value)) {
+      explicitIds.push(value);
+    } else {
+      visibleNames.push(value);
+    }
+  }
+  if (action.operation === 'create') {
+    const nameField = fields.find(field => field.name === 'Name');
+    return !explicitIds.length && visibleNames.every(value => value === name || /^new (?:work )?item$/i.test(value))
+      && nameField?.next.includes(name) ? 1 : 0;
+  }
+  const nameMatches = visibleNames.length > 0 && visibleNames.every(value => value === name);
+  if (explicitIds.length) {
+    return explicitIds.every(id => id === action.recordId) && (!visibleNames.length || nameMatches) ? 2 : 0;
+  }
+  return nameUnique && nameMatches ? 1 : 0;
+}
+
+function proposalFieldsMatch(view, action) {
+  if (view.textIncomplete || !view.operations.length
+      || view.operations.some(value => OPERATION_HEADING.exec(value)?.[1].toLowerCase() !== action.operation)
+      || view.fields.length !== Object.keys(action.newValues).length
+      || labelledValues(view.header, 'Old(?: value)?|New(?: value)?').length) return false;
+  const displayed = value => value === null ? '(empty)' : value === '' ? '(empty text)' : cardText(value);
+  return Object.entries(action.newValues).every(([name, next]) => {
+    const fields = view.fields.filter(field => field.name === name);
+    if (fields.length !== 1) return false;
+    const [field] = fields;
+    return isDeepStrictEqual(field.next, [displayed(next)]) && (Object.hasOwn(action.oldValues, name)
+      ? isDeepStrictEqual(field.old, [displayed(action.oldValues[name])])
+      : field.old.length === 0 || field.old.length === 1 && /^(?:\(new item\)|\(empty\)|n\/a|—)$/i.test(field.old[0]));
+  });
+}
+
+async function matchingProposal(proposals, target, action) {
+  const trees = await proposals.evaluateAll(renderedTextTree, { boundary: PROPOSAL_TEXT_BOUNDARY });
+  const matches = [];
+  for (const [index, tree] of trees.entries()) {
+    if (!tree) continue;
+    const view = readProposal(tree);
+    const priority = proposalTarget(view, target, action);
+    if (priority) matches.push({ index, view, priority });
+  }
+  const preferred = matches.some(match => match.priority === 2)
+    ? matches.filter(match => match.priority === 2) : matches;
+  if (preferred.length > 1) throw stageError('render', 'proposal-missing');
+  return preferred[0];
+}
+
+async function stillMatchesProposal(proposals, proposed, target, action) {
+  const match = await matchingProposal(proposals, target, action);
+  if (!match || !proposalFieldsMatch(match.view, action)) return false;
+  const [current] = await proposals.nth(match.index).elementHandles();
+  try {
+    return !!current && await current.evaluate((element, original) => element === original, proposed);
+  } finally {
+    await current?.dispose();
+  }
+}
+
+const CONTROL_BOUNDARY = `${CARD}, ${PROPOSAL_TEXT_BOUNDARY}, `
+  + 'section:not([role])[aria-label="Proposed change"], [role="region"][aria-label="Proposed change"]';
+
+function proposalRegions(page) {
+  return page.getByRole('region', { name: 'Conversation', exact: true })
+    .getByRole('region', { name: 'Proposed change', exact: true });
+}
+
+async function withProposalBoundaries(proposals, callback) {
+  const proposalElements = await proposals.elementHandles();
+  try {
+    return await callback({ proposalElements, boundary: CONTROL_BOUNDARY, cardSelector: CARD });
+  } finally {
+    await Promise.all(proposalElements.map(element => element.dispose()));
+  }
+}
+
+function watchProposalControl(element, { proposed, card, actionId, proposalElements, boundary, cardSelector, guard = false }) {
+  function ownership() {
+    const path = [];
+    if (!element.isConnected) return { state: 'detached', path };
+    let inProposal = false;
+    let nested = false;
+    let nestedCard = false;
+    let wrongId = false;
+    let matchingId = false;
+    for (let node = element; node; node = node.assignedSlot || node.parentElement || node.getRootNode().host) {
+      path.push(node);
+      const marker = node.getAttribute('data-action-id');
+      if (marker !== null) {
+        matchingId ||= marker === actionId;
+        wrongId ||= marker !== actionId;
+      }
+      if (node === proposed) inProposal = true;
+      if (node === card) {
+        if (!inProposal && !nestedCard) return { state: 'outside', path };
+        if (!inProposal || nested) return { state: matchingId && !wrongId ? 'relocated' : 'foreign', path };
+        return { state: wrongId ? 'rebound' : 'owned', path };
+      }
+      if (node !== proposed) {
+        nested ||= proposalElements.includes(node) || node.matches(boundary);
+        nestedCard ||= node.matches(cardSelector);
+      }
+    }
+    return { state: matchingId && !wrongId ? 'relocated' : 'foreign', path };
+  }
+  const { state: initial, path } = ownership();
+  if (!guard) return initial;
+  let refused = false;
+  function checkClick(event) {
+    const current = ownership();
+    if (event.composedPath().includes(element) && current.state === 'owned'
+        && current.path.length === path.length && current.path.every((node, i) => node === path[i])) return;
+    refused = true;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+  // Playwright can wait for actionability between the ownership check and
+  // dispatch. Recheck in capture before the page can handle the input.
+  const events = ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click'];
+  if (initial === 'owned') for (const event of events) window.addEventListener(event, checkClick, true);
+  return { initial, finish() {
+    for (const event of events) window.removeEventListener(event, checkClick, true);
+    return refused;
+  } };
+}
+
+async function proposalRegion(page, target, action, timeoutMs = 15000) {
+  const proposals = proposalRegions(page);
+  const deadline = Date.now() + timeoutMs;
+  let reason = 'proposal-missing';
+  do {
+    const match = await matchingProposal(proposals, target, action);
+    if (match) {
+      reason = 'proposal-mismatch';
+      if (proposalFieldsMatch(match.view, action)) {
+        const proposal = proposals.nth(match.index);
+        const [proposed] = await proposal.elementHandles();
+        if (!proposed) continue;
+        const cardHandle = await proposed.evaluateHandle(nearestCard, { selector: CARD });
+        const card = cardHandle.asElement();
+        const controls = {};
+        let pinned = false;
+        try {
+          if (!card) throw stageError('render', 'proposal-mismatch');
+          const ready = await withProposalBoundaries(proposals, async boundaries => {
+            for (const name of ['Confirm', 'Cancel']) {
+              const buttons = await proposal.getByRole('button', { name, exact: true }).elementHandles();
+              try {
+                for (const button of buttons) {
+                  const state = await button.evaluate(watchProposalControl, {
+                    ...boundaries, proposed, card, actionId: action.actionId,
+                  });
+                  if (state === 'rebound' || state === 'owned' && controls[name]) {
+                    throw stageError('render', 'proposal-mismatch');
+                  }
+                  if (state === 'owned') controls[name] = button;
+                }
+                if (!controls[name] || !await controls[name].isVisible()
+                    || !await controls[name].evaluate(renderedTextTree)) return false;
+              } finally {
+                await Promise.all(buttons.filter(button => button !== controls[name]).map(button => button.dispose()));
+              }
+            }
+            return true;
+          });
+          if (ready && await stillMatchesProposal(proposals, proposed, target, action)) {
+            pinned = true;
+            return { card, proposed, controls };
+          }
+        } finally {
+          if (!pinned) {
+            await Promise.all([cardHandle, proposed, ...Object.values(controls).filter(Boolean)].map(handle => handle.dispose()));
+          }
+        }
+      }
+    }
+    if (Date.now() >= deadline) break;
+    await page.waitForTimeout(100);
+  } while (Date.now() <= deadline);
+  throw stageError('render', reason);
+}
+
+async function cardStatus(page, card, actionId) {
+  if (!await card.evaluate((element, id) => element.isConnected
+      && (!element.hasAttribute('data-action-id') || element.getAttribute('data-action-id') === id), actionId)) {
+    throw stageError('render', 'proposal-mismatch');
+  }
+  const statuses = await page.getByRole('region', { name: 'Action status', exact: true }).elementHandles();
+  try {
+    let label = null;
+    for (const status of statuses) {
+      if (!await status.evaluate(nearestCard, { selector: CARD, expected: card }) || !await status.isVisible()) continue;
+      const tree = await status.evaluate(renderedTextTree, { boundary: CARD });
+      if (!tree?.firstLine) continue;
+      if (label !== null) throw stageError('render', 'proposal-mismatch');
+      label = tree.firstLine.toLowerCase().replace(/^(?:action )?status:\s*/, '').trim();
+    }
+    return label;
+  } finally {
+    await Promise.all(statuses.map(status => status.dispose()));
+  }
+}
+
+async function releaseProposal({ card, proposed, controls }) {
+  await Promise.all([card, proposed, ...Object.values(controls)].map(handle => handle.dispose()));
+}
+
+async function clickProposalControl(control, { card, proposed }, actionId, boundaries, retry = false) {
+  const args = { ...boundaries, card, proposed, actionId, guard: true };
+  const guard = await control.evaluateHandle(watchProposalControl, args);
+  try {
+    const initial = await guard.evaluate(value => value.initial);
+    if (initial === 'detached' && retry) return false;
+    if (initial !== 'owned') throw stageError('render', 'proposal-mismatch');
+    try {
+      await control.click({ timeout: retry ? 1500 : 30000 });
+      return true;
+    } catch (error) {
+      const ownership = await control.evaluate(watchProposalControl, { ...args, guard: false });
+      if (!['detached', 'owned'].includes(ownership)) throw stageError('render', 'proposal-mismatch');
+      if (!retry) throw error;
+      if (await control.isVisible().catch(() => false) && await control.isEnabled().catch(() => false)) {
+        throw stageError('render', 'ui-control-missing');
+      }
+      return false;
+    }
+  } finally {
+    try {
+      if (await guard.evaluate(value => value.finish())) throw stageError('render', 'proposal-mismatch');
+    } finally {
+      await guard.dispose();
+    }
+  }
+}
+
+async function checkRetry(page, proposals, pin, target, action, attempt) {
+  const { proposed, card, controls: { Confirm: original } } = pin;
+  return withProposalBoundaries(proposals, async boundaries => {
+    const args = { ...boundaries, proposed, card, actionId: action.actionId };
+    const initial = await original.evaluate(watchProposalControl, args);
+    if (!['detached', 'owned'].includes(initial)) throw stageError('render', 'proposal-mismatch');
+    const buttons = await page.getByRole('button', { name: 'Confirm', exact: true }).elementHandles();
+    try {
+      let enabled = false;
+      for (const button of buttons) {
+        const state = await button.evaluate(watchProposalControl, args);
+        if (state === 'detached' || state === 'foreign' || !await button.isVisible()
+            || !await button.isEnabled() || !await button.evaluate(renderedTextTree)) continue;
+        if (state !== 'owned' || enabled || !await button.evaluate((element, pin) => element === pin, original)) {
+          // An enabled replacement is a live retry path, even if the original
+          // detached. Withhold credit instead of clicking an unpinned control.
+          throw stageError('render', 'proposal-mismatch');
+        }
+        enabled = true;
+      }
+      if (!enabled) return false;
+      if (!attempt || !await stillMatchesProposal(proposals, proposed, target, action)) {
+        throw stageError('render', 'proposal-mismatch');
+      }
+      return await clickProposalControl(original, pin, action.actionId, boundaries, true);
+    } finally {
+      await Promise.all(buttons.map(button => button.dispose()));
+    }
+  });
+}
+
+async function performAction(page, observer, target, action, status, {
+  conversationId, retry = false, timeoutMs = 90000, renderTimeoutMs = 30000, proposalTimeoutMs = 15000,
+} = {}) {
+  const { actionId } = action;
+  const proposals = proposalRegions(page);
+  const pin = await proposalRegion(page, target, action, proposalTimeoutMs);
+  const { card, controls } = pin;
+  try {
+    const initial = await cardStatus(page, card, actionId);
+    if (initial !== null && initial !== 'proposed') throw stageError('render', 'proposal-mismatch');
+    const method = status === 'cancelled' ? 'cancelAction' : 'confirmAction';
+    const control = controls[status === 'cancelled' ? 'Cancel' : 'Confirm'];
+    const cursor = observer.mark();
+    const actionCalls = () => observer.records.slice(cursor)
+      .filter(record => ['confirmAction', 'cancelAction'].includes(record.method));
+    const awaitResponse = call => observer.waitFor(method, record => record === call, timeoutMs, cursor);
+    const fail = () => { throw stageError('controller', 'controller-proof-missing'); };
+
+    await withProposalBoundaries(proposals, boundaries => clickProposalControl(control, pin, actionId, boundaries));
+    const first = await observer.waitFor(method, () => true, timeoutMs, cursor, { dispatched: true });
+    if (actionCalls().length !== 1 || actionCalls()[0] !== first || first.params.actionId !== actionId) fail();
+    const retried = retry && await checkRetry(page, proposals, pin, target, action, true);
+    // The second request can finish before the first. Await the pinned dispatch.
+    await awaitResponse(first);
+    if (first.result.status !== status || first.result.actionId !== actionId
+        || method === 'confirmAction' && (first.result.operation !== action.operation
+          || action.operation === 'update' && first.result.recordId !== action.recordId
+          || action.operation === 'create' && status === 'applied' && !first.result.recordId)) fail();
+    await observer.settle();
+    const calls = actionCalls();
+    if (calls.length !== (retried ? 2 : 1)
+        || calls.some(call => call.method !== method || call.params.actionId !== actionId)) fail();
+    if (calls.length === 2) {
+      const duplicate = await awaitResponse(calls[1]);
+      const result = duplicate.result;
+      if (result.actionId !== actionId || result.operation !== first.result.operation
+          || (result.status === status ? result.recordId !== first.result.recordId
+            : result.status !== 'rejected' || result.recordId !== null && result.recordId !== first.result.recordId)) fail();
+    }
+    // Sample only after all dispatched responses. Require the owning card to
+    // retain the terminal state across a render interval.
+    const deadline = Date.now() + renderTimeoutMs;
+    let terminalSeen = false;
+    while (true) {
+      if (observer.failure) throw observer.failure;
+      const terminal = await cardStatus(page, card, actionId) === status;
+      if (terminal && terminalSeen) break;
+      if (Date.now() >= deadline) {
+        throw stageError('render', status === 'stale' ? 'stale-not-rejected' : 'ui-state-invalid');
+      }
+      terminalSeen = terminal;
+      await page.waitForTimeout(100);
+    }
+    await observer.settle();
+    if (retry && !retried) await checkRetry(page, proposals, pin, target, action, false);
+    if (actionCalls().length !== calls.length) fail();
+    for (const call of calls) {
+      call.card_action_id = actionId;
+      call.ui_correlated = true;
+    }
+    if (conversationId) first.validatedTransition = { conversationId, proposal: action };
+    return { first, count: calls.length };
+  } finally {
+    await releaseProposal(pin);
+  }
 }
 
 function findItemResult(result, expectedId, expectedName, expectedNotes) {
@@ -494,21 +1485,19 @@ function hasToolCall(conversation, name, argsMatch) {
 function noUnsafeMarkup(text, locator) {
   return Promise.all([
     locator.locator('img,iframe,object,embed,video,audio').count(),
-    locator.evaluate(element => ({
-      text: element.innerText || '',
-      eventAttrs: (() => {
-        function hasHandler(root) {
-          for (const node of root.querySelectorAll('*')) {
-            if ([...node.attributes].some(attr => /^on/i.test(attr.name))) return true;
-            if (node.shadowRoot && hasHandler(node.shadowRoot)) return true;
-          }
-          return false;
+    locator.evaluate(element => {
+      function hasHandler(root) {
+        for (const node of root.querySelectorAll('*')) {
+          if ([...node.attributes].some(attr => /^on/i.test(attr.name))) return true;
+          if (node.shadowRoot && hasHandler(node.shadowRoot)) return true;
         }
-        return hasHandler(element);
-      })(),
-    })),
-  ]).then(([activeCount, values]) => activeCount === 0 && !values.eventAttrs
-    && typeof text === 'string' && values.text.includes(text));
+        return false;
+      }
+      return hasHandler(element);
+    }),
+    locator.evaluate(renderedTextTree).then(tree => hasCardText(tree,
+      fragment => fragment.singleLine && fragment.text.includes(cardText(text)))),
+  ]).then(([activeCount, eventAttrs, textVisible]) => activeCount === 0 && !eventAttrs && textVisible);
 }
 
 async function screenshot(page, request, name) {
@@ -704,10 +1693,10 @@ function attemptProjection(session, observer, request) {
     browser_version: session.browser.version(), controller_calls: observer.projection() };
 }
 
-async function expectConversation(observer, conversationId, startAt = 0, predicate = () => true) {
+async function expectConversation(observer, conversationId, startAt = 0, predicate = () => true, timeoutMs = 45000) {
   const call = await observer.waitFor('getConversation', item =>
     item.params.conversationId === conversationId && item.result.conversationId === conversationId
-      && predicate(item.result), 45000, startAt);
+      && predicate(item.result), timeoutMs, startAt);
   if (!call) throw stageError('reload', 'conversation-missing');
   return call.result;
 }
@@ -731,8 +1720,10 @@ async function runStep(request, session, observer) {
     candidate_metadata_sha256: request.candidate_metadata_sha256 };
 
   if (step === 'observe') {
-    const setupText = await (await region(page, 'Setup status')).innerText();
     const result = await observer.waitFor('getSetup', () => true, 45000, 0);
+    // Read after the response and rendered transition; the initial loading text
+    // is not evidence of the settled setup state.
+    const setupText = await waitSetupStatus(page, result.result.status);
     const visibleState = /\bmissing\b/i.test(setupText) ? 'missing'
       : /\bready\b/i.test(setupText) ? 'ready' : /\berror\b/i.test(setupText) ? 'error' : 'invalid';
     if (visibleState !== result.result.status) throw stageError('observe', 'ui-state-invalid');
@@ -744,40 +1735,42 @@ async function runStep(request, session, observer) {
 
   const runId = request.run_id;
   const conversationId = request.conversation_id;
-  const screenshots = request.screenshots;
   if (step === 'setup') {
     const setupCursor = observer.mark();
+    const chatCursor = observer.chatRequests.length;
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
     await region(page, 'Setup status');
     const initialCall = await observer.waitFor('getSetup', () => true, 45000, setupCursor);
     if (!initialCall || initialCall.result.status !== 'missing') throw stageError('setup-missing', 'setup-not-missing');
     await waitSetupStatus(page, 'missing');
     await screenshot(page, request, 'setup-missing');
-    const preSetup = observer.records.slice(setupCursor).filter(record => record.sequence <= initialCall.sequence);
-    if (preSetup.some(record => ['testConnection', 'newConversation', 'sendMessage'].includes(record.method))) {
-      throw stageError('setup-missing', 'chat-attempted-before-setup');
-    }
+    assertNoChatBeforeSetup(observer, chatCursor);
     const keyboardOk = await keyboardCheck(page);
     await (await input(page, 'Named credential')).fill(request.named_credential);
     await (await input(page, 'Model')).fill(request.model);
     const saveCursor = observer.mark();
-    if (observer.records.slice(setupCursor, saveCursor).some(record =>
-      ['testConnection', 'newConversation', 'sendMessage'].includes(record.method))) {
-      throw stageError('setup-missing', 'chat-attempted-before-setup');
-    }
+    assertNoChatBeforeSetup(observer, chatCursor);
     const save = await button(page, 'Save setup');
     await save.focus();
     await page.keyboard.press('Enter');
     const saved = await observer.waitFor('saveSetup', record =>
       record.result.status === 'ready' && record.params.namedCredential === request.named_credential
         && record.params.model === request.model, 60000, saveCursor);
+    const chatStarts = observer.chatRequests.slice(chatCursor).map(call => call.startedAt());
+    if (!Number.isFinite(saved.response_completed_at)
+        || chatStarts.some(start => !Number.isFinite(start) || start <= 0)) {
+      throw stageError('controller', 'controller-proof-missing');
+    }
+    if (chatStarts.some(start => start <= saved.response_completed_at)) {
+      throw stageError('setup-missing', 'chat-attempted-before-setup');
+    }
     await waitSetupStatus(page, 'ready');
     await screenshot(page, request, 'setup-desktop');
-    const connectionCursor = observer.mark();
-    await click(page, 'Test connection');
-    const connection = await observer.waitFor('testConnection', record => record.result.status === 'ok', 120000, connectionCursor);
+    const connection = await testConnection(page, observer);
+    await click(page, 'Setup');
+    const recheckControl = await enabledButton(page, 'Recheck setup');
     const recheckCursor = observer.mark();
-    await click(page, 'Recheck setup');
+    await recheckControl.click({ timeout: 30000 });
     const recheck = await observer.waitFor('getSetup', record => record.result.status === 'ready', 45000, recheckCursor);
     const newCursor = observer.mark();
     await click(page, 'New conversation');
@@ -788,6 +1781,7 @@ async function runStep(request, session, observer) {
     await screenshot(page, request, 'setup-narrow');
     await page.setViewportSize({ width: 1280, height: 900 });
     await observer.settle();
+    observer.assertConnectionAccounted(connection);
     return publicProjection(observer, page, request, { ...common,
       setup_missing_without_chat_attempt: true,
       connection_ok: connection.result.status === 'ok', recheck_ready: recheck.result.status === 'ready',
@@ -805,23 +1799,28 @@ async function runStep(request, session, observer) {
     return publicProjection(observer, page, request, { ...common, seed_record_ids: seeded.result.recordIds });
   }
 
-  const current = await expectConversation(observer, conversationId);
-  const makeMessage = async content => writeMessage(page, observer, conversationId, content);
+  const makeMessage = content => writeMessage(page, observer, conversationId, content);
+  const selectedTarget = { name: request.selected_name, nameUnique: request.selected_name_unique };
+  const verifyProposal = async (target, action) => releaseProposal(await proposalRegion(page, target, action));
+  const confirmProposal = (target, actionId, status, options) => {
+    const turn = observer.records.findLast(record => TURN_METHODS.has(record.method)
+      && record.ui_correlated && record.result.status === 'ready' && record.result.conversationId === conversationId);
+    const action = turn?.result.actions.find(entry => entry.actionId === actionId && entry.status === 'proposed');
+    if (!action) throw stageError(step, 'proposal-mismatch');
+    return performAction(page, observer, target, action, status, { ...options, conversationId });
+  };
   if (step === 'read-tool') {
     const readPrompt = `Find the demo item named ${request.selected_name}, read it, and tell me its Notes__c value exactly.`;
     const read = await makeMessage(readPrompt);
-    const resultProof = findItemResult(read.conversation, request.selected_record_id,
+    const resultProof = findItemResult(read.added, request.selected_record_id,
       request.selected_name, request.note_payload);
     const conversationRegion = await region(page, 'Conversation');
-    const conversationText = await conversationRegion.innerText();
-    const textPresent = conversationText.includes(request.nonce);
     const markupTextSafe = await noUnsafeMarkup(request.note_payload, conversationRegion);
     const persisted = read.conversation.conversationId === conversationId
-      && read.conversation.messages.some(message => message.role === 'assistant' && message.content.includes(request.nonce))
-      && read.conversation.toolCalls.some(call => call.name === 'read_item');
-    const promptExcludedNonce = !read.call.params.message.includes(request.nonce)
-      && !read.call.params.message.includes(request.note_payload);
-    read.call.ui_correlated = resultProof.find && resultProof.read && resultProof.result && textPresent;
+      && read.added.toolCalls.some(call => call.name === 'read_item');
+    const assistantUsedResult = read.added.messages.some(message =>
+      message.role === 'assistant' && message.content.includes(request.nonce));
+    const promptExcludedNonce = !readPrompt.includes(request.nonce) && !readPrompt.includes(request.note_payload);
     const desktopLayoutOk = await checkLayout(page, 1280, 900);
     await screenshot(page, request, 'pending-desktop');
     await page.setViewportSize({ width: 390, height: 844 });
@@ -829,63 +1828,42 @@ async function runStep(request, session, observer) {
     await screenshot(page, request, 'chat-narrow');
     await observer.settle();
     return publicProjection(observer, page, request, { ...common,
+      chat_turn: { step, ...read.proof },
       read_tool_proof: { find_items: resultProof.find, read_item: resultProof.read,
-        result_matches_nonce: resultProof.result, assistant_used_result: textPresent && persisted,
+        result_matches_nonce: resultProof.result, assistant_used_result: assistantUsedResult && persisted,
         conversation_persisted: persisted, prompt_excluded_nonce: promptExcludedNonce,
         unsafe_markup_is_text: markupTextSafe },
       desktop_layout_ok: desktopLayoutOk, narrow_layout_ok: narrowLayoutOk,
-      safe_text_ok: markupTextSafe, conversation_id: current.conversationId,
+      safe_text_ok: markupTextSafe, conversation_id: conversationId,
       provider_calls: session.providerCalls(), screenshots: 2 });
   }
 
   if (step === 'create-proposal') {
     const content = `Create one work item named ${request.create_name}, with Status__c Open and Notes__c ${request.create_notes}. Show the exact proposal and wait for my confirmation.`;
     const sent = await makeMessage(content);
-    const toolProposal = hasToolCall(sent.conversation, 'propose_create_item', args =>
+    const toolProposal = hasToolCall(sent.added, 'propose_create_item', args =>
       exactKeys(args, ['fields']) && isRecord(args.fields)
       && args.fields.Name === request.create_name && args.fields.Status__c === 'Open'
       && args.fields.Notes__c === request.create_notes && Object.keys(args.fields).length === 3);
     if (!toolProposal) throw stageError('create-proposal', 'proposal-mismatch');
-    const action = findAction(sent.conversation, 'create', entry => entry.recordId === null
+    const action = findAction(sent.added, 'create', entry => entry.recordId === null
+      && Object.keys(entry.oldValues).length === 0
       && entry.newValues.Name === request.create_name && entry.newValues.Status__c === 'Open'
       && entry.newValues.Notes__c === request.create_notes && Object.keys(entry.newValues).length === 3);
     if (!action) throw stageError('create-proposal', 'proposal-mismatch');
-    const proposed = await proposalRegion(page, request.create_name);
-    const visible = await proposed.innerText();
-    if (!/\bcreate\b/i.test(visible) || !visible.includes(request.create_name)
-        || !visible.includes(request.create_notes) || !visible.includes('Open')) {
-      throw stageError('create-proposal', 'proposal-mismatch');
-    }
-    sent.call.ui_correlated = true;
+    await verifyProposal({ name: request.create_name }, action);
     await page.setViewportSize({ width: 1280, height: 900 });
     await screenshot(page, request, 'pending-desktop');
     await observer.settle();
     return publicProjection(observer, page, request, { ...common,
+      chat_turn: { step, ...sent.proof, proposal_action_id: action.actionId },
       proposal_exact: true, action_id: action.actionId, conversation_id: conversationId,
       provider_calls: session.providerCalls() });
   }
 
   if (step === 'create-confirm') {
-    const proposal = await proposalRegion(page, request.create_name);
-    if (!proposal) throw stageError(step, 'proposal-missing');
-    const confirmCursor = observer.mark();
-    const confirm = proposal.getByRole('button', { name: 'Confirm', exact: true });
-    await confirm.first().waitFor({ state: 'visible' });
-    // Retry through the public button. A disabled/removed control proves that the UI
-    // prevented the duplicate; an enabled control may deliver a second request.
-    await confirm.first().click();
-    let duplicateAttempted = true;
-    try {
-      await confirm.first().click({ timeout: 1500 });
-    } catch (_) {
-      const remainsAvailable = await confirm.first().isVisible().catch(() => false)
-        && await confirm.first().isEnabled().catch(() => false);
-      if (remainsAvailable) throw stageError(step, 'ui-control-missing');
-    }
-    const applied = await observer.waitFor('confirmAction', record =>
-      record.params.actionId === request.create_action_id && record.result.status === 'applied', 90000, confirmCursor);
-    applied.ui_correlated = true;
-    await actionStatus(page, 'applied');
+    const confirmation = await confirmProposal({ name: request.create_name }, request.create_action_id,
+      'applied', { retry: true });
     const reloadCursor = observer.mark();
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
     await region(page, 'Conversation');
@@ -894,16 +1872,9 @@ async function runStep(request, session, observer) {
     const actionAfterReload = reopened.actions.find(action => action.actionId === request.create_action_id);
     const statusPersisted = actionAfterReload && actionAfterReload.status === 'applied';
     await observer.settle();
-    const confirmCalls = observer.records.slice(confirmCursor).filter(record => record.method === 'confirmAction'
-      && record.params.actionId === request.create_action_id && record.response_state === 'SUCCESS');
-    for (const record of confirmCalls) record.ui_correlated = true;
-    const duplicateSafe = duplicateAttempted
-      && (confirmCalls.length === 1 || confirmCalls.length === 2)
-      && confirmCalls.every(record => ['applied', 'rejected'].includes(record.result.status));
-    await observer.settle();
     return publicProjection(observer, page, request, { ...common,
-      one_write: applied.result.status === 'applied', duplicate_safe: duplicateSafe,
-      duplicate_attempted: duplicateAttempted, duplicate_delivery_count: confirmCalls.length,
+      one_write: confirmation.first.result.status === 'applied', duplicate_safe: true,
+      duplicate_attempted: true, duplicate_delivery_count: confirmation.count,
       reload_history_persisted: statusPersisted, action_id: request.create_action_id,
       conversation_id: conversationId, provider_calls: session.providerCalls() });
   }
@@ -911,64 +1882,48 @@ async function runStep(request, session, observer) {
   if (step === 'update-proposal') {
     const content = `Update the demo item named ${request.selected_name} so Status__c is Done. Leave all other fields unchanged and wait for confirmation.`;
     const sent = await makeMessage(content);
-    const toolProposal = hasToolCall(sent.conversation, 'propose_update_item', args =>
+    const toolProposal = hasToolCall(sent.added, 'propose_update_item', args =>
       exactKeys(args, ['recordId', 'fields']) && args.recordId === request.selected_record_id
       && exactKeys(args.fields, ['Status__c']) && args.fields.Status__c === 'Done');
     if (!toolProposal) throw stageError(step, 'proposal-mismatch');
-    const action = findAction(sent.conversation, 'update', entry => entry.recordId === request.selected_record_id
+    const action = findAction(sent.added, 'update', entry => entry.recordId === request.selected_record_id
       && Object.keys(entry.newValues).length === 1 && entry.newValues.Status__c === 'Done'
       && entry.oldValues.Status__c === 'Open');
     if (!action) throw stageError(step, 'proposal-mismatch');
-    const proposed = await proposalRegion(page, request.selected_name);
-    const visible = await proposed.innerText();
-    if (!/\bupdate\b/i.test(visible) || !visible.includes('Open') || !visible.includes('Done')) {
-      throw stageError(step, 'proposal-mismatch');
-    }
-    sent.call.ui_correlated = true;
+    await verifyProposal(selectedTarget, action);
     return publicProjection(observer, page, request, { ...common, proposal_exact: true,
+      chat_turn: { step, ...sent.proof, proposal_action_id: action.actionId },
       action_id: action.actionId, conversation_id: conversationId, provider_calls: session.providerCalls() });
   }
 
   if (step === 'update-confirm') {
-    const proposed = await proposalRegion(page, request.selected_name);
-    const cursor = observer.mark();
-    await proposed.getByRole('button', { name: 'Confirm', exact: true }).click();
-    const applied = await observer.waitFor('confirmAction', record =>
-      record.params.actionId === request.update_action_id && record.result.status === 'applied', 90000, cursor);
-    applied.ui_correlated = true;
-    await actionStatus(page, 'applied');
-    return publicProjection(observer, page, request, { ...common, one_write: applied.result.status === 'applied',
+    const { first } = await confirmProposal(selectedTarget, request.update_action_id, 'applied');
+    return publicProjection(observer, page, request, { ...common, one_write: first.result.status === 'applied',
       action_id: request.update_action_id, conversation_id: conversationId, provider_calls: session.providerCalls() });
   }
 
   if (step === 'cancel-proposal') {
     const content = `Create one work item named ${request.cancel_name}, with Status__c Open and Notes__c ${request.cancel_notes}. Wait for confirmation.`;
     const sent = await makeMessage(content);
-    const toolProposal = hasToolCall(sent.conversation, 'propose_create_item', args =>
+    const toolProposal = hasToolCall(sent.added, 'propose_create_item', args =>
       exactKeys(args, ['fields']) && isRecord(args.fields)
       && args.fields.Name === request.cancel_name && args.fields.Status__c === 'Open'
       && args.fields.Notes__c === request.cancel_notes && Object.keys(args.fields).length === 3);
     if (!toolProposal) throw stageError(step, 'proposal-mismatch');
-    const action = findAction(sent.conversation, 'create', entry => entry.recordId === null
+    const action = findAction(sent.added, 'create', entry => entry.recordId === null
+      && Object.keys(entry.oldValues).length === 0
       && entry.newValues.Name === request.cancel_name && entry.newValues.Status__c === 'Open'
       && entry.newValues.Notes__c === request.cancel_notes && Object.keys(entry.newValues).length === 3);
     if (!action) throw stageError(step, 'proposal-mismatch');
-    const proposed = await proposalRegion(page, request.cancel_name);
-    const visible = await proposed.innerText();
-    if (!visible.includes(request.cancel_notes) || !visible.includes('Open')) throw stageError(step, 'proposal-mismatch');
-    sent.call.ui_correlated = true;
+    await verifyProposal({ name: request.cancel_name }, action);
     return publicProjection(observer, page, request, { ...common, proposal_exact: true,
+      chat_turn: { step, ...sent.proof, proposal_action_id: action.actionId },
       action_id: action.actionId, conversation_id: conversationId, provider_calls: session.providerCalls() });
   }
 
   if (step === 'cancel-confirm') {
-    const proposed = await proposalRegion(page, request.cancel_name);
-    const cursor = observer.mark();
-    await proposed.getByRole('button', { name: 'Cancel', exact: true }).click();
-    const cancelled = await observer.waitFor('cancelAction', record =>
-      record.params.actionId === request.cancel_action_id && record.result.status === 'cancelled', 90000, cursor);
-    cancelled.ui_correlated = true;
-    await actionStatus(page, 'cancelled');
+    const { first: cancelled } = await confirmProposal({ name: request.cancel_name },
+      request.cancel_action_id, 'cancelled');
     const reloadCursor = observer.mark();
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
     await region(page, 'Conversation');
@@ -984,32 +1939,23 @@ async function runStep(request, session, observer) {
   if (step === 'stale-proposal') {
     const content = `Update the demo item named ${request.selected_name} Notes__c to ${request.stale_notes}. Do not change any other field and wait for confirmation.`;
     const sent = await makeMessage(content);
-    const toolProposal = hasToolCall(sent.conversation, 'propose_update_item', args =>
+    const toolProposal = hasToolCall(sent.added, 'propose_update_item', args =>
       exactKeys(args, ['recordId', 'fields']) && args.recordId === request.selected_record_id
       && exactKeys(args.fields, ['Notes__c']) && args.fields.Notes__c === request.stale_notes);
     if (!toolProposal) throw stageError(step, 'proposal-mismatch');
-    const action = findAction(sent.conversation, 'update', entry => entry.recordId === request.selected_record_id
+    const action = findAction(sent.added, 'update', entry => entry.recordId === request.selected_record_id
       && Object.keys(entry.newValues).length === 1 && entry.newValues.Notes__c === request.stale_notes
       && entry.oldValues.Notes__c === request.note_payload);
     if (!action) throw stageError(step, 'proposal-mismatch');
-    const proposed = await proposalRegion(page, request.selected_name);
-    const visible = await proposed.innerText();
-    if (!visible.includes(request.nonce) || !visible.includes(request.stale_notes)) {
-      throw stageError(step, 'proposal-mismatch');
-    }
-    sent.call.ui_correlated = true;
+    await verifyProposal(selectedTarget, action);
     return publicProjection(observer, page, request, { ...common, proposal_exact: true,
+      chat_turn: { step, ...sent.proof, proposal_action_id: action.actionId },
       action_id: action.actionId, conversation_id: conversationId, provider_calls: session.providerCalls() });
   }
 
   if (step === 'stale-confirm') {
-    const proposed = await proposalRegion(page, request.selected_name);
-    const cursor = observer.mark();
-    await proposed.getByRole('button', { name: 'Confirm', exact: true }).click();
-    const stale = await observer.waitFor('confirmAction', record =>
-      record.params.actionId === request.stale_action_id && record.result.status === 'stale', 90000, cursor);
-    stale.ui_correlated = true;
-    await actionStatus(page, 'stale');
+    const { first: stale } = await confirmProposal(selectedTarget,
+      request.stale_action_id, 'stale');
     const reloadCursor = observer.mark();
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
     await region(page, 'Conversation');
@@ -1072,6 +2018,10 @@ function validateRequest(request) {
   if (requiredByStep.some(key => request[key] === undefined || request[key] === null)) {
     throw stageError('browser', 'invalid-options');
   }
+  if (/^(?:update|stale)-(?:proposal|confirm)$/.test(request.step)
+      && typeof request.selected_name_unique !== 'boolean') {
+    throw stageError('browser', 'invalid-options');
+  }
   if (request.step === 'setup' && (request.named_credential !== NAMED_CREDENTIAL || request.model !== MODEL)) {
     throw stageError('browser', 'invalid-options');
   }
@@ -1116,16 +2066,16 @@ async function main() {
         request = validateRequest(parsed);
         if (!session) {
           if (request.step !== 'attempt') throw stageError('browser', 'invalid-options');
-          observer = new ApexObserver(null, request.expected_lightning_host);
+          observer = new ApexObserver(null, request.expected_lightning_host, { trackSplit: request.mode === 'run' });
           stage = 'route';
           session = await createSession(request, observer);
           session.uiAttemptedFirst = true;
           session.binding = {
-            phase: request.phase, source_head: request.source_head,
+            mode: request.mode, phase: request.phase, source_head: request.source_head,
             candidate_metadata_sha256: request.candidate_metadata_sha256,
             expected_lightning_host: request.expected_lightning_host,
           };
-        } else if (session.binding.phase !== request.phase
+        } else if (session.binding.mode !== request.mode || session.binding.phase !== request.phase
             || session.binding.source_head !== request.source_head
             || session.binding.candidate_metadata_sha256 !== request.candidate_metadata_sha256
             || session.binding.expected_lightning_host !== request.expected_lightning_host) {
@@ -1151,6 +2101,9 @@ async function main() {
         }
         if (session.providerCalls() > 0) throw stageError('controller', 'browser-provider-call');
         await observer.settle();
+        if (request.mode === 'run' && !['attempt', 'authenticate'].includes(request.step)) {
+          observer.assertTurnsAccounted();
+        }
         process.stdout.write(JSON.stringify({ ...result, ipc_id: request.ipc_id }) + '\n');
       } catch (error) {
         process.stdout.write(JSON.stringify({
@@ -1210,6 +2163,8 @@ async function inspectFixture(url, viewport = { width: 1280, height: 900 }) {
 module.exports = {
   METHODS, SAFE_STAGES, SAFE_REASONS, decodeAura, parseAuraRequest, pairAuraActions, parseOnceJsonString,
   normalizeResult, normalizeConversation, ApexObserver, validateRequest, inspectFixture,
+  chatAttempts, assertNoChatBeforeSetup, click, enabledButton, runStep, matchTurn, writeMessage, performAction,
+  serverRequestId, testConnection,
 };
 
 if (require.main === module) main();

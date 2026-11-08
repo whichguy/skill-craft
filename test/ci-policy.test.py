@@ -131,7 +131,7 @@ class CIPolicyTests(unittest.TestCase):
         self.assertIn("fromJSON(needs.plan.outputs.groups)", workflow)
         self.assertIn("python-version: '3.x'", workflow)
         self.assertIn("node-version: 'latest'", workflow)
-        self.assertEqual(workflow.count("check-latest: true"), 5)
+        self.assertEqual(workflow.count("check-latest: true"), 6)
         # CI runs on the latest runner image. The one pin is the python-floor leg, which exists to run the oldest Python
         # ShipLoop declares and setup-python has no build of it for ubuntu-latest.
         self.assertEqual(workflow.count("ubuntu-24.04"), 1)
@@ -164,15 +164,75 @@ class CIPolicyTests(unittest.TestCase):
     def test_actual_aggregate_commands_reject_every_incomplete_job_state(self):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         gate = workflow.split("\n  hermetic:\n", 1)[1]
-        self.assertIn("needs: [plan, checks, release-boundary]", gate)
+        self.assertIn("needs: [plan, checks, browser-fixtures, release-boundary]", gate)
         self.assertIn("if: ${{ always() }}", gate)
         commands = "\n".join(line[10:] for line in gate.split("        run: |\n", 1)[1].splitlines())
         summary = self.root / "summary"
-        for plan, checks, boundary in itertools.product(("success", "failure", "cancelled", "skipped", ""), repeat=3):
-            env = dict(os.environ, PLAN_RESULT=plan, CHECKS_RESULT=checks, BOUNDARY_RESULT=boundary, TIER="full",
+        for plan, checks, browser, boundary in itertools.product(("success", "failure", "cancelled", "skipped", ""), repeat=4):
+            env = dict(os.environ, PLAN_RESULT=plan, CHECKS_RESULT=checks, BROWSER_RESULT=browser, BOUNDARY_RESULT=boundary, TIER="full",
                        SOURCE_SHA=self.base, GITHUB_STEP_SUMMARY=str(summary))
             result = subprocess.run(["bash", "-c", commands], env=env)
-            self.assertEqual(result.returncode == 0, plan == checks == boundary == "success", (plan, checks, boundary))
+            self.assertEqual(result.returncode == 0, plan == checks == browser == boundary == "success",
+                             (plan, checks, browser, boundary))
+
+    def test_browser_fixtures_use_recorded_source_and_retain_real_chrome_evidence(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        job = workflow.split("\n  browser-fixtures:\n", 1)[1].split("\n  release-boundary:\n", 1)[0]
+        self.assertIn("ref: ${{ needs.plan.outputs.source_sha }}", job)
+        self.assertIn('export BROWSER_EXECUTABLE_PATH="$(command -v google-chrome)"', job)
+        self.assertIn("--ignore-scripts playwright@latest", job)
+        for name in ("delayed-setup", "setup-save-boundary", "turn-and-action-correlation"):
+            self.assertIn(f"node test/fixtures/grok-chat-full-ui/{name}.cjs", job)
+            self.assertIn(f'browser-fixtures/{name}.log"', job)
+        self.assertIn('ci_policy.py guard --expected-sha "$EXPECTED_SHA"', job)
+        self.assertIn("name: browser-fixtures", job)
+        self.assertIn("if-no-files-found: error", job)
+        self.assertNotIn("continue-on-error", job)
+
+    def test_browser_pipeline_propagates_failures_and_retains_each_log(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        job = workflow.split("\n  browser-fixtures:\n", 1)[1].split("\n  release-boundary:\n", 1)[0]
+        # Execute the actual step bodies with controlled commands. Implicit
+        # Actions bash uses -e only: a successful tee can hide a failed fixture.
+        steps = {}
+        for name in ("Prepare browser fixture runtime", "Rendered UI evidence regressions"):
+            step = job.split("      - name: " + name + "\n", 1)[1].split("\n      - name:", 1)[0]
+            body = step.split("        run: |\n", 1)[1]
+            commands = "\n".join(line[10:] for line in body.splitlines() if line.startswith("          "))
+            shell = (["bash", "--noprofile", "--norc", "-eo", "pipefail"]
+                     if "        shell: bash\n" in step else ["bash", "-e"])
+            steps[name] = (shell, commands)
+        self.assertIn("if: ${{ always() }}", job.split("name: Retain browser fixture evidence", 1)[1])
+        binary = self.root / "bin"
+        binary.mkdir()
+        scripts = {
+            "npm": 'printf "install output\\n"\n[ "$PIPELINE_FAILURE" != install ]',
+            "google-chrome": 'printf "chrome output\\n"\n[ "$PIPELINE_FAILURE" != chrome ]',
+            "node": 'printf "node output %s\\n" "$1"\n[ "$PIPELINE_FAILURE" != "$1" ]',
+        }
+        for name, body in scripts.items():
+            path = binary / name
+            path.write_text("#!/bin/sh\n" + body + "\n")
+            path.chmod(0o700)
+        prepare = "Prepare browser fixture runtime"
+        render = "Rendered UI evidence regressions"
+        cases = [(prepare, "install", "install.log"), (prepare, "chrome", "chrome-version.log")]
+        cases.extend((render, "test/fixtures/grok-chat-full-ui/" + name + ".cjs", name + ".log")
+                     for name in ("delayed-setup", "setup-save-boundary", "turn-and-action-correlation"))
+        cases.extend(((prepare, "", "chrome-version.log"), (render, "", "turn-and-action-correlation.log")))
+        for index, (name, failure, log) in enumerate(cases):
+            with self.subTest(step=name, failed_command=failure or "none"):
+                runtime = self.root / ("runtime-" + str(index))
+                logs = runtime / "browser-fixtures"
+                logs.mkdir(parents=True)
+                env = dict(os.environ, PATH=str(binary) + os.pathsep + os.environ["PATH"],
+                           RUNNER_TEMP=str(runtime), PIPELINE_FAILURE=failure,
+                           PLAYWRIGHT_MODULE_PATH=str(runtime / "unused-module"))
+                shell, commands = steps[name]
+                result = subprocess.run([*shell, "-c", commands], cwd=self.root, env=env,
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode != 0, bool(failure), result.stdout + result.stderr)
+                self.assertIn("output", (logs / log).read_text())
 
     def test_plan_cli_records_actual_checkout_and_rejects_wrong_candidate(self):
         event = self.root / "event.json"
