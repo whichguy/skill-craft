@@ -8373,3 +8373,81 @@ comparative prompt/model gain or full frozen-contract conformance claim.
 Post-pilot apparatus follow-up: `177c063b47746a1eae825ba5e81daf3663708731` implements
 the calibrated fixture-name and capture repairs separately from this frozen result.
 The original baseline row and raw files are unchanged. Judged discovery record IDs: `LR-20261105-884ad2`, `LR-20261108-f03c2c`, `LR-20261031-382fba`, `LR-20261108-72fe16`.
+
+
+## 2026-11-08 — Roundtable tasks: original continuation and targeted observation gaps
+
+The third rung continued the untouched rooms delivery at
+`f34cc9ccf65785e3873d371bb09d1f0808a612d0` under frozen harness
+`5798e7e12363ee55fe8f7abe8eea25e63e4b2bac` and plugin `08c0c1e34a47`.
+Its request adds visible agent tasks without another style hint or prior-review
+feedback. Actual subject turn context records Sol6.1/high; independent visual
+judgments request Astra/high for this campaign only, with no served attestation.
+
+- **Observed:** one session, no resume, exit0; ShipLoop done at revision38.
+  Original delivery HEAD `966d49d9e5ca0f70a6d9e9df61ede873439ad625`, tree
+  `e8ea24a51304c85231fd72209cd9cdecf537e794`, is clean. Four public request/retention
+  checks pass. Independent Chrome157 observes61 conversation,43 rooms and57 task
+  assertions, all complete/pass/source unchanged, with25 captures. Product checks
+  retain31 native cases and5 composed browser scenarios. Cancellation/retry/history,
+  result close-focus and draft preservation, background origin/unread and current
+  room focus are exercised; this is finite scenario evidence, not all schedules.
+- **Design continuity:** AD-2 is unchanged from rooms; AD-10 explicitly extends
+  AD-2/6 with tonal task cards and stable inline results, and the selected UI
+  criterion names AD-10 with rendered width/theme/focus checks. Astra finds no
+  material visual blocker. Explicit state words, supporting copy and native actions
+  retain the conversation/composer hierarchy. Concrete documents and references
+  are usable for future work, but existing source also carries continuity; no AD
+  consumption or causal dependence is established.
+- **Lesser refinements:** repeated roomy task cards increasingly dominate the
+  transcript; small metadata, tall mobile header, redundant Open/Close controls
+  and a weakly distinguished Next steps title remain. AD-10's strong-title wording
+  overstates the uniformly styled result paragraph. Current environment facts
+  improved, but historical state/count statements and Superseded=None still need
+  reconciliation. Preserve the original; these observations do not justify an
+  unmeasured generic prompt rewrite or an additional feature rung.
+- **Capture gap and prospective repair:** original result-narrow.png does not
+  expose the open result text. Parent inspection and fresh Astra agree this is
+  missing visual evidence, not proof of broken scrolling. A prospective observer
+  scrolls the already-open result into view after resizing and records its visible
+  state. Separate exact-source-copy observations pass44 room assertions on each
+  of the two continuations and58 task assertions, with unchanged original/copy
+  digests. Fresh Astra supplementary judgment sees readable result text/Close at390
+  and non-overlapping single-digit unread badges at320/1440. This qualifies the
+  captured scrolled-reading and badge states only: no automatic resize repositioning,
+  larger unread counts, closed-menu discovery or physical-device claim.
+- **Exposure accounting:** original held_out_seen remains136. Generic server and
+  reference stems occur on117/65 event lines, union136; distinctive markers occur
+  on zero. Keep this lexical observation and the same limitations as earlier rungs;
+  do not turn it into private-read evidence or retroactively regrade it.
+
+- **Workflow review:** fresh Sol/high review and Astra/high judgment are valid,
+  discovery-qualified and source-preserving. All four discoveries are supported.
+  Two are implementation-eligible leads: exact receipt-bound continuation commands
+  (ten authored wrappers observed) and interruption cleanup in the existing owned
+  command runner. Eligibility is not qualification or an accepted production change.
+  The model itself initiated the interruption; final cleanup reports no survivors,
+  and existing timeout cleanup was not shown to fail. Preserve neutral isolation,
+  output-preservation and registered comparison work as separate follow-ups. The UI
+  campaign introduces neither runtime fix nor claimed savings. The S-7/S-10 policy
+  conflict keeps its existing owner route; complete output measures54,383 bytes and
+ 54,327 characters, so byte and character counts must not be conflated. Exposure
+  accounting keeps its harness-investigation route. Original review SHA256 is
+  `704acc8d3189280c393a26b0fe8216685ed5e5e936d3119611f31e302f9336e8`.
+
+
+Evidence root is the same external campaign directory as the preceding entries.
+See live-manifest-04.json; live-roundtable-agent-work-01/result.json;
+live-roundtable-agent-work-01-delivery-audit.json; agent-work-design-reference-01.json;
+heldout-marker-audit-03.json; agent-work-role-routing-observed-01.json;
+live-roundtable-agent-work-01/review-campaign.json and review-judge-campaign/verdict.json; astra-visual-roundtable-agent-work-01/answer.md;
+astra-visual-supplementary-01/answer.md; supplementary-live-roundtable-rooms-01-rooms-01,
+supplementary-live-roundtable-agent-work-01-rooms-01 and
+supplementary-live-roundtable-agent-work-01-agent-work-01/receipt.json.
+All frozen outputs remain historical. This one-sample original chain establishes
+neither prompt/model improvement nor full frozen-contract conformance. Keep raw
+products/profiles/screenshots/transcripts outside the reusable skill/repository.
+
+Post-pilot apparatus follow-up: `177c063b47746a1eae825ba5e81daf3663708731` implements
+the calibrated fixture-name and capture repairs separately from this frozen result.
+The original baseline row and raw files are unchanged. Judged discovery record IDs: `LR-20261108-4bc6cb`, `LR-20261108-15e9e9`, `LR-20261031-382fba`, `LR-20261031-b5d300`.
