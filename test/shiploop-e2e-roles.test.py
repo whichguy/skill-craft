@@ -28,11 +28,10 @@ class RoleDefaultsTest(unittest.TestCase):
     def test_role_profiles_and_independent_overrides(self):
         self.assertEqual(hosts.RUN_DEFAULT_HOST, "codex")
         expected = {
-            "subject": {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"},
-            "reviewer": {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"},
-            "judge": {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"},
-            "improver": {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"},
+            role: {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"}
+            for role in ("subject", "reviewer", "judge", "improver")
         }
+        self.assertEqual(hosts.ROLE_DEFAULTS, expected)
         for role, profile in expected.items():
             with self.subTest(role=role):
                 self.assertEqual(hosts.resolve_role(role), profile)
@@ -79,7 +78,35 @@ class RoleDefaultsTest(unittest.TestCase):
                                  permission_mode=args.permission_mode, max_turns=args.max_turns)
         self.assertEqual(argv[0:2], ["fake-codex", "exec"])
         self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.1-sol")
-        self.assertIn('model_reasoning_effort=high', argv)
+        self.assertIn("model_reasoning_effort=high", argv)
+        self.assertIn('agents.default_subagent_model="gpt-6.1-sol"', argv)
+        self.assertIn("agents.default_subagent_reasoning_effort=high", argv)
+
+    def test_codex_resume_sets_child_defaults_from_the_saved_or_overridden_identity(self):
+        recorded = {"host": "codex", "model": "gpt-6.1-terra", "effort": "xhigh"}
+        resume = ["--resume-run", "/recorded/run"]
+        examples = (
+            ([], "gpt-6.1-terra", "xhigh"),
+            (["--model", "gpt-6-astra", "--effort", "medium"], "gpt-6-astra", "medium"),
+        )
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for overrides, expected_model, expected_effort in examples:
+                with self.subTest(overrides=overrides):
+                    flags = [*resume, *overrides]
+                    args = run.parser().parse_args(flags)
+                    args.host, args.model, args.effort = run.resume_identity(args, run.host_given(flags), recorded, root)
+                    args.codex_bin = "fake-codex"
+                    selected = run.the_host(args)
+                    argv = selected.argv(prompt="continue", prompt_file=root / "prompt.txt", cwd=root,
+                                         model=args.model or selected.model, effort=args.effort or selected.effort,
+                                         permission_mode=args.permission_mode, max_turns=args.max_turns, resume="thread-1")
+                    self.assertEqual(argv[-3:], ["resume", "thread-1", "continue"])
+                    options = argv[:argv.index("resume")]
+                    self.assertEqual(options[options.index("-m") + 1], expected_model)
+                    self.assertIn(f"model_reasoning_effort={expected_effort}", options)
+                    self.assertIn(f'agents.default_subagent_model="{expected_model}"', options)
+                    self.assertIn(f"agents.default_subagent_reasoning_effort={expected_effort}", options)
 
     def test_explicit_claude_routes_and_recorded_resume_identity_survive_new_defaults(self):
         default_claude = run.the_host(run.parser().parse_args(["--host", "claude"]))

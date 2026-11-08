@@ -64,6 +64,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parents[1] / "skills/shiploop/scripts"))
 sys.path.insert(0, str(HERE))
 import metrics  # noqa: E402
+from packet_framing import HEAD_END, HEAD_END_LINE, HEAD_END_UNTIL_R4  # noqa: E402
 import packets  # noqa: E402
 import run_trace  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
@@ -86,12 +87,6 @@ SCRIPT_DEF = re.compile(r"cat\s+>\s*(\S+\.sh)\s+<<|(\w+)\(\)\s*\{")
 TRIVIAL = re.compile(r'\\?"classification\\?"\s*:\s*\\?"trivial')
 REVIEW_FILE = re.compile(r"cat\s+>\s*\S*reviews/review-\d+\.md\s+<<")
 STATUS_END = "=== end ShipLoop status ==="
-# The closing line of every print since R4 of the run-5 batch (2026-10-24); from 2026-10-16 to then it was HEAD_END_UNTIL_R4,
-# and older heads end at the status block.
-HEAD_END = "=== end ShipLoop print ==="
-HEAD_END_UNTIL_R4 = "=== end ShipLoop head ==="
-# Either name, as a line: the packet's second pointer line names it inside a sentence, near the top of every print, cut or not.
-HEAD_END_LINE = re.compile(r"^(?:" + re.escape(HEAD_END) + "|" + re.escape(HEAD_END_UNTIL_R4) + r")$", re.M)
 CALL_LIMIT, RESULT_LIMIT, TEXT_LIMIT = 6000, 6000, 4000
 
 

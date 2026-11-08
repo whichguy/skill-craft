@@ -59,13 +59,6 @@ RUN_DEFAULT_HOST = "codex"
 CODEX_DEFAULT_MODEL = "gpt-6.1-sol"
 CODEX_DEFAULT_EFFORT = "high"
 
-ROLE_DEFAULTS = {
-    "subject": {"host": RUN_DEFAULT_HOST, "model": CODEX_DEFAULT_MODEL, "effort": CODEX_DEFAULT_EFFORT},
-    "reviewer": {"host": "codex", "model": CODEX_DEFAULT_MODEL, "effort": CODEX_DEFAULT_EFFORT},
-    "judge": {"host": "codex", "model": CODEX_DEFAULT_MODEL, "effort": CODEX_DEFAULT_EFFORT},
-    "improver": {"host": "codex", "model": CODEX_DEFAULT_MODEL, "effort": CODEX_DEFAULT_EFFORT},
-}
-
 
 def resolve_role(name: str, overrides: dict | None = None) -> dict:
     """Return a role's host/model/effort, applying explicit overrides.
@@ -451,9 +444,11 @@ class CodexHost(Host):
         prompt_file.write_text(prompt)
         argv = [self.binary, "exec", "--json", "-m", model, "--skip-git-repo-check",
                 "-s", "danger-full-access", "-c", 'approval_policy="never"',
-                "--dangerously-bypass-hook-trust", "-C", str(cwd)]
+                "--dangerously-bypass-hook-trust", "-C", str(cwd),
+                # Keep default native workers on this launch's resolved model, including explicit overrides and resumes.
+                "-c", f"agents.default_subagent_model={json.dumps(model)}"]
         if effort:
-            argv += ["-c", f"model_reasoning_effort={effort}"]
+            argv += ["-c", f"model_reasoning_effort={effort}", "-c", f"agents.default_subagent_reasoning_effort={effort}"]
         return argv + (["resume", resume, prompt] if resume else [prompt])
 
     def install_marketplace(self, env, source=MARKETPLACE_SOURCE):
@@ -591,6 +586,10 @@ class CodexTranslator:
 
 HOSTS: dict[str, type] = {"grok": GrokHost, "claude": ClaudeHost, "codex": CodexHost}
 HOST_DEFAULTS = {name: {"model": cls.model, "effort": cls.effort} for name, cls in HOSTS.items()}
+ROLE_DEFAULTS = {
+    role: {"host": name, **HOST_DEFAULTS[name]}
+    for role, name in (("subject", RUN_DEFAULT_HOST), ("reviewer", "codex"), ("judge", "codex"), ("improver", "codex"))
+}
 
 
 def host(name: str, binary: str | None = None, backend: str | None = None) -> Host:

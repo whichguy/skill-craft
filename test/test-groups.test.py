@@ -25,6 +25,8 @@ import ci_policy  # noqa: E402
 import run_suites  # noqa: E402
 import suite_catalog  # noqa: E402
 
+E2E_SPLIT = {"shiploop-e2e-analysis", "shiploop-e2e-hosts", "shiploop-e2e-resources"}
+
 
 class TestGroupTests(unittest.TestCase):
     def invoke_root(self, root: Path, *args: str, env: dict[str, str] | None = None,
@@ -37,7 +39,7 @@ class TestGroupTests(unittest.TestCase):
     def _copy_runner(self, root: Path) -> None:
         test = root / "test"
         test.mkdir(parents=True)
-        for name in ("suite_catalog.py", "run_suites.py", "run-all.sh"):
+        for name in ("suite_catalog.py", "suite_durations.json", "run_suites.py", "run-all.sh"):
             shutil.copyfile(TEST_DIR / name, test / name)
         (test / "run-all.sh").chmod(0o755)
 
@@ -122,10 +124,12 @@ class TestGroupTests(unittest.TestCase):
         # and backchain-toolkit (its command line), then the native setup pilot (2026-11-07).
         # Registered predecessors, their runner wiring and intent lifecycle calibration add three (2026-11-02).
         # The corpus summariser adds one (2026-11-03), so a figure can be re-derived by the code that produced it.
-        # Grok chat adds one opt-in scenario adapter suite (2026-11-06); Roundtable adds one (2026-11-07).
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 132)
+        # Grok chat adds one opt-in scenario adapter suite (2026-11-06).
+        # Splitting the aggregate adds two; the full Grok case adds four suites (2026-11-07).
+        # Roundtable adds one opt-in calibration suite (2026-11-07).
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 138)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 56)
-        self.assertEqual(len(suite_catalog.SUITES), 190)
+        self.assertEqual(len(suite_catalog.SUITES), 196)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -274,17 +278,71 @@ class TestGroupTests(unittest.TestCase):
                 self.assertEqual(after, before)
                 self.assertGreaterEqual(after, set(suite_catalog._HUB_SUITE_IDS))
 
-    def test_quick_never_runs_heavy_suites_or_the_apparatus(self) -> None:
+    def test_quick_preserves_the_full_only_policy(self) -> None:
         everything = tuple(suite.path for suite in suite_catalog.SUITES)
         selected = suite_catalog.quick(everything)
         self.assertTrue(selected)
         for suite in selected:
             self.assertNotEqual(suite.id, "shiploop-e2e-apparatus")
-            self.assertLessEqual(suite_catalog._DURATION_SECONDS.get(suite.path, 0.0),
-                                 suite_catalog.QUICK_MAX_SECONDS, suite.id)
+            self.assertNotIn(suite.id, suite_catalog._FULL_ONLY_IDS)
         ids = {suite.id for suite in selected}
         self.assertFalse({name for name in ids if "shiploop-chain" in name})
         self.assertIn("shiploop-mock-replay", ids)
+
+    def test_full_only_membership_is_explicit_and_independent_of_timings(self) -> None:
+        self.assertEqual(suite_catalog._FULL_ONLY_IDS, {
+            "plan-dispatcher-mutants", "shiploop-full-runtime", "shiploop-workspace",
+            "shiploop-e2e-test-adequacy", "shiploop-e2e-ticket-sla", "shiploop-e2e-user-directory",
+            "shiploop-e2e-apparatus",
+        })
+        paths = [suite.path for suite in suite_catalog.SUITES]
+        before = suite_catalog.quick(paths)
+        with mock.patch.dict(suite_catalog._DURATION_SECONDS, {"test/shiploop-privacy.test.py": 999.0}):
+            self.assertEqual(suite_catalog.quick(paths), before)
+            with self.assertRaisesRegex(ValueError, "explicit coverage decision: shiploop-privacy"):
+                suite_catalog.validate_catalog()
+        with mock.patch.dict(suite_catalog._DURATION_SECONDS, {"test/shiploop-workspace.test.py": 1.0}):
+            self.assertEqual(suite_catalog.quick(paths), before)
+
+    def test_shiploop_costs_are_required_and_finite(self) -> None:
+        path = "test/shiploop-privacy.test.py"
+        without = {key: value for key, value in suite_catalog._DURATION_SECONDS.items() if key != path}
+        with mock.patch.object(suite_catalog, "_DURATION_SECONDS", without):
+            with self.assertRaisesRegex(ValueError, "explicit scheduling costs"):
+                suite_catalog.validate_catalog()
+        for value in (float("inf"), float("nan"), -1.0):
+            with self.subTest(value=value), mock.patch.dict(suite_catalog._DURATION_SECONDS, {path: value}):
+                with self.assertRaisesRegex(ValueError, "finite non-negative"):
+                    suite_catalog.validate_catalog()
+
+    def test_split_components_count_as_one_consumer_at_the_hub_boundary(self) -> None:
+        token = "synthetic_shared_module"
+        path = f"test/{token}.py"
+        split = {identifier: f"import {token}" for identifier in E2E_SPLIT}
+        six = {f"fake-consumer-{index}": f"import {token}" for index in range(6)}
+        with mock.patch.object(suite_catalog, "_suite_sources", return_value={**split, **six}):
+            self.assertEqual(suite_catalog.targeted([path]), {*split, *six})
+        eight = {f"fake-consumer-{index}": f"import {token}" for index in range(8)}
+        with mock.patch.object(suite_catalog, "_suite_sources", return_value={**split, **eight}):
+            self.assertEqual(suite_catalog.targeted([path]), set(suite_catalog._HUB_SUITE_IDS))
+
+    def test_split_files_preserve_the_aggregate_family_selection(self) -> None:
+        for path in ("test/shiploop-e2e.test.py", "test/shiploop-e2e-support.py",
+                     *(f"test/{identifier}.test.py" for identifier in E2E_SPLIT)):
+            with self.subTest(path=path):
+                self.assertEqual(suite_catalog.targeted([path]),
+                                 {*suite_catalog._E2E_FAMILY_IDS, "shiploop-e2e-apparatus"})
+                self.assertGreaterEqual({suite.id for suite in suite_catalog.prompt([path])}, E2E_SPLIT)
+
+    def test_split_support_and_components_are_protected_from_candidate_edits(self) -> None:
+        paths = ["test/shiploop-e2e-support.py", *(f"test/{identifier}.test.py" for identifier in E2E_SPLIT)]
+        probe = (
+            "import sys; sys.path.insert(0, 'test/shiploop_e2e'); import boundary; "
+            "assert not any(boundary.candidate_path(path) for path in sys.argv[1:]), sys.argv[1:]"
+        )
+        checked = subprocess.run([sys.executable, "-B", "-c", probe, *paths], cwd=ROOT,
+                                 capture_output=True, text=True, timeout=30)
+        self.assertEqual(checked.returncode, 0, checked.stderr)
 
     def test_changed_from_lists_quick_suites_and_is_refused_for_other_groups(self) -> None:
         listed = subprocess.run(["bash", str(ROOT / "test/run-all.sh"), "--group", "quick",
@@ -749,7 +807,7 @@ class QuickSelectionNameCollisionTest(unittest.TestCase):
     """
 
     PLAN_DISPATCHER = {suite.id for suite in suite_catalog.SUITES if suite.id.startswith("plan-dispatcher-")}
-    E2E_SPEC_READERS = {"shiploop-e2e", "shiploop-navigator-contract", "shiploop-run-review"}
+    E2E_SPEC_READERS = {*E2E_SPLIT, "shiploop-navigator-contract", "shiploop-run-review"}
 
     def selected(self, *paths: str) -> set[str]:
         return suite_catalog.targeted(paths)
@@ -779,8 +837,8 @@ class QuickSelectionNameCollisionTest(unittest.TestCase):
 
     def test_real_code_and_skill_paths_keep_the_suites_they_always_selected(self) -> None:
         cases = {
-            "test/shiploop_e2e/run.py": {"shiploop-e2e"},
-            "test/shiploop_e2e/review.py": {"shiploop-e2e"},
+            "test/shiploop_e2e/run.py": E2E_SPLIT,
+            "test/shiploop_e2e/review.py": E2E_SPLIT,
             "skills/plan-dispatcher/SKILL.md": self.PLAN_DISPATCHER,
             "skills/rubric-eval/SPEC.md": {"rubric-eval"},
             "skills/rubric-eval/suites/architecture-v4/frames/review.txt": {"rubric-eval"},
@@ -800,12 +858,14 @@ class E2EFamilySelectionTest(unittest.TestCase):
     The family is pinned as it stands on this branch, so a merged group that adds a suite updates this list on purpose.
     """
 
-    FAMILY = {"shiploop-e2e", "shiploop-e2e-runrecord", "shiploop-e2e-fidelity", "shiploop-e2e-reorientation",
+    FAMILY = {*E2E_SPLIT, "shiploop-e2e-runrecord", "shiploop-e2e-fidelity", "shiploop-e2e-reorientation",
               "shiploop-e2e-environment", "shiploop-e2e-baseline", "shiploop-e2e-quality",
               "shiploop-e2e-packet-anatomy", "shiploop-e2e-render-diff", "shiploop-e2e-commit-counters", "shiploop-e2e-slice",
               "shiploop-e2e-chess-salesforce", "shiploop-e2e-battleship-salesforce", "shiploop-e2e-release-slice", "shiploop-e2e-platform",
               "shiploop-e2e-battleship-ui",
               "shiploop-e2e-grok-chat-salesforce",
+              "shiploop-e2e-grok-chat-full", "shiploop-e2e-grok-chat-full-ui",
+              "shiploop-e2e-grok-chat-full-oracle", "shiploop-e2e-grok-chat-full-quality",
               "shiploop-e2e-gym-membership-salesforce", "shiploop-e2e-gym-ui",
               "shiploop-e2e-sf-guard", "shiploop-e2e-status-card",
               "shiploop-e2e-efficiency", "shiploop-e2e-dodges", "shiploop-e2e-owner-page", "shiploop-e2e-experiments",
@@ -907,14 +967,14 @@ class SelectionByReaderTest(unittest.TestCase):
 
     def test_the_e2e_journal_selects_its_named_suites(self) -> None:
         self.assertEqual(suite_catalog.targeted([self.LEARNINGS]),
-                         {"shiploop-e2e", "release-preflight", "shiploop-actual-improve-cli"})
+                         {*E2E_SPLIT, "release-preflight", "shiploop-actual-improve-cli"})
         baseline = {suite.id for suite in suite_catalog.quick()}
         self.assertEqual({suite.id for suite in suite_catalog.quick([self.LEARNINGS])} - baseline,
-                         {"shiploop-e2e", "release-preflight", "shiploop-actual-improve-cli"})
+                         {*E2E_SPLIT, "release-preflight", "shiploop-actual-improve-cli"})
 
     def test_the_baseline_data_selects_its_named_suites(self) -> None:
         self.assertEqual(suite_catalog.targeted([self.BASELINES]),
-                         {"shiploop-e2e-baseline", "shiploop-e2e-platform", "shiploop-e2e", "shiploop-e2e-epoch"})
+                         {"shiploop-e2e-baseline", "shiploop-e2e-platform", *E2E_SPLIT, "shiploop-e2e-epoch"})
 
     def test_a_suite_that_names_either_data_file_is_listed_for_it(self) -> None:
         # The row is the whole selection, so a new reader that only names the file would be missed: it must be added to

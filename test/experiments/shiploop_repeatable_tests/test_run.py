@@ -10,7 +10,7 @@ from run import launch
 
 
 class LaunchEvidenceTests(unittest.TestCase):
-    def run_fake(self, events):
+    def run_fake(self, events, **launch_options):
         temporary = tempfile.TemporaryDirectory(prefix='repeatable-launch-check-')
         self.addCleanup(temporary.cleanup)
         root = Path(temporary.name)
@@ -26,8 +26,24 @@ class LaunchEvidenceTests(unittest.TestCase):
                        + ''.join('print(' + repr(json.dumps(e)) + ')\n' for e in events))
         cli.chmod(0o755)
         with patch.dict(os.environ, {'PATH': str(binary) + os.pathsep + os.environ['PATH']}):
-            record = launch(repo, root / 'observer', 'bounded fixture job', timeout=10)
+            record = launch(repo, root / 'observer', 'bounded fixture job', timeout=10, **launch_options)
         return root, repo, record
+
+    def test_new_trial_pins_default_and_explicit_model_settings(self):
+        for options, model, effort in (
+            ({}, 'gpt-6.1-sol', 'high'),
+            ({'model': 'gpt-6.1-terra', 'effort': 'xhigh'}, 'gpt-6.1-terra', 'xhigh'),
+        ):
+            with self.subTest(options=options):
+                root, _, record = self.run_fake([], **options)
+                saved = json.loads((root / 'observer/invocation.json').read_text())
+                argv = saved['argv']
+                self.assertEqual(argv[argv.index('--model') + 1], model)
+                self.assertIn(f'model_reasoning_effort="{effort}"', argv)
+                self.assertIn(f'agents.default_subagent_model="{model}"', argv)
+                self.assertIn(f'agents.default_subagent_reasoning_effort="{effort}"', argv)
+                self.assertEqual((saved['requested_model'], saved['requested_effort']), (model, effort))
+                self.assertEqual(record['observed_models'], [], 'requested flags do not establish served model')
 
     def test_cli_exit_is_not_improve_or_product_success(self):
         root, repo, record = self.run_fake([

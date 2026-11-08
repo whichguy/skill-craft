@@ -54,9 +54,11 @@ No-model initialization uses Python's standard library; the CI fixture check
 also uses the repository's existing Node runtime to exercise generated
 JavaScript. Actual model runs require a working Codex CLI and macOS
 `/usr/bin/sandbox-exec`; no vendor account, package download, or permanent MCP
-installation is required. The CLI uses its default model without a model
-override. If the selected model is not observable, metadata records it as
-unknown rather than claiming a pinned model.
+installation is required. Newly initialized studies pin GPT-6.1 Sol with high
+reasoning for the CLI and its default native workers. Previously frozen studies
+keep their own runner bytes and original settings; the CLI refuses a runner whose
+bytes differ from that study's frozen copy. Metadata records the requested
+profile separately from served identity, which remains unknown when unobserved.
 
 Supply a reviewed candidate and a preregistered plan. Use a new study directory;
 initialization refuses existing paths. It starts the study clock, freezes the

@@ -49,6 +49,14 @@ sg2_pool = importlib.util.module_from_spec(_pool_spec)
 _pool_spec.loader.exec_module(sg2_pool)
 
 
+def _write_invocation(sample: Path, *, host="grok", model="grok-4.7", effort="medium", **fields) -> Path:
+    folder = sample / "slice"
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / "invocation.json"
+    path.write_text(json.dumps({"host": host, "model": model, "effort": effort, **fields}))
+    return path
+
+
 def _digest(folder: Path) -> str:
     h = hashlib.sha256()
     for path in sorted(folder.glob("*.py")):
@@ -358,7 +366,7 @@ class Decide(unittest.TestCase):
             out = Path(tmp)
             for arm, values in (("T", [0, 0, 0, 0, 0]), ("B", [1, 1, 1, 0, 1])):
                 for n, v in enumerate(values, 1):
-                    (out / "E1" / arm / str(n)).mkdir(parents=True)
+                    _write_invocation(out / "E1" / arm / str(n))
                     (out / "E1" / arm / str(n) / "score.json").write_text(json.dumps({"sample": n, "value": v}))
             journal = out / "journal.md"
             report = experiment.decide("E1", "T", "B", out, journal)
@@ -380,15 +388,15 @@ class Decide(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp)
             for n in range(1, 6):
-                (out / "E1" / "A" / str(n)).mkdir(parents=True)
+                _write_invocation(out / "E1" / "A" / str(n))
                 (out / "E1" / "A" / str(n) / "score.json").write_text(
                     json.dumps({"sample": n, "value": 0, "commit": "fixed-commit"}))
             moved = {"1": "9ed4ec24f8481a1841820033a35d31804ebb9dab", "2": "9ed4ec24f8481a1841820033a35d31804ebb9dab",
                      "3": "d21c770e5c71888069f239c7e2156b22ae515b61"}
             for n, commit in moved.items():
-                (out / "E1" / "T" / n).mkdir(parents=True)
+                _write_invocation(out / "E1" / "T" / n)
                 (out / "E1" / "T" / n / "score.json").write_text(json.dumps({"sample": int(n), "value": 1, "commit": commit}))
-            with self.assertRaises(SystemExit):
+            with self.assertRaisesRegex(SystemExit, "different commits"):
                 experiment.decide("E1", "A", "T", out)
             self.assertFalse((out / "E1" / "decision.json").exists(), "a refused decide must not write a decision file")
 
@@ -558,6 +566,125 @@ class RunOneSample(unittest.TestCase):
                 self.assertEqual(calls[1:], ["1", "2", "3", "4"])
                 with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
                     experiment.main(["run", "E1b", "--arm", "A", "--sample", "1", "--samples", "2", "--out", str(out)])
+
+
+class LaunchProfiles(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory(prefix="shiploop-experiment-profile-")
+        self.addCleanup(tmp.cleanup)
+        self.out = Path(tmp.name)
+        exp = {"arms": {"A": {}, "B": {}}, "case": "fake", "seed_at": "step-plan", "claim": "fake"}
+        loaded = mock.patch.object(experiment, "load", return_value=exp)
+        loaded.start()
+        self.addCleanup(loaded.stop)
+
+    def _sample(self, arm, *, model="gpt-6.1-terra", effort="xhigh", finished=True, n=1):
+        sample = self.out / "Q" / arm / str(n)
+        folder = _write_invocation(sample, host="codex", model=model, effort=effort, backend=None).parent
+        if finished:
+            (folder / "slice-result.json").write_text('{"pass": true}')
+        return sample
+
+    def test_run_refuses_the_new_default_for_an_old_round_but_honors_its_explicit_profile(self):
+        retained = self._sample("A")
+        invocation = retained / "slice" / "invocation.json"
+        before = invocation.read_bytes()
+
+        def complete(argv):
+            self.assertIn("--model=gpt-6.1-terra", argv)
+            self.assertIn("--effort=xhigh", argv)
+            self._sample("B")
+            return subprocess.CompletedProcess(argv, 0)
+
+        with mock.patch.object(experiment.subprocess, "run", side_effect=complete) as launched, \
+                contextlib.redirect_stdout(io.StringIO()):
+            for options in ([], ["--model=gpt-6.1-terra", "--effort=high"]):
+                with self.subTest(options=options), self.assertRaisesRegex(
+                    SystemExit, r"Continue with --host codex --model=gpt-6.1-terra --effort=xhigh"
+                ):
+                    experiment.run("Q", "B", 1, "codex", self.out, options)
+            launched.assert_not_called()
+            self.assertFalse((self.out / "Q" / "B").exists())
+            self.assertEqual(experiment.run("Q", "B", 1, "codex", self.out,
+                                            ["--model=gpt-6.1-terra", "--effort=xhigh"]), 0)
+            launched.assert_called_once()
+        self.assertEqual(invocation.read_bytes(), before)
+
+    def test_run_pins_the_new_default_on_an_empty_output(self):
+        def complete(argv):
+            self.assertEqual(argv[argv.index("--host") + 1], "codex")
+            self.assertIn("--model=gpt-6.1-sol", argv)
+            self.assertIn("--effort=high", argv)
+            self._sample("B", model="gpt-6.1-sol", effort="high")
+            return subprocess.CompletedProcess(argv, 0)
+
+        with mock.patch.object(experiment.subprocess, "run", side_effect=complete) as launched, \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(experiment.run("Q", "B", 1, "codex", self.out, []), 0)
+            launched.assert_called_once()
+
+    def test_queue_refuses_a_profile_change_before_any_dispatch_even_without_early_stop(self):
+        self._sample("A")
+        runner = mock.Mock()
+        with self.assertRaisesRegex(SystemExit, "differs from Q/A/1"):
+            experiment.queue(["Q"], ["B"], 2, 2, "codex", self.out, [], early_stop=False, runner=runner)
+        runner.assert_not_called()
+        self.assertFalse((self.out / ".queue.lock").exists())
+        self.assertFalse((self.out / "Q" / "B").exists())
+
+    def test_unknown_finished_profile_blocks_resume_even_if_model_is_explicit(self):
+        (self._sample("A") / "slice" / "invocation.json").unlink()
+        with mock.patch.object(experiment.subprocess, "run") as launched:
+            with self.assertRaisesRegex(SystemExit, "unknown launch profile"):
+                experiment.run("Q", "B", 1, "codex", self.out, ["--model=gpt-6.1-terra", "--effort=xhigh"])
+            launched.assert_not_called()
+
+    def test_scoring_and_decisions_reject_mixed_and_unknown_receipts_even_with_cached_scores(self):
+        self._sample("A")
+        sample = self._sample("B", effort="high")
+        invocation = sample / "slice" / "invocation.json"
+        cached = sample / "score.json"
+        cached.write_text('{"sample": 1, "value": 1, "model": "gpt-6.1-terra", "effort": "xhigh"}')
+        before = cached.read_bytes()
+        journal = self.out / "journal.md"
+        with mock.patch.object(experiment, "evaluator") as evaluator:
+            evaluator.return_value.BINARY = True
+            for receipt, error in ((invocation.read_text(), "different launch profiles"),
+                                   ('{"host": "codex", "model": "gpt-6.1-terra"}', "unknown launch profile"),
+                                   ('[]', "unknown launch profile")):
+                invocation.write_text(receipt)
+                with self.subTest(error=error):
+                    for action in (lambda: experiment.score("Q", self.out),
+                                   lambda: experiment.settled("Q", self.out, ["A", "B"], 4),
+                                   lambda: experiment.decide("Q", "A", "B", self.out, journal)):
+                        with self.assertRaisesRegex(SystemExit, error):
+                            action()
+            evaluator.return_value.score.assert_not_called()
+        self.assertEqual(cached.read_bytes(), before)
+        self.assertFalse(journal.exists())
+        self.assertFalse((self.out / "Q" / "decision.json").exists())
+
+    def test_cached_only_score_needs_invocation_evidence_to_decide(self):
+        sample = self._sample("B", finished=False)
+        (sample / "slice" / "invocation.json").unlink()
+        (sample / "score.json").write_text('{"sample": 1, "value": 1}')
+        with self.assertRaisesRegex(SystemExit, "unknown launch profile"):
+            experiment.decide("Q", "A", "B", self.out, self.out / "journal.md")
+
+    def test_legacy_claude_without_backend_matches_anthropic_and_refuses_ollama(self):
+        sample = self.out / "Q" / "A" / "1"
+        legacy = _write_invocation(sample, host="claude", model="claude-sonnet-5-5", effort=None)
+        (legacy.parent / "slice-result.json").write_text('{"pass": true}')
+        with mock.patch.object(experiment.subprocess, "run") as launched, contextlib.redirect_stdout(io.StringIO()):
+            options = ["--backend=ollama", "--model=claude-sonnet-5-5"]
+            with self.assertRaisesRegex(SystemExit, "differs from Q/A/1"):
+                experiment.run("Q", "B", 1, "claude", self.out, options)
+            launched.assert_not_called()
+            experiment.run("Q", "B", 1, "claude", self.out, [])
+            argv = launched.call_args.args[0]
+            self.assertIn("--backend=anthropic", argv)
+            self.assertIn("--model=claude-sonnet-5-5", argv)
+            self.assertFalse(any(arg.startswith("--effort=") for arg in argv))
 
 
 class Evaluators(unittest.TestCase):
@@ -897,8 +1024,7 @@ class RoundSpeedups(unittest.TestCase):
                 peak[0] = max(peak[0], live[0])
                 ran.append((exp_id, arm, n))
             time.sleep(0.05)
-            folder = out / exp_id / arm / str(n) / "slice"
-            folder.mkdir(parents=True, exist_ok=True)
+            folder = _write_invocation(out / exp_id / arm / str(n)).parent
             (folder / "value.json").write_text(json.dumps({"value": values[arm]}))
             (folder / "slice-result.json").write_text(json.dumps({"pass": True}))
             with guard:
@@ -912,8 +1038,7 @@ class RoundSpeedups(unittest.TestCase):
 
     def test_the_queue_runs_each_open_sample_once_at_most_jobs_at_a_time(self):
         runner, ran, peak, patches = self._fake({"T": 1, "Cg": 1})
-        done = self.tmp / "Q" / "T" / "2" / "slice"
-        done.mkdir(parents=True)
+        done = _write_invocation(self.tmp / "Q" / "T" / "2").parent
         (done / "slice-result.json").write_text("{}")
         with patches[0], patches[1], contextlib.redirect_stdout(io.StringIO()):
             status = experiment.queue(["Q"], ["T", "Cg"], 4, 3, "grok", self.tmp, [], early_stop=False, runner=runner)
@@ -967,7 +1092,7 @@ class RoundSpeedups(unittest.TestCase):
         self.assertEqual(shape[shape.index("--stop-after") + 1], "step-plan")
 
     def test_r3_on_todays_shiploop_differs_only_in_the_bound_and_runs_on_the_default_host(self):
-        """R3 keeps its original arm shape; new dispatches use the owner-selected Terra default from 2026-10-29.
+        """R3 keeps its original arm shape; new dispatches use the owner-selected Sol/high default from 2026-11-07.
         Cg is ShipLoop as shipped, T the same commit with the sizing bullet before the bound."""
         source = overlay.SCRIPTS / "shiploop_prompts.py"
         for exp_id, case in (("E6D2-K2", "node-chess-engine"), ("E6D2-K4", "node-battleship-server")):
@@ -986,7 +1111,7 @@ class RoundSpeedups(unittest.TestCase):
         launched = []
         with mock.patch.object(experiment, "queue", side_effect=lambda *a, **k: launched.append(a) or 0):
             experiment.main(["queue", "E6D2-K2", "E6D2-K4", "--arms", "T,Cg", "--out", str(self.tmp)])
-            self.assertEqual(launched[0][4], "codex")  # New runs use the owner-selected Terra subject profile.
+            self.assertEqual(launched[0][4], "codex")  # New runs use the owner-selected Sol/high subject profile.
 
     def test_a_slice_option_written_as_two_words_is_refused_with_the_one_word_form(self):
         """R3's first launch (2026-10-26): `--timeout 10800` made "10800" an experiment id and the queue ran nothing."""
@@ -1016,8 +1141,7 @@ class RoundSpeedups(unittest.TestCase):
                'exhausted",\n  "http_status": 402\n}')
 
     def _slice(self, sample: Path, passed: bool, stderr: str = "", value: int = 1) -> Path:
-        folder = sample / "slice"
-        folder.mkdir(parents=True, exist_ok=True)
+        folder = _write_invocation(sample).parent
         (folder / "slice-result.json").write_text(json.dumps({"pass": passed}))
         (folder / "value.json").write_text(json.dumps({"value": value}))
         (folder / "stderr.txt").write_text(stderr)
@@ -1097,7 +1221,7 @@ class RoundSpeedups(unittest.TestCase):
     def test_decide_refuses_arms_run_under_different_planning_review_options(self):
         for arm, mode in (("T", "stage"), ("Cg", "none")):
             sample = self.tmp / "E6-K5" / arm / "1"
-            sample.mkdir(parents=True)
+            _write_invocation(sample)
             (sample / "score.json").write_text(json.dumps({"sample": 1, "value": 1, "planning_review": mode}))
             (sample / "command.json").write_text(json.dumps({"argv": ["slice.py", "--planning-review", mode]}))
             self.assertEqual(experiment._sample_planning_review(sample), mode)

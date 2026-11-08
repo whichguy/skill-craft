@@ -1367,9 +1367,16 @@ class EnvironmentThroughMainTest(QuietHarnessCase):
         self.addCleanup(run.TERMINATED_BY.clear)
         timer = threading.Timer(0.5, run.terminate, ("SIGTERM",))
         self.addCleanup(timer.cancel)
-        with mock.patch.object(self.environment, "TITLE_CEILING_SECONDS", 4.0), \
-                mock.patch.dict(os.environ, {"FAKE_BROWSER_MODE": "silent"}):
+        real_probe = self.environment.probe_target
+
+        def interrupt_probe(*args, **kwargs):
+            # Start the stop timer at the target boundary; run/version setup can exceed 0.5 s under load.
             timer.start()
+            return real_probe(*args, **kwargs)
+
+        with mock.patch.object(self.environment, "TITLE_CEILING_SECONDS", 4.0), \
+                mock.patch.object(self.environment, "probe_target", side_effect=interrupt_probe) as probe, \
+                mock.patch.dict(os.environ, {"FAKE_BROWSER_MODE": "silent"}):
             start = time.monotonic()
             code, result, printed = self.invoke_printed("grok", "done", "--prompt", "p", "--need", "browser",
                                                         "--browser-bin", str(self.browser))
@@ -1377,7 +1384,9 @@ class EnvironmentThroughMainTest(QuietHarnessCase):
         self.assertLess(elapsed, 3.0, "the probe did not wait out its 4 s ceiling")
         self.assertEqual(result["process"]["status"], "stopped")
         browser = result["environment"]["start"]["browser"]
+        self.assertEqual(probe.call_count, 1, "the file target was entered and the HTTP target was not")
         self.assertTrue(browser["file"]["interrupted"])
+        self.assertTrue(browser["file"]["group_empty"], "the started browser group was reaped")
         self.assertFalse(browser["http"]["probed"])
         for entry in self.browser_launches():
             with self.assertRaises(ProcessLookupError):
@@ -1513,7 +1522,7 @@ class CasesNeedTest(unittest.TestCase):
                 self.assertTrue(set(needs) <= set(environment.NEEDS))
                 self.assertTrue(cases[name].get("needs_source"), "a need names the request that implies it")
         self.assertEqual(sorted(declared), ["battleship", "battleship-salesforce-ui", "battleship-scoring", "checkers",
-                                           "grok-chat-salesforce", "gym-membership-salesforce", "roundtable",
+                                           "grok-chat-salesforce", "grok-chat-salesforce-full", "gym-membership-salesforce", "roundtable",
                                            "roundtable-agent-work", "roundtable-rooms"])
 
 

@@ -2,7 +2,9 @@
 """Focused no-model checks for the generalized discovery runner."""
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 import tempfile
 import unittest
@@ -80,6 +82,50 @@ def initialize_study(root: Path) -> Path:
     return study
 
 
+class DefaultLaunchTest(unittest.TestCase):
+    def test_cli_requires_the_executing_runner_to_match_the_frozen_study(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            study = initialize_study(root)
+            different = root / "different-runner.py"
+            different.write_text("# a different launcher version\n")
+            before = runner.snapshot(study)
+            stderr = io.StringIO()
+            with mock.patch.object(runner.sys, "argv", ["runner.py", "--study", str(study), "--preflight"]), \
+                    mock.patch.object(runner, "preflight", return_value={"status": "verified"}) as preflight, \
+                    contextlib.redirect_stderr(stderr), contextlib.redirect_stdout(io.StringIO()):
+                with mock.patch.object(runner, "__file__", str(different)):
+                    self.assertEqual(runner.main(), 2)
+                preflight.assert_not_called()
+                self.assertIn("executing runner differs", stderr.getvalue())
+                self.assertEqual(runner.snapshot(study), before)
+                self.assertEqual(runner.main(), 0, "matching source bytes may operate their own freshly frozen study")
+                preflight.assert_called_once()
+
+    def test_model_pins_preserve_gateway_tool_restrictions_and_stdin(self):
+        command = ["codex", "exec", "--ignore-user-config", "-m", "gpt-6-astra",
+                   "-c", "model_reasoning_effort=medium", "-c", 'model="old-model"',
+                   "-c", 'agents.default_subagent_model="old-child"',
+                   "-c", "agents.default_subagent_reasoning_effort=max",
+                   "-c", "features.shell_tool=false", "-c", 'tools.enabled_tools=["workspace"]',
+                   "-c", 'mcp_servers.shiploop_workspace.args=["gateway","--call-limit","32"]', "-"]
+        actual = runner.default_host_command(command, Path("/evidence/receipts.jsonl"))
+        self.assertEqual(command[command.index("-m") + 1], "gpt-6-astra", "input argv remains untouched")
+        self.assertEqual(actual[-1], "-")
+        self.assertEqual(actual.count("-m"), 1)
+        self.assertEqual(actual[actual.index("-m") + 1], "gpt-6.1-sol")
+        settings = [actual[i + 1] for i, arg in enumerate(actual[:-1]) if arg == "-c"]
+        self.assertIn("model_reasoning_effort=high", settings)
+        self.assertIn('agents.default_subagent_model="gpt-6.1-sol"', settings)
+        self.assertIn("agents.default_subagent_reasoning_effort=high", settings)
+        self.assertIn("features.shell_tool=false", settings)
+        self.assertIn('tools.enabled_tools=["workspace"]', settings)
+        prefix = "mcp_servers.shiploop_workspace.args="
+        gateway = next(setting[len(prefix):] for setting in settings if setting.startswith(prefix))
+        self.assertEqual(json.loads(gateway), ["gateway", "--call-limit", "32", "--receipts", "/evidence/receipts.jsonl"])
+        self.assertFalse(any("old-" in setting or "=medium" in setting or "=max" in setting for setting in settings))
+
+
 class LaunchLedgerTest(unittest.TestCase):
     def test_preserves_history_and_refuses_duplicate_or_over_cap(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -108,6 +154,9 @@ class ArmOutcomeTest(unittest.TestCase):
     def test_success_requires_clean_context_and_report(self) -> None:
         result, metadata = self.run_case({"context": 1, "exit_code": 0, "termination_reason": None})
         self.assertEqual(result["status"], "completed")
+        selection = metadata["model_selection"]
+        self.assertEqual((selection["requested"], selection["requested_effort"]), ("gpt-6.1-sol", "high"))
+        self.assertIsNone(selection["observed"], "requested flags are not served identity")
         self.assertEqual(metadata["completion"], {"status": "completed", "reasons": [],
                                                      "exit_code": 0, "termination_reason": None})
 

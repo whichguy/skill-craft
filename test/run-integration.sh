@@ -23,7 +23,7 @@ Optional commands (never part of default CI):
                     backchain-chunks check --run /absolute/dir. No model launcher.
   shiploop-e2e [--case NAME | --prompt TEXT --check CMD] [run.py options]
                     Run ShipLoop live from one prompt in a new empty directory
-                    (Grok, medium effort, by default) and grade it. Costs money.
+                    (Codex, GPT-6.1 Sol, high effort, by default) and grade it. Costs money.
   shiploop-stages [SELECTOR ...] [--samples N] [--jobs J] [stages.py live options]
                     Run the stage suite's live tier: a model follows one packet of a
                     built scenario, a script grades it, samples repeat. Costs money.

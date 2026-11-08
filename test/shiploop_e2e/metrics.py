@@ -26,6 +26,7 @@ import run_choice
 import run_trace
 import runrecord
 import sessionlog
+from packet_framing import HEAD_END, HEAD_END_LINE, HEAD_END_UNTIL_R4
 
 # The prefix of the summary ShipLoop itself records for a stage not applicable to a work item (shiploop_item_scope.NOT_APPLICABLE;
 # a test pins the two equal). The narrative reader and fidelity.py both key on it.
@@ -2971,12 +2972,6 @@ def summary_lines(metrics: dict, top: int = 5) -> list[str]:
 # never 0. Every function reads files and calls nothing else; no host, model or ShipLoop command runs here.
 # ======================================================================================================================
 
-# The last line of every print (shiploop_navigator.HEAD_END; a test pins the two equal). A print that lacks it was cut.
-# Its name before R4 of the run-5 batch (2026-10-24), which a saved run keeps, is HEAD_END_UNTIL_R4.
-HEAD_END = "=== end ShipLoop print ==="
-HEAD_END_UNTIL_R4 = "=== end ShipLoop head ==="
-# Either name, as a line: the packet's second pointer line names it inside a sentence near the top of every print, cut or not.
-HEAD_END_LINE = re.compile(r"^(?:" + re.escape(HEAD_END) + "|" + re.escape(HEAD_END_UNTIL_R4) + r")$", re.M)
 COLD_CALLS = 12  # the calls after a break (a compaction, a fresh session, the run's start) that count as cold
 SCRIPTS = Path(__file__).resolve().parents[2] / "skills" / "shiploop" / "scripts"
 READ_TOOLS = ("Read", "read_file")

@@ -1,5 +1,8 @@
 # Salesforce Grok chat test case
 
+For the opt-in full functional run, use [the full acceptance case](GROK_CHAT_FULL.md).
+The exploratory case described here is retained unchanged for earlier evidence.
+
 `grok-chat-salesforce` gives a fresh ShipLoop subject an elaborated prompt to build an Apex/LWC assistant inspired by Grokbot. The application is the test challenge; improving ShipLoop is the learning goal. The authoritative prompt, deployment scope and check commands are in [cases.json](cases.json). This checkout supplies no chat application.
 
 The case is ready for an **exploratory construction run**, not a qualified baseline comparison. Its `acceptance` check deliberately returns nonzero `UNKNOWN` until independent behavioral checks are calibrated. The runner records that as a failed check, so three green smoke checks cannot become a full E2E PASS, satisfy a passing baseline gate or retain an unqualified app. This known apparatus gap is separate from any defects discovered in the generated app.
