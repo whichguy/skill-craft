@@ -3189,7 +3189,7 @@ class BackchainPassesOptionTest(unittest.TestCase):
         self.assertIn(key, navigator.new_state(str(self.repo), "Key."))
         flag = "--" + key.replace("_", "-")
         named = set(re.findall(re.escape(flag) + r" (\w+)", carve))
-        default = re.search(r"defaults to (\w+) pass", carve)
+        default = re.search(rf"`{re.escape(key)}: (\w+)`", carve)
         self.assertIsNotNone(default, carve)
         self.assertEqual(default.group(1), navigator.DEFAULT_BACKCHAIN_PASSES)
         self.assertEqual(named | {default.group(1)}, set(navigator.BACKCHAIN_PASSES_MODES))

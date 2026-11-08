@@ -58,10 +58,11 @@ the generic development mission. An interaction that was not exercised remains u
 
 ## Design clauses
 
-Prospective alignment reapplied 2026-10-31: S-7, S-10 and S-11 below restore the accepted decision wording from
-`42bfd829302d7844dca81a1112f201744df3ac01` and `2736d7cf063a8c876cb317e26a852ff2ac6f3548`. Those changes
-existed on saved history but were absent from current main. They govern new runs only; earlier frozen specifications,
-verdicts and evidence remain unchanged. This is specification reconciliation, not a new engine behavior or measured gain.
+On 2026-10-31, the living spec reapplied the then-accepted S-7 packet-head, S-10 planning-review, and S-11
+knowledge wording from `42bfd829302d7844dca81a1112f201744df3ac01` and
+`2736d7cf063a8c876cb317e26a852ff2ac6f3548`. Later amendments are dated at the clauses they govern. Each
+amendment applies to new runs registered against that revision. Earlier runs retain their original frozen
+specifications, verdicts, and evidence.
 
 ### Mission, discovery and amendment authority (2026-10-29)
 
@@ -177,20 +178,16 @@ each of the 5 compactions in the 2026-10-06 Grok run the model's first call was 
 grounding out of the packet, into a file the packet merely names or into a record the model has to find, fails S-6 unless a
 clear-the-context probe at a stage boundary and inside a stage shows no redone work.
 
-**S-7 Packets are small where they are printed; detail lives in files.** The
-script prints a whole packet through its 16,000-character print limit. A longer
-packet prints an operational head: the current goal and status, duties and rules,
-result contract, exact commands and pointers to its complete packet file. Quoted
-knowledge and hand-offs may remain in that file; the head tells the model to read
-what was omitted. The limit selects the print form, not a quality budget: required
-duties must not disappear to make a head shorter. References and selected cards are
-opened when the step requires them; unrelated detail stays behind locators.
+**S-7 Normal packet emission prints the complete saved body.** ShipLoop prints the saved packet body followed
+by its closing line at every packet size and state. Normal emission uses the same form at every length.
+Producer packets carry an early saved-file locator and instruct the host to open the file before acting when
+output is truncated, elided, or missing its closing line. A visible closing line establishes the tail and can
+survive middle elision. Existing per-field summaries, durable references, and the short started-Improve
+packet’s two-instruction contract still apply. S-6 governs required grounding and context-loss recovery.
 
-Reconciled 2026-10-29 to the owner's packet-head and per-stage Improve decisions
-recorded in `11f5a5b9` (2026-10-16). This supersedes the earlier locator-only head
-description. S-6 still governs self-contained work and recovery; this print policy
-does not establish clear-context equivalence for untested stages or authorise
-removing required grounding merely to reduce bytes.
+Prospectively reconciled 2026-11-08 to the owner’s 2026-11-07 instruction in
+`6116b91ee95143e8d8b387e8be84df338289c053`, superseding the length-based print rule in
+`11f5a5b9316ce9f2584e945afe398f0d6a0f02a4`.
 
 **S-8 The engine is product- and technology-agnostic.** Scripts, stage prompts,
 packets, SKILL.md and the general reference cards state rules in general terms
@@ -214,28 +211,46 @@ a frozen contract the script writes and iterations the script counts. Except
 for the carve-outs below, there is no iteration cap; a loop ends on its
 condition, a true blocker or a user stop.
 
-**S-10 carve-out, owner decision 2026-10-04** (anchor: the owner's request and
-the Luna 1.16.1 battleship run, not a clause this serves; it relaxes S-9 and
-S-10 for one loop and says so). The Backchain planning child (a whole
-`plan`/`draft`, or a `repair`/`revise` after an audit finding) defaults to one
-pass. Its start contract carries `required_trivial_reviews: 0` and an exit
-condition that one complete dependency review/fix/check cycle has run, its
-findings are repaired within the permitted edit bounds, every `Confirm by`
-clause on a step this cycle may change meets the planning guide's Outcomes
-rule, and the printed `backchain-check` is ok on the final candidate. The loop
-completes on the first report that assesses that exit as satisfied. That
-assessment is the host model's, backed by a structural, record-only check
-(unique ids, resolved suppliers, acyclic, no orphan discovered step); it is
-not a script-run proof that the plan is semantically right, so S-9 holds for
-this loop only in that structural sense. No numeric ceiling is added: a pass
-that reports an open gap continues, a blocker or a user stop ends the loop as
-before, and the vendored Until Loop is unchanged. `--backchain-passes
-converge` (state option `backchain_passes`) restores two consecutive trivial
-reviews; `--backchain-passes none` offers no whole loop at `plan`. The host
-model writes this contract (open item a02), so S-4, S-5, S-12 and S-10's
-frozen contract the script writes stay unmet for this loop, as they already
-were; a future script-written or script-checked contract must accept a gate-0
-complete packet whose last report is non-trivial. The inner stages' Until Loops
+**S-10 carve-out, owner decision 2026-10-04** (Backchain). The owner's request
+and the Luna 1.16.1 battleship run were the basis for the one-cycle gate and
+the relaxation of S-9 and S-10 for this child.
+
+The run option (state option `backchain_passes`) retains the default
+`backchain_passes: one`. At `plan`, the host may omit the whole `plan`/`draft`
+Backchain child. The planning guide's dependency audit is required on both
+routes. The plan result's `summary` states the route taken and why. Evaluate
+the audit on its own evidence.
+
+Explicit `--backchain-passes converge` requests the whole child at `plan` with two
+consecutive distinct complete trivial/no-change dependency reviews.
+`--backchain-passes none` uses the audit route at `plan` without a whole
+`plan`/`draft` child. A material finding from a read-only `review`/`audit`
+may lead the stage owner to request one `repair`/`revise` within authorized
+edit bounds. That child uses the one-cycle gate in `one` and `none`, and the
+two-review gate in `converge`.
+
+The one-cycle gate sets `required_trivial_reviews: 0`. The child may finish
+on the first accepted report that satisfies the exit condition, including a
+nontrivial report after repairs. A complete dependency review/fix/check cycle
+repairs its findings within authorized edit bounds and satisfies the planning guide's
+Outcomes rule for every `Confirm by` clause on a step it may change. Cite the
+passing structural `backchain-check` receipt on the final graph and save
+final candidate-specific domain evidence. For either gate, an open gap
+keeps the child running while authorized work remains. A true blocker or user
+stop ends it incomplete. The exit condition governs completion without a
+numeric pass ceiling.
+
+On the scripted native route, Backchain freezes the child contract and binds
+the structural and evidence checks. Until Loop owns child progression and
+termination. S-9 applies to the structural check (unique ids, resolved
+suppliers, acyclic, no orphan discovered step). The host judges semantic
+adequacy. Before reporting a requested child complete, retain its exact
+`complete` receipt, final candidate identity and domain evidence. ShipLoop
+owns parent acceptance and lifecycle state. Item a02 remains open for the
+discrepancy between the plan packet's host-copy instruction and the native
+script's contract freeze.
+
+The inner stages' Until Loops
 (amended 2026-10-11: before the 8-stage inner loop, the quality and test loops) are
 not covered, nor are Improve loops except as the next carve-out says; their
 no-cap rule stands. Basis: in the Luna max
@@ -244,6 +259,18 @@ planning minutes; the plan loop's passes 2 to 5 each reported a non-trivial
 finding of confirmation level or wording (no edge, goal or supplier changed),
 passes 6 and 7 changed nothing, and no later packet names the plan graph.
 Record: docs/shiploop-fast-planning-plan-2026-10-04.md.
+
+Prospectively amended 2026-11-08 under the owner's explicit choice,
+"Keep the separate planning review optional," for future default runs with
+the dependency audit and route explanation still mandatory. The exact question,
+answer and evidence locator are retained in this amendment's commit message.
+The October 4 decision set the one-cycle gate
+(`9747d7690d4cea4621c1706c60ec03c84fec4a54`).
+`4c2a8a98453e4aa2e8b2397962f785221e19b20a` recorded optionality as shipped
+behavior. `39af8ce04222fb49aa6d612e08b4dbabd73e5db3` records the native
+contract freeze and explicit converge markers. This amendment applies to new
+runs registered against this revision. Earlier frozen obligations and verdicts
+retain their original interpretation.
 
 **S-10 carve-out, owner decision 2026-10-05** (reconciled 2026-10-29 to the
 later accepted review schedule). The run option (state option `planning_review`)
@@ -823,7 +850,7 @@ and two decisions are compared only under the same id.
 | S-4, S-5 | host-cancelled tool calls; `model_glue` (model `git commit`/`add`, shell writes into ShipLoop-owned paths, hand-built loop contracts), counted per command on every host: a script the model wrote that wraps the CLI hides its ShipLoop calls from it, so Claude's `tool_use.scratch_scripts` lists those scripts and their runs beside it, and a Claude glue of 0 is a lower bound |
 | S-6 | runs survive compaction and session resumes without losing their place; `sessions.jsonl` (added 2026-10-09: every host launch and every session end, written by the harness) and `fresh_starts` in metrics.json: for every fresh session and every compaction, what the model did from the fresh start to the next accepted action (tool calls, seconds, its first grounding call, whether the recovery command was repeated as told, ShipLoop failures, files written again). Recorded beside the verdicts and never scored; see "A fresh context is recorded, not scored" |
 | S-7 | truncated outputs, peak context, compactions, packet head size; per-stage `context` (model calls, peak, share of the window; a stage with no events carries none, and a Grok `usage` event is a model call like a Claude message) and, for Claude, `tool_use.packets` (packet bytes on disk, printed heads and Reads, whole or ranged) |
-| S-7 (as a record), S-6 | `packets` in metrics.json only (added 2026-10-10; not in `result.json` or a baseline row): one entry per file in the run's `packets/` folder, `{action, stage, file_bytes, head_bytes}`. `action` is the file's name without `.md` (the Improve stage is an action of its own, so its packet is its own entry `<improve stage id>`, and `<improve stage id>-bind` before a card is bound, with stage `improve`; a run of the older layout has `<action>-improve` beside the producer's), `stage` the stage of the first `ShipLoop navigator |` line anywhere in the file (it is line 1 in some packets and sits below a delegation preamble in others), `file_bytes` its size on disk, `head_bytes` the bytes of the head ShipLoop first printed for it, as the host recorded the reply (Claude, Grok and Codex alike: the result of a call that does not name a packet file; the head runs from its `ShipLoop navigator |` line to its own closing line (`=== end ShipLoop print ===` from 2026-10-24, `=== end ShipLoop head ===` from 2026-10-16, when the status block moved ahead of the stage's duties; before that the status block's end, or the narrative block's), with its `Full packet:` line naming the file and its callback and keepalive lines unshortened, and neither the command's own output before it nor what follows it, such as the host's `Shell cwd was reset` note or output the model chained, is the head). `head_bytes` is null where no reply of the run shows that head whole: a reply the model's pipe or script cut, the host cut, or that holds a pointer and a prefix leaves it null, never the cut size, and the one reason is in `packets_unmeasured`; the whole block is null where the run has no packets folder. A record, never a verdict or a threshold: it lets a change to what packets print be shown to have changed it, while S-6's clear-the-context probe, not these bytes, decides whether a shorter packet is allowed |
+| S-7 (as a record), S-6 | `packets` in metrics.json only (added 2026-10-10; not in `result.json` or a baseline row): one entry per file in the run's `packets/` folder, `{action, stage, file_bytes, head_bytes}`. `action` is the file's name without `.md` (the Improve stage is an action of its own, so its packet is its own entry `<improve stage id>`, and `<improve stage id>-bind` before a card is bound, with stage `improve`; a run of the older layout has `<action>-improve` beside the producer's), `stage` the stage of the first `ShipLoop navigator |` line anywhere in the file (it is line 1 in some packets and sits below a delegation preamble in others), `file_bytes` its size on disk, `head_bytes` the bytes of the head ShipLoop first printed for it, as the host recorded the reply (Claude, Grok and Codex alike: the result of a call that does not name a packet file; the head runs from its `ShipLoop navigator |` line to its own closing line (`=== end ShipLoop print ===` from 2026-10-24, `=== end ShipLoop head ===` from 2026-10-16, when the status block moved ahead of the stage's duties; before that the status block's end, or the narrative block's), with its `Full packet:` line naming the file and its callback and keepalive lines unshortened, and neither the command's own output before it nor what follows it, such as the host's `Shell cwd was reset` note or output the model chained, is the head). `head_bytes` is null where no reply of the run shows that head whole: a reply the model's pipe or script cut, the host cut, or that holds a pointer and a prefix leaves it null, never the cut size, and the one reason is in `packets_unmeasured`; the whole block is null where the run has no packets folder. A record, never a verdict or a threshold: it lets a change to what packets print be shown to have changed it. S-6 governs changes to grounding in the saved packet. S-7 governs its normal emission. |
 | S-9, S-10 | `script_verifications` (ShipLoop's own verify records, with the count that ran red, which the test stage's base run passes by design; amended 2026-10-11, was a test-red record or a probe), Improve children; a zero-test pass fails |
 | S-10 carve-out (planning ceiling), S-12 | `planning` in metrics.json (added 2026-10-08): the planning window, intake to the first accepted test-spec, on the engine's clock and on the host's clock, each stage's seconds with the Improve share (child bind to accept), and the window's output and reasoning tokens where the host's per-call counts are exact (Grok, Codex). Recorded beside the verdicts and never scored: the owner reads how long planning took and where it went from it (no figure is a budget, 2026-10-28), and it is the one place these figures are computed |
 | S-12 | `claude_code_version` in metrics.json and result.json (added 2026-10-08): the host CLI build the sessions ran on, so two runs of one prompt on different builds (the Sonnet pair of 2026-10-06 and 2026-10-07 ran on 2.1.291 and 2.1.292) are not read as a controlled comparison. Null where the host's events do not carry it |
