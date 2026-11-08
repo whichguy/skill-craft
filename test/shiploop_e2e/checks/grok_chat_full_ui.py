@@ -555,22 +555,37 @@ def _screen_receipts(paths: dict[str, Path], platform_dir: Path) -> dict:
 
 
 def _safe_controller_projection(results: list[dict]) -> list[dict]:
-    calls = []
-    seen = set()
+    calls = {}
     for result in results:
         for call in result.get("controller_calls", []):
             if not isinstance(call, dict):
                 continue
-            key = (call.get("request_id"), call.get("response_id"), call.get("method"))
-            if key in seen:
-                continue
-            seen.add(key)
-            calls.append({name: call.get(name) for name in (
-                "method", "request_id", "response_id", "response_state", "params_valid",
+            sequence = call.get("request_sequence")
+            sequence = sequence if type(sequence) is int and sequence > 0 else None
+            key = ("sequence", sequence) if sequence is not None else (
+                "legacy", call.get("request_id"), call.get("method"))
+            projected = {name: call.get(name) for name in (
+                "method", "request_sequence", "request_id", "response_id", "response_state", "params_valid",
                 "http_ok", "json_string_decoded_once", "result_status", "result_operation", "result_record_id",
                 "result_conversation_id", "action_id", "ui_correlated",
-            ) if name in call})
-    return calls
+            ) if name in call}
+            previous = calls.get(key)
+            if previous is not None:
+                # Cumulative snapshots may add UI correlation, but must not revise
+                # a completed response. Retain a conflict as non-passing evidence.
+                stable = lambda value: {k: v for k, v in value.items() if k != "ui_correlated"}
+                changed_request = any(previous.get(k) != projected.get(k) for k in (
+                    "method", "request_id", "request_sequence", "params_valid"))
+                changed_response = (previous.get("response_state") != "PENDING"
+                                    and stable(previous) != stable(projected))
+                if changed_request or changed_response:
+                    projected["response_state"] = "CONFLICT"
+                projected["ui_correlated"] = (previous.get("ui_correlated") is True
+                                                or projected.get("ui_correlated") is True)
+            # A request can be pending in the route snapshot and complete later.
+            # Response ID belongs to its outcome, not to the request identity.
+            calls[key] = projected
+    return list(calls.values())
 
 
 def _action_calls(result: dict, action_id: str) -> list[dict]:

@@ -298,6 +298,50 @@ class GrokChatFullUiValidatorTests(unittest.TestCase):
                 self.assertEqual("extra-write" if setup_wrote else "seed-invalid", receipt["failure"]["reason_code"])
                 self.assertEqual(["attempt", "setup"] if setup_wrote else ["attempt", "setup", "seed"], steps)
 
+    def test_controller_projection_updates_pending_observations_without_hiding_conflicts(self):
+        terminal = {**positive_observation()["controller_calls"][0], "request_sequence": 1}
+        pending = {**terminal, "response_id": None, "response_state": "PENDING",
+                   "http_ok": False, "json_string_decoded_once": False}
+        results = [{"controller_calls": [pending]}, {"controller_calls": [terminal]}]
+        observed = ui._safe_controller_projection(results)
+        self.assertEqual(1, len(observed))
+        self.assertTrue(ui._valid_call(observed[0]))
+        self.assertEqual(1, observed[0]["request_sequence"])
+        # Aura IDs may restart after reload; the observer's sequence keeps requests distinct.
+        distinct = ui._safe_controller_projection([
+            {"controller_calls": [terminal, {**terminal, "request_sequence": 2}]},
+        ])
+        self.assertEqual(2, len(distinct))
+        # Each row below would pass individually. Their disagreement must remain
+        # non-passing even if the first valid row is repeated later.
+        other = {**terminal, "result_status": "ready"}
+        self.assertTrue(ui._valid_call(other))
+        conflict = ui._safe_controller_projection([
+            {"controller_calls": [{**terminal, "result_status": "missing"}]},
+            {"controller_calls": [other]},
+            {"controller_calls": [other]},
+        ])
+        self.assertEqual(1, len(conflict))
+        self.assertEqual("CONFLICT", conflict[0]["response_state"])
+        self.assertFalse(ui._valid_call(conflict[0]))
+
+    def test_pending_sequence_cannot_change_request_identity_when_completed(self):
+        terminal = {**positive_observation()["controller_calls"][0], "request_sequence": 1}
+        pending = {**terminal, "response_id": None, "response_state": "PENDING",
+                   "http_ok": False, "json_string_decoded_once": False}
+        for changed in (
+            {**terminal, "request_id": "other;a", "response_id": "other;a"},
+            {**terminal, "method": "saveSetup"},
+        ):
+            with self.subTest(changed=changed):
+                self.assertTrue(ui._valid_call(changed))
+                projected = ui._safe_controller_projection([
+                    {"controller_calls": [pending]}, {"controller_calls": [changed]},
+                ])
+                self.assertEqual(1, len(projected))
+                self.assertEqual("CONFLICT", projected[0]["response_state"])
+                self.assertFalse(ui._valid_call(projected[0]))
+
     def test_config_reset_refuses_rows_not_created_by_this_test_user(self):
         class Shared:
             deletes = 0
@@ -341,6 +385,78 @@ process.stdout.write(JSON.stringify({request_id:pair.request_id,response_id:pair
         self.assertEqual("missing", result["status"])
         self.assertEqual("controller-response-id-mismatch", result["mismatch"])
         self.assertEqual("controller-response-invalid", result["twice"])
+
+    @unittest.skipUnless(shutil.which("node"), "Node.js is needed for the live-envelope regression")
+    def test_lwc_transport_envelope_and_supporting_rpc_do_not_hide_required_proof(self):
+        program = r'''const h=require(process.argv[1]);
+const payload={status:'missing',canConfigure:true,namedCredential:null,model:null,code:null};
+const wrapped={id:'req-1;a',descriptor:'aura://ApexActionController/ACTION$execute',
+  params:{classname:'SLGrokChatController',method:'getSetup',params:{}}};
+const supporting={id:'req-2;a',descriptor:'aura://ApexActionController/ACTION$execute',
+  params:{classname:'SLGrokChatController',method:'listConversations',params:{beforeId:null}}};
+const request=actions=>h.parseAuraRequest(JSON.stringify({actions}),'SLGrokChatController');
+const response=value=>JSON.stringify({actions:[
+  {id:'req-1;a',state:'SUCCESS',returnValue:value},
+  {id:'req-2;a',state:'SUCCESS',returnValue:{returnValue:'[]',cacheable:false}},
+]});
+const attempts={};
+for(const [name,actions,value] of [
+  ['live_lwc',[wrapped,supporting],{returnValue:JSON.stringify(payload),cacheable:false}],
+  ['ambiguous_id',[wrapped,{...supporting,id:wrapped.id}],{returnValue:JSON.stringify(payload),cacheable:false}],
+  ['direct_masquerade',[{id:'req-1;a',descriptor:'apex://SLGrokChatController/ACTION$getSetup',params:{}}],
+    {returnValue:JSON.stringify(payload),cacheable:false}],
+  ['double_encoded',[wrapped],{returnValue:JSON.stringify(JSON.stringify(payload)),cacheable:false}],
+  ['object_return',[wrapped],{returnValue:payload,cacheable:false}],
+  ['invalid_envelope',[wrapped],{returnValue:JSON.stringify(payload),cacheable:'false'}],
+]) {
+  try { const parsed=request(actions); const paired=h.pairAuraActions(parsed,response(value));
+    attempts[name]={status:paired[0].result.status,paired:paired.length,decoded:paired[0].json_string_decoded_once}; }
+  catch(e) { attempts[name]={reason:e.reason}; }
+}
+try { attempts.supporting_only={count:request([supporting]).length}; }
+catch(e) { attempts.supporting_only={reason:e.reason}; }
+process.stdout.write(JSON.stringify(attempts));'''
+        observed = subprocess.run([shutil.which("node"), "-e", program, str(BROWSER)],
+                                  capture_output=True, text=True, check=True, timeout=90)
+        result = json.loads(observed.stdout)
+        self.assertEqual({"status": "missing", "paired": 1, "decoded": True}, result["live_lwc"])
+        self.assertEqual({"count": 0}, result["supporting_only"])
+        self.assertEqual({"reason": "controller-action-invalid"}, result["ambiguous_id"])
+        for name in ("direct_masquerade", "double_encoded", "object_return", "invalid_envelope"):
+            self.assertEqual({"reason": "controller-response-invalid"}, result[name], name)
+
+    @unittest.skipUnless(shutil.which("node"), "Node.js is needed for the pre-setup request regression")
+    def test_supporting_send_attempts_fail_setup_without_becoming_required_proof(self):
+        program = r'''const h=require(process.argv[1]);
+const host='fixture.lightning.force.com';
+const request=(method,wrapped)=>({
+  url:()=>`https://${host}/aura`,method:()=>'POST',
+  postData:()=>JSON.stringify({actions:[wrapped
+    ? {id:'req-1;a',descriptor:'aura://ApexActionController/ACTION$execute',
+       params:{classname:'SLGrokChatController',method,params:{conversationId:'a01000000000001AAA'}}}
+    : {id:'req-1;a',descriptor:`apex://SLGrokChatController/ACTION$${method}`,
+       params:{conversationId:'a01000000000001AAA'}}]})
+});
+const result={};
+for(const method of ['listConversations','beginMessage','executePendingMessage']) {
+  result[method]=[];
+  for(const wrapped of [true,false]) {
+    const observer=new h.ApexObserver({},host);
+    observer.onRequest(request(method,wrapped));
+    let reason=null;
+    try { h.assertNoChatBeforeSetup(observer,0); } catch(e) { reason=e.reason; }
+    result[method].push({reason,required:observer.projection().length,failure:!!observer.failure});
+  }
+}
+process.stdout.write(JSON.stringify(result));'''
+        observed = subprocess.run([shutil.which("node"), "-e", program, str(BROWSER)],
+                                  capture_output=True, text=True, check=True, timeout=90)
+        result = json.loads(observed.stdout)
+        self.assertEqual([{"reason": None, "required": 0, "failure": False}] * 2,
+                         result["listConversations"])
+        for name in ("beginMessage", "executePendingMessage"):
+            self.assertEqual([{"reason": "chat-attempted-before-setup", "required": 0,
+                               "failure": False}] * 2, result[name])
 
     def test_dom_fixture_declares_accessible_controls_and_missing_send_is_detected(self):
         class ContractParser(HTMLParser):

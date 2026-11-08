@@ -17,6 +17,9 @@ const METHODS = new Set([
   'getSetup', 'saveSetup', 'testConnection', 'newConversation',
   'getConversation', 'sendMessage', 'confirmAction', 'cancelAction', 'seedItems',
 ]);
+const CHAT_ATTEMPTS = new Set([
+  'testConnection', 'newConversation', 'sendMessage', 'beginMessage', 'executePendingMessage',
+]);
 const TOOL_NAMES = new Set([
   'get_context', 'describe_schema', 'find_items', 'read_item',
   'propose_create_item', 'propose_update_item',
@@ -123,7 +126,7 @@ function requestMethod(action, controllerClass) {
   }
   if ((method === 'confirmAction' || method === 'cancelAction')
       && !ACTION_ID_RE.test(params.actionId || '')) throw stageError('controller', 'controller-action-invalid');
-  return { id: action.id, method, params };
+  return { id: action.id, method, params, transport: execute ? 'lwc' : 'direct' };
 }
 
 function safeFieldMap(value) {
@@ -244,22 +247,50 @@ function parseAuraRequest(value, controllerClass) {
   const actions = decodeAura(value, 'controller-action-invalid');
   const found = [];
   const seen = new Set();
+  const counts = new Map();
+  for (const action of actions) {
+    if (isRecord(action) && typeof action.id === 'string') counts.set(action.id, (counts.get(action.id) || 0) + 1);
+  }
   for (const action of actions) {
     if (!isRecord(action)) continue;
     let descriptor = action.descriptor;
     let target = null;
+    let method = null;
     if (typeof descriptor === 'string') {
       const direct = /^apex:\/\/([^/]+)\/ACTION\$/.exec(descriptor);
       const wrapped = /^(?:aura|apex):\/\/ApexActionController\/ACTION\$execute$/i.test(descriptor);
       target = direct ? direct[1] : (wrapped && isRecord(action.params) ? action.params.classname : null);
+      method = direct ? descriptor.split('/ACTION$')[1]
+        : (wrapped && isRecord(action.params) ? action.params.method : null);
     }
     if (target !== controllerClass) continue;
+    // Supporting RPCs may share a batch. They never supply required-method proof.
+    if (typeof method === 'string' && /^[A-Za-z][A-Za-z0-9_]*$/.test(method) && !METHODS.has(method)) continue;
     const normalized = requestMethod(action, controllerClass);
-    if (!normalized || seen.has(normalized.id)) throw stageError('controller', 'controller-action-invalid');
+    if (!normalized || seen.has(normalized.id) || counts.get(normalized.id) !== 1) {
+      throw stageError('controller', 'controller-action-invalid');
+    }
     seen.add(normalized.id);
     found.push(normalized);
   }
   return found;
+}
+
+function chatAttempts(value) {
+  return decodeAura(value, 'controller-action-invalid').flatMap(action => {
+    if (!isRecord(action) || typeof action.descriptor !== 'string') return [];
+    const direct = /^apex:\/\/SLGrokChatController\/ACTION\$([A-Za-z][A-Za-z0-9_]*)$/.exec(action.descriptor);
+    const wrapped = /^(?:aura|apex):\/\/ApexActionController\/ACTION\$execute$/i.test(action.descriptor);
+    const method = direct ? direct[1] : wrapped && isRecord(action.params)
+      && action.params.classname === CONTROLLER ? action.params.method : null;
+    return CHAT_ATTEMPTS.has(method) ? [method] : [];
+  });
+}
+
+function assertNoChatBeforeSetup(observer, cursor) {
+  if (observer.chatRequests.length !== cursor) {
+    throw stageError('setup-missing', 'chat-attempted-before-setup');
+  }
 }
 
 function pairAuraActions(requests, responseBody) {
@@ -268,10 +299,20 @@ function pairAuraActions(requests, responseBody) {
     const matches = responses.filter(action => isRecord(action) && action.id === request.id);
     if (matches.length !== 1) throw stageError('controller', 'controller-response-id-mismatch');
     const response = matches[0];
-    if (response.state !== 'SUCCESS' || typeof response.returnValue !== 'string') {
+    let rawValue = response.returnValue;
+    if (request.transport === 'lwc') {
+      // Salesforce wraps LWC ApexActionController results once at the transport
+      // layer. The application still returns one JSON String, never an object.
+      if (!isRecord(rawValue) || !exactKeys(rawValue, ['returnValue', 'cacheable'])
+          || typeof rawValue.cacheable !== 'boolean') {
+        throw stageError('controller', 'controller-response-invalid');
+      }
+      rawValue = rawValue.returnValue;
+    }
+    if (response.state !== 'SUCCESS' || typeof rawValue !== 'string') {
       throw stageError('controller', 'controller-response-invalid');
     }
-    const result = normalizeResult(request.method, response.returnValue);
+    const result = normalizeResult(request.method, rawValue);
     if ((result.conversationId && request.params.conversationId
           && result.conversationId !== request.params.conversationId)
         || (result.actionId && request.params.actionId
@@ -288,6 +329,7 @@ class ApexObserver {
     this.page = page;
     this.expectedHost = expectedHost;
     this.records = [];
+    this.chatRequests = [];
     this.requestActions = new WeakMap();
     this.pending = new Set();
     this.failure = null;
@@ -311,7 +353,15 @@ class ApexObserver {
     try { url = new URL(request.url()); } catch (_) { return; }
     if (url.pathname !== '/aura' || request.method().toUpperCase() !== 'POST') return;
     let actions;
-    try { actions = parseAuraRequest(request.postData() || '', CONTROLLER); }
+    try {
+      const body = request.postData() || '';
+      this.chatRequests.push(...chatAttempts(body).map(method => ({
+        // Playwright populates timing after request dispatch. Read its current
+        // browser timestamp at the gate rather than freezing an initial zero.
+        method, startedAt: () => typeof request.timing === 'function' ? request.timing().startTime : null,
+      })));
+      actions = parseAuraRequest(body, CONTROLLER);
+    }
     catch (error) { this.failure = this.failure || error; return; }
     if (!actions.length) return;
     if (url.protocol !== 'https:' || url.hostname.toLowerCase() !== this.expectedHost || url.port) {
@@ -321,7 +371,7 @@ class ApexObserver {
     const records = actions.map(action => {
       const record = {
         sequence: ++this.sequence, method: action.method, request_id: action.id,
-        params: action.params, params_valid: true, response_id: null,
+        params: action.params, transport: action.transport, params_valid: true, response_id: null,
         response_state: 'PENDING', result: null, json_string_decoded_once: false,
       };
       this.records.push(record);
@@ -346,15 +396,26 @@ class ApexObserver {
       return;
     }
     const pairs = pairAuraActions(records.map(record => ({ id: record.request_id,
-      method: record.method, params: record.params })), await response.text());
+      method: record.method, params: record.params, transport: record.transport })), await response.text());
     for (let index = 0; index < records.length; index += 1) {
       const record = records[index];
       const pair = pairs[index];
       record.response_id = pair.response_id;
-      record.response_state = pair.response_state;
       record.http_ok = true;
       record.json_string_decoded_once = pair.json_string_decoded_once;
       record.result = pair.result;
+      if (record.method === 'saveSetup') {
+        // Compare browser network times, not asynchronous Node callback order:
+        // the page can issue its next request before this observer reads the body.
+        if (await response.finished()) throw stageError('controller', 'controller-response-invalid');
+        const timing = request.timing();
+        if (!Number.isFinite(timing.startTime) || timing.startTime <= 0
+            || !Number.isFinite(timing.responseEnd) || timing.responseEnd < 0) {
+          throw stageError('controller', 'controller-response-invalid');
+        }
+        record.response_completed_at = timing.startTime + timing.responseEnd;
+      }
+      record.response_state = pair.response_state;
     }
   }
 
@@ -381,7 +442,8 @@ class ApexObserver {
     return this.records.map(record => {
       const result = record.result || {};
       const output = {
-        method: record.method, request_id: record.request_id, response_id: record.response_id,
+        method: record.method, request_sequence: record.sequence,
+        request_id: record.request_id, response_id: record.response_id,
         response_state: record.response_state, params_valid: record.params_valid,
         json_string_decoded_once: record.json_string_decoded_once, http_ok: record.http_ok === true,
         ui_correlated: record.ui_correlated === true,
@@ -424,8 +486,18 @@ async function button(page, label) {
 
 async function click(page, label) {
   const control = await button(page, label);
-  if (!await control.isEnabled()) throw stageError('render', 'ui-control-missing');
+  // Playwright waits for enabled actionability during legitimate async transitions.
   await control.click({ timeout: 30000 });
+}
+
+async function enabledButton(page, label) {
+  const control = await button(page, label);
+  const deadline = Date.now() + 30000;
+  while (!await control.isEnabled()) {
+    if (Date.now() >= deadline) throw stageError('render', 'ui-control-missing');
+    await page.waitForTimeout(100);
+  }
+  return control;
 }
 
 async function writeMessage(page, observer, conversationId, message) {
@@ -731,8 +803,10 @@ async function runStep(request, session, observer) {
     candidate_metadata_sha256: request.candidate_metadata_sha256 };
 
   if (step === 'observe') {
-    const setupText = await (await region(page, 'Setup status')).innerText();
     const result = await observer.waitFor('getSetup', () => true, 45000, 0);
+    // Read after the response and rendered transition; the initial loading text
+    // is not evidence of the settled setup state.
+    const setupText = await waitSetupStatus(page, result.result.status);
     const visibleState = /\bmissing\b/i.test(setupText) ? 'missing'
       : /\bready\b/i.test(setupText) ? 'ready' : /\berror\b/i.test(setupText) ? 'error' : 'invalid';
     if (visibleState !== result.result.status) throw stageError('observe', 'ui-state-invalid');
@@ -747,37 +821,42 @@ async function runStep(request, session, observer) {
   const screenshots = request.screenshots;
   if (step === 'setup') {
     const setupCursor = observer.mark();
+    const chatCursor = observer.chatRequests.length;
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
     await region(page, 'Setup status');
     const initialCall = await observer.waitFor('getSetup', () => true, 45000, setupCursor);
     if (!initialCall || initialCall.result.status !== 'missing') throw stageError('setup-missing', 'setup-not-missing');
     await waitSetupStatus(page, 'missing');
     await screenshot(page, request, 'setup-missing');
-    const preSetup = observer.records.slice(setupCursor).filter(record => record.sequence <= initialCall.sequence);
-    if (preSetup.some(record => ['testConnection', 'newConversation', 'sendMessage'].includes(record.method))) {
-      throw stageError('setup-missing', 'chat-attempted-before-setup');
-    }
+    assertNoChatBeforeSetup(observer, chatCursor);
     const keyboardOk = await keyboardCheck(page);
     await (await input(page, 'Named credential')).fill(request.named_credential);
     await (await input(page, 'Model')).fill(request.model);
     const saveCursor = observer.mark();
-    if (observer.records.slice(setupCursor, saveCursor).some(record =>
-      ['testConnection', 'newConversation', 'sendMessage'].includes(record.method))) {
-      throw stageError('setup-missing', 'chat-attempted-before-setup');
-    }
+    assertNoChatBeforeSetup(observer, chatCursor);
     const save = await button(page, 'Save setup');
     await save.focus();
     await page.keyboard.press('Enter');
     const saved = await observer.waitFor('saveSetup', record =>
       record.result.status === 'ready' && record.params.namedCredential === request.named_credential
         && record.params.model === request.model, 60000, saveCursor);
+    const chatStarts = observer.chatRequests.slice(chatCursor).map(call => call.startedAt());
+    if (!Number.isFinite(saved.response_completed_at)
+        || chatStarts.some(start => !Number.isFinite(start) || start <= 0)) {
+      throw stageError('controller', 'controller-proof-missing');
+    }
+    if (chatStarts.some(start => start <= saved.response_completed_at)) {
+      throw stageError('setup-missing', 'chat-attempted-before-setup');
+    }
     await waitSetupStatus(page, 'ready');
     await screenshot(page, request, 'setup-desktop');
     const connectionCursor = observer.mark();
     await click(page, 'Test connection');
     const connection = await observer.waitFor('testConnection', record => record.result.status === 'ok', 120000, connectionCursor);
+    await click(page, 'Setup');
+    const recheckControl = await enabledButton(page, 'Recheck setup');
     const recheckCursor = observer.mark();
-    await click(page, 'Recheck setup');
+    await recheckControl.click({ timeout: 30000 });
     const recheck = await observer.waitFor('getSetup', record => record.result.status === 'ready', 45000, recheckCursor);
     const newCursor = observer.mark();
     await click(page, 'New conversation');
@@ -1210,6 +1289,7 @@ async function inspectFixture(url, viewport = { width: 1280, height: 900 }) {
 module.exports = {
   METHODS, SAFE_STAGES, SAFE_REASONS, decodeAura, parseAuraRequest, pairAuraActions, parseOnceJsonString,
   normalizeResult, normalizeConversation, ApexObserver, validateRequest, inspectFixture,
+  chatAttempts, assertNoChatBeforeSetup, click, enabledButton, runStep,
 };
 
 if (require.main === module) main();
