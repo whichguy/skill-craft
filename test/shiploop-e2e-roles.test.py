@@ -30,8 +30,8 @@ class RoleDefaultsTest(unittest.TestCase):
             for role in ("subject", "reviewer", "judge", "improver")
         }
         self.assertEqual(hosts.ROLE_DEFAULTS, expected)
-        self.assertEqual(hosts.resolve_role("reviewer", {"model": "custom-model", "effort": "high"}),
-                         {"host": "codex", "model": "custom-model", "effort": "high"})
+        self.assertEqual(hosts.resolve_role("reviewer", {"model": "custom-model", "effort": "xhigh"}),
+                         {"host": "codex", "model": "custom-model", "effort": "xhigh"})
         self.assertEqual(hosts.resolve_role("subject", {"host": "claude"}),
                          {"host": "claude", "model": "claude-sonnet-5-5", "effort": None})
         self.assertEqual(hosts.resolve_role("reviewer", {"host": "claude"}),
@@ -114,10 +114,12 @@ class RoleDefaultsTest(unittest.TestCase):
         args = run.parser().parse_args(argv)
         self.assertEqual(args.host, "codex", "argparse's new-run default is not an explicit resume choice")
         self.assertFalse(run.host_given(argv))
-        self.assertEqual(run.resume_identity(args, False,
-                                             {"host": "claude", "model": "claude-sonnet-5-5", "effort": None},
-                                             Path("/not-used")),
-                         ("claude", "claude-sonnet-5-5", None))
+        for host, model, effort in (("claude", "claude-sonnet-5-5", None),
+                                    ("codex", "gpt-6.1-terra", "xhigh")):
+            with self.subTest(host=host):
+                recorded = {"host": host, "model": model, "effort": effort}
+                self.assertEqual(run.resume_identity(args, False, recorded, Path("/not-used")),
+                                 (host, model, effort))
 
 
 if __name__ == "__main__":

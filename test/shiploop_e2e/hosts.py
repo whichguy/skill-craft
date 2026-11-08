@@ -56,6 +56,8 @@ OLLAMA_TOOLS = ("Bash", "Read", "Edit", "Write", "Glob", "Grep", "NotebookEdit",
 # (Sonnet 5.5, backend "anthropic") like every other Claude caller; `--backend ollama` selects a model the local Ollama
 # server serves (owner, 2026-11-01, replacing the 2026-10-26 default of Ollama's DeepSeek flash).
 RUN_DEFAULT_HOST = "codex"
+CODEX_DEFAULT_MODEL = "gpt-6.1-sol"
+CODEX_DEFAULT_EFFORT = "high"
 
 
 def resolve_role(name: str, overrides: dict | None = None) -> dict:
@@ -416,7 +418,7 @@ class CodexHost(Host):
     (the published marketplace, or a build of this checkout).
     """
 
-    name, model, effort = "codex", "gpt-6.1-sol", "high"
+    name, model, effort = "codex", CODEX_DEFAULT_MODEL, CODEX_DEFAULT_EFFORT
     resumable = marketplace = True
 
     def __init__(self, binary: str = "codex"):

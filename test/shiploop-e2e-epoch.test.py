@@ -96,8 +96,8 @@ class EpochTest(unittest.TestCase):
             self.assertEqual(epoch.next_action(self.root)["action"], "launch")
             self.assertEqual(epoch.state(self.root)["publication"], "not_performed")
         self.assertEqual((self.root / epoch.LEDGER).read_bytes(), original)
-        improver = json.loads((self.root / "roles.json").read_text())["improver"]
-        self.assertEqual(improver, {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"})
+        profiles = json.loads((self.root / "roles.json").read_text())
+        self.assertEqual(profiles["improver"], {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"})
 
     def test_launch_retains_summary_rows_in_epoch_without_mutating_source_baseline(self):
         source_baseline = self.temp / "source-baselines.jsonl"
@@ -289,9 +289,10 @@ class EpochTest(unittest.TestCase):
                 mock.patch.object(judge, "judge", return_value=verdict) as independent:
             event = epoch.review_attempt(self.root, "control-hello")
         self.assertEqual(event["kind"], "reviewed")
-        for role in (reviewer, independent):
-            self.assertEqual(role.call_args.kwargs["model"], "gpt-6.1-sol")
-            self.assertEqual(role.call_args.kwargs["effort"], "high")
+        self.assertEqual(reviewer.call_args.kwargs["model"], "gpt-6.1-sol")
+        self.assertEqual(independent.call_args.kwargs["model"], "gpt-6.1-sol")
+        self.assertEqual(reviewer.call_args.kwargs["effort"], "high")
+        self.assertEqual(independent.call_args.kwargs["effort"], "high")
         self.assertEqual(reviewer.call_args.kwargs["assessment_id"], independent.call_args.kwargs["assessment_id"])
         self.assertEqual(epoch.next_action(self.root)["attempt_id"], "candidate-hello")
         with self.assertRaisesRegex(ValueError, "already recorded"):
