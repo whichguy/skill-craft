@@ -1,0 +1,69 @@
+{
+  "id": "preplan-pilot-20261108-v1",
+  "status": "frozen-before-measured-subjects",
+  "baseline": "93dd53b73e1931c5847ad75d9bc19205c40fb441",
+  "candidate": "candidate-overlay.json",
+  "hypothesis": "A consequential-uncertainty duty after spec and test strategy, before defining work_items, improves final planning decisions or reduces consequential Plan Improve rework.",
+  "scope": "Seeded planning component pilot, not a delivered-product or full E2E comparison.",
+  "seed_at": "test-strategy",
+  "stop_after": "plan",
+  "planning_review": "stage",
+  "delegation": "inline",
+  "subject": {
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "effort": "high"
+  },
+  "judge": {
+    "host": "codex",
+    "model": "gpt-6-astra",
+    "effort": "xhigh"
+  },
+  "models_are": "Requested exact launch settings, not provider-side served-model attestation; no fallback.",
+  "cases": [
+    "atomic",
+    "unicode",
+    "evidence",
+    "unavailable"
+  ],
+  "repetitions": 2,
+  "arms": [
+    "current",
+    "early"
+  ],
+  "order_seed": 20261108,
+  "concurrency": 4,
+  "deadline_seconds_per_slice": 3600,
+  "deadline_scope": "Study observation window only; no ShipLoop loop cap or stop-rule change. Deadline is incomplete evidence, never a pass.",
+  "failure_policy": "Retain every attempt. No retry for poor subject performance, unsupported conclusions or subject stalls. On a verified infrastructure failure, retain the failed attempt, repair only apparatus, freeze a new registration if material, and rerun both arms of the affected matched cell. No score-dependent early stopping.",
+  "completion": "Accepted plan plus matching real Plan Improve receipt and no later accepted result. Synthetic prelude receipts do not count. Incomplete and conditional outcomes are reported distinctly.",
+  "primary": "Final plan fulfils the case obligations with supported consequential decisions and honest readiness.",
+  "secondary": [
+    "Unsupported consequential commitments in first submitted plan",
+    "Decision-changing review rework",
+    "Unnecessary investigation",
+    "Timing and source of decision evidence"
+  ],
+  "costs": [
+    "Reported input and output tokens when complete",
+    "Host wall time",
+    "Live-stage elapsed time when reconstructible"
+  ],
+  "not_rewards": [
+    "Experiment count",
+    "Added forms",
+    "Repeating candidate language",
+    "Static checklist conformance without outcome value"
+  ],
+  "judgment": "One arm-blinded bundle per initial judgment. Obligation grades 0 missed, 1 partial, 2 fulfilled, supported by exact quotes and evidence locators; independent paired review uses seeded order and separate fresh context. No subject or judge observes the arm mapping. Source inspection is valid evidence and the current flow may investigate early.",
+  "analysis": "Descriptive paired outcomes over four constructed scenarios; no significance or generalized gain claim. Missing usage stays null. Any potential adoption requires separate confirmation, adverse-case review and exact-text validation.",
+  "isolation": "Separate homes, workspaces and installed plugin trees; local-only fixtures. Codex shell is not OS-fenced to its workspace on this host. Audit transcript for cross-arm/operator access; contaminated samples are not valid comparative evidence.",
+  "changes_after_review": [
+    "Plan Improve remains byte-identical in both arms",
+    "Duty placed after accepted-source reopening and before work_items",
+    "Shared allowance carried forward rather than reset",
+    "Current-evidence and unavailable-boundary controls",
+    "Require real Plan Improve completion; retain first seed_result and final result"
+  ],
+  "concurrency_note": "Preflight-only operational adjustment before measured subjects or scores: four independent local slices in balanced paired cohorts, with no fixed ports or shared product files. Runtime/token comparisons retain overlap limitations."
+}

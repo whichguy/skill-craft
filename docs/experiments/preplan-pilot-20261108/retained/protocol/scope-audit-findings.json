@@ -1,0 +1,32 @@
+{
+  "method": "Uniform scan of every completed measured run's normalized tool outputs, including framework outputs, for ancestor-relative Git status output; complements the argument-path heuristic. Path names are not reproduced here.",
+  "checked": [
+    "sample-01",
+    "sample-02",
+    "sample-03",
+    "sample-04",
+    "sample-05",
+    "sample-06",
+    "sample-07",
+    "sample-08",
+    "sample-09",
+    "sample-10",
+    "sample-11",
+    "sample-12",
+    "sample-13",
+    "sample-14",
+    "sample-15",
+    "sample-16"
+  ],
+  "findings": [
+    {
+      "sample": "sample-06",
+      "event": 85,
+      "command": "/bin/zsh -lc \"rg -n 'Plan document shape|\"'^##|''^###'\"' SKILL.md; git status --short\"",
+      "type": "ancestor-repository-status-path-enumeration",
+      "upward_path_entries": 112,
+      "evidence": "Retained bundle application_tool_evidence; output contains unrelated ancestor-directory path names. No file-content read is established by this command."
+    }
+  ],
+  "limits": "This targeted pattern catches the observed deviation; it is not a comprehensive filesystem-read audit."
+}

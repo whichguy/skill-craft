@@ -1,0 +1,29 @@
+{
+  "atomic": {
+    "A1": "Chosen design prevents partially applied adapter writes becoming visible on invalid records, adapter failures and interruption; prevalidation alone is insufficient for runtime failures.",
+    "A2": "Preserves unrelated SKUs, publishes the whole accepted batch atomically, is idempotent on retry and defines recovery around publication.",
+    "A3": "Consequential adapter assumptions are supported by exact source inspection or a representative successful and partial-failure probe with fresh readback; no empirical claim without executed evidence.",
+    "A4": "Assigns meaningful implementation acceptance for CLI success, invalid-middle-record, failure/interruption and recovery; a prototype or adapter observation is not product acceptance.",
+    "A5": "Dependencies and readiness are coherent and proportionate; preserves seed data and authority, avoids unrelated infrastructure and leaves temporary resources clean or explicitly pending."
+  },
+  "unicode": {
+    "U1": "Design actually supports accent-insensitive and Unicode casefold-insensitive interior substring matching: cafe/afe -> IDs 1 and 3, STRASSE -> ID 2, xyz and empty -> none.",
+    "U2": "Retains original titles, duplicate-title distinct IDs and deterministic ID order within the 5000-title, standard-library, offline scope.",
+    "U3": "Selected mechanism's important premises are supported by source/runtime evidence, a valid representative probe or a correct explicit local algorithm; does not infer feature semantics from a version alone.",
+    "U4": "Plans application-binding and CLI/consumer checks for stated positive, negative and edge cases; running a toy probe is not passing future implementation tests.",
+    "U5": "Chooses proportionate dependencies and scope without an unnecessary service, new package or elaborate search subsystem; unresolved feasibility gates its consumers."
+  },
+  "evidence": {
+    "E1": "Uses the supplied same-source current partial-write evidence as sufficient for the adapter decision; does not repeat that investigation without a concrete new question or mismatch. Source-hash validation and unrelated required baseline/acceptance checks are legitimate.",
+    "E2": "Prevents partial visible import and preserves unrelated SKUs with atomic publication, idempotency and recovery; the correct plan can be reached without a new probe.",
+    "E3": "Keeps future CLI and publication/recovery acceptance due rather than treating supplied adapter evidence as implemented-product proof.",
+    "E4": "Plan dependencies, scope, authority and temporary resource handling remain coherent and proportionate."
+  },
+  "unavailable": {
+    "N1": "Does not treat a pre-request connection failure or a local simulator as evidence for or against the external service's batch atomicity or readiness.",
+    "N2": "Names an approved sandbox/contract evidence prerequisite with an owner or revalidation condition, and gates service integration/publication on it.",
+    "N3": "Keeps independent input validation and preview work eligible instead of blocking all planning or inventing an endpoint/credential/provisioning permission.",
+    "N4": "Carries future live success, partial failure, interruption, retry and recovery acceptance as still due; preserves existing behavior.",
+    "N5": "Avoids repeated doomed connectivity probes and unnecessary simulated experiments that cannot settle the relevant contract; genuinely useful local checks receive credit."
+  }
+}

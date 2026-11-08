@@ -1,0 +1,539 @@
+{
+  "request": "Add offline substring search to this Python catalog using the application's src/database.py connection. Search must be accent insensitive and Unicode casefold insensitive, without changing displayed titles: cafe finds Caf\u00e9 Racer, STRASSE finds Die Stra\u00dfe, and interior query afe finds Caf\u00e9 Racer. Query xyz finds no records. An empty query returns no matches. Search order is stable by ID and duplicate titles preserve distinct IDs. The fixed initial catalog fits in memory (at most 5000 titles), search needs no external service, no fuzzy ranking and no new dependency. A previous design note suggests SQLite FTS5 trigram or LIKE if they meet these semantics on this binding; that is a proposal, not an accepted requirement. Verify the chosen mechanism at its real boundary when needed, and retain implementation and consumer checks as future work. Temporary local experiments on disposable data are authorized. Existing tests must remain passing.",
+  "obligations": {
+    "U1": "Design actually supports accent-insensitive and Unicode casefold-insensitive interior substring matching: cafe/afe -> IDs 1 and 3, STRASSE -> ID 2, xyz and empty -> none.",
+    "U2": "Retains original titles, duplicate-title distinct IDs and deterministic ID order within the 5000-title, standard-library, offline scope.",
+    "U3": "Selected mechanism's important premises are supported by source/runtime evidence, a valid representative probe or a correct explicit local algorithm; does not infer feature semantics from a version alone.",
+    "U4": "Plans application-binding and CLI/consumer checks for stated positive, negative and edge cases; running a toy probe is not passing future implementation tests.",
+    "U5": "Chooses proportionate dependencies and scope without an unnecessary service, new package or elaborate search subsystem; unresolved feasibility gates its consumers."
+  },
+  "plans": [
+    {
+      "action": "nav-ebbb6d375da24cc18aa3591350e13d67",
+      "outcome": "done",
+      "initial": {
+        "assumptions": [
+          {
+            "assumption": "Selected local runtime supports adapter-backed ordered SQLite reads and owned file lifecycle.",
+            "check": "Run actual-adapter disposable SQL and file lifecycle probes, retained exact argv/output.",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/boundary.txt",
+              "TRIAL/.shiploop-runs/seed/run/scratch/file-boundary.txt"
+            ],
+            "id": "A1"
+          },
+          {
+            "assumption": "NFD after casefold with Mn removal and literal substring satisfies required examples on the actual binding without title changes.",
+            "check": "search-boundary-probe.py creates/selects original rows through database.connect then asserts explicit independent match tuples including 5000 rows.",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/search-boundary-probe.py",
+              "TRIAL/.shiploop-runs/seed/run/scratch/boundary.txt"
+            ],
+            "id": "A2"
+          },
+          {
+            "assumption": "Catalog is fixed, fits memory and contains at most 5000 titles; no external service or dependency is needed.",
+            "disposition": "evidenced",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/request.md",
+              "TRIAL/.shiploop-runs/seed/worktree/data/catalog.json"
+            ],
+            "id": "A3"
+          },
+          {
+            "assumption": "Public search_catalog(connection, query) with documented caller-created catalog table is the smallest appropriate consumer contract.",
+            "disposition": "open",
+            "due_item": "W1",
+            "id": "A4",
+            "reason": "Only connection adapter and JSON seed exist; schema and API are agent design choices, not supplied implementation.",
+            "settle": "Implement documented schema precondition/consumer example and observe TC_7/TC_9/TC_10 through actual public API; reconcile if incompatible."
+          },
+          {
+            "assumption": "Accent folding removes canonical nonspacing marks after casefold; normalized-empty returns no matches, punctuation is literal, and no transliteration/trim is added.",
+            "disposition": "open",
+            "due_item": "W1",
+            "id": "A5",
+            "reason": "Exact broad accent policy is a documented engineering default beyond the user examples; durable product assertions do not yet exist.",
+            "settle": "Document policy and author TC_1/TC_4/TC_5 with explicit independent Unicode/literal results; verify unchanged displayed rows and all required examples."
+          }
+        ],
+        "concerns": {
+          "W1": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "No graphical or device surface requested."
+            },
+            {
+              "anchor": "src/search.py, TC_2/TC_9",
+              "applies": "yes",
+              "decision": "AD-3 public Python API and caller-owned catalog schema",
+              "id": "api",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "Synchronous local function; no message/worker/ack channel."
+            },
+            {
+              "anchor": "TC_7/TC_9/TC_10",
+              "applies": "yes",
+              "decision": "AD-5 read originals and keep keys ephemeral; no search writes",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "No existing catalog SQL schema supplied or production schema write required by search."
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No data-format retirement or post-cutover cleanup."
+            },
+            {
+              "applies": "no",
+              "id": "switchover",
+              "reason": "No deployment or live target cutover."
+            },
+            {
+              "applies": "no",
+              "id": "concurrency",
+              "reason": "Fixed read-only initial catalog; no coordinated concurrent writes required."
+            },
+            {
+              "applies": "no",
+              "id": "platform-services",
+              "reason": "No remote/native service dependency; local SQLite is the inspected adapter."
+            },
+            {
+              "anchor": "TC_6",
+              "applies": "yes",
+              "decision": "AD-2 linear scan bounded to 5000 supplied titles",
+              "id": "scale",
+              "owner_stage": "test"
+            },
+            {
+              "anchor": "TC_5/TC_8",
+              "applies": "yes",
+              "decision": "Local caller-owned DB, fixed SQL, literal user query, no external credentials",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TC_7/TC_10",
+              "applies": "yes",
+              "decision": "Synchronous errors propagate; do not return [] on database failure",
+              "id": "observability",
+              "owner_stage": "test"
+            },
+            {
+              "anchor": "environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Existing stdlib runtime and owned CATALOG_TEST_TMPDIR fixture root",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TC_6",
+              "applies": "yes",
+              "decision": "No numeric SLA; confirm exact 5000-row behavior without artificial ranking/index",
+              "id": "performance",
+              "owner_stage": "test"
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No human-facing UI is added; Python API consumer only."
+            }
+          ]
+        },
+        "evidence_refs": [
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md",
+          "TRIAL/.shiploop-runs/seed/run/request.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/plan-reference.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md",
+          "TRIAL/.shiploop-runs/seed/run/scratch/baseline.txt",
+          "TRIAL/.shiploop-runs/seed/run/scratch/identity-smoke.txt",
+          "TRIAL/.shiploop-runs/seed/run/scratch/search-boundary-probe.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/boundary.txt",
+          "TRIAL/.shiploop-runs/seed/run/scratch/file-boundary-probe.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/file-boundary.txt",
+          "TRIAL/.shiploop-runs/seed/worktree/src/database.py",
+          "TRIAL/.shiploop-runs/seed/worktree/tests/test_baseline.py",
+          "TRIAL/.shiploop-runs/seed/worktree/data/catalog.json"
+        ],
+        "headline": "One scoped search increment planned with observed mechanism and pending acceptance",
+        "outcome": "done",
+        "summary": "Design basis and five-lens dependency audit are in notes/plan-reference.md. Direct inline audit chosen; no Backchain/model/agent or separate graph invoked. One W1 owns all R-1/R-2 criteria, fixture preparation with first consumer, implementation/docs and due checks. Existing unittest/runtime ready; no independent harness bootstrap, remote access or deployment item required. API/schema and accent policy are explicit design choices to settle through W1 tests/docs, not prior product facts. No product feature or consumer acceptance is claimed. Trial stops only after actual plan Improve reaches prepare.",
+        "work_items": [
+          {
+            "context": "Ready: read TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md R-1/R-2 and TRIAL/.shiploop-runs/seed/run/request.md S1-S10, TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-1..AD-6/interfaces/RBC-1/RBC-2, TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites/Commands/ID convention, TRIAL/.shiploop-runs/seed/run/notes/plan-reference.md and current-system-baseline.md. Initial baseline TRIAL/.shiploop-runs/seed/run/scratch/baseline.txt passed 1 unchanged SELECT 1 test; no search behavior was tested. Runtime feasibility TRIAL/.shiploop-runs/seed/run/scratch/boundary.txt and file-boundary.txt is stand-in evidence only. Prepare must validate Python/SQLite and an existing owned CATALOG_TEST_TMPDIR scratch root; no install or access needed. Revalidate if adapter/runtime/schema changes. Scope: planned src/search.py (_search_key private, search_catalog public), tests/test_search.py, tests/test_search_consumer.py and README consumer example; preserve src/database.py, data/catalog.json and existing tests/test_baseline.py. No external operation, new CLI/UI/service/dependency is authorized. Existing package src resolves from repository root; imports unicodedata/sqlite3 remain stdlib, no shadow names. Test module imports public search inside test methods, so discovery loads before implementation and records genuine missing-API RED, not skips. Use unittest runner with per-test owned DBs, explicit CREATE catalog(id INTEGER PRIMARY KEY,title TEXT NOT NULL) and parameterized INSERT. Close connections before cleanup. Fixture/helper code belongs to this first consumer; it is not a missing runner. Sequence inside W1: specify independent assertions -> retain absent API/test-first failure and unchanged baseline -> implement read-only ORDER BY id + NFD(casefold)/Mn removal/literal substring, empty normalized query -> [] -> durable regression -> README caller-owned schema/seed setup -> consumer checks when due. Map S1/S2/S5 to TC_1/TC_2/TC_5/TC_8/TC_9; S3 to TC_3; S4 to TC_4; S6 to TC_6/TC_8 and dependency/source review; S7-S9 decision probes retained without accepting raw LIKE/default FTS; S10 to unchanged baseline/full suite. R-2 data safety/visible failure -> TC_7/TC_8/TC_10. Before/after: exact original titles/IDs unchanged; errors propagate; no schema/transaction/connection ownership stolen by search. Done: authored focused TC_1..TC_8 assertions pass on candidate and fail meaningfully on base; full discovery includes them plus unchanged baseline; consumer tests TC_9/TC_10 authored from RBC-1/RBC-2 and remain due at system-test/product-acceptance before delivery. Commands and reserved docstring IDs live in environment.md; future selectors must be revalidated with printed counts, zero cases/skips are not passes. Return exact original tuples, no deduplication or fuzzy ranking; 5000-row workload exact ascending odd IDs; no latency SLA. System-test owner executes public API with committed/reopened seed DB, not scratch helper. If an assumption/schema/consumer mismatch is discovered, use ShipLoop correction/send-back before dependent code and update affected plan/cases, never relax requirements. Delivery is local source/test/docs only; no external endpoint/credential exists, no deployment or migration. Recovery: unchanged caller data, visible exception, repair caller setup and retry; release/handoff retain any unobserved consumer result. This registered trial authorizes planning only; W1 is future work, not executed now.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-1",
+              "AD-2",
+              "AD-3",
+              "AD-4",
+              "AD-5",
+              "AD-6"
+            ],
+            "id": "W1",
+            "title": "Add normalized offline catalog substring search through the application connection"
+          }
+        ]
+      },
+      "final": {
+        "assumptions": [
+          {
+            "assumption": "Selected local runtime supports adapter-backed ordered SQLite reads and owned file lifecycle.",
+            "check": "Run actual-adapter disposable SQL and file lifecycle probes, retained exact argv/output.",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/boundary.txt",
+              "TRIAL/.shiploop-runs/seed/run/scratch/file-boundary.txt"
+            ],
+            "id": "A1"
+          },
+          {
+            "assumption": "NFD after casefold with Mn removal and literal substring satisfies required examples on the actual binding without title changes.",
+            "check": "search-boundary-probe.py creates/selects original rows through database.connect then asserts explicit independent match tuples including 5000 rows.",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/search-boundary-probe.py",
+              "TRIAL/.shiploop-runs/seed/run/scratch/boundary.txt"
+            ],
+            "id": "A2"
+          },
+          {
+            "assumption": "Catalog is fixed, fits memory and contains at most 5000 titles; no external service or dependency is needed.",
+            "disposition": "evidenced",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/request.md",
+              "TRIAL/.shiploop-runs/seed/worktree/data/catalog.json"
+            ],
+            "id": "A3"
+          },
+          {
+            "assumption": "Public search_catalog(connection, query) with documented caller-created catalog table is the smallest appropriate consumer contract.",
+            "disposition": "open",
+            "due_item": "W1",
+            "id": "A4",
+            "reason": "Only connection adapter and JSON seed exist; schema and API are agent design choices, not supplied implementation.",
+            "settle": "Implement documented schema precondition/consumer example and observe TC_7/TC_9/TC_10 through actual public API; reconcile if incompatible."
+          },
+          {
+            "assumption": "Accent folding removes canonical nonspacing marks after casefold; normalized-empty returns no matches, punctuation is literal, and no transliteration/trim is added.",
+            "disposition": "open",
+            "due_item": "W1",
+            "id": "A5",
+            "reason": "Exact broad accent policy is a documented engineering default beyond the user examples; durable product assertions do not yet exist.",
+            "settle": "Document policy and author TC_1/TC_4/TC_5 with explicit independent Unicode/literal results; verify unchanged displayed rows and all required examples."
+          }
+        ],
+        "concerns": {
+          "W1": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "No graphical or device surface requested."
+            },
+            {
+              "anchor": "src/search.py, TC_2/TC_9",
+              "applies": "yes",
+              "decision": "AD-3 public Python API and caller-owned catalog schema",
+              "id": "api",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "Synchronous local function; no message/worker/ack channel."
+            },
+            {
+              "anchor": "TC_7/TC_9/TC_10",
+              "applies": "yes",
+              "decision": "AD-5 read originals and keep keys ephemeral; no search writes",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "No existing catalog SQL schema supplied or production schema write required by search."
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No data-format retirement or post-cutover cleanup."
+            },
+            {
+              "applies": "no",
+              "id": "switchover",
+              "reason": "No deployment or live target cutover."
+            },
+            {
+              "applies": "no",
+              "id": "concurrency",
+              "reason": "Fixed read-only initial catalog; no coordinated concurrent writes required."
+            },
+            {
+              "applies": "no",
+              "id": "platform-services",
+              "reason": "No remote/native service dependency; local SQLite is the inspected adapter."
+            },
+            {
+              "anchor": "TC_6",
+              "applies": "yes",
+              "decision": "AD-2 linear scan bounded to 5000 supplied titles",
+              "id": "scale",
+              "owner_stage": "test"
+            },
+            {
+              "anchor": "TC_5/TC_8",
+              "applies": "yes",
+              "decision": "Local caller-owned DB, fixed SQL, literal user query, no external credentials",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TC_7/TC_10",
+              "applies": "yes",
+              "decision": "Synchronous errors propagate; do not return [] on database failure",
+              "id": "observability",
+              "owner_stage": "test"
+            },
+            {
+              "anchor": "environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Existing stdlib runtime and owned CATALOG_TEST_TMPDIR fixture root",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TC_6",
+              "applies": "yes",
+              "decision": "No numeric SLA; confirm exact 5000-row behavior without artificial ranking/index",
+              "id": "performance",
+              "owner_stage": "test"
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No human-facing UI is added; Python API consumer only."
+            }
+          ]
+        },
+        "evidence_refs": [
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md",
+          "TRIAL/.shiploop-runs/seed/run/request.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/plan-reference.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md",
+          "TRIAL/.shiploop-runs/seed/run/scratch/baseline.txt",
+          "TRIAL/.shiploop-runs/seed/run/scratch/identity-smoke.txt",
+          "TRIAL/.shiploop-runs/seed/run/scratch/search-boundary-probe.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/boundary.txt",
+          "TRIAL/.shiploop-runs/seed/run/scratch/file-boundary-probe.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/file-boundary.txt",
+          "TRIAL/.shiploop-runs/seed/worktree/src/database.py",
+          "TRIAL/.shiploop-runs/seed/worktree/tests/test_baseline.py",
+          "TRIAL/.shiploop-runs/seed/worktree/data/catalog.json"
+        ],
+        "headline": "One scoped search increment planned with observed mechanism and pending acceptance",
+        "outcome": "done",
+        "summary": "Design basis and five-lens dependency audit are in notes/plan-reference.md. Direct inline audit chosen; no Backchain/model/agent or separate graph invoked. One W1 owns all R-1/R-2 criteria, fixture preparation with first consumer, implementation/docs and due checks. Existing unittest/runtime ready; no independent harness bootstrap, remote access or deployment item required. API/schema and accent policy are explicit design choices to settle through W1 tests/docs, not prior product facts. No product feature or consumer acceptance is claimed. Trial stops only after actual plan Improve reaches prepare.",
+        "work_items": [
+          {
+            "context": "Ready: read TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md R-1/R-2 and TRIAL/.shiploop-runs/seed/run/request.md S1-S10, TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-1..AD-6/interfaces/RBC-1/RBC-2, TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites/Commands/ID convention, TRIAL/.shiploop-runs/seed/run/notes/plan-reference.md and current-system-baseline.md. Initial baseline TRIAL/.shiploop-runs/seed/run/scratch/baseline.txt passed 1 unchanged SELECT 1 test; no search behavior was tested. Runtime feasibility TRIAL/.shiploop-runs/seed/run/scratch/boundary.txt and file-boundary.txt is stand-in evidence only. Prepare must validate Python/SQLite and an existing owned CATALOG_TEST_TMPDIR scratch root; no install or access needed. Revalidate if adapter/runtime/schema changes. Scope: planned src/search.py (_search_key private, search_catalog public), tests/test_search.py, tests/test_search_consumer.py and README consumer example; preserve src/database.py, data/catalog.json and existing tests/test_baseline.py. No external operation, new CLI/UI/service/dependency is authorized. Existing package src resolves from repository root; imports unicodedata/sqlite3 remain stdlib, no shadow names. Test module imports public search inside test methods, so discovery loads before implementation and records genuine missing-API RED, not skips. Use unittest runner with per-test owned DBs, explicit CREATE catalog(id INTEGER PRIMARY KEY,title TEXT NOT NULL) and parameterized INSERT. Close connections before cleanup. Fixture/helper code belongs to this first consumer; it is not a missing runner. Sequence inside W1: specify independent assertions -> retain absent API/test-first failure and unchanged baseline -> implement read-only ORDER BY id + NFD(casefold)/Mn removal/literal substring, empty normalized query -> [] -> durable regression -> README caller-owned schema/seed setup -> consumer checks when due. Map S1/S2/S5 to TC_1/TC_2/TC_5/TC_8/TC_9; S3 to TC_3; S4 to TC_4; S6 to TC_6/TC_8 and dependency/source review; S7-S9 decision probes retained without accepting raw LIKE/default FTS; S10 to unchanged baseline/full suite. R-2 data safety/visible failure -> TC_7/TC_8/TC_10. Before/after: exact original titles/IDs unchanged; errors propagate; no schema/transaction/connection ownership stolen by search. Done: authored focused TC_1..TC_8 assertions pass on candidate and fail meaningfully on base; full discovery includes them plus unchanged baseline; consumer tests TC_9/TC_10 authored from RBC-1/RBC-2 and remain due at system-test/product-acceptance before delivery. Commands and reserved docstring IDs live in environment.md; future selectors must be revalidated with printed counts, zero cases/skips are not passes. Return exact original tuples, no deduplication or fuzzy ranking; 5000-row workload exact ascending odd IDs; no latency SLA. System-test owner executes public API with committed/reopened seed DB, not scratch helper. If an assumption/schema/consumer mismatch is discovered, use ShipLoop correction/send-back before dependent code and update affected plan/cases, never relax requirements. Delivery is local source/test/docs only; no external endpoint/credential exists, no deployment or migration. Recovery: unchanged caller data, visible exception, repair caller setup and retry; release/handoff retain any unobserved consumer result. This registered trial authorizes planning only; W1 is future work, not executed now.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-1",
+              "AD-2",
+              "AD-3",
+              "AD-4",
+              "AD-5",
+              "AD-6"
+            ],
+            "id": "W1",
+            "title": "Add normalized offline catalog substring search through the application connection"
+          }
+        ]
+      }
+    }
+  ],
+  "planning_artifacts": {
+    "TRIAL/.shiploop-runs/seed/worktree/docs/discovery.md": "# Supplied discovery\n\nThis is a constructed planning fixture. Source, tests and data are present; the baseline suite passed. Only existing behavior was tested. No new feature, atomicity or search acceptance is implied. No earlier decision experiment is supplied.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md": "# Architecture\n\n## Stack\n\nPython standard library, `sqlite3`, `unicodedata`, existing unittest. No service, new dependency, FTS index or fuzzy ranking.\n\n## Structure\n\nExisting `src/database.py` exposes `connect(path=\":memory:\")`, a plain sqlite3.Connection. `data/catalog.json` is the read-only initial seed with IDs 1 and 3 titled Caf\u00e9 Racer and ID 2 titled Die Stra\u00dfe. Existing `tests/test_baseline.py` checks SELECT 1 only. Planned `src/search.py` contains normalization and `search_catalog(connection, query)`. Planned `tests/test_search.py` and `tests/test_search_consumer.py` retain independent product assertions. No product implementation or new tests exist yet. Namespace owner is the existing `src` Python package resolved from repository root; `src.search` is unused in the supplied tree. Export only `search_catalog`; keep normalization module-private as `_search_key`. Import `unicodedata` by its standard-library name without shadowing it; use the passed application connection instead of creating a second database adapter. Tests import through `src.search` inside test methods, allowing unittest discovery before the missing implementation exists; missing API then fails assertions/import during RED rather than skipping cases.\n\n## Conventions\n\nSmall explicit functions, standard-library imports, unittest, disposable fixtures, explicit connection close. Match the existing adapter/test style. Do not change displayed titles or collapse duplicate titles. SQL identifiers are fixed; query values never become SQL syntax.\n\n## Interfaces and boundaries\n\nProposed public Python API: `search_catalog(connection, query: str) -> list[tuple[int, str]]`, called with a connection returned by `src.database.connect`. Assumption: caller owns connection and supplies a `catalog(id INTEGER PRIMARY KEY, title TEXT NOT NULL)` table initialized from the fixed initial seed. No existing schema or loader is supplied; the consumer documentation and fixture must provide explicit CREATE TABLE and parameterized INSERT setup before the first search. This is a new documented API precondition, not an observed existing schema. No new CLI or UI is requested; the seed spec's generic reference to a command is interpreted as the callable entry point.\n\nThe API reads `SELECT id, title FROM catalog ORDER BY id`; within the bounded catalog it builds comparison keys without rewriting original tuples. Key = `''.join(c for c in unicodedata.normalize('NFD', value.casefold()) if unicodedata.category(c) != 'Mn')`. Normalize query and title identically; if query key is empty return []; otherwise include each original tuple whose title key contains query key. No trimming, token boundaries, wildcards, transliteration or fuzzy ranking. Mn-removal defines accent handling; it is not universal transliteration of letters without canonical decomposition. Assumption: strings and unique integer IDs, at most 5000 records. No cache is required, so each call observes its connection's current rows. Database errors propagate and cannot masquerade as zero matches. Search never creates schema, commits, closes the caller's connection, mutates rows or writes derived keys.\n\n## Real-boundary checks\n\nMECH-1 (planning decision, observed on disposable data): actual `src.database.connect()` returned sqlite3.Connection. Creating a disposable schema, parameter-inserting reversed IDs and selecting originals ORDER BY id worked. A normalized scan matched cafe -> IDs 1,3; STRASSE -> ID 2; afe -> IDs 1,3; xyz and empty -> []; original rows were unchanged. The 5000-row scan returned exactly 2500 ascending odd IDs. Plain LIKE and default FTS5 trigram failed the Unicode examples on the same binding. This experiment does not exercise a product search function. Evidence lives in the run's scratch/search-boundary-probe.py and scratch/boundary.txt, linked by stage results. Only this local runtime was observed; no external deployment compatibility or product behavior is certified.\n\nRBC-1 (PLANNED local consumer, TC_9, owner system-test): from repository root, a Python client imports `src.database` and the implemented `src.search.search_catalog`. Within its own TemporaryDirectory under the configured owned CATALOG_TEST_TMPDIR scratch root, open `catalog.sqlite` with database.connect(path); explicitly CREATE TABLE catalog(id INTEGER PRIMARY KEY, title TEXT NOT NULL); json.load data/catalog.json and parameter-insert (id,title) pairs; commit and close. Reopen with database.connect(path). Call the public API for cafe, STRASSE, afe, xyz and empty string. Assert respectively [(1,'Caf\u00e9 Racer'),(3,'Caf\u00e9 Racer')], [(2,'Die Stra\u00dfe')], [(1,'Caf\u00e9 Racer'),(3,'Caf\u00e9 Racer')], [], []. Repeat cafe and compare exactly; SELECT all rows still equals [(1,'Caf\u00e9 Racer'),(2,'Die Stra\u00dfe'),(3,'Caf\u00e9 Racer')]. Close, reopen, and assert titles and IDs unchanged. Finally close and remove owned temporary directory. This tests the actual product API through its intended Python consumer surface with file persistence; an in-memory normalization probe alone cannot close it. NOT RUN: API and durable test absent.\n\nRBC-2 (PLANNED local consumer, TC_10, owner system-test): start with a fresh database.connect() and no schema, call public API with cafe, assert sqlite3.OperationalError reaches caller; verify no table was created, then close. This checks explicit schema preconditions and visible failure rather than pretending the empty database has no matches. NOT RUN: API and durable test absent.\n\nProcedure review: RBC-1 starts from an owned new file and authorized fixed seed; CREATE/INSERT/commit makes the reopen state reachable. Unique seed IDs permit all inserts, repeated titles do not violate the ID primary key, and read-only calls must preserve original rows. Independently walking the seed yields cafe and afe IDs 1,3 and STRASSE ID 2; xyz and empty yield no rows by R-1. RBC-2 deliberately omits required setup and expects an error, not successful search. These are reviewed expectations, not executed product outcomes. No UI, remote-resident framework, event/cache/permission service or external deployment is involved; there is no authorized external endpoint to probe.\n\n## Decisions\n\nAD-1: Preserve standard-library stack and existing connection baseline.\n\nAD-2: Select ordered in-memory normalized substring scanning via the application connection. Maximum 5000 titles makes a linear scan appropriate without indexes, external services or new dependencies. MECH-1 supports runtime feasibility. Plain LIKE and default trigram are unaccepted alternatives that failed this binding's required examples. No need to investigate other FTS configurations once the smaller compatible route is established. Retain implementation, regression and consumer checks as future obligations.\n\nAD-3: Use the existing connection as a caller-owned boundary with an explicitly documented catalog table setup. Search is a read-only callable, not a new command application. Product and consumer tests must verify this assumption before acceptance. If a different catalog schema or consumer is supplied, reconcile it before implementation rather than silently changing the requirement.\n\nAD-4: Keep the feature as one coherent local API increment W1: search module, its tests and README consumer setup. Reuse the available unittest harness and native SQLite connection; fixture setup is owned with its first consumer rather than a separate tool/bootstrap project. Existing source/seed remain unchanged. A future prepare stage only revalidates runtime and an owned CATALOG_TEST_TMPDIR; no download, account, service or schema deployment is needed. Status: planned delivery structure, not executed.\n\nAD-5: Original JSON seed remains authoritative and read-only; the caller's catalog table is its explicit SQLite input representation, not a new maintained parallel store. IDs are integer primary keys and titles are required TEXT with duplicates permitted; there are no relationships, unique-title constraint or derived persisted index. This initial documented schema has no existing version to migrate and search performs no schema/version writes. Caller owns database lifetime, initialization and recovery; tests own disposable instances. No personal or sensitive fields are supplied. Bound is 5000 titles; no quota or latency SLA is invented. A future incompatible persisted schema needs a separately reconciled migration contract. Status: documented initial API precondition, to be exercised in TC_7/TC_9/TC_10.\n\nAD-6: Python caller -> synchronous search_catalog -> supplied connection -> SELECT originals -> ephemeral normalized comparison -> return original ID/title tuples. No background acknowledgment, event, cache, worker or network hop exists. Return means completed read/filter; database errors propagate, no silent recovery or partial writes occur. Recovery is to repair caller setup and retry the read; search has no state to roll back. Caller retains transaction/connection ownership. Status: planned interaction contract; TC_7/TC_8/TC_10 verify failure and data boundaries later.\n\n## Superseded\n\nThe prior note suggesting FTS5 trigram or LIKE was a proposal; it does not constrain the accepted substring semantics. No accepted requirement is retired.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md": "# Environment\n\n## Targets and runtimes\n\nLocal Python standard library only, through `src/database.py:connect`. Observed Python 3.9.6, SQLite 3.54.0 and Unicode database 13.0.0. No external endpoint, account, credential, dependency installation or deployment is required or authorized. The supplied source and data are the application evidence. Test targets are disposable in-memory connections and temporary file databases owned by each test; neither retains state across cases. Production catalog input is fixed, at most 5000 titles.\n\n## Commands\n\nRun from repository root. Current full suite and current ID inventory (all discovered tests, expected subsecond for the present baseline):\n```sh\npython3 -B -m unittest discover -s tests -v\n```\nObserved exit 0, one case `test_application_connection (test_baseline.Baseline)`, no skips. It proves SELECT 1 through the adapter only. It does not cover search. Before feature edits the working tree was clean at 0f998789a2478f40e6367c94fd003ac3475463d6. The supplied earlier baseline had no retained raw output; this observation establishes the current baseline independently.\n\nCurrent smoke subset, one adapter case, disposable in-memory DB, expected subsecond:\n```sh\npython3 -B -m unittest tests.test_baseline.Baseline.test_application_connection -v\n```\nObserved exit 0, one case. Smoke does not imply full-suite coverage.\n\nPLANNED focused search regression command, after test authoring; NOT-REPLAYED because `tests/test_search.py` does not exist. Owner: feature test stage. Expected small local fixture cost (including 5000 rows), no timing threshold:\n```sh\npython3 -B -m unittest tests.test_search -v\n```\nMust print TC_1 through TC_8 as separate docstring labels, execute nonzero cases, and pass after implementation. Before implementation the missing search import/API is expected RED, never a passing setup check.\n\nPLANNED consumer command, after API/documentation authoring; NOT-REPLAYED because `tests/test_search_consumer.py` does not exist. Owner: system-test. In-process Python consumer, file DB in `TemporaryDirectory`, expected small local fixture cost:\n```sh\npython3 -B -m unittest tests.test_search_consumer -v\n```\nMust print TC_9 and TC_10 as separate docstring labels and pass. Full discovery above must also register every new case. No fixture-only probe substitutes for these product commands. After authoring, feature smoke extends the current adapter subset with `tests.test_search.Search.test_TC_2`; revalidate the exact selector and count then.\n\n## Skills\n\nSelected delivery workflow: ShipLoop, with inline Improve. Local shell execution is exposed through the host `exec_command` interface (`cmd`, `workdir`, exit status and stdout). No account or browser tool is needed for a local Python API; the request names no page, device or deployed surface.\n\n## Harnesses and suites\n\nUse existing standard-library `unittest`, `sqlite3`, `unicodedata`, `tempfile`, `json`. Runner is available and revalidated by the unchanged baseline. Native target is the same local Python/SQLite runtime. No remote native suite or browser gate applies: no remote code, release route or UI is requested; no external boundary has been tested.\n\nFacility definitions: existing runner `tests/test_baseline.py` and `tests/__init__.py`; connection factory `src/database.py:connect(path=\":memory:\")`; seed input `data/catalog.json`. Gap: search-specific fixtures/assertions are not authored. Extend `tests/` during feature test authoring, not by installing a runner. Prepare only revalidates runtime/readiness. Test setup creates `catalog(id INTEGER PRIMARY KEY, title TEXT NOT NULL)` on an owned connection and parameter-inserts explicit ID/title records; teardown explicitly closes the connection (a SQLite transaction context alone does not close it). Consumer tests use an owned `TemporaryDirectory` under the configured `CATALOG_TEST_TMPDIR` scratch root, close connections before cleanup, and leave the seed untouched. Set that environment variable to an existing owned scratch directory before running file consumer checks; prepare validates this fixture prerequisite. Never use a shared or persistent catalog as a test target. No shared target or credential is used. Revalidate after runtime, adapter, schema or runner changes. No coverage package is installed or required; explicit assertion/requirement mapping is the coverage method.\n\nAll feature cases below are PLANNED and owned by the feature author/test stage unless otherwise stated. Unit cases isolate normalization; component cases call the actual public API on the application's connection. All execute locally. Expected results are independent explicit values, never computed with the production normalizer.\n\n| ID | Clause / preservation | Layer and required surface | Fixture and independent assertion | Due / prerequisites |\n| --- | --- | --- | --- | --- |\n| TC_1 | R-1 accent and Unicode casefold | unit, normalization helper | Caf\u00e9 and decomposed Cafe\\u0301 normalize to cafe; Stra\u00dfe to strasse; both query and title normalized; literal % and _ remain literal | feature test; helper authored |\n| TC_2 | R-1 required examples, order, original display, duplicate IDs | component, search_catalog on database.connect | Insert (3,Caf\u00e9 Racer),(2,Die Stra\u00dfe),(1,Caf\u00e9 Racer); cafe -> [(1,Caf\u00e9 Racer),(3,Caf\u00e9 Racer)], STRASSE -> [(2,Die Stra\u00dfe)], afe -> [(1,Caf\u00e9 Racer),(3,Caf\u00e9 Racer)]; exact tuples and repeat calls | feature test; API and catalog fixture |\n| TC_3 | R-1 negative | component, public API | xyz -> []; unrelated records never returned | feature test |\n| TC_4 | R-1 empty | component, public API | empty string -> []; combining-mark-only query whose normalized key is empty -> [] | feature test |\n| TC_5 | R-1 substring, both sides normalization | component, public API | Fixture rows (1,Caf\u00e9 Racer),(2,Die Stra\u00dfe),(3,Caf\u00e9 Racer),(4,100% Cotton),(5,a_b),(6,plain); CAFE\\u0301 -> IDs 1,3; \u00e9 -> IDs 1,2,3; % -> ID 4; _ -> ID 5, with exact original tuples | feature test |\n| TC_6 | R-1 fixed capacity, no fuzzy ranking | component, public API | 5000 reverse-inserted IDs, odd IDs Caf\u00e9 Racer and even IDs Die Stra\u00dfe; cafe returns exactly ascending odd IDs, no record cap or title deduplication | feature test; no invented latency SLA |\n| TC_7 | R-2 data loss / false success, R-1 displayed titles | component, public API | SELECT all rows before and after queries returns identical ID/title tuples; missing table raises sqlite3.OperationalError rather than [] | feature test; no DB writes by search |\n| TC_8 | R-1 no service/dependency and connection use | component + source/dependency review | real database.connect, read-only search path and standard-library imports; no socket/service calls or added dependencies; closed connection raises ProgrammingError rather than [] | feature test and document; no network capability granted |\n| TC_9 | R-1 consumer integration | e2e of local Python API, actual seed through actual adapter | independent consumer procedure RBC-1 in architecture; query matrix exact IDs and original titles; file reopen | system-test after API and README exist; NOT RUN |\n| TC_10 | R-2 safe consumer failure | consumer API | RBC-2 missing table; exception visible, no false no-match, input file unchanged | system-test after API exists; NOT RUN |\n| baseline | existing connection contract | component, unchanged tests/test_baseline.py | default database.connect SELECT 1 returns (1,); retain this test verbatim; focused helper check cannot replace it | validate-existing then post-change full regression |\n\nExpected-failure control: author TC_2 against the pre-feature tree and retain missing module/API failure; after implementation require those same assertions green. Mutation/control checks should reject a raw LIKE implementation (TC_2), a title-keyed dictionary losing ID 3 (TC_2), returning all rows for empty query (TC_4), and swallowed database errors (TC_7/TC_10). These controls are planned, not performed product tests. Baseline remains independently green during RED. Stand-in decision experiments prove mechanism feasibility only.\n\n## ID convention\n\nUse methods `Search.test_TC_1` through `Search.test_TC_8` and consumer methods `Consumer.test_TC_9`, `Consumer.test_TC_10`. Each method's first docstring line starts with its own ID followed by a space, e.g. `TC_2 required examples and distinct ordered IDs`. Unittest verbose output prints this as its own line; do not infer ID coverage from an embedded method-name substring. Full discovery in Commands is also the inventory command for IDs already taken; currently only the unnumbered baseline test exists. Planned cases must be observed in verbose output after authoring. Keep `TC_1` through `TC_10` reserved.\n\n## Access and accounts\n\nOnly disposable local data is authorized. No external endpoint or credential is supplied, needed or probed. Browser/device/sign-in checks do not apply to the specified local API. Consumer acceptance remains pending through the actual public Python entry point.\n\n## Platform facts\n\nOn the observed application binding, plain LIKE and default FTS5 trigram produced no cafe/STRASSE/afe matches for the supplied titles; LIKE with an empty string pattern selected all rows. This rules out those unmodified proposals, not all possible SQLite extensions/configurations. The selected alternative requires neither FTS nor LIKE: standard-library NFD normalization after Unicode casefold, removal of Mn marks, then Python literal substring over ordered original rows. A disposable experiment verified required examples, composed/decomposed accents, expansion \u00df -> ss, punctuation literals and a 5000-row workload. Its passing stand-in result is not acceptance of unimplemented search. Revalidate with adapter/runtime changes.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md": "# Product specification\n\n## Requirements\n\nR-1: Add offline substring search to this Python catalog using the application's src/database.py connection. Search must be accent insensitive and Unicode casefold insensitive, without changing displayed titles: cafe finds Caf\u00e9 Racer, STRASSE finds Die Stra\u00dfe, and interior query afe finds Caf\u00e9 Racer. Query xyz finds no records. An empty query returns no matches. Search order is stable by ID and duplicate titles preserve distinct IDs. The fixed initial catalog fits in memory (at most 5000 titles), search needs no external service, no fuzzy ranking and no new dependency. A previous design note suggests SQLite FTS5 trigram or LIKE if they meet these semantics on this binding; that is a proposal, not an accepted requirement. Verify the chosen mechanism at its real boundary when needed, and retain implementation and consumer checks as future work. Temporary local experiments on disposable data are authorized. Existing tests must remain passing.\n\n## Non-functional requirements\n\nR-2: Keep data loss and false success visible; preserve the existing baseline and require repeatable behavioral tests for the new command. Use only the stated local standard-library runtime.\n\n## Retired\n\nNone.\n",
+    "TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md": "# Current baseline\n\nSupplied earlier stages were synthetic. No earlier feature or decision experiment is accepted as proof. Current unchanged adapter baseline: scratch/baseline.txt and scratch/identity-smoke.txt; clean HEAD 0f998789a2478f40e6367c94fd003ac3475463d6; full suite 1 test passed, smoke same 1 test passed. Scope: application connection SELECT 1 only. No search implementation, schema loader, CLI, UI or product search tests exist. Seed IDs 1,2,3, duplicate Caf\u00e9 Racer at IDs 1,3. Preserve default connect signature/SELECT 1 and original seed. Local mechanism probe uses a stand-in, not product acceptance.\n",
+    "TRIAL/.shiploop-runs/seed/run/notes/plan-reference.md": "# Plan basis and dependency audit\n\nSources: TRIAL/.shiploop-runs/seed/run/request.md S1-S10; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md R-1/R-2; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites, Commands, ID convention; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-1..AD-6, interfaces and RBC-1/RBC-2; TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md; actual probe sources and outputs in scratch/search-boundary-probe.py, boundary.txt, file-boundary-probe.py, file-boundary.txt. Supplied intake/discovery/research/spec were synthetic; notes/discovery.md and notes/research.md and the prior spec Improve receipt were not supplied. They are not execution evidence. Current clean-source baseline is scratch/baseline.txt: 1 passing connection test only.\n\nDesign basis: preserve database.connect, source/seed and current SELECT 1 behavior. Add a read-only public Python search callable. Native stdlib normalization and literal substring scan meets the bounded fixed catalog without network, ranking, dependencies or title mutation. Same binding's raw LIKE and default FTS5 trigram failed cafe/STRASSE/afe; alternate SQLite configurations are unnecessary once the smaller route is feasible. No UI, async processing, deployment endpoint or account is requested or authorized. Visual/motion/accessibility design, remote permission/event/cache reconciliation and crash-after-ack handling have no applicable carrier in this synchronous read. This exclusion does not close future product behavior.\n\nPlanning route: direct inline dependency audit under shiploop/references/backchain-planning.md, not a standalone Backchain call, execution graph, separate model, advisor or agent. No graph candidate or child runtime is introduced. The actual ShipLoop plan Improve remains required. One item W1 has one implementation boundary; a separate fixture/tool/delivery item would duplicate its prerequisites and stages. No external delivery operation is inferred. Any future workspace return follows ShipLoop's authorized later boundary, not this planning trial.\n\nFive-lens audit of W1:\n- CLAIM: authored src/search.py public callable plus durable tests and README usage; later passing TC_1..TC_10 and unchanged baseline are evidence obligations, not produced now.\n- NEEDS: available Python/unittest/unicodedata/SQLite; actual adapter SELECT and file lifecycle; fixed seed with stable IDs; explicit catalog table setup; owned scratch fixture; no external access. Independent expected outputs must exist before code. New test files must load on base without skipping a missing implementation.\n- SUPPLY: installed runtime and src/database.py are established initial suppliers, observed by baseline.txt and boundary/file-boundary.txt. Seed is data/catalog.json. Prepare revalidates owned CATALOG_TEST_TMPDIR. W1 test authoring supplies schema fixtures and independent oracles first; it uses deferred in-method src.search imports so RED is observed, not a loader skip. W1 implementation supplies the callable; W1 documentation supplies exact consumer CREATE/INSERT/commit/close/reopen example. No schema loader is falsely assumed to exist.\n- PULL: test stage needs the real callable and explicit fixtures, not the scratch prototype. System-test/consumer acceptance needs exact public API from the candidate with seed through database.connect(path), not private helper or title-only assertions. Original IDs/titles and before/after SELECT equality remain required. Full discovery must include all new cases and baseline. Handoff must say product checks still due if this trial stops at planning.\n- RESOLVE: no runtime/tool/access gap remains for planning. API/schema are explicit design assumptions owned by W1, settled through implemented docs and consumer checks. No prerequisite needs its own independent item: test fixtures serve only this module and runner exists. Missing future artifacts remain due in W1, not claimed ready. Runtime/schema/source changes invalidate corresponding observations and trigger revalidation before code.\n\nForward walk (planned, not product execution): prepare validates local runtime/scratch -> W1 test-spec names all cases and fixtures -> validate-existing confirms unchanged baseline and expected absent API -> test-first independent RED -> implement normalized literal scan -> focused plus full regression and tests registered -> README consumer steps bound to public API -> system-test RBC-1/RBC-2 -> later local handoff. After commit, schema/create/insert/close/reopen is reachable as observed by file-boundary.txt. Independent seed walk gives cafe/afe [1,3], STRASSE [2], xyz/empty []; table remains [(1,Caf\u00e9 Racer),(2,Die Stra\u00dfe),(3,Caf\u00e9 Racer)]. No helper-generated expectation is used as acceptance. No shared-state target, parallel branch, file conflict or cutover exists.\n\nOpen obligations: W1 authors and validates actual API, test fixtures, normalization policy and consumer setup; TC_1..TC_10 all PLANNED. No product code, retained tests, prepare, deployment or implementation performed by this planning record. Product assertions remain due at their stated stage even though the mechanism and local fixture boundary were probed.\n",
+    "TRIAL/.shiploop-runs/seed/run/notes/planning-handoff.md": "# Recovery locators\n\nCLI: TRIAL/home/.codex/plugins/cache/whichguy/skill-craft/2.35.1/skills/shiploop/scripts/shiploop\nRepository: TRIAL/.shiploop-runs/seed/worktree\nRun directory: TRIAL/.shiploop-runs/seed/run\n\nRecovery command:\n```sh\npython3 TRIAL/home/.codex/plugins/cache/whichguy/skill-craft/2.35.1/skills/shiploop/scripts/shiploop next --run-dir=TRIAL/.shiploop-runs/seed/run\n```\n\nUser scope: planning only; inline execution, no other model or agent. Stop after plan Improve finishes and navigator advances to prepare. Do not execute prepare. Product work/probes stay in this worktree or run scratch; no external endpoint is authorized.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-50e13d67/reviews/checks.md": "# Plan checks\n\nSelf-review (inline default); no planning candidate edits during this pass.\n\ncwd: TRIAL/.shiploop-runs/seed/worktree\ncommand: git diff --check\nexit_code: 0\nstdout: empty\nstderr: empty\n\nAdvisory lint command from handoff: exit 0, 0 findings, 0 errors; Markdown whitespace coverage only. It does not establish semantic quality. No source/test/runtime change since baseline, so reuse TRIAL/.shiploop-runs/seed/run/scratch/baseline.txt (exact argv, exit 0, 1 test_application_connection) and identity-smoke.txt; no redundant suite rerun.\n\nPlan result SHA256: a615329606f1e121046c7c703b162da04d9f9adce2e7937571130a58132aad9e\nPlan reference SHA256: dee32086b589374a219b73808fc2d95f2966777a666d48ca25c4daeced1db166\nAll R-1 S1-S10 and R-2 obligations mapped to W1 in the result context; all fifteen concern categories disposed; all five assumptions have existing evidence or due_item W1. Existing IDs R-1/R-2 and AD-1..AD-6 retained.\n\nProcedure/oracle check: RBC-1 starts at owned empty DB, explicit seed schema/insert/commit supplies reopened persisted rows. Seed inspection independently yields cafe/afe -> [(1,Caf\u00e9 Racer),(3,Caf\u00e9 Racer)], STRASSE -> [(2,Die Stra\u00dfe)], xyz/empty -> []; duplicate titles have distinct IDs. Existing file-boundary.txt proves only fixture lifecycle, not these product API calls. TC_5 fixture yields \u00e9 -> IDs 1,2,3, % -> 4 and _ -> 5. 5000-row case odd IDs 1..4999 gives 2500 distinct matches, ascending. No independent oracle is derived from production code. NOT-REPLAYED product commands: future test files/API absent; owner W1 authoring, execution feature test/system-test as environment.md states.\n\nDependency walk: available runner and adapter -> explicit W1 fixtures/oracles -> missing-API RED -> actual public implementation -> focused/full registration -> documented consumer -> due system-test. No dependent artifact is treated as an initial fact. Source/test edits remain future work. No external endpoint/credential or UI exists; none probed or implied.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-50e13d67/reviews/review-1.md": "---\nclassification: trivial\nexit: satisfied\ncontinuation: allowed\n---\nRead: self-review (inline default); full selected Improve plan handoff, route, planning-experiments guide, current receipt; actual plan result and notes/plan-reference.md; docs/shiploop/spec.md R-1/R-2, environment.md all TC_1..TC_10/Commands/facilities, architecture.md AD-1..AD-6/interfaces/RBC-1/RBC-2; current-system-baseline.md and actual adapter/seed; prior baseline and mechanism/file probe evidence. Last seven reachable commit messages read in full: 28f32f7fc718a403b3f9ef85c43ed4a59e0a1187 (file-fixture readiness lesson) and 0f998789a2478f40e6367c94fd003ac3475463d6 (seed).\nFound: no material defect. All criteria owned by W1 with Ready/Done, loadable test seam, fixture supplier, correction route and phase-specific acceptance. Single implementation boundary warrants one item. No separate graph exists; direct five-lens dependency audit is retained and rechecked.\nChanged: none; no worthwhile repair or cosmetic edit. Zero additional planning experiments selected because existing real-adapter evidence settles mechanism and fixture feasibility.\nChecked: checks.md records exact plan identities, git diff --check exit 0 and lint exit 0/0 findings, prior source-identical baseline exit 0/1 test. Independently walked RBC-1 from empty owned file through schema/seed commit/reopen; recomputed expected IDs from seed and R-1, not product helper; RBC-2 deliberately lacks schema so error is required. Product calls/commands remain NOT RUN.\nClass: completed full no-material pass; all exit clauses satisfied at planning boundary: complete owned criteria, coherent dependency order/Ready/Done, complete evidenced/probed/open assumptions, no now-settleable unknown runtime premise, applicable checks recorded. A4 and A5 are explicit public-contract/default-policy implementation obligations: a disposable probe cannot establish future product docs/API correctness or absent consumer acceptance. Their due_item W1 must still settle them, not waive them.\n\n## Handoff\n\n**State and remaining work**: HEAD 28f32f7fc718a403b3f9ef85c43ed4a59e0a1187; no edits made by this review and no commit required. Parent plan changes predate this bind. Runtime receipt CHILD/packet.json governs completion; finish improve-pass then its printed done. Only after runtime complete run parent complete nav-376dd6c0053a436b97a6034f912581c7. No revised result needed: accepted original complete queue is one W1. Stop when navigator advances to prepare, as explicitly requested; do not perform prepare or W1.\n\n**Current learnings**: ordered standard-library normalization scan is supported by actual database.connect probe, raw LIKE/default trigram failed required examples; original tuples and IDs are preserved, no ranking/deduplication. Fixture reopen readiness is distinct from product acceptance. New API/schema and exact accent policy remain documented design choices with due tests. No external boundary/credential/endpoint exists. Zero new experiments in this Improve; prior two disposable probes are sufficient, no allowance expansion or cleanup remains.\n\n**Evidence**: TRIAL/.shiploop-runs/seed/run/notes/plan-reference.md; docs/shiploop/spec.md, environment.md and architecture.md; TRIAL/.shiploop-runs/seed/run/scratch/baseline.txt, identity-smoke.txt, boundary.txt and file-boundary.txt; CHILD/reviews/checks.md. These are planning/runtime observations only. TC_1..TC_10 implementation/consumer assertions remain planned at their due stages.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-16d446c2/reviews/checks.md": "# Checks after final edit\n\ncwd: TRIAL/.shiploop-runs/seed/worktree\nargv: [\"git\", \"diff\", \"--check\"]\nexit_code: 0\nstdout: ''\nstderr: ''\n\nFile fixture probe exact command/outputs: TRIAL/.shiploop-runs/seed/run/scratch/file-boundary.txt (exit 0, exact seed tuples after reopen; owned temp dir removed).\nLint command in handoff returned exit 0; 0 findings, whitespace only for Markdown, not semantic evidence.\nManual review: R-1 S1-S10 mapped to TC_1..TC_10 plus unchanged baseline; TC_5 exact outputs recomputed without implementation: normalized \u00e9 = e matches Caf\u00e9 Racer at IDs 1,3 and Die Stra\u00dfe at ID 2; literal % matches only ID 4 and _ only ID 5. RBC-1 CREATE/INSERT/commit/close/reopen is reachable and observed at file setup boundary; product calls remain NOT RUN. No case dropped. Scoped changes are Markdown only; existing full-suite exit 0/1 test from scratch/baseline.txt remains applicable to unchanged source/test/runtime.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-16d446c2/reviews/review-1.md": "---\nclassification: non-trivial\nexit: unsatisfied\ncontinuation: allowed\n---\nRead: self-review (inline default); selected Improve card/route, full bound test-strategy handoff/receipt; docs/shiploop/spec.md R-1/R-2, environment.md Commands/case table, architecture.md AD-2/AD-3/RBC-1/RBC-2; src/database.py, seed, tests; last seven reachable commit messages (only 0f998789a2478f40e6367c94fd003ac3475463d6, seed: baseline); scratch/baseline.txt and boundary.txt.\nFound: TC_5 lacked exact literal fixture IDs; file consumer setup needed owned scratch location and actual adapter reopen readiness. Baseline history contains no prior feature lessons.\nChanged: specified rows/expected IDs for TC_5 and CATALOG_TEST_TMPDIR fixture prerequisite; retained file probe and complete revised result with original evidence refs. No source or tests changed.\nChecked: checks.md; file-boundary.txt exit 0 verifies real adapter file lifecycle and cleanup; git diff --check exit 0; advisory lint exit 0/0 findings. Independently walked RBC-1 from fresh file and recomputed its exact seed outputs by R-1; product API remains absent, so those consumer assertions are NOT RUN.\nClass: material replayability/isolation correction; full qualifying no-material pass still required.\n\n## Handoff\n\n**State and remaining work**: review remains in test-strategy Improve; this pass corrects planning only. Feature and consumer tests due after implementation, all TC_1..TC_10 preserved. Final-result at TRIAL/.shiploop-runs/seed/run/inbox/nav-ecfec44220ff4ab69e7ff83916d446c2-final-result.md. Commit via improve-pass using CHILD/commit-message.md, then obey runtime.\n\n**Current learnings**: choose ordered NFD/casefold/Mn-removed scan, preserve original tuples and distinct IDs. Raw LIKE/default trigram failed required examples; do not treat proposals as requirements. File fixture readiness is not search acceptance. No external endpoint/credential exists. User stop is after plan Improve and prepare arrival, not here.\n\n**Evidence**: TRIAL/.shiploop-runs/seed/run/scratch/baseline.txt; boundary.txt; file-boundary.txt; CHILD/reviews/checks.md; maintained case and boundary definitions in docs/shiploop/environment.md and architecture.md.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-16d446c2/reviews/review-2.md": "---\nclassification: trivial\nexit: satisfied\ncontinuation: allowed\n---\nRead: self-review (inline default); current docs/shiploop/environment.md including all TC_1..TC_10, commands and facility definitions; architecture.md interfaces, real-boundary checks and decisions; revised test-strategy result; request S1-S10; prior review/checks. Last seven reachable Git messages read in full: 28f32f7fc718a403b3f9ef85c43ed4a59e0a1187 and 0f998789a2478f40e6367c94fd003ac3475463d6. Useful lesson: actual file fixture readiness is distinct from product acceptance.\nFound: no material remaining planning defect. Exact TC_5 rows now make its expected literals reproducible. All required examples, negative/empty query, ordered duplicate IDs, capacity, offline/dependency constraint, connection boundary, original display and baseline map to due cases. No requirement/case was removed.\nChanged: none; empty improvement plan is appropriate.\nChecked: git diff --check exit 0, empty stdout/stderr; reused unchanged-source baseline.txt exit 0/1 case and boundary/file-boundary probes. No feature code or tests changed, so no suite rerun warranted. RBC-1 walked from CREATE/INSERT/commit to reopen, independent seed inspection yields cafe/afe IDs 1,3, STRASSE ID 2 and negative/empty []; RBC-2 intentionally omits schema and observes error. Product steps remain NOT RUN, not promoted from fixture evidence.\nClass: completed full pass with no material findings or edits. All exit clauses observed: requirement mapping and preservation complete; available stdlib runner and real adapter setup observed; product checks explicitly planned; no browser/device/account/service case exists and no UI/sign-in applies. Applicable checks recorded.\n\n## Handoff\n\n**State and remaining work**: HEAD 28f32f7fc718a403b3f9ef85c43ed4a59e0a1187, no scoped edits this pass. Strategy ready for callback only after child receipt completes. Use complete with final-result TRIAL/.shiploop-runs/seed/run/inbox/nav-ecfec44220ff4ab69e7ff83916d446c2-final-result.md. Plan and its Improve remain to do; stop on prepare arrival.\n\n**Current learnings**: ordered normalized scan chosen on actual adapter probe; raw LIKE/default trigram inadequate as tested. Caller-provided catalog schema and original seed initialization must be documented/tested later. CATALOG_TEST_TMPDIR is an owned local fixture prerequisite. No external endpoint or credential; implementation and consumer checks remain due.\n\n**Evidence**: docs/shiploop/environment.md and architecture.md; TRIAL/.shiploop-runs/seed/run/scratch/baseline.txt, identity-smoke.txt, boundary.txt and file-boundary.txt; CHILD/reviews/checks.md and review-1.md.\n"
+  },
+  "omitted_framework_artifact_paths": [
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-50e13d67/handoff.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-50e13d67/opening.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-50e13d67/parent-return.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-16d446c2/handoff.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-16d446c2/opening.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-16d446c2/parent-return.md"
+  ],
+  "individual_judgment": {
+    "criteria": [
+      {
+        "id": "U1",
+        "quote": "Key = `''.join(c for c in unicodedata.normalize('NFD', value.casefold()) if unicodedata.category(c) != 'Mn')`. Normalize query and title identically; if query key is empty return []; otherwise include each original tuple whose title key contains query key.",
+        "locator": "planning_artifacts: docs/shiploop/architecture.md, Interfaces and boundaries",
+        "grade": 2,
+        "reason": "The explicit algorithm supports accent folding, Unicode casefold expansion and interior substring matching. Event 26 executed it through rows obtained from the application connection and returned IDs 1 and 3 for cafe/afe, ID 2 for STRASSE, and no matches for xyz or empty."
+      },
+      {
+        "id": "U2",
+        "quote": "Return exact original tuples, no deduplication or fuzzy ranking; 5000-row workload exact ascending odd IDs; no latency SLA.",
+        "locator": "plans[0].final.work_items[0].context",
+        "grade": 2,
+        "reason": "The design selects original ID/title tuples with ORDER BY id and uses ephemeral comparison keys. Duplicate titles retain separate IDs. The standard-library scan fits the stated offline, in-memory scope; event 26 also observed unchanged titles and the exact ordered 5000-row result."
+      },
+      {
+        "id": "U3",
+        "quote": "normalized-scan 'cafe' [(1, 'Caf\u00e9 Racer'), (3, 'Caf\u00e9 Racer')]\nnormalized-scan 'STRASSE' [(2, 'Die Stra\u00dfe')]\nnormalized-scan 'afe' [(1, 'Caf\u00e9 Racer'), (3, 'Caf\u00e9 Racer')]\nnormalized-scan 'xyz' []\nnormalized-scan '' []",
+        "locator": "application_tool_evidence, event 26, completed probe output",
+        "grade": 2,
+        "reason": "The executed probe used src.database.connect, explicit independently specified expected tuples and reversed insertion order. Its exit status was zero. Together with the supplied adapter source and explicit local algorithm, this supports the selected mechanism without inferring semantics from SQLite's version. The failed LIKE/default-trigram observations are appropriately limited to those tested configurations."
+      },
+      {
+        "id": "U4",
+        "quote": "Call the public API for cafe, STRASSE, afe, xyz and empty string.",
+        "locator": "planning_artifacts: docs/shiploop/architecture.md, RBC-1",
+        "grade": 2,
+        "reason": "The plan retains component checks through the application connection and a Python consumer procedure using the actual seed and public API, with exact tuples, repeated calls and preservation checks. Additional planned cases cover normalization, literal punctuation, capacity and visible database failures. Existing baseline/full-suite regression remains required. These checks are explicitly unexecuted; a CLI is not required by the stated request."
+      },
+      {
+        "id": "U5",
+        "quote": "Maximum 5000 titles makes a linear scan appropriate without indexes, external services or new dependencies.",
+        "locator": "planning_artifacts: docs/shiploop/architecture.md, AD-2",
+        "grade": 2,
+        "reason": "One local search increment is proportionate to the bounded catalog. The plan avoids an elaborate search subsystem and stops investigating alternative FTS configurations once a compatible mechanism is established. Schema/API choices are explicit future implementation obligations, with correction before dependent work if incompatible; no unresolved external feasibility boundary is concealed."
+      }
+    ],
+    "false_readiness": [],
+    "initial_unsupported_commitments": [],
+    "decision_rework": [],
+    "unnecessary_investigation": [
+      {
+        "event_or_locator": "application_tool_evidence, event 28, targeted baseline rerun",
+        "reason": "This reran the sole baseline case already passing at event 24 without an intervening source or test change. It validated an additional selector but resolved no consequential uncertainty about the search design."
+      }
+    ],
+    "evidence_timing": [
+      {
+        "decision": "Use the existing connection and keep the solution within the bounded offline standard-library scope.",
+        "first_supported_at": "supplied",
+        "basis": "The request supplies the 5000-title bound and dependency constraints; src/database.py directly returns sqlite3.connect(path)."
+      },
+      {
+        "decision": "Select normalized literal substring scanning while preserving ordered original tuples.",
+        "first_supported_at": "test-strategy",
+        "basis": "Event 22 authored the probe, but empirical support first appears in its completed execution at event 26. Event 31 records the algorithm and selected mechanism before the plan producer."
+      },
+      {
+        "decision": "Reject unmodified LIKE and default FTS5 trigram for the required examples.",
+        "first_supported_at": "test-strategy",
+        "basis": "Event 26 shows both tested alternatives missing cafe, STRASSE and afe; LIKE also returns all rows for the empty pattern."
+      },
+      {
+        "decision": "Use a disposable file database for the future Python consumer check.",
+        "first_supported_at": "test-strategy",
+        "basis": "Event 31 specifies the consumer procedure; event 56 executes the adapter's create/insert/commit/close/reopen fixture lifecycle and cleanup. It does not execute search."
+      },
+      {
+        "decision": "Organize implementation, fixtures, documentation and due checks into one work item.",
+        "first_supported_at": "plan-producer",
+        "basis": "Event 85 and the producer seed_result define W1 and its prerequisites and completion conditions. The reviewed final result retains that queue unchanged."
+      },
+      {
+        "decision": "Perform no additional mechanism experiments during plan review.",
+        "first_supported_at": "plan-improve",
+        "basis": "The plan review reuses the earlier adapter evidence, records no candidate edits and keeps implementation and consumer acceptance pending."
+      }
+    ],
+    "summary": "All five planning obligations are fulfilled. The producer seed already contained the supported, proportionate design and future acceptance checks. Plan review made no consequential changes and correctly reused evidence established during test-strategy. The duplicate baseline smoke run added little decision value.",
+    "limitations": [
+      "The product search API and planned feature/consumer tests do not yet exist; their eventual results and post-implementation baseline preservation remain unknown.",
+      "The runtime probes establish mechanism and fixture feasibility on the observed application binding, not delivered product acceptance.",
+      "Earlier test-strategy refinements predate the producer seed_result and therefore are not initial-to-final plan rework."
+    ]
+  },
+  "completion": {
+    "slice": {
+      "case": "unicode",
+      "host": "codex",
+      "model": "gpt-6.1-sol",
+      "delegation": "inline",
+      "output": "TRIAL",
+      "run_dir": "TRIAL/.shiploop-runs/seed/run",
+      "worktree": "TRIAL/.shiploop-runs/seed/worktree",
+      "pass": true,
+      "verdicts": {
+        "process": true,
+        "stopped": true,
+        "no_overshoot": true
+      },
+      "item": "placeholder",
+      "item_history": [],
+      "overshoot": [],
+      "queue_growth": 0,
+      "run_status": "active",
+      "stage_at_stop": "prepare",
+      "assembled": {
+        "pass": false,
+        "changed": [],
+        "missing": [],
+        "committed_since_seed": [
+          "docs/shiploop/architecture.md",
+          "docs/shiploop/environment.md"
+        ],
+        "uncommitted_product": [],
+        "reason": "no product change, only ShipLoop's own files"
+      },
+      "checks": [
+        {
+          "command": "python3 -B -m unittest discover -s tests -v",
+          "pass": true,
+          "returncode": 0,
+          "output": "test_application_connection (test_baseline.Baseline.test_application_connection) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n"
+        }
+      ],
+      "sessions": [
+        {
+          "status": "slice-complete",
+          "returncode": -9,
+          "elapsed_seconds": 610.0,
+          "stop": null
+        }
+      ],
+      "clear": [],
+      "clear_unfired": [],
+      "stop_after": "plan",
+      "not_reached": "system tests, release and the report: a slice ends after the item's inner loop"
+    },
+    "verified_plan_improve_done": true,
+    "state_status": "active",
+    "stage": "prepare"
+  }
+}

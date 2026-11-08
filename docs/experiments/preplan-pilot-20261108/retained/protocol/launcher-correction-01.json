@@ -1,0 +1,12 @@
+{
+  "time": 1794119778.31439,
+  "reason": "queue.py shadowed Python stdlib queue; no subject process started",
+  "change": "Rename launcher only; exact bytes retained",
+  "old_path": "launcher-failed-start-01/queue.py",
+  "new_path": "dispatch_pilot.py",
+  "sha256_before": "5dd46715514515c6498651bafd03d18bb66cbf793624a0898719aa021b7ec305",
+  "sha256_after": "5dd46715514515c6498651bafd03d18bb66cbf793624a0898719aa021b7ec305",
+  "registration_changed": false,
+  "subject_retries": 0,
+  "failed_launch_log": "launcher-failed-start-01/queue.log"
+}

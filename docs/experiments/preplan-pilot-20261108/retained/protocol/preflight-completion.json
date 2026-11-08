@@ -1,0 +1,154 @@
+{
+  "started_utc": "2026-11-08T06:16:10.228232+00:00",
+  "deadline_unix": 1794119470.228414,
+  "source": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+  "expected_head": "93dd53b73e1931c5847ad75d9bc19205c40fb441",
+  "expected_fingerprint": "8e375af7dab1ec5bab528b2dfb7bd7c8610737b19d0ed2557dd848239a532425",
+  "retry_policy": "none",
+  "generated_outputs": [
+    "__pycache__/pyc",
+    "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01",
+    "temporary directories outside source"
+  ],
+  "checks": [
+    {
+      "command": [
+        "python3",
+        "-B",
+        "docs/experiments/preplan-pilot-20261108/preflight.py"
+      ],
+      "status": "PASS",
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01/01-preflight.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01/01-preflight.stderr.log",
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+      "exit_code": 0,
+      "duration_seconds": 0.104,
+      "observed": {
+        "overlay": [
+          {
+            "module": "shiploop_prompts.py",
+            "before": "2ce1b7ebfce3",
+            "after": "b57b368bcaea"
+          }
+        ],
+        "changed_duties": [
+          "plan"
+        ],
+        "added_characters": 1474,
+        "plan_improve_identical": true,
+        "test_strategy_identical": true,
+        "baseline_preserved": true
+      }
+    },
+    {
+      "command": [
+        "python3",
+        "-B",
+        "test/shiploop-e2e-slice.test.py"
+      ],
+      "status": "PASS",
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01/02-slice.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01/02-slice.stderr.log",
+      "exit_code": 0,
+      "duration_seconds": 239.868,
+      "tests_run": 73,
+      "suite_seconds": 239.36,
+      "footer": "OK"
+    }
+  ],
+  "status": "PASS",
+  "pre": {
+    "head": {
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01/pre-head.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01/pre-head.stderr.log",
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+      "exit_code": 0,
+      "status": "EXITED",
+      "duration_seconds": 0.017,
+      "value": "93dd53b73e1931c5847ad75d9bc19205c40fb441"
+    },
+    "status": {
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01/pre-status.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01/pre-status.stderr.log",
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+      "exit_code": 0,
+      "status": "EXITED",
+      "duration_seconds": 0.157,
+      "entries": 49
+    },
+    "fingerprint": {
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01/pre-fingerprint.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01/pre-fingerprint.stderr.log",
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+      "exit_code": 0,
+      "status": "EXITED",
+      "duration_seconds": 1.385,
+      "parsed": {
+        "head": "93dd53b73e1931c5847ad75d9bc19205c40fb441",
+        "status": "?? docs/experiments/preplan-pilot-20261108/\n",
+        "files": 10345,
+        "sha256": "8e375af7dab1ec5bab528b2dfb7bd7c8610737b19d0ed2557dd848239a532425"
+      }
+    }
+  },
+  "post": {
+    "head": {
+      "command": [
+        "git",
+        "--no-optional-locks",
+        "-C",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01/post-head.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01/post-head.stderr.log",
+      "exit_code": 0,
+      "status": "EXITED",
+      "duration_seconds": 0.011,
+      "value": "93dd53b73e1931c5847ad75d9bc19205c40fb441"
+    },
+    "status": {
+      "command": [
+        "git",
+        "--no-optional-locks",
+        "-C",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all"
+      ],
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01/post-status.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01/post-status.stderr.log",
+      "exit_code": 0,
+      "status": "EXITED",
+      "duration_seconds": 0.109,
+      "entries": 49
+    },
+    "fingerprint": {
+      "command": [
+        "python3",
+        "-B",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/identity.py",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source"
+      ],
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01/post-fingerprint.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/preflight-01/post-fingerprint.stderr.log",
+      "exit_code": 0,
+      "status": "EXITED",
+      "duration_seconds": 1.22,
+      "parsed": {
+        "head": "93dd53b73e1931c5847ad75d9bc19205c40fb441",
+        "status": "?? docs/experiments/preplan-pilot-20261108/\n",
+        "files": 10345,
+        "sha256": "8e375af7dab1ec5bab528b2dfb7bd7c8610737b19d0ed2557dd848239a532425"
+      }
+    }
+  },
+  "identity_unchanged": true,
+  "finished_utc": "2026-11-08T06:21:11.508627+00:00"
+}

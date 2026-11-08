@@ -1,0 +1,7 @@
+{
+  "time": 1794121273.000704,
+  "case": "sample-03 criterion A3",
+  "initial_flag": "Quote contains actual newlines, while retained tool output is serialized JSON with escaped stdout newlines.",
+  "verification": "Decoded nested stdout contains both exact quoted lines; no judge score or text was changed.",
+  "correction": "Quote auditor recursively reads JSON object/list strings in retained evidence before whitespace-normalized matching, uniformly for all cells."
+}

@@ -1,0 +1,238 @@
+{
+  "status": "PASS",
+  "deadline_utc": "2026-11-08T08:07:42+00:00",
+  "source": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+  "expected_source_identity": {
+    "head": "82046998cbcdef05cfdf2459d22c6dc6ecbb7dfa",
+    "status": "",
+    "fingerprint": "a322da157b7e87f84abaf4011603c7aa333416b8f962f957f0d9d15663b660ad",
+    "files": 10346
+  },
+  "source_pre": {
+    "head": "82046998cbcdef05cfdf2459d22c6dc6ecbb7dfa",
+    "status": "",
+    "identity_output": "{\n  \"head\": \"82046998cbcdef05cfdf2459d22c6dc6ecbb7dfa\",\n  \"status\": \"\",\n  \"files\": 10346,\n  \"sha256\": \"a322da157b7e87f84abaf4011603c7aa333416b8f962f957f0d9d15663b660ad\"\n}",
+    "identity": {
+      "head": "82046998cbcdef05cfdf2459d22c6dc6ecbb7dfa",
+      "status": "",
+      "files": 10346,
+      "fingerprint": "a322da157b7e87f84abaf4011603c7aa333416b8f962f957f0d9d15663b660ad"
+    }
+  },
+  "source_post": {
+    "head": "82046998cbcdef05cfdf2459d22c6dc6ecbb7dfa",
+    "status": "",
+    "identity_output": "{\n  \"head\": \"82046998cbcdef05cfdf2459d22c6dc6ecbb7dfa\",\n  \"status\": \"\",\n  \"files\": 10346,\n  \"sha256\": \"a322da157b7e87f84abaf4011603c7aa333416b8f962f957f0d9d15663b660ad\"\n}",
+    "identity": {
+      "head": "82046998cbcdef05cfdf2459d22c6dc6ecbb7dfa",
+      "status": "",
+      "files": 10346,
+      "fingerprint": "a322da157b7e87f84abaf4011603c7aa333416b8f962f957f0d9d15663b660ad"
+    }
+  },
+  "commands": [
+    {
+      "label": "pre-head",
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator",
+      "started_utc": "2026-11-08T07:53:11.297106+00:00",
+      "duration_seconds": 0.012,
+      "exit": 0,
+      "error": null,
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/pre-head.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/pre-head.stderr.log"
+    },
+    {
+      "label": "pre-status",
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all"
+      ],
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator",
+      "started_utc": "2026-11-08T07:53:11.309207+00:00",
+      "duration_seconds": 0.103,
+      "exit": 0,
+      "error": null,
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/pre-status.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/pre-status.stderr.log"
+    },
+    {
+      "label": "pre-fingerprint",
+      "argv": [
+        "python3",
+        "-B",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/identity.py",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source"
+      ],
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator",
+      "started_utc": "2026-11-08T07:53:11.412752+00:00",
+      "duration_seconds": 1.208,
+      "exit": 0,
+      "error": null,
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/pre-fingerprint.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/pre-fingerprint.stderr.log"
+    },
+    {
+      "label": "closeout-audit",
+      "argv": [
+        "python3",
+        "-B",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/closeout_audit.py",
+        "--require-complete"
+      ],
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator",
+      "started_utc": "2026-11-08T07:58:38.846377+00:00",
+      "duration_seconds": 1.65,
+      "exit": 0,
+      "error": null,
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/closeout-audit.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/closeout-audit.stderr.log"
+    },
+    {
+      "label": "summarize",
+      "argv": [
+        "python3",
+        "-B",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/summarize.py"
+      ],
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator",
+      "started_utc": "2026-11-08T07:58:40.497975+00:00",
+      "duration_seconds": 0.031,
+      "exit": 0,
+      "error": null,
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/summarize.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/summarize.stderr.log"
+    },
+    {
+      "label": "git-diff-check",
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+        "diff",
+        "--check"
+      ],
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator",
+      "started_utc": "2026-11-08T07:58:40.530307+00:00",
+      "duration_seconds": 0.047,
+      "exit": 0,
+      "error": null,
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/git-diff-check.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/git-diff-check.stderr.log"
+    },
+    {
+      "label": "post-head",
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+        "rev-parse",
+        "HEAD"
+      ],
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator",
+      "started_utc": "2026-11-08T07:58:40.577591+00:00",
+      "duration_seconds": 0.01,
+      "exit": 0,
+      "error": null,
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/post-head.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/post-head.stderr.log"
+    },
+    {
+      "label": "post-status",
+      "argv": [
+        "git",
+        "-C",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source",
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all"
+      ],
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator",
+      "started_utc": "2026-11-08T07:58:40.588596+00:00",
+      "duration_seconds": 0.08,
+      "exit": 0,
+      "error": null,
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/post-status.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/post-status.stderr.log"
+    },
+    {
+      "label": "post-fingerprint",
+      "argv": [
+        "python3",
+        "-B",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/identity.py",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/source"
+      ],
+      "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator",
+      "started_utc": "2026-11-08T07:58:40.669710+00:00",
+      "duration_seconds": 1.108,
+      "exit": 0,
+      "error": null,
+      "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/post-fingerprint.stdout.log",
+      "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/post-fingerprint.stderr.log"
+    }
+  ],
+  "counts": {
+    "audit_cells": 16,
+    "audit_pairs": 8,
+    "audit_cell_checks": 240,
+    "audit_pair_checks": 64,
+    "requested_astra_xhigh_calls_checked": 24,
+    "frozen_suite_files_verified": 50,
+    "clean_comparative_pairs": 7,
+    "result_subjects": 16,
+    "result_pairs": 8
+  },
+  "scope_caveat": {
+    "known_deviation": [
+      {
+        "sample": "sample-06",
+        "event": 85,
+        "command": "/bin/zsh -lc \"rg -n 'Plan document shape|\"'^##|''^###'\"' SKILL.md; git status --short\"",
+        "type": "ancestor-repository-status-path-enumeration",
+        "upward_path_entries": 112,
+        "evidence": "Retained bundle application_tool_evidence; output contains unrelated ancestor-directory path names. No file-content read is established by this command."
+      }
+    ],
+    "excluded_pair": "evidence-1",
+    "meaning": "Mechanical evidence accounting does not establish clean isolation. The status output enumerated unrelated ancestor-directory paths; the command does not establish any file-content read.",
+    "scope_deviation_samples": [
+      "sample-06"
+    ],
+    "new_deviation_samples": [],
+    "scope_findings": [
+      {
+        "sample": "sample-06",
+        "event": 85,
+        "command": "/bin/zsh -lc \"rg -n 'Plan document shape|\"'^##|''^###'\"' SKILL.md; git status --short\"",
+        "type": "ancestor-repository-status-path-enumeration",
+        "upward_path_entries": 112,
+        "evidence": "Retained bundle application_tool_evidence; output contains unrelated ancestor-directory path names. No file-content read is established by this command."
+      }
+    ]
+  },
+  "monitor_log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/finish-grading.log",
+  "audit_json": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/closeout-audit.json",
+  "results_json": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/results.json",
+  "logs_directory": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01",
+  "pending": [],
+  "attempts_allowed": 1,
+  "monitor_events_log": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/final-verification-01/monitor-events.jsonl",
+  "monitor_terminal_event": {
+    "event": "all_registered_judgments_complete",
+    "time": 1794124716.519944
+  },
+  "model_identity_limit": "Requested model and reasoning effort verified from launch controls; provider-served identity is not attested.",
+  "subject_token_limit": "Preserved the supplied subject token evidence; missing totals may be null and peak context is not total consumption.",
+  "finished_utc": "2026-11-08T07:58:41.780596+00:00"
+}
