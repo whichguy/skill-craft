@@ -8306,3 +8306,70 @@ and this original product only; no new ShipLoop production prompt is accepted he
 Post-pilot apparatus follow-up: `177c063b47746a1eae825ba5e81daf3663708731` implements
 the calibrated fixture-name and capture repairs separately from this frozen result.
 The original baseline row and raw files are unchanged. Judged discovery record IDs: `LR-20261101-e982b8`, `LR-20261105-0542a3`, `LR-20261031-b5d300`, `LR-20261031-382fba`.
+
+
+## 2026-11-08 — Roundtable rooms: original continuation preserves visual direction
+
+The second rung continued the untouched conversation delivery at
+`2b1483c1e6567e6cd64e4a8bc146800ef3a3a449`, using the same frozen harness
+`5798e7e12363ee55fe8f7abe8eea25e63e4b2bac` and plugin `08c0c1e34a47`.
+The new request adds rooms, draft/reply ownership and unread state without another
+style instruction. The fresh subject and discovery reviewer record Sol6.1/high;
+fresh discovery and visual judges record Astra/high, this campaign only. Provider
+served identity remains unattested.
+
+- **Observed:** one session, no resume, exit0; ShipLoop done at revision43. Four
+  request/retention checks pass. Independent Chromium observes61 conversation and43
+  room assertions, all passing and complete, with16 captures and unchanged source.
+  Original returned HEAD `f34cc9ccf65785e3873d371bb09d1f0808a612d0`, tree
+  `b193866f74923b28d5b79e042a96f874725bfa8d`, stays clean through both reviews.
+  The product retains24 native tests and4 composed opt-in browser scenarios.
+- **Design decision:** continue the original into agent tasks. Astra finds strong
+  continuity in the rail, canvas, surfaces, restrained accents and reading/composing
+  hierarchy; mobile disclosure fits the inherited composition. AD-2 is retained
+  verbatim (SHA256 a37a18633d43bc83ce0a2bf4e84530a9479768753e81591ed880aa9a997e97ce).
+  AD-6 explicitly extends it, and the selected UI criterion names AD-2/AD-6 and actual
+  rendered-width/theme anchors. These are references and observed conformance, not
+  proof that reading the document caused continuity; existing source also carries it.
+- **Lesser concerns:** small mobile metadata, expanded-header space, cropped scroll
+  edges, hash icons replacing the line-icon vocabulary, and hidden unread cues while
+  mobile navigation is closed. AD-4/Superseded and older environment/spec statements
+  need reconciliation with current room/verification facts. They do not materially
+  block the next experiment. Preserve this original; do not coach the next subject
+  or silently repair those records.
+- **Expected/observed mismatch:** the browser facility was healthy, but the baseline
+  comparison copied no assertion file from browser-check.mjs and ran the older suite
+  without T-10. The subject replanned to put the assertions in browser-check.spec.mjs,
+  retained the public launcher, and demonstrated the new room assertions fail on the
+  untouched original product. Sol/Astra support investigation under existing
+  LR-20261105-884ad2; no generic planner/classifier change or savings claim is admitted.
+- **Other retained discoveries:** manually written archive/copy/run/log glue overlapped
+  authoritative consumer verification, while model_glue missed it. Investigation must
+  distinguish useful exploratory checks from mechanical duplication. The complete
+  54,303-character document packet conflicts with frozen S-7; preserve the existing
+  owner-review route and the owner-directed no-clipping history, with no automatic
+  engine reversal or silent clause amendment. All four discovery judgments are
+  supported; none is implementation-eligible.
+- **Apparatus observations:** the original exposure counter is103. Every hit is
+  accounted for by generic server/reference stems (74/75 lines, union103); distinctive
+  module/catalog markers appear on zero lines. Retain this raw result and the same
+  limits as the first run. Astra could not inspect a nonzero unread badge because
+  screenshots show pending or already-cleared states. A separate authored fixture
+  proves the old observer passes unread-resize-loss, while a prospective wide/320
+  observation rejects exactly that defect and accepts standard, modal and collapsed
+  navigation. Apply/calibrate prospective apparatus changes after the frozen chain;
+  no generated-product defect or retroactive regrade is claimed.
+
+Evidence uses the same external campaign root as the preceding entry. See
+`live-manifest-03.json`, `live-roundtable-rooms-01/{result.json,review-campaign.json}`,
+`live-roundtable-rooms-01/review-judge-campaign/verdict.json`,
+`live-roundtable-rooms-01-{delivery-audit,disposition,reviews-exit}.json`,
+`astra-visual-roundtable-rooms-01/answer.md`, `rooms-design-reference-01.json`,
+`rooms-role-routing-observed-01.json`, `heldout-marker-audit-02.json`, and
+`unread-counterexample-01/{summary,variant-controls}.json`. Browser-emulated widths
+are not physical-device/keyboard/Safari proof. This original follow-on supplies no
+comparative prompt/model gain or full frozen-contract conformance claim.
+
+Post-pilot apparatus follow-up: `177c063b47746a1eae825ba5e81daf3663708731` implements
+the calibrated fixture-name and capture repairs separately from this frozen result.
+The original baseline row and raw files are unchanged. Judged discovery record IDs: `LR-20261105-884ad2`, `LR-20261108-f03c2c`, `LR-20261031-382fba`, `LR-20261108-72fe16`.
