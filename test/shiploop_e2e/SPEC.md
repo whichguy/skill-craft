@@ -211,21 +211,23 @@ a frozen contract the script writes and iterations the script counts. Except
 for the carve-outs below, there is no iteration cap; a loop ends on its
 condition, a true blocker or a user stop.
 
-**S-10 carve-out, owner decision 2026-10-04 (Backchain).** The owner's request
+**S-10 carve-out, owner decision 2026-10-04** (Backchain). The owner's request
 and the Luna 1.16.1 battleship run were the basis for the one-cycle gate and
 the relaxation of S-9 and S-10 for this child.
 
-The default run option remains `backchain_passes: one`. At `plan`, the host may
-omit the whole `plan`/`draft` Backchain child. The planning guide's dependency
-audit is required on both routes. The plan result's `summary` states the route
-taken and why. Evaluate the audit on its own evidence.
+The run option (state option `backchain_passes`) retains the default
+`backchain_passes: one`. At `plan`, the host may omit the whole `plan`/`draft`
+Backchain child. The planning guide's dependency audit is required on both
+routes. The plan result's `summary` states the route taken and why. Evaluate
+the audit on its own evidence.
 
-Explicit `converge` requests the whole child at `plan` with two consecutive
-distinct complete trivial/no-change dependency reviews. `none` uses the audit
-route at `plan` without a whole `plan`/`draft` child. A material finding from
-a read-only `review`/`audit` may lead the stage owner to request one
-`repair`/`revise` within authorized edit bounds. That child uses the one-cycle
-gate in `one` and `none`, and the two-review gate in `converge`.
+Explicit `--backchain-passes converge` requests the whole child at `plan` with two
+consecutive distinct complete trivial/no-change dependency reviews.
+`--backchain-passes none` uses the audit route at `plan` without a whole
+`plan`/`draft` child. A material finding from a read-only `review`/`audit`
+may lead the stage owner to request one `repair`/`revise` within authorized
+edit bounds. That child uses the one-cycle gate in `one` and `none`, and the
+two-review gate in `converge`.
 
 The one-cycle gate sets `required_trivial_reviews: 0`. The child may finish
 on the first accepted report that satisfies the exit condition, including a

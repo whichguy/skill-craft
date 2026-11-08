@@ -396,7 +396,7 @@ class ReviewParsingTest(unittest.TestCase):
         prompt = review.reviewer_prompt(Path("/tmp/run"), Path("/tmp/skill"))
         # The standing spec is the premise, loaded from the one file, with clause IDs to cite.
         self.assertIn("**S-1 Scripts own the graph and the state.**", prompt)
-        self.assertIn("**S-7 Packets are small where they are printed", prompt)
+        self.assertIn("**S-7 Normal packet emission prints the complete saved body.**", prompt)
         self.assertIn("Cite its clause IDs", prompt)
         for key in review.CATEGORIES:
             self.assertIn(key, prompt)
