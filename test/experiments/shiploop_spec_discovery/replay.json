@@ -1,0 +1,823 @@
+{
+  "schema": "planning-score-replay/1",
+  "expected_trials": [
+    "14",
+    "02",
+    "12",
+    "01",
+    "13",
+    "20",
+    "16"
+  ],
+  "records": [
+    {
+      "trial": "01",
+      "pass": 1,
+      "status": "valid",
+      "grade_sha256": "a00a6e6d3cce5dc2b1d1a2ad6b2f6a4c94a99535b70630f8d92cb42237dcb062",
+      "validation_errors": [],
+      "dimensions": {
+        "acceptance_actionability": 3,
+        "evidence_grounding": 2,
+        "prerequisite_handoff": 3,
+        "verification_closure": 3
+      },
+      "obligations": {
+        "lines-normalize": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "lines-order": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "lines-scope": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        }
+      },
+      "findings": []
+    },
+    {
+      "trial": "01",
+      "pass": 2,
+      "status": "valid",
+      "grade_sha256": "be319c5e13ab23b0f003f5ccaf625be4b3eb6874333f647d491aadcf45fe39ff",
+      "validation_errors": [],
+      "dimensions": {
+        "acceptance_actionability": 3,
+        "evidence_grounding": 2,
+        "prerequisite_handoff": 3,
+        "verification_closure": 3
+      },
+      "obligations": {
+        "lines-normalize": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "lines-order": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "lines-scope": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        }
+      },
+      "findings": [
+        {
+          "check": "scope-restraint",
+          "condition": "The final Spec and incorporated Plan require retaining the placeholder README's heading.",
+          "category": "scope",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "An incidental source heading becomes an additional documentation acceptance constraint in both artifacts. Removing that constraint is a local repair that preserves the requested behavior and readiness conditions."
+        }
+      ]
+    },
+    {
+      "trial": "02",
+      "pass": 1,
+      "status": "valid",
+      "grade_sha256": "0f5bd0f545a3a141faf5f20fb5e900e15249635ab6ccc9038d1bef11cd8867fe",
+      "validation_errors": [],
+      "dimensions": {
+        "acceptance_actionability": 3,
+        "evidence_grounding": 2,
+        "prerequisite_handoff": 3,
+        "verification_closure": 3
+      },
+      "obligations": {
+        "lines-normalize": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "lines-order": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "lines-scope": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        }
+      },
+      "findings": [
+        {
+          "check": "scope-restraint",
+          "condition": "The final Spec makes streaming and bounded input buffering an acceptance constraint.",
+          "category": "scope",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "An implementation producing every requested output could be rejected solely for buffering input. Recasting streaming as a design choice would preserve the intended behavior without adding an unrequested acceptance condition."
+        },
+        {
+          "check": "scope-restraint",
+          "condition": "The accepted Plan carries the incidental streaming constraint through its mandatory AD-1 decision.",
+          "category": "scope",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "The Plan inherits the additional implementation restriction. Making the streaming approach an optional implementation choice would remove that restriction without changing the required outcome or readiness."
+        },
+        {
+          "check": "source-applicability",
+          "condition": "The Plan's incorporated architecture treats the narrow research probe as confirmation of all needed stream and encoding operations.",
+          "category": "unsupported_claim",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "The probe supports narrow stripping and suffix removal, but does not itself establish binary standard-stream I/O, UTF-8 conversion or set behavior. Narrowing the attribution repairs the evidence record; the required CLI byte checks remain due."
+        },
+        {
+          "check": "success-claims",
+          "condition": "Research records explicit byte I/O, UTF-8 and set support as probed despite the narrower executed assertions.",
+          "category": "unsupported_claim",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "process",
+          "consequence": "The recorded probe-success scope exceeds what its assertions exercised. No explicit correction is retained, but this does not establish that the capabilities are false or that any product was incorrectly released."
+        }
+      ]
+    },
+    {
+      "trial": "02",
+      "pass": 2,
+      "status": "valid",
+      "grade_sha256": "725f5c4962b836a718da71e439e66bf3b76bdb84cc10320427df9b4231dd69ac",
+      "validation_errors": [],
+      "dimensions": {
+        "acceptance_actionability": 3,
+        "evidence_grounding": 2,
+        "prerequisite_handoff": 3,
+        "verification_closure": 3
+      },
+      "obligations": {
+        "lines-normalize": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "lines-order": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "lines-scope": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        }
+      },
+      "findings": [
+        {
+          "check": "scope-restraint",
+          "condition": "The final Spec makes streaming and distinct-only retention mandatory non-functional acceptance criteria.",
+          "category": "scope",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "An otherwise conforming implementation that reads the input into memory would fail this added criterion. Recasting it as a design preference removes the incidental restriction without changing requested behavior or readiness."
+        },
+        {
+          "check": "scope-restraint",
+          "condition": "The accepted Plan carries the incidental streaming restriction into W1 through mandatory AD-1 compliance.",
+          "category": "scope",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "W1 inherits an unnecessary implementation acceptance condition. It can retain streaming as its chosen approach while allowing other implementations that satisfy the requested CLI contract."
+        }
+      ]
+    },
+    {
+      "trial": "12",
+      "pass": 1,
+      "status": "valid",
+      "grade_sha256": "18dda63438cd098b05793959af395885f9a719173cfe3650dbef03af422213ed",
+      "validation_errors": [],
+      "dimensions": {
+        "acceptance_actionability": 3,
+        "evidence_grounding": 2,
+        "prerequisite_handoff": 3,
+        "verification_closure": 3
+      },
+      "obligations": {
+        "lines-normalize": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "lines-order": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "lines-scope": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        }
+      },
+      "findings": []
+    },
+    {
+      "trial": "12",
+      "pass": 2,
+      "status": "valid",
+      "grade_sha256": "b648436b9729366595d1958bbaeffde64797ec20d685e2f5fa41ad7bc80242cd",
+      "validation_errors": [],
+      "dimensions": {
+        "acceptance_actionability": 3,
+        "evidence_grounding": 2,
+        "prerequisite_handoff": 3,
+        "verification_closure": 3
+      },
+      "obligations": {
+        "lines-normalize": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "lines-order": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "lines-scope": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        }
+      },
+      "findings": []
+    },
+    {
+      "trial": "13",
+      "pass": 1,
+      "status": "valid",
+      "grade_sha256": "a1e29ab433404512f47560689de188e8bd6e2b87a396ae91dffb1ebcca736177",
+      "validation_errors": [],
+      "dimensions": {
+        "acceptance_actionability": 3,
+        "evidence_grounding": 3,
+        "prerequisite_handoff": 3,
+        "verification_closure": 3
+      },
+      "obligations": {
+        "queue-wire": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "queue-replay": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "queue-cancel": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "queue-recovery": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        }
+      },
+      "findings": [
+        {
+          "check": "source-applicability",
+          "condition": "The initial test strategy treated the listener probe as evidence that real loopback transport was available.",
+          "category": "unsupported_claim",
+          "severity": "material",
+          "disposition": "corrected",
+          "phase": "process",
+          "consequence": "The initial strategy assigned unsupported readiness to the network harness. The accepted artifacts replace that premise with component capability and a separate pending network gate; no defective release is evidenced."
+        },
+        {
+          "check": "scope-restraint",
+          "condition": "The final Spec requires the exact sequential L<n> ID generator and counting rule.",
+          "category": "scope",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "A usable stable job ID would satisfy the selected compatibility obligation, but the Spec unnecessarily rejects alternative generators. Removing this incidental restriction is a local scope repair; scanner behavior coverage remains fulfilled."
+        },
+        {
+          "check": "scope-restraint",
+          "condition": "The accepted Plan carries the Spec's incidental sequential-ID restriction into W1 and exact oracle comparison.",
+          "category": "scope",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "W1 inherits an unnecessary generator constraint, so its acceptance checks can reject a scanner-compatible implementation solely for differing generated IDs. The Plan should preserve identity and lookup/cancel usability without requiring the incidental sequence."
+        },
+        {
+          "check": "success-claims",
+          "condition": "The probe record falsely claimed successful live server/client execution and cleanup.",
+          "category": "unsupported_claim",
+          "severity": "material",
+          "disposition": "corrected",
+          "phase": "process",
+          "consequence": "An intended outcome was recorded as an observed success and initially informed planning. The explicit retraction removes its evidentiary force before final acceptance; the event remains a material process failure."
+        }
+      ]
+    },
+    {
+      "trial": "13",
+      "pass": 2,
+      "status": "valid",
+      "grade_sha256": "da93dc93916ac6cd99e0eca92d697d71126dcb7d69c478b9733429a5bf38cd17",
+      "validation_errors": [],
+      "dimensions": {
+        "acceptance_actionability": 1,
+        "evidence_grounding": 3,
+        "prerequisite_handoff": 3,
+        "verification_closure": 3
+      },
+      "obligations": {
+        "queue-wire": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "queue-replay": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "queue-cancel": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "queue-recovery": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        }
+      },
+      "findings": [
+        {
+          "check": "scope-restraint",
+          "condition": "The final Spec mandates the incidental sequential job-ID generator.",
+          "category": "scope",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "Acceptance unnecessarily excludes compatible identifiers that preserve lookup, cancellation and replay identity. Removing the sequence requirement is a local repair."
+        },
+        {
+          "check": "scope-restraint",
+          "condition": "The accepted Plan incorporates the incidental ID sequence into implementation and parity checks.",
+          "category": "scope",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "W1 inherits unnecessary generator fidelity rather than checking identifier usability and stable replay identity. Its contract and incorporated identity test need the same local scope repair."
+        },
+        {
+          "check": "success-claims",
+          "condition": "The initial test strategy reported successful loopback readiness despite the probe failing before a listener started.",
+          "category": "unsupported_claim",
+          "severity": "material",
+          "disposition": "corrected",
+          "phase": "process",
+          "consequence": "The initial strategy overstated test-environment readiness. The explicit retraction and revised accepted artifacts restore the missing network prerequisite; no defective release or completed product verification is evidenced."
+        }
+      ]
+    },
+    {
+      "trial": "14",
+      "pass": 1,
+      "status": "valid",
+      "grade_sha256": "f41e41790a942a18866fcfe60d66362ce361a5da92040e910c3b9be171d63588",
+      "validation_errors": [],
+      "dimensions": {
+        "acceptance_actionability": 3,
+        "evidence_grounding": 3,
+        "prerequisite_handoff": 3,
+        "verification_closure": 0
+      },
+      "obligations": {
+        "queue-wire": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "queue-replay": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "queue-cancel": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "queue-recovery": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        }
+      },
+      "findings": [
+        {
+          "check": "verification-closure",
+          "condition": "Required real loopback HTTP verification is optional at completion.",
+          "category": "dependency",
+          "severity": "material",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "Implementation can legitimately finish independently, but the Plan does not require the operator's live HTTP check to succeed before accepting or delivering the product. No defective release is evidenced."
+        },
+        {
+          "check": "scope-restraint",
+          "condition": "The Spec and accepted Plan require Queueport's incidental sequential ID generator.",
+          "category": "scope",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "An implementation with usable opaque IDs and otherwise identical scanner behavior would fail these unnecessarily narrow criteria. Removing the generator constraint is a local scope repair."
+        },
+        {
+          "check": "success-claims",
+          "condition": "The final planning self-review declares no remaining planning gaps despite the optional mandatory verification surface.",
+          "category": "unsupported_claim",
+          "severity": "material",
+          "disposition": "surviving",
+          "phase": "process",
+          "consequence": "The review endorses planning completeness without resolving the required live HTTP completion gate. This overstates review closure, while implementation and actual product verification remain explicitly pending."
+        }
+      ]
+    },
+    {
+      "trial": "14",
+      "pass": 2,
+      "status": "valid",
+      "grade_sha256": "d9886d9f2db2d66ad8befad963b861690feb9e30a386b1c2896c2504f75c899e",
+      "validation_errors": [],
+      "dimensions": {
+        "acceptance_actionability": 3,
+        "evidence_grounding": 2,
+        "prerequisite_handoff": 3,
+        "verification_closure": 0
+      },
+      "obligations": {
+        "queue-wire": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "queue-replay": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "queue-cancel": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "queue-recovery": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        }
+      },
+      "findings": [
+        {
+          "check": "verification-closure",
+          "condition": "Required real-loopback HTTP verification becomes optional through acceptance and source delivery.",
+          "category": "dependency",
+          "severity": "material",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "The plan preserves an honest verification gap and permits useful implementation work, but does not require that gap to close before accepting or delivering the product. This is a planned completion-gate defect; no actual defective release is evidenced."
+        },
+        {
+          "check": "scope-restraint",
+          "condition": "The final Spec requires the exact L1,L2,... generator, and the accepted Plan carries that incidental restriction into parity work.",
+          "category": "scope",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "Both artifacts unnecessarily narrow acceptable implementations to the snapshot's ID sequence. A locally repaired requirement and corresponding parity assertions could instead require stable returned IDs usable for lookup, cancellation and replay."
+        }
+      ]
+    },
+    {
+      "trial": "16",
+      "pass": 1,
+      "status": "invalid",
+      "grade_sha256": "075c92efbd3152b1ee9847aee91aa5a3634d6a3b1ee3527005a2ac3c848cd1de",
+      "validation_errors": [
+        "finding requires at least one subject artifact"
+      ],
+      "dimensions": {},
+      "obligations": {},
+      "findings": [
+        {
+          "check": "source-applicability",
+          "condition": "The draft R-3 excluded query text from routing despite the snapshot's literal path comparisons.",
+          "category": "unsupported_claim",
+          "severity": "material",
+          "disposition": "corrected",
+          "phase": "process",
+          "consequence": "The draft would have broadened accepted routes for query-bearing requests. The explicit correction removed that contract drift before acceptance; no implementation effect is established."
+        },
+        {
+          "check": "scope-restraint",
+          "condition": "The final Spec requires sequential L-prefixed IDs and the snapshot's unknown-operator-ID exception.",
+          "category": "scope",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "These clauses reject otherwise compatible implementations based on incidental ID generation or internal operator error behavior. Removing those constraints preserves the requested scanner outcomes."
+        },
+        {
+          "check": "scope-restraint",
+          "condition": "The accepted Plan carries the incidental L-prefixed ID constraint into architecture and exact-parity completion.",
+          "category": "scope",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "The planned acceptance carries forward a generator-specific restriction instead of requiring usable, stable job identity. This is a local scope repair and does not remove any covered oracle behavior."
+        },
+        {
+          "check": "verification-closure",
+          "condition": "Final source handoff remains eligible while mandatory live listening verification is open.",
+          "category": "dependency",
+          "severity": "material",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "The Plan preserves honest reporting but does not make the required live result a condition of product acceptance or delivery. W1 and independent W2 work can finish; final completion should remain pending. The packet contains no actual release outcome."
+        }
+      ]
+    },
+    {
+      "trial": "16",
+      "pass": 2,
+      "status": "valid",
+      "grade_sha256": "dc094c5da9b17523694f8920627630d2bc0e8f101bbe2adbf120ea9419db6235",
+      "validation_errors": [],
+      "dimensions": {
+        "acceptance_actionability": 1,
+        "evidence_grounding": 3,
+        "prerequisite_handoff": 3,
+        "verification_closure": 0
+      },
+      "obligations": {
+        "queue-wire": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "queue-replay": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "queue-cancel": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        },
+        "queue-recovery": {
+          "spec": "fulfilled",
+          "plan": "fulfilled"
+        }
+      },
+      "findings": [
+        {
+          "check": "source-applicability",
+          "condition": "The initial R-3 routing rule excluded query text despite the snapshot comparing the supplied target literally.",
+          "category": "unsupported_claim",
+          "severity": "material",
+          "disposition": "corrected",
+          "phase": "process",
+          "consequence": "The draft would have accepted some query-bearing targets that the snapshot rejects. The correction removes that drift before accepted artifacts; no implemented behavior or release effect is established."
+        },
+        {
+          "check": "acceptance-precision",
+          "condition": "The final Spec describes the live socket suite as both mandatory later and optional.",
+          "category": "clarity",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "A reader needs clarification that explicit opt-in execution does not make the governing live-verification obligation optional."
+        },
+        {
+          "check": "verification-closure",
+          "condition": "The accepted Plan anticipates final source handoff with required live listening verification still open.",
+          "category": "dependency",
+          "severity": "material",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "Required release evidence can remain absent at final handoff. The Plan should preserve independent implementation completion while retaining an incomplete product-acceptance disposition until the operator supplies the live result. The packet does not establish an actual release or defect."
+        },
+        {
+          "check": "scope-restraint",
+          "condition": "The final Spec requires the snapshot's initial ID sequence.",
+          "category": "scope",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "The Spec unnecessarily rejects compatible implementations using another stable, usable ID generator. Removing the incidental sequence constraint preserves all required scanner outcomes."
+        },
+        {
+          "check": "scope-restraint",
+          "condition": "The accepted Plan carries the incidental ID format and generation constraint into implementation and exact-parity acceptance.",
+          "category": "scope",
+          "severity": "minor",
+          "disposition": "surviving",
+          "phase": "final",
+          "consequence": "The Plan inherits the Spec's unnecessary ID restriction and prescribes its format internally. A compatible alternative generator should remain eligible without weakening replay identity or lookup/cancellation checks."
+        }
+      ]
+    },
+    {
+      "trial": "20",
+      "pass": 1,
+      "status": "valid",
+      "grade_sha256": "bce7d453803d7b7217fdb6c8b08d0b59cfefae6b67a9a2d05b1b5bb1da47b91f",
+      "validation_errors": [],
+      "dimensions": {
+        "acceptance_actionability": null,
+        "evidence_grounding": null,
+        "prerequisite_handoff": null,
+        "verification_closure": null
+      },
+      "obligations": {
+        "parcel-boundary": {
+          "spec": "unknown",
+          "plan": "unknown"
+        },
+        "parcel-release-hold": {
+          "spec": "unknown",
+          "plan": "justified_block"
+        },
+        "parcel-preview": {
+          "spec": "unknown",
+          "plan": "unknown"
+        }
+      },
+      "findings": []
+    },
+    {
+      "trial": "20",
+      "pass": 2,
+      "status": "valid",
+      "grade_sha256": "427cf8de3e9c9035adbfc2bce5956c9a682d1277dc8097e662a60b4db62568dc",
+      "validation_errors": [],
+      "dimensions": {
+        "acceptance_actionability": null,
+        "evidence_grounding": null,
+        "prerequisite_handoff": null,
+        "verification_closure": null
+      },
+      "obligations": {
+        "parcel-boundary": {
+          "spec": "unknown",
+          "plan": "unknown"
+        },
+        "parcel-release-hold": {
+          "spec": "unknown",
+          "plan": "justified_block"
+        },
+        "parcel-preview": {
+          "spec": "unknown",
+          "plan": "unknown"
+        }
+      },
+      "findings": []
+    }
+  ],
+  "pairs": [
+    {
+      "id": "api-parity",
+      "current": "13",
+      "candidate": "14",
+      "resources": {
+        "current": {
+          "cached_input_tokens": 4208512,
+          "uncached_input_tokens": 158720,
+          "output_tokens": 19850,
+          "seconds": 523.2413699626923
+        },
+        "candidate": {
+          "cached_input_tokens": 3466496,
+          "uncached_input_tokens": 172012,
+          "output_tokens": 13898,
+          "seconds": 396.3035020828247
+        }
+      }
+    },
+    {
+      "id": "no-reference",
+      "current": "01",
+      "candidate": "02",
+      "resources": {
+        "current": {
+          "cached_input_tokens": 3642496,
+          "uncached_input_tokens": 152663,
+          "output_tokens": 16120,
+          "seconds": 416.86597180366516
+        },
+        "candidate": {
+          "cached_input_tokens": 2287744,
+          "uncached_input_tokens": 139799,
+          "output_tokens": 12432,
+          "seconds": 329.9721930027008
+        }
+      }
+    }
+  ],
+  "qualitative_observations": [
+    {
+      "id": "initial-network-probe-record",
+      "disposition": "observed_process_improvement",
+      "observation": "Candidate 14 records the socket denial in its initial test strategy. Current 13 initially states that the probe succeeded and later explicitly retracts that statement.",
+      "benefit": "The candidate avoids that specific misleading readiness record and correction cycle in this pair. This is a real process difference even though the baseline corrects it before final Plan acceptance.",
+      "consequence": "No additional step or facility is needed to record the observed failure accurately. The candidate has a separate final verification-gate weakness, assessed below.",
+      "retention": "Retain accurate observation and explicit evidence limits as useful behavior. Do not infer a generic causal error-rate reduction from one matched execution or convert the baseline corrected error into a surviving final defect."
+    },
+    {
+      "id": "reference-characterization",
+      "disposition": "viable_local_refinement",
+      "observation": "Candidate 14 explicitly requires a passing, unchanged-reference characterization suite in Prepare before application tests are expected to fail. Current 13 starts from a passing snapshot smoke and bootstraps tests in W1.",
+      "benefit": "This makes an independently working reference fixture a named readiness condition, helping distinguish oracle or harness problems from expected missing-application failures.",
+      "consequence": "Some reference-test authoring moves earlier. Both plans still have one product increment and use existing lifecycle stages. Implementation effort and prevented failures were not measured.",
+      "retention": "Keep this as a useful, modest prerequisite pattern when oracle readiness is uncertain. It is an artifact-level rationale, not an independently scored anchor gain or a demonstrated causal effect of the prompt addition."
+    },
+    {
+      "id": "base-candidate-target-path",
+      "disposition": "shared_strength_not_new_gain",
+      "observation": "Candidate 02 puts relative-path targeting directly in W1, but Current 01 already incorporates an environment contract with an optional utility path and a relative default.",
+      "benefit": "Both avoid accidentally checking the wrong checkout. Moving the wording is not established as a further benefit.",
+      "consequence": "None established as an arm difference.",
+      "retention": "Retain the targeting rule as shared good practice; do not count a candidate-only gain. This corrects the parent preliminary progress observation after checking the incorporated baseline document."
+    },
+    {
+      "id": "api-network-gate",
+      "disposition": "surviving_handoff_regression",
+      "observation": "Both Specs require real HTTP verification. Current 13 explicitly says local completion does not close the live boundary and that skips cannot close it. Candidate 14 permits the live test to be skipped in W1, calls it optional in architecture, and names source return after Improve without an equally explicit successful-test or incomplete-acceptance condition.",
+      "benefit": "No candidate benefit is assigned to this difference.",
+      "consequence": "A later operator, test and command exist, so this is not an absent verification requirement. The inconsistent handoff can nevertheless permit a required observation to remain unresolved at completion. No product implementation or defective release was observed.",
+      "retention": "Do not hide this concern behind cost reductions. A minimal prospective repair is to state that TC_7 may be deferred for independent implementation, but product acceptance or release stays incomplete until it succeeds in a permitted environment. That repair was not applied or evaluated in this rerun."
+    },
+    {
+      "id": "api-review-completeness",
+      "disposition": "same_underlying_gate_issue",
+      "observation": "The candidate review says no planning gaps remain. One judge flags that process endorsement as a surviving material success-claim issue because the network handoff is unresolved.",
+      "benefit": "None claimed.",
+      "consequence": "This is an overstatement of planning review closure, not a fabricated assertion that the product or live HTTP test passed. It concerns the same underlying network-gate condition, not a second independently demonstrated product failure.",
+      "retention": "Keep the raw finding and its severity. Interpret its distinct consequence without double-counting the same gap."
+    },
+    {
+      "id": "api-incidental-constraints",
+      "disposition": "shared_scope_issue",
+      "observation": "Exact sequential job IDs and KeyError behavior occur in both accepted Specs.",
+      "benefit": "No gain is inferred from a smaller number of findings in one judgment.",
+      "consequence": "These are shared restrictions under the oracle rather than demonstrated candidate-added defects.",
+      "retention": "Preserve both grades and the common issue; use counterpart evidence rather than subtracting finding counts."
+    },
+    {
+      "id": "cli-streaming-scope",
+      "disposition": "shared_design_with_stronger_candidate_acceptance_wording",
+      "observation": "Both arms choose streaming and a set. Candidate 02 labels not buffering the whole input as an observable acceptance criterion; Current 01 calls streaming a resource design.",
+      "benefit": "No algorithmic improvement established; both use the same approach.",
+      "consequence": "Candidate wording can unnecessarily reject a behaviorally correct buffering implementation. This is a minor scope repair, not a material failure of the requested CLI behavior.",
+      "retention": "Keep a useful resource design when appropriate, but avoid turning an unrequested implementation choice into a binding acceptance constraint. Minor repair does not erase all other benefits."
+    },
+    {
+      "id": "cli-probe-attribution",
+      "disposition": "minor_candidate_evidence_overstatement",
+      "observation": "Candidate 02 research claims broader byte-I/O, UTF-8 and set probing than its narrow StringIO/strip assertions establish, and architecture incorporates the broad attribution.",
+      "benefit": "None assigned to the attribution; future real CLI tests remain required.",
+      "consequence": "Narrowing the claimed probe scope is a minor evidence-record repair. It is not proof those Python capabilities are absent or a defective product was delivered.",
+      "retention": "Retain the finding and final-versus-process distinction without treating the minor repair as an automatic veto on all small benefits."
+    }
+  ],
+  "all_subject_attempts_resources": {
+    "disposition": "observed_resource_tradeoff",
+    "deltas": {
+      "cached_input_tokens": {
+        "current": 36911488,
+        "candidate": 35055360,
+        "delta": -1856128,
+        "percent": -5.028591640629606
+      },
+      "uncached_input_tokens": {
+        "current": 1492682,
+        "candidate": 1601544,
+        "delta": 108862,
+        "percent": 7.2930470120226545
+      },
+      "output_tokens": {
+        "current": 178029,
+        "candidate": 175816,
+        "delta": -2213,
+        "percent": -1.2430559066219549
+      },
+      "seconds_sum": {
+        "current": 4796.249328136444,
+        "candidate": 4669.428594350815,
+        "delta": -126.82073378562927,
+        "percent": -2.644164744348367
+      },
+      "seconds_median": {
+        "current": 450.20057237148285,
+        "candidate": 464.1107488870621,
+        "delta": 13.910176515579224,
+        "percent": 3.0897731742778074
+      }
+    },
+    "inference": "Descriptive original-subject observations, including cached input; not dollar cost, causal speedup or statistical noninferiority."
+  },
+  "provenance": {
+    "source_head": "4d40d45a91a0d274319cf8243b10628657bbadfd",
+    "local_learning_commit": "59e41c27d703e0411924f63a26d96b0e1261b06a",
+    "original_prediction": "inconclusive; unchanged",
+    "held_bundles": 13,
+    "comparison_sha256": "01106c6a80896f9b98414428d16d6be1273c49d98ff8a31c827277a515a71cf1",
+    "registration_sha256": "8a5757d258f29aeaf25abc3e25d9d292415d309f2cd5d874b4605488765f894a",
+    "full_evidence_index_sha256": "5c467e7be3b4ba177bb13901ab5a087b4e3c8e36b93a3c9bac1cca2e7ac0767c",
+    "scope": "New arithmetic-only publication projection, not a substitute for any original full packet, grade or evidence-validation record. All original evidence remains unchanged in the owner archive."
+  }
+}

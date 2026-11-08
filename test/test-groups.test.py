@@ -128,8 +128,8 @@ class TestGroupTests(unittest.TestCase):
         # Splitting the aggregate adds two; the full Grok case adds four suites (2026-11-07).
         # Roundtable adds one opt-in calibration suite (2026-11-07).
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 138)
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 57)
-        self.assertEqual(len(suite_catalog.SUITES), 197)
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 58)
+        self.assertEqual(len(suite_catalog.SUITES), 198)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -239,6 +239,11 @@ class TestGroupTests(unittest.TestCase):
             with self.subTest(path=path):
                 extra = {suite.id for suite in suite_catalog.quick((path,))} - baseline
                 self.assertEqual(extra, expected)
+
+    def test_planning_scoring_fixture_and_helper_changes_select_the_suite(self):
+        for name in ["compare.py", "replay.json", "rubric.md"]:
+            selected = {s.id for s in suite_catalog.select(["quick"], ["test/experiments/shiploop_spec_discovery/" + name])}
+            self.assertIn("planning-score", selected)
 
     def test_quick_reaches_the_consumers_of_shared_shiploop_sources(self) -> None:
         # Suites named after nothing in these paths still exercise them; a
