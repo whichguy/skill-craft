@@ -1,0 +1,7 @@
+flowchart TB
+    A[Choose an authorized probe] --> B[Run and evaluate evidence]
+    B --> C{Useful next probe?}
+    C -->|Yes| A
+    C -->|No| D{Evidence sufficient?}
+    D -->|Yes| E[Supported decision]
+    D -->|No| F[Unresolved gap]
