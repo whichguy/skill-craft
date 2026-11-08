@@ -31,7 +31,7 @@ class LaunchEvidenceTests(unittest.TestCase):
 
     def test_new_trial_pins_default_and_explicit_model_settings(self):
         for options, model, effort in (
-            ({}, 'gpt-6.1-sol', 'high'),
+            ({}, 'gpt-6.1-sol', 'medium'),
             ({'model': 'gpt-6.1-terra', 'effort': 'xhigh'}, 'gpt-6.1-terra', 'xhigh'),
         ):
             with self.subTest(options=options):

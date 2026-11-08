@@ -35,16 +35,16 @@ flowchart TD
     V -->|No candidate| N[Record learning and keep the baseline]
 ```
 
-New runs, step slices and experiment invocations default to **Codex / GPT-6.1 Sol / high** (owner,
-2026-11-07). Subjects, reviewers, fresh judges and improvers all use this profile; reviewers and judges
-remain separate fresh sessions. `iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides;
+New runs, step slices and experiment invocations default to **Codex / GPT-6.1 Sol / medium** (owner,
+2026-11-08). Subjects and improvers use this execution profile; independent reviewers and judges default to
+**Codex / GPT-6 Astra / high** and remain separate fresh sessions. `iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides;
 its `--host`, `--model` and `--effort` select the subject only. With no explicit override, existing runs resume
 their recorded identities. Continue an already registered strict epoch on its original pinned harness checkout;
 its qualification fingerprint binds the specification and launcher bytes as well as the product build.
 `--host claude` selects Claude's own models (Sonnet 5.5, `--backend anthropic`, the default since 2026-11-01); add
 `--backend ollama` to select DeepSeek flash on Ollama.
 `--host grok` selects Grok's existing profile. The separately installed Grok-only audit is retained.
-New Sol/high results occupy their own host/model/effort baseline cells; frozen registrations and historical results
+New Sol/medium results occupy their own host/model/effort baseline cells; frozen registrations and historical results
 keep their original identities. Codex child defaults follow the resolved launch model and effort, including explicit overrides.
 Every stage launches a real
 model and costs money; none of it runs in default CI.
@@ -52,7 +52,7 @@ model and costs money; none of it runs in default CI.
 Start a new experiment directory when changing a driver; preserve frozen registrations and historical evidence.
 Recalibrate for the selected driver before using measured comparison tolerances. Historical experiment kits keep
 their explicit pins and are not replications if any of their role identities change. This owner-selected default
-supersedes the earlier Terra/xhigh subject, Astra/xhigh reviewer and judge, and Sol/xhigh improver profiles;
+supersedes the earlier all-role Sol/high defaults;
 it does not establish a measured improvement.
 
 Each host is one class in `hosts.py` (`HOSTS`); nothing else branches on the
@@ -1415,7 +1415,7 @@ reference, the stand-in for the first run) build each case's base, reference, al
 #### Test writing: `ticket-assignment-tests`
 
 ```sh
-python3 test/shiploop_e2e/run.py --case ticket-assignment-tests --host codex --model gpt-6.1-sol --effort high --output ~/e2e-runs/<day>/<name>
+python3 test/shiploop_e2e/run.py --case ticket-assignment-tests --host codex --model gpt-6.1-sol --effort medium --output ~/e2e-runs/<day>/<name>
 ```
 
 This case asks ShipLoop to add tests to an already-correct service. It starts from the pinned
@@ -2470,9 +2470,9 @@ bash test/run-integration.sh shiploop-e2e-iterate --case battleship --iterations
 branch `auto/auto-shiploop-e2e-<rand>` from the current `HEAD` (commit what you
 want tested first), then per iteration: builds that worktree's plugin, runs the
 case, reviews it, and hands independently admitted material findings to an
-improver agent. Every role defaults to Codex / GPT-6.1 Sol / high, with separate fresh reviewer and
-judge sessions. Subject flags do not silently switch the other roles.
-For a run that needs Astra judgment, pass `--judge-model gpt-6-astra --judge-effort high`.
+improver agent. Subjects and improvers default to Codex / GPT-6.1 Sol / medium. Reviewers and judges default to
+Codex / GPT-6 Astra / high in separate fresh sessions. Subject flags do not silently switch the other roles.
+Use `--reviewer-*`, `--judge-*` and `--improver-*` to override their respective profiles.
 Only supported, material, implementation-eligible ShipLoop findings reach the improver. Design challenges and
 harness discoveries retain separate dispositions. Legacy reviews remain readable but cannot establish new
 review/judge completion or authorise automatic improvement. Before the improver starts, the iteration appends its outcome
@@ -2575,10 +2575,10 @@ arm's mean and its latest decide verdict. It reads run folders only.
 
 The reviewer records conformance and discoveries separately. A novel or design-challenging finding can anchor to the
 mission without a pre-existing clause; it is retained for investigation or owner review. Materiality and confidence are
-separate. The default Codex reviewer uses a read-only sandbox. The judge is a separate fresh Sol 6.1 high session with
+separate. The default Codex reviewer uses Astra high in a read-only sandbox. The judge is a separate fresh Astra high session with
 its own isolated home and read-only sandbox, bound to the exact review receipt. The purpose review also uses the judge profile.
 Only supported, material, eligible
-ShipLoop findings reach the Sol 6.1 high improver. Harness discoveries follow a
+ShipLoop findings reach the Sol 6.1 medium improver. Harness discoveries follow a
 separate evaluator experiment. Older reviews remain readable diagnostics and cannot supply the new review/judge gate.
 
 `epoch.py` is a stepwise controller over the existing runner, scorer and promotion rule. `init`, `next`, `status` and

@@ -44,7 +44,7 @@ retry, replay-as-live, or post-hoc change of the passing criteria is permitted.
 
 Use a fresh CLI process per trial, a fixed 1,200-second bound, the same command
 configuration across arms, and alternating arm launch order. The launcher pins
-GPT-6.1 Sol with high reasoning for new trials and their default native workers.
+GPT-6.1 Sol with medium reasoning for new trials and their default native workers.
 Pass `--model` and `--effort` explicitly to reproduce a different recorded
 profile. Disable memory and user config for these narrow sessions. Record
 observable model identity if supplied by the event stream; otherwise leave it

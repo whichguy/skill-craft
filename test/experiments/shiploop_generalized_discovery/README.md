@@ -54,7 +54,7 @@ No-model initialization uses Python's standard library; the CI fixture check
 also uses the repository's existing Node runtime to exercise generated
 JavaScript. Actual model runs require a working Codex CLI and macOS
 `/usr/bin/sandbox-exec`; no vendor account, package download, or permanent MCP
-installation is required. Newly initialized studies pin GPT-6.1 Sol with high
+installation is required. Newly initialized studies pin GPT-6.1 Sol with medium
 reasoning for the CLI and its default native workers. Previously frozen studies
 keep their own runner bytes and original settings; the CLI refuses a runner whose
 bytes differ from that study's frozen copy. Metadata records the requested

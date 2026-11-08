@@ -13,7 +13,7 @@ import time
 
 
 DEFAULT_MODEL = 'gpt-6.1-sol'
-DEFAULT_EFFORT = 'high'
+DEFAULT_EFFORT = 'medium'
 
 
 def hashes(root: Path) -> dict[str, str]:

@@ -57,7 +57,7 @@ OLLAMA_TOOLS = ("Bash", "Read", "Edit", "Write", "Glob", "Grep", "NotebookEdit",
 # server serves (owner, 2026-11-01, replacing the 2026-10-26 default of Ollama's DeepSeek flash).
 RUN_DEFAULT_HOST = "codex"
 CODEX_DEFAULT_MODEL = "gpt-6.1-sol"
-CODEX_DEFAULT_EFFORT = "high"
+CODEX_DEFAULT_EFFORT = "medium"
 
 
 def resolve_role(name: str, overrides: dict | None = None) -> dict:
@@ -586,9 +586,12 @@ class CodexTranslator:
 
 HOSTS: dict[str, type] = {"grok": GrokHost, "claude": ClaudeHost, "codex": CodexHost}
 HOST_DEFAULTS = {name: {"model": cls.model, "effort": cls.effort} for name, cls in HOSTS.items()}
+# Owner-selected profiles for new work (2026-11-08); recorded and explicit profiles remain authoritative.
 ROLE_DEFAULTS = {
-    role: {"host": name, **HOST_DEFAULTS[name]}
-    for role, name in (("subject", RUN_DEFAULT_HOST), ("reviewer", "codex"), ("judge", "codex"), ("improver", "codex"))
+    "subject": {"host": RUN_DEFAULT_HOST, **HOST_DEFAULTS[RUN_DEFAULT_HOST]},
+    "reviewer": {"host": "codex", "model": "gpt-6-astra", "effort": "high"},
+    "judge": {"host": "codex", "model": "gpt-6-astra", "effort": "high"},
+    "improver": {"host": "codex", **HOST_DEFAULTS["codex"]},
 }
 
 

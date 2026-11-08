@@ -101,7 +101,9 @@ gain is not yet explained.
 
 New discovery-qualified reviews use `version: 2` and a fresh judge assessment bound to that review's exact bytes. The reviewer and judge
 are separate fresh sessions, even when their selected models agree. `hosts.ROLE_DEFAULTS` defines the current
-subject, reviewer, judge and improver profiles. The owner selected Codex / GPT-6.1 Sol / high for new work (2026-11-07).
+subject, reviewer, judge and improver profiles. For new work, the owner selected Codex / GPT-6.1 Sol / medium
+for subjects and improvers, and Codex / GPT-6 Astra / high for independent reviewers and judges (2026-11-08).
+This is an owner preference, not a measured model improvement.
 Explicit role choices override that default; without an override, resumed runs retain their recorded identities.
 Frozen registrations and historical evidence are not relabelled; continue existing strict epochs on their original pinned
 harness checkout. The explicit Grok-only audit remains available. The scripts record requested identities separately

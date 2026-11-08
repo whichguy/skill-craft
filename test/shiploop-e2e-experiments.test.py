@@ -614,8 +614,8 @@ class LaunchProfiles(unittest.TestCase):
         def complete(argv):
             self.assertEqual(argv[argv.index("--host") + 1], "codex")
             self.assertIn("--model=gpt-6.1-sol", argv)
-            self.assertIn("--effort=high", argv)
-            self._sample("B", model="gpt-6.1-sol", effort="high")
+            self.assertIn("--effort=medium", argv)
+            self._sample("B", model="gpt-6.1-sol", effort="medium")
             return subprocess.CompletedProcess(argv, 0)
 
         with mock.patch.object(experiment.subprocess, "run", side_effect=complete) as launched, \
@@ -1092,7 +1092,7 @@ class RoundSpeedups(unittest.TestCase):
         self.assertEqual(shape[shape.index("--stop-after") + 1], "step-plan")
 
     def test_r3_on_todays_shiploop_differs_only_in_the_bound_and_runs_on_the_default_host(self):
-        """R3 keeps its original arm shape; new dispatches use the owner-selected Sol/high default from 2026-11-07.
+        """R3 keeps its original arm shape; new dispatches use the owner-selected Sol/medium default from 2026-11-08.
         Cg is ShipLoop as shipped, T the same commit with the sizing bullet before the bound."""
         source = overlay.SCRIPTS / "shiploop_prompts.py"
         for exp_id, case in (("E6D2-K2", "node-chess-engine"), ("E6D2-K4", "node-battleship-server")):
@@ -1111,7 +1111,7 @@ class RoundSpeedups(unittest.TestCase):
         launched = []
         with mock.patch.object(experiment, "queue", side_effect=lambda *a, **k: launched.append(a) or 0):
             experiment.main(["queue", "E6D2-K2", "E6D2-K4", "--arms", "T,Cg", "--out", str(self.tmp)])
-            self.assertEqual(launched[0][4], "codex")  # New runs use the owner-selected Sol/high subject profile.
+            self.assertEqual(launched[0][4], "codex")  # New runs use the owner-selected Sol/medium subject profile.
 
     def test_a_slice_option_written_as_two_words_is_refused_with_the_one_word_form(self):
         """R3's first launch (2026-10-26): `--timeout 10800` made "10800" an experiment id and the queue ran nothing."""

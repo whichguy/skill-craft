@@ -48,7 +48,7 @@ metrics.json only, at most five printed lines, never a verdict). The run's Run R
 documents go to <output>/review-export/ (skills/shiploop-run-review/);
 an export problem is printed and never changes a verdict.
 
-The default host is Codex (gpt-6.1-sol, high). By default the run tests what
+The default host is Codex (gpt-6.1-sol, medium). By default the run tests what
 the whichguy marketplace publishes now (--source marketplace, gated on local
 HEAD == origin/main and matching versions); --source checkout builds this
 checkout instead. The host is isolated from the user's configuration:
