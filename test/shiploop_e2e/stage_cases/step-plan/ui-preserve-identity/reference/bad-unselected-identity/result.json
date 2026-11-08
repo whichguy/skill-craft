@@ -1,0 +1,61 @@
+{
+  "outcome": "done",
+  "summary": "The AD records actual identity values, but the visual criterion does not select them. Design basis: AD-1 in docs/shiploop/architecture.md, Decisions / Existing identity and unread-badge delta. Planned browser helper (not present yet) has not run; command: `node scripts/check-chat-unread-browser.mjs --viewports 390x844,1440x1000 --select-clear --composer-reachable --out \"$(mktemp -d)/observation\"`.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Add unread badges to existing conversation rows using AD-1 in docs/shiploop/architecture.md. The badge appearance should stay consistent with the chat."
+    },
+    {
+      "id": "C2",
+      "text": "Each seeded conversation has its unread count; selecting it clears that count. Preserve local conversation switching, the current message thread and composer behavior. Run node --test test/chat-state.test.mjs."
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Record the existing identity and add the local unread badge feature.",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C2"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md",
+        "index.html",
+        "styles.css",
+        "src/chat-ui.mjs",
+        "test/chat-state.test.mjs"
+      ],
+      "proof": "node scripts/check-chat-unread-browser.mjs --viewports 390x844,1440x1000 --select-clear --composer-reachable --out \"$(mktemp -d)/observation\"",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "docs/shiploop/architecture.md",
+    "index.html",
+    "styles.css",
+    "src/chat-ui.mjs",
+    "test/chat-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node --test test/chat-state.test.mjs",
+      "suite": "regression",
+      "ids": [
+        "the seeded local conversations open with their own messages",
+        "selecting a seeded conversation changes the active local message thread",
+        "sending adds a message to that conversation locally",
+        "blank messages do not change local conversation state"
+      ],
+      "criteria": [
+        "C2"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-1"
+  ]
+}

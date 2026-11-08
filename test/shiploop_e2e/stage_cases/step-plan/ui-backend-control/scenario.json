@@ -1,0 +1,90 @@
+{
+  "stage": "step-plan",
+  "about": "A backend pagination repair must plan the requested behavior and leave the saved presentation decision and assets alone. The production interaction duty is conditional on the request/item naming interactions; this request deliberately has no UI cue. This is a scope and routing control, not a visual-quality test.",
+  "tags": [
+    "ui-contract",
+    "control"
+  ],
+  "tiers": [
+    "verify",
+    "render",
+    "live"
+  ],
+  "fixture": "node-base",
+  "request_from": "node-fix-bug",
+  "options": {
+    "delegation": "inline"
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "The plan addresses the requested partial-last-page pagination defect with a concrete criterion.",
+      "signature": "paginate plus last/partial/page result in a criterion"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "The accepted presentation record and theme assets stay unchanged and are not selected as implementation work."
+    },
+    {
+      "id": "C2",
+      "what": "Planning makes no product-tree edits outside its workflow records."
+    }
+  ],
+  "render": [
+    {
+      "packet_issued": true
+    },
+    {
+      "current_stage": "step-plan"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "paginate"
+    },
+    {
+      "proves": "C1",
+      "packet_not_contains": "first UI planning reads the UI visual-direction guide"
+    }
+  ],
+  "oracle": [
+    {
+      "proves": "P1",
+      "outcome": [
+        "done"
+      ]
+    },
+    {
+      "proves": "P1",
+      "field": "criteria[*].text",
+      "matches": "(?is)paginate.*(?:partial|last|\\[5\\])",
+      "any": true
+    },
+    {
+      "proves": "C1",
+      "file": "docs/shiploop/architecture.md",
+      "unchanged": true
+    },
+    {
+      "proves": "C1",
+      "file": "assets/theme.css",
+      "unchanged": true
+    },
+    {
+      "proves": "C1",
+      "command": "python3 \"$STAGE_ORACLE/scope.py\"",
+      "exit": 0
+    },
+    {
+      "proves": "C2",
+      "changed_only": [
+        "docs/shiploop/**"
+      ]
+    }
+  ],
+  "live": {
+    "samples": 1,
+    "pass": 1
+  }
+}

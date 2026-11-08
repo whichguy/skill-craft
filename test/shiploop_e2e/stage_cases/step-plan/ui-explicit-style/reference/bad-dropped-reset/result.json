@@ -1,0 +1,58 @@
+{
+  "outcome": "done",
+  "summary": "The requested summary is styled and selected values are surfaced, but reset behavior is omitted. Design basis: AD-1 in docs/shiploop/architecture.md, Decisions / Strip tokens and placement. Planned browser helper (not present yet) has not run; command: `node scripts/check-selected-square-summary-browser.mjs --viewports 390x844,1440x1000 --select-reset --keyboard-focus --out \"$(mktemp -d)/observation\"`.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Apply retro arcade/pixel style only to the summary strip in AD-1 in docs/shiploop/architecture.md, sections Explicit direction and scope and Strip tokens and placement. Use #25202a, #efb849 and 2px. Check a rendered browser on a narrow phone and wide desktop; the strip remains below the board."
+    },
+    {
+      "id": "C2",
+      "text": "Show the coordinate of a selected square in the strip. Keep the 64 local squares and current status. Run node --test test/board-state.test.mjs."
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Add the scoped summary strip and its visual direction.",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C2"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md",
+        "index.html",
+        "styles.css",
+        "src/board-ui.mjs",
+        "test/board-state.test.mjs"
+      ],
+      "proof": "node scripts/check-selected-square-summary-browser.mjs --viewports 390x844,1440x1000 --select-reset --keyboard-focus --out \"$(mktemp -d)/observation\"",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "docs/shiploop/architecture.md",
+    "index.html",
+    "styles.css",
+    "src/board-ui.mjs",
+    "test/board-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node --test test/board-state.test.mjs",
+      "suite": "regression",
+      "ids": [
+        "TC-BOARD"
+      ],
+      "criteria": [
+        "C2"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-1"
+  ]
+}

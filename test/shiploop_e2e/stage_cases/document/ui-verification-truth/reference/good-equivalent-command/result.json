@@ -1,0 +1,10 @@
+{
+  "outcome": "done",
+  "summary": "README and the living specification/architecture describe the selected-square summary and preserve accepted AD-2. The test-stage rerun recorded node --test as passing for functional state behavior. TC-LAYOUT remains pending in implement.not_covered because implementation captured no product browser observations; the test-spec browser command was planned but not run, and no rendered pass is claimed.",
+  "knowledge": {
+    "spec": "docs/shiploop/spec.md retains R-1 and R-2 and points to accepted AD-2 for appearance.",
+    "architecture": "docs/shiploop/architecture.md preserves the accepted AD-2 identity and summary composition; verification status is documented in README.md.",
+    "environment": "docs/shiploop/environment.md records the host-provided Playwright and browser paths as a capability route only; no product render was observed in the seeded rerun."
+  },
+  "assumptions": []
+}

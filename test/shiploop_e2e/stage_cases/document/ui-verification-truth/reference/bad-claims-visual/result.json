@@ -1,0 +1,10 @@
+{
+  "outcome": "done",
+  "summary": "The node --test rerun passed. TC-LAYOUT rendered successfully in both themes and viewport sizes; the visual result is verified.",
+  "knowledge": {
+    "spec": "docs/shiploop/spec.md retains R-1 and R-2 and points to accepted AD-2 for appearance.",
+    "architecture": "docs/shiploop/architecture.md preserves the accepted AD-2 identity and summary composition; verification status is documented in README.md.",
+    "environment": "docs/shiploop/environment.md records the host-provided Playwright and browser paths as a capability route only; no product render was observed in the seeded rerun."
+  },
+  "assumptions": []
+}

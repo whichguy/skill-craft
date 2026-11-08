@@ -1,0 +1,63 @@
+{
+  "outcome": "done",
+  "summary": "The plan adds a remote notification service beyond local unread badges. Design basis: AD-1 in docs/shiploop/architecture.md, Decisions / Badge placement and current proportions. Planned browser helper (not present yet) has not run; command: `node scripts/check-chat-unread-browser.mjs --viewports 390x844,1440x1000 --select-clear --composer-reachable --out \"$(mktemp -d)/observation\"`.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Place unread counts in the existing .conversation-item rows following AD-1 in docs/shiploop/architecture.md, sections Existing identity and unread-badge delta and Badge placement and current proportions. Reuse --chat-paper: #f4f0e8, --chat-accent: #6750a4 and 1.25rem. Check a rendered browser at narrow phone and wide desktop; retain the existing message thread."
+    },
+    {
+      "id": "C2",
+      "text": "Each conversation has an unread count, selection clears that count and local conversation/message behavior is retained."
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Record the existing identity, add unread badges, and create a remote service for notifications.",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C2"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md",
+        "index.html",
+        "styles.css",
+        "src/chat-ui.mjs",
+        "src/notifications.mjs",
+        "test/chat-state.test.mjs"
+      ],
+      "proof": "node scripts/check-chat-unread-browser.mjs --viewports 390x844,1440x1000 --select-clear --composer-reachable --out \"$(mktemp -d)/observation\"",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "docs/shiploop/architecture.md",
+    "index.html",
+    "styles.css",
+    "src/chat-ui.mjs",
+    "src/notifications.mjs",
+    "test/chat-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node --test test/chat-state.test.mjs",
+      "suite": "regression",
+      "ids": [
+        "the seeded local conversations open with their own messages",
+        "selecting a seeded conversation changes the active local message thread",
+        "sending adds a message to that conversation locally",
+        "blank messages do not change local conversation state"
+      ],
+      "criteria": [
+        "C2"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-1"
+  ]
+}

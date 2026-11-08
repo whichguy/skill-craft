@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "P2"
+  ],
+  "why": "The UI step has a functional criterion but no visual criterion."
+}

@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "P2"
+  ],
+  "why": "The visible criterion points to spec.md and does not name a section in the selected AD."
+}

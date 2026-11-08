@@ -1,0 +1,4 @@
+{
+  "fails": ["P1", "P2"],
+  "why": "The plan does not retain reusable scoped visual choices in the architecture record or select an AD in its criterion."
+}

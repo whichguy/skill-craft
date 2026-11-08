@@ -1,0 +1,7 @@
+{
+  "fails": [
+    "P1",
+    "P2"
+  ],
+  "why": "The selected first-UI decision makes dark mode its default."
+}

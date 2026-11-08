@@ -1,0 +1,22 @@
+{
+  "mode": "identity",
+  "ui_paths": [
+    "index.html",
+    "styles.css",
+    "src/chat-ui.mjs"
+  ],
+  "allowed_paths": [
+    "docs/shiploop/architecture.md",
+    "index.html",
+    "styles.css",
+    "src/chat-ui.mjs",
+    "test/chat-state.test.mjs",
+    "scripts/check-chat-unread-browser.mjs"
+  ],
+  "required_paths": [
+    "index.html",
+    "styles.css",
+    "src/chat-ui.mjs",
+    "test/chat-state.test.mjs"
+  ]
+}

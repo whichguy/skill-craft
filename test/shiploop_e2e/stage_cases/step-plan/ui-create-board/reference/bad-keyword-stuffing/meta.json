@@ -1,0 +1,7 @@
+{
+  "fails": [
+    "P1",
+    "P2"
+  ],
+  "why": "The record mentions anchors only as rejected choices."
+}

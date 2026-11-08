@@ -1,0 +1,58 @@
+{
+  "outcome": "done",
+  "summary": "The AD is scoped but its visual selection is not carried into the criterion. Design basis: AD-1 in docs/shiploop/architecture.md, Decisions / Strip tokens and placement. Planned browser helper (not present yet) has not run; command: `node scripts/check-selected-square-summary-browser.mjs --viewports 390x844,1440x1000 --select-reset --keyboard-focus --out \"$(mktemp -d)/observation\"`.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Use AD-1 in docs/shiploop/architecture.md. The requested summary strip is retro and only that strip changes."
+    },
+    {
+      "id": "C2",
+      "text": "The strip shows the selected coordinate and Reset returns it to Choose a square. Run node --test test/board-state.test.mjs."
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Record the summary strip and add its selected-coordinate state.",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C2"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md",
+        "index.html",
+        "styles.css",
+        "src/board-ui.mjs",
+        "test/board-state.test.mjs"
+      ],
+      "proof": "node scripts/check-selected-square-summary-browser.mjs --viewports 390x844,1440x1000 --select-reset --keyboard-focus --out \"$(mktemp -d)/observation\"",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "docs/shiploop/architecture.md",
+    "index.html",
+    "styles.css",
+    "src/board-ui.mjs",
+    "test/board-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node --test test/board-state.test.mjs",
+      "suite": "regression",
+      "ids": [
+        "TC-BOARD"
+      ],
+      "criteria": [
+        "C2"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-1"
+  ]
+}

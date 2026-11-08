@@ -1,0 +1,7 @@
+{
+  "fails": [
+    "P1",
+    "P2"
+  ],
+  "why": "The plan cites AD-1, but no such reusable design decision is recorded."
+}

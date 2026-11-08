@@ -1,0 +1,58 @@
+{
+  "outcome": "done",
+  "summary": "The feature expands into a whole-page restyle. Design basis: AD-1 in docs/shiploop/architecture.md, Decisions / Retro system and colors. Planned browser helper (not present yet) has not run; command: `node scripts/check-selected-square-summary-browser.mjs --viewports 390x844,1440x1000 --select-reset --keyboard-focus --out \"$(mktemp -d)/observation\"`.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Restyle the entire board page with AD-1 in docs/shiploop/architecture.md, sections Retro system and Colors. Use the page #25202a, square #efb849, 2px grid lines and 0.875rem monospace. Check a rendered browser on phone and desktop."
+    },
+    {
+      "id": "C2",
+      "text": "The selected coordinate is shown and Reset clears it. Run node --test test/board-state.test.mjs."
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Re-theme all page surfaces and add the summary strip while preserving selection behavior.",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C2"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md",
+        "index.html",
+        "styles.css",
+        "src/board-ui.mjs",
+        "test/board-state.test.mjs"
+      ],
+      "proof": "node scripts/check-selected-square-summary-browser.mjs --viewports 390x844,1440x1000 --select-reset --keyboard-focus --out \"$(mktemp -d)/observation\"",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "docs/shiploop/architecture.md",
+    "index.html",
+    "styles.css",
+    "src/board-ui.mjs",
+    "test/board-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node --test test/board-state.test.mjs",
+      "suite": "regression",
+      "ids": [
+        "TC-BOARD"
+      ],
+      "criteria": [
+        "C2"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-1"
+  ]
+}

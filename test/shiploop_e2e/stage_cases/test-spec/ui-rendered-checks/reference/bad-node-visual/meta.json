@@ -1,0 +1,7 @@
+{
+  "fails": [
+    "P1",
+    "C1"
+  ],
+  "why": "TC-LAYOUT explicitly treats passing node state assertions as proof of rendered layout and declines a rendered observation."
+}

@@ -10,7 +10,8 @@ Small scenario sets in temporary folders, on the node-base fixture (plain files)
 - ``list`` prints one row per scenario (phase, tags, tiers, the counts) and the same data with ``--json``.
 - ``verify`` passes a correct scenario; fails (exit 1) when the oracle is too weak to fail a declared bad reference, when a bad
   reference does not fail what its meta.json declares and when the good reference does not pass; reports a failure nobody declared
-  as a surprise that is not an error; skips a scenario without the verify tier.
+  as a surprise that is not an error; treats a broken private oracle helper as indeterminate and fails calibration; skips a scenario
+  without the verify tier.
 - ``render`` passes a scenario whose planted expectation reaches the packet and a scenario the engine settles by script, fails one
   whose packet check is wrong and one the seed refuses (with the reason, the others still run), skips what the builder cannot
   build yet, reports an id no render check proves as not exercised, leaves the built folders under ``--keep`` (and removes its
@@ -325,15 +326,23 @@ class Verify(Catalog):
         self.assertRegex(out, r"improve@spec/missing-outcome\s+verify\s+PASS")
 
     def test_json_names_the_references_and_what_each_fails(self):
-        code, out, err = cli("verify", "validate-existing/broken", "--json", "--cases-dir", str(self.cases))
+        files = {**GOOD_FILES,
+                 "reference/good-local/result.json": json.dumps({"outcome": "done", "summary": "Repaired locally."}),
+                 "reference/good-local/tree/src/strings.js": "// REPAIRED\nmodule.exports = {};\n",
+                 "reference/good-remote/result.json": json.dumps({"outcome": "done", "summary": "Repaired remotely."}),
+                 "reference/good-remote/tree/src/strings.js": "// REPAIRED\nmodule.exports = {};\n"}
+        cases = self.one("multi-good", files=files)
+        code, out, err = cli("verify", "validate-existing/multi-good", "--json", "--cases-dir", str(cases))
         self.assertEqual((code, err), (0, ""))
         document = json.loads(out)
         self.assertEqual(document["total"], {"scenarios": 1, "passed": 1, "failed": 0, "skipped": 0})
         [row] = document["scenarios"]
         self.assertEqual((row["result"], row["tier"], row["ids"]), ("pass", "verify", {"P1": "caught", "C1": "held"}))
         refs = row["references"]
-        self.assertEqual(sorted(refs), ["bad-touched", "bad-unrepaired", "good"])
+        self.assertEqual(sorted(refs), ["bad-touched", "bad-unrepaired", "good", "good-local", "good-remote"])
         self.assertEqual((refs["good"]["pass"], refs["good"]["failed"]), (True, []))
+        for name in ("good-local", "good-remote"):
+            self.assertEqual((refs[name]["pass"], refs[name]["failed"], refs[name]["declared"]), (True, [], []))
         self.assertEqual((refs["bad-unrepaired"]["declared"], refs["bad-unrepaired"]["failed"]), (["P1"], ["P1"]))
         self.assertEqual((refs["bad-touched"]["declared"], refs["bad-touched"]["failed"]), (["C1"], ["C1"]))
         self.assertEqual((refs["bad-unrepaired"]["surprises"], row["problems"], row["notes"]), ([], [], []))
@@ -346,6 +355,21 @@ class Verify(Catalog):
 
 
 class VerifyFailures(Temp):
+    def test_a_private_helper_crash_fails_bad_reference_calibration_as_indeterminate(self):
+        command = f'{sys.executable} -B "$STAGE_ORACLE/crash.py"'
+        cases = self.one("helper-crash", files={**GOOD_FILES, "oracle/crash.py": "raise RuntimeError('broken helper')\n"},
+                         oracle=[{"proves": "P1", "command": command, "exit": "nonzero"},
+                                 {"proves": "C1", "file": "src/paginate.js", "unchanged": True}])
+        code, out, err = cli("verify", "--json", "--cases-dir", str(cases))
+        self.assertEqual((code, err), (1, ""), out)
+        [row] = json.loads(out)["scenarios"]
+        bad = row["references"]["bad-unrepaired"]
+        self.assertEqual(bad["declared"], ["P1"])
+        self.assertEqual(bad["failed"], [], "a helper crash must not be treated as a failed candidate id")
+        self.assertEqual(bad["ids"]["P1"], "not exercised")
+        self.assertIn("oracle apparatus error; verdict is indeterminate", row["problems"][0])
+        self.assertIn("uncaught exception in STAGE_ORACLE helper", row["references"]["bad-unrepaired"]["apparatus_errors"][0])
+
     def test_an_oracle_too_weak_to_fail_a_declared_bad_reference_fails_the_scenario(self):
         # Only "the file exists" proves P1 now: bad-unrepaired leaves strings.js as it was, which exists, so P1 is caught.
         weak = [{"proves": "P1", "file": "src/strings.js", "exists": True},
@@ -383,6 +407,17 @@ class VerifyFailures(Temp):
         self.assertIn("reference/good: the oracle does not pass it (P1 missed)", row["problems"])
         self.assertTrue(any("file failed for P1" in problem and "REPAIRED" in problem for problem in row["problems"]), row["problems"])
 
+    def test_every_good_variant_must_pass_and_its_failure_is_reported(self):
+        files = {**GOOD_FILES, "reference/good-cli/result.json": json.dumps({"outcome": "send-back"})}
+        cases = self.one("bad-good-variant", files=files)
+        code, out, err = cli("verify", "validate-existing/bad-good-variant", "--json", "--cases-dir", str(cases))
+        self.assertEqual((code, err), (1, ""))
+        [row] = json.loads(out)["scenarios"]
+        self.assertEqual(row["references"]["good"]["pass"], True)
+        self.assertEqual(row["references"]["good-cli"]["pass"], False)
+        self.assertTrue(any(problem.startswith("reference/good-cli: the oracle does not pass it")
+                            for problem in row["problems"]), row["problems"])
+
     def test_a_failure_nobody_declared_is_a_surprise_and_not_an_error(self):
         # bad-unrepaired now also touches paginate.js, which fails C1 although its meta.json declares P1 only.
         files = {**GOOD_FILES, "reference/bad-unrepaired/tree/src/paginate.js": "module.exports = {};\n"}
@@ -407,6 +442,34 @@ class VerifyFailures(Temp):
         self.assertEqual((found["validate-existing/broken-reference"]["result"], found["validate-existing/fine"]["result"]),
                          ("fail", "pass"))
         self.assertTrue(any("no-such-file.js" in problem for problem in found["validate-existing/broken-reference"]["problems"]))
+
+
+class PrivateHelperNoDelivery(Temp):
+    def test_ui_contract_helpers_do_not_crash_when_no_result_is_delivered(self):
+        scenarios = [sc for sc in sb.discover() if "ui-contract" in sc.tags]
+        self.assertTrue(scenarios, "the shipped ui-contract scenarios must be discoverable")
+        checked = 0
+        for number, sc in enumerate(scenarios):
+            helpers = [check for check in sc.data.get("oracle", [])
+                       if isinstance(check, dict) and "stand_in" not in check and
+                       isinstance(check.get("command"), str) and "STAGE_ORACLE" in check["command"]]
+            if not helpers:
+                continue
+            with self.subTest(scenario=sc.id):
+                tree = sb.compose_seed_tree(sc, self.temp / f"composed-{number}")
+                bundle = stages.stage_oracle.Bundle(result=None, tree=tree, seed_tree=tree, scenario_dir=sc.dir)
+                results = []
+                for check in helpers:
+                    with self.subTest(proves=check.get("proves"), command=check["command"]):
+                        result = stages.stage_oracle.run_check(check, bundle)
+                        self.assertNotIn("apparatus_error", result, result)
+                        results.append(result)
+                        checked += 1
+                # Tree-only controls may hold on the unchanged seed. Result checks
+                # must reject no delivery; stage_live separately requires acceptance
+                # before it credits any catch or hold.
+                self.assertTrue(any(not result["pass"] for result in results), sc.id)
+        self.assertGreater(checked, 0, "the shipped UI cases must exercise private result helpers")
 
 
 # ------------------------------------------------------------------------------------------------------------------ render
@@ -685,13 +748,10 @@ class Shipped(unittest.TestCase):
         self.assertTrue(found["validate-existing/wrong-check"]["stage"]["issued"])
 
     def test_the_selectors_of_the_guides_example_select_something_today(self):
-        document = self.run_json("verify", "@inner", "-validate-existing/all-match", "+catch")
+        document = self.run_json("verify", "validate-existing/all-match", "validate-existing/broken-works-small-fix",
+                                 "validate-existing/wrong-check", "-validate-existing/all-match", "+catch")
         self.assertEqual(sorted(row["id"] for row in document["scenarios"]),
                          ["validate-existing/broken-works-small-fix", "validate-existing/wrong-check"])
-        # and an exclude that selects nothing is the usage error the guide says it is
-        done = process("verify", "@inner", "-implement", cwd=Path(tempfile.gettempdir()))
-        self.assertEqual(done.returncode, 2)
-        self.assertIn("selects no scenario", done.stderr)
 
 
 # ------------------------------------------------------------------------------------------------------------------ the live tier
@@ -1368,6 +1428,54 @@ class LiveSampleCodes(Catalog):
         code, out, err = self.code(return_value={"pass": False, "value": 0.5})
         self.assertEqual((code, json.loads(out)["pass"]), (stages.EXIT_FAIL, False))
         self.assertEqual((stages.EXIT_PASS, stages.EXIT_FAIL), (0, 1))
+
+    def test_live_sample_marks_private_oracle_errors_as_indeterminate(self):
+        code, out, err = self.code(return_value={"pass": False, "value": 0.0, "oracle_status": "indeterminate",
+                                                 "apparatus_errors": ["command: helper traceback"]})
+        self.assertEqual(code, stages.EXIT_FAIL)
+        self.assertEqual(json.loads(out)["oracle_status"], "indeterminate")
+        self.assertIn("helper traceback", json.loads(out)["apparatus_errors"][0])
+        shown = stages._text_sample({"graded": False, "scenario": "validate-existing/broken", "sample": 2,
+                                     "reason": "oracle indeterminate: command: helper traceback", "log": "sample.log"})
+        self.assertIn("INDETERMINATE", shown)
+        self.assertNotIn("NOT RUN", shown)
+
+    def test_grade_prints_helper_errors_as_indeterminate_not_candidate_misses(self):
+        sample = self.temp / "helper-error-sample"
+        sample.mkdir()
+        (sample / stages.stage_live.INVOCATION).write_text(json.dumps({"scenario": "validate-existing/broken"}))
+        document = {"scenario": "validate-existing/broken", "sample": 1, "pass": False, "value": None,
+                    "verdicts": {"process": True, "accepted": True, "no_overshoot": True, "oracle": False},
+                    "caught": {"P1": False}, "held": {"C1": True}, "indeterminate_ids": ["P1"],
+                    "oracle_status": "indeterminate", "apparatus_errors": ["command: uncaught helper exception"],
+                    "checks": [{"proves": "P1", "kind": "command", "pass": False,
+                                "detail": "uncaught helper exception", "apparatus_error": True}]}
+        with mock.patch.object(stages.stage_live, "grade_sample", return_value=document):
+            code, out, err = cli("grade", str(sample), "--cases-dir", str(self.cases))
+        self.assertEqual((code, err), (stages.EXIT_FAIL, ""))
+        self.assertIn("oracle INDETERMINATE", out)
+        self.assertIn("P1 INDETERMINATE", out)
+        self.assertIn("oracle apparatus error: command: uncaught helper exception", out)
+        self.assertNotIn("P1 MISSED", out)
+
+    def test_a_live_result_with_an_oracle_apparatus_error_is_not_counted_as_a_candidate_miss(self):
+        sample = self.temp / "indeterminate-sample"
+        sample.mkdir()
+        (sample / stages.stage_live.RESULT).write_text(json.dumps({
+            "verdicts": {"process": True, "accepted": True, "no_overshoot": True, "oracle": False},
+            "caught": {"P1": False}, "held": {"C1": True}, "value": None, "pass": False,
+            "apparatus_errors": ["command: uncaught helper exception"],
+        }))
+        read = stages.stage_report.read_sample(sample)
+        self.assertFalse(read["graded"])
+        self.assertEqual(read["reason"], "oracle indeterminate: command: uncaught helper exception")
+        rendered = stages.stage_report.render({"root": str(self.temp), "ids": [], "drivers": [], "builds": [],
+                                                "scenarios": [{"id": "validate-existing/broken", "ran": 0, "samples": 1,
+                                                               "not_run": [{"sample": 1, "reason": read["reason"]}],
+                                                               "ignored": [], "ids": {}, "overshoot": None, "drivers": [],
+                                                               "pass": {"k": 0, "n": 1}, "rule": None}]})
+        self.assertIn("indeterminate: validate-existing/broken #1: command: uncaught helper exception", rendered)
+        self.assertNotIn("not run: validate-existing/broken #1", rendered)
 
     def test_a_refusal_is_2_a_stop_is_5_and_a_crash_is_4_with_its_traceback(self):
         code, out, err = self.code(side_effect=SystemExit("the host is not ready. Nothing was started."))

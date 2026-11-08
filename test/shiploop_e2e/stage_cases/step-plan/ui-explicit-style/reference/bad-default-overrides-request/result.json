@@ -1,0 +1,58 @@
+{
+  "outcome": "done",
+  "summary": "The default is used despite the requested retro treatment. Design basis: AD-1 in docs/shiploop/architecture.md, Decisions / Default design. Planned browser helper (not present yet) has not run; command: `node scripts/check-selected-square-summary-browser.mjs --viewports 390x844,1440x1000 --select-reset --keyboard-focus --out \"$(mktemp -d)/observation\"`.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Use a light, rounded status panel following AD-1 in docs/shiploop/architecture.md, section Default design. Check the rendered browser on phone and desktop. The new-UI default wins; retro arcade styling is omitted."
+    },
+    {
+      "id": "C2",
+      "text": "Show the selected coordinate in a summary and return it to Choose a square on Reset. Run node --test test/board-state.test.mjs."
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Add a summary surface using the light default and retain existing selection/reset behavior.",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C2"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md",
+        "index.html",
+        "styles.css",
+        "src/board-ui.mjs",
+        "test/board-state.test.mjs"
+      ],
+      "proof": "node scripts/check-selected-square-summary-browser.mjs --viewports 390x844,1440x1000 --select-reset --keyboard-focus --out \"$(mktemp -d)/observation\"",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "docs/shiploop/architecture.md",
+    "index.html",
+    "styles.css",
+    "src/board-ui.mjs",
+    "test/board-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node --test test/board-state.test.mjs",
+      "suite": "regression",
+      "ids": [
+        "TC-BOARD"
+      ],
+      "criteria": [
+        "C2"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-1"
+  ]
+}

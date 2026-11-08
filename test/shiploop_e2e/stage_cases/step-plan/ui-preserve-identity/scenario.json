@@ -1,0 +1,111 @@
+{
+  "stage": "step-plan",
+  "about": "A styled local chat product has no saved design decision; adding unread counts must inherit the actual interface and preserve its local conversation behavior.",
+  "tags": [
+    "ui-contract",
+    "established-identity"
+  ],
+  "tiers": [
+    "verify",
+    "render",
+    "live"
+  ],
+  "fixture": "web-choice",
+  "request": {
+    "prompt": "Add unread-count badges to each conversation in the seeded local chat list. Selecting a conversation clears its unread count; retain the existing local conversation/message behavior. No network or package dependencies.",
+    "work_item": {
+      "id": "W1",
+      "title": "Add unread counts to seeded conversations",
+      "context": "Add a count for unread messages to each existing local conversation and clear it when that conversation is selected. Preserve current chat behavior and design identity; no network or package dependency."
+    },
+    "checks": [
+      "node --test test/chat-state.test.mjs"
+    ]
+  },
+  "options": {
+    "delegation": "inline",
+    "seed_home": false
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "The plan derives a durable UI decision from the existing chat stylesheet and components, recording only the unread-badge delta instead of treating the missing AD as permission to rebrand.",
+      "signature": "AD reuses current CSS tokens/components and scopes work to unread badges"
+    },
+    {
+      "id": "P2",
+      "what": "The visible-UI criterion selects that AD, its exact section, actual source token/component anchors, and a rendered check at applicable widths.",
+      "signature": "criterion cites the inherited identity choices and rendered badge placement"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "Unread badges show each conversation's count and clear that conversation's count when selected, while the existing local conversation/message behavior and node:test coverage remain planned."
+    },
+    {
+      "id": "C2",
+      "what": "The proposed change stays within the unread feature, its test and the durable design record; it does not introduce remote behavior or dependencies."
+    }
+  ],
+  "render": [
+    {
+      "packet_issued": true
+    },
+    {
+      "current_stage": "step-plan"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "(?i)unread-count badges"
+    },
+    {
+      "proves": "C2",
+      "packet_contains": "(?i)(no network|no package dependencies)"
+    },
+    {
+      "proves": "C1",
+      "packet_contains": "Add\\ a\\ count\\ for\\ unread\\ messages\\ to\\ each\\ existing\\ local\\ conversation\\ and\\ clear\\ it\\ when\\ that\\ conversation\\ is\\ selected\\.\\ Preserve\\ current\\ chat\\ behavior\\ and\\ design\\ identity;\\ no\\ network\\ or\\ package\\ dependency\\.",
+      "why": "The packet must carry this exact seeded work-item context; original request detail remains in its linked spec/request."
+    }
+  ],
+  "oracle": [
+    {
+      "proves": "P1",
+      "command": "python3 \"$STAGE_ORACLE/check_plan.py\" P1",
+      "exit": 0
+    },
+    {
+      "proves": "P2",
+      "command": "python3 \"$STAGE_ORACLE/check_plan.py\" P2",
+      "exit": 0
+    },
+    {
+      "proves": "C1",
+      "command": "python3 \"$STAGE_ORACLE/check_plan.py\" C1",
+      "exit": 0
+    },
+    {
+      "proves": "C2",
+      "command": "python3 \"$STAGE_ORACLE/check_plan.py\" C2",
+      "exit": 0
+    },
+    {
+      "proves": "C1",
+      "command": "node --test test/chat-state.test.mjs",
+      "exit": 0,
+      "why": "The existing local conversation and message state tests remain executable."
+    },
+    {
+      "proves": "C2",
+      "changed_only": [
+        "docs/shiploop/architecture.md"
+      ],
+      "why": "Planning may write its durable design record but does not implement product files. This checks tree scope, not semantic scope in the proposed plan."
+    }
+  ],
+  "live": {
+    "samples": 1,
+    "pass": 1
+  }
+}

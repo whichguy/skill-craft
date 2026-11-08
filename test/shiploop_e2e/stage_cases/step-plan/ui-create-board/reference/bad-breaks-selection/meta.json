@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "C1"
+  ],
+  "why": "The plan no longer names the existing square selection and reset behavior."
+}

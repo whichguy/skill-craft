@@ -1,0 +1,3 @@
+# Environment
+
+The repository is plain HTML, CSS, and JavaScript. Node's built-in node:test runs with node --test; no package installation is needed. The stage host provides a local Playwright module and Chrome executable through PLAYWRIGHT_NODE_PATH and BROWSER_EXECUTABLE_PATH. A capability-only probe found those routes; it did not inspect this product. The existing local scripts/check-board-browser.cjs check accepts selected AD colors and size as arguments, starts a loopback server, and reuses one Playwright page across mobile/desktop and light/dark checks. No rendered result for this product has been captured. No remote browser or external service is part of this task.

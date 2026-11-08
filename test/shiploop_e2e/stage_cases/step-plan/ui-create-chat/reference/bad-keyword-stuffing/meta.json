@@ -1,0 +1,7 @@
+{
+  "fails": [
+    "P1",
+    "P2"
+  ],
+  "why": "Color and dimension anchors appear only as rejected choices."
+}

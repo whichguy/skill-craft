@@ -1,0 +1,4 @@
+{
+  "fails": ["P2"],
+  "why": "The plan has a decision record, but its visible-UI criterion has no named section, selected anchors or rendered observation."
+}

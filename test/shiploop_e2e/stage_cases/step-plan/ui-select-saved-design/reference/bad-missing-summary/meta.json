@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "C1"
+  ],
+  "why": "The plan does not specify a selected-coordinate display or the prompt that Reset restores."
+}

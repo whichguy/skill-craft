@@ -1,0 +1,4 @@
+{
+  "fails": ["C1"],
+  "why": "The plan does not require Reset to clear the summary to Choose a square."
+}

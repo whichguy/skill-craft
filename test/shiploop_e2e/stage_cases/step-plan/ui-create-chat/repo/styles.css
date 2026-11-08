@@ -1,0 +1,6 @@
+/* Structural starter only: default browser styles keep the local demo usable. */
+#chat-layout { display: grid; grid-template-columns: 14rem minmax(0, 1fr); gap: 1rem; max-width: 64rem; margin: 0 auto; padding: 1rem; }
+#conversation-list { display: grid; gap: 0.5rem; }
+#message-list { display: grid; gap: 0.75rem; }
+#chat-form { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+@media (max-width: 42rem) { #chat-layout { grid-template-columns: minmax(0, 1fr); } }

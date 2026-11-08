@@ -1,0 +1,4 @@
+{
+  "fails": ["C2"],
+  "why": "The proposed paths include an unrequested global theme feature."
+}

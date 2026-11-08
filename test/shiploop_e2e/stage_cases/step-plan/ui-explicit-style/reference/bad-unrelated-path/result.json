@@ -1,0 +1,60 @@
+{
+  "outcome": "done",
+  "summary": "The plan adds an unrelated global theme control to the scoped strip request. Design basis: AD-1 in docs/shiploop/architecture.md, Decisions / Strip tokens and placement. Planned browser helper (not present yet) has not run; command: `node scripts/check-selected-square-summary-browser.mjs --viewports 390x844,1440x1000 --select-reset --keyboard-focus --out \"$(mktemp -d)/observation\"`.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Apply the explicit pixel direction to the summary strip in AD-1 in docs/shiploop/architecture.md, sections Explicit direction and scope and Strip tokens and placement. Use #25202a, #efb849, 2px and 0.75rem. Check a rendered browser on a narrow phone and wide desktop; retain the board."
+    },
+    {
+      "id": "C2",
+      "text": "Add a global theme toggle while adding the summary strip. Show the selected coordinate and reset it to Choose a square. Run node --test test/board-state.test.mjs."
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Add the strip and a page-wide theme switcher for light and dark modes.",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C2"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md",
+        "index.html",
+        "styles.css",
+        "src/board-ui.mjs",
+        "src/theme-toggle.mjs",
+        "test/board-state.test.mjs"
+      ],
+      "proof": "node scripts/check-selected-square-summary-browser.mjs --viewports 390x844,1440x1000 --select-reset --keyboard-focus --out \"$(mktemp -d)/observation\"",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "docs/shiploop/architecture.md",
+    "index.html",
+    "styles.css",
+    "src/board-ui.mjs",
+    "src/theme-toggle.mjs",
+    "test/board-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node --test test/board-state.test.mjs",
+      "suite": "regression",
+      "ids": [
+        "TC-BOARD"
+      ],
+      "criteria": [
+        "C2"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-1"
+  ]
+}

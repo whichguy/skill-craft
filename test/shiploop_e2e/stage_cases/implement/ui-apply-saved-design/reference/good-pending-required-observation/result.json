@@ -1,0 +1,10 @@
+{
+  "outcome": "done",
+  "summary": "The node --test selection and Reset checks passed. TC-LAYOUT remains pending until a browser observation is recorded.",
+  "not_covered": [
+    {
+      "behaviour": "TC-LAYOUT must pass before the rendered outcome can be called complete.",
+      "reason": "The rendered check is still open; no browser command output was captured."
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "fails": ["P1", "P2"],
+  "why": "The retro direction is applied to the whole page rather than limited to the requested summary strip."
+}

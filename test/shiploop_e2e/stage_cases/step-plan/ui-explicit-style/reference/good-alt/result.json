@@ -1,0 +1,166 @@
+{
+  "outcome": "done",
+  "summary": "The requested feature uses a distinct valid retro treatment confined to the selected-square strip, with behavior and focus preserved. Design basis: AD-3 in docs/shiploop/architecture.md, Decisions / Component tokens and placement. Planned browser helper (not present yet) and node:test checks are not yet run; browser command: `node scripts/check-selected-square-summary-browser.mjs --viewports 390x844,1440x1000 --keyboard-focus --out \"$(mktemp -d)/observation\"`.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "The selected-square summary strip alone uses the explicit pixel-arcade direction in AD-3 in docs/shiploop/architecture.md, sections Strip treatment and boundary and Component tokens and placement. On a narrow phone and wide desktop rendered browser view, retain its below-board position, readable coordinate and the unchanged board and controls. Use the selected panel #1d1820, accent #f5c451, 3px frame and 0.8rem spacing as reproducible anchors. This browser check is planned, not yet run. Serves R-2.",
+      "confirm": "executed"
+    },
+    {
+      "id": "C2",
+      "text": "A selected square appears as its coordinate in the summary strip; Reset returns it to Choose a square while preserving the 64 local square controls and current status behavior. Planned regression command, not yet run: node --test test/board-state.test.mjs; require TC-BOARD to pass. Serves R-1.",
+      "confirm": "executed"
+    },
+    {
+      "id": "C3",
+      "text": "Keep keyboard focus visibly distinct on the square controls and Reset while the summary strip stays readable and does not obscure them. Check keyboard navigation in a rendered browser at 390x844 and 1440x1000; this focus check is planned, not yet run.",
+      "confirm": "executed"
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Implement the strip\u2019s scoped retro treatment and initial empty state (C1), keep keyboard focus visible (C3), and create the planned browser observation helper.",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C3"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md",
+        "index.html",
+        "styles.css",
+        "src/board-ui.mjs",
+        "scripts/check-selected-square-summary-browser.mjs"
+      ],
+      "proof": "node scripts/check-selected-square-summary-browser.mjs --viewports 390x844,1440x1000 --keyboard-focus --out \"$(mktemp -d)/observation\"",
+      "skills": []
+    },
+    {
+      "id": "S2",
+      "task": "Add and test the summary's selected-coordinate and Reset state (C2).",
+      "deps": [
+        "S1"
+      ],
+      "criteria": [
+        "C2"
+      ],
+      "paths": [
+        "src/board-ui.mjs",
+        "test/board-state.test.mjs"
+      ],
+      "proof": "node --test test/board-state.test.mjs",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "docs/shiploop/architecture.md",
+    "index.html",
+    "styles.css",
+    "src/board-ui.mjs",
+    "test/board-state.test.mjs",
+    "scripts/check-selected-square-summary-browser.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node scripts/check-selected-square-summary-browser.mjs --viewports 390x844,1440x1000 --keyboard-focus --out \"$(mktemp -d)/observation\"",
+      "suite": "check",
+      "criteria": [
+        "C1",
+        "C3"
+      ]
+    },
+    {
+      "command": "node --test test/board-state.test.mjs",
+      "suite": "regression",
+      "ids": [
+        "TC-BOARD"
+      ],
+      "criteria": [
+        "C2"
+      ],
+      "minimum": true
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-3"
+  ],
+  "expectations": [
+    {
+      "id": "E1",
+      "state": "broken",
+      "statement": "The existing architecture record has no accepted AD for the requested strip direction yet.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md"
+      ],
+      "check": "test -f docs/shiploop/architecture.md && ! grep -Eq '^[[:space:]]*(#{2,6}[[:space:]]+)?AD-[0-9]+([[:space:]:]|$)' docs/shiploop/architecture.md"
+    },
+    {
+      "id": "E2",
+      "state": "broken",
+      "statement": "The baseline page has no selected-square summary strip markup.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "index.html"
+      ],
+      "check": "test -s index.html && ! grep -Eiq 'summary[[:space:]_-]*strip' index.html"
+    },
+    {
+      "id": "E3",
+      "state": "broken",
+      "statement": "The structural starter stylesheet has no summary-strip treatment yet.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "styles.css"
+      ],
+      "check": "test -s styles.css && ! grep -Eiq 'summary[[:space:]_-]*strip|selected-square[[:space:]_-]*summary' styles.css"
+    },
+    {
+      "id": "E4",
+      "state": "broken",
+      "statement": "The baseline board UI has no selected-square summary update logic.",
+      "steps": [
+        "S1",
+        "S2"
+      ],
+      "paths": [
+        "src/board-ui.mjs"
+      ],
+      "check": "test -s src/board-ui.mjs && ! grep -Eiq 'summary[[:space:]_-]*strip|selected-square[[:space:]_-]*summary' src/board-ui.mjs"
+    },
+    {
+      "id": "E5",
+      "state": "works",
+      "statement": "The existing board-state regression suite covers working selection/reset behavior.",
+      "steps": [
+        "S2"
+      ],
+      "paths": [
+        "test/board-state.test.mjs"
+      ],
+      "check": "node --test test/board-state.test.mjs"
+    },
+    {
+      "id": "E6",
+      "state": "absent",
+      "statement": "The browser observation helper is a future artifact and is not in the starter repository.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "scripts/check-selected-square-summary-browser.mjs"
+      ],
+      "check": "test ! -e scripts/check-selected-square-summary-browser.mjs"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+# Environment
+
+The repository is plain HTML, CSS and JavaScript. Node's built-in `node:test` runs with `node --test`; no package installation is needed. The stage host provides a local Playwright module and Chrome executable through `PLAYWRIGHT_NODE_PATH` and `BROWSER_EXECUTABLE_PATH`. A capability-only probe found those routes; it did not inspect this product. `scripts/check-board-browser.cjs` accepts colors and size from the selected AD, starts a loopback server, and checks the local board at 390x844 and 1440x1000 in light and dark themes. Its optional summary checks accept the saved maximum and gap, and the dark focus color can differ from light. No rendered result for this product has been captured. No remote browser or external service is part of this task.

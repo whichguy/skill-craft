@@ -1,0 +1,24 @@
+{
+  "ui_paths": [
+    "index.html",
+    "styles.css",
+    "src/board-ui.mjs"
+  ],
+  "fixture_behavior": [
+    "square",
+    "selection",
+    "reset"
+  ],
+  "mode": "existing",
+  "fixed_ad": "AD-2",
+  "required_themes": [
+    "light",
+    "dark"
+  ],
+  "render_command_prefix": "node scripts/check-board-browser.cjs",
+  "feature_behavior": [
+    "summary",
+    "coordinate",
+    "choose a square"
+  ]
+}

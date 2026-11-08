@@ -1,0 +1,50 @@
+{
+  "outcome": "done",
+  "summary": "The summary behavior is planned without a durable design decision or visual criterion. Design basis: no accepted AD is selected because this result omits the requested design record. Planned browser helper (not present yet) has not run; command: `node scripts/check-selected-square-summary-browser.mjs --viewports 390x844,1440x1000 --select-reset --keyboard-focus --out \"$(mktemp -d)/observation\"`.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Add a selected-square summary under the board. It shows the selected coordinate and returns to Choose a square on Reset. Run node --test test/board-state.test.mjs."
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Add and test the selected-square summary strip.",
+      "deps": [],
+      "criteria": [
+        "C1"
+      ],
+      "paths": [
+        "index.html",
+        "styles.css",
+        "src/board-ui.mjs",
+        "test/board-state.test.mjs"
+      ],
+      "proof": "node scripts/check-selected-square-summary-browser.mjs --viewports 390x844,1440x1000 --select-reset --keyboard-focus --out \"$(mktemp -d)/observation\"",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "index.html",
+    "styles.css",
+    "src/board-ui.mjs",
+    "test/board-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node --test test/board-state.test.mjs",
+      "suite": "regression",
+      "ids": [
+        "TC-BOARD"
+      ],
+      "criteria": [
+        "C1"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2"
+  ]
+}

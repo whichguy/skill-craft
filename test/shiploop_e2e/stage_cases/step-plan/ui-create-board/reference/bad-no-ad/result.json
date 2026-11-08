@@ -1,0 +1,78 @@
+{
+  "outcome": "done",
+  "summary": "Selected AD-1 as the first board direction. Design basis: AD-1 in docs/shiploop/architecture.md, Decisions / Board interface; browser observations are planned and not yet run.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Style the board from AD-1 in docs/shiploop/architecture.md, sections Design system and tokens, Components and composition, and Theme. Render the light page with #f5f1e8, alternating board cells #e9dfcb and #356f66, a board maximum 32rem, and the focus color #2d5d57; the dark page is #17201f. Keep the selected-square status below the board with a 32rem maximum and 1rem gap. Check mobile 390x844 and desktop 1440x1000 in light and dark themes; observe equal square cells, keyboard focus, and no horizontal overflow. The browser command is planned, not yet run. Serves R-1."
+    },
+    {
+      "id": "C2",
+      "text": "Preserve the local 8 by 8 board: selecting a square updates the polite status with its coordinate, and Reset restores Choose a square. Confirm by node --test; pass when TC-BOARD passes. Serves R-2."
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Record AD-1 and apply its responsive visual choices to the board and status surface (C1).",
+      "deps": [],
+      "criteria": [
+        "C1"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md",
+        "index.html",
+        "styles.css",
+        "src/board-ui.mjs"
+      ],
+      "proof": "node scripts/check-board-browser.cjs --light-page '#f5f1e8' --dark-page '#17201f' --square-a '#e9dfcb' --square-b '#356f66' --board-max 32rem --focus-color '#2d5d57' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem",
+      "skills": []
+    },
+    {
+      "id": "S2",
+      "task": "Keep the existing local square selection and reset behavior covered (C2).",
+      "deps": [
+        "S1"
+      ],
+      "criteria": [
+        "C2"
+      ],
+      "paths": [
+        "test/board-state.test.mjs"
+      ],
+      "proof": "node --test",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "docs/shiploop/architecture.md",
+    "index.html",
+    "styles.css",
+    "src/board-ui.mjs",
+    "test/board-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node scripts/check-board-browser.cjs --light-page '#f5f1e8' --dark-page '#17201f' --square-a '#e9dfcb' --square-b '#356f66' --board-max 32rem --focus-color '#2d5d57' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem",
+      "suite": "check",
+      "criteria": [
+        "C1"
+      ]
+    },
+    {
+      "command": "node --test",
+      "suite": "regression",
+      "ids": [
+        "TC-BOARD"
+      ],
+      "criteria": [
+        "C2"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-1"
+  ]
+}

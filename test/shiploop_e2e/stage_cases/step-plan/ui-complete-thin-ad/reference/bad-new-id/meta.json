@@ -1,0 +1,8 @@
+{
+  "fails": [
+    "P1",
+    "P2",
+    "C1"
+  ],
+  "why": "Replaces AD-2 with a new ID instead of completing the existing record."
+}

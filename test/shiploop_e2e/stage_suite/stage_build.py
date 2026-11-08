@@ -10,23 +10,26 @@ A scenario folder holds ``scenario.json`` and, optionally:
     repo/                files laid over the fixture BEFORE the baseline commit (where a planted fault lives)
     worktree/            files laid into the execution checkout at the seed point (what earlier stages left)
     notes/               files laid into RUN/notes/
-    reference/good/      result.json (the stage's accepted result, an object with "outcome") and tree/ (laid over the seed tree)
+    reference/good/      result.json (an accepted result, an object with "outcome") and tree/ (laid over the seed tree)
+    reference/good-<slug>/ another accepted result, checked like good/
     reference/bad-<slug>/ the same, plus meta.json {"fails": ["P1", ...], "why": "..."}: the ids this output must make the
                          oracle FAIL. A name in deleted.txt (one path per line) is removed from the tree.
 
 scenario.json keys (unknown keys are rejected): stage (a stage_spec stage, or ``improve@<stage>``, which loads and validates but
 does not build yet), about, tags, tiers (verify, render, live; default all three), fixture (a folder of test/shiploop_e2e/
 fixtures/), request_from (a key of step_cases.json: prompt, work_item and checks), optional request_text (a nonblank prompt
-override), options {delegation, seed_home}, seed_records, worktree_mode, planted [{id P<n>, what, signature}], controls [{id C<n>, what}],
-render [check], oracle [check], live {samples, pass}.
-``about`` and ``fixture`` are required; ``request_from`` is required once the render or live tier is on (the verify tier reads
-no request). Every other key has its default.
+override), or inline request {prompt, work_item, checks} (mutually exclusive with both), options {delegation, seed_home},
+seed_records, worktree_mode, planted [{id P<n>, what, signature}], controls [{id C<n>, what}], render [check], oracle [check],
+live {samples, pass}.
+``about`` and ``fixture`` are required; ``request_from`` or an inline ``request`` is required once the render or live tier is
+on (the verify tier reads no request). Every other key has its default.
 
 The rules ``validate`` keeps, each pinned by test/shiploop-e2e-stage-build.test.py:
 - ids are unique, ``P<n>`` for a planted condition and ``C<n>`` for a control; checks are stage_oracle's (``validate_checks``);
 - with the verify or live tier on, every id is proven by at least one check in ``oracle``;
-- with the verify tier on, ``reference/good`` exists and every id is failed by at least one ``reference/bad-*`` (that is the proof
-  the oracle can fail it); a ``meta.json`` parses and names known ids; a ``result.json`` is an object with an "outcome".
+- with the verify tier on, ``reference/good`` exists, every ``good`` and ``good-<slug>`` output passes, and every id is failed by
+  at least one ``reference/bad-*`` (that is the proof the oracle can fail it); a ``meta.json`` parses and names known ids; a
+  ``result.json`` is an object with an "outcome".
 
 The two tiers that need a tree, and what they build:
 - ``compose_seed_tree`` is pure file composition (the fixture, then ``repo/``, then ``worktree/``): no ShipLoop and no Git. The
@@ -51,6 +54,7 @@ module named like a standard-library one does not import it.
 from __future__ import annotations
 
 import contextlib
+import copy
 import json
 import os
 import re
@@ -82,12 +86,13 @@ TIERS = ("verify", "render", "live")
 DELEGATIONS = ("inline", "ask-agent")
 WORKTREE_MODES = ("committed", "uncommitted")
 NEXT_SECONDS = 120  # a `shiploop next` that takes longer is stuck
-KEYS = ("stage", "about", "tags", "tiers", "fixture", "request_from", "request_text", "options", "seed_records",
+KEYS = ("stage", "about", "tags", "tiers", "fixture", "request", "request_from", "request_text", "options", "seed_records",
         "worktree_mode", "planted", "controls", "render", "oracle", "live")
 PLANTED_ID = re.compile(r"^P[1-9][0-9]*$")
 CONTROL_ID = re.compile(r"^C[1-9][0-9]*$")
 TAG = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
 REFERENCE_BAD = "bad-"
+REFERENCE_GOOD = "good-"
 NO_WORKTREE_UP_TO = "validate-existing"  # a scenario of this stage or an earlier one may not have a worktree/
 WORKTREE_ENV = "STAGE_SUITE_WORKTREE"  # the folder SEAM_SEED_SCRIPT lays into the execution checkout
 SEEDING = threading.RLock()  # seam_seed substitutes process-wide state (a module global, the environment): one at a time
@@ -241,7 +246,7 @@ def _deleted(path: Path) -> list[str]:
 
 
 def _reference_problems(scenario_dir: Path, ids: dict) -> list[str]:
-    """The verify tier's rules for ``reference/``: a good output, and for every id a bad one that must fail it."""
+    """The verify tier's rules for ``reference/``: accepted good outputs and, for every id, a bad one that must fail it."""
     reference = scenario_dir / "reference"
     problems = []
     good = reference / "good"
@@ -253,10 +258,24 @@ def _reference_problems(scenario_dir: Path, ids: dict) -> list[str]:
     if reference.is_dir():
         for folder in sorted(reference.iterdir()):
             label = f"reference/{folder.name}"
-            if folder.name == "good" or folder.name.startswith("_"):
+            name = folder.name
+            if name.startswith("_"):
                 continue
-            if not folder.is_dir() or not folder.name.startswith(REFERENCE_BAD) or folder.name == REFERENCE_BAD:
-                problems.append(f"{label}: a reference folder is good or bad-<slug>")
+            if name == "good":
+                continue  # the mandatory good/ was checked above
+            if name.startswith(REFERENCE_GOOD):
+                slug = name[len(REFERENCE_GOOD):]
+                if not folder.is_dir() or not TAG.fullmatch(slug):
+                    problems.append(f"{label}: a reference folder is good, good-<slug> or bad-<slug>")
+                    continue
+                problems += _reference_result(folder, label) + _reference_tree(folder, label)
+                continue
+            if name.startswith(REFERENCE_BAD):
+                if not folder.is_dir() or name == REFERENCE_BAD:
+                    problems.append(f"{label}: a reference folder is good, good-<slug> or bad-<slug>")
+                    continue
+            else:
+                problems.append(f"{label}: a reference folder is good, good-<slug> or bad-<slug>")
                 continue
             problems += _reference_result(folder, label) + _reference_tree(folder, label)
             meta = folder / "meta.json"
@@ -305,17 +324,45 @@ def validate(data: Any, scenario_dir: Path) -> list[str]:
         problems.append("fixture is required: a folder name under test/shiploop_e2e/fixtures/")
     elif not (FIXTURES / fixture).is_dir():
         problems.append(f"fixture {fixture!r} is not a folder of test/shiploop_e2e/fixtures/")
-    request = data.get("request_from")
-    if request is None:
-        if "render" in tiers or "live" in tiers:
-            problems.append("request_from is required with the render or live tier: a key of step_cases.json")
-    elif not isinstance(request, str) or request not in step_cases():
-        problems.append(f"request_from {request!r} is not a key of step_cases.json")
-    if "request_text" in data:
-        if not _text(data["request_text"]):
-            problems.append("request_text must be a non-empty string")
+    if "request" in data:
+        if "request_from" in data or "request_text" in data:
+            problems.append("request is mutually exclusive with request_from and request_text")
+        request = data["request"]
+        if not isinstance(request, dict):
+            problems.append("request must be an object with exactly prompt, work_item and checks")
+        else:
+            problems += [f"request: unknown key {key!r}" for key in request if key not in ("prompt", "work_item", "checks")]
+            problems += [f"request.{key} is required" for key in ("prompt", "work_item", "checks") if key not in request]
+            if "prompt" in request and not _text(request["prompt"]):
+                problems.append("request.prompt must be a non-empty string")
+            if "work_item" in request:
+                item = request["work_item"]
+                if not isinstance(item, dict):
+                    problems.append("request.work_item must be an object")
+                else:
+                    try:
+                        navigator._normalise_work_items([item], allow_empty=False)
+                    except navigator.NavigatorError as error:
+                        problems.append(f"request.work_item: {error}")
+            if "checks" in request:
+                checks = request["checks"]
+                if not isinstance(checks, list):
+                    problems.append("request.checks must be a list of non-empty command strings")
+                else:
+                    problems += [f"request.checks[{index}] must be a non-empty command string"
+                                 for index, check in enumerate(checks) if not _text(check)]
+    else:
+        request = data.get("request_from")
+        if request is None:
+            if "render" in tiers or "live" in tiers:
+                problems.append("request_from is required with the render or live tier unless an inline request is provided")
         elif not isinstance(request, str) or request not in step_cases():
-            problems.append("request_text requires a valid request_from key")
+            problems.append(f"request_from {request!r} is not a key of step_cases.json")
+        if "request_text" in data:
+            if not _text(data["request_text"]):
+                problems.append("request_text must be a non-empty string")
+            elif not isinstance(request, str) or request not in step_cases():
+                problems.append("request_text requires a valid request_from key")
     options = data.get("options", {})
     if not isinstance(options, dict):
         problems.append("options must be an object")
@@ -367,6 +414,12 @@ def validate(data: Any, scenario_dir: Path) -> list[str]:
     for name in ("repo", "worktree", "notes"):
         if (scenario_dir / name).exists() and not (scenario_dir / name).is_dir():
             problems.append(f"{name} must be a folder")
+    helpers = scenario_dir / "oracle"
+    if os.path.lexists(helpers):
+        if not helpers.is_dir():
+            problems.append("oracle must be a folder")
+        elif os.path.commonpath([str(scenario_dir.resolve()), str(helpers.resolve())]) != str(scenario_dir.resolve()):
+            problems.append("oracle folder resolves outside the scenario")
     base = base_stage(data.get("stage"))
     if base is not None and (scenario_dir / "worktree").is_dir() \
             and stage_spec.STAGES.index(base) <= stage_spec.STAGES.index(NO_WORKTREE_UP_TO):
@@ -494,12 +547,13 @@ def compose_seed_tree(sc: Scenario, into: Path) -> Path:
 
 
 def reference_names(sc: Scenario) -> list[str]:
-    """The reference outputs the scenario holds: ``good`` first, then each ``bad-<slug>`` in name order."""
+    """The reference outputs the scenario holds: ``good``, good-<slug> variants, then bad-<slug> outputs in name order."""
     reference = sc.dir / "reference"
     if not reference.is_dir():
         return []
-    names = sorted(path.name for path in reference.iterdir() if path.is_dir() and path.name.startswith(REFERENCE_BAD))
-    return (["good"] if (reference / "good").is_dir() else []) + names
+    good = sorted(path.name for path in reference.iterdir() if path.is_dir() and path.name.startswith(REFERENCE_GOOD))
+    bad = sorted(path.name for path in reference.iterdir() if path.is_dir() and path.name.startswith(REFERENCE_BAD))
+    return (["good"] if (reference / "good").is_dir() else []) + good + bad
 
 
 def reference_bundle(sc: Scenario, name: str, tmp: Path) -> tuple[stage_oracle.Bundle, dict]:
@@ -637,6 +691,8 @@ def _buildable(sc: Scenario) -> dict:
         raise NotImplementedError("outer-stage scenarios arrive with wave 3")
     if sc.data.get("worktree_mode", "uncommitted") != "uncommitted":
         raise NotImplementedError("worktree_mode committed is reserved: only uncommitted is built")
+    if "request" in sc.data:
+        return copy.deepcopy(sc.data["request"])
     request = sc.data.get("request_from")
     if request is None:
         raise ScenarioError([f"{sc.id}: request_from is required to build a run"])

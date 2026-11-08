@@ -1,0 +1,1 @@
+{"fails": ["P2"], "why": "The implementation result claims rendered checks passed without carrying browser evidence or leaving the visual item pending."}

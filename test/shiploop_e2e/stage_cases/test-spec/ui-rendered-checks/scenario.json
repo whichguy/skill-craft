@@ -1,0 +1,311 @@
+{
+  "stage": "test-spec",
+  "about": "Specify selected-status and responsive rendered-layout checks against the saved board direction, preserving the existing functional regression.",
+  "tags": [
+    "ui-contract",
+    "rendered-checks"
+  ],
+  "tiers": [
+    "verify",
+    "render",
+    "live"
+  ],
+  "fixture": "web-choice",
+  "request": {
+    "prompt": "This repository contains a local 8\u00d78 board with square selection, an existing polite status above the board, and Reset. Move that existing status immediately below the board and use it as the selected-square summary; keep its selected-coordinate announcement and Reset\u2019s \u2018Choose a square\u2019 prompt. R-1: Use the accepted board direction recorded in product documentation to shape the summary and plan a rendered browser check at narrow and wide widths in light and dark themes. R-2: Preserve all 64 selectable local squares, the existing selection announcement and Reset behavior, and the existing node:test suite. Stay local, with no dependencies or external service.",
+    "work_item": {
+      "id": "W1",
+      "title": "Move the existing selection status below the board",
+      "context": "Use the existing polite status as the selected-square summary immediately below the board. Preserve its coordinate announcement, Reset prompt, board state behavior, and test coverage. Do not create a second status or add a state helper."
+    },
+    "checks": [
+      "node --test"
+    ]
+  },
+  "options": {
+    "delegation": "inline",
+    "seed_home": false
+  },
+  "seed_records": {
+    "step-plan": {
+      "outcome": "done",
+      "summary": "TC-LAYOUT specifies saved summary placement, board geometry, and focus observations at mobile and desktop in light and dark themes. TC-BOARD and TC-SUMMARY retain the existing node --test selection, coordinate-validation, and Reset state checks. The host environment records a browser route to probe before relying on the rendered command; this plan describes checks, while execution status belongs in the test result.",
+      "criteria": [
+        {
+          "id": "C1",
+          "text": "Move the existing polite status below the board as the selected-square summary. It reports the selected coordinate and Reset restores 'Choose a square'. Confirm with TC-SUMMARY. Serves R-1.",
+          "confirm": "executed"
+        },
+        {
+          "id": "C2",
+          "text": "Preserve all 64 existing selectable squares, selection and Reset behavior, and the existing node:test suite. Confirm the rendered control count with TC-LAYOUT and functional state with TC-BOARD. Serves R-2.",
+          "confirm": "executed"
+        },
+        {
+          "id": "C3",
+          "text": "Use accepted AD-2 at docs/shiploop/architecture.md, sections Summary composition, Appearance and tokens, and Theme and observations. The summary uses --surface #fffdf8 and --ink #19302e. Move the existing polite status into the summary position directly below the board in normal flow, with a 1rem gap and maximum width 32rem; preserve the centered 44rem content column and square board up to 32rem. Keep the current identity and theme from AD-2 without broader redesign. For TC-LAYOUT, observe summary placement/width, board and equal-cell geometry, overflow, visible focus, and select/reset at 390x844 and 1440x1000 in light/dark. If browser evidence is not captured, keep it explicitly pending rather than using node tests as visual proof. Serves R-1.",
+          "confirm": "executed"
+        }
+      ],
+      "steps": [
+        {
+          "id": "S1",
+          "task": "Move the existing status below the board while preserving behavior and following the saved AD-2 (C1, C2, C3).",
+          "deps": [],
+          "criteria": [
+            "C1",
+            "C2",
+            "C3"
+          ],
+          "paths": [
+            "index.html",
+            "styles.css"
+          ],
+          "proof": "node scripts/check-board-browser.cjs --light-page '#f4f1e9' --dark-page '#17201f' --square-a '#e7dcc5' --square-b '#34746b' --board-max 32rem --focus-color '#214c46' --dark-focus-color '#f3c15b' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem",
+          "skills": []
+        }
+      ],
+      "paths": [
+        "index.html",
+        "styles.css",
+        "scripts/check-board-browser.cjs"
+      ],
+      "test_commands": [
+        {
+          "command": "node scripts/check-board-browser.cjs --light-page '#f4f1e9' --dark-page '#17201f' --square-a '#e7dcc5' --square-b '#34746b' --board-max 32rem --focus-color '#214c46' --dark-focus-color '#f3c15b' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem",
+          "suite": "focused",
+          "ids": [
+            "TC-LAYOUT",
+            "TC-SUMMARY",
+            "TC-BOARD"
+          ],
+          "criteria": [
+            "C1",
+            "C3",
+            "C2"
+          ]
+        },
+        {
+          "command": "node --test",
+          "suite": "regression",
+          "ids": [
+            "TC-BOARD",
+            "TC-SUMMARY"
+          ],
+          "criteria": [
+            "C1",
+            "C2"
+          ],
+          "minimum": true
+        }
+      ],
+      "check_na": "The plain JavaScript fixture has no configured lint, type-check, or build command.",
+      "follows": [
+        "R-1",
+        "R-2",
+        "AD-2"
+      ],
+      "expectations": [
+        {
+          "id": "E1",
+          "state": "works",
+          "statement": "The existing board state module supports square selection and reset.",
+          "steps": [
+            "S1"
+          ],
+          "paths": [
+            "src/board-state.mjs"
+          ],
+          "check": "test -f src/board-state.mjs"
+        },
+        {
+          "id": "E2",
+          "state": "works",
+          "statement": "The existing board module renders local square controls.",
+          "steps": [
+            "S1"
+          ],
+          "paths": [
+            "src/board-ui.mjs"
+          ],
+          "check": "test -f src/board-ui.mjs"
+        },
+        {
+          "id": "E3",
+          "state": "works",
+          "statement": "The existing polite status is above the board and can be moved without adding a second status.",
+          "steps": [
+            "S1"
+          ],
+          "paths": [
+            "index.html"
+          ],
+          "check": "node -e 'const h=require(\"fs\").readFileSync(\"index.html\",\"utf8\");require(\"assert\")(h.indexOf(\"id=\\\"selection-status\\\"\")<h.indexOf(\"id=\\\"board\\\"\"))'"
+        },
+        {
+          "id": "E4",
+          "state": "works",
+          "statement": "The existing board styles can retain the saved identity while applying the summary placement.",
+          "steps": [
+            "S1"
+          ],
+          "paths": [
+            "styles.css"
+          ],
+          "check": "test -f styles.css"
+        },
+        {
+          "id": "E5",
+          "state": "works",
+          "statement": "The accepted board direction is available to the implementation step.",
+          "steps": [
+            "S1"
+          ],
+          "paths": [
+            "docs/shiploop/architecture.md"
+          ],
+          "check": "grep -q \"AD-2\" docs/shiploop/architecture.md"
+        },
+        {
+          "id": "E6",
+          "state": "works",
+          "statement": "The existing board state suite is present.",
+          "steps": [
+            "S1"
+          ],
+          "paths": [
+            "test/board-state.test.mjs"
+          ],
+          "check": "node --test test/board-state.test.mjs"
+        },
+        {
+          "id": "E7",
+          "state": "works",
+          "statement": "The local rendered browser helper is present for layout observation.",
+          "steps": [
+            "S1"
+          ],
+          "paths": [
+            "scripts/check-board-browser.cjs"
+          ],
+          "check": "test -f scripts/check-board-browser.cjs"
+        }
+      ]
+    }
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "TC-LAYOUT specifies the rendered browser command and saved mobile/desktop, theme, board, status, focus, and 64-control observations.",
+      "signature": "TC-LAYOUT browser command, viewports, themes, summary max/gap"
+    },
+    {
+      "id": "P2",
+      "what": "The test-spec result leaves rendered checks unrun here, directs a capability probe for the supplied host route, and makes no visual-pass claim.",
+      "signature": "pending/not run; PLAYWRIGHT_NODE_PATH and BROWSER_EXECUTABLE_PATH; no pass claim"
+    },
+    {
+      "id": "P3",
+      "what": "The full node --test regression retains TC-BOARD state coverage; TC-LAYOUT observes all 64 rendered controls.",
+      "signature": "node --test regression retains TC-BOARD"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "Rendered layout assertions are browser observations, not claims established by node:test."
+    },
+    {
+      "id": "C2",
+      "what": "The plan probes the supplied host browser route before use and adds no remote dependency or unrelated redesign."
+    }
+  ],
+  "render": [
+    {
+      "packet_issued": true
+    },
+    {
+      "current_stage": "test-spec"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "TC-LAYOUT"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "node scripts/check-board-browser.cjs"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "--summary-below"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "AD-2"
+    },
+    {
+      "proves": "P3",
+      "packet_contains": "TC-BOARD"
+    },
+    {
+      "proves": "C1",
+      "packet_contains": "node --test"
+    },
+    {
+      "proves": "C2",
+      "packet_contains": "R-2"
+    },
+    {
+      "proves": "P2",
+      "packet_contains": "KNOWLEDGE/environment\\.md \\(\\d+ bytes",
+      "why": "The packet indexes the actual environment record instead of duplicating all of its command text."
+    },
+    {
+      "proves": "P2",
+      "file": "docs/shiploop/environment.md",
+      "contains": "PLAYWRIGHT_NODE_PATH",
+      "why": "The packet-linked environment holds this capability fact; availability is not executed visual proof."
+    },
+    {
+      "proves": "P2",
+      "file": "docs/shiploop/environment.md",
+      "contains": "BROWSER_EXECUTABLE_PATH",
+      "why": "The packet-linked environment holds this capability fact; availability is not executed visual proof."
+    }
+  ],
+  "oracle": [
+    {
+      "proves": "P1",
+      "command": "python3 \"$STAGE_ORACLE/check.py\" layout",
+      "exit": 0
+    },
+    {
+      "proves": "P2",
+      "command": "python3 \"$STAGE_ORACLE/check.py\" pending",
+      "exit": 0
+    },
+    {
+      "proves": "P3",
+      "command": "python3 \"$STAGE_ORACLE/check.py\" board",
+      "exit": 0
+    },
+    {
+      "proves": "C1",
+      "command": "python3 \"$STAGE_ORACLE/check.py\" honest",
+      "exit": 0
+    },
+    {
+      "proves": "C2",
+      "command": "python3 \"$STAGE_ORACLE/check.py\" local",
+      "exit": 0
+    },
+    {
+      "proves": "C2",
+      "changed_only": []
+    }
+  ],
+  "live": {
+    "samples": 1,
+    "pass": 1
+  }
+}

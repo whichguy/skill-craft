@@ -1,0 +1,7 @@
+{
+  "fails": [
+    "P1",
+    "P2"
+  ],
+  "why": "The selected decision uses adjectives without reproducible anchors."
+}

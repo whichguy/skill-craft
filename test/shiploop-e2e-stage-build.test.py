@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """The stage suite's scenarios and builder (test/shiploop_e2e/stage_suite/stage_build.py; docs/plans/shiploop-stage-suite.md), no model.
 
-Small scenario sets in temporary folders, on the node-base fixture (plain files); every check that runs code is ``grep``, ``test``
-or a ``python3 -c``, so the suite needs no other runtime. The runs it builds are real ShipLoop runs (about a second each).
+Small scenario sets in temporary folders, on the node-base fixture (plain files); most checks that run code are ``grep``, ``test``
+or a ``python3 -c``. The shipped ``ui-contract`` producer-payload check needs Node to seed its real target-stage runs and skips
+when Node is unavailable. The runs it builds are real ShipLoop runs (about a second each).
 
 - Schema: a good scenario validates, and each distinct kind of malformed one is reported by its own sentence, several at once.
   ``discover`` sorts by stage order (an Improve stage last) and name, and raises one ScenarioError that lists every problem of
@@ -16,6 +17,10 @@ or a ``python3 -c``, so the suite needs no other runtime. The runs it builds are
     packet is issued, and the run stands at implement;
   - document: ``worktree/`` was laid before implement was recorded, so the stage has a change to document and an iteration record;
   - carry-forward: the step was committed by the seed's effects; ``options.delegation`` reaches the run.
+- Shipped ``ui-contract`` good references at step-plan, test-spec and the docs-only document stage pass the real, non-counting
+  ``shiploop check`` gates. Explicit step-plan seed records of later UI cases are checked at a fresh step-plan seam. Implement
+  references receive pure navigator shape coverage only: their real check runs the browser Proof. Request prompts remain literal
+  in the seeded spec.
 - A ``worktree/`` is refused for a stage at or before validate-existing (the checks run on entry come before the seed point).
 - Safety: ``run.SEED_SCRIPT`` is the harness's own again after a build, also when the build raises and when threads build at
   once (the substitution holds a lock); the seed child does not import from the working directory; a render whose packet file
@@ -35,6 +40,7 @@ import threading
 import time
 import types
 import unittest
+from dataclasses import replace
 from pathlib import Path
 from unittest import mock
 
@@ -50,6 +56,7 @@ import boundary  # noqa: E402
 import run  # noqa: E402
 import stage_build as sb  # noqa: E402
 import stage_oracle  # noqa: E402
+import shiploop_navigator as navigator  # noqa: E402
 import shiploop_stage_spec as stage_spec  # noqa: E402
 import shiploop_store as store  # noqa: E402
 
@@ -81,6 +88,9 @@ GOOD_FILES = {
 # A scenario that needs no reference or oracle: it is checked at the render tier only.
 LIGHT = {"stage": "validate-existing", "about": "x", "fixture": "node-base", "request_from": "node-fix-bug", "tiers": ["render"],
          "planted": [{"id": "P1", "what": "w"}], "render": [{"proves": "P1", "packet_contains": "x"}]}
+INLINE_REQUEST = {"prompt": "Repair the selected behavior.",
+                  "work_item": {"id": "W1", "title": "Repair the selected behavior", "context": "Keep the change focused."},
+                  "checks": ["node --test"]}
 
 E1 = {"id": "E1", "state": "works", "statement": "PLANTED-E1: src/strings.js holds GOOD", "steps": ["S1"],
       "paths": ["src/strings.js"], "check": "grep -q GOOD src/strings.js"}
@@ -140,6 +150,14 @@ class Schema(Temp):
         self.assertEqual(sb.validate(GOOD, folder), [])
         self.assertEqual(sb.validate(json.loads((folder / "scenario.json").read_text()), folder), [])
 
+    def test_an_inline_request_is_a_stage_local_source_for_render_and_live(self):
+        data = copy.deepcopy(GOOD)
+        data.pop("request_from")
+        data["request"] = copy.deepcopy(INLINE_REQUEST)
+        folder = scenario(self.cases, "validate-existing", "inline", data)
+        self.assertEqual(sb.validate(data, folder), [])
+        self.assertEqual(sb.load("validate-existing/inline", self.cases).data["request"], INLINE_REQUEST)
+
     def test_the_minimal_scenarios_are_valid(self):
         for label, data, files in (("render only", LIGHT, {}),
                                    ("verify only", {**GOOD, "tiers": ["verify"], "request_from": GONE}, GOOD_FILES)):
@@ -162,6 +180,11 @@ class Schema(Temp):
         def reference(*names):
             return lambda data, folder: [shutil.rmtree(folder / "reference" / name) for name in names]
 
+        def use_inline(data):
+            data.pop("request_from", None)
+            data.pop("request_text", None)
+            data["request"] = copy.deepcopy(INLINE_REQUEST)
+
         cases = [
             ("not an object", None, "must be an object"),
             ("unknown key", lambda d, f: d.update(bogus=1), "unknown key 'bogus'"),
@@ -178,6 +201,24 @@ class Schema(Temp):
             ("fixture that climbs out", lambda d, f: d.update(fixture="../fixtures"), "fixture is required"),
             ("unknown request", lambda d, f: d.update(request_from="no-such-case"), "request_from 'no-such-case'"),
             ("a request the render tier needs", lambda d, f: d.pop("request_from"), "request_from is required"),
+            ("inline request is not an object", lambda d, f: (use_inline(d), d.update(request=[])),
+             "request must be an object"),
+            ("inline request has an unknown field", lambda d, f: (use_inline(d), d["request"].update(extra="x")),
+             "request: unknown key 'extra'"),
+            ("inline request misses a field", lambda d, f: (use_inline(d), d["request"].pop("prompt")),
+             "request.prompt is required"),
+            ("inline prompt is blank", lambda d, f: (use_inline(d), d["request"].update(prompt=" ")),
+             "request.prompt must be a non-empty string"),
+            ("inline work item is not seedable", lambda d, f: (use_inline(d), d["request"].update(work_item={"id": "W1"})),
+             "request.work_item: work item has unsupported or missing fields"),
+            ("inline checks are not a list", lambda d, f: (use_inline(d), d["request"].update(checks="node --test")),
+             "request.checks must be a list"),
+            ("inline checks contain a blank command", lambda d, f: (use_inline(d), d["request"].update(checks=[" "])),
+             "request.checks[0] must be a non-empty command string"),
+            ("inline request conflicts with request_from", lambda d, f: (use_inline(d), d.update(request_from="node-fix-bug")),
+             "request is mutually exclusive"),
+            ("inline request conflicts with request_text", lambda d, f: (use_inline(d), d.update(request_text="override")),
+             "request is mutually exclusive"),
             ("unknown option", lambda d, f: d.update(options={"lint": "on"}), "options: unknown key 'lint'"),
             ("unknown delegation", lambda d, f: d.update(options={"delegation": "fan-out"}), "options.delegation"),
             ("records of an unknown stage", lambda d, f: d.update(seed_records={"nope": {}}), "seed_records: 'nope'"),
@@ -201,9 +242,24 @@ class Schema(Temp):
             ("a pass rule above the samples", lambda d, f: d.update(live={"samples": 2, "pass": 3}), "live.pass"),
             ("an unknown live key", lambda d, f: d.update(live={"budget": 1}), "live: unknown key 'budget'"),
             ("repo that is a file", lambda d, f: lay(f, {"repo": "x"}), "repo must be a folder"),
+            ("oracle that is a file", lambda d, f: lay(f, {"oracle": "x"}), "oracle must be a folder"),
+            ("oracle folder that resolves outside", lambda d, f: ((f.parent / "oracle-outside").mkdir(),
+                                                                    (f / "oracle").symlink_to(f.parent / "oracle-outside",
+                                                                                                target_is_directory=True)),
+             "oracle folder resolves outside the scenario"),
             ("a worktree before implement", lambda d, f: lay(f, {"worktree/src/strings.js": "x\n"}),
              "worktree/ is for a stage after validate-existing"),
             ("no good output", reference("good"), "reference/good is missing"),
+            ("a good variant does not replace the mandatory good", lambda d, f: (shutil.rmtree(f / "reference/good"),
+                                                                                 lay(f, {"reference/good-local/result.json":
+                                                                                         json.dumps({"outcome": "done"})})),
+             "reference/good is missing"),
+            ("a good variant without a slug", lambda d, f: lay(f, {"reference/good-/result.json": json.dumps({"outcome": "done"})}),
+             "reference/good-: a reference folder is good, good-<slug> or bad-<slug>"),
+            ("a good variant without a result", lambda d, f: lay(f, {"reference/good-local/tree/src/a.js": "ok\n"}),
+             "reference/good-local/result.json is missing"),
+            ("a good variant with a malformed result", lambda d, f: lay(f, {"reference/good-remote/result.json": "{}"}),
+             "reference/good-remote/result.json must be an object with an \"outcome\""),
             ("no bad output for a planted condition", reference("bad-unrepaired"), "P1 is failed by no reference/bad-*"),
             ("no bad output for a control", reference("bad-touched"), "C1 is failed by no reference/bad-*"),
             ("a result that is not JSON", edit("reference/good/result.json", "{"), "reference/good/result.json is not valid JSON"),
@@ -215,7 +271,7 @@ class Schema(Temp):
             ("a meta that fails an unknown id", edit("reference/bad-touched/meta.json", '{"fails": ["C1", "P8"]}'),
              "fails 'P8', which is not a planted or control id"),
             ("a reference folder of another kind", lambda d, f: lay(f, {"reference/maybe/result.json": "{}"}),
-             "a reference folder is good or bad-<slug>"),
+             "a reference folder is good, good-<slug> or bad-<slug>"),
             ("a deleted.txt that climbs out", lambda d, f: lay(f, {"reference/good/deleted.txt": "../x\n"}),
              "deleted.txt: '../x' climbs out"),
             ("a deleted.txt that names the tree itself", lambda d, f: lay(f, {"reference/good/deleted.txt": ".\n"}),
@@ -400,9 +456,10 @@ class Trees(Temp):
         self.assertFalse((self.temp / "lay-elsewhere").exists())
 
     def test_the_reference_outputs_are_listed_good_first(self):
-        sc = self.folder_for({"reference/good/result.json": "{}", "reference/bad-b/result.json": "{}",
+        sc = self.folder_for({"reference/good/result.json": "{}", "reference/good-z/result.json": "{}",
+                              "reference/good-a/result.json": "{}", "reference/bad-b/result.json": "{}",
                               "reference/bad-a/result.json": "{}", "reference/notes.txt": "x"})
-        self.assertEqual(sb.reference_names(sc), ["good", "bad-a", "bad-b"])
+        self.assertEqual(sb.reference_names(sc), ["good", "good-a", "good-z", "bad-a", "bad-b"])
         self.assertEqual(sb.reference_names(self.folder_for({})), [])
 
     def test_a_reference_bundle_is_the_seed_tree_with_the_references_tree_laid_over_it(self):
@@ -459,16 +516,22 @@ class Trees(Temp):
         self.assertIsNone(sb._safe_path("./src/a.js"))
 
     def test_the_oracle_passes_the_good_output_and_fails_each_bad_one_on_the_id_it_plants(self):
-        scenario(self.cases, "validate-existing", "verify", GOOD, {**GOOD_FILES, "repo/src/strings.js": "// BROKEN\n"})
+        files = {**GOOD_FILES, "repo/src/strings.js": "// BROKEN\n",
+                 "reference/good-local/result.json": json.dumps({"outcome": "done", "summary": "Repaired locally."}),
+                 "reference/good-local/tree/src/strings.js": "// REPAIRED\nmodule.exports = {};\n",
+                 "reference/good-remote/result.json": json.dumps({"outcome": "done", "summary": "Repaired remotely."}),
+                 "reference/good-remote/tree/src/strings.js": "// REPAIRED\nmodule.exports = {};\n"}
+        scenario(self.cases, "validate-existing", "verify", GOOD, files)
         sc = sb.load("validate-existing/verify", self.cases)
         planted, controls = [row["id"] for row in GOOD["planted"]], [row["id"] for row in GOOD["controls"]]
         found = {}
         for name in sb.reference_names(sc):
             bundle, meta = sb.reference_bundle(sc, name, self.temp / "tmp")
             found[name] = (stage_oracle.verdict(planted, controls, stage_oracle.run_checks(sc.data["oracle"], bundle)), meta)
-        self.assertTrue(found["good"][0]["pass"], found["good"][0])
+        for name in ("good", "good-local", "good-remote"):
+            self.assertTrue(found[name][0]["pass"], name)
         for name, (verdict, meta) in found.items():
-            if name != "good":
+            if name.startswith("bad-"):
                 self.assertFalse(verdict["pass"], name)
                 failed = [ident for ident, ok in {**verdict["caught"], **verdict["held"]}.items() if ok is False]
                 self.assertEqual(failed, meta["fails"], name)
@@ -522,6 +585,139 @@ class Builds(unittest.TestCase):
 
     def out(self, sid: str) -> Path:
         return self.box / sid.replace("/", "-")
+
+    def _ui_request_is_preserved(self, sc, built):
+        request = sb._buildable(sc)
+        specification = (built.worktree / "docs" / "shiploop" / "spec.md").read_text(encoding="utf-8")
+        self.assertIn(request["prompt"], specification,
+                      f"{sc.id}: the current request prompt must occur literally in the composed seeded spec")
+
+    def _overlay_reference(self, sc, built, name, output):
+        reference = sc.dir / "reference" / name
+        root = built.worktree.resolve()
+        root.relative_to(output.resolve())
+        if (reference / "tree").is_dir():
+            sb._lay(reference / "tree", root)
+        deleted = reference / "deleted.txt"
+        if deleted.is_file():
+            for relative in sb._deleted(deleted):
+                problem = sb._safe_path(relative)
+                if problem:
+                    raise ValueError(f"reference/{name}/deleted.txt path {relative!r} {problem}")
+                target = root / relative
+                try:
+                    target.parent.resolve().relative_to(root)
+                except ValueError as exc:
+                    raise ValueError(
+                        f"reference/{name}/deleted.txt path {relative!r} escapes through a symlink"
+                    ) from exc
+                if not (target.exists() or target.is_symlink()):
+                    raise FileNotFoundError(
+                        f"reference/{name}/deleted.txt path {relative!r} is absent from the target tree"
+                    )
+                if target.is_dir() and not target.is_symlink():
+                    shutil.rmtree(target)
+                else:
+                    target.unlink()
+
+    def _real_check(self, built, result, label):
+        before = store.read_record(built.run_dir / "state.md")
+        action_id = str(navigator.current_action(before)["id"])
+        inbox = built.run_dir / "inbox" / f"{action_id}.md"
+        inbox.parent.mkdir(parents=True, exist_ok=True)
+        inbox.write_text(store.dumps(result, "Stage-suite UI result"), encoding="utf-8")
+        env = {
+            **os.environ,
+            "HOME": str(self.home),
+            "XDG_CONFIG_HOME": str(self.home / ".config"),
+            "XDG_STATE_HOME": str(self.home / "state"),
+            "SHIPLOOP_PROGRESS": "off",
+        }
+        (self.home / "state").mkdir(parents=True, exist_ok=True)
+        checked = subprocess.run(
+            [sys.executable, str(built.cli), "check", "--run-dir", str(built.run_dir), "--action", action_id],
+            cwd=built.worktree, env=env, capture_output=True, text=True,
+        )
+        self.assertEqual(checked.returncode, 0,
+                         f"{label}: shiploop check refused the result\nstdout:\n{checked.stdout}\nstderr:\n{checked.stderr}")
+        self.assertIn("every script gate accepts this result now", checked.stdout, label)
+        after = store.read_record(built.run_dir / "state.md")
+        self.assertEqual(after["accepted"], before["accepted"], f"{label}: check accepted nothing")
+        self.assertEqual(after["history"], before["history"], f"{label}: check recorded no history")
+
+    def _check_seeded_step_plan(self, sc, output, number):
+        seed = (sc.data.get("seed_records") or {}).get("step-plan")
+        if seed is None:
+            return number
+        folder = output / "companions" / f"{number:03d}-{sc.id.replace('/', '-')}-step-plan-seed"
+        folder.mkdir(parents=True)
+        for name in ("repo", "notes"):
+            source = sc.dir / name
+            if source.is_dir():
+                shutil.copytree(source, folder / name)
+        data = copy.deepcopy(sc.data)
+        data["stage"] = "step-plan"
+        data["seed_records"] = {"step-plan": copy.deepcopy(seed)}
+        companion = replace(sc, id=sc.id + "/step-plan-seed", name=sc.name + "-step-plan-seed",
+                            stage="step-plan", dir=folder, data=data)
+        built = sb.build(companion, folder / "run")
+        self.assertEqual(navigator.current_stage(store.read_record(built.run_dir / "state.md")), "step-plan",
+                         f"{sc.id}: companion must stop before the seeded step-plan result")
+        self._ui_request_is_preserved(companion, built)
+        self._real_check(built, copy.deepcopy(seed), f"{sc.id} seed_records.step-plan")
+        return number + 1
+
+    def _assert_implement_shape_only(self, sc, built, result, label):
+        """Check result shape only; this deliberately does not run implement's browser Proof gate."""
+        state = store.read_record(built.run_dir / "state.md")
+        self.assertEqual(navigator.current_stage(state), "implement", f"{label}: target stage")
+        action_id = str(navigator.current_action(state)["id"])
+        accepted = navigator.apply(state, action_id, result)
+        if accepted["active_improve"] is not None:
+            accepted = navigator.finish_improve(
+                accepted,
+                action_id,
+                {
+                    "summary": f"Synthetic Improve receipt for {sc.stage}; no Improve run was executed.",
+                    "review_refs": [f"synthetic://review/{sc.stage}"],
+                    "check_refs": [f"synthetic://check/{sc.stage}"],
+                    "lessons": "Synthetic receipt only; no review algorithm was run.",
+                },
+                final_result=result,
+            )
+        self.assertIn(action_id, accepted["accepted"], f"{label}: result shape was not accepted by navigator.apply")
+
+    @unittest.skipUnless(shutil.which("node"), "inline stage request seeds require Node")
+    def test_an_inline_request_builds_with_its_overlays_without_mutating_inputs(self):
+        data = copy.deepcopy(GOOD)
+        data.pop("request_from")
+        request = copy.deepcopy(INLINE_REQUEST)
+        request["prompt"] = "Use the inline request to repair the broken expectation."
+        data["request"] = copy.deepcopy(request)
+        seed_records = records(E1, E2)
+        data["seed_records"] = copy.deepcopy(seed_records)
+        folder = scenario(self.cases, "validate-existing", "inline-request", data,
+                          {**GOOD_FILES, "repo/src/strings.js": "module.exports = {};\n"})
+        sc = sb.load("validate-existing/inline-request", self.cases)
+        before = copy.deepcopy(sc.data)
+
+        case = sb._buildable(sc)
+        self.assertEqual(case, request)
+        self.assertIsNot(case, sc.data["request"])
+        self.assertIsNot(case["work_item"], sc.data["request"]["work_item"])
+        self.assertIsNot(case["checks"], sc.data["request"]["checks"])
+        built = sb.build(sc, self.temp / "inline-request-build")
+        state = store.read_record(built.run_dir / "state.md")
+
+        self.assertTrue(built.issued)
+        self.assertEqual(navigator.current_stage(state), "validate-existing")
+        self.assertEqual(state["work_items"], [request["work_item"]])
+        self.assertEqual((built.worktree / "src" / "strings.js").read_text(), "module.exports = {};\n")
+        self.assertIn(request["prompt"], (built.worktree / "docs" / "shiploop" / "spec.md").read_text())
+        self.assertIn("node --test", (built.worktree / "docs" / "shiploop" / "environment.md").read_text())
+        self.assertEqual(sc.data, before, "building leaves request and nested seed records unchanged")
+        self.assertEqual(sc.data["request"], request)
+        self.assertEqual(sc.data["seed_records"], seed_records)
 
     def test_a_build_through_a_symlinked_folder_spells_each_path_one_way(self):
         # ShipLoop records the execution checkout resolved; the run folder came from `out` as given. macOS's /var/folders
@@ -612,6 +808,36 @@ class Builds(unittest.TestCase):
         self.assertEqual((bundle.notes / "earlier.md").read_text(), "Left by an earlier stage.\n", "notes/ is laid into RUN/notes")
         checks = [{"proves": "P1", "file": "src/added.js", "exists": True}, {"proves": "P1", "packet_contains": "src/added.js"}]
         self.assertTrue(stage_oracle.verdict(["P1"], [], stage_oracle.run_checks(checks, bundle))["pass"])
+
+    @unittest.skipUnless(shutil.which("node"), "ui-contract target-stage seeds require Node")
+    def test_shipped_ui_good_references_pass_the_real_check_gates_except_implement(self):
+        output = self.temp / "ui-contract-checks"
+        stages = {"step-plan", "test-spec", "document", "implement"}
+        cases = [sc for sc in sb.discover() if "ui-contract" in sc.tags and sc.stage in stages]
+        self.assertTrue(cases, "the shipped ui-contract selector must name a target-stage scenario")
+        built_count = 0
+        for sc in cases:
+            with self.subTest(scenario=sc.id):
+                built_count = self._check_seeded_step_plan(sc, output, built_count)
+                references = [name for name in sb.reference_names(sc)
+                              if name == "good" or name.startswith("good-")]
+                self.assertIn("good", references, f"{sc.id}: reference/good is required")
+                for name in references:
+                    with self.subTest(scenario=sc.id, reference=name):
+                        run_out = output / f"{built_count:03d}-{sc.stage}-{sc.name}-{name}"
+                        built = sb.build(sc, run_out)
+                        built_count += 1
+                        state = store.read_record(built.run_dir / "state.md")
+                        self.assertEqual(navigator.current_stage(state), sc.stage,
+                                         f"{sc.id} was not built at its target stage")
+                        self._ui_request_is_preserved(sc, built)
+                        result = json.loads((sc.dir / "reference" / name / "result.json").read_text(encoding="utf-8"))
+                        self._overlay_reference(sc, built, name, run_out)
+                        if sc.stage == "implement":
+                            self._assert_implement_shape_only(sc, built, result, f"{sc.id} reference/{name}")
+                        else:
+                            self._real_check(built, result, f"{sc.id} reference/{name}")
+        self.assertGreater(built_count, 0)
 
     def test_a_seed_past_document_has_the_steps_commit_and_the_scenarios_delegation(self):
         built = self.carried

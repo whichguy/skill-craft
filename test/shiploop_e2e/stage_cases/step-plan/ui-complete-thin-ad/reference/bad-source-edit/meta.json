@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "C2"
+  ],
+  "why": "Planning edits the product implementation."
+}

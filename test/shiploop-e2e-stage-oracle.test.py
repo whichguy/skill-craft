@@ -14,12 +14,14 @@ the engine's design points:
   link to the same bytes is changed; a fifo or other special file is an entry too); the file comparison has no cache; a glob
   matches a name with a newline and a path written with ``./`` or ``//``.
 - A ``command`` runs in a scratch copy (regular files only; the tree is never touched; a symlink that leaves the copy is left
-  out, so nothing can be written through it), stdin closed, a reduced environment, a scratch HOME and TMPDIR; a timeout kills its whole process group
+  out, so nothing can be written through it), stdin closed, a reduced environment, a scratch HOME and TMPDIR; the bundle result
+  and optional ``scenario/oracle/`` helpers are separate read-only inputs; a timeout kills its whole process group
   and fails the check whatever exit was asked for; so does a flood of output, which is also never read whole; "nonzero" is not
   satisfied by a shell that could not run the command; the scratch folder is gone afterwards.
 - A ``stand_in`` that kills is shown on a candidate on which the command passes: a command that already fails there kills nothing.
 - ``[*]``, ``any``, a missing key and the "at least one value" rule behave as the shared contract says.
-- ``verdict`` separates caught, missed, not exercised, an unproved failure, and an id that two checks prove of which one fails.
+- ``verdict`` separates caught, missed, not exercised, an unproved failure, and an id that two checks prove of which one fails;
+  a broken private ``STAGE_ORACLE`` helper is reported as apparatus error / indeterminate, not as a candidate miss.
 - The engine, the stage cases and the stage suite's other files are outside the evaluator digest and the qualification
   snapshot, as the probes are (test/shiploop-e2e-sdlc-probes.test.py).
 """
@@ -779,10 +781,124 @@ class Commands(Base):
                  "ok = ok and os.path.isdir(os.environ['HOME']) and os.environ['HOME'] != " + repr(os.environ.get("HOME", "")) + "\n"
                  "ok = ok and not os.path.realpath(os.getcwd()).startswith(os.path.realpath(os.environ['HOME']))\n"
                  "sys.exit(0 if ok else 1)\n")
-        with mock.patch.dict(os.environ, {"SECRET_TOKEN": "s3cret", "GIT_DIR": "/nowhere", "TMPDIR": str(self.scratch_home)}):
+        with mock.patch.dict(os.environ, {"SECRET_TOKEN": "s3cret", "GIT_DIR": "/nowhere", "TMPDIR": str(self.scratch_home),
+                                          "STAGE_RESULT": "/host/secret-result.json", "STAGE_ORACLE": "/host/secret-oracle"}):
             found = self.passes({"command": py(probe), "exit": 0})
         self.assertNotIn("s3cret", found["detail"])
         self.assertEqual(self.scratch_left(), [])
+
+    def test_a_command_gets_the_result_and_oracle_helpers_as_read_only_inputs_outside_the_tree(self):
+        scenario = lay(self.dir / "scenario", {"oracle/probe.py": (
+            "import json, os, pathlib, sys\n"
+            "result = pathlib.Path(os.environ['STAGE_RESULT'])\n"
+            "oracle = pathlib.Path(os.environ['STAGE_ORACLE'])\n"
+            "cwd = pathlib.Path.cwd().resolve()\n"
+            "helper = oracle / 'probe.py'\n"
+            "ok = json.loads(result.read_text()) == {'outcome': 'done', 'answer': 42}\n"
+            "ok = ok and not (result.stat().st_mode & 0o222) and not (result.parent.stat().st_mode & 0o222)\n"
+            "ok = ok and not (helper.stat().st_mode & 0o222) and not (oracle.stat().st_mode & 0o222)\n"
+            "ok = ok and pathlib.Path(os.path.commonpath([str(cwd), str(result.resolve())])) != cwd\n"
+            "ok = ok and pathlib.Path(os.path.commonpath([str(cwd), str(helper.resolve())])) != cwd\n"
+            "ok = ok and not any(key in os.environ for key in ('SECRET_TOKEN', 'GIT_DIR'))\n"
+            "sys.exit(0 if ok else 1)\n")})
+        before = (snapshot(self.tree), snapshot(scenario))
+        bundle = self.bundle(result={"outcome": "done", "answer": 42}, scenario_dir=scenario)
+        command = f"{shlex.quote(sys.executable)} -B \"$STAGE_ORACLE/probe.py\""
+        with mock.patch.dict(os.environ, {"SECRET_TOKEN": "s3cret", "GIT_DIR": "/host/private",
+                                          "STAGE_RESULT": "/host/secret-result.json", "STAGE_ORACLE": "/host/secret-oracle"}):
+            found = self.passes({"command": command, "exit": 0}, result=bundle.result, scenario_dir=scenario)
+        self.assertNotIn("s3cret", found["detail"])
+        self.assertEqual((snapshot(self.tree), snapshot(scenario)), before)
+        self.assertEqual(self.scratch_left(), [])
+
+    def test_a_private_helper_crash_is_indeterminate_but_an_intentional_nonzero_is_ordinary(self):
+        scenario = lay(self.dir / "helper-errors", {
+            "oracle/crash.py": (
+                "import os\n"
+                "os.write(1, b'X' * 3000)\n"
+                "source = '\\n'.join([f'def f{i}(): return f{i + 1}()' for i in range(250)] +\n"
+                "                  ['def f250(): raise RuntimeError(\\\"helper bug\\\")'])\n"
+                "exec(source)\n"
+                "f0()\n"),
+            "oracle/expected_failure.py": "raise SystemExit(1)\n",
+        })
+        command = f"{shlex.quote(sys.executable)} -B \"$STAGE_ORACLE/crash.py\""
+        failed = self.fails({"proves": "P1", "command": command, "exit": "nonzero"},
+                            "uncaught exception in STAGE_ORACLE helper", scenario_dir=scenario)
+        self.assertTrue(failed["apparatus_error"])
+        self.assertNotIn("Traceback", failed["detail"], "the traceback header is beyond the retained output tail")
+        found = verdict(["P1"], [], [failed])
+        self.assertEqual(found["caught"], {"P1": None})
+        self.assertEqual(found["unproved_failures"], [])
+        self.assertEqual(len(found["apparatus_errors"]), 1)
+        self.assertFalse(found["pass"])
+
+        intentional = self.passes(
+            {"proves": "P1", "command": f"{shlex.quote(sys.executable)} -B \"$STAGE_ORACLE/expected_failure.py\"",
+             "exit": "nonzero"}, scenario_dir=scenario)
+        self.assertNotIn("apparatus_error", intentional)
+        self.assertEqual(verdict(["P1"], [], [intentional])["caught"], {"P1": True})
+
+    def test_a_missing_private_helper_is_not_a_declared_candidate_failure(self):
+        scenario = lay(self.dir / "missing-helper", {
+            "oracle/present.py": "raise SystemExit(0)\n",
+            "oracle/syntax.py": "def broken(:\n    pass\n",
+        })
+        cases = (("missing.py", "STAGE_ORACLE helper could not be run"),
+                 ("syntax.py", "STAGE_ORACLE helper has invalid Python syntax"))
+        for helper, reason in cases:
+            with self.subTest(helper=helper):
+                command = f"{shlex.quote(sys.executable)} -B \"$STAGE_ORACLE/{helper}\""
+                found = self.fails({"proves": "P1", "command": command, "exit": "nonzero"},
+                                   reason, scenario_dir=scenario)
+                self.assertTrue(found["apparatus_error"])
+                settled = verdict(["P1"], [], [found])
+                self.assertIsNone(settled["caught"]["P1"])
+                self.assertFalse(settled["pass"])
+
+    def test_helper_errors_remain_indeterminate_through_a_symlinked_temporary_directory(self):
+        alias = self.dir / "scratch-alias"
+        alias.symlink_to(self.scratch_home, target_is_directory=True)
+        scenario = lay(self.dir / "aliased-helper", {
+            "oracle/crash.py": "raise RuntimeError('helper bug')\n",
+            "oracle/syntax.py": "def broken(:\n    pass\n",
+        })
+        with mock.patch.object(tempfile, "tempdir", str(alias)):
+            for helper in ("crash.py", "syntax.py", "missing.py"):
+                with self.subTest(helper=helper):
+                    command = f"{shlex.quote(sys.executable)} -B \"$STAGE_ORACLE/{helper}\""
+                    found = self.run_one({"proves": "P1", "command": command, "exit": "nonzero"},
+                                         scenario_dir=scenario)
+                    self.assertFalse(found["pass"], found)
+                    self.assertTrue(found.get("apparatus_error"), found)
+                    self.assertIsNone(verdict(["P1"], [], [found])["caught"]["P1"])
+        self.assertEqual(self.scratch_left(), [])
+
+    def test_absent_stage_inputs_do_not_inherit_host_paths(self):
+        probe = py("import os, sys; sys.exit(0 if 'STAGE_RESULT' not in os.environ and 'STAGE_ORACLE' not in os.environ else 1)")
+        with mock.patch.dict(os.environ, {"STAGE_RESULT": "/host/secret-result.json", "STAGE_ORACLE": "/host/secret-oracle"}):
+            self.passes({"command": probe, "exit": 0})
+        self.assertEqual(self.scratch_left(), [])
+
+    def test_a_readonly_preparation_failure_stops_before_the_command_launches(self):
+        scenario = lay(self.dir / "readonly-helper", {"oracle/probe.py": "raise SystemExit(0)\n"})
+        for method in ("chmod", "lstat"):
+            with self.subTest(method=method, helper=False), \
+                    mock.patch.object(Path, method, side_effect=PermissionError(f"{method} denied")), \
+                    mock.patch.object(oracle, "_execute") as execute:
+                self.fails({"command": "true", "exit": 0}, "could not make stage inputs read-only",
+                           result={"outcome": "done"})
+                execute.assert_not_called()
+            self.assertEqual(self.scratch_left(), [])
+            with self.subTest(method=method, helper=True), \
+                    mock.patch.object(Path, method, side_effect=PermissionError(f"{method} denied")), \
+                    mock.patch.object(oracle, "_execute") as execute:
+                found = self.fails({"proves": "P1", "command": "true", "exit": 0},
+                                   "could not prepare STAGE_ORACLE helper inputs", result={"outcome": "done"},
+                                   scenario_dir=scenario)
+                self.assertTrue(found["apparatus_error"])
+                execute.assert_not_called()
+            self.assertEqual(self.scratch_left(), [])
 
     def test_a_timeout_kills_the_command_fails_the_check_whatever_exit_was_asked_for(self):
         for wanted in (0, "nonzero", 137):
@@ -936,6 +1052,34 @@ class StandIns(Base):
         self.assertEqual((snapshot(self.tree), snapshot(self.scenario)), before)
         self.passes(self.stand(command="grep -q 'return 0' calc.py", kills=False), scenario_dir=self.scenario)
         self.passes({"command": "grep -q 'a + b' calc.py", "exit": 0}, scenario_dir=self.scenario)
+
+    def test_a_stand_in_command_gets_the_result_and_helpers_on_both_runs(self):
+        probe = (
+            "import json, os, pathlib, sys\n"
+            "result = pathlib.Path(os.environ.get('STAGE_RESULT', '/missing'))\n"
+            "oracle = pathlib.Path(os.environ.get('STAGE_ORACLE', '/missing'))\n"
+            "helper = oracle / 'marker.txt'\n"
+            "ok = result.is_file() and json.loads(result.read_text()) == {'outcome': 'done'}\n"
+            "ok = ok and helper.is_file() and helper.read_text() == 'helper-v1\\n'\n"
+            "ok = ok and not (result.stat().st_mode & 0o222) and not (helper.stat().st_mode & 0o222)\n"
+            "if not ok:\n"
+            "    print('inputs missing')\n"
+            "    raise SystemExit(2)\n"
+            "candidate = 'return a + b' in pathlib.Path('calc.py').read_text()\n"
+            "print('inputs ok; ' + ('candidate' if candidate else 'stand-in'))\n"
+            "raise SystemExit(0 if candidate else 1)\n")
+        lay(self.scenario, {"oracle/marker.txt": "helper-v1\n"})
+        before = (snapshot(self.tree), snapshot(self.scenario))
+        check = self.stand(command=f"{shlex.quote(sys.executable)} -B -c {shlex.quote(probe)}")
+        found = self.passes(check, result={"outcome": "done"}, scenario_dir=self.scenario)
+        self.assertIn("inputs ok; stand-in", found["detail"])
+        self.assertEqual((snapshot(self.tree), snapshot(self.scenario)), before)
+
+    def test_a_scenario_oracle_folder_that_resolves_outside_is_not_read(self):
+        (self.scenario / "oracle").symlink_to(self.outside, target_is_directory=True)
+        found = self.fails({"command": "true", "exit": 0}, "resolves outside", result={"outcome": "done"},
+                           scenario_dir=self.scenario)
+        self.assertNotIn("TOP-SECRET", found["detail"])
 
     def test_a_command_that_never_ran_or_timed_out_kills_nothing(self):
         self.fails(self.stand(command="no-such-command-xyz"), "said nothing", scenario_dir=self.scenario)

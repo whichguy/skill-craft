@@ -1,0 +1,8 @@
+{
+  "fails": [
+    "P1",
+    "P2",
+    "C2"
+  ],
+  "why": "The repository has no saved AD-2 to select, and the record is changed."
+}

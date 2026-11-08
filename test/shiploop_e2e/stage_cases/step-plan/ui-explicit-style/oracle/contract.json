@@ -1,0 +1,22 @@
+{
+  "mode": "explicit",
+  "ui_paths": [
+    "index.html",
+    "styles.css",
+    "src/board-ui.mjs"
+  ],
+  "allowed_paths": [
+    "docs/shiploop/architecture.md",
+    "index.html",
+    "styles.css",
+    "src/board-ui.mjs",
+    "test/board-state.test.mjs",
+    "scripts/check-selected-square-summary-browser.mjs"
+  ],
+  "required_paths": [
+    "index.html",
+    "styles.css",
+    "src/board-ui.mjs",
+    "test/board-state.test.mjs"
+  ]
+}

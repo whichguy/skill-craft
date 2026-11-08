@@ -1,0 +1,7 @@
+{
+  "fails": [
+    "P1",
+    "P2"
+  ],
+  "why": "The criterion uses AD anchors but the accepted plan does not retain AD-2 in follows."
+}

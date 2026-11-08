@@ -1,0 +1,4 @@
+{
+  "fails": ["P1", "P2", "C2"],
+  "why": "The plan replaces the current chat identity with a new default direction instead of deriving the AD from existing tokens and components."
+}

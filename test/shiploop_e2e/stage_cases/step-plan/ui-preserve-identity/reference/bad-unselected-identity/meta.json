@@ -1,0 +1,4 @@
+{
+  "fails": ["P2"],
+  "why": "The visual criterion cites the AD but omits its exact section, existing token/component selections and rendered checks."
+}

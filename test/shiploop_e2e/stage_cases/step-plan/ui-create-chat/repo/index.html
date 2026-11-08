@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Local chat</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main id="chat-layout">
+    <aside id="conversation-panel" aria-label="Conversation list">
+      <h1>Messages</h1>
+      <nav id="conversation-list" aria-label="Conversations"></nav>
+    </aside>
+    <section id="chat-panel" aria-label="Selected conversation">
+      <header><h2 id="active-conversation">Choose a conversation</h2></header>
+      <ol id="message-list" aria-live="polite"></ol>
+      <form id="chat-form">
+        <label for="message-input">Message</label>
+        <input id="message-input" name="message" autocomplete="off">
+        <button id="send-message" type="submit">Send</button>
+        <p id="chat-status" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
+  <script type="module" src="src/chat-ui.mjs"></script>
+</body>
+</html>

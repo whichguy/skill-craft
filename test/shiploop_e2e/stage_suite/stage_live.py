@@ -26,7 +26,7 @@ readers find the run in it. This is what the runner writes there (a host may add
     resources.jsonl              the ledger of the process groups the sample started and ended (lifecycle.py)
     drive.json                   how the resume loop ended
     stage-result.json            the verdicts (rewritten by every regrade)
-    error.txt                    only when the sample could not be run: why
+    error.txt                    when the sample could not run or its oracle was indeterminate: why
     export-error.txt             only when the end export failed (every check that reads the tree then fails)
 
 The stop (``accepted_reached``): the host is ended as soon as the SEEDED ACTION is accepted with ANY outcome (done, send-back,
@@ -64,7 +64,11 @@ scenario's ``oracle`` checks run on it, and the verdicts are
 ``caught`` and ``held`` are per id. An id is caught or held only when the seeded action was accepted: a host that delivered no
 output holds no control by doing nothing, so its ids are all False (the raw check results are kept under ``checks``). ``value``
 is the fraction of planted and control ids caught or held: a per-sample number suitable for handing to ``experiment.py decide``
-(no code reads stage-result.json today). ``pass`` needs every verdict, every id caught or held.
+(no code reads stage-result.json today). It is ``null`` when a private helper error makes the result indeterminate. ``pass`` needs
+every verdict, every id caught or held.
+
+When a private ``STAGE_ORACLE`` helper crashes or cannot be run, the result records ``oracle_status: indeterminate``, its error,
+and affected ids under ``indeterminate_ids``. This is not a candidate miss; the report excludes that sample from graded outcomes.
 
 No credential is written here: ``invocation.json`` holds what slice.py's holds (no environment), and nothing else in a sample
 folder is read from the host's environment.
@@ -599,13 +603,22 @@ def grade_sample(sc: sb.Scenario, out: Path, *, regraded: bool = True) -> dict:
         **{key: invocation.get(key) for key in IDENTITY}, "output": str(out), "regraded": regraded,
         "sessions": sessions, "resume_stop": drive_record.get("resume_stop"), "resumes": drive_record.get("resumes", 0),
         "settles": drive_record.get("settles", []), "abandoned": bool(drive_record.get("abandoned")),
-        "verdicts": verdicts, "caught": caught, "held": held, "value": (hits / total) if total else (1.0 if verdicts["oracle"] else 0.0),
+        "verdicts": verdicts, "caught": caught, "held": held,
+        "value": None if found["apparatus_errors"] else (hits / total) if total else (1.0 if verdicts["oracle"] else 0.0),
         "outcome": (bundle.result or {}).get("outcome"), "result_source": source, "overshoot": over,
         "run_status": (state or {}).get("status"), "stage_at_stop": bundle.current_stage,
         "tree": bundle.tree is not None and bundle.seed_tree is not None,
-        "checks": [{"proves": row["proves"], "kind": row["kind"], "pass": row["pass"], "detail": row["detail"]} for row in results],
+        "checks": [{"proves": row["proves"], "kind": row["kind"], "pass": row["pass"], "detail": row["detail"],
+                    **({"apparatus_error": True} if row.get("apparatus_error") is True else {})} for row in results],
         "unproved_failures": found["unproved_failures"],
     }
+    if found["apparatus_errors"]:
+        document.update({
+            "oracle_status": "indeterminate",
+            "apparatus_errors": found["apparatus_errors"],
+            "indeterminate_ids": sorted({row["proves"] for row in results
+                                          if row.get("apparatus_error") is True and isinstance(row.get("proves"), str)}),
+        })
     document["pass"] = all(verdicts.values()) and all(caught.values()) and all(held.values())
     _write(out / RESULT, document)
     return document
