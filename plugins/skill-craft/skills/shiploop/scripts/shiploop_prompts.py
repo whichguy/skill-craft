@@ -121,11 +121,12 @@ def recovery_pointer(command: str) -> str:
 def packet_pointer(path: object, head_end: str) -> str:
     """The second pointer line: the packet file, when to open it, what it holds, and how to use its References block.
 
-    ``head_end`` is the line every complete print ends with, so a reader can tell a cut print from a whole one.  The lookup
+    ``head_end`` detects a cut tail; a host can preserve it while eliding the middle. The pointer names both cases. The lookup
     rule (open only the section a step needs, never a whole reference file, do not re-read the skill card) is said here once.
     """
-    return (PACKET_POINTER_PREFIX + str(path) + " - open it with a file tool, not the shell, when this print was cut (a "
-            "complete print ends with the line " + head_end + "); it also holds the "
+    return (PACKET_POINTER_PREFIX + str(path) + " - open it with a file tool, not the shell, before acting if output is "
+            "truncated, elided or missing the closing line " + head_end + ". The closing line does not rule out a middle cut. "
+            "The file also holds the "
             "hand-offs, the knowledge files' contents and the request or its file. Its References block lists the other "
             "references and what each holds; open only the section a step needs, never a whole reference file, and do not "
             "re-read the ShipLoop skill card.")
@@ -1223,10 +1224,12 @@ DUTIES = {
     on the affected item unless they need their own change. Add no item for step planning, validation, build, test,
     documentation, verification, commit or review (each item already gets them). Keep a cross-item or
     later-environment check at the boundary where it is due.
-15. Per dependency name the supplier and the concrete output or state the consumer needs. Authoring an artifact
-    differs from applying it in a running environment. A shared topic, list order or shared file is no dependency.
-    Record independent branches and file or resource conflicts in `summary` (an isolated workspace does not make
-    parallel work safe). ShipLoop runs the queue one item at a time, so put each prerequisite before its consumers.
+15. Per dependency name the supplier and concrete output or state needed. Share one supplier among actual consumers
+    of the same need, with a readiness check in their `context`. Keep it with its first consumer unless an independently
+    checkable result or lifecycle boundary warrants a separate item. Order it after its prerequisites and before its
+    consumers. An authored artifact differs from applied state; shared topics, files or list order imply no dependency.
+    Record independent branches and file or resource conflicts in `summary`; isolation alone is not parallel safety.
+    ShipLoop runs the queue serially.
 16. Return the load-bearing `assumptions`, starting from RUN/notes/research.md ## Assumptions and the discovery
     notes, with exactly the template's fields per disposition (evidenced: `evidence`; probed: `check`, `evidence`;
     open: `due_item`, `reason`, `settle`). An open assumption's `due_item` is the `work_items` ID that settles it.
@@ -1269,7 +1272,10 @@ DUTIES = {
     "step-plan": """\
 Change no product file in this stage.
 
-1. **Recheck the item.** Reopen its `context` and recheck each condition. If the plan no longer requires it, report
+1. **Recheck the item.** Reopen its `context` and recheck each condition. Check shared prerequisites against the
+   supplier's recorded result and current architecture/environment evidence. Reuse established state; implement only
+   the item's remaining change, and route missing prerequisites outside the item through the blocked route below.
+   If the plan no longer requires it, report
    blocked (`awaiting` an answer: drop or keep) citing the superseding result; never skip the item
    or repair the queue here. Keep the change inside the item: available APIs and other parts of the request do not
    widen it. A prerequisite outside the item gets its supplier route in the summary and the blocked outcome.

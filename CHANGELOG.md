@@ -2,6 +2,16 @@
 
 Written by scripts/release.py.
 
+## 2026-11-07
+
+### skill-craft 2.35.1
+
+- Skills: shiploop 1.33.1
+
+### shiploop 1.33.1
+
+- Plan shared prerequisites once and recheck their current state for each consumer. Print complete action packets without a length-based cutoff, keep owner notes early, and provide saved-file recovery when a host truncates output.
+
 ## 2026-11-05
 
 ### skill-craft 2.35.0
