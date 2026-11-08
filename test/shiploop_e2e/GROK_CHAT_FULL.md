@@ -80,4 +80,3 @@ Record observed outcomes, missing evidence and calibration results separately. T
 Let the harness finish its default app cleanup before removing operator-owned credential resources. Use resource identities and the ownership ledger, preserve unrelated configuration, and verify the org baseline again. If cleanup fails or a deployment is still running, retain the failure and resolve it before a fresh attempt. Use a new output directory; never overwrite a failed attempt or erase its measurements.
 
 Before closing the run, scan retained source and logs for the known key without printing it, and retain only the match count and scanned scope. Report auth, provider, functional acceptance, quality, delivery and cleanup as separate claims.
-

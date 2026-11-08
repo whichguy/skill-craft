@@ -1211,4 +1211,3 @@ private class SLGrokChatOracleTest {
         System.assertEquals(beforeIds.size(), afterIds.size());
     }
 }
-

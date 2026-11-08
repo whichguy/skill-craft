@@ -476,4 +476,3 @@ class RulesAdapterTest(HermeticTest):
 
 if __name__ == "__main__":
     unittest.main()
-
