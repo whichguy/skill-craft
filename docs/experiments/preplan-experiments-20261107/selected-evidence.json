@@ -1,0 +1,111 @@
+{
+  "scope": "Five selected historical accepted result preambles and five explanatory events from one recent live run. These are retained observations, not a fresh runtime verification.",
+  "event_stream_sha256": "55792cf95e1b5011b9f8976fa1e422693f244a70b9d77e8cafbce4fe0e0ecd33",
+  "records": [
+    {
+      "id": "repeatable-proof",
+      "source": "/Users/dadleet/e2e-runs-hostonly/20261031/ui-live-2/battleship-run/inbox/nav-347203ce27974f74a40245e11dc71222.md",
+      "sha256": "e176656d01e04d2bdcc8ef57c7f148ede1a84c15ed7e3b7ea5129afdbf514ec1",
+      "source_lines": [
+        1,
+        12
+      ],
+      "excerpt": "```shiploop-state\n{\n  \"outcome\": \"send-back\",\n  \"headline\": \"Make the permission assignment proof repeatable\",\n  \"summary\": \"The UI and named metadata are deployed, the permission set was assigned successfully, and direct battleship-ui passed with 91 shots, five sinks, victory and reset. The planned UI proof unconditionally reassigns that permission set; repeated runs fail with Duplicate PermissionSetAssignment before reaching the browser. Amend the proof to verify an existing exact assignment or assign if absent, and still run the complete UI check. Earlier tests passed 10/10.\",\n  \"evidence_refs\": [\n    \"/Users/dadleet/e2e-runs-hostonly/20261031/ui-live-2/battleship-run/loops/nav-347203ce27974f74a40245e11dc71222-terminal.json\",\n    \"/Users/dadleet/e2e-runs-hostonly/20261031/ui-live-2/battleship-run/notes/nav-347203ce27974f74a40245e11dc71222.md\",\n    \"/Users/dadleet/e2e-runs-hostonly/20261031/ui-live-2/platform/battleship-ui/builder/e67578b71e9f45b298b33d45dc95218c/observation.json\"\n  ]\n}\n```\n",
+      "interpretation": "Proof repeatability after successful deployment and UI observation; not an unknown requiring new architecture."
+    },
+    {
+      "id": "future-board",
+      "source": "/Users/dadleet/e2e-runs-hostonly/20261031/sf-live-2/.shiploop-runs/work-20261101-014507-ffd2a3/run/inbox/nav-f2dbfca9bef8452d9bae8ac424637448.md",
+      "sha256": "f371bd68df2aa4d647a203c9ef22fe00448ba810ef80a8633818e035cd3988ad",
+      "source_lines": [
+        1,
+        10
+      ],
+      "excerpt": "```shiploop-state\n{\n  \"outcome\": \"send-back\",\n  \"headline\": \"Correct test ordering before continuing.\",\n  \"summary\": \"S1 minimum regression `node .../component-proof.cjs` cannot run: it imports the board assigned to later S3, and exits ENOENT. Move the board regression until after S3 and choose an S1-capable regression; retain the full engine proof and all user requirements. R-4 is not yet verifiable.\",\n  \"evidence_refs\": [\n    \"/Users/dadleet/e2e-runs-hostonly/20261031/sf-live-2/.shiploop-runs/work-20261101-014507-ffd2a3/run/loops/nav-f2dbfca9bef8452d9bae8ac424637448-terminal.json\"\n  ]\n}\n```\n",
+      "interpretation": "A regression imports a component assigned to a later step; sequence and ownership mismatch."
+    },
+    {
+      "id": "future-route",
+      "source": "/Users/dadleet/e2e-runs-xr/20261031/P-ticket-import-s2/.shiploop-runs/work-20261031-230254-d42cae/run/inbox/nav-669e0f7fb40d4437bb04c4603531fcbc.md",
+      "sha256": "df588a0978e321aa5b2f0a9e9483c295cccc3c4553bac05e4f1458b7d6067b25",
+      "source_lines": [
+        1,
+        10
+      ],
+      "excerpt": "```shiploop-state\n{\n  \"outcome\": \"send-back\",\n  \"headline\": \"Correct test ordering before implementing later steps\",\n  \"summary\": \"TC_1 and TC_2 specify HTTP route outcomes but S1 implements only validation; the HTTP route is scheduled for S3. Split validation tests from route tests so each stage can satisfy its own checks without future implementation.\",\n  \"evidence_refs\": [\n    \"/Users/dadleet/e2e-runs-xr/20261031/P-ticket-import-s2/.shiploop-runs/work-20261031-230254-d42cae/run/loops/nav-669e0f7fb40d4437bb04c4603531fcbc-terminal.json\"\n  ]\n}\n```\n",
+      "interpretation": "HTTP acceptance assigned before the route is built; not a feasibility discovery."
+    },
+    {
+      "id": "controller-response",
+      "source": "/Users/dadleet/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-01/.shiploop-runs/work-20261031-104327-2692a2/run/inbox/nav-480d3c8855144765b978d1bc9a2133d7.md",
+      "sha256": "71e4737e2fa82ef9356a19af567e5df577a919cceaa6b91f354788182d2c1543",
+      "source_lines": [
+        1,
+        3
+      ],
+      "excerpt": "```shiploop-state\n{\"outcome\": \"send-back\", \"summary\": \"S2 gym-ui proof repeatedly reports controller-response-invalid after a successful self-save; sequential refresh and UI readiness fixes did not resolve it. The bounded receipt gives no finer failing action. Replan a safe diagnostic route before further changes; UI acceptance R-6 remains unverified.\", \"evidence_refs\": [\"/Users/dadleet/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-01/.shiploop-runs/work-20261031-104327-2692a2/run/notes/nav-480d3c8855144765b978d1bc9a2133d7.md\"], \"headline\": \"Browser controller-response failure requires a diagnostic plan\"}\n```\n",
+      "interpretation": "Real post-build runtime uncertainty. Inadequate diagnostics do not establish a smaller pre-plan probe or causal prevention."
+    },
+    {
+      "id": "schema-coverage",
+      "source": "/Users/dadleet/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-02/.shiploop-runs/work-20261031-111656-6fa342/run/inbox/nav-333b1eea0cbe4eeb865784000f35f2cc.md",
+      "sha256": "4b4e367c9c58f9fb1c2972c1090ccc5d40790fa05ae0c1b0f337bc91c033bb43",
+      "source_lines": [
+        1,
+        10
+      ],
+      "excerpt": "```shiploop-state\n{\n  \"outcome\": \"send-back\",\n  \"headline\": \"Add an executable schema contract check\",\n  \"summary\": \"S1 adds object and field configuration but has no focused test case; deployment success alone cannot verify exact sharing, field definitions, restricted picklists and requiredness. Add a local executable metadata contract test to S1 and retain deployed schema proof, then assign a focused test ID. The controller and UI are not present yet, so their Apex and browser cases belong to S2.\",\n  \"evidence_refs\": [\n    \"/Users/dadleet/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-02/.shiploop-runs/work-20261031-111656-6fa342/run/notes/nav-4aeb2fef35b04baf8cd4e028470eb01a.md\"\n  ]\n}\n```\n",
+      "interpretation": "Missing focused metadata acceptance test; a coverage obligation, not an unknown platform mechanism."
+    },
+    {
+      "id": "chat-line-140",
+      "source": "/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/live-terra-xhigh-20261107T060511Z/run/events.jsonl",
+      "source_lines": [
+        140,
+        140
+      ],
+      "excerpt": "The specification review is complete, with no live behavior claimed. I\u2019m now mapping each requirement to native Apex and browser evidence and checking whether the available environment can actually drive a rendered UI.\n",
+      "interpretation": "Spec review complete; checking browser capability."
+    },
+    {
+      "id": "chat-line-151",
+      "source": "/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/live-terra-xhigh-20261107T060511Z/run/events.jsonl",
+      "source_lines": [
+        151,
+        151
+      ],
+      "excerpt": "The browser route is not yet usable: no browser automation connector or Playwright/Selenium package is exposed, and an isolated Chrome headless probe exited with a display-link error. The guarded `sf org open` route was explicitly refused because it would expose a session-bearing URL; I will not bypass that refusal. This does not establish that the app\u2019s UI or provider is unavailable\u2014it leaves those observations unverified.\n",
+      "interpretation": "Browser route unavailable is reported before plan; provider absence is explicitly not inferred."
+    },
+    {
+      "id": "chat-line-194",
+      "source": "/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/live-terra-xhigh-20261107T060511Z/run/events.jsonl",
+      "source_lines": [
+        194,
+        194
+      ],
+      "excerpt": "The test strategy now calls for assertions on matching tool-call IDs, exact record values, denial paths and replay behavior. Browser evidence remains explicitly open, while the source and target-native work stay in scope.\n",
+      "interpretation": "Test strategy keeps browser evidence open."
+    },
+    {
+      "id": "chat-line-229",
+      "source": "/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/live-terra-xhigh-20261107T060511Z/run/events.jsonl",
+      "source_lines": [
+        229,
+        229
+      ],
+      "excerpt": "The plan review found an ordering issue: the authorization tests need the app\u2019s permission set before the UI is built. I\u2019ve moved creation of that same single permission set into the server work, with the UI work adding its app access later; real assignment remains limited to the current CLI user.\n",
+      "interpretation": "Plan review repairs permission-set ordering, not previously undiscovered browser access."
+    },
+    {
+      "id": "chat-line-240",
+      "source": "/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/chess-improvement/grok-chat-case-20261106/live-terra-xhigh-20261107T060511Z/run/events.jsonl",
+      "source_lines": [
+        240,
+        240
+      ],
+      "excerpt": "The server work and UI are now ordered. I\u2019m preparing a small dependency-free local check for unsafe manual DOM rendering; it will supplement, but cannot replace, the still-unavailable rendered Lightning interaction checks.\n",
+      "interpretation": "Independent work proceeds while rendered interactions remain unavailable."
+    }
+  ]
+}
