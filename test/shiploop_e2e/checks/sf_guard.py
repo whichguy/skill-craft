@@ -82,6 +82,7 @@ can change it between this check and the CLI reading it.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -754,6 +755,75 @@ def deploy_scope_problems(rest_argv: list[str], cwd: str, prefix: str, permissio
 
 # ---------------------------------------------------------------------------------------------------------------- run
 
+def force_app_sha256(root: Path) -> str:
+    """Hash sorted repo-relative UTF-8 paths and file bytes, each followed by NUL."""
+    base = root / "force-app"
+    if not stat.S_ISDIR(base.lstat().st_mode):
+        raise ValueError("force-app must be a real directory")
+    directories = [base]
+    files = []
+    while directories:
+        for path in directories.pop().iterdir():
+            mode = path.lstat().st_mode
+            if stat.S_ISDIR(mode):
+                directories.append(path)
+            elif stat.S_ISREG(mode):
+                files.append(path)
+            else:
+                raise ValueError("force-app contains a symlink or special file")
+    if not files:
+        raise ValueError("force-app contains no files")
+
+    digest = hashlib.sha256()
+    for path in sorted(files):
+        digest.update(path.relative_to(root).as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        with os.fdopen(fd, "rb") as stream:
+            if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                raise ValueError("force-app contains a special file")
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(block)
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def deploy_source_root(argv: list[str]) -> Path | None:
+    """Recognize a canonical full-source deployment for attestation only."""
+    words, rest = command_words(argv)
+    if words != ("project", "deploy", "start"):
+        return None
+    # Only attest understood flags. In particular, help, dry-run, async, ignore-errors,
+    # and alternate source selectors can never produce a full-package receipt.
+    value_flags = {"--source-dir", "--target-org", "--api-version", "--tests", "--test-level",
+                   "--wait", "--coverage-formatters", "--results-dir"}
+    value_flags.update(short for short, long in DEPLOY_SHORT.items() if long in value_flags)
+    booleans = {"--json", "--verbose", "--concise", "--ignore-conflicts", "--ignore-warnings", "-g", "--junit"}
+    if any(token.startswith("-") and token not in booleans and token.partition("=")[0] not in value_flags
+           for token in rest):
+        return None
+
+    sources = deploy_inputs(rest)["--source-dir"]
+    if len(sources) != 1 or len(flag_values(rest, "--source-dir", "-d")) != 1:
+        return None
+    source = sources[0]
+    if not source or any(char in source for char in ",*?[]{}"):
+        return None
+    cwd = Path.cwd().resolve(strict=True)
+    project = project_root(str(cwd))
+    if project is None:
+        return None
+    root = Path(project)
+    # A full-source receipt must not silently omit an LWC through .forceignore.
+    # This opt-in case keeps nondeployable tests outside force-app instead.
+    ignore = root / ".forceignore"
+    if ignore.is_symlink() or (ignore.exists() and any(
+            line.strip() and not line.lstrip().startswith("#")
+            for line in ignore.read_text().splitlines())):
+        return None
+    return root if cwd / source == root / "force-app" else None
+
+
 def find_real_sf(name: str = "sf") -> str | None:
     skip = set()
     for directory in (os.environ.get("E2E_MODEL_BIN_DIR"), os.path.join(os.environ.get("E2E_PLATFORM_DIR") or "", "bin")):
@@ -792,9 +862,10 @@ def log_decision(call: str, argv: list[str], org: str, prefix: str, allowed: boo
                       "reason": scrub(reason)[:REASON_LIMIT]})
 
 
-def log_end(call: str, code: int | None, stderr: str, interrupted: bool) -> bool:
+def log_end(call: str, code: int | None, stderr: str, interrupted: bool, source_binding: dict | None = None) -> bool:
     return write_log({"ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "call": call, "end": True, "exit": code,
-                      "stderr_head": scrub(stderr)[:200], "interrupted": interrupted})
+                      "stderr_head": scrub(stderr)[:200], "interrupted": interrupted,
+                      **({"source_binding": source_binding} if source_binding is not None else {})})
 
 
 def parse_fixed_options(args: list[str]) -> tuple[str, str, bool, str, list[str], bool, bool]:
@@ -892,6 +963,14 @@ def main(args: list[str]) -> int:
         log_end(call, 127, "no real sf on PATH", False)
         print(f"{name}: no real `sf` found on PATH outside this run's guard", file=sys.stderr)
         return 127
+    root = before_sha256 = None
+    if os.environ.get("E2E_BIND_DEPLOY_SOURCE") == "1" and reason == "allowed":
+        try:
+            root = deploy_source_root(argv)
+            if root is not None:
+                before_sha256 = force_app_sha256(root)
+        except (OSError, ValueError, RuntimeError):
+            pass  # incomplete evidence must never affect the authorized command
     try:
         out, err, code = run_real(real, argv, state, child_env(org))
     except OSError as exc:
@@ -900,7 +979,18 @@ def main(args: list[str]) -> int:
         return 126
     for number in SIGNALS:  # the child is gone: a later signal ends this process instead of being swallowed while the output is written
         signal.signal(number, signal.SIG_DFL)
-    log_end(call, code, err, state["interrupted"])
+    source_binding = None
+    if root is not None and before_sha256 is not None and code == 0 and not state["interrupted"]:
+        try:
+            if deploy_source_root(argv) != root:
+                raise ValueError("source selection changed during deployment")
+            after_sha256 = force_app_sha256(root)
+        except (OSError, ValueError, RuntimeError):
+            pass
+        else:
+            source_binding = {"root": str(root), "before_sha256": before_sha256, "after_sha256": after_sha256,
+                              "full_package": True, "unchanged": before_sha256 == after_sha256}
+    log_end(call, code, err, state["interrupted"], source_binding)
     sys.stdout.write(scrub(out))
     sys.stdout.flush()
     sys.stderr.write(scrub(err))

@@ -34,7 +34,7 @@ Use an authenticated, explicitly authorized `de` org and a browser runtime suppo
 ```sh
 python3 -B test/shiploop_e2e/run.py \
   --case gym-membership-salesforce \
-  --host codex --model gpt-6.1-terra --effort high \
+  --host codex --model gpt-6.1-sol --effort high \
   --source marketplace --output /absolute/path/to/a/new-run
 ```
 
