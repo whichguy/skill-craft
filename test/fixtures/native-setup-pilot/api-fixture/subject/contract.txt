@@ -1,0 +1,64 @@
+Two deterministic, provider-free public app APIs (fixture v2)
+============================================================
+
+Run tests with Python's standard library only. The prompt subject consists of
+this contract, setup_app.py, change_app.py, and test_existing.py. Each API
+section below is complete on its own.
+
+Setup API (setup_app.py)
+------------------------
+
+read_config() -> dict returns a copy of non-secret configuration. Initial
+configuration is {"display_name": "Demo", "mode": "safe"}.
+
+save_setup(actor, values) -> dict accepts actor "admin" and exactly the keys
+display_name and mode. display_name must be a string with at least one
+non-whitespace character. mode must be the string
+"safe" or "review". Success is {"ok": True}. Denial or invalid input returns
+{"ok": False, "error": <text>}, where error is nonempty, at most 120
+characters, begins with an error type, and names the relevant argument or
+field. For example: "TypeError: display_name must be a string". Rejections
+name actor, values, display_name, or mode as appropriate and leave
+configuration unchanged.
+
+fixture_seed(config) -> None is a test precondition helper: it replaces
+configuration with a copy and bypasses authorization.
+
+Record-change API (change_app.py)
+---------------------------------
+
+Initial record demo-1 is {"id": "demo-1", "owner": "alice", "amount": 10,
+"version": 1}. read_record(actor, record_id) returns a copy for its owner,
+otherwise None. Every rejected operation returns {"ok": False, "error": <text>};
+error is nonempty, at most 120 characters, begins with an error type, and names
+the relevant parameter or field.
+
+propose_change(actor, record_id, expected_version, changes, idempotency_key)
+accepts the record owner, a string record_id, the current integer version, a
+nonempty string idempotency_key, and exactly
+{"amount": <integer 1..100>} (bool is not an integer here). Success is
+{"ok": True, "proposal_id": <id>}. Repeating the same request with the same
+key returns the same proposal ID; reusing a key for another request is
+rejected. Proposing never changes the record.
+
+confirm_change(actor, proposal_id) applies an owner's pending proposal only
+when the record still has its captured version. First success returns
+{"ok": True, "replayed": False}, writes the exact proposed amount, and
+increments version once. Confirm replay returns
+{"ok": True, "replayed": True} and does not write again. Stale, unauthorized,
+unknown, or cancelled proposals return the failure envelope.
+
+cancel_change(actor, proposal_id) cancels an owner's pending proposal. First
+success returns {"ok": True, "replayed": False}; repeat cancel returns
+{"ok": True, "replayed": True}. Cancel never changes the record. Failure
+returns the failure envelope. Error text names actor, record_id, expected_version, changes, amount,
+idempotency_key, or proposal_id as appropriate. Every
+failure leaves the record unchanged.
+
+fixture_seed(record=None) -> None replaces the record as a test precondition
+helper. Omitting record restores the initial record.
+
+All documented signatures use ordinary Python argument binding. Calls with
+missing required or extra positional arguments raise Python TypeError before
+the function body runs; these binding errors are not application error
+envelopes. read_record's documented None result remains as specified above.
