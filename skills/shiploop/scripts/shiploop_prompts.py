@@ -2535,8 +2535,8 @@ Planning review focus. This planning result is
 the contract that later stages build on and that no other review sees until the
 end. Look for these conditions and fix them within scope:
 """ + REVIEW_FOCUS_CONDITIONS + """\
-Do not reread history or rerun a check already recorded green at this commit
-unless a finding depends on it. A pass that finds none of these is trivial.
+Follow route and user/repo history rules. Reuse other history and green checks
+only with unchanged inputs and no finding or rule requiring a repeat. A finding-free pass is trivial.
 """
 
 

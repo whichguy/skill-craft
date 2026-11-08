@@ -29,6 +29,8 @@ from unittest import mock
 import state_home
 
 state_home.isolate()
+# Slice fixtures exercise gates without detached progress writers in their temporary trees.
+os.environ["SHIPLOOP_PROGRESS"] = "off"
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
