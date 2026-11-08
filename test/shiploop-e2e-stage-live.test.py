@@ -111,6 +111,12 @@ FAKE_HOST = textwrap.dedent('''
         time.sleep(config["before_next_delay"])
     printed = subprocess.run([sys.executable, str(cli), "next", f"--run-dir={run_dir}"], capture_output=True, text=True,
                              stdin=subprocess.DEVNULL).stdout
+    if config.get("wait_for_observer"):
+        # Cleanup fixtures need a running observer before they accept the stage;
+        # next's best-effort startup can return before a cold observer is ready.
+        import shiploop_progress as progress
+        while not ((run_dir / "progress-observer.json").is_file() and progress.running(run_dir)):
+            time.sleep(0.02)  # The existing sample timeout bounds a missing observer.
     state = store.read_record(run_dir / "state.md")
     action = nav.current_action(state)["id"]
     reference = Path(config["reference"]) if config.get("reference") else None
@@ -1042,7 +1048,8 @@ class EndedOnTheNormalPath(LiveCase):
             return real(worktree, target)
 
         with mock.patch.object(live, "snapshot", spy):
-            result, out, _, _ = self.sample(BROKEN, [{"mode": "act", "reference": reference(BROKEN, "good")}], progress=True)
+            result, out, _, _ = self.sample(BROKEN, [{"mode": "act", "reference": reference(BROKEN, "good"),
+                                                   "wait_for_observer": True}], progress=True)
         record = out / ".shiploop-runs" / "seed" / "run" / "progress-observer.json"
         self.assertTrue(record.is_file(), "the fake host's `next` started ShipLoop's observer (progress is on)")
         pid = json.loads(record.read_text())["pid"]
@@ -1067,7 +1074,8 @@ class EndedOnTheNormalPath(LiveCase):
 
         with mock.patch.object(lifecycle, "cleanup", spy), mock.patch.object(live.run, "write_transcript", side_effect=RuntimeError("boom")):
             with self.assertRaisesRegex(RuntimeError, "boom"):
-                self.sample(BROKEN, [{"mode": "act", "reference": reference(BROKEN, "good")}], progress=True)
+                self.sample(BROKEN, [{"mode": "act", "reference": reference(BROKEN, "good"),
+                                     "wait_for_observer": True}], progress=True)
         self.assertEqual(len(seen.get("folders", [])), 1, "the cleanup ran once, on the way out")
         out = seen["folders"][0]
         pid = json.loads((out / ".shiploop-runs" / "seed" / "run" / "progress-observer.json").read_text())["pid"]
