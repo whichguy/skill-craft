@@ -127,6 +127,18 @@
     ],
     "csv-intent-direct": [
       "\\bcsv[- ]report\\b"
+    ],
+    "roundtable": [
+      "\\broundtable\\b",
+      "\\bScribe\\b"
+    ],
+    "roundtable-rooms": [
+      "\\broundtable\\b",
+      "\\bScribe\\b"
+    ],
+    "roundtable-agent-work": [
+      "\\broundtable\\b",
+      "\\bScribe\\b"
     ]
   },
   "exempt": [

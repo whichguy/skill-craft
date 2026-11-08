@@ -1479,6 +1479,8 @@ class EventFactsTest(QualityCase):
                                                           "test/shiploop-e2e-user-chain.test.py",
                                                           "test/shiploop_e2e/checks/checkers_accept.py",
                                                           "test/shiploop_e2e/checks/intent_continuity.py",
+                                                          "test/shiploop_e2e/checks/roundtable_accept.cjs",
+                                                          "test/shiploop_e2e/checks/roundtable_accept.py",
                                                           "test/shiploop_e2e/checks/ticket_assignment_accept.py",
                                                           "test/shiploop_e2e/checks/ticket_escalation_accept.py",
                                                           "test/shiploop_e2e/checks/ticket_import_accept.py",
@@ -1491,7 +1493,9 @@ class EventFactsTest(QualityCase):
                                                           "test/shiploop_e2e/checks/user_summary_accept.py",
                                                           "test/shiploop_e2e/checks/user_team_casefold_accept.py",
                                                           "test/shiploop_e2e/checks/user_team_listing_accept.py",
-                                                          "test/shiploop_e2e/checks/user_teams_accept.py"])
+                                                          "test/shiploop_e2e/checks/user_teams_accept.py",
+                                                          "test/shiploop_e2e/fixtures/roundtable/reference.html",
+                                                          "test/shiploop_e2e/fixtures/roundtable/server.cjs"])
         for path in boundary.held_out_files(cases):
             self.assertTrue((ROOT / path).is_file(), path)
 

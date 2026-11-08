@@ -122,10 +122,10 @@ class TestGroupTests(unittest.TestCase):
         # and backchain-toolkit (its command line), then the native setup pilot (2026-11-07).
         # Registered predecessors, their runner wiring and intent lifecycle calibration add three (2026-11-02).
         # The corpus summariser adds one (2026-11-03), so a figure can be re-derived by the code that produced it.
-        # Grok chat adds one opt-in scenario adapter suite (2026-11-06).
-        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 131)
+        # Grok chat adds one opt-in scenario adapter suite (2026-11-06); Roundtable adds one (2026-11-07).
+        self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 132)
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 56)
-        self.assertEqual(len(suite_catalog.SUITES), 189)
+        self.assertEqual(len(suite_catalog.SUITES), 190)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -816,7 +816,7 @@ class E2EFamilySelectionTest(unittest.TestCase):
               "shiploop-e2e-delta", "shiploop-e2e-corpus", "shiploop-e2e-incremental-pilot", "shiploop-e2e-ticket-comments", "shiploop-e2e-ticket-sla", "shiploop-e2e-user-chain",
               "shiploop-e2e-user-directory",
               "shiploop-e2e-lifecycle", "shiploop-e2e-discovery", "shiploop-e2e-qualification",
-              "shiploop-e2e-roles", "shiploop-e2e-epoch", "shiploop-e2e-learning-records", "shiploop-e2e-cycle",
+              "shiploop-e2e-roles", "shiploop-e2e-roundtable", "shiploop-e2e-epoch", "shiploop-e2e-learning-records", "shiploop-e2e-cycle",
               "shiploop-e2e-predecessor", "shiploop-e2e-predecessor-wiring", "shiploop-e2e-intent-continuity"}
 
     def test_the_pinned_family_is_every_e2e_suite_in_the_catalog(self) -> None:

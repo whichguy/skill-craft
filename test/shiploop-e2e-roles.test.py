@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import contextlib
 import io
 import sys
@@ -18,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "test" / "shiploop_e2e"))
 import experiment
 import hosts
+import iterate
 import run
 import slice as step_slice
 
@@ -42,6 +44,7 @@ class RoleDefaultsTest(unittest.TestCase):
                          {"host": "claude", "model": "claude-sonnet-5-5", "effort": None})
         self.assertEqual(hosts.resolve_role("subject", {"host": "claude", "model": "sonnet-override", "effort": "high"}),
                          {"host": "claude", "model": "sonnet-override", "effort": "high"})
+        self.assertEqual(expected["subject"], {"host": hosts.RUN_DEFAULT_HOST, **hosts.HOST_DEFAULTS[hosts.RUN_DEFAULT_HOST]})
         self.assertEqual(hosts.ROLE_DEFAULTS, expected, "resolving overrides must not mutate shared defaults")
         with self.assertRaisesRegex(ValueError, "unknown ShipLoop E2E role"):
             hosts.resolve_role("unknown")
@@ -96,6 +99,44 @@ class RoleDefaultsTest(unittest.TestCase):
                 recorded = {"host": host, "model": model, "effort": effort}
                 self.assertEqual(run.resume_identity(args, False, recorded, Path("/not-used")),
                                  (host, model, effort))
+
+
+    def test_packet_driver_and_help_match_the_new_subject(self):
+        sys.path.insert(0, str(ROOT / "test/shiploop_e2e/stage_suite"))
+        import stages
+        args = stages._parser()[0].parse_args(["live", "--dry-run"])
+        driver = stages.resolve_driver(args)
+        self.assertEqual((driver.name, driver.model, driver.effort), ("codex", "gpt-6.1-sol", "high"))
+        for parser in (run.parser(), step_slice.parser()):
+            help_text = parser.format_help()
+            self.assertIn("gpt-6.1-sol", help_text)
+            self.assertNotIn("gpt-6.1-terra", help_text)
+
+    def test_role_specific_overrides_stay_distinct_from_the_subject(self):
+        args = argparse.Namespace(host="codex", model="subject-only", effort="low")
+        for role in ("reviewer", "judge", "improver"):
+            self.assertEqual(iterate.role_profile(args, role), hosts.ROLE_DEFAULTS[role])
+            setattr(args, role + "_model", role + "-model")
+            setattr(args, role + "_effort", role + "-effort")
+        for role in ("reviewer", "judge", "improver"):
+            self.assertEqual(iterate.role_profile(args, role),
+                             {"host": "codex", "model": role + "-model", "effort": role + "-effort"})
+        self.assertEqual(hosts.resolve_role("judge", {"model": "gpt-6-astra", "effort": "high"}),
+                         {"host": "codex", "model": "gpt-6-astra", "effort": "high"})
+        self.assertEqual(hosts.ROLE_DEFAULTS["judge"]["model"], "gpt-6.1-sol")
+
+    def test_old_codex_resume_launch_keeps_recorded_model_and_effort(self):
+        recorded = {"host": "codex", "model": "gpt-6.1-terra", "effort": "xhigh"}
+        for extra in ([], ["--host", "codex"]):
+            args = run.parser().parse_args(["--resume-run", "/recorded/run", *extra])
+            name, model, effort = run.resume_identity(args, bool(extra), recorded, Path("/not-used"))
+            with tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                argv = hosts.host(name).argv(prompt="continue", prompt_file=root / "prompt.txt", cwd=root,
+                                            model=model, effort=effort, permission_mode="never", max_turns=None,
+                                            resume="old-thread")
+            self.assertEqual(argv[argv.index("-m") + 1], recorded["model"])
+            self.assertIn("model_reasoning_effort=xhigh", argv)
 
 
 if __name__ == "__main__":

@@ -44,6 +44,12 @@ and `--effort` select the subject only. Existing runs resume their recorded iden
 `--host grok` selects Grok's existing profile. New Sol results occupy separate host/model/effort baseline cells
 from the recorded Terra results. Every stage launches a real model and costs money; none of it runs in default CI.
 
+Start a new experiment directory when changing a driver; preserve frozen registrations and historical evidence.
+Recalibrate for the selected driver before using measured comparison tolerances. Historical experiment kits keep
+their explicit pins and are not replications if any of their role identities change. This owner-selected default
+supersedes the earlier Terra/xhigh subject, Astra/xhigh reviewer and judge, and Sol/xhigh improver profiles;
+it does not establish a measured improvement.
+
 Each host is one class in `hosts.py` (`HOSTS`); nothing else branches on the
 host name. A host builds its argv, its isolated profile (Grok and Codex get a
 throwaway HOME whose profile links only the user's `auth.json`), its plugin
@@ -482,6 +488,55 @@ stdin) prints a card as an HTML fragment for an inline widget: a plan strip (don
 an icon), a progress bar with an estimated end, and a grid of units by variants with one slot per sample or attempt
 (passed, below target, running, pending, error). The JSON model is documented in its docstring; the caller builds it
 from whatever it watches. It reads and writes nothing else.
+
+### Incremental local chat cases
+
+The opt-in Roundtable ladder exercises a light Gemini-like interface as collaboration grows. Only the first case
+requests that style; later cases inherit the product's decisions without repeating the style request. The ladder uses
+the existing `follows` / `--continue-from` path and a deterministic local demo agent, with no accounts or external service.
+
+| Case | Added behavior |
+|---|---|
+| `roundtable` | Conversation, multiline composer, agent pending/error/retry, appearance control |
+| `roundtable-rooms` | Room drafts, reply attribution and unread state |
+| `roundtable-agent-work` | Running/failed/cancelled/completed tasks and result focus restoration |
+
+Each later case explicitly repeats the earlier hidden acceptance IDs because `chains.quality` selects the nearest
+declaration rather than merging checks. The browser observer uses the public accessible names and real local endpoint,
+retains screenshots at wide and narrow widths plus light/dark/error/empty/result states, and checks behavior on a
+separate delivered copy. Its source digests establish that the copy did not change during observation. Missing browser
+evidence stays unknown. These checks do not judge elegance, establish real-device behavior, or prove that reading
+`architecture.md` caused design continuity. The public knowledge check only retains requirement/decision IDs; inspect
+their meaning and the rendered interface independently, including justified amendments.
+
+Calibrate before a live campaign. Set `PLAYWRIGHT_NODE_PATH` to an installed Playwright module and
+`BROWSER_EXECUTABLE_PATH` to the available Chromium/Chrome executable. Keep the retained output outside this repository:
+
+```sh
+ROUNDTABLE_BROWSER_CALIBRATE=1 ROUNDTABLE_CALIBRATION_OUTPUT=/absolute/external/calibration \
+  python3 -B test/shiploop-e2e-roundtable.test.py -v
+python3 test/shiploop_e2e/run.py --source checkout --case roundtable --output /absolute/external/chat-1
+# Review the delivery and its original design decisions before starting either continuation.
+python3 test/shiploop_e2e/run.py --source checkout --case roundtable-rooms \
+  --continue-from /absolute/external/chat-1 --output /absolute/external/chat-2
+python3 test/shiploop_e2e/run.py --source checkout --case roundtable-agent-work \
+  --continue-from /absolute/external/chat-2 --output /absolute/external/chat-3
+```
+
+The authored controls share behavior but vary presentation and response processing (native/explicit regions, CSS
+colors across widths, collapsed navigation, message markup, status wording, and delayed dispatch/rendering).
+Twenty-one valid combinations must pass, including sibling task panels in either display order, finite theme transitions, modal navigation,
+contextual page titles and paragraph rendering of multiline messages;
+twelve single-defect controls must fail their designated observation.
+They validate the observer, not generated-product quality. A live pilot starts from committed evaluator/case bytes,
+records actual model/effort controls, and preserves the unedited predecessor. It is exploratory evidence; a production
+prompt change still needs the existing registered comparison and independent review requirements.
+
+Message-author labels, task-status regions and background activity announcements are public accessibility requirements. They let the
+observer identify a person's messages, distinguish current task states and await actual application completion without dictating inner markup or
+equating network delivery with rendering. Cancellation is rechecked after the remaining asynchronous workflow;
+the finite scenario is evidence of the exercised ordering, not a guarantee about every possible future schedule.
+
 
 ### The fidelity block
 

@@ -98,9 +98,10 @@ prediction. The prediction's verdict (confirmed, refuted, no effect or unknown) 
 and never replaces it. A promoted change whose prediction is not confirmed keeps its learning record open, because the
 gain is not yet explained.
 
-New discovery-qualified reviews use `version: 2` and a fresh judge assessment bound to that review's exact bytes. The
-subject, reviewer, judge and improver default to Codex with GPT-6.1 Sol at high effort. The judge runs in a separate
-session. The scripts record requested identities separately from any observed identity; unavailable served identity is not invented.
+New discovery-qualified reviews use `version: 2` and a fresh judge assessment bound to that review's exact bytes. The reviewer and judge
+are separate fresh sessions, even when their selected models agree. `hosts.ROLE_DEFAULTS` defines the current
+subject, reviewer, judge and improver profiles; explicit role overrides and recorded resume identities take precedence. The
+scripts record requested identities separately from any observed identity; unavailable served identity is not invented.
 Historical reviews remain readable but do not establish the new discovery/judge requirements.
 
 Strict comparison uses `promotion/5`. Registration precedes dispatch and binds the ShipLoop builds, drivers, unique

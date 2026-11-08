@@ -147,6 +147,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-discovery.test.py",
     "test/shiploop-e2e-qualification.test.py",
     "test/shiploop-e2e-roles.test.py",
+    "test/shiploop-e2e-roundtable.test.py",
     "test/shiploop-e2e-epoch.test.py",
     "test/shiploop-e2e-predecessor.test.py",
     "test/shiploop-e2e-predecessor-wiring.test.py",
@@ -341,6 +342,7 @@ _DURATION_SECONDS = {
     "test/shiploop-e2e-discovery.test.py": 2.0,
     "test/shiploop-e2e-qualification.test.py": 2.0,
     "test/shiploop-e2e-roles.test.py": 2.0,
+    "test/shiploop-e2e-roundtable.test.py": 1.0,
     "test/shiploop-e2e-epoch.test.py": 4.0,
     # 2026-10-30 (closed-loop stage 2): 26 tests, 3.0 s locally; the cycle campaign, 9 tests with real git, 4.2 s.
     "test/shiploop-e2e-learning-records.test.py": 3.0,

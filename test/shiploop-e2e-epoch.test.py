@@ -300,6 +300,25 @@ class EpochTest(unittest.TestCase):
         (self.root / event["receipt"]).write_text("{}")
         self.assertEqual(epoch.next_action(self.root)["action"], "review")
 
+    def test_review_uses_frozen_role_overrides_when_new_defaults_change(self):
+        self.root = self.temp / "earlier-roles"
+        with mock.patch.dict(hosts.ROLE_DEFAULTS, {
+                "reviewer": {"host": "codex", "model": "earlier-reviewer", "effort": "xhigh"},
+                "judge": {"host": "codex", "model": "gpt-6-astra", "effort": "high"}}):
+            epoch.initialise(self.root, self.template)
+        self.completed()
+        payload, verdict = self.assessment()
+        with mock.patch.dict(hosts.ROLE_DEFAULTS, {
+                "reviewer": {"host": "codex", "model": "future-reviewer", "effort": "low"},
+                "judge": {"host": "codex", "model": "future-judge", "effort": "low"}}), \
+                mock.patch.object(review, "review", return_value=payload) as reviewer, \
+                mock.patch.object(judge, "judge", return_value=verdict) as independent:
+            epoch.review_attempt(self.root, "control-hello")
+        self.assertEqual((reviewer.call_args.kwargs["model"], reviewer.call_args.kwargs["effort"]),
+                         ("earlier-reviewer", "xhigh"))
+        self.assertEqual((independent.call_args.kwargs["model"], independent.call_args.kwargs["effort"]),
+                         ("gpt-6-astra", "high"))
+
     def test_failed_judgment_retains_exposure_and_needs_a_fresh_assessment(self):
         self.completed()
         payload, verdict = self.assessment(valid=False)

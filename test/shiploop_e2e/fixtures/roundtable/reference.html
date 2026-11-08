@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Roundtable</title>
+<style>
+* {box-sizing:border-box} body {margin:0;background:#f4f6fc;color:#1d2434;font:16px/1.5 system-ui}
+body[data-dark=true] {background:#161a24;color:#e6eaf3} button,input,textarea {font:inherit} button,[role=button] {cursor:pointer}
+button {padding:.55rem .85rem;border:1px solid #9ca7bc;border-radius:1rem;background:transparent;color:inherit}
+button:focus-visible,textarea:focus-visible {outline:3px solid #4669ca;outline-offset:2px}
+header,nav,main {padding:1rem} header {display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+nav {display:flex;gap:.6rem;flex-wrap:wrap} main {max-width:70rem;margin:auto}
+section[aria-label=Conversation] {background:#fff;border-radius:1.5rem;padding:1rem;overflow:auto;max-height:58vh}
+body[data-dark=true] section {background:#242b3a} article {padding:.6rem;margin:.5rem 0;border-bottom:1px solid #a8b1c4;overflow-wrap:anywhere}
+article p {white-space:pre-wrap;margin:.3rem 0} small {font-size:.8rem} form {display:flex;align-items:flex-end;gap:.6rem;margin-top:1rem}
+textarea {resize:vertical;min-height:3rem;max-height:12rem;flex:1;min-width:0;padding:.7rem;border:1px solid #9ca7bc;border-radius:1rem;background:inherit;color:inherit}
+section[aria-label="Agent result"] {padding:1.4rem;background:#e7edfc;border-radius:1rem;white-space:pre-wrap;overflow-wrap:anywhere}
+[hidden] {display:none!important} #room-toggle {display:none}
+body.alternate {--canvas:oklch(0.97 0.009 255);--surface:oklch(1 0 0);background:var(--canvas)}
+body.alternate[data-dark=true] {--canvas:oklch(0.23 0.02 255);--surface:oklch(0.29 0.025 255)}
+body.alternate section[aria-label=Conversation] {background:var(--surface);border-radius:24px}
+body[data-fault=horizontal-overflow] main {min-width:960px}
+body:is([data-variant=all-collapsed],[data-variant=modal-drawer]) #room-toggle {display:inline-block}
+body:is([data-variant=all-collapsed],[data-variant=modal-drawer]) nav:not([data-open=true]) {display:none}
+body[data-variant=inline-body] article {white-space:pre-wrap}
+body[data-variant=theme-transition],body[data-variant=theme-transition] section,body[data-variant=theme-transition] textarea {transition:background-color .8s,color .8s}
+@media(max-width:600px) {main,header,nav {padding:.6rem} h1 {font-size:1.4rem} form {gap:.4rem}
+body[data-variant=responsive-colors]:not([data-dark=true]) {background:#eef3ff}
+body.alternate #room-toggle {display:inline-block} body.alternate nav:not([data-open=true]) {display:none}}
+</style>
+<body><div id="root"></div>
+<script>
+'use strict';
+const CONFIG=/*CONFIG*/{};
+if(CONFIG.variant==='context-title')document.title='Roundtable · Launch plan';
+const fault=CONFIG.fault;
+let current='Launch plan',dark=false,navOpen=false,result=null,resultOwner=null,counter=0,activity='';
+const empty=new URLSearchParams(location.search).get('empty')==='1';
+const seed=()=>[
+ {id:++counter,author:'Maya',role:'Person',text:'Let us agree on the launch scope.'},
+ {id:++counter,author:'Theo',role:'Person',text:'I can own the release review.'},
+ {id:++counter,author:'Scribe',role:'Demo agent',text:'I can help organize the next steps.'}
+];
+const rooms={'Launch plan':{messages:empty?[]:seed(),draft:'',unread:0},'Design review':{messages:seed(),draft:'',unread:0},'Support':{messages:[],draft:'',unread:0}};
+let sharedDraft='';
+const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const draft=()=>fault==='room-draft-leak'?sharedDraft:rooms[current].draft;
+const setDraft=value=>{rooms[current].draft=value;if(fault==='room-draft-leak') sharedDraft=value;};
+function card(message) {
+  if(message.kind==='task') return `<article aria-label="Agent task ${message.id}"><strong>Scribe · Demo agent</strong><p role="status" aria-label="Task status">${message.status}</p>${message.status==='Running'?`<button data-cancel="${message.id}">Cancel task</button>`:''}${message.status==='Failed'?`<p role="alert">The local agent failed.</p><button data-retry-task="${message.id}">Retry task</button>`:''}${message.status==='Completed'?`<button data-open-result="${message.id}">Open result</button>`:''}</article>`;
+  const body=CONFIG.alternate?escape(message.text).replace(/\n/g,'<br>'):CONFIG.variant==='paragraph-lines'?escape(message.text).split('\n').map(line=>`<p>${line}</p>`).join(''):escape(message.text);
+  return `<article aria-label="Message from ${message.author}"><strong>${message.author}</strong> <small>${message.role} · 09:30</small>${message.pending?`<p role="status">Scribe is ${CONFIG.variant==='thinking-status'?'thinking…':'working'}</p>`:message.failed?`<p role="alert">The local agent is unavailable.</p><button data-retry="${message.id}">Retry Scribe</button>`:['inline-body','paragraph-lines'].includes(CONFIG.variant)?body:`<p>${body}</p>`}</article>`;
+}
+function render() {
+  const wasMessage=document.activeElement?.getAttribute('aria-label')==='Message';
+  document.body.classList.toggle('alternate',CONFIG.alternate);
+  document.body.dataset.variant=CONFIG.variant;
+  document.body.dataset.dark=String(fault==='dark-control-noop'?false:dark);document.body.dataset.fault=fault;
+  const conversationTag=CONFIG.alternate?'section':'div';
+  const taskPanel=CONFIG.variant.startsWith('task-panel');
+  const panelTasks=rooms[current].messages.filter(m=>m.kind==='task');
+  if(CONFIG.variant==='task-panel-reversed')panelTasks.reverse();
+  document.querySelector('#root').innerHTML=`<header><h1>Roundtable</h1><button id="theme">Use ${dark?'light':'dark'} appearance</button><button id="room-toggle">Rooms</button></header>
+    <nav aria-label="Rooms" ${CONFIG.variant==='modal-drawer'?'role="dialog" aria-modal="true"':''} data-open="${navOpen}">${Object.entries(rooms).map(([name,room])=>`<button data-room="${name}" aria-current="${name===current?'page':'false'}" aria-label="${name}${room.unread?', '+room.unread+' unread':''}">${name}${room.unread?' ('+room.unread+')':''}</button>`).join('')}</nav>
+    <main aria-hidden="${CONFIG.variant==='modal-drawer'&&navOpen}"><h2>${current}</h2><${conversationTag} ${CONFIG.alternate?'':'role="region"'} aria-label="Conversation">${rooms[current].messages.filter(m=>!taskPanel||m.kind!=='task').map(card).join('')||'<p>Start a conversation with your project team.</p>'}</${conversationTag}>
+    ${taskPanel?`<aside aria-label="Room work">${panelTasks.map(card).join('')}</aside>`:''}
+    <form><textarea aria-label="Message">${escape(draft())}</textarea><button type="submit">Send</button></form>
+    <div role="status" aria-label="Room activity">${escape(activity)}</div>
+    ${result?`<section aria-label="Agent result">${escape(result)}<button id="close-result">Close result</button></section>`:''}</main>`;
+  // The native section variant deliberately has no explicit role attribute.
+  if(!CONFIG.alternate) document.querySelector('[role=region]').style.cssText='background:'+(dark&&fault!=='dark-control-noop'?'#242b3a':'#fff')+';border-radius:24px;padding:1rem;overflow:auto;max-height:58vh';
+  document.querySelector('#theme').onclick=()=>{dark=!dark;render();};
+  document.querySelector('#room-toggle').onclick=()=>{navOpen=!navOpen;render();};
+  document.querySelectorAll('[data-room]').forEach(button=>button.onclick=()=>{
+    current=button.dataset.room;if(fault!=='unread-stuck')rooms[current].unread=0;navOpen=false;result=null;render();
+  });
+  const input=document.querySelector('textarea');
+  input.oninput=()=>setDraft(input.value);
+  input.onkeydown=event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();submit();}};
+  document.querySelector('form').onsubmit=event=>{event.preventDefault();submit();};
+  document.querySelectorAll('[data-retry]').forEach(button=>button.onclick=()=>{
+    const item=rooms[current].messages.find(m=>m.id===Number(button.dataset.retry));
+    if(fault==='retry-duplicate')rooms[current].messages.push({id:++counter,author:'Maya',role:'Person',text:item.request});
+    runReply(item,current);
+  });
+  document.querySelectorAll('[data-cancel]').forEach(button=>button.onclick=()=>{rooms[current].messages.find(m=>m.id===Number(button.dataset.cancel)).status='Cancelled';render();});
+  document.querySelectorAll('[data-retry-task]').forEach(button=>button.onclick=()=>{
+    const old=rooms[current].messages.find(m=>m.id===Number(button.dataset.retryTask));
+    if(fault==='retry-overwrite'){old.status='Running';runTask(old,current);}
+    else startTask(old.request,current);
+  });
+  document.querySelectorAll('[data-open-result]').forEach(button=>button.onclick=()=>{
+    const item=rooms[current].messages.find(m=>m.id===Number(button.dataset.openResult));result=item.text;resultOwner=item.id;render();document.querySelector('#close-result').focus();
+  });
+  const close=document.querySelector('#close-result');
+  if(close)close.onclick=()=>{result=null;if(fault==='result-draft-loss')setDraft('');render();document.querySelector(`[data-open-result="${resultOwner}"]`).focus();};
+  if(wasMessage)input.focus();
+}
+function submit() {
+  const value=draft();if(!value.trim())return;
+  const text=fault==='multiline-loss'?value.replace(/\n/g,' '):value;
+  const origin=current;
+  rooms[origin].messages.push({id:++counter,author:'Maya',role:'Person',text});setDraft('');
+  if(text.startsWith('@Scribe plan'))startTask(text,origin);
+  else if(text.includes('@Scribe')){
+    const reply={id:++counter,author:'Scribe',role:'Demo agent',request:text,pending:true,text:''};
+    rooms[origin].messages.push(reply);runReply(reply,origin);
+  }
+  render();
+}
+async function agent(text) {
+  const deferred=CONFIG.variant==='delayed-processing'||fault==='delayed-late-complete';
+  const frames=()=>new Promise(resolve=>{let n=8;const step=()=>--n ? requestAnimationFrame(step) : resolve();requestAnimationFrame(step);});
+  if(deferred)await frames();
+  const response=await fetch('/api/agent',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text})});
+  if(deferred)await frames();
+  if(!response.ok)throw new Error('agent failed');return (await response.json()).text;
+}
+function arrived(origin,task=false) {if(current!==origin){rooms[origin].unread++;activity=task?'Work completed in '+origin:'New reply in '+origin;}}
+async function runReply(item,origin) {
+  item.pending=true;item.failed=false;render();
+  try {
+    item.text=await agent(item.request);item.pending=false;
+    if(fault==='room-reply-leak'&&current!==origin){rooms[origin].messages=rooms[origin].messages.filter(m=>m!==item);rooms[current].messages.push(item);}
+    arrived(origin);
+  }catch{item.pending=false;item.failed=true;}
+  render();
+}
+function startTask(text,origin) {
+  const item={id:++counter,kind:'task',request:text,status:'Running',text:''};rooms[origin].messages.push(item);runTask(item,origin);
+}
+async function runTask(item,origin) {
+  render();
+  try {const text=await agent(item.request);if(item.status==='Cancelled'&&!['late-complete','delayed-late-complete'].includes(fault))return;item.status='Completed';item.text=text;arrived(origin,true);}
+  catch{if(item.status==='Cancelled')return;item.status='Failed';}
+  render();
+}
+render();
+</script></body></html>

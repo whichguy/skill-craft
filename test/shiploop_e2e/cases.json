@@ -2236,5 +2236,130 @@
       "python3 \"$E2E_CHECKS/intent_continuity.py\" --mode direct"
     ],
     "checks_source": "the request: each check tests a sentence of the prompt; the final check independently verifies the owner-approved direct current/prior spec lifecycle and exact final promotion, without a fabricated workspace return. Deferred scope and status meaning require semantic review."
+  },
+  "roundtable": {
+    "style": "web-service",
+    "prompt": "Build a small local project-room app titled \"Roundtable\", served by server.js using Node.js with no npm dependencies. It listens on PORT (default 3000), and GET / serves the app. Give it a light, Gemini-like look and feel. Start with one room named Launch plan, seeded with a realistic conversation containing at least one message each from Maya and Theo (people) and Scribe (a clearly identified demonstration agent); the current user is Maya. A region named Conversation contains the messages as articles showing author, person/agent identity and time. Each message article is accessibly named Message from Maya, Message from Theo or Message from Scribe using its actual author. A textbox named Message and a Send button compose a message; Enter sends, Shift+Enter inserts a newline, whitespace-only text is ignored, and sending preserves multiline text and clears that draft. Sending a message containing @Scribe calls the local POST /api/agent endpoint with JSON {\"text\": the complete sent text}. The deterministic endpoint returns exactly {\"text\": \"Demo reply: \" followed by that text}, rejects whitespace-only text with HTTP 400, and uses no external service. While awaiting a reply, show a working state with role status. On a failed response, show an alert and a Retry Scribe button; retry the agent reply without duplicating the person message. The URL /?empty=1 starts an empty conversation with useful guidance, where sending still works; this fixture control is not a normal UI feature. Provide a visible Use dark appearance button that switches the appearance and becomes Use light appearance, which switches it back. Keep reading and composing usable at 320px and 390px narrow browser widths and a 1440px wide browser width without page-level horizontal scrolling. State can live in the current browser session. Cover the state rules in a module the app uses with node:test tests under test/ that run with node --test. This first delivery is one room and one local agent: no accounts, file sharing, canvases or external services.",
+    "checks": [
+      "log=$(mktemp); node --test > \"$log\" 2>&1; rc=$?; grep -Eq '^(ℹ|#) pass [1-9]' \"$log\" && [ $rc -eq 0 ]; r=$?; rm -f \"$log\"; exit $r",
+      "python3 \"$E2E_CHECKS/serve.py\" -- python3 \"$E2E_CHECKS/roundtable_contract.py\" api"
+    ],
+    "checks_source": "the request: state-rule tests run with node --test; the initial case also checks the actual page and deterministic local endpoint",
+    "needs": [
+      "browser"
+    ],
+    "needs_source": "the request: a usable graphical local project-room app, including pending/error states and responsive layouts",
+    "quality": {
+      "acceptance": {
+        "module": "roundtable_accept",
+        "calibration": [
+          "test/shiploop_e2e/checks/roundtable_accept.cjs",
+          "test/shiploop_e2e/fixtures/roundtable/server.cjs",
+          "test/shiploop_e2e/fixtures/roundtable/reference.html"
+        ],
+        "start": "node server.js",
+        "source": "independent browser actions from the visible functional requests; calibrated with authored positive alternatives and single-defect fixtures under test/shiploop_e2e/fixtures/roundtable; visual quality and AD continuity are separately reviewed, not inferred from these checks",
+        "checks": [
+          {
+            "id": "conversation",
+            "source": "creation request: composition, local agent response, working/error/retry, empty state, theme controls and narrow/wide usability"
+          }
+        ]
+      },
+      "refuse_ports": [
+        3000
+      ],
+      "refuse_ports_source": "the creation request: the server reads PORT; do not accept a fixed-port sibling"
+    }
+  },
+  "roundtable-rooms": {
+    "style": "web-service",
+    "prompt": "Add project rooms to the Roundtable app. Keep Launch plan and add Design review with its own seeded conversation, plus an initially empty Support room. Each room has its own transcript and unsent draft. Sending clears only that room's draft. List the rooms as buttons named for the room, accessibly mark the current room, and open a collapsed room list with a Rooms button. An agent reply must stay in the room where it was requested even if the user switches rooms while it is pending. Announce a background reply in a status region named Room activity that names its originating room, without moving focus. Each new reply in an inactive room increments that room's unread count; include the count in its button's accessible name as \"Launch plan, 1 unread\" (using the actual room and number). Opening a room clears its unread count and returns its name to the room name alone. Changing the browser width or switching rooms must preserve the drafts and transcripts. Extend the node --test state coverage for these rules. Everything the app already does keeps working.",
+    "checks": [
+      "log=$(mktemp); node --test > \"$log\" 2>&1; rc=$?; grep -Eq '^(ℹ|#) pass [1-9]' \"$log\" && [ $rc -eq 0 ]; r=$?; rm -f \"$log\"; exit $r"
+    ],
+    "checks_source": "the request: state-rule tests run with node --test; the initial case also checks the actual page and deterministic local endpoint",
+    "needs": [
+      "browser"
+    ],
+    "needs_source": "the request: a usable graphical local project-room app, including pending/error states and responsive layouts",
+    "quality": {
+      "acceptance": {
+        "module": "roundtable_accept",
+        "calibration": [
+          "test/shiploop_e2e/checks/roundtable_accept.cjs",
+          "test/shiploop_e2e/fixtures/roundtable/server.cjs",
+          "test/shiploop_e2e/fixtures/roundtable/reference.html"
+        ],
+        "start": "node server.js",
+        "source": "independent browser actions from the visible functional requests; calibrated with authored positive alternatives and single-defect fixtures under test/shiploop_e2e/fixtures/roundtable; visual quality and AD continuity are separately reviewed, not inferred from these checks",
+        "checks": [
+          {
+            "id": "conversation",
+            "source": "creation request: composition, local agent response, working/error/retry, empty state, theme controls and narrow/wide usability"
+          },
+          {
+            "id": "rooms",
+            "source": "rooms request: per-room transcript/draft, unread clearing and origin attribution after switching"
+          }
+        ]
+      },
+      "refuse_ports": [
+        3000
+      ],
+      "refuse_ports_source": "the creation request: the server reads PORT; do not accept a fixed-port sibling"
+    },
+    "follows": "roundtable",
+    "retention": [
+      "python3 \"$E2E_CHECKS/roundtable_contract.py\" knowledge"
+    ],
+    "retention_source": "SPEC S-11: earlier requirement and decision IDs remain in the repo, including superseded choices; this inventory check does not establish semantic preservation or design conformity, which require review"
+  },
+  "roundtable-agent-work": {
+    "style": "web-service",
+    "prompt": "Add visible agent work to the Roundtable app. Sending a message beginning @Scribe plan starts a local task in that room; ordinary @Scribe replies keep working. For that plan request, POST /api/agent now returns {\"text\":\"Next steps\\n- Confirm scope\\n- Assign an owner\\n- Review delivery\"}; this is a deterministic demonstration, with no provider or external actions. Show the current room's task attempts as articles whose accessible names begin Agent task, with their current state shown as Running, Completed, Failed or Cancelled in a status region named Task status. While its response is pending, Cancel task cancels the attempt; a late response must never make that attempt completed or expose a result. A failed response shows Retry task. Retry appends a new attempt, retains the previous failed attempt visibly, and does not duplicate the person's original request. A completed attempt offers Open result, showing the returned plan in a region named Agent result; Close result returns keyboard focus to that attempt's Open result control and preserves the unsent room draft. Results must remain readable at narrow and wide sizes. Announce a background completion in the Room activity status region, naming its originating room and stating that work completed. A completion after switching rooms stays with its originating room and increments that room's unread count once; it must not steal focus or change the open room's draft. Extend the node --test state coverage for these rules. Everything the app already does keeps working.",
+    "checks": [
+      "log=$(mktemp); node --test > \"$log\" 2>&1; rc=$?; grep -Eq '^(ℹ|#) pass [1-9]' \"$log\" && [ $rc -eq 0 ]; r=$?; rm -f \"$log\"; exit $r"
+    ],
+    "checks_source": "the request: state-rule tests run with node --test; the initial case also checks the actual page and deterministic local endpoint",
+    "needs": [
+      "browser"
+    ],
+    "needs_source": "the request: a usable graphical local project-room app, including pending/error states and responsive layouts",
+    "quality": {
+      "acceptance": {
+        "module": "roundtable_accept",
+        "calibration": [
+          "test/shiploop_e2e/checks/roundtable_accept.cjs",
+          "test/shiploop_e2e/fixtures/roundtable/server.cjs",
+          "test/shiploop_e2e/fixtures/roundtable/reference.html"
+        ],
+        "start": "node server.js",
+        "source": "independent browser actions from the visible functional requests; calibrated with authored positive alternatives and single-defect fixtures under test/shiploop_e2e/fixtures/roundtable; visual quality and AD continuity are separately reviewed, not inferred from these checks",
+        "checks": [
+          {
+            "id": "conversation",
+            "source": "creation request: composition, local agent response, working/error/retry, empty state, theme controls and narrow/wide usability"
+          },
+          {
+            "id": "rooms",
+            "source": "rooms request: per-room transcript/draft, unread clearing and origin attribution after switching"
+          },
+          {
+            "id": "agent-work",
+            "source": "agent-work request: cancellation, retained failed attempts, retry, result focus/draft preservation and completion attribution"
+          }
+        ]
+      },
+      "refuse_ports": [
+        3000
+      ],
+      "refuse_ports_source": "the creation request: the server reads PORT; do not accept a fixed-port sibling"
+    },
+    "follows": "roundtable-rooms",
+    "retention": [
+      "python3 \"$E2E_CHECKS/roundtable_contract.py\" knowledge"
+    ],
+    "retention_source": "SPEC S-11: earlier requirement and decision IDs remain in the repo, including superseded choices; this inventory check does not establish semantic preservation or design conformity, which require review"
   }
 }
