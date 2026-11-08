@@ -9,7 +9,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 test/experiments/shiploop_security/qualify.py 
   --frozen "$FROZEN_RETRY_EVIDENCE" --reports "$REPORTS"
 ```
 
-This creates a fresh report and a temporary materialization. It checks the 73 earlier reference dispositions and 19 new controls, then retains calibration, synthetic grade and old-format rejection records. The synthetic records use real Git worktrees and the native exporter but contain no model responses. Run the standalone scope/materializer tests with `python3 -m unittest discover -s test/experiments/shiploop_security`.
+This creates a fresh report and a temporary materialization. It checks the 73 earlier reference dispositions and 21 new controls, then retains calibration, synthetic grade and old-format rejection records. The synthetic records use real Git worktrees and the native exporter but contain no model responses. Run the standalone scope/materializer tests with `python3 -m unittest discover -s test/experiments/shiploop_security`.
 
 For an operator who already has approval for a **separate** study, `materialize.py --frozen "$FROZEN_RETRY_EVIDENCE" --output "$NEW_PRIVATE_ROOT"` builds the private harness without running calibration or dispatch. Use a new directory whose parent exists. It checks the exact source path inventory, bytes, and modes before applying `v6.patch`; the zero-context hunks are checked against those pinned bytes. The output includes the prospective schedule generator, native operator, dispatcher, grader, and decision program.
 

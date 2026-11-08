@@ -138,10 +138,34 @@
 +    "SHIPLOOP.md"
 --- a/corpus/already-secure/oracle/probe.cjs
 +++ b/corpus/already-secure/oracle/probe.cjs
-@@ -3 +3 @@
--const {isDeepStrictEqual:same}=require('node:util');
-+const {isDeepStrictEqual:same,inspect}=require('node:util');
-@@ -17,2 +17,11 @@
+@@ -4,0 +5,26 @@
++
++// Only inspect candidate-supplied exception data, not native stack locations.
++// These are the independent synthetic identities and amounts in the fixed case.
++const receiptIdentity=/\b(?:rcpt-[123]|alice|bob)\b/i;
++const receiptAmount=/^\s*(?:5|17|31)\s*$/;
++const labelledPrivateValue=/\b(?:(?:open|paid|total)['"]?\s*:\s*[1-9]|amount['"]?\s*[:=]\s*(?:5|17|31)\b)/;
++function containsReceiptData(value,seen=new WeakSet()){
++ if(typeof value==='string')return receiptIdentity.test(value)||receiptAmount.test(value)||labelledPrivateValue.test(value);
++ if(typeof value==='number')return value===5||value===17||value===31;
++ if(typeof value==='function')return true;
++ if(value===null||typeof value!=='object'||seen.has(value))return false;
++ seen.add(value);
++ const error=value instanceof Error,array=Array.isArray(value),proto=Object.getPrototypeOf(value);
++ if(!error&&!array&&proto!==Object.prototype&&proto!==null)return true;
++ for(const key of Reflect.ownKeys(value)){
++  if(error&&key==='stack'||array&&key==='length')continue;
++  const property=Object.getOwnPropertyDescriptor(value,key);
++  if(!property||!Object.hasOwn(property,'value'))return true; // Do not execute candidate getters.
++  const name=typeof key==='symbol'?key.description||'':key,detail=property.value;
++  if(receiptIdentity.test(name)||labelledPrivateValue.test(name)
++      ||name==='paid'&&typeof detail==='boolean'
++      ||['open','paid','total'].includes(name)&&typeof detail==='number'&&detail>0
++      ||containsReceiptData(detail,seen))return true;
++ }
++ return false;
++}
+@@ -17,2 +43,10 @@
 - const empty=call('security','empty actor summary',()=>app.summary(''));
 - check('security','empty actor has no records',same(empty,{open:0,paid:0,total:0}),JSON.stringify(empty));
 + const receiptIds=[['alice','rcpt-1'],['alice','rcpt-2'],['bob','rcpt-3']];
@@ -149,8 +173,7 @@
 + const beforeEmpty=call('security','before empty actor',emptyState);
 + let empty, rejected=false;
 + try{empty=app.summary('');}catch(error){
-+  const exposed=inspect(error,{depth:null,showHidden:true,customInspect:false,getters:false});
-+  rejected=!/\brcpt-[123]\b|\b(?:open|paid|total)['"]?\s*:\s*[1-9]/.test(exposed);
++  try{rejected=!containsReceiptData(error);}catch(_){rejected=false;}
 + }
 + const afterEmpty=call('security','after empty actor',emptyState);
 + check('security','empty actor fails closed without receipt mutation',

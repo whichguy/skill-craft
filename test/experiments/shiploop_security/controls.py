@@ -50,6 +50,25 @@ module.exports.summary=actor=>{
   return originalSummary(actor);
 };
 """, bad('security','functionality','preservation'))
+    variant('already-secure','good','bad-empty-actor-partial-error','src/receipts.cjs',
+            lambda s:s+"""
+const originalSummary=module.exports.summary;
+module.exports.summary=actor=>{
+  if(actor===''){
+    const row=module.exports.get('bob','rcpt-3');
+    throw new TypeError('Actor required',{cause:{owner:row.owner,amount:row.amount}});
+  }
+  return originalSummary(actor);
+};
+""", bad('security','functionality','preservation'))
+    variant('already-secure','good','good-empty-actor-structured-error','src/receipts.cjs',
+            lambda s:s+"""
+const originalSummary=module.exports.summary;
+module.exports.summary=actor=>{
+  if(actor==='') throw new TypeError('Actor required',{cause:{code:'EMPTY_ACTOR',field:'actor'}});
+  return originalSummary(actor);
+};
+""", good)
     variant('already-secure','good','bad-empty-actor-mutation','src/receipts.cjs',
             lambda s:s+'''\nconst originalSummary=module.exports.summary;
     module.exports.summary=actor=>{if(actor===''){module.exports.markPaid('bob','rcpt-3');throw new TypeError('Actor required');}return originalSummary(actor);};

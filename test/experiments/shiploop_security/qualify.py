@@ -46,13 +46,14 @@ def calibrate(evidence, frozen, report, scratch):
     old = read(frozen / "corpus/calibration-results.json")
     rows = {(c["id"], r["reference"]): r for c in new["cases"] for r in c["references"]}
     old_rows = {(c["id"], r["reference"]): r for c in old["cases"] for r in c["references"]}
-    expect(len(old_rows) == 73 and len(rows) == 92, "calibration inventory differs")
+    expect(len(old_rows) == 73 and len(rows) == 94, "calibration inventory differs")
     expect(all(rows[key]["actual_accept"] == prior["actual_accept"] for key, prior in old_rows.items()),
            "an existing reference accept/reject disposition changed")
 
     for case, label, category, check in (
         ("already-secure", "bad-empty-actor-return", "security", "empty actor fails closed without receipt mutation"),
         ("already-secure", "bad-empty-actor-error", "security", "empty actor fails closed without receipt mutation"),
+        ("already-secure", "bad-empty-actor-partial-error", "security", "empty actor fails closed without receipt mutation"),
         ("already-secure", "bad-empty-actor-mutation", "security", "empty actor fails closed without receipt mutation"),
         ("later-added-work", "bad-empty-selection-malformed", "functionality", "empty selection returns a boolean without task mutation"),
         ("later-added-work", "bad-empty-selection-mutation", "functionality", "empty selection returns a boolean without task mutation"),
