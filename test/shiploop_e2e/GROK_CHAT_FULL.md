@@ -19,7 +19,7 @@ Publish and verify the test apparatus before a marketplace run; record its revis
 ```sh
 env -u XAI_API_KEY python3 -u -B test/shiploop_e2e/run.py \
   --case grok-chat-salesforce-full --host codex \
-  --model gpt-6.1-sol --effort high --source marketplace \
+  --model gpt-6.1-sol --effort medium --source marketplace \
   --output /absolute/path/to/new-full-run \
   --baseline /absolute/path/to/full-case-baseline.jsonl
 ```

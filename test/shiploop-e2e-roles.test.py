@@ -28,8 +28,10 @@ class RoleDefaultsTest(unittest.TestCase):
     def test_role_profiles_and_independent_overrides(self):
         self.assertEqual(hosts.RUN_DEFAULT_HOST, "codex")
         expected = {
-            role: {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"}
-            for role in ("subject", "reviewer", "judge", "improver")
+            "subject": {"host": "codex", "model": "gpt-6.1-sol", "effort": "medium"},
+            "reviewer": {"host": "codex", "model": "gpt-6-astra", "effort": "high"},
+            "judge": {"host": "codex", "model": "gpt-6-astra", "effort": "high"},
+            "improver": {"host": "codex", "model": "gpt-6.1-sol", "effort": "medium"},
         }
         self.assertEqual(hosts.ROLE_DEFAULTS, expected)
         for role, profile in expected.items():
@@ -70,7 +72,7 @@ class RoleDefaultsTest(unittest.TestCase):
         args.codex_bin = "fake-codex"
         selected = run.the_host(args)
         self.assertEqual((selected.name, selected.model, selected.effort),
-                         ("codex", "gpt-6.1-sol", "high"))
+                         ("codex", "gpt-6.1-sol", "medium"))
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             argv = selected.argv(prompt="hello", prompt_file=root / "prompt.txt", cwd=root,
@@ -78,21 +80,48 @@ class RoleDefaultsTest(unittest.TestCase):
                                  permission_mode=args.permission_mode, max_turns=args.max_turns)
         self.assertEqual(argv[0:2], ["fake-codex", "exec"])
         self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.1-sol")
-        self.assertIn("model_reasoning_effort=high", argv)
+        self.assertIn("model_reasoning_effort=medium", argv)
         self.assertIn('agents.default_subagent_model="gpt-6.1-sol"', argv)
-        self.assertIn("agents.default_subagent_reasoning_effort=high", argv)
+        self.assertIn("agents.default_subagent_reasoning_effort=medium", argv)
+
+    def test_improver_default_and_explicit_high_reach_codex_argv(self):
+        agent = hosts.CodexHost("fake-codex")
+        args = argparse.Namespace(case="hello", host="codex", model="subject-only", effort="low",
+                                  permission_mode="auto", improve_max_turns=None, max_budget_usd=None,
+                                  improve_timeout=30)
+
+        def finish(_argv, _cwd, _env, events_path, _stderr, _timeout, **_kwargs):
+            events_path.touch()
+            return {"status": "exited", "returncode": 0}
+
+        with tempfile.TemporaryDirectory() as folder, \
+                mock.patch.object(agent, "env", return_value={}), \
+                mock.patch.object(hosts, "host", return_value=agent), \
+                mock.patch.object(hosts, "run_agent", side_effect=finish) as launch, \
+                mock.patch.object(iterate, "git", side_effect=["base", "", "", "base", "", ""]):
+            root = Path(folder)
+            for override, effort in ((None, "medium"), ("high", "high")):
+                with self.subTest(override=override):
+                    args.improver_effort = override
+                    iterate.improve(root, [], root / effort, args, prompt="Improve this fixture.")
+                    argv = launch.call_args.args[0]
+                    self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.1-sol")
+                    self.assertIn(f"model_reasoning_effort={effort}", argv)
+                    self.assertIn('agents.default_subagent_model="gpt-6.1-sol"', argv)
+                    self.assertIn(f"agents.default_subagent_reasoning_effort={effort}", argv)
 
     def test_codex_resume_sets_child_defaults_from_the_saved_or_overridden_identity(self):
-        recorded = {"host": "codex", "model": "gpt-6.1-terra", "effort": "xhigh"}
         resume = ["--resume-run", "/recorded/run"]
         examples = (
-            ([], "gpt-6.1-terra", "xhigh"),
-            (["--model", "gpt-6-astra", "--effort", "medium"], "gpt-6-astra", "medium"),
+            ("gpt-6.1-terra", "xhigh", [], "gpt-6.1-terra", "xhigh"),
+            ("gpt-6.1-sol", "high", [], "gpt-6.1-sol", "high"),
+            ("gpt-6.1-terra", "xhigh", ["--model", "gpt-6-astra", "--effort", "medium"], "gpt-6-astra", "medium"),
         )
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
-            for overrides, expected_model, expected_effort in examples:
-                with self.subTest(overrides=overrides):
+            for model, effort, overrides, expected_model, expected_effort in examples:
+                with self.subTest(model=model, effort=effort, overrides=overrides):
+                    recorded = {"host": "codex", "model": model, "effort": effort}
                     flags = [*resume, *overrides]
                     args = run.parser().parse_args(flags)
                     args.host, args.model, args.effort = run.resume_identity(args, run.host_given(flags), recorded, root)
@@ -133,7 +162,7 @@ class RoleDefaultsTest(unittest.TestCase):
         import stages
         args = stages._parser()[0].parse_args(["live", "--dry-run"])
         driver = stages.resolve_driver(args)
-        self.assertEqual((driver.name, driver.model, driver.effort), ("codex", "gpt-6.1-sol", "high"))
+        self.assertEqual((driver.name, driver.model, driver.effort), ("codex", "gpt-6.1-sol", "medium"))
         for parser in (run.parser(), step_slice.parser()):
             help_text = parser.format_help()
             self.assertIn("gpt-6.1-sol", help_text)
@@ -148,9 +177,9 @@ class RoleDefaultsTest(unittest.TestCase):
         for role in ("reviewer", "judge", "improver"):
             self.assertEqual(iterate.role_profile(args, role),
                              {"host": "codex", "model": role + "-model", "effort": role + "-effort"})
-        self.assertEqual(hosts.resolve_role("judge", {"model": "gpt-6-astra", "effort": "high"}),
-                         {"host": "codex", "model": "gpt-6-astra", "effort": "high"})
-        self.assertEqual(hosts.ROLE_DEFAULTS["judge"]["model"], "gpt-6.1-sol")
+        self.assertEqual(hosts.resolve_role("judge", {"model": "gpt-6.1-sol", "effort": "high"}),
+                         {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"})
+        self.assertEqual(hosts.ROLE_DEFAULTS["judge"]["model"], "gpt-6-astra")
 
     def test_old_codex_resume_launch_keeps_recorded_model_and_effort(self):
         recorded = {"host": "codex", "model": "gpt-6.1-terra", "effort": "xhigh"}

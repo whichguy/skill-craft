@@ -104,7 +104,7 @@ class DefaultLaunchTest(unittest.TestCase):
 
     def test_model_pins_preserve_gateway_tool_restrictions_and_stdin(self):
         command = ["codex", "exec", "--ignore-user-config", "-m", "gpt-6-astra",
-                   "-c", "model_reasoning_effort=medium", "-c", 'model="old-model"',
+                   "-c", "model_reasoning_effort=high", "-c", 'model="old-model"',
                    "-c", 'agents.default_subagent_model="old-child"',
                    "-c", "agents.default_subagent_reasoning_effort=max",
                    "-c", "features.shell_tool=false", "-c", 'tools.enabled_tools=["workspace"]',
@@ -115,15 +115,15 @@ class DefaultLaunchTest(unittest.TestCase):
         self.assertEqual(actual.count("-m"), 1)
         self.assertEqual(actual[actual.index("-m") + 1], "gpt-6.1-sol")
         settings = [actual[i + 1] for i, arg in enumerate(actual[:-1]) if arg == "-c"]
-        self.assertIn("model_reasoning_effort=high", settings)
+        self.assertIn("model_reasoning_effort=medium", settings)
         self.assertIn('agents.default_subagent_model="gpt-6.1-sol"', settings)
-        self.assertIn("agents.default_subagent_reasoning_effort=high", settings)
+        self.assertIn("agents.default_subagent_reasoning_effort=medium", settings)
         self.assertIn("features.shell_tool=false", settings)
         self.assertIn('tools.enabled_tools=["workspace"]', settings)
         prefix = "mcp_servers.shiploop_workspace.args="
         gateway = next(setting[len(prefix):] for setting in settings if setting.startswith(prefix))
         self.assertEqual(json.loads(gateway), ["gateway", "--call-limit", "32", "--receipts", "/evidence/receipts.jsonl"])
-        self.assertFalse(any("old-" in setting or "=medium" in setting or "=max" in setting for setting in settings))
+        self.assertFalse(any("old-" in setting or "=high" in setting or "=max" in setting for setting in settings))
 
 
 class LaunchLedgerTest(unittest.TestCase):
@@ -155,7 +155,7 @@ class ArmOutcomeTest(unittest.TestCase):
         result, metadata = self.run_case({"context": 1, "exit_code": 0, "termination_reason": None})
         self.assertEqual(result["status"], "completed")
         selection = metadata["model_selection"]
-        self.assertEqual((selection["requested"], selection["requested_effort"]), ("gpt-6.1-sol", "high"))
+        self.assertEqual((selection["requested"], selection["requested_effort"]), ("gpt-6.1-sol", "medium"))
         self.assertIsNone(selection["observed"], "requested flags are not served identity")
         self.assertEqual(metadata["completion"], {"status": "completed", "reasons": [],
                                                      "exit_code": 0, "termination_reason": None})

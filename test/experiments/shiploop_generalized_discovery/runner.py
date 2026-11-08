@@ -27,7 +27,7 @@ from study_inputs import validate_study_inputs
 
 LIMITS = {"seconds_per_arm": 480, "calls_per_arm": 32, "exploration_seconds": 360, "exploration_calls": 24}
 DEFAULT_MODEL = "gpt-6.1-sol"
-DEFAULT_EFFORT = "high"
+DEFAULT_EFFORT = "medium"
 ARM_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,80}$")
 
 
