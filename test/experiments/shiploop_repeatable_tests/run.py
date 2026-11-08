@@ -12,6 +12,10 @@ import subprocess
 import time
 
 
+DEFAULT_MODEL = 'gpt-6.1-sol'
+DEFAULT_EFFORT = 'high'
+
+
 def hashes(root: Path) -> dict[str, str]:
     return {str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
             for p in sorted(root.rglob('*')) if p.is_file() and not p.is_symlink()
@@ -26,6 +30,7 @@ def launch(repo: Path, output: Path, prompt: str, timeout: int = 1200,
     output = output.resolve()
     if repo == output or repo in output.parents:
         raise ValueError('observer output must be outside the worker repository')
+    model, effort = model or DEFAULT_MODEL, effort or DEFAULT_EFFORT
     output.mkdir(parents=True, exist_ok=False)
     (output / 'prompt.txt').write_text(prompt)
     before = hashes(repo)
@@ -33,18 +38,17 @@ def launch(repo: Path, output: Path, prompt: str, timeout: int = 1200,
             '--skip-git-repo-check', '--json', '-s', 'workspace-write',
             '-C', str(repo), '-o', str(output / 'final.md'),
             '-c', 'web_search="disabled"', '-c', 'features.memories=false',
-            '-c', 'project_doc_max_bytes=0', '-']
-    if model:
-        argv[-1:-1] = ['--model', model]
-    if effort:
-        argv[-1:-1] = ['-c', 'model_reasoning_effort=' + json.dumps(effort)]
+            '-c', 'project_doc_max_bytes=0',
+            '--model', model, '-c', f'model_reasoning_effort={json.dumps(effort)}',
+            '-c', f'agents.default_subagent_model={json.dumps(model)}',
+            '-c', f'agents.default_subagent_reasoning_effort={json.dumps(effort)}', '-']
     env = dict(os.environ, DEVELOPER_DIR='/Library/Developer/CommandLineTools',
                PYTHONDONTWRITEBYTECODE='1', GIT_TERMINAL_PROMPT='0', NO_COLOR='1')
     start = time.time()
     runtime_before = hashes(runtime) if runtime else None
     version = subprocess.run(['codex', '--version'], capture_output=True, text=True, check=True)
     record = {'schema': 'repeatable-test-trial/1', 'argv': argv, 'started_epoch': start,
-              'timeout_seconds': timeout, 'requested_model': model or 'CLI default; unpinned',
+              'timeout_seconds': timeout, 'requested_model': model,
               'requested_effort': effort, 'cli_version': version.stdout.strip(),
               'runtime_before': runtime_before,
               'prompt_sha256': hashlib.sha256(prompt.encode()).hexdigest(),
@@ -107,8 +111,8 @@ def main() -> int:
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--prompt', type=Path, required=True)
     parser.add_argument('--timeout', type=int, default=1200)
-    parser.add_argument('--model', help='Pin the verified configured model; record actual identity separately')
-    parser.add_argument('--effort')
+    parser.add_argument('--model', help=f'override the requested model (default: {DEFAULT_MODEL})')
+    parser.add_argument('--effort', help=f'override the requested reasoning effort (default: {DEFAULT_EFFORT})')
     parser.add_argument('--runtime', type=Path, help='Frozen actual Improve runtime snapshot')
     args = parser.parse_args()
     if args.timeout < 1:

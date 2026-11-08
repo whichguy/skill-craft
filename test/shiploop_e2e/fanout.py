@@ -14,7 +14,7 @@ Graded by script, never by the model:
 - native:    whether A and B ran as native workers (a launch handle) or in the
              parent conversation (a main-context executor).
 
-  python3 test/shiploop_e2e/fanout.py --host codex    # GPT-6 Luna at xhigh, the Codex default
+  python3 test/shiploop_e2e/fanout.py --host codex    # Uses the Codex E2E defaults
 """
 
 from __future__ import annotations

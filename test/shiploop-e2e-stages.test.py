@@ -916,7 +916,7 @@ class LiveDryRun(NoLaunch):
                              "--out", str(out_dir), "--cases-dir", str(self.cases))
         self.assertEqual((code, err), (0, ""))
         for wanted in ("live plan: 1 scenario x samples = 2 samples, 2 at once", "validate-existing/broken: 2 samples, passes when 2 pass",
-                       "driver: codex/gpt-6.1-terra/xhigh", "timeout: 90 s per sample", f"results root: {out_dir}",
+                       "driver: codex/gpt-6.1-sol/high", "timeout: 90 s per sample", f"results root: {out_dir}",
                        "costs money", "dry run: nothing was built and nothing was launched"):
             self.assertIn(wanted, out)
         self.assertFalse(out_dir.exists())
@@ -938,7 +938,7 @@ class LiveDryRun(NoLaunch):
              mock.patch.object(stages.shutil, "which", side_effect=AssertionError("the binary was looked for")):
             code, out, err = cli("live", "--dry-run")  # the shipped scenarios, the default host and no other option
         self.assertEqual((code, err), (0, ""))
-        self.assertIn("driver: codex/gpt-6.1-terra/xhigh", out)
+        self.assertIn("driver: codex/gpt-6.1-sol/high", out)
         self.assertIn(f"results root: {Path(tempfile.gettempdir())}", out)
         self.assertIn("validate-existing/broken-works-small-fix: 3 samples", out)
         self.assertIn("validate-existing/wrong-check: 3 samples", out)

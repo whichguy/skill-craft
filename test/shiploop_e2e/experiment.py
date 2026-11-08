@@ -43,6 +43,10 @@ change and the experiment's remaining samples are skipped (``--no-early-stop`` r
 value (the evaluator's ``BINARY``) and no gate; other experiments run every sample. Options ``run`` does not know (for
 example ``--planning-review none``, which skips the planning stages' Improve children in a shape round) go to slice.py;
 each sample records them, and ``decide`` refuses arms whose samples ran under different planning-review options.
+A round's finished samples must have the same requested host, backend, model and effort. To continue a round after
+a default changes, name its original profile (for example ``--host codex --model=gpt-6.1-terra --effort=xhigh``);
+use a fresh ``--out`` directory for a new profile. Coordinate concurrent direct ``--sample`` jobs on one profile: the
+preflight only sees finished slices, and scoring and deciding reject mixed invocation records.
 A sample whose host refused its calls (HTTP 401, 402 or 403 in its stderr: an exhausted balance or a lost sign-in) and
 that did not pass is a host failure, not a result: ``score`` records it without a value, ``run`` stops there, ``queue``
 starts no more samples, and the next ``run`` or ``queue`` moves the slice aside to ``slice.host-failed-<time>`` and runs
@@ -59,6 +63,7 @@ import itertools
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -66,6 +71,7 @@ import tempfile
 import threading
 import time
 from collections import Counter, deque
+from collections.abc import Iterable
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from decimal import Decimal
 from math import comb
@@ -171,6 +177,80 @@ def finished(sample: Path) -> bool:
     return (sample / "slice" / "slice-result.json").is_file() and host_failure(sample) is None
 
 
+LaunchProfile = tuple[str, str | None, str, str | None]  # host, backend, model, effort
+
+
+def _pin_profile(host: str, extra: list[str]) -> tuple[LaunchProfile, list[str]]:
+    """Parse the same options as slice.py and make its resolved defaults explicit before dispatch."""
+    from slice import parser  # noqa: PLC0415
+
+    args = parser().parse_args(["--host", host, *extra])
+    driver = hosts.host(args.host, getattr(args, f"{args.host}_bin"), args.backend)
+    backend = getattr(driver, "backend", None)
+    model, effort = args.model or driver.model, args.effort or driver.effort
+    pinned = extra + [f"--{key}={value}" for key, value in (("backend", backend), ("model", model), ("effort", effort))
+                      if value and not getattr(args, key)]
+    return (driver.name, backend, model, effort), pinned
+
+
+def _profile_flags(profile: LaunchProfile) -> str:
+    host, backend, model, effort = profile
+    return shlex.join(["--host", host, f"--model={model}", *([f"--effort={effort}"] if effort else []),
+                       *([f"--backend={backend}"] if backend else [])])
+
+
+def _sample_profile(sample: Path) -> LaunchProfile | None:
+    """Read the requested profile from the slice, never from defaults or the cached score."""
+    record = _read_object(sample / "slice" / "invocation.json")
+    if record is None:
+        return None
+    host, model, effort = record.get("host"), record.get("model"), record.get("effort")
+    if not isinstance(host, str) or host not in hosts.HOSTS or not isinstance(model, str) or not model.strip():
+        return None
+    if "effort" not in record or (effort is None and host != "claude"):
+        return None
+    if effort is not None and (not isinstance(effort, str) or not effort.strip()):
+        return None
+    # slice.py first recorded backend when it gained Ollama support (7c077e0f); earlier Claude slices used Anthropic.
+    backend = record.get("backend", "anthropic" if host == "claude" else None)
+    if (host == "claude" and backend not in ("anthropic", "ollama")) or (host != "claude" and backend is not None):
+        return None
+    return host, backend, model, effort
+
+
+def _read_object(path: Path) -> dict | None:
+    try:
+        record = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return None
+    return record if isinstance(record, dict) else None
+
+
+def _check_profiles(exp_id: str, out: Path, arms: Iterable[str], expected: LaunchProfile | None = None,
+                    *, cached: bool = False) -> None:
+    """Reject unknown or mixed provenance in finished slices and any cached rows a comparison could use."""
+    profiles: dict[LaunchProfile, Path] = {}
+    for arm in arms:
+        for sample in samples(out, exp_id, arm):
+            if not finished(sample):
+                if not cached or (_read_object(sample / "score.json") or {}).get("value") is None:
+                    continue
+            profile = _sample_profile(sample)
+            if profile is None:
+                raise SystemExit(f"{sample.relative_to(out)}: unknown launch profile in slice/invocation.json. "
+                                 "Use a fresh --out directory for a new round.")
+            profiles.setdefault(profile, sample)
+    if len(profiles) > 1:
+        details = "; ".join(f"{path.relative_to(out)}: {_profile_flags(profile)}" for profile, path in profiles.items())
+        raise SystemExit(f"{exp_id}: samples have different launch profiles ({details}). "
+                         "Use a fresh --out directory for a new round.")
+    if expected is not None and profiles and expected not in profiles:
+        retained, path = next(iter(profiles.items()))
+        raise SystemExit(f"{exp_id}: requested launch profile ({_profile_flags(expected)}) differs from "
+                         f"{path.relative_to(out)}. Continue with {_profile_flags(retained)}, "
+                         "or use a fresh --out directory.")
+
+
 def _resolved_commit(ref: str | None) -> str | None:
     """The commit a sample's arm actually built from, so a branch ref that moves mid-round is traceable, not silent."""
     if not ref:
@@ -229,11 +309,15 @@ def run(exp_id: str, arm_name: str, count: int, host: str, out: Path, extra: lis
     if arm_name not in exp["arms"]:
         raise SystemExit(f"{exp_id} has no arm {arm_name!r}; arms: {', '.join(exp['arms'])}")
     arm = exp["arms"][arm_name]
-    commit = _resolved_commit(arm.get("ref"))
-    status = 0
     if only is not None and only < 1:
         raise SystemExit(f"--sample must be 1 or more, not {only}")
-    for n in ([only] if only is not None else range(1, count + 1)):
+    numbers = [only] if only is not None else range(1, count + 1)
+    if any(not finished(out / exp_id / arm_name / str(n)) for n in numbers):
+        profile, extra = _pin_profile(host, extra)
+        _check_profiles(exp_id, out, exp["arms"], profile)
+    commit = _resolved_commit(arm.get("ref"))
+    status = 0
+    for n in numbers:
         sample = out / exp_id / arm_name / str(n)
         if finished(sample):
             print(f"{exp_id}/{arm_name}/{n}: finished earlier, skipped", flush=True)
@@ -267,6 +351,7 @@ def run(exp_id: str, arm_name: str, count: int, host: str, out: Path, extra: lis
 
 def score(exp_id: str, out: Path) -> dict:
     exp = load(exp_id)
+    _check_profiles(exp_id, out, exp["arms"])
     module = evaluator(exp)
     table: dict[str, list] = {}
     for arm_name in exp["arms"]:
@@ -413,6 +498,7 @@ def settled(exp_id: str, out: Path, arm_names: list[str], count: int) -> str | N
     exp = load(exp_id)
     if count < 4 or exp.get("gate") or not getattr(evaluator(exp), "BINARY", False) or len(arm_names) < 2:
         return None
+    _check_profiles(exp_id, out, arm_names, cached=True)
     score(exp_id, out)
     control = read_scores(out, exp_id, arm_names[0])
     verdicts = []
@@ -475,6 +561,10 @@ def queue(exp_ids: list[str], arm_names: list[str], count: int, jobs: int, host:
                 say(f"{exp_id}: settled ({verdict}); its remaining samples are skipped")
 
     try:
+        if pending:
+            profile, extra = _pin_profile(host, extra)
+            for exp_id in dict.fromkeys(e for e, _, _ in pending):
+                _check_profiles(exp_id, out, load(exp_id)["arms"], profile)
         for exp_id in exp_ids:
             check(exp_id)
         with ThreadPoolExecutor(max_workers=jobs) as pool:
@@ -532,6 +622,7 @@ def decide(exp_id: str, x: str, y: str, out: Path, journal: Path = JOURNAL) -> d
     for name in (x, y):
         if name not in exp["arms"]:
             raise SystemExit(f"{exp_id} has no arm {name!r}; arms: {', '.join(exp['arms'])}")
+    _check_profiles(exp_id, out, (x, y), cached=True)
     rows_x, rows_y = read_scores(out, exp_id, x), read_scores(out, exp_id, y)
     _check_single_commit(rows_x, exp_id, x)
     _check_single_commit(rows_y, exp_id, y)

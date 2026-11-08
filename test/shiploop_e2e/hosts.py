@@ -57,13 +57,6 @@ OLLAMA_TOOLS = ("Bash", "Read", "Edit", "Write", "Glob", "Grep", "NotebookEdit",
 # server serves (owner, 2026-11-01, replacing the 2026-10-26 default of Ollama's DeepSeek flash).
 RUN_DEFAULT_HOST = "codex"
 
-ROLE_DEFAULTS = {
-    "subject": {"host": RUN_DEFAULT_HOST, "model": "gpt-6.1-terra", "effort": "xhigh"},
-    "reviewer": {"host": "codex", "model": "gpt-6-astra", "effort": "xhigh"},
-    "judge": {"host": "codex", "model": "gpt-6-astra", "effort": "xhigh"},
-    "improver": {"host": "codex", "model": "gpt-6.1-sol", "effort": "xhigh"},
-}
-
 
 def resolve_role(name: str, overrides: dict | None = None) -> dict:
     """Return a role's host/model/effort, applying explicit overrides.
@@ -423,7 +416,7 @@ class CodexHost(Host):
     (the published marketplace, or a build of this checkout).
     """
 
-    name, model, effort = "codex", "gpt-6.1-terra", "xhigh"
+    name, model, effort = "codex", "gpt-6.1-sol", "high"
     resumable = marketplace = True
 
     def __init__(self, binary: str = "codex"):
@@ -449,9 +442,11 @@ class CodexHost(Host):
         prompt_file.write_text(prompt)
         argv = [self.binary, "exec", "--json", "-m", model, "--skip-git-repo-check",
                 "-s", "danger-full-access", "-c", 'approval_policy="never"',
-                "--dangerously-bypass-hook-trust", "-C", str(cwd)]
+                "--dangerously-bypass-hook-trust", "-C", str(cwd),
+                # Keep default native workers on this launch's resolved model, including explicit overrides and resumes.
+                "-c", f"agents.default_subagent_model={json.dumps(model)}"]
         if effort:
-            argv += ["-c", f"model_reasoning_effort={effort}"]
+            argv += ["-c", f"model_reasoning_effort={effort}", "-c", f"agents.default_subagent_reasoning_effort={effort}"]
         return argv + (["resume", resume, prompt] if resume else [prompt])
 
     def install_marketplace(self, env, source=MARKETPLACE_SOURCE):
@@ -589,6 +584,10 @@ class CodexTranslator:
 
 HOSTS: dict[str, type] = {"grok": GrokHost, "claude": ClaudeHost, "codex": CodexHost}
 HOST_DEFAULTS = {name: {"model": cls.model, "effort": cls.effort} for name, cls in HOSTS.items()}
+ROLE_DEFAULTS = {
+    role: {"host": name, **HOST_DEFAULTS[name]}
+    for role, name in (("subject", RUN_DEFAULT_HOST), ("reviewer", "codex"), ("judge", "codex"), ("improver", "codex"))
+}
 
 
 def host(name: str, binary: str | None = None, backend: str | None = None) -> Host:

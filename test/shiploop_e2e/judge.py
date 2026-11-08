@@ -4,7 +4,7 @@ Public API:
 
     judge(run_dir, review, *, host=None, model=None, effort=None, codex_bin="codex", timeout=1200)
 
-The role resolver supplies the default Codex/Astra/xhigh profile. Explicit
+The role resolver supplies the current Codex defaults. Explicit
 overrides win. A judge gets a new isolated HOME and process, runs in Codex's
 read-only sandbox, and receives the exact review identity plus the original run
 artifact paths. No alternate host or model is tried when launch or evaluation

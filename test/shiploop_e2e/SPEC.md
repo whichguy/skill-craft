@@ -99,8 +99,11 @@ and never replaces it. A promoted change whose prediction is not confirmed keeps
 gain is not yet explained.
 
 New discovery-qualified reviews use `version: 2` and a fresh judge assessment bound to that review's exact bytes. The reviewer and judge
-are separate Astra xhigh sessions; Sol 6.1 xhigh is the improver and Terra 6.1 xhigh is the default test subject. The
-scripts record requested identities separately from any observed identity; unavailable served identity is not invented.
+are separate fresh sessions. The owner-selected default for new subjects, reviewers, judges and improvers is
+Codex / GPT-6.1 Sol / high (2026-11-07). Explicit choices override the new default; without an override,
+resumed runs retain their recorded identities. Frozen registrations and historical evidence are not relabelled;
+continue existing strict epochs on their original pinned harness checkout. The explicit Grok-only audit remains available.
+The scripts record requested identities separately from any observed identity; unavailable served identity is not invented.
 Historical reviews remain readable but do not establish the new discovery/judge requirements.
 
 Strict comparison uses `promotion/5`. Registration precedes dispatch and binds the ShipLoop builds, drivers, unique

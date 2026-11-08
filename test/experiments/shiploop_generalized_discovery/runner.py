@@ -26,6 +26,8 @@ from study_inputs import validate_study_inputs
 
 
 LIMITS = {"seconds_per_arm": 480, "calls_per_arm": 32, "exploration_seconds": 360, "exploration_calls": 24}
+DEFAULT_MODEL = "gpt-6.1-sol"
+DEFAULT_EFFORT = "high"
 ARM_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,80}$")
 
 
@@ -107,18 +109,19 @@ def read_study(path: Path) -> tuple[Path, dict[str, Any]]:
 
 
 def default_host_command(command: list[str], receipts: Path) -> list[str]:
-    """Keep frozen tool restrictions while letting the CLI choose its host default."""
+    """Keep frozen tool restrictions and pin the new study's model and effort."""
     result: list[str] = []
     index = 0
     inserted = False
     while index < len(command):
         item = command[index]
-        if item == "-m":
+        if item in {"-m", "--model"}:
             index += 2
             continue
         if item == "-c" and index + 1 < len(command):
             setting = command[index + 1]
-            if setting.startswith("model_reasoning_effort="):
+            if setting.startswith(("model=", "model_reasoning_effort=", "agents.default_subagent_model=",
+                                   "agents.default_subagent_reasoning_effort=")):
                 index += 2
                 continue
             prefix = "mcp_servers.shiploop_workspace.args="
@@ -133,6 +136,11 @@ def default_host_command(command: list[str], receipts: Path) -> list[str]:
         index += 1
     if not inserted:
         raise ValueError("frozen codex command has no workspace gateway arguments")
+    # Insert before the stdin prompt marker, retaining every gateway/tool restriction.
+    position = len(result) - 1 if result and result[-1] == "-" else len(result)
+    result[position:position] = ["-m", DEFAULT_MODEL, "-c", f"model_reasoning_effort={DEFAULT_EFFORT}",
+                                 "-c", f"agents.default_subagent_model={json.dumps(DEFAULT_MODEL)}",
+                                 "-c", f"agents.default_subagent_reasoning_effort={DEFAULT_EFFORT}"]
     return result
 
 
@@ -307,8 +315,8 @@ def run_arm(study: Path, state: dict[str, Any], runtime: Any, arm: str) -> dict[
     invocation = {"schema": "generalized-discovery-invocation/1", "arm": arm, "launch_number": launch_number,
                   "started_at": utc_now(), "deadline_epoch": deadline, "cutoff_epoch": cutoff,
                   "command": command, "command_sha256": hashlib.sha256(json.dumps(command).encode()).hexdigest(),
-                  "model_selection": {"requested": "host_default", "observed": None,
-                                      "status": "unavailable", "reason": "selected CLI model/config was not observed"}}
+                  "model_selection": {"requested": DEFAULT_MODEL, "requested_effort": DEFAULT_EFFORT, "observed": None,
+                                      "status": "unavailable", "reason": "served model/effort was not observed"}}
     write_json(run / "invocation.json", invocation)
     Watch = reserve_watch(runtime)
     watch = Watch(start_epoch=now, cutoff_epoch=cutoff, deadline_epoch=deadline)
@@ -437,6 +445,8 @@ def main() -> int:
     args = parser.parse_args()
     try:
         study, state = read_study(args.study)
+        if sha256(Path(__file__)) != sha256(study / "frozen" / "runner.py"):
+            raise ValueError(f"executing runner differs from this study; use {study / 'frozen' / 'runner.py'}")
         if args.preflight:
             result = preflight(study, state)
             print(json.dumps(result, indent=2, sort_keys=True))

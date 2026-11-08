@@ -42,9 +42,11 @@ expansion into costly full workflows; preserve that trial, diagnose it, and
 retain any repaired candidate as a separately identified trial. No silent
 retry, replay-as-live, or post-hoc change of the passing criteria is permitted.
 
-Use a fresh CLI process per trial, the verified configured model and effort pinned explicitly, fixed
-1,200-second bound, same command configuration, and alternating arm launch
-order. Disable memory and user config for these narrow sessions. Record
+Use a fresh CLI process per trial, a fixed 1,200-second bound, the same command
+configuration across arms, and alternating arm launch order. The launcher pins
+GPT-6.1 Sol with high reasoning for new trials and their default native workers.
+Pass `--model` and `--effort` explicitly to reproduce a different recorded
+profile. Disable memory and user config for these narrow sessions. Record
 observable model identity if supplied by the event stream; otherwise leave it
 unavailable. Instructions restrict work to the fixture and explicitly provided
 skill resources. This is not a filesystem-read or network isolation proof.
@@ -128,7 +130,6 @@ python3 test/experiments/shiploop_repeatable_tests/run.py \
   --repo /absolute/disposable/repo \
   --output /absolute/separate/trial-output \
   --prompt /absolute/separate/request.txt \
-  --model YOUR_VERIFIED_MODEL --effort YOUR_VERIFIED_EFFORT \
   --runtime /absolute/frozen/until-loop
 ```
 
