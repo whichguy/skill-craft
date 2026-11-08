@@ -1,0 +1,81 @@
+{
+  "atomic": {
+    "baseline": "test_single_row_roundtrip (test_baseline.Baseline.test_single_row_roundtrip) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.002s\n\nOK\n",
+    "command": "python3 -B -m unittest discover -s tests -v"
+  },
+  "evidence": {
+    "baseline": "test_single_row_roundtrip (test_baseline.Baseline.test_single_row_roundtrip) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.002s\n\nOK\n",
+    "command": "python3 -B -m unittest discover -s tests -v"
+  },
+  "unicode": {
+    "baseline": "test_application_connection (test_baseline.Baseline.test_application_connection) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+    "command": "python3 -B -m unittest discover -s tests -v"
+  },
+  "unavailable": {
+    "baseline": "test_unconfigured_transport_is_explicit (test_baseline.Baseline.test_unconfigured_transport_is_explicit) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n",
+    "command": "python3 -B -m unittest discover -s tests -v"
+  },
+  "atomicity": {
+    "source": "src/adapter.py",
+    "sha256": "aa7e063e58da1315cfdc367183ecdafc690081c550f5109bf7d6c173aff6f2ac",
+    "adapter_version": "2.3",
+    "configuration": "default connection, no concurrent writers, new local disposable database",
+    "command_argv": [
+      "python3",
+      "-B",
+      "-c",
+      "import json, sqlite3, tempfile\nfrom pathlib import Path\nfrom src import adapter\nwith tempfile.TemporaryDirectory() as tmp:\n p=str(Path(tmp)/\"probe.sqlite\")\n adapter.apply(p,[{\"sku\":\"old\",\"quantity\":2}])\n success=adapter.apply(p,[{\"sku\":\"a\",\"quantity\":3},{\"sku\":\"b\",\"quantity\":4}])\n with sqlite3.connect(p) as db: before=db.execute(\"SELECT * FROM inventory ORDER BY sku\").fetchall()\n try: adapter.apply(p,[{\"sku\":\"c\",\"quantity\":5},{\"sku\":\"bad\",\"quantity\":-1}])\n except ValueError as e: error=str(e)\n with sqlite3.connect(p) as db: after=db.execute(\"SELECT * FROM inventory ORDER BY sku\").fetchall()\n print(json.dumps({\"success\":success,\"before\":before,\"failure\":error,\"after\":after,\"partial_write_visible\":before!=after}))\n"
+    ],
+    "stdout": {
+      "success": {
+        "accepted": 2
+      },
+      "before": [
+        [
+          "a",
+          3
+        ],
+        [
+          "b",
+          4
+        ],
+        [
+          "old",
+          2
+        ]
+      ],
+      "failure": "invalid quantity",
+      "after": [
+        [
+          "a",
+          3
+        ],
+        [
+          "b",
+          4
+        ],
+        [
+          "c",
+          5
+        ],
+        [
+          "old",
+          2
+        ]
+      ],
+      "partial_write_visible": true
+    },
+    "conclusion": "This adapter commits each applied row; a later invalid record leaves prior writes visible to a fresh connection. Applying directly to the visible destination cannot satisfy all-or-nothing failure. This says nothing about an unimplemented staging/publication/recovery design."
+  },
+  "native_search": {
+    "argv": [
+      "python3",
+      "-B",
+      "-c",
+      "import json\nfrom src import database\nwith database.connect() as db:\n db.execute(\"CREATE VIRTUAL TABLE docs USING fts5(title, tokenize='trigram')\")\n db.executemany(\"INSERT INTO docs(title) VALUES (?)\",[(\"Caf\u00e9 Racer\",),(\"Die Stra\u00dfe\",)])\n print(json.dumps({q:db.execute(\"SELECT rowid FROM docs WHERE title LIKE ?\",(\"%\"+q+\"%\",)).fetchall() for q in [\"cafe\",\"STRASSE\",\"afe\",\"xyz\"]}))\n"
+    ],
+    "exit": 0,
+    "stdout": "{\"cafe\": [], \"STRASSE\": [], \"afe\": [], \"xyz\": []}\n",
+    "stderr": ""
+  }
+}

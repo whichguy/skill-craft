@@ -1,0 +1,13 @@
+{
+  "about": "Early consequential experiments after spec/test strategy and source reopening, before work_items; Plan Improve is byte-identical to baseline.",
+  "baseline": "93dd53b73e1931c5847ad75d9bc19205c40fb441",
+  "edits": [
+    {
+      "module": "shiploop_prompts.py",
+      "constant": "DUTIES",
+      "key": "plan",
+      "old": "2. Plan backward from desired outcomes to their producers (Dependency-planning guidance); return `work_items`",
+      "new": "Before defining work items, assess the accepted spec and reopened sources for consequential uncertainty:\n   which unknown could change the approach, dependencies, scope or readiness of this plan? Use sufficient current\n   evidence first; zero experiments is valid. When a small authorized representative experiment can settle such\n   a decision more usefully than further reading or conditional planning, identify and run it now, before committing\n   dependent work to the breakdown. State the decision, alternatives, representative target and observation that\n   would distinguish them before running. Keep temporary code/data in RUN/scratch; retain exact commands, outputs,\n   source/setup identity and their decision consequences in RUN/notes/planning-experiments.md. Clean up owned\n   resources; a probe grants no new authority, product integration, baseline mutation or production access.\n   A failed apparatus or inconclusive result leaves the question open; gate its dependent work and keep independent\n   planning eligible. Carry findings and unresolved decisions into `assumptions` and `evidence_refs`. Reuse research's\n   shared investigation allowance and record consumption/remaining allowance in that note for Plan Improve; a new\n   stage or review grants no fresh allowance. Plan Improve still reassesses the resulting plan, including assumptions\n   introduced by its breakdown, using prior evidence where sufficient. Use the current stage; add no Until Loop.\n2. Plan backward from desired outcomes to their producers (Dependency-planning guidance); return `work_items`"
+    }
+  ]
+}

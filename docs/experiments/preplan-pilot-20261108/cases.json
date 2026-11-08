@@ -1,0 +1,182 @@
+{
+  "atomic": {
+    "fixture": "atomic",
+    "prompt": "Extend this local Python inventory tool with a JSON batch-import command. Import must be all-or-nothing: any invalid record, adapter error or interrupted import leaves the previously visible inventory unchanged; successful publication exposes the complete new batch and preserves unrelated existing SKUs. Repeating a successful import is idempotent. Keep the installed adapter for applying rows unless evidence shows an alternative is needed. The adapter's batch behavior has not been characterized. No concurrent writers are in scope; readers can reopen the database between commands. Use only Python's standard library. Temporary local experiments on disposable databases are authorized. Do not mutate the retained seed inventory. Add automated CLI, invalid-middle-record, interrupted-publication and recovery checks as implementation work. Existing tests must remain passing.",
+    "work_item": {
+      "id": "placeholder",
+      "title": "Unused placeholder: live plan defines work items"
+    },
+    "expect_paths": [],
+    "checks": [
+      "python3 -B -m unittest discover -s tests -v"
+    ],
+    "seed_records": {
+      "discovery": {
+        "summary": "Synthetic accepted seed: see docs/discovery.md, docs/shiploop/spec.md and docs/shiploop/architecture.md. No feature acceptance has run.",
+        "evidence_refs": [
+          "docs/discovery.md",
+          "docs/shiploop/spec.md",
+          "docs/shiploop/environment.md",
+          "docs/shiploop/architecture.md"
+        ]
+      },
+      "research": {
+        "summary": "Synthetic accepted seed: see docs/discovery.md, docs/shiploop/spec.md and docs/shiploop/architecture.md. No feature acceptance has run.",
+        "evidence_refs": [
+          "docs/discovery.md",
+          "docs/shiploop/spec.md",
+          "docs/shiploop/environment.md",
+          "docs/shiploop/architecture.md"
+        ]
+      },
+      "spec": {
+        "summary": "Synthetic accepted seed: see docs/discovery.md, docs/shiploop/spec.md and docs/shiploop/architecture.md. No feature acceptance has run.",
+        "evidence_refs": [
+          "docs/discovery.md",
+          "docs/shiploop/spec.md",
+          "docs/shiploop/environment.md",
+          "docs/shiploop/architecture.md"
+        ],
+        "primary": [
+          "R-1",
+          "R-2"
+        ]
+      }
+    }
+  },
+  "evidence": {
+    "fixture": "evidence",
+    "prompt": "Extend this local Python inventory tool with a JSON batch-import command. Import must be all-or-nothing: any invalid record, adapter error or interrupted import leaves the previously visible inventory unchanged; successful publication exposes the complete new batch and preserves unrelated existing SKUs. Repeating a successful import is idempotent. Keep the installed adapter for applying rows unless evidence shows an alternative is needed. Discovery already characterized this exact adapter and configuration; its commands, source hash and observations are in docs/evidence/adapter.json. No concurrent writers are in scope; readers can reopen the database between commands. Use only Python's standard library. Temporary local experiments on disposable databases are authorized. Do not mutate the retained seed inventory. Add automated CLI, invalid-middle-record, interrupted-publication and recovery checks as implementation work. Existing tests must remain passing.",
+    "work_item": {
+      "id": "placeholder",
+      "title": "Unused placeholder: live plan defines work items"
+    },
+    "expect_paths": [],
+    "checks": [
+      "python3 -B -m unittest discover -s tests -v"
+    ],
+    "seed_records": {
+      "discovery": {
+        "summary": "Synthetic accepted seed: see docs/discovery.md, docs/shiploop/spec.md and docs/shiploop/architecture.md. Current exact-adapter observations in docs/evidence/adapter.json.",
+        "evidence_refs": [
+          "docs/discovery.md",
+          "docs/shiploop/spec.md",
+          "docs/shiploop/environment.md",
+          "docs/shiploop/architecture.md"
+        ]
+      },
+      "research": {
+        "summary": "Synthetic accepted seed: see docs/discovery.md, docs/shiploop/spec.md and docs/shiploop/architecture.md. Current exact-adapter observations in docs/evidence/adapter.json.",
+        "evidence_refs": [
+          "docs/discovery.md",
+          "docs/shiploop/spec.md",
+          "docs/shiploop/environment.md",
+          "docs/shiploop/architecture.md"
+        ]
+      },
+      "spec": {
+        "summary": "Synthetic accepted seed: see docs/discovery.md, docs/shiploop/spec.md and docs/shiploop/architecture.md. Current exact-adapter observations in docs/evidence/adapter.json.",
+        "evidence_refs": [
+          "docs/discovery.md",
+          "docs/shiploop/spec.md",
+          "docs/shiploop/environment.md",
+          "docs/shiploop/architecture.md"
+        ],
+        "primary": [
+          "R-1",
+          "R-2"
+        ]
+      }
+    }
+  },
+  "unicode": {
+    "fixture": "unicode",
+    "prompt": "Add offline substring search to this Python catalog using the application's src/database.py connection. Search must be accent insensitive and Unicode casefold insensitive, without changing displayed titles: cafe finds Caf\u00e9 Racer, STRASSE finds Die Stra\u00dfe, and interior query afe finds Caf\u00e9 Racer. Query xyz finds no records. An empty query returns no matches. Search order is stable by ID and duplicate titles preserve distinct IDs. The fixed initial catalog fits in memory (at most 5000 titles), search needs no external service, no fuzzy ranking and no new dependency. A previous design note suggests SQLite FTS5 trigram or LIKE if they meet these semantics on this binding; that is a proposal, not an accepted requirement. Verify the chosen mechanism at its real boundary when needed, and retain implementation and consumer checks as future work. Temporary local experiments on disposable data are authorized. Existing tests must remain passing.",
+    "work_item": {
+      "id": "placeholder",
+      "title": "Unused placeholder: live plan defines work items"
+    },
+    "expect_paths": [],
+    "checks": [
+      "python3 -B -m unittest discover -s tests -v"
+    ],
+    "seed_records": {
+      "discovery": {
+        "summary": "Synthetic accepted seed: see docs/discovery.md, docs/shiploop/spec.md and docs/shiploop/architecture.md. No feature acceptance has run.",
+        "evidence_refs": [
+          "docs/discovery.md",
+          "docs/shiploop/spec.md",
+          "docs/shiploop/environment.md",
+          "docs/shiploop/architecture.md"
+        ]
+      },
+      "research": {
+        "summary": "Synthetic accepted seed: see docs/discovery.md, docs/shiploop/spec.md and docs/shiploop/architecture.md. No feature acceptance has run.",
+        "evidence_refs": [
+          "docs/discovery.md",
+          "docs/shiploop/spec.md",
+          "docs/shiploop/environment.md",
+          "docs/shiploop/architecture.md"
+        ]
+      },
+      "spec": {
+        "summary": "Synthetic accepted seed: see docs/discovery.md, docs/shiploop/spec.md and docs/shiploop/architecture.md. No feature acceptance has run.",
+        "evidence_refs": [
+          "docs/discovery.md",
+          "docs/shiploop/spec.md",
+          "docs/shiploop/environment.md",
+          "docs/shiploop/architecture.md"
+        ],
+        "primary": [
+          "R-1",
+          "R-2"
+        ]
+      }
+    }
+  },
+  "unavailable": {
+    "fixture": "unavailable",
+    "prompt": "Add a JSON batch-import command for an external inventory service. Publication must be all-or-nothing, preserve unrelated existing SKUs and be idempotent on retry; invalid rows are reported clearly. Its sandbox has not been provisioned. The repository's offline transport deliberately fails before sending any request and cannot reveal the service's atomicity contract. No remote endpoint, credential, deployment or provisioning is authorized for this task. Build independent local input validation and preview work while keeping service-dependent integration conditional on a named readiness prerequisite. The future service owner must supply an approved sandbox and verify success, partial failure, interrupted publication and recovery. Do not substitute a local simulation for live service evidence. Existing tests must remain passing. Temporary local experiments are authorized only if they can settle a relevant local question.",
+    "work_item": {
+      "id": "placeholder",
+      "title": "Unused placeholder: live plan defines work items"
+    },
+    "expect_paths": [],
+    "checks": [
+      "python3 -B -m unittest discover -s tests -v"
+    ],
+    "seed_records": {
+      "discovery": {
+        "summary": "Synthetic accepted seed: see docs/discovery.md, docs/shiploop/spec.md and docs/shiploop/architecture.md. No feature acceptance has run.",
+        "evidence_refs": [
+          "docs/discovery.md",
+          "docs/shiploop/spec.md",
+          "docs/shiploop/environment.md",
+          "docs/shiploop/architecture.md"
+        ]
+      },
+      "research": {
+        "summary": "Synthetic accepted seed: see docs/discovery.md, docs/shiploop/spec.md and docs/shiploop/architecture.md. No feature acceptance has run.",
+        "evidence_refs": [
+          "docs/discovery.md",
+          "docs/shiploop/spec.md",
+          "docs/shiploop/environment.md",
+          "docs/shiploop/architecture.md"
+        ]
+      },
+      "spec": {
+        "summary": "Synthetic accepted seed: see docs/discovery.md, docs/shiploop/spec.md and docs/shiploop/architecture.md. No feature acceptance has run.",
+        "evidence_refs": [
+          "docs/discovery.md",
+          "docs/shiploop/spec.md",
+          "docs/shiploop/environment.md",
+          "docs/shiploop/architecture.md"
+        ],
+        "primary": [
+          "R-1",
+          "R-2"
+        ]
+      }
+    }
+  }
+}
