@@ -210,6 +210,8 @@ _SHIPLOOP_PATHS = (
 # deterministic fallback retains that property for a newly added suite until a
 # later audit supplies an observed duration.
 _DURATION_SECONDS = {
+    # Local serial wall time, 2026-11-07: six wrapper tests including clean clones and oracle calibration.
+    "test/native-setup-pilot.test.py": 17.294,
     # Plan Dispatcher gates: the mutation run reruns whole suites per mutant,
     # so it belongs to the full tier (measured locally 2026-09-27).
     "test/plan-dispatcher-mutants.test.py": 420.0,
@@ -595,6 +597,7 @@ _CORE_SUITES = (
     _suite("plan-dispatcher-exact-calls", "core", "test/plan-dispatcher-exact-calls.test.js", "node", "test/plan-dispatcher-exact-calls.test.js"),
     _suite("plan-dispatcher-scenarios", "core", "test/plan-dispatcher-scenarios.test.js", "node", "test/plan-dispatcher-scenarios.test.js"),
     _suite("plan-dispatcher-mutants", "core", "test/plan-dispatcher-mutants.test.py", "python3", "test/plan-dispatcher-mutants.test.py"),
+    _suite("native-setup-pilot", "core", "test/native-setup-pilot.test.py", "python3", "-B", "test/native-setup-pilot.test.py"),
 )
 
 SHIPLOOP_SUITES = tuple(_shiploop(path) for path in _SHIPLOOP_PATHS)
@@ -781,6 +784,7 @@ _IN_PARALLEL_IDS = tuple(suite.id for suite in SUITES if "in-parallel" in suite.
 # -commit-counters 24.5, -sf-guard 20, the other seven 38 together); it was about 182 s for five suites on 2026-10-09.  Two data files are the exception, see _ROW_ONLY_PATHS.
 _PREFIX_SUITE_IDS = {
     "test/fixtures/backchain-chunks/": ("backchain-chunks",),
+    "test/fixtures/native-setup-pilot/": ("native-setup-pilot",),
     "skills/in-parallel/": (*_IN_PARALLEL_IDS, "marketplace-package"),
     "test/experiments/in_parallel_queue/": ("in-parallel-queue-audit",),
     "agents/in-parallel.md": (*_IN_PARALLEL_IDS, "marketplace-package"),

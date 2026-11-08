@@ -1,0 +1,476 @@
+{
+  "schema_version": 1,
+  "experiment": "native-setup-pilot-2026-11-07",
+  "external_bundle_name": "native-setup-pilot-20261107220147Z",
+  "scope": "descriptive native stage pilot; not a prompt promotion comparison or full E2E",
+  "decision": {
+    "retain": [
+      "portable local fixtures and native packet path",
+      "calibrated external API oracle and readiness calibration",
+      "no-model wrapper, adapter, catalog, and qualification checks"
+    ],
+    "do_not_adopt": [
+      "production prompt draft"
+    ],
+    "reason": "Original API comparison is unqualified by a seed conflict; planning ties on five usable properties. This is insufficient evidence of effect, not proof of no effect.",
+    "product_prompt_or_default_changed": false,
+    "release_needed": false,
+    "learn_entry_added": false
+  },
+  "source": {
+    "commit": "b237a3e89147e18a9f8450e63afb0814eeafd9be",
+    "git_tree": "ea70d8d823c2c8f5c31162343f957c30f63081eb"
+  },
+  "subject": {
+    "host": "codex",
+    "model_requested": "gpt-6.1-terra",
+    "effort_requested": "xhigh",
+    "served_model": "UNKNOWN"
+  },
+  "candidate": {
+    "module": "shiploop_prompts.py",
+    "prompt_sha256": "9d68298b258675c85975cc9dd0f288bfe0321f681bf63857203a740331d10022",
+    "original_patch_sha256": "9bbd8aaae242b4c8ad16174a60ace3c5b9642346fec11112d3d177b4e320c0e4",
+    "overlay_sha256": "793d1651b3ed85c001e2baa3361dc559cb15df168c91c76949ffd5d8566013e5"
+  },
+  "builds": {
+    "manifest_hash_method": "SHA-256 of UTF-8 JSON map with sorted keys, separators(',', ':'), ensure_ascii=False",
+    "arms": [
+      {
+        "arm": "A",
+        "version": {
+          "plugin_version": "2.35.0",
+          "shiploop_version": "1.33.0",
+          "plugin_sha256": "a03cd593099c"
+        },
+        "plugin_manifest": {
+          "files": 395,
+          "canonical_sha256": "6f2e87fff983f3923a6c9830f95a1f2d26e4e4a2721f07b251ede6377aae060f"
+        },
+        "full_build_manifest": {
+          "files": 798,
+          "canonical_sha256": "0b4a9c333fb235c6be16dd3ee2e3954bc7d56f77c8d1d42a35b58cb870ac56be"
+        },
+        "reported_plugin_sha256_prefix": "a03cd593099c"
+      },
+      {
+        "arm": "B",
+        "version": {
+          "plugin_version": "2.35.0",
+          "shiploop_version": "1.33.0",
+          "plugin_sha256": "c9feb3b8a19b"
+        },
+        "plugin_manifest": {
+          "files": 395,
+          "canonical_sha256": "009aea816c6a93cc01e56ddda6946a05d517308b70d59ca3bb1d4c2b1ad64960"
+        },
+        "full_build_manifest": {
+          "files": 798,
+          "canonical_sha256": "93890a66efb8629940dfe7954368030b59e2fb221f3dfdb6c6bbcb318fffc3ac"
+        },
+        "reported_plugin_sha256_prefix": "c9feb3b8a19b"
+      }
+    ],
+    "catalog_files": [
+      {
+        "path": ".agents/plugins/marketplace.json",
+        "sha256": "1e67a52b51a66d8ec0a37f945121c88612908914e33dd5c4e3f79956d7a326be",
+        "same_in_A_and_B": true
+      },
+      {
+        "path": ".claude-plugin/marketplace.json",
+        "sha256": "501169bb2fd7f177d528dc57318f5ba17133c736f7ab31b02ca56ed37ce33b8e",
+        "same_in_A_and_B": true
+      },
+      {
+        "path": ".cursor-plugin/marketplace.json",
+        "sha256": "d19d01ffa3c3f62c9583563c40503da7e0016ff03921211a01c4f82f712edc65",
+        "same_in_A_and_B": true
+      },
+      {
+        "path": ".grok-plugin/marketplace.json",
+        "sha256": "da914c17158e42917939bc9b46da734c214db6553abfba6d3b638edce87bcfa0",
+        "same_in_A_and_B": true
+      },
+      {
+        "path": "catalog/external-plugins.json",
+        "sha256": "ab06188a2f9785000f5af56cc232616d89f04e59cff63341cae6f31087543dd9",
+        "same_in_A_and_B": true
+      },
+      {
+        "path": "catalog/skill-craft-plugin.json",
+        "sha256": "a0d13754c58a5b08c963a1af8435395ab61dd9b78dd10e6944adf8ff7fcc91c0",
+        "same_in_A_and_B": true
+      }
+    ]
+  },
+  "case_catalogs": [
+    {
+      "label": "default_corrected_seed",
+      "path": "test/fixtures/native-setup-pilot/cases.json",
+      "sha256": "37b05756c7fa3b0aaaaca60107d359e79f7109d78c167e1e89b3f511e144d733"
+    },
+    {
+      "label": "historical_phase_conflict_seed",
+      "path": "test/fixtures/native-setup-pilot/cases-phase-conflict.json",
+      "sha256": "eea44e88550192968766d15c6f93f39039b790be1e6c40d68ace04085f2a81ab"
+    }
+  ],
+  "native_trials": [
+    {
+      "id": "readiness-A1",
+      "case": "readiness-plan",
+      "arm": "A",
+      "replicate": 1,
+      "elapsed_seconds": 212.581,
+      "return_code": 0,
+      "native_pass": true,
+      "run_status": "active",
+      "stage_at_stop": "prepare",
+      "callback_refusals": 1,
+      "slice_result_sha256": "a132f0f1a64c0193d02bba22e889a36385ba097b13e3d8735139111881be8696",
+      "artifact": "runs/v3/readiness/A/1/slice/slice-result.json"
+    },
+    {
+      "id": "readiness-B1",
+      "case": "readiness-plan",
+      "arm": "B",
+      "replicate": 1,
+      "elapsed_seconds": 276.526,
+      "return_code": 0,
+      "native_pass": true,
+      "run_status": "active",
+      "stage_at_stop": "prepare",
+      "callback_refusals": 1,
+      "slice_result_sha256": "9c5d9a7dd512655e79534322d3602d1223d4265b20b340ac91a72f2996fb3e69",
+      "artifact": "runs/v4/readiness/B/1/slice/slice-result.json"
+    },
+    {
+      "id": "readiness-B2",
+      "case": "readiness-plan",
+      "arm": "B",
+      "replicate": 2,
+      "elapsed_seconds": 220.54,
+      "return_code": 0,
+      "native_pass": true,
+      "run_status": "active",
+      "stage_at_stop": "prepare",
+      "callback_refusals": 1,
+      "slice_result_sha256": "f84157c0eeab8ef7037d2cd0edc319092874e0f59ad587ca0950483acb3629bf",
+      "artifact": "runs/v4/readiness/B/2/slice/slice-result.json"
+    },
+    {
+      "id": "readiness-A2",
+      "case": "readiness-plan",
+      "arm": "A",
+      "replicate": 2,
+      "elapsed_seconds": 280.904,
+      "return_code": 0,
+      "native_pass": true,
+      "run_status": "active",
+      "stage_at_stop": "prepare",
+      "callback_refusals": 0,
+      "slice_result_sha256": "7c8e737f16c72b51cb291f356b536cff1474b70a6d4d3b215558859e82302807",
+      "artifact": "runs/v4/readiness/A/2/slice/slice-result.json"
+    },
+    {
+      "id": "api-B1",
+      "case": "api-regression",
+      "arm": "B",
+      "replicate": 1,
+      "elapsed_seconds": 226.523,
+      "return_code": 0,
+      "native_pass": true,
+      "run_status": "active",
+      "stage_at_stop": "document",
+      "callback_refusals": 0,
+      "slice_result_sha256": "af6f8ac855210a437474da74aa594cf2b8ac143a96695e1974919135ee5a79f7",
+      "artifact": "runs/v5/api/B/1/slice/slice-result.json"
+    },
+    {
+      "id": "api-A1",
+      "case": "api-regression",
+      "arm": "A",
+      "replicate": 1,
+      "elapsed_seconds": 219.88,
+      "return_code": 0,
+      "native_pass": true,
+      "run_status": "active",
+      "stage_at_stop": "document",
+      "callback_refusals": 0,
+      "slice_result_sha256": "0d4d3815e9f896abf2dea6dac72fb103b8d24cba843ae805ad76d8a95f98c0f0",
+      "artifact": "runs/v5/api/A/1/slice/slice-result.json"
+    },
+    {
+      "id": "api-A2",
+      "case": "api-regression",
+      "arm": "A",
+      "replicate": 2,
+      "elapsed_seconds": 226.206,
+      "return_code": 0,
+      "native_pass": true,
+      "run_status": "active",
+      "stage_at_stop": "document",
+      "callback_refusals": 0,
+      "slice_result_sha256": "50045d15e79ec63aa0704e3189c93c1e6b93d3b06a11f12fedfc982b662e2ae1",
+      "artifact": "runs/v5/api/A/2/slice/slice-result.json"
+    },
+    {
+      "id": "api-B2",
+      "case": "api-regression",
+      "arm": "B",
+      "replicate": 2,
+      "elapsed_seconds": 309.954,
+      "return_code": 1,
+      "native_pass": false,
+      "run_status": "paused",
+      "stage_at_stop": "step-plan",
+      "callback_refusals": 0,
+      "slice_result_sha256": "2962f9b225bca1c85fea09822fe1bebfa86d33dd51bd45ad24a839f56238684f",
+      "artifact": "runs/v5/api/B/2/slice/slice-result.json"
+    }
+  ],
+  "api_oracle": {
+    "cohort_status": "UNQUALIFIED_SEED_CONFLICT",
+    "registered_samples": 4,
+    "scoreable_samples": {
+      "A": 2,
+      "B": 1
+    },
+    "no_suite_policy": "api-B2 remains registered with null score; not zero, excluded, or replaced",
+    "correct_and_alternative": "PASS for each valid suite",
+    "mutant_classifications": {
+      "cancel_still_writes": "KILLED",
+      "denied_write": "KILLED",
+      "duplicate_replay": "KILLED",
+      "preconfirmation_write": "KILLED",
+      "setup_noop": "KILLED",
+      "wrong_persisted_value": "KILLED"
+    },
+    "valid_suites": [
+      {
+        "id": "api-B1",
+        "tests": 5,
+        "test_sha256": "34800bb3019f4d2655c874adb44bc85c984f14bd765369bbe317d1c3beea8ab0",
+        "repeats": 2,
+        "stable": true,
+        "inputs_unchanged": true,
+        "slice_artifact": "runs/v5/api/B/1/slice/slice-result.json",
+        "oracle_artifact": "oracle-execution/api-B1",
+        "oracle_repeat_artifacts": [
+          "oracle-execution/api-B1/repeat-1.json",
+          "oracle-execution/api-B1/repeat-2.json"
+        ]
+      },
+      {
+        "id": "api-A1",
+        "tests": 5,
+        "test_sha256": "0cc2d65bd296f88b6ea5c439e868233791462d3edda370ce550cdd6dc9b3f566",
+        "repeats": 2,
+        "stable": true,
+        "inputs_unchanged": true,
+        "slice_artifact": "runs/v5/api/A/1/slice/slice-result.json",
+        "oracle_artifact": "oracle-execution/api-A1",
+        "oracle_repeat_artifacts": [
+          "oracle-execution/api-A1/repeat-1.json",
+          "oracle-execution/api-A1/repeat-2.json"
+        ]
+      },
+      {
+        "id": "api-A2",
+        "tests": 5,
+        "test_sha256": "23561efc67c314ac157d00f6f91b7dde027c6b32a198231a8dbb9527c31f03b1",
+        "repeats": 2,
+        "stable": true,
+        "inputs_unchanged": true,
+        "slice_artifact": "runs/v5/api/A/2/slice/slice-result.json",
+        "oracle_artifact": "oracle-execution/api-A2",
+        "oracle_repeat_artifacts": [
+          "oracle-execution/api-A2/repeat-1.json",
+          "oracle-execution/api-A2/repeat-2.json"
+        ]
+      }
+    ],
+    "no_suite": {
+      "id": "api-B2",
+      "tests": null,
+      "test_sha256": null,
+      "classifications": null,
+      "slice_artifact": "runs/v5/api/B/2/slice/slice-result.json"
+    },
+    "repeats_are": "fixed-suite oracle stability checks, not additional model samples"
+  },
+  "planning": {
+    "trials": 4,
+    "common_input_corpus": "corpus-v3 for all four launches; v3/v4 path labels are output-directory versions",
+    "usable_properties": {
+      "P1": "4/4 PASS",
+      "P2": "4/4 PASS",
+      "P4": "4/4 PASS",
+      "P5": "4/4 PASS",
+      "P6": "4/4 PASS"
+    },
+    "P3": "WITHHELD: grader required an unstated fresh-probe command after 7/7 calibration cases passed",
+    "producer_quality_ranked": false,
+    "producer_quality_limit": "original pre-Improve knowledge snapshots are not guaranteed",
+    "interpretation": "five-property tie in this small synthetic sample; no prompt ranking"
+  },
+  "corrected_seed_diagnostic": {
+    "seed": "corpus-v5/cases.json",
+    "separate_from_ab": true,
+    "native_status": "COMPLETED",
+    "native_seconds": 234.342,
+    "native_return_code": 0,
+    "stop_stage": "document",
+    "slice_result_sha256": "372c2a69b9efe4f85390f883c8943dc98a085253b727c91742e79295c4e87836",
+    "suite_sha256": "0ea1de218af9037b768b9c39d2bf6a799aa9a15f62349d7099b2bae5dd5eb4ad",
+    "new_tests": 5,
+    "existing_tests": 4,
+    "test_command": "python3 -m unittest discover -s . -p 'test_*.py' -v",
+    "independent_review_recomputed_identity": false,
+    "oracle_repeats": [
+      {
+        "repeat": 1,
+        "elapsed_seconds": 0.471,
+        "return_code": 0,
+        "tests": 5,
+        "test_sha256": "0ea1de218af9037b768b9c39d2bf6a799aa9a15f62349d7099b2bae5dd5eb4ad",
+        "receipt_sha256": "26d1946b3f30108141c26b8430ba966f42740e2cd3e5c39a007dab221571d768",
+        "inputs_unchanged": true,
+        "classifications": {
+          "alternative": "PASS",
+          "correct": "PASS",
+          "mutant:cancel_still_writes": "KILLED",
+          "mutant:denied_write": "KILLED",
+          "mutant:duplicate_replay": "KILLED",
+          "mutant:preconfirmation_write": "KILLED",
+          "mutant:setup_noop": "KILLED",
+          "mutant:wrong_persisted_value": "KILLED"
+        },
+        "artifact": "diagnostic-oracle-execution/repeat-1.json"
+      },
+      {
+        "repeat": 2,
+        "elapsed_seconds": 0.447,
+        "return_code": 0,
+        "tests": 5,
+        "test_sha256": "0ea1de218af9037b768b9c39d2bf6a799aa9a15f62349d7099b2bae5dd5eb4ad",
+        "receipt_sha256": "26d1946b3f30108141c26b8430ba966f42740e2cd3e5c39a007dab221571d768",
+        "inputs_unchanged": true,
+        "classifications": {
+          "alternative": "PASS",
+          "correct": "PASS",
+          "mutant:cancel_still_writes": "KILLED",
+          "mutant:denied_write": "KILLED",
+          "mutant:duplicate_replay": "KILLED",
+          "mutant:preconfirmation_write": "KILLED",
+          "mutant:setup_noop": "KILLED",
+          "mutant:wrong_persisted_value": "KILLED"
+        },
+        "artifact": "diagnostic-oracle-execution/repeat-2.json"
+      }
+    ],
+    "coverage_gaps": [
+      "TC_5 does not explicitly test a non-string record_id passed to propose_change; it tests missing/unknown IDs and None for read_record.",
+      "TC_5 does not explicitly test a non-integer expected_version (it checks None, bool, and a stale integer), a non-string idempotency_key (it checks None and empty string), or non-dict changes (it checks None, empty dict, and extra keys). These are documented type constraints in contract.txt. Coverage is broad but not exhaustive at each typed boundary."
+    ],
+    "C0_mapping_caveat": "The five focused IDs are associated with C0, whose implement meaning is baseline preservation. Test-spec correctly maps each case to its R-1..R-5 requirement, but the command-level criteria association is semantically loose. Keep the explicit rule that baseline tests alone do not count as the five new cases.",
+    "qualification": "single-run diagnostic fixture only; not pooled or ranked with A/B",
+    "parent_recomputed_and_verified_identity": true,
+    "slice_artifact": "runs/diagnostic/api-seed-repair/A/1/slice/slice-result.json",
+    "generated_test_artifact": "runs/diagnostic/api-seed-repair/A/1/slice/export/test_acceptance.py",
+    "execution_boundary_adjudication": {
+      "worker_status": "INCOMPLETE",
+      "cause": "Concurrent parent/reviewer report outputs observed outside worker output directory.",
+      "source_inputs_unchanged": true,
+      "parent_disposition": "Accept unchanged-input raw oracle receipts; concurrent report files are not oracle inputs. No rerun or rewriting of worker handoff.",
+      "artifact": "review/diagnostic-oracle-boundary-adjudication.json"
+    }
+  },
+  "apparatus_verification": {
+    "historical_snapshot": {
+      "wrapper_tests": 6,
+      "nested_adapter_checks": 6,
+      "python_versions": [
+        "3.15",
+        "3.9.6"
+      ],
+      "catalog_tests": 55,
+      "earlier_ci_policy_checks": 11,
+      "earlier_qualification_checks": 19,
+      "reported_checks_passed": true
+    },
+    "prior_apparatus_failures": {
+      "count": 4,
+      "retained_separately": true,
+      "locators": [
+        "calibration/",
+        "retention/"
+      ]
+    },
+    "exact_current_commit_ci": "Pending at source commit; post-push CI receipts retained in external bundle",
+    "follow_up": {
+      "status": "PASS_LOCAL; CI_PENDING_AT_COMMIT",
+      "typed_boundary_example_methods": 4,
+      "added_wrapper_check": 1,
+      "wrapper_tests": 7,
+      "nested_adapter_checks": 6,
+      "python_versions": [
+        "3.15.1",
+        "3.9.6"
+      ],
+      "wrapper_test_reported_seconds": [
+        29.937,
+        94.551
+      ],
+      "catalog_tests": 55,
+      "catalog_test_reported_seconds": 77.133,
+      "source_file_count": 9798,
+      "source_fingerprint": "dd62b24e8d85a1eb3b7dfb8abfad7c40d66836c73baf47220a3f45bbf3ce4e61",
+      "source_unchanged": true,
+      "inside_original_six_mutant_denominator": false,
+      "changes_original_trials_or_test_hashes": false,
+      "artifact": "retention/candidate-verification-03/run-summary.json",
+      "example_file_sha256": "6223fac1430b6300c026e5b391a8e81398a8feb04d225b00f61343936e547714",
+      "post_test_changes": {
+        "kind": "Two fixture EOF blank-line trims; identical Python AST and remaining byte prefix",
+        "artifact": "retention/whitespace-normalization.json"
+      }
+    }
+  },
+  "advisor_review": {
+    "served_model": "claude-opus-5-5",
+    "effort": "xhigh",
+    "verified": true,
+    "fallback": false,
+    "read_only": true,
+    "disposition": "apparatus advice helped but did not prevent the original seed conflict"
+  },
+  "claim_limits": [
+    "No live Salesforce, browser, provider, service, credential, or deployment checks.",
+    "Six selected mutants do not establish complete functional or typed-boundary coverage.",
+    "Served subject model identity is UNKNOWN.",
+    "Corrected seed is a separate diagnostic; it does not resolve generic test-only workflow behavior."
+  ],
+  "bundle_relative_artifacts": [
+    "report-data.json",
+    "operator/registration-v4.json",
+    "operator/registration-v5.json",
+    "operator/build-receipt.json",
+    "operator/complete-candidate-build.json",
+    "operator/build-diff-receipt.json",
+    "review/measurement-validity-audit.md",
+    "review/api-seed-conflict-diagnosis.md",
+    "review/api-seed-diagnostic-coverage.json",
+    "review/retention-seed-disposition.json",
+    "review/diagnostic-oracle-boundary-adjudication.json",
+    "review/planning-grade-adjudication.json",
+    "oracle-execution/api-A1/",
+    "oracle-execution/api-A2/",
+    "oracle-execution/api-B1/",
+    "runs/diagnostic/api-seed-repair/A/1/slice/slice-result.json",
+    "diagnostic-oracle-execution/summary.json",
+    "calibration/",
+    "retention/"
+  ]
+}

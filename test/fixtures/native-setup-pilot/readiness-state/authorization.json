@@ -1,0 +1,5 @@
+{
+  "external_grant": false,
+  "local_sandbox_setup": true,
+  "source": "explicit_fixture_authorization"
+}

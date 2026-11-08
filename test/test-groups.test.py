@@ -119,17 +119,24 @@ class TestGroupTests(unittest.TestCase):
         # clean-consumer checks, review attribution, ticket semantics and Discovery scope calibration (2026-11-01),
         # the follow-on list's suite, incremental CSV pilot and both user-directory chain calibrations (2026-11-01).
         # Core gains backchain-graph (2026-11-01: Backchain's validator moved out of ShipLoop with its parity tests)
-        # and backchain-toolkit (its command line).
+        # and backchain-toolkit (its command line), then the native setup pilot (2026-11-07).
         # Registered predecessors, their runner wiring and intent lifecycle calibration add three (2026-11-02).
         # The corpus summariser adds one (2026-11-03), so a figure can be re-derived by the code that produced it.
         # Grok chat adds one opt-in scenario adapter suite (2026-11-06).
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 131)
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 55)
-        self.assertEqual(len(suite_catalog.SUITES), 188)
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 56)
+        self.assertEqual(len(suite_catalog.SUITES), 189)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
         suite_catalog.validate_catalog()
+
+    def test_native_setup_pilot_is_core_and_selected_for_fixture_changes(self) -> None:
+        pilot = next(suite for suite in suite_catalog.SUITES if suite.id == "native-setup-pilot")
+        self.assertIn(pilot, suite_catalog.select(("core",)))
+        self.assertIn(pilot, suite_catalog.select(("all",)))
+        changed_fixture = "test/fixtures/native-setup-pilot/cases.json"
+        self.assertIn(pilot, suite_catalog.quick((changed_fixture,)))
 
     def test_the_python_floor_group_is_every_shiploop_suite_except_the_e2e_apparatus(self) -> None:
         # The CI job that runs it uses the oldest Python ShipLoop declares (shiploop_pyfloor.FLOOR, 2026-10-31 audit).

@@ -1,0 +1,6 @@
+{
+  "available": false,
+  "authorized": false,
+  "reason": "owner_authorization_required",
+  "target": "external-grant"
+}

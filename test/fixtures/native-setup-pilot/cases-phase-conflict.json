@@ -1,0 +1,195 @@
+{
+  "api-regression": {
+    "fixture": "api-fixture/subject",
+    "prompt": "Add durable standard-library unittest regression tests in test_acceptance.py for the existing setup_app.py and change_app.py APIs, following contract.txt. Cover the documented successful operations, access controls, invalid input, confirmation, replay, cancel, and stale-proposal behavior. Preserve the production modules and their public contract; this work item changes tests and relevant test knowledge only. Tests must run with python3 -m unittest discover -s . -p 'test_*.py' -v, with no dependencies or network. Use only public APIs and the documented fixture_seed precondition helpers. The APIs are deterministic local stand-ins: no Salesforce org, browser, provider credential, or deployment is available or required. Do not invent product requirements. Keep all new test helpers inside the single test_acceptance.py file.",
+    "work_item": {
+      "id": "W1",
+      "title": "Add regression tests for the setup and confirmed-change APIs",
+      "context": "Test-only task; contract.txt is authoritative and production modules remain unchanged. The implementation is already correct and frozen; no production change is required. Native implement may be a documented no-op; native test authors the acceptance tests."
+    },
+    "expect_paths": [
+      "test_acceptance.py"
+    ],
+    "checks": [
+      "python3 -m unittest discover -s . -p 'test_*.py' -v"
+    ],
+    "seed_records": {
+      "intake": {
+        "summary": "Synthetic intake: implement the supplied local regression-test request; no external service or deployment."
+      },
+      "discovery": {
+        "summary": "Synthetic discovery: stdlib Python APIs in setup_app.py/change_app.py; contract.txt documents public behavior; test_existing.py is initial coverage."
+      },
+      "spec": {
+        "summary": "Synthetic specification: R-1 through R-5 in docs/shiploop/spec.md state the documented API contracts; no UI or external-service requirements."
+      },
+      "test-strategy": {
+        "summary": "Synthetic strategy: this is a local test-only task. Use inner unittest tests for R-1 through R-5; no deployment, browser, credential or live service needed. The existing test_existing.py regression command passes before the new suite is authored.",
+        "test_layers": [
+          {
+            "code": "test_acceptance.py",
+            "layer": "unit",
+            "harness": "Python standard-library unittest",
+            "status": "available",
+            "reason": "Existing test_existing.py runs in this fixture with no dependencies."
+          }
+        ],
+        "targets": [
+          {
+            "target": "local Python process",
+            "keeps_state": "no",
+            "base_state_route": "n/a"
+          }
+        ]
+      },
+      "prepare": {
+        "summary": "Synthetic preparation: Python stdlib is available; fixture modules and baseline tests are committed; no packages or services required.",
+        "harness_runs": []
+      },
+      "step-plan": {
+        "summary": "Synthetic step plan: one test-authoring step against the existing public API contracts. Assumption: The documented local API contract is complete; there is no external provider or UI in this case.",
+        "criteria": [
+          {
+            "id": "C1",
+            "text": "Authorized valid setup Save and read_config follow the documented state contract. Confirm by: python3 -m unittest discover -s . -p 'test_*.py' -v; pass when the corresponding authored tests pass. Exercised. Serves R-1.",
+            "confirm": "executed"
+          },
+          {
+            "id": "C2",
+            "text": "Denied and invalid setup writes preserve configuration and return the documented error envelope. Confirm by: python3 -m unittest discover -s . -p 'test_*.py' -v; pass when the corresponding authored tests pass. Exercised. Serves R-2.",
+            "confirm": "executed"
+          },
+          {
+            "id": "C3",
+            "text": "Record proposal and confirmation follow the documented owner, amount and version contract. Confirm by: python3 -m unittest discover -s . -p 'test_*.py' -v; pass when the corresponding authored tests pass. Exercised. Serves R-3.",
+            "confirm": "executed"
+          },
+          {
+            "id": "C4",
+            "text": "Record replay, cancellation, stale and unauthorized operations follow the documented state contract. Confirm by: python3 -m unittest discover -s . -p 'test_*.py' -v; pass when the corresponding authored tests pass. Exercised. Serves R-4.",
+            "confirm": "executed"
+          },
+          {
+            "id": "C5",
+            "text": "Documented read copies, read denial and Python call-binding behavior remain correct. Confirm by: python3 -m unittest discover -s . -p 'test_*.py' -v; pass when the corresponding authored tests pass. Exercised. Serves R-5.",
+            "confirm": "executed"
+          }
+        ],
+        "steps": [
+          {
+            "id": "S1",
+            "task": "Keep the correct production APIs unchanged; prepare any minimal unittest harness support. The native test stage authors test_acceptance.py for C1-C5.",
+            "deps": [],
+            "criteria": [
+              "C1",
+              "C2",
+              "C3",
+              "C4",
+              "C5"
+            ],
+            "proof": "python3 -m unittest -v test_existing",
+            "skills": []
+          }
+        ],
+        "test_commands": [
+          {
+            "command": "python3 -m unittest -v test_acceptance",
+            "suite": "focused",
+            "ids": [
+              "test_TC_1",
+              "test_TC_2",
+              "test_TC_3",
+              "test_TC_4",
+              "test_TC_5"
+            ],
+            "criteria": [
+              "C1",
+              "C2",
+              "C3",
+              "C4",
+              "C5"
+            ]
+          },
+          {
+            "command": "python3 -m unittest discover -s . -p 'test_*.py' -v",
+            "suite": "regression"
+          }
+        ],
+        "expectations": [
+          {
+            "id": "E1",
+            "state": "absent",
+            "statement": "test_acceptance.py does not exist before this work item",
+            "steps": [
+              "S1"
+            ],
+            "paths": [
+              "test_acceptance.py"
+            ],
+            "check": "test ! -e test_acceptance.py"
+          },
+          {
+            "id": "E2",
+            "state": "works",
+            "statement": "Existing API modules and contract are present and the baseline tests pass",
+            "steps": [
+              "S1"
+            ],
+            "paths": [
+              "setup_app.py",
+              "change_app.py",
+              "contract.txt",
+              "test_existing.py"
+            ],
+            "check": "python3 -m unittest -v test_existing"
+          }
+        ],
+        "paths": [
+          "test_acceptance.py",
+          "docs/shiploop/spec.md",
+          "docs/shiploop/environment.md",
+          "docs/shiploop/architecture.md"
+        ],
+        "check_na": "No configured linter, type checker or build in this stdlib-only test fixture; unittest imports and executes the new test file. No packages may be installed.",
+        "follows": [
+          "R-1",
+          "R-2",
+          "R-3",
+          "R-4",
+          "R-5"
+        ]
+      }
+    }
+  },
+  "readiness-plan": {
+    "fixture": "readiness-fixture",
+    "prompt": "Improve this local preview tool: render_summary(rows) must emit exactly '<target>: <status>\\n' for each row in input order, with no leading/trailing spaces and an empty string for no rows. Add durable stdlib unittest coverage for this formatter and for the service, sandbox and grant preview journeys described in contract.txt, observing their required completed outputs where access permits. This fixture is entirely local. Use readiness_cli.py as the target interface. The existing service is ready; sandbox provision/configuration is explicitly authorized through the provided local setup command. The grant is unavailable and there is no authority to obtain or simulate it in this run. Only the fictional local fixture is in scope: do not contact real services, use credential providers, or operate an org/account. Changes to the product repository, its knowledge documents and ShipLoop run artifacts are allowed. Setup state belongs only in NATIVE_SETUP_TARGET, supplied by the runner. No new packages or integrations are needed.",
+    "work_item": {
+      "id": "W1",
+      "title": "Improve local preview formatting and journey regression coverage",
+      "context": "Local fixture only. Service ready; sandbox setup explicitly authorized; grant outside authority. Independent formatter change requires no target setup."
+    },
+    "checks": [],
+    "seed_state": {
+      "env": "NATIVE_SETUP_TARGET",
+      "from": "readiness-state"
+    },
+    "fake_sf": {
+      "orgs": "none"
+    },
+    "seed_records": {
+      "intake": {
+        "summary": "Synthetic intake of the local preview formatting and regression-coverage request. No real service or org is in scope."
+      },
+      "discovery": {
+        "summary": "Synthetic discovery: Python stdlib formatter and documented readiness_cli.py; target state supplied externally. Read actual current probe outputs in test-strategy. No previous probe is claimed."
+      },
+      "research": {
+        "summary": "Synthetic research: contract.txt defines the local CLI interface and authority; no external integration or package needed."
+      },
+      "spec": {
+        "summary": "Synthetic spec: R-1 is exact independent formatter output. R-2/R-3/R-4 are service/sandbox/grant journey observations under documented authority. All tests are planned, none claimed executed."
+      }
+    }
+  }
+}
