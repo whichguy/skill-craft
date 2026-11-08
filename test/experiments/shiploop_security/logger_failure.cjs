@@ -32,8 +32,9 @@ function safeFiles(folder, markers) {
 }
 
 function child(candidate, receipt) {
-  const {message, cause} = JSON.parse(fs.readFileSync(0, 'utf8'));
-  const markers = markersFor([message, cause]);
+  const {message, cause, token, payload} = JSON.parse(fs.readFileSync(0, 'utf8'));
+  const markers = markersFor([message, cause, token, payload]);
+  process.env.RUNTIME_CREDENTIAL = token;
   const outputDir = fs.mkdtempSync(path.join(candidate, 'failing-logger-'));
   let calls = 0;
   let loggerSafe = true;
@@ -42,8 +43,7 @@ function child(candidate, receipt) {
     loggerSafe = loggerSafe && args.every(arg => safeObject(arg, markers));
     throw new Error(message, {cause: new Error(cause)});
   };
-  const runtime = {state: 'ready', processed: 4, runtimeCredential: 'credential present',
-    lastPayload: {note: 'private request present'}};
+  const runtime = {state: 'ready', processed: 4, runtimeCredential: token, lastPayload: {note: payload}};
   const before = structuredClone(runtime);
   let result;
   try {
@@ -68,7 +68,9 @@ function probe(source, scratch) {
   fs.cpSync(source, candidate, {recursive: true, dereference: false});
   const receipt = path.join(scratch, 'logger-failure-result.json');
   const input = {message: 'PRIVATE_LOGGER_MESSAGE_' + crypto.randomBytes(32).toString('hex'),
-    cause: 'PRIVATE_LOGGER_CAUSE_' + crypto.randomBytes(32).toString('hex')};
+    cause: 'PRIVATE_LOGGER_CAUSE_' + crypto.randomBytes(32).toString('hex'),
+    token: 'PRIVATE_FAILURE_CREDENTIAL_' + crypto.randomBytes(32).toString('hex'),
+    payload: 'PRIVATE_FAILURE_PAYLOAD_' + crypto.randomBytes(32).toString('hex')};
   const markers = markersFor(Object.values(input));
   const run = spawnSync(process.execPath, [__filename, candidate, receipt], {
     cwd: candidate, input: JSON.stringify(input), timeout: 5000, killSignal: 'SIGKILL',

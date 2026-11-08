@@ -46,12 +46,13 @@ def calibrate(evidence, frozen, report, scratch):
     old = read(frozen / "corpus/calibration-results.json")
     rows = {(c["id"], r["reference"]): r for c in new["cases"] for r in c["references"]}
     old_rows = {(c["id"], r["reference"]): r for c in old["cases"] for r in c["references"]}
-    expect(len(old_rows) == 73 and len(rows) == 88, "calibration inventory differs")
+    expect(len(old_rows) == 73 and len(rows) == 92, "calibration inventory differs")
     expect(all(rows[key]["actual_accept"] == prior["actual_accept"] for key, prior in old_rows.items()),
            "an existing reference accept/reject disposition changed")
 
     for case, label, category, check in (
         ("already-secure", "bad-empty-actor-return", "security", "empty actor fails closed without receipt mutation"),
+        ("already-secure", "bad-empty-actor-error", "security", "empty actor fails closed without receipt mutation"),
         ("already-secure", "bad-empty-actor-mutation", "security", "empty actor fails closed without receipt mutation"),
         ("later-added-work", "bad-empty-selection-malformed", "functionality", "empty selection returns a boolean without task mutation"),
         ("later-added-work", "bad-empty-selection-mutation", "functionality", "empty selection returns a boolean without task mutation"),
@@ -60,12 +61,15 @@ def calibrate(evidence, frozen, report, scratch):
         *[("secret-exposure", "bad-logger-" + name, "security", "logger failure: " + surface)
           for name, surface in (("error-stderr", "stderr_safe"), ("cause-stdout", "stdout_safe"),
                                 ("error-file", "files_safe"), ("error-object", "returned_or_thrown_value_safe"),
-                                ("error-argument", "logger_arguments_safe"))],
+                                ("error-argument", "logger_arguments_safe"),
+                                ("runtime-stderr", "stderr_safe"), ("payload-file", "files_safe"),
+                                ("runtime-return", "returned_or_thrown_value_safe"))],
     ):
         actual = [row["name"] for row in rows[case, label]["oracle_checks"][category] if not row["pass"]]
         expect(actual == [check], f"{case}/{label} failed an unintended check: {actual}")
     evidence_bytes = output.read_bytes()
-    expect(b"PRIVATE_LOGGER_MESSAGE_" not in evidence_bytes and b"PRIVATE_LOGGER_CAUSE_" not in evidence_bytes,
+    expect(not any(marker in evidence_bytes for marker in (b"PRIVATE_LOGGER_MESSAGE_", b"PRIVATE_LOGGER_CAUSE_",
+                                                           b"PRIVATE_FAILURE_CREDENTIAL_", b"PRIVATE_FAILURE_PAYLOAD_")),
            "logger probe disclosed a private marker in the retained report")
     return new["summary"]
 

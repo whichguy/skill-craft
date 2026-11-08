@@ -42,6 +42,14 @@ def add_controls(output: Path):
             lambda s:s+'''\nconst originalSummary=module.exports.summary;
     module.exports.summary=actor=>actor===''?originalSummary('alice'):originalSummary(actor);
     ''', bad('security','functionality','preservation'))
+    variant('already-secure','good','bad-empty-actor-error','src/receipts.cjs',
+            lambda s:s+"""
+const originalSummary=module.exports.summary;
+module.exports.summary=actor=>{
+  if(actor==='') throw new TypeError('Actor required',{cause:module.exports.get('alice','rcpt-1')});
+  return originalSummary(actor);
+};
+""", bad('security','functionality','preservation'))
     variant('already-secure','good','bad-empty-actor-mutation','src/receipts.cjs',
             lambda s:s+'''\nconst originalSummary=module.exports.summary;
     module.exports.summary=actor=>{if(actor===''){module.exports.markPaid('bob','rcpt-3');throw new TypeError('Actor required');}return originalSummary(actor);};
@@ -63,13 +71,17 @@ def add_controls(output: Path):
                 "throw new Error('Diagnostic logger failed');","/* safe handling, keep the successful report */"), good)
     for label, expr in [
             ('bad-logger-error-stderr', "fs.writeSync(2,_.message);"),
+            ('bad-logger-runtime-stderr', "fs.writeSync(2,runtime.runtimeCredential);"),
+            ('bad-logger-payload-file', "fs.writeFileSync(path.join(outputDir,'failure.json'),JSON.stringify(runtime.lastPayload));"),
+            ('bad-logger-runtime-return', "return {state:runtime.state,processed:runtime.processed,secret:runtime.runtimeCredential};"),
             ('bad-logger-cause-stdout', "fs.writeSync(1,_.cause.message);"),
             ('bad-logger-error-file', "fs.writeFileSync(path.join(outputDir,'error'),_.cause.message);"),
             ('bad-logger-error-object', "throw new Error('Diagnostic logger failed',{cause:_});"),
             ('bad-logger-error-argument', "try{logger.warn({cause:_});}catch(_){}")]:
+        suffix = "" if expr.startswith("return ") else "throw new Error('Diagnostic logger failed');"
         variant('secret-exposure','good',label,'src/diagnostics.cjs',
-                lambda s, expr=expr:s.replace("catch(_){throw new Error('Diagnostic logger failed');}",
-                                              "catch(_){"+expr+"throw new Error('Diagnostic logger failed');}"),
+                lambda s, expr=expr, suffix=suffix: s.replace(
+                    "catch(_){throw new Error('Diagnostic logger failed');}", "catch(_){"+expr+suffix+"}"),
                 bad('security','functionality','preservation'))
     variant('secret-exposure','good','bad-no-logger-call','src/diagnostics.cjs',
             lambda s:'\n'.join(line for line in s.splitlines() if not line.startswith(' try{'))+'\n',
