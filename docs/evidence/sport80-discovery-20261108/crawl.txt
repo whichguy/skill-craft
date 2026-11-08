@@ -1,0 +1,125 @@
+Sport80 (usaweightlifting.sport80.com) menu-graph crawl, 2026-11-08
+Method: GET only, from a tab signed in as the owner, one request at a time (~120 ms apart), following the server's own
+menu definitions (/api/menu/main and /api/menu/top for each role) and then every tab-menu, redirect and list URL they
+return, to depth 3. 74 requests, 81 result lines. Structure only: field and filter names, counts, HTTP status. No row
+values, no ids, no tokens. Role ids are shown as <cid> (personal) and <body_cid> (club). "?a,b" lists query parameter
+NAMES only. "*" after a column marks it sortable.
+
+Kinds:  TABLE = descriptor of an s80-datatable (rows come from its data_url by POST)
+        TABS = s80-tab-menu (each tab is another endpoint)
+        REDIRECT = {type,url} pointer to the real list
+        INERTIA = server-rendered page with a data-page JSON payload (component name + prop names)
+        HTML = legacy server-rendered fragment (structure read from the DOM)
+        JSON = plain JSON object (key names)
+
+## PERSONAL role (no body_cid): 20 menu nodes
+top > Home                      200 /home                                   INERTIA Dashboard/UserDashboardPage props=dashboard,title,breadcrumbs
+top > Members                   200 /api/contact/list/view_format?contact_type   REDIRECT type=cards -> /competitor_dashboard/card_data?contact_type
+top > Members (list)            200 /competitor_dashboard/card_data?contact_type JSON card_data,allow_new_contact,add_contact_url,add_contact_icon,add_contact_btn_name,success
+top > Members [profile tabs]    200 /competitor_dashboard/profile_tabs           JSON success (needs ?cid=<member>)
+top > Courses                   200 /e_locator/courses/find                 INERTIA EventLocator/FindEventsPage
+top > Camps/Speaker Series      200 /e_locator/campsspeakerseries/find      INERTIA EventLocator/FindEventsPage
+top > Meets                     200 /e_locator/meets/find                   INERTIA EventLocator/FindEventsPage
+   (FindEventsPage props: active_sub_filters,date_range_model,entries_count,events,event_search_url,language,location_items,
+    location_model,location_search_url,page,result_count,save_url,search_model,sort_model,sort_options,sub_filters,
+    sub_filters_clear_url,title,toggle_events,toggle_view,total_pages)
+top > Results                   (rankings module, separate host; see protocols.md)
+top > Rankings                  (rankings module, separate host; see protocols.md)
+top > Online Store              external (merchandise store) - not crawled
+bottom > Transaction History    200 /purchase_history                       INERTIA Generic/DatatablePage (datatable_url=/api/purchase_history/admin/datatable)
+bottom > Admin > Bulk Renewal   200 /api/bulk_renew_select_addon/datatable  TABLE "Bulk Renew" cols=name*,action ipp=30
+bottom > Admin > Bulk Renewal > <bulk_renew_add_on_id>   500 /api/bulk_renew_addon/datatable   HTTP error without the add-on id parameter
+bottom > Sanctioning > Sanction New Course   200 /sanctioning/options/3     INERTIA Sanctioning/Options props=description,alert,options
+bottom > Sanctioning > Pending Requests      200 /events_sanctioning_admin_panel/pending_datatable   TABLE (11 cols, 8 filters)
+bottom > Sanctioning > Approved Requests     200 /events_sanctioning_admin_panel/approved_datatable  TABLE (same shape)
+bottom > Sanctioning > Declined Requests     200 /events_sanctioning_admin_panel/rejected_datatable  TABLE "Rejected Requests" (same shape)
+   (sanctioning columns: licence_id,approval,start_date*,end_date*,organiser,sanction_type,submitted_by,submitted_date*,paid_sanction_fee,info,action;
+    filters: from_date,to_date,submitted_from_date,submitted_to_date (datepicker), event_type,sanction_option (autocomplete),
+    sanction_approval_option (select), sanction_paid (radio); ipp=20)
+bottom > Setup Club             SKIPPED never fetched (wizard that creates a club)
+account > Profile               200 /user/profile                           INERTIA User/UserProfilePage props=form
+account > Settings              200 /user/settings                          INERTIA Generic/TabViewDatatablePage
+                                    links: Access Management, Pending Management Requests, Sessions, Platform Communication Preferences
+                                    datatable_url=/api/user/settings/access_management/datatable
+account > Setup Auto Renewals   200 /dashboard/setup_auto_renewals         HTML legacy fragment (no static form fields)
+account > Manage 2FA            SKIPPED external auth.sport80.com (security)
+account > Change Password       SKIPPED external auth.sport80.com (security)
+account > Logout                SKIPPED never fetched
+
+## PERSONAL member profile tabs: GET /competitor_dashboard/profile_tabs?cid=<member cid>   200 TABS (15 tabs)
+Profile                       /profile/competitor?cid,id_sport,contact_type    INERTIA Competitor/CompetitorProfilePage props=competitor_profile
+Results & Rankings            parent tab: sub-tabs Results and Rankings, each an rankings-module datatable for that athlete
+Roles                         /add_on_portal/c_add_ons_data_table?cid,id_sport,contact_type,id_cat   TABLE cols=add_on,status,start_date,end_date,type,organisation,action  button "Add Role"
+Memberships                   same endpoint, other id_cat   cols=add_on,status,id_number,start_date,end_date,type,club,action  button "Add Membership"
+Background Screening          same endpoint                 cols=add_on,status,start_date,end_date,action  button "Add Background Screening"
+Center for SafeSport Training same endpoint                 cols=add_on,status,start_date,end_date,type,action  button "Access Additional Training"
+Certifications                same endpoint                 cols=add_on,status,start_date,end_date,type,action  button "Add Certification Category"
+Collegiate Eligibility        same endpoint                 cols=add_on,status,end_date,type,action  button "Add Collegiate Eligibility"
+Coaches Insurance             same endpoint                 cols=add_on,status,type,action  button "Add Coaches Insurance"
+Partner Memberships           same endpoint                 cols=add_on,status,action  button "Add Partner Membership"
+Access USAW Learning Academy  /moodle/redirect_to_moodle?cid,id_sport,contact_type        HTML button "Access USAW Learning Academy" (single sign-on hand-off)
+USAW Learning Academy Results /moodle/moodle_course_results?cid,id_sport,contact_type     HTML th=Course,Date,Score,Passed/Failed
+Addresses                     /api/contact/addresses/datatable?cid,id_sport,contact_type  TABLE cols=type,address,latitude,longitude,primary,action  filter primary  buttons "Add Home Address"
+Entries                       /competitor/entries_overview?cid,id_sport,contact_type      TABLE cols=type,sub_type,event,event_date,region,team,items,status  filters from_date,to_date,region,event_type,event_sub_type  ipp=20
+Communication Preferences     /contact_communication_preferences?cid,id_sport,contact_type INERTIA Generic/SymfonyFormPageWithDescription props=form,description,back_url
+
+## PERSONAL dashboard widgets
+/api/dashboard (6 widget descriptors {type,title}), /api/dashboard/athlete {id,name,email,add_ons,language,profile_url,metadata,percentage_complete,items_left,img},
+/api/dashboard/athletes {title,identity_number_column_header,athletes,current_athlete,button_text,prev_page_url,next_page_url,total,items_per_page,language,members_url,new_contact_url},
+/api/dashboard/event_entries {title,events,language}, /api/dashboard/upcoming_events {title,promoted,upcoming,all_events_url,language},
+/api/dashboard/promotions (9 items {img_url,type,url,button_text}), /api/dashboard/announcements 404.
+
+## CLUB role (?body_cid=<body_cid>): 58 menu nodes
+top > Account [profile tabs]     200 /body_dashboard/profile_tabs?cid,bt,body_cid   TABS[Profile | Memberships | Coaches Insurance | Addresses | Communication Preferences | Notes]
+   Profile                       200 /body/profile?body_cid,cid,id_sport,bt,contact_type  JSON is_organisation,contact_name,contact_img,contact_role,name,email,phone,mobile,birth_date,address,img,roles,info,form_url,what3words,success
+   Memberships                   200 /add_on_portal/c_add_ons_data_table?...id_cat  TABLE cols=add_on,status,id_number,start_date,end_date,type,action  button "Add Membership"
+   Coaches Insurance             200 same endpoint  TABLE cols=add_on,status,type,action  button "Add Coaches Insurance"
+   Addresses                     200 /api/contact/addresses/datatable  TABLE cols=type,address,latitude,longitude,primary,action  buttons "Add Venue Address","Add Postal Address","Add Invoice Address"
+   Communication Preferences     200 /contact_communication_preferences  INERTIA Generic/SymfonyFormPageWithDescription
+   Notes                         200 /api/contact/notes/datatable  TABLE cols=note,type,date*,added_by,action  filter note_type  button "Add Note"
+top > Members > Quick Search     200 /api/contact/quick_search/datatable?contact_type,body_cid  TABLE cols=contact_id,first_name,last_name,email,id_number,location,action  filters id_number,id_type,first_name,last_name,email  ipp=30  (0 rows without a filter)
+top > Members > Smart List       200 /api/contact/list/view_format -> REDIRECT type=list -> /api/contact/list/config?contact_type,body_cid
+   config JSON: name,create_url,actions[Edit Columns,Download Report,Create Subscriber Group,Send Email,Legacy List],component_name,component_url(/api/contact/list/datatable),columns(72 groups {tab_name,columns}),columns_model,legacy_route,views(saved views; ~12 seen),language
+top > Members > List (hidden)    200 /competitor_dashboard?body_cid  HTML buttons: Add New Member, Advanced Filter, Saved Reports, Smart List, Add Selection, Apply Filter, Clear Filter, Clear Selection, Email Contacts, Download Report
+top > Members > Add New          200 /competitor/add?body_cid  INERTIA Generic/ActionCardPage props=description,alert,options,footer_actions
+top > Members > Member Charts    200 /api/contact/statistics?contact_type,body_cid  TABS[Individual Membership] -> /api/contact/statistics/draw?addon_id,contact_type,body_cid  HTML chart fragment
+top > Courses / Camps/Speaker Series / Meets   200 /e_locator/<type>/find?body_cid  INERTIA EventLocator/FindEventsPage (event_search_url=/e_locator/<type>/event_search?from_date, location_search_url=/pub/e_locator/location_search, save_url=/e_locator/<type>/event_save, sort_options recommended|soonest|popular|cheapest|expensive)
+top > Results / Rankings         rankings module with club-scoped token (see protocols.md)
+top > Meet Results Template      external xlsx download - not fetched
+top > Online Store               external - not crawled
+bottom > Transaction History     200 /purchase_history?body_cid  INERTIA Generic/DatatablePage -> /api/purchase_history/admin/datatable  TABLE cols=id,date*,amount*,amount_paid,status,action  filters from_date,to_date,status_filter  ipp=30
+bottom > Admin > Bulk Renewal    200 /api/bulk_renew_select_addon/datatable  TABLE (name*,action); detail /api/bulk_renew_addon/datatable 500 without bulk_renew_add_on_id
+bottom > Admin > Queued Reports  200 /reports/async_reports?body_cid  TABLE cols=date,status,fileName,download  ipp=20
+bottom > Admin > Validation      200 /add_on_look_up?body_cid  HTML h=Validation (membership validation lookup; fields load by script)
+bottom > Sanctioning > Sanction New Course | Camps/Speaker Series | Meet   200 /sanctioning/options/{3|6|11}?body_cid  INERTIA Sanctioning/Options
+bottom > Sanctioning > Pending | Approved | Declined   200 /events_sanctioning_admin_panel/{pending|approved|rejected}_datatable?body_cid  TABLE (11 cols, 8 filters)
+bottom > Events Admin > Courses | Camps/Speaker Series | Meets   200 /events_admin_panel/datatable?et={3|6|11},body_cid  TABLE cols=id,name,type,date,region,event_organiser,on_platform,status,info,action  filters 13 (Courses, Camps) or 15 (Meets)
+   per-event sub-routes (all need ?eid=<event id>; 403 without it): /event_admin_panel (admin panel tabs), /merchandise_group_admin_panel/extra_ap_tabs (merchandise categories),
+   /merchandise_group_admin_panel/entry_ap_tabs (needs eid and id_entry), /event_admin_panel/entries_tabs (entries)
+   NOT VERIFIED LIVE: the club has no events on the platform, so no eid exists to try
+bottom > Finance Admin > Revenue Report     200 /finance/revenue_report?body_cid  INERTIA Generic/SymfonyFormPage props=form (report request form)
+bottom > Finance Admin > Stripe             200 /stripe_merchant?body_cid  TABLE cols=id,name,status,account_id,type,primary_events,action  button "Add Merchant"; detail /stripe_merchant/merchant?id_merchant  HTML
+bottom > Finance Admin > Stripe Disputes    200 /api/stripe/disputes/datatable  TABLE cols=payee,datePaid*,invoice*,amount*,reason*,status*,disputeCreated*,isChargeRefundable*,hasEvidence*,recouped*,action  filters createdBefore,createdAfter,status
+bottom > Finance Admin > Invoice            200 /invoice_merchant?body_cid  TABLE cols=id,name,action  button "Add Merchant"; detail /invoice_merchant/merchant?id_merchant  HTML
+bottom > Finance Admin > Chart Of Accounts  200 /admin_chart_of_accounts?body_cid  TABLE cols=name,account_code,is_shipped,action  button "New Account Code"; sub /admin_chart_of_accounts/discount_body_types?id  403 without id
+bottom > Finance Admin > Chart Of Class Codes 200 /admin_chart_of_class_codes?body_cid  TABLE cols=name,account_code,is_shipped,action  button "New Class Code"
+bottom > Finance Admin > Discount Codes     200 /finance/discount_code?body_cid  INERTIA Generic/DatatablePage -> /finance/discount_code/datatable
+bottom > Finance Admin > Discount Code Tags 200 /api/discount_code/tag_admin/datatable  TABLE cols=name,last_updated*,created_date*,count,action  button "ADD"
+bottom > Affiliations > Blocks              200 /admin_add_on_clubs_blocks?body_cid,bt  HTML th=Membership Number,Membership Type,Action
+bottom > Affiliations > Affiliations        200 /admin_add_on_clubs_affiliations?body_cid,bt  HTML th=Membership Number,Membership Type,DOB,Action
+bottom > Affiliations > Transfers           200 /c_add_on_transfers_admin_panel?body_cid  TABS[Active Transfers | Historic Transfers] -> /c_add_on_transfers_admin_panel/{active|historic}_datatable  cols=Created Date,Name,From Club,To Club,Status,Info(,action)
+bottom > Affiliations > Pre-Screening Approvals  401 /api/contact_add_on/admin/approvals/datatable  HTTP error (role lacks permission)
+bottom > Affiliations > Bulk Upload Admin   200 /api/contact/bulk_upload/datatable  TABLE cols=date*,status,user,processed_count  filters date_before,date_after,status
+account menu (same as personal): Profile, Settings, Setup Auto Renewals, Manage 2FA and Change Password (skipped), Logout (skipped)
+
+## Rankings module (separate host; window.env.RANKINGS_DOMAIN_URL)
+Logged in:  GET /ranking_module/access_token[?body_cid=<body_cid>] -> {"X-API-Token","X-Ranking-Access-Token"} (two opaque 36-character values)
+            descriptors  GET <host>/api/events/table?platform=1 (title Events: cols meet,level,date,results,action; filters date_range_start,date_range_end,level; button Download)
+                         GET <host>/api/categories/rankings/table?platform=1 (title Rankings: cols national_ranking,rank,total,name,gender,lifter_age,club,membership,bodyweight,lift_date,meet_date,level,wso,action;
+                              filters date_range_start,date_range_end,weight_class,minimum_lifter_age,maximum_lifter_age,level,wso)
+            rows         POST <host>/api/events/table/data?platform=1&p&l&sort&d&s&st  body {"columns":[],"filters":{"date_range_start":"YYYY-MM-DD","date_range_end":"YYYY-MM-DD"}}
+            club scope 2026: total 18 events, results column sums to 142; personal scope 2026: total 387 events (unscoped national list)
+Public (no login): header X-API-Token = window.env.SERVICES_API_PUBLIC_KEY
+            GET <host>/api/events/<id>/table (descriptor: cols meet,date,age_category,lifter,body_weight_(kg),snatch_lift_1..3,c&j_lift_1..3,best_snatch,best_c&j,total) ; POST .../table/data (131 rows for one national event)
+            GET <host>/api/categories/rankings/table (adds a club filter), GET /api/events/table, GET /api/categories/featured {title,avatar_list,ranking_list,cards,top_buttons}
+            GET /api/athletes/<athlete id>/table: 404 for a portal contact id and for a membership number; the id is the rankings-module athlete id taken from the member's Results & Rankings tab
