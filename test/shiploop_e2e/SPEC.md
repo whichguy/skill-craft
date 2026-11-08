@@ -211,28 +211,44 @@ a frozen contract the script writes and iterations the script counts. Except
 for the carve-outs below, there is no iteration cap; a loop ends on its
 condition, a true blocker or a user stop.
 
-**S-10 carve-out, owner decision 2026-10-04** (anchor: the owner's request and
-the Luna 1.16.1 battleship run, not a clause this serves; it relaxes S-9 and
-S-10 for one loop and says so). The Backchain planning child (a whole
-`plan`/`draft`, or a `repair`/`revise` after an audit finding) defaults to one
-pass. Its start contract carries `required_trivial_reviews: 0` and an exit
-condition that one complete dependency review/fix/check cycle has run, its
-findings are repaired within the permitted edit bounds, every `Confirm by`
-clause on a step this cycle may change meets the planning guide's Outcomes
-rule, and the printed `backchain-check` is ok on the final candidate. The loop
-completes on the first report that assesses that exit as satisfied. That
-assessment is the host model's, backed by a structural, record-only check
-(unique ids, resolved suppliers, acyclic, no orphan discovered step); it is
-not a script-run proof that the plan is semantically right, so S-9 holds for
-this loop only in that structural sense. No numeric ceiling is added: a pass
-that reports an open gap continues, a blocker or a user stop ends the loop as
-before, and the vendored Until Loop is unchanged. `--backchain-passes
-converge` (state option `backchain_passes`) restores two consecutive trivial
-reviews; `--backchain-passes none` offers no whole loop at `plan`. The host
-model writes this contract (open item a02), so S-4, S-5, S-12 and S-10's
-frozen contract the script writes stay unmet for this loop, as they already
-were; a future script-written or script-checked contract must accept a gate-0
-complete packet whose last report is non-trivial. The inner stages' Until Loops
+**S-10 carve-out, owner decision 2026-10-04 (Backchain).** The owner's request
+and the Luna 1.16.1 battleship run were the basis for the one-cycle gate and
+the relaxation of S-9 and S-10 for this child.
+
+The default run option remains `backchain_passes: one`. At `plan`, the host may
+omit the whole `plan`/`draft` Backchain child. The planning guide's dependency
+audit is required on both routes. The plan result's `summary` states the route
+taken and why. Evaluate the audit on its own evidence.
+
+Explicit `converge` requests the whole child at `plan` with two consecutive
+distinct complete trivial/no-change dependency reviews. `none` uses the audit
+route at `plan` without a whole `plan`/`draft` child. A material finding from
+a read-only `review`/`audit` may lead the stage owner to request one
+`repair`/`revise` within authorized edit bounds. That child uses the one-cycle
+gate in `one` and `none`, and the two-review gate in `converge`.
+
+The one-cycle gate sets `required_trivial_reviews: 0`. The child may finish
+on the first accepted report that satisfies the exit condition, including a
+nontrivial report after repairs. A complete dependency review/fix/check cycle
+repairs its findings within authorized edit bounds and satisfies the planning guide's
+Outcomes rule for every `Confirm by` clause on a step it may change. Cite the
+passing structural `backchain-check` receipt on the final graph and save
+final candidate-specific domain evidence. For either gate, an open gap
+keeps the child running while authorized work remains. A true blocker or user
+stop ends it incomplete. The exit condition governs completion without a
+numeric pass ceiling.
+
+On the scripted native route, Backchain freezes the child contract and binds
+the structural and evidence checks. Until Loop owns child progression and
+termination. S-9 applies to the structural check (unique ids, resolved
+suppliers, acyclic, no orphan discovered step). The host judges semantic
+adequacy. Before reporting a requested child complete, retain its exact
+`complete` receipt, final candidate identity and domain evidence. ShipLoop
+owns parent acceptance and lifecycle state. Item a02 remains open for the
+discrepancy between the plan packet's host-copy instruction and the native
+script's contract freeze.
+
+The inner stages' Until Loops
 (amended 2026-10-11: before the 8-stage inner loop, the quality and test loops) are
 not covered, nor are Improve loops except as the next carve-out says; their
 no-cap rule stands. Basis: in the Luna max
@@ -241,6 +257,18 @@ planning minutes; the plan loop's passes 2 to 5 each reported a non-trivial
 finding of confirmation level or wording (no edge, goal or supplier changed),
 passes 6 and 7 changed nothing, and no later packet names the plan graph.
 Record: docs/shiploop-fast-planning-plan-2026-10-04.md.
+
+Prospectively amended 2026-11-08 under the owner's explicit choice,
+"Keep the separate planning review optional," for future default runs with
+the dependency audit and route explanation still mandatory. The exact question,
+answer and evidence locator are retained in this amendment's commit message.
+The October 4 decision set the one-cycle gate
+(`9747d7690d4cea4621c1706c60ec03c84fec4a54`).
+`4c2a8a98453e4aa2e8b2397962f785221e19b20a` recorded optionality as shipped
+behavior. `39af8ce04222fb49aa6d612e08b4dbabd73e5db3` records the native
+contract freeze and explicit converge markers. This amendment applies to new
+runs registered against this revision. Earlier frozen obligations and verdicts
+retain their original interpretation.
 
 **S-10 carve-out, owner decision 2026-10-05** (reconciled 2026-10-29 to the
 later accepted review schedule). The run option (state option `planning_review`)
