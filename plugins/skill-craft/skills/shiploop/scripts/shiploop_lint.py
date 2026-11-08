@@ -168,6 +168,23 @@ def _terminate_timed_out_process(process: "subprocess.Popen[bytes]") -> Tuple[by
     return process.communicate()
 
 
+def _stop_aborted_process(process: "subprocess.Popen[bytes]") -> None:
+    """Stop a private POSIX group while its leader is still owned."""
+    if os.name != "posix" or process.returncode is not None or signal.getsignal(signal.SIGCHLD) != signal.SIG_DFL:
+        return
+    # The synchronous runner is the sole waiter and the CLI does not enable
+    # native auto-reaping. A live child's unreaped PID anchors the private group
+    # even if the child exits between waitpid and killpg.
+    waited = os.waitpid(process.pid, os.WNOHANG)
+    if waited == (0, 0):
+        os.killpg(process.pid, signal.SIGKILL)
+        process.wait(timeout=0.2)  # same grace as timeout teardown
+    else:
+        pid, status = waited
+        if pid == process.pid:
+            process.returncode = os.waitstatus_to_exitcode(status)
+
+
 def run_argv(argv: List[str], cwd: Path, timeout: float, *, input_bytes: Optional[bytes] = None,
              env: Optional[Mapping[str, str]] = None) -> Tuple[str, Optional[int], bytes, bytes]:
     """Run argv without a shell and return status, exit code, stdout, stderr.
@@ -191,10 +208,17 @@ def run_argv(argv: List[str], cwd: Path, timeout: float, *, input_bytes: Optiona
         popen_kwargs["start_new_session"] = True
     process = subprocess.Popen(argv, **popen_kwargs)
     try:
-        stdout, stderr = process.communicate(input=input_bytes, timeout=timeout)
-    except subprocess.TimeoutExpired:
-        stdout, stderr = _terminate_timed_out_process(process)
-        return "timeout", None, _bytes(stdout), _bytes(stderr)
+        try:
+            stdout, stderr = process.communicate(input=input_bytes, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            stdout, stderr = _terminate_timed_out_process(process)
+            return "timeout", None, _bytes(stdout), _bytes(stderr)
+    except BaseException:
+        try:
+            _stop_aborted_process(process)
+        except BaseException:
+            pass  # Preserve the original capture or teardown exception.
+        raise
     return ("passed" if process.returncode == 0 else "failed"), process.returncode, _bytes(stdout), _bytes(stderr)
 
 

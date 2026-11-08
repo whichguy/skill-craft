@@ -4,6 +4,18 @@ Written by scripts/release.py.
 
 ## 2026-11-08
 
+### skill-craft 2.35.4
+
+- Skills: shiploop 1.33.4
+
+### shiploop 1.33.4
+
+- When command capture aborts on POSIX, ShipLoop stops the private process group
+  if it still owns the leader and preserves the original error. Captured output
+  may be lost. Escaped processes and groups whose leader has already been reaped
+  are outside this cleanup. SIGKILL can leave workload locks and does not undo
+  previous writes.
+
 ### skill-craft 2.35.3
 
 - Skills: shiploop 1.33.3
