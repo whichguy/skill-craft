@@ -6,7 +6,7 @@ For every case in test/shiploop_e2e/step_cases.json, the checkout's navigator wa
 as its test command). Every inner-loop stage, and every Improve packet the item's loop starts, must render:
 - naming the case's work item (an Improve packet: the result it reviews);
 - with each skill reference it names present on disk;
-- with the printed head inside the host's shell-output limit.
+- with the complete packet preserved in the printed body, even when it passes the legacy threshold.
 Each packet that runs the item's tests (test, document) must also name the recorded test command.
 
 Run `python3 test/shiploop_e2e/packets.py --offline <case>` to see sizes, sections and the cross-packet overlap.
@@ -125,7 +125,7 @@ class StepPacketTests(unittest.TestCase):
                         continue
                     stage = key.split("-", 1)[1]
                     # The synthetic step plan has no steps, so implement's argument cannot be built: its invoke block
-                    # says why and the head keeps the itemised list, still once.  A bound loop's packet names its own
+                    # says why and the complete packet keeps the itemised list, still once. A bound loop's packet names its own
                     # start command; the argument (when ARGUMENT_STAGES) is read by the one loop-block parser.
                     block = LoopBlock.find(text)
                     bound = block is not None and " start --receipt " in text
@@ -150,7 +150,7 @@ class StepPacketTests(unittest.TestCase):
                         # step plan's hand-off (navigator.CONSUMES, consumer contract section 4).
                         self.assertEqual(text.count(listing), 1 if stage in ("test", "document", "test-spec") else 0)
 
-    def test_the_printed_head_fits_the_host_output_limit(self) -> None:
+    def test_the_complete_print_keeps_its_suffix_above_the_legacy_threshold(self) -> None:
         case = CASES["node-fix-bug"]
         with budget.reference_tmpdir():
             with tempfile.TemporaryDirectory(prefix="shiploop-step-packets-") as temp:
@@ -168,28 +168,18 @@ class StepPacketTests(unittest.TestCase):
                 shown = io.StringIO()
                 with contextlib.redirect_stdout(shown):
                     full = navigator.emit(None, run_dir, saved)
-                # What emit printed, judged at the reference install (the head keeps the lookups that fit there, not the
-                # ones that fit under this checkout's paths).
+                # The compatibility measure is intentionally passed here: normal emission must preserve all text even
+                # when a caller supplies a custom length function.
                 printed = navigator.printed_text(None, run_dir, saved, navigator.packet_path(run_dir, saved), full,
                                                  measure=budget.reference_measure(temp))
         self.assertTrue(shown.getvalue().endswith("\n" + navigator.HEAD_END + "\n"))
-        # The head leads with the stage's duties (2026-10-16).  step-plan's alone are 9,000 characters, so its head passes
-        # PRINT_LIMIT (which bounds a packet printed whole) and fills the room up to the ~20,000-character cut some hosts
-        # apply to shell output with the lookups that fit (efficiency plan U7).  The head may not grow past its journaled
-        # value, measured at the reference install.
         self.assertGreater(len(full), navigator.PRINT_LIMIT)
-        self.assertEqual(budget.known_over_the_cut("inline"), [])
-        # The table is measured on the offline walk, whose "Full packet:" line names the file emit writes (nav-<id>.md, as
-        # emit prints it): the same text, so the two compare directly.
-        self.assertLessEqual(budget.at_reference_install(printed), budget.ceiling("inline", "step-plan", "head"))
+        self.assertEqual(printed, full + navigator.HEAD_END + "\n")
+        self.assertEqual(shown.getvalue(), printed)
         self.assertIn("Current stage guidance:", printed)
-        self.assertGreater(len(full), len(printed))  # the packet file holds the rest
 
-    def test_a_step_plan_head_with_test_layers_far_past_their_print_budget_still_fits_the_cut(self) -> None:
-        """Run-5 batch F1, since plan F2: the step-plan head prints test-strategy's layers and targets as required text.
-        No gate bounds their size; a block past ``layers.LINES_PRINT`` prints its leading lines and names the run file
-        that holds every line, so the head with a block three times the budget stays under the host cut on both routes,
-        the duties intact, and that file holds the whole block."""
+    def test_a_large_test_layers_field_keeps_its_field_file_and_complete_packet(self) -> None:
+        """No gate bounds test-strategy layers; emission keeps the full packet while the field locator keeps its value."""
         targets = [{"target": "the shared org", "keeps_state": "yes", "base_state_route": "r" * 200}]
         rows: list = []
         while len("\n".join(layers.packet_lines(rows, targets))) <= 3 * layers.LINES_PRINT:
@@ -218,8 +208,7 @@ class StepPacketTests(unittest.TestCase):
                     full = navigator.emit(None, run_dir, saved)
                 printed = navigator.printed_text(None, run_dir, saved, navigator.packet_path(run_dir, saved), full,
                                                  measure=budget.reference_measure(temp))
-                self.assertLessEqual(budget.at_reference_install(printed), navigator.HEAD_LIMIT)
-                self.assertTrue(printed.endswith(navigator.HEAD_END + "\n"))
+                self.assertEqual(printed, full + navigator.HEAD_END + "\n")
                 self.assertIn("Current stage guidance:", printed)
                 self.assertIn(whole[0], printed)  # the leading lines print
                 found = re.search(r"RUN/(fields/\S+-test-layers\.md) holds all " + str(len(whole)) + " whole", full)

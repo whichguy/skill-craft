@@ -8,7 +8,7 @@ this checkout's navigator and walks no model, no project and no network:
 
 * the dry-run walk of the whole graph (all 24 stages and the Improve parent packets between them, shiploop_navigator_dry_run),
   on both delegation routes: each packet as the packet file holds it (``file``) and as ``emit`` prints it (``printed``: the
-  whole text up to PRINT_LIMIT, else ``packet_head``);
+  complete text plus its closing marker);
 * the offline step slice of a case (packets.py ``offline_packets``): the inner loop with a real step plan, both routes.
 
 A row is checked in every packet of its ``kinds`` where its ``when`` condition holds. ``check`` returns the violations and writes
@@ -86,8 +86,8 @@ def dry_run_packets(route: str) -> list[dict]:
         stage = navigator.sequence_stage(state)
         action = navigator.current_action(state)
         text = navigator.render(dry_run.CORE, dry_run.RUN, state)
-        printed = text if len(text) <= navigator.PRINT_LIMIT else navigator.packet_head(
-            dry_run.CORE, dry_run.RUN, state, navigator.packet_path(dry_run.RUN, state))
+        printed = navigator.printed_text(
+            dry_run.CORE, dry_run.RUN, state, navigator.packet_path(dry_run.RUN, state), text)
         found.append({"where": f"dry-run {route} {number:02d}-{stage}", "stage": stage,
                       "kind": "improve" if stage == navigator.IMPROVE_STAGE else "producer", "file": text, "printed": printed})
         command = step.get("command", "done")
@@ -102,11 +102,11 @@ def slice_packets(route: str, case: str = SLICE_CASE) -> list[dict]:
     """The offline step slice's packets of ``case`` (the inner loop with a real step plan), in the same shape."""
     _navigator, _dry_run, packets = _imports()
     cases = json.loads((HERE / "step_cases.json").read_text())
-    whole = packets.offline_packets(cases[case], delegation=route)
-    printed = packets.offline_packets(cases[case], delegation=route, printed=True)
+    # Pair file and emitted text from the same walk, so paths and action IDs refer to the same packet.
+    rendered = packets.offline_renders(cases[case], delegation=route)
     return [{"where": f"slice {case} {route} {key}", "stage": key.split("-", 1)[1],
-             "kind": "improve" if key.endswith("-improve") else "producer", "file": whole[key], "printed": printed[key]}
-            for key in whole]
+             "kind": "improve" if key.endswith("-improve") else "producer", "file": row["whole"], "printed": row["printed"]}
+            for key, row in rendered.items()]
 
 
 def all_packets() -> list[dict]:

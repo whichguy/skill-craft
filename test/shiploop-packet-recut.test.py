@@ -29,7 +29,6 @@ sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(ROOT / "test/shiploop_e2e"))
 sys.path.insert(0, str(ROOT / "test"))
 import packets  # noqa: E402
-import shiploop_head_budget as budget  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
 import shiploop_navigator as navigator  # noqa: E402
 import shiploop_prompts as prompts  # noqa: E402
@@ -238,42 +237,26 @@ class OneHomeTests(unittest.TestCase):
                 self.assertLess(len(text), ceiling)
 
 
-class PrintedHeadTests(unittest.TestCase):
-    """What a reader of the printed text alone sees (owner, 2026-10-16).
+class PrintedPacketTests(unittest.TestCase):
+    """What normal emission prints: the complete packet and exactly one closing marker."""
 
-    A packet longer than PRINT_LIMIT prints a head and keeps the rest in its file.  Measured on node-fix-bug at 2686b427,
-    the head of all five such packets left out the stage's duties and rules, which began at 10,400 to 15,000 characters
-    of the file, so a model that read only what was printed never saw what to do.
+    def emitted(self, route: str) -> dict[str, dict]:
+        return packets.offline_renders(CASES["node-fix-bug"], route, run_dir_length=83, cli_path_length=96)
 
-    Length is checked against the journaled value of each stage (``test/shiploop_e2e/head_table.json``), at a reference
-    install, so a head cannot grow unnoticed and the result does not move with the machine's paths
-    (``shiploop_head_budget``: the head's own budget decisions are made at that install too).  A head above the
-    ~20,000-character cut some hosts apply is a recorded gap in that table (``over_the_cut``); none is, since the print
-    order of the efficiency plan (U7): every head fits."""
-
-    def check_length(self, route: str, key: str, printed: str, whole: str) -> None:
-        stage = key.split("-", 1)[1]
-        mode = "whole" if budget.at_reference_install(whole) <= navigator.PRINT_LIMIT else "head"
-        length = budget.at_reference_install(printed)
-        self.assertLessEqual(length, budget.ceiling(route, stage, mode),
-                             f"{route} {stage} printed as a {mode} is {length} characters at the reference install: above its "
-                             f"journaled value; raise it in head_table.json with the reason, or shorten the packet")
-        if stage not in budget.known_over_the_cut(route):
-            self.assertLess(length, budget.HOST_CUT, f"{route} {stage} crosses the host's output cut and is not a recorded gap")
-
-    def test_the_printed_text_of_every_producer_packet_holds_its_duties(self) -> None:
-        with budget.reference_tmpdir():
-            printed = packets.offline_packets(CASES["node-fix-bug"], printed=True, measure_for=budget.reference_measure)
-            full = _offline()
-        over = [key for key, text in full.items() if len(text) > navigator.PRINT_LIMIT and not key.endswith("-improve")]
-        self.assertGreaterEqual(len(over), 4, "the case no longer has packets over the limit: pick a larger one")
-        for key, text in printed.items():
-            if key.endswith("-improve"):
-                continue
-            with self.subTest(packet=key):
-                self.assertIn("Current stage guidance:", text)
-                self.assertIn("\nRULES ", text)  # the duties' own closing rules came with them
-                self.check_length("inline", key, text, full[key])
+    def test_every_stage_print_is_complete_even_above_the_legacy_threshold(self) -> None:
+        long_packets = 0
+        for route in prompts.DELEGATIONS:
+            for key, row in self.emitted(route).items():
+                with self.subTest(route=route, packet=key):
+                    self.assertEqual(row["printed"], row["whole"] + navigator.HEAD_END + "\n")
+                    self.assertFalse(row["head"])
+                    self.assertEqual(row["printed"].splitlines().count(navigator.HEAD_END), 1)
+                    if len(row["whole"]) > navigator.PRINT_LIMIT:
+                        long_packets += 1
+                    if not key.endswith("-improve"):
+                        self.assertIn("Current stage guidance:", row["printed"])
+                        self.assertIn("\nRULES ", row["printed"])
+        self.assertGreaterEqual(long_packets, 4, "the case no longer exercises full output over the legacy threshold")
 
     def test_the_progress_block_ends_inside_the_status_hooks_window_and_leads_the_duties(self) -> None:
         import shiploop_status_hook as hook
@@ -287,41 +270,25 @@ class PrintedHeadTests(unittest.TestCase):
                 self.assertLess(end, hook.WINDOW)
                 self.assertLess(end, text.index("Current stage guidance:"))
 
-    def test_the_ask_agent_route_keeps_the_duties_and_the_status_window_and_no_head_is_over_the_cut(self) -> None:
-        """Before the print-order unit (efficiency plan U7) the opt-in ask-agent route's step-plan head was about 22,300
-        characters at the reference install, above the ~20,000 some hosts cut at (inline: 20,600), and Grok showed only the
-        first and last ~10,000 of it (journal, LP-1).  One ordered list now puts the lookups last and leaves out what does
-        not fit, so every head of both routes fits."""
+    def test_the_ask_agent_route_keeps_the_duties_and_status_window_in_complete_prints(self) -> None:
         import shiploop_status_hook as hook
-        with budget.reference_tmpdir():
-            printed = packets.offline_packets(CASES["node-fix-bug"], delegation="ask-agent", printed=True,
-                                              measure_for=budget.reference_measure)
-            whole = packets.offline_packets(CASES["node-fix-bug"], delegation="ask-agent")
-        self.assertEqual(budget.known_over_the_cut("ask-agent"), [])
-        for key, text in printed.items():
+        for key, row in self.emitted("ask-agent").items():
             if key.endswith("-improve"):
                 continue
             with self.subTest(packet=key):
+                text = row["printed"]
+                self.assertEqual(text, row["whole"] + navigator.HEAD_END + "\n")
                 self.assertIn("Current stage guidance:", text)
                 shown = hook.packet_progress(text)
                 self.assertLess(text.index(shown) + len(shown), hook.WINDOW)
-                self.check_length("ask-agent", key, text, whole[key])
 
-    def test_a_head_that_would_pass_the_host_cut_drops_the_quoted_knowledge_not_the_duties(self) -> None:
-        """The quoted knowledge files and hand-offs are the last thing a head carries, and only while the head stays within
-        the host's cut (efficiency plan U7; before it, while the head stayed within PRINT_LIMIT): else the packet's second
-        pointer line, which every print carries, says the file holds them (the stub line that did is gone, unit U8).  The
-        duties and the rules are never dropped."""
-        with budget.reference_tmpdir():
-            heads = packets.offline_packets(CASES["node-fix-bug"], printed=True, measure_for=budget.reference_measure)
-        for key, text in heads.items():
-            if not text.endswith(navigator.HEAD_END + "\n") or "Full packet:" not in text:
-                continue  # the file (a whole print's text) and the Improve packets have no head to check
-            with self.subTest(packet=key):
-                self.assertNotIn("in the full packet, each quoted whole", text)  # nothing stands in for what was left out
-                self.assertIn("the hand-offs, the knowledge files' contents and the request or its file", text)  # line B says the file holds them
-                self.assertIn("Current stage guidance:", text)
-                self.assertIn("Run ShipLoop commands in the foreground", text)  # the rules' own text, not a pointer line
+    def test_complete_prints_keep_quoted_knowledge_and_handoffs_that_the_file_holds(self) -> None:
+        for route in prompts.DELEGATIONS:
+            for key, row in self.emitted(route).items():
+                with self.subTest(route=route, packet=key):
+                    self.assertEqual(row["printed"], row["whole"] + navigator.HEAD_END + "\n")
+                    if not key.endswith("-improve"):
+                        self.assertIn("Full packet:", row["printed"])
 
 
 class OwnerLinesTests(unittest.TestCase):
@@ -334,23 +301,23 @@ class OwnerLinesTests(unittest.TestCase):
     lists the other references (efficiency plan 6.2, D-21; unit U8).  Which kind of packet carries which lines (D-26):
 
     - a producer packet: the two pointers, the callback, the owner rule;
-    - the paused, halted, blocked and done packets: the `next` pointer and the owner rule (they have no callback);
+    - the paused, halted, blocked and done packets: both pointers and the owner rule (they have no callback);
     - an Improve packet that asks for a bind or a restart: the `next` pointer; the bound one: neither pointer nor owner rule
       (it was followed exactly, 4 of 4, and is two instructions)."""
 
     POINTER = re.compile(r"^Lost context, or unsure\? Run (python3 \S+ next --run-dir=\S+) \(it reprints this step\)\.$")
-    PACKET = re.compile(r"^Full packet: (/\S+\.md) - open it with a file tool, not the shell, when this print was cut \(a complete "
-                        r"print ends with the line === end ShipLoop print ===\); it also "
-                        r"holds the hand-offs, the knowledge files' contents and the request or its file\. Its References block "
-                        r"lists the other references and what each holds; open only the section a step needs, never a whole "
-                        r"reference file, and do not re-read the ShipLoop skill card\.$")
+    PACKET = re.compile(r"^Full packet: (/\S+\.md) - open it with a file tool, not the shell, before acting if output is "
+                        r"truncated, elided or missing the closing line === end ShipLoop print ===\. The closing line does not "
+                        r"rule out a middle cut\. The file also holds the hand-offs, the knowledge files' contents and the "
+                        r"request or its file\. Its References block lists the other references and what each holds; open "
+                        r"only the section a step needs, never a whole reference file, and do not re-read the ShipLoop skill card\.$")
 
     def check(self, text: str, label: str, kind: str = "producer") -> None:
         """The top block of one packet, found by constant and label (shiploop_packet_view), once each, in order."""
-        require = {"producer": packet_view.PRODUCER, "non-producer": ("pointer", "owner"), "improve-open": ("pointer",),
+        require = {"producer": packet_view.PRODUCER, "non-producer": ("pointer", "packet", "owner"), "improve-open": ("pointer",),
                    "improve-bound": ()}[kind]
         view = assert_top_block(self, text, require=require, label=label)
-        absent = {"producer": (), "non-producer": ("packet", "callback"), "improve-open": ("owner", "packet"),
+        absent = {"producer": (), "non-producer": ("callback",), "improve-open": ("owner", "packet"),
                   "improve-bound": ("pointer", "packet", "owner")}[kind]
         for part in absent:
             self.assertNotIn(part, view, label + ": a " + kind + " packet carries no " + part + " line")
@@ -389,13 +356,14 @@ class OwnerLinesTests(unittest.TestCase):
         self.assertEqual(prompts.recovery_pointer("python3 /i/shiploop next --run-dir=/r/run"),
                          "Lost context, or unsure? Run python3 /i/shiploop next --run-dir=/r/run (it reprints this step).")
         self.assertEqual(prompts.packet_pointer("/r/run/packets/a.md", navigator.HEAD_END),
-                         "Full packet: /r/run/packets/a.md - open it with a file tool, not the shell, when this print was cut "
-                         "(a complete print ends with the line === end ShipLoop print ===); it also holds the hand-offs, the "
-                         "knowledge files' contents and the request or its file. "
-                         "Its References block lists the other references and what each holds; open only the section a step "
-                         "needs, never a whole reference file, and do not re-read the ShipLoop skill card.")
+                         "Full packet: /r/run/packets/a.md - open it with a file tool, not the shell, before acting if output is "
+                         "truncated, elided or missing the closing line === end ShipLoop print ===. The closing line does not "
+                         "rule out a middle cut. The file also holds the hand-offs, the knowledge files' contents and the "
+                         "request or its file. Its References block lists the other references and what each holds; open only "
+                         "the section a step needs, never a whole reference file, and do not re-read the ShipLoop skill card.")
         scripts = ROOT / "skills/shiploop/scripts"
-        for needle in ("Owner rule: concise and exact", "Lost context, or unsure?", " - open it with a file tool, not the shell",
+        for needle in ("Owner rule: concise and exact", "Lost context, or unsure?",
+                       " - open it with a file tool, not the shell, before acting if output is ",
                        "Callback for this stage (run once after its work"):
             homes = sorted(path.name for path in scripts.glob("*.py") if needle in path.read_text(encoding="utf-8"))
             self.assertEqual(homes, ["shiploop_prompts.py"], needle)

@@ -254,7 +254,7 @@ class NoteFileTests(unittest.TestCase):
 
 
 class HeadBoundTests(unittest.TestCase):
-    """A required notes block in the heads with the least room (design D4): plan, step-plan, implement."""
+    """Owner notes remain visible before long stage guidance, including a host's middle cut."""
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -262,15 +262,15 @@ class HeadBoundTests(unittest.TestCase):
         cls.head_order = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(cls.head_order)
 
-    def printed(self, route: str, stage: str, texts: list[str]) -> tuple[str, list, list, dict]:
+    def printed(self, route: str, stage: str, texts: list[str], run_length: int = 83) -> tuple[str, list, list, dict]:
         import packets
 
         head_order = self.head_order
-        key, row = next((key, row) for key, row in head_order.renders(route, head_order.INSTALL_RUN_DIR).items()
+        key, row = next((key, row) for key, row in head_order.renders(route, run_length).items()
                         if head_order.plans.stage_of(key) == stage and head_order.plans.is_producer(key, row["state"]))
         with tempfile.TemporaryDirectory(prefix="sl-") as temp:
             scratch = Path(temp)
-            work = Path(packets.padded_path(str(scratch), head_order.INSTALL_RUN_DIR - len("/run"), "p"))
+            work = Path(packets.padded_path(str(scratch), run_length - len("/run"), "p"))
             work.mkdir(parents=True)
             run = work / "run"
             run.mkdir()
@@ -283,39 +283,43 @@ class HeadBoundTests(unittest.TestCase):
             state = row["state"]
             whole = navigator.render(core, run, state)
             printed = navigator.printed_text(core, run, state, navigator.packet_path(run, state), whole)
+            self.assertEqual(printed, whole + navigator.HEAD_END + "\n")
+            visible = head_order.grok_view(printed)
+            action = navigator.current_action(state)["id"]
+            owner_notes.record_shown(run, action, printed)
+            row = {**row, "quoted": owner_notes.quoted_ids(printed),
+                   "visible": [note["id"] for note in owner_notes.undelivered(run, state)
+                               if "\n".join(owner_notes.quote(note)) in visible],
+                   "held": [note["id"] for note in owner_notes.to_hold(run, state, action)]}
         p0, p1 = head_order.tokens(key, row, route, {})
         return printed, p0, p1, row
 
-    def test_heads_keep_the_host_cut_and_every_required_token_and_plan_prints_the_one_line_floor(self) -> None:
+    def test_complete_packets_keep_all_required_text_and_quoted_notes_visible(self) -> None:
         texts = [f"Note {index}: the board must work at phone width; reuse the date helper in src/util/dates.ts."
                  for index in range(1, 6)]
         for route in ("inline", "ask-agent"):
-            # The plan head has the least room, and it is the case that shows the ladder working: the head prints the
-            # fullest form of the notes block that keeps it within HEAD_LIMIT, and falls to the one-line floor (by id
-            # and file, with no note quoted) only when even the smallest quote would not fit.
-            #
-            # The quoted counts below are not a fixed contract: they are what the plan head's remaining room allows once
-            # its required blocks are in, and the status line grew by up to 99 characters on 2026-11-03 when it gained
-            # the run's own goal (55e87728). That moved the plan head from the floor to quoting one note: at 3b77a8b1 it
-            # printed 19,779 with the floor and no quote; after the change it prints 19,951 and quotes N1, both inside
-            # HEAD_LIMIT. So this test pins the ladder's guarantee rather than one count: every required token survives,
-            # the head stays inside the cut, and a head that cannot fit any quote says where to read the notes instead.
-            for stage, quoted in (("plan", {1: ["N1"], 5: ["N1", "N2", "N3", "N4", "N5"]}),
-                                  ("step-plan", {1: ["N1"], 5: ["N1", "N2", "N3", "N4", "N5"]}),
-                                  ("implement", {1: ["N1"], 5: ["N1", "N2", "N3", "N4", "N5"]})):
+            for stage in ("plan", "step-plan", "implement"):
                 for count in (1, 5):
                     with self.subTest(route=route, stage=stage, notes=count):
-                        printed, p0, p1, _ = self.printed(route, stage, texts[:count])
-                        self.assertLessEqual(len(printed), self.head_order.HOST_CUT)
+                        printed, p0, p1, row = self.printed(route, stage, texts[:count])
                         for token in p0 + p1:
                             self.assertIn(token, printed)
-                        found = owner_notes.quoted_ids(printed)
-                        self.assertEqual(found, quoted[count])
-                        # The ladder's other end: whatever it quotes, a note it cannot quote is still named with where
-                        # to read it, so a short head never hides a note without a route.
-                        if len(found) < count:
-                            self.assertIn("read", printed)
-                            self.assertIn("owner-notes/", printed)
+                        self.assertEqual(row["quoted"], [f"N{i}" for i in range(1, count + 1)])
+                        self.assertEqual(row["visible"], row["quoted"])
+                        self.assertEqual(row["held"], [])
+
+    def test_large_quoted_note_blocks_survive_a_host_middle_cut_before_being_recorded_shown(self) -> None:
+        texts = [f"Note {index}: " + "x" * 1900 for index in range(1, 5)]
+        for route in ("inline", "ask-agent"):
+            for length in (self.head_order.INSTALL_RUN_DIR, self.head_order.LIVE_RUN_DIR):
+                for stage in ("plan", "step-plan", "implement"):
+                    with self.subTest(route=route, stage=stage, run_length=length):
+                        printed, _, _, row = self.printed(route, stage, texts, length)
+                        self.assertGreater(len(printed), self.head_order.HOST_CUT)
+                        self.assertEqual(row["quoted"], ["N1", "N2", "N3"])
+                        self.assertEqual(row["visible"], row["quoted"])
+                        self.assertEqual(row["held"], ["N4"])
+                        self.assertIn("owner-notes/N4.md", self.head_order.grok_view(printed))
 
     def test_a_whole_print_quotes_the_notes_in_the_file_form(self) -> None:
         printed, _, _, row = self.printed("inline", "intake", ["Keep it short."])

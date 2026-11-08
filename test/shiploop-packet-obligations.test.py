@@ -136,14 +136,16 @@ class LedgerHoldsTests(unittest.TestCase):
         self.assertGreaterEqual(applies["until-loop-no-argument"], 20)
         self.assertGreaterEqual(applies["callback"], 60)
 
-    def test_the_printed_text_of_a_long_stage_is_a_head_and_the_ledger_still_holds_in_it(self) -> None:
-        """A stage whose packet passes PRINT_LIMIT prints a head; the head rows are checked there, not in the file."""
-        limit = obligations._imports()[0].PRINT_LIMIT
-        heads = [p for p in self.packets if p["kind"] == "producer" and len(p["file"]) > limit]
-        self.assertGreaterEqual(len(heads), 8)
-        for packet in heads:
+    def test_every_stage_print_is_the_complete_file_plus_one_marker(self) -> None:
+        """Long and short producer and Improve packets share the same complete-emission contract."""
+        nav = obligations._imports()[0]
+        limit = nav.PRINT_LIMIT
+        long_packets = [p for p in self.packets if len(p["file"]) > limit]
+        self.assertGreaterEqual(len(long_packets), 8)
+        for packet in self.packets:
             with self.subTest(packet=packet["where"]):
-                self.assertTrue(packet["printed"].rstrip().endswith("=== end ShipLoop print ==="))
+                self.assertEqual(packet["printed"], packet["file"] + nav.HEAD_END + "\n")
+                self.assertEqual(packet["printed"].splitlines().count(nav.HEAD_END), 1)
 
 
 class LedgerNoticesTests(unittest.TestCase):

@@ -59,7 +59,6 @@ import shiploop_store as store  # noqa: E402
 
 CLI = ROOT / "skills" / "shiploop" / "scripts" / "shiploop"
 PINNED_DATE = "2026-01-02T03:04:05+0000"   # commits made by the engine's hooks are the same object in every arm
-PACKET_HEAD = "ShipLoop navigator |"      # what ``emit`` prints after the effects have printed theirs
 ITEM = {"id": "W1", "title": "The whole request"}
 SYNTHETIC = {"outcome": "done", "summary": "Synthetic: recorded by the seed without doing it."}
 
@@ -130,11 +129,23 @@ class SeamCase(fx.RunDriver):
         directory's files, the commits and the working tree's changes, and what it printed and noted on stderr."""
         numbers = itertools.count(first)
         printed, noted = io.StringIO(), io.StringIO()
+        real_emit = nav.emit
+        packet_starts = []
+
+        def emit_packet(*args, **kwargs):
+            # Compare the output before emit, as before: the packet and later gate announcements belong only
+            # to complete. Its delegation preamble is part of the packet, before the navigator heading.
+            packet_starts.append(printed.tell())
+            return real_emit(*args, **kwargs)
+
         with mock.patch.object(nav, "_new_action", lambda stage: {"id": "nav-%032x" % next(numbers), "stage": stage}), \
+                mock.patch.object(nav, "emit", emit_packet), \
                 contextlib.redirect_stdout(printed), contextlib.redirect_stderr(noted):
             act()
+        emitted_at = packet_starts[0] if packet_starts else printed.tell()
         return types.SimpleNamespace(
-            state=self.state(), out=printed.getvalue(), err=noted.getvalue(),
+            state=self.state(), out=printed.getvalue()[:emitted_at], after_effects=printed.getvalue()[emitted_at:],
+            err=noted.getvalue(),
             files={str(path.relative_to(self.run_dir)): path.read_bytes()
                    for path in sorted(self.run_dir.rglob("*")) if path.is_file()},
             commits=fx.git(self.repo, "log", "--format=%H%x09%s%n%b", "--all"),
@@ -147,8 +158,8 @@ class SeamCase(fx.RunDriver):
         self.assertEqual(actual.state, expected.state)
         self.assertEqual(actual.commits, expected.commits)
         self.assertEqual(actual.tree, expected.tree)
-        # ``complete`` prints what the effects print, then the packet.
-        self.assertEqual(actual.out.partition(PACKET_HEAD)[0], expected.out)
+        # ``complete`` prints what the effects print, before its packet and gate announcements.
+        self.assertEqual(actual.out, expected.out)
         self.assertEqual(actual.err, expected.err)
         names = {SESSION.sub("innerloop-ID.json", name): name for name in expected.files}
         wanted = {SESSION.sub("innerloop-ID.json", name): name for name in actual.files}

@@ -347,8 +347,7 @@ class StatusBlockTests(unittest.TestCase):
         nxt = subprocess.run(cli + ["next", "--run-dir", str(root)], env=ENV,
                              text=True, capture_output=True, timeout=30)
         self.assertEqual(nxt.returncode, 0, nxt.stderr)
-        # `next` writes the full packet and prints it when it fits the host output window;
-        # otherwise it prints a head pointing to that intact file. At an inner stage reached
+        # `next` writes the full packet and prints it with one closing marker. At an inner stage reached
         # without a transition it also writes that stage's Until Loop contract
         # (rebuilt from state). Those are the intended new writes, and every
         # other existing file is untouched.
@@ -364,11 +363,8 @@ class StatusBlockTests(unittest.TestCase):
         self.assertEqual(set(after) - set(before), intended)
         self.assertEqual({path: data for path, data in after.items() if path not in intended}, before)
         written = packet_path.read_text(encoding="utf-8")
-        # Path lengths can select either presentation; neither limits the saved prompt or result content.
-        if len(written) <= navigator.PRINT_LIMIT:
-            self.assertEqual(nxt.stdout, written)
-        else:
-            self.assertIn(f"Full packet: {packet_path}", nxt.stdout)
+        self.assertEqual(nxt.stdout, written + navigator.HEAD_END + "\n")
+        self.assertEqual(nxt.stdout.splitlines().count(navigator.HEAD_END), 1)
         self.assertEqual(nxt.stdout.count(status_line), 1)
         self.assertNotIn(BEGIN, nxt.stdout)
         self.assertEqual(written.count(status_line), 1)
@@ -472,15 +468,9 @@ class StatusHookTests(unittest.TestCase):
                           self.packet),
             "wrapper": (f"{wrapper} --run-dir={self.run_dir} --action=a --result=r",
                         "shiploop complete — close the increment and print the next stdout\n" + self.packet),
-            # Claude Code keeps the head of oversized output and persists the
-            # rest. Since emit() now prints only the short head for an active
-            # packet, self.packet alone (~3 KB) is well under the hook's 16,000-
-            # char safety window, so repeating it (the old way of manufacturing
-            # oversized stdout) would place a second real status block inside
-            # that window too and the hook would correctly refuse the ambiguous
-            # match. Pad with block-free filler after the one real packet
-            # instead, so the fixture still simulates a truncated, oversized
-            # single command's stdout with exactly one status block up front.
+            # Simulate a host that persists part of an oversized command output.
+            # Block-free filler after the one real packet keeps the status hook's
+            # window unambiguous while exercising its truncated-output path.
             "truncated": (self.command, (self.packet + "x" * 40000)[:30000]),
         }
         for label, (command, stdout) in cases.items():

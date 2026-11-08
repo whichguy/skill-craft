@@ -937,10 +937,12 @@ class RenderedTextTests(unittest.TestCase):
                                          "unclassified lines (extend RULES in packet_anatomy.py): "
                                          + "; ".join(sorted({line[:70] for _, line in worst})[:8]))
 
-    def test_a_printed_head_ends_with_head_end_and_names_its_packet_file_and_the_references_are_not_the_duty(self):
+    def test_a_complete_print_names_its_packet_file_and_the_references_are_not_the_duty(self):
         head = self.renders["inline"]["01-step-plan"]["printed"]
         rows = labels(head)
-        self.assertTrue(self.renders["inline"]["01-step-plan"]["head"])
+        row = self.renders["inline"]["01-step-plan"]
+        self.assertFalse(row["head"])
+        self.assertEqual(head, row["whole"] + "=== end ShipLoop print ===\n")
         self.assertEqual([s for s, line in rows if line.startswith("=== end ShipLoop print ===")], ["head-end"])
         self.assertEqual([s for s, line in rows if line.startswith("Full packet: ")], ["pointer-lines"])
         # The result template ends the required text; the References block is a lookup behind it (efficiency plan 6.1).

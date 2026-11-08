@@ -8,7 +8,7 @@
 
 Both directories are packets.py --text-dir renders made with the same options (the manifest says which; a render made
 with other options, or from a checkout whose packets differ in the lengths of the paths they print, is refused).  Per
-stage it compares the printed text (what the host prints, a head when the packet passes the print limit) and the whole
+stage it compares the printed text (what the engine emits; historical renders may select a shorter head) and the whole
 text (the packet file).  A line that exists in one render and not the other, counted as a multiset, is an added or a
 removed line, printed with its size in characters (line plus newline); a line that only moved is not a change, and
 blank lines are not listed (they count in the sizes).  The exit code is 1 when any of these holds, 0 when none does:
