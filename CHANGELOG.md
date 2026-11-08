@@ -4,6 +4,26 @@ Written by scripts/release.py.
 
 ## 2026-11-08
 
+### skill-craft 2.35.4
+
+- Skills: shiploop 1.33.4
+
+### shiploop 1.33.4
+
+- When command capture aborts on POSIX, ShipLoop stops the private process group
+  if it still owns the leader and preserves the original error. Captured output
+  may be lost. Escaped processes and groups whose leader has already been reaped
+  are outside this cleanup. SIGKILL can leave workload locks and does not undo
+  previous writes.
+
+### skill-craft 2.35.3
+
+- Skills: shiploop 1.33.3
+
+### shiploop 1.33.3
+
+- When modeling another system, establish intended fidelity, inspect consequential workflows and states, and carry evidence limits into the product specification. Keep unknown behavior scoped to dependent work. Preserve each acceptance line's verification surface and completion condition in its work item, with existing owner and due-phase rules for unavailable or later checks.
+
 ### skill-craft 2.35.2
 
 - Skills: shiploop 1.33.2

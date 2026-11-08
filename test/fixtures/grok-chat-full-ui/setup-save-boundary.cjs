@@ -27,11 +27,13 @@ async function scenario(browser, phase) {
   let configured = false;
   const methods = [];
   const markup = `<!doctype html><meta charset="utf-8"><style>body{margin:10px}section{max-width:100%}</style>
+    <c-sl-grok-chat-app style="display:block">
     <button id="setup">Setup</button><section role="region" aria-label="Setup status">missing</section>
     <label>Named credential<input id="credential"></label><label>Model<input id="model"></label>
     <button id="save">Save setup</button><button id="test">Test connection</button>
     <button id="recheck">Recheck setup</button><button id="new">New conversation</button>
     <section role="region" aria-label="Conversation"><label>Message<input></label></section>
+    </c-sl-grok-chat-app>
     <script>
     let serial=0;
     async function rpc(method,params={}) {

@@ -13,6 +13,8 @@ import json
 import os
 import re
 import shutil
+import signal
+import socket
 import stat
 import subprocess
 import sys
@@ -1481,6 +1483,174 @@ class DiscoveredLinterTests(Fixture):
         self.edit({"a.py": "# header\nx = 1\ny = 2  # lint\n"})
         second = self.run_pass(mode="report")["gating"]
         self.assertIn(first, [row["id"] for row in second])
+
+
+class CommandCaptureAbortTests(unittest.TestCase):
+    def capture_abort(self, process, primary):
+        stderr = mock.Mock()
+        with mock.patch.object(lint.subprocess, "Popen", return_value=process), \
+             contextlib.redirect_stderr(stderr), self.assertRaises(type(primary)) as raised:
+            lint.run_argv(["tool"], Path.cwd(), 5, input_bytes=b"original input")
+        self.assertIs(raised.exception, primary)
+        self.assertEqual(stderr.mock_calls, [])
+
+    @unittest.skipUnless(os.name == "posix", "POSIX child wait and group signal")
+    def test_ambiguous_wait_states_skip_signaling(self):
+        primary = KeyboardInterrupt("capture aborted")
+        for outcome in (ChildProcessError(), OSError("wait failed"), KeyboardInterrupt("wait interrupted"),
+                        (4001, 0), (0, 1), (4000, 0x137f)):
+            with self.subTest(outcome=outcome):
+                process = mock.Mock(pid=4000, returncode=None)
+                process.communicate.side_effect = primary
+                waitpid = (mock.Mock(side_effect=outcome) if isinstance(outcome, BaseException)
+                           else mock.Mock(return_value=outcome))
+                with mock.patch.object(lint.signal, "getsignal", return_value=signal.SIG_DFL), \
+                     mock.patch.object(lint.os, "waitpid", waitpid), mock.patch.object(lint.os, "killpg") as killpg:
+                    self.capture_abort(process, primary)
+                waitpid.assert_called_once_with(process.pid, os.WNOHANG)
+                killpg.assert_not_called()
+                process.poll.assert_not_called()
+                process.kill.assert_not_called()
+                process.wait.assert_not_called()
+                self.assertIsNone(process.returncode)
+
+    @unittest.skipUnless(os.name == "posix", "POSIX child wait and group signal")
+    def test_known_returncode_and_nondefault_sigchld_skip_wait_and_signal(self):
+        primary = KeyboardInterrupt("capture aborted")
+        for code, disposition in ((0, signal.SIG_DFL), (None, lambda *_: None), (None, signal.SIG_IGN)):
+            with self.subTest(code=code, disposition=disposition):
+                process = mock.Mock(pid=4000, returncode=code)
+                process.communicate.side_effect = primary
+                with mock.patch.object(lint.signal, "getsignal", return_value=disposition), \
+                     mock.patch.object(lint.os, "waitpid") as waitpid, mock.patch.object(lint.os, "killpg") as killpg:
+                    self.capture_abort(process, primary)
+                waitpid.assert_not_called()
+                killpg.assert_not_called()
+                process.kill.assert_not_called()
+                process.wait.assert_not_called()
+
+    @unittest.skipUnless(os.name == "posix", "POSIX child wait status")
+    def test_terminal_wait_status_is_published_without_signaling(self):
+        primary = KeyboardInterrupt("capture aborted")
+        for status, expected in ((7 << 8, 7), (signal.SIGTERM, -signal.SIGTERM)):
+            with self.subTest(status=status):
+                process = mock.Mock(pid=4000, returncode=None)
+                process.communicate.side_effect = primary
+                with mock.patch.object(lint.signal, "getsignal", return_value=signal.SIG_DFL), \
+                     mock.patch.object(lint.os, "waitpid", return_value=(process.pid, status)) as waitpid, \
+                     mock.patch.object(lint.os, "killpg") as killpg:
+                    self.capture_abort(process, primary)
+                waitpid.assert_called_once_with(process.pid, os.WNOHANG)
+                self.assertEqual(process.returncode, expected)
+                killpg.assert_not_called()
+                process.kill.assert_not_called()
+                process.wait.assert_not_called()
+
+    @unittest.skipUnless(os.name == "posix" and sys.implementation.name == "cpython",
+                         "exercise CPython poll with its wait lock held")
+    def test_reaped_real_child_with_unpublished_returncode_is_never_signaled(self):
+        primary = KeyboardInterrupt("after waitpid before publishing returncode")
+        for locked in (False, True):
+            with self.subTest(locked=locked), subprocess.Popen(
+                    [sys.executable, "-c", ""], start_new_session=True) as process:
+                pid, status = os.waitpid(process.pid, 0)
+                self.assertEqual((pid, status), (process.pid, 0))
+                self.assertIsNone(process.returncode)
+                lock = process._waitpid_lock if locked else contextlib.nullcontext()
+                with lock:
+                    if locked:
+                        self.assertIsNone(process.poll())  # ambiguous public poll result
+                    with mock.patch.object(process, "communicate", side_effect=primary), \
+                         mock.patch.object(process, "poll", wraps=process.poll) as poll, \
+                         mock.patch.object(process, "kill") as kill, mock.patch.object(lint.os, "killpg") as killpg, \
+                         mock.patch.object(lint.os, "waitpid", wraps=os.waitpid) as waitpid:
+                        self.capture_abort(process, primary)
+                    waitpid.assert_called_once_with(process.pid, os.WNOHANG)
+                    poll.assert_not_called()
+                    killpg.assert_not_called()
+                    kill.assert_not_called()
+                    self.assertIsNone(process.returncode)
+
+    @unittest.skipUnless(os.name == "posix", "private POSIX process group")
+    def test_live_owned_group_is_stopped_and_reaped_without_more_capture(self):
+        primary = KeyboardInterrupt("capture aborted")
+        parent, child = socket.socketpair()
+        with parent, child, subprocess.Popen(
+                [sys.executable, "-c",
+                 "import socket, sys; peer = socket.socket(fileno=int(sys.argv[1])); "
+                 "peer.sendall(b'R'); peer.recv(1)", str(child.fileno())],
+                start_new_session=True, pass_fds=(child.fileno(),)) as process:
+            child.close()
+            parent.settimeout(30)  # fixture readiness guard
+            try:
+                self.assertEqual(parent.recv(1), b"R")
+                self.assertEqual((os.getpgid(process.pid), os.getsid(process.pid)), (process.pid, process.pid))
+                self.assertNotEqual(process.pid, os.getpgrp())
+                real_killpg = os.killpg
+
+                def owned_signal(pgid, sig):
+                    self.assertEqual((pgid, sig), (process.pid, signal.SIGKILL))
+                    real_killpg(pgid, sig)
+
+                with mock.patch.object(process, "communicate", side_effect=primary) as capture, \
+                     mock.patch.object(lint.os, "killpg", side_effect=owned_signal) as killpg, \
+                     mock.patch.object(process, "wait", side_effect=subprocess.TimeoutExpired(process.args, 0.2)) as wait:
+                    self.capture_abort(process, primary)
+                capture.assert_called_once_with(input=b"original input", timeout=5)
+                killpg.assert_called_once_with(process.pid, signal.SIGKILL)
+                wait.assert_called_once_with(timeout=0.2)
+                self.assertEqual(parent.recv(1), b"")
+            finally:
+                parent.close()
+                process.wait(timeout=30)
+            self.assertEqual(process.returncode, -signal.SIGKILL)
+
+    @unittest.skipUnless(os.name == "posix", "POSIX child wait and group signal")
+    def test_cleanup_failures_preserve_primary_and_do_no_pipe_io(self):
+        for primary in (KeyboardInterrupt("capture aborted"), SystemExit(17), RuntimeError("capture failed")):
+            for failure in ("signal", "reap"):
+                with self.subTest(primary=type(primary).__name__, failure=failure):
+                    process = mock.Mock(pid=4000, returncode=None)
+                    process.communicate.side_effect = primary
+                    process.wait.side_effect = OSError("could not reap")
+                    interrupted = KeyboardInterrupt("secondary") if failure == "signal" else None
+                    with mock.patch.object(lint.signal, "getsignal", return_value=signal.SIG_DFL), \
+                         mock.patch.object(lint.os, "waitpid", return_value=(0, 0)), \
+                         mock.patch.object(lint.os, "killpg", side_effect=interrupted) as killpg:
+                        self.capture_abort(process, primary)
+                    killpg.assert_called_once_with(process.pid, signal.SIGKILL)
+                    expected = [mock.call.communicate(input=b"original input", timeout=5)]
+                    if failure == "reap":
+                        expected.append(mock.call.wait(timeout=0.2))
+                    self.assertEqual(process.mock_calls, expected)
+
+    @unittest.skipUnless(os.name == "posix", "POSIX timeout teardown")
+    def test_abort_during_timeout_teardown_uses_owned_group_without_retrying_capture(self):
+        primary = KeyboardInterrupt("timeout teardown interrupted")
+        process = mock.Mock(pid=4000, returncode=None)
+        process.communicate.side_effect = [subprocess.TimeoutExpired(["tool"], 5), primary]
+        with mock.patch.object(lint.signal, "getsignal", return_value=signal.SIG_DFL), \
+             mock.patch.object(lint.os, "waitpid", return_value=(0, 0)), mock.patch.object(lint.os, "killpg") as killpg:
+            self.capture_abort(process, primary)
+        self.assertEqual(killpg.call_args_list, [mock.call(process.pid, signal.SIGTERM),
+                                                mock.call(process.pid, signal.SIGKILL)])
+        self.assertEqual(process.mock_calls, [mock.call.communicate(input=b"original input", timeout=5),
+                                              mock.call.communicate(timeout=0.2), mock.call.wait(timeout=0.2)])
+
+    def test_non_posix_abort_preserves_existing_capture_and_timeout_calls(self):
+        primary = KeyboardInterrupt("capture aborted")
+        for timed_out in (False, True):
+            with self.subTest(timed_out=timed_out):
+                process = mock.Mock(pid=4000, returncode=None)
+                process.communicate.side_effect = ([subprocess.TimeoutExpired(["tool"], 5), primary]
+                                                    if timed_out else primary)
+                # No POSIX APIs exist on this stand-in.
+                with mock.patch.object(lint, "os", types.SimpleNamespace(name="nt", fspath=os.fspath)):
+                    self.capture_abort(process, primary)
+                expected = [mock.call.communicate(input=b"original input", timeout=5)]
+                if timed_out:
+                    expected.extend([mock.call.kill(), mock.call.communicate()])
+                self.assertEqual(process.mock_calls, expected)
 
 
 class InvokerLogTests(unittest.TestCase):

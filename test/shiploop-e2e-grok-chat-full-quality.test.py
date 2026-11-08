@@ -11,6 +11,8 @@ from pathlib import Path
 import runpy
 import subprocess
 import tempfile
+import time
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 
@@ -32,6 +34,11 @@ def stamp(milliseconds):
 
 class QualityGateTest(unittest.TestCase):
     def setUp(self):
+        # Keep fixture clock patches from reaching subprocess's shared time module.
+        self.addCleanup(setattr, quality, "time", quality.time)
+        quality.time = SimpleNamespace(
+            monotonic=time.monotonic, strftime=time.strftime, gmtime=time.gmtime, sleep=time.sleep,
+        )
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
         self.base = Path(self.temporary.name).resolve()

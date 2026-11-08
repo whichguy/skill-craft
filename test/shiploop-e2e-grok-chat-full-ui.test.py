@@ -378,6 +378,38 @@ class GrokChatFullUiValidatorTests(unittest.TestCase):
             with self.assertRaises(ui.CheckFailure):
                 ui._candidate_identity(root)
 
+    def test_app_host_binding_requires_the_declared_tab_and_exposed_bundle(self):
+        ns = 'xmlns="http://soap.sforce.com/2006/04/metadata"'
+        tab = f"<CustomTab {ns}><lwcComponent>slGrokChatApp</lwcComponent></CustomTab>"
+        bundle = (f"<LightningComponentBundle {ns}><isExposed>true</isExposed>"
+                  "<targets><target>lightning__Tab</target></targets></LightningComponentBundle>")
+        cases = {
+            "declared binding": (tab, bundle),
+            "missing tab": (None, bundle),
+            "different component": (tab.replace("slGrokChatApp", "slGrokChatOther"), bundle),
+            "conflicting component": (tab.replace("</CustomTab>", "<lwcComponent>other</lwcComponent></CustomTab>"),
+                                      bundle),
+            "not exposed": (tab, bundle.replace("true", "false")),
+            "wrong target": (tab, bundle.replace("lightning__Tab", "lightning__AppPage")),
+            "malformed metadata": (tab, "<LightningComponentBundle>"),
+        }
+        for name, (tab_xml, bundle_xml) in cases.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as folder:
+                root = Path(folder)
+                base = root / "force-app" / "main" / "default"
+                for relative, content in (("tabs/SLGrokChat_Chat.tab-meta.xml", tab_xml),
+                                          ("lwc/slGrokChatApp/slGrokChatApp.js-meta.xml", bundle_xml)):
+                    if content is not None:
+                        path = base / relative
+                        path.parent.mkdir(parents=True, exist_ok=True)
+                        path.write_text(content)
+                if name == "declared binding":
+                    ui._validate_app_tab(root)
+                else:
+                    with self.assertRaises(ui.CheckFailure) as error:
+                        ui._validate_app_tab(root)
+                    self.assertEqual(("source", "source-invalid"), (error.exception.stage, error.exception.reason))
+
     def test_fresh_snapshot_is_required_and_matches_live_org_identity(self):
         live_identity = {"Id": ui.EXPECTED_ORG_ID, "OrganizationType": "Developer Edition", "IsSandbox": False}
         with tempfile.TemporaryDirectory() as temp:
@@ -426,6 +458,7 @@ class GrokChatFullUiValidatorTests(unittest.TestCase):
                     "_items": {"side_effect": [[], after]},
                     "_start_browser": {"return_value": mock.Mock()},
                     "_run_browser": {"side_effect": browser_step},
+                    "_validate_app_tab": {"return_value": None},
                     "_reset_config": {"return_value": 0},
                     "_verify_config": {"return_value": True},
                 }
