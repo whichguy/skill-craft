@@ -35,15 +35,14 @@ flowchart TD
     V -->|No candidate| N[Record learning and keep the baseline]
 ```
 
-New runs, step slices and experiment invocations default to **Codex / GPT-6.1 Terra / xhigh** (owner,
-2026-10-29). Role profiles are explicit: reviewer **Astra xhigh**, fresh judge **Astra xhigh**, improver
-**GPT-6.1 Sol xhigh**. `iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides;
-its `--host`, `--model` and `--effort` select the subject only. Existing runs resume their recorded identities.
+New runs, step slices and experiment invocations default to **Codex / GPT-6.1 Sol / high**. The reviewer, fresh
+judge and improver use the same model and effort in separate sessions.
+`iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides; its `--host`, `--model`
+and `--effort` select the subject only. Existing runs resume their recorded identities.
 `--host claude` selects Claude's own models (Sonnet 5.5, `--backend anthropic`, the default since 2026-11-01); add
 `--backend ollama` to select DeepSeek flash on Ollama.
-`--host grok` selects Grok's existing profile. New Terra results occupy their own host/model/effort baseline cells.
-Every stage launches a real
-model and costs money; none of it runs in default CI.
+`--host grok` selects Grok's existing profile. New Sol results occupy separate host/model/effort baseline cells
+from the recorded Terra results. Every stage launches a real model and costs money; none of it runs in default CI.
 
 Each host is one class in `hosts.py` (`HOSTS`); nothing else branches on the
 host name. A host builds its argv, its isolated profile (Grok and Codex get a
@@ -83,7 +82,7 @@ ended, and whether A and B overlapped as native workers. It takes about 10
 minutes:
 
 ```sh
-python3 test/shiploop_e2e/fanout.py --host codex --model gpt-6-luna --effort medium
+python3 test/shiploop_e2e/fanout.py --host codex
 ```
 
 A run that stops while ShipLoop is still active, for example because a host ran
@@ -95,7 +94,7 @@ bash test/run-integration.sh shiploop-e2e --resume-run <that run's output direct
 
 With no `--host` it continues on the host, model and effort its last launch recorded (it prints that it did).
 Naming another host is refused, with both hosts named, unless `--allow-host-change` says the change is deliberate
-(`--host codex --effort xhigh --allow-host-change`); the run is then a mixed-host run, and `environment.hosts_used`
+(`--host codex --allow-host-change`); the run is then a mixed-host run, and `environment.hosts_used`
 says so ("Records beside the verdicts", below). It keeps the same work directory, run state and event stream, and
 prompts with the ShipLoop CLI of the host that started the run, so the run's version does not change. The case and checks come from the earlier run, and the result is graded
 as usual. The original `invocation.json` is kept, and each resume is recorded
@@ -130,7 +129,7 @@ their premise; learnings entries cite its clause IDs.
 ```sh
 bash test/run-integration.sh shiploop-e2e --case battleship
 bash test/run-integration.sh shiploop-e2e --case hello --host claude
-bash test/run-integration.sh shiploop-e2e --case hello --host codex --effort xhigh
+bash test/run-integration.sh shiploop-e2e --case hello --host codex --effort high
 bash test/run-integration.sh shiploop-e2e --prompt "Create fizzbuzz.py with tests" --check "python3 -m unittest -q"
 bash test/run-integration.sh shiploop-e2e --case battleship --planning-review none
 ```
@@ -1355,7 +1354,7 @@ reference, the stand-in for the first run) build each case's base, reference, al
 #### Test writing: `ticket-assignment-tests`
 
 ```sh
-python3 test/shiploop_e2e/run.py --case ticket-assignment-tests --host codex --model gpt-6.1-terra --effort high --output ~/e2e-runs/<day>/<name>
+python3 test/shiploop_e2e/run.py --case ticket-assignment-tests --host codex --model gpt-6.1-sol --effort high --output ~/e2e-runs/<day>/<name>
 ```
 
 This case asks ShipLoop to add tests to an already-correct service. It starts from the pinned
@@ -2405,8 +2404,8 @@ bash test/run-integration.sh shiploop-e2e-iterate --case battleship --iterations
 branch `auto/auto-shiploop-e2e-<rand>` from the current `HEAD` (commit what you
 want tested first), then per iteration: builds that worktree's plugin, runs the
 case, reviews it, and hands independently admitted material findings to an
-improver agent. The default subject is Codex / Terra 6.1 xhigh, with Astra xhigh for review and a fresh
-judge session, and Sol 6.1 xhigh for improvement. Subject flags do not silently switch the other roles.
+improver agent. All four roles default to Sol 6.1 at high effort on Codex. Subject flags do not silently switch
+the other roles. For a run that needs Astra judgment, pass `--judge-model gpt-6-astra --judge-effort high`.
 Only supported, material, implementation-eligible ShipLoop findings reach the improver. Design challenges and
 harness discoveries retain separate dispositions. Legacy reviews remain readable but cannot establish new
 review/judge completion or authorise automatic improvement. Before the improver starts, the iteration appends its outcome
@@ -2509,10 +2508,11 @@ arm's mean and its latest decide verdict. It reads run folders only.
 
 The reviewer records conformance and discoveries separately. A novel or design-challenging finding can anchor to the
 mission without a pre-existing clause; it is retained for investigation or owner review. Materiality and confidence are
-separate. The default Codex reviewer uses a read-only sandbox. The judge is a separate fresh Astra xhigh session with
-its own isolated home and read-only sandbox, bound to the exact review receipt. Only supported, material, eligible
-ShipLoop findings reach Sol 6.1 xhigh. Harness discoveries follow a
-separate evaluator experiment. Older reviews remain readable diagnostics and cannot supply the new review/judge gate.
+separate. The default Codex reviewer uses a read-only sandbox. The judge starts a fresh session with its own isolated
+home and read-only sandbox, bound to the exact review receipt. The purpose review also uses the judge profile.
+Only supported, material, eligible ShipLoop findings reach the improver.
+Harness discoveries follow a separate evaluator experiment. Older reviews remain readable diagnostics and cannot
+supply the new review/judge gate.
 
 `epoch.py` is a stepwise controller over the existing runner, scorer and promotion rule. `init`, `next`, `status` and
 `resume` start no models. `launch` and `review` are explicit model calls; `review` makes both independent assessments.

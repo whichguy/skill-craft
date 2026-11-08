@@ -26,14 +26,16 @@ class RoleDefaultsTest(unittest.TestCase):
     def test_role_profiles_and_independent_overrides(self):
         self.assertEqual(hosts.RUN_DEFAULT_HOST, "codex")
         expected = {
-            "subject": {"host": "codex", "model": "gpt-6.1-terra", "effort": "xhigh"},
-            "reviewer": {"host": "codex", "model": "gpt-6-astra", "effort": "xhigh"},
-            "judge": {"host": "codex", "model": "gpt-6-astra", "effort": "xhigh"},
-            "improver": {"host": "codex", "model": "gpt-6.1-sol", "effort": "xhigh"},
+            "subject": {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"},
+            "reviewer": {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"},
+            "judge": {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"},
+            "improver": {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"},
         }
-        self.assertEqual(hosts.ROLE_DEFAULTS, expected)
-        self.assertEqual(hosts.resolve_role("reviewer", {"model": "custom-model", "effort": "high"}),
-                         {"host": "codex", "model": "custom-model", "effort": "high"})
+        for role, profile in expected.items():
+            with self.subTest(role=role):
+                self.assertEqual(hosts.resolve_role(role), profile)
+        self.assertEqual(hosts.resolve_role("reviewer", {"model": "custom-model", "effort": "xhigh"}),
+                         {"host": "codex", "model": "custom-model", "effort": "xhigh"})
         self.assertEqual(hosts.resolve_role("subject", {"host": "claude"}),
                          {"host": "claude", "model": "claude-sonnet-5-5", "effort": None})
         self.assertEqual(hosts.resolve_role("reviewer", {"host": "claude"}),
@@ -66,15 +68,15 @@ class RoleDefaultsTest(unittest.TestCase):
         args.codex_bin = "fake-codex"
         selected = run.the_host(args)
         self.assertEqual((selected.name, selected.model, selected.effort),
-                         ("codex", "gpt-6.1-terra", "xhigh"))
+                         ("codex", "gpt-6.1-sol", "high"))
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             argv = selected.argv(prompt="hello", prompt_file=root / "prompt.txt", cwd=root,
                                  model=args.model or selected.model, effort=args.effort or selected.effort,
                                  permission_mode=args.permission_mode, max_turns=args.max_turns)
         self.assertEqual(argv[0:2], ["fake-codex", "exec"])
-        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.1-terra")
-        self.assertIn('model_reasoning_effort=xhigh', argv)
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6.1-sol")
+        self.assertIn('model_reasoning_effort=high', argv)
 
     def test_explicit_claude_routes_and_recorded_resume_identity_survive_new_defaults(self):
         default_claude = run.the_host(run.parser().parse_args(["--host", "claude"]))
@@ -88,10 +90,12 @@ class RoleDefaultsTest(unittest.TestCase):
         args = run.parser().parse_args(argv)
         self.assertEqual(args.host, "codex", "argparse's new-run default is not an explicit resume choice")
         self.assertFalse(run.host_given(argv))
-        self.assertEqual(run.resume_identity(args, False,
-                                             {"host": "claude", "model": "claude-sonnet-5-5", "effort": None},
-                                             Path("/not-used")),
-                         ("claude", "claude-sonnet-5-5", None))
+        for host, model, effort in (("claude", "claude-sonnet-5-5", None),
+                                    ("codex", "gpt-6.1-terra", "xhigh")):
+            with self.subTest(host=host):
+                recorded = {"host": host, "model": model, "effort": effort}
+                self.assertEqual(run.resume_identity(args, False, recorded, Path("/not-used")),
+                                 (host, model, effort))
 
 
 if __name__ == "__main__":

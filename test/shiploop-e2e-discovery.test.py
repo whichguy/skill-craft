@@ -69,7 +69,7 @@ class ReviewDiscoveryContractTest(unittest.TestCase):
                 verdict = review.review(run_dir, skill_root=ROOT / "skills" / "shiploop")
             argv = launch.call_args.args[0]
             self.assertEqual(argv[argv.index("-s") + 1], "read-only")
-            self.assertEqual(verdict["driver"], {"host": "codex", "model": "gpt-6-astra", "effort": "xhigh"})
+            self.assertEqual(verdict["driver"], {"host": "codex", "model": "gpt-6.1-sol", "effort": "high"})
 
     def test_a_material_clause_free_challenge_is_valid_and_survives_as_owner_work(self):
         payload = review_payload()
@@ -214,7 +214,7 @@ class JudgeContractTest(unittest.TestCase):
         self.assertEqual(judge.admitted(payload, result)["implementation"], [])
         self.assertEqual(judge.admitted(payload, result)["owner_challenges"][0]["routing"], "investigate")
 
-    def test_fresh_judge_uses_read_only_codex_astra_and_preserves_discoveries_on_failure(self):
+    def test_fresh_judge_uses_read_only_codex_and_preserves_discoveries_on_failure(self):
         launched = []
         outputs = [self.parsed(), self.parsed()]
 
@@ -241,13 +241,13 @@ class JudgeContractTest(unittest.TestCase):
                 mock.patch.object(judge.hosts, "run_agent", side_effect=fake_run_agent), \
                 mock.patch.object(judge.hosts, "final_text", side_effect=lambda _path: json.dumps(outputs.pop(0))):
             first = judge.judge(self.run_dir, self.review, assessment_id="fresh-a")
-            second = judge.judge(self.run_dir, self.review, assessment_id="fresh-b")
+            second = judge.judge(self.run_dir, self.review, model="gpt-6-astra", effort="high", assessment_id="fresh-b")
 
         self.assertEqual(get_host.call_args_list[0].args, ("codex", "codex"))
         self.assertEqual(len(launched), 2, "a failed judge is not retried through another host")
         self.assertEqual([item[0][item[0].index("-s") + 1] for item in launched], ["read-only", "read-only"])
-        self.assertTrue(all("gpt-6-astra" in item[0] for item in launched))
-        self.assertTrue(all("model_reasoning_effort=xhigh" in item[0] for item in launched))
+        self.assertEqual([item[0][item[0].index("-m") + 1] for item in launched], ["gpt-6.1-sol", "gpt-6-astra"])
+        self.assertTrue(all("model_reasoning_effort=high" in item[0] for item in launched))
         self.assertNotEqual(launched[0][1]["HOME"], launched[1][1]["HOME"])
         self.assertEqual(first["validity"]["status"], "failed")
         self.assertEqual(second["validity"]["status"], "failed")
@@ -256,7 +256,7 @@ class JudgeContractTest(unittest.TestCase):
         self.assertTrue(Path(first["judge_receipt"]["verdict"]).is_file())
         self.assertTrue(Path(second["judge_receipt"]["verdict"]).is_file())
 
-    def test_review_defaults_to_astra_xhigh_and_assessment_ids_keep_separate_receipts(self):
+    def test_review_defaults_to_sol_high_and_assessment_ids_keep_separate_receipts(self):
         calls = []
         reply = json.dumps(review_payload([]))
 
@@ -281,11 +281,11 @@ class JudgeContractTest(unittest.TestCase):
                 mock.patch.object(review.hosts, "run_agent", side_effect=fake_run_agent), \
                 mock.patch.object(review.hosts, "final_text", return_value=reply):
             first = review.review(self.run_dir, prior_learnings="", assessment_id="review-a")
-            second = review.review(self.run_dir, prior_learnings="", model="gpt-6.1-terra", effort="high",
+            second = review.review(self.run_dir, prior_learnings="", model="gpt-6.1-terra", effort="xhigh",
                                    assessment_id="review-b")
 
-        self.assertEqual((calls[0]["model"], calls[0]["effort"]), ("gpt-6-astra", "xhigh"))
-        self.assertEqual((calls[1]["model"], calls[1]["effort"]), ("gpt-6.1-terra", "high"))
+        self.assertEqual((calls[0]["model"], calls[0]["effort"]), ("gpt-6.1-sol", "high"))
+        self.assertEqual((calls[1]["model"], calls[1]["effort"]), ("gpt-6.1-terra", "xhigh"))
         first_receipt = first["review_receipt"]
         second_receipt = second["review_receipt"]
         self.assertNotEqual(first_receipt["review_json"], second_receipt["review_json"])

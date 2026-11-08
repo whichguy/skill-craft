@@ -56,12 +56,14 @@ OLLAMA_TOOLS = ("Bash", "Read", "Edit", "Write", "Glob", "Grep", "NotebookEdit",
 # (Sonnet 5.5, backend "anthropic") like every other Claude caller; `--backend ollama` selects a model the local Ollama
 # server serves (owner, 2026-11-01, replacing the 2026-10-26 default of Ollama's DeepSeek flash).
 RUN_DEFAULT_HOST = "codex"
+CODEX_DEFAULT_MODEL = "gpt-6.1-sol"
+CODEX_DEFAULT_EFFORT = "high"
 
 ROLE_DEFAULTS = {
-    "subject": {"host": RUN_DEFAULT_HOST, "model": "gpt-6.1-terra", "effort": "xhigh"},
-    "reviewer": {"host": "codex", "model": "gpt-6-astra", "effort": "xhigh"},
-    "judge": {"host": "codex", "model": "gpt-6-astra", "effort": "xhigh"},
-    "improver": {"host": "codex", "model": "gpt-6.1-sol", "effort": "xhigh"},
+    "subject": {"host": RUN_DEFAULT_HOST, "model": CODEX_DEFAULT_MODEL, "effort": CODEX_DEFAULT_EFFORT},
+    "reviewer": {"host": "codex", "model": CODEX_DEFAULT_MODEL, "effort": CODEX_DEFAULT_EFFORT},
+    "judge": {"host": "codex", "model": CODEX_DEFAULT_MODEL, "effort": CODEX_DEFAULT_EFFORT},
+    "improver": {"host": "codex", "model": CODEX_DEFAULT_MODEL, "effort": CODEX_DEFAULT_EFFORT},
 }
 
 
@@ -423,7 +425,7 @@ class CodexHost(Host):
     (the published marketplace, or a build of this checkout).
     """
 
-    name, model, effort = "codex", "gpt-6.1-terra", "xhigh"
+    name, model, effort = "codex", CODEX_DEFAULT_MODEL, CODEX_DEFAULT_EFFORT
     resumable = marketplace = True
 
     def __init__(self, binary: str = "codex"):
