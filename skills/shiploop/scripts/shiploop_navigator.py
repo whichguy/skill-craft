@@ -3617,6 +3617,11 @@ def field_files(state: Mapping[str, Any]) -> dict[str, str]:
     shown = [_layer_lines(state, item), *([_concern_lines(state, item)] if item is not None else [])]
     files = dict(found.file for found in shown if found.file)
     files.update(_step_block_shown(state, item)[1])
+    if state["status"] == "active":
+        for source in _concern_handoff_sources(state, _active_cursor(state)[0]):
+            spilled = _concern_handoff_shown(source).file
+            if spilled:
+                files[spilled[0]] = spilled[1]
     return files
 
 
@@ -3956,11 +3961,12 @@ def _handoff_gate(root: Path, state: Mapping[str, Any], stage: str, result: Any,
 
 class Source(NamedTuple):
     """One value a consumer packet quotes (``handoff_sources``)."""
-    key: str                 # the CONSUMES key
+    key: str                 # the source kind, normally a CONSUMES key
     stage: str | None        # the producing stage; None for spec_diff (the script) and assumptions (every producer)
     action: str | None       # the producing result's action; None when nothing was recorded
     workitem: str | None     # the producing result's work item, or the consuming item for assumptions
     value: Any               # the value; None means not recorded (the renderer prints "not recorded by <stage>")
+    selection: str | None = None  # consumer stage for a projected field file
 
 
 # Stages whose packet quotes every open item, not only those naming it.
@@ -4014,6 +4020,37 @@ def step_scope(state: Mapping[str, Any], stage: str) -> StepScope | None:
     return StepScope(str(step.get("id")), tuple(wanted), frozenset(kept), str(plan_action))
 
 
+def _handoff_items(state: Mapping[str, Any], stage: str) -> tuple[list[str], str | None]:
+    items = [row["id"] for row in state.get("work_items") or ()
+             if isinstance(row, Mapping) and isinstance(row.get("id"), str)]
+    index = state.get("work_index")
+    item = (items[index] if stage in stage_spec.INNER and isinstance(index, int) and 0 <= index < len(items) else None)
+    return items, item
+
+
+def _concern_handoff_sources(state: Mapping[str, Any], stage: str) -> list[Source]:
+    """Project only the current plan's rows for work still in the queue."""
+    if stage not in concerns.HANDOFF_STAGES:
+        return []
+    action = planning_revision.current_actions(state).get((None, "plan"))
+    plan = (state.get("accepted") or {}).get(action) if action else None
+    rows = plan.get("concerns") if isinstance(plan, Mapping) else None
+    if not isinstance(rows, Mapping):
+        return []
+    items, item = _handoff_items(state, stage)
+    if stage in stage_spec.INNER:
+        items = [item] if item is not None else []
+    return [Source("concerns", "plan", action, item_id, selected, stage)
+            for item_id in items if (selected := concerns.handoff_rows(rows, item_id, stage))]
+
+
+def _concern_handoff_shown(source: Source) -> fields.Shown:
+    lines = ["- " + row["id"] + " (owner: " + row["owner_stage"] + "; anchor: " + row["anchor"] + "): "
+             + row["decision"] for row in source.value]
+    return fields.block(lines, len("\n".join(lines)), concerns.ROWS_PRINT, str(source.action),
+                        str(source.selection) + "-" + str(source.workitem) + "-concerns-handoff")
+
+
 def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[Source]:
     """The values ``stage``'s packet quotes, in ``CONSUMES`` order (contract section 4).
 
@@ -4025,6 +4062,7 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
     - assumptions: ``assumptions.open_items``: at step-plan the plan's rows naming the item; at carry-forward,
       product-acceptance and handoff every open row; at another stage the rows naming that stage as due stage.
     - spec_diff: ``knowledge_home.spec_diff`` (None without a run baseline or outside a checkout).
+    Applicable plan concerns follow the fixed CONSUMES fields when the stage owns them or acceptance needs them.
     At an inline implement step, follows, criteria and test_cases are cut to ``step_scope`` when it is not None.
     A key with nothing recorded is a Source whose value is None.  Reads state and files; spec_diff runs one git diff.
     An unknown stage raises ValueError.
@@ -4033,9 +4071,7 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
         raise ValueError("unknown stage for CONSUMES: " + repr(stage))
     current = planning_revision.current_actions(state)
     accepted = state.get("accepted") or {}
-    items = [row.get("id") for row in state.get("work_items") or () if isinstance(row, Mapping)]
-    index = state.get("work_index")
-    item = (items[index] if stage in stage_spec.INNER and isinstance(index, int) and 0 <= index < len(items) else None)
+    items, item = _handoff_items(state, stage)
     repo = Path(str(state["repo"]))
     scope = step_scope(state, stage)
     sources: list[Source] = []
@@ -4089,7 +4125,7 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
             action = current.get((None, producer))
             found = accepted.get(action) if action else None
             sources.append(Source(key, producer, action, None, found.get(key) if isinstance(found, Mapping) else None))
-    return sources
+    return sources + _concern_handoff_sources(state, stage)
 
 
 def _send_back_key(state: Mapping[str, Any], stage: str) -> Any:
@@ -6952,6 +6988,13 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any, listed: Col
         return [label + ":", *_not_covered_rows(value)]
     if source.key == "lessons":
         return [label + ":", *_quoted(knowledge.lessons_body(value, assumptions.open_items(state)))]
+    if source.key == "concerns":
+        if source.selection == "product-acceptance":
+            heading = "Plan security decisions for " + str(source.workitem) + " (current plan; owners retained):"
+        else:
+            heading = ("Applicable plan concerns for " + str(source.workitem) + " assigned to "
+                       + str(source.selection) + " (current plan):")
+        return [heading, *_concern_handoff_shown(source).lines]
     return [label + ":", *_quoted(json.dumps(value, ensure_ascii=False, sort_keys=True))]
 
 
@@ -6975,8 +7018,7 @@ def _not_covered_lines(root: Path, state: Mapping[str, Any], group: list[Any]) -
 
 
 def handoff_lines(root: Path, state: Mapping[str, Any], stage: str, listed: Collection[str] = ()) -> list[str]:
-    """What earlier stages handed this stage (``CONSUMES``), by value and uncut, but for a new living file's diff, which is
-    a pointer (``_spec_diff_lines``).
+    """What earlier stages handed this stage, by value, with pointers for overflowing concern rows and new file diffs.
 
     ``listed`` names the living files whose contents the packet lists before this block (``reads_lines``).
     """
@@ -7932,6 +7974,8 @@ def _reviewed_input_lines(root: Path, state: Mapping[str, Any], stage: str, work
     keys = [key for key in CONSUMES.get(stage, ()) if key != "criteria"]
     if keys:
         lines.append("- Hand-offs, quoted there by value: " + ", ".join(keys) + ".")
+    if _concern_handoff_sources(state, stage):
+        lines.append("- The reviewed packet also carries the applicable plan concern decisions.")
     if "criteria" in CONSUMES.get(stage, ()):
         for source in handoff_sources(root, state, stage):
             if source.key == "criteria":

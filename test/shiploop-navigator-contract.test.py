@@ -1759,6 +1759,8 @@ class NavigatorContractTests(unittest.TestCase):
     def test_outer_add_work_adds_corrective_work_without_rewinding_completed_work(self) -> None:
         state = self._to_outer(self.state())
         self.assertEqual(state["completed_work_items"], ["W1"])
+        plan = next(row["action"] for row in state["history"] if row["stage"] == "plan")
+        state["accepted"][plan]["concerns"] = inner_fixture.no_concerns_map(("W1",))
         for completed_outer_stage in ("system-test-author", "system-test"):
             self.assertEqual(navigator.current_stage(state), completed_outer_stage)
             state = self._produce(state, completed_outer_stage)
@@ -1781,6 +1783,11 @@ class NavigatorContractTests(unittest.TestCase):
         self.assertEqual(navigator.current_stage(revised), "step-plan")
         self.assertNotEqual(navigator.current_stage(revised), stage)
         packet = navigator.render(None, self.repo.parent / "add-work-progress", revised)
+        self.assertNotIn("W2", revised["accepted"][plan]["concerns"])
+        navigator._check_submitted_concerns(revised, "step-plan", {"outcome": "done", "summary": "Plan late work.",
+                                                                   "steps": [{"id": "S1", "task": "Correct it"}]})
+        self.assertNotIn("Concerns the plan decided for W2", packet)
+        self.assertIn("security row says no or is absent", packet)
         # The packet no longer restates the Progress snapshot (2026-10-11 dedupe); the projection and the report
         # (report.html keeps the snapshot) carry these lines.
         self.assertNotIn("Progress snapshot", packet)
@@ -5022,13 +5029,17 @@ class ConcernMapTests(unittest.TestCase):
         # The packet prints the plan's applicable rows, and the template names the concerns to map.
         packet = navigator.render(None, Path("/simulation-only/run"), state)
         self.assertIn("- accessibility: named cell buttons (R-1; owner step-plan)", packet)
+        self.assertEqual(packet.count("Concerns the plan decided for W1"), 1)
         self.assertIn('{"id":"ui","steps":["S1"]}', packet.replace(" ", ""))
 
     def test_an_item_the_plan_gave_no_concerns_maps_none(self):
         state = self.state_at_step_plan({"W1": self.rows()})
         navigator._check_submitted_concerns(state, "step-plan", {"outcome": "done", "summary": "s",
                                                                  "steps": [{"id": "S1", "task": "t"}]})
-        self.assertNotIn("Concerns the plan decided", navigator.render(None, Path("/simulation-only/run"), state))
+        packet = navigator.render(None, Path("/simulation-only/run"), state)
+        self.assertNotIn("Concerns the plan decided", packet)
+        self.assertIn("Reassess security at changed boundaries", packet)
+        self.assertIn("security row says no or is absent", packet)
 
 
 class PlatformTestingGuideTests(unittest.TestCase):

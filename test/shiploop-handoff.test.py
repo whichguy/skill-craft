@@ -3272,5 +3272,103 @@ class RequestIndexTests(unittest.TestCase):
             self.assertNotIn(self.request.POINTER, later_packet)                         # intake only
 
 
+class ConcernHandoffTests(RepoCase):
+    @staticmethod
+    def concern(ident: str, owner: str, decision: str) -> dict:
+        return {"id": ident, "applies": "yes", "decision": decision, "anchor": "R-7", "owner_stage": owner}
+
+    def lines(self, state: dict, stage: str) -> str:
+        return "\n".join(navigator.handoff_lines(self.root, state, stage))
+
+    def test_each_owner_gets_only_its_decisions_and_inner_owners_get_only_the_current_item(self) -> None:
+        owned = (("test", "security", "Check the reader's access"),
+                 ("document", "api", "Describe the new export contract"),
+                 ("system-test-author", "messaging", "Observe queue delivery"),
+                 ("release-plan", "state", "Check the release migration"),
+                 ("operations", "config", "Verify the running settings"))
+        plan = {"W1": [self.concern(ident, stage, decision) for stage, ident, decision in owned],
+                "W2": [self.concern("api", "test", "Check the second item only"),
+                       self.concern("ui", "document", "Document the second item only")]}
+        plan["W1"].append(self.concern("ui", "step-plan", "Map the labels to a step"))
+        results = [row("plan-1", "plan", None, {"concerns": plan})]
+        for stage, ident, decision in owned:
+            with self.subTest(stage=stage):
+                state = item_state(self.repo, "W1", results, stage)
+                packet = self.lines(state, stage)
+                self.assertIn(f"Applicable plan concerns for W1 assigned to {stage}", packet)
+                self.assertIn(f"- {ident} (owner: {stage}; anchor: R-7): {decision}", packet)
+                for other in [*(d for s, _, d in owned if s != stage), "second item only", "Map the labels"]:
+                    self.assertNotIn(other, packet)
+                if stage in ("test", "document"):
+                    second = self.lines(item_state(self.repo, "W2", results, stage), stage)
+                    self.assertIn(f"Applicable plan concerns for W2 assigned to {stage}", second)
+                    self.assertIn("second item only", second)
+                    self.assertNotIn(decision, second)
+        for stage in ("step-plan", "test-spec", "system-test", "release"):
+            self.assertNotIn("Applicable plan concerns", self.lines(state, stage))
+
+    def test_only_current_plan_and_queue_supply_rows_including_after_add_work(self) -> None:
+        old = {"W1": [self.concern("security", "system-test-author", "superseded access decision")]}
+        current = {"W1": [self.concern("security", "system-test-author", "current access decision")],
+                   "W2": [{"id": "security", "applies": "no", "reason": "old inapplicability reasoning"}],
+                   "W3": [self.concern("security", "system-test-author", "decision for removed item")]}
+        results = [row("plan-0", "plan", None, {"concerns": old}),
+                   row("plan-1", "plan", None, {"concerns": current}),
+                   row("add", "product-acceptance", None, {"work_items": [{"id": "W4", "title": "Late work"}]},
+                       outcome="add-work")]
+        state = item_state(self.repo, "W1", results, "system-test-author")
+        state["work_items"].append({"id": "W4", "title": "Late work"})
+        packet = self.lines(state, "system-test-author")
+        self.assertIn("current access decision", packet)
+        for omitted in ("superseded", "old inapplicability", "decision for removed", "plan concerns for W2",
+                        "plan concerns for W4"):
+            self.assertNotIn(omitted, packet)
+
+        state["history"].append({"action": "reconcile", "stage": "spec", "workitem": None, "outcome": "reconcile"})
+        state["accepted"]["reconcile"] = {"outcome": "reconcile", "reconciliation_target": "spec"}
+        self.assertNotIn("Applicable plan concerns", self.lines(state, "system-test-author"))
+
+    def test_emitted_owner_and_acceptance_packets_keep_distinct_complete_spills(self) -> None:
+        security = "Keep private exports scoped to their owners. " + "Security detail. " * 90
+        diagnostics = "Observe export diagnostics. " + "Diagnostic detail. " * 90
+        plan = inner.no_concerns_map(("W1", "W2"))
+        for item, rows in {
+            "W1": [self.concern("security", "system-test-author", security.strip()),
+                   self.concern("observability", "system-test-author", diagnostics.strip())],
+            "W2": [self.concern("security", "release-plan", "Verify release access before promotion")],
+        }.items():
+            replacements = {row["id"]: row for row in rows}
+            plan[item] = [replacements.get(row["id"], row) for row in plan[item]]
+        found = {}
+        for key, state in plans.full_walk(plans.CASE, "inline", str(self.repo), self.root):
+            stage = plans.stage_of(key)
+            if stage not in ("system-test-author", "product-acceptance"):
+                continue
+            action = next(entry["action"] for entry in state["history"] if entry["stage"] == "plan")
+            state["accepted"][action]["concerns"] = plan
+            stdout = io.StringIO()
+            with contextlib.redirect_stdout(stdout):
+                packet = navigator.emit(None, self.root, state)
+            pointer = f"fields/{action}-{stage}-W1-concerns-handoff.md"
+            self.assertIn("RUN/" + pointer, packet)
+            self.assertIn("RUN/" + pointer, stdout.getvalue())
+            self.assertIn("- security (owner: system-test-author; anchor: R-7): ", packet)
+            spill = self.root / pointer
+            content = spill.read_text(encoding="utf-8")
+            self.assertIn(security.strip(), content)
+            found[stage] = spill, content
+            if stage == "product-acceptance":
+                self.assertIn("Plan security decisions for W1 (current plan; owners retained):", packet)
+                self.assertIn("- security (owner: release-plan; anchor: R-7): Verify release access", packet)
+                self.assertNotIn("assigned to product-acceptance", packet)
+                self.assertNotIn("Observe export diagnostics", packet + content)
+                break
+            self.assertIn(diagnostics.strip(), content)
+        self.assertEqual(set(found), {"system-test-author", "product-acceptance"})
+        self.assertNotEqual(found["system-test-author"][0], found["product-acceptance"][0])
+        for spill, content in found.values():
+            self.assertEqual(spill.read_text(encoding="utf-8"), content)
+
+
 if __name__ == "__main__":
     unittest.main()

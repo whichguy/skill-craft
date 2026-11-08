@@ -2,6 +2,16 @@
 
 Written by scripts/release.py.
 
+## 2026-11-08
+
+### skill-craft 2.35.2
+
+- Skills: shiploop 1.33.2
+
+### shiploop 1.33.2
+
+- Pass current plan concerns to the stages that own them and show security decisions at acceptance with their original owners. Recheck changed security boundaries, including later-added work without plan rows, using the existing checks and open items.
+
 ## 2026-11-07
 
 ### skill-craft 2.35.1

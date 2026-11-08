@@ -1342,8 +1342,10 @@ Change no product file in this stage.
    paths skips the test stage; a diff touching no code or test path skips document. A new check script is a durable
    artifact: list it here with its consumer, or keep it in RUN/scratch.
 8. **`follows`**: each R-<n> and AD-<n> followed; each must exist in KNOWLEDGE/spec.md or KNOWLEDGE/architecture.md.
-9. **Concerns and plan record.** Map each concern the plan gave this item to the steps that deliver it. Record in
-   the item's `context` or the summary (each step's task and criteria stay its only directive),
+9. **Concerns and plan record.** Map each concern the plan gave this item to the steps that deliver it.
+   Reassess security at changed boundaries from the current item, even if the plan's security row says no or is absent.
+   Put relevant protections and observable checks in the criteria; list checks due later as open items in the summary.
+   Record in the item's `context` or the summary (each step's task and criteria stay its only directive),
    for the topics this item touches only:
    - outcome and invariants kept; target files and interfaces, matched to the house style (House-style guidance);
    - each step's failure cases and the diagnostics and errors it must produce;
@@ -1459,8 +1461,9 @@ preparatory commit); a mismatch there is a send-back.
    never the code's behaviour. Reuse existing harness, helpers and fixtures first (Reusable test facilities). Build a
    missing facility within this item and validate it before the tests that use it; record it in
    KNOWLEDGE/environment.md ## Harnesses and suites (locator, interface, readiness, owner, revalidation condition).
-   Write no case due at a later stage. Decide where each new test belongs: a new suite (a recorded command must run
-   it), the minimum suite (it runs at every step) or the full suites (they run at the last step); the summary says
+   Use the plan concerns assigned to test that apply to this step. Write no case due at a later stage.
+   Decide where each new test belongs: a new suite (a recorded command must run it), the minimum suite
+   (it runs at every step) or the full suites (they run at the last step); the summary says
    which. Test the new code in detail: unit and mock tests first, then any MCP server or skill this host offers
    where it observes more. Use each skill this packet lists for the stage.
 2. **Test decisions.** Reopen the item's test decision and KNOWLEDGE/environment.md's harness and suite decisions. Record a
@@ -1497,7 +1500,7 @@ preparatory commit); a mismatch there is a send-back.
 """,
     "document": """\
 1. **List** the changed public behaviours from the changed paths below, the step plan, the implement results and the
-   item's diff.
+   item's diff. Use the plan concerns assigned to document that apply to this step.
 2. **Observe and write.** Run each changed behaviour, then update the README, API, user, operator, error and design
    docs from what you observe: visible errors, how to turn on diagnostics, known limits and caveats. Link to the
    authoritative home rather than copying a contract (Documentation guidance). Document nothing you did not observe
@@ -1594,15 +1597,17 @@ preparatory commit); a mismatch there is a send-back.
     "system-test-author": """\
 1. Gather: the test strategy (KNOWLEDGE/environment.md ## Harnesses and suites, KNOWLEDGE/architecture.md ## Real-boundary
    checks, the test-strategy result), every item's test cases (the `test_cases` hand-off), and the open items quoted
-   below (the system-test obligations). The records in force are the ones listed under "Results this stage builds
-   on" (each completed item's step-plan, test-spec and test result and its candidate run); infer no whole-product
+   below (the system-test obligations), and the plan concerns assigned here. The records in force are the ones listed
+   under "Results this stage builds on" (each completed item's step-plan, test-spec and test result and its candidate
+   run); infer no whole-product
    coverage from the last transition or item. The current OUTER plans are the latest done records after the most
    recent accepted add-work; pending and blocked results are not plan authority. `evidence_refs`: the action,
    result and test-note locators used.
 2. Choose cases: each due-later case from item 1 becomes a system case here or an open item with its due stage
    (item 7). Add cases for the real integration, consumer, runtime, security, accessibility, migration,
-   compatibility and operational boundaries that apply; reconcile suite membership and prerequisites first. N/A only
-   with the reason; missing access is not N/A.
+   compatibility and operational boundaries that apply; reconcile suite membership and prerequisites first.
+   Reassess changed security boundaries in the integrated candidate, including later-added work, even if the plan's
+   security row says no or is absent. N/A only with the reason; missing access is not N/A.
 3. Write the catalog in `summary`, one row per case in the System-test catalog guidance shape (case ID, phase,
    requirement, expected outcome, environment and target, prerequisites, executable reference, owner). A post-release
    case is owned by release-verify and never waived.
@@ -1682,9 +1687,11 @@ preparatory commit); a mismatch there is a send-back.
 2. Assess the product against the original outcome, not only the spec: acceptance lines, cross-cutting
    requirements, consumer impact (Consumer delivery guidance), test evidence, known limits. Reconcile new and
    preserved behaviour against the prior baseline and incoming spec (Current-system baseline guide, Behavior
-   traceability guidance) and check durable knowledge for gaps. A recovered description or planned check alone does
-   not establish acceptance: an outcome whose only evidence is inspection or a deferred assumption is not accepted;
-   report add-work for an executable lower-layer check, or blocked naming the missing observation.
+   traceability guidance) and check durable knowledge for gaps. Reassess changed security boundaries, including
+   later-added work, even if the plan's security row says no or is absent. Reconcile quoted security decisions with
+   the candidate's due evidence; keep checks due later with their owners. A recovered description or planned check
+   alone does not establish acceptance: an outcome whose only evidence is inspection or a deferred assumption is
+   not accepted; report add-work for an executable lower-layer check, or blocked naming the missing observation.
 3. Give every request outcome one end state in `summary`: observed by an executed check; observed another way (the
    first method could not, the new check ran and passed); or unachievable here or not yet due, listed in
    `unverified` while the run continues. Try another way to observe it before listing. Each `unverified` entry:
@@ -1718,7 +1725,7 @@ preparatory commit); a mismatch there is a send-back.
    tests and facilities (Reusable test facilities); add checks only for changed boundaries or coverage gaps, and
    record each new facility's locator, interface, readiness or gap, owner and revalidation condition. An unmet
    earlier deployment or test prerequisite: report add-work with corrective work and evidence (ShipLoop reruns the
-   outer stages).
+   outer stages). Use the plan concerns assigned to release-plan when revalidating the target and its checks.
 2. Write the release steps in `summary`: target and candidate identity, permission, prerequisites, user impact,
    monitoring, stop conditions. Keep the standing procedure any release repeats (steps, commands, rollback; no candidate
    identity, commit IDs or dates) in KNOWLEDGE/environment.md (item 8), in the release section the file already has,
@@ -1849,7 +1856,7 @@ preparatory commit); a mismatch there is a send-back.
 """,
     "operations": """\
 1. Reopen the observability coverage in KNOWLEDGE/environment.md and KNOWLEDGE/architecture.md; cite the sections used in
-   `evidence_refs`.
+   `evidence_refs`. Use the plan concerns assigned to operations when checking the running system.
 2. Check each against the running system and record in `summary`: monitoring, alerting, log and diagnostic access,
    recovery ownership (who restores and how; the rollback works), support documentation, cleanup, revalidation needs
    (Deployment and handoff guidance). A plan or configuration file is not evidence the service is observed and
