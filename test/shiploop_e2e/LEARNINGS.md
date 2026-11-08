@@ -8245,3 +8245,64 @@ Raw evidence: `/Users/dadleet/Documents/Codex/experiments/shiploop-ui-prompt-202
 `verification-listener-identity-01/` (failed/incomplete first check) and `verification-listener-identity-02/`.
 The public local gallery excludes private runner homes and logs. The [copyable recipe](../../docs/experiments/ui-default-20261105/PROMPT-RECIPE.md)
 is a distilled explanation, not a verbatim runtime packet.
+
+
+## 2026-11-08 — Roundtable conversation: original light chat delivery, exploratory
+
+The first rung of the opt-in local chat ladder completed on frozen harness commit
+`5798e7e12363ee55fe8f7abe8eea25e63e4b2bac` with plugin digest `08c0c1e34a47`.
+The actual Codex launch and its two recorded turn contexts use `gpt-6.1-sol` / `high`;
+provider-served identity is not attested. A fresh Sol/high discovery review and fresh
+Astra/high discovery and visual judgments followed. Astra is this campaign's explicit
+override, not a new global judge default.
+
+- **Observed:** one subject session, no resume, exit 0 and functional outcome PASS.
+  The original delivery is clean at `2b1483c1e6567e6cd64e4a8bc146800ef3a3a449`, tree
+  `c85a96d19e20d5ecc4df37f4ae820615a9fa3ed0`. Both request checks passed. The held-out
+  Chromium observer completed 61 assertions with 12 captures and identical product
+  source before/after. Fresh reviews did not change the original.
+- **Visual/decision continuity premise:** Astra found no material visual blocker in the
+  pale canvas/rail, white conversation/composer, indigo accents and coherent dark view.
+  Small mobile metadata and a tall header are lesser refinements. The product's AD-2
+  records concrete tokens, spacing, type, composition and responsive choices; the UI
+  step C6 names AD-2 and its section. These are observed references and conformance,
+  not proof that the decision file caused the result. The untouched original was
+  accepted as the predecessor for the rooms experiment, whose prompt adds no style hint.
+- **Expected/observed mismatch:** generic calibration filenames `server.cjs` and
+  `reference.html` become substring exposure markers. The result records 197 matching
+  event lines: 164 contain `server`, 92 contain `reference`, with overlap; distinctive
+  module/catalog/check markers occur on zero lines. Ordinary `server.js`, `reference`
+  and even `observer` suffice. This is not evidence of 197 private test reads, and zero
+  distinctive hits is not proof of universal isolation. Keep the historical result.
+- **Triage/decision:** the added fixture names are an apparatus defect. A non-mutating
+  replay using distinctive prospective fixture names rejects all three ordinary-language
+  controls and retains seven explicit private-file/module controls. An external regression
+  test fails all three current cases on the public-text control while its private controls
+  pass. Apply and calibrate the narrow naming repair after this frozen chain; do not
+  rewrite the detector's generic semantics or retrospectively regrade this run.
+- **Other discovery dispositions:** the reviewer and Astra support investigating shared
+  test-ID command availability and exact browser-route continuity; neither is admitted
+  as a production change. The successful data-page probe did not establish the later
+  HTTP route. A later CDP timeout was followed by autonomous helper/test/browser repairs;
+  HOME, executable, flags and renderer initialization are alternatives, not an established
+  single cause. Existing frozen S-7 print-size and S-10 child-contract discrepancies retain
+  their owner-review route; this pilot is not a claim of full clause conformance.
+- **Limits:** one exploratory sample, no comparative prompt/model gain, no physical
+  phone/keyboard/Safari acceptance. A supported per-invocation runs root scoped stale-run
+  discovery to this campaign while retaining shared leases, disk checks and current-user
+  listener checks. Other model load was not controlled; draw no timing/throughput claim.
+  The first broad-root attempt refused before a subject launched and remains separate.
+
+Evidence root (raw files remain outside the reusable skill/repository):
+`/Users/dadleet/Documents/Codex/experiments/shiploop-ui-ladder-20261108T042546Z-mttb8jhg`.
+See `live-manifest-02.json`, `live-roundtable-02/{result.json,review-campaign.json}`,
+`live-roundtable-02/review-judge-campaign/verdict.json`,
+`live-roundtable-02-{delivery-audit,disposition,reviews-exit}.json`,
+`astra-visual-roundtable-02/answer.md`, `heldout-marker-audit-01.json`,
+`heldout-marker-counterexample-01.json`, `marker-regression-01-red.json`, and
+`run-scope-decision-01.md`. Calibration and rendered observations qualify the apparatus
+and this original product only; no new ShipLoop production prompt is accepted here.
+
+Post-pilot apparatus follow-up: `177c063b47746a1eae825ba5e81daf3663708731` implements
+the calibrated fixture-name and capture repairs separately from this frozen result.
+The original baseline row and raw files are unchanged. Judged discovery record IDs: `LR-20261101-e982b8`, `LR-20261105-0542a3`, `LR-20261031-b5d300`, `LR-20261031-382fba`.
