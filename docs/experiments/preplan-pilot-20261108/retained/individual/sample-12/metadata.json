@@ -1,0 +1,50 @@
+{
+  "case": "atomic",
+  "model": "gpt-6.1-sol",
+  "effort": "high",
+  "plan_count": 1,
+  "completion": true,
+  "receipt_checks": [
+    {
+      "action": "nav-48c3222db8a04f4298ddb88d6a55f025",
+      "runtime_phase": "complete",
+      "archived_terminal_exists": true,
+      "terminal_hash_matches": true
+    }
+  ],
+  "runtime_executed": true,
+  "slice_pass": true,
+  "improve_keys": [
+    [
+      "action_id",
+      "binding_id",
+      "evidence",
+      "identities",
+      "improve_action",
+      "receipt",
+      "runtime_phase",
+      "seed_result",
+      "skill",
+      "stage",
+      "stale_check_note",
+      "submission",
+      "version",
+      "workspace"
+    ]
+  ],
+  "plugin_build": {
+    "files": 395,
+    "sha256": "097202f99affa6428592beb3384f5674f7f00bb774a2a911475862309dddb7ff"
+  },
+  "plugin_installed": {
+    "files": 395,
+    "sha256": "097202f99affa6428592beb3384f5674f7f00bb774a2a911475862309dddb7ff"
+  },
+  "usage": [],
+  "host_commands": [
+    "codex exec --json -m gpt-6.1-sol --skip-git-repo-check -s danger-full-access -c approval_policy=\"never\" --dangerously-bypass-hook-trust -C /Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/runs/sample-12/work -c model_reasoning_effort=high $skill-craft:shiploop A ShipLoop run for the request below is already active, with inline delegation. The test harness recorded its stages before test-strategy without doing them, so the request itself is the specification. Continue the run now: run `python3 \"/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/runs/sample-12/home/.codex/plugins/cache/whichguy/skill-craft/2.35.1/skills/shiploop/scripts/shiploop\" next --run-dir \"/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/runs/sample-12/.shiploop-runs/seed/run\"` and follow the packet it prints, to the end of the run. Never end the turn while a ShipLoop command is still running.\\012\\012The request: Extend this local Python inventory tool with a JSON batch-import command. Import must be all-or-nothing: any invalid record, adapter error or interrupted import leaves the previously visible inventory unchanged; successful publication exposes the complete new batch and preserves unrelated existing SKUs. Repeating a successful import is idempotent. Keep the installed adapter for applying rows unless evidence shows an alternative is needed. The adapter's batch behavior has not been characterized. No concurrent writers are in scope; readers can reopen the database between commands. Use only Python's standard library. Temporary local experiments on disposable databases are authorized. Do not mutate the retained seed inventory. Add automated CLI, invalid-middle-record, interrupted-publication and recovery checks as implementation work. Existing tests must remain passing.\\012\\012This registered trial covers planning only. Follow the installed ShipLoop packets through test-strategy and plan, including their actual Improve callbacks. Stop once the plan's Improve has completed and the navigator advances to prepare; do not perform prepare or implementation. The independent harness also observes that stop. Do not stop before a required Improve callback completes.\\012\\012Use the selected inline delegation in this session and the run's installed skills. Do not launch another model, consult another advisor or spawn an agent. The subject launch already requests Sol 6.1/high. Keep all product work and probes within this run's owned worktree or scratch, and read only its supplied evidence, installed skills, system runtime and required runtime state. Do not inspect sibling trials, experiment catalogs, scoring code, operator files or other repositories. There is no authorized external endpoint or credential for the requested product. Report unavailable boundaries honestly. Retain the exact commands and observed outputs behind evidence references; proposed acceptance tests remain due after implementation."
+  ],
+  "bundle_characters": 762440,
+  "application_tools": 39,
+  "framework_tools": 29
+}

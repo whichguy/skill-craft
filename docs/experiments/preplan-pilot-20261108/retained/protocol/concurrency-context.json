@@ -1,0 +1,7 @@
+{
+  "recorded": 1794120712.593544,
+  "own_subjects": 4,
+  "own_judges_max": 2,
+  "peer_notice": "The independent reference-system spec-discovery chat announced a separate Sol/high pilot and requested concurrency coordination. No peer start time or actual overlap has been verified.",
+  "implication": "Report paired wall times as descriptive in a shared-service environment; do not infer intrinsic model speed or a generalized cost gain."
+}

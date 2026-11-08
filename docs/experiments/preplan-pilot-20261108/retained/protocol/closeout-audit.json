@@ -1,0 +1,540 @@
+{
+  "scope": "Mechanical evidence validity, separate from outcome judgment",
+  "frozen_suite_unchanged": {
+    "README.md": true,
+    "candidate-overlay.json": true,
+    "cases.json": true,
+    "fixture-calibration.json": true,
+    "fixtures/atomic/README.md": true,
+    "fixtures/atomic/data/seed.json": true,
+    "fixtures/atomic/docs/discovery.md": true,
+    "fixtures/atomic/docs/shiploop/architecture.md": true,
+    "fixtures/atomic/docs/shiploop/environment.md": true,
+    "fixtures/atomic/docs/shiploop/spec.md": true,
+    "fixtures/atomic/src/__init__.py": true,
+    "fixtures/atomic/src/adapter.py": true,
+    "fixtures/atomic/tests/__init__.py": true,
+    "fixtures/atomic/tests/test_baseline.py": true,
+    "fixtures/evidence/README.md": true,
+    "fixtures/evidence/data/seed.json": true,
+    "fixtures/evidence/docs/discovery.md": true,
+    "fixtures/evidence/docs/evidence/adapter.json": true,
+    "fixtures/evidence/docs/shiploop/architecture.md": true,
+    "fixtures/evidence/docs/shiploop/environment.md": true,
+    "fixtures/evidence/docs/shiploop/spec.md": true,
+    "fixtures/evidence/src/__init__.py": true,
+    "fixtures/evidence/src/adapter.py": true,
+    "fixtures/evidence/tests/__init__.py": true,
+    "fixtures/evidence/tests/test_baseline.py": true,
+    "fixtures/unavailable/README.md": true,
+    "fixtures/unavailable/docs/discovery.md": true,
+    "fixtures/unavailable/docs/shiploop/architecture.md": true,
+    "fixtures/unavailable/docs/shiploop/environment.md": true,
+    "fixtures/unavailable/docs/shiploop/spec.md": true,
+    "fixtures/unavailable/src/__init__.py": true,
+    "fixtures/unavailable/src/client.py": true,
+    "fixtures/unavailable/tests/__init__.py": true,
+    "fixtures/unavailable/tests/test_baseline.py": true,
+    "fixtures/unicode/README.md": true,
+    "fixtures/unicode/data/catalog.json": true,
+    "fixtures/unicode/docs/discovery.md": true,
+    "fixtures/unicode/docs/shiploop/architecture.md": true,
+    "fixtures/unicode/docs/shiploop/environment.md": true,
+    "fixtures/unicode/docs/shiploop/spec.md": true,
+    "fixtures/unicode/src/__init__.py": true,
+    "fixtures/unicode/src/database.py": true,
+    "fixtures/unicode/tests/__init__.py": true,
+    "fixtures/unicode/tests/test_baseline.py": true,
+    "obligations.json": true,
+    "opening.txt": true,
+    "preflight.py": true,
+    "registration.json": true,
+    "run_slice.py": true,
+    "setup.py": true
+  },
+  "cells": [
+    {
+      "id": "sample-01",
+      "checks": {
+        "runner_success": true,
+        "real_plan_improve_completion": true,
+        "stop_boundary": true,
+        "plugin_identity": true,
+        "sol_high": true,
+        "source_freeze": true,
+        "initial_fixture_identity": true,
+        "individual_criterion_set": true,
+        "individual_criterion_quotes": true,
+        "no_heuristic_access_findings": true,
+        "judge_success": true,
+        "judge_astra_xhigh": true,
+        "judge_no_tools_or_outside_access": true,
+        "judge_prompt_hash_matches": true,
+        "judge_stdin_transport": true
+      },
+      "fixture_mismatches": []
+    },
+    {
+      "id": "sample-02",
+      "checks": {
+        "runner_success": true,
+        "real_plan_improve_completion": true,
+        "stop_boundary": true,
+        "plugin_identity": true,
+        "sol_high": true,
+        "source_freeze": true,
+        "initial_fixture_identity": true,
+        "individual_criterion_set": true,
+        "individual_criterion_quotes": true,
+        "no_heuristic_access_findings": true,
+        "judge_success": true,
+        "judge_astra_xhigh": true,
+        "judge_no_tools_or_outside_access": true,
+        "judge_prompt_hash_matches": true,
+        "judge_stdin_transport": true
+      },
+      "fixture_mismatches": []
+    },
+    {
+      "id": "sample-03",
+      "checks": {
+        "runner_success": true,
+        "real_plan_improve_completion": true,
+        "stop_boundary": true,
+        "plugin_identity": true,
+        "sol_high": true,
+        "source_freeze": true,
+        "initial_fixture_identity": true,
+        "individual_criterion_set": true,
+        "individual_criterion_quotes": true,
+        "no_heuristic_access_findings": true,
+        "judge_success": true,
+        "judge_astra_xhigh": true,
+        "judge_no_tools_or_outside_access": true,
+        "judge_prompt_hash_matches": true,
+        "judge_stdin_transport": true
+      },
+      "fixture_mismatches": []
+    },
+    {
+      "id": "sample-04",
+      "checks": {
+        "runner_success": true,
+        "real_plan_improve_completion": true,
+        "stop_boundary": true,
+        "plugin_identity": true,
+        "sol_high": true,
+        "source_freeze": true,
+        "initial_fixture_identity": true,
+        "individual_criterion_set": true,
+        "individual_criterion_quotes": true,
+        "no_heuristic_access_findings": true,
+        "judge_success": true,
+        "judge_astra_xhigh": true,
+        "judge_no_tools_or_outside_access": true,
+        "judge_prompt_hash_matches": true,
+        "judge_stdin_transport": true
+      },
+      "fixture_mismatches": []
+    },
+    {
+      "id": "sample-05",
+      "checks": {
+        "runner_success": true,
+        "real_plan_improve_completion": true,
+        "stop_boundary": true,
+        "plugin_identity": true,
+        "sol_high": true,
+        "source_freeze": true,
+        "initial_fixture_identity": true,
+        "individual_criterion_set": true,
+        "individual_criterion_quotes": true,
+        "no_heuristic_access_findings": true,
+        "judge_success": true,
+        "judge_astra_xhigh": true,
+        "judge_no_tools_or_outside_access": true,
+        "judge_prompt_hash_matches": true,
+        "judge_stdin_transport": true
+      },
+      "fixture_mismatches": []
+    },
+    {
+      "id": "sample-06",
+      "checks": {
+        "runner_success": true,
+        "real_plan_improve_completion": true,
+        "stop_boundary": true,
+        "plugin_identity": true,
+        "sol_high": true,
+        "source_freeze": true,
+        "initial_fixture_identity": true,
+        "individual_criterion_set": true,
+        "individual_criterion_quotes": true,
+        "no_heuristic_access_findings": true,
+        "judge_success": true,
+        "judge_astra_xhigh": true,
+        "judge_no_tools_or_outside_access": true,
+        "judge_prompt_hash_matches": true,
+        "judge_stdin_transport": true
+      },
+      "fixture_mismatches": []
+    },
+    {
+      "id": "sample-07",
+      "checks": {
+        "runner_success": true,
+        "real_plan_improve_completion": true,
+        "stop_boundary": true,
+        "plugin_identity": true,
+        "sol_high": true,
+        "source_freeze": true,
+        "initial_fixture_identity": true,
+        "individual_criterion_set": true,
+        "individual_criterion_quotes": true,
+        "no_heuristic_access_findings": true,
+        "judge_success": true,
+        "judge_astra_xhigh": true,
+        "judge_no_tools_or_outside_access": true,
+        "judge_prompt_hash_matches": true,
+        "judge_stdin_transport": true
+      },
+      "fixture_mismatches": []
+    },
+    {
+      "id": "sample-08",
+      "checks": {
+        "runner_success": true,
+        "real_plan_improve_completion": true,
+        "stop_boundary": true,
+        "plugin_identity": true,
+        "sol_high": true,
+        "source_freeze": true,
+        "initial_fixture_identity": true,
+        "individual_criterion_set": true,
+        "individual_criterion_quotes": true,
+        "no_heuristic_access_findings": true,
+        "judge_success": true,
+        "judge_astra_xhigh": true,
+        "judge_no_tools_or_outside_access": true,
+        "judge_prompt_hash_matches": true,
+        "judge_stdin_transport": true
+      },
+      "fixture_mismatches": []
+    },
+    {
+      "id": "sample-09",
+      "checks": {
+        "runner_success": true,
+        "real_plan_improve_completion": true,
+        "stop_boundary": true,
+        "plugin_identity": true,
+        "sol_high": true,
+        "source_freeze": true,
+        "initial_fixture_identity": true,
+        "individual_criterion_set": true,
+        "individual_criterion_quotes": true,
+        "no_heuristic_access_findings": true,
+        "judge_success": true,
+        "judge_astra_xhigh": true,
+        "judge_no_tools_or_outside_access": true,
+        "judge_prompt_hash_matches": true,
+        "judge_stdin_transport": true
+      },
+      "fixture_mismatches": []
+    },
+    {
+      "id": "sample-10",
+      "checks": {
+        "runner_success": true,
+        "real_plan_improve_completion": true,
+        "stop_boundary": true,
+        "plugin_identity": true,
+        "sol_high": true,
+        "source_freeze": true,
+        "initial_fixture_identity": true,
+        "individual_criterion_set": true,
+        "individual_criterion_quotes": true,
+        "no_heuristic_access_findings": true,
+        "judge_success": true,
+        "judge_astra_xhigh": true,
+        "judge_no_tools_or_outside_access": true,
+        "judge_prompt_hash_matches": true,
+        "judge_stdin_transport": true
+      },
+      "fixture_mismatches": []
+    },
+    {
+      "id": "sample-11",
+      "checks": {
+        "runner_success": true,
+        "real_plan_improve_completion": true,
+        "stop_boundary": true,
+        "plugin_identity": true,
+        "sol_high": true,
+        "source_freeze": true,
+        "initial_fixture_identity": true,
+        "individual_criterion_set": true,
+        "individual_criterion_quotes": true,
+        "no_heuristic_access_findings": true,
+        "judge_success": true,
+        "judge_astra_xhigh": true,
+        "judge_no_tools_or_outside_access": true,
+        "judge_prompt_hash_matches": true,
+        "judge_stdin_transport": true
+      },
+      "fixture_mismatches": []
+    },
+    {
+      "id": "sample-12",
+      "checks": {
+        "runner_success": true,
+        "real_plan_improve_completion": true,
+        "stop_boundary": true,
+        "plugin_identity": true,
+        "sol_high": true,
+        "source_freeze": true,
+        "initial_fixture_identity": true,
+        "individual_criterion_set": true,
+        "individual_criterion_quotes": true,
+        "no_heuristic_access_findings": true,
+        "judge_success": true,
+        "judge_astra_xhigh": true,
+        "judge_no_tools_or_outside_access": true,
+        "judge_prompt_hash_matches": true,
+        "judge_stdin_transport": true
+      },
+      "fixture_mismatches": []
+    },
+    {
+      "id": "sample-13",
+      "checks": {
+        "runner_success": true,
+        "real_plan_improve_completion": true,
+        "stop_boundary": true,
+        "plugin_identity": true,
+        "sol_high": true,
+        "source_freeze": true,
+        "initial_fixture_identity": true,
+        "individual_criterion_set": true,
+        "individual_criterion_quotes": true,
+        "no_heuristic_access_findings": true,
+        "judge_success": true,
+        "judge_astra_xhigh": true,
+        "judge_no_tools_or_outside_access": true,
+        "judge_prompt_hash_matches": true,
+        "judge_stdin_transport": true
+      },
+      "fixture_mismatches": []
+    },
+    {
+      "id": "sample-14",
+      "checks": {
+        "runner_success": true,
+        "real_plan_improve_completion": true,
+        "stop_boundary": true,
+        "plugin_identity": true,
+        "sol_high": true,
+        "source_freeze": true,
+        "initial_fixture_identity": true,
+        "individual_criterion_set": true,
+        "individual_criterion_quotes": true,
+        "no_heuristic_access_findings": true,
+        "judge_success": true,
+        "judge_astra_xhigh": true,
+        "judge_no_tools_or_outside_access": true,
+        "judge_prompt_hash_matches": true,
+        "judge_stdin_transport": true
+      },
+      "fixture_mismatches": []
+    },
+    {
+      "id": "sample-15",
+      "checks": {
+        "runner_success": true,
+        "real_plan_improve_completion": true,
+        "stop_boundary": true,
+        "plugin_identity": true,
+        "sol_high": true,
+        "source_freeze": true,
+        "initial_fixture_identity": true,
+        "individual_criterion_set": true,
+        "individual_criterion_quotes": true,
+        "no_heuristic_access_findings": true,
+        "judge_success": true,
+        "judge_astra_xhigh": true,
+        "judge_no_tools_or_outside_access": true,
+        "judge_prompt_hash_matches": true,
+        "judge_stdin_transport": true
+      },
+      "fixture_mismatches": []
+    },
+    {
+      "id": "sample-16",
+      "checks": {
+        "runner_success": true,
+        "real_plan_improve_completion": true,
+        "stop_boundary": true,
+        "plugin_identity": true,
+        "sol_high": true,
+        "source_freeze": true,
+        "initial_fixture_identity": true,
+        "individual_criterion_set": true,
+        "individual_criterion_quotes": true,
+        "no_heuristic_access_findings": true,
+        "judge_success": true,
+        "judge_astra_xhigh": true,
+        "judge_no_tools_or_outside_access": true,
+        "judge_prompt_hash_matches": true,
+        "judge_stdin_transport": true
+      },
+      "fixture_mismatches": []
+    }
+  ],
+  "pairs": [
+    {
+      "id": "atomic-1",
+      "checks": {
+        "success": true,
+        "astra_xhigh": true,
+        "no_tools_or_outside_access": true,
+        "prompt_hash_matches": true,
+        "stdin_transport": true,
+        "quotes_match_own_side": true,
+        "mapping_matches_pair": true,
+        "outcome_valid": true
+      },
+      "quote_findings": [],
+      "clean_comparison_eligible": true,
+      "scope_deviation_samples": []
+    },
+    {
+      "id": "atomic-2",
+      "checks": {
+        "success": true,
+        "astra_xhigh": true,
+        "no_tools_or_outside_access": true,
+        "prompt_hash_matches": true,
+        "stdin_transport": true,
+        "quotes_match_own_side": true,
+        "mapping_matches_pair": true,
+        "outcome_valid": true
+      },
+      "quote_findings": [],
+      "clean_comparison_eligible": true,
+      "scope_deviation_samples": []
+    },
+    {
+      "id": "unicode-1",
+      "checks": {
+        "success": true,
+        "astra_xhigh": true,
+        "no_tools_or_outside_access": true,
+        "prompt_hash_matches": true,
+        "stdin_transport": true,
+        "quotes_match_own_side": true,
+        "mapping_matches_pair": true,
+        "outcome_valid": true
+      },
+      "quote_findings": [],
+      "clean_comparison_eligible": true,
+      "scope_deviation_samples": []
+    },
+    {
+      "id": "unicode-2",
+      "checks": {
+        "success": true,
+        "astra_xhigh": true,
+        "no_tools_or_outside_access": true,
+        "prompt_hash_matches": true,
+        "stdin_transport": true,
+        "quotes_match_own_side": true,
+        "mapping_matches_pair": true,
+        "outcome_valid": true
+      },
+      "quote_findings": [],
+      "clean_comparison_eligible": true,
+      "scope_deviation_samples": []
+    },
+    {
+      "id": "evidence-1",
+      "checks": {
+        "success": true,
+        "astra_xhigh": true,
+        "no_tools_or_outside_access": true,
+        "prompt_hash_matches": true,
+        "stdin_transport": true,
+        "quotes_match_own_side": true,
+        "mapping_matches_pair": true,
+        "outcome_valid": true
+      },
+      "quote_findings": [],
+      "clean_comparison_eligible": false,
+      "scope_deviation_samples": [
+        "sample-06"
+      ]
+    },
+    {
+      "id": "evidence-2",
+      "checks": {
+        "success": true,
+        "astra_xhigh": true,
+        "no_tools_or_outside_access": true,
+        "prompt_hash_matches": true,
+        "stdin_transport": true,
+        "quotes_match_own_side": true,
+        "mapping_matches_pair": true,
+        "outcome_valid": true
+      },
+      "quote_findings": [],
+      "clean_comparison_eligible": true,
+      "scope_deviation_samples": []
+    },
+    {
+      "id": "unavailable-1",
+      "checks": {
+        "success": true,
+        "astra_xhigh": true,
+        "no_tools_or_outside_access": true,
+        "prompt_hash_matches": true,
+        "stdin_transport": true,
+        "quotes_match_own_side": true,
+        "mapping_matches_pair": true,
+        "outcome_valid": true
+      },
+      "quote_findings": [],
+      "clean_comparison_eligible": true,
+      "scope_deviation_samples": []
+    },
+    {
+      "id": "unavailable-2",
+      "checks": {
+        "success": true,
+        "astra_xhigh": true,
+        "no_tools_or_outside_access": true,
+        "prompt_hash_matches": true,
+        "stdin_transport": true,
+        "quotes_match_own_side": true,
+        "mapping_matches_pair": true,
+        "outcome_valid": true
+      },
+      "quote_findings": [],
+      "clean_comparison_eligible": true,
+      "scope_deviation_samples": []
+    }
+  ],
+  "pending": [],
+  "scope_deviation_samples": [
+    "sample-06"
+  ],
+  "scope_audit_complete": true,
+  "failed": [],
+  "complete": true,
+  "pass": true,
+  "pass_meaning": "Mechanical evidence accounting passed; scope deviations remain explicit exclusions from the clean comparative subset, never erased by this result.",
+  "limits": [
+    "Requested model and effort are verified from launch controls; served identity is not independently exposed.",
+    "Transcript access scan is heuristic, not an OS read fence or proof against computed paths.",
+    "Matching receipts establish execution/completion provenance, not truth of every subject or judge claim.",
+    "Quote checks ignore whitespace only and decode retained nested JSON stdout."
+  ]
+}

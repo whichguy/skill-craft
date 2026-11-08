@@ -1,0 +1,3 @@
+# Operator source capture
+
+These are the exact analysis and orchestration scripts used in the retained local evidence root. They are audit copies, not installed skill code or standalone entry points at this location. Their paths and imports assume the original `operator/`, `source/`, `arms/` and `runs/` layout recorded in `../protocol/manifest.json`. Copying them here does not modify that layout or the frozen study. The original launcher was named queue.py; its byte-identical rename and later judge transport/view adjustments are recorded under `../protocol/`. No runtime candidate is adopted by this capture.

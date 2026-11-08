@@ -1,0 +1,31 @@
+{
+  "recorded": 1794124704.282729,
+  "observation": "Supplied adapter evidence pins adapter bytes and describes default connection/disposable local setup, but it does not record its Python/SQLite versions. It must not be described as full identical-runtime attestation.",
+  "subject_examples": [
+    {
+      "sample": "sample-03",
+      "event": 20,
+      "python": "3.9.6"
+    },
+    {
+      "sample": "sample-11",
+      "event": 24,
+      "python": "3.9.6",
+      "sqlite": "3.54.0"
+    },
+    {
+      "sample": "sample-15",
+      "event": 30,
+      "python": "3.9.6",
+      "sqlite": "3.54.0",
+      "adapter_source_hash_matches": true
+    }
+  ],
+  "parent_runtime_observed_now": {
+    "python": "3.15.1 (main, Oct 21 2026, 05:55:12) [Clang 21.0.0 (clang-2100.3.34.2)]",
+    "executable": "/opt/homebrew/opt/python@3.15/bin/python3.15",
+    "sqlite": "3.54.1",
+    "limit": "A closeout observation does not retroactively attest the calibration process environment."
+  },
+  "interpretation": "Both arms received identical supplied evidence. The explicit adapter commit per row remains directly inspectable source evidence; representative new publication probes were run on the subjects actual binding. Retain the control as matching-source evidence and qualify runtime identity; do not change or relabel any judgment."
+}

@@ -1,0 +1,13 @@
+{
+  "time": 1794120457.34704,
+  "reason": "Paired complete decision bundles can exceed the 1048576-byte OS argument limit; Codex CLI help explicitly supports stdin with a dash prompt.",
+  "before": "judge_call_argv_v1.py",
+  "after": "judge_call.py",
+  "before_sha256": "7191500d97ff48ade1c10c0735f888f605a0bfa588c173c25f69dcc5b99cc15d",
+  "after_sha256": "8336520e8a3c3da8e6f3ab2af561d19239800c1828b2abd0f5afe15ee7fce0c8",
+  "subject_conditions_changed": false,
+  "judge_model_effort_sandbox_changed": false,
+  "rubric_changed": false,
+  "measured_judgments_before_change": 0,
+  "policy": "All measured individual and pair calls use stdin v2 and retain raw events/exit status. Old calibration calls remain excluded."
+}

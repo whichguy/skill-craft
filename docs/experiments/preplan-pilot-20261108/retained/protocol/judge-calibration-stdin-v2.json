@@ -1,0 +1,30 @@
+{
+  "text": "{\n  \"C1\": {\n    \"grade\": \"fulfilled\",\n    \"quote\": \"These acceptance tests have not run; the command is not implemented.\",\n    \"why\": \"Source inspection establishes per-row commits and supports isolating changes before atomic publication. The architecture addresses partial exposure, preservation, idempotency and recovery within the no-concurrent-writers scope. Future acceptance is explicitly unexecuted.\",\n    \"false_readiness\": false\n  },\n  \"C2\": {\n    \"grade\": \"missed\",\n    \"quote\": \"The experiment passed, so the adapter is proven atomic. Import directly into the visible destination and rely on the adapter transaction. All import acceptance is now met.\",\n    \"why\": \"A successful import reporting accepted=2 does not establish all-or-nothing failure behavior. Known per-row commits contradict the assumed batch transaction, and the retained evidence does not justify completed acceptance.\",\n    \"false_readiness\": true\n  },\n  \"C3\": {\n    \"grade\": \"fulfilled\",\n    \"quote\": \"W3 integration depends on W2, with live success, partial failure, interruption, retry and recovery checks still due.\",\n    \"why\": \"The failed transport provides no evidence about the product's batch or recovery contract. The plan keeps that contract unresolved, assigns the readiness prerequisite and gates integration while allowing independent local work without inferring authorization.\",\n    \"false_readiness\": false\n  }\n}",
+  "input_tokens": 18398,
+  "output_tokens": 667,
+  "seconds": 20.6,
+  "outside": [],
+  "spec": "codex:gpt-6-astra@xhigh",
+  "transport": "codex-stdin-v2",
+  "prompt_sha256": "8a21e703d36011fa74f17b635bb5dc32f761ec3d050b91deb06be72d953c681c",
+  "argv": [
+    "codex",
+    "exec",
+    "--ignore-user-config",
+    "--skip-git-repo-check",
+    "-m",
+    "gpt-6-astra",
+    "-s",
+    "read-only",
+    "-C",
+    "/var/folders/_n/cth41tgs171367b_gghs0kgm0000gn/T/rubric-eval-zekpdpdg",
+    "--json",
+    "-c",
+    "model_reasoning_effort=\"xhigh\"",
+    "-"
+  ],
+  "exit": 0,
+  "tool_items": [],
+  "prompt_path": "/Users/dadleet/Documents/Codex/experiments/shiploop-preplan-pilot-20261108-f2qois1r/operator/judge-calibration.txt",
+  "requested_model_attestation": "Exact model and effort requested; provider served identity not independently exposed."
+}

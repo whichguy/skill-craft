@@ -1,0 +1,7 @@
+{
+  "recorded": 1794122180.323215,
+  "peer_thread": "01a1b841-c69b-78f0-a389-4234e93d1248",
+  "source": "compact wait_threads snapshot",
+  "latest_report": "Protocol and twenty trials frozen; next unmeasured UI smoke plus six calibration examples must pass before measured comparison.",
+  "inference_limit": "This is latest reported progress, not a process-level concurrency trace. Actual shared-provider load remains unknown."
+}

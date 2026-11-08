@@ -1,0 +1,973 @@
+{
+  "request": "Extend this local Python inventory tool with a JSON batch-import command. Import must be all-or-nothing: any invalid record, adapter error or interrupted import leaves the previously visible inventory unchanged; successful publication exposes the complete new batch and preserves unrelated existing SKUs. Repeating a successful import is idempotent. Keep the installed adapter for applying rows unless evidence shows an alternative is needed. Discovery already characterized this exact adapter and configuration; its commands, source hash and observations are in docs/evidence/adapter.json. No concurrent writers are in scope; readers can reopen the database between commands. Use only Python's standard library. Temporary local experiments on disposable databases are authorized. Do not mutate the retained seed inventory. Add automated CLI, invalid-middle-record, interrupted-publication and recovery checks as implementation work. Existing tests must remain passing.",
+  "obligations": {
+    "E1": "Uses the supplied same-source current partial-write evidence as sufficient for the adapter decision; does not repeat that investigation without a concrete new question or mismatch. Source-hash validation and unrelated required baseline/acceptance checks are legitimate.",
+    "E2": "Prevents partial visible import and preserves unrelated SKUs with atomic publication, idempotency and recovery; the correct plan can be reached without a new probe.",
+    "E3": "Keeps future CLI and publication/recovery acceptance due rather than treating supplied adapter evidence as implemented-product proof.",
+    "E4": "Plan dependencies, scope, authority and temporary resource handling remain coherent and proportionate."
+  },
+  "plans": [
+    {
+      "action": "nav-8ca0604f8cac41eab5d52e13fc3b6827",
+      "outcome": "done",
+      "initial": {
+        "assumptions": [
+          {
+            "assumption": "Exact installed adapter/configuration commits per applied row; direct destination application cannot meet all-or-nothing, but adapter can remain on private stage.",
+            "disposition": "evidenced",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/worktree/docs/evidence/adapter.json",
+              "TRIAL/.shiploop-runs/seed/run/scratch/planning/baseline.json"
+            ],
+            "id": "A1"
+          },
+          {
+            "assumption": "Default local SQLite backup and explicit destination transaction can keep old-state readers, roll back killed partial publication and publish complete snapshot.",
+            "check": "E1: python3 -B TRIAL/.shiploop-runs/seed/run/scratch/planning/transaction_probe.py; exit0, after-DELETE/INSERT kill -9 restores B, success/retry S, broken-autocommit observer detects [].",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md",
+              "TRIAL/.shiploop-runs/seed/run/scratch/planning/transaction-probe-output.json"
+            ],
+            "id": "A2"
+          },
+          {
+            "assumption": "Only local standard-library single-writer behavior, reopened readers, owned scratch and immutable seed are required; no external endpoint/credential is supplied.",
+            "disposition": "evidenced",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/request.md",
+              "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md",
+              "TRIAL/.shiploop-runs/seed/run/scratch/planning/baseline.json"
+            ],
+            "id": "A3"
+          },
+          {
+            "assumption": "Existing baseline is a passing single-row subset and does not prove requested batch/CLI/recovery behavior.",
+            "disposition": "evidenced",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/planning/baseline.json",
+              "TRIAL/.shiploop-runs/seed/worktree/docs/discovery.md"
+            ],
+            "id": "A4"
+          },
+          {
+            "assumption": "Reusable deterministic real-mutation child barriers/fixtures can be supplied before product tests.",
+            "disposition": "open",
+            "due_item": "W1",
+            "id": "A5",
+            "reason": "Facility is not present; implementing and validating retained test helpers belongs to implementation, not planning. Disposable E1 proves process control capability only.",
+            "settle": "W1 helper-only tests execute fixture/readback, real-operation-before-barrier, broken control and bounded kill/wait cleanup without product modules."
+          },
+          {
+            "assumption": "Product importer realizes whole-input strict validation, transactional publication/recovery and commit/ack boundary including new/empty destinations.",
+            "disposition": "open",
+            "due_item": "W2",
+            "id": "A6",
+            "reason": "CLI grammar details and COMMIT boundary are explicit design defaults AD-6; product not implemented. Full product behavior cannot be established by more stand-in probes.",
+            "settle": "Implement import_json and durable TC_02..TC_09 with independent B/S observers, actual mutation kills, fault controls, rollback/reopen, recovery/retry and postcommit complete state; retain literal all-interruptions-after-commit limitation."
+          },
+          {
+            "assumption": "Actual command subprocess integrates API, statuses and safe retry while preserving unchanged adapter/seed/baseline.",
+            "disposition": "open",
+            "due_item": "W3",
+            "id": "A7",
+            "reason": "No CLI exists and implementation work is forbidden in planning trial.",
+            "settle": "Implement main and TC_01/TC_10 plus CLI recovery/error/lost-ack portions; execute focused/smoke/full suites with nonzero named cases and before/after seed/adapter hashes."
+          }
+        ],
+        "concerns": {
+          "W1": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "CLI has no graphical surface; no UI/skin/motion design is required."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "W1 supplies test helper contracts without product imports.",
+              "id": "api",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "Synchronous local command; no queue, notification or deferred acknowledgement."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "W1 disposable B/J fixture and independent SQL reader only.",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "Existing schema unchanged; no migration prerequisite."
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No schema format transition or cleanup migration."
+            },
+            {
+              "applies": "no",
+              "id": "switchover",
+              "reason": "Test fixture readiness has no product cutover."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "One writer and fresh reader observations; no concurrent writers as request S6.",
+              "id": "concurrency",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "platform-services",
+              "reason": "No extra platform service is added beyond supplier SQLite runtime."
+            },
+            {
+              "applies": "no",
+              "id": "scale",
+              "reason": "No scale or multiuser workload requirement."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Only owned paths and disposable fixtures; seed/credentials untouched; validate untrusted JSON before effects.",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Bounded fixture barrier/failure evidence.",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Explicit scratch isolation and deterministic test phase controls.",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "performance",
+              "reason": "No numeric latency/throughput criterion; document snapshot O(database+batch) cost and bound harness timeouts."
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No graphical/device UI; textual CLI interface only."
+            }
+          ],
+          "W2": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "CLI has no graphical surface; no UI/skin/motion design is required."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "W2 exposes import_json with staged/transactional behavior.",
+              "id": "api",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "Synchronous local command; no queue, notification or deferred acknowledgement."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Authoritative destination changes only at one SQLite commit; staging/orphans never authority.",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "Existing schema unchanged; no migration prerequisite."
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No schema format transition or cleanup migration."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "SQLite commit atomically changes B to S, rollback preserves B.",
+              "id": "switchover",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "One writer and fresh reader observations; no concurrent writers as request S6.",
+              "id": "concurrency",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Use SQLite native backup, transaction and journal recovery.",
+              "id": "platform-services",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "scale",
+              "reason": "No scale or multiuser workload requirement."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Only owned paths and disposable fixtures; seed/credentials untouched; validate untrusted JSON before effects.",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Truthful error/rollback observations; success acknowledgement follows commit.",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Explicit db/input paths; default SQLite config, no production debug flags.",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "performance",
+              "reason": "No numeric latency/throughput criterion; document snapshot O(database+batch) cost and bound harness timeouts."
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No graphical/device UI; textual CLI interface only."
+            }
+          ],
+          "W3": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "CLI has no graphical surface; no UI/skin/motion design is required."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "W3 exposes argparse CLI delegating importer API.",
+              "id": "api",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "Synchronous local command; no queue, notification or deferred acknowledgement."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Authoritative destination changes only at one SQLite commit; staging/orphans never authority.",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "Existing schema unchanged; no migration prerequisite."
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No schema format transition or cleanup migration."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "CLI observes actual precommit rollback and postcommit complete state through W2.",
+              "id": "switchover",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "One writer and fresh reader observations; no concurrent writers as request S6.",
+              "id": "concurrency",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "platform-services",
+              "reason": "No extra platform service is added beyond supplier SQLite runtime."
+            },
+            {
+              "applies": "no",
+              "id": "scale",
+              "reason": "No scale or multiuser workload requirement."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Only owned paths and disposable fixtures; seed/credentials untouched; validate untrusted JSON before effects.",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Truthful error/rollback observations; success acknowledgement follows commit.",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Explicit db/input paths; default SQLite config, no production debug flags.",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "performance",
+              "reason": "No numeric latency/throughput criterion; document snapshot O(database+batch) cost and bound harness timeouts."
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No graphical/device UI; textual CLI interface only."
+            }
+          ]
+        },
+        "evidence_refs": [
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/evidence/adapter.json",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/discovery.md",
+          "TRIAL/.shiploop-runs/seed/worktree/src/adapter.py",
+          "TRIAL/.shiploop-runs/seed/worktree/tests/test_baseline.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/planning/baseline.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/planning/strategy-review.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/planning/transaction_probe.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/planning/transaction-probe-output.json",
+          "TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/plan.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/plan-graph.json",
+          "TRIAL/.shiploop-runs/seed/run/backchain/nav-8ca0604f8cac41eab5d52e13fc3b6827/check-6269dc3b549f.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/planning/plan-validation.json"
+        ],
+        "headline": "Plan retains installed adapter with private staging and transactional publication, ordered behind fault-test facilities.",
+        "outcome": "done",
+        "summary": "Design basis and full five-lens dependency audit are in notes/plan.md; route inline manual audit with installed structural backchain-check, no optional model/agent call. E1 was predeclared and confirmed default SQLite transaction publication/recovery, so no adapter replacement/file rename is needed. Work queue W1 helpers -> W2 atomic API/component checks -> W3 CLI/full integration; file/test/doc changes run serially. Missing synthetic earlier notes are recorded, not treated as executed stages. Every R-1/R-2 clause mapped through item context and TC_01..TC_10. Open assumptions are retained product/facility implementation checks, not missing feasible runtime probes. Strict grammar/duplicate rejection/empty no-op and COMMIT publication boundary are explicit defaults; literal postcommit process death cannot restore old state, so full-state lost acknowledgement and idempotent retry remain required. No external endpoint, credential, network, installation, deployment or graphical UI is in scope. This planning trial stops after actual Plan Improve callback advances to prepare; no W1..W3 implementation is authorized in this trial. Shared probe allowance and cleanup retained in notes/planning-experiments.md.",
+        "work_items": [
+          {
+            "context": "Sources: TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md R-1/R-2 and TRIAL/.shiploop-runs/seed/run/request.md S1..S11; standing architecture TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-1..AD-6/Structure/Interfaces and boundaries; test strategy and facility definition TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites/Commands/ID convention. Baseline TRIAL/.shiploop-runs/seed/run/scratch/planning/baseline.json (one current test passes, source/adapter hashes checked); exact adapter contract TRIAL/.shiploop-runs/seed/worktree/docs/evidence/adapter.json; E1 TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md and TRIAL/.shiploop-runs/seed/run/scratch/planning/transaction-probe-output.json. No source/test/seed edits during planning. Use only owned local fixtures, stdlib, serial writer. No external credentials/endpoints/deployment. Correction: if evidence invalidates assumptions, gate dependents and use current ShipLoop corrective route; never silently weaken R-1/R-2. W1 follows graph S1. Ready: unchanged baseline evidence, installed stdlib runner, precreated owned scratch. Scope tests/support.py plus helper readiness checks; no product modules. Produce usable disposable B/J fixture, fresh SQL observer and bounded delegate-real-operation-then-pipe-handshake child utility, with kill/wait/finally cleanup. Prove barrier observes a real SQLite mutation and catches broken autocommit, and helper tests run without importer/CLI. This actual facility readiness, not just file authorship, is the W2/W3 supplier. First test seam imports existing src/adapter and stdlib only; normal unittest module discovery works before new product exists. Consumer TC_03..TC_09 use this helper. Done: helper checks pass without missing/import/skip failures and baseline stays green. Match tests/test_baseline.py conventions. All new helper code is test-only; no feature acceptance pass claimed.  Full bounded increment and dependency audit: TRIAL/.shiploop-runs/seed/run/notes/plan.md Ordered increments/Dependency audit; graph TRIAL/.shiploop-runs/seed/run/notes/plan-graph.json S1. Revalidate suppliers if their source/runtime/config changes; future tests remain planned, not passed.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-5"
+            ],
+            "id": "W1",
+            "title": "Reusable disposable-inventory and deterministic interruption fixtures"
+          },
+          {
+            "context": "Sources: TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md R-1/R-2 and TRIAL/.shiploop-runs/seed/run/request.md S1..S11; standing architecture TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-1..AD-6/Structure/Interfaces and boundaries; test strategy and facility definition TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites/Commands/ID convention. Baseline TRIAL/.shiploop-runs/seed/run/scratch/planning/baseline.json (one current test passes, source/adapter hashes checked); exact adapter contract TRIAL/.shiploop-runs/seed/worktree/docs/evidence/adapter.json; E1 TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md and TRIAL/.shiploop-runs/seed/run/scratch/planning/transaction-probe-output.json. No source/test/seed edits during planning. Use only owned local fixtures, stdlib, serial writer. No external credentials/endpoints/deployment. Correction: if evidence invalidates assumptions, gate dependents and use current ShipLoop corrective route; never silently weaken R-1/R-2. W2 follows graph S2; needs W1 verified fixture/reader/child barrier (readiness reruns helper checks), not just artifact. Scope src/batch_import.py + tests/test_importer.py and maintained docs. Expose import_json(db_path,input_path); internal validation/stage/publish remain private. Ready: W1 receipts plus unchanged exact adapter/E1 default SQLite setup. Validate whole input (strict unique sku/nonnegative exact int) before effects; empty array no-op; snapshot existing database read-only to private stage, real adapter.apply there, then one explicit destination transaction for complete inventory copy. Preserve other tables/seed/adapter; no deletes of journals or unknown orphans. COMMIT is publication, acknowledgement later. Own TC_02..TC_09 component cases: invalid middle/schema, adapter error after committed staged row, killed stage, kill after real destination mutation before commit, fresh reopen rollback and retry, exceptions, absent/empty edges, full-state lost-ack retry. CLI portions stay due W3. Test module imports existing src at load; find_spec assertion/import inside methods gives explicit absent-capability RED on base instead of import/discovery error, then actual assertions on implemented API. Done: each declared component case selected/passing and calibrated defect control fails; B after failures, S after success/retry; baseline passes; no future CLI required to pass W2. Native schema remains inventory(sku TEXT PRIMARY KEY, quantity INTEGER); publication only changes main.inventory.  Full bounded increment and dependency audit: TRIAL/.shiploop-runs/seed/run/notes/plan.md Ordered increments/Dependency audit; graph TRIAL/.shiploop-runs/seed/run/notes/plan-graph.json S2. Revalidate suppliers if their source/runtime/config changes; future tests remain planned, not passed.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-4"
+            ],
+            "id": "W2",
+            "title": "Atomic JSON importer with staged adapter and transaction recovery"
+          },
+          {
+            "context": "Sources: TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md R-1/R-2 and TRIAL/.shiploop-runs/seed/run/request.md S1..S11; standing architecture TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-1..AD-6/Structure/Interfaces and boundaries; test strategy and facility definition TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites/Commands/ID convention. Baseline TRIAL/.shiploop-runs/seed/run/scratch/planning/baseline.json (one current test passes, source/adapter hashes checked); exact adapter contract TRIAL/.shiploop-runs/seed/worktree/docs/evidence/adapter.json; E1 TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md and TRIAL/.shiploop-runs/seed/run/scratch/planning/transaction-probe-output.json. No source/test/seed edits during planning. Use only owned local fixtures, stdlib, serial writer. No external credentials/endpoints/deployment. Correction: if evidence invalidates assumptions, gate dependents and use current ShipLoop corrective route; never silently weaken R-1/R-2. W3 follows graph S3; needs W2 verified import_json API, component crash/recovery receipts and W1 helper. Ready: rerun W2 focused component command from environment.md on current candidate and verify baseline. Scope src/__main__.py, tests/test_import_cli.py, README.md and maintained knowledge. Implement argparse main(argv=None): python3 -B -m src import-json --db PATH --input PATH; only postcommit code0/JSON accepted=N, errors stderr/nonzero. Own TC_01/TC_10 plus CLI parts TC_06/TC_07/TC_09. Use real subprocess with absolute owned fixture paths; start B/J and assert fresh SQL S, same batch twice, unrelated keep=9, status/stdout/error behavior, recovery CLI after actual publication kill. Test seam existing src at module load, assert module availability inside methods before import for explicit base RED. Done: focused feature, smoke and full suite commands execute registered TC_01..TC_10 and existing baseline without skips or zero selection; independent expected inventory/returncode assertions pass, seed/adapter digests unchanged, stdlib only. README commands reflect observed behavior, default assumptions and commit/ack limitation. Product acceptance/system-test remain later actual verification; guarded local delivery is ShipLoop-owned and external publication absent.  Full bounded increment and dependency audit: TRIAL/.shiploop-runs/seed/run/notes/plan.md Ordered increments/Dependency audit; graph TRIAL/.shiploop-runs/seed/run/notes/plan-graph.json S3. Revalidate suppliers if their source/runtime/config changes; future tests remain planned, not passed.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-3"
+            ],
+            "id": "W3",
+            "title": "JSON CLI integration, recovery regressions and operator instructions"
+          }
+        ]
+      },
+      "final": {
+        "assumptions": [
+          {
+            "assumption": "Exact installed adapter/configuration commits per applied row; direct destination application cannot meet all-or-nothing, but adapter can remain on private stage.",
+            "disposition": "evidenced",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/worktree/docs/evidence/adapter.json",
+              "TRIAL/.shiploop-runs/seed/run/scratch/planning/baseline.json"
+            ],
+            "id": "A1"
+          },
+          {
+            "assumption": "Default local SQLite backup and explicit destination transaction can keep old-state readers, roll back killed partial publication and publish complete snapshot.",
+            "check": "E1: python3 -B TRIAL/.shiploop-runs/seed/run/scratch/planning/transaction_probe.py; exit0, after-DELETE/INSERT kill -9 restores B, success/retry S, broken-autocommit observer detects [].",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md",
+              "TRIAL/.shiploop-runs/seed/run/scratch/planning/transaction-probe-output.json"
+            ],
+            "id": "A2"
+          },
+          {
+            "assumption": "Only local standard-library single-writer behavior, reopened readers, owned scratch and immutable seed are required; no external endpoint/credential is supplied.",
+            "disposition": "evidenced",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/request.md",
+              "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md",
+              "TRIAL/.shiploop-runs/seed/run/scratch/planning/baseline.json"
+            ],
+            "id": "A3"
+          },
+          {
+            "assumption": "Existing baseline is a passing single-row subset and does not prove requested batch/CLI/recovery behavior.",
+            "disposition": "evidenced",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/planning/baseline.json",
+              "TRIAL/.shiploop-runs/seed/worktree/docs/discovery.md"
+            ],
+            "id": "A4"
+          },
+          {
+            "assumption": "Reusable deterministic real-mutation child barriers/fixtures can be supplied before product tests.",
+            "disposition": "open",
+            "due_item": "W1",
+            "id": "A5",
+            "reason": "Facility is not present; implementing and validating retained test helpers belongs to implementation, not planning. Disposable E1 proves process control capability only.",
+            "settle": "W1 python3 -B -m unittest tests.test_support -v selects/passes HarnessReadiness.test_fixture_roundtrip, test_real_mutation_barrier, test_timeout_cleanup and test_broken_control_detection, without future product imports, then baseline remains green."
+          },
+          {
+            "assumption": "Product importer realizes whole-input strict validation, transactional publication/recovery and commit/ack boundary including new/empty destinations.",
+            "disposition": "open",
+            "due_item": "W2",
+            "id": "A6",
+            "reason": "CLI grammar details and COMMIT boundary are explicit design defaults AD-6; product not implemented. Full product behavior cannot be established by more stand-in probes.",
+            "settle": "Implement import_json and durable TC_02..TC_09 with independent B/S observers, actual mutation kills, fault controls, rollback/reopen, recovery/retry and postcommit complete state; retain literal all-interruptions-after-commit limitation."
+          },
+          {
+            "assumption": "Actual command subprocess integrates API, statuses and safe retry while preserving unchanged adapter/seed/baseline.",
+            "disposition": "open",
+            "due_item": "W3",
+            "id": "A7",
+            "reason": "No CLI exists and implementation work is forbidden in planning trial.",
+            "settle": "Implement main and TC_01/TC_10 plus CLI recovery/error/lost-ack portions; execute focused/smoke/full suites with nonzero named cases and before/after seed/adapter hashes."
+          }
+        ],
+        "concerns": {
+          "W1": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "CLI has no graphical surface; no UI/skin/motion design is required."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "W1 supplies test helper contracts without product imports.",
+              "id": "api",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "Synchronous local command; no queue, notification or deferred acknowledgement."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "W1 disposable B/J fixture and independent SQL reader only.",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "Existing schema unchanged; no migration prerequisite."
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No schema format transition or cleanup migration."
+            },
+            {
+              "applies": "no",
+              "id": "switchover",
+              "reason": "Test fixture readiness has no product cutover."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "One writer and fresh reader observations; no concurrent writers as request S6.",
+              "id": "concurrency",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "platform-services",
+              "reason": "No extra platform service is added beyond supplier SQLite runtime."
+            },
+            {
+              "applies": "no",
+              "id": "scale",
+              "reason": "No scale or multiuser workload requirement."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Only owned paths and disposable fixtures; seed/credentials untouched; validate untrusted JSON before effects.",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Bounded fixture barrier/failure evidence.",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Explicit scratch isolation and deterministic test phase controls.",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "performance",
+              "reason": "No numeric latency/throughput criterion; document snapshot O(database+batch) cost and bound harness timeouts."
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No graphical/device UI; textual CLI interface only."
+            }
+          ],
+          "W2": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "CLI has no graphical surface; no UI/skin/motion design is required."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "W2 exposes import_json with staged/transactional behavior.",
+              "id": "api",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "Synchronous local command; no queue, notification or deferred acknowledgement."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Authoritative destination changes only at one SQLite commit; staging/orphans never authority.",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "Existing schema unchanged; no migration prerequisite."
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No schema format transition or cleanup migration."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "SQLite commit atomically changes B to S, rollback preserves B.",
+              "id": "switchover",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "One writer and fresh reader observations; no concurrent writers as request S6.",
+              "id": "concurrency",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Use SQLite native backup, transaction and journal recovery.",
+              "id": "platform-services",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "scale",
+              "reason": "No scale or multiuser workload requirement."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Only owned paths and disposable fixtures; seed/credentials untouched; validate untrusted JSON before effects.",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Truthful error/rollback observations; success acknowledgement follows commit.",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Explicit db/input paths; default SQLite config, no production debug flags.",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "performance",
+              "reason": "No numeric latency/throughput criterion; document snapshot O(database+batch) cost and bound harness timeouts."
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No graphical/device UI; textual CLI interface only."
+            }
+          ],
+          "W3": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "CLI has no graphical surface; no UI/skin/motion design is required."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "W3 exposes argparse CLI delegating importer API.",
+              "id": "api",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "Synchronous local command; no queue, notification or deferred acknowledgement."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Authoritative destination changes only at one SQLite commit; staging/orphans never authority.",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "Existing schema unchanged; no migration prerequisite."
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No schema format transition or cleanup migration."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "CLI observes actual precommit rollback and postcommit complete state through W2.",
+              "id": "switchover",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "One writer and fresh reader observations; no concurrent writers as request S6.",
+              "id": "concurrency",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "platform-services",
+              "reason": "No extra platform service is added beyond supplier SQLite runtime."
+            },
+            {
+              "applies": "no",
+              "id": "scale",
+              "reason": "No scale or multiuser workload requirement."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Only owned paths and disposable fixtures; seed/credentials untouched; validate untrusted JSON before effects.",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Truthful error/rollback observations; success acknowledgement follows commit.",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-3/AD-4/AD-5/AD-6; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites",
+              "applies": "yes",
+              "decision": "Explicit db/input paths; default SQLite config, no production debug flags.",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "performance",
+              "reason": "No numeric latency/throughput criterion; document snapshot O(database+batch) cost and bound harness timeouts."
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No graphical/device UI; textual CLI interface only."
+            }
+          ]
+        },
+        "evidence_refs": [
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/evidence/adapter.json",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/discovery.md",
+          "TRIAL/.shiploop-runs/seed/worktree/src/adapter.py",
+          "TRIAL/.shiploop-runs/seed/worktree/tests/test_baseline.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/planning/baseline.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/planning/strategy-review.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/planning/transaction_probe.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/planning/transaction-probe-output.json",
+          "TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/plan.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/plan-graph.json",
+          "TRIAL/.shiploop-runs/seed/run/backchain/nav-8ca0604f8cac41eab5d52e13fc3b6827/check-6269dc3b549f.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/planning/plan-validation.json",
+          "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/nav-c5dbd3bf3157417a95cc5a501889ef70/planning-investigation.md",
+          "TRIAL/.shiploop-runs/seed/run/backchain/nav-8ca0604f8cac41eab5d52e13fc3b6827/check-581ae1218d9a.json"
+        ],
+        "headline": "Plan retains installed adapter with private staging and transactional publication, ordered behind fault-test facilities.",
+        "outcome": "done",
+        "summary": "Design basis and full five-lens dependency audit are in notes/plan.md; route inline manual audit with installed structural backchain-check, no optional model/agent call. E1 was predeclared and confirmed default SQLite transaction publication/recovery, so no adapter replacement/file rename is needed. Work queue W1 helpers -> W2 atomic API/component checks -> W3 CLI/full integration; file/test/doc changes run serially. Missing synthetic earlier notes are recorded, not treated as executed stages. Every R-1/R-2 clause mapped through item context and TC_01..TC_10. Open assumptions are retained product/facility implementation checks, not missing feasible runtime probes. Strict grammar/duplicate rejection/empty no-op and COMMIT publication boundary are explicit defaults; literal postcommit process death cannot restore old state, so full-state lost acknowledgement and idempotent retry remain required. No external endpoint, credential, network, installation, deployment or graphical UI is in scope. This planning trial stops after actual Plan Improve callback advances to prepare; no W1..W3 implementation is authorized in this trial. Shared probe allowance and cleanup retained in notes/planning-experiments.md. Plan Improve corrected S3 to explicitly consume S1 helper output and fixed W1 readiness command/module so consumers can revalidate the actual facility; see notes/plan.md Plan Improve correction. No new experiment or upstream reconciliation required.",
+        "work_items": [
+          {
+            "context": "Sources: TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md R-1/R-2 and TRIAL/.shiploop-runs/seed/run/request.md S1..S11; standing architecture TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-1..AD-6/Structure/Interfaces and boundaries; test strategy and facility definition TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites/Commands/ID convention. Baseline TRIAL/.shiploop-runs/seed/run/scratch/planning/baseline.json (one current test passes, source/adapter hashes checked); exact adapter contract TRIAL/.shiploop-runs/seed/worktree/docs/evidence/adapter.json; E1 TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md and TRIAL/.shiploop-runs/seed/run/scratch/planning/transaction-probe-output.json. No source/test/seed edits during planning. Use only owned local fixtures, stdlib, serial writer. No external credentials/endpoints/deployment. Correction: if evidence invalidates assumptions, gate dependents and use current ShipLoop corrective route; never silently weaken R-1/R-2. W1 follows graph S1. Ready: unchanged baseline evidence, installed stdlib runner, precreated owned scratch. Scope tests/support.py plus helper readiness checks; no product modules. Produce usable disposable B/J fixture, fresh SQL observer and bounded delegate-real-operation-then-pipe-handshake child utility, with kill/wait/finally cleanup. Prove barrier observes a real SQLite mutation and catches broken autocommit, and helper tests run without importer/CLI. This actual facility readiness, not just file authorship, is the W2/W3 supplier. First test seam imports existing src/adapter and stdlib only; normal unittest module discovery works before new product exists. Consumer TC_03..TC_09 use this helper. Done: helper checks pass without missing/import/skip failures and baseline stays green. Match tests/test_baseline.py conventions. All new helper code is test-only; no feature acceptance pass claimed.  Full bounded increment and dependency audit: TRIAL/.shiploop-runs/seed/run/notes/plan.md Ordered increments/Dependency audit; graph TRIAL/.shiploop-runs/seed/run/notes/plan-graph.json S1. Revalidate suppliers if their source/runtime/config changes; future tests remain planned, not passed. Facility supplier explicit: W1 tests/support.py and tests/test_support.py HarnessReadiness; planned readiness command python3 -B -m unittest tests.test_support -v must select all four named helper methods and pass before dependent feature tests. Graph S3 consumes both S2 importer receipt and S1 functioning helper; no path-only supplier inference.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-5"
+            ],
+            "id": "W1",
+            "title": "Reusable disposable-inventory and deterministic interruption fixtures"
+          },
+          {
+            "context": "Sources: TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md R-1/R-2 and TRIAL/.shiploop-runs/seed/run/request.md S1..S11; standing architecture TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-1..AD-6/Structure/Interfaces and boundaries; test strategy and facility definition TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites/Commands/ID convention. Baseline TRIAL/.shiploop-runs/seed/run/scratch/planning/baseline.json (one current test passes, source/adapter hashes checked); exact adapter contract TRIAL/.shiploop-runs/seed/worktree/docs/evidence/adapter.json; E1 TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md and TRIAL/.shiploop-runs/seed/run/scratch/planning/transaction-probe-output.json. No source/test/seed edits during planning. Use only owned local fixtures, stdlib, serial writer. No external credentials/endpoints/deployment. Correction: if evidence invalidates assumptions, gate dependents and use current ShipLoop corrective route; never silently weaken R-1/R-2. W2 follows graph S2; needs W1 verified fixture/reader/child barrier (readiness reruns helper checks), not just artifact. Scope src/batch_import.py + tests/test_importer.py and maintained docs. Expose import_json(db_path,input_path); internal validation/stage/publish remain private. Ready: W1 receipts plus unchanged exact adapter/E1 default SQLite setup. Validate whole input (strict unique sku/nonnegative exact int) before effects; empty array no-op; snapshot existing database read-only to private stage, real adapter.apply there, then one explicit destination transaction for complete inventory copy. Preserve other tables/seed/adapter; no deletes of journals or unknown orphans. COMMIT is publication, acknowledgement later. Own TC_02..TC_09 component cases: invalid middle/schema, adapter error after committed staged row, killed stage, kill after real destination mutation before commit, fresh reopen rollback and retry, exceptions, absent/empty edges, full-state lost-ack retry. CLI portions stay due W3. Test module imports existing src at load; find_spec assertion/import inside methods gives explicit absent-capability RED on base instead of import/discovery error, then actual assertions on implemented API. Done: each declared component case selected/passing and calibrated defect control fails; B after failures, S after success/retry; baseline passes; no future CLI required to pass W2. Native schema remains inventory(sku TEXT PRIMARY KEY, quantity INTEGER); publication only changes main.inventory.  Full bounded increment and dependency audit: TRIAL/.shiploop-runs/seed/run/notes/plan.md Ordered increments/Dependency audit; graph TRIAL/.shiploop-runs/seed/run/notes/plan-graph.json S2. Revalidate suppliers if their source/runtime/config changes; future tests remain planned, not passed. Facility supplier explicit: W1 tests/support.py and tests/test_support.py HarnessReadiness; planned readiness command python3 -B -m unittest tests.test_support -v must select all four named helper methods and pass before dependent feature tests. Graph S3 consumes both S2 importer receipt and S1 functioning helper; no path-only supplier inference.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-4"
+            ],
+            "id": "W2",
+            "title": "Atomic JSON importer with staged adapter and transaction recovery"
+          },
+          {
+            "context": "Sources: TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md R-1/R-2 and TRIAL/.shiploop-runs/seed/run/request.md S1..S11; standing architecture TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-1..AD-6/Structure/Interfaces and boundaries; test strategy and facility definition TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites/Commands/ID convention. Baseline TRIAL/.shiploop-runs/seed/run/scratch/planning/baseline.json (one current test passes, source/adapter hashes checked); exact adapter contract TRIAL/.shiploop-runs/seed/worktree/docs/evidence/adapter.json; E1 TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md and TRIAL/.shiploop-runs/seed/run/scratch/planning/transaction-probe-output.json. No source/test/seed edits during planning. Use only owned local fixtures, stdlib, serial writer. No external credentials/endpoints/deployment. Correction: if evidence invalidates assumptions, gate dependents and use current ShipLoop corrective route; never silently weaken R-1/R-2. W3 follows graph S3; needs W2 verified import_json API, component crash/recovery receipts and W1 helper. Ready: rerun W2 focused component command from environment.md on current candidate and verify baseline. Scope src/__main__.py, tests/test_import_cli.py, README.md and maintained knowledge. Implement argparse main(argv=None): python3 -B -m src import-json --db PATH --input PATH; only postcommit code0/JSON accepted=N, errors stderr/nonzero. Own TC_01/TC_10 plus CLI parts TC_06/TC_07/TC_09. Use real subprocess with absolute owned fixture paths; start B/J and assert fresh SQL S, same batch twice, unrelated keep=9, status/stdout/error behavior, recovery CLI after actual publication kill. Test seam existing src at module load, assert module availability inside methods before import for explicit base RED. Done: focused feature, smoke and full suite commands execute registered TC_01..TC_10 and existing baseline without skips or zero selection; independent expected inventory/returncode assertions pass, seed/adapter digests unchanged, stdlib only. README commands reflect observed behavior, default assumptions and commit/ack limitation. Product acceptance/system-test remain later actual verification; guarded local delivery is ShipLoop-owned and external publication absent.  Full bounded increment and dependency audit: TRIAL/.shiploop-runs/seed/run/notes/plan.md Ordered increments/Dependency audit; graph TRIAL/.shiploop-runs/seed/run/notes/plan-graph.json S3. Revalidate suppliers if their source/runtime/config changes; future tests remain planned, not passed. Facility supplier explicit: W1 tests/support.py and tests/test_support.py HarnessReadiness; planned readiness command python3 -B -m unittest tests.test_support -v must select all four named helper methods and pass before dependent feature tests. Graph S3 consumes both S2 importer receipt and S1 functioning helper; no path-only supplier inference.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-3"
+            ],
+            "id": "W3",
+            "title": "JSON CLI integration, recovery regressions and operator instructions"
+          }
+        ]
+      }
+    }
+  ],
+  "planning_artifacts": {
+    "TRIAL/.shiploop-runs/seed/worktree/docs/discovery.md": "# Supplied discovery\n\nThis is a constructed planning fixture. Source, tests and data are present; the baseline suite passed. Only existing behavior was tested. No new feature, atomicity or search acceptance is implied. Current representative adapter observations are supplied in docs/evidence/adapter.json; reuse them where sufficient.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/docs/evidence/adapter.json": "{\n  \"source\": \"src/adapter.py\",\n  \"sha256\": \"aa7e063e58da1315cfdc367183ecdafc690081c550f5109bf7d6c173aff6f2ac\",\n  \"adapter_version\": \"2.3\",\n  \"configuration\": \"default connection, no concurrent writers, new local disposable database\",\n  \"command_argv\": [\n    \"python3\",\n    \"-B\",\n    \"-c\",\n    \"import json, sqlite3, tempfile\\nfrom pathlib import Path\\nfrom src import adapter\\nwith tempfile.TemporaryDirectory() as tmp:\\n p=str(Path(tmp)/\\\"probe.sqlite\\\")\\n adapter.apply(p,[{\\\"sku\\\":\\\"old\\\",\\\"quantity\\\":2}])\\n success=adapter.apply(p,[{\\\"sku\\\":\\\"a\\\",\\\"quantity\\\":3},{\\\"sku\\\":\\\"b\\\",\\\"quantity\\\":4}])\\n with sqlite3.connect(p) as db: before=db.execute(\\\"SELECT * FROM inventory ORDER BY sku\\\").fetchall()\\n try: adapter.apply(p,[{\\\"sku\\\":\\\"c\\\",\\\"quantity\\\":5},{\\\"sku\\\":\\\"bad\\\",\\\"quantity\\\":-1}])\\n except ValueError as e: error=str(e)\\n with sqlite3.connect(p) as db: after=db.execute(\\\"SELECT * FROM inventory ORDER BY sku\\\").fetchall()\\n print(json.dumps({\\\"success\\\":success,\\\"before\\\":before,\\\"failure\\\":error,\\\"after\\\":after,\\\"partial_write_visible\\\":before!=after}))\\n\"\n  ],\n  \"stdout\": {\n    \"success\": {\n      \"accepted\": 2\n    },\n    \"before\": [\n      [\n        \"a\",\n        3\n      ],\n      [\n        \"b\",\n        4\n      ],\n      [\n        \"old\",\n        2\n      ]\n    ],\n    \"failure\": \"invalid quantity\",\n    \"after\": [\n      [\n        \"a\",\n        3\n      ],\n      [\n        \"b\",\n        4\n      ],\n      [\n        \"c\",\n        5\n      ],\n      [\n        \"old\",\n        2\n      ]\n    ],\n    \"partial_write_visible\": true\n  },\n  \"conclusion\": \"This adapter commits each applied row; a later invalid record leaves prior writes visible to a fresh connection. Applying directly to the visible destination cannot satisfy all-or-nothing failure. This says nothing about an unimplemented staging/publication/recovery design.\"\n}\n",
+    "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md": "# Architecture\n\n## Stack\n\nPython standard library; sqlite3 persistence and unittest. Preserve installed adapter 2.3; its source digest and direct-write limitation are in docs/evidence/adapter.json.\n\n## Structure\n\nExisting src/adapter.py applies rows; tests/test_baseline.py tests a single-row roundtrip. data/seed.json is retained read-only. Planned src/batch_import.py will own validation, staging and publication/recovery; src/__main__.py will own argparse and process result reporting. Planned tests/support.py, tests/test_support.py, tests/test_importer.py and tests/test_import_cli.py extend existing unittest conventions.\n\n\nNamespace/data map (AD-3/AD-4): one execution environment, local Python package src resolved from repository root. Existing exported adapter.apply(db_path, rows) and VERSION remain unchanged. New module src.batch_import exports import_json(db_path, input_path) only for CLI/tests; private helpers _validate_rows, _stage_inventory and _publish_inventory own internals. src.__main__.main(argv=None) supplies the public CLI and calls import_json; it imports argparse/json/sys and the local batch_import module. batch_import imports the existing adapter plus stdlib json/pathlib/sqlite3/tempfile; no module named after stdlib is added. tests.support owns test-only disposable fixtures, fresh reader and bounded child barrier utilities, imported by tests.test_importer and tests.test_import_cli. No existing name collides in the inspected tree. No remote namespace is introduced.\n\nSchema/storage (AD-4): destination remains authoritative inventory(sku TEXT PRIMARY KEY, quantity INTEGER), owned by local user and existing adapter. No new persistent schema, version table or migration. New application validation is stricter than SQLite storage: nonempty string SKU, exact nonnegative int, unique SKU per batch; invalid old values in unrelated SKUs are preserved, not silently repaired. Stage is a full SQLite backup for existing databases, or a fresh stage for absent ones. Destination publication changes only inventory within one transaction; other tables/schema survive. Empty batch returns 0 without creating the destination. Invalid JSON is rejected before any stage/destination creation. A failed publication into an initially absent database may leave an empty file but no visible inventory; contract is inventory state, not file-byte absence except invalid-input no-touch cases. Stage directories are uniquely owned beside destination (tests always under scratch), cleaned after normal exit, and never auto-published on restart. After abrupt death, orphan stages may remain and are safely ignored; do not broadly delete unknown files. SQLite handles hot-journal rollback on reopening. No sensitive data, quota or separate identity service is specified. Filesystem permissions remain the user's authority; source/seed are immutable.\n\n## Conventions\n\nSmall explicit functions; validate the complete JSON before effects; disposable fixtures; explicit transaction boundary; close connections before stage cleanup. Preserve existing adapter/baseline interfaces and tests. No third-party packages.\n\n## Interfaces and boundaries\n\nPlanned CLI: python3 -B -m src import-json --db PATH --input PATH. Proposed JSON grammar: array of exact {sku, quantity} objects, SKU nonempty string, quantity exact int >=0 (bool rejected), duplicate SKU rejected. Empty array is a no-op. These are recorded defaults where request leaves grammar open. Adapter remains the row application engine, directed at a private stage; it cannot be made atomic by an outer connection's rollback because it owns connections and commits per row.\n\nSelected publication: open existing destination read-only and use sqlite3.Connection.backup into an isolated snapshot, close snapshot connections, apply validated rows with adapter.apply(stage, rows), then ATTACH the completed stage to a separate destination connection with isolation_level=None. BEGIN IMMEDIATE, CREATE TABLE IF NOT EXISTS inventory using the existing schema, DELETE FROM main.inventory, INSERT INTO main.inventory SELECT sku, quantity FROM staged.inventory, COMMIT. Use execute calls, never executescript (which can change transaction handling). Roll back on precommit exceptions including interruption, close connections in finally, and clean owned staging only. No journal file is manually removed. E1 in RUN/notes/planning-experiments.md and scratch/planning/transaction-probe-output.json observed old-state readers and rollback after kills at actual DELETE/INSERT, recovery/retry, success and a broken-autocommit control. This establishes feasibility on default local SQLite, not product acceptance. Do not replace database files or touch unrelated tables. Snapshot and complete inventory copy are O(database size + batch size); no performance target is invented. No concurrent writers are allowed. Successful COMMIT defines publication; termination before commit preserves old inventory, termination after commit preserves the full new inventory even if success acknowledgement is lost. This boundary is an explicit assumption to carry into implementation and reporting.\n\n## Real-boundary checks\n\nAll checks run locally against new disposable SQLite paths, never the retained seed. User entry is a CLI, so subprocess status/stdout/stderr and separately reopened database state are the consumer boundary; a direct function pass is insufficient for TC_01/TC_10. No remote service, cache, async notification, browser session, device or deployed gate is part of the supplied product. No external boundary was probed or verified.\n\nTC_01 (planned; implementation owner; due implement/test and system-test): create B=[(keep,9),(old,2)], write J=[{sku:old,quantity:7},{sku:new,quantity:3}] as proper JSON in an owned temporary directory, close setup connections, invoke the planned CLI with both absolute paths. Require code 0, parsed JSON accepted=2, fresh-connection sorted rows S=[(keep,9),(new,3),(old,7)]. Invoke it again with identical file; require exactly S. This is permitted by upsert/idempotence and unrelated-SKU rules of R-1. Oracle is the independently enumerated B/J merge, not command output. Source: environment.md case table and spec.md R-1/R-2.\n\nTC_02/TC_03/TC_04/TC_07 (planned; implementation owner; due implement/test): setup B separately each time. Input validation rejects the whole batch before effects. For adapter failure, execute one real adapter stage write then raise. For stage interruption, wait on a pipe barrier after staged commit and kill/wait. For publication failure, raise after a real uncommitted destination mutation. Reopen destination and require B, error/no success, integrity_check=ok. Independent observer must never use the writer's connection or a stage file.\n\nTC_05/TC_06 (planned; implementation owner; due implement/test and system-test): from fresh B, start child import J, handshake after first actual destination mutation before COMMIT, query B through a separate connection while child pauses, kill/wait, reopen and require B. Start command anew, with orphan stage retained; it must ignore/discard the orphan, import J freshly and yield S; repeating gives S. A deterministic barrier must prove the mutation happened before the kill. Re-run with before-BEGIN and before-COMMIT pauses. SQLite reopen and rollback must occur without manually deleting journal files. No arbitrary stage is auto-published as recovery.\n\nTC_08/TC_09/TC_10 (planned; implementation owner; due implement/test): empty and absent-destination rules in environment.md; after-COMMIT kill must expose S and safe retry (commit/acknowledgement distinction); inspect adapter/seed hashes and suite registration. Compare logical SQL inventory for atomicity; use hash equality specifically for unchanged source/seed. No numeric workload SLA or external permissions are inferred.\n\nProcedure review: B and S are independently enumerated from R-1 (old overwritten to7, new inserted3, keep preserved9); all starts can be created by the supplied adapter on disposable databases, with local authority. Feature sequences NOT-REPLAYED because product/handshake helper do not exist. Plan implementation of those fixtures/barriers before assertions. Current runtime and existing single-row baseline evidence: RUN/scratch/planning/baseline.json. Proposed checks remain due, not passed.\n\n## Decisions\n\nAD-1: Preserve supplied standard-library stack and existing baseline; accepted.\n\nAD-2: Direct-to-visible adapter application is excluded by supplied exact-adapter evidence. Preserve adapter by isolating its row commits in a private stage. E1 confirmed the explicit destination transaction can contain the private stage copy on the supplied default runtime; choose it over file replacement. Product interruption/recovery tests remain due. Acceptance tests must kill during actual publication, not only staging.\n\n\nAD-3: Local synchronous CLI and module namespace above; accepted planning choice. Reuse src and unittest; no server, browser, queue, cache, network, installation or dependency. User invokes command, argparse parses explicit paths, importer validates and stages, SQLite commit publishes, stdout acknowledges. Alternative interactive/background service adds no required capability. Failures reach stderr and nonzero status; no success before commit. No acknowledgement of durable deferred work exists, so crash-after-ack-before-processing is inapplicable.\n\nAD-4: Keep existing SQLite schema and database identity; accepted planning choice. Snapshot staging plus one main-database transaction preserves unrelated SKUs/tables and uses native recovery. Alternatives direct adapter writes (disproven) and os.replace (unnecessary journal/reader risks) rejected. No schema migration or dual-store switchover. Default journal configuration only is currently evidenced; if implementation changes it, revalidate before claiming support.\n\nAD-5: Deterministic child-process fault instrumentation in tests; accepted planning choice. Test wrappers delegate real sqlite3 operations and adapter calls, then handshake on a pipe. Pause after actual destination DELETE/INSERT before COMMIT; kill/wait; reopen independently. No production debug flags or sleep timing. Fixture/barrier implementation is a prerequisite W1; importer W2 consumes it; CLI integration W3 consumes both. Broken-autocommit control must be detected. E1 is disposable feasibility evidence, never copied as product implementation or treated as product acceptance.\n\nAD-6: COMMIT defines atomic publication, and stdout is subsequent acknowledgement; explicit boundary assumption. Precommit interruption exposes B; postcommit interruption exposes complete S with safe retry. The literal interpretation that every process interruption including after successful commit restores B is not implementable with a separate stdout acknowledgement. Keep this limitation visible, avoid false rollback claims, and cover both sides with TC_05/TC_09. Strict input grammar and empty no-op are design defaults, not previously observed product contracts.\n\n## Superseded\n\nNone.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md": "# Environment\n\n## Targets and runtimes\n\nLocal Python 3.9.6, SQLite 3.54.0, standard library only. Product target: a local SQLite inventory path and JSON input file, with one writer; readers reopen between commands. No remote deployment, endpoint, credential, browser UI or device is specified or authorized. Browser/native remote testing is inapplicable to this CLI scope; no external capability is claimed. Revalidate if scope or runtime changes.\n\n## Commands\n\nRun from the repository root. Set TMPDIR to a precreated owned scratch directory (ShipLoop: RUN/scratch); all fixture databases and files must live there, never in data/. Full suite is available and currently selects one baseline case; after implementation it must discover every new class below too. Expected cost: seconds, with bounded subprocess waits; no numerical performance requirement is inferred.\n\n```sh\npython3 -B -m unittest discover -s tests -v\n```\n\nCurrent focused baseline and current smoke (one case; not full future coverage), observed exit 0 with test_single_row_roundtrip:\n\n```sh\npython3 -B -m unittest tests.test_baseline -v\n```\n\nPlanned facility readiness command, due in W1 before W2/W3. Add tests/test_support.py with class HarnessReadiness methods test_fixture_roundtrip, test_real_mutation_barrier, test_timeout_cleanup and test_broken_control_detection. It imports only existing src.adapter, tests.support and stdlib. Expected seconds; uses owned TMPDIR and bounded child waits. Require all four methods selected/passing; it proves fixture/process-control capability, never batch acceptance.\n\n```sh\npython3 -B -m unittest tests.test_support -v\n```\n\nPlanned focused feature command, NOT runnable until implementation adds these modules/classes. Inclusion: TC_02 through TC_09 plus TC_01 and TC_10; prerequisites: implemented command, fixture helper, deterministic phase handshakes. Expected seconds, timeout enforced per child. Due: implement/test, not planning.\n\n```sh\npython3 -B -m unittest tests.test_importer tests.test_import_cli -v\n```\n\nPlanned feature smoke, TC_01 plus TC_05 only (success and killed publication); due after their implementation. Expected seconds. It is a bounded subset of the full suite.\n\n```sh\npython3 -B -m unittest tests.test_import_cli.TC_01 tests.test_importer.TC_05 -v\n```\n\nPlanned public interface, to be implemented and then checked through subprocess (no claim of execution):\n\n```sh\npython3 -B -m src import-json --db inventory.sqlite --input batch.json\n```\n\nNo existing CLI entry exists. The new interface will return 0 only after commit and JSON {\"accepted\": N}; invalid input or precommit operational error returns nonzero, diagnostics on stderr, no success output. An interrupted process is not a success. Commit is the publication boundary; a crash after commit may lose acknowledgement but must leave the complete result, and retry must be safe. This boundary interpretation is an explicit design assumption, not a claim that postcommit termination can undo a commit.\n\n## Skills\n\nInstalled ShipLoop uses inline execution; Improve is bound by its returned handoff. No model process, advisor, delegation, network or package install is needed for product testing.\n\n## Harnesses and suites\n\nUse the existing unittest runner, sqlite3, subprocess, tempfile, signal, pathlib, json and unittest.mock. Baseline readiness: RUN/scratch/planning/baseline.json records exact argv, cwd, runtime, configuration, revision, source/seed hashes and exit/output. One baseline roundtrip passes; it proves neither CLI behavior nor atomic batches. The supplied docs/evidence/adapter.json source digest matches installed src/adapter.py. Reuse its observation: direct application commits each row and can expose a prefix on failure; do not repeat that characterized experiment.\n\nFixture lifecycle: extend tests/ with tests/support.py and its standalone readiness suite tests/test_support.py during implementation. Its interface will provide an owned TemporaryDirectory, create an independent inventory old=2, keep=9, read sorted rows using a newly opened SQLite connection, write JSON, run CLI with captured stdout/stderr/returncode, and start/stop a child at deterministic phase barriers. Never load or mutate data/seed.json as the test database. Parent always kills/waits for owned children in finally blocks and uses bounded condition waits, never sleep-based timing. Fixture setup and cleanup must work before feature assertions. Owner: implementation; prerequisite before dependent fault cases. No reusable fault helper exists yet. Existing baseline fixture pattern is the nearest exemplar. Each test receives fresh state so a cached pass or previous publication cannot satisfy it. No persistent external state or sign-in.\n\nNew source placement planned: src/batch_import.py (validation, staging, publication and recovery) and src/__main__.py (argparse CLI). Keep src/adapter.py unchanged and call adapter.apply on an isolated stage. Unit/component runner is available; helpers and feature tests are planned implementation work. Tests use the actual adapter and fresh-connection SQL as independent observations; mock only specific failure points or wrappers that call the real implementation before failing. Fault hooks belong in test wrappers/child harnesses, not publicly exposed production environment switches.\n\nNo coverage package is installed or required. Behavioral case accounting and discovery counts provide coverage evidence; line coverage would not prove atomicity. Revalidate harness selection if Python/SQLite, command shape, publication design or test discovery changes. Inspect host tools by capability: exposed exec_command supplies local child-process control and filesystem observations; connected app tools supply no needed product boundary. Local shell and unittest were actually exercised. No live service probe is required or authorized.\n\nAll following cases are PLANNED, owned by implementation and due in implement/test, then full system-test regression. R-1 means the complete request in spec.md; R-2 means data-loss/false-success prevention and standard-library baseline preservation. Concrete baseline B=[(\"keep\",9),(\"old\",2)]; batch J=[{\"sku\":\"old\",\"quantity\":7},{\"sku\":\"new\",\"quantity\":3}]; sorted successful result S=[(\"keep\",9),(\"new\",3),(\"old\",7)]. SQL observer queries SELECT sku, quantity FROM inventory ORDER BY sku from a fresh connection, not importer output. State comparisons are logical inventory, not SQLite byte equality.\n\n| ID | Requirement / preservation | Layer and required surface | Inputs, negative controls, expected independent result | Prerequisite |\n| --- | --- | --- | --- | --- |\n| TC_01 | R-1 JSON command, complete batch, unrelated SKU preservation, update and idempotence; R-2 truthful success | e2e CLI subprocess + fresh SQLite reopen | Start B, import J, return 0 accepted=2 and exact S; repeat same CLI input and require S and same count. Assert no prefix observed before commit. Missing CLI is the initial expected failure. | CLI + importer |\n| TC_02 | R-1 invalid record anywhere; R-2 no false success | component importer + SQL | Valid first row, invalid middle quantity=-1, valid final row; require B and failure. Table cases malformed JSON, non-list, non-object rows, missing/empty/non-string SKU, missing/negative/float/string/bool quantity, unexpected keys and duplicate SKUs. Validate whole input before adapter use. Reject duplicates; empty array is accepted=0 no-op. | validator |\n| TC_03 | R-1 adapter error leaves old inventory; keep installed adapter | component real adapter wrapped for fault + SQL | Real adapter commits one staged row, wrapper raises RuntimeError; visible B, failure, no success. Spy proves adapter.apply receives private stage path and validated records, never visible destination. | staging |\n| TC_04 | R-1 interrupted import before publication | component child process + SQL | Pause after first real staged commit, kill child; B while paused and after death. Recovery must not publish orphan. | deterministic stage barrier |\n| TC_05 | R-1 interrupted publication | component child process + SQLite boundary | Start B, run J; pause after first actual destination mutation inside uncommitted transaction; fresh reader still B; kill child, wait, reopen, require B and integrity_check=ok. Include before-BEGIN/before-COMMIT barriers. A kill before publication alone cannot satisfy this case. | actual publication barrier |\n| TC_06 | R-1 recovery and idempotence; R-2 no data loss | component + CLI | After TC_04/TC_05 conditions, restart same CLI with J on its own copy of B and orphan scratch; exact S, repeat S; unrelated abandoned or corrupted stage never becomes authority. No test-order dependency. | recovery + CLI |\n| TC_07 | R-1 adapter/publication errors; R-2 truthful diagnostics | component transaction + CLI | Raise SQLite/OS exception after first destination mutation but before COMMIT; rollback B. Busy/read-only destination and unreadable input return nonzero with no success or partial result. Inject permission failures portably instead of relying on root chmod. | rollback/error handling |\n| TC_08 | R-1 valid/invalid input edge states, preserve existing behavior | unit/component | Empty array leaves B unchanged, nonexistent destination with invalid JSON remains absent; valid new destination gets J; absent destination empty array accepted=0 and remains absent. Baseline adapter single-row roundtrip remains passing. | validator/staging/publication |\n| TC_09 | R-1 complete publication, retry; R-2 lost acknowledgement distinction | component child + SQL | Pause just after COMMIT before success output; kill; require complete S, never prefix. Retry J gives S. Do not claim an already committed import was rolled back because output was lost. | postcommit barrier |\n| TC_10 | R-1 standard library, retained seed and installed adapter preservation; R-2 regression | e2e CLI + repository/source inspection | Feature subprocess success/failure statuses and diagnostics; compare seed and adapter digests before/after complete suite; no third-party imports/dependencies introduced; unchanged baseline still selected. | full suite registration |\n\nExpected-failure controls at implementation: absent CLI/module on base proves TC_01 red; direct-to-visible adapter control (already observed in adapter.json) would fail TC_02/TC_03; a deliberately split/early commit publication control must fail TC_05/TC_07; skipping adapter must fail TC_03 spy. Keep controls separate from candidate passing results. New test discovery must print nonzero selected counts and the declared IDs; a missing module/import error is setup failure after tests have been authored, not a satisfactory RED.\n\nState/data assessment: user owns the destination; CLI reads JSON, writes only stage before publication, then commits inventory in one transaction. Before commit B remains authoritative; on commit S is visible in full; precommit exception or process death leaves B. Temporary stages are private disposable files, never a recovery source to auto-publish. Recovery removes only owned artifacts or ignores them safely, and relies on SQLite rollback/reopen; retained seed stays read-only. No concurrent writers, remote cache/event delivery, deployment or cross-account permissions are in scope. No scale/latency threshold was specified; bounded child waits protect the harness, not a performance claim.\n\n## ID convention\n\nNew unittest classes use standalone TC_01..TC_10 class names with ordinary test_ methods, so verbose output contains the exact ID as a word (e.g. test_cli_success (test_import_cli.TC_01) ... ok). Planned title lines:\n\n```text\ntest_cli_success (test_import_cli.TC_01)\ntest_invalid_middle (test_importer.TC_02)\ntest_adapter_failure (test_importer.TC_03)\ntest_killed_staging (test_importer.TC_04)\ntest_killed_publication (test_importer.TC_05)\ntest_recovery_retry (test_importer.TC_06)\ntest_publication_error (test_importer.TC_07)\ntest_edge_states (test_importer.TC_08)\ntest_lost_acknowledgement (test_importer.TC_09)\ntest_preservation (test_import_cli.TC_10)\n```\n\nExisting ID listing (currently no TC IDs taken); includes source titles rather than executing tests:\n\n```sh\nrg -n 'class TC_[0-9]+|def test_' tests\n```\n\n## Access and accounts\n\nOnly owned worktree/scratch and supplied runtime/evidence are authorized. No product external endpoint or credential exists; external compatibility is unobserved and outside scope, not a successful live test.\n\n## Platform facts\n\nThe exact adapter (digest in docs/evidence/adapter.json) commits per row and returns accepted=len(rows). SQLite connections and unittest are available. Disposable E1 (RUN/notes/planning-experiments.md; RUN/scratch/planning/transaction-probe-output.json) confirms snapshot staging and explicit transaction rollback/publication on the default local runtime; it is feasibility evidence only. Durable product and CLI tests remain due. Process-crash tests do not prove behavior under power loss, disk corruption, arbitrary filesystem semantics or concurrent writers. A postcommit lost acknowledgement cannot be distinguished by exit status alone; inspect inventory/retry safely.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md": "# Product specification\n\n## Requirements\n\nR-1: Extend this local Python inventory tool with a JSON batch-import command. Import must be all-or-nothing: any invalid record, adapter error or interrupted import leaves the previously visible inventory unchanged; successful publication exposes the complete new batch and preserves unrelated existing SKUs. Repeating a successful import is idempotent. Keep the installed adapter for applying rows unless evidence shows an alternative is needed. Discovery already characterized this exact adapter and configuration; its commands, source hash and observations are in docs/evidence/adapter.json. No concurrent writers are in scope; readers can reopen the database between commands. Use only Python's standard library. Temporary local experiments on disposable databases are authorized. Do not mutate the retained seed inventory. Add automated CLI, invalid-middle-record, interrupted-publication and recovery checks as implementation work. Existing tests must remain passing.\n\n## Non-functional requirements\n\nR-2: Keep data loss and false success visible; preserve the existing baseline and require repeatable behavioral tests for the new command. Use only the stated local standard-library runtime.\n\n## Retired\n\nNone.\n",
+    "TRIAL/.shiploop-runs/seed/run/notes/plan-graph.json": "{\n  \"goal\": \"The local inventory JSON import CLI is atomic before commit and idempotent with complete publication and repeatable recovery checks.\",\n  \"initial_state\": [\n    \"The standard-library unittest baseline selects one passing single-row case on unchanged source/tests; evidence scratch/planning/baseline.json.\",\n    \"Installed adapter.apply commits per row and must run privately; exact source hash matches docs/evidence/adapter.json.\",\n    \"E1 supports SQLite backup and one destination transaction with crash rollback on default local runtime; evidence scratch/planning/transaction-probe-output.json.\",\n    \"Owned scratch/worktree is writable; no concurrent writers or external product endpoint are in scope.\"\n  ],\n  \"goal_needs\": [\n    \"The JSON CLI exposes complete batches, truthful status and safe retries, with all planned cases and unchanged baseline registered in full regression.\"\n  ],\n  \"steps\": [\n    {\n      \"id\": \"S1\",\n      \"statement\": \"Isolated fixture, independent reader and bounded real-mutation child barrier are usable without product modules.\",\n      \"produces\": [\n        \"Isolated fixture, independent reader and bounded real-mutation child barrier are usable without product modules.\"\n      ],\n      \"inputs\": [\n        {\n          \"need\": \"The standard-library unittest baseline selects one passing single-row case on unchanged source/tests; evidence scratch/planning/baseline.json.\",\n          \"from\": null\n        },\n        {\n          \"need\": \"Owned scratch/worktree is writable; no concurrent writers or external product endpoint are in scope.\",\n          \"from\": null\n        }\n      ],\n      \"origin\": \"seed\",\n      \"confirm\": [\n        {\n          \"produces\": \"Isolated fixture, independent reader and bounded real-mutation child barrier are usable without product modules.\",\n          \"by\": \"Run python3 -B -m unittest tests.test_support -v; pass when HarnessReadiness.test_fixture_roundtrip, test_real_mutation_barrier, test_timeout_cleanup and test_broken_control_detection all run without product modules and pass, then unchanged baseline stays green.\",\n          \"level\": \"execute\"\n        }\n      ]\n    },\n    {\n      \"id\": \"S2\",\n      \"statement\": \"import_json preserves old inventory on precommit failure and publishes an idempotent complete staged inventory with component crash/recovery evidence.\",\n      \"produces\": [\n        \"import_json preserves old inventory on precommit failure and publishes an idempotent complete staged inventory with component crash/recovery evidence.\"\n      ],\n      \"inputs\": [\n        {\n          \"need\": \"Isolated fixture, independent reader and bounded real-mutation child barrier are usable without product modules.\",\n          \"from\": \"S1\"\n        },\n        {\n          \"need\": \"Installed adapter.apply commits per row and must run privately; exact source hash matches docs/evidence/adapter.json.\",\n          \"from\": null\n        },\n        {\n          \"need\": \"E1 supports SQLite backup and one destination transaction with crash rollback on default local runtime; evidence scratch/planning/transaction-probe-output.json.\",\n          \"from\": null\n        }\n      ],\n      \"origin\": \"seed\",\n      \"confirm\": [\n        {\n          \"produces\": \"import_json preserves old inventory on precommit failure and publishes an idempotent complete staged inventory with component crash/recovery evidence.\",\n          \"by\": \"Run python3 -B -m unittest tests.test_importer -v; pass when TC_02..TC_09 are selected and pass, actual after-mutation crash leaves B, success/retry gives S, and baseline remains green; demonstrate defect-sensitive controls.\",\n          \"level\": \"execute\"\n        }\n      ]\n    },\n    {\n      \"id\": \"S3\",\n      \"statement\": \"The JSON CLI exposes complete batches, truthful status and safe retries, with all planned cases and unchanged baseline registered in full regression.\",\n      \"produces\": [\n        \"The JSON CLI exposes complete batches, truthful status and safe retries, with all planned cases and unchanged baseline registered in full regression.\"\n      ],\n      \"inputs\": [\n        {\n          \"need\": \"import_json preserves old inventory on precommit failure and publishes an idempotent complete staged inventory with component crash/recovery evidence.\",\n          \"from\": \"S2\"\n        },\n        {\n          \"need\": \"Isolated fixture, independent reader and bounded real-mutation child barrier are usable without product modules.\",\n          \"from\": \"S1\",\n          \"artifact\": \"tests/support.py and tests/test_support.py readiness results\"\n        }\n      ],\n      \"origin\": \"seed\",\n      \"confirm\": [\n        {\n          \"produces\": \"The JSON CLI exposes complete batches, truthful status and safe retries, with all planned cases and unchanged baseline registered in full regression.\",\n          \"by\": \"Run planned focused/smoke/full commands in docs/shiploop/environment.md; pass when TC_01..TC_10 and test_single_row_roundtrip are selected without skips/zero counts, subprocess status agrees with independent SQL results, and seed/adapter digests remain unchanged.\",\n          \"level\": \"execute\"\n        }\n      ]\n    }\n  ],\n  \"parallel_groups\": [],\n  \"unresolved\": []\n}\n",
+    "TRIAL/.shiploop-runs/seed/run/notes/plan.md": "# Inventory import plan\n\nSource authority: request.md S1..S11 and WORKTREE/docs/shiploop/spec.md R-1/R-2. Synthetic intake/discovery/research/spec records are context, not performed work. Baseline: scratch/planning/baseline.json, one unchanged single-row test passes, installed adapter digest matches docs/evidence/adapter.json. Missing synthetic discovery/research/current-system-baseline notes are not reconstructed as executed history.\n\nDesign basis: preserve adapter/stdlib/schema/single-row baseline, add a synchronous JSON CLI. User -> argparse -> import_json -> complete validation -> private SQLite backup and real adapter.apply -> one destination SQLite transaction -> success JSON. Destination is the authority, staging is disposable. No deferred processing, cache, channel, server or graphical UI. Existing runtime, helper pattern and SQLite native recovery suffice. E1 supports transaction publication, so no adapter replacement or os.replace is warranted. No external endpoint/credential exists; none was probed. Command/fixture/ID details live in docs/shiploop/environment.md; structure, schema and AD-1..AD-6 live in architecture.md. All new feature acceptance remains due after implementation.\n\n## Ordered increments\n\nW1: Independently usable unittest disposable-inventory and bounded process-barrier facility (tests/support.py plus tests/test_support.py helper checks). Ready: recorded current baseline, owned scratch, stdlib runtime. Done: fixture builds B, independent reader sees B, JSON writer emits exact J, child wrapper visibly executes a real SQLite mutation before signalling, timeout cleanup kills/waits without hanging, broken autocommit yields [] detected by the observer; helper tests load without new product modules. No feature acceptance is claimed. This is a genuine missing reusable-facility prerequisite, not an item for generic test/review stages.\n\nW2: Atomic importer API and durable component checks (src/batch_import.py and tests/test_importer.py). Needs W1's functioning fixture/read/kill helper, exact-adapter evidence and E1. Own TC_02..TC_09 component obligations: complete validation, private stage, adapter fault, staging kill, real publication kill, recovery and safe retry, rollback/error, empty/absent DB edges and postcommit lost-ack full-state behavior. Loadable seam: import existing src in test module; assert find_spec('src.batch_import') inside test before importing there, so the preimplementation suite loads and fails explicit missing-capability assertions rather than import/discovery errors. W2 Done: actual component tests pass with independently enumerated B/S; new tests demonstrate behavior failure against item base with calibrated controls (no passing skip or setup import failure); baseline remains passing. CLI portions of TC_06/TC_09 remain due W3. Documentation updates accompany this implementation item under normal stages, no separate docs-only item.\n\nW3: Public CLI integration and retained operator instructions (src/__main__.py, tests/test_import_cli.py, README.md, maintained knowledge). Needs W2 import_json success/error contract and W1 helpers; readiness invokes W2 component suite and checks receipts. Own TC_01/TC_10 and CLI parts of TC_06/TC_07/TC_09: actual python -m src subprocess, argument/error handling, return/status JSON only after commit, exact fresh SQL inventory S, repeat idempotence and unrelated preservation, restart after interrupted publication, no false precommit success, full new state after lost acknowledgement. Test module loads existing src then checks module availability inside case; do not require a stub source file for RED. Done: focused, smoke and full commands in environment.md execute named classes without skips/zero selection; baseline remains passing, adapter/seed digests unchanged, no third-party dependency; docs match observed CLI and recovery. Guarded local workspace return remains owned by later ShipLoop delivery stages; no external deployment operation is planned or authorized. This trial stops before prepare and executes none of W1..W3.\n\n## Dependency audit\n\nRoute: inline manual five-lens dependency audit, no optional Backchain model call, no agent or advisor. Structural graph candidate notes/plan-graph.json is checked by the installed backchain-check.\n\nCLAIM: W1 yields a functioning isolated fixture/control facility, W2 yields atomic import API with component receipts, W3 yields actual CLI/recovery behavior and usable documentation. Artifact presence alone does not satisfy any claim.\nNEEDS: W1 needs runtime/baseline and writable scratch; W2 needs actual observer/fault facility, exact adapter contract, transaction capability, schema and independent oracles; W3 needs W2's verified API plus actual process/status and fresh-DB observation. Runtime and adapter facts have baseline/supplied evidence; E1 resolves mechanism, and missing fixtures are produced W1 before W2/W3.\nSUPPLY: W1 helper readiness tests prove barrier and cleanup against a SQLite stand-in without importer; W2 produces checked importer API and actual crash/recovery results, not merely code files; W3 calls those through a real CLI, not a mock. E1 cannot supply CLI or product acceptance.\nPULL: TC_05 demands mutation-before-kill proof, requiring W1 delegate-then-signal facility and W2 real transaction seam; TC_06 CLI restart requires W3 entrypoint, so component results alone cannot close it. CLI tests import no future implementation at module load. No consumer needs a schema migration, network, auth or persistent cache.\nRESOLVE: all necessary suppliers are either evidenced initial facts or concrete W1/W2 outputs. Forward walk: runtime/baseline -> W1 helper -> W2 importer/component receipts -> W3 CLI/full regression. No cycle or independent branch is hidden. W2/W3 share source/test/docs, so queue stays serial; no parallel writer safety is claimed. Strict grammar and COMMIT/ack semantics are explicit design defaults. New-destination/orphan/error/lost-ack product cases are open implementation work, not feasible missing runtime-contract probes.\n\nVerification due: W1 facility readiness precedes feature assertions; W2 component RED/green and preservation, W3 CLI and full suite; later system-test reruns complete product boundaries. Tests authored/commands planned are distinct from executed passes. No scale SLA, external deployment or graphical UI requirement exists. If implementation invalidates E1's setup or assumption, gate dependent work and use ShipLoop's correction route rather than weakening criteria.\n\nStructural check: installed ShipLoop `backchain-check --run-dir TRIAL/.shiploop-runs/seed/run --candidate TRIAL/.shiploop-runs/seed/run/notes/plan-graph.json` returned exit0, valid/complete, 3 steps, 0 unresolved/unconfirmed produces; receipt TRIAL/.shiploop-runs/seed/run/backchain/nav-8ca0604f8cac41eab5d52e13fc3b6827/check-6269dc3b549f.json. This checks shape/dependencies, not actual feature behavior.\n\nPlan callback schema correction: initial submission rejected `owner_stage=implement` for concerns; allowed allocation uses step-plan to carry concern decisions into each implementation item. No criterion, ordering or product assumption changed.\n\n## Plan Improve correction\n\nSelf-review found two plan-local supply gaps: graph S3 named the importer supplier S2 but not its independently consumed S1 test-helper carrier, despite W3 context already requiring both; W1 readiness was specified behaviorally without a concrete module/command. Corrected S3 to consume S1 explicitly and defined tests/test_support.py HarnessReadiness, with the exact planned command in environment.md and W1/W2/W3 contexts. Four helper checks prove actual fixture state, delegated real-mutation barrier, broken-autocommit detection and timeout cleanup without future product imports. No source/tests are authored now. No upstream premise changes and no new experiment is warranted; supplied adapter evidence/E1 remain sufficient. A fresh structural check is required for the revised graph. Product tests remain due implementation/test, and trial stops at prepare.\n\nRevised graph receipt TRIAL/.shiploop-runs/seed/run/backchain/nav-8ca0604f8cac41eab5d52e13fc3b6827/check-581ae1218d9a.json: exit0 valid/complete, 3 steps, 7 inputs, all produces confirmed, 0 unresolved. Earlier receipt remains historical, not the current graph identity.\n",
+    "TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md": "# Planning investigation\n\n## Predeclared decision E1\n\nRecorded before execution: 2026-11-08T07:39:08.943693+00:00. Decide whether to retain adapter 2.3 on a private SQLite backup snapshot and publish the staged inventory through one explicit destination transaction, or need another mechanism. Direct adapter writes are already disproven by supplied adapter.json; do not repeat that characterization. Alternative considered: atomic file replacement, which introduces unproven journal/WAL/reader hazards. A single database transaction avoids replacing database file identity and retains SQLite recovery.\n\nAffected consumers: staging/publication implementation and TC_03..TC_09. Representative exact installed adapter hash aa7e063e58da1315cfdc367183ecdafc690081c550f5109bf7d6c173aff6f2ac, default Python sqlite3 local connections, no concurrent writers, disposable owned databases only. Baseline B=[(keep,9),(old,2)], J=[{sku:old,quantity:7},{sku:new,quantity:3}], oracle S=[(keep,9),(new,3),(old,7)]. Use SQLite backup into private stage, real adapter.apply only there, then ATTACH stage and BEGIN IMMEDIATE + DELETE/INSERT + COMMIT on destination. A child pipe barrier after actual DELETE or INSERT permits an independent reopened reader to query B, then SIGKILL/wait and reopen to test recovery. Exceptions should roll back too. A deliberately autocommitted DELETE must expose [], proving the observer would detect broken publication. Success and repeated publication must expose exactly S. Record integrity_check and adapter/seed preservation hashes. New destination success is included; power-loss and concurrent-writer guarantees are not inferred.\n\nDiscriminator: reader B both before commit and after forced termination, S after commit/retry, negative control differs from B. Apparatus failure/timeout leaves A2 open and gates publication; a valid negative result requires revising publication design rather than claiming readiness. A valid positive result supports this approach on the tested runtime; durable product tests remain due after implementation.\n\nAuthority/effects: only RUN/scratch/planning, read supplied source/evidence; no source/tests/seed mutation, no network or credentials. Budget: one experiment, <=120 seconds, <=12 observable probe actions including cleanup; cleanup owner inline executor, kill/wait all children and delete disposable DB directories after outputs retained.\n\n## Shared allowance\n\nSynthetic research supplied no allowance notebook. No historical usage is invented. Conservative residual bound for this investigation: 5 active minutes, 16 host actions, one capability candidate and one experiment, including 2 minutes/8 actions reserved for evaluation/cleanup; this does not reset any known prior allowance. All prior work reused exact-adapter evidence and checked the baseline, with no product experiments. E1 is the sole new feasibility experiment. Record actual consumption after it returns.\n\n## E1 observation and decision\n\nObserved 2026-11-08T07:40:57.897253+00:00: command `python3 -B RUN/scratch/planning/transaction_probe.py`, cwd WORKTREE, TMPDIR=RUN/scratch/planning, exit 0; exact absolute argv, stdout/stderr in scratch/planning/transaction-probe-output.json; exact stand-in source in scratch/planning/transaction_probe.py. Runtime Python3.9.6/SQLite3.54.0. Private backup plus installed adapter produced S while destination remained B. At after-DELETE and after-INSERT barriers, reopened reader saw B; SIGKILL returned -9 and reopened destination still B, integrity_check=ok. Fresh publication after each kill and repeat yielded S. Injected exception rolled back B. Broken autocommitted DELETE exposed [] before/after kill, so observer detected partial publication. Publication into a new database produced the entire staged snapshot. This is a snapshot-copy capability check, not a new-destination import oracle: a real fresh import must contain only J. All owned children waited and database directories removed; adapter/seed hashes unchanged.\n\nDecision: choose staged adapter application followed by destination transaction copying inventory; do not use direct adapter writes or file replacement. Limit: this tiny default local database probe establishes the mechanism, not product CLI, malformed input, actual recovery orchestration, WAL settings, multiwriter, power-loss or full workload guarantees. Actual tests TC_01..TC_10 are still planned. No contradictory upstream premise was found.\n\nShared allowance consumed: one candidate/one experiment, four observable preparation/execution/evaluation actions, less than 2 active minutes (subprocess itself 0.291 seconds); conservative remaining 3 active minutes/12 actions, including reserved evaluation/cleanup, zero further experiments from the conservative residual. No apparatus failures or pending cleanup. Plan Improve must reuse sufficient E1 and supplied adapter evidence, and report rather than assume a larger historical allowance.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/nav-c5dbd3bf3157417a95cc5a501889ef70/planning-investigation.md": "# Planning Improve investigation\n\n2026-11-08T07:44:36.587675+00:00: reused producer E1, exact installed-adapter evidence, baseline and their original setup/output identities. Source notebook: TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md; exact E1 output: TRIAL/.shiploop-runs/seed/run/scratch/planning/transaction-probe-output.json. The frozen child adds no new allowance or outside endpoint. Producer carried a conservative residual of 3 active minutes/12 observable investigation actions, zero further experiments; original research accounting absent due to synthetic seed is retained honestly. This review used no new experimental action/candidate and no scratch runtime mutations. No pending probe cleanup. Review/read/document/check callbacks are not claimed as a fresh research budget.\n\nFrontier assessment: A1/A3/A4 supplied/current evidence sufficient; A2 representative transaction capability observed, so do not repeat its probe. A5 missing reusable facility is retained implementation work W1; the plan-local fix specifies a concrete readiness suite, not a new feasibility unknown. A6/A7 require actual product implementation and behavioral assertions, not another stand-in. No open load-bearing runtime contract is both unresolved and settleable by another bounded authorized probe now. No evidence contradicts accepted upstream request or strategy. Parent final_result preserves existing producer evidence and revised complete queue.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-fc3b6827/reviews/checks.md": "# Checks after plan review edits\n\nExact argv/cwd/exit/output: plan-checks.json in this directory. git diff --check exit0 (empty output). No source, existing test or seed hash changed; baseline.json remains applicable and is not rerun for document-only edits. Revised graph backchain-check command from handoff exit0, valid/complete: RUN/backchain/nav-8ca0604f8cac41eab5d52e13fc3b6827/check-581ae1218d9a.json, candidate sha256 581ae1218d9abfb4dbc081657f0f18c29cd6b7393c693ff54b9ffd49efb87190, 3 steps/7 inputs/0 unresolved/0 unconfirmed produces. Earlier 6269 receipt is historical only. ShipLoop lint --action=nav-8ca0604f8cac41eab5d52e13fc3b6827 exit0, zero findings, markdown only diff --check (no semantic linter).\n\nSemantic checks: W1 helper is independently checkable with tests.test_support without future product imports; W2 requires actual helper receipt; W3 directly consumes helper plus importer, CLI recovery remains owned W3. Four planned helper methods establish fixture, real-operation-before-barrier, broken control detection and cleanup. R-1/R-2 and TC_01..TC_10 remain mapped, strict validation and commit/ack caveat retained. B/J independently recompute S=[(keep,9),(new,3),(old,7)] under R-1 upsert and unrelated-preservation rules. NOT-REPLAYED: product/retained helper do not exist; implementation tests remain due. E1 is reused unchanged feasibility only: default local runtime, real adapter stage, actual destination DELETE/INSERT barrier kills, observed B rollback, S success/retry, broken-control []. No external endpoint/credential exists or was verified. All final_result evidence locators exist; complete W1/W2/W3 queue and A1..A7 retained.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-fc3b6827/reviews/review-1.md": "---\nclassification: non-trivial\nexit: unsatisfied\ncontinuation: allowed\n---\nRead: self-review (inline default); selected Improve card, ShipLoop route, current bound packet/contract/handoff/parent return; complete producer seed result and proposed queue; docs/shiploop/spec.md R-1/R-2, architecture.md AD-1..AD-6 namespace/schema/boundaries, environment.md commands/harness/IDs, RUN/notes/plan.md and plan-graph.json. Reused supplied docs/evidence/adapter.json and baseline/E1 exact runtime, hashes, commands and outputs. All reachable commit messages reread: 5d06d687e9117e0435d901778e533ae4f9d7f1bd test-strategy knowledge and 78d2f80767a4baeefcdd1712ae6f118c7efce60f seed; neither supplies new behavior evidence.\nFound: Plan-local material supply gaps: S3 consumed W1 test helpers in prose but had only S2 as graph input, and W1 had no exact readiness-suite module/command. Consumer path order alone did not carry its exact helper state. No accepted upstream premise was invalidated. Current default SQLite mechanism has sufficient E1 evidence; A5/A6/A7 require retained facility/product implementation, not another representative runtime experiment.\nChanged: Added S1's helper artifact as explicit S3 input, defined tests/test_support.py HarnessReadiness and four exact readiness methods/command in environment.md and W1/W2/W3 contexts, updated graph W1 confirmation/plan notes/architecture test layout, retained all original evidence and added revised graph receipt plus investigation note in complete final_result. No source, tests, seed or adapter edited. Parent must import final_result; old graph receipt is historical.\nChecked: Revised structural backchain-check exit0 valid/complete, 3 steps/7 inputs, no unresolved or unconfirmed produces; receipt check-581ae1218d9a.json. git diff --check exit0; source/test/seed hashes unchanged. Lint exit0 with zero findings, markdown semantic coverage not claimed. See checks.md and plan-checks.json. W1 readiness independent of future importer, W2 component API/TC_02..TC_09, W3 real CLI/TC_01/TC_10 and CLI recovery/error/lost-ack obligations have suppliers, ready/done checks and full-suite ownership. B plus J recomputes S by old->7, new->3, keep->9. Feature procedures NOT-REPLAYED because implementation is intentionally absent; tests remain planned. E1 stand-in capability and broken-control observations are reused, not relabeled acceptance.\nClass: Non-trivial because exact supplier/readiness contract changed. Corrections are checked, but the required qualifying pass has not yet occurred, so exit unsatisfied and continuation allowed.\n\n## Handoff\n\n**State and remaining work**: Complete plan review iteration1 fixed direct helper supply/readiness. Parent final_result is RUN/inbox/nav-8ca0604f8cac41eab5d52e13fc3b6827-final-result.md, complete queue W1->W2->W3, all original refs preserved. Scoped docs will be committed only through improve-pass/improve-commit. Bound runtime receipt .shiploop-improve/plan-fc3b6827/packet.json owns continuation; do not call parent complete while active. Next pass must review corrected artifacts, not repeat E1. User stop boundary is prepare after actual plan Improve import; no prepare/implementation work.\n\n**Current learnings**: Name all actual suppliers, including independently consumed transitive artifacts; specify an exact readiness command that works before product implementation. Runtime feasibility probe cannot supply CLI/facility acceptance. Adapter remains real row engine on stage; explicit destination transaction owns publication. COMMIT before stdout means postcommit crash can lose acknowledgement but complete inventory and retry must remain safe.\n\n**Evidence**: RUN/notes/{plan.md,plan-graph.json,planning-experiments.md}; RUN/scratch/planning/{baseline.json,transaction_probe.py,transaction-probe-output.json}; WORKTREE/docs/shiploop/{spec,environment,architecture}.md; exact current graph receipt RUN/backchain/nav-8ca0604f8cac41eab5d52e13fc3b6827/check-581ae1218d9a.json; checks.md/plan-checks.json here. Investigation note WORKTREE/.shiploop-improve/nav-c5dbd3bf3157417a95cc5a501889ef70/planning-investigation.md retains zero new experiments and existing allowance/cleanup limits. No external readiness claimed. Remaining A5 W1/A6 W2/A7 W3 are implementation obligations.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-fc3b6827/reviews/review-2.md": "---\nclassification: trivial\nexit: satisfied\ncontinuation: allowed\n---\nRead: self-review (inline default), returned iteration2 packet and prior pass findings; current complete final_result, notes/plan.md Ordered increments/Dependency audit/Plan Improve correction, notes/plan-graph.json, environment.md Commands/Harnesses and suites, architecture.md Structure/AD-1..AD-6 and spec.md R-1/R-2. Read all three reachable full commit messages at this callback start: 77aaa85959ed3fcb456dc38a3c8c3fdfef384f3e (explicit fixture readiness/supply lesson), 5d06d687e9117e0435d901778e533ae4f9d7f1bd (strategy knowledge), 78d2f80767a4baeefcdd1712ae6f118c7efce60f (seed).\nFound: Corrected suppliers now agree across graph and work-item contracts: S3 needs S2 verified importer and S1 actual helper; S1 names tests.test_support readiness, whose four methods run without future modules. W1 readiness -> W2 component implementation -> W3 CLI integration is a forward executable order without circular tests. No additional material gap found. A1 exact adapter, A2 default transactional mechanism, A3 scope and A4 baseline have current evidence; A5 fixture implementation W1, A6 product API/fault acceptance W2 and A7 actual CLI W3 remain honestly open, with no missing bounded runtime probe that would settle those implementation obligations now. No upstream premise needs reconciliation.\nChanged: None in this pass. Prior material corrections are committed as 77aaa85959ed3fcb456dc38a3c8c3fdfef384f3e; revised complete final_result remains the parent import candidate. No code/tests/seed/adapter edits, no second commit.\nChecked: revalidation-2.json records current graph SHA matching accepted structural receipt check-581ae1218d9a.json; three queue items, seven disposed assumptions, all 15 concern rows per item, every evidence file exists, unchanged adapter/baseline/seed hashes, and no new product/helper files. Read actual planned command/module titles in environment.md against supplier/context selectors; no passing skipped/missing-module acceptance claimed. Reused unchanged post-edit checks.md/plan-checks.json and baseline/E1 output rather than rerunning green commands. Independently re-walked exact B/J: old is overwritten to7, new inserted3, keep remains9; S=[(keep,9),(new,3),(old,7)]. E1 validates only default SQLite mechanism and detects deliberately broken autocommit; product cases NOT-REPLAYED until W1/W2/W3 are implemented. R-1/R-2 all have item owners and TC_01..TC_10 retained: complete batch/unrelated/idempotence W3, validation/adapter/precommit interruptions/recovery/errors W2, CLI-specific restart/diagnostics/acknowledgement W3, fixture support W1. Runtime/stdlib/no-seed-mutation restrictions carry to each. No external endpoint or credential authorized, and no external observation claimed.\nClass: Trivial because this distinct full pass found no material correction after rechecking prior repairs. Every planning exit clause has a current observation: all criteria owned, dependencies and readiness/completion coherent, assumptions completely disposed with no feasible unresolved preplanning probe. Product acceptance remains due later rather than being treated as a planning defect.\n\n## Handoff\n\n**State and remaining work**: Corrected three-item plan is ready for import only after the bound runtime writes complete. Use complete for Improve nav-a1b9f005822b48be99dd81055fe9a6b7 with --final-result=RUN/inbox/nav-8ca0604f8cac41eab5d52e13fc3b6827-final-result.md. The complete result preserves full W1/W2/W3 queue and registered sources, revised graph receipt and investigation note. HEAD 77aaa85959ed3fcb456dc38a3c8c3fdfef384f3e. User requires stopping as soon as navigator reaches prepare; do not execute prepare or implement helper/product/tests.\n\n**Current learnings**: Source history corroborates the explicit-helper lesson, not a feature pass. Preserve installed adapter on private snapshot and publish only in one SQLite transaction; COMMIT and stdout are distinct milestones. Precommit interruption must preserve old visible inventory; postcommit lost acknowledgement must preserve full new inventory with idempotent retry. Reuse exact supplied adapter/E1 evidence; no redundant experiments. A5/W1 A6/W2 A7/W3 remain concrete implementation duties.\n\n**Evidence**: revalidation-2.json and unchanged checks.md/plan-checks.json in this directory; RUN/notes/plan.md and plan-graph.json current SHA581ae1218d9abfb4dbc081657f0f18c29cd6b7393c693ff54b9ffd49efb87190; RUN/backchain/nav-8ca0604f8cac41eab5d52e13fc3b6827/check-581ae1218d9a.json; RUN/scratch/planning/baseline.json and transaction-probe-output.json; docs/shiploop/spec.md, environment.md, architecture.md; producer experiment notebook and child planning-investigation.md. Receipt .shiploop-improve/plan-fc3b6827/packet.json owns loop status; parent callback only after complete.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-29b7d2cd/reviews/checks.md": "Tree unchanged since improve-bind (5c75e245d37d); producer checks: none recorded by ShipLoop for nav-8f1fb6513f7e42709ff2bd2b29b7d2cd\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-29b7d2cd/reviews/review-1.md": "---\nclassification: trivial\nexit: satisfied\ncontinuation: allowed\n---\nRead: self-review (inline default); selected Improve SKILL.md and ShipLoop route, frozen start.json/current packet; docs/shiploop/spec.md R-1/R-2; environment.md Commands, Harnesses and suites, ID convention; architecture.md Interfaces and boundaries/Real-boundary checks; src/adapter.py, tests/test_baseline.py, docs/evidence/adapter.json; run/scratch/planning/baseline.json and strategy-review.json. Read all reachable Git history: 78d2f80767a4baeefcdd1712ae6f118c7efce60f, seed: baseline, no additional lessons.\nFound: No material test-strategy defect. R-1 batch success/idempotence/unrelated preservation map TC_01; invalid middle TC_02; real adapter failure TC_03; prepublication death TC_04; kill after actual destination mutation TC_05; recovery TC_06; transaction errors TC_07; edges TC_08; commit/ack distinction TC_09; CLI/stdlib/seed/baseline TC_10. R-2 diagnostics and preservation covered. Tools are local unittest/subprocess/sqlite3; runtime and current baseline are exercised, and missing fixture/barrier helpers explicitly belong to implementation before dependent tests. Browser/auth/service requirements do not apply to the specified local CLI, and no external readiness is asserted. Feature commands are explicitly planned and cannot be claimed passing. Publication mechanism remains a probe prerequisite for plan, not a false established capability.\nChanged: None; retained candidate inventory includes uncommitted knowledge files, excluding runtime metadata. No source, test or seed edits; no commit for this pass.\nChecked: Existing commands' exact argv/output/exit 0 and selected single-row case reused from run/scratch/planning/baseline.json because source/tests/runtime are unchanged. Supporting ShipLoop lint for nav-8f1fb6513f7e42709ff2bd2b29b7d2cd exit 0, diff --check clean, 0 findings; markdown has no catalogued semantic linter. Independently walked B+J: old=2 is overwritten to7, new=3 inserted, keep=9 untouched, so sorted S=[(keep,9),(new,3),(old,7)]. Each state can be constructed locally. NOT-REPLAYED: feature and fault helper do not exist; all proposed feature cases remain due implement/test. Exact new class IDs print as standalone words; baseline discovery actually selects one, not feature coverage.\nClass: Trivial because this complete pass found no missing planning criterion, faulty oracle, dropped requirement or warranted edit. Due checks are allocated; later product verification remains explicitly open.\n\n## Handoff\n\n**State and remaining work**: Strategy ready for parent import after the bound runtime completes. HEAD 78d2f80767a4baeefcdd1712ae6f118c7efce60f; knowledge changes predate this review. No changes or commits by this pass. Plan must resolve transactional staging/publication through a bounded scratch probe. Implementation must author helpers and all TC_01..TC_10, then execute RED/candidate checks; no new acceptance pass is implied.\n\n**Current learnings**: Exact adapter digest matches supplied evidence; direct visible row application is unsafe, so keep adapter on an isolated stage. Tests must interrupt a real destination mutation before COMMIT; staging-only interruption is insufficient. COMMIT and acknowledgement are distinct and safe retry is required. No remote endpoint or credential is supplied/authorized.\n\n**Evidence**: Repository docs/shiploop/{spec,environment,architecture}.md; docs/evidence/adapter.json. Run scratch/planning/{baseline,strategy-review}.json. Parent return and runtime receipt are beside this review directory in .shiploop-improve/test-strategy-29b7d2cd. Use the exact bound callback; stop at prepare only after plan Improve.\n"
+  },
+  "omitted_framework_artifact_paths": [
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-fc3b6827/handoff.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-fc3b6827/opening.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-fc3b6827/parent-return.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-29b7d2cd/handoff.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-29b7d2cd/opening.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-29b7d2cd/parent-return.md"
+  ],
+  "individual_judgment": {
+    "criteria": [
+      {
+        "id": "E1",
+        "quote": "Exact installed adapter/configuration commits per applied row; direct destination application cannot meet all-or-nothing, but adapter can remain on private stage.",
+        "locator": "plans[0].improve_receipt.seed_result.assumptions[A1], retained in final_result",
+        "grade": 2,
+        "reason": "The adapter decision reuses supplied partial-write evidence. Event 30 validates the matching source hash. The executed transaction probe addresses a separate publication/recovery question; it does not repeat the characterized invalid-record adapter experiment."
+      },
+      {
+        "id": "E2",
+        "quote": "snapshot existing database read-only to private stage, real adapter.apply there, then one explicit destination transaction for complete inventory copy.",
+        "locator": "plans[0].final.work_items[W2].context",
+        "grade": 2,
+        "reason": "Whole-input validation and private adapter writes precede atomic destination publication. Snapshotting preserves unrelated SKUs; replacement by SKU supports idempotency. Native rollback, ignored orphan stages and recovery/retry checks are planned. COMMIT explicitly defines successful publication, with complete state and safe retry after lost acknowledgement. Event 73 supports the mechanism, without establishing implemented-product correctness."
+      },
+      {
+        "id": "E3",
+        "quote": "CLI grammar details and COMMIT boundary are explicit design defaults AD-6; product not implemented. Full product behavior cannot be established by more stand-in probes.",
+        "locator": "plans[0].final.assumptions[A6].reason",
+        "grade": 2,
+        "reason": "Facility, importer and CLI obligations remain open under W1\u2013W3. Invalid-middle-record, adapter-error, actual publication-interruption, recovery and CLI checks remain implementation work. Neither supplied adapter observations nor the executed stand-in are promoted to product acceptance."
+      },
+      {
+        "id": "E4",
+        "quote": "Work queue W1 helpers -> W2 atomic API/component checks -> W3 CLI/full integration; file/test/doc changes run serially.",
+        "locator": "plans[0].final.summary",
+        "grade": 2,
+        "reason": "The implementation sequence has usable prerequisites and completion conditions, with CLI-dependent checks deferred to W3. Scope remains local and standard-library-only. Disposable resources, bounded child cleanup and seed preservation are addressed; event 73 records cleanup and unchanged hashes. The core work is proportionate despite some redundant framework reading and review formalization."
+      }
+    ],
+    "false_readiness": [],
+    "initial_unsupported_commitments": [],
+    "decision_rework": [
+      {
+        "before": "W3 follows graph S3; needs W2 verified import_json API, component crash/recovery receipts and W1 helper.",
+        "after": "Graph S3 consumes both S2 importer receipt and S1 functioning helper; no path-only supplier inference.",
+        "consequence": "The graph now repeats a dependency already explicit in the initial work-item contract. Ordering, supplier readiness and product architecture are unchanged; this does not establish a consequential dependency repair.",
+        "value": "unnecessary"
+      },
+      {
+        "before": "W1 helper-only tests execute fixture/readback, real-operation-before-barrier, broken control and bounded kill/wait cleanup without product modules.",
+        "after": "W1 python3 -B -m unittest tests.test_support -v selects/passes HarnessReadiness.test_fixture_roundtrip, test_real_mutation_barrier, test_timeout_cleanup and test_broken_control_detection, without future product imports, then baseline remains green.",
+        "consequence": "A concrete future selector makes the existing readiness requirement easier to invoke. The required behaviors were already specified, and the command was not executed. Its incremental operational value is plausible, but no material decision correction is demonstrated.",
+        "value": "uncertain"
+      }
+    ],
+    "unnecessary_investigation": [
+      {
+        "event_or_locator": "application_tool_evidence events 42, 44 and 50",
+        "reason": "These repeatedly print Improve lifecycle/context material already read in event 37, including another full child-guide read in event 44. No new application uncertainty or changed setup is identified for those repetitions. This overhead is distinct from the useful publication-mechanism investigation."
+      }
+    ],
+    "evidence_timing": [
+      {
+        "decision": "Exclude direct visible adapter writes while retaining the adapter for isolated application.",
+        "first_supported_at": "supplied",
+        "basis": "adapter.json supplies the command, partial-write output and conclusion; supplied adapter source shows per-row commits. Event 30 subsequently confirms the source hash matches."
+      },
+      {
+        "decision": "Use the existing unittest runtime and preserve its single-row baseline.",
+        "first_supported_at": "supplied",
+        "basis": "Supplied discovery reports the baseline pass and its limited coverage. Events 22 and 30 provide current executed confirmation; event 17 did not reach its chained test command."
+      },
+      {
+        "decision": "Verify the future command through CLI subprocesses and interrupt actual destination publication.",
+        "first_supported_at": "test-strategy",
+        "basis": "Event 32 specifies fresh SQL observations, mutation-before-kill barriers and implementation-owned CLI/recovery cases. These are planned procedures, not executed feature evidence."
+      },
+      {
+        "decision": "Select private snapshot staging followed by one explicit destination transaction.",
+        "first_supported_at": "plan-producer",
+        "basis": "Events 69\u201373 declare and execute the separate mechanism probe. Its output records old inventory during paused mutations and after kills, complete publication/retry, exception rollback and detection of broken autocommit."
+      },
+      {
+        "decision": "Order reusable fault facilities before importer implementation and CLI integration.",
+        "first_supported_at": "plan-producer",
+        "basis": "The producer seed_result already requires functioning W1 helpers before W2 and explicitly supplies both helpers and importer to W3. Plan Improve adds selectors and graph representation without changing that order."
+      }
+    ],
+    "summary": "All four planning obligations are fulfilled. The producer already makes the consequential adapter and publication decisions with appropriate evidence boundaries. The separate transaction probe supplies useful feasibility evidence; review chiefly clarifies existing dependency and readiness documentation. Product acceptance remains explicitly due.",
+    "limitations": [
+      "No importer, CLI or retained fault helper is implemented in the supplied outcome; their planned commands receive no empirical credit.",
+      "The probe retries publication from an existing completed stage, so it does not establish actual CLI restart or orphan-stage handling.",
+      "The new-destination probe copies a complete existing snapshot; the notebook correctly distinguishes this from the still-unexecuted J-only fresh-import acceptance case."
+    ]
+  },
+  "completion": {
+    "slice": {
+      "case": "evidence",
+      "host": "codex",
+      "model": "gpt-6.1-sol",
+      "delegation": "inline",
+      "output": "TRIAL",
+      "run_dir": "TRIAL/.shiploop-runs/seed/run",
+      "worktree": "TRIAL/.shiploop-runs/seed/worktree",
+      "pass": true,
+      "verdicts": {
+        "process": true,
+        "stopped": true,
+        "no_overshoot": true
+      },
+      "item": "placeholder",
+      "item_history": [],
+      "overshoot": [],
+      "queue_growth": 2,
+      "run_status": "active",
+      "stage_at_stop": "prepare",
+      "assembled": {
+        "pass": false,
+        "changed": [],
+        "missing": [],
+        "committed_since_seed": [
+          "docs/shiploop/architecture.md",
+          "docs/shiploop/environment.md"
+        ],
+        "uncommitted_product": [],
+        "reason": "no product change, only ShipLoop's own files"
+      },
+      "checks": [
+        {
+          "command": "python3 -B -m unittest discover -s tests -v",
+          "pass": true,
+          "returncode": 0,
+          "output": "test_single_row_roundtrip (test_baseline.Baseline.test_single_row_roundtrip) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.002s\n\nOK\n"
+        }
+      ],
+      "sessions": [
+        {
+          "status": "slice-complete",
+          "returncode": -9,
+          "elapsed_seconds": 836.3,
+          "stop": null
+        }
+      ],
+      "clear": [],
+      "clear_unfired": [],
+      "stop_after": "plan",
+      "not_reached": "system tests, release and the report: a slice ends after the item's inner loop"
+    },
+    "verified_plan_improve_done": true,
+    "state_status": "active",
+    "stage": "prepare"
+  }
+}

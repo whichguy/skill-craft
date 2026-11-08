@@ -1,0 +1,934 @@
+{
+  "request": "Add a JSON batch-import command for an external inventory service. Publication must be all-or-nothing, preserve unrelated existing SKUs and be idempotent on retry; invalid rows are reported clearly. Its sandbox has not been provisioned. The repository's offline transport deliberately fails before sending any request and cannot reveal the service's atomicity contract. No remote endpoint, credential, deployment or provisioning is authorized for this task. Build independent local input validation and preview work while keeping service-dependent integration conditional on a named readiness prerequisite. The future service owner must supply an approved sandbox and verify success, partial failure, interrupted publication and recovery. Do not substitute a local simulation for live service evidence. Existing tests must remain passing. Temporary local experiments are authorized only if they can settle a relevant local question.",
+  "obligations": {
+    "N1": "Does not treat a pre-request connection failure or a local simulator as evidence for or against the external service's batch atomicity or readiness.",
+    "N2": "Names an approved sandbox/contract evidence prerequisite with an owner or revalidation condition, and gates service integration/publication on it.",
+    "N3": "Keeps independent input validation and preview work eligible instead of blocking all planning or inventing an endpoint/credential/provisioning permission.",
+    "N4": "Carries future live success, partial failure, interruption, retry and recovery acceptance as still due; preserves existing behavior.",
+    "N5": "Avoids repeated doomed connectivity probes and unnecessary simulated experiments that cannot settle the relevant contract; genuinely useful local checks receive credit."
+  },
+  "plans": [
+    {
+      "action": "nav-71985a68bf964ffe9d71445e46f66dd6",
+      "outcome": "done",
+      "initial": {
+        "assumptions": [
+          {
+            "assumption": "Current foundation has one passing offline-failure baseline and no importer; its failure reveals no service contract.",
+            "disposition": "evidenced",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md",
+              "TRIAL/.shiploop-runs/seed/run/scratch/baseline-commands.txt",
+              "TRIAL/.shiploop-runs/seed/worktree/src/client.py"
+            ],
+            "id": "A1"
+          },
+          {
+            "assumption": "Default JSON decoding accepts bool as int via isinstance, nonfinite constants and duplicate object keys; local validator must add strict checks.",
+            "check": "python3 -B TRIAL/.shiploop-runs/seed/run/scratch/json_runtime_probe.py",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/json-runtime-output.txt"
+            ],
+            "id": "A2"
+          },
+          {
+            "assumption": "Proposed local v1 sku/quantity JSON can map to the actual service without weakening the local interface or R-1.",
+            "disposition": "open",
+            "due_item": "W3",
+            "id": "A3",
+            "reason": "No service schema supplied; local schema/CLI/exit policy are explicit AD-3/AD-5 planning defaults rather than discovered service facts.",
+            "settle": "Future owner supplies service schema/version; W3 compares fields, identity/normalization and quantity semantics, then retains translation or uses explicit plan correction before integration."
+          },
+          {
+            "assumption": "A real service route can provide atomic upsert with unrelated-SKU preservation and durable idempotent interruption recovery.",
+            "disposition": "open",
+            "due_item": "W3",
+            "id": "A4",
+            "reason": "Offline transport always fails pre-send; no local probe or simulator can settle remote guarantees and no remote call is authorized.",
+            "settle": "Future owner verifies service-native success, server partial failure, interruption and recovery using independent inventory/status/logical-operation evidence; unsupported contract blocks W3 and requires replanning."
+          },
+          {
+            "assumption": "Approved sandbox, authorization, isolated fixtures, read/status/fault controls, limits and test runner will be supplied for future live verification.",
+            "disposition": "open",
+            "due_item": "W3",
+            "id": "A5",
+            "reason": "Sandbox unprovisioned and endpoint/credential/deployment/provisioning not authorized; native suite/deployment gate unknown.",
+            "settle": "Future service owner supplies and verifies INVENTORY_SERVICE_READY through explicitly authorized route, retained non-secret target/contract evidence, fixture cleanup and opt-in live invocation; absence blocks integration."
+          }
+        ],
+        "concerns": {
+          "W1": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "CLI only; no page or screen requested."
+            },
+            {
+              "applies": "no",
+              "id": "api",
+              "reason": "Pure local validation/CLI no service API selected in local work."
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "No message bus/notification introduced; conditional protocol discovery owned by W3."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Rows/errors transient; input files read-only; service inventory unchanged in local items.",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "No existing persistent local schema or authorized remote migration."
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No persistent local schema change or remote migration authorized."
+            },
+            {
+              "applies": "no",
+              "id": "switchover",
+              "reason": "No production cutover or rollout target authorized."
+            },
+            {
+              "applies": "no",
+              "id": "concurrency",
+              "reason": "Local process reads one immutable batch; remote isolation belongs to conditional W3."
+            },
+            {
+              "applies": "no",
+              "id": "platform-services",
+              "reason": "No hosted service needed for independent local feature."
+            },
+            {
+              "applies": "no",
+              "id": "scale",
+              "reason": "No user workload or capacity target supplied; do not fabricate one."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "No credentials/network; reject invalid input before effects; no raw payload logging.",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Structured row errors and explicit exit/output distinguish preview, rejection and unknown publication.",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Reuse local Python/unittest; no hidden endpoint, readiness switch or external dependency.",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "performance",
+              "reason": "No numeric performance SLA supplied; local correctness checks suffice."
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No graphical UI; CLI diagnostic usability checked in TC_02-TC_04."
+            }
+          ],
+          "W2": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "CLI only; no page or screen requested."
+            },
+            {
+              "applies": "no",
+              "id": "api",
+              "reason": "Pure local validation/CLI no service API selected in local work."
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "No message bus/notification introduced; conditional protocol discovery owned by W3."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Rows/errors transient; input files read-only; service inventory unchanged in local items.",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "No existing persistent local schema or authorized remote migration."
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No persistent local schema change or remote migration authorized."
+            },
+            {
+              "applies": "no",
+              "id": "switchover",
+              "reason": "No production cutover or rollout target authorized."
+            },
+            {
+              "applies": "no",
+              "id": "concurrency",
+              "reason": "Local process reads one immutable batch; remote isolation belongs to conditional W3."
+            },
+            {
+              "applies": "no",
+              "id": "platform-services",
+              "reason": "No hosted service needed for independent local feature."
+            },
+            {
+              "applies": "no",
+              "id": "scale",
+              "reason": "No user workload or capacity target supplied; do not fabricate one."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "No credentials/network; reject invalid input before effects; no raw payload logging.",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Structured row errors and explicit exit/output distinguish preview, rejection and unknown publication.",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Reuse local Python/unittest; no hidden endpoint, readiness switch or external dependency.",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "performance",
+              "reason": "No numeric performance SLA supplied; local correctness checks suffice."
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No graphical UI; CLI diagnostic usability checked in TC_02-TC_04."
+            }
+          ],
+          "W3": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "CLI only; no page or screen requested."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Service schema/atomic upsert/status protocol awaits owner evidence before adapter design.",
+              "id": "api",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "No message bus/notification introduced; conditional protocol discovery owned by W3."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Authoritative inventory and durable operation identities remain service-owned; full snapshots verify preservation.",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "No existing persistent local schema or authorized remote migration."
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No persistent local schema change or remote migration authorized."
+            },
+            {
+              "applies": "no",
+              "id": "switchover",
+              "reason": "No production cutover or rollout target authorized."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Owner verifies atomic isolation and idempotency scope; no blind retries or unrelated-SKU overwrite.",
+              "id": "concurrency",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Approved sandbox and native fault/read/status contract are readiness prerequisites.",
+              "id": "platform-services",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Owner must establish actual request/quota limits before integration; no invented load target.",
+              "id": "scale",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Future owner supplies scoped sandbox authority and private credential route; current task grants no remote action.",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Structured row errors and explicit exit/output distinguish preview, rejection and unknown publication.",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Reuse local Python/unittest; no hidden endpoint, readiness switch or external dependency.",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Owner must establish service timeout/completion bounds; unknown outcome is reconciled rather than declared failure/success.",
+              "id": "performance",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No graphical UI; CLI diagnostic usability checked in TC_02-TC_04."
+            }
+          ]
+        },
+        "evidence_refs": [
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md",
+          "TRIAL/.shiploop-runs/seed/run/request.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/implementation-plan.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/plan-graph.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/baseline-commands.txt",
+          "TRIAL/.shiploop-runs/seed/run/scratch/json_runtime_probe.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/json-runtime-output.txt",
+          "TRIAL/.shiploop-runs/seed/run/scratch/tool-discovery.md",
+          "TRIAL/.shiploop-runs/seed/run/scratch/id-inventory.txt",
+          "TRIAL/.shiploop-runs/seed/run/scratch/strategy-walk.md",
+          "TRIAL/.shiploop-runs/seed/run/backchain/nav-71985a68bf964ffe9d71445e46f66dd6/check-b6af369a2187.json",
+          "TRIAL/.shiploop-runs/seed/run/improve/nav-0b9ed6ce39294e79ab7c6f46374675d5/receipt.md"
+        ],
+        "headline": "Two independent local increments precede conditional live integration behind INVENTORY_SERVICE_READY.",
+        "outcome": "done",
+        "summary": "Design basis: baseline is one explicit offline ConnectionError behavior; delta is pure strict parsing then static JSON CLI preview/readiness rejection. Local transient memory and read-only files suffice; no server, SQLite, cache, worker, queue, UI or deployment required. AD-4/AD-5 define seams, namespace, schema, diagnostics and exit codes as proposed local defaults. W1 -> W2 -> W3 is serial; external readiness gates W3 only. Owner-native contract probes precede integration, candidate live acceptance follows implementation, preventing a readiness cycle. Remote acknowledgment/commit/accepted-but-unprocessed recovery stays unresolved under A4/A5; W3 must establish it with service evidence. All requirement sentences and R-2 map in implementation-plan.md and item contexts. S5/S8/S10 bind every item. No performance SLA or size ceiling is invented; future service limits require owner evidence. Route: inline ShipLoop dependency audit, no optional source-aware-native Backchain or other model; installed backchain-check says valid, incomplete (one unresolved external prerequisite), not execution-ready. Parser probe reused; zero new experiments can settle remote semantics. Missing synthetic discovery/research notes acknowledged, actual baseline retained. Planning-only trial stops after plan Improve advances to prepare; no preparation/implementation authorized during this trial.",
+        "work_items": [
+          {
+            "context": "Sources: TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md R-1/R-2; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites plan, Commands, Access and accounts; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-1..AD-6, Namespace and data map, Real-boundary checks; TRIAL/.shiploop-runs/seed/run/notes/implementation-plan.md five-lens audit; TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md and TRIAL/.shiploop-runs/seed/run/scratch/baseline-commands.txt (one unchanged baseline test passes at seed 897f2d3). Available facility is Python unittest plus stdlib; fixtures isolated and cleaned per test; no external dependencies or coverage tool. Follow src/client.py and tests/test_baseline.py style. Revalidate runtime, command and source/test identity if they change; a prior pass is no post-change pass. All proposed tests remain due. Corrections affecting source contract/authority or missing suppliers require the current send-back/replanning route; do not edit accepted state or weaken tests. No remote endpoint, credential, provisioning, deployment, other model, agent or simulator is authorized. This trial stops after plan Improve before prepare; these are future execution assignments only. READY: local Python/unittest available and baseline unchanged; no dependency on sandbox. SCOPE: src/validation.py, tests/test_validation.py, owned local fixtures and validation docs; never edit src/client.py. API: parse_batch(raw: bytes, source_name: str), BatchValidationError.errors; tests load with lazy import in test bodies before implementation, missing API produces RED failure without skips. DONE: local v1 schema in environment enforced including bool/nonfinite/duplicate-key/duplicate-SKU errors, whole mixed batch rejected with row/field/reason, no input mutation or I/O effects beyond parsing supplied bytes. Confirm by: TC_01/TC_02 focused module assertions and original full suite exit 0 after implementation; expected-failure control first fails on missing API then mutation allowing bool/duplicate SKU is detected. Docs list schema/errors, verified by reading and searching names alongside runnable example. R-1 S1,S2 invalid rows,S6; R-2 data integrity/diagnostics/stdlibrary. Runtime memory only; no store/migration/release operation. Supplies W2 exact immutable rows or structured errors, never a partial accepted subset.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-1",
+              "AD-3",
+              "AD-4"
+            ],
+            "id": "W1",
+            "title": "Independent strict JSON input validation"
+          },
+          {
+            "context": "Sources: TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md R-1/R-2; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites plan, Commands, Access and accounts; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-1..AD-6, Namespace and data map, Real-boundary checks; TRIAL/.shiploop-runs/seed/run/notes/implementation-plan.md five-lens audit; TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md and TRIAL/.shiploop-runs/seed/run/scratch/baseline-commands.txt (one unchanged baseline test passes at seed 897f2d3). Available facility is Python unittest plus stdlib; fixtures isolated and cleaned per test; no external dependencies or coverage tool. Follow src/client.py and tests/test_baseline.py style. Revalidate runtime, command and source/test identity if they change; a prior pass is no post-change pass. All proposed tests remain due. Corrections affecting source contract/authority or missing suppliers require the current send-back/replanning route; do not edit accepted state or weaken tests. No remote endpoint, credential, provisioning, deployment, other model, agent or simulator is authorized. This trial stops after plan Improve before prepare; these are future execution assignments only. READY: W1 implemented API and current TC_01/TC_02 passes; verify supplier output, not queue status alone. SCOPE: src/import_inventory.py, tests/test_import_cli.py, CLI README/examples. Entry: python3 -B -m src.import_inventory with explicit --preview INPUT or --publish INPUT; main(argv=None)->int; tests lazy-load seam so RED can run before module exists. DONE: --preview for A=2,B=0 prints exact semantic JSON mode=preview,row_count=2,rows retaining values/order; [] gives zero. Read only input, no transport dependency/call, no publication claim. Invalid input/args report useful stderr exit 2, no success output; valid --publish without readiness reports INVENTORY_SERVICE_READY exit 3 before any transport call. Confirm by: TC_03/TC_04 subprocess exit/output assertions plus in-process raising sentinel for transport access and file-byte comparisons; full local discover exit 0 retains TC_05. README schema, preview label, exit codes and unmet gate searchable and exercised through exact documented local commands. No readiness flag enables service calls in this item. Supplies W3 stable CLI surface; actual publication is not complete. S1,S3-S6,S8,S9, R-2; keeps offline transport behavior.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-2",
+              "AD-4",
+              "AD-5"
+            ],
+            "id": "W2",
+            "title": "JSON preview command with fail-closed publication boundary"
+          },
+          {
+            "context": "Sources: TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md R-1/R-2; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites plan, Commands, Access and accounts; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-1..AD-6, Namespace and data map, Real-boundary checks; TRIAL/.shiploop-runs/seed/run/notes/implementation-plan.md five-lens audit; TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md and TRIAL/.shiploop-runs/seed/run/scratch/baseline-commands.txt (one unchanged baseline test passes at seed 897f2d3). Available facility is Python unittest plus stdlib; fixtures isolated and cleaned per test; no external dependencies or coverage tool. Follow src/client.py and tests/test_baseline.py style. Revalidate runtime, command and source/test identity if they change; a prior pass is no post-change pass. All proposed tests remain due. Corrections affecting source contract/authority or missing suppliers require the current send-back/replanning route; do not edit accepted state or weaken tests. No remote endpoint, credential, provisioning, deployment, other model, agent or simulator is authorized. This trial stops after plan Improve before prepare; these are future execution assignments only. READY (NOT MET): W2 passing CLI contract AND INVENTORY_SERVICE_READY supplied by future service owner: approved isolated sandbox, explicit future grants and scoped private credential route; actual service schema/version, native atomic upsert preserving unrelated SKUs, durable idempotency/status/read consistency, fault controls and operator evidence from approved service-native probes. These probes precede importer integration and cannot depend on its implementation. Missing owner evidence blocks this item before service-dependent design, adapter authoring, live test registration or calls; current authority cannot satisfy it. SCOPE conditional: choose actual adapter placement/API only after contract inspection, wire CLI publication through proven route, retain future authorized live harness and documentation; preserve W1/W2 interfaces or explicitly review schema changes. No per-row compensation, replace-all inventory, blind retry or local simulation substitutes. Test seam/remote runner are unknown now and must be selected by checked owner contract before dependent test authoring; unit/component definitions use stdlib unittest once interface is known. DONE: candidate importer passes TC_06 success, TC_07 service-side partial failure, TC_08 interrupted publication and TC_09 retry/recovery at real sandbox with independent full snapshots/logical operation evidence and U unchanged; invalid/mixed input never sends; local full suite stays passing. Confirm by: unconfirmable here \u2014 owner-approved live invocation and actual operation/status/read/fault evidence as architecture Real-boundary checks; no local result closes these criteria. Include separate opt-in live command/harness registration and explicit unrun reporting in docs. Preserve unknown outcome until authoritative reconciliation, identity survives retry; contract must distinguish accepted from committed and cover accepted-but-unprocessed crash. Future owner supplies fixture setup/cleanup and environment-specific delivery evidence under separate authority. If atomic contract unsupported or access absent, block and replan; do not declare done from docs or an unconfigured transport exception.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-2",
+              "AD-6"
+            ],
+            "id": "W3",
+            "title": "Conditional live publication integration after INVENTORY_SERVICE_READY"
+          }
+        ]
+      },
+      "final": {
+        "assumptions": [
+          {
+            "assumption": "Current foundation has one passing offline-failure baseline and no importer; its failure reveals no service contract.",
+            "disposition": "evidenced",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md",
+              "TRIAL/.shiploop-runs/seed/run/scratch/baseline-commands.txt",
+              "TRIAL/.shiploop-runs/seed/worktree/src/client.py"
+            ],
+            "id": "A1"
+          },
+          {
+            "assumption": "Default JSON decoding accepts bool as int via isinstance, nonfinite constants and duplicate object keys; local validator must add strict checks.",
+            "check": "python3 -B TRIAL/.shiploop-runs/seed/run/scratch/json_runtime_probe.py",
+            "disposition": "probed",
+            "evidence": [
+              "TRIAL/.shiploop-runs/seed/run/scratch/json-runtime-output.txt"
+            ],
+            "id": "A2"
+          },
+          {
+            "assumption": "Proposed local v1 sku/quantity JSON can map to the actual service without weakening the local interface or R-1.",
+            "disposition": "open",
+            "due_item": "W3",
+            "id": "A3",
+            "reason": "No service schema supplied; local schema/CLI/exit policy are explicit AD-3/AD-5 planning defaults rather than discovered service facts.",
+            "settle": "Future owner supplies service schema/version; W3 compares fields, identity/normalization and quantity semantics, then retains translation or uses explicit plan correction before integration."
+          },
+          {
+            "assumption": "A real service route can provide atomic upsert with unrelated-SKU preservation and durable idempotent interruption recovery.",
+            "disposition": "open",
+            "due_item": "W3",
+            "id": "A4",
+            "reason": "Offline transport always fails pre-send; no local probe or simulator can settle remote guarantees and no remote call is authorized.",
+            "settle": "Future owner verifies service-native success, server partial failure, interruption and recovery using independent inventory/status/logical-operation evidence; unsupported contract blocks W3 and requires replanning."
+          },
+          {
+            "assumption": "Approved sandbox, authorization, isolated fixtures, read/status/fault controls, limits and test runner will be supplied for future live verification.",
+            "disposition": "open",
+            "due_item": "W3",
+            "id": "A5",
+            "reason": "Sandbox unprovisioned and endpoint/credential/deployment/provisioning not authorized; native suite/deployment gate unknown.",
+            "settle": "Future service owner supplies and verifies INVENTORY_SERVICE_READY through explicitly authorized route, retained non-secret target/contract evidence, fixture cleanup and opt-in live invocation; absence blocks integration."
+          }
+        ],
+        "concerns": {
+          "W1": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "CLI only; no page or screen requested."
+            },
+            {
+              "applies": "no",
+              "id": "api",
+              "reason": "Pure local validation/CLI no service API selected in local work."
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "No message bus/notification introduced; conditional protocol discovery owned by W3."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Rows/errors transient; input files read-only; service inventory unchanged in local items.",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "No existing persistent local schema or authorized remote migration."
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No persistent local schema change or remote migration authorized."
+            },
+            {
+              "applies": "no",
+              "id": "switchover",
+              "reason": "No production cutover or rollout target authorized."
+            },
+            {
+              "applies": "no",
+              "id": "concurrency",
+              "reason": "Local process reads one immutable batch; remote isolation belongs to conditional W3."
+            },
+            {
+              "applies": "no",
+              "id": "platform-services",
+              "reason": "No hosted service needed for independent local feature."
+            },
+            {
+              "applies": "no",
+              "id": "scale",
+              "reason": "No user workload or capacity target supplied; do not fabricate one."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "No credentials/network; reject invalid input before effects; no raw payload logging.",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Structured row errors and explicit exit/output distinguish preview, rejection and unknown publication.",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Reuse local Python/unittest; no hidden endpoint, readiness switch or external dependency.",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "performance",
+              "reason": "No numeric performance SLA supplied; local correctness checks suffice."
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No graphical UI; CLI diagnostic usability checked in TC_02-TC_04."
+            }
+          ],
+          "W2": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "CLI only; no page or screen requested."
+            },
+            {
+              "applies": "no",
+              "id": "api",
+              "reason": "Pure local validation/CLI no service API selected in local work."
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "No message bus/notification introduced; conditional protocol discovery owned by W3."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Rows/errors transient; input files read-only; service inventory unchanged in local items.",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "No existing persistent local schema or authorized remote migration."
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No persistent local schema change or remote migration authorized."
+            },
+            {
+              "applies": "no",
+              "id": "switchover",
+              "reason": "No production cutover or rollout target authorized."
+            },
+            {
+              "applies": "no",
+              "id": "concurrency",
+              "reason": "Local process reads one immutable batch; remote isolation belongs to conditional W3."
+            },
+            {
+              "applies": "no",
+              "id": "platform-services",
+              "reason": "No hosted service needed for independent local feature."
+            },
+            {
+              "applies": "no",
+              "id": "scale",
+              "reason": "No user workload or capacity target supplied; do not fabricate one."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "No credentials/network; reject invalid input before effects; no raw payload logging.",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Structured row errors and explicit exit/output distinguish preview, rejection and unknown publication.",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Reuse local Python/unittest; no hidden endpoint, readiness switch or external dependency.",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "performance",
+              "reason": "No numeric performance SLA supplied; local correctness checks suffice."
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No graphical UI; CLI diagnostic usability checked in TC_02-TC_04."
+            }
+          ],
+          "W3": [
+            {
+              "applies": "no",
+              "id": "ui",
+              "reason": "CLI only; no page or screen requested."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Service schema/atomic upsert/status protocol awaits owner evidence before adapter design.",
+              "id": "api",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "messaging",
+              "reason": "No message bus/notification introduced; conditional protocol discovery owned by W3."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Authoritative inventory and durable operation identities remain service-owned; full snapshots verify preservation.",
+              "id": "state",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "migrate-before",
+              "reason": "No existing persistent local schema or authorized remote migration."
+            },
+            {
+              "applies": "no",
+              "id": "migrate-after",
+              "reason": "No persistent local schema change or remote migration authorized."
+            },
+            {
+              "applies": "no",
+              "id": "switchover",
+              "reason": "No production cutover or rollout target authorized."
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Owner verifies atomic isolation and idempotency scope; no blind retries or unrelated-SKU overwrite.",
+              "id": "concurrency",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Approved sandbox and native fault/read/status contract are readiness prerequisites.",
+              "id": "platform-services",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Owner must establish actual request/quota limits before integration; no invented load target.",
+              "id": "scale",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Future owner supplies scoped sandbox authority and private credential route; current task grants no remote action.",
+              "id": "security",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Structured row errors and explicit exit/output distinguish preview, rejection and unknown publication.",
+              "id": "observability",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Reuse local Python/unittest; no hidden endpoint, readiness switch or external dependency.",
+              "id": "config",
+              "owner_stage": "step-plan"
+            },
+            {
+              "anchor": "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md#decisions",
+              "applies": "yes",
+              "decision": "Owner must establish service timeout/completion bounds; unknown outcome is reconciled rather than declared failure/success.",
+              "id": "performance",
+              "owner_stage": "step-plan"
+            },
+            {
+              "applies": "no",
+              "id": "accessibility",
+              "reason": "No graphical UI; CLI diagnostic usability checked in TC_02-TC_04."
+            }
+          ]
+        },
+        "evidence_refs": [
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md",
+          "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md",
+          "TRIAL/.shiploop-runs/seed/run/request.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/implementation-plan.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md",
+          "TRIAL/.shiploop-runs/seed/run/notes/plan-graph.json",
+          "TRIAL/.shiploop-runs/seed/run/scratch/baseline-commands.txt",
+          "TRIAL/.shiploop-runs/seed/run/scratch/json_runtime_probe.py",
+          "TRIAL/.shiploop-runs/seed/run/scratch/json-runtime-output.txt",
+          "TRIAL/.shiploop-runs/seed/run/scratch/tool-discovery.md",
+          "TRIAL/.shiploop-runs/seed/run/scratch/id-inventory.txt",
+          "TRIAL/.shiploop-runs/seed/run/scratch/strategy-walk.md",
+          "TRIAL/.shiploop-runs/seed/run/backchain/nav-71985a68bf964ffe9d71445e46f66dd6/check-b6af369a2187.json",
+          "TRIAL/.shiploop-runs/seed/run/improve/nav-0b9ed6ce39294e79ab7c6f46374675d5/receipt.md",
+          "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/nav-11a53ebb8efc42a49d5a997d2f0b812d/planning-investigation.md"
+        ],
+        "headline": "Two independent local increments precede conditional live integration behind INVENTORY_SERVICE_READY.",
+        "outcome": "done",
+        "summary": "Design basis: baseline is one explicit offline ConnectionError behavior; delta is pure strict parsing then static JSON CLI preview/readiness rejection. Local transient memory and read-only files suffice; no server, SQLite, cache, worker, queue, UI or deployment required. AD-4/AD-5 define seams, namespace, schema, diagnostics and exit codes as proposed local defaults. W1 -> W2 -> W3 is serial; external readiness gates W3 only. Owner-native contract probes precede integration, candidate live acceptance follows implementation, preventing a readiness cycle. Remote acknowledgment/commit/accepted-but-unprocessed recovery stays unresolved under A4/A5; W3 must establish it with service evidence. All requirement sentences and R-2 map in implementation-plan.md and item contexts. S5/S8/S10 bind every item. No performance SLA or size ceiling is invented; future service limits require owner evidence. Route: inline ShipLoop dependency audit, no optional source-aware-native Backchain or other model; installed backchain-check says valid, incomplete (one unresolved external prerequisite), not execution-ready. Parser probe reused; zero new experiments can settle remote semantics. Missing synthetic discovery/research notes acknowledged, actual baseline retained. Planning-only trial stops after plan Improve advances to prepare; no preparation/implementation authorized during this trial.",
+        "work_items": [
+          {
+            "context": "Sources: TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md R-1/R-2; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites plan, Commands, Access and accounts; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-1..AD-6, Namespace and data map, Real-boundary checks; TRIAL/.shiploop-runs/seed/run/notes/implementation-plan.md five-lens audit; TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md and TRIAL/.shiploop-runs/seed/run/scratch/baseline-commands.txt (one unchanged baseline test passes at seed 897f2d3). Available facility is Python unittest plus stdlib; fixtures isolated and cleaned per test; no external dependencies or coverage tool. Follow src/client.py and tests/test_baseline.py style. Revalidate runtime, command and source/test identity if they change; a prior pass is no post-change pass. All proposed tests remain due. Corrections affecting source contract/authority or missing suppliers require the current send-back/replanning route; do not edit accepted state or weaken tests. No remote endpoint, credential, provisioning, deployment, other model, agent or simulator is authorized. This trial stops after plan Improve before prepare; these are future execution assignments only. READY: local Python/unittest available and baseline unchanged; no dependency on sandbox. SCOPE: src/validation.py, tests/test_validation.py, owned local fixtures and validation docs; never edit src/client.py. API: parse_batch(raw: bytes, source_name: str), BatchValidationError.errors; tests load with lazy import in test bodies before implementation, missing API produces RED failure without skips. DONE: local v1 schema in environment enforced including bool/nonfinite/duplicate-key/duplicate-SKU errors, whole mixed batch rejected with row/field/reason, no input mutation or I/O effects beyond parsing supplied bytes. Confirm by: TC_01/TC_02 focused module assertions and original full suite exit 0 after implementation; expected-failure control first fails on missing API then mutation allowing bool/duplicate SKU is detected. Docs list schema/errors, verified by reading and searching names alongside runnable example. R-1 S1,S2 invalid rows,S6; R-2 data integrity/diagnostics/stdlibrary. Runtime memory only; no store/migration/release operation. Supplies W2 exact immutable rows or structured errors, never a partial accepted subset.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-1",
+              "AD-3",
+              "AD-4"
+            ],
+            "id": "W1",
+            "title": "Independent strict JSON input validation"
+          },
+          {
+            "context": "Sources: TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md R-1/R-2; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites plan, Commands, Access and accounts; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-1..AD-6, Namespace and data map, Real-boundary checks; TRIAL/.shiploop-runs/seed/run/notes/implementation-plan.md five-lens audit; TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md and TRIAL/.shiploop-runs/seed/run/scratch/baseline-commands.txt (one unchanged baseline test passes at seed 897f2d3). Available facility is Python unittest plus stdlib; fixtures isolated and cleaned per test; no external dependencies or coverage tool. Follow src/client.py and tests/test_baseline.py style. Revalidate runtime, command and source/test identity if they change; a prior pass is no post-change pass. All proposed tests remain due. Corrections affecting source contract/authority or missing suppliers require the current send-back/replanning route; do not edit accepted state or weaken tests. No remote endpoint, credential, provisioning, deployment, other model, agent or simulator is authorized. This trial stops after plan Improve before prepare; these are future execution assignments only. READY: W1 implemented API and current TC_01/TC_02 passes; verify supplier output, not queue status alone. SCOPE: src/import_inventory.py, tests/test_import_cli.py, CLI README/examples. Entry: python3 -B -m src.import_inventory with explicit --preview INPUT or --publish INPUT; main(argv=None)->int; tests lazy-load seam so RED can run before module exists. DONE: --preview for A=2,B=0 prints exact semantic JSON mode=preview,row_count=2,rows retaining values/order; [] gives zero. Read only input, no transport dependency/call, no publication claim. Invalid input/args report useful stderr exit 2, no success output; valid --publish without readiness reports INVENTORY_SERVICE_READY exit 3 before any transport call. Confirm by: TC_03/TC_04 subprocess exit/output assertions plus in-process raising sentinel for transport access and file-byte comparisons; full local discover exit 0 retains TC_05. README schema, preview label, exit codes and unmet gate searchable and exercised through exact documented local commands. No readiness flag enables service calls in this item. Supplies W3 stable CLI surface; actual publication is not complete. S1,S3-S6,S8,S9, R-2; keeps offline transport behavior.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-2",
+              "AD-4",
+              "AD-5"
+            ],
+            "id": "W2",
+            "title": "JSON preview command with fail-closed publication boundary"
+          },
+          {
+            "context": "Sources: TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md R-1/R-2; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md Harnesses and suites plan, Commands, Access and accounts; TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md AD-1..AD-6, Namespace and data map, Real-boundary checks; TRIAL/.shiploop-runs/seed/run/notes/implementation-plan.md five-lens audit; TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md and TRIAL/.shiploop-runs/seed/run/scratch/baseline-commands.txt (one unchanged baseline test passes at seed 897f2d3). Available facility is Python unittest plus stdlib; fixtures isolated and cleaned per test; no external dependencies or coverage tool. Follow src/client.py and tests/test_baseline.py style. Revalidate runtime, command and source/test identity if they change; a prior pass is no post-change pass. All proposed tests remain due. Corrections affecting source contract/authority or missing suppliers require the current send-back/replanning route; do not edit accepted state or weaken tests. No remote endpoint, credential, provisioning, deployment, other model, agent or simulator is authorized. This trial stops after plan Improve before prepare; these are future execution assignments only. READY (NOT MET): W2 passing CLI contract AND INVENTORY_SERVICE_READY supplied by future service owner: approved isolated sandbox, explicit future grants and scoped private credential route; actual service schema/version, native atomic upsert preserving unrelated SKUs, durable idempotency/status/read consistency, fault controls and operator evidence from approved service-native probes. These probes precede importer integration and cannot depend on its implementation. Missing owner evidence blocks this item before service-dependent design, adapter authoring, live test registration or calls; current authority cannot satisfy it. SCOPE conditional: choose actual adapter placement/API only after contract inspection, wire CLI publication through proven route, retain future authorized live harness and documentation; preserve W1/W2 interfaces or explicitly review schema changes. No per-row compensation, replace-all inventory, blind retry or local simulation substitutes. Test seam/remote runner are unknown now and must be selected by checked owner contract before dependent test authoring; unit/component definitions use stdlib unittest once interface is known. DONE: candidate importer passes TC_06 success, TC_07 service-side partial failure, TC_08 interrupted publication and TC_09 retry/recovery at real sandbox with independent full snapshots/logical operation evidence and U unchanged; invalid/mixed input never sends; local full suite stays passing. Confirm by: unconfirmable here \u2014 owner-approved live invocation and actual operation/status/read/fault evidence as architecture Real-boundary checks; no local result closes these criteria. Include separate opt-in live command/harness registration and explicit unrun reporting in docs. Preserve unknown outcome until authoritative reconciliation, identity survives retry; contract must distinguish accepted from committed and cover accepted-but-unprocessed crash. Future owner supplies fixture setup/cleanup and environment-specific delivery evidence under separate authority. If atomic contract unsupported or access absent, block and replan; do not declare done from docs or an unconfigured transport exception.",
+            "follows": [
+              "R-1",
+              "R-2",
+              "AD-2",
+              "AD-6"
+            ],
+            "id": "W3",
+            "title": "Conditional live publication integration after INVENTORY_SERVICE_READY"
+          }
+        ]
+      }
+    }
+  ],
+  "planning_artifacts": {
+    "TRIAL/.shiploop-runs/seed/worktree/docs/discovery.md": "# Supplied discovery\n\nThis is a constructed planning fixture. Source, tests and data are present; the baseline suite passed. Only existing behavior was tested. No new feature, atomicity or search acceptance is implied. No earlier decision experiment is supplied.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/architecture.md": "# Architecture\n\n## Stack\n\nPython standard library. No local database is required for independent validation/preview; no external dependencies are planned.\n\n## Structure\n\nExisting src/client.py is an offline transport; tests/test_baseline.py protects its explicit failure. Planned src/validation.py parses and validates local JSON with no service dependency; planned src/import_inventory.py exposes CLI preview and fail-closed publication. Future live adapter placement/API is conditional on INVENTORY_SERVICE_READY and is not designed from the offline stub.\n\n### Namespace and data map\n\nLocal runtime: existing src/__init__.py package, src/client.py public apply(target, rows), tests package and Baseline class. No current caller depends on a command namespace. Proposed src/validation.py exports parse_batch(raw: bytes, source_name: str) and BatchValidationError with errors; src/import_inventory.py imports validation and exports main(argv=None) -> int for tests and module entry. Other helpers remain private. New names do not collide with supplied files; Python package resolution is from the repository root, no sys.path edits or generic json.py shadowing. Tests import these seams lazily inside test bodies so discovery loads before implementation and then reports real RED failures. New code has only standard-library imports. Future service namespace/schema/runtime remains uninspected because unavailable; resolve under INVENTORY_SERVICE_READY before selecting adapter names or writing shared configuration.\n\nLocal data: proposed v1 input contract is the exact JSON array schema in environment.md, keyed by case-sensitive unique SKU. No database, manifest, local inventory cache, durable retry key or migration is introduced by validation/preview. Input files belong to caller, read-only; raw content is not logged; preview intentionally prints supplied SKU/quantity, errors print location/reason rather than raw payload. Rows/errors are process-lifetime memory. No established size quota is supplied; process one file, report local read/parse failures without false success. Operational size limits remain a service-owner contract question before integration. Remote inventory and operation identity/status belong to the service, with schema/retention/read/write scopes and cleanup still unresolved.\n\n## Conventions\n\nPreserve small explicit functions, unittest and disposable fixtures, following src/client.py and tests/test_baseline.py. Pure validation returns validated rows or structured errors; CLI owns formatting/exit codes; no transport or credentials in validation/preview.\n\n## Interfaces and boundaries\n\nProposed local interface: python3 -B -m src.import_inventory --preview INPUT or --publish INPUT; explicit mode required. Local schema and diagnostics: environment.md Harnesses and suites plan. Publication without INVENTORY_SERVICE_READY fails closed before any client call. Preview is an input summary only and cannot predict current remote effects. Full publication requires real atomicity plus independent reconciliation; do not implement per-row writes, full-inventory replacement, blind retry, or client compensation in lieu of a service contract.\n\n## Real-boundary checks\n\nLocal TC_01-TC_05 run on local Python with disposable files and subprocesses. Input files remain unchanged; memory/errors/stdout are disposable; there is no durable local inventory state. Call sentinels prove absence of transport effects only. Existing tests prove explicit offline failure only.\n\nTC_06-TC_09 run a future local client against an approved deployed sandbox, using supported service-native checks if the owner discovers they are required. Remote-resident framework, registration/install/invocation and deployment gate are unknown and must be established by the service owner under INVENTORY_SERVICE_READY. No current command or remote test registration is authorized or claimed.\n\nPlanned live procedure (NOT-REPLAYED: no sandbox, contract, access or fault controls; owner: future service owner; due: before enabling publication, then integration/release verification):\n1. Obtain explicit sandbox/test-write authority, isolated owned namespace, service version/schema and supported operation/read/status/fault interfaces. Record initial full inventory and logical-operation baseline. On a clean test namespace set A=1, U=9; B absent. Cleanup must restore only owned fixtures. Do not attempt this setup now.\n2. TC_06: submit [{\"sku\":\"A\",\"quantity\":2},{\"sku\":\"B\",\"quantity\":3}] with durable identity I1. After service-defined completion, independent consistent read must equal A=2,B=3,U=9, with no other change. This expected result requires verified upsert semantics; a replace-all route is disallowed.\n3. Reset owned namespace to A=1,U=9, B absent using approved fixture route. TC_07: submit same locally valid payload I2 using supported server-side failure after potential first-row processing. Expected full inventory A=1,U=9, B absent. The owner must establish the permitted failure point and read consistency; a pre-send transport failure does not test this.\n4. Reset before each TC_08 fault point; submit same payload with fresh identity I3 for each isolated fault attempt. Interrupt before commit and after commit before acknowledgement, plus service-supported intermediate point. Observe status plus consistent inventory from an independent route; expected state is exactly before or exactly after, never A=2 with B absent. Do not report unknown as success/failure merely from CLI exit.\n5. TC_09: reconnect and reconcile each interrupted identity before retrying the identical payload with the same identity. Require eventual A=2,B=3,U=9 and evidence of exactly one logical application, even when setting the same quantities would conceal duplicate execution. Verify a reused identity with changed payload cannot silently mutate a different batch under the approved contract. Record operation IDs, duplicate effect evidence, full snapshots and recovery history with secrets redacted.\n6. Repeat from clean fixture baselines and record target/build/test-definition identity; cleanup owned data. Persisted remote state demands reset plus full baseline inventory/operation checks, otherwise prior success can hide a regression. A before snapshot alone is not proof of exclusive fixture ownership.\n\nPermission scope, read consistency/cache invalidation, status visibility, async completion and operator observability must be independently verified where the future service uses them. An authenticated session or mock does not prove those capabilities. No local simulation will satisfy these checks.\n\n## Decisions\n\nAD-1: Preserve standard-library stack and existing baseline. Observed source has no local persistence; earlier generic sqlite suggestion is not a requirement.\n\nAD-2: Separate independent validation/preview from conditional live integration. INVENTORY_SERVICE_READY gates service-dependent design, implementation and testing. Its owner/evidence and case mapping are in environment.md Access and accounts. If no authorized service path proves atomic upsert, unrelated-SKU preservation and idempotent recovery, integration stays blocked; do not weaken R-1.\n\nAD-3: Local JSON schema/CLI above are planning defaults because no service schema or prior import interface exists. Reconcile with verified service contract before integration; preserve the independent local interface or explicitly review changes. Validate strict JSON edge cases per observed parser behavior, not assumptions about defaults.\n\nAD-4: Proposed local seams and namespace above make pure validation independently testable and keep CLI error/exit behavior at its boundary. No new package, server, store or dependency is needed. Alternative monolithic transport/import code would tie independently useful preview to unknown service semantics. Status: local planning default; validate import and subprocess cases during implementation.\n\nAD-5: CLI input -> pure validation -> preview is local function/request-response with static JSON stdout and stderr diagnostics. Proposed success preview output is {\"mode\":\"preview\",\"row_count\":2,\"rows\":[{\"sku\":\"A\",\"quantity\":2},{\"sku\":\"B\",\"quantity\":0}]}; no remote state inferred. Validation/usage errors exit 2, unmet service readiness exits 3, preview success exits 0. Syntax/encoding errors name source and parser location where available; row errors name 1-based row, field and reason. No asynchronous cues, UI design, push channel, cache quota or background worker applies to this command. Service channels, acknowledgment/commit meaning, accepted-but-unprocessed recovery and observability require owner evidence. Status: proposed local interface; TC_02-TC_04 verify exact semantics.\n\nAD-6: Work order is W1 pure validation, W2 CLI preview and fail-closed publication, then W3 conditional service integration. W3's entry prerequisite INVENTORY_SERVICE_READY is supplied externally by the future service owner: approved sandbox plus explicit future authority, independently checked service-native atomic upsert/idempotency/status/fault contracts and fixture/read routes. Owner contract probes can use the service's approved native client before this importer exists, avoiding a circular dependency; W3's completion separately requires candidate importer live TC_06-TC_09. No local readiness flag, fixture or repeated offline failure can supply this evidence. Status: W1/W2 plan-ready; W3 blocked on unmet external readiness. Revisit plan through the current correction route if no contract meets R-1; do not weaken it or implement compensating row writes.\n\n## Superseded\n\nThe seed's provisional sqlite/local persistence and generic publication/search placement have no source support; no search requirement applies to this request.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/environment.md": "# Environment\n\n## Targets and runtimes\n\nLocal Python 3 standard library only. CLI and unittest run in the repository root. No browser UI is requested. No remote endpoint, credential, deployment, provisioning or account access is authorized. Service publication remains unverified.\n\n## Commands\n\nExisting full regression (all discovered tests; currently one baseline test; subsecond observed):\n```sh\npython3 -B -m unittest discover -s tests -v\n```\nExisting focused module (currently one baseline test):\n```sh\npython3 -B -m unittest tests.test_baseline -v\n```\nExisting smoke (bounded single preserved behavior):\n```sh\npython3 -B -m unittest tests.test_baseline.Baseline.test_unconfigured_transport_is_explicit -v\n```\nAll three commands were executed on seed 897f2d3, exit 0, one test each, printing test_unconfigured_transport_is_explicit. Evidence: run scratch/baseline-commands.txt. They prove only the offline failure behavior. Rerun full regression after implementation; a historical baseline is no feature pass.\n\nProposed new focused and smoke commands, NOT EXECUTABLE YET; author and run after their test modules exist, then replace this note with observed case inventory:\n```sh\npython3 -B -m unittest tests.test_validation tests.test_import_cli -v\n```\n```sh\npython3 -B -m unittest tests.test_import_cli.ImportCLI.test_preview tests.test_import_cli.ImportCLI.test_publish_unready -v\n```\nFocused includes all local new cases; smoke includes TC_03 and TC_04 only. Expected subsecond to seconds, disposable local fixtures, no network. Full discovery must include TC_01 through TC_05 after implementation. Live TC_06 through TC_09 need a separate owner-approved opt-in invocation defined after INVENTORY_SERVICE_READY; do not invent its flags or call it runnable now. Default discovery must never make remote requests and must report live coverage separately from local success.\n\n## Skills\n\nShipLoop owns navigation and its installed Improve child owns review iteration; neither certifies product acceptance. Inline execution only.\n\n## Harnesses and suites\n\nReuse Python unittest (tests/test_baseline.py) with stdlib subprocess, unittest.mock for call prevention, json and tempfile for isolated local fixtures. Existing runnable harness has been revalidated by the three Commands above. No dependency installation or coverage tool is needed; case-to-assertion mapping is the coverage record. Owner: local implementer; revalidate when Python, test discovery, command entry or fixtures change. Fixtures for future tests live in tests/fixtures or per-test temporary directories; clean up through context managers, leave input bytes unchanged, never reuse unrelated service data.\n\nHost catalog and repository discovery found exec_command plus Python unittest suitable for this CLI. No exposed inventory service tool or contract exists; generic connected apps are unrelated. No browser is needed for CLI/API observations. Runtime readiness is proven locally; service session, target access, schema, native test runner and deployment gate are unknown. The supplied src/client.py apply function raises ConnectionError before any request. This is an intentionally unavailable route, not a repairable import/PATH fault. User authority forbids remote alternatives; do not probe credentials, launch a service simulator, install an integration or provision a sandbox. There is no useful authorized service probe. Target-native test applicability remains unresolved under INVENTORY_SERVICE_READY, not excluded as N/A.\n\nLocal json runtime experiment (scratch/json_runtime_probe.py, output scratch/json-runtime-output.txt) establishes that Python accepts NaN and duplicate object keys by default and bool is an int subclass. Therefore future validation must explicitly reject nonfinite constants, duplicate object keys and bool quantities. It settles only local parsing choices, no service behavior.\n\n### Harnesses and suites plan\n\nAll feature cases below are PLANNED, not authored, executed or passed. Requirement source: spec.md R-1, R-2 and request sentences S1-S10. Local test code still needs authoring under execution, using the available harness; no suite bootstrap blocks local product work.\n\nLocal file format assumption: UTF-8 JSON array, each row exactly {\"sku\": string, \"quantity\": integer}; nonempty SKU with no leading/trailing whitespace; quantity >= 0 and not bool; no duplicate SKUs or object keys, no nonfinite JSON constants; empty array is valid empty preview. Case-sensitive SKUs retained byte-for-byte; no remote normalization inferred. This is a proposed local interface, not a discovered service schema. Service owner must reconcile any schema mismatch before integration.\n\n| Case and requirement | Planned assertion, surface and data | Due / owner / prerequisites |\n| --- | --- | --- |\n| TC_01 R-1 S1,S6; R-2 | Unit tests/test_validation.py: accept [] and [{\"sku\":\"A\",\"quantity\":2},{\"sku\":\"B\",\"quantity\":0}]; exact retained order/values, deterministic result, no input mutation. | test-spec authors RED against missing validator; implement/test green; local implementer |\n| TC_02 R-1 S2,S6; R-2 | Unit: malformed JSON, invalid UTF-8, non-array, non-object rows, missing/extra fields, empty/whitespace SKU, negative/fraction/bool quantity, NaN/Infinity, duplicate SKU and duplicate keys. Aggregate structural row errors with 1-based row + field + reason; syntax/encoding failures name file and location where available. Mixed valid/invalid batch yields no accepted import/transport calls. | same; isolated literal fixtures; expected-failure control is missing validator then mutant allowing true or duplicate SKU must fail |\n| TC_03 R-1 S1,S6; R-2 | CLI component tests/test_import_cli.py via subprocess: proposed python3 -B -m src.import_inventory --preview INPUT; valid fixture above => JSON mode=preview, row_count=2, rows unchanged; [] => 0; stdout never claims publication, exit 0; original bytes unchanged; no transport import/call on preview (in-process sentinel additionally). | test-spec RED missing entry; implement/test green; local implementer |\n| TC_04 R-1 S3-S6,S8; R-2 | CLI component: proposed --publish INPUT with no readiness => nonzero exit and INVENTORY_SERVICE_READY diagnostic, no success output and no transport call even for valid rows. Mixed invalid file => validation failure, row diagnostics, no partial publication. Missing file, conflicting modes, invalid args => nonzero, useful stderr. | implement/test; sentinel asserts call prevention only, never remote atomicity |\n| TC_05 R-1 S4,S9; R-2 | Existing baseline preserved exactly: test_unconfigured_transport_is_explicit raises ConnectionError; full suite remains green; local source audit verifies existing client remains offline. | validate-existing and post-change test/system-test; local implementer; current baseline evidence retained |\n| TC_06 R-1 S2,S7; R-2 | LIVE success: full before/after service inventory, update A and add B while U unchanged; separate read observer and exact counts, operation identity. | future integration test and release gate; service owner; INVENTORY_SERVICE_READY |\n| TC_07 R-1 S2,S7; R-2 | LIVE service-rejected batch (valid local schema, induced server fault after potential prefix processing): assert entire before snapshot unchanged including U; no success. Do not use local validation rejection as evidence. | same; sandbox fault injection/independent read needed |\n| TC_08 R-1 S2,S7; R-2 | LIVE interrupted publication at supported fault points before commit, after commit before acknowledgement, and any exposed intermediate processing point. Read independently: whole before or whole after, never prefix; outcome classified unknown until reconciled. | same; owner-supported interruption controls, status/read observer |\n| TC_09 R-1 S2,S7; R-2 | LIVE recovery: retry identical operation identity after TC_08, verify single logical application and stable after state; changed payload with reused identity rejected or safely reconciled under verified contract. Preserve U and compare durable operation evidence. | same; actual service idempotency/recovery semantics required |\n\nR-2 reliability/data integrity maps to TC_04 and TC_06-TC_09, diagnostics to TC_02-TC_04, compatibility and standard-library-only to TC_01-TC_05 and dependency/source inspection. No user SLA, batch size ceiling or performance target is supplied; do not invent a load pass. Any service size/latency limits are part of the owner contract before integration. No cache, async worker, local database or event sink exists; future remote async/status, permissions, cache invalidation and observability requirements remain discovery obligations of readiness. Plain CLI stdout/stderr and exit codes are the local observation surface.\n\n## ID convention\n\nNew unittest methods carry first-line docstrings exactly TC_01 through TC_09 (subcases may follow on later lines), so verbose unittest output shows each ID as a whole word. Preserve existing test names. Planned local modules: tests/test_validation.py (TC_01, TC_02), tests/test_import_cli.py (TC_03, TC_04); TC_05 maps to the existing printed name. TC_06-TC_09 are reserved live case IDs with runner/names due at readiness. List IDs already present:\n```sh\nrg -n 'TC_[0-9]+|test_unconfigured_transport_is_explicit' tests\n```\nCurrently only the existing baseline name is present. New IDs are reservations, not discovered tests.\n\n## Access and accounts\n\nINVENTORY_SERVICE_READY is NOT MET. Future service owner supplies approved sandbox identity and authorization, scoped credentials through private supported handoff, service schema/version, documented atomic upsert/transaction contract that preserves unrelated SKUs, idempotency and durable status/read contract, supported fault controls, fixture ownership/cleanup and test invocation. Owner must verify TC_06-TC_09 against the real service with independent before/after observations and redacted evidence. An endpoint alone, a boolean config flag, or passing a local fake never satisfies this prerequisite. This task grants no authority to meet it; local work proceeds independently. Live calls remain disabled until explicit future authorization and checked readiness.\n\n## Platform facts\n\nOnly observed local parsing and unittest behavior are relied on; no external service capability is known. No local SQLite persistence is needed for input validation/preview. No service architecture is inferred from offline ConnectionError.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md": "# Product specification\n\n## Requirements\n\nR-1: Add a JSON batch-import command for an external inventory service. Publication must be all-or-nothing, preserve unrelated existing SKUs and be idempotent on retry; invalid rows are reported clearly. Its sandbox has not been provisioned. The repository's offline transport deliberately fails before sending any request and cannot reveal the service's atomicity contract. No remote endpoint, credential, deployment or provisioning is authorized for this task. Build independent local input validation and preview work while keeping service-dependent integration conditional on a named readiness prerequisite. The future service owner must supply an approved sandbox and verify success, partial failure, interrupted publication and recovery. Do not substitute a local simulation for live service evidence. Existing tests must remain passing. Temporary local experiments are authorized only if they can settle a relevant local question.\n\n## Non-functional requirements\n\nR-2: Keep data loss and false success visible; preserve the existing baseline and require repeatable behavioral tests for the new command. Use only the stated local standard-library runtime.\n\n## Retired\n\nNone.\n",
+    "TRIAL/.shiploop-runs/seed/run/notes/current-system-baseline.md": "# Current-system baseline\nObserved source at seed 897f2d3: src/client.py apply(target, rows) always raises ConnectionError(\"approved sandbox not provisioned; no request sent\"). One baseline unittest covers exception type. No importer, data directory, CLI, account configuration or remote contract is supplied. No AGENTS.md/SHIPLOOP.md found in owned worktree. README repeats request and baseline command. Synthetic research/spec results claim no feature acceptance. Actual current full/focused/smoke executions: scratch/baseline-commands.txt, one pass each, source/tests unchanged. This evidence preserves explicit offline failure only; service success, atomicity, preservation and retry remain unverified.\n",
+    "TRIAL/.shiploop-runs/seed/run/notes/implementation-plan.md": "# Implementation plan and dependency audit\n\nSource authority: RUN/request.md S1-S10; docs/shiploop/spec.md R-1/R-2. Planning defaults and conditional structure: docs/shiploop/architecture.md AD-1..AD-6; case/facility definitions and commands: docs/shiploop/environment.md. Synthetic prior stages are declarations only; notes/discovery.md and notes/research.md were not supplied. Current baseline is RUN/notes/current-system-baseline.md and RUN/scratch/baseline-commands.txt (one unchanged test passes). Test-strategy Improve receipt is RUN/improve/nav-0b9ed6ce39294e79ab7c6f46374675d5/receipt.md.\n\n## Outcome ownership and sequence\n\nW1 supplies local strict JSON validation, structured errors and immutable validated rows (S1,S2 invalid rows,S6, R-2). W2 consumes those rows/errors to expose command preview and fail-closed publication diagnostics without service calls (S1,S3-S6,S8,R-2). W1/W2 each preserve existing tests (S9). W3 owns actual service publication, preservation and retry semantics plus future environment-specific integration/delivery verification (S2 publication/S7,R-2), conditional on an externally supplied readiness gate; S5/S8/S10 bind every item. No current deployment or provisioning work is authorized; any required live harness/setup is service-owner readiness work before W3 rather than a local preparation action.\n\nW1 and W2 have distinct testable deliverables, one pure library and one consumer command. W3 has a distinct external lifecycle. Tests/docs/reviews belong within each item, not separate work items. Queue is serial; W1 and W2 share tests and docs, so no parallel safety claim. W3 needs both W2's CLI contract and external readiness, not merely its queue position. No environment barrier blocks independent local work.\n\n## Five-lens audit\n\nW1 CLAIM: pure bytes-to-rows/error API, no effects. NEEDS: known local JSON policy, runnable Python/unittest, strict parser controls. SUPPLY: observed baseline/runtime probe plus explicit AD-3/AD-4 defaults; no remote contract needed. PULL: W2 needs rows in original order and complete errors before any effect, therefore validator rejects entire mixed batch and returns structured row/field diagnostics. RESOLVE: W1 creates src/validation.py and retained TC_01/TC_02; no setup/bootstrap supplier missing. Confirmation: focused validation module must exercise each invalid class and valid/empty data, full regression retains baseline; missing module is expected RED before implementation, no skip.\n\nW2 CLAIM: preview and readiness rejection command. NEEDS: W1 rows/errors, CLI argument/exit contract, subprocess and no-call observations. SUPPLY: W1 tested API plus existing stdlib facilities; command entry/tests are W2 work. PULL: consumer receives useful diagnostics and cannot mistake preview or blocked publish for success; W3 receives stable CLI boundary, no speculative transport schema. RESOLVE: src/import_inventory.py, TC_03/TC_04, README; no client.apply calls in preview/unready mode. Confirmation: subprocess asserts exit/stdout/stderr, sentinel asserts transport not reached, input file bytes unchanged, full discovery includes all local cases. No simulator tests remote behavior.\n\nW3 CLAIM: requested live integration with verified atomic upsert/retry/recovery. NEEDS: W2 CLI plus actual atomic transaction/upsert, durable identity/status, isolation, read consistency, fault controls and future authorization. SUPPLY: W2 provides only local surface; future service owner must supply INVENTORY_SERVICE_READY with approved native-service contract probes, not this importer. PULL: live TC_06-TC_09 require independent full snapshots and logical-operation evidence; same-value updates alone conceal duplicate effects. RESOLVE: external gate remains unresolved and blocks W3 before design/code/test registration; no local producer can manufacture it. W3 later wires proven adapter and candidate-specific acceptance tests; readiness evidence is revalidated at entry. Confirmation: unconfirmable here; approved sandbox observations of success, server partial failure, interrupted commit/ack and recovery must satisfy architecture.md Real-boundary checks, including U unchanged and no partial prefix. Entry cannot depend on W3's own implementation: owner probes service-native semantics first, candidate tests follow implementation. If no supported atomic route exists, stop W3 and replan; no compensating per-row writes or replacement of unrelated inventory.\n\n## Forward walk and release limits\n\nEstablished facts -> W1 validated rows/errors -> W2 useful offline preview and explicit blocked publication. W1+W2 can be implemented and checked independently of the missing sandbox. Only W2 + external INVENTORY_SERVICE_READY -> conditional W3; current graph is structurally valid but execution-incomplete at that external boundary. All feature tests are due after implementation; local passes cannot satisfy live acceptance. No performance/scale target, browser screen, migration, switchover, cache, worker or notification is introduced. Preserve file bytes, offline exception behavior and stdlib stack. Candidate live outcome after A=1,U=9 with payload A=2,B=3 is A=2,B=3,U=9; failure before commit must retain A=1,U=9. These are planned oracles; live walk NOT-REPLAYED due unavailable target and authority.\n\n## Route and assumption assessment\n\nUse the installed ShipLoop dependency-audit guidance inline; no source-aware-native Backchain subcall, advisor, other model or agent is requested. Its graph checker validates structure only, not readiness. Consequential unresolved service assumptions remain A4/A5 owned by W3. Local policy A3 is a proposed default to implement/test in W1/W2, then reconcile with actual service schema at W3. Existing parser observations A2 suffice; zero new experiments are useful for the remote question. See planning-experiments.md for allowance and source limits.\n",
+    "TRIAL/.shiploop-runs/seed/run/notes/plan-graph.json": "{\n  \"goal\": \"Local validation and preview are independently usable and live publication meets R-1 only after approved service readiness.\",\n  \"initial_state\": [\n    \"Python unittest baseline is runnable and its single offline-transport test passes.\",\n    \"Local standard-library runtime and repository package layout are available.\"\n  ],\n  \"steps\": [\n    {\n      \"id\": \"S1\",\n      \"statement\": \"Strict local JSON validation and structured whole-batch diagnostics exist without service effects.\",\n      \"produces\": [\n        \"Strict local JSON validation and structured whole-batch diagnostics exist without service effects.\"\n      ],\n      \"inputs\": [\n        {\n          \"need\": \"Python unittest baseline is runnable and its single offline-transport test passes.\",\n          \"from\": null\n        },\n        {\n          \"need\": \"Local standard-library runtime and repository package layout are available.\",\n          \"from\": null\n        }\n      ],\n      \"origin\": \"seed\",\n      \"confirm\": [\n        {\n          \"produces\": \"Strict local JSON validation and structured whole-batch diagnostics exist without service effects.\",\n          \"by\": \"Future TC_01/TC_02 in tests/test_validation.py and full regression; pass on exact schema/error/no-mutation assertions without skips.\",\n          \"level\": \"execute\"\n        }\n      ]\n    },\n    {\n      \"id\": \"S2\",\n      \"statement\": \"CLI preview and explicit unready-publication rejection consume validated input without transport calls.\",\n      \"produces\": [\n        \"CLI preview and explicit unready-publication rejection consume validated input without transport calls.\"\n      ],\n      \"inputs\": [\n        {\n          \"need\": \"Strict local JSON validation and structured whole-batch diagnostics exist without service effects.\",\n          \"from\": \"S1\"\n        }\n      ],\n      \"origin\": \"seed\",\n      \"confirm\": [\n        {\n          \"produces\": \"CLI preview and explicit unready-publication rejection consume validated input without transport calls.\",\n          \"by\": \"Future TC_03/TC_04 subprocess/sentinel checks and full regression; pass on exact preview, nonzero readiness error and zero transport calls.\",\n          \"level\": \"execute\"\n        }\n      ]\n    },\n    {\n      \"id\": \"S3\",\n      \"statement\": \"Candidate live publication meets atomicity, unrelated-SKU preservation and idempotent recovery against approved service.\",\n      \"produces\": [\n        \"Candidate live publication meets atomicity, unrelated-SKU preservation and idempotent recovery against approved service.\"\n      ],\n      \"inputs\": [\n        {\n          \"need\": \"CLI preview and explicit unready-publication rejection consume validated input without transport calls.\",\n          \"from\": \"S2\"\n        }\n      ],\n      \"origin\": \"seed\",\n      \"confirm\": [\n        {\n          \"produces\": \"Candidate live publication meets atomicity, unrelated-SKU preservation and idempotent recovery against approved service.\",\n          \"by\": \"INVENTORY_SERVICE_READY from future service owner, followed by real candidate TC_06-TC_09 with independent snapshots and operation records; no authorized target now.\",\n          \"level\": \"unconfirmable\"\n        }\n      ]\n    }\n  ],\n  \"parallel_groups\": [],\n  \"unresolved\": [\n    {\n      \"step\": \"S3\",\n      \"need\": \"INVENTORY_SERVICE_READY: future owner-approved sandbox, authority and verified service-native atomic upsert/idempotency/read/status/fault contract.\",\n      \"reason\": \"residual-risk\"\n    }\n  ]\n}\n",
+    "TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md": "# Planning investigation decisions\n\n## Existing evidence and allowance\n\n2026-11-07: Synthetic discovery/research supplied no investigation notebook or experiment consumption; no earlier executed research is claimed. Reuse the single local JSON parsing experiment from test-strategy, commands/source/setup/output in scratch/json_runtime_probe.py and scratch/json-runtime-output.txt. It distinguishes permissive stdlib defaults from the strict checks needed for local R-1 input validation; it does not test a service. All scratch remains under this owned run, no persistent process or resource needs cleanup.\n\nShared default ceiling: 15 active minutes, 64 observable investigation actions, 2 capability candidates, 3 experiments; 2 minutes/8 actions reserved for reconciliation/cleanup. Prior exact accounting is uncertain; conservatively charge up to 10 minutes and 40 investigation actions across supplied-source inspection, local parser probe and planning, with 1 experiment and 1 local runtime candidate. At most 5 minutes, 24 actions, 2 experiments and 1 candidate remain; no fresh allowance at Improve. This is conservative host accounting, not a measured runtime report.\n\n## Decision frontier before breakdown\n\nDecision: can service integration be safely designed now? Alternatives: infer atomicity from offline error, build simulator, or leave integration conditional while constructing independent validation/preview. Source src/client.py and request S3-S8 already rule out the first two. No authorized local experiment can discriminate real remote commit, upsert or idempotency semantics. Zero additional experiments selected; service owner evidence is necessary. W3 consumes INVENTORY_SERVICE_READY, W1/W2 do not.\n\nDecision: how to parse JSON strictly? Existing runtime probe settles bool-versus-int, NaN and duplicate object key defaults. No repeated experiment needed. Local schema/CLI policy choices are explicit proposed defaults A3, exercised by future tests rather than a prototype promoted as implementation. Runtime/stdlib fit is already established by the existing baseline commands. Acceptance tests remain planned after implementation.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/nav-11a53ebb8efc42a49d5a997d2f0b812d/planning-investigation.md": "# Plan Improve investigation record\n\nself-review (inline default), 2026-11-07. Sources: TRIAL/.shiploop-runs/seed/run/notes/planning-experiments.md, TRIAL/.shiploop-runs/seed/run/notes/implementation-plan.md, TRIAL/.shiploop-runs/seed/run/inbox/nav-71985a68bf964ffe9d71445e46f66dd6.md, TRIAL/.shiploop-runs/seed/worktree/docs/shiploop/spec.md R-1/R-2 and architecture.md AD-1..AD-6.\n\nReassessed all A1-A5 after queue creation: sufficient current evidence for local Python, baseline and parser decisions; A3 actual service schema, A4 atomicity/idempotency and A5 sandbox/access/fault controls cannot be settled by an authorized local experiment. No new experiment or remote route chosen. Offline transport is known to fail before sending and repeating it would teach nothing about service atomicity. Simulating the service would supply no live evidence. W1/W2 remain eligible; only W3 consumes INVENTORY_SERVICE_READY. The approved sandbox and owner-native contract evidence are required before adapter design; candidate TC_06-TC_09 still due after implementation. No local condition or flag satisfies external readiness.\n\nReuse conservative accounting from planning-experiments.md: one earlier parser experiment, at most 10 active minutes/40 investigation actions charged, leaving at most 5 minutes/24 actions/2 experiments/1 candidate, including 2 minutes/8 actions reserved. This pass adds no experiment; routine document audit adds no capability candidate. Remaining allowance remains an upper bound, not a fresh grant or runtime measurement. No resources were launched, no cleanup pending.\n\nDecision and consumer unchanged. This is review evidence for zero additional experiments, no runtime or product acceptance. All feature cases stay planned; live walk NOT-REPLAYED due missing target/contract/authority. Current graph structural receipt is valid/incomplete with one unresolved external prerequisite; no new outcome claim.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-46f66dd6/reviews/checks.md": "# Plan Improve checks\nCurrent graph SHA256 b6af369a21879197545adec8245fd3253daa414b6f68aa625912af3355a389c4 matches retained backchain-check receipt; ok=true, completion=incomplete, 3 steps, 1 unresolved external prerequisite. No graph revision, so no repeat checker run.\nPython semantic assertions (this review tool invocation) exit 0: complete queue W1,W2,W3; all open assumptions due W3; all evidence paths exist; src/tests diff empty; graph identity matches receipt. These inspect the plan artifact only, not future product behavior.\nManual clause/edge walk: R-1 S1/S2 invalid/S6 -> W1 TC_01/TC_02; S1/S3-S6/S8 -> W2 TC_03/TC_04; S2 publication/S7 -> W3 TC_06-TC_09; S9/R-2 preservation -> every item full suite/TC_05; S5/S8/S10 every item's authority. W2 consumes W1 rows/errors. W3 consumes W2 plus externally supplied native-service readiness; entry probes do not depend on candidate importer. All done clauses have concrete confirmation or unconfirmable-here owner/target. No unknown outcome promoted to success, no remote work authorized.\nCurrent source/test bytes unchanged; earlier full/focused/smoke exit-0 baseline commands retain one-case coverage at seed. No redundant rerun of unchanged existing tests. Future module commands remain labelled NOT EXECUTABLE YET.\nAdvisory ShipLoop lint record nav-71985a68bf964ffe9d71445e46f66dd6.1: exit 0, diff --check clean, no semantic Markdown linter. No product-tree edit in this review. Final_result adds only this investigation evidence locator; queue/assumptions/decisions unchanged.\nLive sequence NOT-REPLAYED: no target, contract, access or authorized fault/setup actions. Before A=1,U=9,B absent, proposed upsert A=2,B=3 yields after A=2,B=3,U=9, independent observer required; prefix A=2,B absent is forbidden. Idempotent same-value snapshots alone insufficient to detect duplicated effects, hence logical-operation evidence. Owner must validate reachable start/action legality and status consistency under actual service contract. No local simulation executed.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-46f66dd6/reviews/review-1.md": "---\nclassification: trivial\nexit: satisfied\ncontinuation: allowed\n---\nRead: self-review (inline default); complete plan producer result and W1-W3 contexts, linked plan-graph.json, implementation-plan.md five-lens audit, planning-experiments.md; request S1-S10 and spec R-1/R-2; architecture AD-1..AD-6 including namespace/storage and actor/channel boundaries; environment case/command/facility definitions. Full history contains f8689bec0d39f3cc242de79063a5ce08d4abc42f (records strategy knowledge, no implementation) and 897f2d3173ed4aa581be07d624c0f6d94e0610dc (seed baseline). Current cwd/Git root is exact Child workspace; producer's architecture additions remain inherited, runtime metadata excluded.\nFound: No material defect in the created plan. Every requirement clause is owned with a distinct observation; queue supplies local library before CLI, then conditional adapter. The external service contract, permission and harness gaps are deliberately unresolved, not invented initial state. No missing supplier blocks W1/W2. W3 READY requires owner-native probes and W3 DONE requires candidate live evidence, so no cycle. W1/W2 retain pure memory/read-only file boundaries, baseline preservation and explicit output diagnostics. A1/A2 have current evidence; A3-A5 are open at W3, with no authorized bounded local experiment capable of settling them. No required case/ID or R-2 criterion was dropped or declared passed.\nChanged: Registered the required Plan Improve investigation note in final_result.evidence_refs only; queue, assumptions, graph, decisions and product tree unchanged. Note records existing zero-new-experiment conclusion and conservative shared allowance; no new probe or product evidence. No scoped product edit, so no commit made.\nChecked: reviews/checks.md records exit-0 semantic artifact assertions, exact graph identity and valid/incomplete receipt, complete outcome/need/supplier forward walk and advisory lint exit 0. Baseline command outputs reused because source/tests unchanged. Required local fixtures A=2,B=0 recompute to row_count=2; empty array to zero, no transport; invalid whole batch terminates before effects. Future live A=1,U=9 plus A=2,B=3 recomputes to A=2,B=3,U=9 under required upsert rule, not inferred capability. LIVE NOT-REPLAYED: owner must supply approved reachable start, permitted fault controls and independent observer; unavailability kept open. Library/runtime claims depend only on observed Python parser and unittest evidence; no external platform claim introduced.\nClass: trivial; distinct complete planning self-review found no semantic repair. All three plan done-when clauses hold at definition level, assumption frontier has no locally settleable open question, applicable checks recorded. Feature acceptance remains due after implementation and service integration remains blocked.\n\n## Handoff\n**State and remaining work:** Plan review finished without semantic changes at HEAD f8689bec0d39f3cc242de79063a5ce08d4abc42f; inherited architecture edits preserved. final_result retains full W1-W3 queue and all prior references plus investigation note. Run improve-pass and its exact runtime done; parent complete may import final_result only after runtime completion. User stop is after navigator advances to prepare; do not execute prepare.\n\n**Current learnings:** External readiness gates integration, not independent local validation/preview. Native-service contract probes precede importer construction; candidate-specific live tests follow it. Repeating pre-send failure or a local simulator cannot reveal atomicity. Existing parser probe suffices; no additional experiment chosen or fresh allowance created. A3/A4/A5 and TC_06-TC_09 remain open for future service owner. Same quantities alone can hide duplicate effects.\n\n**Evidence:** RUN/inbox/nav-71985a68bf964ffe9d71445e46f66dd6-final-result.md; RUN/notes/{implementation-plan.md,plan-graph.json,planning-experiments.md,current-system-baseline.md}; RUN/backchain/nav-71985a68bf964ffe9d71445e46f66dd6/check-b6af369a2187.json; repository docs/shiploop/{spec,environment,architecture}.md; .shiploop-improve/nav-11a53ebb8efc42a49d5a997d2f0b812d/planning-investigation.md; this review and checks.md; exact receipt and parent-return.md beside them.\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-374675d5/reviews/checks.md": "Tree unchanged since improve-bind (0ffc356b10ed); producer checks: none recorded by ShipLoop for nav-0b9ed6ce39294e79ab7c6f46374675d5\n",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-374675d5/reviews/review-1.md": "---\nclassification: trivial\nexit: satisfied\ncontinuation: allowed\n---\nRead: self-review (inline default); spec.md R-1/R-2 and RUN/request.md S1-S10; entire environment.md and architecture.md; stage inbox and evidence; src/client.py, tests/test_baseline.py, README.md; sole reachable commit 897f2d3 full message (seed baseline, no claimed feature behavior). Child scope is the stage result and knowledge files; inherited doc edits belong to producer, runtime metadata excluded.\nFound: No material defect in strategy. All S1-S10 clauses retain local versus live observations; no service contract is inferred. Local runner setup/isolation and fixtures are specified, TC_01-TC_05 local and TC_06-TC_09 live have owners/due boundaries, all new cases explicitly planned. Required service probing is unavailable under the explicit user authority; documented pre-send failure diagnosed as target/contract gap rather than repairable setup. No browser UI exists or is requested, so UI/auth procedures do not apply. No required case was dropped from synthetic seed (none existed).\nChanged: Nothing; no commit for this pass. Producer document changes remain intact for parent acceptance.\nChecked: Existing Commands already recorded exact one-case exit-0 outputs in RUN/scratch/baseline-commands.txt; source/tests unchanged, so no redundant rerun. ID inventory exit 0 prints only baseline name. Parser probe demonstrates bool/int and permissive JSON defaults; strict-validation expectations match evidence. Source/test diff empty and TC_01-TC_09 present, verified by Python assertions exit 0. Advisory lint nav-0b9ed6ce39294e79ab7c6f46374675d5.1 exit 0: no diff-check findings, Markdown has no semantic linter. Manual local-flow walk: valid A=2,B=0 is two rows; [] zero; mixed invalid input must terminate before transport. LIVE sequence NOT-REPLAYED: start, permitted fault actions and consistent observer unavailable; prerequisite and future owner remain explicit. Upsert arithmetic gives before A=1,U=9 and after A=2,B=3,U=9; this is an oracle only, no live evidence. Exactly-once logical application requires operation evidence because identical quantities alone conceal duplicate application.\nClass: trivial; completed strategy self-review found no worthwhile change. Exit clauses checked at planning definition level; live product verification remains due and cannot be declared passed.\n\n## Handoff\n**State and remaining work:** test-strategy reviewed unchanged, seed HEAD 897f2d3, inherited environment/architecture edits preserved; invoke improve-pass then its exact runtime done, parent complete only on runtime completion. No implementation or feature tests authored.\n\n**Current learnings:** Explicit offline failure carries no atomicity information. INVENTORY_SERVICE_READY is unmet; future service owner supplies approved sandbox and proves live TC_06-TC_09. Pure local parsing/preview can proceed separately. Python parser needs explicit strictness; no performance SLA invented.\n\n**Evidence:** repository docs/shiploop/{spec,environment,architecture}.md; RUN/notes/current-system-baseline.md; RUN/scratch/{baseline-commands.txt,json-runtime-output.txt,id-inventory.txt,strategy-walk.md,tool-discovery.md}; RUN/lint stage record .1; this child's packet.json and parent-return.md preserve runtime/callback identities.\n"
+  },
+  "omitted_framework_artifact_paths": [
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-46f66dd6/handoff.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-46f66dd6/opening.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/plan-46f66dd6/parent-return.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-374675d5/handoff.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-374675d5/opening.md",
+    "TRIAL/.shiploop-runs/seed/worktree/.shiploop-improve/test-strategy-374675d5/parent-return.md"
+  ],
+  "individual_judgment": {
+    "criteria": [
+      {
+        "id": "N1",
+        "quote": "Offline transport always fails pre-send; no local probe or simulator can settle remote guarantees and no remote call is authorized.",
+        "locator": "plans[0].final.assumptions[A4].reason",
+        "grade": 2,
+        "reason": "Correctly separates the offline exception from external atomicity evidence. Supplied source and event 17 support that distinction; no simulator result is promoted to service evidence."
+      },
+      {
+        "id": "N2",
+        "quote": "Future service owner supplies and verifies INVENTORY_SERVICE_READY through explicitly authorized route, retained non-secret target/contract evidence, fixture cleanup and opt-in live invocation; absence blocks integration.",
+        "locator": "plans[0].final.assumptions[A5].settle",
+        "grade": 2,
+        "reason": "Names the prerequisite and owner, requires approved sandbox and contract evidence, and blocks W3 before dependent design, implementation or calls. Readiness is explicitly unmet and revalidated at entry."
+      },
+      {
+        "id": "N3",
+        "quote": "W1+W2 can be implemented and checked independently of the missing sandbox.",
+        "locator": "planning_artifacts: run/notes/implementation-plan.md, Forward walk and release limits",
+        "grade": 2,
+        "reason": "Validation and preview remain eligible local deliverables. The plan specifies useful diagnostics and preview output without transport calls, and invents no endpoint, credentials or provisioning authority."
+      },
+      {
+        "id": "N4",
+        "quote": "candidate importer passes TC_06 success, TC_07 service-side partial failure, TC_08 interrupted publication and TC_09 retry/recovery at real sandbox with independent full snapshots/logical operation evidence and U unchanged; invalid/mixed input never sends; local full suite stays passing.",
+        "locator": "plans[0].final.work_items[W3].context, DONE",
+        "grade": 2,
+        "reason": "Retains every required live scenario as future acceptance, including unrelated-SKU preservation and recovery from unknown outcomes. Existing transport behavior and post-change regression checks are preserved. These are completion conditions, not claimed test results."
+      },
+      {
+        "id": "N5",
+        "quote": "No new experiment or remote route chosen. Offline transport is known to fail before sending and repeating it would teach nothing about service atomicity.",
+        "locator": "planning_artifacts: planning-investigation.md",
+        "grade": 2,
+        "reason": "No doomed connectivity investigation or service simulation is shown. Event 42 actually executes a relevant local parser probe and observes boolean/integer confusion, accepted NaN and duplicate-key replacement. That evidence informs strict validation and is reused. Event 38 exercises baseline test selectors, not remote connectivity."
+      }
+    ],
+    "false_readiness": [],
+    "initial_unsupported_commitments": [
+      {
+        "quote": "Require eventual A=2,B=3,U=9 and evidence of exactly one logical application, even when setting the same quantities would conceal duplicate execution.",
+        "locator": "application_tool_evidence event 44, architecture.md live procedure step 5; incorporated through seed_result W3",
+        "reason": "This adds a stronger acceptance constraint than idempotent effects on retry. Repeated atomic absolute-quantity writes can produce the same required effect without proving a single execution. No additional side-effect requirement is supplied to justify rejecting such a contract solely for duplicate execution."
+      }
+    ],
+    "decision_rework": [],
+    "unnecessary_investigation": [
+      {
+        "event_or_locator": "application_tool_evidence events 25 and 36",
+        "reason": "These reread framework guidance already returned at events 19, 28 and 29 without showing a new question or decision consequence. This is redundant planning overhead, distinct from useful application-source inspection and the parser probe."
+      }
+    ],
+    "evidence_timing": [
+      {
+        "decision": "Do not infer external atomicity or readiness from the offline exception.",
+        "first_supported_at": "supplied",
+        "basis": "The request and supplied src/client.py explicitly establish pre-request failure and its lack of contract information; event 17 confirms the source."
+      },
+      {
+        "decision": "Proceed with independent validation and preview while keeping service integration conditional.",
+        "first_supported_at": "supplied",
+        "basis": "The request expressly requires this separation. Test-strategy records it before the plan producer or plan review."
+      },
+      {
+        "decision": "Use INVENTORY_SERVICE_READY as an owner-supplied sandbox and contract gate, retaining live acceptance.",
+        "first_supported_at": "test-strategy",
+        "basis": "Event 44 writes the named unmet gate, future service owner and TC_06\u2013TC_09 live cases. These are planned prerequisites and observations, not empirical service evidence."
+      },
+      {
+        "decision": "Add explicit strictness checks around Python JSON decoding and quantity types.",
+        "first_supported_at": "test-strategy",
+        "basis": "Event 42 exits 0 and prints observed boolean/int behavior, nonfinite NaN and duplicate-key replacement. Event 44 carries those findings into validation planning."
+      },
+      {
+        "decision": "Reuse the standard-library unittest baseline while requiring post-change regression.",
+        "first_supported_at": "supplied",
+        "basis": "Supplied discovery reports the baseline passing and supplies its source and command. Event 38 independently observes the existing test passing; it establishes no feature acceptance."
+      },
+      {
+        "decision": "Separate service-native prerequisite verification from candidate-importer live acceptance to avoid a readiness cycle.",
+        "first_supported_at": "plan-producer",
+        "basis": "Event 98 introduces AD-6 and the dependency audit distinguishing owner probes before integration from candidate tests afterward. This distinction already exists in seed_result."
+      }
+    ],
+    "summary": "All five planning obligations are fulfilled. The initial producer plan already preserves useful local work and correctly gates unavailable service integration; review adds an evidence locator without consequential rework. The parser probe supplies useful local evidence. One inherited acceptance condition unnecessarily strengthens idempotence toward single execution.",
+    "limitations": [
+      "No importer or new feature tests were implemented or executed; observed baseline passes cover only the existing offline exception.",
+      "Actual service schema, atomicity, retry/recovery guarantees, approved access and live test facilities remain unknown.",
+      "Local schema and CLI choices are explicit planning defaults whose compatibility with the eventual service remains unresolved.",
+      "Planning receipt completion and artifact checks do not establish product or live-service acceptance."
+    ]
+  },
+  "completion": {
+    "slice": {
+      "case": "unavailable",
+      "host": "codex",
+      "model": "gpt-6.1-sol",
+      "delegation": "inline",
+      "output": "TRIAL",
+      "run_dir": "TRIAL/.shiploop-runs/seed/run",
+      "worktree": "TRIAL/.shiploop-runs/seed/worktree",
+      "pass": true,
+      "verdicts": {
+        "process": true,
+        "stopped": true,
+        "no_overshoot": true
+      },
+      "item": "placeholder",
+      "item_history": [],
+      "overshoot": [],
+      "queue_growth": 2,
+      "run_status": "active",
+      "stage_at_stop": "prepare",
+      "assembled": {
+        "pass": false,
+        "changed": [],
+        "missing": [],
+        "committed_since_seed": [
+          "docs/shiploop/architecture.md",
+          "docs/shiploop/environment.md"
+        ],
+        "uncommitted_product": [],
+        "reason": "no product change, only ShipLoop's own files"
+      },
+      "checks": [
+        {
+          "command": "python3 -B -m unittest discover -s tests -v",
+          "pass": true,
+          "returncode": 0,
+          "output": "test_unconfigured_transport_is_explicit (test_baseline.Baseline.test_unconfigured_transport_is_explicit) ... ok\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nOK\n"
+        }
+      ],
+      "sessions": [
+        {
+          "status": "slice-complete",
+          "returncode": -9,
+          "elapsed_seconds": 625.8,
+          "stop": null
+        }
+      ],
+      "clear": [],
+      "clear_unfired": [],
+      "stop_after": "plan",
+      "not_reached": "system tests, release and the report: a slice ends after the item's inner loop"
+    },
+    "verified_plan_improve_done": true,
+    "state_status": "active",
+    "stage": "prepare"
+  }
+}
