@@ -68,17 +68,137 @@ class NativeSetupPilotTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="native-setup-typed-boundaries-") as temp:
             output = Path(temp) / "typed-boundaries.json"
             examples = FIXTURE / "api-fixture" / "oracle" / "suite-controls" / "typed_boundary_examples.py"
+            typed_mutants = (
+                "typed-mutant:typed_record_id_extraction",
+                "typed-mutant:typed_expected_version_coercion",
+                "typed-mutant:typed_idempotency_key_stringification",
+                "typed-mutant:typed_changes_pair_list_conversion",
+            )
+            candidates = ("correct", "alternative", *typed_mutants)
+            candidate_arg = ",".join(candidates)
             result = self.run_python(
                 str(API_ORACLE), "--tests", str(examples),
-                "--candidates", "correct,alternative", "--output", str(output),
+                "--candidates", candidate_arg, "--output", str(output),
             )
             self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
             receipt = json.loads(output.read_text(encoding="utf-8"))
             self.assertTrue(receipt["suite_valid"])
-            self.assertEqual(set(receipt["results"]), {"correct", "alternative"})
-            for candidate in receipt["results"].values():
-                self.assertEqual(candidate["classification"], "PASS")
-                self.assertEqual(candidate["tests"], 4)
+            self.assertEqual(set(receipt["results"]), set(candidates))
+            self.assertEqual(set(receipt["typed_mutant_requirements"]), {
+                name.split(":", 1)[1] for name in typed_mutants
+            })
+            typed_failure_tests = {
+                "typed-mutant:typed_record_id_extraction":
+                    "test_non_string_record_id_is_rejected_without_mutation",
+                "typed-mutant:typed_expected_version_coercion":
+                    "test_non_integer_version_is_rejected_without_mutation",
+                "typed-mutant:typed_idempotency_key_stringification":
+                    "test_non_string_key_is_rejected_without_mutation",
+                "typed-mutant:typed_changes_pair_list_conversion":
+                    "test_non_dict_changes_are_rejected_without_mutation",
+            }
+            for name in ("correct", "alternative"):
+                self.assertEqual(receipt["results"][name]["classification"], "PASS")
+                self.assertEqual(receipt["results"][name]["tests"], 4)
+            for name in typed_mutants:
+                mutant = receipt["results"][name]
+                self.assertEqual(mutant["classification"], "KILLED")
+                self.assertEqual(mutant["tests"], 4)
+                failure_tests = {
+                    failure["test"].split(" (", 1)[0].rsplit(".", 1)[-1]
+                    for failure in mutant["failures"]
+                }
+                self.assertEqual(failure_tests, {typed_failure_tests[name]}, name)
+
+            for label, tests in (
+                ("reference", FIXTURE / "api-fixture" / "oracle" / "reference_tests.py"),
+                ("existing", FIXTURE / "api-fixture" / "subject" / "test_existing.py"),
+            ):
+                suite_output = Path(temp) / f"typed-{label}.json"
+                suite_result = self.run_python(
+                    str(API_ORACLE), "--tests", str(tests),
+                    "--candidates", candidate_arg, "--output", str(suite_output),
+                )
+                self.assertEqual(suite_result.returncode, 0, suite_result.stderr or suite_result.stdout)
+                suite_receipt = json.loads(suite_output.read_text(encoding="utf-8"))
+                self.assertTrue(suite_receipt["suite_valid"], label)
+                for name in ("correct", "alternative"):
+                    self.assertEqual(suite_receipt["results"][name]["classification"], "PASS", label)
+                for name in typed_mutants:
+                    self.assertIn(
+                        suite_receipt["results"][name]["classification"],
+                        {"KILLED", "SURVIVED"},
+                        f"{label}: {name}",
+                    )
+
+            error_output = Path(temp) / "typed-error-control.json"
+            error_tests = Path(temp) / "typed-invalid-probe.py"
+            error_tests.write_text(
+                "\n".join([
+                    "import unittest",
+                    "import change_app",
+                    "",
+                    "class InvalidTypedCandidateProbe(unittest.TestCase):",
+                    "    def test_unexpected_acceptance_is_an_error(self):",
+                    "        change_app.fixture_seed()",
+                    "        common = {",
+                    '            "actor": "alice",',
+                    '            "record_id": "demo-1",',
+                    '            "expected_version": 1,',
+                    '            "changes": {"amount": 25},',
+                    '            "idempotency_key": "typed-invalid-probe",',
+                    "        }",
+                    "        invalid_values = (",
+                    '            ("record_id", {"id": "demo-1"}),',
+                    '            ("expected_version", "1"),',
+                    '            ("idempotency_key", 7),',
+                    '            ("changes", [("amount", 25)]),',
+                    "        )",
+                    "        for parameter, value in invalid_values:",
+                    "            arguments = dict(common)",
+                    "            arguments[parameter] = value",
+                    "            result = change_app.propose_change(**arguments)",
+                    "            if result.get(\"ok\") is True:",
+                    "                raise RuntimeError(f\"accepted invalid {parameter}\")",
+                ]) + "\n",
+                encoding="utf-8",
+            )
+            error_result = self.run_python(
+                str(API_ORACLE), "--tests", str(error_tests),
+                "--candidates", candidate_arg, "--output", str(error_output),
+            )
+            self.assertEqual(error_result.returncode, 0, error_result.stderr or error_result.stdout)
+            error_receipt = json.loads(error_output.read_text(encoding="utf-8"))
+            self.assertTrue(error_receipt["suite_valid"])
+            for name in ("correct", "alternative"):
+                self.assertEqual(error_receipt["results"][name]["classification"], "PASS")
+            for name in typed_mutants:
+                self.assertEqual(error_receipt["results"][name]["classification"], "INVALID")
+                self.assertEqual(error_receipt["results"][name]["status"], "invalid")
+                self.assertNotEqual(error_receipt["results"][name]["classification"], "KILLED")
+
+    def test_recovery_fixture_discriminates_stale_setup_and_false_success(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="native-setup-recovery-calibration-") as temp:
+            recovery = FIXTURE / "recovery"
+            output = Path(temp) / "recovery-calibration"
+            result = self.run_python(
+                str(recovery / "operator" / "recovery_calibrate.py"),
+                "--corpus-root", str(recovery / "corpus-v1"),
+                "--input-manifest", str(recovery / "input-manifest.json"),
+                "--output-dir", str(output),
+            )
+            self.assertEqual(result.returncode, 0, result.stderr or result.stdout)
+            receipt = json.loads(
+                (output / "calibration-result.json").read_text(encoding="utf-8")
+            )
+            self.assertTrue(receipt["pass"], result.stdout)
+            self.assertEqual(receipt["check_count"], 17)
+            self.assertEqual(receipt["passed_check_count"], 17)
+            self.assertEqual(receipt["expected_control_count"], 10)
+            self.assertEqual(receipt["model_calls"], 0)
+            controls = receipt["controls"]
+            self.assertTrue(controls["stale_target_control_rejected_without_test_setup"])
+            self.assertTrue(controls["completion_before_setup_rejected"])
 
     def test_readiness_fixture_calibrates_local_authority_and_journey_behavior(self) -> None:
         with tempfile.TemporaryDirectory(prefix="native-setup-readiness-calibration-") as temp:

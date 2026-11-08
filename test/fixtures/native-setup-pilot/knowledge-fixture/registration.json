@@ -1,0 +1,71 @@
+{
+  "registered_at": "2026-11-08T01:42:18.676749+00:00",
+  "source_head": "c233c18acec66237534680695e8e5648a82f9511",
+  "requested_model": "gpt-6.1-terra",
+  "requested_effort": "xhigh",
+  "served_identity": "UNKNOWN",
+  "scope": "Prospective reviewer-lens calibration with separated behavior/error/knowledge dimensions; no prompt A/B or production efficacy claim",
+  "predecessor": "../knowledge-bank/registration.json; v1 positive control had genuine common diagnostics/docstring gaps. Preserve v1 as confounded, not a false-positive measurement.",
+  "case_order": [
+    "A17",
+    "B04",
+    "C82",
+    "D31",
+    "E56",
+    "F90"
+  ],
+  "truth": {
+    "A17": {
+      "behavior": "sufficient",
+      "error_quality": "sufficient",
+      "knowledge": "sufficient",
+      "removed_path_warning": "satisfied"
+    },
+    "B04": {
+      "behavior": "sufficient",
+      "error_quality": "sufficient",
+      "knowledge": "insufficient",
+      "removed_path_warning": "missing_warranted"
+    },
+    "C82": {
+      "behavior": "sufficient",
+      "error_quality": "sufficient",
+      "knowledge": "misleading",
+      "removed_path_warning": "misleading"
+    },
+    "D31": {
+      "behavior": "insufficient",
+      "error_quality": "sufficient",
+      "knowledge": "insufficient",
+      "removed_path_warning": "missing_warranted"
+    },
+    "E56": {
+      "behavior": "sufficient",
+      "error_quality": "sufficient",
+      "knowledge": "sufficient",
+      "removed_path_warning": "not_warranted"
+    },
+    "F90": {
+      "behavior": "sufficient",
+      "error_quality": "insufficient",
+      "knowledge": "sufficient",
+      "removed_path_warning": "satisfied"
+    }
+  },
+  "grade_rule": "Assess concrete source evidence and rationale independently. No keyword counts. Report ambiguity and rubric conflicts; never force the key by post-hoc reinterpretation. In D31 the complete intended contract docstring is contradicted by missing replay behavior; missing incident rationale is independent.",
+  "manifest": {
+    "cases/A17/change_app.py": "1c498057db33ad482ca5caa728335cfcc9af3596f8b64d0ea0b510ea416e105e",
+    "cases/A17/contract.txt": "299b6b18b92a3a4f8e2f32371be906cc9a4633d1fd1ac03d353ce0f91c581aa1",
+    "cases/B04/change_app.py": "e576a92dd6f5d7d57c921b012bdae081404441e4720bdcce940ce6bad3cbd9cb",
+    "cases/B04/contract.txt": "299b6b18b92a3a4f8e2f32371be906cc9a4633d1fd1ac03d353ce0f91c581aa1",
+    "cases/C82/change_app.py": "87061fca2bb0e84ec7e31ab7d48167e9bc2bea46b35cb5318a5c0597ca887450",
+    "cases/C82/contract.txt": "299b6b18b92a3a4f8e2f32371be906cc9a4633d1fd1ac03d353ce0f91c581aa1",
+    "cases/D31/change_app.py": "88a3a0f93b6ae9b9d80477562aa7bc57867dac3cb62ffc6dcd7200dde0b30384",
+    "cases/D31/contract.txt": "299b6b18b92a3a4f8e2f32371be906cc9a4633d1fd1ac03d353ce0f91c581aa1",
+    "cases/E56/contract.txt": "0156d7b7b77f7f7cca3c757fbe05bea177c5f345be6366cf225c58fd8411d5bb",
+    "cases/E56/formatter.py": "2300aa6afe283cc80af6314a0a05de7453acb7369ae6546cd9e2745c9e6310ad",
+    "cases/F90/change_app.py": "b4c2b0712d21a36ce4585a73f99bf8f1f50f712bd5c4d407b48291dd632a1c72",
+    "cases/F90/contract.txt": "299b6b18b92a3a4f8e2f32371be906cc9a4633d1fd1ac03d353ce0f91c581aa1",
+    "review-guidance.txt": "e4b8642f7c70bab61ed94daded208d7c0105adbe2918978e5fc74a74d77358f3"
+  }
+}

@@ -55,7 +55,7 @@ A separate corrected-seed baseline diagnostic completed in 234.342 seconds, exit
 
 The diagnostic oracle worker retained an INCOMPLETE output-boundary handoff after observing concurrent report files. Adjudication verified those files were separate from oracle inputs; the raw execution receipts are retained without rerun or rewriting that handoff.
 
-Keep its limits visible: the five focused IDs are loosely associated with C0 command metadata even though test-spec maps them to R-1 through R-5. Coverage review found missing invalid-type checks for proposal record IDs, expected versions, idempotency keys, and change objects. Six planted-fault kills are not exhaustive contract coverage.
+Keep its limits visible: the five focused IDs are loosely associated with C0 command metadata even though test-spec maps them to R-1 through R-5. Initial coverage review flagged invalid-type checks for proposal record IDs, expected versions, idempotency keys and change objects. Follow-up fault execution showed that the generated suite already catches version coercion and key stringification; dictionary record-ID extraction and pair-list changes remain uncovered. The [follow-up journal](../native-recovery-followup-20261107/README.md) records this correction without changing the original cohort. Six planted-fault kills are not exhaustive contract coverage.
 
 ## What to retain and what remains unqualified
 

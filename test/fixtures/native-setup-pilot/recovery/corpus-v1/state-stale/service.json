@@ -1,0 +1,5 @@
+{
+  "fixture": "local-only-v1",
+  "name": "demo-service",
+  "ready": true
+}

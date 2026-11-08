@@ -1,0 +1,197 @@
+{
+  "schema_version": 1,
+  "experiment": "native-recovery-followup-2026-11-07",
+  "external_bundle_name": "recovery-followup-20261108T010005Z",
+  "scope": "diagnostic and test apparatus retention; no prompt A/B or full E2E",
+  "decision": {
+    "route": "Until Loop for in-scope repair; native send-back to step-plan for contract/prerequisite/command changes; blocked only for external action",
+    "production_changed": false,
+    "new_stage": false,
+    "loop_limit_changed": false,
+    "release_needed": false
+  },
+  "source": {
+    "frozen_native_head": "c233c18acec66237534680695e8e5648a82f9511",
+    "retention_base": "61862184885a76b9ae049a78fecb3885b5c835a3",
+    "corpus_sha256": "8e7c19d98b4a8cb8fe69d585ebcd3a243b0cba5c83b9030f7e31b8c57f9665ec",
+    "corpus_files": 29
+  },
+  "subject": {
+    "requested_model": "gpt-6.1-terra",
+    "requested_effort": "xhigh",
+    "served_identity": "UNKNOWN"
+  },
+  "native": {
+    "prepare_seconds": 541.189593,
+    "continue_seconds": 399.876232,
+    "native_slice_pass": true,
+    "send_back": false,
+    "stopped_at": "system-test-author",
+    "not_reached": [
+      "system tests",
+      "release",
+      "whole-product acceptance"
+    ],
+    "generated_test_sha256": "9a8cbed3ebae95bcc70c6942709829e9b11f8abee9eb6dca1daca62f3158749a",
+    "test_count": 5,
+    "oracle_checks": {
+      "input_manifest": true,
+      "catalog_pair": true,
+      "sources": true,
+      "actual_target": true,
+      "fresh_read_only_probe": true,
+      "ready_and_stale_test_replays": true
+    },
+    "replays": {
+      "ready": {
+        "expected": "all discovered tests pass",
+        "pass": true,
+        "test_count": 5,
+        "returncode": 0,
+        "setup_events_unchanged": true,
+        "journey_events": {
+          "grant": "blocked",
+          "sandbox": "completed",
+          "service": "completed"
+        }
+      },
+      "stale": {
+        "expected": "tests fail on stale sandbox without setup",
+        "pass": true,
+        "test_count": 5,
+        "returncode": 1,
+        "setup_events_unchanged": true,
+        "journey_events": {
+          "grant": "blocked",
+          "service": "completed"
+        }
+      }
+    },
+    "source_target_unchanged": true,
+    "independent_semantic_review": "R1-R4 covered; fresh missing probe, public setup, separate probe and independent config/receipt readback observed; no setup in test suite",
+    "pre_model_failures": [
+      {
+        "attempt": "recovery-resume-01",
+        "seconds": 2.644857
+      },
+      {
+        "attempt": "recovery-resume-02",
+        "seconds": 2.499302
+      }
+    ],
+    "pre_model_failure_reason": "frozen seed overwrote accepted plan work_items with catalog bookkeeping containing unsupported obligations",
+    "correction": "forward exact accepted work item in both seed records and derived catalog; preserve original corpora"
+  },
+  "typed_fault_bank": {
+    "original_six_fault_denominator_changed": false,
+    "prior_generated": {
+      "alternative": "PASS",
+      "correct": "PASS",
+      "typed-mutant:typed_changes_pair_list_conversion": "SURVIVED",
+      "typed-mutant:typed_expected_version_coercion": "KILLED",
+      "typed-mutant:typed_idempotency_key_stringification": "KILLED",
+      "typed-mutant:typed_record_id_extraction": "SURVIVED"
+    },
+    "retained_examples": {
+      "alternative": "PASS",
+      "correct": "PASS",
+      "typed-mutant:typed_changes_pair_list_conversion": "KILLED",
+      "typed-mutant:typed_expected_version_coercion": "KILLED",
+      "typed-mutant:typed_idempotency_key_stringification": "KILLED",
+      "typed-mutant:typed_record_id_extraction": "KILLED"
+    },
+    "additional_discriminating_faults": 2,
+    "model_outputs_edited": false
+  },
+  "knowledge": {
+    "registration_sha256": "98e11188cbbf4c397d917781812ac11e4a27d5ff6ef5cc3b88c1413fb4b853ef",
+    "cases": 6,
+    "samples_per_case": 1,
+    "matched": 6,
+    "dimensions": [
+      "behavior",
+      "error_quality",
+      "knowledge",
+      "removed_path_warning"
+    ],
+    "v1": "confounded positive control retained; not a reviewer false-positive measurement",
+    "general_improvement_claim": false
+  },
+  "browser": {
+    "attempts": 3,
+    "successful_attempt": "public-ui-child-03",
+    "verified": [
+      "local click/readback",
+      "public example.com render",
+      "Salesforce public login render"
+    ],
+    "unverified": [
+      "authenticated Salesforce org UI",
+      "Apex app provider integration",
+      "Named Credential setup",
+      "real confirmed Salesforce writes"
+    ],
+    "causality": "multiple flags and fresh context changed together; no single-flag causal claim"
+  },
+  "provider": {
+    "existing_environment_key_present": true,
+    "new_key_created": false,
+    "credential_value_retained": false,
+    "models_http": 200,
+    "initial_chat_http": 200,
+    "initial_exact_ok": false,
+    "tool_roundtrip_calls": 2,
+    "tool_roundtrip_pass": true,
+    "served_model": "grok-4.7",
+    "tool_scope": "read-only synthetic local tool; not a Salesforce operation"
+  },
+  "calibration": {
+    "checks": 17,
+    "negative_controls": 10,
+    "model_calls": 0,
+    "verified_python": [
+      "3.15",
+      "3.9"
+    ],
+    "evaluator_corrections": [
+      "deny effect check covers protected state independently of deliberate auth baseline mismatch",
+      "first setup must precede first sandbox completion",
+      "audit event count ignores blank lines"
+    ],
+    "earlier_attempts_retained": true
+  },
+  "verification": {
+    "restored_checkout_checks": {
+      "status": "PASS",
+      "quick_selected": 27,
+      "quick_completed": 27,
+      "quick_passed": 27,
+      "quick_wall_seconds": 225.923,
+      "native_wrapper_tests": 8,
+      "native_wrapper_quick_seconds": 24.444,
+      "floor_wrapper_tests": 8,
+      "floor_wrapper_process_seconds": 23.30780483400008,
+      "source_files": 9858,
+      "fingerprint": "496c97c8811ce07b8eaf04211bcde3576da10315fcc40c095a64bf0a7cd67069",
+      "source_unchanged": true,
+      "receipt": "verification/restored-checkout-01/receipt.json"
+    },
+    "prior_final_recovery": "verification/followup-final-03/receipt.json",
+    "prior_final_typed": "verification/typed-final-04/runner-receipt.json",
+    "native_oracle": "verification/native-recovery-oracle-01/execution.json",
+    "ci": "pending"
+  },
+  "evidence": {
+    "native_registration": "operator/recovery-registration-v1.json",
+    "native_result": "runs/recovery-resume-03/slice-result.json",
+    "native_oracle": "verification/native-recovery-oracle-01/oracle/oracle-result.json",
+    "typed": "verification/typed-bank-02-continuation/",
+    "knowledge": "review/knowledge-v2-assessment.json",
+    "evaluator_counterexamples": "review/oracle-controls-before-fix/receipt.json",
+    "provider": "salesforce/provider-tool-roundtrip.json",
+    "browser": "salesforce/public-ui-child-03/public-ui-preflight-mock-20261107/observations.json",
+    "opus": "review/opus.json",
+    "opus_disposition": "review/advisor-disposition.md",
+    "report": "report.html"
+  }
+}

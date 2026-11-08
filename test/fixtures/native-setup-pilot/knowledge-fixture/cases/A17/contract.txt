@@ -1,0 +1,9 @@
+Scope: review only the confirm_change replay decision, validation/error paths and nearby rationale. Do not review unrelated functions or general style.
+
+Public contract: proposing has no record effect. First confirmation of an owned pending proposal applies the exact amount and increments version once. Repeating that confirmation must return {"ok": True, "replayed": True}, leave amount/version unchanged, and not fail merely because the captured version is now stale. Unknown, foreign, cancelled or stale pending proposals return the typed failure envelope before any record write. actor/proposal_id must be strings.
+
+Incident evidence available to this review: a former implementation checked the captured version before recognizing already-applied proposals. If the original response was lost, the client retry returned a stale-version error even though its write succeeded. The change that fixed this moved replay recognition ahead of version validation. Clients still retry today. A future maintainer should be able to recover why this ordering matters from the surviving decision point. No other retired approach is asserted. This is a synthetic fixture, not a production incident claim.
+
+Assessment dimensions: behavior concerns the public state-transition and return contract. error_quality separately concerns validation and actionable failure diagnostics. knowledge concerns the public docstring and accurate rationale at this decision. The historical warning is warranted only for the documented retry incident. A correct implementation with incomplete diagnostics can have sufficient behavior and insufficient error_quality.
+
+These are synthetic non-secret IDs and values. The error strings are machine-facing diagnostics, not localized UI copy. There is no message catalog or debug switch. Review only confirm_change and any helper it calls; other public functions are fixture support outside this review scope.

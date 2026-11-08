@@ -472,5 +472,10 @@
     "diagnostic-oracle-execution/summary.json",
     "calibration/",
     "retention/"
-  ]
+  ],
+  "followup_measurement_correction": {
+    "statement": "Follow-up fault probes correct the earlier blanket invalid-type omission claim: the generated diagnostic suite already kills expected-version coercion and idempotency-key stringification via bool/None cases. It misses dictionary record-ID extraction and pair-list changes conversion. Author-written examples add discrimination for two faults, not four wholly missing boundaries.",
+    "followup": "../native-recovery-followup-20261107/results.json",
+    "original_cohort_scores_changed": false
+  }
 }

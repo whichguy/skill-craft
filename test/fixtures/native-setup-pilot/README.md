@@ -33,9 +33,12 @@ implementations passed and all six planted faults were caught on repeat executio
 That is single-run diagnostic qualification, not a prompt comparison or proof of
 general test-only workflow behavior. The five focused IDs share C0 metadata;
 inspect their actual R-1 through R-5 coverage instead of treating that mapping as
-proof. Review of that generated suite found missing invalid-type cases for proposal
-record IDs, expected versions, idempotency keys and change objects; catching the
-six planted faults did not establish complete contract coverage.
+proof. Review found that the generated suite already rejected boolean and None
+values for expected versions and idempotency keys. It did not cover a mapping
+passed as a record ID or pair-list changes converted to a dictionary. The typed
+bank adds these two additional behavioral faults alongside two cases that extend
+the existing version and key coverage; it does not identify four wholly absent
+boundaries.
 
 The original bytes are retained in cases-phase-conflict.json as a historical
 reproducer. Use that catalog only when deliberately investigating the phase
@@ -101,10 +104,12 @@ The retained experiment journal is [the November 7 native setup pilot](../../../
 
 ## Follow-up examples
 
-The separate oracle suite-controls/typed_boundary_examples.py file retains four
-executable cases found missing in the diagnostic generated suite: non-string
-record IDs, non-integer versions, non-string idempotency keys, and non-dict
-change objects. Each checks the typed error and unchanged record. The no-model
-wrapper runs them against both correct implementations. These author-written
-examples remain outside the subject, historical model outputs, and original
-six-mutant score. Their inclusion does not repair or rescore the model's tests.
+The separate oracle suite-controls/typed_boundary_examples.py file retains
+author-written cases for mapping record IDs, non-integer versions, non-string
+idempotency keys, and pair-list changes. Each checks the typed error and unchanged
+record. The no-model wrapper runs them against both correct implementations and
+the four opt-in typed mutants. These examples remain outside the subject,
+historical model outputs, and original six-mutant score. Their inclusion does not
+repair or rescore the model's tests.
+
+The [recovery fixture](recovery/README.md) retains authorized setup recovery and counterexamples for its oracle. The [knowledge examples](knowledge-fixture/README.md) distinguish behavior, diagnostics and causal comments for later reviewer calibration. Both are described in the [follow-up journal](../../../docs/experiments/native-recovery-followup-20261107/README.md).

@@ -1,0 +1,18 @@
+"""Mutation: coerce non-integer expected versions with int()."""
+import base_change
+
+fixture_seed = base_change.fixture_seed
+read_record = base_change.read_record
+confirm_change = base_change.confirm_change
+cancel_change = base_change.cancel_change
+
+
+def propose_change(actor, record_id, expected_version, changes, idempotency_key):
+    if type(expected_version) is not int:
+        try:
+            expected_version = int(expected_version)
+        except (OverflowError, TypeError, ValueError):
+            pass
+    return base_change.propose_change(
+        actor, record_id, expected_version, changes, idempotency_key
+    )

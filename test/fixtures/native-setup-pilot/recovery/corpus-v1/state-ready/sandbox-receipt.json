@@ -1,0 +1,10 @@
+{
+  "authorization_source": "fixture_explicit_permission",
+  "config_sha256": "e38ef0135df6a78dbc8bfe54f147d3ff437bcdab01c12bc34e499afb8ec111a4",
+  "format": "native-setup-receipt/1",
+  "operations": [
+    "provision",
+    "configure"
+  ],
+  "task": "local-sandbox-provision-configure"
+}

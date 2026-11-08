@@ -1,0 +1,3 @@
+Scope: review this pure formatter's contract and code knowledge. Caller validation guarantees a list of mappings with string target/status values. Output is exactly '<target>: <status>\n' per row in input order; empty input gives ''. No state is read or written. There is no known rejected/removed approach, workaround or relevant incident. Do not invent one. This is a negative control for unnecessary annotation requests.
+
+Assessment dimensions: behavior is the documented output contract. error_quality is sufficient when trusting the validated caller follows this contract; extra public-input checks or invented error paths are not required. knowledge is sufficient when the contract and rationale appropriate to this simple formatter are recoverable.

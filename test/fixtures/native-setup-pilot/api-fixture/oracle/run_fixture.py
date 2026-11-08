@@ -45,6 +45,26 @@ ALL_CANDIDATES = [
     *BASELINE_NAMES,
     *(f"mutant:{name}" for name in MUTANT_NAMES),
 ]
+TYPED_MUTANT_REQUIREMENTS = {
+    "typed_record_id_extraction": {
+        "api_area": "record",
+        "required_behavior": "propose_change rejects a non-string record_id instead of extracting its id",
+    },
+    "typed_expected_version_coercion": {
+        "api_area": "record",
+        "required_behavior": "propose_change rejects float, string, and bool expected_version values",
+    },
+    "typed_idempotency_key_stringification": {
+        "api_area": "record",
+        "required_behavior": "propose_change rejects non-string idempotency_key values",
+    },
+    "typed_changes_pair_list_conversion": {
+        "api_area": "record",
+        "required_behavior": "propose_change rejects pair-list changes instead of converting them to a dict",
+    },
+}
+TYPED_MUTANT_NAMES = tuple(TYPED_MUTANT_REQUIREMENTS)
+TYPED_CANDIDATE_BANK = tuple(f"typed-mutant:{name}" for name in TYPED_MUTANT_NAMES)
 CLASSIFICATION_EXPECTED = {
     "ordinary_assertion": "assertion_failures",
     "subtest_assertion": "assertion_failures",
@@ -104,6 +124,12 @@ def candidate_files(name):
     if name == "alternative":
         folder = ORACLE / "controls" / "alternative"
         return {filename: folder / filename for filename in files}
+    if name.startswith("typed-mutant:"):
+        mutant = name.split(":", 1)[1]
+        if mutant not in TYPED_MUTANT_REQUIREMENTS:
+            raise ValueError(f"unknown typed mutant: {mutant}")
+        files["change_app.py"] = ORACLE / "mutants" / mutant / "change_app.py"
+        return files
     if name.startswith("mutant:"):
         mutant = name.split(":", 1)[1]
         if mutant not in MUTANT_REQUIREMENTS:
@@ -126,9 +152,13 @@ def invoke(candidate, tests):
         test_dir.mkdir()
         for filename, source in candidate_files(candidate).items():
             shutil.copyfile(source, app_dir / filename)
-        if candidate.startswith("mutant:"):
+        if candidate.startswith(("mutant:", "typed-mutant:")):
             mutated = candidate.split(":", 1)[1]
-            base_module = "base_setup.py" if mutated in {"setup_noop", "denied_write"} else "base_change.py"
+            base_module = (
+                "base_setup.py"
+                if candidate.startswith("mutant:") and mutated in {"setup_noop", "denied_write"}
+                else "base_change.py"
+            )
             base_source = SUBJECT / ("setup_app.py" if base_module == "base_setup.py" else "change_app.py")
             shutil.copyfile(base_source, app_dir / base_module)
         test_copy = test_dir / "generated_tests.py"
@@ -183,10 +213,16 @@ def _classification(name, output):
     if output["status"] == "invalid":
         return "INVALID"
     if output["status"] == "assertion_failures":
-        return "KILLED" if name.startswith("mutant:") else "INVALID"
-    if name.startswith("mutant:"):
+        return "KILLED" if name.startswith(("mutant:", "typed-mutant:")) else "INVALID"
+    if name.startswith(("mutant:", "typed-mutant:")):
         return "SURVIVED"
     return "PASS" if output["status"] == "pass" else "INVALID"
+
+
+def _requirements_for_candidate(name):
+    if name.startswith("typed-mutant:"):
+        return TYPED_MUTANT_REQUIREMENTS[name.split(":", 1)[1]]
+    return MUTANT_REQUIREMENTS[name.split(":", 1)[1]]
 
 
 def evaluate(tests, candidates=None):
@@ -195,7 +231,7 @@ def evaluate(tests, candidates=None):
         if name not in BASELINE_NAMES and not (
             name.startswith("mutant:")
             and name.split(":", 1)[1] in MUTANT_REQUIREMENTS
-        ):
+        ) and name not in TYPED_CANDIDATE_BANK:
             raise ValueError(f"unknown candidate: {name}")
 
     # Both independently correct implementations are required gates, even if
@@ -214,26 +250,28 @@ def evaluate(tests, candidates=None):
                 continue
             output = invoke(name, tests)
             result = {**output, "classification": _classification(name, output)}
-            result.update(MUTANT_REQUIREMENTS[name.split(":", 1)[1]])
+            result.update(_requirements_for_candidate(name))
             results[name] = result
     else:
         for name in requested:
             if name in BASELINE_NAMES:
                 continue
-            mutant_name = name.split(":", 1)[1]
             results[name] = {
                 "status": "not_run",
                 "reason": "suite_did_not_pass_all_correct_implementations",
                 "classification": "INVALID",
-                **MUTANT_REQUIREMENTS[mutant_name],
+                **_requirements_for_candidate(name),
             }
 
-    return {
+    receipt = {
         "suite_valid": suite_valid,
         "test_sha256": sha256(tests),
         "mutant_requirements": MUTANT_REQUIREMENTS,
         "results": results,
     }
+    if any(name.startswith("typed-mutant:") for name in requested):
+        receipt["typed_mutant_requirements"] = TYPED_MUTANT_REQUIREMENTS
+    return receipt
 
 
 def classification_calibration():
@@ -430,7 +468,7 @@ def calibration():
         and seed_controls_valid
     )
     receipt = {
-        "fixture": "portable-public-api-boundaries-v4",
+        "fixture": "portable-public-api-boundaries-v5",
         "valid": success,
         "fixture_fingerprint": fixture_fingerprint(),
         "contract_fingerprints": contract_fingerprints(),
@@ -467,7 +505,7 @@ def main():
     parser.add_argument(
         "--candidates",
         default=None,
-        help="comma-separated candidates: correct, alternative, mutant:NAME",
+        help="comma-separated candidates: correct, alternative, mutant:NAME, typed-mutant:NAME",
     )
     parser.add_argument("--calibrate", action="store_true")
     parser.add_argument(
