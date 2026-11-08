@@ -133,6 +133,7 @@ jobs:
           node test/fixtures/grok-chat-full-ui/delayed-setup.cjs 2>&1 | tee "$RUNNER_TEMP/browser-fixtures/delayed-setup.log"
           node test/fixtures/grok-chat-full-ui/setup-save-boundary.cjs 2>&1 | tee "$RUNNER_TEMP/browser-fixtures/setup-save-boundary.log"
           node test/fixtures/grok-chat-full-ui/turn-and-action-correlation.cjs 2>&1 | tee "$RUNNER_TEMP/browser-fixtures/turn-and-action-correlation.log"
+          node test/fixtures/grok-chat-full-ui/app-owned-controls.cjs 2>&1 | tee "$RUNNER_TEMP/browser-fixtures/app-owned-controls.log"
       - name: Checkout unchanged
         if: ${{ always() }}
         env:

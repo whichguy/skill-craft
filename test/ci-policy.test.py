@@ -181,7 +181,7 @@ class CIPolicyTests(unittest.TestCase):
         self.assertIn("ref: ${{ needs.plan.outputs.source_sha }}", job)
         self.assertIn('export BROWSER_EXECUTABLE_PATH="$(command -v google-chrome)"', job)
         self.assertIn("--ignore-scripts playwright@latest", job)
-        for name in ("delayed-setup", "setup-save-boundary", "turn-and-action-correlation"):
+        for name in ("delayed-setup", "setup-save-boundary", "turn-and-action-correlation", "app-owned-controls"):
             self.assertIn(f"node test/fixtures/grok-chat-full-ui/{name}.cjs", job)
             self.assertIn(f'browser-fixtures/{name}.log"', job)
         self.assertIn('ci_policy.py guard --expected-sha "$EXPECTED_SHA"', job)
@@ -218,8 +218,9 @@ class CIPolicyTests(unittest.TestCase):
         render = "Rendered UI evidence regressions"
         cases = [(prepare, "install", "install.log"), (prepare, "chrome", "chrome-version.log")]
         cases.extend((render, "test/fixtures/grok-chat-full-ui/" + name + ".cjs", name + ".log")
-                     for name in ("delayed-setup", "setup-save-boundary", "turn-and-action-correlation"))
-        cases.extend(((prepare, "", "chrome-version.log"), (render, "", "turn-and-action-correlation.log")))
+                     for name in ("delayed-setup", "setup-save-boundary", "turn-and-action-correlation",
+                                  "app-owned-controls"))
+        cases.extend(((prepare, "", "chrome-version.log"), (render, "", "app-owned-controls.log")))
         for index, (name, failure, log) in enumerate(cases):
             with self.subTest(step=name, failed_command=failure or "none"):
                 runtime = self.root / ("runtime-" + str(index))

@@ -13,6 +13,10 @@ const pinnedBrowser = require('./battleship_ui_browser.cjs');
 const CONTROLLER = 'SLGrokChatController';
 const PREFIX = 'SLGrokChat';
 const ROUTE = '/lightning/n/SLGrokChat_Chat';
+const APP_ROOT = 'c-sl-grok-chat-app:visible';
+const TEXT_FIELDS = ['Named credential', 'Model', 'Message'];
+const NATIVE_TEXT_FIELD = 'textarea, input:not([type]), input:is([type="text" i], [type="search" i], '
+  + '[type="email" i], [type="tel" i], [type="url" i], [type="password" i])';
 const NAMED_CREDENTIAL = 'Grok_Chat_Model';
 const MODEL = 'grok-4.7';
 const METHODS = new Set([
@@ -562,32 +566,79 @@ async function region(page, name) {
   return locator.first();
 }
 
+async function uniqueVisible(locator, timeout) {
+  try {
+    // Strict resolution refuses two visible matches even if just one is enabled.
+    await locator.waitFor({ state: 'visible', timeout });
+  } catch (_) {
+    throw stageError('render', await locator.count() > 1 ? 'ui-state-invalid' : 'ui-control-missing');
+  }
+  return locator;
+}
+
+async function appRoot(page, timeout = 30000) {
+  // The declared tab mounts slGrokChatApp. Salesforce's shell has its own Setup.
+  return uniqueVisible(page.locator(APP_ROOT), timeout);
+}
+
 async function input(page, label) {
-  const locator = page.getByLabel(label, { exact: true });
-  await locator.first().waitFor({ state: 'visible', timeout: 30000 });
-  return locator.first();
+  const deadline = Date.now() + 30000;
+  const app = await appRoot(page);
+  const locator = app.getByLabel(label, { exact: true }).and(page.locator(':visible'));
+  return uniqueVisible(locator, Math.max(1, deadline - Date.now()));
 }
 
 async function button(page, label) {
-  const locator = page.getByRole('button', { name: label, exact: true });
-  await locator.first().waitFor({ state: 'visible', timeout: 30000 });
-  return locator.first();
+  const deadline = Date.now() + 30000;
+  const app = await appRoot(page);
+  const uniqueApp = page.locator(':root').filter({ hasNot: app.nth(1) }).locator(APP_ROOT);
+  const locator = uniqueApp.getByRole('button', { name: label, exact: true }).and(page.locator(':visible'));
+  try {
+    await uniqueVisible(locator, Math.max(1, deadline - Date.now()));
+  } catch (error) {
+    if (await app.count() > 1) throw stageError('render', 'ui-state-invalid');
+    throw error;
+  }
+  return locator;
+}
+
+async function clickAppControl(page, control) {
+  const duplicate = page.locator(APP_ROOT).nth(1).or(control.nth(1)).first();
+  // Playwright can keep a resolved element across click retries. Its action
+  // prechecks also wait for a triggered locator handler's target to disappear.
+  // The handler itself leaves the page untouched.
+  let ambiguous = false;
+  await page.addLocatorHandler(duplicate, () => { ambiguous = true; });
+  try {
+    const enabled = control.and(page.getByRole('button', { disabled: false }));
+    await enabled.click({ timeout: 30000 });
+  } catch (error) {
+    if (ambiguous || await duplicate.count()) throw stageError('render', 'ui-state-invalid');
+    throw error;
+  } finally {
+    await page.removeLocatorHandler(duplicate);
+  }
 }
 
 async function click(page, label) {
-  const control = await button(page, label);
-  // Playwright waits for enabled actionability during legitimate async transitions.
-  await control.click({ timeout: 30000 });
+  await clickAppControl(page, await enabledButton(page, label));
 }
 
 async function enabledButton(page, label) {
   const control = await button(page, label);
+  const app = page.locator(APP_ROOT);
   const deadline = Date.now() + 30000;
-  while (!await control.isEnabled()) {
-    if (Date.now() >= deadline) throw stageError('render', 'ui-control-missing');
-    await page.waitForTimeout(100);
+  try {
+    while (Date.now() < deadline) {
+      if (await app.count() > 1) throw stageError('render', 'ui-state-invalid');
+      if (await control.isEnabled({ timeout: Math.max(1, deadline - Date.now()) })) return control;
+      await page.waitForTimeout(100);
+    }
+  } catch (error) {
+    if (await app.count() > 1) throw stageError('render', 'ui-state-invalid');
+    if (error.name !== 'TimeoutError') throw error;
   }
-  return control;
+  throw stageError('render', 'ui-control-missing');
 }
 
 async function testConnection(page, observer, timeoutMs = 120000) {
@@ -596,7 +647,7 @@ async function testConnection(page, observer, timeoutMs = 120000) {
   if (observer.records.some(record => record.method === 'testConnection')) {
     throw stageError('connection', 'connection-failed');
   }
-  await control.click({ timeout: 30000 });
+  await clickAppControl(page, control);
   const connection = await observer.waitFor('testConnection', () => true, timeoutMs, cursor);
   await observer.settle();
   observer.assertConnectionAccounted(connection);
@@ -1015,7 +1066,7 @@ async function writeMessage(page, observer, conversationId, message, timeoutMs =
   const before = checked.history;
   const cursor = observer.mark();
   const turnRecords = () => observer.records.slice(cursor).filter(record => TURN_METHODS.has(record.method));
-  await send.click({ timeout: 30000 });
+  await clickAppControl(page, send);
   const deadline = Date.now() + timeoutMs;
   let chain;
   while (Date.now() <= deadline) {
@@ -1522,35 +1573,34 @@ async function checkLayout(page, width, height) {
     && box.width <= width + 1 && box.scrollWidth <= box.clientWidth + 2);
 }
 
-async function deepFocusedLabel(page) {
-  return page.evaluate(() => {
-    function active(root) {
-      const item = root.activeElement;
-      if (!item) return null;
-      if (item.shadowRoot && item.shadowRoot.activeElement) return active(item.shadowRoot);
-      const labels = item.labels ? [...item.labels].map(label => label.innerText).join(' ') : '';
-      return { aria: item.getAttribute('aria-label') || '', label: labels.trim(), tag: item.tagName };
-    }
-    return active(document);
-  });
+function ownsVisibleFocus(element) {
+  // A shadow host can match :focus while its descendant has the actual focus.
+  // Playwright's visible selector alone can also match a fully transparent input.
+  return element.getRootNode().activeElement === element && !element.shadowRoot?.activeElement
+    && element.checkVisibility({ opacityProperty: true, visibilityProperty: true });
 }
 
 async function keyboardCheck(page) {
-  const setup = await button(page, 'Setup');
+  const setup = await enabledButton(page, 'Setup');
   await setup.focus();
+  if (!await setup.evaluate(ownsVisibleFocus)) throw stageError('keyboard', 'keyboard-inaccessible');
   await page.keyboard.press('Enter');
-  await input(page, 'Named credential');
-  let found = false;
+  const deadline = Date.now() + 30000;
+  const app = await appRoot(page);
+  const native = page.locator(NATIVE_TEXT_FIELD).and(page.locator(':visible'));
+  const field = label => app.getByLabel(label, { exact: true }).and(native);
+  // Activation must reveal the configuration field. Only real Tab focus on an
+  // enabled native field inside this app can supply the navigation evidence.
+  await uniqueVisible(field('Named credential'), Math.max(1, deadline - Date.now()));
+  const focusedField = TEXT_FIELDS.map(field).reduce((left, right) => left.or(right))
+    .and(page.locator(':focus'));
   for (let index = 0; index < 10; index += 1) {
     await page.keyboard.press('Tab');
-    const focused = await deepFocusedLabel(page);
-    if (focused && /Named credential|Model|Message/.test(`${focused.aria} ${focused.label}`)) {
-      found = true;
-      break;
-    }
+    if (await app.count() !== 1) throw stageError('keyboard', 'keyboard-inaccessible');
+    if (await focusedField.count() === 1 && await focusedField.isEnabled()
+        && await focusedField.evaluate(ownsVisibleFocus)) return true;
   }
-  if (!found) throw stageError('keyboard', 'keyboard-inaccessible');
-  return true;
+  throw stageError('keyboard', 'keyboard-inaccessible');
 }
 
 function expectedHost(request) {
@@ -1770,7 +1820,7 @@ async function runStep(request, session, observer) {
     await click(page, 'Setup');
     const recheckControl = await enabledButton(page, 'Recheck setup');
     const recheckCursor = observer.mark();
-    await recheckControl.click({ timeout: 30000 });
+    await clickAppControl(page, recheckControl);
     const recheck = await observer.waitFor('getSetup', record => record.result.status === 'ready', 45000, recheckCursor);
     const newCursor = observer.mark();
     await click(page, 'New conversation');
@@ -2164,7 +2214,7 @@ module.exports = {
   METHODS, SAFE_STAGES, SAFE_REASONS, decodeAura, parseAuraRequest, pairAuraActions, parseOnceJsonString,
   normalizeResult, normalizeConversation, ApexObserver, validateRequest, inspectFixture,
   chatAttempts, assertNoChatBeforeSetup, click, enabledButton, runStep, matchTurn, writeMessage, performAction,
-  serverRequestId, testConnection,
+  serverRequestId, testConnection, keyboardCheck,
 };
 
 if (require.main === module) main();
