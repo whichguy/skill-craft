@@ -1,0 +1,4 @@
+{
+  "fails": ["P1", "P2"],
+  "why": "The plan assumes the existing identity is not relevant because no prior AD exists, and it has no selected visual record or rendered criterion."
+}

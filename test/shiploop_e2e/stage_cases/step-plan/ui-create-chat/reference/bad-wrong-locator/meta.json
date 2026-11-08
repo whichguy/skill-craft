@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "P2"
+  ],
+  "why": "The visible criterion cites spec.md rather than the decision record and its actual section."
+}

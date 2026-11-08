@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "P1"
+  ],
+  "why": "The new board decision makes dark mode the default, violating P1. P2 independently traces the selected record and does not inherit the default-selection failure."
+}

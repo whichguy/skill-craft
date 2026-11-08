@@ -5,7 +5,9 @@ selection of scenarios with no model, and live, grade and report for the model t
     python3 test/shiploop_e2e/stage_suite/stages.py list   [SELECTOR ...] [--json]
     python3 test/shiploop_e2e/stage_suite/stages.py verify [SELECTOR ...] [--json]
     python3 test/shiploop_e2e/stage_suite/stages.py render [SELECTOR ...] [--keep DIR] [--json]
-    python3 test/shiploop_e2e/stage_suite/stages.py verify @inner -validate-existing/all-match +catch
+    python3 test/shiploop_e2e/stage_suite/stages.py verify validate-existing/all-match \
+        validate-existing/broken-works-small-fix validate-existing/wrong-check \
+        -validate-existing/all-match +catch
     python3 test/shiploop_e2e/stage_suite/stages.py live   [SELECTOR ...] [--samples N] [--jobs J] [--host H --model M --effort E
                                                            --backend B --host-bin PATH] [--ref REF] [--overlay FILE] [--timeout S]
                                                            [--out DIR] [--dry-run] [--json]
@@ -245,7 +247,9 @@ def _skipped(sc: sb.Scenario, tier: str, reason: str) -> dict:
 
 
 def _failed_checks(results: list[dict]) -> list[dict]:
-    return [{"proves": row["proves"], "kind": row["kind"], "detail": row["detail"]} for row in results if not row["pass"]]
+    return [{"proves": row["proves"], "kind": row["kind"], "detail": row["detail"],
+             **({"apparatus_error": True} if row.get("apparatus_error") is True else {})}
+            for row in results if not row["pass"]]
 
 
 def _clip(text: str, limit: int = DETAIL) -> str:
@@ -268,7 +272,7 @@ def _reference(sc: sb.Scenario, name: str, tmp: Path) -> dict:
 
 
 def verify_one(sc: sb.Scenario, tmp: Path) -> dict:
-    """T0 for one scenario: the oracle passes ``reference/good`` and fails each ``reference/bad-*`` on the ids it declares."""
+    """T0 for one scenario: the oracle passes every good reference and fails each bad one on the ids it declares."""
     if "verify" not in sc.tiers:
         return _skipped(sc, "verify", "tier off")
     row = _row(sc, "verify")
@@ -279,12 +283,17 @@ def verify_one(sc: sb.Scenario, tmp: Path) -> dict:
     except sb.ScenarioError as error:
         row["problems"] += error.problems
     for name, ref in references.items():
-        if name == "good":
-            row["ids"] = ref["ids"]
+        if ref["found"]["apparatus_errors"]:
+            row["problems"] += [f"reference/{name}: oracle apparatus error; verdict is indeterminate: {_clip(error)}"
+                                 for error in ref["found"]["apparatus_errors"]]
+            continue  # a broken evaluator cannot satisfy a bad reference's declared failure
+        if name == "good" or name.startswith("good-"):
+            if name == "good":  # keep the scenario-level id summary anchored to its required reference
+                row["ids"] = ref["ids"]
             unmet = [f"{ident} {word}" for ident, word in ref["ids"].items() if word not in ("caught", "held")]
             if unmet or ref["found"]["unproved_failures"] or not ref["found"]["pass"]:
-                row["problems"].append("reference/good: the oracle does not pass it" + (f" ({', '.join(unmet)})" if unmet else ""))
-                row["problems"] += [f"reference/good: {check['kind']} failed" + (f" for {check['proves']}" if check["proves"] else "")
+                row["problems"].append(f"reference/{name}: the oracle does not pass it" + (f" ({', '.join(unmet)})" if unmet else ""))
+                row["problems"] += [f"reference/{name}: {check['kind']} failed" + (f" for {check['proves']}" if check["proves"] else "")
                                     + f": {_clip(check['detail'])}" for check in ref["checks"]]
             continue
         for ident in ref["declared"]:
@@ -296,7 +305,9 @@ def verify_one(sc: sb.Scenario, tmp: Path) -> dict:
             row["notes"].append(f"reference/{name} also fails {', '.join(surprises)}, which its meta.json does not declare")
         ref["surprises"] = surprises
     row["references"] = {name: {"declared": ref["declared"], "failed": ref["failed"], "ids": ref["ids"],
-                               "surprises": ref.get("surprises", []), "pass": ref["found"]["pass"]}
+                               "surprises": ref.get("surprises", []), "pass": ref["found"]["pass"],
+                               **({"apparatus_errors": ref["found"]["apparatus_errors"]}
+                                  if ref["found"]["apparatus_errors"] else {})}
                          for name, ref in references.items()}
     if "good" not in references and not row["problems"]:
         row["problems"].append("reference/good is missing")
@@ -726,7 +737,10 @@ def run_one_sample(sc: sb.Scenario, number: int, root: Path, args: argparse.Name
         result = read["result"]
         return {**record, "pass": stage_report.passed(result), "value": result.get("value"), "reason": None}
     if not why:
-        why = (f"live-sample exited {code}: {_tail(log)}" if code is not None else "") or read["reason"]
+        if isinstance(read.get("reason"), str) and read["reason"].startswith("oracle indeterminate:"):
+            why = read["reason"]
+        else:
+            why = (f"live-sample exited {code}: {_tail(log)}" if code is not None else "") or read["reason"]
     if not (out / stage_report.ERROR).is_file():
         with contextlib.suppress(OSError):
             out.mkdir(parents=True, exist_ok=True)
@@ -738,6 +752,8 @@ def run_one_sample(sc: sb.Scenario, number: int, root: Path, args: argparse.Name
 
 def _text_sample(record: dict) -> str:
     if not record["graded"]:
+        if isinstance(record.get("reason"), str) and record["reason"].startswith("oracle indeterminate:"):
+            return f"  INDETERMINATE  {record['scenario']} #{record['sample']}: {record['reason'][len('oracle indeterminate: '):]}  (log {record['log']})"
         return f"  NOT RUN  {record['scenario']} #{record['sample']}: {record['reason']}  (log {record['log']})"
     return (f"  {'PASS' if record['pass'] else 'FAIL'}  {record['scenario']} #{record['sample']}  value "
             f"{record['value'] if record['value'] is None else format(record['value'], '.2f')}  {record['output']}")
@@ -909,7 +925,10 @@ def cmd_live_sample(args: argparse.Namespace, cases: Path) -> int:
     except Exception:  # noqa: BLE001 - the parent records it as not run; the traceback is in the sample's log
         traceback.print_exc()
         return EXIT_CRASH
-    print(json.dumps({"scenario": sc.id, "sample": args.sample, "pass": result["pass"], "value": result["value"]}))
+    live_record = {"scenario": sc.id, "sample": args.sample, "pass": result["pass"], "value": result["value"]}
+    if result.get("oracle_status") == "indeterminate":
+        live_record.update({"oracle_status": "indeterminate", "apparatus_errors": result.get("apparatus_errors", [])})
+    print(json.dumps(live_record))
     return EXIT_PASS if result["pass"] else EXIT_FAIL
 
 
@@ -938,13 +957,22 @@ def cmd_grade(args: argparse.Namespace, cases: Path) -> int:
     if args.json:
         print(json.dumps(document, indent=2, ensure_ascii=False))
     else:
-        verdicts = ", ".join(f"{name} {'ok' if value else 'FAIL'}" for name, value in document["verdicts"].items())
-        ids = "  ".join(f"{ident} {'caught' if ident in document['caught'] else 'held'}" if value else f"{ident} MISSED"
+        indeterminate = set(document.get("indeterminate_ids", []))
+        verdicts = ", ".join(
+            f"{name} " + ("INDETERMINATE" if name == "oracle" and document.get("oracle_status") == "indeterminate"
+                          else "ok" if value else "FAIL")
+            for name, value in document["verdicts"].items())
+        ids = "  ".join(f"{ident} INDETERMINATE" if ident in indeterminate else
+                        (f"{ident} {'caught' if ident in document['caught'] else 'held'}" if value else f"{ident} MISSED")
                         for ident, value in {**document["caught"], **document["held"]}.items())
+        label = "INDETERMINATE" if document.get("oracle_status") == "indeterminate" else "PASS" if document["pass"] else "FAIL"
+        value = "indeterminate" if document.get("oracle_status") == "indeterminate" else f"{document['value']:.2f}"
         lines = [f"{document['scenario']} #{document.get('sample')}  "
                  + stage_report.driver_label((document.get("host"), document.get("backend"), document.get("model"),
                                               document.get("effort"))),
-                 f"  {'PASS' if document['pass'] else 'FAIL'}: {verdicts}", f"  ids: {ids or '-'}", f"  value {document['value']:.2f}"]
+                 f"  {label}: {verdicts}", f"  ids: {ids or '-'}", f"  value {value}"]
+        if document.get("oracle_status") == "indeterminate":
+            lines += [f"  oracle apparatus error: {_clip(error)}" for error in document.get("apparatus_errors", [])]
         lines += [f"  failed check: {check['kind']}" + (f" for {check['proves']}" if check["proves"] else "")
                   + f": {_clip(check['detail'])}" for check in document["checks"] if not check["pass"]]
         lines.append(f"  written: {out / stage_live.RESULT}")

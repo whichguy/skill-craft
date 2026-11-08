@@ -1,0 +1,1 @@
+{"fails":["C2"],"why":"The test plan requires installing a remote Playwright package from a CDN."}

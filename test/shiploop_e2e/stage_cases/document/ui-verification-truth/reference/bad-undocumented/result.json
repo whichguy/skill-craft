@@ -1,0 +1,10 @@
+{
+  "outcome": "done",
+  "summary": "The selected-square summary is mentioned and the functional rerun is recorded; the rendered-check procedure is not documented.",
+  "knowledge": {
+    "spec": "docs/shiploop/spec.md retains R-1 and R-2 and points to accepted AD-2 for appearance.",
+    "architecture": "docs/shiploop/architecture.md preserves the accepted AD-2 identity and summary composition.",
+    "environment": "docs/shiploop/environment.md records the browser capability route and that no product browser observation was captured."
+  },
+  "assumptions": []
+}

@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "C1"
+  ],
+  "why": "Architecture must retain design choices; operational verification history belongs in run records and environment documentation."
+}

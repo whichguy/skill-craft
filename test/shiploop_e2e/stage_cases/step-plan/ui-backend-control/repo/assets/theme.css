@@ -1,0 +1,2 @@
+:root { --paper: #fff9ee; --ink: #2f302d; }
+.help-sheet { color: var(--ink); background: var(--paper); max-width: 30rem; }

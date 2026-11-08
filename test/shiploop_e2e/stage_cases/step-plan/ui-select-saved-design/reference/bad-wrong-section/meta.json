@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "P2"
+  ],
+  "why": "The visual criterion names a section that does not exist in AD-2."
+}

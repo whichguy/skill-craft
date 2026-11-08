@@ -1,0 +1,4 @@
+{
+  "fails": ["C1"],
+  "why": "The plan covers counts but not existing local conversation/message behavior."
+}

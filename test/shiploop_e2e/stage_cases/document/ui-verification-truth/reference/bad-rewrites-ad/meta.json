@@ -1,0 +1,1 @@
+{"fails":["C1"],"why":"The updated architecture edits an accepted AD-2 role token instead of preserving the decision."}

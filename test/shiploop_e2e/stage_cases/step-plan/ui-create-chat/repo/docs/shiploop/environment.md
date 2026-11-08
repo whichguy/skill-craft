@@ -1,0 +1,3 @@
+# Environment
+
+The repository is plain HTML, CSS and JavaScript. Node's built-in `node:test` runs with `node --test`; no package installation is needed. The host provides local Playwright and a Chrome executable through `PLAYWRIGHT_NODE_PATH` and `BROWSER_EXECUTABLE_PATH`. A capability-only probe found those routes; it did not inspect this product. `scripts/check-chat-browser.cjs` accepts anchors from the selected AD, starts a loopback server, and checks the local UI at 390x844 and 1440x1000 in light and dark themes. No rendered result for this product has been captured. No remote browser or external service is part of this task.

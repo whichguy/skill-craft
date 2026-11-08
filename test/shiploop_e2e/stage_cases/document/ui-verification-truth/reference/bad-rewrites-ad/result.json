@@ -1,0 +1,10 @@
+{
+  "outcome": "done",
+  "summary": "README and the living spec/architecture describe the selected-square summary and accepted AD-2. The prior test stage recorded node --test as passing. TC-LAYOUT remains pending in implement.not_covered because implementation captured no product browser observations; the host capability probe did not inspect this page, and no visual pass is claimed.",
+  "knowledge": {
+    "spec": "docs/shiploop/spec.md retains R-1 and R-2 and records that accepted AD-2 remains applicable to this summary change.",
+    "architecture": "docs/shiploop/architecture.md preserves the accepted AD-2 anchors and adds the observed status behavior plus the TC-LAYOUT pending disposition from implement.not_covered.",
+    "environment": "docs/shiploop/environment.md is unchanged: the host route is capability-probed through PLAYWRIGHT_NODE_PATH and BROWSER_EXECUTABLE_PATH, but this does not verify product rendering."
+  },
+  "assumptions": []
+}

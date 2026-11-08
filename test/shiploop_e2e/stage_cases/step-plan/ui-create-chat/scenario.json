@@ -1,0 +1,123 @@
+{
+  "stage": "step-plan",
+  "about": "A local chat starter with no accepted visual identity needs its first interface, so the step-plan oracle checks AD-to-criterion traceability and light-first declarations while leaving visual quality and expressiveness to manual review.",
+  "tags": [
+    "ui-contract",
+    "first-ui"
+  ],
+  "tiers": [
+    "verify",
+    "render",
+    "live"
+  ],
+  "fixture": "web-choice",
+  "request": {
+    "prompt": "This repository contains a local chat demo with a plain starter screen, two seeded conversations, conversation switching, message display, and a local send action. R-1: Give it its first designed interface so the conversation list, active thread, and composer are clear, responsive, keyboard-usable, and easy to read. Choose a visual direction from product context; no brand or palette is prescribed. Plan a rendered browser check at narrow and wide widths in light and dark themes. R-2: Preserve local conversation selection and message behavior, including appending non-empty messages and ignoring empty text, and retain the existing node:test suite. Stay local, with no dependency or external service.",
+    "work_item": {
+      "id": "W1",
+      "title": "Design the first interface for the local chat",
+      "context": "The starter has two local conversations and working selection, message display, and send behavior. There is no accepted art direction or design system; README.md identifies the screen as a plain starter. R-1 is the first visual direction; R-2 preserves the local interactions and existing node:test suite."
+    },
+    "checks": [
+      "node --test"
+    ]
+  },
+  "options": {
+    "delegation": "inline",
+    "seed_home": false
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "The plan records a reusable first chat design with concrete tokens and a light default plus a dark option.",
+      "signature": "AD-n contains positive colors, dimensions, type, light default and dark option"
+    },
+    {
+      "id": "P2",
+      "what": "A visible-UI criterion cites the selected AD ID, exact knowledge file/section, matching anchors, and rendered checks at narrow and wide viewports in both themes.",
+      "signature": "criterion traces to actual AD section and browser anchor command"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "The plan preserves local conversation selection, message display and sending, with the existing node:test coverage."
+    },
+    {
+      "id": "C2",
+      "what": "Planning keeps product source unchanged; proposed semantic scope remains subject to manual review."
+    }
+  ],
+  "render": [
+    {
+      "packet_issued": true
+    },
+    {
+      "current_stage": "step-plan"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "AD-<n>"
+    },
+    {
+      "proves": "P2",
+      "packet_contains": "(?i)(selected AD ID|exact KNOWLEDGE file/section|visual anchors)"
+    },
+    {
+      "proves": "P2",
+      "packet_contains": "(?i)(light expressive starting point|platforms/ui.md|UI development)"
+    },
+    {
+      "proves": "C1",
+      "packet_contains": "The\\ starter\\ has\\ two\\ local\\ conversations\\ and\\ working\\ selection,\\ message\\ display,\\ and\\ send\\ behavior\\.\\ There\\ is\\ no\\ accepted\\ art\\ direction\\ or\\ design\\ system;\\ README\\.md\\ identifies\\ the\\ screen\\ as\\ a\\ plain\\ starter\\.\\ R\\-1\\ is\\ the\\ first\\ visual\\ direction;\\ R\\-2\\ preserves\\ the\\ local\\ interactions\\ and\\ existing\\ node:test\\ suite\\.",
+      "why": "The packet must carry this exact seeded work-item context; original request detail remains in its linked spec/request."
+    },
+    {
+      "proves": "C1",
+      "packet_contains": "KNOWLEDGE/environment\\.md \\(\\d+ bytes",
+      "why": "The packet indexes the actual environment record instead of duplicating all of its command text."
+    },
+    {
+      "proves": "C1",
+      "file": "docs/shiploop/environment.md",
+      "contains": "node --test",
+      "why": "The linked environment record retains the real local functional command."
+    },
+    {
+      "proves": "C1",
+      "packet_contains": "(?i)(conversation|send|message)"
+    }
+  ],
+  "oracle": [
+    {
+      "proves": "P1",
+      "command": "python3 \"$STAGE_ORACLE/check_plan.py\" P1",
+      "exit": 0
+    },
+    {
+      "proves": "P2",
+      "command": "python3 \"$STAGE_ORACLE/check_plan.py\" P2",
+      "exit": 0
+    },
+    {
+      "proves": "C1",
+      "command": "python3 \"$STAGE_ORACLE/check_plan.py\" C1",
+      "exit": 0
+    },
+    {
+      "proves": "C1",
+      "command": "node --test",
+      "exit": 0
+    },
+    {
+      "proves": "C2",
+      "changed_only": [
+        "docs/shiploop/**"
+      ]
+    }
+  ],
+  "live": {
+    "samples": 1,
+    "pass": 1
+  }
+}

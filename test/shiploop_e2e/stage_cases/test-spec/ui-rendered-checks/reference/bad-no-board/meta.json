@@ -1,0 +1,1 @@
+{"fails":["P3"],"why":"The regression summary drops the existing TC-BOARD ID and its all-square/selection/reset coverage."}

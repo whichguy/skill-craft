@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "C1"
+  ],
+  "why": "Contradicts an accepted value while keeping its literal and source-link tokens in the record."
+}

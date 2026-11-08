@@ -1,0 +1,151 @@
+{
+  "outcome": "done",
+  "summary": "The unread-count delta follows the established local chat identity. The browser and regression checks are planned.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Add unread-count badges to each existing .conversation-item, following AD-1 in docs/shiploop/architecture.md, sections Existing identity and unread-badge delta and Badge placement and current proportions. Keep #f4f0e8 and #6750a4 from the existing stylesheet; retain conversation-list and message-thread in their established roles. In a rendered browser at 390x844 and 1440x1000, place unread counts at the trailing end of each conversation row, without obscuring names or previews, and leave the composer reachable. This browser check is planned, not yet run. Serves the visible unread-count change.",
+      "confirm": "executed"
+    },
+    {
+      "id": "C2",
+      "text": "Each seeded conversation shows its current unread count in a badge. Selecting that conversation clears only its count to zero. Preserve existing local conversation switching, the active message thread, and the local compose-and-append flow. Planned regression command, not yet run: node --test test/chat-state.test.mjs; require the local conversation and message state tests to pass.",
+      "confirm": "executed"
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Record the existing chat identity, implement unread-count badges and clear-on-selection behavior while preserving local conversation/message behavior, and create the planned browser observation helper (C1-C2).",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C2"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md",
+        "styles.css",
+        "src/chat-ui.mjs",
+        "docs/shiploop/environment.md",
+        "scripts/observe-chat-unread.mjs"
+      ],
+      "proof": "UI_DIAGNOSTIC=1 node scripts/observe-chat-unread.mjs --viewports 390x844,1440x1000 --select-clear --composer-reachable --out \"$(mktemp -d)/observation\"",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "docs/shiploop/architecture.md",
+    "styles.css",
+    "src/chat-ui.mjs",
+    "docs/shiploop/environment.md",
+    "scripts/observe-chat-unread.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "UI_DIAGNOSTIC=1 node scripts/observe-chat-unread.mjs --viewports 390x844,1440x1000 --select-clear --composer-reachable --out \"$(mktemp -d)/observation\"",
+      "suite": "check",
+      "criteria": [
+        "C1",
+        "C2"
+      ]
+    },
+    {
+      "command": "npm test",
+      "suite": "regression",
+      "criteria": [
+        "C2"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-1"
+  ],
+  "expectations": [
+    {
+      "id": "E1",
+      "state": "absent",
+      "statement": "No architecture decision file exists in the seeded chat repository.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md"
+      ],
+      "check": "test ! -e docs/shiploop/architecture.md"
+    },
+    {
+      "id": "E2",
+      "state": "broken",
+      "statement": "The current chat page has no unread-count badge UI; this is the requested feature gap.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "index.html"
+      ],
+      "check": "test -s index.html && ! grep -Eiq 'unread|badge' index.html"
+    },
+    {
+      "id": "E3",
+      "state": "broken",
+      "statement": "The current stylesheet has no unread badge styling.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "styles.css"
+      ],
+      "check": "test -s styles.css && ! grep -Eiq 'unread|badge' styles.css"
+    },
+    {
+      "id": "E4",
+      "state": "broken",
+      "statement": "The current chat UI module has no unread-count state or clear-on-selection logic.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "src/chat-ui.mjs"
+      ],
+      "check": "test -s src/chat-ui.mjs && ! grep -Eiq 'unread|badge' src/chat-ui.mjs"
+    },
+    {
+      "id": "E5",
+      "state": "works",
+      "statement": "The existing state suite covers working seeded conversations, selection, and local messaging.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "test/chat-state.test.mjs"
+      ],
+      "check": "node --test test/chat-state.test.mjs"
+    },
+    {
+      "id": "E6",
+      "state": "absent",
+      "statement": "The browser observation helper is a future artifact and is not in the starter repository.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "scripts/observe-chat-unread.mjs"
+      ],
+      "check": "test ! -e scripts/observe-chat-unread.mjs"
+    },
+    {
+      "id": "E7",
+      "state": "absent",
+      "statement": "The item base has no canonical environment record; planning adds local verification instructions.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "docs/shiploop/environment.md"
+      ],
+      "check": "test ! -e docs/shiploop/environment.md"
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "stage": "step-plan",
+  "about": "Complete a thin accepted AD-2 in place before selecting the summary feature. Governing contract: reuse an AD only when it records the concrete choices; otherwise complete its applicable named sections while preserving accepted premises. These checks are record/selection proxies, not a visual quality judgment.",
+  "tags": [
+    "ui-contract",
+    "saved-design"
+  ],
+  "tiers": [
+    "verify",
+    "render",
+    "live"
+  ],
+  "fixture": "web-choice",
+  "request": {
+    "prompt": "This board already has a thin AD-2 in docs/shiploop/architecture.md. Move the existing selected-square status immediately below the board as a summary; it shows the selected coordinate and returns to \u2018Choose a square\u2019 on Reset. Complete AD-2 in place with the missing implementation-ready composition, type, theme, and rendered-check details. Preserve its AD-2 ID and every value already recorded. Keep the board behavior and node:test suite. Stay local, with no dependencies or external service.",
+    "work_item": {
+      "id": "W1",
+      "title": "Complete AD-2 and add the selected-square summary",
+      "context": "Complete the accepted board direction in place, retain its existing decisions, and plan the selected-square summary below the board. Preserve selection/reset behavior and local test coverage."
+    },
+    "checks": [
+      "node --test"
+    ]
+  },
+  "options": {
+    "delegation": "inline"
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "AD-2 gains named, reproducible composition/type/theme sections instead of remaining a preliminary direction.",
+      "signature": "AD-2 named sections with selected summary geometry and source type/theme choices"
+    },
+    {
+      "id": "P2",
+      "what": "At least one visual criterion for each visible step selects the actual AD-2 section and applicable anchors.",
+      "signature": "AD-2 exact knowledge path, named section, selected geometry"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "The existing AD ID and explicitly accepted values are retained."
+    },
+    {
+      "id": "C2",
+      "what": "Step planning changes only product knowledge records, leaving implementation and tests untouched."
+    }
+  ],
+  "render": [
+    {
+      "packet_issued": true
+    },
+    {
+      "current_stage": "step-plan"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "AD-<n>"
+    },
+    {
+      "proves": "P2",
+      "packet_contains": "exact KNOWLEDGE file/section"
+    }
+  ],
+  "oracle": [
+    {
+      "outcome": [
+        "done"
+      ]
+    },
+    {
+      "proves": "P1",
+      "command": "python3 \"$STAGE_ORACLE/check.py\" P1",
+      "exit": 0
+    },
+    {
+      "proves": "P2",
+      "command": "python3 \"$STAGE_ORACLE/check.py\" P2",
+      "exit": 0
+    },
+    {
+      "proves": "C1",
+      "command": "python3 \"$STAGE_ORACLE/check.py\" C1",
+      "exit": 0
+    },
+    {
+      "proves": "C2",
+      "changed_only": [
+        "docs/shiploop/**"
+      ]
+    }
+  ],
+  "live": {
+    "samples": 1,
+    "pass": 1
+  }
+}

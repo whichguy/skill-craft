@@ -1,0 +1,126 @@
+{
+  "outcome": "done",
+  "summary": "Selected AD-1 as the first board direction. Design basis: AD-1 in docs/shiploop/architecture.md, Decisions / Board interface; browser observations are planned and not yet run.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Style the board from AD-1 in docs/shiploop/architecture.md, sections Design system and tokens, Components and composition, and Theme. Render the light page with #f5f1e8, alternating board cells #e9dfcb and #356f66, a board maximum 32rem, and the focus color #2d5d57; the dark page is #17201f. Keep the selected-square status below the board with a 32rem maximum and 1rem gap. Check mobile 390x844 and desktop 1440x1000 in light and dark themes; observe equal square cells, keyboard focus, and no horizontal overflow. The browser command is planned, not yet run. Serves R-1.",
+      "confirm": "executed"
+    },
+    {
+      "id": "C2",
+      "text": "Preserve the local 8 by 8 board: selecting a square updates the polite status with its coordinate, and Reset restores Choose a square. Confirm by node --test; pass when TC-BOARD passes. Serves R-2.",
+      "confirm": "executed"
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Style the board using the selected direction, and preserve local selection/reset behavior (C1-C2).",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C2"
+      ],
+      "paths": [
+        "index.html",
+        "styles.css",
+        "src/board-ui.mjs",
+        "test/board-state.test.mjs"
+      ],
+      "proof": "node scripts/check-board-browser.cjs --light-page '#f5f1e8' --dark-page '#17201f' --square-a '#e9dfcb' --square-b '#356f66' --board-max 32rem --focus-color '#2d5d57' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem && node --test",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "index.html",
+    "styles.css",
+    "src/board-ui.mjs",
+    "test/board-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node scripts/check-board-browser.cjs --light-page '#f5f1e8' --dark-page '#17201f' --square-a '#e9dfcb' --square-b '#356f66' --board-max 32rem --focus-color '#2d5d57' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem && node --test",
+      "suite": "check",
+      "criteria": [
+        "C1",
+        "C2"
+      ]
+    },
+    {
+      "command": "node scripts/check-board-browser.cjs --light-page '#f5f1e8' --dark-page '#17201f' --square-a '#e9dfcb' --square-b '#356f66' --board-max 32rem --focus-color '#2d5d57' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem",
+      "suite": "focused",
+      "ids": [
+        "TC-LAYOUT"
+      ],
+      "criteria": [
+        "C1"
+      ]
+    },
+    {
+      "command": "node --test",
+      "suite": "regression",
+      "ids": [
+        "TC-BOARD"
+      ],
+      "criteria": [
+        "C2"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-1"
+  ],
+  "expectations": [
+    {
+      "id": "E1",
+      "state": "works",
+      "statement": "The existing board markup is present.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "index.html"
+      ],
+      "check": "test -f index.html"
+    },
+    {
+      "id": "E2",
+      "state": "works",
+      "statement": "The current structural board stylesheet is present.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "styles.css"
+      ],
+      "check": "test -f styles.css"
+    },
+    {
+      "id": "E3",
+      "state": "works",
+      "statement": "The local board UI module is present.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "src/board-ui.mjs"
+      ],
+      "check": "test -f src/board-ui.mjs"
+    },
+    {
+      "id": "E4",
+      "state": "works",
+      "statement": "The existing board state suite is present.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "test/board-state.test.mjs"
+      ],
+      "check": "node --test"
+    }
+  ]
+}

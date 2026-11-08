@@ -1,0 +1,7 @@
+{
+  "fails": [
+    "P1",
+    "P2"
+  ],
+  "why": "The cited identifier is not an accepted decision in the architecture record."
+}

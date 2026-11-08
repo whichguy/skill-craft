@@ -10,7 +10,8 @@ would. Only the stop at acceptance ends it. The tests run real ShipLoop builds (
 - The stop: ``accepted_reached`` for every outcome (done, send-back, blocked, add-work), for a park at the Improve stage, for a run
   that is paused or halted, for another action's rows and for a state that could not be read; a fake that sleeps for two minutes is
   ended by the poll long before its timeout and its process is gone; an Improve park (a scenario at step-plan) ends the host with
-  the producer's result as the sample's result; a fake that accepts two stages before the poll is an overshoot.
+  the producer's result as the sample's result; a fake that accepts two stages before the poll without a matching seeded
+  ``complete`` trace is an overshoot.
 - The grade: a fake that does the right thing passes (P1 caught, C1 and C2 held, value 1.0); one that reports done and leaves E1
   broken fails with P1 not caught and value 2/3; one that sends back where the scenario wants a send-back passes, and where it
   wants a fix it is accepted with the wrong outcome; a host that does nothing records its process verdict, holds no control by
@@ -524,7 +525,23 @@ class Outcomes(LiveCase):
 
 class Overshoot(unittest.TestCase):
     def history(self, *rows) -> dict:
-        return {"history": [row(action, stage, outcome) for action, stage, outcome in rows]}
+        return {"revision": 13, "history": [row(action, stage, outcome) for action, stage, outcome in rows]}
+
+    def complete_trace(self, action: str, accepted: list[dict], *, stage: str = "test-spec", revision: int = 12) -> dict:
+        return {"v": 1, "kind": "command", "verb": "complete", "action": action, "exit": 0,
+                "rev": [revision, revision + 1], "stage": [stage, "implement"], "cursor": [action, "next"],
+                "accepted": accepted}
+
+    def trace_dir(self, *events: dict) -> Path:
+        temp = tempfile.TemporaryDirectory(prefix="stage-live-trace-")
+        self.addCleanup(temp.cleanup)
+        folder = Path(temp.name)
+        (folder / "trace.jsonl").write_text("".join(json.dumps(event) + "\n" for event in events))
+        return folder
+
+    @staticmethod
+    def accepted_row(action: str, stage: str, outcome: str = "done") -> dict:
+        return {"action": action, "stage": stage, "item": "W1", "outcome": outcome}
 
     def test_a_later_stage_and_any_row_after_the_seeded_one_count_once_each(self):
         state = self.history(("a1", "test-spec", "done"), ("A", "validate-existing", "send-back"), ("a3", "step-plan", "done"),
@@ -539,6 +556,58 @@ class Overshoot(unittest.TestCase):
         state = self.history(("a1", "test-spec", "done"), ("a2", "implement", "done"))
         self.assertEqual(live.overshoot(state, "step-plan", "A"), ["test-spec", "implement"])
         self.assertEqual(live.overshoot(None, "step-plan", "A"), [])
+
+    def test_a_seeded_complete_trace_proves_its_contiguous_script_co_settlement(self):
+        state = self.history(("A", "test-spec", "done"), ("B", "validate-existing", "done"))
+        trace = self.trace_dir(self.complete_trace("A", [self.accepted_row("A", "test-spec"),
+                                                          self.accepted_row("B", "validate-existing")]))
+        self.assertEqual(live.overshoot(state, "test-spec", "A", trace), [])
+
+    def test_a_separate_later_stage_acceptance_still_counts_after_co_settlement(self):
+        state = self.history(("A", "test-spec", "done"), ("B", "validate-existing", "done"), ("C", "implement", "done"))
+        state["revision"] = 14
+        co_settled = self.complete_trace("A", [self.accepted_row("A", "test-spec"),
+                                                self.accepted_row("B", "validate-existing")])
+        later = self.complete_trace("C", [self.accepted_row("C", "implement")], stage="implement", revision=13)
+        trace = self.trace_dir(co_settled, later)
+        self.assertEqual(live.overshoot(state, "test-spec", "A", trace), ["implement"])
+
+    def test_a_later_send_back_and_redone_earlier_stage_still_count_after_co_settlement(self):
+        state = self.history(("A", "test-spec", "done"), ("B", "validate-existing", "done"),
+                             ("C", "implement", "send-back"), ("D", "step-plan", "done"))
+        state["revision"] = 15
+        co_settled = self.complete_trace("A", [self.accepted_row("A", "test-spec"),
+                                                self.accepted_row("B", "validate-existing")])
+        sent_back = self.complete_trace("C", [self.accepted_row("C", "implement", "send-back")],
+                                        stage="implement", revision=13)
+        redone = self.complete_trace("D", [self.accepted_row("D", "step-plan")], stage="step-plan", revision=14)
+        trace = self.trace_dir(co_settled, sent_back, redone)
+        self.assertEqual(live.overshoot(state, "test-spec", "A", trace), ["implement", "step-plan"])
+
+    def test_a_forged_or_ambiguous_complete_trace_does_not_explain_later_rows(self):
+        state = self.history(("A", "test-spec", "done"), ("B", "validate-existing", "done"))
+        accepted = [self.accepted_row("A", "test-spec"), self.accepted_row("B", "validate-existing")]
+        forged = self.complete_trace("not-A", accepted, stage="test-spec")
+        valid = self.complete_trace("A", accepted)
+        malformed_acceptance = self.complete_trace("A", [self.accepted_row("A", "test-spec"),
+                                                          self.accepted_row("B", "validate-existing", "send-back")])
+        for name, events in (("wrong action", (forged,)), ("duplicate proof", (valid, valid)),
+                             ("history mismatch", (malformed_acceptance,))):
+            with self.subTest(name=name):
+                trace = self.trace_dir(*events)
+                self.assertEqual(live.overshoot(state, "test-spec", "A", trace), ["validate-existing"])
+
+    def test_missing_or_malformed_trace_keeps_later_history_rows_as_overshoot(self):
+        state = self.history(("A", "test-spec", "done"), ("B", "validate-existing", "done"))
+        missing = Path(tempfile.mkdtemp(prefix="stage-live-trace-missing-"))
+        self.addCleanup(shutil.rmtree, missing, True)
+        self.assertEqual(live.overshoot(state, "test-spec", "A", missing), ["validate-existing"])
+
+        trace = self.trace_dir(self.complete_trace("A", [self.accepted_row("A", "test-spec"),
+                                                           self.accepted_row("B", "validate-existing")]))
+        with (trace / "trace.jsonl").open("a") as stream:
+            stream.write("{damaged line}\n")
+        self.assertEqual(live.overshoot(state, "test-spec", "A", trace), ["validate-existing"])
 
 
 class PacketHead(unittest.TestCase):

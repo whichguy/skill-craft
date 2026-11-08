@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "P1"
+  ],
+  "why": "The plan omits AD-2 from follows, violating P1. Its criterion independently selects the correct AD, section and anchors, so P2 remains satisfied."
+}

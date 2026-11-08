@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "C1"
+  ],
+  "why": "The criterion omits the existing local conversation and message behavior."
+}

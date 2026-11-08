@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "P2"
+  ],
+  "why": "Claims rendered success while the same result explicitly leaves TC-LAYOUT open; actual execution truth is a separate manual property."
+}

@@ -1,0 +1,81 @@
+{
+  "outcome": "done",
+  "summary": "Selected AD-1 as the first local-chat direction. Design basis: AD-1 in docs/shiploop/architecture.md, Decisions / Local chat interface; browser observations are planned and not yet run.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Give the local chat its first responsive visual direction from AD-1 in docs/shiploop/architecture.md, sections Design system and tokens, Components and composition, and Theme. Use page #f5f2eb, panel #ffffff, dark panel #212f3d, accent #4f66bf, focus #344e9c, and content maximum 72rem; the dark canvas is #18222e. Observe the conversation list and active message thread at mobile 390x844 and desktop 1440x1000 in light and dark themes, with no horizontal overflow, an accent marker on the selected conversation, and visible keyboard focus. The browser command is planned, not yet run. Serves R-1."
+    },
+    {
+      "id": "C2",
+      "text": "Preserve local conversation selection, message display, and sending: selecting either seeded conversation changes the active thread, sending non-empty text appends it to that thread, and empty text is ignored. Confirm by node --test; pass when TC-CHAT passes. Serves R-2."
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Record AD-1 and apply its responsive visual choices to the local chat (C1).",
+      "deps": [],
+      "criteria": [
+        "C1"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md",
+        "index.html",
+        "styles.css",
+        "src/chat-ui.mjs",
+        "scripts/check-chat-browser.cjs",
+        "server.js"
+      ],
+      "proof": "node scripts/check-chat-browser.cjs --light-page '#f5f2eb' --dark-page '#18222e' --panel '#ffffff' --dark-panel '#212f3d' --accent '#4f66bf' --focus-color '#344e9c' --content-max 72rem --dark-class theme-dark",
+      "skills": []
+    },
+    {
+      "id": "S2",
+      "task": "Preserve local conversation selection and message behavior with the existing suite (C2).",
+      "deps": [
+        "S1"
+      ],
+      "criteria": [
+        "C2"
+      ],
+      "paths": [
+        "test/chat-state.test.mjs"
+      ],
+      "proof": "node --test",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "docs/shiploop/architecture.md",
+    "index.html",
+    "styles.css",
+    "src/chat-ui.mjs",
+    "scripts/check-chat-browser.cjs",
+    "test/chat-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node scripts/check-chat-browser.cjs --light-page '#f5f2eb' --dark-page '#18222e' --panel '#ffffff' --dark-panel '#212f3d' --accent '#4f66bf' --focus-color '#344e9c' --content-max 72rem --dark-class theme-dark",
+      "suite": "check",
+      "criteria": [
+        "C1"
+      ]
+    },
+    {
+      "command": "node --test",
+      "suite": "regression",
+      "ids": [
+        "TC-CHAT"
+      ],
+      "criteria": [
+        "C2"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-1"
+  ]
+}

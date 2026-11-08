@@ -1,0 +1,10 @@
+{
+  "outcome": "done",
+  "summary": "The existing Node tests passed. A later browser check passed at both sizes and themes; the earlier unrun state is superseded by this observation. Execution records remain the evidence.",
+  "knowledge": {
+    "spec": "Added the observed summary placement under R-1.",
+    "architecture": "AD-2 remains accepted without a new design choice.",
+    "environment": "Recorded the rerun command and host browser prerequisites."
+  },
+  "assumptions": []
+}

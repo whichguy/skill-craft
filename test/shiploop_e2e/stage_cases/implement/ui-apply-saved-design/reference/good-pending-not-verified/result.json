@@ -1,0 +1,10 @@
+{
+  "outcome": "done",
+  "summary": "The node --test functional state suite passed. TC-LAYOUT was not verified because no product browser observation was recorded.",
+  "not_covered": [
+    {
+      "behaviour": "TC-LAYOUT rendered summary placement, width/gap, board geometry, focus, and viewport fit.",
+      "reason": "Not verified in this implementation record; the browser route has not produced page output."
+    }
+  ]
+}

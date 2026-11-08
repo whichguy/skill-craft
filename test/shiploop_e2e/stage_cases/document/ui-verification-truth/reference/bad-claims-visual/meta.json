@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "P2"
+  ],
+  "why": "Current result claims rendered success while explicitly leaving visual verification open; historical gaps alone do not prove a false claim."
+}

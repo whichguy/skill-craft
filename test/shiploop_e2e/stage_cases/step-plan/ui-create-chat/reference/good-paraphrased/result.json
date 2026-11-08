@@ -1,0 +1,139 @@
+{
+  "outcome": "done",
+  "summary": "The local chat direction is AD-4 in KNOWLEDGE/architecture.md; rendered browser observations remain pending.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Give the local chat a light-first direction from AD-4 in KNOWLEDGE/architecture.md, sections Palette and typography, Conversation layout, and Dark treatment. Use page #f7f4ee, panel #ffffff, accent #b94f38, focus #8d3326, a 70rem content maximum and dark canvas #202833. Observe the conversation list and active thread in rendered mobile 390x844 and desktop 1440x1000 views in light and dark themes, with a clear active marker, visible keyboard focus and no horizontal overflow. The browser command is planned, not yet run. Serves R-1.",
+      "confirm": "executed"
+    },
+    {
+      "id": "C2",
+      "text": "Preserve local conversation selection, message display, and sending: selecting either seeded conversation changes the active thread, sending non-empty text appends it to that thread, and empty text is ignored. Confirm by node --test; pass when TC-CHAT passes. Serves R-2.",
+      "confirm": "executed"
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Apply the accepted AD-4 direction to the local interface and preserve existing behavior (C1-C2).",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C2"
+      ],
+      "paths": [
+        "index.html",
+        "styles.css",
+        "src/chat-ui.mjs",
+        "test/chat-state.test.mjs"
+      ],
+      "proof": "node scripts/check-chat-browser.cjs --light-page '#f7f4ee' --dark-page '#202833' --panel '#ffffff' --dark-panel '#303946' --accent '#b94f38' --focus-color '#8d3326' --content-max 70rem --dark-class theme-dark && node --test",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "index.html",
+    "styles.css",
+    "src/chat-ui.mjs",
+    "scripts/check-chat-browser.cjs",
+    "test/chat-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node scripts/check-chat-browser.cjs --light-page '#f7f4ee' --dark-page '#202833' --panel '#ffffff' --dark-panel '#303946' --accent '#b94f38' --focus-color '#8d3326' --content-max 70rem --dark-class theme-dark && node --test",
+      "suite": "check",
+      "criteria": [
+        "C1",
+        "C2"
+      ]
+    },
+    {
+      "command": "node scripts/check-chat-browser.cjs --light-page '#f7f4ee' --dark-page '#202833' --panel '#ffffff' --dark-panel '#303946' --accent '#b94f38' --focus-color '#8d3326' --content-max 70rem --dark-class theme-dark",
+      "suite": "focused",
+      "ids": [
+        "TC-CHAT-LAYOUT"
+      ],
+      "criteria": [
+        "C1"
+      ]
+    },
+    {
+      "command": "node --test",
+      "suite": "regression",
+      "ids": [
+        "TC-CHAT"
+      ],
+      "criteria": [
+        "C2"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-4"
+  ],
+  "expectations": [
+    {
+      "id": "E1",
+      "state": "works",
+      "statement": "The local conversation and message markup is present.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "index.html"
+      ],
+      "check": "test -f index.html"
+    },
+    {
+      "id": "E2",
+      "state": "works",
+      "statement": "The local structural stylesheet is present.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "styles.css"
+      ],
+      "check": "test -f styles.css"
+    },
+    {
+      "id": "E3",
+      "state": "works",
+      "statement": "The local chat UI module is present.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "src/chat-ui.mjs"
+      ],
+      "check": "test -f src/chat-ui.mjs"
+    },
+    {
+      "id": "E4",
+      "state": "works",
+      "statement": "The parameterized local browser checker is present.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "scripts/check-chat-browser.cjs"
+      ],
+      "check": "test -f scripts/check-chat-browser.cjs"
+    },
+    {
+      "id": "E5",
+      "state": "works",
+      "statement": "The local chat state suite is present.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "test/chat-state.test.mjs"
+      ],
+      "check": "node --test"
+    }
+  ]
+}

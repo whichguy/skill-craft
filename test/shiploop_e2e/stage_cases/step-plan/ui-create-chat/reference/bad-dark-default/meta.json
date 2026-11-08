@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "P1"
+  ],
+  "why": "The selected first-UI decision makes dark mode its default, violating P1. P2 independently traces the selected record and does not inherit the default-selection failure."
+}

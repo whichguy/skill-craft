@@ -1,0 +1,61 @@
+{
+  "outcome": "done",
+  "summary": "The missing design record is treated as a new product and the existing chat is replaced by the generic default direction. Design basis: AD-1 in docs/shiploop/architecture.md, Decisions / New product direction. Planned browser helper (not present yet) has not run; command: `node scripts/check-chat-unread-browser.mjs --viewports 390x844,1440x1000 --select-clear --composer-reachable --out \"$(mktemp -d)/observation\"`.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Apply a new light expressive design to the whole chat, following AD-1 in docs/shiploop/architecture.md, section New product direction. Use a newly chosen palette and replace the conversation list and message pane. Check rendered phone and desktop views."
+    },
+    {
+      "id": "C2",
+      "text": "Show unread counts and clear them when selecting a conversation. Preserve the existing local conversation/message flow. Keep node --test test/chat-state.test.mjs."
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Rebrand the chat around the new-UI default and add unread counts.",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C2"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md",
+        "index.html",
+        "styles.css",
+        "src/chat-ui.mjs",
+        "test/chat-state.test.mjs"
+      ],
+      "proof": "node scripts/check-chat-unread-browser.mjs --viewports 390x844,1440x1000 --select-clear --composer-reachable --out \"$(mktemp -d)/observation\"",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "docs/shiploop/architecture.md",
+    "index.html",
+    "styles.css",
+    "src/chat-ui.mjs",
+    "test/chat-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node --test test/chat-state.test.mjs",
+      "suite": "regression",
+      "ids": [
+        "the seeded local conversations open with their own messages",
+        "selecting a seeded conversation changes the active local message thread",
+        "sending adds a message to that conversation locally",
+        "blank messages do not change local conversation state"
+      ],
+      "criteria": [
+        "C2"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-1"
+  ]
+}

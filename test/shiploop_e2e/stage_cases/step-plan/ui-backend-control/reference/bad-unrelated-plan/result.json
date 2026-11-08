@@ -1,0 +1,40 @@
+{
+  "outcome": "done",
+  "summary": "Fix the partial page count and cover the final slice; preserve the accepted presentation decision.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "capitalize returns a capitalized string."
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Correct the page count and add the regression for C1.",
+      "deps": [],
+      "criteria": [
+        "C1"
+      ],
+      "paths": [
+        "src/paginate.js",
+        "test/paginate-last-page.test.js"
+      ],
+      "proof": "node --test",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "src/paginate.js",
+    "test/paginate-last-page.test.js"
+  ],
+  "test_commands": [
+    {
+      "command": "node --test",
+      "suite": "regression"
+    }
+  ],
+  "check_na": "No separate lint, type or build command exists in this fixture.",
+  "follows": [
+    "R-1"
+  ]
+}

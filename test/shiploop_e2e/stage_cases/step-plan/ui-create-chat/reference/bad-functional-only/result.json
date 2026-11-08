@@ -1,0 +1,74 @@
+{
+  "outcome": "done",
+  "summary": "Selected AD-1 as the first local-chat direction. Design basis: AD-1 in docs/shiploop/architecture.md, Decisions / Local chat interface; browser observations are planned and not yet run.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "The conversation list and message panel work at small and large viewports; confirm with node --test."
+    },
+    {
+      "id": "C2",
+      "text": "Preserve local conversation selection, message display, and sending: selecting either seeded conversation changes the active thread, sending non-empty text appends it to that thread, and empty text is ignored. Confirm by node --test; pass when TC-CHAT passes. Serves R-2."
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Record AD-1 and apply its responsive visual choices to the local chat (C1).",
+      "deps": [],
+      "criteria": [
+        "C1"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md",
+        "index.html",
+        "styles.css",
+        "src/chat-ui.mjs",
+        "scripts/check-chat-browser.cjs"
+      ],
+      "proof": "node --test",
+      "skills": []
+    },
+    {
+      "id": "S2",
+      "task": "Preserve local conversation selection and message behavior with the existing suite (C2).",
+      "deps": [
+        "S1"
+      ],
+      "criteria": [
+        "C2"
+      ],
+      "paths": [
+        "test/chat-state.test.mjs"
+      ],
+      "proof": "node --test",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "docs/shiploop/architecture.md",
+    "index.html",
+    "styles.css",
+    "src/chat-ui.mjs",
+    "scripts/check-chat-browser.cjs",
+    "test/chat-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node --test",
+      "suite": "regression",
+      "ids": [
+        "TC-CHAT"
+      ],
+      "criteria": [
+        "C1",
+        "C2"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-1"
+  ]
+}

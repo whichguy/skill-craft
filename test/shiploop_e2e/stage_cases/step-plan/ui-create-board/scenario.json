@@ -1,0 +1,119 @@
+{
+  "stage": "step-plan",
+  "about": "A local board with no accepted visual identity needs its first interface, so the step-plan oracle checks AD-to-criterion traceability and light-first declarations while leaving visual quality and expressiveness to manual review.",
+  "tags": [
+    "ui-contract",
+    "first-ui"
+  ],
+  "tiers": [
+    "verify",
+    "render",
+    "live"
+  ],
+  "fixture": "web-choice",
+  "request": {
+    "prompt": "This repository contains a local 8\u00d78 board demo with a plain starter screen, square selection, a polite selection status, and Reset. R-1: Give it its first designed interface so the board is clear, responsive, keyboard-usable, and easy to read. Choose a visual direction from the product context; no brand or palette is prescribed. Plan a rendered browser check at narrow and wide widths in light and dark themes. R-2: Keep the square-selection and reset behavior and existing node:test suite. Stay local, with no dependency or external service.",
+    "work_item": {
+      "id": "W1",
+      "title": "Design the first interface for the local board",
+      "context": "The board already renders 64 local square buttons, announces the selected coordinate, and clears selection with Reset. There is no accepted art direction or design system; README.md identifies the page as a plain starter. R-1 is the new visual direction; R-2 preserves selection/reset and the existing node:test suite."
+    },
+    "checks": [
+      "node --test"
+    ]
+  },
+  "options": {
+    "delegation": "inline",
+    "seed_home": false
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "The plan records a concrete first design in a reusable AD that selects a light-first interface and contains reproducible choices beyond adjectives.",
+      "signature": "AD-n with positive token and composition values"
+    },
+    {
+      "id": "P2",
+      "what": "A visible-UI criterion cites the selected AD, exact knowledge file/section, matching anchors, and rendered observations across widths and themes.",
+      "signature": "criterion links to matching AD section and anchors"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "The board's local square selection, live status, reset, and existing node:test coverage remain part of the implementation plan."
+    },
+    {
+      "id": "C2",
+      "what": "Planning does not edit product source; the only product-tree change is the durable design record. Whether proposed implementation paths fit the user's request remains a manual scope judgment."
+    }
+  ],
+  "render": [
+    {
+      "packet_issued": true
+    },
+    {
+      "current_stage": "step-plan"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "AD-<n>"
+    },
+    {
+      "proves": "P2",
+      "packet_contains": "(?i)(selected AD ID|exact KNOWLEDGE file/section|visual anchors)"
+    },
+    {
+      "proves": "P2",
+      "packet_contains": "(?i)(light expressive starting point|platforms/ui.md|UI development)"
+    },
+    {
+      "proves": "C1",
+      "packet_contains": "The\\ board\\ already\\ renders\\ 64\\ local\\ square\\ buttons,\\ announces\\ the\\ selected\\ coordinate,\\ and\\ clears\\ selection\\ with\\ Reset\\.\\ There\\ is\\ no\\ accepted\\ art\\ direction\\ or\\ design\\ system;\\ README\\.md\\ identifies\\ the\\ page\\ as\\ a\\ plain\\ starter\\.\\ R\\-1\\ is\\ the\\ new\\ visual\\ direction;\\ R\\-2\\ preserves\\ selection/reset\\ and\\ the\\ existing\\ node:test\\ suite\\.",
+      "why": "The packet must carry this exact seeded work-item context; original request detail remains in its linked spec/request."
+    },
+    {
+      "proves": "C1",
+      "packet_contains": "KNOWLEDGE/environment\\.md \\(\\d+ bytes",
+      "why": "The packet indexes the actual environment record instead of duplicating all of its command text."
+    },
+    {
+      "proves": "C1",
+      "file": "docs/shiploop/environment.md",
+      "contains": "node --test",
+      "why": "The linked environment record retains the real local functional command."
+    }
+  ],
+  "oracle": [
+    {
+      "proves": "P1",
+      "command": "python3 \"$STAGE_ORACLE/check_plan.py\" P1",
+      "exit": 0
+    },
+    {
+      "proves": "P2",
+      "command": "python3 \"$STAGE_ORACLE/check_plan.py\" P2",
+      "exit": 0
+    },
+    {
+      "proves": "C1",
+      "command": "python3 \"$STAGE_ORACLE/check_plan.py\" C1",
+      "exit": 0
+    },
+    {
+      "proves": "C1",
+      "command": "node --test",
+      "exit": 0
+    },
+    {
+      "proves": "C2",
+      "changed_only": [
+        "docs/shiploop/**"
+      ]
+    }
+  ],
+  "live": {
+    "samples": 1,
+    "pass": 1
+  }
+}

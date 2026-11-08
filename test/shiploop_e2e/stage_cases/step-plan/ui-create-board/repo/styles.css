@@ -1,0 +1,21 @@
+/* Structural starter only: these neutral colors distinguish alternating squares. */
+.app-shell {
+  box-sizing: border-box;
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+.board {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  width: min(100%, 32rem);
+  aspect-ratio: 1;
+}
+.square {
+  min-width: 0;
+  aspect-ratio: 1;
+  border: 1px solid #666;
+}
+.square--light { background: #eee; }
+.square--dark { background: #999; }
+.square[data-selected="true"] { outline: 3px solid #111; outline-offset: -3px; }

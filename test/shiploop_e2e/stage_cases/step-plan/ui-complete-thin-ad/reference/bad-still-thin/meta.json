@@ -1,0 +1,7 @@
+{
+  "fails": [
+    "P1",
+    "P2"
+  ],
+  "why": "Leaves the accepted direction too thin for the new composition."
+}

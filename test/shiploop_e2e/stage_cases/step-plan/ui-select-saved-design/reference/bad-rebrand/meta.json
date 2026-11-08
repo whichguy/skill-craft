@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "C2"
+  ],
+  "why": "The plan rewrites the accepted record and appends a new direction."
+}

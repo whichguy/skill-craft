@@ -1,0 +1,117 @@
+{
+  "outcome": "done",
+  "summary": "Design basis: complete AD-2 in docs/shiploop/architecture.md from the existing stylesheet and authorized summary delta. Preserve its accepted values and state model. Browser observations are planned and unrun; use the provided runtime route when available, otherwise retain the visual confirmation as an open item for a browser-capable reviewer.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "The selected-square summary follows AD-2 in docs/shiploop/architecture.md, Summary composition and Appearance and tokens: immediately below the board in normal flow with a 1rem gap, at most 32rem wide, using --surface #fffdf8 and --ink #19302e. Observe rendered mobile 390x844 and desktop 1440x1000 in light and theme-dark states with no overlap or horizontal overflow; pass when TC-LAYOUT and TC-SUMMARY confirm the selected anchors. Serves R-1.",
+      "confirm": "executed"
+    },
+    {
+      "id": "C2",
+      "text": "Square selection announces its coordinate and Reset restores Choose a square; retain the existing local state and node:test suite. Confirm by node --test and TC-BOARD. Serves R-2.",
+      "confirm": "executed"
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Move the existing summary below the board and apply its selected AD-2 composition while preserving behavior.",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C2"
+      ],
+      "paths": [
+        "index.html",
+        "styles.css"
+      ],
+      "proof": "node scripts/check-board-browser.cjs --light-page '#f4f1e9' --dark-page '#17201f' --square-a '#e7dcc5' --square-b '#34746b' --board-max 32rem --focus-color '#214c46' --dark-focus-color '#f3c15b' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "index.html",
+    "styles.css"
+  ],
+  "test_commands": [
+    {
+      "command": "node scripts/check-board-browser.cjs --light-page '#f4f1e9' --dark-page '#17201f' --square-a '#e7dcc5' --square-b '#34746b' --board-max 32rem --focus-color '#214c46' --dark-focus-color '#f3c15b' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem",
+      "suite": "focused",
+      "ids": [
+        "TC-LAYOUT",
+        "TC-SUMMARY"
+      ],
+      "criteria": [
+        "C1"
+      ]
+    },
+    {
+      "command": "node --test",
+      "suite": "regression",
+      "ids": [
+        "TC-BOARD"
+      ],
+      "criteria": [
+        "C2"
+      ]
+    }
+  ],
+  "check_na": "This local JavaScript fixture has no separate lint, type or build command.",
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-2"
+  ],
+  "expectations": [
+    {
+      "id": "E1",
+      "state": "works",
+      "statement": "Existing board selection/reset and inherited tests pass.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "src/board-state.mjs",
+        "test/board-state.test.mjs"
+      ],
+      "check": "node --test"
+    },
+    {
+      "id": "E2",
+      "state": "broken",
+      "statement": "The existing status precedes the board rather than the requested below-board composition.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "index.html"
+      ],
+      "check": "node -e 'const h=require(\"fs\").readFileSync(\"index.html\",\"utf8\");require(\"assert\")(h.indexOf(\"id=\\\"selection-status\\\"\")<h.indexOf(\"id=\\\"board\\\"\"))'"
+    },
+    {
+      "id": "E3",
+      "state": "works",
+      "statement": "The existing accepted stylesheet is present and nonempty.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "styles.css"
+      ],
+      "check": "test -s styles.css"
+    },
+    {
+      "id": "E4",
+      "state": "works",
+      "statement": "The local rendered-check script is available; browser execution remains a later observation.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "scripts/check-board-browser.cjs"
+      ],
+      "check": "test -f scripts/check-board-browser.cjs"
+    }
+  ]
+}

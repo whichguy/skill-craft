@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "P2"
+  ],
+  "why": "The criterion selects AD-3 rather than the existing AD-2."
+}

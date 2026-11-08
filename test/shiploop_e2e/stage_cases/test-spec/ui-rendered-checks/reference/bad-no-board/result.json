@@ -1,0 +1,23 @@
+{
+  "outcome": "done",
+  "summary": "TC-LAYOUT specifies rendered checks. It counts 64 rendered squares. The full node --test regression retains selection and Reset state checks, but this result omits TC-BOARD. No visual pass is claimed.",
+  "test_cases": [
+    {
+      "id": "TC-LAYOUT",
+      "criterion": "C3",
+      "requirement": "R-1",
+      "oracle": "Run node scripts/check-board-browser.cjs --light-page '#f4f1e9' --dark-page '#17201f' --square-a '#e7dcc5' --square-b '#34746b' --board-max 32rem --focus-color '#214c46' --dark-focus-color '#f3c15b' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem. In light and explicit theme-dark at 390x844 and 1440x1000, observe the page and alternating square colors, 32rem square board, equal cells, no horizontal overflow, visible focus, summary below the board with a 32rem cap and 1rem gap, and all 64 square buttons.",
+      "red": "A saved rendered anchor is wrong, the board or cells are not square, overflow appears, the summary is misplaced or too wide, or one of the 64 square buttons is absent.",
+      "green": "The browser observations pass in both themes at both viewport sizes; the command output is recorded for each TC-LAYOUT viewport/theme result."
+    },
+    {
+      "id": "TC-SUMMARY",
+      "criterion": "C1",
+      "requirement": "R-1",
+      "oracle": "Run node --test test/board-state.test.mjs and assert the existing status is Choose a square initially, Selected: E4 after selecting E4, and Choose a square after Reset. TC-LAYOUT also checks visible status text after a browser selection and Reset.",
+      "red": "The existing status text or Reset behavior fails, or the rendered polite status does not report the selection and reset prompt.",
+      "green": "The node state assertions and the rendered polite-status interaction pass."
+    }
+  ],
+  "assumptions": []
+}

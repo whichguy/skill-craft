@@ -1,0 +1,25 @@
+{
+  "mode": "identity",
+  "ui_paths": [
+    "index.html",
+    "styles.css",
+    "src/chat-ui.mjs"
+  ],
+  "allowed_paths": [
+    "docs/shiploop/architecture.md",
+    "styles.css",
+    "src/chat-ui.mjs",
+    "index.html",
+    "docs/shiploop/environment.md"
+  ],
+  "required_paths": [
+    "styles.css",
+    "src/chat-ui.mjs"
+  ],
+  "narrow_viewport_max": 480,
+  "wide_viewport_min": 1024,
+  "allowed_path_prefixes": [
+    "scripts/",
+    "test/"
+  ]
+}

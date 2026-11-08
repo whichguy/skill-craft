@@ -6,10 +6,11 @@ A results root holds one folder per sample, ``<root>/<stage>/<scenario>/<n>/``, 
 ``live-plan.json`` (``PLAN``), which ``stages.py live`` writes before it starts anything: the samples it planned per scenario
 and the pass rule. A root made by hand, with no plan, reports what is on disk.
 
-A sample is **graded** when its ``stage-result.json`` is there, whole and well-formed. Every other sample is **not run**: a
+A sample is **graded** when its ``stage-result.json`` is there, whole and well-formed. Every other sample is **not graded**: a
 folder with no result (the host never started, the sample crashed or timed out, ``error.txt`` says why when it could), a result
-that is half written (``stage-result.json.partial``) or malformed, and a sample the plan named whose folder is missing. A sample
-that was not run counts in the denominator and never in a numerator: it is not a pass, not a catch and not a hold.
+that is half written (``stage-result.json.partial``) or malformed, a result with a private-oracle apparatus error (indeterminate),
+and a sample the plan named whose folder is missing. A sample that was not graded counts in the denominator and never in a
+numerator: it is not a pass, not a catch and not a hold.
 
 The matrix has a row per scenario and the columns
 
@@ -81,11 +82,15 @@ def _graded(document: Any) -> str | None:
         return "stage-result.json has no caught and held"
     if not caught and not held:
         return "stage-result.json checked no planted or control id"
+    if not isinstance(document.get("pass"), bool):
+        return "stage-result.json has no pass"
+    errors = document.get("apparatus_errors")
+    if isinstance(errors, list) and errors:
+        detail = "; ".join(" ".join(str(error).split()) for error in errors)[:300]
+        return f"oracle indeterminate: {detail}"
     value = document.get("value")
     if not isinstance(value, (int, float)) or isinstance(value, bool) or not 0 <= value <= 1:
         return "stage-result.json has no value between 0 and 1"
-    if not isinstance(document.get("pass"), bool):
-        return "stage-result.json has no pass"
     return None
 
 
@@ -246,7 +251,7 @@ def _rule(row: dict) -> str:
 
 
 def render(report: dict) -> str:
-    """The matrix of one results root as plain text: a row per scenario, then the samples that were not run and why."""
+    """The matrix of one results root as plain text: a row per scenario, then the samples that were not graded and why."""
     ids = report["ids"]
     table = [["scenario", "ran", *ids, "overshoot", "pass", "rule", "driver"]]
     for row in report["scenarios"]:
@@ -263,7 +268,10 @@ def render(report: dict) -> str:
             lines.append(f"ignored: {row['id']}/{name} is not a sample folder (a sample is a folder named by its number, 1, 2, ...)")
     for row in report["scenarios"]:
         for item in row["not_run"]:
-            lines.append(f"not run: {row['id']} #{item['sample']}: {item['reason']}")
+            if item["reason"].startswith("oracle indeterminate:"):
+                lines.append(f"indeterminate: {row['id']} #{item['sample']}: {item['reason'][len('oracle indeterminate: '):]}")
+            else:
+                lines.append(f"not run: {row['id']} #{item['sample']}: {item['reason']}")
     return "\n".join(lines)
 
 

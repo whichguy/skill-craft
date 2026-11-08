@@ -1,0 +1,71 @@
+{
+  "outcome": "done",
+  "summary": "Add the selected-square summary beneath the board while preserving its state behavior. Design basis: AD-2 in docs/shiploop/architecture.md, Decisions / Board interface; browser observations are planned and not yet run.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "The selected-square summary reports the selected coordinate and Reset returns it to Choose a square. Confirm with node --test test/board-state.test.mjs; pass when TC-SUMMARY passes. Serves R-1."
+    },
+    {
+      "id": "C2",
+      "text": "Preserve all 64 local squares, selection status and Reset. Confirm with node --test test/board-state.test.mjs; pass when TC-BOARD passes. Serves R-2."
+    },
+    {
+      "id": "C3",
+      "text": "Place the selected-square summary immediately below the board, following AD-2 in docs/shiploop/architecture.md, sections Appearance and tokens, Summary composition, and Theme and observations. Render the light page #f4f1e9, alternating square colors #e7dcc5 and #34746b, dark canvas #17201f, light focus #214c46 and dark focus #f3c15b. Keep the board maximum 32rem and the summary directly below it with a 32rem maximum and 1rem gap. Observe the layout at mobile 390x844 and desktop 1440x1000 in light and dark themes, with equal cells, no horizontal overflow and visible keyboard focus. The browser command is planned, not yet run. Serves R-1."
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Add and style the selected-square summary using the saved board direction; preserve board state behavior (C1-C3).",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C2",
+        "C3"
+      ],
+      "paths": [
+        "index.html",
+        "styles.css",
+        "src/board-ui.mjs",
+        "test/board-state.test.mjs"
+      ],
+      "proof": "node scripts/check-board-browser.cjs --light-page '#f4f1e9' --dark-page '#17201f' --square-a '#e7dcc5' --square-b '#34746b' --board-max 32rem --focus-color '#214c46' --dark-focus-color '#f3c15b' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem && node --test test/board-state.test.mjs",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "index.html",
+    "styles.css",
+    "src/board-ui.mjs",
+    "test/board-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node scripts/check-board-browser.cjs --light-page '#f4f1e9' --dark-page '#17201f' --square-a '#e7dcc5' --square-b '#34746b' --board-max 32rem --focus-color '#214c46' --dark-focus-color '#f3c15b' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem && node --test test/board-state.test.mjs",
+      "suite": "check",
+      "criteria": [
+        "C1",
+        "C2",
+        "C3"
+      ]
+    },
+    {
+      "command": "node --test test/board-state.test.mjs",
+      "suite": "regression",
+      "ids": [
+        "TC-SUMMARY",
+        "TC-BOARD"
+      ],
+      "criteria": [
+        "C1",
+        "C2"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2"
+  ]
+}

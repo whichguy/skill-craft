@@ -1,0 +1,6 @@
+{
+  "fails": [
+    "P2"
+  ],
+  "why": "Explicit all-requested-contexts success contradicts the same result leaving TC-LAYOUT contexts open, regardless of phrase order."
+}

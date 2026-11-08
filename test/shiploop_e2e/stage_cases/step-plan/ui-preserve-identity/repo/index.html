@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Local Chat</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="chat-shell" aria-label="Local chat">
+    <aside class="sidebar" aria-label="Conversation navigation">
+      <div class="brand-mark" aria-hidden="true">L</div>
+      <div class="sidebar-heading">
+        <p class="eyebrow">WORKSPACE</p>
+        <h1>Local Chat</h1>
+      </div>
+      <nav class="conversation-navigation" aria-label="Conversations">
+        <h2 class="section-label">Messages</h2>
+        <ul id="conversation-list" class="conversation-list"></ul>
+      </nav>
+      <p class="local-note">Saved in this browser session</p>
+    </aside>
+
+    <section class="message-pane" aria-label="Conversation">
+      <header class="conversation-header">
+        <div>
+          <p class="eyebrow">CONVERSATION</p>
+          <h2 id="conversation-title">Mira Chen</h2>
+        </div>
+        <p id="conversation-preview" class="header-detail">Product design</p>
+      </header>
+      <div id="message-thread" class="message-thread" role="log" aria-label="Messages" aria-live="polite"></div>
+      <p id="chat-status" class="sr-only" role="status" aria-live="polite"></p>
+      <form id="composer" class="composer" aria-label="Write a message">
+        <label class="sr-only" for="message-input">Message</label>
+        <input id="message-input" name="message" autocomplete="off" placeholder="Write a message…">
+        <button class="send-button" type="submit">Send</button>
+      </form>
+    </section>
+  </main>
+  <script type="module" src="src/chat-ui.mjs"></script>
+</body>
+</html>

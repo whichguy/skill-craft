@@ -1,0 +1,4 @@
+{
+  "fails": ["P1", "P2"],
+  "why": "The plan lets the unspecified new-UI default displace the explicit requested strip direction, and its criterion selects no matching retro component anchors."
+}

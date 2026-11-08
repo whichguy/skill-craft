@@ -1,0 +1,31 @@
+{
+  "outcome": "done",
+  "summary": "The recorded browser command in the W9 step plan is the focused suite. TC-LAYOUT uses this common setup. It specifies light/dark page colors, alternating square colors, a 32rem board, focus colors, a summary below the board with a 32rem maximum width and 1rem gap, and observations at 390x844 and 1440x1000 in both themes. The rendered observation records equal board/cell geometry, no horizontal overflow, visible focus, selection/reset, and all 64 square controls. TC-BOARD and TC-SUMMARY retain the existing node --test state checks. The GREEN fields state the expected result after the procedure is run; this summary reports no execution result.",
+  "test_cases": [
+    {
+      "id": "TC-LAYOUT",
+      "criterion": "C3",
+      "requirement": "R-1",
+      "oracle": "Use the focused browser command. The common preparation and cleanup are described in the summary. At both viewport sizes and in both themes, record the rendered summary, board and cell geometry, horizontal overflow, visible focus, selection/reset interaction, and rendered control count.",
+      "red": "The rendered summary is not below the board or exceeds its 32rem width/1rem gap; the board or cells are not square; horizontal overflow appears; focus is not visible; selection/reset fails; or fewer than 64 square buttons render.",
+      "green": "The rendered observations show the expected summary, geometry, focus, overflow, interaction, and all 64 controls at both widths in both themes; retain the measured output for each viewport/theme."
+    },
+    {
+      "id": "TC-BOARD",
+      "criterion": "C2",
+      "requirement": "R-2",
+      "oracle": "Run node --test test/board-state.test.mjs and assert selection succeeds for a1 and h8, selection rejects i9 without changing state, and Reset restores the initial state.",
+      "red": "Selection at a1/h8, rejection of i9, or Reset state behavior regresses.",
+      "green": "The existing node state assertions pass for a1, h8, and i9, and TC-LAYOUT observes all 64 rendered controls."
+    },
+    {
+      "id": "TC-SUMMARY",
+      "criterion": "C1",
+      "requirement": "R-1",
+      "oracle": "Run node --test test/board-state.test.mjs and assert the initial Choose a square prompt, Selected: a1 after selection, and Choose a square after Reset. TC-LAYOUT also observes the visible status after selection and Reset.",
+      "red": "The existing status text or Reset behavior fails, or the rendered status does not announce selection and reset.",
+      "green": "The node state assertions and the rendered polite-status interaction pass."
+    }
+  ],
+  "assumptions": []
+}

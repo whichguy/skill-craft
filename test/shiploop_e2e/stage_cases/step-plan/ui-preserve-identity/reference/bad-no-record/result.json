@@ -1,0 +1,58 @@
+{
+  "outcome": "done",
+  "summary": "The local unread feature is planned without recording the already-visible chat identity. Design basis: no accepted AD is selected because this result omits the design record for the existing identity. Planned browser helper (not present yet) has not run; command: `node scripts/check-chat-unread-browser.mjs --viewports 390x844,1440x1000 --select-clear --composer-reachable --out \"$(mktemp -d)/observation\"`.",
+  "criteria": [
+    {
+      "id": "C1",
+      "text": "Add count badges to the conversation rows and clear them when a conversation is selected. Keep the current local message thread and composer behavior; run node --test test/chat-state.test.mjs."
+    },
+    {
+      "id": "C2",
+      "text": "Limit paths to index.html, styles.css, src/chat-ui.mjs and test/chat-state.test.mjs. No network or package dependencies."
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Add unread-count badges to the local conversation list.",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C2"
+      ],
+      "paths": [
+        "index.html",
+        "styles.css",
+        "src/chat-ui.mjs",
+        "test/chat-state.test.mjs"
+      ],
+      "proof": "node scripts/check-chat-unread-browser.mjs --viewports 390x844,1440x1000 --select-clear --composer-reachable --out \"$(mktemp -d)/observation\"",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "index.html",
+    "styles.css",
+    "src/chat-ui.mjs",
+    "test/chat-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node --test test/chat-state.test.mjs",
+      "suite": "regression",
+      "ids": [
+        "the seeded local conversations open with their own messages",
+        "selecting a seeded conversation changes the active local message thread",
+        "sending adds a message to that conversation locally",
+        "blank messages do not change local conversation state"
+      ],
+      "criteria": [
+        "C1"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2"
+  ]
+}

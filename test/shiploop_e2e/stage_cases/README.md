@@ -9,6 +9,8 @@ controls the stage must leave alone. The suite then checks, with scripts and no 
 The plan is `docs/plans/shiploop-stage-suite.md`. The code is `test/shiploop_e2e/stage_suite/`; this folder holds only
 scenario data.
 
+See [UI decision packet cases](UI.md) for the added inner-stage UI scenarios and their `+ui-contract` selector.
+
 ```
 test/shiploop_e2e/
   stage_suite/
@@ -30,7 +32,7 @@ module, all hermetic (the live ones use a fake host, never a model).
 
 | Tier | Command | Model | Built | What it proves |
 |---|---|---|---|---|
-| verify (T0) | `stages.py verify` | no | yes | The scenario's `oracle` checks pass `reference/good` and fail every `reference/bad-*` on the ids that bad output declares, so the oracle can fail each planted condition and control. No ShipLoop run is started. |
+| verify (T0) | `stages.py verify` | no | yes | The scenario's `oracle` checks pass `reference/good` and every `reference/good-<slug>`, and fail every `reference/bad-*` on the ids that bad output declares, so the oracle can fail each planted condition and control. No ShipLoop run is started. |
 | render (T1) | `stages.py render` | no | yes | A real run is built to the scenario's stage with the engine's own seed seam, `shiploop next` is run, and the `render` checks read the packet. A stage the engine settles by script (no packet) is checked as that. |
 | live (T2) | `stages.py live` | yes (costs money) | yes | A model that follows only this packet has the intended effect, graded by the same `oracle` checks over N samples. |
 
@@ -52,8 +54,10 @@ render tier skips it and says so.
                                validate-existing: nothing before implement changes the tree, and the checks that stage
                                runs on entry come before the seed point, so those files go in repo/
   notes/             optional  files laid into RUN/notes/
+  oracle/            optional  helper files for `command` and `stand_in` checks; exposed read-only outside the candidate tree
   reference/
-    good/            result.json (the stage's accepted result, a JSON object with "outcome") and optional tree/
+    good/            the required accepted result, a JSON object with "outcome", and optional tree/
+    good-<slug>/     another accepted result checked in the same way
     bad-<slug>/      the same, plus meta.json {"fails": ["P1", ...], "why": "..."}
 ```
 
@@ -61,10 +65,19 @@ render tier skips it and says so.
 per line, beside `result.json`) is removed from it; it must name a file or folder below the tree (not an absolute path, not a
 path with `..`, and not `.`, which would be the tree itself).
 
+For `command` and `stand_in`, the bundle's result is available as JSON at the path in `STAGE_RESULT`. When a scenario has an
+`oracle/` folder, the harness copies it read-only outside the candidate tree and sets `STAGE_ORACLE` to that copy. These inputs
+are not overlaid into the candidate. The command receives the oracle's reduced environment: `PATH` is inherited for command
+lookup, and other host environment variables are not inherited.
+
+An uncaught helper exception, invalid helper syntax, or helper launch error is an apparatus error. T0 verification fails that
+reference as indeterminate, so it cannot satisfy a `bad-*` declaration. Live grading labels affected ids indeterminate, and
+the aggregate report leaves that sample out of graded outcomes instead of counting it as a candidate miss.
+
 ### scenario.json
 
-Unknown keys are rejected. `about` and `fixture` are required; `request_from` is required once the render or live tier
-is on. Every other key has a default.
+Unknown keys are rejected. `about` and `fixture` are required; `request_from` or an inline `request` is required once the
+render or live tier is on. Every other key has a default.
 
 | Key | Meaning |
 |---|---|
@@ -74,7 +87,8 @@ is on. Every other key has a default.
 | `tiers` | A subset of `verify`, `render`, `live`. Default: all three. |
 | `fixture` | A folder under `test/shiploop_e2e/fixtures/` (the repository the run starts from). |
 | `request_from` | A key of `test/shiploop_e2e/step_cases.json`; supplies the prompt, the work item and the checks. |
-| `request_text` | Optional nonblank prompt override for matched scenarios. `request_from` remains required for render/live and still supplies the work item and checks. |
+| `request` | Stage-local alternative to the shared case: exactly `prompt`, `work_item` and `checks`. The prompt is nonblank text, the work item is one valid seed work item, and checks are command strings. Mutually exclusive with `request_from` and `request_text`. |
+| `request_text` | Optional nonblank prompt override for a matched `request_from` case. It still uses that case's work item and checks. |
 | `options` | `{"delegation": "inline" \| "ask-agent", "seed_home": boolean}`. `seed_home` defaults to `true`; `false` skips the synthetic `docs/shiploop/spec.md` and `environment.md` seed. Files in a scenario's `repo/` overlay are still included. |
 | `seed_records` | `{stage: fields}` merged into that earlier stage's synthetic result. The engine validates them, so a record that drifts from its contract fails at seed time. |
 | `worktree_mode` | `committed` or `uncommitted` (default). Reserved: `committed` validates and the builder refuses it. |
@@ -89,10 +103,14 @@ Rules the loader keeps (all problems of all scenarios are listed in one error):
 - Ids are unique within a scenario (planted and controls together): `P<n>` for a planted condition, `C<n>` for a control.
 - A `render` check's `proves` names a known id.
 - With the verify or live tier on, **every planted and control id is proven by at least one `oracle` check**.
-- With the verify tier on, `reference/good` exists, and **every planted and control id is failed by at least one
+- With the verify tier on, `reference/good` exists and every `good` or `good-<slug>` output passes the oracle. Additional good
+  references are useful when one expected result has several valid forms.
+- **Every planted and control id is failed by at least one
   `reference/bad-*`**. That is the proof the oracle can fail it: a check that no bad output ever trips has not been
   shown to measure anything.
-- A `meta.json` parses and names known ids; a `result.json` is an object with an `outcome`.
+- Each `good` or `bad` reference has a `result.json` that is an object with an `outcome`; bad references also have a `meta.json`
+  that parses and names known ids. Reference directory names are `good`, `good-<slug>` (letters, digits, `_` and `-`, starting
+  with a letter or digit), or `bad-<name>` with a non-empty suffix.
 
 ### A worked example
 
@@ -187,14 +205,16 @@ Rules the engine keeps:
 
 1. Make `stage_cases/<stage>/<scenario>/` and write `scenario.json`. Start from a scenario of the same stage and run
    `stages.py list` to see it load.
-2. Choose the fixture and `request_from`. Put the planted fault in `repo/` (it is committed in the baseline) and what
-   earlier stages left in `worktree/`.
+2. Choose the fixture and either a matching shared `request_from` case or a stage-local `request` with its prompt, one
+   work item and checks. Put the planted fault in `repo/` (it is committed in the baseline) and what earlier stages
+   left in `worktree/`.
 3. Write `seed_records` for the stages before yours. The builder records them through the engine, so the engine's
    validation tells you what is missing.
 4. Give every planted condition a **signature** a script can see (a token, an id, an exit code, a path) and name each
    control. If the only way to tell caught from missed is to read prose, sharpen the scenario.
 5. Write `render` checks for the packet and `oracle` checks for the output, each tied to an id with `proves`.
-6. Write `reference/good`, and **a `reference/bad-<slug>` for every planted and control id**: an output that misses that
+6. Write required `reference/good`; add `reference/good-<slug>` folders when another accepted output is useful. Then write
+   **a `reference/bad-<slug>` for every planted and control id**: an output that misses that
    planted condition or breaks that control, with `meta.json` listing exactly the ids it must make the oracle fail. A
    bad output with no `meta.json`, or an id no bad output fails, is a loader error. This is the rule that keeps the
    oracle honest: it is shown able to fail each id before any model is graded by it.
@@ -210,7 +230,9 @@ python3 test/shiploop_e2e/stage_suite/stages.py list                          # 
 python3 test/shiploop_e2e/stage_suite/stages.py verify                        # all (T0)
 python3 test/shiploop_e2e/stage_suite/stages.py render validate-existing      # one stage (T1)
 python3 test/shiploop_e2e/stage_suite/stages.py render validate-existing/wrong-check --keep /tmp/built
-python3 test/shiploop_e2e/stage_suite/stages.py verify @inner -validate-existing/all-match +catch   # an exclude must select something
+python3 test/shiploop_e2e/stage_suite/stages.py verify validate-existing/all-match \
+  validate-existing/broken-works-small-fix validate-existing/wrong-check \
+  -validate-existing/all-match +catch   # the original namespace and catch-tagged examples
 python3 test/shiploop_e2e/stage_suite/stages.py verify --json
 ```
 

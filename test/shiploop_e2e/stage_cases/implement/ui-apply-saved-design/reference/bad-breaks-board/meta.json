@@ -1,0 +1,1 @@
+{"fails": ["C1", "C2"], "why": "Reset leaves a selected square, and the change escapes the planned presentation-only paths."}

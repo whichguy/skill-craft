@@ -35,7 +35,9 @@ Rules the checks keep (each is pinned by test/shiploop-e2e-stage-oracle.test.py)
   when its target stays inside the copy, any other is left out so that a command cannot write through it into the tree, the
   seed or the scenario), stdin closed, in a session of their own whose group is killed at the timeout (default 120 s) and again
   when the command ends, with the environment cut to PATH, HOME and TMPDIR (scratch folders), LC_ALL=C and
-  SHIPLOOP_PROGRESS=off. A timeout fails the check whatever exit was asked for, and so does "nonzero" when the status is 126
+  SHIPLOOP_PROGRESS=off. When present, the bundle's result is a separate read-only JSON file named by ``STAGE_RESULT``; a
+  scenario's optional ``oracle/`` helpers are copied read-only outside the candidate tree and named by ``STAGE_ORACLE``.
+  A timeout fails the check whatever exit was asked for, and so does "nonzero" when the status is 126
   or 127 (the shell could not run the command, which says nothing about the code under test). Output goes to an unnamed file
   and the command is stopped, and the check fails like a timeout, once it has written more than OUTPUT_LIMIT bytes. The detail
   keeps the tail of the output. A process that leaves the session itself (``setsid``) is out of the group's reach and is not
@@ -50,8 +52,9 @@ Rules the checks keep (each is pinned by test/shiploop-e2e-stage-oracle.test.py)
   except the timeout of a command.
 
 A sample's verdict (``verdict``): an id is caught (planted) or held (control) when at least one check proves it and every
-check that proves it passes; an id no check in the list names is ``None``, not exercised, never a pass. The sample passes
-when every exercised id is caught or held, no check without ``proves`` failed, and at least one check ran.
+check that proves it passes; an id no check in the list names is ``None``, not exercised, never a pass. A private helper error
+is marked as apparatus error, makes the sample indeterminate and cannot count as a candidate miss. The sample passes when
+every exercised id is caught or held, no check without ``proves`` failed, and at least one check ran.
 """
 from __future__ import annotations
 
@@ -145,6 +148,10 @@ class Bundle:
 
 class Fail(Exception):
     """A check that is evaluated and does not hold, or cannot be: the message is its detail."""
+
+
+class ApparatusFailure(Fail):
+    """The private oracle helper could not be evaluated; this says nothing about the candidate output."""
 
 
 # --------------------------------------------------------------------------------------------------------- validation
@@ -529,16 +536,50 @@ def _overlay(source: str, work: Path) -> None:
                 shutil.copy2(origin, goal)
 
 
-def _execute(command: str, cwd: Path, scratch: Path, seconds: float) -> dict:
-    """Run `command` under /bin/sh in `cwd`: ``{returncode, timeout, flooded, tail}``. Standard input is closed, the command
+def _oracle_helper_error(output: bytes, command: str, oracle_dir: Path, returncode: int | None) -> str | None:
+    """Recognize a helper traceback or an unrunnable helper from full output, before its displayed tail is clipped."""
+    text = output.decode("utf-8", "replace")
+    # A subprocess can report the lexical path from STAGE_ORACLE or its resolved
+    # path (notably /var versus /private/var on macOS). Both name our copied input.
+    helper_paths = {str(oracle_dir), str(oracle_dir.resolve())}
+    def mentions_helper_path(value: str) -> bool:
+        return any(path in value for path in helper_paths)
+
+    mentions_helper = mentions_helper_path(text)
+    traceback = text.partition("Traceback (most recent call last):")[2]
+    helper_frame = any(mentions_helper_path(line) and re.match(r"^\s*File [\"']", line) for line in traceback.splitlines())
+    if helper_frame:
+        return "uncaught exception in STAGE_ORACLE helper"
+    helper_location = any(mentions_helper_path(line) and re.match(r"^\s*File [\"']", line) for line in text.splitlines())
+    syntax_error = re.search(r"(?m)^\s*(?:SyntaxError|IndentationError|TabError):", text)
+    if helper_location and syntax_error:
+        return "STAGE_ORACLE helper has invalid Python syntax"
+
+    lowered = text.lower()
+    launch_error = any(marker in lowered for marker in
+                       ("can't open file", "cannot open", "no such file or directory", "permission denied", "not found"))
+    if launch_error and (mentions_helper or
+                         (returncode in UNRUNNABLE and ("$STAGE_ORACLE/" in command or "${STAGE_ORACLE}/" in command))):
+        return "STAGE_ORACLE helper could not be run"
+    return None
+
+
+def _execute(command: str, cwd: Path, scratch: Path, seconds: float, *, result_file: Path | None = None,
+             oracle_dir: Path | None = None) -> dict:
+    """Run `command` under /bin/sh in `cwd`: ``{returncode, timeout, flooded, tail, oracle_helper_error}``. Standard input is closed, the command
     leads a session of its own whose group is killed at the timeout and again when the leader is done, and the environment
-    holds PATH, HOME, TMPDIR, LC_ALL and SHIPLOOP_PROGRESS only. The output goes to an unnamed file, of which only the end is
-    read; a command that writes more than OUTPUT_LIMIT bytes is killed (``flooded``)."""
+    holds PATH, HOME, TMPDIR, LC_ALL and SHIPLOOP_PROGRESS, plus STAGE_RESULT and STAGE_ORACLE only when those scratch inputs
+    exist. The output goes to an unnamed file, of which only the end is read; a command that writes more than OUTPUT_LIMIT
+    bytes is killed (``flooded``)."""
     home, temp = scratch / "home", scratch / "tmp"
     home.mkdir(exist_ok=True)
     temp.mkdir(exist_ok=True)
     env = {"PATH": os.environ.get("PATH") or os.defpath, "HOME": str(home), "TMPDIR": str(temp), "LC_ALL": "C",
            "SHIPLOOP_PROGRESS": "off"}
+    if result_file is not None:
+        env["STAGE_RESULT"] = str(result_file)
+    if oracle_dir is not None:
+        env["STAGE_ORACLE"] = str(oracle_dir)
     with tempfile.TemporaryFile() as log:
         try:
             proc = subprocess.Popen([SHELL, "-c", command], cwd=cwd, env=env, stdin=subprocess.DEVNULL, stdout=log,
@@ -568,14 +609,19 @@ def _execute(command: str, cwd: Path, scratch: Path, seconds: float) -> dict:
             proc.wait()
         size = os.fstat(log.fileno()).st_size
         flooded = flooded or size > OUTPUT_LIMIT
+        helper_error = None
+        if oracle_dir is not None and not flooded:
+            log.seek(0)
+            helper_error = _oracle_helper_error(log.read(OUTPUT_LIMIT), command, oracle_dir, proc.returncode)
         log.seek(max(0, size - TAIL))
         data = log.read(TAIL)
     return {"returncode": proc.returncode, "timeout": timed_out, "flooded": flooded,
-            "tail": data.decode("utf-8", "replace").strip()}
+            "tail": data.decode("utf-8", "replace").strip(), "oracle_helper_error": helper_error}
 
 
 def _in_copy(bundle: Bundle, command: str, seconds: float, overlay: str | None) -> dict:
-    """Run `command` in a scratch export of the bundle's tree, with `overlay` (a folder of the scenario) laid over it."""
+    """Run `command` in a scratch export of the bundle's tree, with `overlay` (a folder of the scenario) laid over it.
+    The result and optional scenario oracle helpers are separate read-only scratch inputs, never laid into the candidate tree."""
     tree = _root(bundle.tree, "tree")
     source = None
     if overlay is not None:
@@ -589,9 +635,61 @@ def _in_copy(bundle: Bundle, command: str, seconds: float, overlay: str | None) 
         _export(tree, work)
         if source is not None:
             _overlay(source, work)
-        return _execute(command, work, scratch, seconds)
+        inputs = scratch / "stage-inputs"
+        result_file = None
+        if bundle.result is not None:
+            inputs.mkdir(exist_ok=True)
+            result_file = inputs / "result.json"
+            result_file.write_text(json.dumps(bundle.result, ensure_ascii=False) + "\n", encoding="utf-8")
+        oracle_dir = None
+        if bundle.scenario_dir is not None:
+            scenario = _root(bundle.scenario_dir, "scenario folder")
+            helper_entry = os.path.join(scenario, "oracle")
+            if os.path.lexists(helper_entry):
+                try:
+                    helper_source = _inside(scenario, "oracle")
+                    if not os.path.isdir(helper_source):
+                        raise Fail("the scenario oracle helpers are not a folder")
+                    inputs.mkdir(exist_ok=True)
+                    oracle_dir = inputs / "oracle"
+                    _export(helper_source, oracle_dir)
+                except (Fail, OSError, shutil.Error) as error:
+                    raise ApparatusFailure(f"could not prepare STAGE_ORACLE helper inputs: {error}") from error
+        if inputs.exists():
+            try:
+                _readonly(inputs)
+            except Fail as error:
+                if oracle_dir is not None:
+                    raise ApparatusFailure(f"could not prepare STAGE_ORACLE helper inputs: {error}") from error
+                raise
+        return _execute(command, work, scratch, seconds, result_file=result_file, oracle_dir=oracle_dir)
     finally:
         _remove(scratch)
+
+
+def _readonly(folder: Path) -> None:
+    """Remove and verify write permission on a copied input tree without following symlinks."""
+    def protect(path: Path) -> None:
+        try:
+            before = path.lstat()
+            if stat.S_ISLNK(before.st_mode):
+                return
+            if not (stat.S_ISDIR(before.st_mode) or stat.S_ISREG(before.st_mode)):
+                raise Fail("stage inputs contain an unsupported file type")
+            path.chmod(stat.S_IMODE(before.st_mode) & ~0o222)
+            after = path.lstat()
+        except OSError as error:
+            raise Fail(f"could not make stage inputs read-only: {type(error).__name__}: {error}") from error
+        if stat.S_IMODE(after.st_mode) & 0o222:
+            raise Fail("could not make stage inputs read-only: write permission remains")
+
+    def walk_error(error: OSError) -> None:
+        raise Fail(f"could not inspect stage inputs: {type(error).__name__}: {error}") from error
+
+    for here, dirs, files in os.walk(folder, topdown=False, followlinks=False, onerror=walk_error):
+        for name in [*dirs, *files]:
+            protect(Path(here) / name)
+        protect(Path(here))
 
 
 def _ran(done: dict) -> str:
@@ -729,6 +827,8 @@ def _changed_only(check: dict, bundle: Bundle) -> str:
 
 def _command(check: dict, bundle: Bundle) -> str:
     done = _in_copy(bundle, check["command"], check.get("timeout", COMMAND_SECONDS), None)
+    if done.get("oracle_helper_error"):
+        raise ApparatusFailure(f"{done['oracle_helper_error']}: {_ran(done)}")
     wanted = check["exit"]
     if done["timeout"] or done["flooded"] or done["returncode"] is None:
         raise Fail(_ran(done))
@@ -746,12 +846,16 @@ def _stand_in(check: dict, bundle: Bundle) -> str:
     seconds = check.get("timeout", COMMAND_SECONDS)
     if check["kills"]:  # a command that fails on the candidate itself kills every stand-in and shows nothing
         base = _in_copy(bundle, check["command"], seconds, None)
+        if base.get("oracle_helper_error"):
+            raise ApparatusFailure(f"{base['oracle_helper_error']}: {_ran(base)}")
         if _failed(base) is None:
             raise Fail(f"the command said nothing about the stand-in: it gave no verdict on the candidate itself ({_ran(base)})")
         if _failed(base):
             raise Fail(f"the command fails on the candidate itself, so its failure on the stand-in {check['stand_in']!r} shows "
                        f"nothing ({_ran(base)})")
     done = _in_copy(bundle, check["command"], seconds, check["stand_in"])
+    if done.get("oracle_helper_error"):
+        raise ApparatusFailure(f"{done['oracle_helper_error']}: {_ran(done)}")
     failed = _failed(done)
     if failed is None:
         raise Fail(f"the command said nothing about the stand-in ({_ran(done)})")
@@ -811,8 +915,9 @@ RUNNERS: dict[str, Callable[[dict, Bundle], str]] = {
 
 
 def run_check(check: Any, bundle: Bundle) -> dict:
-    """``{proves, kind, pass, detail}`` for one check. A check that is malformed, or cannot be evaluated, fails with the
-    reason in ``detail``; nothing raises. ``proves`` is read even from a malformed check, so it fails the id it names."""
+    """``{proves, kind, pass, detail}`` and, for a broken private helper, ``apparatus_error: true`` for one check. A check
+    that is malformed, or cannot be evaluated, fails with the reason in ``detail``; nothing raises. ``proves`` is read even
+    from a malformed check, so it fails the id it names."""
     proves = check.get("proves") if isinstance(check, dict) and isinstance(check.get("proves"), str) else None
     kind = "invalid"
     try:
@@ -822,6 +927,8 @@ def run_check(check: Any, bundle: Bundle) -> dict:
         kind = _kinds(check)[0]
         detail = RUNNERS[kind](check, bundle)
         return {"proves": proves, "kind": kind, "pass": True, "detail": detail}
+    except ApparatusFailure as failure:
+        return {"proves": proves, "kind": kind, "pass": False, "detail": str(failure), "apparatus_error": True}
     except Fail as failure:
         return {"proves": proves, "kind": kind, "pass": False, "detail": str(failure)}
     except Exception as error:  # noqa: BLE001 - a record, never a crash of the harness: the check failed
@@ -840,22 +947,32 @@ def run_checks(checks: Any, bundle: Bundle) -> list[dict]:
 def verdict(planted_ids: Iterable[str] | None, control_ids: Iterable[str] | None, results: Iterable[dict] | None) -> dict:
     """The sample's verdict over the results of the checks that ran: ``caught`` (per planted id) and ``held`` (per control
     id) are True (every check that proves it passed), False (one failed) or None (no check ran for it: not exercised, never
-    a pass); ``unproved_failures`` are the failed checks that prove no known id; ``pass`` needs a check to have run, no False
-    and no unproved failure; ``checks`` counts what ran."""
+    a pass); ``unproved_failures`` are the failed checks that prove no known id; ``apparatus_errors`` are private helper failures
+    that make their affected ids indeterminate and force ``pass`` false; ``pass`` needs a check to have run, no False, no
+    unproved failure, and no apparatus error; ``checks`` counts what ran."""
     rows = [row if isinstance(row, dict) else {"proves": None, "kind": "invalid", "pass": False,
                                                 "detail": f"malformed result {_clip(row)}"} for row in results or []]
     planted, controls = list(planted_ids or []), list(control_ids or [])
+
+    apparatus_rows = [row for row in rows if row.get("apparatus_error") is True]
 
     def settle(ids: list[str]) -> dict[str, bool | None]:
         found = {}
         for ident in ids:
             proving = [row for row in rows if row.get("proves") == ident]
-            found[ident] = all(row.get("pass") is True for row in proving) if proving else None
+            if any(row.get("apparatus_error") is True for row in proving):
+                found[ident] = None  # the evaluator failed; do not call that a candidate miss
+            else:
+                found[ident] = all(row.get("pass") is True for row in proving) if proving else None
         return found
 
     caught, held = settle(planted), settle(controls)
     known = {*planted, *controls}
     unproved = [f"{row.get('kind')}: {row.get('detail')}" for row in rows
-                if row.get("pass") is not True and not (isinstance(row.get("proves"), str) and row["proves"] in known)]
-    return {"caught": caught, "held": held, "unproved_failures": unproved, "checks": len(rows),
-            "pass": bool(rows) and False not in caught.values() and False not in held.values() and not unproved}
+                if row.get("pass") is not True and row.get("apparatus_error") is not True
+                and not (isinstance(row.get("proves"), str) and row["proves"] in known)]
+    apparatus_errors = [f"{row.get('kind')}: {row.get('detail')}" for row in apparatus_rows]
+    return {"caught": caught, "held": held, "unproved_failures": unproved, "apparatus_errors": apparatus_errors,
+            "checks": len(rows),
+            "pass": bool(rows) and False not in caught.values() and False not in held.values() and not unproved
+            and not apparatus_errors}

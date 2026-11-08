@@ -26,7 +26,7 @@ readers find the run in it. This is what the runner writes there (a host may add
     resources.jsonl              the ledger of the process groups the sample started and ended (lifecycle.py)
     drive.json                   how the resume loop ended
     stage-result.json            the verdicts (rewritten by every regrade)
-    error.txt                    only when the sample could not be run: why
+    error.txt                    when the sample could not run or its oracle was indeterminate: why
     export-error.txt             only when the end export failed (every check that reads the tree then fails)
 
 The stop (``accepted_reached``): the host is ended as soon as the SEEDED ACTION is accepted with ANY outcome (done, send-back,
@@ -58,13 +58,18 @@ scenario's ``oracle`` checks run on it, and the verdicts are
     process       the last host session was ended by the stop (status ``stage-complete``), not a timeout, failure or crash
     accepted      the seeded action was accepted (state ``accepted``) or parked at its Improve stage
     no_overshoot  no result was accepted for a stage after the seeded one (slice.overshoot_after) and no history row follows
-                  the seeded action's own (a host sent back that redoes an earlier stage overshoots too; ``overshoot``)
+                  the seeded action's own, except rows the same successful ``complete`` trace proves it accepted in that call
+                  (a host sent back that redoes an earlier stage overshoots too; ``overshoot``)
     oracle        stage_oracle.verdict passed: every id caught or held and no check without an id failed
 
 ``caught`` and ``held`` are per id. An id is caught or held only when the seeded action was accepted: a host that delivered no
 output holds no control by doing nothing, so its ids are all False (the raw check results are kept under ``checks``). ``value``
 is the fraction of planted and control ids caught or held: a per-sample number suitable for handing to ``experiment.py decide``
-(no code reads stage-result.json today). ``pass`` needs every verdict, every id caught or held.
+(no code reads stage-result.json today). It is ``null`` when a private helper error makes the result indeterminate. ``pass`` needs
+every verdict, every id caught or held.
+
+When a private ``STAGE_ORACLE`` helper crashes or cannot be run, the result records ``oracle_status: indeterminate``, its error,
+and affected ids under ``indeterminate_ids``. This is not a candidate miss; the report excludes that sample from graded outcomes.
 
 No credential is written here: ``invocation.json`` holds what slice.py's holds (no environment), and nothing else in a sample
 folder is read from the host's environment.
@@ -530,17 +535,89 @@ def _sessions(out: Path, reached: bool) -> list[dict]:
     return found
 
 
-def overshoot(state: dict | None, stage: str, action_id: str) -> list[str]:
+def _complete_settled_indices(state: dict | None, stage: str, action_id: str, run_dir: Path | None) -> set[int]:
+    """History rows after the seeded one that its own successful ``complete`` command trace proves were accepted in that call.
+
+    The trace is read strictly: missing, truncated or malformed evidence cannot explain away a later history row. The command
+    must be the unique successful ``complete`` for the seeded action, start at its stage/action, advance one revision, and list
+    an accepted sequence that exactly matches contiguous final-history rows beginning with the seeded action. Only the later
+    rows in that sequence are script co-settlement; every other row remains eligible overshoot.
+    """
+    if not isinstance(state, dict) or run_dir is None or not isinstance(action_id, str) or not action_id:
+        return set()
+    raw_history = state.get("history")
+    if not isinstance(raw_history, list) or not all(isinstance(row, dict) for row in raw_history):
+        return set()
+    own_indices = [index for index, row in enumerate(raw_history) if row.get("action") == action_id]
+    if len(own_indices) != 1:
+        return set()
+    own = own_indices[0]
+    if raw_history[own].get("stage") != stage:
+        return set()
+    revision = state.get("revision")
+    if type(revision) is not int:
+        return set()
+
+    try:
+        trace_text = (Path(run_dir) / "trace.jsonl").read_text(encoding="utf-8")
+        if not trace_text.endswith("\n"):
+            return set()
+        lines = trace_text[:-1].split("\n")
+        if not lines or any(not line for line in lines):
+            return set()
+        trace_rows = [json.loads(line) for line in lines]
+    except (OSError, UnicodeError, ValueError):
+        return set()
+    if not all(isinstance(row, dict) for row in trace_rows):
+        return set()
+
+    matches: list[list[int]] = []
+    for event in trace_rows:
+        if (type(event.get("v")) is not int or event["v"] != 1 or event.get("kind") != "command"
+                or event.get("verb") != "complete"
+                or event.get("action") != action_id or type(event.get("exit")) is not int or event["exit"] != 0):
+            continue
+        accepted = event.get("accepted")
+        stage_pair, cursor_pair, revisions = event.get("stage"), event.get("cursor"), event.get("rev")
+        if not isinstance(accepted, list) or not accepted:
+            continue
+        if (not isinstance(stage_pair, list) or len(stage_pair) != 2 or stage_pair[0] != stage
+                or not isinstance(cursor_pair, list) or len(cursor_pair) != 2 or cursor_pair[0] != action_id
+                or not isinstance(revisions, list) or len(revisions) != 2
+                or any(type(value) is not int for value in revisions) or revisions[1] != revisions[0] + 1
+                or revisions[1] > revision):
+            continue
+
+        indices = list(range(own, own + len(accepted)))
+        if indices[-1] >= len(raw_history):
+            continue
+        for accepted_row, history_row in zip(accepted, (raw_history[index] for index in indices)):
+            expected = {"action": history_row.get("action"), "stage": history_row.get("stage"),
+                        "item": history_row.get("workitem"), "outcome": history_row.get("outcome")}
+            if not isinstance(accepted_row, dict) or accepted_row != expected:
+                break
+        else:
+            matches.append(indices)
+
+    if len(matches) != 1:
+        return set()
+    return set(matches[0][1:])
+
+
+def overshoot(state: dict | None, stage: str, action_id: str, run_dir: Path | None = None) -> list[str]:
     """The stages the host went on to after the seeded action: the accepted results for a stage later than ``stage``
     (slice.overshoot_after's rule) and every history row after the seeded action's own row, whatever its stage, so a host that is
-    sent back and redoes an earlier stage before it is ended is seen too. Stage names, in the order accepted, once each."""
+    sent back and redoes an earlier stage before it is ended is seen too. It excludes only contiguous later rows proven by the
+    seeded action's own successful ``complete`` trace to have been accepted in that same call. Stage names, in history order,
+    once each."""
     if not isinstance(state, dict):
         return []
     history = [row for row in state.get("history") or [] if isinstance(row, dict)]
     own = next((index for index, row in enumerate(history) if row.get("action") == action_id), None)
+    settled = _complete_settled_indices(state, stage, action_id, run_dir)
     later = set(step_slice.overshoot_after(state, stage))
     found = [row.get("stage") for index, row in enumerate(history)
-             if row.get("stage") in later or (own is not None and index > own)]
+             if index not in settled and (row.get("stage") in later or (own is not None and index > own))]
     return list(dict.fromkeys(name for name in found if isinstance(name, str)))
 
 
@@ -586,7 +663,7 @@ def grade_sample(sc: sb.Scenario, out: Path, *, regraded: bool = True) -> dict:
     held = {ident: accepted and found["held"][ident] is True for ident in controls}
     reached = accepted_reached(state, action_id)
     sessions = _sessions(out, reached)
-    over = overshoot(state, sb.base_stage(sc.stage), action_id)
+    over = overshoot(state, sb.base_stage(sc.stage), action_id, bundle.run_dir)
     verdicts = {"process": bool(sessions) and sessions[-1]["status"] == STATUS_COMPLETE, "accepted": accepted,
                 "no_overshoot": not over, "oracle": accepted and bool(found["pass"])}
     total = len(caught) + len(held)
@@ -599,13 +676,22 @@ def grade_sample(sc: sb.Scenario, out: Path, *, regraded: bool = True) -> dict:
         **{key: invocation.get(key) for key in IDENTITY}, "output": str(out), "regraded": regraded,
         "sessions": sessions, "resume_stop": drive_record.get("resume_stop"), "resumes": drive_record.get("resumes", 0),
         "settles": drive_record.get("settles", []), "abandoned": bool(drive_record.get("abandoned")),
-        "verdicts": verdicts, "caught": caught, "held": held, "value": (hits / total) if total else (1.0 if verdicts["oracle"] else 0.0),
+        "verdicts": verdicts, "caught": caught, "held": held,
+        "value": None if found["apparatus_errors"] else (hits / total) if total else (1.0 if verdicts["oracle"] else 0.0),
         "outcome": (bundle.result or {}).get("outcome"), "result_source": source, "overshoot": over,
         "run_status": (state or {}).get("status"), "stage_at_stop": bundle.current_stage,
         "tree": bundle.tree is not None and bundle.seed_tree is not None,
-        "checks": [{"proves": row["proves"], "kind": row["kind"], "pass": row["pass"], "detail": row["detail"]} for row in results],
+        "checks": [{"proves": row["proves"], "kind": row["kind"], "pass": row["pass"], "detail": row["detail"],
+                    **({"apparatus_error": True} if row.get("apparatus_error") is True else {})} for row in results],
         "unproved_failures": found["unproved_failures"],
     }
+    if found["apparatus_errors"]:
+        document.update({
+            "oracle_status": "indeterminate",
+            "apparatus_errors": found["apparatus_errors"],
+            "indeterminate_ids": sorted({row["proves"] for row in results
+                                          if row.get("apparatus_error") is True and isinstance(row.get("proves"), str)}),
+        })
     document["pass"] = all(verdicts.values()) and all(caught.values()) and all(held.values())
     _write(out / RESULT, document)
     return document

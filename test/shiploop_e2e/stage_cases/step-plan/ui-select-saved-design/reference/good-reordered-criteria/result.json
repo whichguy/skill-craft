@@ -1,0 +1,161 @@
+{
+  "outcome": "done",
+  "summary": "Move the existing polite status below the board while preserving its state behavior. Design basis: AD-2 in docs/shiploop/architecture.md, Decisions / Board interface; browser observations are planned and not yet run.",
+  "criteria": [
+    {
+      "id": "C2",
+      "text": "The moved existing selection status serves as the selected-square summary: it reports the selected coordinate, and Reset returns it to Choose a square. Confirm with node --test test/board-state.test.mjs; pass when TC-SUMMARY passes. Serves R-1.",
+      "confirm": "executed"
+    },
+    {
+      "id": "C1",
+      "text": "Preserve all 64 local squares, the existing selection status and Reset behavior. Confirm with node --test test/board-state.test.mjs; pass when TC-BOARD passes. Serves R-2.",
+      "confirm": "executed"
+    },
+    {
+      "id": "C3",
+      "text": "Move the existing polite status immediately below the board, following AD-2 in docs/shiploop/architecture.md, sections Appearance and tokens, Summary composition, and Theme and observations. Render the light page #f4f1e9, alternating square colors #e7dcc5 and #34746b, dark canvas #17201f, light focus #214c46 and dark focus #f3c15b. Keep the board maximum 32rem and the status directly below it with a 32rem maximum and 1rem gap. Observe the layout at mobile 390x844 and desktop 1440x1000 in light and dark themes, with equal cells, no horizontal overflow and visible keyboard focus. The browser command is planned, not yet run. Serves R-1.",
+      "confirm": "executed"
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Move and style the existing polite status below the board using the saved direction; preserve board state behavior (C1-C3).",
+      "deps": [],
+      "criteria": [
+        "C2",
+        "C1",
+        "C3"
+      ],
+      "paths": [
+        "index.html",
+        "styles.css",
+        "src/board-ui.mjs",
+        "test/board-state.test.mjs"
+      ],
+      "proof": "node scripts/check-board-browser.cjs --light-page '#f4f1e9' --dark-page '#17201f' --square-a '#e7dcc5' --square-b '#34746b' --board-max 32rem --focus-color '#214c46' --dark-focus-color '#f3c15b' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem && node --test test/board-state.test.mjs",
+      "skills": []
+    }
+  ],
+  "paths": [
+    "index.html",
+    "styles.css",
+    "src/board-ui.mjs",
+    "test/board-state.test.mjs"
+  ],
+  "test_commands": [
+    {
+      "command": "node scripts/check-board-browser.cjs --light-page '#f4f1e9' --dark-page '#17201f' --square-a '#e7dcc5' --square-b '#34746b' --board-max 32rem --focus-color '#214c46' --dark-focus-color '#f3c15b' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem && node --test test/board-state.test.mjs",
+      "suite": "check",
+      "criteria": [
+        "C2",
+        "C1",
+        "C3"
+      ]
+    },
+    {
+      "command": "node scripts/check-board-browser.cjs --light-page '#f4f1e9' --dark-page '#17201f' --square-a '#e7dcc5' --square-b '#34746b' --board-max 32rem --focus-color '#214c46' --dark-focus-color '#f3c15b' --dark-class theme-dark --summary-below --summary-max 32rem --summary-gap 1rem",
+      "suite": "focused",
+      "ids": [
+        "TC-SUMMARY",
+        "TC-LAYOUT"
+      ],
+      "criteria": [
+        "C2",
+        "C3"
+      ]
+    },
+    {
+      "command": "node --test test/board-state.test.mjs",
+      "suite": "regression",
+      "ids": [
+        "TC-SUMMARY",
+        "TC-BOARD"
+      ],
+      "criteria": [
+        "C2",
+        "C1"
+      ]
+    }
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "AD-2"
+  ],
+  "expectations": [
+    {
+      "id": "E1",
+      "state": "works",
+      "statement": "The existing board state module supports square selection and reset.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "src/board-state.mjs"
+      ],
+      "check": "test -f src/board-state.mjs"
+    },
+    {
+      "id": "E2",
+      "state": "works",
+      "statement": "The existing board module renders local square controls.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "src/board-ui.mjs"
+      ],
+      "check": "test -f src/board-ui.mjs"
+    },
+    {
+      "id": "E3",
+      "state": "works",
+      "statement": "The status currently appears before the board, which is the composition this item will change.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "index.html"
+      ],
+      "check": "node -e 'const h=require(\"fs\").readFileSync(\"index.html\",\"utf8\");require(\"assert\")(h.indexOf(\"id=\\\"selection-status\\\"\")<h.indexOf(\"id=\\\"board\\\"\"))'"
+    },
+    {
+      "id": "E4",
+      "state": "works",
+      "statement": "The existing styles are present and will receive the saved summary composition.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "styles.css"
+      ],
+      "check": "test -f styles.css"
+    },
+    {
+      "id": "E5",
+      "state": "works",
+      "statement": "The accepted board design is available to the implementation step.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "docs/shiploop/architecture.md"
+      ],
+      "check": "grep -q \"AD-2\" docs/shiploop/architecture.md"
+    },
+    {
+      "id": "E6",
+      "state": "works",
+      "statement": "The existing board state suite is present.",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "test/board-state.test.mjs"
+      ],
+      "check": "node --test test/board-state.test.mjs"
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "stage": "step-plan",
+  "about": "A local board feature has an explicit retro treatment for one new summary strip; test that the request outranks the new-UI default while the existing board stays in scope.",
+  "tags": [
+    "ui-contract",
+    "explicit-style"
+  ],
+  "tiers": [
+    "verify",
+    "render",
+    "live"
+  ],
+  "fixture": "web-choice",
+  "request": {
+    "prompt": "This local 8\u00d78 board has a selection status. Add a selected-square summary strip immediately below the board; when Reset is used, return it to \u2018Choose a square\u2019. R-1: Show the selected coordinate and clear it on reset. R-2: Give only that summary strip an explicitly retro arcade/pixel-inspired appearance; keep the board, controls, and rest of the page as they are. Stay local; no dependencies or external services.",
+    "work_item": {
+      "id": "W1",
+      "title": "Add a scoped retro selected-square summary",
+      "context": "Add the selected-coordinate summary below the board, returning to Choose a square on reset. Apply the user\u2019s explicit retro arcade/pixel direction only to that strip; retain the rest of the existing board UI."
+    },
+    "checks": [
+      "node --test test/board-state.test.mjs"
+    ]
+  },
+  "options": {
+    "delegation": "inline"
+  },
+  "planted": [
+    {
+      "id": "P1",
+      "what": "The plan records the user's explicit retro arcade/pixel direction as the controlling choice for the selected-square summary strip, with reproducible component-level choices.",
+      "signature": "explicit retro/pixel direction is selected for the summary strip"
+    },
+    {
+      "id": "P2",
+      "what": "The visible-UI criterion selects the matching AD section and concrete strip anchors, and names a rendered placement check.",
+      "signature": "criterion cites AD, section, matching strip anchors, and rendered placement"
+    }
+  ],
+  "controls": [
+    {
+      "id": "C1",
+      "what": "Selecting a board square shows its coordinate in the new strip, Reset clears the strip to Choose a square, and the existing board selection/reset tests remain planned."
+    },
+    {
+      "id": "C2",
+      "what": "The proposed path set remains limited to the summary feature, its test and the durable design record; the board, controls and remaining page are preserved."
+    }
+  ],
+  "render": [
+    {
+      "packet_issued": true
+    },
+    {
+      "current_stage": "step-plan"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "(?i)(retro|arcade|pixel)"
+    },
+    {
+      "proves": "P1",
+      "packet_contains": "(?i)(selected-square summary strip|summary strip)"
+    },
+    {
+      "proves": "C1",
+      "packet_contains": "(?i)(selected coordinate|R-1)"
+    },
+    {
+      "proves": "C2",
+      "packet_contains": "Add\\ the\\ selected\\-coordinate\\ summary\\ below\\ the\\ board,\\ returning\\ to\\ Choose\\ a\\ square\\ on\\ reset\\.\\ Apply\\ the\\ user\u2019s\\ explicit\\ retro\\ arcade/pixel\\ direction\\ only\\ to\\ that\\ strip;\\ retain\\ the\\ rest\\ of\\ the\\ existing\\ board\\ UI\\.",
+      "why": "The packet must carry this exact seeded work-item context; original request detail remains in its linked spec/request."
+    }
+  ],
+  "oracle": [
+    {
+      "proves": "P1",
+      "command": "python3 \"$STAGE_ORACLE/check_plan.py\" P1",
+      "exit": 0
+    },
+    {
+      "proves": "P2",
+      "command": "python3 \"$STAGE_ORACLE/check_plan.py\" P2",
+      "exit": 0
+    },
+    {
+      "proves": "C1",
+      "command": "python3 \"$STAGE_ORACLE/check_plan.py\" C1",
+      "exit": 0
+    },
+    {
+      "proves": "C2",
+      "command": "python3 \"$STAGE_ORACLE/check_plan.py\" C2",
+      "exit": 0
+    },
+    {
+      "proves": "C1",
+      "command": "node --test test/board-state.test.mjs",
+      "exit": 0,
+      "why": "The existing local selection and reset suite remains executable."
+    },
+    {
+      "proves": "C2",
+      "changed_only": [
+        "docs/shiploop/architecture.md",
+        "docs/shiploop/environment.md"
+      ],
+      "why": "Planning may update its canonical architecture and environment records but does not implement product files. This checks actual tree scope, not semantic scope in the proposed plan."
+    }
+  ],
+  "live": {
+    "samples": 1,
+    "pass": 1
+  }
+}
