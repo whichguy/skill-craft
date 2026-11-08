@@ -8451,3 +8451,40 @@ products/profiles/screenshots/transcripts outside the reusable skill/repository.
 Post-pilot apparatus follow-up: `177c063b47746a1eae825ba5e81daf3663708731` implements
 the calibrated fixture-name and capture repairs separately from this frozen result.
 The original baseline row and raw files are unchanged. Judged discovery record IDs: `LR-20261108-4bc6cb`, `LR-20261108-15e9e9`, `LR-20261031-382fba`, `LR-20261031-b5d300`.
+
+
+## 2026-11-08 — Command abort cleanup: focused owner admission
+
+The owner accepted Candidate C's cleanup subset in `1fd3a8839b1a48914660727cddf3d07303f54847` for
+`LR-20261108-15e9e9`. The frozen runtime and tests were in place before Hello02;
+the source commit records those same bytes later. The owner accepted possible
+lock residue and the focused checks below as the alternative to a new
+exposing/contrasting campaign for cleanup only.
+[Owner decision](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-owner-decision.json)
+
+The installed-package check establishes the interrupt behavior; Hello establishes
+functional delivery. The evidence supports these distinct claims:
+
+| Evidence | Observed | Limit |
+| --- | --- | --- |
+| [Hermetic checks](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-broad-parent-collection.json) | 320 methods passed, zero skips. | Parent verified terminal receipts after the worker handoff hit a usage limit. |
+| [Hello02](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-hello-medium-execution-02/completion-verification.json) | Functional PASS, done at revision 30; both public checks passed and the 395-file package matched. | Functional delivery only. |
+| [Installed attempt03, capture04](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-package-execution-medium-04/terminal.json) | PASS: one test, three interruption scenarios; same argv passed with the interruption fixture disabled. | Synthetic setup is separate from real terminal receipts. |
+| [Adverse controls](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-refutations-medium-01/handoff.md) | SIGKILL left a lock that prevented retry in one workload. Custom reaping reached a signal attempt; the spy sent no signal. | Stock CLI assumes one waiter and no native auto-reaping. |
+
+Hello01 remains BLOCKED before launch. Package attempts01 and 02 remain FAIL
+(missing support import; observer rejected valid setup). Capture03 remains
+INCOMPLETE because an old symlink blocked probe launch. Escaped and reaped-leader
+groups, launch-time interrupts and repeated interrupts are outside the cleanup
+coverage. Earlier writes remain in place.
+
+Later execution used Sol6.1/medium. The independent [Astra/high judgment](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-final-judgment-01/answer.md)
+recommended bounded retention with explicit owner approval; the [launch receipt](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-final-judgment-01/parse-receipt.json)
+records no fallback. Historical model identities and outcomes remain as recorded.
+Available-output recovery remains open and the ledger still folds to admitted.
+There is no promotion verdict, frozen regrade, or comparative quality or
+performance claim.
+
+External evidence root: `/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag`.
+See the [completed evidence](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-completed-evidence.json)
+and [frozen source inventory](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-post-refutations-freeze/source.json).
