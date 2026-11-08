@@ -1,5 +1,5 @@
-"""The concern map (run-insights A1, build plan S2.2): which SDLC concerns each work item touches, decided at plan,
-mapped to steps at step-plan.
+"""The concern map (run-insights A1, build plan S2.2): which SDLC concerns each work item touches, decided at plan
+and carried to its owning stage.
 
 The run analysis found the step plan's concern surface (duty 9, a free-text plan record) ungated and skipped or
 compressed in all four step-plan results it read, while concerns such as concurrency and accessibility were dropped
@@ -17,7 +17,8 @@ Step-plan result::
 
     "concerns": [{"id": "ui", "steps": ["S1", "S2"]}]
 
-Items added after the plan (carry-forward or add-work) have no rows, and their step plans map none.
+Items added after the plan (carry-forward or add-work) have no rows. Their step plans map none, and later stages
+use the current work and evidence to assess them.
 """
 
 from __future__ import annotations
@@ -45,7 +46,9 @@ CONCERNS = (
 CONCERN_IDS = tuple(name for name, _ in CONCERNS)
 # The stages that can own an applicable concern: step-plan maps it to steps; a later stage delivers it there.
 OWNER_STAGES = ("step-plan", "test", "document", "system-test-author", "release-plan", "operations")
-# The print budget of one work item's applicable rows as the step-plan packet prints them (run-insights T-D2).  No gate
+# Acceptance reconciles security decisions across owners; it does not own those decisions.
+HANDOFF_STAGES = (*OWNER_STAGES[1:], "product-acceptance")
+# The print budget of one work item's applicable rows as a packet prints them (run-insights T-D2).  No gate
 # refuses longer rows (owner, 2026-10-28, plan F2): past the budget the packet prints the rows that fit and names the
 # run file that holds them all (shiploop_navigator._concern_lines, shiploop_fields).
 ROWS_PRINT = 1_200
@@ -114,6 +117,15 @@ def owned_rows(plan_concerns: Mapping[str, Sequence[Mapping[str, str]]], item: s
             and row.get("owner_stage") == "step-plan"]
 
 
+def handoff_rows(plan_concerns: Mapping[str, Sequence[Mapping[str, str]]], item: str,
+                 stage: str) -> List[Mapping[str, str]]:
+    """An item's applicable rows for its owner, or security rows across owners for acceptance."""
+    if stage not in HANDOFF_STAGES:
+        return []
+    return [row for row in plan_concerns.get(item, ()) if row.get("applies") == "yes"
+            and (row.get("id") == "security" if stage == "product-acceptance" else row.get("owner_stage") == stage)]
+
+
 def canonical_step_plan(value: Any) -> List[Dict[str, Any]]:
     """A step plan's ``concerns``: ``[{"id", "steps"}]``, each concern once."""
     _need(isinstance(value, list), 'concerns is a list of {"id": "<concern>", "steps": ["S1"]}')
@@ -159,5 +171,6 @@ def packet_lines(plan_concerns: Mapping[str, Sequence[Mapping[str, str]]], item:
     return lines
 
 
-__all__ = ("CONCERNS", "CONCERN_IDS", "ConcernError", "OWNER_STAGES", "ROWS_PRINT", "canonical_plan",
-           "canonical_step_plan", "check_plan", "check_step_plan", "owned_rows", "packet_lines")
+__all__ = ("CONCERNS", "CONCERN_IDS", "ConcernError", "HANDOFF_STAGES", "OWNER_STAGES", "ROWS_PRINT",
+           "canonical_plan", "canonical_step_plan", "check_plan", "check_step_plan", "handoff_rows", "owned_rows",
+           "packet_lines")
