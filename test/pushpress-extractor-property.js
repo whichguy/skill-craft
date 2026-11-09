@@ -19,8 +19,9 @@
 //   P5 path          the path field holds no record id and no query value
 //   P6 sidebar       sidebar() parks its lines, prints every group and ordinary link, and prints no person (the user menu is skipped)
 //   (also P1 region: no side-panel text on a person route)
-// Not a property (a recorded KNOWN GAP): a second person's name shown only as plain text on a person page. The test counts how often
-// that name reaches the output ("gap exposure") and fails if it ever stops, so the case is promoted.
+// Not properties (two recorded KNOWN GAPS): a second person's name shown only as plain text on a person page, and a phone number typed
+// without a separator after the closing parenthesis. The test counts how often each reaches the output ("gap exposure") and fails if
+// either ever stops, so the case is promoted.
 // The audit then counts how many of the labels the skill's own references quote a person's name would mask, for common words used as names.
 'use strict';
 
