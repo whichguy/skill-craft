@@ -39,6 +39,7 @@ Every skill is namespaced by this plugin: in Claude, invoke `/skill-craft:<skill
 | [shiploop-run-review](skills/shiploop-run-review/SKILL.md) | `/skill-craft:shiploop-run-review` | 0.5.0 | Review a ShipLoop E2E run on the owner's Run Review page: export the run's measured numbers, write findings, advice… |
 | [skill-interop](skills/skill-interop/SKILL.md) | `/skill-craft:skill-interop` | 0.2.6 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a… |
 | [sport80](skills/sport80/SKILL.md) | `/skill-craft:sport80` | 0.2.0 | Use for the USA Weightlifting Sport80 portal (usaweightlifting.sport80.com): the owner's personal member account… |
+| [test-harness](skills/test-harness/SKILL.md) | `/skill-craft:test-harness` | 0.1.0 | Run harness, audit side effects, fix, rerun |
 
 ## Support
 

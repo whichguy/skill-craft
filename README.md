@@ -30,7 +30,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 
 <!-- skill-craft:inventory:start -->
 
-**25 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
+**26 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
 
 | Skill | Version | Purpose |
 |-------|---------|---------|
@@ -59,6 +59,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | [shiploop-run-review](skills/shiploop-run-review/SKILL.md) | 0.5.0 | Review a ShipLoop E2E run on the owner's Run Review page: export the run's measured numbers, write findings, advice and options for the owner to tick, check that review file, and… |
 | [skill-interop](skills/skill-interop/SKILL.md) | 0.2.6 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill… |
 | [sport80](skills/sport80/SKILL.md) | 0.2.0 | Use for the USA Weightlifting Sport80 portal (usaweightlifting.sport80.com): the owner's personal member account (memberships, certifications, entries, results, orders) and club… |
+| [test-harness](skills/test-harness/SKILL.md) | 0.1.0 | Run a repository's test suite and audit what the run did beyond its exit code: unintended writes to tracked files, leftover artifacts, live service calls, secret-shaped or… |
 
 <!-- skill-craft:inventory:end -->
 
