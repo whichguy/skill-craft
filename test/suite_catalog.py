@@ -303,6 +303,7 @@ _CORE_SUITES = (
     _suite("installed-skill-invocation", "core", "test/installed-skill-invocation.test.py", "python3", "test/installed-skill-invocation.test.py"),
     _suite("prompt-marketplace-contract", "core", "test/prompt-marketplace-contract.test.py", "python3", "test/prompt-marketplace-contract.test.py"),
     _suite("skill-frontmatter", "core", "test/skill-frontmatter.test.js", "node", "test/skill-frontmatter.test.js"),
+    _suite("test-harness", "core", "test/test-harness.test.py", "python3", "test/test-harness.test.py"),
     _suite("scaffold-skill", "core", "test/scaffold-skill.test.sh", "bash", "test/scaffold-skill.test.sh"),
     _suite("marketplace-run", "core", "test/marketplace-run.test.sh", "bash", "test/marketplace-run.test.sh"),
     _suite("install-targets", "core", "test/install-targets.test.sh", "bash", "test/install-targets.test.sh"),
