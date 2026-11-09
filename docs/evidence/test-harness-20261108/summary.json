@@ -537,5 +537,110 @@
     },
     "counts": "core 61 and total 203 on the second merged tree",
     "outcome": "the other candidate was released first (skill-craft 2.35.10); merging it into this branch conflicted only in test/test-groups.test.py, as simulated, and was resolved to core 61 and total 203"
+  },
+  "published": {
+    "recorded": "2026-11-08",
+    "instruction": "the owner answered \"Publish\" in chat to the report that listed the commands and the decisions left open; it covers this skill only",
+    "remote_main_before_the_push": "57dd76f396314f74ac03cab9f540a9f282ce4c29",
+    "third_merge_of_origin_main": {
+      "commit": "011949df0675afede3ae04bf541ea7149a24c343",
+      "origin_main_merged": "57dd76f396314f74ac03cab9f540a9f282ce4c29 (docs(sport80): record the publication of sport80 0.2.0 in skill-craft 2.36.0; it brought the sport80 feature commit, release: skill-craft 2.36.0, sport80 0.2.0, and the pushpress publication record)",
+      "files_changed_on_this_side_since_the_merge_base": 28,
+      "files_changed_upstream_since_the_merge_base": 34,
+      "files_changed_on_both_sides": 0,
+      "shared_test_files_touched_upstream": 0,
+      "tree_simulated_before_merging": "aabf014a812e5b02c07871be63885b652f3c9f0a",
+      "tree_after_merging": "aabf014a812e5b02c07871be63885b652f3c9f0a"
+    },
+    "dry_run": [
+      "test-harness 0.1.0 -> 0.1.0 (1 note(s))",
+      "skill-craft 2.36.0 -> 2.36.1"
+    ],
+    "release": {
+      "commit": "ff0ba75549f747ba79e4fa50053db041c47902e3",
+      "tree": "cace7f7042463f417e3f8c1786728fdc85e400ad",
+      "parent": "011949df0675afede3ae04bf541ea7149a24c343",
+      "subject": "release: skill-craft 2.36.1, test-harness 0.1.0",
+      "trailer": "skill-craft@2.36.1, test-harness@0.1.0",
+      "files_by_area": {
+        "plugins/skill-craft": 25,
+        "host catalogs (marketplace.json)": 3,
+        "catalog": 1,
+        "CHANGELOG.md": 1,
+        "README.md": 1,
+        "changes/test-harness (the consumed note)": 1
+      },
+      "versions": "skill-craft 2.36.1, test-harness 0.1.0"
+    },
+    "published_copy_equals_source": "diff -rq of skills/test-harness and its copy under plugins/skill-craft: identical, 21 files",
+    "release_tree_checks": [
+      {
+        "command": "bash scripts/sync-plugin-views.sh --check",
+        "exit": 0,
+        "result": "CHECK OK",
+        "wall_seconds": 2
+      },
+      {
+        "command": "python3 -B scripts/check-marketplace-packages.py",
+        "exit": 0,
+        "result": "complete marketplace payload OK (offline payload validation only)",
+        "wall_seconds": 0
+      },
+      {
+        "command": "python3 -B scripts/check-release-boundary.py --base origin/main",
+        "exit": 0,
+        "result": "check-release-boundary: OK",
+        "wall_seconds": 5
+      },
+      {
+        "command": "python3 -B test/test-groups.test.py",
+        "exit": 0,
+        "result": "64 tests OK",
+        "wall_seconds": 14
+      },
+      {
+        "command": "node test/skill-frontmatter.test.js",
+        "exit": 0,
+        "result": "PASS 26 skills",
+        "wall_seconds": 0
+      },
+      {
+        "command": "python3 -B test/test-harness.test.py",
+        "exit": 0,
+        "result": "8 tests OK",
+        "wall_seconds": 67
+      }
+    ],
+    "machine_load_1min_during_checks": {
+      "before": 5.8,
+      "after": 6.54
+    },
+    "push": {
+      "tool": "scripts/release-push.py",
+      "forced": false,
+      "checks_run_by_the_helper": "the same six commands; 6 of 6 passed against the frozen candidate",
+      "range": "57dd76f3..ff0ba755 on main",
+      "remote_main_after": "ff0ba75549f747ba79e4fa50053db041c47902e3",
+      "verified_with": "git ls-remote of the remote main after the push, then a fetch: remote, local ref and HEAD equal; worktree clean including ignored files"
+    },
+    "commits_landed_on_main": [
+      "162d8b6e16433329f54a6cd953d5cb42a0891c15",
+      "74653f0365f49464ef05f91678e7e5b44a20301b",
+      "7a296a52b6696a08234417b6cd34c9f3c0b499e4",
+      "db060c4cf444fffa7f232f588ddb974af5d4e4b4",
+      "09297ba07cbad85b125e32baaf7cf8a2ce00987b",
+      "03790c2bdcf8894527c2d739fc79fed5b91ca604",
+      "011949df0675afede3ae04bf541ea7149a24c343",
+      "ff0ba75549f747ba79e4fa50053db041c47902e3"
+    ],
+    "plugin_version_by_dry_run_while_waiting": [
+      "2.35.7 -> 2.35.8",
+      "2.35.9 -> 2.35.10",
+      "2.35.10 -> 2.35.11",
+      "2.36.0 -> 2.36.1 (the release)"
+    ],
+    "hosts": "none refreshed by this work (release checklist step 5 is for installers); the owner's installed copies stay at the previous plugin version until refreshed",
+    "ci": "the push run for the release commit had passed its release-boundary, plan and browser-fixtures jobs and had six jobs still running (core, python-floor, three shiploop shards, e2e-apparatus) when this was recorded; not waited on",
+    "not_covered": "no host installed or ran the published version; the published copy equals the source byte for byte and passed the offline package checks only"
   }
 }
