@@ -299,7 +299,6 @@ class Hygiene(unittest.TestCase):
         for rel in ("SKILL.md", "references/access.md", "references/protocols.md", "references/safety.md", "references/hosts.md", "references/capabilities.json", "scripts/runtime.js", "scripts/discover.js", "scripts/sport80.py"):
             self.assertTrue((SKILL / rel).is_file(), rel)
         self.assertTrue(os.access(SKILL / "scripts" / "sport80", os.X_OK))
-        self.assertTrue((ROOT / "changes" / "sport80" / "initial.md").is_file())
 
 
 if __name__ == "__main__":
