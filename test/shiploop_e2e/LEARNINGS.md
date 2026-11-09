@@ -8587,3 +8587,35 @@ cover distinct inputs and claims. The journal follows the source and report
 commits. Normal source CI, release preflight and full CI on the exact generated
 release remain pending.
 [Parent native acceptance](/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/integrated-checks-parent-acceptance.json)
+
+## 2026-11-08 — Planning evidence apparatus repair
+
+Source `5c80525bcae4181d5fe53d9807e2c21a2784893d` adds a recorded Plan Improve stop check and
+initial quote provenance. The repository reassigns only callbacks with
+verified ownership. A Prepare packet emitted by the accepting callback
+is part of the transition. Later tool activity remains visible, and missing
+coverage leaves counts unknown. The audit package uses a proved automatic
+Git producer bind for a declared initial locator, with portable hash-pinned
+bytes and a separate saved initial field check.
+
+**Native qualification.** The original bank remains FAIL with one boundary
+assertion, five catalog assertions and two 300-second timeouts. The repairs
+check nonregular trace input, unknown count coverage and precise catalog
+selection. Focused 02 reports 12 passing commands and
+547 tests on the same source fingerprint. The fresh Astra/high review
+reports SOURCE_ACCEPTABLE for this source.
+[Focused checks](/Users/dadleet/Documents/Codex/experiments/shiploop-harness-repairs-20261108-gqxtgjdj/operator/focused-checks-02/receipt.json) · [Independent review](/Users/dadleet/Documents/Codex/experiments/shiploop-harness-repairs-20261108-gqxtgjdj/operator/final-review/final.md) · [Acceptance seal](/Users/dadleet/Documents/Codex/experiments/shiploop-harness-repairs-20261108-gqxtgjdj/operator/source-parent-acceptance-02.json)
+
+**Frozen read-only replay.** On sample-05 the two proved callbacks move
+Plan Improve from 33 to 35 and pending Prepare from 2 to 0, with 63 total
+calls and unchanged windows. On sample-01 the source-built audit quote
+CLI matches three original producer-tree passages. Its public archive
+and offline verification pass, and the negative controls refuse. The
+157 protected original entries and ten sample-05 pins remain stable.
+[Replay receipt](/Users/dadleet/Documents/Codex/experiments/shiploop-harness-repairs-20261108-gqxtgjdj/operator/replay-package-02/receipt.json)
+The original sample-05 raw and semantic FAILs and sample-01 quote FAIL
+remain in the historical record alongside their case-specific admissions.
+No subject resumed and no new Prepare action or live comparison ran.
+The replay supports the apparatus correction for these recorded cases.
+The earlier grades, rubric and product conclusions retain their original
+scope. Full CI, generated release verification and host qualification remain due.
