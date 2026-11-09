@@ -13,7 +13,7 @@
       "controls_broken": 0
     },
     {
-      "name": "scrub: keep values with a letter in any script or 4 or more digits, with Unicode word boundaries",
+      "name": "scrub: keep values with a letter in any script or 4 or more digits (the word boundary is left as it is: a Unicode one would stop scrubbing a name that touches a non-ASCII letter)",
       "status": "OK",
       "flipped": 2,
       "expected": 2,

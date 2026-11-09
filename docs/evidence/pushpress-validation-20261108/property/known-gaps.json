@@ -44,7 +44,7 @@
       "fields": [
         "btn"
       ],
-      "why": "with no text fields only the whole page title is a secret, so a first name on its own is not scrubbed",
+      "why": "with no text field that holds the name, the only secret is the part of the title before its separator, taken as a whole string, so a first name on its own is not scrubbed (a secret for each word of the title would catch it)",
       "error": ""
     },
     {
@@ -83,7 +83,7 @@
       "fields": [
         "h"
       ],
-      "why": "a comma is not a separator and \"Last, First\" never equals the heading \"First Last\"",
+      "why": "a comma is not a separator, the part before it would be one word and a title part must hold a space to be a secret, and \"Last, First\" never equals the heading \"First Last\"; only a secret for each word of the title catches it (a comma split alone does not)",
       "error": ""
     },
     {
@@ -291,7 +291,7 @@
       "fields": [
         "btn"
       ],
-      "why": "button labels do not go through the text mask: one is dropped only when it holds an @ or a run of 3 digits, so a number written in groups of two survives",
+      "why": "a button label is not passed through the text mask and is dropped only when it holds an @ or a run of 3 digits, so a number written in groups of two survives; today's text mask would not catch it either (phone-french leaks the same way through a label), so only a lower drop rule closes it on its own",
       "error": ""
     },
     {
@@ -421,7 +421,7 @@
       "fields": [
         "a"
       ],
-      "why": "the person-route test for a link, and the path mask that prints it, need 8 or more characters after /user/ or /people/",
+      "why": "a 5-digit id is caught by neither rule: the person-route test for a link, and the path mask that prints it, need 8 or more characters after /user/ or /people/, and the id rule needs 10 or more hex characters",
       "error": ""
     },
     {
