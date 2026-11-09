@@ -684,6 +684,21 @@ passed every job (plan, release-boundary, quick, hermetic).
 
 Checks: the seven suites these files reach, listed in the commit; lint adds no finding over the files' baseline.
 
+**Published** (2026-11-08) as skill-craft 2.35.8 / shiploop 1.33.6, release commit `cfe3e575`, cut in a detached worktree
+from the fetched `origin/main` (`9944268a`); `release-push.py` ran its four checks (`sync-plugin-views --check`,
+`check-marketplace-packages`, `check-release-boundary --base 9944268a`, `test-groups` 61 OK) and pushed it as a
+fast-forward. CI on the fix commit (`4c9ddb76`) had passed plan, release-boundary, quick, browser-fixtures and hermetic. The
+release also carried another session's committed wording edit to the sport80 card (`9944268a`, `No-Change-Note`), as the
+release checklist says an unchanged-version source edit does. Hosts refreshed: Claude 2.35.7 to 2.35.8 (a restart applies
+it), Codex marketplace upgraded with the plugin at 2.35.8, Grok 2.35.7 to 2.35.8; each installed copy was read for both
+`SHOWN` (this change) and `append_jsonl` (the audit's writer) and has them. Cursor refreshes only from its own app and was
+not refreshed.
+
+**Not covered by this audit** (status: not audited, not a finding): the journal files other than `trace.jsonl` and
+`skill-calls.jsonl`. These are the write-ahead save journal `transaction.md` (`shiploop_store`, schema
+`shiploop-transaction`), lint's `pending-*.patch` journal, the stored formats of `timeline.json`, `progress-observer.json`
+and `callback-attempts` beyond their catalog rows, and the structure of the research journals under `docs/`.
+
 ## Open (exploratory)
 
 - ~~**Owner feedback during a run**: built (2026-10-26). Not verified on a live host run; the next E2E round runs one case
