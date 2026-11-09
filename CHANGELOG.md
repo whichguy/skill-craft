@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-08
 
+### skill-craft 2.35.9
+
+- Skills: shiploop-e2e-audit 0.7.17
+
+### shiploop-e2e-audit 0.7.17
+
+- Collect and verify initial Plan quotes against action-bound Git snapshot evidence or a named saved result field. Audit archives can retain declared portable bundles for verification after the original checkout is gone.
+
 ### skill-craft 2.35.8
 
 - Skills: shiploop 1.33.6

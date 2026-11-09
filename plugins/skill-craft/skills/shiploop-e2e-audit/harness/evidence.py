@@ -14,10 +14,11 @@ import json
 import os
 from pathlib import Path
 import re
+import stat
 import subprocess
 from typing import Any, Iterable, Mapping
 
-from capture import _sanitize_text
+from capture import _sanitize_text, archive_planning_evidence
 
 
 _IGNORED_NAMES = frozenset({".git", "__pycache__"})
@@ -36,6 +37,8 @@ _FENCE_CLOSE = re.compile(r"^```[ \t]*$")
 _MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)(?:\s+[^)]*)?\)")
 _MAX_ARTIFACT_BYTES = 2 * 1024 * 1024
 _MAX_SCAN_ENTRIES = 4096
+_PLANNING_BUNDLE = "planning-evidence"
+_PLANNING_PIN = "planning-evidence.sha256"
 
 
 def _sha256(data: bytes) -> str:
@@ -476,6 +479,8 @@ def capture_run_artifacts(roots: list[Path], output: Path) -> dict[str, Any]:
     Only symlinks resolving inside their supplied owned root are followed.  The
     result contains source absolute paths and digest-addressed archive paths so
     a caller can correlate a live run with its immutable copied evidence.
+    An explicitly supplied root may declare one portable Plan bundle with
+    ``planning-evidence.sha256`` beside ``planning-evidence/``.
     """
     if not roots:
         raise ValueError("at least one artifact root is required")
@@ -494,6 +499,38 @@ def capture_run_artifacts(roots: list[Path], output: Path) -> dict[str, Any]:
     blobs = archive_root / "blobs"
     artifacts: list[dict[str, Any]] = []
     scanned = 0
+
+    def capture_planning_bundle(root: Path) -> None:
+        pin = root / _PLANNING_PIN
+        bundle = root / _PLANNING_BUNDLE
+        if not pin.exists() and not pin.is_symlink():
+            return
+        try:
+            fd = os.open(pin, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            with os.fdopen(fd, "rb") as handle:
+                if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+                    raise ValueError("manifest pin must be a regular file")
+                declaration = handle.read(66)
+            if not re.fullmatch(rb"[0-9a-f]{64}\n", declaration) or bundle.is_symlink():
+                raise ValueError("manifest pin or bundle path is invalid")
+            digest = declaration[:64].decode("ascii")
+            parent = archive_root / _PLANNING_BUNDLE
+            if parent.is_symlink():
+                raise ValueError("planning archive directory is a symlink")
+            parent.mkdir(exist_ok=True)
+            copied = archive_planning_evidence(bundle, parent / digest, manifest_sha256=digest)
+        except (OSError, ValueError) as exc:
+            copied = {"status": "invalid", "reason": str(exc)}
+        if copied["status"] != "archived":
+            skipped.append({"source_path": str(pin), "reason": f"planning-evidence-{copied['status']}",
+                            "detail": copied["reason"]})
+            return
+        archived = Path(copied["manifest"])
+        source = bundle / archived.name
+        artifacts.append({"kind": "planning-evidence", "root": str(root),
+                          "relative_path": source.relative_to(root).as_posix(), "source_path": str(source),
+                          "resolved_path": str(source), "sha256": digest, "bytes": archived.stat().st_size,
+                          "archive_path": archived.relative_to(archive_root).as_posix()})
 
     def capture_file(root: Path, source: Path, relative: Path, kind: str) -> None:
         try:
@@ -553,6 +590,8 @@ def capture_run_artifacts(roots: list[Path], output: Path) -> dict[str, Any]:
                 return
             if _ignored_name(entry.name):
                 continue
+            if current == root and entry.name == _PLANNING_BUNDLE:
+                continue  # the declared bundle uses its own bounded validator
             child_relative = relative / entry.name
             kind = _artifact_kind(child_relative, root_is_shiploop=root.name == ".shiploop")
             if entry.is_symlink():
@@ -573,6 +612,7 @@ def capture_run_artifacts(roots: list[Path], output: Path) -> dict[str, Any]:
                 capture_file(root, entry, child_relative, kind)
 
     for root in owned_roots:
+        capture_planning_bundle(root)
         walk(root, root, Path(), set())
     artifacts.sort(key=lambda row: (row["source_path"], row["kind"]))
     skipped.sort(key=lambda row: (row["source_path"], row["reason"]))
