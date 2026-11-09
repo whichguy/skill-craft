@@ -218,3 +218,23 @@ on imports after a path insert).
 Event admin panels (no hosted event to try), Smart List rows, Bulk Renewal detail, every write, payment, email and
 report-generation flow, other owners' roles, the portal's rate limits and terms, and the real idle timeout. They are the
 catalogue's gaps G1 to G9 and its unknowns.
+
+## Round 4 - owner feedback before publication (2026-11-08)
+
+After approving the release the owner asked whether the skill notes that the club account reaches options that also exist
+under the personal account, scoped to the club, for example the meet results of the club's members.
+
+- **F17 firm.** The Results list is the one option checked live in both roles with different data: the club token scopes it to
+  the club's athletes (2026: 18 meets, `results` sums to 142; C7) and the personal token returns the unscoped national list
+  (387 events; C8). The catalogue already held this (`results.events` roles and notes, `references/access.md`), but `SKILL.md`
+  said only "club-scoped" in a table cell, so an agent asked for "our athletes' meets" had no line telling it to pass
+  `--role club`.
+- **F18 interim.** `results.event` calls the rankings host with the public key whatever the role (catalogue `auth: public`), so
+  it returns the whole meet, every lifter, not only the club's athletes; whether a club-role call returned the same 131 rows
+  as the public call was not compared. A club member's own tabs (`member.*`) are in the club role's menus but unexercised
+  (gap G9): reading them exposes a person's record, some of them minors, and `js` refuses them without `--unverified`.
+- **Decision.** Say it on the card and in the release line, no behaviour change: the description gains the trigger "club
+  results", the `results` area row names the two scopes, one paragraph after the area table gives the verified figures and the
+  member-tab gap with its gate, and `changes/sport80/initial.md` mentions the club role's view of its athletes' results.
+- **Open, the owner's call.** Reading one club member's tabs through the club role would move G9 from unexercised to verified.
+  It needs the owner to name the member and the tab; nothing was read.

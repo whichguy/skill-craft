@@ -3,9 +3,10 @@ name: sport80
 description: >-
   Use for the USA Weightlifting Sport80 portal (usaweightlifting.sport80.com): the owner's personal member account
   (memberships, certifications, entries, results, orders) and club account (members, events, sanctioning, finance,
-  affiliations, results and rankings), plus public results and rankings. Catalogues every capability the portal exposes
-  per role, runs the reads through the owner's already signed-in browser, and gates writes, payments and email behind
-  explicit confirmation. Triggers: "Sport80", "USAW club", "my USAW membership", "club roster", "meet results".
+  affiliations, and the meets and results of the club's athletes), plus public results and rankings. Catalogues every
+  capability the portal exposes per role, runs the reads through the owner's already signed-in browser, and gates
+  writes, payments and email behind explicit confirmation. Triggers: "Sport80", "USAW club", "my USAW membership",
+  "club roster", "meet results", "club results".
 version: 0.1.0
 license: MIT
 platforms:
@@ -48,8 +49,16 @@ addressed by `body_cid`. `public` needs no login. List with `"$S80" catalog` (ad
 | `members` | the club roster tools: quick search, Smart List, charts, add, email, reports |
 | `club` | the club's own profile, memberships, insurance, addresses, notes |
 | `events`, `sanction` | event finder, public search, event administration, sanctioning requests |
-| `results` | results and rankings (club-scoped with a club role, national when public) |
+| `results` | results and rankings: the club's athletes' meets with a club role, every event with the personal role, national when public |
 | `orders`, `finance`, `admin`, `affiliation` | transactions, cart, bulk renewal, queued reports, Stripe, invoices, discount codes, transfers |
+
+The same option reads differently per role. Results under `--role club` lists the meets the club's athletes entered and
+how many results each produced (2026 meets, checked 2026-11-08: 18 meets and 142 results, against 387 events unscoped
+under `personal`). Take a meet's `event_id` from a row's View link and `results.event` returns that meet's public results,
+all lifters. A club member's own tabs (memberships, certifications, entries, results) are in the club role's menus but were
+never read for a member, because that exposes a person's record and some are minors (gap G9). Find the member with
+`members.quick_search`; read a tab only after the owner names the member and the tab, and expect `js` to ask for
+`--unverified`.
 
 ## Trust boundary
 
