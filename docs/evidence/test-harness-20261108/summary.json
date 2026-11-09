@@ -130,15 +130,28 @@
         "failed_assertions": []
       }
     ],
-    "final content, run directly from the worktree": {
-      "label": "worktree-final2",
-      "load": "quiet (1 min average 9.0 before)",
-      "exit": 0,
-      "wall_seconds": 69,
-      "passed": 279,
-      "failed": 0,
-      "failed_assertions": []
-    },
+    "final content, run directly from the worktree": [
+      {
+        "label": "worktree-final2",
+        "load": "quiet (1 min average 9.0 before)",
+        "note": "before the merge of origin/main",
+        "exit": 0,
+        "wall_seconds": 69,
+        "passed": 279,
+        "failed": 0,
+        "failed_assertions": []
+      },
+      {
+        "label": "worktree-head",
+        "load": "quiet (1 min average 12.6 before)",
+        "note": "on the journal and evidence commit (the tree of the merge commit plus the two docs files)",
+        "exit": 0,
+        "wall_seconds": 73,
+        "passed": 279,
+        "failed": 0,
+        "failed_assertions": []
+      }
+    ],
     "final content, Linux container (same image and flags)": {
       "label": "linux2",
       "exit": 0,
@@ -421,9 +434,9 @@
   ],
   "privacy_scan": {
     "tool": "an external script kept outside the repository; every path is its own argument",
-    "files_read": 24,
-    "bytes_read": 427327,
-    "expected_files": 24,
+    "files_read": 25,
+    "bytes_read": 447517,
+    "expected_files": 25,
     "shapes": [
       "email",
       "home path",
@@ -450,7 +463,8 @@
       "unquoted_variable_holding_two_paths_in_zsh": "refused as one non-file argument, exit 2",
       "no_paths": "refused, exit 2",
       "clean_file_alone": "read 1 file, exit 0"
-    }
+    },
+    "note": "the last run, including the journal and this evidence file; 24 files and 427,327 bytes before the evidence file existed"
   },
   "independent_reads": {
     "pass_1": {

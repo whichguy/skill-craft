@@ -169,7 +169,7 @@ guesses not reflected in the card's profile gate), agreed to leave the rest, and
 | `scripts/worktree-fixloop.sh` | The fix-loop branch name is the repository folder name reduced to letters, digits, `_` and `-` (F18). |
 | `scripts/test-harness-tests.sh` | Run root exported to a scratch folder at the top; invented fixture labels; slack on external wall-clock caps and a 10 s budget for the two hang cases (below); default-run-root cases added; a case for the YAML glob key and one for a folder name with a space and a dot (F18); `grep` for `rg`; a comment at the `assert` helper about markers. |
 | `test/test-harness.test.py` | New: runs the self-test in a scratch home, checks the packaging contract, and lints the shipped files on the shapes of an email, a home path, a host home directory and a secret, proven on seeded leaks. |
-| `test/suite_catalog.py`, `test/suite_durations.json`, `test/test-groups.test.py` | One core suite registered; counts 59 to 60 and 199 to 200. |
+| `test/suite_catalog.py`, `test/suite_durations.json`, `test/test-groups.test.py` | One core suite registered; counts core 59 to 60 and total 199 to 200 (202 on the merged tree, where main had added two). |
 | `changes/test-harness/initial.md` | First-release note, `version: 0.1.0`. |
 
 Timing decision. The two failing cases compare wall time measured from outside with a 1 s cap; they now require the cap plus
@@ -200,12 +200,13 @@ machine load for each self-test run (`self_test_runs`) and every other check (`c
 | `python3 -B scripts/check-release-boundary.py --base origin/main` on the merged tree | exit 0, OK |
 | `bash test/run-all.sh --group quick --changed-from origin/main --jobs 4` on the merged tree | exit 0: 17 suites in 249 s; this suite 77 s |
 | The same quick tier before the merge | exit 1, 46 suites in 408 s, one failure: this suite's tree-unchanged assertion tripped because I deleted a stray bytecode directory while the run was going. The wrapper alone then passed; the assertion now ignores bytecode caches. |
-| Privacy gate: an external scan with a 44-entry denylist kept outside the repository, every path its own argument | 24 files, 427,327 bytes; no email, home path, host home directory, secret shape, URL or denylisted name; two loopback addresses; vendor mentions reviewed (provider hostnames and standard environment-variable names used as redaction and live-call data, one CSS property, one document name) |
+| Privacy gate: an external scan with a 44-entry denylist kept outside the repository, every path its own argument | 25 files, 447,517 bytes (the skill, the note, the wrapper, this journal and the evidence file; 24 files and 427,327 bytes before the evidence file existed); no email, home path, host home directory, secret shape, URL or denylisted name; two loopback addresses; vendor mentions reviewed (provider hostnames and standard environment-variable names used as redaction and live-call data, one CSS property, one document name) |
 | Controls for that scan | seeded leaks in all five categories found (exit 1); an unquoted variable holding two paths in zsh is refused as one non-file argument (exit 2); no paths refused (exit 2); a clean file alone reads and passes (exit 0) |
 | Independent reads | pass 1: 25 items; pass 2: 21 of them fixed, 3 partly open, 10 new; everything real is fixed (Round 3) |
 
-The first modified runs failed before the final fixes (273 of 276 at a load of 155: the two hang cases, F1). The wrapper's own
-lint reads this journal and the evidence file, so both are held to the same four shapes as the skill.
+The first modified run failed three checks before the hang-case budget was raised (273 of 276 at a load of 155; see the timing
+decision in Round 4). The wrapper's own lint reads this journal and the evidence file, so both are held to the same four shapes
+as the skill.
 
 ## Round 6 - the other candidate and the shared files (2026-11-08)
 
