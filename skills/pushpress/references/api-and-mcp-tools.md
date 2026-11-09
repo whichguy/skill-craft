@@ -140,7 +140,7 @@ never how much or whether a discount applied. [verified live]
 |---|---|---|---|---|
 | `classes-list` | Paginated list of scheduled classes | optional `access` (`invite_only`\|`open`), `startsAfter` (unix seconds), `order` (`ascending`\|`descending`, default ascending), `page`, `limit` | array of `Class` records | READ |
 | `classes-get` | Single class by ID, optionally expanded | `id`; optional `expand[]` (`location`\|`reservations`) | one `Class` record | READ |
-| `classes-type-list` | List class types for the gym | none | array of class types (`id`, `name`) | READ |
+| `classes-type-list` | List class types for the gym | none | array of class types (`id`, `companyId`, `name`, `color`, `active`, and a `description` that is sometimes absent); **inactive types are listed too**, so filter on `active` | READ |
 | `classes-type-get` | Single class type by ID | `id` | one class type record | READ |
 | `events-list` | Paginated list of scheduled events (non-class calendar items) | same shape as `classes-list` plus `access` | array of `Event` records | READ |
 | `events-get` | Single event by ID, optionally expanded | `id`; optional `expand` (string or array, `location`\|`reservations`) | one `Event` record | READ |
@@ -150,7 +150,7 @@ never how much or whether a discount applied. [verified live]
 only: `invite_only`\|`open`), `locationUuid`, `location{name}`, `reservations[]` (only
 present when `expand` includes `reservations`), `start`/`end` (unix seconds — see
 [§3](#3-conventions)). [verified live] `classes-list limit=1` returned a `Class` with
-exactly these fields; `page=2` returned a different `id` with the same shape, confirming
+these fields except `company` and `location` (`location` needs `expand`, and only a class that has one carries it), and an `Event` also carried `isAllDay`; `page=2` returned a different `id` with the same shape, confirming
 page-based pagination actually advances.
 
 ### Appointments, reservations, invitations
@@ -201,7 +201,7 @@ All four checkin record types share `id` (prefix `chk_`), `customer` (customer U
 model above in practice — also carrying `classId`, `source` (e.g. `"member_app_iOS"`),
 `result` (`"success"`\|`"failure"`), `failureReason`, and a nested `type{id,name}` object
 in addition to the flat `typeId`/`name`. Treat the SDK's declared model as the floor, not
-the ceiling — live responses carried more fields than the generated types declare.
+the ceiling — live responses carried more fields than the generated types declare. An event check-in also carries `eventId` and `type{id,name}`.
 **Anomaly noted**: the live `classId` value used a `cal-` (hyphen) separator rather than
 the `cal_` (underscore) pattern seen on `classes-list` IDs — not explained by this pass;
 don't assume the two are interchangeable string formats without checking.
@@ -274,12 +274,12 @@ and `checkins-count` (`{count:N}`)]
 | Prefix | Entity |
 |---|---|
 | `client_` | Company |
-| `usr_` | Customer |
+| `usr_` | Customer (a `coachUuid` can be a bare 32-hex id with no prefix) |
 | `plan_` | Plan |
 | `sub_` | Enrollment (subscription) |
 | `cal_` | Class / event (calendar item) — **but** one live checkin's embedded `classId` field used `cal-` (hyphen) instead; treat as a possible second format, not confirmed interchangeable |
 | `chk_` | Checkin |
-| `calitemtype_` | Class/event type |
+| `calitemtype_` | Class/event type, **but** only some types carry it: others are bare 32-hex ids, and the default type is `cit_` + zeros |
 
 Hex-suffix length varies within the same prefix (seen 6, 14, and 32 hex characters on
 different `usr_...` and `cal_...` IDs) — don't assume a fixed length. Appointment,
