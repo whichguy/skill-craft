@@ -605,6 +605,7 @@ def main(core: Any, argv: Optional[Sequence[str]] = None) -> int:
     outermost = not _DEPTH[0]
     if outermost:
         _TRACE.clear()
+        shiploop_trace.SHOWN.clear()
     _DEPTH[0] += 1
     started = time.monotonic()
     code = 2
@@ -644,7 +645,8 @@ def _record_command(raw_argv: Sequence[str], code: int, started: float) -> None:
     after = _TRACE.get("after", _TRACE.get("before"))
     trace.record_command(root, raw_argv, code, started, before=_TRACE.get("before"),
                          after=after if isinstance(after, dict) else None, error=_TRACE.get("error"),
-                         note=_TRACE.get("note"), held=_TRACE.get("held"), crashed=_TRACE.get("crashed"))
+                         note=_TRACE.get("note"), held=_TRACE.get("held"), shown=list(trace.SHOWN),
+                         crashed=_TRACE.get("crashed"))
 
 
 def _saved_state(root: Path) -> Optional[dict]:
