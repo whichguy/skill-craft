@@ -50,7 +50,7 @@ Recorded 2026-11-09. Prompts frozen before any counting run (`prompts.json`, sha
 | N11 | neg-attendance-code | quiet | 0 | none |
 | N12 | neg-mailchimp | quiet | 0 | none |
 
-What the sample can and cannot show. Counted over prompts (the two runs of a prompt are repeats): 12 of 12 should-fire prompts fired (95% Wilson interval for the true rate on prompts like these: 0.757 to 1.0), and 0 of 12 quiet prompts fired (0.0 to 0.243). So the description is not obviously broken on this set; it is not shown reliable on every phrasing. The implicit prompts all carry gym words, and no run had a project context to lean on.
+What the sample can and cannot show. Counted over prompts (the two runs of a prompt are repeats): 12 of 12 should-fire prompts fired (95% Wilson interval for the true rate on prompts like these: 0.757 to 1.0), and 0 of 12 quiet prompts fired (0.0 to 0.243). So the description is not obviously broken on this set; it is not shown reliable on every phrasing. The implicit prompts all describe a gym business's work (three use the word gym), and no run had a project context to lean on.
 Positive control: `skill-craft:sport80` fired in 6 of 6 runs of the three sport80 prompts, so the harness does see another skill fire and those near misses were routed, not ignored.
 
 Infra errors after retries: 0. Main-pass cost 2.59 USD, wall 273.7 s.

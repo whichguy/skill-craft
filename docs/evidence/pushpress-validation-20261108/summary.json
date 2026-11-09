@@ -9,7 +9,7 @@
     "note": "remote main was nineteen commits ahead (releases 2.36.0 and 2.36.1) and none touches a pushpress path"
   },
   "extractor_blob": "7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b",
-  "tests_commits": "81051962850dc49f2767a81f43be138c971eb2cc (first version), then the review fixes 695ad676f13ef71305d4d03be27fb3eb0fc7618a, 9c1930946318f94745672cf708a94fa5310b9620, d6e21bcc045c4d672b03b0121ee43e03584196df, cdfd043be38f140cf5cd3516000e9bc7036d585e, cf5f9bea84d689ca46a18c03630c2a4aa93ec5ac and, for the gap register, dc9afbad358cda1a2e19830718f62687aee09df2 its round-6 revision b89112b4bbfa340dc15455360a858f37e2e43964 and its round-7 revision 5e531b22d860d1f8edc72bf8ca14ba99f5832da2; the fixture and property results below are from cf5f9bea",
+  "tests_commits": "81051962850dc49f2767a81f43be138c971eb2cc (first version), then the review fixes 695ad676f13ef71305d4d03be27fb3eb0fc7618a, 9c1930946318f94745672cf708a94fa5310b9620, d6e21bcc045c4d672b03b0121ee43e03584196df, cdfd043be38f140cf5cd3516000e9bc7036d585e, cf5f9bea84d689ca46a18c03630c2a4aa93ec5ac and, for the gap register, dc9afbad358cda1a2e19830718f62687aee09df2 its round-6 revision b89112b4bbfa340dc15455360a858f37e2e43964 its round-7 revision 5e531b22d860d1f8edc72bf8ca14ba99f5832da2 and its round-8 revision 3ba9785b856673a7e362305b6cb008a15e52a48d; the fixture and property results below are from cf5f9bea",
   "read_only_checks": {
     "ci": {
       "commit": "03f68d93a44500aca958db74440c1483e9038e11",
@@ -697,7 +697,7 @@
         ]
       },
       "detail": "property/results.json",
-      "without_a_dedicated_control": "the scrub's input-type filter (over-scrubbing only) and the order of the length limit and the text mask on label and region text (a number cut at the limit would leak its first digits; confirmed in round 7 that the reorder passes the harness, the property test, the register and the fixture without controls on label text and on region text, while on link text the harness catches it; and the scrub's right word boundary is caught by the property test as over-masking: 68 violations at seed 1109); and nine single-mask removals that survive the property test (seeds 1109 and 4242), the stub harness and the whole fixture: eight found in round 5 by the journal reviewer's sweep of 38 further breaks (the person scrub skipped for link text, tabs, column headers, input labels or toggle labels (5); the case-insensitive flag removed from the Select/Edit/View/Delete/Remove/Open label mask or from the for/of mask (2); the bare-number alternative cut to exactly 10 digits (1)) and one found in round 7 (the '+8 to 15 digits' alternative of the phone mask, earlier called redundant: without it a plus followed by 8 or 9 digits leaks). The list is not exhaustive.",
+      "without_a_dedicated_control": "the scrub's input-type filter (over-scrubbing only) and the order of the length limit and the text mask on label, region and sidebar link text (a number cut at the limit would leak its first digits; confirmed in rounds 7 and 8 that the reorder passes the harness, the property test, the register and the fixture without controls on label text, region text and sidebar link text, while on page link text the harness catches it; and the scrub's right word boundary is caught by the property test as over-masking: 68 violations at seed 1109); and nine single-mask removals that survive the property test (seeds 1109 and 4242), the stub harness and the whole fixture: eight found in round 5 by the journal reviewer's sweep of 38 further breaks (the person scrub skipped for link text, tabs, column headers, input labels or toggle labels (5); the case-insensitive flag removed from the Select/Edit/View/Delete/Remove/Open label mask or from the for/of mask (2); the bare-number alternative cut to exactly 10 digits (1)) and one found in round 7 (the '+8 to 15 digits' alternative of the phone mask, earlier called redundant: without it a plus followed by 8 or 9 digits leaks). The list is not exhaustive.",
       "unplanted_kind_field_pairs": "found by the round-5 journal reviewer (instrumented generator, fixture pages read): names in column headers, tabs and label text; phone numbers in headings, column headers and toggle labels; emails in tabs and labels. A mask that matters only there is not pinned; the claim in H2 is limited to the planted (kind, field) pairs."
     },
     "quiz": {
@@ -744,7 +744,7 @@
       "prompts": 24,
       "runs": 48,
       "explicit": "fired in 12 of 12 runs of 6 prompts (four name PushPress, two say 'the gym software')",
-      "implicit": "fired in 12 of 12 runs of 6 prompts (no product named, gym words present)",
+      "implicit": "fired in 12 of 12 runs of 6 prompts (no product named; each describes a gym business's work, and three use the word gym)",
       "quiet_prompts": "0 of 24 runs of 12 prompts",
       "sport80_prompts": "skill-craft:pushpress 0 of 6 runs; skill-craft:sport80 fired 6 of 6 (positive control)",
       "quiz_cases_naming_pushpress": "fired in all 34 trials of 17 cases; not in the 2 trials of q15",
@@ -783,10 +783,11 @@
       "commits": {
         "first version": "dc9afbad358cda1a2e19830718f62687aee09df2",
         "round-6 revision": "b89112b4bbfa340dc15455360a858f37e2e43964",
-        "round-7 revision": "5e531b22d860d1f8edc72bf8ca14ba99f5832da2"
+        "round-7 revision": "5e531b22d860d1f8edc72bf8ca14ba99f5832da2",
+        "round-8 revision": "3ba9785b856673a7e362305b6cb008a15e52a48d"
       },
-      "what": "hermetic, on the property test stub DOM, a fraction of a second; each gap plants a made-up value or a few (the parts of a name, or a value and the id it prints) and expects them to reach the output",
-      "status_rules": "XFAIL: every planted value still reaches the output. XPASS: none does (fails the run: promote the entry). PARTIAL: some do (fails the run: split or promote). ERROR: a crash, or a malformed entry (an empty or one-character value, one value inside another, digits that are not digits, an onlyIn that is not an output field, an entry that plants nothing).",
+      "what": "hermetic, on the property test stub DOM, a fraction of a second; each gap plants a made-up value or a few (the parts of a name, a name and the id a link prints, or two or three values of one kind) and expects them to reach the output",
+      "status_rules": "XFAIL: every planted value still reaches the output. XPASS: none does (fails the run: promote the entry). PARTIAL: some do (fails the run: split or promote). ERROR: a crash, or a malformed entry (an empty or one-character value, one value inside another, digits that are not 2 or more ASCII digits, an onlyIn that is not an output field, an entry that plants nothing).",
       "entries": {
         "gaps": 41,
         "by_severity": {
@@ -801,14 +802,14 @@
         "XFAIL": 41,
         "PASS": 16
       },
-      "coverage_rule": "every output field in which a gap leaks must have a positive control found in it (heading h, button btn, link a, label lbl); each run and the flip check baseline verify this and fail naming the field",
+      "coverage_rule": "every output field in which a gap leaks must have a positive control found in it (heading h, button btn, link a, label lbl); each run and the flip check baseline verify this and fail naming the field. Limits, stated in the file header: the rule is per field, not per kind of match (text or digits), and nothing enforces that a planted value is not a string the extractor prints on its own (a reviewer checked every value by hand in round 8)",
       "groups": {
         "phone shapes in a label (H16)": 14,
         "phone in a button label (H16)": 1,
         "non-Latin name and letterless field values (H17)": 2,
         "title shapes and the first name alone (H18)": 4,
         "second person in plain text (H3)": 1,
-        "contact-link schemes (H19)": 7,
+        "contact-link shapes (H19: 6 schemes and the wa.me host)": 7,
         "email in a same-origin path (H19)": 1,
         "person links in other shapes (H20)": 4,
         "identifier-like strings and addresses in text (H21)": 6,
@@ -855,14 +856,14 @@
             "controls_broken": 0
           }
         ],
-        "rules": "a fix names the entries it targets and its known side effects; the result must equal both, with no control broken; the check fails when ANY fix is skipped (its original text is gone: reformatted or really changed), or when the baseline is not clean or a field has no positive control",
+        "rules": "a fix names the entries it targets and its known side effects; the result must equal both, with no control broken (the fixes are crude, one or two small edits each; fix 5 has no newline in its anchors, so an LF or a CRLF checkout of the extractor both match); the check fails when ANY fix is skipped (its original text is gone: reformatted or really changed), or when the baseline is not clean or a field has no positive control",
         "limit": "proves a fix is noticed, not that it is safe; see crude_fixes_through_other_tests"
       },
       "deliberate_breaks_of_the_register": [
         "field values removed from the secrets: the person-route control fails",
         "person rule off: only the non-hex slug control fails (the hex-id control is masked twice and stays green)",
         "id rule off: only the invoice-id control fails",
-        "checker without the NFKC fold: the full-width phone entry is a bad entry (digits that are not digits), the full-width positive control fails and the run says the checker failed",
+        "checker without the NFKC fold: the full-width phone entry is a bad entry (digits that are not 2 or more ASCII digits), the full-width positive control fails and the run says the checker failed",
         "checker no longer reading btn, a, h or lbl: the matching positive control fails and the run says the checker failed (round 7: before it, btn and a went unnoticed)",
         "a date-only scrub fix: letterless-field-values is PARTIAL (2 of 3 values still leak)",
         "a fix of the person-test bound only: person-link-with-numeric-id is PARTIAL (the path mask still prints the id)",
@@ -876,17 +877,17 @@
         "property/known-gaps-flip-check.json",
         "property/known-gaps-fix-trials.json"
       ],
-      "found_by": "a black-box audit of the extractor in review round 5, checked in rounds 6 and 7 by fresh reviewers who tried to refute the register; each entry reproduced through the extractor before it was kept",
+      "found_by": "a black-box audit of the extractor in review round 5, checked in rounds 6 to 8 by fresh reviewers who tried to refute the register; each entry reproduced through the extractor before it was kept",
       "checker_faults_found_and_fixed": [
         "round 6: full-width digits are not \\d in JavaScript, so the first run showed one XPASS that was the harness; the output is folded with NFKC and a positive control in full-width digits fails when the fold is removed (the first version claimed two ASCII controls guarded this; removing the fold left both green)",
         "round 7: the positive controls read only headings and labels while gaps leak through buttons and links, so a checker that stopped reading them showed XPASS lines and no warning; positive controls now exist for every field a gap leaks through and the run derives the requirement from the gaps"
       ]
     }
   },
-  "review": "seven rounds of independent reviewers read the test code and the journal entry with this evidence (two reviewers in each of rounds 1 to 4; in round 5 a black-box audit of the extractor and a journal reviewer, whose report was integrated in round 6; in round 6 a fresh code reviewer who tried to refute the gap register; in round 7 another fresh code reviewer of the revised register and another journal reviewer); their material findings are fixed in the commits on this branch; two clean rounds in a row have not been reached",
+  "review": "eight rounds of independent reviewers read the test code and the journal entry with this evidence (two reviewers in each of rounds 1 to 4; in round 5 a black-box audit of the extractor and a journal reviewer, whose report was integrated in round 6; in round 6 a fresh code reviewer who tried to refute the gap register; in round 7 another fresh code reviewer of the revised register and another journal reviewer; in round 8 a third of each); their material findings are fixed in the commits on this branch; two clean rounds in a row have not been reached",
   "findings": {
     "H1": "firm",
-    "H2": "firm (synthetic pages; limited to the planted (kind, field) pairs and the protections that have a control; the recorded gaps H3, H4 and H16 to H22 are excluded)",
+    "H2": "firm (synthetic pages; limited to the planted (kind, field) pairs and shapes and the protections that have a control; nine single-mask removals survive every test; the recorded gaps H3, H4 and H16 to H22 are excluded)",
     "H3": "firm on the synthetic page; interim for a real tenant",
     "H4": "firm on the synthetic page for p; the rest read from the code",
     "H5": "firm",
@@ -904,8 +905,8 @@
     "H16": "firm on a stub DOM; a real hole in the extractor (14 ways of writing a phone number in a label, and a number in groups of two in a button label, are not masked)",
     "H17": "firm on a stub DOM; a real hole by the header's own words (a name in a script other than Latin, a field value with no letter and a value of one character are never scrubbed on a person route; a date input that stores an ISO date is not matched even by the proposed fix)",
     "H18": "firm on a stub DOM (the title secret is the first part before a pipe, en dash or hyphen, scrubbed only as a whole string: an em dash, the name second, last-comma-first and the first name alone on a tab with no name field scrub nothing)",
-    "H19": "firm on a stub DOM; outside what the header names (7 contact-link schemes keep the name as text; an email in a same-origin path reaches the output)",
-    "H20": "firm on a stub DOM; the first shape contradicts the header (a person link with a short or numeric id, an id one segment below a People list page, an id in a query, or a role=button keeps the name; the 8-character bound sits in the person test and in the path mask)",
+    "H19": "firm on a stub DOM; outside what the header names (7 contact-link shapes (6 schemes and the wa.me host) keep the name as text; an email in a same-origin path reaches the output)",
+    "H20": "firm on a stub DOM; the first shape contradicts the header (a person link with a short or numeric id, an 8-digit id one segment below a People list page (caught by neither the person test, which reads only the first segment, nor the id rule, which needs 10 hex characters), an id in a query, or a role=button keeps the name; the 8-character bound sits in the person test and in the path mask)",
     "H21": "firm on a stub DOM; lower severity, outside the contract (a UUID, an id in the path mask's shape, a processor id, invoice and order numbers, card digits and a street address in text are not masked)",
     "H22": "firm on a stub DOM; lower severity (an email with the full-width at sign is not masked; an obfuscation with no at sign is not either, and none is proposed)"
   },
@@ -925,7 +926,7 @@
     "P13 keep a field value with a letter in any script or 4 or more digits, and use Unicode word boundaries in the scrub (the crude version passes the stub harness, the property test and the fixture without controls)",
     "P14 use every multi-word part of the title, more separators and a comma, and consider the words of the name on their own (the separator change alone passes the harness, the property test and the fixture without controls and flips only the em-dash entry)",
     "P15 treat any scheme other than http and https as a contact link, add wa.me and api.whatsapp.com, and mask an email in a path and in p (the scheme change passes the harness, the property test and the fixture without controls and flips the 7 contact entries; the path rule is untried)",
-    "P16 treat /user/<anything> as a person link, let the person test and the path mask look one segment deeper below the four People list pages, mask a link whose query key names a person, and mask person links in button lists (dropping the 8-character bound in both places, the person test and the path mask, passes the harness, the property test and the fixture without controls and flips only the numeric-id entry; in the person test alone it is PARTIAL)",
+    "P16 treat /user/<anything> as a person link, let the person test and the path mask look one segment deeper below the four People list pages (an id of 10 or more hex characters there is already masked by the id rule), mask a link whose query key names a person, and mask person links in button lists (dropping the 8-character bound in both places, the person test and the path mask, passes the harness, the property test and the fixture without controls and flips only the numeric-id entry; in the person test alone it is PARTIAL)",
     "P17 state in the header and in browser-technique.md what is not masked (H16 to H22), including any number in a button label, a full-width at sign and a person id below a list page or on a button link"
   ],
   "not_done": [

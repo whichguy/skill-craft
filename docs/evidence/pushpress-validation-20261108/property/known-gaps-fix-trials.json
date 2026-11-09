@@ -19,7 +19,7 @@
     },
     {
       "fix": 3,
-      "name": "contact links: any scheme other than http and https, and wa.me",
+      "name": "contact links: any scheme other than http and https, and the wa.me and api.whatsapp.com hosts",
       "harness": "PASS (17 checks)",
       "property": "PASS; over-masking audit unchanged (2 of 65 words)",
       "fixture": "PASS 59 of 59 (no controls)"

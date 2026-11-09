@@ -434,7 +434,7 @@
       "fields": [
         "a"
       ],
-      "why": "the person test looks only at the first segment after /people/ (8 or more characters, not a list name), so an id one segment deeper, below a list page, is never seen by it or by the path mask",
+      "why": "the person test looks only at the first segment after /people/ (8 or more characters, not a list name), and the id rule needs 10 or more hex characters, so an 8-digit id one segment below a list page is seen by neither (a 10-character hex id there is masked by the id rule)",
       "error": ""
     },
     {

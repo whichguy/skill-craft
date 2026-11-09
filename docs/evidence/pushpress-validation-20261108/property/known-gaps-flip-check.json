@@ -22,7 +22,7 @@
       "controls_broken": 0
     },
     {
-      "name": "contact links: any scheme other than http and https, and wa.me, count as contact links",
+      "name": "contact links: any scheme other than http and https, and the wa.me and api.whatsapp.com hosts, count as contact links",
       "status": "OK",
       "flipped": 7,
       "expected": 7,
