@@ -102,8 +102,9 @@ function rng(seed) {
 // ---- synthetic people -----------------------------------------------------------------------------------------------------
 const FIRST = ['Zephyra', 'Anne-Marie', 'Daithi', 'José', 'Li', 'Mark', 'Will', 'Grace', 'Rose', 'Hope', 'Pat', 'Dawn', 'Sue', 'Amber', 'Hunter', 'Cash', 'Bill', 'Jack', 'Max', 'Noor', 'Ana', 'Ty', 'Bo', 'Ottoline', 'Perpetua', 'Rosalind', 'Cornelius', 'Philippa'];
 const LAST = ['Quillfeather', 'Wolfeschlegel-Stein', "O'Brannigan", 'Peña', 'Xu', 'Page', 'Stone', 'Fields', 'Bell', 'Young', 'Hill', 'King', 'Cook', 'Love', 'Sharp', 'Drummond', 'Ng', 'Yu', 'Mann', 'Tuckerbottom', 'Applewhite', 'Gooseberry'];
-let seq = 0;
+let seq = 0, idSeq = 0;
 const cat = (...p) => p.join('');
+const slug = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 function person(R, taken) {                                                  // `taken`: full names already used on this page, so two people never share one
   seq++;
   let first, last;
@@ -147,6 +148,8 @@ function generate(R) {
   const taken = new Set();
   const owner = person(R, taken), ga = person(R, taken), gb = person(R, taken), others = [person(R, taken), person(R, taken), person(R, taken)];
   const staff = person(R, taken);
+  const pathIds = [];                                                        // record ids that the page's own path holds (P5)
+  const idTail = () => '9f3c' + String(++idSeq).padStart(8, '0');            // twelve hex characters, like a record id's tail
   const els = [], contract = [], structural = [], hidden = [];
   const sideW = R.pick([255, 240, 281, 300]), haveNav = R.chance(0.7);
   const edge = haveNav ? sideW : 290;
@@ -166,7 +169,14 @@ function generate(R) {
     if (R.chance(0.4)) { els.push(el({ tag: 'A', text: o.full, sel: ['a[href]'], attrs: { href: '/user/' + o.id }, left: 20, width: 150 })); side.contract.push(['sub', o.full]); }
     if (R.chance(0.3)) { els.push(el({ tag: 'A', text: o.email, sel: ['a[href]'], attrs: { href: 'mailto:' + o.email }, left: 20, width: 150 })); side.contract.push(['sub', o.email]); }
     if (R.chance(0.3)) { els.push(el({ tag: 'A', text: R.pick(o.phones), sel: ['a[href]'], attrs: { href: 'tel:' + o.digits }, left: 20, width: 150 })); side.contract.push(['digits', o.digits]); }
+    if (R.chance(0.3)) { els.push(el({ tag: 'A', text: 'Reach ' + o.email, sel: ['a[href]'], attrs: { href: '/reports/contacts' }, left: 20, width: 150 })); side.contract.push(['sub', o.email]); }
   }
+  // the staff member's contact links (the text is a name) and a link whose path holds a record id: the sidebar must mask both
+  const planId = 'plan_' + idTail();
+  els.push(el({ tag: 'A', text: staff.full, sel: ['a[href]'], attrs: { href: 'mailto:' + staff.email }, left: 20, width: 150 }));
+  els.push(el({ tag: 'A', text: staff.full, sel: ['a[href]'], attrs: { href: 'tel:' + staff.digits }, left: 20, width: 150 }));
+  els.push(el({ tag: 'A', text: 'Pinned plan', sel: ['a[href]'], attrs: { href: '/plans/' + planId }, left: 20, width: 150 }));
+  side.contract.push(['sub', planId]); side.masked = ['LINK  <item>  ->  <contact>', 'LINK  <item>  ->  /plans/<id>'];
   const at = () => edge + R.int(400);                                        // a position inside the content
   const add = (field, p) => els.push(el(Object.assign({ sel: SELECTORS[field], left: at() }, p)));
 
@@ -211,29 +221,55 @@ function generate(R) {
     if (R.chance(0.5)) { add('lbl', { text: 'Phone ' + R.pick(o.phones) }); contract.push(['digits', o.digits]); }
     if (R.chance(0.4)) { add('btn', { text: o.email }); contract.push(['sub', o.email]); }
     if (R.chance(0.3)) { add('region', { text: 'Reach ' + o.email + ' or ' + R.pick(o.phones) }); contract.push(['sub', o.email], ['digits', o.digits]); }
+    // link shapes off the person routes: an invoice id, a person path that is a name slug, a person id that is not hex, contact links whose text is a name, a query that holds an address
+    if (R.chance(0.4)) { const inv = 'inv_' + idTail(); add('a', { attrs: { href: '/payments/invoices/' + inv }, text: o.full }); contract.push(['sub', o.full], ['sub', inv]); }
+    if (R.chance(0.3) && slug(o.full).length >= 8) { add('a', { attrs: { href: '/people/' + slug(o.full) }, text: o.full }); contract.push(['sub', o.full], ['sub', slug(o.full)]); }
+    if (R.chance(0.2)) { const lead = 'lead-' + o.last.toLowerCase().replace(/[^a-z]/g, '') + 'x'; add('a', { attrs: { href: '/user/' + lead }, text: o.full }); contract.push(['sub', o.full], ['sub', lead]); }
+    if (R.chance(0.3)) { add('a', { attrs: { href: 'mailto:' + o.email }, text: o.full }); contract.push(['sub', o.full]); }
+    if (R.chance(0.3)) { add('a', { attrs: { href: 'tel:' + o.digits }, text: o.full }); contract.push(['sub', o.full]); }
+    if (R.chance(0.3)) { add('a', { attrs: { href: '/payments/payments?email=' + o.email + '&q=' + o.last }, text: 'Filter' }); contract.push(['sub', o.email]); }
+    // text that carries an address or a number in fields that only the text mask (safe) protects: a column header, a tab, the text of a plain link
+    if (R.chance(0.3)) { add('th', { text: 'Contact ' + o.email }); contract.push(['sub', o.email]); }
+    if (R.chance(0.3)) { add('tabs', { text: R.pick(o.phones) }); contract.push(['digits', o.digits]); }
+    if (R.chance(0.3)) { add('a', { attrs: { href: '/reports/contacts' }, text: o.email }); contract.push(['sub', o.email]); }
   }
 
   let title = 'People | PushPress', pathname = R.pick(['/people/members', '/schedule/class-types', '/payments', '/main', '/plans/list']);
   let gapName = null, gapExposable = false;                                    // exposable: no word of it is also a scrubbed word
   const secretWords = [];
+  if (!onPersonRoute && R.chance(0.25)) { const pid = idTail(); pathname = R.pick(['/plans/plan_' + pid, '/payments/invoices/inv_' + pid]); pathIds.push(pid); }
   if (onPersonRoute) {
+    const noInputs = R.chance(0.3);
     pathname = R.pick(['/user/' + owner.id, '/people/' + cat('lead', '_', owner.id.slice(4)), '/user/' + owner.id]);
-    title = R.chance(0.7) ? owner.full + R.pick([' | PushPress', ' - PushPress', '']) : owner.last + ', ' + owner.first;
-    const field = (value, label) => els.push(el({ tag: 'INPUT', sel: ['input', 'input[type=text]'], type: 'text', value, attrs: { 'aria-label': label }, left: at() }));
-    field(owner.first, 'First name'); field(owner.last, 'Last name'); field(owner.email, 'Email'); field(R.pick(owner.phones), 'Phone'); field(owner.dob, 'Date of birth');
-    field(ga.full, 'Guardian name'); field(ga.email, 'Guardian email');
-    add('h', { text: owner.full }); add('h', { text: ga.full });
-    add('btn', { text: 'Guardian', attrs: { role: 'combobox', 'aria-label': 'Relationship' }, sel: ['button', '[role=button]'] }); add('btn', { text: 'Wombat', attrs: { role: 'combobox' }, sel: ['button', '[role=button]'] });
-    contract.push(['sub', 'Wombat']);
-    // a second person who appears as plain text only: the recorded gap
-    add('h', { text: gb.full }); add('btn', { text: 'Message ' + gb.first }); gapName = gb.full;
-    add('a', { attrs: { href: 'mailto:' + gb.email }, text: gb.email }); contract.push(['sub', gb.email], ['digits', gb.digits]);
-    add('lbl', { text: 'Phone ' + R.pick(gb.phones) });
-    add('region', { text: owner.full + ' ' + gb.full });                    // must be skipped on a person route
-    for (const w of [owner.first, owner.last]) secretWords.push(w);
-    gapExposable = ![owner.first, owner.last, ...ga.full.split(' ')].some(w => wordRe(w).test(gb.full));
-    contract.push(['word', owner.first], ['word', owner.last], ['sub', owner.full], ['sub', owner.email], ['digits', owner.digits], ['sub', owner.dob], ['sub', ga.full], ['sub', ga.email], ['digits', ga.digits]);
-    secretWords.push(...ga.full.split(' '));
+    const suffix = R.pick([' | PushPress', ' - PushPress', '']);
+    title = noInputs || R.chance(0.7) ? owner.full + suffix : owner.last + ', ' + owner.first;
+    if (noInputs) {
+      // a billing tab: the name is in the page title and the heading, and no input holds it, so only the title can scrub it
+      add('h', { text: owner.full }); add('btn', { text: 'Edit ' + owner.full }); add('region', { text: owner.full });
+      contract.push(['sub', owner.full]);
+    } else {
+      let sharedLast = null;
+      if (R.chance(0.3)) {                                                     // the guardian shares the owner's first name: the longer name has to be scrubbed first
+        const lasts = LAST.filter(l => l.length >= 6 && l !== owner.last && !gb.full.split(' ').includes(l));
+        ga.first = owner.first; ga.last = R.pick(lasts); ga.full = ga.first + ' ' + ga.last; sharedLast = ga.last;
+      }
+      const field = (value, label) => els.push(el({ tag: 'INPUT', sel: ['input', 'input[type=text]'], type: 'text', value, attrs: { 'aria-label': label }, left: at() }));
+      field(owner.first, 'First name'); field(owner.last, 'Last name'); field(owner.email, 'Email'); field(R.pick(owner.phones), 'Phone'); field(owner.dob, 'Date of birth');
+      field(ga.full, 'Guardian name'); field(ga.email, 'Guardian email');
+      add('h', { text: owner.full }); add('h', { text: ga.full });
+      add('btn', { text: 'Guardian', attrs: { role: 'combobox', 'aria-label': 'Relationship' }, sel: ['button', '[role=button]'] }); add('btn', { text: 'Wombat', attrs: { role: 'combobox' }, sel: ['button', '[role=button]'] });
+      contract.push(['sub', 'Wombat']);
+      // a second person who appears as plain text only: the recorded gap
+      add('h', { text: gb.full }); add('btn', { text: 'Message ' + gb.first }); gapName = gb.full;
+      add('a', { attrs: { href: 'mailto:' + gb.email }, text: gb.email }); contract.push(['sub', gb.email], ['digits', gb.digits]);
+      add('lbl', { text: 'Phone ' + R.pick(gb.phones) });
+      add('region', { text: owner.full + ' ' + gb.full });                    // must be skipped on a person route
+      for (const w of [owner.first, owner.last]) secretWords.push(w);
+      gapExposable = ![owner.first, owner.last, ...ga.full.split(' ')].some(w => wordRe(w).test(gb.full));
+      contract.push(['word', owner.first], ['word', owner.last], ['sub', owner.full], ['sub', owner.email], ['digits', owner.digits], ['sub', owner.dob], ['sub', ga.full], ['sub', ga.email], ['digits', ga.digits]);
+      if (sharedLast) contract.push(['word', sharedLast]);
+      secretWords.push(...ga.full.split(' '));
+    }
   }
   const loc = { origin: 'https://tenant.example.invalid', pathname, search: R.chance(0.4) ? '?' + R.pick(['page', 'status', 'q']) + '=' + R.pick(['2', 'active', QUERY_VALUE]) : '', hash: R.chance(0.3) ? '#' + R.pick(['billing', 'notes']) : '' };
   // overflow: on some pages a field gets more distinct visible entries than its cap (added last, so every earlier expectation is unaffected)
@@ -243,7 +279,7 @@ function generate(R) {
     for (let i = 0; i < extra; i++) add(f, { text: `Overflow ${f} ${i + 1}` });
     overflow.push(f);
   }
-  return { els, loc, title, contract, structural, hidden, onPersonRoute, gapName, gapExposable, edge, owner, others, ga, secretWords, rowCount, iconCount, side, overflow };
+  return { els, loc, title, contract, structural, hidden, onPersonRoute, gapName, gapExposable, edge, owner, others, ga, secretWords, rowCount, iconCount, side, overflow, pathIds };
 }
 
 // ---- running and checking -------------------------------------------------------------------------------------------------
@@ -274,7 +310,8 @@ function found(tokens, s) {
 }
 
 const failures = [];
-const record = (i, kind, detail) => { if (failures.length < 10) failures.push({ page: i, kind, detail }); failures.count = (failures.count || 0) + 1; };
+const kinds = {};                                                            // violations by property, over ALL pages: the controls read their tags from this
+const record = (i, kind, detail) => { if (failures.length < 10) failures.push({ page: i, kind, detail }); failures.count = (failures.count || 0) + 1; kinds[kind] = (kinds[kind] || 0) + 1; };
 
 (async () => {
 const R = rng(SEED);
@@ -309,7 +346,7 @@ for (let i = 0; i < PAGES; i++) {
   if ((out.icons || 0) !== g.iconCount) record(i, 'P4 icons', `icons ${out.icons || 0} vs ${g.iconCount}`);
   if (g.onPersonRoute && 'region' in out) record(i, 'P1 region', 'region text recorded on a person route');
   // P5: the path field holds no record id and no query value
-  if ([g.owner, ...g.others].some(o => (out.p || '').includes(o.id.slice(4)))) record(i, 'P5 path', 'p holds a record id');
+  if ([g.owner.id.slice(4), ...g.others.map(o => o.id.slice(4)), ...g.pathIds].some(id => (out.p || '').includes(id))) record(i, 'P5 path', 'p holds a record id');
   if ((out.p || '').includes(QUERY_VALUE)) record(i, 'P5 path', 'p holds a query value');
   // the recorded gap: deterministic wherever no word of the name is also scrubbed
   if (g.gapName && g.gapExposable) { stats.gapShown++; if (found([['sub', g.gapName]], s).length) stats.gapExposed++; }
@@ -322,6 +359,7 @@ for (let i = 0; i < PAGES; i++) {
   const sideHits = found(g.side.contract, { leaves: [['sidebar', parked.split('\n').slice(1).join('\n')]], dump: '' });
   if (sideHits.length) record(i, 'P6 sidebar', 'a person reached the sidebar lines: ' + sideHits.join(','));
   for (const grp of g.side.groups) if (!text.includes('GROUP ' + grp) || !parked.includes('GROUP ' + grp)) record(i, 'P6 sidebar', 'a group button is missing from the lines');
+  for (const line of g.side.masked) if (!parked.includes(line)) record(i, 'P6 sidebar', 'a contact or id link was not masked to its <item> line');
   for (const [label, href] of g.side.links) { stats.sidebarLinks++; if (!parked.includes(`LINK  ${label}  ->  ${href}`)) record(i, 'P6 sidebar', 'an ordinary link is missing from the lines'); }
 }
 
@@ -348,7 +386,7 @@ console.log(`  known gap, second person shown as plain text: reached the output 
 console.log(`  over-masking audit: ${labels.length} labels quoted in the skill's references; of ${NAME_WORDS.length} words used as names, ${masked.length} would mask at least one`);
 console.log('  worst: ' + masked.slice(0, 8).map(a => `${a.w}=${a.n}`).join(' ') + (masked.length > 8 ? ' ...' : ''));
 let bad = 0;
-if (failures.count) { bad++; console.log(`FAIL: ${failures.count} violations; first ${failures.length}:`); for (const f of failures) console.log('  page ' + f.page + ' ' + f.kind + ': ' + f.detail); }
+if (failures.count) { bad++; console.log(`FAIL: ${failures.count} violations (${Object.entries(kinds).map(([k, n]) => k + ' ' + n).join(', ')}); first ${failures.length}:`); for (const f of failures) console.log('  page ' + f.page + ' ' + f.kind + ': ' + f.detail); }
 if (stats.gapShown && stats.gapExposed === 0) { bad++; console.log('XPASS: the known gap no longer reaches the output on any page: promote it to a property and update the journal'); }
 else if (stats.gapExposed !== stats.gapShown) { bad++; console.log('FAIL: the known gap is no longer deterministic (it reaches the output on some pages and not others): the behaviour changed'); }
 // counts of 100 thousand or more are written with commas, as strings, so the repository's long-number lint stays quiet about evidence files

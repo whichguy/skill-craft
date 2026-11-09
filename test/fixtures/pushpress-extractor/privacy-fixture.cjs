@@ -57,6 +57,8 @@ const CASES = [
   { id: 'url/fragment', kind: 'person', s: first, path: '/user/' + first.owner.id + '#' + U.hash, only: ['1703'], gap: { 'url.fragment': U.hash } },
   { id: 'list/members', kind: 'list', path: '/people/members' },
   { id: 'table/class-types', kind: 'table', path: '/schedule/class-types' },
+  { id: 'list/payments', kind: 'payments', path: '/payments/payments', only: ['1703', '1703-collapsed'] },
+  { id: 'page/plan', kind: 'plan', path: '/plans/' + site.PLAN_ID, only: ['1703', '1703-collapsed'] },
 ];
 
 // Known gaps: asserted as XFAIL until fixed. gapNote says why, in one line, for the journal.
@@ -73,16 +75,16 @@ const phoneToks = (label, p) => [tok(label, p, 'sub'), tok(label + '.digits', si
 function tokensFor(c) {
   const contract = [], gap = [];
   const staff = site.STAFF;
-  contract.push(tok('staff.name', staff.full), tok('staff.first', staff.first), tok('staff.last', staff.last));
+  contract.push(tok('staff.name', staff.full), tok('staff.first', staff.first), tok('staff.last', staff.last), tok('staff.email', staff.email, 'sub'), tok('nav.plan', site.PLAN_ID, 'sub'));
   if (c.kind === 'person') {
     const o = c.s.owner, a = c.s.guardianA, b = c.s.guardianB;
     contract.push(tok('owner.full', o.full), tok('owner.first', o.first), tok('owner.last', o.last), tok('owner.email', o.email, 'sub'),
       ...phoneToks('owner.phone', o.phone), tok('owner.dob', o.dob, 'sub'),
       tok('combo.gender', site.COMBO.gender), tok('combo.role', site.COMBO.role),
-      tok('guardianA.name', a.full), tok('guardianA.email', a.email, 'sub'), ...phoneToks('guardianA.phone', a.phone),
+      tok('guardianA.name', a.full), tok('guardianA.last', a.last), tok('guardianA.email', a.email, 'sub'), ...phoneToks('guardianA.phone', a.phone),
       tok('guardianB.email', b.email, 'sub'), ...phoneToks('guardianB.phone', b.phone),
       tok('injection', site.INJECTION_MARKER, 'sub'));
-    gap.push(tok('guardianB.name', b.full), tok('guardianB.first', b.first));
+    if (c.s.style !== 'noinputs') gap.push(tok('guardianB.name', b.full), tok('guardianB.first', b.first));      // a billing tab has no family section
     for (const [k, v] of Object.entries(c.extra || {})) contract.push(tok(k, v, 'sub'));
     for (const [k, v] of Object.entries(c.gap || {})) gap.push(tok(k, v, 'sub'));
     // the heading itself belongs to this person only when the extractor is asked about the guardian's own page; not used here
@@ -91,6 +93,15 @@ function tokensFor(c) {
       const o = s.owner, k = 'row.' + s.key;
       contract.push(tok(k + '.full', o.full), tok(k + '.first', o.first), tok(k + '.last', o.last), tok(k + '.email', o.email, 'sub'), ...phoneToks(k + '.phone', o.phone));
     }
+  } else if (c.kind === 'payments') {
+    // links off the person routes: an invoice id, a person path that is a name slug, a person id that is not hex, contact links whose text is a name, a query that holds an address
+    for (const s of site.SCENARIOS.slice(0, 3)) {
+      const o = s.owner, k = 'pay.' + s.key;
+      contract.push(tok(k + '.full', o.full), tok(k + '.first', o.first), tok(k + '.last', o.last), tok(k + '.email', o.email, 'sub'), ...phoneToks(k + '.phone', o.phone),
+        tok(k + '.invoice', o.inv, 'sub'), tok(k + '.slug', site.slug(o.full), 'sub'), tok(k + '.lead', o.lead, 'sub'));
+    }
+  } else if (c.kind === 'plan') {
+    contract.push(tok('plan.id', site.PLAN_ID, 'sub'));
   }
   return { contract, gap };
 }
@@ -102,7 +113,15 @@ const count = (arr, re) => (arr || []).filter(x => re.test(x)).length;
 function structureProblems(c, r) {
   const p = [];
   const miss = (field, want) => { const m = hasAll(r[field], want); if (m.length) p.push(`${field} lacks ${m.length} of ${want.length} expected entries`); };
-  if (c.kind === 'person') {
+  if (c.kind === 'person' && c.s.style === 'noinputs') {
+    miss('tabs', ['Overview', 'Billing', 'Attendance', 'Notes']);
+    miss('th', ['Date', 'Amount']);
+    miss('btn', ['Save']);
+    miss('h', ['Billing']);
+    if (!(r.rows >= 1)) p.push('table row count is 0');
+    if ('region' in r) p.push('region text was recorded on a person route');
+    if (!r.h || !r.h.some(h => h.includes('<value>'))) p.push('no heading was replaced by <value>: the name heading is not being scrubbed');
+  } else if (c.kind === 'person') {
     miss('tabs', ['Overview', 'Billing', 'Attendance', 'Notes']);
     miss('th', ['Date', 'Class']);
     miss('btn', ['Save', 'Gender', '<combobox>']);
@@ -123,6 +142,14 @@ function structureProblems(c, r) {
     miss('th', ['Class type', 'Pay rate', 'Visibility']);
     miss('btn', ['Back', 'Setup pay rates', '+ Class type']);
     miss('h', ['Class types']);
+  } else if (c.kind === 'payments') {
+    miss('th', ['Customer', 'Amount', 'Status']);
+    for (const want of ['<item> -> /payments/invoices/<id>', '<item> -> <contact>', '<item> -> /people/<id>', '<item> -> /user/<id>', 'Filter -> /payments/payments [q:email,q]']) {
+      if (!(r.a || []).includes(want)) p.push(`a lacks the entry ${want}`);
+    }
+  } else if (c.kind === 'plan') {
+    miss('h', ['Starter plan']);
+    if (r.p !== '/plans/<id>') p.push('the path field is not masked to /plans/<id>');
   }
   // every page has exactly one unnamed icon-only button (an empty one in the top bar); the sidebar toggle is named by its aria-label
   if ((r.icons || 0) !== 1) p.push(`icon-only button count is ${r.icons || 0}, expected 1`);
@@ -140,6 +167,9 @@ function sidebarProblems(vp, side) {
   const groups = lines.filter(l => l.startsWith('GROUP ')).length, links = lines.filter(l => l.startsWith('LINK')).length;
   if (groups !== want.groups) p.push(`GROUP lines ${groups}, expected ${want.groups}`);
   if (links !== want.links) p.push(`LINK lines ${links}, expected ${want.links}`);
+  const contactLines = lines.filter(l => l === 'LINK  <item>  ->  <contact>').length;
+  if (contactLines !== 2) p.push(`contact links were not masked in the sidebar (${contactLines} of 2)`);
+  if (!lines.includes('LINK  <item>  ->  /plans/<id>')) p.push('the sidebar link whose path holds a record id was not masked');
   // the result comes back inline only while it is short enough (2000 characters) to survive the tool's output cap
   const isLong = lines.join('\n').length > 2000;
   if (!vp.collapsed && !isLong) p.push('the fixture sidebar is too short to exercise the long-result path');
@@ -312,7 +342,8 @@ const { MUTATIONS, apply } = require('./mutations.cjs');
       for (const m of MUTATIONS.filter(x => x.tests.includes('fixture'))) {
         const broken = apply(source, m);
         if (broken === null) { console.log(`CONTROL ${m.name}: STALE (the text it breaks is gone or no longer unique; update the control)`); report.controls.push({ name: m.name, status: 'STALE' }); bad++; continue; }
-        const rs = await runAll(browser, base, broken, VIEWPORTS.slice(0, 1), CASES);
+        const subset = m.cases ? CASES.filter(c => m.cases.includes(c.id)) : CASES;      // the cases that exercise this protection (mutations.cjs `cases`)
+        const rs = await runAll(browser, base, broken, VIEWPORTS.slice(0, 1), subset);
         const errors = rs.filter(isRunError);
         const fails = rs.filter(r => r.status === 'FAIL' && !isRunError(r));
         const expected = (m.expect && m.expect.fixture) || [];

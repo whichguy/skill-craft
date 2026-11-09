@@ -22,11 +22,13 @@ function person(key, first, last) {
   counter += 1;
   return {
     key, first, last, full: first + ' ' + last, id: 'usr_' + hex(counter),
+    inv: 'inv_' + hex(counter + 400), lead: cat('lead-', last.toLowerCase().replace(/[^a-z]/g, ''), 'x'),   // an invoice id; a person id that is not hex
     email: mail(slug(first + '.' + last).replace(/-/g, '.')), phone: phone(counter), dob: cat('2012', '-04-', String(10 + counter)),
   };
 }
 
 const STAFF = person('staff', 'Hortensia', 'Blackwood');
+const PLAN_ID = 'plan_' + hex(900);                                         // a record id on a page that is not a person's
 
 // name shapes the extractor has to survive; `style` says how the page renders the heading
 const OWNERS = [
@@ -38,18 +40,21 @@ const OWNERS = [
   ['common', 'Mark', 'Page', 'plain'],
   ['upper', 'Ottoline', 'Featherstonehaugh', 'upper'],                    // CSS text-transform: innerText returns the upper-cased text
   ['stacked', 'Perpetua', 'Drummond', 'stacked'],                          // heading is two blocks; the page title reads "Last, First"
+  ['titleonly', 'Isadora', 'Pemberthwaite', 'noinputs'],                   // a billing tab: the name is in the title and the heading, and no input holds it
+  ['shared', 'Rose', 'Hatherleigh', 'plain'],                              // the guardian shares the first name ("Rose"): the longer name must be scrubbed first
 ];
 const GUARDIANS = [
   ['Rosalind', 'Tuckerbottom'], ['Cornelius', 'Applewhite'], ['Philippa', 'Gooseberry'], ['Barnaby', 'Thistlewood'],
   ['Marguerite', 'Haverford'], ['Lysander', 'Pennywhistle'], ['Winifred', 'Cobblestone'], ['Ignatius', 'Marchbanks'],
   ['Octavia', 'Brambleton'], ['Percival', 'Dunmore'], ['Clementine', 'Ashworth'], ['Tobias', 'Fernsby'],
   ['Henrietta', 'Loxley'], ['Evander', 'Holloway'], ['Seraphina', 'Wickersham'], ['Gideon', 'Crabtree'],
+  ['Anselm', 'Quiggley'], ['Theodora', 'Winterbourne'], ['Rupert', 'Ashcombe'], ['Delphine', 'Marchmont'],
 ];
 
 const SCENARIOS = OWNERS.map(([key, first, last, style], i) => ({
   key, style,
   owner: person(key, first, last),
-  guardianA: person(key + '-ga', ...GUARDIANS[2 * i]),                     // name also typed in an input on the page
+  guardianA: key === 'shared' ? person(key + '-ga', 'Rose', 'Stoneborough') : person(key + '-ga', ...GUARDIANS[2 * i]),   // name also typed in an input on the page
   guardianB: person(key + '-gb', ...GUARDIANS[2 * i + 1]),                 // name shown only as plain text
 }));
 
@@ -65,7 +70,9 @@ const GROUPS = {
   Settings: ['Company', 'Locations', 'Staff', 'Roles', 'Branding', 'Notifications', 'Billing'],
 };
 const hrefOf = (group, label) => label === 'Class types' ? '/schedule/class-types' : '/' + slug(group) + '/' + slug(label);
-const TOP = [['Dashboard', '/dashboard'], ['People', '/people'], ['Calendar', '/calendar']];
+const TOP = [['Dashboard', '/dashboard'], ['People', '/people'], ['Calendar', '/calendar'],
+  [STAFF.full, 'mailto:' + STAFF.email], [STAFF.full, 'tel:' + digits(STAFF.phone)], ['Pinned plan', '/plans/' + PLAN_ID],
+  ['Reach ' + STAFF.email, '/reports/contacts']];            // a plain link whose text carries an address: only the text mask protects it
 // what sidebar() should print once the groups are opened: one GROUP line per group, one LINK line per link at the left edge
 const SIDEBAR = {
   expanded: { groups: Object.keys(GROUPS).length, links: 1 + TOP.length + Object.values(GROUPS).reduce((n, g) => n + g.length, 0) },
@@ -110,7 +117,7 @@ tog.addEventListener('click', () => { const c = document.body.classList.toggle('
 
 function shell(title, bodyClass, main) {
   const groups = Object.keys(GROUPS).map(g => `<div><button data-group="${g}" aria-expanded="false">${g}</button></div>`).join('');
-  const top = TOP.map(([label, href]) => `<li><a href="${href}" aria-label="${label}"><span class="label">${label}</span></a></li>`).join('');
+  const top = TOP.map(([label, href]) => `<li><a href="${href}" aria-label="${esc(label)}"><span class="label">${esc(label)}</span></a></li>`).join('');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${esc(title)}</title><style>${CSS}</style></head>
 <body class="${bodyClass || ''}"><nav id="side"><a href="/" aria-label="${COMPANY}"><span class="label">${COMPANY}</span></a><ul>${top}</ul>
 <div class="groups">${groups}</div><button class="usermenu" type="button" aria-expanded="false">${esc(STAFF.full)}</button></nav>
@@ -125,6 +132,13 @@ for (const s of SCENARIOS) for (const p of [s.owner, s.guardianA, s.guardianB]) 
 
 function personMain(s, p) {
   const o = p || s.owner;
+  if (s.style === 'noinputs') {
+    return `<main><h1>${esc(o.full)}</h1>
+<div role="tablist"><button role="tab">Overview</button><button role="tab">Billing</button><button role="tab">Attendance</button><button role="tab">Notes</button></div>
+<section><h2>Billing</h2><table><thead><tr><th>Date</th><th>Amount</th></tr></thead><tbody><tr><td>${esc(o.full)}</td><td>Monthly</td></tr></tbody></table></section>
+<button type="button">Edit ${esc(o.full)}</button> <button type="button">Save</button> <button type="button">Add sub-account for ${esc(o.full)}</button>
+<aside><p>${esc(o.full)}</p></aside><button type="button">Mark attendance</button><p>Page 1 of 1</p></main>`;
+  }
   const headStyle = s.style === 'stacked' ? `<h1 class="stack"><span>${esc(o.first)}</span><span>${esc(o.last)}</span></h1>` : `<h1>${esc(o.full)}</h1>`;
   const ga = s.guardianA, gb = s.guardianB;
   const wrap = s.style === 'upper' ? ' class="upper"' : '';
@@ -162,11 +176,27 @@ function classTypesMain() {
 <table><thead><tr><th>Class type</th><th>Pay rate</th><th>Visibility</th></tr></thead><tbody><tr><td>Open gym</td><td>Flat</td><td>Public</td></tr></tbody></table></main>`;
 }
 
+function paymentsMain() {
+  const rows = SCENARIOS.slice(0, 3).map(s => { const o = s.owner;
+    return `<tr><td><a href="/payments/invoices/${o.inv}">${esc(o.full)}</a></td>` +
+      `<td><a href="mailto:${o.email}">${esc(o.full)}</a> <a href="tel:${digits(o.phone)}">${esc(o.full)}</a></td>` +
+      `<td><a href="/people/${slug(o.full)}">${esc(o.full)}</a> <a href="/user/${o.lead}">${esc(o.full)}</a> <a href="/payments/payments?email=${o.email}&amp;q=x">Filter</a></td></tr>`; }).join('');
+  const o = SCENARIOS[0].owner;                                              // an address in a column header, a number in a tab, an address as the text of a plain link
+  return `<main><h1>Payments</h1><div role="tablist"><button role="tab">Open</button><button role="tab">${o.phone}</button></div>` +
+    `<table><thead><tr><th>Customer</th><th>Amount</th><th>Status</th><th>Contact ${o.email}</th></tr></thead><tbody>${rows}</tbody></table><a href="/reports/contacts">${o.email}</a></main>`;
+}
+
+function planMain() {
+  return `<main><h1>Starter plan</h1><table><thead><tr><th>Item</th><th>Price</th></tr></thead><tbody><tr><td>Monthly</td><td>Included</td></tr></tbody></table></main>`;
+}
+
 // route -> html (null when unknown)
 function render(pathname) {
   let m;
   if (pathname === '/people/members') return shell('People | PushPress', '', listMain());
   if (pathname === '/schedule/class-types') return shell('Class types | PushPress', '', classTypesMain());
+  if (pathname === '/payments/payments') return shell('Payments | PushPress', '', paymentsMain());
+  if (pathname === '/plans/' + PLAN_ID) return shell('Starter plan | PushPress', '', planMain());
   if ((m = /^\/user\/(usr_[0-9a-f]+)$/.exec(pathname)) && byId.has(m[1])) {
     const s = byId.get(m[1]); const p = [s.owner, s.guardianA, s.guardianB].find(x => x.id === m[1]);
     return shell(s.style === 'stacked' ? p.last + ', ' + p.first : p.full + ' | PushPress', s.style === 'upper' ? '' : '', personMain(s, p));
@@ -179,4 +209,4 @@ function render(pathname) {
   return null;
 }
 
-module.exports = { COMPANY, STAFF, SCENARIOS, SIDEBAR, TOKENS_URL, COMBO, INJECTION, INJECTION_MARKER, GROUPS, render, slug, digits };
+module.exports = { COMPANY, STAFF, PLAN_ID, SCENARIOS, SIDEBAR, TOKENS_URL, COMBO, INJECTION, INJECTION_MARKER, GROUPS, render, slug, digits };
