@@ -51,6 +51,9 @@ PAGE_TEXT_LIMIT = 12 * 1024 * 1024  # guard: the page stays openable in a browse
 # Set by the CLI while a traced command runs on a current run; packets printed at any other time (a routed verb such as
 # lint, a test calling emit directly) write nothing.
 ACTIVE = False
+# The owner notes a `shiploop check` printed in place of holding the callback (the navigator appends them; the CLI
+# clears it when a command line starts and puts it on that command's line as ``shown``).
+SHOWN: list[str] = []
 
 
 # ---------------------------------------------------------------------------------------------------------- writer
@@ -166,10 +169,12 @@ def accepted_between(before: Mapping[str, Any], after: Mapping[str, Any]) -> lis
 
 def record_command(root: str | Path, argv: Sequence[str], code: int, started: float, *,
                    before: Mapping[str, Any] | None, after: Mapping[str, Any] | None, error: str | None,
-                   note: str | None = None, held: Sequence[str] | None = None, crashed: str | None = None) -> bool:
+                   note: str | None = None, held: Sequence[str] | None = None, shown: Sequence[str] | None = None,
+                   crashed: str | None = None) -> bool:
     """Record one ShipLoop command line that named the run: ``before`` and ``after`` are the saved states around it
     (``after`` is None when the command saved nothing it could report).  ``note`` is the owner note a ``note`` command
-    wrote, ``held`` the notes a held callback printed; the notes an accepted step delivered come from the two states.
+    wrote, ``held`` the notes a held callback printed, ``shown`` the notes a check printed in place of that hold; the notes
+    an accepted step delivered come from the two states.
     ``crashed`` names the exception that ended the command before it answered (``KeyboardInterrupt`` for an interrupt)."""
     verb = argv[0] if argv else ""
     first = cursor_facts(before) if before is not None else None
@@ -182,7 +187,8 @@ def record_command(root: str | Path, argv: Sequence[str], code: int, started: fl
         root, "command", verb=verb, action=_flag(argv, "--action"), exit=code,
         ms=round((time.monotonic() - started) * 1000),
         **pairs, status=(last or {}).get("status"), accepted=accepted or None, error=error if code else None,
-        note=note, held=list(held) if held else None, delivered=delivered or None, crashed=crashed,
+        note=note, held=list(held) if held else None, shown=list(shown) if shown else None, delivered=delivered or None,
+        crashed=crashed,
     )
 
 
@@ -417,8 +423,8 @@ def refused(event: Mapping[str, Any]) -> bool:
 def notes_model(run: Path, state: Mapping[str, Any], events: Sequence[Mapping[str, Any]],
                 accepted_at: Mapping[str, Any]) -> list[dict[str, Any]]:
     """Every owner note: its text (screened), when it was written, and where it stands: waiting (no print has shown
-    it), shown (a packet quoted it whole, or a held callback printed it) or delivered (by which step, and whether that
-    step's summary cites its id)."""
+    it), shown (a packet quoted it whole, or a hold printed it: a held callback, or a check in its place) or delivered
+    (by which step, and whether that step's summary cites its id)."""
     import shiploop_owner_notes as owner_notes
 
     done = owner_notes.delivered(state)
@@ -430,7 +436,7 @@ def notes_model(run: Path, state: Mapping[str, Any], events: Sequence[Mapping[st
         for note_id in (event.get("notes") or []) if event["kind"] == "packet" else []:
             if event.get("action") not in quoted_in[note_id]:
                 quoted_in[note_id].append(event.get("action"))
-        for note_id in (event.get("held") or []) if event["kind"] == "command" else []:
+        for note_id in [*(event.get("held") or []), *(event.get("shown") or [])] if event["kind"] == "command" else []:
             held_in[note_id].append(event.get("action"))
     # What the current action's prints showed, from the record the hold reads (the trace may lack a line).
     shown = owner_notes.read_shown(run)
@@ -749,6 +755,8 @@ def event_line(event: Mapping[str, Any]) -> str:
             text += f" · wrote owner note {event['note']}"
         if event.get("delivered"):
             text += " · delivered owner note" + ("s " if len(event["delivered"]) > 1 else " ") + ", ".join(event["delivered"])
+        if event.get("shown"):
+            text += " · printed owner note" + ("s " if len(event["shown"]) > 1 else " ") + ", ".join(event["shown"])
         if event.get("held"):
             text += " · held for owner note" + ("s " if len(event["held"]) > 1 else " ") + ", ".join(event["held"])
         elif event.get("exit"):

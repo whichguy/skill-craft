@@ -26,8 +26,8 @@ A member's record is addressed by contact id (`cid`). Under `personal` the defau
 is no safe default, since the role's own `cid` is the club's, so pass `--param cid=<contact id>` (`sport80 js` refuses without
 it; find the id with `members.quick_search`). The club role also sees a different record: club-only tabs (Notes, Additional
 Trackings, REPS Membership, Background Screening Due Payment, Archive Member) and none of Entries, Addresses, Communication
-Preferences or the Learning Academy. This was checked on the owner's own record only (2026-11-08); another member's tab set
-may differ with the member's roles.
+Preferences or the Learning Academy. This was checked on the owner's own record and on one competitor the owner named
+(2026-11-08), which listed the identical tab set; the set of a minor's or a coach's record may differ with the member's roles.
 
 ## Tokens
 

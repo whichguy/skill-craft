@@ -1059,7 +1059,7 @@
     "club": {
      "seen": "menu",
      "verified": "live",
-     "scope": "owner's own record through the club role (2026-11-08): 17 tab entries, five of them club-only; another member's record was not read"
+     "scope": "the owner's own record and one competitor the owner named, read through the club role (2026-11-08): 17 tab entries each, the identical set, five of them club-only; no other member was read"
     }
    },
    "path": "/competitor_dashboard/profile_tabs",
@@ -1076,7 +1076,7 @@
    "source": [
     "menu:top > Members profile_url"
    ],
-   "notes": "15 top-level tabs for the owner's own member under the personal role (17 entries with the two Results & Rankings sub-tabs). Needs cid; without it the endpoint returns only {success}. Through the club role the same record also lists 17 entries but a different set: Background Screening Due Payment, REPS Membership, Additional Trackings, Notes and Archive Member are club-only; Addresses, Entries, Communication Preferences and both Learning Academy tabs are absent. With a club role pass cid explicitly: the default is the club's own contact id.",
+   "notes": "15 top-level tabs for the owner's own member under the personal role (17 entries with the two Results & Rankings sub-tabs). Needs cid; without it the endpoint returns only {success}. Through the club role the same record also lists 17 entries but a different set: Background Screening Due Payment, REPS Membership, Additional Trackings, Notes and Archive Member are club-only; Addresses, Entries, Communication Preferences and both Learning Academy tabs are absent. A second record, one competitor the owner named, listed the identical club tab set. With a club role pass cid explicitly: the default is the club's own contact id.",
    "descriptor": {
     "tabs": {
      "protocol": "tabs",
@@ -6209,8 +6209,8 @@
    },
    {
     "id": "G9",
-    "what": "Other members' records through the club role, the contents of the club-only member tabs (Notes, Archive Member), and the club role's event search",
-    "why": "only the owner's own record was read through the club role (2026-11-08): the tab list, the Memberships and Results totals and four empty club-only tables; reading another member would expose a person's record; Archive Member is a write and was never requested; the event search was loaded for the page only",
+    "what": "Records beyond the owner's own and one named competitor's through the club role, the contents of the club-only member tabs (Notes, Archive Member), and the club role's event search",
+    "why": "only two records were read through the club role (2026-11-08: the owner's own and one competitor the owner named), for tab lists and totals; reading anyone else would expose a person's record, some are minors; Archive Member is a write and was never requested; the event search was loaded for the page only",
     "entries": [
      "member.profile_tabs",
      "member.notes",

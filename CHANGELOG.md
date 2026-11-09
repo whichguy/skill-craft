@@ -4,6 +4,15 @@ Written by scripts/release.py.
 
 ## 2026-11-08
 
+### skill-craft 2.35.8
+
+- Skills: shiploop 1.33.6
+
+### shiploop 1.33.6
+
+- When `shiploop check` prints an owner note in place of holding the callback, its line in the run trace now says so
+  (`shown`), so `shiploop trace` and the trace page still show where the note was printed after the step is accepted.
+
 ### skill-craft 2.35.7
 
 - Skills: sport80 0.1.1

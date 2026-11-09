@@ -57,11 +57,12 @@ how many results each produced (2026 meets, checked 2026-11-08: 18 meets and 142
 under `personal`). Take a meet's `event_id` from a row's View link and `results.event` returns that meet's public results,
 all lifters. A member's record differs too: through the club role it lists club-only tabs (Notes, Additional Trackings, REPS
 Membership, Background Screening Due Payment, Archive Member) and lacks Entries, Addresses, Communication Preferences and the
-Learning Academy. Checked on the owner's own record only (2026-11-08): the tab list and the Memberships and Results totals match
-the personal role's, and the four club-only tables were empty. No other member was read, because that exposes a person's record
-and some are minors (gap G9). Find a member with `members.quick_search`, pass `--param cid=<contact id>` (the club role has no
-default), and read a tab only after the owner names the member and the tab. `Archive Member` is a write and `Add Note` a write
-button: never open or press them without the owner's yes.
+Learning Academy. Checked on two records (2026-11-08): the owner's own, where the tab list and the Memberships and Results totals
+match the personal role's and the four club-only tables were empty, and one competitor the owner named, which listed the identical
+tab set. Nobody else was read, because that exposes a person's record and some are minors (gap G9). Find a member with
+`members.quick_search`, pass `--param cid=<contact id>` (the club role has no default), and read a tab only after the owner names
+the member and the tab. `Archive Member` is a write and `Add Note` a write button: never open or press them without the owner's
+yes.
 
 ## Trust boundary
 
