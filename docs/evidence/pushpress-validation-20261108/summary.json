@@ -1,0 +1,422 @@
+{
+  "recorded": "2026-11-09",
+  "scope": "The read-only and hermetic tiers of the validation plan. Nothing under skills/pushpress/ was edited, nothing was pushed, and the live tenant was not touched.",
+  "branch": {
+    "name": "pushpress-validation",
+    "cut_from": "d0eaf2d28de0fd60f76c8f73a31667443d3b0733",
+    "remote_main_when_checked": "85a7cda7e44975481d87ca3b1b5dba4f5b37fb93",
+    "note": "remote main was nineteen commits ahead (releases 2.36.0 and 2.36.1) and none touches a pushpress path"
+  },
+  "extractor_blob": "7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b",
+  "tests_commit": "81051962850dc49f2767a81f43be138c971eb2cc (the review fixes follow in the next commit)",
+  "read_only_checks": {
+    "ci": {
+      "commit": "03f68d93a44500aca958db74440c1483e9038e11",
+      "run": "ci push",
+      "conclusion": "success",
+      "jobs": 10,
+      "jobs_success": 10,
+      "includes": [
+        "full / python-floor",
+        "browser-fixtures",
+        "full / core"
+      ]
+    },
+    "published_files": {
+      "skills/pushpress": {
+        "files": 11,
+        "blobs_identical_to_tested_tree": true
+      },
+      "plugins/skill-craft/skills/pushpress": {
+        "files": 11,
+        "blobs_identical_to_tested_tree": true
+      },
+      "method": "GitHub API recursive tree at remote main against the tested tree"
+    },
+    "validate": {
+      "whole_plugin": "exit 0 with warnings",
+      "whole_plugin_strict": "exit 1: five ShipLoop hook warnings (an unquoted plugin-root variable) and one directory-profile warning (no plugin icon); none concerns pushpress",
+      "one_skill_wrapper_strict": "exit 0"
+    },
+    "discovery_smoke": {
+      "isolated_run_flags": "claude -p --restricted --strict-mcp-config --plugin-dir <payload> --tools Skill",
+      "skills_listed_in_init": 48,
+      "skill_craft_skills": 26,
+      "pushpress_visible_as": "skill-craft:pushpress",
+      "private_pushpress_visible": false,
+      "fired": true,
+      "turns": 3,
+      "cost_usd": 0.07
+    },
+    "port_commit": {
+      "tip": "4d35e281dc3e0dbba8fabb4258f68271141585f3",
+      "files": 5,
+      "extractor_blob": "7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b",
+      "amended_twice_after_first_check": true,
+      "result": "doc statements match the code; claims seen only by the neutral live pass are tagged as not re-observed; its own journal records the second-person gap as exploratory"
+    },
+    "chrome_claims": {
+      "page": "a neutral public page, synthetic values",
+      "const_invisible_to_next_call": "confirmed",
+      "async_iife_returns_empty_object": "confirmed",
+      "top_level_await_works": "confirmed",
+      "query_string_output_blocked": "blocked for a 32-character value in location.search and location.href (2 of 2); a built string with a 6-character value, a 2-character value and searchParams.keys() came back (3 of 3); the threshold is unknown",
+      "footer_url": "the tab-context footer redacted the long query value and kept title and path",
+      "detail": "hosts/host-matrix.json"
+    }
+  },
+  "hermetic_tests": {
+    "browser_fixture": {
+      "files": [
+        "test/fixtures/pushpress-extractor/privacy-fixture.cjs",
+        "test/fixtures/pushpress-extractor/synthetic-page.cjs",
+        "test/fixtures/pushpress-extractor/mutations.cjs"
+      ],
+      "browser": "157.0.8103.39",
+      "playwright": "1.62",
+      "viewports": [
+        "1703",
+        "1280",
+        "900",
+        "1703-collapsed"
+      ],
+      "layouts_modelled_not_measured": "sidebar 255, 240 and 200 px (content from 281, 266 and 218 px) and a 64 px rail when collapsed",
+      "runs": 43,
+      "statuses": {
+        "PASS": 43
+      },
+      "controls": [
+        {
+          "name": "no-person-scrub",
+          "status": "caught",
+          "failing_cases": 11
+        },
+        {
+          "name": "fixed-290px-edge",
+          "status": "caught",
+          "failing_cases": 13
+        },
+        {
+          "name": "sidebar-not-parked",
+          "status": "caught",
+          "failing_cases": 13
+        },
+        {
+          "name": "combobox-values-recorded",
+          "status": "caught",
+          "failing_cases": 11
+        },
+        {
+          "name": "user-menu-listed",
+          "status": "caught",
+          "failing_cases": 13
+        },
+        {
+          "name": "named-icon-buttons-counted-as-unnamed",
+          "status": "caught",
+          "failing_cases": 13
+        }
+      ],
+      "control_rule": "caught only when the failure is of the kind that break should cause; a run error is never a catch",
+      "known_gaps_observed_as_expected_failures": {
+        "guardianB.name": {
+          "fields": [
+            "dump",
+            "h"
+          ],
+          "runs": 35
+        },
+        "guardianB.first": {
+          "fields": [
+            "btn",
+            "dump",
+            "h"
+          ],
+          "runs": 35
+        },
+        "url.query-key": {
+          "fields": [
+            "dump",
+            "p"
+          ],
+          "runs": 1
+        },
+        "url.fragment": {
+          "fields": [
+            "dump",
+            "p"
+          ],
+          "runs": 1
+        }
+      },
+      "gap_tally": {
+        "XFAIL": 72,
+        "XPASS": 0
+      },
+      "collateral_value_strings_by_case": {
+        "person/plain": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "person/hyphen": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "person/apostrophe": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "person/accent": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "person/short": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "person/common": [
+          3,
+          3,
+          3,
+          3
+        ],
+        "person/upper": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "person/stacked": [
+          2,
+          2,
+          2,
+          2
+        ],
+        "url/lead-slug": [
+          1
+        ],
+        "url/query": [
+          1
+        ],
+        "url/fragment": [
+          1
+        ]
+      },
+      "seconds": 208.6,
+      "detail": "fixture/results.json"
+    },
+    "property_test": {
+      "file": "test/pushpress-extractor-property.js",
+      "runs": [
+        {
+          "seed": 1109,
+          "pages": 5000,
+          "person_route_pages": 2975,
+          "violations": 0,
+          "known_gap": {
+            "exposable_person_pages": 2514,
+            "exposed": 2514
+          }
+        },
+        {
+          "seed": 1,
+          "pages": 20000,
+          "person_route_pages": 12061,
+          "violations": 0,
+          "known_gap": {
+            "exposable_person_pages": 10279,
+            "exposed": 10279
+          }
+        },
+        {
+          "seed": 99,
+          "pages": 20000,
+          "person_route_pages": 11914,
+          "violations": 0,
+          "known_gap": {
+            "exposable_person_pages": 10092,
+            "exposed": 10092
+          }
+        },
+        {
+          "seed": 4242,
+          "pages": 20000,
+          "person_route_pages": 11970,
+          "violations": 0,
+          "known_gap": {
+            "exposable_person_pages": 10182,
+            "exposed": 10182
+          }
+        }
+      ],
+      "controls": [
+        {
+          "name": "baseline (the extractor as given)",
+          "result": "passes"
+        },
+        {
+          "name": "no-person-scrub",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "fixed-290px-edge",
+          "result": "caught (P2 structure, P4 rows, P3 edge)"
+        },
+        {
+          "name": "sidebar-not-parked",
+          "result": "caught (P6 sidebar)"
+        },
+        {
+          "name": "combobox-values-recorded",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "user-menu-listed",
+          "result": "caught (P6 sidebar)"
+        },
+        {
+          "name": "named-icon-buttons-counted-as-unnamed",
+          "result": "caught (P4 icons)"
+        }
+      ],
+      "over_masking_audit": {
+        "labels_quoted_in_references": 131,
+        "name_words_tried": 65,
+        "words_masking_at_least_one_label": [
+          {
+            "word": "Day",
+            "labels": 2
+          },
+          {
+            "word": "Page",
+            "labels": 1
+          }
+        ]
+      },
+      "detail": "property/results.json"
+    },
+    "quiz": {
+      "detail": "quiz/results-summary.json, quiz/quiz-report.md and quiz/failing-safety-answers.md",
+      "cases": 20,
+      "runs": 80,
+      "cost_usd": 5.4,
+      "scores_with_skill_vs_baseline": {
+        "routing": [
+          100.0,
+          25.0
+        ],
+        "action_classes": [
+          91.7,
+          18.1
+        ],
+        "safety": [
+          50.0,
+          25.0
+        ],
+        "sign_in_and_tenant": [
+          100.0,
+          16.7
+        ],
+        "injection": [
+          100.0,
+          100.0
+        ]
+      },
+      "routing_and_classes_12": {
+        "with_skill": 95.8,
+        "baseline": 21.5,
+        "delta": 74.3,
+        "level_or_better_cases": "12 of 12"
+      },
+      "overall_with_skill_criterion_trials": "86 of 96 (89.6%; 92.1% where the skill fired)",
+      "safety_every_trial_line": "failed: q15 and q16, both arms",
+      "injection": "each arm resisted in 4 of 4 trials; the skill did not fire in any of its 4 trials there (why is untested)",
+      "stop_rule": "applied, card untouched",
+      "frozen_manifest": "136 files, all verified identical after the runs"
+    },
+    "trigger_test": {
+      "detail": "trigger/results-summary.json and trigger/trigger-report.md",
+      "prompts": 24,
+      "runs": 48,
+      "explicit": "fired in 12 of 12 runs of 6 prompts",
+      "implicit": "fired in 12 of 12 runs of 6 prompts (no product named, gym words present)",
+      "quiet_prompts": "0 of 24 runs of 12 prompts",
+      "sport80_prompts": "skill-craft:pushpress 0 of 6 runs; skill-craft:sport80 fired 6 of 6 (positive control)",
+      "overlap_in_owner_project_checkout": {
+        "project_pushpress": "8 of 8 runs on 4 prompts",
+        "skill_craft_pushpress": "0 of 8"
+      },
+      "payload": "the 26-skill 2.36.1 catalogue (remote main), pushpress unchanged",
+      "cost_usd": 4.88,
+      "installed_skill_craft": "2.36.1 at 85a7cda7e44975481d87ca3b1b5dba4f5b37fb93, updated 2026-11-09 08:21 local"
+    },
+    "host_matrix": {
+      "detail": "hosts/host-matrix.json",
+      "status": "interim: one synthetic page, one date; the extractor was fetched and evaluated in the page, not pasted as a tool parameter",
+      "hosts": [
+        "Playwright with Chrome",
+        "the built-in browser",
+        "Chrome DevTools MCP"
+      ],
+      "not_tested": [
+        "Codex",
+        "Grok",
+        "Cursor",
+        "OpenCode"
+      ]
+    }
+  },
+  "review": "two independent reviewers read the test code and the journal entry with this evidence; their material findings are fixed in the commits on this branch",
+  "findings": {
+    "H1": "firm",
+    "H2": "firm (synthetic pages)",
+    "H3": "firm on the synthetic page; interim for a real tenant",
+    "H4": "firm on the synthetic page for p; the rest read from the code",
+    "H5": "firm",
+    "H6": "firm",
+    "H7": "interim",
+    "H8": "interim",
+    "H9": "interim",
+    "H10": "interim",
+    "H11": "firm",
+    "H12": "firm for the counts; the cause is exploratory",
+    "H13": "firm",
+    "see": "docs/pushpress-journal.md Round 9"
+  },
+  "proposed_changes_waiting_for_a_yes": [
+    "P1 a key rule in SKILL.md (a description change only after P8)",
+    "P2 member-data decline sentence in Rule 2",
+    "P3 stop recording query keys and the fragment on a person route",
+    "P4 reword the extractor header's does-not-protect list",
+    "P5 hosts.md and browser-technique.md updates",
+    "P6 ship the counting leak check",
+    "P7 run the new tests automatically (the fixture in CI, the property test in the unit suite)",
+    "P8 rerun the quiz with held-out phrasings and injection cases that name PushPress",
+    "P9 decide the page-text-is-data rule after P8"
+  ],
+  "not_done": [
+    "anything on the live tenant",
+    "any change to the skill",
+    "sign-in and every write flow",
+    "Codex, Grok, Cursor and OpenCode",
+    "wiring either new test into CI or the unit suite",
+    "pasting the extractor text as a tool parameter on the built-in browser and Chrome DevTools MCP",
+    "third trials for three unstable quiz cases"
+  ],
+  "commands": [
+    "node test/fixtures/pushpress-extractor/privacy-fixture.cjs [--quick] [--no-controls] [--json <file>] [--serve [port]]",
+    "node test/pushpress-extractor-property.js [--controls] [--json <file>]  (PP_PROPERTY_PAGES, PP_PROPERTY_SEED)",
+    "python3 test/pushpress.test.py",
+    "node test/pushpress-extractor-harness.js"
+  ]
+}

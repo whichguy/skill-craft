@@ -1,0 +1,1226 @@
+{
+  "extractor_blob": "7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b",
+  "browser": "157.0.8103.39",
+  "viewports": [
+    "1703",
+    "1280",
+    "900",
+    "1703-collapsed"
+  ],
+  "results": [
+    {
+      "case": "person/plain",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/plain",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/plain",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/plain",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/hyphen",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/hyphen",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/hyphen",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/hyphen",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/apostrophe",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/apostrophe",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/apostrophe",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/apostrophe",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/accent",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/accent",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/accent",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/accent",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/short",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/short",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/short",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/short",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/common",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/common",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/common",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/common",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 3
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/upper",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/upper",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/upper",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/upper",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "person/stacked",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 2
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 36
+    },
+    {
+      "case": "person/stacked",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 2
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 36
+    },
+    {
+      "case": "person/stacked",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 2
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 36
+    },
+    {
+      "case": "person/stacked",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 2
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 36
+    },
+    {
+      "case": "url/lead-slug",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 21,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "url/query",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "url.query-key": {
+          "p": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "url.query-key": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 21,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "url/fragment",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {
+        "guardianB.name": {
+          "h": 1,
+          "dump": 1
+        },
+        "guardianB.first": {
+          "h": 1,
+          "btn": 1,
+          "dump": 1
+        },
+        "url.fragment": {
+          "p": 1,
+          "dump": 1
+        }
+      },
+      "gapStatus": {
+        "guardianB.name": "XFAIL",
+        "guardianB.first": "XFAIL",
+        "url.fragment": "XFAIL"
+      },
+      "info": {
+        "value_strings": 1
+      },
+      "contractTokens": 20,
+      "fieldsChecked": 35
+    },
+    {
+      "case": "list/members",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {
+        "injection_reaches_region": true
+      },
+      "contractTokens": 33,
+      "fieldsChecked": 23
+    },
+    {
+      "case": "list/members",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {
+        "injection_reaches_region": true
+      },
+      "contractTokens": 33,
+      "fieldsChecked": 23
+    },
+    {
+      "case": "list/members",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {
+        "injection_reaches_region": true
+      },
+      "contractTokens": 33,
+      "fieldsChecked": 23
+    },
+    {
+      "case": "list/members",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {
+        "injection_reaches_region": true
+      },
+      "contractTokens": 33,
+      "fieldsChecked": 23
+    },
+    {
+      "case": "table/class-types",
+      "viewport": "1703",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {},
+      "contractTokens": 3,
+      "fieldsChecked": 10
+    },
+    {
+      "case": "table/class-types",
+      "viewport": "1280",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {},
+      "contractTokens": 3,
+      "fieldsChecked": 10
+    },
+    {
+      "case": "table/class-types",
+      "viewport": "900",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {},
+      "contractTokens": 3,
+      "fieldsChecked": 10
+    },
+    {
+      "case": "table/class-types",
+      "viewport": "1703-collapsed",
+      "status": "PASS",
+      "leaks": {},
+      "problems": [],
+      "gaps": {},
+      "gapStatus": {},
+      "info": {},
+      "contractTokens": 3,
+      "fieldsChecked": 10
+    }
+  ],
+  "controls": [
+    {
+      "name": "no-person-scrub",
+      "status": "caught",
+      "failing_cases": 11,
+      "run_errors": 0,
+      "kinds": [
+        "leak:owner",
+        "leak:guardianA",
+        "problem:no heading was replaced by <value>: the name heading is not being scrubbed"
+      ]
+    },
+    {
+      "name": "fixed-290px-edge",
+      "status": "caught",
+      "failing_cases": 13,
+      "run_errors": 0,
+      "kinds": [
+        "problem:tabs lacks",
+        "problem:th lacks",
+        "problem:lbl lacks",
+        "problem:h lacks",
+        "problem:table row count is",
+        "problem:no heading was replaced by <value>: the name heading is not being scrubbed",
+        "problem:LINK lines",
+        "problem:btn lacks",
+        "problem:fewer than"
+      ]
+    },
+    {
+      "name": "sidebar-not-parked",
+      "status": "caught",
+      "failing_cases": 13,
+      "run_errors": 0,
+      "kinds": [
+        "problem:sidebar() did not park its lines in #pp-dump",
+        "problem:GROUP lines",
+        "problem:LINK lines",
+        "problem:the fixture sidebar is too short to exercise the long-result path",
+        "problem:a short sidebar result did not come back as a list"
+      ]
+    },
+    {
+      "name": "combobox-values-recorded",
+      "status": "caught",
+      "failing_cases": 11,
+      "run_errors": 0,
+      "kinds": [
+        "leak:combo",
+        "problem:btn lacks"
+      ]
+    },
+    {
+      "name": "user-menu-listed",
+      "status": "caught",
+      "failing_cases": 13,
+      "run_errors": 0,
+      "kinds": [
+        "leak:staff",
+        "problem:GROUP lines"
+      ]
+    },
+    {
+      "name": "named-icon-buttons-counted-as-unnamed",
+      "status": "caught",
+      "failing_cases": 13,
+      "run_errors": 0,
+      "kinds": [
+        "problem:icon-only button count is"
+      ]
+    }
+  ],
+  "gap_fields": {
+    "guardianB.name": [
+      "dump",
+      "h"
+    ],
+    "guardianB.first": [
+      "btn",
+      "dump",
+      "h"
+    ],
+    "url.query-key": [
+      "dump",
+      "p"
+    ],
+    "url.fragment": [
+      "dump",
+      "p"
+    ]
+  },
+  "value_strings_by_case": {
+    "person/plain": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "person/hyphen": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "person/apostrophe": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "person/accent": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "person/short": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "person/common": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "person/upper": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "person/stacked": [
+      2,
+      2,
+      2,
+      2
+    ],
+    "url/lead-slug": [
+      1
+    ],
+    "url/query": [
+      1
+    ],
+    "url/fragment": [
+      1
+    ]
+  },
+  "gap_tally": {
+    "XFAIL": 72,
+    "XPASS": 0
+  },
+  "seconds": 208.6
+}

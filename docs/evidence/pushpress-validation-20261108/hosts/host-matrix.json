@@ -1,0 +1,149 @@
+{
+  "recorded": "2026-11-09",
+  "page": "the synthetic admin pages served by test/fixtures/pushpress-extractor/privacy-fixture.cjs --serve (a local address); one person page, one list page. Values on it are made up.",
+  "how": "each probe was one tool call; the extractor text was fetched from the same local server and evaluated in the page (it was not pasted as the tool's parameter). Every row is a single observation on one date.",
+  "claude_in_chrome": {
+    "page": "a neutral public page, synthetic values",
+    "probes": [
+      {
+        "probe": "const declared in one call, typeof in the next",
+        "observed": "undefined: the const is invisible to the next call"
+      },
+      {
+        "probe": "window.<name> assigned in one call, typeof in the next",
+        "observed": "number: it persists"
+      },
+      {
+        "probe": "(async () => 2)()",
+        "observed": "an empty object"
+      },
+      {
+        "probe": "await Promise.resolve(2) at top level",
+        "observed": "2"
+      },
+      {
+        "probe": "a string built in the page as https://<host>/?tok=<6 characters>",
+        "observed": "returned, not blocked"
+      },
+      {
+        "probe": "location.search and location.href on a page whose query holds a 32-character value",
+        "observed": "blocked: [BLOCKED: Cookie/query string data] (2 of 2)"
+      },
+      {
+        "probe": "the query keys, a 2-character query value, and document.cookie length on the same page",
+        "observed": "returned (3 of 3)"
+      },
+      {
+        "probe": "the tab-context footer after navigating to that page",
+        "observed": "the long query value is shown as REDACTED, the short one is kept; title and path are kept"
+      }
+    ]
+  },
+  "built_in_browser": {
+    "probes": [
+      {
+        "probe": "navigate to the local address",
+        "observed": "opened without a prompt"
+      },
+      {
+        "probe": "(0, eval)(await (await fetch('/pp-extract.js')).text())",
+        "observed": "pp-extract installed"
+      },
+      {
+        "probe": "__pp.company(name); await __pp.wait(); __pp.extract() on the person page",
+        "observed": "worked; top-level await accepted; the output showed the known gap (a second person's plain-text name in h and btn)"
+      },
+      {
+        "probe": "(async () => 2)()",
+        "observed": "2 (the promise is awaited)"
+      },
+      {
+        "probe": "const declared, then typeof in the next call",
+        "observed": "undefined"
+      },
+      {
+        "probe": "a 5000-character string, and the 2117-character sidebar dump",
+        "observed": "both returned whole: no output cap seen up to 5000 characters"
+      },
+      {
+        "probe": "__pp.dump() then get_page_text",
+        "observed": "returned the page's main element (header line: Source element: <main>) although the dump element existed; the page's people were in it"
+      },
+      {
+        "probe": "await __pp.sidebar()",
+        "observed": "the message form (60 lines written to the dump); the lines read back through the script tool: 8 groups and 52 links, as built"
+      },
+      {
+        "probe": "location.search with a 32-character value",
+        "observed": "returned, not blocked; the navigate result and the footer showed the value as REDACTED"
+      },
+      {
+        "probe": "every tool result",
+        "observed": "ends with a footer holding the page title and URL (on a person page, the person's name)"
+      },
+      {
+        "probe": "restore after a page load: (0, eval)(sessionStorage.getItem('__pp_lib'))",
+        "observed": "pp-extract installed (window.__pp was gone before it)"
+      }
+    ]
+  },
+  "chrome_devtools_mcp": {
+    "probes": [
+      {
+        "probe": "evaluate_script with the default format and a bare expression",
+        "observed": "error: fn is not a function"
+      },
+      {
+        "probe": "evaluate_script with format script and a bare expression",
+        "observed": "returned the value"
+      },
+      {
+        "probe": "evaluate_script with format script and sourcePath set to the worktree's extractor file",
+        "observed": "refused: the path is not within the server's configured workspace roots"
+      },
+      {
+        "probe": "function format: install via fetch and eval, company, wait, extract, store, dump, sidebar",
+        "observed": "all worked; the sidebar came back as the message form with 61 lines parked"
+      },
+      {
+        "probe": "format script: await Promise.resolve(2) at top level",
+        "observed": "syntax error: await is only valid in async functions"
+      },
+      {
+        "probe": "format script: (async () => 2)()",
+        "observed": "2 (awaited)"
+      },
+      {
+        "probe": "format script: const declared, then typeof in the next call",
+        "observed": "number: the const persists within the document; a page load wiped it"
+      },
+      {
+        "probe": "format script: location.search with a 32-character value",
+        "observed": "returned, not blocked"
+      },
+      {
+        "probe": "new_page and navigate_page results",
+        "observed": "list every open page's title and full URL, query value included, from a browser shared with other sessions; evaluate_script results carry neither"
+      },
+      {
+        "probe": "restore after a page load from session storage",
+        "observed": "worked"
+      }
+    ]
+  },
+  "playwright": {
+    "probes": [
+      {
+        "probe": "the privacy fixture",
+        "observed": "Playwright 1.62 with Chrome 157, headless, a fresh context per run: all 43 runs pass; addScriptTag installs the extractor, evaluate awaits async calls"
+      }
+    ]
+  },
+  "not_tested": [
+    "Codex",
+    "Grok",
+    "Cursor",
+    "OpenCode",
+    "the extractor text pasted as the tool's parameter on the built-in browser and Chrome DevTools MCP"
+  ]
+}
