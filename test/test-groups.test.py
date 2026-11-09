@@ -130,10 +130,11 @@ class TestGroupTests(unittest.TestCase):
         self.assertEqual(len(suite_catalog.SHIPLOOP_SUITES), 138)
         # The sport80 skill adds one core suite (2026-11-08): catalogue, CLI, drift and the in-page runtime under Node.
         # It lands beside the planning-score suite, which another session added at the same count (58 and 198), so both together make 59 and 199.
+        # The pushpress skill adds one core suite (2026-11-08): card, links, lint and the in-page extractor under Node.
         # The test-harness skill adds one core suite (2026-11-08): its bundled behaviour suite, the packaging contract and a narrow lint.
-        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 60)
-        # The recorded Plan boundary and comparison consumer add two apparatus suites (201 on main), and the test-harness suite one more.
-        self.assertEqual(len(suite_catalog.SUITES), 202)
+        self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 61)
+        # The recorded Plan boundary and comparison consumer add two apparatus suites (201 with them); the pushpress and test-harness suites add one each.
+        self.assertEqual(len(suite_catalog.SUITES), 203)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
