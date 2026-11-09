@@ -114,5 +114,25 @@
     "push": "one guarded push, 6 of 6 checks passed",
     "hosts": "Claude, Grok and Codex at 2.35.7; the installed sport80 tree equals git archive of the release on all three; Cursor not refreshed (the owner's, through its app)",
     "ci": "push run in progress when recorded; not waited on"
+  },
+  "second_record": {
+    "selection": "one competitor the owner named in chat; the name and ids are not recorded",
+    "roster_match": {
+      "method": "members.quick_search with the first and last name, maxRows 0",
+      "total": 1
+    },
+    "read": [
+      "the contact id (single roster field, never printed)",
+      "the tab list",
+      "Memberships and Results totals, maxRows 0"
+    ],
+    "tab_entries": 17,
+    "same_set_as_owner_club_view": true,
+    "memberships_and_results": "both resolved; the values are a third person's data and are not recorded",
+    "not_touched": [
+      "Notes contents",
+      "Archive Member",
+      "every button"
+    ]
   }
 }

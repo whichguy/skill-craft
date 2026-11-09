@@ -325,3 +325,20 @@ Published as `sport80` 0.1.1 in skill-craft 2.35.7. Compact evidence: `docs/evid
   run on `main` (the quick and hermetic run for the first record commit) passed.
 - **Lesson kept.** Running the changed suites on the release tree before the push took about a minute and found nothing this time;
   it is the check that would have caught F20.
+
+## Round 8 - a second record through the club role (2026-11-08)
+
+The owner answered "Yes, check one" and named one competitor; the name is recorded neither here nor in the evidence. I confirmed
+exactly one roster match with a count (`maxRows` 0), read from the roster only that match's contact id (the single field
+`contact_id`, never printed), then the tab list and the Memberships and Results totals through the club role, in a signed-in tab
+with the shipped runtime pasted again. Notes contents, Archive Member and every button stayed untouched. Evidence: the
+`second_record` block of `docs/evidence/sport80-clubtabs-20261108/summary.json`.
+
+- **F24 firm.** The named competitor's record lists the identical 17-entry tab set as the owner's own record through the club role:
+  the same five club-only tabs, none missing. So the club view of a member is not a quirk of the owner's record. Memberships and
+  Results resolved for it as they did for the owner; the numbers are a third person's data and are not recorded.
+- **Not done.** A minor's record and a coach's (the tab set may differ with the member's roles), any further member, Notes contents.
+  G9 is reworded again (two records), not closed.
+- **Decision.** Wording only: the card, `references/access.md` and the catalogue's scope notes and G9 now say two records were read.
+  The commit carries a `No-Change-Note` trailer, so it reaches installs with the next release; no release was cut for it, because no
+  behaviour changed and the plugin payload lags this wording only until then.
