@@ -116,11 +116,10 @@ codex plugin add skill-craft@whichguy
 ```
 
 For local development, pass the absolute `skill-craft` checkout path to
-`marketplace add`. Refresh Git catalogs with Claude
-`plugin marketplace update whichguy`, Codex
-`plugin marketplace upgrade whichguy` or Grok
-`grok plugin marketplace update`. Start a new Codex task after
-installing. See the [Codex marketplace reference](https://developers.openai.com/plugins/build/plugins#marketplace-metadata).
+`marketplace add`. To pick up a release, follow
+[Refreshing after a release](#refreshing-after-a-release): on Claude and Grok a
+marketplace refresh alone leaves the installed plugin on the old version. Start a
+new Codex task after installing. See the [Codex marketplace reference](https://developers.openai.com/plugins/build/plugins#marketplace-metadata).
 
 #### Moving from per-skill plugins
 
@@ -217,6 +216,41 @@ through **Dashboard → Settings → Plugins → Import from Repo**. A public li
 additionally requires submitting the public repository through
 [Cursor's publication form](https://cursor.com/marketplace/publish) and passing
 review. See [Cursor plugin distribution](https://cursor.com/docs/plugins).
+
+### Refreshing after a release
+
+A marketplace refresh fetches the catalog. Whether the installed plugin follows
+depends on the host, and a command's exit status does not say, so read the
+installed version back.
+
+| Host | Refresh the catalog | Move the installed plugin | Read back |
+|------|---------------------|---------------------------|-----------|
+| Claude Code | `claude plugin marketplace update whichguy` | `claude plugin update skill-craft@whichguy --scope user`, then restart | `claude plugin list --json` |
+| Codex | `codex plugin marketplace upgrade whichguy` | none: the installed plugin is read from the marketplace clone; start a new task | `codex plugin list --marketplace whichguy --json` |
+| Grok | `grok plugin marketplace update whichguy` | `grok plugin update skill-craft` | `grok plugin details skill-craft` |
+| Cursor | `cursor-agent plugin marketplace update whichguy` re-indexes only | remove and add the marketplace, then Add the plugin in the app, as under [Cursor](#cursor) | `cursor-agent plugin marketplace list --format json` (`gitRef`) and the cache under `~/.cursor/plugins/cache/whichguy/skill-craft/` |
+
+Checked on 2026-11-09 for 2.36.0 to 2.36.1 (Claude Code 2.1.319, Codex 0.167.0,
+Grok 1.0.77, Cursor Agent 2026.09.23):
+
+- **Claude:** after `marketplace update` the plugin was still at 2.36.0:
+  `claude plugin update` reported "updated from 2.36.0 to 2.36.1" and says to
+  restart to apply the change.
+- **Grok:** after `marketplace update`, `grok plugin details skill-craft` still
+  reported v2.36.0 (its installed copy is under `~/.grok/installed-plugins/`);
+  `grok plugin update skill-craft` then reported "2.36.0 -> 2.36.1".
+  `marketplace update` takes the marketplace name, `whichguy`; the URL that
+  `grok plugin marketplace list` prints answers "not found".
+- **Codex and Cursor** were already current when read, so that check did not
+  exercise them. Codex's one-command refresh was checked on 2026-11-04 (2.32.2 to
+  2.32.7), and the same day Cursor's CLI re-index left the installed plugin where
+  it was ([LEARNINGS](../test/shiploop_e2e/LEARNINGS.md)); the 2026-11-09 byte
+  comparison is in [the test-harness journal](test-harness-journal.md).
+
+After a release that adds or changes a skill, also compare one installed skill
+directory with the published one: extract `git archive origin/main
+plugins/skill-craft/skills/<leaf>` into an empty directory and run `diff -rq`
+against each host's copy.
 
 ## Checking packages
 

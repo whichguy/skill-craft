@@ -275,11 +275,49 @@ release commit.
 at the previous plugin version until they do. The owner's separate private copy of this skill was not touched. The push run of the
 repository's CI for the release commit had passed its `release-boundary`, `plan` and `browser-fixtures` jobs and had six jobs
 still running (core, python-floor, three shiploop shards, e2e-apparatus) when this was recorded; it was not waited on.
+**Superseded 2026-11-09** (Round 8): the hosts were refreshed, and the CI runs for the release and record commits finished
+`success`.
 
 **Superseded by this round.** Rounds 5 and 6 quote `skill-craft 2.35.10 -> 2.35.11` for the dry run on the second merged tree.
 The plugin version a dry run prints depends on what `main` has released before the cut, not on the candidate: it was
 `2.35.7 -> 2.35.8`, then `2.35.9 -> 2.35.10`, then `2.35.10 -> 2.35.11`, and finally `2.36.0 -> 2.36.1`. The skill's own `0.1.0`
 is the only version that did not move.
+
+## Round 8 - host refresh (2026-11-09)
+
+The owner answered "Refresh hosts" to the question that closed Round 7. Each host was read before anything was run, and only
+the two that were behind were touched.
+
+| Host (CLI version) | Before | Run | After |
+|---|---|---|---|
+| Claude Code 2.1.319 | `skill-craft` 2.36.0 | `claude plugin marketplace update whichguy`, then `claude plugin update skill-craft@whichguy --scope user` | 2.36.1, enabled; the command says to restart |
+| Grok 1.0.77 | 2.36.0, no `test-harness` in its marketplace cache | `grok plugin marketplace update whichguy`, then `grok plugin update skill-craft` | 2.36.1 |
+| Codex 0.167.0 | 2.36.1 (marketplace clone `3dddea1b`, which contains the release) | nothing | unchanged |
+| Cursor Agent 2026.09.23 | `whichguy` registered at `ff0ba755`; its cache holds 2.36.1 | nothing | unchanged |
+
+**Two commands on Claude and Grok.** After the marketplace refresh alone the Claude plugin was still at 2.36.0
+(`claude plugin update` reported "updated from 2.36.0 to 2.36.1"), and `grok plugin details skill-craft` still reported
+v2.36.0 until `grok plugin update` reported "2.36.0 -> 2.36.1". `grok plugin marketplace update` takes the marketplace
+name; the URL that
+`grok plugin marketplace list` prints answers "not found". Step 5 of the release checklist and `docs/distribution.md` named
+only the marketplace refresh, a gap the 2026-10-06 audit (`docs/experiments/pending-work-plan-20261006/evidence.json`, W0-5)
+and `test/shiploop_e2e/LEARNINGS.md` (2026-11-04, Claude and Cursor) had already recorded. `docs/distribution.md` gained
+"Refreshing after a release" and step 5 now points to it. The 2026-11-04 entry read Grok's marketplace sync as moving its
+local install in place; on Grok 1.0.77 the installed copy stayed at 2.36.0 until `grok plugin update`.
+
+**What the hosts hold.** The installed `skills/test-harness` of all four hosts is byte-identical to
+`plugins/skill-craft/skills/test-harness` at `origin/main` `85a7cda7` (`diff -rq`, 21 files). Controls: the reference compared
+with itself came out identical, and an older private copy of the skill (26 files) came out different on 20 diff lines.
+`git diff --stat` from the record commit `404dcb0c` to `85a7cda7` over `plugins/skill-craft`, the four host catalogs and
+`catalog/skill-craft-plugin.json` printed nothing (seven later commits, tests and docs), so every host serves exactly this
+release. The first comparison was invalid and was rerun: in zsh a loop variable named `path` replaces `PATH`, `diff` was not
+found, and every row printed "DIFFERS". The must-differ control alone could not show it; the identical-pair control and the
+error text did.
+
+**CI.** The push runs for the release commit `ff0ba755` and the record commit `404dcb0c` both finished `success`.
+
+**Still not done.** Sessions already running on Claude Code keep the previous copy until it is restarted. No host has run the
+skill; the byte comparison is all that was read.
 
 ## Findings register
 
@@ -304,6 +342,7 @@ is the only version that did not move.
 | F17 | 34 of the self-test's recorded checks are unconditional markers after heredoc checks that already abort on failure. | interim | Round 3 |
 | F18 | Two source defects a generic user meets: the YAML glob key, and a fix-loop branch name that is invalid for a folder name with a space. | firm | Round 3 |
 | F19 | The plugin version a dry run prints depends on what `main` has released before the cut, not on the candidate: it changed four times while the branch waited, and the skill's own version is the only stable figure. | firm | Rounds 5 to 7; evidence `published.plugin_version_by_dry_run_while_waiting` |
+| F20 | On Claude and Grok a marketplace refresh fetches the catalog only; the installed plugin needs a second command (`claude plugin update`, `grok plugin update`), and release step 5 named only the first. | firm | Round 8; evidence `published.host_refresh_20261109`; `docs/distribution.md` |
 
 ## Not verified, and decisions left to the owner
 
@@ -322,3 +361,5 @@ is the only version that did not move.
   source commit hash and the process details in this journal and the evidence file, are in the published tree as they stood.
 - After the push: no installed host ran the published version, so what a user receives from a marketplace refresh is unverified
   here beyond the offline package checks, and the CI result for the release commit was not awaited.
+  **Partly superseded 2026-11-09** (Round 8): the installed copies on all four hosts are byte-identical to the published skill
+  and the CI runs for the release and record commits finished `success`; no host has run the skill.

@@ -57,11 +57,14 @@ inventory and `CHANGELOG.md`.
    `marketplace-codex-ask-agent` targets of `test/run-integration.sh` exercise
    real host CLIs in disposable profiles. Record host versions; anything not
    run stays explicitly unverified.
-5. **Publish** with [guarded publication](#guarded-publication). Users refresh
-   with `claude plugin marketplace update whichguy`,
-   `codex plugin marketplace upgrade whichguy`, or the Grok and
-   Cursor equivalents in [distribution.md](distribution.md). Skill-directory
-   users (`./install.sh`) track the checkout and need no release.
+5. **Publish** with [guarded publication](#guarded-publication), then refresh each
+   host as [Refreshing after a release](distribution.md#refreshing-after-a-release)
+   lists. On Claude and Grok the marketplace refresh fetches the catalog only and
+   a second command moves the installed plugin; on Codex the marketplace upgrade
+   is the whole refresh; Cursor's CLI re-indexes without moving the installed
+   plugin. Read each host's installed version back, because a command's exit
+   status does not show it. Skill-directory users (`./install.sh`) track the
+   checkout and need no release.
 
 A change with a note always ships at a new version; a source change carrying
 `No-Change-Note` ships with the next release at its unchanged version and
