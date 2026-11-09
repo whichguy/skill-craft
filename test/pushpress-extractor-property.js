@@ -25,25 +25,37 @@ const path = require('path');
 const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
-const SRC = fs.readFileSync(process.env.PP_EXTRACT || path.join(ROOT, 'skills', 'pushpress', 'scripts', 'pp-extract.js'), 'utf8');
+const EXTRACTOR_PATH = process.env.PP_EXTRACT || path.join(ROOT, 'skills', 'pushpress', 'scripts', 'pp-extract.js');
+const SRC = fs.readFileSync(EXTRACTOR_PATH, 'utf8');
 const PAGES = Number(process.env.PP_PROPERTY_PAGES || 5000);
 const SEED = Number(process.env.PP_PROPERTY_SEED || 1109);
 const JSON_OUT = process.argv.includes('--json') ? process.argv[process.argv.indexOf('--json') + 1] : '';
 
-// --controls: run this test against each deliberately broken copy of the extractor (shared with the browser fixture); every one must fail
+// --controls: run this test against the unbroken extractor (it must pass, or every control below would read as caught) and then against each
+// deliberately broken copy (shared with the browser fixture). A control is caught only when the run reaches a verdict (it did not crash or
+// fail to parse), exits 1 and prints one of the property tags that mutation is expected to trip; anything else is an ERROR or a miss.
 if (process.argv.includes('--controls')) {
   const { MUTATIONS, apply } = require('./fixtures/pushpress-extractor/mutations.cjs');
   const { spawnSync } = require('child_process');
   const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'pp-property-controls-'));
+  const run = file => spawnSync(process.execPath, [__filename], { env: Object.assign({}, process.env, { PP_EXTRACT: file, PP_PROPERTY_PAGES: '600' }), encoding: 'utf8' });
+  const verdict = r => /pushpress extractor property test: \d+ pages/.test(r.stdout);        // printed only after every page was judged
   let blind = 0;
+  const base = run(EXTRACTOR_PATH);
+  const baseOk = base.status === 0 && verdict(base);
+  console.log(`CONTROL baseline (the extractor as given): ${baseOk ? 'passes' : 'DOES NOT PASS: the controls below mean nothing'}`);
+  if (!baseOk) blind++;
   for (const m of MUTATIONS.filter(x => x.tests.includes('property'))) {
     const broken = apply(SRC, m);
     if (broken === null) { console.log(`CONTROL ${m.name}: STALE (the text it breaks is gone or no longer unique)`); blind++; continue; }
     const file = path.join(dir, m.name + '.js'); fs.writeFileSync(file, broken);
-    const r = spawnSync(process.execPath, [__filename], { env: Object.assign({}, process.env, { PP_EXTRACT: file, PP_PROPERTY_PAGES: '600' }), encoding: 'utf8' });
-    const kinds = [...new Set((r.stdout.match(/P\d [a-z]+/g) || []))].join(', ');
-    console.log(`CONTROL ${m.name}: ${r.status === 1 ? 'caught' : 'MISSED'}${kinds ? ' (' + kinds + ')' : ''}`);
-    if (r.status !== 1) blind++;
+    const r = run(file);
+    const tags = [...new Set((r.stdout.match(/P\d [a-z]+/g) || []))];
+    const expected = (m.expect && m.expect.property) || [];
+    const ok = r.status === 1 && verdict(r) && expected.some(t => tags.includes(t));
+    const why = ok ? 'caught' : !verdict(r) || r.status > 1 || r.status === null ? 'ERROR (it crashed or never reached a verdict)' : r.status === 0 ? 'MISSED' : 'caught the wrong thing';
+    console.log(`CONTROL ${m.name}: ${why}${tags.length ? ' (' + tags.join(', ') + ')' : ''}`);
+    if (!ok) blind++;
   }
   fs.rmSync(dir, { recursive: true, force: true });
   console.log(`pushpress-extractor-property.js --controls: ${blind ? 'FAIL' : 'PASS'}`);
@@ -175,6 +187,11 @@ function generate(R) {
   }
   const rowCount = R.int(6); for (let i = 0; i < rowCount; i++) add('row', {});
   const iconCount = R.int(4); for (let i = 0; i < iconCount; i++) add('btn', { text: '' });
+  // icon-only buttons that ARE named (by aria-label or title): listed by that name and not counted as unnamed icons
+  for (const label of ['Close', 'Help', 'Menu']) if (R.chance(0.3)) {
+    add('btn', R.chance(0.5) ? { text: '', title: label } : { text: '', attrs: { 'aria-label': label } });
+    structural.push({ field: 'btn', label });
+  }
   if (R.chance(0.2)) add('btn', { text: 'Collapse sidebar' });                // top-bar chrome
   if (R.chance(0.2)) add('btn', { text: 'Search' });
 
@@ -235,9 +252,11 @@ const DEBUG = process.env.PP_PROPERTY_DEBUG === '1';                          //
 function found(tokens, s) {
   const hits = new Set();
   for (const [mode, value] of tokens) {
-    const has = mode === 'digits' ? t => t.replace(/\D/g, '').includes(value) : mode === 'sub' ? t => t.toLowerCase().includes(value.toLowerCase()) : t => wordRe(value).test(t);
+    // a phone number is its ten digits with the separators the page may use between the groups: "(555) 010-0123", "555.010.0123", "+1 555 010 0123", "5550100123"
+    const digitRe = new RegExp(String(value).slice(0, 3) + '\\)?[\\s.-]?' + String(value).slice(3, 6) + '[\\s.-]?' + String(value).slice(6));
+    const has = mode === 'digits' ? t => digitRe.test(t) : mode === 'sub' ? t => t.toLowerCase().includes(value.toLowerCase()) : t => wordRe(value).test(t);
     const where = [...new Set(s.leaves.filter(([, t]) => has(t)).map(([f]) => f))];
-    if (mode !== 'digits' && has(s.dump)) where.push('dump');
+    if (has(s.dump)) where.push('dump');
     if (where.length) hits.add(mode + ':' + (mode === 'digits' ? 'phone' : mode === 'sub' && value.includes('@') ? 'email' : 'name') + (DEBUG ? `=${value}@${where.join('+')}` : ''));
   }
   return [...hits];
@@ -270,7 +289,7 @@ for (let i = 0; i < PAGES; i++) {
   for (const { field, label } of g.hidden) { stats.hidden++; if ((out[field] || []).includes(label)) record(i, 'P3 edge', `${field} kept a label left of the edge`); }
   for (const [f, cap] of Object.entries(CAPS)) if ((out[f] || []).length > cap) record(i, 'P4 caps', `${f} exceeds ${cap}`);
   if ((out.rows || 0) !== g.rowCount) record(i, 'P4 rows', `rows ${out.rows || 0} vs ${g.rowCount}`);
-  if ((out.icons || 0) < g.iconCount) record(i, 'P4 icons', `icons ${out.icons || 0} vs ${g.iconCount}`);
+  if ((out.icons || 0) !== g.iconCount) record(i, 'P4 icons', `icons ${out.icons || 0} vs ${g.iconCount}`);
   if (g.onPersonRoute && 'region' in out) record(i, 'P1 region', 'region text recorded on a person route');
   // P5: the path field holds no record id and no query value
   if ([g.owner, ...g.others].some(o => (out.p || '').includes(o.id.slice(4)))) record(i, 'P5 path', 'p holds a record id');

@@ -79,6 +79,8 @@ const CSS = `
 #side{position:fixed;left:0;top:0;bottom:0;width:255px;background:#f4f1ee;overflow:auto;padding:12px 0}
 #side ul{list-style:none;margin:0;padding:0 0 0 12px}#side a,#side button{display:block;width:100%;text-align:left;padding:6px 14px;border:0;background:none;font:inherit;color:inherit;text-decoration:none}
 .main{margin-left:255px;padding:0 26px 40px}
+@media (max-width:1400px){#side{width:240px}.main{margin-left:240px}}
+@media (max-width:1000px){#side{width:200px}.main{margin-left:200px;padding:0 18px 40px}}
 header.top{display:flex;gap:8px;padding:12px 0;border-bottom:1px solid #ddd}header.top button{padding:4px 10px}
 table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:6px 10px;border-bottom:1px solid #eee}
 [role=tablist]{display:flex;gap:6px;margin:12px 0}[role=tab]{padding:6px 12px}

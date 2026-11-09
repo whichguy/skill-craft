@@ -34,6 +34,8 @@ const JSON_OUT = args.includes('--json') ? args[args.indexOf('--json') + 1] : ''
 const SERVE = args.includes('--serve');
 const SERVE_PORT = SERVE && /^\d+$/.test(args[args.indexOf('--serve') + 1] || '') ? Number(args[args.indexOf('--serve') + 1]) : 0;
 
+// The page's own responsive rule is modelled, not measured on the real app: the sidebar is 255 px wide at 1703, 240 px at 1280, 200 px at
+// 900 and a 64 px icon rail when collapsed, so the content starts at 281, 266, 218 and 90 px and the extractor's measured edge has to follow.
 const VIEWPORTS = [
   { name: '1703', width: 1703, height: 900, collapsed: false },
   { name: '1280', width: 1280, height: 800, collapsed: false },
@@ -103,7 +105,6 @@ function structureProblems(c, r) {
     miss('btn', ['Save', 'Gender', '<combobox>']);
     miss('lbl', ['First name', 'Last name', 'Email', 'Phone', 'Date of birth']);
     miss('h', ['Details', 'Family']);
-    if (!(r.icons >= 1)) p.push('icon-only button count is 0');
     if (!(r.rows >= 1)) p.push('table row count is 0');
     if ('region' in r) p.push('region text was recorded on a person route');
     if (!r.h || !r.h.some(h => h.includes('<value>'))) p.push('no heading was replaced by <value>: the name heading is not being scrubbed');
@@ -120,6 +121,8 @@ function structureProblems(c, r) {
     miss('btn', ['Back', 'Setup pay rates', '+ Class type']);
     miss('h', ['Class types']);
   }
+  // every page has exactly one unnamed icon-only button (an empty one in the top bar); the sidebar toggle is named by its aria-label
+  if ((r.icons || 0) !== 1) p.push(`icon-only button count is ${r.icons || 0}, expected 1`);
   if (r.btn && r.btn.some(b => b === site.COMPANY)) p.push('the company switcher button was not filtered after __pp.company()');
   if (r.btn && r.btn.some(b => /^(collapse|expand|toggle) sidebar$/i.test(b))) p.push('a sidebar toggle button was listed as page content');
   return p;
@@ -155,7 +158,10 @@ function fieldsOf(extracted, dumped, side) {
 }
 const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function matcher(t) {
-  if (t.mode === 'digits') return s => s.replace(/\D/g, '').includes(t.value);
+  if (t.mode === 'digits') {                                                 // ten digits with the separators a page may put between the groups
+    const re = new RegExp(t.value.slice(0, 3) + '\\)?[\\s.-]?' + t.value.slice(3, 6) + '[\\s.-]?' + t.value.slice(6));
+    return s => re.test(s);
+  }
   if (t.mode === 'sub') { const v = t.value.toLowerCase(); return s => s.toLowerCase().includes(v); }
   const re = new RegExp('(^|[^A-Za-z0-9])' + reEsc(t.value) + '(?![A-Za-z0-9])', 'i');
   return s => re.test(s);
@@ -225,7 +231,11 @@ async function runAll(browser, base, source, viewports, cases) {
     for (const c of cases) {
       if (c.only && !c.only.includes(vp.name)) continue;
       try { results.push(judge(c, vp, await open(browser, base, c, vp, source))); }
-      catch (e) { results.push({ case: c.id, viewport: vp.name, status: 'FAIL', leaks: {}, problems: ['run error: ' + String(e.message).split('\n')[0]], gaps: {}, gapStatus: {}, info: {}, contractTokens: 0, fieldsChecked: 0 }); }
+      catch (e) {
+        // a run error is a failure of the run, never a verdict; its text can quote the URL (which holds planted values), so only the error's name and a URL-free first line are kept
+        const msg = String(e && e.message).split('\n')[0].replace(/https?:\/\/\S+/g, '<url>').slice(0, 80);
+        results.push({ case: c.id, viewport: vp.name, status: 'FAIL', leaks: {}, problems: [`run error: ${(e && e.name) || 'Error'}: ${msg}`], gaps: {}, gapStatus: {}, info: {}, contractTokens: 0, fieldsChecked: 0 });
+      }
     }
   }));
   const order = new Map(CASES.map((c, i) => [c.id, i]));
@@ -287,17 +297,26 @@ const { MUTATIONS, apply } = require('./mutations.cjs');
     for (const r of results) if (r.info && 'injection_reaches_region' in r.info) { console.log(`info [${r.viewport}] the planted instruction text ${r.info.injection_reaches_region ? 'DOES' : 'does not'} reach the output through region text on a list page`); break; }
     console.log('tally: ' + Object.entries(tally).map(([k, n]) => k + ' ' + n).join(', '));
 
-    if (CONTROLS) {
+    // A control is caught only when a case fails for the reason that mutation is expected to cause (mutations.cjs `expect`). A run error
+    // is never a catch, and nothing is proved when the unbroken run itself failed.
+    if (CONTROLS && bad > 0) {
+      console.log('controls skipped: the unbroken run did not pass, so a failure on a broken copy would prove nothing');
+    } else if (CONTROLS) {
+      const isRunError = r => r.problems.some(p => p.startsWith('run error'));
+      const matches = (spec, r) => spec.startsWith('leak:') ? Object.keys(r.leaks).some(k => k.startsWith(spec.slice(5))) : r.problems.some(p => p.includes(spec.slice(8)));
       for (const m of MUTATIONS.filter(x => x.tests.includes('fixture'))) {
         const broken = apply(source, m);
         if (broken === null) { console.log(`CONTROL ${m.name}: STALE (the text it breaks is gone or no longer unique; update the control)`); report.controls.push({ name: m.name, status: 'STALE' }); bad++; continue; }
         const rs = await runAll(browser, base, broken, VIEWPORTS.slice(0, 1), CASES);
-        const fails = rs.filter(r => r.status === 'FAIL');
-        const caught = fails.length > 0;
-        const kinds = [...new Set(fails.flatMap(r => [...Object.keys(r.leaks).map(k => 'leak:' + k.split('.')[0]), ...r.problems.map(p => 'structure')]))];
-        console.log(`CONTROL ${m.name}: ${caught ? 'caught' : 'MISSED'} (${fails.length} failing cases${kinds.length ? '; ' + kinds.join(', ') : ''})`);
-        report.controls.push({ name: m.name, status: caught ? 'caught' : 'MISSED', failing_cases: fails.length, kinds });
-        if (!caught) bad++;
+        const errors = rs.filter(isRunError);
+        const fails = rs.filter(r => r.status === 'FAIL' && !isRunError(r));
+        const expected = (m.expect && m.expect.fixture) || [];
+        const hit = fails.some(r => expected.some(spec => matches(spec, r)));
+        const status = errors.length ? 'ERROR' : hit ? 'caught' : fails.length ? 'caught the wrong thing' : 'MISSED';
+        const kinds = [...new Set(fails.flatMap(r => [...Object.keys(r.leaks).map(k => 'leak:' + k.split('.')[0]), ...r.problems.map(p => 'problem:' + p.split(/[0-9]| of /)[0].trim())]))];
+        console.log(`CONTROL ${m.name}: ${status} (${fails.length} failing cases${errors.length ? ', ' + errors.length + ' run errors' : ''}${kinds.length ? '; ' + kinds.slice(0, 4).join(', ') : ''})`);
+        report.controls.push({ name: m.name, status, failing_cases: fails.length, run_errors: errors.length, kinds });
+        if (status !== 'caught') bad++;
       }
     }
   } finally { await browser.close(); server.close(); }
