@@ -1450,7 +1450,7 @@ def verify(root: Path, state: Mapping[str, Any], work_item: str, action: str, st
         return {}, ""
     refused = refused_runs(root, action)
     number = _verify_count(root, action) + 1
-    runner = runner or lint.run_argv
+    runner = lint.recovery_runner(root, action, "verify") if runner is None else runner
     clock = clock or time.monotonic
     repo = Path(str(state["repo"]))
     environment = dict(os.environ if env is None else env)
@@ -1673,7 +1673,7 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
                   "runs": list(matched[1].get("runs") or ()), "trees": [tree],
                   "reused": {"path": matched[0], "created_at": matched[1].get("created_at"), "tree": tree}}
         return {step_proof_path(action, number): store.dumps(record, "ShipLoop step proof")}, "", [line]
-    runner = runner or lint.run_argv
+    runner = lint.recovery_runner(root, action, "step-proof") if runner is None else runner
     clock = clock or time.monotonic
     environment = dict(os.environ if env is None else env)
     fields, output = _run_command(runner, row["command"], repo, command_timeout, environment, clock)
@@ -2024,7 +2024,7 @@ def _base_run(root: Path, state: Mapping[str, Any], work_item: str, action: str,
     added = [_relative(path, base) for status, path in changes if status == "A" and path not in tests]
     record.update(test_files=[_relative(path, base) for path in tests], added_files=added)
     removed = _retired_removed(base, changes, retired, item_scope)
-    runner = runner or lint.run_argv
+    runner = lint.recovery_runner(root, action, "base") if runner is None else runner
     clock = clock or time.monotonic
     environment = dict(os.environ if env is None else env)
     runs: List[Dict[str, Any]] = []

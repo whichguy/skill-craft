@@ -2310,6 +2310,47 @@ class TestLoopTests(unittest.TestCase):
         self.assertEqual(wrong.returncode, 3)
         self.assertIn("red-check runs only for the current test action", wrong.stderr)
 
+    @unittest.skipUnless(os.name == "posix" and hasattr(signal, "pthread_sigmask"),
+                         "requires POSIX run symlinks and SIGINT mask control")
+    def test_interrupted_red_check_recovers_to_the_original_run_through_an_alias(self):
+        self.start()
+        marker = b"red-check fixture output\n"
+        fixture = self.run_dir.parent / "red-check-interrupt.py"
+        fixture.write_text(
+            "import os, signal\n"
+            "runner = int(os.environ['SHIPLOOP_FIXTURE_RUNNER'])\n"
+            "if runner != os.getppid(): raise SystemExit('not the fixture runner')\n"
+            # A full pipe makes the runner read a prefix before the child sends SIGINT.
+            f"with os.fdopen(1, 'wb') as out: out.write({marker!r} * 65536)\n"
+            "os.kill(runner, signal.SIGINT)\n"
+        )
+        workload = shlex.join([sys.executable, "-B", str(fixture)])
+        command = 'if test -n "${SHIPLOOP_FIXTURE_RUNNER-}"; then exec ' + workload + '; fi; sh idcheck.sh fixed.txt'
+        self.drive_to("test", step_plan=self.id_item(command=command))
+        alias = self.run_dir.parent / "run-alias"
+        alias.symlink_to(self.run_dir, target_is_directory=True)
+        action = self.action()
+        cli = [sys.executable, "-B", str(PACKAGE / "scripts" / "shiploop"), "red-check",
+               "--run-dir", str(alias), "--action", action]
+        # Restore SIGINT for CLI launches from shells that ignore or block it.
+        bootstrap = (
+            "import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); "
+            "signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT}); "
+            "os.environ['SHIPLOOP_FIXTURE_RUNNER'] = str(os.getpid()); "
+            "os.execv(sys.argv[1], sys.argv[1:])"
+        )
+        run = subprocess.run([sys.executable, "-B", "-c", bootstrap, *cli], capture_output=True)
+        self.assertEqual(run.returncode, -signal.SIGINT, run.stdout + run.stderr)
+        self.assertIn(b"KeyboardInterrupt", run.stderr)
+        self.assertNotIn(marker, run.stdout + run.stderr)
+        self.assertFalse((self.run_dir / test_loop.red_check_path(action)).exists())
+        attempts = list((self.run_dir / "command-recovery").glob("*/metadata.json"))
+        self.assertEqual(len(attempts), 1, "no complete recovery in the canonical run")
+        metadata = json.loads(attempts[0].read_bytes())
+        self.assertEqual((metadata["action"], metadata["operation"]), (action, "base"))
+        prefix = attempts[0].with_name("stdout").read_bytes()
+        self.assertTrue(prefix and (marker * 65536).startswith(prefix))
+
     def test_an_inner_stage_never_offers_add_work_and_an_outer_one_still_does(self):
         for name in stage_spec.INNER:
             with self.subTest(stage=name):
@@ -2438,7 +2479,16 @@ class TestLoopTests(unittest.TestCase):
     def test_a_proof_prints_one_gates_line_per_run_and_the_record_stays_passed(self):
         self.calc_item(self.REAL_TEST)
         action = self.action()
-        output = self.complete_output(self.loop_done())
+        with mock.patch.object(test_loop.lint, "run_argv", wraps=test_loop.lint.run_argv) as runner:
+            output = self.complete_output(self.loop_done())
+        operations = set()
+        for call in runner.call_args_list:
+            recovery = call.kwargs["recovery"]
+            operations.add(recovery.operation)
+            self.assertEqual((recovery.run_dir, recovery.action), (self.run_dir, action))
+            self.assertEqual(Path(call.args[1]) == self.repo, recovery.operation == "verify")
+        self.assertEqual(operations, {"base", "verify", "mutation"})
+        self.assertFalse((self.run_dir / "command-recovery").exists())
         lines = self.gate_lines_of(output)
         self.assertRegex(lines[0], r"^Gates: base: \[focused\] python3 -m unittest -v test_calc -> red \(\d+ ran\)$")
         self.assertEqual(lines[1], "Gates: base: [regression] test -f retained.txt -> counted")
@@ -2528,6 +2578,13 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
     if role != "control":
         for fd, stream in ((1, "stdout"), (2, "stderr")):
             os.write(fd, f"{role}-{stream} fixture ready\\n".encode())
+            if role == "leader":
+                # Filling each pipe before reporting readiness forces the CLI to consume
+                # a prefix. It does not prove that it captured every byte written.
+                marker = (b'{"token":"synthetic-json-secret"}\\n' if fd == 1 else
+                          b'PASSWORD=synthetic-assignment-secret\\n')
+                with os.fdopen(os.dup(fd), "wb") as output:
+                    output.write(marker * 16384)
     if ignoring:
         os.close(1)
         os.close(2)
@@ -2561,13 +2618,21 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
                        "signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT}); "
                        "os.execv(sys.argv[1], sys.argv[1:])", *argv]
         env.pop("SHIPLOOP_FIXTURE_MODE", None)
+        recovery = self.run_dir / "command-recovery"
+        seen = set()
+
+        def authoritative_files():
+            return {path: path.read_bytes() for folder in ("checks", "loops", "results", "tests")
+                    for path in (self.run_dir / folder).rglob("*") if path.is_file()}
+
+        records_before = authoritative_files()
 
         def stop_runner(cli):
             if cli.poll() is None:
                 cli.kill()  # only this directly launched runner
             cli.wait(timeout=30)
 
-        for mode in ("ordinary", "ignore-term", "escape"):
+        for number, mode in enumerate(("ordinary", "ignore-term", "escape"), 1):
             with self.subTest(mode=mode), socket.socket() as listener, contextlib.ExitStack() as cleanup:
                 listener.bind(("127.0.0.1", 0))
                 listener.listen()
@@ -2615,10 +2680,15 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
                 self.assertEqual((os.getpgid(cli.pid), os.getsid(cli.pid)), (cli.pid, cli.pid))
                 self.assertEqual(len({os.getpgrp(), cli.pid, control.pid, leader_group}), 4)
                 cli.send_signal(signal.SIGINT)
+                if mode == "ordinary":
+                    # Leave CLI stderr unread through exit; the other cases actively drain it.
+                    cli.wait(timeout=30)
                 out, err = cli.communicate(timeout=120)
                 self.assertEqual(cli.returncode, -signal.SIGINT, (out, err))
                 self.assertIn(b"KeyboardInterrupt", err)
-                self.assertNotIn(b"fixture ready", out + err)
+                for forbidden in (b"fixture ready", b"synthetic-json-secret",
+                                  b"synthetic-assignment-secret", b"command-recovery"):
+                    self.assertNotIn(forbidden, out + err)
                 for role in ("control", "descendant") if mode == "escape" else ("control",):
                     peer = ready[role][0]
                     peer.sendall(b"p")
@@ -2626,7 +2696,27 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
                 for role in ("leader",) if mode == "escape" else ("leader", "descendant"):
                     self.assertEqual(ready[role][0].recv(1), b"")
                 self.assertEqual(state_file.read_bytes(), before)
+                self.assertEqual(authoritative_files(), records_before)
                 self.assertFalse(any(record.exists() for record in (answer, check, counted)))
+                published = set(recovery.glob("*/metadata.json"))
+                self.assertEqual(len(published), number)
+                latest, = published - seen
+                seen = published
+                metadata = json.loads(latest.read_bytes())
+                self.assertEqual((metadata["action"], metadata["operation"], metadata["publication"]),
+                                 (action, "verify", "complete"))
+                self.assertEqual(latest.parent.stat().st_mode & 0o777, 0o700)
+                self.assertEqual(latest.stat().st_mode & 0o777, 0o600)
+                for stream, secret in (("stdout", b'{"token":"synthetic-json-secret"}\n'),
+                                       ("stderr", b"PASSWORD=synthetic-assignment-secret\n")):
+                    path = latest.with_name(stream)
+                    data = path.read_bytes()
+                    expected = (f"leader-{stream} fixture ready\n".encode() + secret * 16384
+                                + f"descendant-{stream} fixture ready\n".encode())
+                    self.assertTrue(expected.startswith(data), f"wrong {stream} prefix")
+                    self.assertIn(secret, data)
+                    self.assertEqual(metadata["streams"][stream]["bytes"], len(data))
+                    self.assertEqual(path.stat().st_mode & 0o777, 0o600)
 
         retry = subprocess.run(launch_argv, capture_output=True, env=env, timeout=120)
         self.assertEqual(retry.returncode, 0, retry.stderr)
@@ -2634,6 +2724,7 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
         self.assertTrue(store.read_record(check)["passed"])
         self.assertTrue(answer.is_file())
         self.assertFalse(counted.exists())
+        self.assertEqual(len(list(recovery.glob("*/metadata.json"))), 3)
 
     def test_a_command_recorded_twice_is_one_row_and_runs_once_per_run(self):
         """D-1: the chess step plan copied the Focused and Full-suite fences, so rows 7-9 were rows 1-3 again and every
@@ -2882,9 +2973,14 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
         """T27 (skipped assertions): a Proof that exits 0 having run no test proves nothing and is refused."""
         self.start()
         self.drive_to("implement", step_plan=self.proof_plan("printf 'Ran 0 tests in 0.000s\\n\\nOK\\n'"))
-        with self.assertRaises(nav.NavigatorError) as caught:
+        action = self.action()
+        with mock.patch.object(test_loop.lint, "run_argv", wraps=test_loop.lint.run_argv) as runner, \
+             self.assertRaises(nav.NavigatorError) as caught:
             self.complete(DONE)
         self.assertIn("ran no tests", str(caught.exception))
+        runner.assert_called_once()
+        self.assertEqual(runner.call_args.kwargs["recovery"],
+                         test_loop.lint.capture_io.Recovery(self.run_dir, action, "step-proof"))
 
     def test_complete_takes_a_passed_check_proof_only_while_the_candidate_is_unchanged(self):
         """T27 (candidate binding): a passed check Proof is taken at complete on the same tree; after an edit the
