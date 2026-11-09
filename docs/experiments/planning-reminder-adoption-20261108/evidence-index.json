@@ -1,0 +1,217 @@
+{
+  "scope": "Historical adoption-decision snapshot. Combined native checks passed in the separate parent seal. Source CI, release preflight and exact release full CI remain pending.",
+  "frozen_study_head": "612cb504747a019d7af1a396ccbef4dfdba64f38",
+  "tested_combined_base": "cf755eaa4a462a86859ee51a3ad06ddc62b48fd7",
+  "copied_files": {
+    "report.html": {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/report-final/report.html",
+      "sha256": "d5fca2c542c3a8ed9c4a0cdc0a1b3148387d95dfb0fd5d94000b8d6690f98724"
+    },
+    "README.md": {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/report-final/README.md",
+      "sha256": "5f5c2026566a51f61bab2f3818d21cd4428fa6953c8ac2faf2c5f6d9ca6d6192"
+    },
+    "registration.json": {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/source/docs/experiments/planning-reminder-v2-20261108/registration.json",
+      "sha256": "edf62a9e422e15ebcd608e65ed1add1d39654c2f9818c4f6c7d506050871588f"
+    },
+    "candidate-overlay.json": {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/source/docs/experiments/planning-reminder-v2-20261108/candidate-overlay.json",
+      "sha256": "9356eb35553c790846941a3282689aac7ddd2ee37ad11aa3ba1e06c308f4199f"
+    },
+    "decision.json": {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/adoption-decision.json",
+      "sha256": "b264f357dd32992f0a3c8b6b50d8b7aae92793fbb22cb6d2430d43d20f11ab38"
+    }
+  },
+  "original_evidence": [
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-completion-20261108-1y86oc2x/operator/cleanup-standard-temp-checks/receipt.json",
+      "sha256": "96eb3e7edd0b926cb826743a8cc89b4a4295bd0a2b6eb3f9375d2767906d6d62"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-completion-20261108-1y86oc2x/operator/fixture-parent-acceptance.json",
+      "sha256": "a1376c5e7afdfc85a81f014ff705d461c328c9728225f4772ac09c14a6dce7b3"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/adoption-judgment/final.md",
+      "sha256": "5659fd1bb93e436e10773fd2e282590b20f144c46de90b0577fc7cac6b2f9efa"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/adoption-judgment-02/completion.json",
+      "sha256": "7d5b8f63db8b8d32b9f3a932278d44a298072b97ea83d41bd6dc2c6d2e6a43c6"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/adoption-judgment-02/final.md",
+      "sha256": "009c5ce87454f101e22b775f8997330947cd9ec0b4dfa30d45ab3cc2eb19d0d4"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/boundary-provenance-judgment/final.md",
+      "sha256": "934e1b9fe5e6ad12bda7fc17a85dc5630357fbbf73dbffc6c5296e1a2aaa2d5a"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/candidate-v1-disposition.json",
+      "sha256": "5b4538706c0f54d1611163fad6aba97b441b62942de79b659cf188996232364b"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/candidate-v2-packet-checks-01/receipt/receipt.json",
+      "sha256": "1960d6d7a210953bbefb74e441ad86cc171e76ba1f31a0127d7b2467f333e7af"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/cleanup-sample-05-retry-01.json",
+      "sha256": "6128170bcd9e7f8cdddacecf03f6258f0e53346a1dc75ebf14668b50507a1ae6"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/cleanup-sample-06.json",
+      "sha256": "8f6c436baae3c999108bcf99ed5f012e4e38b114313deb4d7dcc3c1041855d66"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/common-checks-01/summary.json",
+      "sha256": "f492ca04b410c64b6bc969d907b43400e1fed2a97ed8dd308c34e4962499b484"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/common-fixes-commit.txt",
+      "sha256": "efd3d51bd16b2bdd0ff094e3266245b07f3f8552594f74409b091a8a1f6d7f0e"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/evidence-pair-parent-review.json",
+      "sha256": "0c05a410649f8a77b41d617a951c4d3ff907bb56bac9fa51294e18ab24358742"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/fixture-integration-handoff.json",
+      "sha256": "0b107d0bdc8fba6a4e4eb516058756f71a0aed03c03aea299050afcfc9fd0e39"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/integrated-checks-01/manifest.json",
+      "sha256": "49ac52a15b997db5e7b6b91a25647c28a6c325d2c075b44388272381d488f967"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/integrated-checks-parent-acceptance.json",
+      "sha256": "a42691ef4b4fdbc1c10d8f5a599dc25546427afcfb88ab722968d8ed49d7089d"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/integration-build/receipt.json",
+      "sha256": "b75c5d37f81ec6d9f23ee29eccffe83eea5ec72ca72c63e0aafdbe998d0c7ee5"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/integration-map/INTEGRATION.md",
+      "sha256": "2a0200206a900036a9f16f252b2cf201f75a6a86843f2d54e805ee218dc4172e"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/negative-pair-parent-review.json",
+      "sha256": "f654a18023dfaaee4f58540458658b3c21fb95fa86f9fb778b9dace602df8172"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/graded/sample-01/judge.json",
+      "sha256": "a4565c932e9aa37687119708a31a55e159a11f01ca91831f169caa0afa1fd51c"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/graded/sample-02/judge.json",
+      "sha256": "e876b0a6070d67f927c3523dab830cf7942a0719b164215d8fd9871f587265eb"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/graded/sample-03/judge.json",
+      "sha256": "9faecb3baa5d059bcd16cc5ab8308bf5c0e716546ad63f34241607a0bc906ce6"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/graded/sample-04/judge.json",
+      "sha256": "033753b269ae5026ae6416ecea164e009be9ff57ea95a4601d5f2f8c59814971"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/graded/sample-05/judge.json",
+      "sha256": "6166d151c29fd6b9b9ca107c0e605ce5d2aee01139ea3e92e983490a754ac2b8"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/graded/sample-06/judge.json",
+      "sha256": "635c8341e32753f6dd86b81f0a182ea86ccce20c749ab407841a4c67e3a3b52e"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/pairs/evidence-1-transport-02/judge.json",
+      "sha256": "173d91210cc047364c0355e306ba2947210da512c8fc7a11d5a503da55042b63"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/pairs/evidence-1-transport-02/transport-amendment.json",
+      "sha256": "c45d3f71daef62bf5af9356972ea181de275d402f11f081cda0747aa938084d9"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/pairs/evidence-1-transport-02/verified-judgment.json",
+      "sha256": "3a2ab79201723dba9d007c8332caece95119d041a2cba825aa1f6b9d83ed840a"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/pairs/negative-1-transport-02/judge.json",
+      "sha256": "357578c33c37fbc7ac21be4c824b0b6238b4a964f35dc2df7f965594e5ea5ec6"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/pairs/negative-1-transport-02/transport-amendment.json",
+      "sha256": "71bde60bfe4f9d09340f7508898048ee537a434bac157d23c23e7a6cb598e57c"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/pairs/negative-1-transport-02/verified-judgment.json",
+      "sha256": "b6a5e8f833c18dd512dcbd8ccdfafdcd8579c96cac4e4cb85fc55f0c7f9e3df5"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/pairs/unavailable-1-transport-01/judge.json",
+      "sha256": "097c63e15f01a64acf200ae75a113e25dfa0965fb96af19d4db92e39502e6836"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/pairs/unavailable-1-transport-01/verified-judgment.json",
+      "sha256": "858b8e7414f2c464a3f3037a54eec020e495e71c150553fb71cd874704f9f25c"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/scope-audit.json",
+      "sha256": "c90403f0b8c238002c5f3ba0a714606f40be8284e6c821fb4f158d35ec6bcd64"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/preflight-closeout.json",
+      "sha256": "6b1584c368a3d665ebcc0dfa5917ea53083d618ca85ba7f696d3fd2ef6d1749c"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/quote-provenance-judgment/final.md",
+      "sha256": "852382725c83127c203e7717debb4a113750b924ac231c2e7ccdece9d9f2afaf"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/repair-checks-02/summary.json",
+      "sha256": "a7c54898631fd8a3fae424eb9948c851e0556296846570b7fbfcc3e680d47bf6"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/report-final-parent-review.json",
+      "sha256": "f4b17357c8c21c885f2b16fd549b3d7dc43f16712b4063565b288653a18cbee3"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/report-render-final-02/checks.json",
+      "sha256": "e9cdc4396721f3de6fae657f4ae6844784a164b79b54be68e2a37a69d5190dd2"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/report-render-final-02/inspection.json",
+      "sha256": "c6cdd91b798246667aafe3629799643522d237d37ee24df3afd6b7debefc0502"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/report-render-final-02/report-1280x900.png",
+      "sha256": "7b72d822b291efa5c8bd3b621be4ef7c391931f18cb75de3fdb4162ab367b2a0"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/report-render-final-02/report-390x844.png",
+      "sha256": "f314a3e216c69c7591bed394d1f2276be5450636ef0fd596b6bd3f6c55a5870a"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/sample05-boundary-evidence.json",
+      "sha256": "a77c8ff0dce011d09182be450e338c287097f9f7d0eb922b29dc9d8c640fabfd"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/unavailable-admitted-collection-02-receipt.json",
+      "sha256": "0e63b020a129d4dba28b53cb46f19b66a69750a385ba4e5acb4c6f08504d64ad"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/unavailable-admitted-collection-03-receipt.json",
+      "sha256": "fe873fbca26d3c5bfe4b4279d5e8ac0e9e93fb053c050c020479227dada840a5"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/unavailable-admitted-collection-receipt.json",
+      "sha256": "219c6d311b7480785556a9a79ac1fa51defca3c884cc422ba63f0be34f7f77c2"
+    },
+    {
+      "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/unavailable-collection-receipt.json",
+      "sha256": "ac4708c5030d29b6e10fbd9443fd1e56df31fcf54f209d0a25dcd1659c2187e8"
+    }
+  ]
+}

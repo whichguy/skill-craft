@@ -1,0 +1,57 @@
+{
+  "decision": "ADOPT_EXACT_REMINDER",
+  "decided_at": 1794182406.91696,
+  "authorization": "Owner explicitly authorized all three fixes and adoption after validation; supported small low-consequence improvements are viable.",
+  "basis": "Exact821-character clarification places existing evidence-selection obligations before dependent step definition, explicitly permits zero probes, preserves conditional planning and shared bounds. All three original pairs tied with no consequential observed regression. Supported source clarity and handoff precision justify modest prompt cost; causal quality superiority is not established.",
+  "pair_results": {
+    "negative": {
+      "result": "TIE",
+      "current": "20/20",
+      "candidate": "20/20"
+    },
+    "supplied_evidence": {
+      "result": "TIE",
+      "current": "26/26",
+      "candidate": "26/26"
+    },
+    "unavailable": {
+      "result": "TIE",
+      "current": "12/12",
+      "candidate": "12/12"
+    },
+    "aggregate": "Three original paired ties, zero wins, zero losses. No replacement quality judgment was produced."
+  },
+  "required_source": {
+    "reminder_chars": 821,
+    "integrated_prompt_sha256": "82e1026fa175f7f876443d75448ea5c7f773cf23f92f570305d5d4240ae4f6b8",
+    "fixture_sha256": "869a53edc56f25c08269b5d4fad8698dce7e4c57941234abf0b7e5716f2f13ef",
+    "preserve_commits": [
+      "612cb504747a019d7af1a396ccbef4dfdba64f38",
+      "100460c3eb00d10bc9d7bbb874fd1d915ca49680",
+      "06b0f3b30899024c0e403bd41867a6c368f4beb8"
+    ]
+  },
+  "adopted_advice": [
+    "No reminder revision or additional live comparison needed for limited adoption.",
+    "Retain all failures and provenance admissions.",
+    "Preserve incoming acceptance/history guidance and peer watcher coverage.",
+    "Require integrated packet/route/fixture checks, journal, normal release preflight and exact release fullCI."
+  ],
+  "sequence": "Existing Spec then Test Strategy+Improve then Plan (reuse evidence or selectively probe before dependent work), then unchanged Plan Improve. Comparisons stop there. No new stage, Until Loop or product loop cap.",
+  "publication_state": "Pending integrated checks, source/journal commits, normal source CI, release preflight and exact release fullCI. No release claimed. Follow established repository source-CI-before-release and release-CI-before-delivery-closeout flow; adviser qualification remains required before final delivery claim.",
+  "judge": {
+    "path": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/adoption-judgment-02/final.md",
+    "sha256": "009c5ce87454f101e22b775f8997330947cd9ec0b4dfa30d45ab3cc2eb19d0d4",
+    "actual_launch": "gpt-6-astra/high",
+    "prior_pending_retained": "/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/adoption-judgment/final.md"
+  },
+  "limits": [
+    "The reminder adds 821 characters against current production. It is approximately 44 percent shorter than the earlier 1474-character proposal, not shorter than production.",
+    "Candidate plans incur additional fixture-item lifecycle work, administrative reading and review refinement. The negative candidate also adds copying, storage, cleanup and metadata obligations. No net effort saving is demonstrated.",
+    "There is one paired trial for each of three intentional cases. Comparison stops after PlanImprove; implementation, integrated acceptance and remote readiness remain untested.",
+    "Scores, review passes, graph shape and probe counts establish neither generic superiority nor speed or savings. Interrupted runs provide no verified final total-token comparison.",
+    "There is no OS read fence; scope auditing is heuristic. Requested Sol/medium and Astra/high launch identities are recorded, but provider-served identities remain unattested.",
+    "Lossless transport preserves underlying evidence exactly, but does not establish equivalent model attention to pooled and unpooled presentations.",
+    "The frozen comparison excludes subsequent main changes. Neither incoming c376 guidance nor the combined source has measured comparative benefit here."
+  ]
+}
