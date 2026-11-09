@@ -152,6 +152,14 @@ class DeliveryTests(CliRun):
         accepted = self.cli("complete", "--action", intake)
         self.assertEqual(accepted.returncode, 0, accepted.stdout + accepted.stderr)
         self.assertNotIn("owner_notes", self.state())  # shown by the check, not by the packet: quoted again next
+        # The check's trace line says it printed the note, so the reader still has that print once the action is
+        # accepted (shown.json then names the next action); the check is not a hold, so it stays a check.
+        check_row = [row for row in store.read_jsonl(self.run / trace.TRACE_FILE) if row.get("verb") == "check"][-1]
+        self.assertEqual((check_row.get("shown"), check_row.get("held"), check_row["exit"]), (["N1"], None, 0))
+        model = trace.build(self.run)
+        self.assertEqual([note["held_in"] for note in model["notes"]], [[intake]])
+        self.assertEqual(model["counts"]["held"], 0)
+        self.assertIn("printed owner note N1", trace.digest(model, last=50))
 
     def test_a_shown_record_that_cannot_be_written_never_holds_and_never_delivers(self) -> None:
         intake = self.action()

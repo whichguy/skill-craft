@@ -10133,6 +10133,7 @@ def dispatch(core: Any, root: Path, state: Mapping[str, Any], args: Any,
                 if not checking:
                     raise NotesHeld(owner_notes.hold_text(held), [note["id"] for note in held])
                 print(owner_notes.hold_text(held, check=True))
+                trace.SHOWN.extend(note["id"] for note in held)  # the check printed the hold: its trace line says so
         if (state["status"] == "active" and action_id not in state["accepted"]
                 and cursor_stage in loops.STAGES and not checking):
             # Every inner stage runs one Until Loop (owner decision 2026-10-10): its receipt is checked first.

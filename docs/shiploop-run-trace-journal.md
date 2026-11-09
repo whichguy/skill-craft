@@ -657,11 +657,32 @@ Two other rejections stand: the `workspace` verb hiding init/next (191f272f, del
 journal-touching suites listed in the commit. The quick tier was not run locally (load ~70 from another session's
 tiers); CI runs it.
 
-**Open**:
-- A `shiploop check` that prints a held owner note records it in `owner-notes/shown.json` but not in its trace row, so the
-  reader loses that print once the action is accepted (P3).
-- No test pins the trace rows of an Improve stage (packet `stage: improve` with `reviewed`) that the harness reads (P3).
-- No test pins the harness treating a capped trace as not covering the run (P3).
+**Open** (all three closed 2026-11-08, entry below):
+- ~~A `shiploop check` that prints a held owner note records it in `owner-notes/shown.json` but not in its trace row, so
+  the reader loses that print once the action is accepted (P3).~~
+- ~~No test pins the trace rows of an Improve stage (packet `stage: improve` with `reviewed`) that the harness reads
+  (P3).~~
+- ~~No test pins the harness treating a capped trace as not covering the run (P3).~~
+
+## 2026-11-08: the audit's three open items closed (firm)
+
+Shipped first: the audit's fixes went out in skill-craft 2.32.3 / shiploop 1.30.4 (2026-11-03); CI on the fix commit
+passed every job (plan, release-boundary, quick, hermetic).
+
+- **A check's printed note is on its trace line.** When `shiploop check` prints an owner note in place of a hold, the
+  navigator adds the ids to `shiploop_trace.SHOWN` (cleared when each command line starts) and the check's command line
+  carries them as `shown`. It is a field of its own, not `held`: `held` takes a row out of refusals and harness failures,
+  and a failed check that printed a note must stay a failed check. `notes_model` reads `shown` into the note's
+  `held_in` (the same meaning as `shown.json`'s `held`: a hold printed it), so after the action is accepted the reader
+  still says where the note was printed; `counts.held` does not count it. Test:
+  `test_a_check_prints_a_waiting_note_and_the_callback_is_not_held_for_it` (owner-notes suite), extended.
+- **An Improve stage's rows are pinned**: the packet line is stage `improve` with `reviewed` (the stage it reviews) and
+  the Improve action; the accepted complete leaves `improve`. Test:
+  `test_an_improve_stage_is_traced_as_improve_reviewing_its_stage` (skill-calls suite, the real CLI).
+- **A capped trace does not cover the run** for the harness, which then keeps its stream source; `why_not` names the
+  size cap. Test: `test_a_trace_at_its_size_cap_does_not_cover_the_run` (E2E run-trace suite).
+
+Checks: the seven suites these files reach, listed in the commit; lint adds no finding over the files' baseline.
 
 ## Open (exploratory)
 
