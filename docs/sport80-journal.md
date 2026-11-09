@@ -381,3 +381,75 @@ Findings
 Not tested: every guided and owner-only flow (by design), session expiry, other hosts, the portal's rate limits.
 Decision: record the round and the findings now; the fixes (expose a link reference on rows, expose filter options and declare
 required filters) are a code change and a release, held for the owner's word.
+
+## Round 10 - fixing the test findings, after a max-effort design review (2026-11-08)
+
+The owner answered "Fix them". The owner's rule is that Astra at max effort reviews a guard, card or runtime change before it ships
+(missed three times before), so I wrote a design brief and ran `codex-astra` (gpt-6-astra, effort max, no fallback) over the
+repository with synthetic probes against fake hosts. Evidence in `docs/evidence/sport80-fix-20261108/`: `design-brief.md`,
+`astra-review.md` (verbatim), `summary.json`.
+
+What the review changed (my first design was a generic `links` field with allowlisted numeric parameters and a 24-character token
+mask)
+- **A1 P0, adopted.** That design leaks: short bearer paths, encoded tokens, numeric contact paths and numeric session values under
+  an allowlisted name all survive, and the existing `qnames()` parse fallback returned the raw URL (the reviewer reproduced a query
+  secret leaving). Replaced by route-specific `refs`: a catalogue entry names which id may be read from which link, by an anchored
+  pattern with one digit capture, on the portal origin only; nothing else of a link is returned, and an unparsable URL is never echoed.
+- **A2 P0, adopted, and it is a defect of the published 0.1.0 and 0.1.1 (F30 firm).** `http()` decided "same origin" with
+  `startsWith`, so a descriptor naming `https://portal.test.other.test` would have received the XSRF token; rankings headers
+  followed whatever `data_url` a descriptor named, and rankings calls followed redirects. Now exact origins, manual redirects, rows
+  only from the host that served the descriptor, and `discover.js` compares origins exactly too. Reachable only if the portal's
+  own descriptors named such a host; none was seen.
+- **A3 P1, adopted.** Filter option lists only for reviewed (capability, filter) pairs (`option_filters`: rankings
+  `weight_class` and `level`), items validated (scalar, at most 120 characters, UUID-shaped skipped and counted), searched before the
+  cap, `available: false` told apart from zero matches.
+- **A4 P1, adopted.** `requires_filter` no longer blocks the options call; blank, null, empty list and empty object no longer count
+  as a given filter (zero does); the empty-table hint is the catalogue's own `empty_hint`, never descriptor text.
+- **A5 P1, checked live.** The CLI sends every filter as a string. The portal's autocomplete filters take the scalar value (an array
+  or an object returned no rows), and the runtime sends a number when the items carry numbers; no typed input is needed.
+- **A6 P1, adopted.** Output bounds: `finish()` runs before `bound()`, which now also trims option lists and drops a single row that
+  alone exceeds the limit. **A7 P1, adopted.** Runtime version 2: a tab holding version 1 is replaced, snippets and `discover.js`
+  refuse version 1. **A8 P2.** F28 and F29 stay out of the runtime: no text extractor, no hand minification.
+- Also from the review: strings in any result lose the values of secret-looking query parameters, which covers a download cell
+  in an ordinary column.
+
+What shipped in the patch
+- `refs` on `results.events` (`event_id`), `results.rankings` (`athlete_id`) and the `members.charts` tabs (`addon_id`); the
+  `--options` and `--option-search` flags; `requires_filter` and `empty_hint` on `results.rankings`; the CLI refuses a call whose
+  required filter is missing before making a snippet; the new `members.statistics` entry (F28: the numbers behind Member charts are
+  JSON at `/api/contact/statistics/data/<addon_id>`; they count memberships, which need not equal people).
+- Tests: the Node harness went from 25 to 37 scenarios and the Python suite from 27 to 32 tests; five deliberate mutations
+  (lookalike origin accepted, loose reference capture, secret values not scrubbed, rankings following redirects, a stale runtime
+  treated as loaded) are each caught by a named scenario. A first run of my own test loop used an unquoted zsh variable that did not
+  word-split; the failures it caused were mine, not the skill's.
+- Live, with the new runtime pasted into the signed-in tab: club 2026 results still 18 meets and 142 results with a `refs.event_id`
+  on all 18 rows; `results.event` through that id returned 131 rows and 14 columns; the rankings options call found its category among
+  1,140, a string weight-class value returned rows after coercion, a range with no data returned the catalogue's hint, a missing weight
+  class was refused with FILTER_REQUIRED, `results.athlete` through a rankings row's `refs.athlete_id` returned 16 rows, the charts
+  tab printed names only with `refs.addon_id`, and `members.statistics` returned its four charts. The membership counts are not
+  written down here.
+- The runtime grew from 21.7 KB to 28.4 KB, so F29 is a little worse; the card says "about 28 KB".
+
+Open: a minifier or a smaller bundle (F29); the club's personal and club rankings roles were not read; other hosts untested.
+
+## Round 11 - sport80 0.2.0 published (2026-11-08)
+
+Published as `sport80` 0.2.0 in skill-craft 2.36.0. Compact record: the `published` block of
+`docs/evidence/sport80-fix-20261108/summary.json`.
+
+- **What landed.** Remote `main` moved from d0eaf2d28de0fd60f76c8f73a31667443d3b0733 to 67f8bd77989ae0dc1017dea19b613109822e1b98
+  ("release: skill-craft 2.36.0, sport80 0.2.0", tree d3aa7e341eae9772db904ab74159f4c493568afd) in one guarded push of the feature commit
+  (rebased onto the PushPress release 2.35.10 that landed while I worked, no file in common) and the release commit. The release
+  shipped only this skill's note.
+- **Checks before the push.** The scoped quick tier on the rebased feature commit passed 15 of 15 suites (250.3 s wall). On the release
+  tree, with exit codes captured: sport80 32 tests, skill-frontmatter (25 skills), test-groups (64 tests) and ci-policy, then the
+  four release checks. The packaged tree equals the source, its runtime parses (28.9 KB), its CLI reports 120 entries, 0 problems,
+  and its `--options` flag and required-filter refusal behave. `release-push.py` then ran six checks and pushed.
+- **Not covered live.** The last edit to `bound()` (one row that alone exceeds the limit is dropped) was added after the live
+  validation of Round 10 and is covered by a harness scenario only.
+- **Hosts.** Claude 2.35.8 to 2.36.0 (restart to apply), Grok 2.35.8 to 2.36.0, Codex 2.36.0; on each, the installed `sport80` tree is
+  identical to `git archive` of the release commit, and the installed CLI reports 120 entries, 0 problems, runtime 2, with the new
+  flag and refusal behaving. Cursor was not refreshed: it is the owner's, through its app.
+- **CI.** The push run for the release commit was in progress when this was recorded and was not waited on.
+- **Exposure window of F30.** Versions 0.1.0 and 0.1.1 carried the origin-comparison defect from the first release (about three
+  hours earlier the same day) until this one; the owner's three hosts held them. Nothing in the live runs named a lookalike host.

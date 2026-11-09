@@ -336,5 +336,84 @@ class ClubMemberRecord(unittest.TestCase):
         self.assertEqual(cli("js", "member.profile_tabs").returncode, 0, "the personal role keeps its default")
 
 
+class RowReferencesAndOptions(unittest.TestCase):
+    """The owner's test of the published skill (journal Round 9) and its design review: the ids a follow-up read needs are reachable
+    through route-specific references, filter values through reviewed option lists, and nothing else of a URL is exposed."""
+
+    def test_the_catalogue_says_where_each_follow_up_id_comes_from(self):
+        e = {x["id"]: x for x in S.load()["entries"]}
+        self.assertEqual(e["results.events"]["refs"], [{"name": "event_id", "from": "action", "match": "^/public/rankings/results/(\\d{1,12})$"}])
+        self.assertEqual(e["results.rankings"]["refs"], [{"name": "athlete_id", "from": "action", "match": "^/public/rankings/member/(\\d{1,12})$"}])
+        self.assertEqual(e["members.charts"]["refs"], [{"name": "addon_id", "from": "tab", "query": "addon_id"}])
+        self.assertIn("refs.event_id", next(p for p in e["results.event"]["params"] if p["name"] == "event_id")["identity"])
+        self.assertIn("refs.athlete_id", next(p for p in e["results.athlete"]["params"] if p["name"] == "athlete_id")["identity"])
+        self.assertIn("refs.addon_id", next(p for p in e["members.statistics"]["params"] if p["name"] == "addon_id")["identity"])
+        rk = e["results.rankings"]
+        self.assertEqual((rk["requires_filter"], rk["option_filters"]), (["weight_class"], ["weight_class", "level"]))
+        self.assertIn("weight_class", rk["empty_hint"])
+        stat = e["members.statistics"]
+        self.assertEqual((stat["kind"], stat["mode"], stat["effects"], list(stat["roles"])), ("json", "read", ["read"], ["club"]))
+        self.assertEqual(stat["path"], "/api/contact/statistics/data/{addon_id}")
+        self.assertTrue(any(p["name"] == "addon_id" and p["in"] == "path" and p["required"] for p in stat["params"]))
+        for i, x in e.items():
+            if any(k in x for k in ("refs", "option_filters")):
+                self.assertNotEqual(x["data"], "sensitive", i)
+
+    def test_the_snippet_carries_the_reviewed_fields_and_refuses_a_stale_runtime(self):
+        r = cli("js", "results.rankings", "--role", "public", "--filter", "weight_class=1")
+        self.assertEqual(r.returncode, 0, r.stdout)
+        entry_json = json.loads(re.search(r"await S80\.exec\((\{.*\}), (\{.*\})\)", r.stdout).group(1))
+        self.assertEqual(entry_json["option_filters"], ["weight_class", "level"])
+        self.assertEqual(entry_json["refs"][0]["name"], "athlete_id")
+        self.assertIn("weight_class", entry_json["empty_hint"])
+        self.assertIn("globalThis.S80.version < 2", r.stdout)
+
+    def test_options_flag_generates_a_descriptor_only_request_and_refuses_what_is_not_reviewed(self):
+        ok = cli("js", "results.rankings", "--role", "public", "--options", "weight_class", "--option-search", "Open Men's 89")
+        self.assertEqual(ok.returncode, 0, ok.stdout)
+        opts = json.loads(re.search(r"\}, (\{.*\})\)", ok.stdout).group(1))
+        self.assertEqual(opts, {"role": "public", "options": "weight_class", "optionSearch": "Open Men's 89"})
+        self.assertEqual(cli("js", "results.rankings", "--role", "public", "--options", "level").returncode, 0)
+        for args, needle in [
+            (("js", "orders.history", "--role", "club", "--options", "status_filter"), "sensitive"),
+            (("js", "account.roles", "--options", "x"), "datatable"),
+            (("js", "results.rankings", "--role", "public", "--options", "minimum_lifter_age"), "does not offer"),
+            (("js", "results.rankings", "--role", "public", "--options", "wso"), "does not offer"),
+            (("js", "results.events", "--role", "club", "--option-search", "x"), "--options"),
+        ]:
+            r = cli(*args)
+            self.assertEqual(r.returncode, 2, args)
+            self.assertIn(needle, r.stdout, args)
+
+    def test_a_required_filter_is_refused_before_a_snippet_is_made(self):
+        r = cli("js", "results.rankings", "--role", "public")
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("weight_class", r.stdout); self.assertIn("--options", r.stdout)
+        self.assertEqual(cli("js", "results.rankings", "--role", "public", "--filter", "weight_class=1089", "--filter", "date_range_start=2026-01-01").returncode, 0)
+        q = cli("js", "members.quick_search", "--role", "club", "--rows", "0")
+        self.assertEqual(q.returncode, 2)
+        self.assertIn("first_name", q.stdout)
+
+    def test_the_validator_rejects_loose_references_and_unreviewed_options(self):
+        good = {"name": "x_id", "from": "action", "match": "^/a/(\\d{1,12})$"}
+        cases = []
+        d = doc(); entry(d, "results.events")["refs"][0]["match"] = "/public/rankings/results/(\\d{1,12})"; cases.append((d, "anchored"))
+        d = doc(); entry(d, "results.events")["refs"][0]["match"] = "^/public/rankings/results/(.+)$"; cases.append((d, "captures exactly one"))
+        d = doc(); entry(d, "results.events")["refs"][0]["match"] = "^/a/(\\d{1,12})/(\\d{1,12})$"; cases.append((d, "captures exactly one"))
+        d = doc(); entry(d, "results.events")["refs"][0]["match"] = "^/a/(\\d{1,12}[$"; cases.append((d, "does not compile"))
+        d = doc(); entry(d, "orders.history")["refs"] = [good]; cases.append((d, "sensitive entry has no refs"))
+        d = doc(); entry(d, "results.events")["refs"][0]["from"] = "tab"; cases.append((d, "belongs to a tabs entry"))
+        d = doc(); entry(d, "members.charts")["refs"][0]["from"] = "action"; cases.append((d, "belongs to a datatable entry"))
+        d = doc(); entry(d, "members.charts")["refs"][0]["query"] = "Addon-Id"; cases.append((d, "names one query parameter"))
+        d = doc(); entry(d, "results.events")["refs"][0]["name"] = "Event ID"; cases.append((d, "a ref needs a name"))
+        d = doc(); entry(d, "results.rankings")["option_filters"] = ["minimum_lifter_age"]; cases.append((d, "without options"))
+        d = doc(); entry(d, "orders.history")["option_filters"] = ["status_filter"]; cases.append((d, "non-sensitive datatable"))
+        d = doc(); entry(d, "results.rankings")["empty_hint"] = "see https://example.org"; cases.append((d, "empty_hint"))
+        d = doc(); entry(d, "results.rankings")["empty_hint"] = "x" * 161; cases.append((d, "empty_hint"))
+        for broken, needle in cases:
+            errs = S.validate(broken)
+            self.assertTrue(any(needle in x for x in errs), f"{needle!r} not reported: {errs[:3]}")
+
+
 if __name__ == "__main__":
     unittest.main()

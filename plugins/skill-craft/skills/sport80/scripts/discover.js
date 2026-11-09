@@ -2,12 +2,12 @@
 // Records structure (names, counts, status), never row values. Follows protocol-classified reads and ALLOW paths only.
 (() => {
   const S = globalThis.S80;
-  if (!S || S.version !== 1) throw new Error('Load the runtime first: sport80 runtime');
+  if (!S || S.version !== 2) throw new Error('Load the runtime first: sport80 runtime');
   const ALLOW = /*ALLOW*/[];
   const DENY = /logout|auth\.sport80\.com|\/body\/setup|\.(xlsx|pdf|csv)(\?|$)|\/uploads\//i;
   const FOLLOW = ['s80-datatable', 's80-tab-menu', 'ContactsView'];
   const bare = (u) => String(u || '').replace(/^https?:\/\/[^/]+/, '').split('?')[0];
-  const portal = (u) => !/^https?:/i.test(u) || u.startsWith(location.origin);
+  const portal = (u) => { try { return new URL(u, location.origin + '/').origin === location.origin; } catch (e) { return false; } };
   const allowed = (u) => ALLOW.some((p) => new RegExp('^' + p + '$').test(bare(u)));
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const D = globalThis.S80D = {done: false, error: null, requests: 0, observed_on: new Date().toISOString().slice(0, 10), roles: [], nodes: [], pages: []};
