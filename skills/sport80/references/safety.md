@@ -22,7 +22,12 @@ minors count as sensitive wherever they appear.
 - A search that must be filtered (the roster quick search) refuses to run without a filter.
 - Entries never exercised are listed but not offered as runnable unless `--unverified` is passed and reported as unverified.
 - Required parameters, enumerated values and filter names are checked before any request.
-- Results carry only chosen fields; header values never appear; UUID-shaped strings become `<uuid>`.
+- Results carry only chosen fields; header values never appear; UUID-shaped strings become `<uuid>`, and so do the values of
+  secret-looking query parameters (token, key, signature, session and similar) in any string.
+- Only a catalogue-named, route-specific `refs` id (digits, from an anchored pattern, on the portal origin) leaves a link; no other
+  part of a URL is returned. Filter option lists are offered only for reviewed filters of non-sensitive tables, at most 50 per call.
+- A request goes only to the portal origin or the rankings origin, compared exactly; a table's rows must come from the host that
+  served its descriptor; nothing follows a redirect with credentials. Anything else is `UNEXPECTED_ORIGIN` and nothing is sent.
 
 ## Confirmation
 

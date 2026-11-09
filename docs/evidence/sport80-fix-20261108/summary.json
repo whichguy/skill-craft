@@ -1,0 +1,37 @@
+{
+  "recorded": "2026-11-08",
+  "subject": "fixing the findings of the published skill's test (journal Round 9), through a max-effort design review",
+  "design_review": {
+    "runner": "codex-astra, gpt-6-astra, effort max, no fallback",
+    "verdict": "do not ship the generic URL exposure; prefer route-specific references and reviewed option lists",
+    "dispositions": {
+      "P0 URL disclosure (generic links, allowlisted numeric params, 24-char token mask, qnames parse fallback echoing the raw URL)": "adopted: route-specific refs, digits only, portal origin only, unparsable URLs never echoed",
+      "P0 existing header-boundary defect (startsWith origin test; rankings headers followed a descriptor-chosen data_url)": "adopted: exact origins, manual redirects, rows only from the descriptor's host, discover.js likewise",
+      "P1 options need per-filter permission": "adopted: option_filters per entry (rankings weight_class and level), validated items, search before the cap, UUID-shaped values skipped",
+      "P1 requires_filter blocks options; presence test accepts null, empty list and object": "adopted: options mode bypasses row prerequisites; blank, null, [] and {} refused, zero accepted; hint from the catalogue",
+      "P1 CLI sends every filter as a string": "checked live: numeric items are coerced; arrays and objects returned no rows, so no typed input is needed",
+      "P1 output bounds (bound() trims rows only, runs before plain expansion)": "adopted: finish first, then bound over rows and options, single oversized row dropped",
+      "P1 stale runtime": "adopted: version 2, snippet guard, discover.js checks version 2",
+      "P2 keep F28 and F29 deferred": "F28 handled as a JSON aggregate entry that counts memberships, not a text extractor; F29 stays a limitation"
+    }
+  },
+  "tests": {
+    "node_harness_scenarios": {"before": 25, "after": 37},
+    "python_tests": {"before": 27, "after": 32},
+    "mutations_caught": ["lookalike origin accepted", "refs accept any capture", "secret query values not scrubbed", "rankings follow redirects", "stale v1 treated as loaded"],
+    "test_loop_slip": "an unquoted zsh variable in my own loop did not word-split; the failures it caused were mine, not the skill's"
+  },
+  "live_validation": {
+    "host": "Claude in Chrome, signed-in session, runtime v2 pasted (28 KB)",
+    "club_2026_meets": {"meets": 18, "results": 142, "rows_with_refs_event_id": 18},
+    "results_event_via_ref": {"rows": 131, "columns": 14},
+    "rankings": {"options_search": "1 match of 1,140 weight categories", "string_value_accepted_after_coercion": true, "rows_total_for_the_class": 1068, "rows_with_refs_athlete_id": "all sampled"},
+    "empty_range_hint": "the catalogue's own hint returned",
+    "missing_weight_class": "FILTER_REQUIRED",
+    "athlete_via_ref": {"rows": 16, "columns": 14},
+    "charts_tab_url": "path plus parameter names only, with refs.addon_id",
+    "membership_statistics": "four charts read through the club role (a pie of three slices and three column charts); the counts are not recorded here"
+  },
+  "published_defect": "versions 0.1.0 and 0.1.1 compared the portal origin with startsWith, so a descriptor naming a lookalike host would have received the XSRF token; reachable only if the portal's own descriptors named such a host",
+  "runtime_size_bytes": {"v1": 21672, "v2": 28391}
+}

@@ -1,0 +1,4 @@
+---
+bump: minor
+---
+Fixes from testing the published skill, after a max-effort design review. Meet and rankings rows carry route-specific `refs` (`event_id`, `athlete_id`) and the member-chart tab carries `addon_id`, so `results.event`, `results.athlete` and the new `members.statistics` (the club's Valid, Invalid and Action Required memberships) can be reached; `--options` lists the values of reviewed filters, and the rankings, which need a body weight category and a date range, now refuse a call without one and say so. Runtime v2 replaces v1 in a tab and closes a header-boundary defect in 0.1.0 and 0.1.1: requests go only to the exact portal or rankings origin, no call follows a redirect, a table's rows must come from its descriptor's host, and secret-looking query values never reach a result.
