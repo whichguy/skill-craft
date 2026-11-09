@@ -301,5 +301,40 @@ class Hygiene(unittest.TestCase):
         self.assertTrue(os.access(SKILL / "scripts" / "sport80", os.X_OK))
 
 
+class ClubMemberRecord(unittest.TestCase):
+    """The club role's view of a member record, checked live on the owner's own record (journal Round 6)."""
+
+    def test_the_club_view_is_catalogued_with_what_was_and_was_not_exercised(self):
+        d = S.load()
+        e = {x["id"]: x for x in d["entries"]}
+        for i in ("member.profile_tabs", "member.memberships", "member.results"):
+            self.assertEqual(e[i]["roles"]["club"]["verified"], "live", i)
+        for i in ("member.background_screening_due_payment", "member.reps_membership", "member.additional_trackings", "member.notes"):
+            self.assertEqual(list(e[i]["roles"]), ["club"], i)
+            self.assertEqual((e[i]["mode"], e[i]["effects"], e[i]["roles"]["club"]["verified"]), ("read", ["read"], "live"), i)
+            self.assertTrue(e[i]["params"][0]["required"] and "default" not in e[i]["params"][0], i)
+        self.assertEqual(e["member.notes"]["data"], "sensitive")
+        self.assertEqual(e["member.notes"]["operations"][0]["label"], "Add Note")
+        a = e["member.archive"]
+        self.assertEqual((a["mode"], a["effects"], a["roles"]["club"]["verified"]), ("guided", ["write"], "none"))
+        self.assertRegex(a["confirm"], r"explicit yes")
+        for i in ("member.addresses", "member.entries", "member.comm_prefs", "member.learning_academy.results", "member.learning_academy.access"):
+            self.assertNotIn("club", e[i]["roles"], i)
+        self.assertIn("member.archive", next(g for g in d["coverage"]["gaps"] if g["id"] == "G9")["entries"])
+
+    def test_a_club_role_must_name_the_member(self):
+        refused = cli("js", "member.profile_tabs", "--role", "club")
+        self.assertEqual(refused.returncode, 2)
+        self.assertIn("--param cid=", refused.stdout)
+        self.assertIn("club's own contact id", refused.stdout)
+        ok = cli("js", "member.profile_tabs", "--role", "club", "--param", "cid=42")
+        self.assertEqual(ok.returncode, 0, ok.stdout)
+        self.assertEqual(json.loads(re.search(r"\}, (\{.*\})\)", ok.stdout).group(1)), {"role": "club", "params": {"cid": "42"}})
+        self.assertEqual(cli("js", "member.notes", "--role", "club", "--param", "cid=42", "--rows", "0").returncode, 0)
+        self.assertEqual(cli("js", "member.notes", "--role", "club", "--param", "cid=42", "--rows", "5").returncode, 2, "sensitive rows need fields")
+        self.assertEqual(cli("js", "member.archive", "--role", "club", "--param", "cid=42").returncode, 2, "a write is never a snippet")
+        self.assertEqual(cli("js", "member.profile_tabs").returncode, 0, "the personal role keeps its default")
+
+
 if __name__ == "__main__":
     unittest.main()

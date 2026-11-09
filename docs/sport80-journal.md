@@ -274,3 +274,34 @@ is this repository: `sport80` ships inside the one `skill-craft` plugin (`skill-
   release tree after the cut and before the push.
 - **Still open, the owner's call.** G9 (a club member's tabs through the club role) is unverified; it needs the owner to name a
   member and a tab. Gaps G1 to G8 and the scope unknowns stand as recorded.
+- **Follow-up, same day.** CI for the release commit's full run failed in its `core` job, as F20 predicted. A whole core group run
+  on a clean checkout of the fixed `main` passed: 59 of 59 suites in 762.9 s wall (slowest: plan-dispatcher-mutants 529.6 s), so
+  the failure was that one assertion.
+
+## Round 6 - the club view of a member record, checked on the owner's own (2026-11-08)
+
+The owner answered "Yes, verify it" to the offer to verify the club view of one member's tabs, without naming a member. I chose
+the least intrusive subject, the owner's own record (nobody else's data), told the owner so before reading, and read it through
+the club role with the shipped runtime pasted into a signed-in tab (the session was still alive, so no credential request).
+Reads: the tab list, then counts only (`maxRows` 0) of tables. Archive Member was not requested. Evidence:
+`docs/evidence/sport80-clubtabs-20261108/summary.json`.
+
+- **F21 firm.** Through the club role the owner's own record lists 17 tab entries (15 top-level plus the two Results & Rankings
+  sub-tabs), the same count as under the personal role but a different set. Club-only: Background Screening Due Payment, REPS
+  Membership, Additional Trackings, Notes, Archive Member. Absent from the club view: Access USAW Learning Academy, USAW Learning
+  Academy Results, Addresses, Entries, Communication Preferences. This is the owner's Round 4 point, that the club account shows
+  different options from the personal one. It corrects my build, which had marked four of the five absent tabs (Learning Academy
+  Results, Addresses, Entries, Communication Preferences) as present under the club role without evidence
+  (c1c1cf5b638e5c1bafe06820163a40951baf794b).
+- **F22 firm.** The tab list resolves through the club role, and Memberships (total 1) and Results (total 2) read through it with
+  the same totals as the personal role. The four club-only read tabs resolve with 0 rows: three add-on tables (one endpoint,
+  different category) and Notes (its own endpoint, with an Add Note top button, a write). Archive Member is an AjaxContainer on an
+  archive endpoint; only its listed URL shape (path and parameter names) is known.
+- **F23 firm (design).** With a club role the default `cid` (`role.cid`) is the club's own contact id, not a member's, so a
+  member read run as `--role club` without `--param cid=` would silently read the club's contact. `sport80 js` now refuses it and
+  points to `members.quick_search`; the personal role keeps its default; the new club-only entries have no default at all.
+- **Not done.** Notes contents, any other member's record, and the tab set for other kinds of record (a minor, a coach), which may
+  differ. Archive Member and Add Note are guided writes and stay unexercised. G9 is reworded, not closed.
+- **Decision.** Catalogue 114 to 119 entries (four club-only reads, one guided write); `member.profile_tabs`, `member.memberships` and
+  `member.results` verified live for the club role with the scope noted; four personal-only tabs lose their unproven club role; the
+  card, `references/access.md` and `references/safety.md` say it; two tests; shipped as a patch note.

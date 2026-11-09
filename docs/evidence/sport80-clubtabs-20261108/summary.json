@@ -1,0 +1,29 @@
+{
+  "recorded": "2026-11-08",
+  "subject": "the owner's own member record, read through the club role; no other member",
+  "method": "the shipped runtime.js pasted into a signed-in portal tab; the tab list, then tables with maxRows 0 (counts only); each read repeated under the personal role as a control",
+  "club_roles_on_the_login": 1,
+  "tab_list": {
+    "club_entries": 17,
+    "personal_entries": 17,
+    "only_in_club_view": ["Background Screening Due Payment", "REPS Membership", "Additional Trackings", "Notes", "Archive Member"],
+    "only_in_personal_view": ["Access USAW Learning Academy", "USAW Learning Academy Results", "Addresses", "Entries", "Communication Preferences"]
+  },
+  "totals": {
+    "memberships": {"club": 1, "personal": 1},
+    "results": {"club": 2, "personal": 2},
+    "background_screening_due_payment": {"club": 0},
+    "reps_membership": {"club": 0},
+    "additional_trackings": {"club": 0},
+    "notes": {"club": 0}
+  },
+  "club_only_tabs": {
+    "Background Screening Due Payment": {"kind": "s80-datatable", "endpoint": "/add_on_portal/c_add_ons_data_table", "columns": ["Background Screening Due Payment", "Status"]},
+    "REPS Membership": {"kind": "s80-datatable", "endpoint": "/add_on_portal/c_add_ons_data_table", "columns": ["REPS Membership", "Status", "Start Date", "Exp Date"]},
+    "Additional Trackings": {"kind": "s80-datatable", "endpoint": "/add_on_portal/c_add_ons_data_table", "columns": ["Additional Tracking", "Status", "From", "To", "Item"]},
+    "Notes": {"kind": "s80-datatable", "endpoint": "/api/contact/notes/datatable", "columns": ["Notes", "Type", "Date", "Added By", "Actions"], "top_buttons": ["Add Note"]},
+    "Archive Member": {"kind": "AjaxContainer", "endpoint": "/competitor_dashboard/archive_contact", "requested": false}
+  },
+  "not_done": ["any other member's record", "Notes contents", "Archive Member (a write; its URL was never requested)", "the tab set for other kinds of record (a minor, a coach)"],
+  "catalogue_after": {"entries": 119, "problems": 0}
+}
