@@ -54,8 +54,10 @@ class GitContextTests(unittest.TestCase):
         self.output = self.root / "output"
 
     def git(self, *args, root=None, data=None, check=True):
+        # Fixture commands must not start background maintenance during Git context capture.
         return subprocess.run(
-            ["git", "-C", str(root or self.repo), *args], env=self.env, input=data,
+            ["git", "-C", str(root or self.repo), "-c", "maintenance.auto=false", *args],
+            env=self.env, input=data,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=check, timeout=15,
         )
 
