@@ -30,7 +30,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 
 <!-- skill-craft:inventory:start -->
 
-**24 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
+**25 skills.** Generated from skill frontmatter by `scripts/sync-plugin-views.sh`.
 
 | Skill | Version | Purpose |
 |-------|---------|---------|
@@ -50,6 +50,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | [prompt-audit](skills/prompt-audit/SKILL.md) | 0.1.2 | Audit an agent or skill prompt file for internal inconsistencies (phase numbering, behavioral contracts, terminology, stale references). Produces a Q&A with info-gain scores, a… |
 | [prompt-migrate](skills/prompt-migrate/SKILL.md) | 0.1.2 | TDD-based prompt migration — given a target agent/skill prompt and a remediation list, writes failing tests first, then updates the prompt to make them pass. Commits remain… |
 | [prompt-refine](skills/prompt-refine/SKILL.md) | 0.1.2 | Full prompt-improvement workflow — runs prompt-audit to find inconsistencies, presents a remediation plan, then runs prompt-migrate to apply fixes and prompt-align to verify… |
+| [pushpress](skills/pushpress/SKILL.md) | 0.1.0 | Sign in to and navigate PushPress Core, the gym-management system, through the owner's signed-in browser: members and leads, memberships and plans with recurring billing,… |
 | [review-coverage](skills/review-coverage/SKILL.md) | 0.3.3 | Add a post-ship improve-to-exhaustion directive to a plan, or run that directive after implementation. Invoke like any skill: /review-coverage, "review-coverage on this plan",… |
 | [review-fix-bench](skills/review-fix-bench/SKILL.md) | 0.1.2 | Compare two code-review prompt versions against supplied fixture ground truth using an explicitly configured external benchmark runner. Reports an F1-based verdict only when the… |
 | [rubric-eval](skills/rubric-eval/SKILL.md) | 0.1.0 | Evaluate a prompt change against a rubric over a scenario catalog: run arms on a subject model (Grok by default), grade blind with one evidence-first judge, and decide by… |
