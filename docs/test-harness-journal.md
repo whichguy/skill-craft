@@ -224,7 +224,62 @@ first tip `d33177a13c863a89525e12be85571d7498b6d49d` and again against its later
 merged the first two files cleanly, because the lines were placed apart, and conflicted only in `test/test-groups.test.py`,
 where both change the same two count assertions. The counts on the second merged tree are core 61 and total 203. Releases are
 serial and each bumps the one plugin version: with the other candidate on `main`, `release.py --dry-run` here reports
-`skill-craft 2.35.10 -> 2.35.11`.
+`skill-craft 2.35.10 -> 2.35.11` (superseded 2026-11-08: a third release landed on `main` before this one; see Round 7).
+
+## Round 7 - publication (2026-11-08)
+
+The owner answered "Publish" in chat to the report that closed Round 6. That is the explicit instruction the request called for,
+and it covers this skill only. The release followed the repository's checklist: merge the current `origin/main`, preview, cut,
+qualify the release tree, then one guarded, non-forced push of the frozen release commit.
+
+**Main moved a third time while the branch waited.** It gained the next skill's feature commit, that skill's release
+(`67f8bd77989ae0dc1017dea19b613109822e1b98`, skill-craft 2.36.0) and two docs-only publication records; the tip was
+`57dd76f396314f74ac03cab9f540a9f282ce4c29`. It was merged in as `011949df0675afede3ae04bf541ea7149a24c343`. Since the merge base
+this branch had changed 28 files and `main` 34, and no file is on both lists (`git diff --name-only` and `comm`, each list with a
+control); the three shared test files were not touched upstream, so the counts stay core 61 and total 203. The simulated merge
+made beforehand predicted tree `aabf014a812e5b02c07871be63885b652f3c9f0a`, and the merge produced exactly that tree.
+
+**The cut.** `python3 -B scripts/release.py --dry-run` on the merged tree (exit 0) printed
+`test-harness 0.1.0 -> 0.1.0 (1 note(s))` and `skill-craft 2.36.0 -> 2.36.1` and nothing else, so no other skill and no output
+drift rode along. `python3 -B scripts/release.py` (exit 0) made one commit, `ff0ba75549f747ba79e4fa50053db041c47902e3` (tree
+`cace7f7042463f417e3f8c1786728fdc85e400ad`, parent the merge above), subject `release: skill-craft 2.36.1, test-harness 0.1.0`,
+trailer `Skill-Craft-Release: skill-craft@2.36.1, test-harness@0.1.0`. It consumed `changes/test-harness/initial.md` and wrote 25
+files under `plugins/skill-craft`, the three host catalogs, the plugin version, the README inventory (26 skills) and the
+changelog. The published copy of the skill is byte-identical to the folder that was read and scanned (`diff -rq`, 21 files).
+
+**Checks on the release tree, before the push.** Each exit code was read from the runner's own record, not through a pipe; the
+1-minute load was 5.8 before and 6.5 after.
+
+| Check | Result |
+|---|---|
+| `bash scripts/sync-plugin-views.sh --check` | exit 0, 2 s |
+| `python3 -B scripts/check-marketplace-packages.py` | exit 0, under 1 s (offline payload validation only) |
+| `python3 -B scripts/check-release-boundary.py --base origin/main` | exit 0, 5 s |
+| `python3 -B test/test-groups.test.py` | exit 0, 64 tests OK, 14 s |
+| `node test/skill-frontmatter.test.js` | exit 0, PASS 26 skills |
+| `python3 -B test/test-harness.test.py` | exit 0, 8 tests OK, 67 s |
+
+The wrapper passes on the release tree, where the change note is already consumed. It never asserts the note
+(`f7b66f577ea5f656dd21971ddf42cfa364463e18`), and only a run on the release tree could have caught such an assertion, so this
+run is the proof.
+
+**The push.** One run of `scripts/release-push.py` without force, with the same six commands as `--check`s and three literal
+values read after the cut: head `ff0ba75549f747ba79e4fa50053db041c47902e3`, tree `cace7f7042463f417e3f8c1786728fdc85e400ad`,
+base `57dd76f396314f74ac03cab9f540a9f282ce4c29` (which `git ls-remote` had just confirmed was the live remote `main`). All six
+checks passed again on the frozen candidate and the helper reported `pushed`, range `57dd76f3..ff0ba755` on `main`. Afterwards
+`git ls-remote` of the remote `main` printed the release commit, the local ref and `HEAD` agreed after a fetch, and the worktree
+was clean, ignored files included. Eight commits arrived together: the feature commit, three merges, three docs commits and the
+release commit.
+
+**Not done.** No host was refreshed: step 5 of the release checklist has installers refresh, so the owner's installed copies stay
+at the previous plugin version until they do. The owner's separate private copy of this skill was not touched. The push run of the
+repository's CI for the release commit had passed its `release-boundary`, `plan` and `browser-fixtures` jobs and had six jobs
+still running (core, python-floor, three shiploop shards, e2e-apparatus) when this was recorded; it was not waited on.
+
+**Superseded by this round.** Rounds 5 and 6 quote `skill-craft 2.35.10 -> 2.35.11` for the dry run on the second merged tree.
+The plugin version a dry run prints depends on what `main` has released before the cut, not on the candidate: it was
+`2.35.7 -> 2.35.8`, then `2.35.9 -> 2.35.10`, then `2.35.10 -> 2.35.11`, and finally `2.36.0 -> 2.36.1`. The skill's own `0.1.0`
+is the only version that did not move.
 
 ## Findings register
 
@@ -248,6 +303,7 @@ serial and each bumps the one plugin version: with the other candidate on `main`
 | F16 | macOS-only `open` and a hidden ripgrep dependency. | firm | Round 3 |
 | F17 | 34 of the self-test's recorded checks are unconditional markers after heredoc checks that already abort on failure. | interim | Round 3 |
 | F18 | Two source defects a generic user meets: the YAML glob key, and a fix-loop branch name that is invalid for a folder name with a space. | firm | Round 3 |
+| F19 | The plugin version a dry run prints depends on what `main` has released before the cut, not on the candidate: it changed four times while the branch waited, and the skill's own version is the only stable figure. | firm | Rounds 5 to 7; evidence `published.plugin_version_by_dry_run_while_waiting` |
 
 ## Not verified, and decisions left to the owner
 
@@ -260,4 +316,9 @@ serial and each bumps the one plugin version: with the other candidate on `main`
   no repository by itself.
 - The removals in F5 to F9 and F11 change behaviour relative to the private copy this was taken from. A project that relied
   on one of those adapters pins its suite with `.test-harness.yml`.
-- Publication: nothing was released, pushed or merged by this work.
+- Publication: nothing was released, pushed or merged by this work. **Superseded 2026-11-08**: the owner said "Publish" and the
+  release was pushed (Round 7); the line was true while the branch waited.
+- Decisions, as published: the owner said "Publish" without asking for changes, so the removals in F5 to F9 and F11, and the
+  source commit hash and the process details in this journal and the evidence file, are in the published tree as they stood.
+- After the push: no installed host ran the published version, so what a user receives from a marketplace refresh is unverified
+  here beyond the offline package checks, and the CI result for the release commit was not awaited.
