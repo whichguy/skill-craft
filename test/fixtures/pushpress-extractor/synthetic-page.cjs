@@ -6,6 +6,7 @@
 
 const cat = (...parts) => parts.join('');
 const hex = n => cat('9f3c', String(n).padStart(8, '0'));                 // 12 hex characters, like a record id tail
+const hexN = (n, width) => cat('9f3c', String(n).padStart(width, '0'));   // 4 + width hex characters: ids of other lengths test the id pattern's boundary
 const mail = (local, host = 'fixture.invalid') => cat(local, '@', host);
 const phone = n => cat('(555) 010-', String(100 + n).padStart(4, '0'));
 const digits = s => s.replace(/\D/g, '');
@@ -18,17 +19,21 @@ const INJECTION_MARKER = 'text every member';
 const COMBO = { gender: 'Platypus', role: 'Wombat' };                    // selected values shown as combobox button text
 
 let counter = 0;
+// a number typed without a separator after the area code's closing parenthesis: the extractor's phone pattern does not match it (a recorded known gap)
+const gapPhone = n => { const g = cat('555', '011', String(100 + n).padStart(4, '0')); return { gapDigits: g, gapText: cat('(', g.slice(0, 3), ')', g.slice(3, 6), '-', g.slice(6)) }; };
 function person(key, first, last) {
   counter += 1;
   return {
     key, first, last, full: first + ' ' + last, id: 'usr_' + hex(counter),
-    inv: 'inv_' + hex(counter + 400), lead: cat('lead-', last.toLowerCase().replace(/[^a-z]/g, ''), 'x'),   // an invoice id; a person id that is not hex
+    inv: 'inv-' + hexN(counter + 400, 6), lead: cat('lead-', last.toLowerCase().replace(/[^a-z]/g, ''), 'x'),   // an invoice id (10 hex, hyphen prefix); a person id that is not hex
+    ...gapPhone(counter),
     email: mail(slug(first + '.' + last).replace(/-/g, '.')), phone: phone(counter), dob: cat('2012', '-04-', String(10 + counter)),
   };
 }
 
 const STAFF = person('staff', 'Hortensia', 'Blackwood');
-const PLAN_ID = 'plan_' + hex(900);                                         // a record id on a page that is not a person's
+const PLAN_ID = 'plan_' + hexN(900, 7);                                     // a record id (11 hex) on a page that is not a person's
+const EXT_ID = cat('cus_', 'Nffr', 'FeUfNV', '2Hib');                       // an id in the path of a link to another site (not hex)
 
 // name shapes the extractor has to survive; `style` says how the page renders the heading
 const OWNERS = [
@@ -42,6 +47,7 @@ const OWNERS = [
   ['stacked', 'Perpetua', 'Drummond', 'stacked'],                          // heading is two blocks; the page title reads "Last, First"
   ['titleonly', 'Isadora', 'Pemberthwaite', 'noinputs'],                   // a billing tab: the name is in the title and the heading, and no input holds it
   ['shared', 'Rose', 'Hatherleigh', 'plain'],                              // the guardian shares the first name ("Rose"): the longer name must be scrubbed first
+  ['nickname', 'Winifred (Winnie)', 'Cartwright-Boyce', 'plain'],          // a name with parentheses: the scrub has to escape it
 ];
 const GUARDIANS = [
   ['Rosalind', 'Tuckerbottom'], ['Cornelius', 'Applewhite'], ['Philippa', 'Gooseberry'], ['Barnaby', 'Thistlewood'],
@@ -49,6 +55,7 @@ const GUARDIANS = [
   ['Octavia', 'Brambleton'], ['Percival', 'Dunmore'], ['Clementine', 'Ashworth'], ['Tobias', 'Fernsby'],
   ['Henrietta', 'Loxley'], ['Evander', 'Holloway'], ['Seraphina', 'Wickersham'], ['Gideon', 'Crabtree'],
   ['Anselm', 'Quiggley'], ['Theodora', 'Winterbourne'], ['Rupert', 'Ashcombe'], ['Delphine', 'Marchmont'],
+  ['Hyacinth', 'Pemberley'], ['Leopold', 'Fairweather'],
 ];
 
 const SCENARIOS = OWNERS.map(([key, first, last, style], i) => ({
@@ -72,7 +79,8 @@ const GROUPS = {
 const hrefOf = (group, label) => label === 'Class types' ? '/schedule/class-types' : '/' + slug(group) + '/' + slug(label);
 const TOP = [['Dashboard', '/dashboard'], ['People', '/people'], ['Calendar', '/calendar'],
   [STAFF.full, 'mailto:' + STAFF.email], [STAFF.full, 'tel:' + digits(STAFF.phone)], ['Pinned plan', '/plans/' + PLAN_ID],
-  ['Reach ' + STAFF.email, '/reports/contacts']];            // a plain link whose text carries an address: only the text mask protects it
+  ['Reach ' + STAFF.email, '/reports/contacts'],            // a plain link whose text carries an address: only the text mask protects it
+  [SCENARIOS[1].owner.full, '/people/' + slug(SCENARIOS[1].owner.full)]];   // a recently viewed person, by a name-slug path
 // what sidebar() should print once the groups are opened: one GROUP line per group, one LINK line per link at the left edge
 const SIDEBAR = {
   expanded: { groups: Object.keys(GROUPS).length, links: 1 + TOP.length + Object.values(GROUPS).reduce((n, g) => n + g.length, 0) },
@@ -151,9 +159,10 @@ function personMain(s, p) {
 <button type="button" role="combobox" aria-label="Gender">${COMBO.gender}</button><button type="button" role="combobox">${COMBO.role}</button></section>
 <section><h2>Family</h2>
 <div><h3>${esc(ga.full)}</h3><a href="/user/${ga.id}">${esc(ga.full)}</a> <a href="mailto:${ga.email}">${ga.email}</a> <a href="tel:${digits(ga.phone)}">${ga.phone}</a>
-<label>Guardian name <input type="text" value="${esc(ga.full)}"></label><label>Guardian email <input type="text" value="${esc(ga.email)}"></label></div>
+<h4>Family (${esc(ga.full)})</h4><h4>Guardian:${esc(o.first)}</h4>
+<label>Guardian name <textarea>${esc(ga.full)}</textarea></label><label>Guardian email <input type="text" value="${esc(ga.email)}"></label></div>
 <div><h3>${esc(gb.full)}</h3><a href="/user/${gb.id}">${esc(gb.full)}</a> <a href="mailto:${gb.email}">${gb.email}</a> <span>Phone ${gb.phone}</span>
-<button type="button">Message ${esc(gb.first)}</button></div></section>
+<button type="button">Message ${esc(gb.first)}</button><label>Alt phone ${gb.gapText}</label></div></section>
 <section aria-label="Message"><p>${INJECTION}</p></section>
 <button type="button">Edit ${esc(o.full)}</button> <button type="button">Save</button> <button type="button">Add sub-account for ${esc(o.full)}</button>
 <table><thead><tr><th>Date</th><th>Class</th></tr></thead><tbody><tr><td>${esc(o.full)}</td><td>Open gym</td></tr></tbody></table>
@@ -179,11 +188,14 @@ function classTypesMain() {
 function paymentsMain() {
   const rows = SCENARIOS.slice(0, 3).map(s => { const o = s.owner;
     return `<tr><td><a href="/payments/invoices/${o.inv}">${esc(o.full)}</a></td>` +
-      `<td><a href="mailto:${o.email}">${esc(o.full)}</a> <a href="tel:${digits(o.phone)}">${esc(o.full)}</a></td>` +
+      `<td><a href="mailto:${o.email}">${esc(o.full)}</a> <a href="tel:${digits(o.phone)}">${esc(o.full)}</a> <a href="sms:${digits(o.phone)}">${esc(o.full)}</a></td>` +
       `<td><a href="/people/${slug(o.full)}">${esc(o.full)}</a> <a href="/user/${o.lead}">${esc(o.full)}</a> <a href="/payments/payments?email=${o.email}&amp;q=x">Filter</a></td></tr>`; }).join('');
   const o = SCENARIOS[0].owner;                                              // an address in a column header, a number in a tab, an address as the text of a plain link
   return `<main><h1>Payments</h1><div role="tablist"><button role="tab">Open</button><button role="tab">${o.phone}</button></div>` +
-    `<table><thead><tr><th>Customer</th><th>Amount</th><th>Status</th><th>Contact ${o.email}</th></tr></thead><tbody>${rows}</tbody></table><a href="/reports/contacts">${o.email}</a></main>`;
+    `<table><thead><tr><th>Customer</th><th>Amount</th><th>Status</th><th>Contact ${o.email}</th></tr></thead><tbody>${rows}</tbody></table><a href="/reports/contacts">${o.email}</a>` +
+    `<a href="https://dashboard.example.invalid/customers/${EXT_ID}">Open in the payment dashboard</a>` +
+    `<input type="text" aria-label="Call ${o.phone}"><input type="checkbox" aria-label="Email ${o.email}">` +
+    `<button type="button">View ${esc(o.full)}</button> <button type="button">Delete ${esc(o.full)}</button> <button type="button">Remove ${esc(o.full)}</button> <button type="button">Open ${esc(o.full)}</button></main>`;
 }
 
 function planMain() {
@@ -209,4 +221,4 @@ function render(pathname) {
   return null;
 }
 
-module.exports = { COMPANY, STAFF, PLAN_ID, SCENARIOS, SIDEBAR, TOKENS_URL, COMBO, INJECTION, INJECTION_MARKER, GROUPS, render, slug, digits };
+module.exports = { COMPANY, STAFF, PLAN_ID, EXT_ID, SCENARIOS, SIDEBAR, TOKENS_URL, COMBO, INJECTION, INJECTION_MARKER, GROUPS, render, slug, digits };

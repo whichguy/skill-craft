@@ -65,6 +65,7 @@ const CASES = [
 const GAP_NOTE = {
   'guardianB.name': 'a second person shown only as plain text (a heading, a button label) is not scrubbed: scrub takes input values and a multi-word page title only',
   'guardianB.first': 'same gap: a first name inside a button label the masks do not match',
+  'guardianB.phone-shape': 'a phone number typed without a separator after the closing parenthesis, "(nnn)nnn-nnnn", is not matched by the text mask (also "nnn nnnnnnn", "nnn/nnn/nnnn" and "+nn nn nnnn nnnn"; fixture/phone-shape-probe.json)',
   'url.query-key': 'p records query KEYS verbatim and scrub skips p, so a name used as a query key reaches the output',
   'url.fragment': 'p appends location.hash verbatim and scrub skips p, so a name in a fragment reaches the output',
 };
@@ -75,7 +76,8 @@ const phoneToks = (label, p) => [tok(label, p, 'sub'), tok(label + '.digits', si
 function tokensFor(c) {
   const contract = [], gap = [];
   const staff = site.STAFF;
-  contract.push(tok('staff.name', staff.full), tok('staff.first', staff.first), tok('staff.last', staff.last), tok('staff.email', staff.email, 'sub'), tok('nav.plan', site.PLAN_ID, 'sub'));
+  contract.push(tok('staff.name', staff.full), tok('staff.first', staff.first), tok('staff.last', staff.last), tok('staff.email', staff.email, 'sub'), tok('nav.plan', site.PLAN_ID, 'sub'),
+    tok('nav.person', site.SCENARIOS[1].owner.full), tok('nav.person.slug', site.slug(site.SCENARIOS[1].owner.full), 'sub'));
   if (c.kind === 'person') {
     const o = c.s.owner, a = c.s.guardianA, b = c.s.guardianB;
     contract.push(tok('owner.full', o.full), tok('owner.first', o.first), tok('owner.last', o.last), tok('owner.email', o.email, 'sub'),
@@ -84,7 +86,7 @@ function tokensFor(c) {
       tok('guardianA.name', a.full), tok('guardianA.last', a.last), tok('guardianA.email', a.email, 'sub'), ...phoneToks('guardianA.phone', a.phone),
       tok('guardianB.email', b.email, 'sub'), ...phoneToks('guardianB.phone', b.phone),
       tok('injection', site.INJECTION_MARKER, 'sub'));
-    if (c.s.style !== 'noinputs') gap.push(tok('guardianB.name', b.full), tok('guardianB.first', b.first));      // a billing tab has no family section
+    if (c.s.style !== 'noinputs') gap.push(tok('guardianB.name', b.full), tok('guardianB.first', b.first), tok('guardianB.phone-shape', b.gapDigits, 'digits'));      // a billing tab has no family section
     for (const [k, v] of Object.entries(c.extra || {})) contract.push(tok(k, v, 'sub'));
     for (const [k, v] of Object.entries(c.gap || {})) gap.push(tok(k, v, 'sub'));
     // the heading itself belongs to this person only when the extractor is asked about the guardian's own page; not used here
@@ -100,6 +102,7 @@ function tokensFor(c) {
       contract.push(tok(k + '.full', o.full), tok(k + '.first', o.first), tok(k + '.last', o.last), tok(k + '.email', o.email, 'sub'), ...phoneToks(k + '.phone', o.phone),
         tok(k + '.invoice', o.inv, 'sub'), tok(k + '.slug', site.slug(o.full), 'sub'), tok(k + '.lead', o.lead, 'sub'));
     }
+    contract.push(tok('pay.ext', site.EXT_ID, 'sub'));
   } else if (c.kind === 'plan') {
     contract.push(tok('plan.id', site.PLAN_ID, 'sub'));
   }
@@ -144,7 +147,8 @@ function structureProblems(c, r) {
     miss('h', ['Class types']);
   } else if (c.kind === 'payments') {
     miss('th', ['Customer', 'Amount', 'Status']);
-    for (const want of ['<item> -> /payments/invoices/<id>', '<item> -> <contact>', '<item> -> /people/<id>', '<item> -> /user/<id>', 'Filter -> /payments/payments [q:email,q]']) {
+    miss('btn', ['View <item>', 'Delete <item>', 'Remove <item>', 'Open <item>']);
+    for (const want of ['<item> -> /payments/invoices/<id>', '<item> -> <contact>', '<item> -> /people/<id>', '<item> -> /user/<id>', 'Filter -> /payments/payments [q:email,q]', 'Open in the payment dashboard -> EXT dashboard.example.invalid']) {
       if (!(r.a || []).includes(want)) p.push(`a lacks the entry ${want}`);
     }
   } else if (c.kind === 'plan') {
@@ -154,6 +158,7 @@ function structureProblems(c, r) {
   // every page has exactly one unnamed icon-only button (an empty one in the top bar); the sidebar toggle is named by its aria-label
   if ((r.icons || 0) !== 1) p.push(`icon-only button count is ${r.icons || 0}, expected 1`);
   if (r.btn && r.btn.some(b => b === site.COMPANY)) p.push('the company switcher button was not filtered after __pp.company()');
+  if (r.btn && r.btn.some(b => ['Search', 'Toggle Assistant', 'Product updates', 'Support and updates'].includes(b))) p.push('a top-bar button was listed as page content');
   if (r.btn && r.btn.some(b => /^(collapse|expand|toggle) sidebar$/i.test(b))) p.push('a sidebar toggle button was listed as page content');
   return p;
 }
@@ -170,6 +175,7 @@ function sidebarProblems(vp, side) {
   const contactLines = lines.filter(l => l === 'LINK  <item>  ->  <contact>').length;
   if (contactLines !== 2) p.push(`contact links were not masked in the sidebar (${contactLines} of 2)`);
   if (!lines.includes('LINK  <item>  ->  /plans/<id>')) p.push('the sidebar link whose path holds a record id was not masked');
+  if (!lines.includes('LINK  <item>  ->  /people/<id>')) p.push('the sidebar link to a person by name slug was not masked');
   // the result comes back inline only while it is short enough (2000 characters) to survive the tool's output cap
   const isLong = lines.join('\n').length > 2000;
   if (!vp.collapsed && !isLong) p.push('the fixture sidebar is too short to exercise the long-result path');

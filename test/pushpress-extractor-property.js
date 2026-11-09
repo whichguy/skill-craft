@@ -100,7 +100,7 @@ function rng(seed) {
 }
 
 // ---- synthetic people -----------------------------------------------------------------------------------------------------
-const FIRST = ['Zephyra', 'Anne-Marie', 'Daithi', 'José', 'Li', 'Mark', 'Will', 'Grace', 'Rose', 'Hope', 'Pat', 'Dawn', 'Sue', 'Amber', 'Hunter', 'Cash', 'Bill', 'Jack', 'Max', 'Noor', 'Ana', 'Ty', 'Bo', 'Ottoline', 'Perpetua', 'Rosalind', 'Cornelius', 'Philippa'];
+const FIRST = ['Zephyra', 'Anne-Marie', 'Daithi', 'José', 'Li', 'Mark', 'Will', 'Grace', 'Rose', 'Hope', 'Pat', 'Dawn', 'Sue', 'Amber', 'Hunter', 'Cash', 'Bill', 'Jack', 'Max', 'Noor', 'Ana', 'Ty', 'Bo', 'Ottoline', 'Perpetua', 'Rosalind', 'Cornelius', 'Philippa', 'Margaret (Peggy)'];
 const LAST = ['Quillfeather', 'Wolfeschlegel-Stein', "O'Brannigan", 'Peña', 'Xu', 'Page', 'Stone', 'Fields', 'Bell', 'Young', 'Hill', 'King', 'Cook', 'Love', 'Sharp', 'Drummond', 'Ng', 'Yu', 'Mann', 'Tuckerbottom', 'Applewhite', 'Gooseberry'];
 let seq = 0, idSeq = 0;
 const cat = (...p) => p.join('');
@@ -117,6 +117,7 @@ function person(R, taken) {                                                  // 
     email: cat('p', seq, '.fixture', '@', 'example', '.invalid'), digits: d,
     phones: [`(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`, `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`, `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`, `+1 ${d.slice(0, 3)} ${d.slice(3, 6)} ${d.slice(6)}`, d],
     dob: cat('20', '12-', '04-', String(10 + (seq % 18))),
+    gapDigits: cat('555', '011', tail), gapText: cat('(555)', '011-', tail),   // typed without a separator after the closing parenthesis: not matched by the text mask (a known gap)
   };
 }
 
@@ -149,7 +150,8 @@ function generate(R) {
   const owner = person(R, taken), ga = person(R, taken), gb = person(R, taken), others = [person(R, taken), person(R, taken), person(R, taken)];
   const staff = person(R, taken);
   const pathIds = [];                                                        // record ids that the page's own path holds (P5)
-  const idTail = () => '9f3c' + String(++idSeq).padStart(8, '0');            // twelve hex characters, like a record id's tail
+  const idTail = () => '9f3c' + String(++idSeq).padStart(6 + R.int(5), '0');  // a record id's tail of 10 to 14 hex characters, so the id pattern's lower bound is exercised
+  const sep = () => R.pick(['_', '-']);
   const els = [], contract = [], structural = [], hidden = [];
   const sideW = R.pick([255, 240, 281, 300]), haveNav = R.chance(0.7);
   const edge = haveNav ? sideW : 290;
@@ -167,12 +169,13 @@ function generate(R) {
   }
   for (const o of others) {
     if (R.chance(0.4)) { els.push(el({ tag: 'A', text: o.full, sel: ['a[href]'], attrs: { href: '/user/' + o.id }, left: 20, width: 150 })); side.contract.push(['sub', o.full]); }
+    if (R.chance(0.3) && slug(o.full).length >= 8) { els.push(el({ tag: 'A', text: o.full, sel: ['a[href]'], attrs: { href: '/people/' + slug(o.full) }, left: 20, width: 150 })); side.contract.push(['sub', o.full], ['sub', slug(o.full)]); }
     if (R.chance(0.3)) { els.push(el({ tag: 'A', text: o.email, sel: ['a[href]'], attrs: { href: 'mailto:' + o.email }, left: 20, width: 150 })); side.contract.push(['sub', o.email]); }
     if (R.chance(0.3)) { els.push(el({ tag: 'A', text: R.pick(o.phones), sel: ['a[href]'], attrs: { href: 'tel:' + o.digits }, left: 20, width: 150 })); side.contract.push(['digits', o.digits]); }
     if (R.chance(0.3)) { els.push(el({ tag: 'A', text: 'Reach ' + o.email, sel: ['a[href]'], attrs: { href: '/reports/contacts' }, left: 20, width: 150 })); side.contract.push(['sub', o.email]); }
   }
   // the staff member's contact links (the text is a name) and a link whose path holds a record id: the sidebar must mask both
-  const planId = 'plan_' + idTail();
+  const planId = 'plan' + sep() + idTail();
   els.push(el({ tag: 'A', text: staff.full, sel: ['a[href]'], attrs: { href: 'mailto:' + staff.email }, left: 20, width: 150 }));
   els.push(el({ tag: 'A', text: staff.full, sel: ['a[href]'], attrs: { href: 'tel:' + staff.digits }, left: 20, width: 150 }));
   els.push(el({ tag: 'A', text: 'Pinned plan', sel: ['a[href]'], attrs: { href: '/plans/' + planId }, left: 20, width: 150 }));
@@ -212,7 +215,7 @@ function generate(R) {
   // values that must never come back, on any page: other people in masked shapes, emails and phones
   for (const o of others) {
     if (R.chance(0.7)) { add('sw', { attrs: { 'aria-label': 'Select ' + o.full }, type: 'checkbox', sel: ['input', 'input[type=checkbox]'] }); contract.push(['sub', o.full]); }
-    if (R.chance(0.6)) { add('btn', { text: 'Edit ' + o.full }); contract.push(['sub', o.full]); }
+    if (R.chance(0.6)) { add('btn', { text: R.pick(['Edit', 'View', 'Delete', 'Remove', 'Open']) + ' ' + o.full }); contract.push(['sub', o.full]); }
     if (R.chance(0.5)) { add('btn', { text: 'Add sub-account for ' + o.full }); contract.push(['sub', o.full]); }
     if (R.chance(0.6)) { add('a', { attrs: { href: '/user/' + o.id }, text: o.full }); contract.push(['sub', o.full]); }
     if (R.chance(0.5)) { add('a', { attrs: { href: 'mailto:' + o.email }, text: o.email }); contract.push(['sub', o.email]); }
@@ -222,8 +225,13 @@ function generate(R) {
     if (R.chance(0.4)) { add('btn', { text: o.email }); contract.push(['sub', o.email]); }
     if (R.chance(0.3)) { add('region', { text: 'Reach ' + o.email + ' or ' + R.pick(o.phones) }); contract.push(['sub', o.email], ['digits', o.digits]); }
     // link shapes off the person routes: an invoice id, a person path that is a name slug, a person id that is not hex, contact links whose text is a name, a query that holds an address
-    if (R.chance(0.4)) { const inv = 'inv_' + idTail(); add('a', { attrs: { href: '/payments/invoices/' + inv }, text: o.full }); contract.push(['sub', o.full], ['sub', inv]); }
+    if (R.chance(0.4)) { const inv = 'inv' + sep() + idTail(); add('a', { attrs: { href: '/payments/invoices/' + inv }, text: o.full }); contract.push(['sub', o.full], ['sub', inv]); }
     if (R.chance(0.3) && slug(o.full).length >= 8) { add('a', { attrs: { href: '/people/' + slug(o.full) }, text: o.full }); contract.push(['sub', o.full], ['sub', slug(o.full)]); }
+    if (R.chance(0.3)) { const ext = 'cus_Nffr' + String(++idSeq) + 'Hib'; add('a', { attrs: { href: 'https://dashboard.example.invalid/customers/' + ext }, text: 'Open in the payment dashboard' }); contract.push(['sub', ext]); }   // an id in the path of a link to another site (not hex)
+    if (R.chance(0.3)) { add('a', { attrs: { href: 'sms:' + o.digits }, text: o.full }); contract.push(['sub', o.full]); }
+    // an input label or a toggle label that carries a number or an address: only the row mask's text part protects it
+    if (R.chance(0.3)) { add('inp', { attrs: { 'aria-label': 'Call ' + R.pick(o.phones) }, type: 'text', sel: ['input'] }); contract.push(['digits', o.digits]); }
+    if (R.chance(0.3)) { add('sw', { attrs: { 'aria-label': 'Email ' + o.email }, type: 'checkbox', sel: ['input', 'input[type=checkbox]'] }); contract.push(['sub', o.email]); }
     if (R.chance(0.2)) { const lead = 'lead-' + o.last.toLowerCase().replace(/[^a-z]/g, '') + 'x'; add('a', { attrs: { href: '/user/' + lead }, text: o.full }); contract.push(['sub', o.full], ['sub', lead]); }
     if (R.chance(0.3)) { add('a', { attrs: { href: 'mailto:' + o.email }, text: o.full }); contract.push(['sub', o.full]); }
     if (R.chance(0.3)) { add('a', { attrs: { href: 'tel:' + o.digits }, text: o.full }); contract.push(['sub', o.full]); }
@@ -235,12 +243,13 @@ function generate(R) {
   }
 
   let title = 'People | PushPress', pathname = R.pick(['/people/members', '/schedule/class-types', '/payments', '/main', '/plans/list']);
-  let gapName = null, gapExposable = false;                                    // exposable: no word of it is also a scrubbed word
+  let gapName = null, gapExposable = false, gapPhone = null;                    // exposable: no word of it is also a scrubbed word
   const secretWords = [];
-  if (!onPersonRoute && R.chance(0.25)) { const pid = idTail(); pathname = R.pick(['/plans/plan_' + pid, '/payments/invoices/inv_' + pid]); pathIds.push(pid); }
+  if (!onPersonRoute && R.chance(0.25)) { const pid = idTail(); pathname = R.pick(['/plans/plan' + sep() + pid, '/payments/invoices/inv' + sep() + pid]); pathIds.push(pid); }
   if (onPersonRoute) {
     const noInputs = R.chance(0.3);
-    pathname = R.pick(['/user/' + owner.id, '/people/' + cat('lead', '_', owner.id.slice(4)), '/user/' + owner.id]);
+    pathname = R.pick(['/user/' + owner.id, '/people/' + cat('lead', '_', owner.id.slice(4)), '/user/' + owner.id, '/people/' + slug(owner.full)]);
+    if (pathname === '/people/' + slug(owner.full)) { if (slug(owner.full).length >= 8) pathIds.push(slug(owner.full)); else pathname = '/user/' + owner.id; }   // a name slug is only masked from 8 characters on, as ids are never shorter
     const suffix = R.pick([' | PushPress', ' - PushPress', '']);
     title = noInputs || R.chance(0.7) ? owner.full + suffix : owner.last + ', ' + owner.first;
     if (noInputs) {
@@ -255,8 +264,11 @@ function generate(R) {
       }
       const field = (value, label) => els.push(el({ tag: 'INPUT', sel: ['input', 'input[type=text]'], type: 'text', value, attrs: { 'aria-label': label }, left: at() }));
       field(owner.first, 'First name'); field(owner.last, 'Last name'); field(owner.email, 'Email'); field(R.pick(owner.phones), 'Phone'); field(owner.dob, 'Date of birth');
-      field(ga.full, 'Guardian name'); field(ga.email, 'Guardian email');
+      if (R.chance(0.5)) els.push(el({ tag: 'TEXTAREA', sel: ['textarea'], type: 'textarea', value: ga.full, attrs: { 'aria-label': 'Guardian name' }, left: at() })); else field(ga.full, 'Guardian name');
+      field(ga.email, 'Guardian email');
       add('h', { text: owner.full }); add('h', { text: ga.full });
+      if (R.chance(0.4)) add('h', { text: 'Family (' + ga.full + ')' });             // the scrub's left boundary is any non-alphanumeric, not only a space
+      if (R.chance(0.4)) add('h', { text: 'Guardian:' + owner.first });
       if (R.chance(0.4)) add('h', { text: owner.full.toUpperCase() });          // innerText follows CSS text-transform: the scrub has to be case-insensitive
       add('btn', { text: 'Guardian', attrs: { role: 'combobox', 'aria-label': 'Relationship' }, sel: ['button', '[role=button]'] }); add('btn', { text: 'Wombat', attrs: { role: 'combobox' }, sel: ['button', '[role=button]'] });
       contract.push(['sub', 'Wombat']);
@@ -264,6 +276,7 @@ function generate(R) {
       add('h', { text: gb.full }); add('btn', { text: 'Message ' + gb.first }); gapName = gb.full;
       add('a', { attrs: { href: 'mailto:' + gb.email }, text: gb.email }); contract.push(['sub', gb.email], ['digits', gb.digits]);
       add('lbl', { text: 'Phone ' + R.pick(gb.phones) });
+      add('lbl', { text: 'Alt phone ' + gb.gapText }); gapPhone = gb.gapDigits;
       add('region', { text: owner.full + ' ' + gb.full });                    // must be skipped on a person route
       for (const w of [owner.first, owner.last]) secretWords.push(w);
       gapExposable = ![owner.first, owner.last, ...ga.full.split(' ')].some(w => wordRe(w).test(gb.full));
@@ -280,7 +293,7 @@ function generate(R) {
     for (let i = 0; i < extra; i++) add(f, { text: `Overflow ${f} ${i + 1}` });
     overflow.push(f);
   }
-  return { els, loc, title, contract, structural, hidden, onPersonRoute, gapName, gapExposable, edge, owner, others, ga, secretWords, rowCount, iconCount, side, overflow, pathIds };
+  return { els, loc, title, contract, structural, hidden, onPersonRoute, gapName, gapExposable, edge, owner, others, ga, secretWords, rowCount, iconCount, side, overflow, pathIds, gapPhone };
 }
 
 // ---- running and checking -------------------------------------------------------------------------------------------------
@@ -316,7 +329,7 @@ const record = (i, kind, detail) => { if (failures.length < 10) failures.push({ 
 
 (async () => {
 const R = rng(SEED);
-let stats = { pages: 0, personPages: 0, tokens: 0, structural: 0, hidden: 0, gapShown: 0, gapExposed: 0, sidebarTokens: 0, sidebarLinks: 0, overflow: 0 };
+let stats = { pages: 0, personPages: 0, tokens: 0, structural: 0, hidden: 0, gapShown: 0, gapExposed: 0, phoneGapShown: 0, phoneGapExposed: 0, sidebarTokens: 0, sidebarLinks: 0, overflow: 0 };
 for (let i = 0; i < PAGES; i++) {
   const g = generate(R);
   const { pp, dumpNodes } = install(g.els, g.loc, g.title);
@@ -351,6 +364,7 @@ for (let i = 0; i < PAGES; i++) {
   if ((out.p || '').includes(QUERY_VALUE)) record(i, 'P5 path', 'p holds a query value');
   // the recorded gap: deterministic wherever no word of the name is also scrubbed
   if (g.gapName && g.gapExposable) { stats.gapShown++; if (found([['sub', g.gapName]], s).length) stats.gapExposed++; }
+  if (g.gapPhone) { stats.phoneGapShown++; if (found([['digits', g.gapPhone]], s).length) stats.phoneGapExposed++; }   // a phone typed as "(nnn)nnn-nnnn": recorded gap
   // P6: the sidebar reader parks its lines, prints each group and ordinary link, and prints no person (the user menu is skipped)
   const ret = await pp.sidebar();
   const parked = dumpNodes[0] ? dumpNodes[0].textContent : '';
@@ -384,18 +398,27 @@ console.log(`pushpress extractor property test: ${stats.pages} pages (${stats.pe
 console.log(`  checked ${stats.tokens} planted values (P1), ${stats.structural} visible labels (P2), ${stats.hidden} labels left of the edge (P3), caps (${stats.overflow} overflow fields), rows and icons and the path field (P4, P5)`);
 console.log(`  sidebar reader (P6): ${stats.sidebarTokens} planted values and ${stats.sidebarLinks} ordinary links checked`);
 console.log(`  known gap, second person shown as plain text: reached the output on ${stats.gapExposed} of ${stats.gapShown} person pages where no word of the name is also scrubbed`);
+console.log(`  known gap, a phone number typed without a separator after the closing parenthesis: reached the output on ${stats.phoneGapExposed} of ${stats.phoneGapShown} pages that show one`);
 console.log(`  over-masking audit: ${labels.length} labels quoted in the skill's references; of ${NAME_WORDS.length} words used as names, ${masked.length} would mask at least one`);
 console.log('  worst: ' + masked.slice(0, 8).map(a => `${a.w}=${a.n}`).join(' ') + (masked.length > 8 ? ' ...' : ''));
 let bad = 0;
 if (failures.count) { bad++; console.log(`FAIL: ${failures.count} violations (${Object.entries(kinds).map(([k, n]) => k + ' ' + n).join(', ')}); first ${failures.length}:`); for (const f of failures) console.log('  page ' + f.page + ' ' + f.kind + ': ' + f.detail); }
-if (stats.gapShown && stats.gapExposed === 0) { bad++; console.log('XPASS: the known gap no longer reaches the output on any page: promote it to a property and update the journal'); }
-else if (stats.gapExposed !== stats.gapShown) { bad++; console.log('FAIL: the known gap is no longer deterministic (it reaches the output on some pages and not others): the behaviour changed'); }
+// the recorded gaps are deterministic: reaching the output on every page that shows them. None (XPASS) or only some means the behaviour changed.
+const gapVerdict = (shown, exposed, what) => {
+  if (!shown || exposed === shown) return;
+  bad++;
+  console.log(exposed === 0 ? `XPASS: ${what} no longer reaches the output on any page: promote it to a property and update the journal`
+    : `FAIL: ${what} is no longer deterministic (it reaches the output on some pages and not others): the behaviour changed`);
+};
+gapVerdict(stats.gapShown, stats.gapExposed, 'the second person shown as plain text');
+gapVerdict(stats.phoneGapShown, stats.phoneGapExposed, 'the phone number typed without a separator after the closing parenthesis');
 // counts of 100 thousand or more are written with commas, as strings, so the repository's long-number lint stays quiet about evidence files
 const big = n => (n >= 100000 ? n.toLocaleString('en-US') : n);
 if (JSON_OUT) fs.writeFileSync(JSON_OUT, JSON.stringify({
   seed: SEED, pages: stats.pages, person_route_pages: stats.personPages, planted_values_checked: big(stats.tokens), visible_labels_checked: big(stats.structural),
   labels_left_of_edge_checked: big(stats.hidden), sidebar_values_checked: big(stats.sidebarTokens), sidebar_links_checked: big(stats.sidebarLinks),
   known_gap: { exposable_person_pages: stats.gapShown, exposed: stats.gapExposed },
+  known_gap_phone_shape: { pages_showing_one: stats.phoneGapShown, exposed: stats.phoneGapExposed },
   over_masking_audit: { labels_quoted_in_references: labels.length, name_words_tried: NAME_WORDS.length, words_masking_at_least_one_label: masked.map(a => ({ word: a.w, labels: a.n })) },
   violations: failures.count || 0, first_violations: failures,
 }, null, 2) + '\n');
