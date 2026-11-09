@@ -1058,7 +1058,8 @@
     },
     "club": {
      "seen": "menu",
-     "verified": "none"
+     "verified": "live",
+     "scope": "the owner's own record and one competitor the owner named, read through the club role (2026-11-08): 17 tab entries each, the identical set, five of them club-only; no other member was read"
     }
    },
    "path": "/competitor_dashboard/profile_tabs",
@@ -1075,7 +1076,7 @@
    "source": [
     "menu:top > Members profile_url"
    ],
-   "notes": "15 tabs for the owner's own member. Needs cid; without it the endpoint returns only {success}.",
+   "notes": "15 top-level tabs for the owner's own member under the personal role (17 entries with the two Results & Rankings sub-tabs). Needs cid; without it the endpoint returns only {success}. Through the club role the same record also lists 17 entries but a different set: Background Screening Due Payment, REPS Membership, Additional Trackings, Notes and Archive Member are club-only; Addresses, Entries, Communication Preferences and both Learning Academy tabs are absent. A second record, one competitor the owner named, listed the identical club tab set. With a club role pass cid explicitly: the default is the club's own contact id.",
    "descriptor": {
     "tabs": {
      "protocol": "tabs",
@@ -1246,7 +1247,8 @@
     },
     "club": {
      "seen": "tab",
-     "verified": "none"
+     "verified": "live",
+     "scope": "owner's own record through the club role (2026-11-08): total 1, equal to the personal role's"
     }
    },
    "via": {
@@ -1708,6 +1710,171 @@
    }
   },
   {
+   "id": "member.background_screening_due_payment",
+   "title": "Background Screening Due Payment",
+   "area": "member",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "tab",
+     "verified": "live",
+     "scope": "owner's own record through the club role (2026-11-08): 0 rows; columns Background Screening Due Payment, Status"
+    }
+   },
+   "via": {
+    "tabs": "/competitor_dashboard/profile_tabs",
+    "param": "cid",
+    "match": [
+     "Background Screening Due Payment"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id"
+    }
+   ],
+   "row_actions": "unobserved",
+   "source": [
+    "tab:member.profile_tabs Background Screening Due Payment"
+   ],
+   "notes": "Club-only add-on table (the Memberships endpoint with another category); the tab's URL is resolved at run time from the profile tabs. Columns: Background Screening Due Payment, Status."
+  },
+  {
+   "id": "member.reps_membership",
+   "title": "REPS Membership",
+   "area": "member",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "tab",
+     "verified": "live",
+     "scope": "owner's own record through the club role (2026-11-08): 0 rows; columns REPS Membership, Status, Start Date, Exp Date"
+    }
+   },
+   "via": {
+    "tabs": "/competitor_dashboard/profile_tabs",
+    "param": "cid",
+    "match": [
+     "REPS Membership"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id"
+    }
+   ],
+   "row_actions": "unobserved",
+   "source": [
+    "tab:member.profile_tabs REPS Membership"
+   ],
+   "notes": "Club-only add-on table (the Memberships endpoint with another category); the tab's URL is resolved at run time from the profile tabs. Columns: REPS Membership, Status, Start Date, Exp Date."
+  },
+  {
+   "id": "member.additional_trackings",
+   "title": "Additional Trackings",
+   "area": "member",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "tab",
+     "verified": "live",
+     "scope": "owner's own record through the club role (2026-11-08): 0 rows; columns Additional Tracking, Status, From, To, Item"
+    }
+   },
+   "via": {
+    "tabs": "/competitor_dashboard/profile_tabs",
+    "param": "cid",
+    "match": [
+     "Additional Trackings"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id"
+    }
+   ],
+   "row_actions": "unobserved",
+   "source": [
+    "tab:member.profile_tabs Additional Trackings"
+   ],
+   "notes": "Club-only add-on table (the Memberships endpoint with another category); the tab's URL is resolved at run time from the profile tabs. Columns: Additional Tracking, Status, From, To, Item."
+  },
+  {
+   "id": "member.notes",
+   "title": "Notes",
+   "area": "member",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "tab",
+     "verified": "live",
+     "scope": "owner's own record through the club role (2026-11-08): 0 rows; columns Notes, Type, Date, Added By, Actions"
+    }
+   },
+   "via": {
+    "tabs": "/competitor_dashboard/profile_tabs",
+    "param": "cid",
+    "match": [
+     "Notes"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id"
+    }
+   ],
+   "row_actions": "unobserved",
+   "operations": [
+    {
+     "label": "Add Note",
+     "effects": [
+      "write"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "source": [
+    "tab:member.profile_tabs Notes"
+   ],
+   "notes": "Club-only tab on the contact notes endpoint. Columns: Notes, Type, Date, Added By, Actions. Notes a club keeps about a member: counts only unless fields are named. The Add Note button is a write: do not use it."
+  },
+  {
    "id": "member.learning_academy.results",
    "title": "Learning Academy results",
    "area": "member",
@@ -1721,10 +1888,6 @@
     "personal": {
      "seen": "tab",
      "verified": "live"
-    },
-    "club": {
-     "seen": "tab",
-     "verified": "none"
     }
    },
    "via": {
@@ -1747,7 +1910,7 @@
    "source": [
     "tab:member.profile_tabs USAW Learning Academy Results"
    ],
-   "notes": "Table headers: Course, Date, Score, Passed/Failed.",
+   "notes": "Table headers: Course, Date, Score, Passed/Failed. Not in the club role's tab list for the owner's own record (2026-11-08).",
    "descriptor": {
     "html": {
      "protocol": "html",
@@ -1785,7 +1948,8 @@
     "html": {
      "protocol": "html"
     }
-   }
+   },
+   "notes": "Not in the club role's tab list for the owner's own record (2026-11-08)."
   },
   {
    "id": "member.addresses",
@@ -1801,10 +1965,6 @@
     "personal": {
      "seen": "tab",
      "verified": "live"
-    },
-    "club": {
-     "seen": "tab",
-     "verified": "none"
     }
    },
    "path": "/api/contact/addresses/datatable",
@@ -1839,7 +1999,7 @@
    "source": [
     "tab:member.profile_tabs Addresses"
    ],
-   "notes": "Columns: type, address, latitude, longitude, primary, action.",
+   "notes": "Columns: type, address, latitude, longitude, primary, action. Not in the club role's tab list for the owner's own record (2026-11-08).",
    "descriptor": {
     "datatable": {
      "protocol": "datatable",
@@ -1874,10 +2034,6 @@
     "personal": {
      "seen": "tab",
      "verified": "live"
-    },
-    "club": {
-     "seen": "tab",
-     "verified": "none"
     }
    },
    "path": "/competitor/entries_overview",
@@ -1924,7 +2080,7 @@
    "source": [
     "tab:member.profile_tabs Entries"
    ],
-   "notes": "Columns: type, sub_type, event, event_date, region, team, items, status.",
+   "notes": "Columns: type, sub_type, event, event_date, region, team, items, status. Not in the club role's tab list for the owner's own record (2026-11-08).",
    "descriptor": {
     "datatable": {
      "protocol": "datatable",
@@ -1962,10 +2118,6 @@
     "personal": {
      "seen": "tab",
      "verified": "live"
-    },
-    "club": {
-     "seen": "tab",
-     "verified": "none"
     }
    },
    "path": "/contact_communication_preferences",
@@ -2012,7 +2164,8 @@
       "contact_email_preferences[save]"
      ]
     }
-   }
+   },
+   "notes": "Not in the club role's tab list for the owner's own record (2026-11-08)."
   },
   {
    "id": "member.results",
@@ -2031,7 +2184,8 @@
     },
     "club": {
      "seen": "tab",
-     "verified": "none"
+     "verified": "live",
+     "scope": "owner's own record through the club role (2026-11-08): total 2, equal to the personal role's; the rankings call uses the public key"
     },
     "public": {
      "seen": "tab",
@@ -2108,6 +2262,39 @@
     "tab:member.profile_tabs Results & Rankings > Rankings"
    ],
    "notes": "Seen as a sub-tab; its descriptor was not fetched."
+  },
+  {
+   "id": "member.archive",
+   "title": "Archive a member",
+   "area": "member",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "write"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "tab",
+     "verified": "none",
+     "scope": "listed in the club role's tab list for the owner's own record (2026-11-08); its URL was never requested"
+    }
+   },
+   "path": "/competitor_dashboard/archive_contact",
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id"
+    }
+   ],
+   "confirm": "Archives a member's record. Never open or submit it without the owner's explicit yes naming the member and the effect; it is not a read and `sport80 js` refuses it.",
+   "source": [
+    "tab:member.profile_tabs Archive Member"
+   ],
+   "notes": "An AjaxContainer tab, not a table. Its content is unknown: only the tab and the shape of its URL (path and parameter names) were listed."
   },
   {
    "id": "member.edit_profile",
@@ -6022,10 +6209,12 @@
    },
    {
     "id": "G9",
-    "what": "Club-role member profiles and the club role's event search",
-    "why": "reading a club member would expose a person's record; the event search was loaded for the page only",
+    "what": "Records beyond the owner's own and one named competitor's through the club role, the contents of the club-only member tabs (Notes, Archive Member), and the club role's event search",
+    "why": "only two records were read through the club role (2026-11-08: the owner's own and one competitor the owner named), for tab lists and totals; reading anyone else would expose a person's record, some are minors; Archive Member is a write and was never requested; the event search was loaded for the page only",
     "entries": [
      "member.profile_tabs",
+     "member.notes",
+     "member.archive",
      "events.find"
     ]
    }

@@ -22,6 +22,13 @@ athletes, the personal-scoped one is every event. Never pass `body_cid` by hand;
 conflicting value is refused. Keep identifiers distinct: contact id (`cid`), club id (`body_cid`), event id (`eid` or the
 rankings-module `event_id`), and the rankings-module `athlete_id`, which is none of the others.
 
+A member's record is addressed by contact id (`cid`). Under `personal` the default is the login's own. Under a club role there
+is no safe default, since the role's own `cid` is the club's, so pass `--param cid=<contact id>` (`sport80 js` refuses without
+it; find the id with `members.quick_search`). The club role also sees a different record: club-only tabs (Notes, Additional
+Trackings, REPS Membership, Background Screening Due Payment, Archive Member) and none of Entries, Addresses, Communication
+Preferences or the Learning Academy. This was checked on the owner's own record and on one competitor the owner named
+(2026-11-08), which listed the identical tab set; the set of a minor's or a coach's record may differ with the member's roles.
+
 ## Tokens
 
 - Results and Rankings are on `window.env.RANKINGS_DOMAIN_URL`. Logged in, the runtime calls

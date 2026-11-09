@@ -1138,4 +1138,15 @@ def capture_process(
         return result
 
 
-__all__ = ["capture_process"]
+def archive_planning_evidence(source: Path, output: Path, *, manifest_sha256: str) -> dict[str, Any]:
+    """Preserve one validated Plan artifact bundle under a new archive directory."""
+    from planning_evidence import copy_artifact_bundle
+
+    def excluded(data: bytes) -> bool:
+        text = data.decode("utf-8")
+        return _sanitize_text(text) != text
+
+    return copy_artifact_bundle(source, output, manifest_sha256=manifest_sha256, reject=excluded)
+
+
+__all__ = ["archive_planning_evidence", "capture_process"]

@@ -55,6 +55,7 @@ ShipLoop command failures, model glue and queue growth (items a carry-forward ad
 from __future__ import annotations
 
 import argparse
+from dataclasses import asdict
 import fnmatch
 import json
 import os
@@ -543,11 +544,38 @@ def parser() -> argparse.ArgumentParser:
 
 def finish(out: Path, run_dir: Path, seeded: dict, case: dict, sessions: list[dict], identity: dict, quiet: bool,
            stop_after: str | None = None) -> int:
+    measured = None
+    planning = {}
+    if stop_after == "plan" and not identity.get("regraded"):
+        import planning_boundary
+        import planning_comparison
+
+        measured = metrics.collect(out, run_dir)
+        registration = seeded.get("planning_registration") or {}
+        boundary = measured.get("planning_boundary")
+        cli = planning_boundary.registered_cli(out, run_dir)
+        run_id = registration.get("run_id")
+        if cli is not None and (boundary is None or run_id and boundary["sources"]["run_id"] != run_id):
+            boundary = planning_boundary.analyze(out, run_dir, cli, run_id=run_id)
+        boundary = boundary or {"schema": "shiploop-planning-boundary/v1", "status": "incomplete",
+                                "reasons": ["no supported registered host recording"]}
+        artifacts = {"apparatus": planning_comparison.apparatus_identity(), "expected": None, "source_sha256": {},
+                     "capture": {"status": "unavailable", "reason": "run and repository scope were not registered"}}
+        if registration:
+            try:
+                expected, hashes = planning_comparison.expected_from_run(
+                    run_dir, **registration, source_hashes=(boundary.get("sources") or {}).get("sha256"))
+                artifacts.update(expected=asdict(expected), source_sha256=hashes,
+                                 capture=planning_comparison.collect_bundle(run_dir, out, expected=expected))
+            except (OSError, ValueError, store.StorageError, AttributeError, RecursionError) as exc:
+                artifacts["capture"]["reason"] = str(exc)
+        planning = {"planning_boundary": boundary, "planning_evidence": artifacts}
     result = {**identity, "output": str(out), "run_dir": str(run_dir), "worktree": str(run_dir.parent / "worktree"),
-              **grade(out, run_dir, seeded, case, sessions, stop_after)}
+              **grade(out, run_dir, seeded, case, sessions, stop_after), **planning}
     (out / "slice-result.json").write_text(json.dumps(result, indent=2) + "\n")
     report = packets.write_report(out)
-    (out / "metrics.json").write_text(json.dumps(metrics.collect(out, run_dir), indent=2) + "\n")
+    (out / "metrics.json").write_text(json.dumps(measured if measured is not None else metrics.collect(out, run_dir),
+                                                 indent=2) + "\n")
     flow_line = run.flow_record(out)
     if not quiet:
         print("\n" + packets.render(report), end="")
@@ -633,6 +661,11 @@ def _main(argv: list[str] | None, held: list) -> int:
     target = seed_state(case, out, env)
     shim = fake_sf(case, out, env)
     run_dir = Path(seeded["run_dir"])
+    if args.stop_after == "plan":
+        initial = read_state(run_dir) or {}
+        repo = run_dir.parent / "worktree"
+        if isinstance(initial.get("run_id"), str) and initial.get("repo") == str(repo):
+            seeded["planning_registration"] = {"run_id": initial["run_id"], "repo": str(repo), "repo_prefix": "."}
     note = args.opening_note.read_text().strip() if args.opening_note else ""
     opening = host.invoke(host.skill, run.seed_prompt(cli, str(run_dir), case["prompt"], args.delegation, args.seed_at)
                           + (f"\n\n{note}" if note else ""))

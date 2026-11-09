@@ -19,6 +19,7 @@ import math
 import os
 from pathlib import Path
 import re
+from typing import NamedTuple
 
 import glossary
 import rollouts
@@ -311,8 +312,8 @@ def failure_line(shown: str, limit: int | None = 200) -> str:
     return own.strip() if limit is None else own.strip()[:limit]
 
 
-def event_range(path: Path, start: int = 0, stop: int | None = None):
-    """(line number, event) for every JSON object line in [start, stop): a line before ``start`` is counted, not parsed."""
+def _event_rows(path: Path, start: int = 0, stop: int | None = None):
+    """Physical line numbers and decoded objects, including a None for each malformed row."""
     if not path.is_file():
         return
     with path.open(errors="replace") as handle:
@@ -323,10 +324,16 @@ def event_range(path: Path, start: int = 0, stop: int | None = None):
                 return
             try:
                 event = json.loads(line)
-            except ValueError:
-                continue
-            if isinstance(event, dict):
-                yield number, event
+            except (ValueError, RecursionError):
+                event = None
+            yield number, event if isinstance(event, dict) else None
+
+
+def event_range(path: Path, start: int = 0, stop: int | None = None):
+    """(line number, event) for every JSON object line in [start, stop): a line before ``start`` is counted, not parsed."""
+    for number, event in _event_rows(path, start, stop):
+        if event is not None:
+            yield number, event
 
 
 def events(path: Path):
@@ -443,28 +450,43 @@ def call_target(arg: dict) -> str:
     return paths[0] if paths else ""
 
 
-def tool_call_events(event: dict) -> list[tuple]:
-    """``(call id, tool name, input)`` of each tool call one event starts, whatever host wrote it.
-
-    Claude writes one `assistant` event per content block of a message, so an event holds the `tool_use` blocks of
-    that block's message (none for a text block); Grok, and Codex after the harness translator, write one `tool_call`
-    event per call. The one reader: ``ToolLog.feed`` and so the whole-run reading and a window read calls this way.
-    """
+def _tool_call_blocks(event: dict) -> list[tuple]:
     kind = event.get("type")
     if kind == "assistant":
-        return [(block.get("id"), str(block.get("name") or ""), block["input"] if isinstance(block.get("input"), dict) else {})
-                for block in (event.get("message") or {}).get("content") or []
+        return [(ordinal, block.get("id"), str(block.get("name") or ""),
+                 block["input"] if isinstance(block.get("input"), dict) else {})
+                for ordinal, block in enumerate((event.get("message") or {}).get("content") or [], 1)
                 if isinstance(block, dict) and block.get("type") == "tool_use"]
     if kind == "tool_call":
-        return [(event.get("toolCallId"), str(event.get("toolName") or event.get("title") or ""),
+        return [(1, event.get("toolCallId"), str(event.get("toolName") or event.get("title") or ""),
                  event.get("rawInput") if isinstance(event.get("rawInput"), dict) else {})]
     return []
+
+
+def tool_call_events(event: dict) -> list[tuple]:
+    """``(call id, tool name, input)`` of each tool call one event starts, whatever host wrote it."""
+    return [(call_id, tool, arg) for _, call_id, tool, arg in _tool_call_blocks(event)]
 
 
 def cancelled_update(event: dict) -> bool:
     """Grok's headless permission check refused the call: a failed update whose content says the user cancelled it."""
     return (event.get("type") == "tool_call_update" and event.get("status") == "failed"
             and "cancelled" in json.dumps(event.get("content") or "").lower())
+
+
+class CallOccurrence(NamedTuple):
+    # Launch number, one-based source line, one-based block ordinal within the event.
+    key: tuple[int | None, int, int]
+    tool_id: str | None
+    tool: str
+    command: str
+    t: float | None
+
+
+class CallResult(NamedTuple):
+    line: int
+    block: int
+    status: str
 
 
 class ToolLog:
@@ -508,6 +530,55 @@ class ToolLog:
         # ``failures``'s own call id, same order and length as ``failures``: a second, internal list rather than a
         # new key on each failure dict, which other readers (progress.py, packets.py, run.py) take as {verb, exit, line}.
         self.failure_call_ids: list = []
+        # Per-stage counts and exact-stop evidence use occurrences rather than the legacy ID-keyed call view.
+        self.occurrences: dict[tuple, CallOccurrence] = {}
+        self.occurrence_results: dict[tuple, CallResult] = {}
+        self.occurrence_issues: list[tuple[int, str]] = []
+        self.ambiguous_occurrences: set[tuple] = set()
+        self._occurrence_ids: dict[tuple, list[tuple]] = {}
+
+    def observe(self, event: dict, t, number: int, launch: int | None = None, *, starts=None) -> None:
+        """Record request/result source identities without running the legacy text heuristics."""
+        line = number + 1
+        for block, raw_id, tool, arg in _tool_call_blocks(event) if starts is None else starts:
+            tool_id = raw_id if isinstance(raw_id, str) and raw_id else None
+            key = (launch, line, block)
+            self.occurrences[key] = CallOccurrence(key, tool_id, tool, str(arg.get("command") or ""), t)
+            if tool_id is None:
+                self.occurrence_issues.append((line, "missing tool call ID"))
+                continue
+            related = self._occurrence_ids.setdefault((launch, tool_id), [])
+            if related:
+                self.occurrence_issues.append((line, "tool call ID reused within one launch"))
+                self.ambiguous_occurrences.update([*related, key])
+            related.append(key)
+
+        def attach(raw_id, block: int, status: str) -> None:
+            related = self._occurrence_ids.get((launch, raw_id), []) if isinstance(raw_id, str) else []
+            if len(related) != 1:
+                self.occurrence_issues.append((line, "orphan or ambiguous tool update"))
+            elif status == "interim":
+                if related[0] in self.occurrence_results:
+                    self.occurrence_issues.append((line, "interim update follows a terminal result"))
+                    self.ambiguous_occurrences.add(related[0])
+            elif related[0] in self.occurrence_results:
+                self.occurrence_issues.append((line, "duplicate terminal result"))
+                self.ambiguous_occurrences.add(related[0])
+            else:
+                self.occurrence_results[related[0]] = CallResult(line, block, status)
+
+        if event.get("type") == "tool_call_update":
+            status = event.get("status")
+            if status in ("completed", "failed") and isinstance(event.get("rawOutput"), dict):
+                attach(event.get("toolCallId"), 1, status)
+            elif status in ("in_progress", "pending"):
+                attach(event.get("toolCallId"), 1, "interim")
+            else:
+                self.occurrence_issues.append((line, "unsupported or missing terminal update"))
+        elif event.get("type") == "user":
+            for block, value in enumerate((event.get("message") or {}).get("content") or [], 1):
+                if isinstance(value, dict) and value.get("type") == "tool_result":
+                    attach(value.get("tool_use_id"), block, "failed" if value.get("is_error") else "completed")
 
     def call(self, t, call_id, tool: str, arg: dict, event: int | None = None):
         """One tool call: a question put to a person, glue, a /tmp write, a path read or written, a script written.
@@ -586,7 +657,7 @@ class ToolLog:
                             "read": {"read_tool": self.packets["read_tool"],
                                      "shell": dict(zip(("calls", "chars"), self.packets["shell"]))}}}
 
-    def feed(self, event: dict, t, number: int | None = None) -> list:
+    def feed(self, event: dict, t, number: int | None = None, *, launch: int | None = None) -> list:
         """One host event, read the one way for every host: the calls it starts and the results it carries.
 
         Claude's `tool_use` blocks, Grok's `tool_call` events and Codex's after the translator start calls; Claude's
@@ -596,15 +667,22 @@ class ToolLog:
         (``reorientation``) all feed a log this way, so they cannot differ. ``number`` is the event's line in events.jsonl,
         passed on as ``event`` to ``call`` and ``result``. Returns the keys, in ``calls``, of the calls this event started.
         """
-        started = [self.call(t, call_id, tool, arg, event=number) for call_id, tool, arg in tool_call_events(event)]
+        starts = _tool_call_blocks(event)
+        if number is not None:
+            self.observe(event, t, number, launch, starts=starts)
+        started = [self.call(t, call_id, tool, arg, event=number) for _, call_id, tool, arg in starts]
         kind = event.get("type")
         if kind == "user":  # Claude: the tool_result blocks, whose text may begin with the host's `Exit code N`
             for call_id, shown in tool_results(event):
+                if launch is not None and isinstance(call_id, str) and (launch, call_id) not in self._occurrence_ids:
+                    continue
                 self.measure(call_id, shown)
                 self.result(call_id, shown, claude_exit(shown), event=number)
         elif kind == "tool_call_update" and isinstance(event.get("rawOutput"), dict) and not cancelled_update(event) \
                 and event.get("status") != "in_progress":
             for call_id, shown in tool_results(event):
+                if launch is not None and isinstance(call_id, str) and (launch, call_id) not in self._occurrence_ids:
+                    continue
                 self.result(call_id, shown, event["rawOutput"].get("exit_code"), event=number)
         return started
 
@@ -2175,11 +2253,16 @@ def context_summary(rows: list[dict]) -> dict:
             "top_sources": [{"source": source, "bytes": size} for source, size in ranked]}
 
 
-def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None) -> dict:
+def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None, *,
+            planning_cli: Path | None = None) -> dict:
     """The run's metrics. ``tools`` is the ToolLog to fill (a caller that reads the tool calls itself, as fidelity.py does,
     passes an empty one); without it the log is this call's own. It is fed through ``ToolLog.feed``, the one reader the
     windows of ``fresh_starts`` use too, with each event's line number (``sequence``, ``failure_events``)."""
     stamps = timeline(out / "timeline.jsonl")
+    sessions_recorded = sessionlog.read(out)
+    launch_starts = sorted((row["events_line"], row["n"]) for row in sessions_recorded or []
+                           if type(row.get("events_line")) is int)
+    start_lines = [line for line, _ in launch_starts]
     tools = ToolLog() if tools is None else tools
     turns: list[dict] = []
     sessions, compactions = [], 0
@@ -2200,10 +2283,18 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     unreported, calls_in_session = 0, 0
     session_lines: list[int] = []  # the events.jsonl line of each host end event: which launch it belongs to (sessions.jsonl)
     served: set[str] = set()  # the models Claude's result events say served the sessions (modelUsage keys)
-    for number, event in events(out / "events.jsonl"):
+    event_lines = 0
+    first_invalid_line = None
+    for number, event in _event_rows(out / "events.jsonl"):
+        event_lines = number + 1
+        if event is None:
+            if first_invalid_line is None:
+                first_invalid_line = event_lines
+            continue
         kind = event.get("type")
         t = stamps.get(number)
-        tools.feed(event, t, number)  # Claude tool_use / tool_result blocks, Grok and Codex tool_call / tool_call_update
+        i = bisect.bisect_right(start_lines, number) - 1
+        tools.feed(event, t, number, launch=launch_starts[i][1] if i >= 0 else None)
         if kind in ("usage", "assistant"):
             calls_in_session += 1
         if kind == "available_commands":
@@ -2272,6 +2363,21 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     # Counters this host's events cannot show are recorded as unmeasured with the reason,
     # never as 0: a zero would read as a measurement and pass every comparison.
     unmeasured: dict[str, str] = {}
+    # Stamps name zero-based event lines. Launch receipts count lines, including
+    # unstamped text/thought rows. Either can show that a clean-looking tail is missing.
+    launch_lines = max((receipt["events_line"] for launch in sessions_recorded or ()
+                        for receipt in (launch, launch.get("end") or {})
+                        if type(receipt.get("events_line")) is int), default=0)
+    if first_invalid_line is not None:
+        unmeasured["stage_tool_calls"] = f"host event stream has a malformed row at line {first_invalid_line}"
+    elif event_lines <= max(stamps, default=-1):
+        unmeasured["stage_tool_calls"] = "host event stream ends before the last recorded runner timestamp"
+    elif event_lines < launch_lines:
+        unmeasured["stage_tool_calls"] = "host event stream ends before the line count recorded by a launch receipt"
+    else:
+        unstamped = next((call for call in tools.occurrences.values() if call.t is None or not math.isfinite(call.t)), None)
+        if unstamped is not None:
+            unmeasured["stage_tool_calls"] = f"tool call start at event line {unstamped.key[1]} has no usable runner timestamp"
     if not _timed(turns):
         unmeasured["stage_turns"] = NO_PER_CALL_USAGE
     if not grok:
@@ -2306,9 +2412,7 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
     compaction_points = ([{"host": "grok", "line": n} for n in compaction_lines] if "compactions" not in unmeasured else [])
     if context and "unmeasured" not in context:
         compaction_points = [{"host": "codex", "t": t} for t in context.get("compaction_times", [])]
-    sessions_recorded = None  # set inside the try below; kept bound here so context_window_rows can reuse it on a failure
     try:
-        sessions_recorded = sessionlog.read(out)
         notes = []
         if sessions_recorded is None:
             notes.append(FRESH_STARTS_NOT_RECORDED if not (out / sessionlog.SESSIONS).exists()
@@ -2316,8 +2420,8 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         else:
             first = sessions_recorded[0] if sessions_recorded else None
             events_before = first["events_line"] if first and isinstance(first.get("events_line"), int) else None
-            if first is None and (out / "events.jsonl").is_file() and (out / "events.jsonl").stat().st_size:
-                events_before = sum(1 for _ in (out / "events.jsonl").open("rb"))
+            if first is None:
+                events_before = event_lines
             if events_before:
                 notes.append(f"partial: sessions before events line {events_before} are not recorded")
         if "compactions" in unmeasured:
@@ -2332,7 +2436,24 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
                                            sessions=sessions_recorded, compaction_lines=compaction_lines)
     except Exception:  # noqa: BLE001 - record-only, like fresh_starts above
         context_rows = []
-    stages = per_stage(accepted, turns, tools.calls, stamps, pending, unmeasured, window_tokens)
+    planning_stop = None
+    if run_dir is not None and (planning_cli is not None or any(row.get("improve_action") and row["stage"] == "plan"
+                                                               for row in accepted)):
+        import planning_boundary
+
+        cli = planning_cli or planning_boundary.registered_cli(out, run_dir)
+        if cli is not None:
+            planning_stop = planning_boundary.analyze(out, run_dir, cli, tools=tools)
+    corrections = planning_stop["corrections"] if planning_stop else []
+    moves = _stage_tool_moves(accepted, windows, tools.occurrences, corrections)
+    stages = per_stage(accepted, turns, tools.occurrences, stamps, pending, unmeasured, window_tokens,
+                       tool_owners={key: target for key, (_, target) in moves.items()})
+    attribution = {
+        "basis": "timestamp-with-proved-plan-ownership" if moves else "timestamp-only",
+        "time_basis": "existing engine and host timestamp windows",
+        "applied": [{**row, "from_stage_row": moves[key][0], "to_stage_row": moves[key][1]}
+                    for row in corrections if (key := (row["launch"], row["start_line"], row["block"])) in moves],
+    }
     # The harness's launch record reconciles reported sessions with launches on every host (SPEC build step 8); without
     # it, Grok's stream cannot count a session that never reported, and the other hosts' starts are their stream's.
     launch_record_present = (out / sessionlog.SESSIONS).is_file()
@@ -2428,6 +2549,8 @@ def collect(out: Path, run_dir: Path | None = None, tools: ToolLog | None = None
         "knowledge_reads": sorted({r[r.index("docs/shiploop"):] for r in tools.reads if "docs/shiploop" in r}),
         "narrative": narrative(out, run_dir),
         "stages": stages,
+        "stage_tool_attribution": attribution,
+        **({"planning_boundary": planning_stop} if planning_stop is not None else {}),
         "planning": planning,
         # Record-only (SPEC "A fresh context is recorded, not scored"): see fresh_starts. The list holds the compactions only,
         # and `fresh_starts_unmeasured` says why, where the run has no sessions.jsonl; None where it is complete.
@@ -2738,8 +2861,28 @@ def stage_windows(accepted: list[dict], stamps: dict, pending: str | None = None
     return windows
 
 
+def _stage_tool_moves(accepted: list[dict], windows: list, calls: dict, corrections: list[dict]) -> dict:
+    """Move a proved occurrence between measured rows without changing the observed count."""
+    moves = {}
+    for proof in corrections:
+        key = (proof["launch"], proof["start_line"], proof["block"])
+        call = calls.get(key)
+        if call is None or call.t is None:
+            continue
+        targets = [index for index, row in enumerate(accepted) if row["action"] == proof["plan_action"]]
+        original = [index for index, window in enumerate(windows) if window and within(call.t, *window[:2])]
+        if len(original) != 1 or len(targets) != 1:
+            continue
+        source, target = original[0], targets[0]
+        destination = windows[target]
+        if source != target and destination and destination[0] < destination[1]:
+            moves[key] = (source, target)
+    return moves
+
+
 def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict,
-              pending: str | None = None, unmeasured: dict | None = None, context_window: int | None = None) -> list[dict]:
+              pending: str | None = None, unmeasured: dict | None = None, context_window: int | None = None,
+              *, tool_owners: dict | None = None) -> list[dict]:
     """Turns, tool calls and time between one accepted action and the next.
 
     Needs the runner's timeline; without it only the order and outcome are known.
@@ -2766,6 +2909,8 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
     seconds are wall clock and include any interruption gap (a resume, a sleep, a
     credit stop); and an engine that recreated a lost timeline.json gives every
     historical action one stamp, which no check here can tell from a real one.
+    ``tool_owners`` may reassign proved tool occurrences between measured rows.
+    The row windows still determine every time, turn and context figure.
 
     No cost is apportioned here: a per-stage share of one total, divided by turn
     count, moves when prices or unrelated work move, so it would not measure the
@@ -2774,9 +2919,12 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
     unmeasured = set(unmeasured or ())
     if not _timed(turns):
         unmeasured.add("stage_turns")
+    tool_owners = tool_owners or {}
+    call_times = {key: call.t if isinstance(call, CallOccurrence) else call["t"] for key, call in calls.items()}
 
     def counted(window: list[dict], tools: list) -> dict:
-        return {"turns": None if "stage_turns" in unmeasured else len(window), "tool_calls": len(tools)}
+        return {"turns": None if "stage_turns" in unmeasured else len(window),
+                "tool_calls": None if "stage_tool_calls" in unmeasured else len(tools)}
 
     labels = [(a["stage"], a.get("outcome")) for a in accepted] + ([(pending, None)] if pending else [])
     rows = []
@@ -2787,7 +2935,8 @@ def per_stage(accepted: list[dict], turns: list[dict], calls: dict, stamps: dict
             continue
         after, until, since = window
         events = [x for x in turns if x["t"] is not None and within(x["t"], after, until)]
-        tools = [c for c in calls.values() if c["t"] is not None and within(c["t"], after, until)]
+        tools = [key for key, when in call_times.items()
+                 if (tool_owners[key] == index if key in tool_owners else when is not None and within(when, after, until))]
         row = {**base, "seconds": round(until - since, 1), **counted(events, tools)}
         if events and any("call" in x for x in turns):  # a stage with no event measured nothing: no context, not 0 calls
             peak = max((x["input"] for x in events if x["input"] is not None), default=None)
