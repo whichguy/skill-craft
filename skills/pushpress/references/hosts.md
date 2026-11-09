@@ -30,7 +30,7 @@ store, never in a committed file. Setup, the tools that message people and the c
 | Host and tools | Status |
 |----------------|--------|
 | Claude Code or desktop with Claude in Chrome (`mcp__claude-in-chrome__*`) | tested 2026-11-08, read-only, one tenant (*Core Pro Monthly*): every sidebar page, menus and drawers opened and closed, one member profile and the staff profile, sign-in observed once; three fresh-agent runs with the skill only |
-| Claude's built-in browser | cannot sign in here: the password-manager grant works only in Claude in Chrome |
+| Claude's built-in browser | no approved credential fill there, so the owner would have to sign in by hand; not otherwise tested |
 | Chrome DevTools MCP (`evaluate_script`), Playwright or Puppeteer on a persisted profile | not tested; the script text may need wrapping as a function, and the owner completes the sign-in |
 | Codex, Grok, Cursor, OpenCode | not tested; they need one of the tools above |
 | The `pushpress` MCP server (`mcp__pushpress__*` on Claude hosts) | read tools called live on the same tenant; no write tool was ever called |
@@ -43,7 +43,7 @@ store, never in a committed file. Setup, the tools that message people and the c
   session. Prefer `browser_batch` for sequences you can predict (navigate, wait, extract): it stops at the first error.
 - Sign in: ask for the grant before navigating, with `request_credentials` and one `login` entry
   (`website: https://pushpress.com`, keywords `PushPress`, the company name, `gym` and any other word the owner uses for the
-  item); the owner approves in 1Password. Then `autofill_credential` on the first login page fills the email and advances.
+  item); the owner approves in their password manager. Then `autofill_credential` on the first login page fills the email and advances.
   At the password step it returned `autosubmit_failed` five times on 2026-11-08 while the session still authenticated (the
   card's step 5): try once, wait, re-check the URL, then ask the owner. `enter_verification_code` is the code-entry feature;
   none was seen.

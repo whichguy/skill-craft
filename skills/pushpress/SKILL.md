@@ -25,7 +25,7 @@ PushPress **Core** is where a gym keeps its roster (members, leads, staff), sell
 underneath), runs the class calendar and check-ins, and stores signed waivers. Each gym's admin lives at its own tenant
 host, `https://<tenant>.pushpress.com`. This skill navigates it through the owner's signed-in browser and routes what the
 API can answer to the `pushpress` MCP server's tools. Everything in it was checked read-only on **2026-11-08**, on one
-tenant (the *Core Pro Monthly* tier), unless it is tagged otherwise (legend below). Execution needs a browser tool for the
+tenant (the *Core Pro Monthly* tier), unless it is tagged otherwise or says it was reported (legend below). Execution needs a browser tool for the
 UI and, optionally, the MCP server for the API: [hosts.md](references/hosts.md) lists what each needs and what is tested.
 If one is missing, say so instead of improvising.
 
@@ -87,17 +87,19 @@ host is in [hosts.md](references/hosts.md#recipe-claude-in-chrome).
    a redirect to `/login` means continue.
 2. **Ask for the credential before navigating**, through the host's approved flow, naming PushPress and the company name.
    The owner approves in the password manager. If the saved item is bound to the tenant host, sign in there.
+   If the host has no approved fill, ask the owner to sign in in the open tab, then re-check `/main`.
 3. **Sign in on the tenant origin:** `https://<tenant>.pushpress.com/login` (branded "to continue to <company name>"). The
    bare `https://app.pushpress.com/` is a 404; `app.pushpress.com/login` works, but an item saved for the tenant host is not
    matched there, so prefer the tenant.
 4. **It is a two-step form:** email, *Next*, password, *Login* (the URL carries `?step=accountCheck`, then
    `?step=passwordCheck`). The fill enters the email and advances.
-5. **The password step is flaky.** On 2026-11-08 an automatic fill reported failure five times and a length-only probe (the
-   field's `value.length`, never the value) showed it empty, yet the session was authenticated within about a minute (cause
+5. **The password step is flaky.** On 2026-11-08 an automatic fill reported failure five times and an emptiness probe (whether `value.length` is above zero,
+   never the value or its length) showed it empty, yet the session was authenticated within about a minute (cause
    unconfirmed: a delayed fill, or the owner finished it). So try once, **wait about 30 s and re-check the URL**, and do not
    loop. If it is still on `?step=passwordCheck`, tell the owner and ask them to finish the password in the open tab. Seen
    in one session and not re-tested.
-6. If the fill leaves the password revealed (an eye icon on), mask it before a person types.
+6. If the fill leaves the password revealed (an eye icon on), mask it before a person types, and take no screenshot and no
+   page-text read until it is masked.
 7. A one-time code goes through the host's code-entry feature, never through you (none was seen). When the work is done,
    release any granted credentials and close the tabs you opened.
 
@@ -135,7 +137,7 @@ Full route index: [app-map.md](references/app-map.md).
 | Edit or reschedule one class | Check-Ins ▸ class card ▸ **pencil** → *Edit class* (`/schedule/cal-<id>/edit/class/…`); `Save` needs a yes | none: class tools are read-only |
 | Coach payroll | Reports → Payroll (needs coach check-ins and pay rates set) | none |
 | Waivers, photo release, signed documents | Apps → Digital Documents `/documents`; profile → *Documents* | none |
-| Lead pipeline; the website lead form | People → Leads `/people/leads`; Settings → Lead Capture | `customers-create` creates a lead (**WRITE**) |
+| Lead pipeline; the website lead form | People → Leads `/people/leads`; Settings → Lead Capture | `customers-create` creates a lead (**WRITE-DATA**) |
 | Staff list and roles | People → Staff `/people/staff`; profile → *Settings → User Role* | `customers-list role=coach` |
 | See or add an API key | Settings → Security & Access → *API Keys* | none |
 | Stripe, ACH, tax, retry settings | Settings → Billing & Payment; ACH Report → *ACH app configuration* | none |
@@ -148,7 +150,7 @@ Full route index: [app-map.md](references/app-map.md).
 | Class | Seen in the UI | Rule |
 |---|---|---|
 | **READ** | open a page, menu, drawer or tab; filter; search; date range | free |
-| **DOWNLOAD** | `Download`, `Download CSV`, `Export Class registrations`, `Export appointments schedule (CSV)`, Pro Metrics `Export` | writes a file to the user's machine: ask, naming the report |
+| **DOWNLOAD** | `Download`, `Download CSV`, `Export Class registrations`, `Export appointments schedule (CSV)`, a download button inside Pro Metrics ▸ Export (opening that tab is READ) | writes a file to the user's machine: ask, naming the report |
 | **WRITE-DATA** | `Save`, `Save changes`, `Add Note`, `Change Role`, `Add Sub-account`, `Check in`, Automatic Emails toggles | confirm the exact change |
 | **MONEY** | `Create a Charge`, invoice `Create`, `Generate Invoice`, Charge A Guest, `Add Plan` and `Add Credit` on a profile, plan price / billing-date / discount edits | confirm person, amount and method; never retry a failed charge blindly |
 | **OUTBOUND** | `Send Profile Setup Link`, `Send Reset Password Link`, `Request Payment Method`, text/email attendees, `Add Document` (attaching may email the person: see [people-and-plans.md §8](references/people-and-plans.md#8-digital-documents)); API `messages-*-send` | real people receive it: confirm recipients and wording |
@@ -186,7 +188,8 @@ strong hint to confirm, and use the drift procedure in
 ## Reference
 
 `[observed]` seen in the live UI on 2026-11-08 · `[documented]` from PushPress's public help center or pricing page, not
-seen live · `[not exercised]` the control exists but writes, sends or deletes, so it was not run.
+seen live · `[not exercised]` the control exists but writes, sends or deletes, so it was not run. A statement that says it was
+*reported* comes from an earlier note, was not re-verified here, and is hedged where it appears.
 
 | File | Contents |
 |---|---|

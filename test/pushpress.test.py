@@ -31,7 +31,7 @@ EXPECTED_REFERENCES = {
 }
 TAGS = ("[observed]", "[documented]", "[not exercised]")
 # Host tool identifiers that must not appear in the card: a host recipe belongs in references/hosts.md.
-HOST_TOOL = re.compile(r"mcp__(?!pushpress__)|_mcp\b|javascript_tool|get_page_text|ToolSearch|left_click|request_credentials|autofill_credential")
+HOST_TOOL = re.compile(r"mcp__(?!pushpress__)|_mcp\b|javascript_tool|javascript_exec|get_page_text|read_page|browser_batch|form_input|ToolSearch|left_click|request_credentials|autofill_credential")
 
 # ---------------------------------------------------------------------------------------------------------- lint
 ID_PREFIXES = "usr|client|plan|sub|cal|chk|calitemtype|dis|prd|preorder"
@@ -165,6 +165,15 @@ class Card(unittest.TestCase):
         for needle in ("Claude in Chrome", "mcp__claude-in-chrome__", "request_credentials", "Tested matrix"):
             self.assertIn(needle, hosts, needle)
 
+    def test_sign_in_never_handles_or_measures_a_password_and_has_a_manual_path(self):
+        card = " ".join(card_text().split())
+        browser = " ".join((REFS / "browser-technique.md").read_text(encoding="utf-8").split())
+        self.assertIn("If the host has no approved fill, ask the owner to sign in in the open tab", card)
+        self.assertIn("never the value or its length", card)
+        self.assertIn("take no screenshot and no page-text read until it is masked", card)
+        self.assertNotIn("length-only probe", card + browser)
+        self.assertIn("never read its `value` or its length", browser)
+
     def test_safety_classes_are_consistent_between_the_card_and_the_profile_reference(self):
         card = card_text()
         profile = (REFS / "people-and-plans.md").read_text(encoding="utf-8")
@@ -176,6 +185,22 @@ class Card(unittest.TestCase):
         self.assertIn("`Add Document`", outbound_row)
         self.assertIn("**MONEY**: `Create a Charge`, `Add Plan`", profile.replace("\n", " "))
         self.assertIn("apply the strictest", card)
+        self.assertIn("(**WRITE-DATA**)", card)
+        self.assertNotIn("(**WRITE**)", card)
+
+
+class ApiReference(unittest.TestCase):
+    def test_labels_map_onto_the_cards_classes_and_both_deletes_are_destructive(self):
+        api = (REFS / "api-and-mcp-tools.md").read_text(encoding="utf-8")
+        self.assertIn("**Safety column.**", api)
+        for tool in ("invitations-delete", "manage-webhooks-delete"):
+            row = next(line for line in api.split("\n") if line.startswith(f"| `{tool}`"))
+            self.assertIn("DESTRUCTIVE", row, tool)
+        setup = " ".join(api.split("## Table of contents")[0].split())
+        for tool in ("customers-attributions-create", "invitations-delete", "manage-webhooks-list", "messages-sms-send"):
+            self.assertIn(tool, setup, tool)
+        self.assertIn("confirm with the user before calling any write tool", setup)
+        self.assertIn("never print a `signingSecret`", setup)
 
 
 class Links(unittest.TestCase):
@@ -241,8 +266,16 @@ class Extractor(unittest.TestCase):
         ("company() removed from the API", "sidebar, company };", "sidebar };"),
         ("labels with an email or 3+ digits no longer dropped", r".filter(t => t && !/@|\d{3,}/.test(t))", ".filter(t => t)"),
         ("sidebar() clicks every group-like button", "filter(b => names.includes(clean(b.innerText)))\n      .forEach", "filter(b => true)\n      .forEach"),
-        ("emails no longer masked in side panels", r".replace(/\S*@\S*/g, '<email>')", ""),
-        ("id-bearing links no longer masked", "if (ID_SEG.test(p) || PERSON.test(p)) {", "if (false) {"),
+        ("emails no longer masked in recorded text", r".replace(/\S*@\S*/g, '<email>')", ""),
+        ("phone-like numbers no longer masked in recorded text",
+         r".replace(/(?:\+?\d{1,3}[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}\b|\+\d{8,15}\b|\b\d{10,15}\b/g, '<phone>')", ""),
+        ("id-bearing links no longer masked", "if (ID_SEG.test(p) || PERSON.test(p)) return '<item> -> ' + maskPath(p);", "if (false) return '<item> -> ' + maskPath(p);"),
+        ("contact links no longer masked", "if (isContact(a.getAttribute('href') || '')) return '<item> -> <contact>';", ""),
+        ("link text no longer masked", "return safe(a.innerText).slice(0, 40) + ' -> ' + p;", "return clean(a.innerText).slice(0, 40) + ' -> ' + p;"),
+        ("sidebar() prints raw paths", "(ID_SEG.test(p) || PERSON.test(p)) ? 'LINK  <item>  ->  ' + maskPath(p)", "false ? 'x'"),
+        ("the page path is no longer masked", "p: maskPath(location.pathname)", "p: location.pathname"),
+        ("select-labelled toggles are no longer masked",
+         "const safeRow = t => safe(t).replace(/^Select (?!all$|row$).{2,}$/i, 'Select <item>');", "const safeRow = t => safe(t);"),
     ]
 
     @staticmethod

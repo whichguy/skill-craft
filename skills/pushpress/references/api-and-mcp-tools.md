@@ -5,9 +5,14 @@ Core skill. Covers what each tool does, what it returns, and the conventions (pa
 dates, errors) that apply across all of them. Companion to the web-UI half of this skill.
 
 **Provenance tags.** This file predates the skill-wide legend and uses finer tags: `[verified live]`
-is the skill's `[observed]` (a real call on the surveyed tenant); `[from SDK source]` and `[from tool
+is the skill's `[observed]` (a real call on the surveyed tenant, 2026-11-08); `[from SDK source]` and `[from tool
 schema]` are `[documented]` (read, not called); `[inferred]` is neither; a write tool listed here and
 never called is `[not exercised]`.
+
+**Safety column.** The tables label each tool `READ`, `READ-PII`, `WRITE-DATA`, `WRITE-OUTBOUND` or `WRITE-CONFIG`. They
+map onto the card's seven action classes as READ, READ (the response is personal data: keep it out of notes),
+WRITE-DATA, OUTBOUND and CONFIG / SECURITY. The two delete tools, `invitations-delete` and `manage-webhooks-delete`,
+are also DESTRUCTIVE, and the strictest class applies.
 
 **Setup** `[documented]`. This plugin does not install or configure the MCP server. The tools come from
 the official `@pushpress/pushpress` SDK's bundled MCP server (Node 20+), started as `mcp start
@@ -16,10 +21,13 @@ its own company). The key is issued under Settings ▸ Security & Access
 ([settings-and-admin.md](settings-and-admin.md#2-api-keys-settings--security--access)) and belongs in
 the environment or a secret store, never in a committed file. The SDK declares no MCP scopes, so every
 tool is mounted (`mcp start --tool <name>`, repeatable, narrows the set). Four tools message real
-people (`messages-sms-send`, `messages-email-send`, `messages-push-send`, `messages-realtime-send`),
-`manage-webhooks-*` can delete integrations and rotate secrets, and `customers-create` /
-`invitations-*` write to the roster: **confirm with the user before calling any of them.** Reads are
-safe to repeat.
+people (`messages-sms-send`, `messages-email-send`, `messages-push-send`, `messages-realtime-send`). The
+other write tools are `customers-create`, `customers-attributions-create`, `invitations-create`,
+`invitations-delete` and the six `manage-webhooks-` tools that create, update, delete, activate, deactivate
+or rotate the secret of a webhook: **confirm with the user before calling any write tool.** The two webhook
+reads (`manage-webhooks-list`, `manage-webhooks-get`) change nothing but return signing secrets: call them
+only when the user asks about webhooks, and never print a `signingSecret`. Every other read is safe to
+repeat; the `customers-*` reads return personal data, so keep their output out of notes.
 
 ## Table of contents
 
@@ -155,7 +163,7 @@ page-based pagination actually advances.
 | `invitations-list` | List invitations for an event | `eventId` (**required**), `page`, `limit` | array of `{id,eventId,customerId}` | READ |
 | `invitations-get` | Single invitation by ID | `id` | one invitation record | READ |
 | `invitations-create` | Invite customers to an event | `RequestBody.eventId`, `RequestBody.customerIds[]` | created invitation(s) | **WRITE-DATA** |
-| `invitations-delete` | Remove an invitation | `id` | — | **WRITE-DATA** |
+| `invitations-delete` | Remove an invitation | `id` | — | **WRITE-DATA**, DESTRUCTIVE |
 
 `Reservation` fields [from SDK source]: `id`, `reservedId` (the class/event's calendar-item
 ID), `customerId`, `companyId`, `registrationTimestamp` (unix seconds),
@@ -224,14 +232,14 @@ untested here per the hard rule against calling WRITE-* tools. [from tool schema
 | `manage-webhooks-get` | Single webhook by UUID | `uuid` | one webhook record, including signing secret | READ *(same note)* |
 | `manage-webhooks-create` | Register a new webhook | `RequestBody.url`, `RequestBody.eventTypes[]` (app lifecycle events or the member/scheduling event list below) | created webhook | **WRITE-CONFIG** |
 | `manage-webhooks-update` | Change a webhook's URL/events | `uuid`, `RequestBody.eventTypes[]`, optional `url` | updated webhook | **WRITE-CONFIG** |
-| `manage-webhooks-delete` | Permanently delete a webhook | `uuid` | — | **WRITE-CONFIG** |
+| `manage-webhooks-delete` | Permanently delete a webhook | `uuid` | — | **WRITE-CONFIG**, DESTRUCTIVE |
 | `manage-webhooks-activate` | Reactivate a deactivated webhook | `uuid` | — | **WRITE-CONFIG** |
 | `manage-webhooks-deactivate` | Pause a webhook without deleting it | `uuid` | — | **WRITE-CONFIG** |
 | `manage-webhooks-rotate-secret` | Rotate a webhook's signing secret | `uuid` | new secret | **WRITE-CONFIG** |
 
-[verified live] `manage-webhooks-list` with no `company-id` set returns `{"data":[]}` when no
-webhook is registered. Only `manage-webhooks-get`/`list` were
-called; create/update/delete/activate/deactivate/rotate were not exercised.
+`manage-webhooks-list` returns `{"data":[]}` when no webhook is registered. While this reference was
+written only `manage-webhooks-get`/`list` were called; create/update/delete/activate/deactivate/rotate
+were not exercised.
 
 ---
 
@@ -400,7 +408,7 @@ transient 429s rather than building your own retry loop.
    and the API both miss).
 
 8. **Check whether any webhooks are currently configured.** `manage-webhooks-list` with no
-   params — returns `{"data":[]}` if none exist (confirmed live). It changes nothing, but its
+   params — returns `{"data":[]}` if none exist. It changes nothing, but its
    response carries every webhook's signing secret, which then sits in your context: call it only when
    the user asks about webhooks, never print or repeat a `signingSecret`, and report URLs and event
    types only.
@@ -444,7 +452,7 @@ file; only `manage-webhooks-list`/`-get` (both READ) were called.
 delete a webhook use the delete method" per the tool's own description),
 `manage-webhooks-activate` (reverse a deactivation), `manage-webhooks-rotate-secret`
 (issue a new signing secret for an existing webhook, presumably invalidating the old one —
-not tested). All six are **WRITE-CONFIG** and were not called. `manage-webhooks-get`/
+not tested). All six are **WRITE-CONFIG** (`manage-webhooks-delete` is also DESTRUCTIVE) and were not called. `manage-webhooks-get`/
 `-list` return the full record **including the signing secret in plaintext** — if this
 skill ever lists or inspects a webhook, treat that output as a credential, not inert
 metadata, for the same reason the PushPress API key itself is never printed. [from tool

@@ -18,10 +18,13 @@
  * RECORDS: headings, tabs, buttons, column headers, input labels/placeholders, toggles, link PATTERNS,
  *          `icons` (a COUNT of unnamed icon-only buttons — find those with `find` or a screenshot) and
  *          `region` (text of side panels such as KPI summaries; skipped on /user/ pages).
- * MASKS:   link text for any URL with an ID segment; buttons containing "@" or 3+ digits; "Select/Edit/
- *          View/Delete/Remove/Open <name>" and "... for/of <name>" labels.
- * DOES NOT PROTECT: the page <title>, headings on a person's profile, text inside iframes, screenshots.
- *          Skip or mask those yourself, and never write what you read there into the repo.
+ * MASKS:   link text for any URL with an ID segment, and every mailto:/tel:/sms: link; IDs in the page path and
+ *          in sidebar links; buttons containing "@" or 3+ digits are dropped; emails and phone-like numbers in all
+ *          other recorded text become <email> and <phone>; "Select/Edit/View/Delete/Remove/Open <name>" and
+ *          "... for/of <name>" button labels, and "Select <name>" toggle and input labels.
+ * DOES NOT PROTECT: a person's name that stands alone (a heading, label or link text with no "@", no phone-like
+ *          number and no Select/Edit/... form), the page <title>, text inside iframes, screenshots. Skip or mask
+ *          those yourself, and never write what you read there into the repo.
  * READ-ONLY: the only clicks it makes are the sidebar group toggles in sidebar().
  */
 (function install() {
@@ -36,10 +39,18 @@
   const vis = el => { const r = el.getBoundingClientRect(); return (r.width || r.height) && r.left >= 290; };
   const q = sel => [...document.querySelectorAll(sel)].filter(vis);
   const ID_SEG = /\/([A-Za-z]*[_-])?[0-9a-f]{10,}/;
-  const PERSON = /^\/(user|people)\/[^/?]{8,}/;
+  const PERSON = /^\/(user|people)\/(?!(?:non-members|members|leads|staff)(?:[/?#]|$))[^/?]{8,}/;
   const maskLabel = t => t
     .replace(/^(Select|Edit|View|Delete|Remove|Open) (?!all$|row$).{2,}$/i, '$1 <item>')
     .replace(/\b(for|of) .{2,}$/i, '$1 <item>');
+  // Text outside buttons can still carry contact details: emails and phone-like numbers are masked in all of it.
+  const safe = t => clean(t).replace(/\S*@\S*/g, '<email>')
+    .replace(/(?:\+?\d{1,3}[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}\b|\+\d{8,15}\b|\b\d{10,15}\b/g, '<phone>');
+  // Row checkboxes and their inputs are labelled "Select <name>"; other toggle labels survive.
+  const safeRow = t => safe(t).replace(/^Select (?!all$|row$).{2,}$/i, 'Select <item>');
+  const maskPath = p => p.replace(/\/([A-Za-z]*[_-])?[0-9a-f]{10,}.*/, '/<id>')
+    .replace(/^(\/(user|people))\/(?!(?:non-members|members|leads|staff)(?:[/?#]|$))[^/?]{8,}.*/, '$1/<id>');
+  const isContact = href => /^\s*(?:mailto|tel|sms):/i.test(href);
   const pathOf = a => {
     try {
       const u = new URL(a.getAttribute('href') || '', location.origin);
@@ -49,10 +60,9 @@
   };
   const linkLine = a => {
     const p = pathOf(a);
-    if (ID_SEG.test(p) || PERSON.test(p)) {
-      return '<item> -> ' + p.replace(/\/([A-Za-z]*[_-])?[0-9a-f]{10,}.*/, '/<id>').replace(/^(\/(user|people))\/[^/?]{8,}.*/, '$1/<id>');
-    }
-    return clean(a.innerText).slice(0, 40) + ' -> ' + p;
+    if (isContact(a.getAttribute('href') || '')) return '<item> -> <contact>';
+    if (ID_SEG.test(p) || PERSON.test(p)) return '<item> -> ' + maskPath(p);
+    return safe(a.innerText).slice(0, 40) + ' -> ' + p;
   };
   const load = () => { try { return JSON.parse(sessionStorage.getItem(RES_KEY) || '{}'); } catch (e) { return {}; } };
 
@@ -69,16 +79,16 @@
   const extract = () => {
     const txt = clean(document.body.innerText);
     const r = {
-      p: location.pathname + (location.search ? ' [q:' + [...new URLSearchParams(location.search).keys()].join(',') + ']' : '') + location.hash,
-      h: uniq(q('h1,h2,h3,h4,[role=heading]').map(e => clean(e.innerText))).slice(0, 25),
-      tabs: uniq(q('[role=tab]').map(e => clean(e.innerText))).slice(0, 20),
+      p: maskPath(location.pathname) + (location.search ? ' [q:' + [...new URLSearchParams(location.search).keys()].join(',') + ']' : '') + location.hash,
+      h: uniq(q('h1,h2,h3,h4,[role=heading]').map(e => safe(e.innerText))).slice(0, 25),
+      tabs: uniq(q('[role=tab]').map(e => safe(e.innerText))).slice(0, 20),
       btn: uniq(q('button,[role=button]').map(e => clean(e.innerText) || e.getAttribute('aria-label') || e.title)
         .filter(t => t && !/@|\d{3,}/.test(t)).map(maskLabel)).filter(b => !isChrome(b)).slice(0, 45),
-      th: uniq(q('th,[role=columnheader]').map(e => clean(e.innerText))).slice(0, 40),
-      inp: uniq(q('input,select,textarea').map(e => e.getAttribute('aria-label') || e.placeholder || e.name || e.type)).slice(0, 30),
-      lbl: uniq(q('label,legend,h5,h6').map(e => clean(e.innerText).slice(0, 60))).slice(0, 50),
+      th: uniq(q('th,[role=columnheader]').map(e => safe(e.innerText))).slice(0, 40),
+      inp: uniq(q('input,select,textarea').map(e => safeRow(e.getAttribute('aria-label') || e.placeholder || e.name || e.type))).slice(0, 30),
+      lbl: uniq(q('label,legend,h5,h6').map(e => safe(e.innerText).slice(0, 60))).slice(0, 50),
       sw: uniq(q('[role=switch],input[type=checkbox],input[type=radio]')
-        .map(e => clean(e.getAttribute('aria-label') || (e.closest('label') || {}).innerText || e.name || ''))).slice(0, 40),
+        .map(e => safeRow(e.getAttribute('aria-label') || (e.closest('label') || {}).innerText || e.name || ''))).slice(0, 40),
       rows: q('tbody tr,[role=row]').length,
       pg: (txt.match(/Page \d+ of \d+|rows per page/i) || [''])[0],
       a: uniq(q('a[href]').map(linkLine)).slice(0, 30),
@@ -86,7 +96,7 @@
       icons: q('button,[role=button]').filter(b => !clean(b.innerText) && !b.getAttribute('aria-label') && !b.title).length,
       // side panels (e.g. a KPI summary) are plain text; skipped on person pages, where they could hold names
       region: /^\/user\//.test(location.pathname) ? '' : uniq(q('[role=complementary],aside')
-        .map(e => clean(e.innerText).replace(/\S*@\S*/g, '<email>').slice(0, 200))).slice(0, 4),
+        .map(e => safe(e.innerText).slice(0, 200))).slice(0, 4),
     };
     for (const k of Object.keys(r)) if (Array.isArray(r[k]) ? !r[k].length : !r[k]) delete r[k];
     return r;
@@ -129,9 +139,11 @@
       const r = el.getBoundingClientRect();
       if (r.left > 300 || (!r.width && !r.height)) return;
       if (el.tagName === 'BUTTON' && !names.includes(clean(el.innerText))) return; // skips the user-menu button (a person's name)
-      out.push(el.tagName === 'BUTTON'
-        ? 'GROUP ' + clean(el.innerText).slice(0, 40)
-        : 'LINK  ' + clean(el.innerText || el.getAttribute('aria-label')).slice(0, 50) + '  ->  ' + pathOf(el));
+      if (el.tagName === 'BUTTON') { out.push('GROUP ' + clean(el.innerText).slice(0, 40)); return; }
+      const href = el.getAttribute('href') || '', p = pathOf(el);
+      out.push(isContact(href) ? 'LINK  <item>  ->  <contact>'
+        : (ID_SEG.test(p) || PERSON.test(p)) ? 'LINK  <item>  ->  ' + maskPath(p)
+        : 'LINK  ' + safe(el.innerText || el.getAttribute('aria-label')).slice(0, 50) + '  ->  ' + p);
     });
     // ~55 lines will not fit under the tool's output cap: park them in the dump element instead.
     if (out.join('\n').length > 2000) {

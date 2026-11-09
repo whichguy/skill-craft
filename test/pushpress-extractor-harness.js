@@ -56,7 +56,8 @@ function makeEnv(elements, loc) {
     removeItem: k => { store.delete(k); },
   };
   const window = {};
-  const sandbox = { window, document, sessionStorage, URL, URLSearchParams, setTimeout, console,
+  const sandbox = { window, document, sessionStorage, URL, URLSearchParams, console,
+    setTimeout: fn => setTimeout(fn, 0),
     location: loc || { origin: 'https://tenant.example.invalid', pathname: '/main', search: '', hash: '' } };
   return { sandbox, store, dumpNodes, window };
 }
@@ -182,6 +183,65 @@ const test = async (name, fn) => {
     assert.strictEqual(userMenu._clicked, 0, 'the user-menu button must not be clicked');
     assert.deepStrictEqual(lines, ['GROUP Communicate', 'GROUP Plans', 'GROUP Payments', 'LINK  Plans  ->  /plans/list']);
     assert.ok(!JSON.stringify(lines).includes(FAKE_NAME));
+  });
+
+  await test('links: mailto, tel and sms links are masked whatever their text, other link text loses contact details, tab routes survive', () => {
+    const phone = ['415', '555', '0134'].join('-');
+    const elements = [
+      anchor('Write ' + FAKE_EMAIL, 'mailto:' + FAKE_EMAIL),
+      anchor('Call ' + phone, 'tel:+1' + phone.replace(/-/g, '')),
+      anchor('Text us', 'sms:+1' + phone.replace(/-/g, '')),
+      anchor('Contact ' + FAKE_EMAIL + ' or ' + phone, '/help/contact'),
+      anchor('Non-members', '/people/non-members'),
+    ];
+    const r = plain(install(elements).pp.extract());
+    assert.deepStrictEqual(r.a, ['<item> -> <contact>', 'Contact <email> or <phone> -> /help/contact', 'Non-members -> /people/non-members']);
+    const all = JSON.stringify(r);
+    for (const leak of [FAKE_EMAIL, phone, phone.replace(/-/g, '')]) assert.ok(!all.includes(leak), 'leaked: ' + leak.length + ' chars');
+  });
+
+  await test('text outside buttons: emails and phone-like numbers are masked in headings, tabs, columns, labels and inputs', () => {
+    const phone = ['415', '555', '0134'].join(' ');
+    const elements = [
+      el({ tag: 'H2', text: 'Welcome ' + FAKE_EMAIL, sel: ['h2'] }),
+      el({ tag: 'DIV', text: 'Billing ' + phone, sel: ['[role=tab]'] }),
+      el({ tag: 'TH', text: 'Phone ' + phone, sel: ['th'] }),
+      el({ tag: 'LABEL', text: 'Email ' + FAKE_EMAIL, sel: ['label'] }),
+      el({ tag: 'INPUT', sel: ['input'], placeholder: 'Search ' + FAKE_EMAIL }),
+      el({ tag: 'H3', text: 'Report 2026-10-01', sel: ['h3'] }),
+    ];
+    const r = plain(install(elements).pp.extract());
+    assert.deepStrictEqual([r.h, r.tabs, r.th, r.lbl, r.inp],
+      [['Welcome <email>', 'Report 2026-10-01'], ['Billing <phone>'], ['Phone <phone>'], ['Email <email>'], ['Search <email>']]);
+  });
+
+  await test('toggles and inputs labelled "Select <name>" are masked, other toggle labels survive', () => {
+    const toggle = label => el({ tag: 'INPUT', sel: ['input', 'input[type=checkbox]'], attrs: { 'aria-label': label } });
+    const r = plain(install([toggle('Select ' + FAKE_NAME), toggle('Open gym access'), toggle('Select all')]).pp.extract());
+    assert.deepStrictEqual(r.sw, ['Select <item>', 'Open gym access', 'Select all']);
+    assert.deepStrictEqual(r.inp, ['Select <item>', 'Open gym access', 'Select all']);
+    assert.ok(!JSON.stringify(r).includes(FAKE_NAME));
+  });
+
+  await test('the page path is masked on a person page, and the people tab routes are not', () => {
+    const where = (pathname, hash) => ({ origin: 'https://tenant.example.invalid', pathname, search: '', hash });
+    const person = plain(install([], where(FAKE_PERSON_PATH, '#staff-details')).pp.extract());
+    assert.strictEqual(person.p, '/user/<id>#staff-details');
+    assert.ok(!JSON.stringify(person).includes('a1b2c3d4e5f6a7b8'));
+    assert.strictEqual(plain(install([], where('/people/non-members', '')).pp.extract()).p, '/people/non-members');
+  });
+
+  await test('sidebar(): contact links and ID-bearing links in the left column print masked', async () => {
+    const link = (text, href) => anchor(text, href, { left: 20 });
+    const phone = ['415', '555', '0134'].join('-');
+    const { pp } = install([
+      link(FAKE_NAME, FAKE_PERSON_PATH + '#staff-details'), link('Mail ' + FAKE_EMAIL, 'mailto:' + FAKE_EMAIL),
+      link('Plans', '/plans/list'), link('Call ' + phone, '/help'),
+    ]);
+    const lines = plain(await pp.sidebar());
+    assert.deepStrictEqual(lines, ['LINK  <item>  ->  /user/<id>', 'LINK  <item>  ->  <contact>', 'LINK  Plans  ->  /plans/list', 'LINK  Call <phone>  ->  /help']);
+    const all = JSON.stringify(lines);
+    for (const leak of [FAKE_NAME, FAKE_EMAIL, phone, 'a1b2c3d4e5f6a7b8']) assert.ok(!all.includes(leak), 'leaked: ' + leak.length + ' chars');
   });
 
   console.log('pushpress-extractor-harness.js: PASS (' + checks + ' checks)');

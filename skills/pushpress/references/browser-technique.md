@@ -14,15 +14,10 @@ capabilities they stand for. Earned on 2026-11-08; each pitfall below happened.
 
 ## 1. Setup and tidy-up
 
-- Load every Chrome tool you will need in **one** `ToolSearch`; include the credential tools
-  (`request_credentials`, `autofill_credential`, `list_granted_credentials`, `release_credentials`,
-  `enter_verification_code`). Sign-in steps are in [`SKILL.md`](../SKILL.md).
-- Call `tabs_context_mcp` first, then work in **your own tab** (`tabs_create_mcp`). Never reuse tab IDs
-  from an earlier session.
-- Prefer `browser_batch` for sequences you can predict (navigate → wait → extract); it stops at the
-  first error.
-- At the end: run `__pp.clear()` (removes the page-side storage and dump element), `release_credentials`,
-  and close the tabs you opened.
+Setup, sign-in and tidy-up for the verified host are one recipe, kept in
+[hosts.md](hosts.md#recipe-claude-in-chrome) so that there is a single copy. The two rules that matter most here: work
+in **your own tab**, and at the end run `__pp.clear()` (it removes the page-side storage and dump element) before you
+release credentials and close the tabs you opened.
 
 ## 2. How the app behaves
 
@@ -60,7 +55,8 @@ session even with a "structure-only" extractor:
 
 Rules: record **structure only** — labels, paths, column headers, ID **prefixes** (`usr_`, `plan_`),
 counts; never names, emails, phones, birthdays, addresses, IDs, or screenshots of person pages and
-reports. Read a password field's `value.length`, never `value`. If something personal reaches your
+reports. Check only whether a password field is empty (`value.length > 0`); never read its `value` or its length. If
+something personal reaches your
 context, do not repeat it in any file, journal or message; purge it from `sessionStorage`.
 
 ## 4. Extraction toolkit

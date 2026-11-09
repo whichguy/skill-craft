@@ -49,12 +49,11 @@ Description · Create Date · Last Used Date · Actions** (`Edit`). This is wher
 ## 3. Apps, Marketplace, Insurance
 
 - **App Store** `/app-store` — tabs *Discover Apps / My Apps*, filters *Type* and *Category*, and a note
-  "Available with your PRO plan". Apps listed: Committed Club, Google Analytics, Grow by PushPress,
-  Legacy Grow by PushPress, Mailchimp, PushPress Branded App, PushPress Screens, Rank Tracking, Slack,
-  Train by PushPress, PushPress Staff App, **PushPress ACH**, **PushPress Digital Documents**, PushPress
-  Members App, Facebook Marketing, Healthy Steps Nutrition, Ortto, Two Brain Business. Each has *Learn
-  more* (`/app-store/<slug>`) or *Configure* (`/app-store/<slug>` or `/integrations/app/<slug>`).
-- **Marketplace** `/marketplace` — tabs *All 20 · Integrations 3 · Partners 17*, `Sort: Featured`, search,
+  "Available with your PRO plan". The catalogue lists PushPress's own apps (the ACH and Digital Documents apps are the
+  ones other pages here depend on) and third-party integrations; which of them a gym has installed is that gym's own
+  business and is not recorded here. Each has *Learn more* (`/app-store/<slug>`) or *Configure* (`/app-store/<slug>`
+  or `/integrations/app/<slug>`).
+- **Marketplace** `/marketplace` — tabs *All · Integrations · Partners*, `Sort: Featured`, search,
   `Connect` on an integration (**CONFIG**, `[not exercised]`).
 - **Insurance** `/insurance` — a third-party quote form ("Get a quote in minutes", provided by Authentic
   Services). It is marketing for a partner, not gym data. It pre-fills the gym's email; **do not submit**.
