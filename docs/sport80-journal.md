@@ -305,3 +305,23 @@ Reads: the tab list, then counts only (`maxRows` 0) of tables. Archive Member wa
 - **Decision.** Catalogue 114 to 119 entries (four club-only reads, one guided write); `member.profile_tabs`, `member.memberships` and
   `member.results` verified live for the club role with the scope noted; four personal-only tabs lose their unproven club role; the
   card, `references/access.md` and `references/safety.md` say it; two tests; shipped as a patch note.
+
+## Round 7 - the club-view patch published (2026-11-08)
+
+Published as `sport80` 0.1.1 in skill-craft 2.35.7. Compact evidence: `docs/evidence/sport80-clubtabs-20261108/summary.json`.
+
+- **What landed.** Remote `main` moved from 1db0d579ea7065c2012e5a87a1012e6b1dcbe588 to 53a19bf5bfa14953fe9832c79af1d2de08a90eeb
+  ("release: skill-craft 2.35.7, sport80 0.1.1", tree e86d7d0fbc1c7e114a124d4b5faa1e765380b840) in one guarded push of the feature
+  commit e6b6064386181f7abe3f7710b288accea52de3d7 and the release commit. The release shipped only this note.
+- **Checks before the push.** The scoped quick tier on the feature commit passed 15 of 15 suites (211.0 s wall). On the release
+  tree, with exit codes captured (the F20 lesson, applied this time): sport80 27 tests, skill-frontmatter, test-groups 61 tests and
+  ci-policy 13 tests, then the four release checks. The packaged tree equals the source; its guard refuses a club member read without
+  a cid (exit 2) and runs one with a cid (exit 0). `release-push.py` then ran six checks, the four plus the sport80 and
+  skill-frontmatter suites, and pushed.
+- **Hosts.** Claude 2.35.6 to 2.35.7 (restart to apply), Grok 2.35.6 to 2.35.7, Codex 2.35.7. On each, the installed `sport80` tree is
+  identical to `git archive` of the release commit, and the installed CLI reports 119 entries, 0 problems, with the guard refusing.
+  Cursor was not refreshed: it is the owner's, through its app.
+- **CI.** The push run for the release commit was in progress when this was recorded and was not waited on. Its predecessor
+  run on `main` (the quick and hermetic run for the first record commit) passed.
+- **Lesson kept.** Running the changed suites on the release tree before the push took about a minute and found nothing this time;
+  it is the check that would have caught F20.

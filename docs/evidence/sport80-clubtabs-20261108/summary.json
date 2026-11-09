@@ -6,24 +6,113 @@
   "tab_list": {
     "club_entries": 17,
     "personal_entries": 17,
-    "only_in_club_view": ["Background Screening Due Payment", "REPS Membership", "Additional Trackings", "Notes", "Archive Member"],
-    "only_in_personal_view": ["Access USAW Learning Academy", "USAW Learning Academy Results", "Addresses", "Entries", "Communication Preferences"]
+    "only_in_club_view": [
+      "Background Screening Due Payment",
+      "REPS Membership",
+      "Additional Trackings",
+      "Notes",
+      "Archive Member"
+    ],
+    "only_in_personal_view": [
+      "Access USAW Learning Academy",
+      "USAW Learning Academy Results",
+      "Addresses",
+      "Entries",
+      "Communication Preferences"
+    ]
   },
   "totals": {
-    "memberships": {"club": 1, "personal": 1},
-    "results": {"club": 2, "personal": 2},
-    "background_screening_due_payment": {"club": 0},
-    "reps_membership": {"club": 0},
-    "additional_trackings": {"club": 0},
-    "notes": {"club": 0}
+    "memberships": {
+      "club": 1,
+      "personal": 1
+    },
+    "results": {
+      "club": 2,
+      "personal": 2
+    },
+    "background_screening_due_payment": {
+      "club": 0
+    },
+    "reps_membership": {
+      "club": 0
+    },
+    "additional_trackings": {
+      "club": 0
+    },
+    "notes": {
+      "club": 0
+    }
   },
   "club_only_tabs": {
-    "Background Screening Due Payment": {"kind": "s80-datatable", "endpoint": "/add_on_portal/c_add_ons_data_table", "columns": ["Background Screening Due Payment", "Status"]},
-    "REPS Membership": {"kind": "s80-datatable", "endpoint": "/add_on_portal/c_add_ons_data_table", "columns": ["REPS Membership", "Status", "Start Date", "Exp Date"]},
-    "Additional Trackings": {"kind": "s80-datatable", "endpoint": "/add_on_portal/c_add_ons_data_table", "columns": ["Additional Tracking", "Status", "From", "To", "Item"]},
-    "Notes": {"kind": "s80-datatable", "endpoint": "/api/contact/notes/datatable", "columns": ["Notes", "Type", "Date", "Added By", "Actions"], "top_buttons": ["Add Note"]},
-    "Archive Member": {"kind": "AjaxContainer", "endpoint": "/competitor_dashboard/archive_contact", "requested": false}
+    "Background Screening Due Payment": {
+      "kind": "s80-datatable",
+      "endpoint": "/add_on_portal/c_add_ons_data_table",
+      "columns": [
+        "Background Screening Due Payment",
+        "Status"
+      ]
+    },
+    "REPS Membership": {
+      "kind": "s80-datatable",
+      "endpoint": "/add_on_portal/c_add_ons_data_table",
+      "columns": [
+        "REPS Membership",
+        "Status",
+        "Start Date",
+        "Exp Date"
+      ]
+    },
+    "Additional Trackings": {
+      "kind": "s80-datatable",
+      "endpoint": "/add_on_portal/c_add_ons_data_table",
+      "columns": [
+        "Additional Tracking",
+        "Status",
+        "From",
+        "To",
+        "Item"
+      ]
+    },
+    "Notes": {
+      "kind": "s80-datatable",
+      "endpoint": "/api/contact/notes/datatable",
+      "columns": [
+        "Notes",
+        "Type",
+        "Date",
+        "Added By",
+        "Actions"
+      ],
+      "top_buttons": [
+        "Add Note"
+      ]
+    },
+    "Archive Member": {
+      "kind": "AjaxContainer",
+      "endpoint": "/competitor_dashboard/archive_contact",
+      "requested": false
+    }
   },
-  "not_done": ["any other member's record", "Notes contents", "Archive Member (a write; its URL was never requested)", "the tab set for other kinds of record (a minor, a coach)"],
-  "catalogue_after": {"entries": 119, "problems": 0}
+  "not_done": [
+    "any other member's record",
+    "Notes contents",
+    "Archive Member (a write; its URL was never requested)",
+    "the tab set for other kinds of record (a minor, a coach)"
+  ],
+  "catalogue_after": {
+    "entries": 119,
+    "problems": 0
+  },
+  "published": {
+    "release_commit": "53a19bf5bfa14953fe9832c79af1d2de08a90eeb",
+    "release_tree": "e86d7d0fbc1c7e114a124d4b5faa1e765380b840",
+    "feature_commit": "e6b6064386181f7abe3f7710b288accea52de3d7",
+    "remote_main_before": "1db0d579ea7065c2012e5a87a1012e6b1dcbe588",
+    "versions": "skill-craft 2.35.7, sport80 0.1.1",
+    "scoped_quick_tier": "15 of 15 suites passed on the feature commit, 211.0 s wall",
+    "release_tree_checks": "sport80 27 tests, skill-frontmatter, test-groups 61, ci-policy 13 passed; four release checks passed; guard refuses a club member read without a cid (exit 2)",
+    "push": "one guarded push, 6 of 6 checks passed",
+    "hosts": "Claude, Grok and Codex at 2.35.7; the installed sport80 tree equals git archive of the release on all three; Cursor not refreshed (the owner's, through its app)",
+    "ci": "push run in progress when recorded; not waited on"
+  }
 }
