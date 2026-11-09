@@ -3,16 +3,19 @@
 // Each gap plants one made-up value (or the parts of one name) and asserts that it still reaches the output (XFAIL: a recorded, expected
 // failure). When the extractor is fixed the gap stops leaking (XPASS), which fails the run so the entry is promoted to a contract and
 // docs/pushpress-journal.md updated. A fix that stops only some of an entry's values is PARTIAL, which also fails the run: split the entry.
-// Controls keep the checker honest. Masked shapes (the extractor handles them today) must not leak. Positive controls (a plain word, a short
-// number, a short number written in full-width digits) must be found, so a leak check that reads nothing, or that stops folding full-width
-// digits, fails a control instead of passing quietly or being read as an extractor fix.
-// Phone numbers, addresses, ids and tokens are assembled at run time so that no file holds a complete one; names and other plain strings
-// are made-up literals. The report prints ids, fields and counts, never a planted value.
+// Controls keep the checker honest. Masked shapes (the extractor handles them today) must not leak. Positive controls (a plain word in a
+// heading, a button and a link, a short number in a label, a short number written in full-width digits) must be found, so a leak check that
+// reads nothing, or stops reading a field the gaps leak through, or stops folding full-width digits, fails a control instead of passing
+// quietly or being read as an extractor fix; every field in which a gap leaks must have a positive control that is found in it (checked on
+// every run). A malformed entry (an empty or too short value, one value inside another, an unknown onlyIn field) is an ERROR.
+// Phone numbers, email addresses and the prefixed ids are assembled at run time so that no file holds a complete one. The other planted
+// values (names, a UUID, a date, a postal code, card digits, invoice and order numbers, short numeric ids, a street address) are made-up
+// literals. The report prints ids, fields and counts, never a planted value.
 //
 //   node test/pushpress-extractor-known-gaps.js [--flip-check] [--json <file>]     PP_EXTRACT=<file> tests another copy of the extractor
 //   require() of this file exposes the register and the stub DOM for probes and reviews and runs nothing.
 //
-// Found by a black-box audit (review round 5) and checked by a second reviewer (round 6); docs/pushpress-journal.md (Round 9) lists them as
+// Found by a black-box audit (review round 5) and checked by reviewers in rounds 6 and 7; docs/pushpress-journal.md (Round 9) lists them as
 // H3 and H16 to H22 and proposes the fixes as P12 to P16. Not wired into any automatic run yet (P7).
 'use strict';
 
@@ -95,8 +98,8 @@ const GAPS = [
     cat('sgnl://signal.me/#p/+1', N.a, N.b, N.c), cat('https://wa.me/1', N.a, N.b, N.c)].map(h => (
     { id: 'contact-link-' + h.split(/[:/]/)[0] + (h.includes('wa.me') ? '-wa-me' : ''), sev: 'material', why: 'only mailto, tel and sms links are treated as contact links, so the text (a name) is kept', path: LIST, els: [link(NAMETEXT, h)], planted: [NAME.last] })),
   { id: 'email-in-a-same-origin-path', sev: 'material', why: 'an email in a path segment is not masked (the text mask runs on text, not on paths)', path: LIST, els: [link('History', cat('/members/by-email/', EMAIL))], planted: ['jane.fixture'] },
-  { id: 'person-link-with-numeric-id', sev: 'material', why: 'the person-route test for a link needs 8 or more characters after /user/ or /people/', path: LIST, els: [link(NAMETEXT, '/user/48213')], planted: [NAME.last] },
-  { id: 'person-link-under-people-members', sev: 'material', why: 'the person test skips /people/members/... so that the list pages stay readable, which also skips a person id below it', path: LIST, els: [link(NAMETEXT, '/people/members/12345678')], planted: [NAME.last] },
+  { id: 'person-link-with-numeric-id', sev: 'material', why: 'the person-route test for a link, and the path mask that prints it, need 8 or more characters after /user/ or /people/', path: LIST, els: [link(NAMETEXT, '/user/48213')], planted: [NAME.last, '48213'] },
+  { id: 'person-link-under-people-members', sev: 'material', why: 'the person test looks only at the first segment after /people/ (8 or more characters, not a list name), so an id one segment deeper, below a list page, is never seen by it or by the path mask', path: LIST, els: [link(NAMETEXT, '/people/members/12345678')], planted: [NAME.last, '12345678'] },
   { id: 'person-id-in-a-query', sev: 'material', why: 'only the path is tested for a person id', path: LIST, els: [link(NAMETEXT, '/checkins?user=' + UID)], planted: [NAME.last] },
   { id: 'person-link-that-is-a-role-button', sev: 'material', why: 'the link is masked in the link list but its text is also a button label, which the person-link mask does not see', path: LIST,
     els: [el({ tag: 'A', sel: ['a[href]', '[role=button]'], text: NAMETEXT, attrs: { href: '/user/' + UID, role: 'button' } })], planted: [NAME.last], onlyIn: 'btn' },
@@ -113,17 +116,19 @@ const GAPS = [
 const CONTROLS = [
   // positive controls: values the extractor passes through, so the checker is shown to read the fields it claims to read (and to fold full-width digits)
   { id: 'checker-finds-a-word-in-a-heading', reads: true, path: LIST, els: [put('h', 'Sentinelword')], planted: ['Sentinelword'] },
+  { id: 'checker-finds-a-word-in-a-button', reads: true, path: LIST, els: [put('btn', 'Sentinelbutton')], planted: ['Sentinelbutton'] },
+  { id: 'checker-finds-a-word-in-a-link', reads: true, path: LIST, els: [link('Sentinellink', '/reports')], planted: ['Sentinellink'] },
   { id: 'checker-finds-a-short-number-in-a-label', reads: true, path: LIST, els: [put('lbl', 'Seats 42')], digits: '42' },
   { id: 'checker-folds-a-full-width-number-in-a-label', reads: true, path: LIST, els: [put('lbl', 'Seats ' + fullWidth('42'))], digits: '42' },
   // masked shapes
   { id: 'phone-parenthesis-and-space', path: LIST, els: [put('lbl', cat('Phone (', N.a, ') ', N.b, '-', N.c))], digits: N.b + N.c },
-  { id: 'phone-international-plus-one', path: LIST, els: [put('lbl', cat('Phone +1 ', N.a, ' ', N.b, ' ', N.c))], digits: N.b + N.c },
+  { id: 'phone-international-plus-one', path: LIST, els: [put('lbl', cat('Phone +1 ', N.a, ' ', N.b, ' ', N.c))], planted: ['+1'], digits: N.b + N.c },
   { id: 'email-in-text', path: LIST, els: [put('lbl', 'Email ' + EMAIL)], planted: ['jane.fixture'] },
   { id: 'button-edit-name', path: LIST, els: [put('btn', 'Edit ' + NAMETEXT)], planted: [NAME.last] },
   { id: 'person-link-hex-id', path: LIST, els: [link(NAMETEXT, '/user/' + UID)], planted: [NAME.last, UID] },
   { id: 'person-link-non-hex-slug', path: LIST, els: [link(NAMETEXT, cat('/user/slug', '-', 'zzzzzzzz'))], planted: [NAME.last, 'zzzzzzzz'] },
   { id: 'record-id-link-that-is-not-a-person', path: LIST, els: [link(NAMETEXT, cat('/invoices/inv', '_', '9f3c', '000012'))], planted: [NAME.last, '9f3c000012'] },
-  { id: 'mailto-link-with-a-name', path: LIST, els: [link(NAMETEXT, 'mailto:' + EMAIL)], planted: [NAME.last, 'jane.fixture'] },
+  { id: 'mailto-link-with-a-name', path: LIST, els: [link(NAMETEXT, 'mailto:' + EMAIL)], planted: [NAME.last] },
   { id: 'title-pipe-separator-and-no-fields', path: PERSON, title: NAMETEXT + ' | PushPress', els: [put('h', NAMETEXT)], planted: [NAME.last, NAME.first] },
   { id: 'title-en-dash-separator-and-no-fields', path: PERSON, title: NAMETEXT + ' – PushPress', els: [put('h', NAMETEXT)], planted: [NAME.last, NAME.first] },
   // no page title here, so only the field values can scrub the heading
@@ -147,11 +152,28 @@ function leaks(out, e) {
   }
   return { fields: [...fields], leaked: leaked.size, total: vals.length };
 }
+const FIELDS = ['p', 'h', 'tabs', 'btn', 'th', 'inp', 'lbl', 'sw', 'a', 'region'];
+// a malformed entry would read as a result about the extractor, so it is an ERROR; digit runs are matched after everything that is not a digit
+// is stripped, so a short digits value can also match digits that sit in different words of one string (the positive controls use 42)
+function problem(e) {
+  const vals = (e.planted || []).map(v => String(v).toLowerCase());
+  if (vals.some(v => v.trim().length < 2)) return 'a planted value is empty or too short';
+  if (vals.some((v, i) => vals.some((w, j) => i !== j && w.includes(v)))) return 'a planted value is contained in another';
+  if (e.digits !== undefined && !/^\d{2,}$/.test(e.digits)) return 'digits must be 2 or more ASCII digits';
+  if (e.onlyIn && !FIELDS.includes(e.onlyIn)) return 'onlyIn names no output field';
+  return '';
+}
+// every field in which a gap leaks needs a positive control that is found in it; otherwise a checker that stopped reading the field would show
+// the gaps there as fixed
+function coverage(rows) {
+  const read = new Set(rows.filter(r => r.kind === 'positive' && r.status === 'PASS').flatMap(r => r.fields));
+  return [...new Set(rows.filter(r => r.kind === 'gap' && (r.status === 'XFAIL' || r.status === 'PARTIAL')).flatMap(r => r.fields))].filter(f => !read.has(f)).sort();
+}
 function run(src) {
   const rows = [];
   for (const e of [...GAPS.map(g => ({ ...g, kind: 'gap' })), ...CONTROLS.map(c => ({ ...c, kind: c.reads ? 'positive' : 'masked' }))]) {
-    let r = { fields: [], leaked: 0, total: 0 }, error = '';
-    try { r = leaks(extract(e.els, e.path, e.title || '', src), e); } catch (err) { error = (err && err.name) || 'Error'; }
+    let r = { fields: [], leaked: 0, total: 0 }, error = problem(e) ? 'bad entry: ' + problem(e) : '';
+    if (!error) { try { r = leaks(extract(e.els, e.path, e.title || '', src), e); } catch (err) { error = (err && err.name) || 'Error'; } }
     if (!error && r.total === 0) error = 'plants nothing';           // an entry with no value would read as XFAIL (0 of 0) whatever the extractor does
     let status;
     if (error) status = 'ERROR';
@@ -168,8 +190,8 @@ const show = rows => { const t = {}; for (const r of rows) t[r.status] = (t[r.st
 // ---- --flip-check: crude one-line fixes, applied to copies held in memory, must flip exactly the entries they target ---------------
 // This is the control for the XPASS rule: it shows that a fix of each kind is noticed and that no control breaks. The fixes are crude, so
 // this proves the register notices a fix, not that the fix is safe (the other tests are not run on them). A fix whose original text is no
-// longer in the extractor exactly once is skipped, which is what happens after a real change and after any reformatting. A run in which
-// every fix is skipped verified nothing and fails.
+// longer in the extractor exactly once is a SKIP and FAILS the check: the extractor was reformatted or really changed, that fix is no longer
+// verified, and FIXES has to be updated (after a real fix, promote its entries and delete its fix).
 const ids = prefix => GAPS.filter(g => g.id.startsWith(prefix)).map(g => g.id);
 // A fix names the entries it targets (flips) and, separately, the side effects it is known to have (also): this first one is greedy, so it
 // also masks the digits inside an id (that entry flips) and part of the letterless entry (PARTIAL), and it masks an ISO date, which the stub
@@ -187,13 +209,17 @@ const FIXES = [
     to: String.raw`const isContact = href => /^\s*(?!https?:)[a-z][a-z0-9+.-]*:|^\s*https?:\/\/(?:wa\.me|api\.whatsapp\.com)\//i.test(href);` },
   { name: 'title: an em dash, a middle dot and a colon also separate the name from the product', flips: ['title-with-an-em-dash-separator'],
     from: String.raw`.split(/\s[|–-]\s/)[0]`, to: String.raw`.split(/\s[|–—·:-]\s/)[0]` },
-  { name: 'person link: any id after /user/ or /people/, not only 8 or more characters', flips: ['person-link-with-numeric-id'],
-    from: '[^/?]{8,}/;\n  const onPerson', to: '[^/?]{1,}/;\n  const onPerson' },
+  { name: 'person link: any id after /user/ or /people/, not only 8 or more characters (in the person test and in the path mask)', flips: ['person-link-with-numeric-id'],
+    from: '[^/?]{8,}/;\n  const onPerson', to: '[^/?]{1,}/;\n  const onPerson',
+    from2: String.raw`[^/?]{8,}.*/, '$1/<id>')`, to2: String.raw`[^/?]{1,}.*/, '$1/<id>')` },
 ];
 function replaceOnce(s, a, b) { const i = s.indexOf(a); return i < 0 || s.indexOf(a, i + 1) >= 0 ? null : s.slice(0, i) + b + s.slice(i + a.length); }
 function flipCheck() {
-  const baseBad = run(SRC).filter(isBad);
-  if (baseBad.length) { console.log('flip-check needs a clean baseline; not XFAIL or PASS: ' + baseBad.map(r => r.id).join(', ')); return { ok: false, results: [] }; }
+  const baseRows = run(SRC), baseBad = baseRows.filter(isBad), uncovered = coverage(baseRows);
+  if (baseBad.length || uncovered.length) {
+    console.log('flip-check needs a clean baseline; not XFAIL or PASS: ' + [...baseBad.map(r => r.id), ...uncovered.map(f => 'field ' + f + ' has no positive control')].join(', '));
+    return { ok: false, applied: 0, results: [] };
+  }
   const results = [];
   for (const f of FIXES) {
     let patched = replaceOnce(SRC, f.from, f.to);
@@ -207,15 +233,14 @@ function flipCheck() {
     const ok = JSON.stringify(named('XPASS')) === JSON.stringify(wantFlipped) && JSON.stringify(named('PARTIAL')) === JSON.stringify(wantPartial) && broken.length === 0;
     results.push({ name: f.name, status: ok ? 'OK' : 'BAD', flipped: named('XPASS').length, expected: wantFlipped.length, targeted: f.flips.length, partial: named('PARTIAL').length, controls_broken: broken.length });
   }
-  const applied = results.filter(r => r.status === 'OK').length;
-  return { ok: applied > 0 && results.every(r => r.status !== 'BAD'), applied, results };
+  return { ok: results.length > 0 && results.every(r => r.status === 'OK'), applied: results.filter(r => r.status === 'OK').length, results };
 }
 
 function main() {
   if (process.argv.includes('--flip-check')) {
     const { ok, applied, results } = flipCheck();
     for (const r of results) console.log(`${r.status.padEnd(4)} flips ${r.flipped === undefined ? '-' : r.flipped + ' of ' + r.expected + ' (' + r.targeted + ' targeted)'}  partial ${r.partial === undefined ? '-' : r.partial}  controls broken ${r.controls_broken === undefined ? '-' : r.controls_broken}  ${r.name}${r.note ? '  (' + r.note + ')' : ''}`);
-    if (results.length && !applied) console.log('every fix was skipped: the check verified nothing (the extractor text no longer matches; update FIXES)');
+    if (results.some(r => r.status === 'SKIP')) console.log('a fix was skipped: its original text is no longer in the extractor exactly once (reformatted or really changed), so it is no longer verified; update FIXES');
     if (JSON_OUT) fs.writeFileSync(JSON_OUT, JSON.stringify({ recorded: '2026-11-09', mode: 'flip-check', applied, results }, null, 2) + '\n');
     console.log(`pushpress-extractor-known-gaps.js --flip-check: ${ok ? 'PASS' : 'FAIL'}`);
     process.exit(ok ? 0 : 1);
@@ -223,16 +248,17 @@ function main() {
   const rows = run(SRC);
   for (const r of rows) console.log(`${r.status.padEnd(7)} ${r.kind.padEnd(8)} ${r.id.padEnd(48)} ${r.fields.join(',')}${r.status === 'XPASS' ? '  (no longer leaks: promote it to a contract)' : ''}${r.status === 'PARTIAL' ? `  (${r.leaking} of ${r.values} values still leak: split the entry or promote it)` : ''}${r.error ? '  ' + r.error : ''}`);
   console.log('tally: ' + show(rows));
-  const brokenChecker = rows.filter(r => r.kind === 'positive' && r.status !== 'PASS');
+  const brokenChecker = rows.filter(r => r.kind === 'positive' && r.status !== 'PASS'), uncovered = coverage(rows);
   if (brokenChecker.length) console.log('the checker failed a positive control (' + brokenChecker.map(r => r.id).join(', ') + '): XPASS lines above are not evidence of a fix');
+  if (uncovered.length) console.log('no positive control is found in field ' + uncovered.join(', ') + ': a checker that stopped reading it would show the gaps there as fixed');
   if (JSON_OUT) {
     const tally = {}; for (const r of rows) tally[r.status] = (tally[r.status] || 0) + 1;
     fs.writeFileSync(JSON_OUT, JSON.stringify({ recorded: '2026-11-09', extractor: path.basename(process.env.PP_EXTRACT || 'pp-extract.js'), tally, entries: rows }, null, 2) + '\n');
   }
-  const bad = rows.filter(isBad).length;
+  const bad = rows.filter(isBad).length + uncovered.length;
   console.log(`pushpress-extractor-known-gaps.js: ${bad ? 'FAIL' : 'PASS'}`);
   process.exit(bad ? 1 : 0);
 }
 
 if (require.main === module) main();
-else module.exports = { extract, el, put, link, input, cat, N, NAME, NAMETEXT, UID, LIST, PERSON, EMAIL, digitsOf, fullWidth, GAPS, CONTROLS, FIXES, SRC, run, leaks, flipCheck };
+else module.exports = { extract, el, put, link, input, cat, N, NAME, NAMETEXT, UID, LIST, PERSON, EMAIL, digitsOf, fullWidth, GAPS, CONTROLS, FIXES, FIELDS, SRC, run, leaks, flipCheck, problem, coverage };
