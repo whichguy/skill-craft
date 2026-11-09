@@ -2,8 +2,8 @@
   "recorded": "2026-11-09",
   "extractor": "pp-extract.js",
   "tally": {
-    "XFAIL": 34,
-    "PASS": 11
+    "XFAIL": 41,
+    "PASS": 14
   },
   "entries": [
     {
@@ -11,6 +11,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "h",
         "btn"
@@ -23,6 +25,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 3,
+      "leaking": 3,
       "fields": [
         "h",
         "lbl"
@@ -35,6 +39,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "btn"
       ],
@@ -46,6 +52,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "h"
       ],
@@ -57,10 +65,12 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "h"
       ],
-      "why": "only the part before the first separator is used, so with \"Product | Name\" the secret is the product name and the person scrubs nothing",
+      "why": "only the part before the first separator is used, and only when it holds a space, so with \"Product | Name\" no title secret is taken",
       "error": ""
     },
     {
@@ -68,6 +78,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "h"
       ],
@@ -79,6 +91,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "h"
       ],
@@ -90,6 +104,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -101,6 +117,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -112,6 +130,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -123,6 +143,21 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-international-parenthesised-area-code",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -134,6 +169,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -145,6 +182,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -156,6 +195,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -167,6 +208,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -178,6 +221,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -189,6 +234,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -200,6 +247,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -211,6 +260,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -222,6 +273,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -229,10 +282,38 @@
       "error": ""
     },
     {
+      "id": "button-label-with-a-phone-in-short-groups",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "btn"
+      ],
+      "why": "button labels do not go through the text mask: one is dropped only when it holds an @ or a run of 3 digits, so a number written in groups of two survives",
+      "error": ""
+    },
+    {
+      "id": "email-full-width-at-sign",
+      "kind": "gap",
+      "severity": "low",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the email mask needs an ASCII at sign, so an address written with the full-width character passes",
+      "error": ""
+    },
+    {
       "id": "contact-link-whatsapp",
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "a"
       ],
@@ -244,6 +325,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "a"
       ],
@@ -255,6 +338,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "a"
       ],
@@ -266,6 +351,34 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "a"
+      ],
+      "why": "only mailto, tel and sms links are treated as contact links, so the text (a name) is kept",
+      "error": ""
+    },
+    {
+      "id": "contact-link-viber",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "a"
+      ],
+      "why": "only mailto, tel and sms links are treated as contact links, so the text (a name) is kept",
+      "error": ""
+    },
+    {
+      "id": "contact-link-sgnl",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "a"
       ],
@@ -277,6 +390,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "a"
       ],
@@ -288,6 +403,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "a"
       ],
@@ -299,10 +416,25 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "a"
       ],
-      "why": "the person-route test needs 8 or more characters after /user/ or /people/",
+      "why": "the person-route test for a link needs 8 or more characters after /user/ or /people/",
+      "error": ""
+    },
+    {
+      "id": "person-link-under-people-members",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "a"
+      ],
+      "why": "the person test skips /people/members/... so that the list pages stay readable, which also skips a person id below it",
       "error": ""
     },
     {
@@ -310,6 +442,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "a"
       ],
@@ -321,6 +455,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "btn"
       ],
@@ -332,10 +468,25 @@
       "kind": "gap",
       "severity": "low",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
-      "why": "ids that are not hex-with-prefix are not masked in text",
+      "why": "the text mask covers emails and phone-like numbers only, so an id in text is never masked",
+      "error": ""
+    },
+    {
+      "id": "prefixed-hex-id-in-text",
+      "kind": "gap",
+      "severity": "low",
+      "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "the id shape that the path mask knows is not masked in text either",
       "error": ""
     },
     {
@@ -343,6 +494,8 @@
       "kind": "gap",
       "severity": "low",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -354,6 +507,8 @@
       "kind": "gap",
       "severity": "low",
       "status": "XFAIL",
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "lbl"
       ],
@@ -365,6 +520,8 @@
       "kind": "gap",
       "severity": "low",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -376,6 +533,8 @@
       "kind": "gap",
       "severity": "low",
       "status": "XFAIL",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -384,9 +543,11 @@
     },
     {
       "id": "checker-finds-a-word-in-a-heading",
-      "kind": "control",
+      "kind": "positive",
       "severity": "",
       "status": "PASS",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "h"
       ],
@@ -395,9 +556,24 @@
     },
     {
       "id": "checker-finds-a-short-number-in-a-label",
-      "kind": "control",
+      "kind": "positive",
       "severity": "",
       "status": "PASS",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "lbl"
+      ],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "checker-folds-a-full-width-number-in-a-label",
+      "kind": "positive",
+      "severity": "",
+      "status": "PASS",
+      "values": 1,
+      "leaking": 1,
       "fields": [
         "lbl"
       ],
@@ -406,81 +582,121 @@
     },
     {
       "id": "phone-parenthesis-and-space",
-      "kind": "control",
+      "kind": "masked",
       "severity": "",
       "status": "PASS",
+      "values": 1,
+      "leaking": 0,
       "fields": [],
       "why": "",
       "error": ""
     },
     {
       "id": "phone-international-plus-one",
-      "kind": "control",
+      "kind": "masked",
       "severity": "",
       "status": "PASS",
+      "values": 1,
+      "leaking": 0,
       "fields": [],
       "why": "",
       "error": ""
     },
     {
       "id": "email-in-text",
-      "kind": "control",
+      "kind": "masked",
       "severity": "",
       "status": "PASS",
+      "values": 1,
+      "leaking": 0,
       "fields": [],
       "why": "",
       "error": ""
     },
     {
       "id": "button-edit-name",
-      "kind": "control",
+      "kind": "masked",
       "severity": "",
       "status": "PASS",
+      "values": 1,
+      "leaking": 0,
       "fields": [],
       "why": "",
       "error": ""
     },
     {
       "id": "person-link-hex-id",
-      "kind": "control",
+      "kind": "masked",
       "severity": "",
       "status": "PASS",
+      "values": 2,
+      "leaking": 0,
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "person-link-non-hex-slug",
+      "kind": "masked",
+      "severity": "",
+      "status": "PASS",
+      "values": 2,
+      "leaking": 0,
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "record-id-link-that-is-not-a-person",
+      "kind": "masked",
+      "severity": "",
+      "status": "PASS",
+      "values": 2,
+      "leaking": 0,
       "fields": [],
       "why": "",
       "error": ""
     },
     {
       "id": "mailto-link-with-a-name",
-      "kind": "control",
+      "kind": "masked",
       "severity": "",
       "status": "PASS",
+      "values": 2,
+      "leaking": 0,
       "fields": [],
       "why": "",
       "error": ""
     },
     {
       "id": "title-pipe-separator-and-no-fields",
-      "kind": "control",
+      "kind": "masked",
       "severity": "",
       "status": "PASS",
+      "values": 2,
+      "leaking": 0,
       "fields": [],
       "why": "",
       "error": ""
     },
     {
       "id": "title-en-dash-separator-and-no-fields",
-      "kind": "control",
+      "kind": "masked",
       "severity": "",
       "status": "PASS",
+      "values": 2,
+      "leaking": 0,
       "fields": [],
       "why": "",
       "error": ""
     },
     {
       "id": "input-value-scrubbed-on-a-person-route",
-      "kind": "control",
+      "kind": "masked",
       "severity": "",
       "status": "PASS",
+      "values": 2,
+      "leaking": 0,
       "fields": [],
       "why": "",
       "error": ""

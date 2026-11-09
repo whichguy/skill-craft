@@ -1,6 +1,6 @@
 {
   "recorded": "2026-11-09",
-  "what": "a link to a list page, run through the extractor on a stub DOM (the link text is Filter); only links to /people/members and /people/leads with a query string are masked as person links",
+  "what": "a link to a list page, run through the extractor on a stub DOM (the link text is Filter); a link to any of the four People list pages (members, non-members, leads, staff) with a query string is masked as a person link; the same list without a query, with a fragment only, or another path with a query is untouched (the two non-members and staff rows were added in round 6, after the journal reviewer ran them)",
   "extractor_blob": "7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b",
   "probe": [
     {
@@ -27,6 +27,26 @@
       "href": "/people/members#top",
       "link_text": "Filter",
       "extractor_a_entry": "Filter -> /people/members#top"
+    },
+    {
+      "href": "/people/non-members?status=active",
+      "link_text": "Filter",
+      "extractor_a_entry": "<item> -> /people/<id>"
+    },
+    {
+      "href": "/people/staff?page=2",
+      "link_text": "Filter",
+      "extractor_a_entry": "<item> -> /people/<id>"
+    },
+    {
+      "href": "/people/non-members",
+      "link_text": "Filter",
+      "extractor_a_entry": "Filter -> /people/non-members"
+    },
+    {
+      "href": "/people/staff",
+      "link_text": "Filter",
+      "extractor_a_entry": "Filter -> /people/staff"
     }
   ]
 }

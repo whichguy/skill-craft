@@ -1,7 +1,7 @@
 {
   "recorded": "2026-11-09",
   "scope": "The read-only and hermetic tiers of the validation plan. Nothing under skills/pushpress/ was edited, nothing was pushed, and the live tenant was not touched.",
-  "note_ids": "Item ids such as T1.3 or T1.4 in frozen files (trigger/prompts.json, quiz/answer-key.*, quiz/gen_cases.py) refer to the validation plan's numbering; the plan is not in this repository. The property ids P1 to P6 in property/results.json are the property test's own, unrelated to the proposals P1 to P10 in the journal.",
+  "note_ids": "Item ids such as T1.3 or T1.4 in frozen files (trigger/prompts.json, quiz/answer-key.*, quiz/gen_cases.py) refer to the validation plan's numbering; the plan is not in this repository. The property ids P1 to P6 in property/results.json are the property test's own, unrelated to the proposals P1 to P17 in the journal.",
   "branch": {
     "name": "pushpress-validation",
     "cut_from": "d0eaf2d28de0fd60f76c8f73a31667443d3b0733",
@@ -9,7 +9,7 @@
     "note": "remote main was nineteen commits ahead (releases 2.36.0 and 2.36.1) and none touches a pushpress path"
   },
   "extractor_blob": "7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b",
-  "tests_commits": "81051962850dc49f2767a81f43be138c971eb2cc (first version), then the review fixes 695ad676f13ef71305d4d03be27fb3eb0fc7618a, 9c1930946318f94745672cf708a94fa5310b9620, d6e21bcc045c4d672b03b0121ee43e03584196df, cdfd043be38f140cf5cd3516000e9bc7036d585e, cf5f9bea84d689ca46a18c03630c2a4aa93ec5ac and, for the gap register, dc9afbad358cda1a2e19830718f62687aee09df2; the fixture and property results below are from cf5f9bea",
+  "tests_commits": "81051962850dc49f2767a81f43be138c971eb2cc (first version), then the review fixes 695ad676f13ef71305d4d03be27fb3eb0fc7618a, 9c1930946318f94745672cf708a94fa5310b9620, d6e21bcc045c4d672b03b0121ee43e03584196df, cdfd043be38f140cf5cd3516000e9bc7036d585e, cf5f9bea84d689ca46a18c03630c2a4aa93ec5ac and, for the gap register, dc9afbad358cda1a2e19830718f62687aee09df2 and its round-6 revision b89112b4bbfa340dc15455360a858f37e2e43964; the fixture and property results below are from cf5f9bea",
   "read_only_checks": {
     "ci": {
       "commit": "03f68d93a44500aca958db74440c1483e9038e11",
@@ -390,7 +390,7 @@
       },
       "seconds": 134.6,
       "detail": "fixture/results.json",
-      "shapes": "eleven name shapes (including a billing tab whose name is only in the title and heading, a guardian sharing the first name and a name with parentheses), a lead URL, a query, a fragment, a list page, a table page, a payments page (10-hex invoice id, name-slug person link, non-hex person id, mailto, tel and sms links whose text is a name, a link to another site with an id in its path, a query holding an address, an address in a header, a number in a tab, an address as plain link text, an address in an input label, a number in a toggle label, View/Delete/Remove/Open buttons carrying a name), a plan page whose path holds an 11-hex record id, and contact, id, person-slug and plain address links in the left menu",
+      "shapes": "eleven name shapes (including a billing tab whose name is only in the title and heading, a guardian sharing the first name and a name with parentheses), a lead URL, a query, a fragment, a list page, a table page, a payments page (10-hex invoice id, name-slug person link, non-hex person id, mailto, tel and sms links whose text is a name, a link to another site with an id in its path, a query holding an address, an address in a header, a number in a tab, an address as plain link text, a number in an input label, an address in a toggle label, View/Delete/Remove/Open buttons carrying a name), a plan page whose path holds an 11-hex record id, and contact, id, person-slug and plain address links in the left menu",
       "sidebar_expected": {
         "expanded": {
           "groups": 8,
@@ -697,7 +697,8 @@
         ]
       },
       "detail": "property/results.json",
-      "without_a_dedicated_control": "the scrub's right word boundary and input-type filter (over-masking and over-scrubbing only), the '+8 to 15 digits' phone alternative (redundant with the bare-digits one), and the order of the length limit and the text mask on link, label and region text (found by a reviewer, not pinned)"
+      "without_a_dedicated_control": "the scrub's right word boundary and input-type filter (over-masking and over-scrubbing only), the '+8 to 15 digits' phone alternative (redundant with the bare-digits one), the order of the length limit and the text mask on link, label and region text (found by a reviewer, not pinned), and eight single-mask removals found in round 5 by the journal reviewer's sweep of 38 further breaks, which survive the property test (seeds 1109 and 4242), the stub harness and the whole fixture: the person scrub skipped for link text, tabs, column headers, input labels or toggle labels (5); the case-insensitive flag removed from the Select/Edit/View/Delete/Remove/Open label mask or from the for/of mask (2); the bare-number alternative cut to exactly 10 digits (1). The list is not exhaustive.",
+      "unplanted_kind_field_pairs": "found by the round-5 journal reviewer (instrumented generator, fixture pages read): names in column headers, tabs and label text; phone numbers in headings, column headers and toggle labels; emails in tabs and labels. A mask that matters only there is not pinned; the claim in H2 is limited to the planted (kind, field) pairs."
     },
     "quiz": {
       "detail": "quiz/results-summary.json, quiz/quiz-report.md and quiz/failing-safety-answers.md",
@@ -779,72 +780,104 @@
     },
     "known_gaps_register": {
       "file": "test/pushpress-extractor-known-gaps.js",
-      "commit": "dc9afbad358cda1a2e19830718f62687aee09df2",
-      "what": "hermetic, on the property test stub DOM, about a second; each gap plants one made-up value and expects it to reach the output (XFAIL), a gap that stops leaking is XPASS and fails the run",
+      "commits": {
+        "first version": "dc9afbad358cda1a2e19830718f62687aee09df2",
+        "round-6 revision": "b89112b4bbfa340dc15455360a858f37e2e43964"
+      },
+      "what": "hermetic, on the property test stub DOM, about a second; each gap plants one made-up value (or the parts of one name) and expects it to reach the output",
+      "status_rules": "XFAIL: every planted value still reaches the output. XPASS: none does (fails the run: promote the entry). PARTIAL: some do (fails the run: split or promote). An entry that plants nothing is an ERROR.",
       "entries": {
-        "gaps": 34,
+        "gaps": 41,
         "by_severity": {
-          "material": 29,
-          "low": 5
+          "material": 34,
+          "low": 7
         },
-        "controls": 11,
-        "positive_controls": 2,
-        "masked_shape_controls": 9
+        "controls": 14,
+        "positive_controls": 3,
+        "masked_shape_controls": 11
       },
       "statuses": {
-        "XFAIL": 34,
-        "PASS": 11
+        "XFAIL": 41,
+        "PASS": 14
       },
       "groups": {
-        "phone shapes (H16)": 13,
+        "phone shapes in a label (H16)": 14,
+        "phone in a button label (H16)": 1,
         "non-Latin name and letterless field values (H17)": 2,
-        "title shapes and a second person in plain text (H3, H18)": 4,
-        "contact schemes (H19)": 5,
-        "email in a path (H19)": 1,
-        "person links in other shapes (H20)": 3,
-        "identifier-like strings and addresses in text (H21)": 5,
-        "owner first name alone with no fields (H18)": 1
+        "title shapes and the first name alone (H18)": 4,
+        "second person in plain text (H3)": 1,
+        "contact-link schemes (H19)": 7,
+        "email in a same-origin path (H19)": 1,
+        "person links in other shapes (H20)": 4,
+        "identifier-like strings and addresses in text (H21)": 6,
+        "email with a full-width at sign (H22)": 1
       },
       "flip_check": {
         "mode": "--flip-check",
         "fixes": 5,
+        "applied": 5,
         "results": [
           {
-            "fix": "phone pattern",
-            "flips": 13
+            "fix": "text mask",
+            "flips": 16,
+            "targeted": 15,
+            "partial": 1,
+            "controls_broken": 0
           },
           {
-            "fix": "scrub for any script and digits",
-            "flips": 2
+            "fix": "scrub",
+            "flips": 2,
+            "targeted": 2,
+            "partial": 0,
+            "controls_broken": 0
           },
           {
-            "fix": "contact schemes",
-            "flips": 5
+            "fix": "contact links",
+            "flips": 7,
+            "targeted": 7,
+            "partial": 0,
+            "controls_broken": 0
           },
           {
-            "fix": "title separators",
-            "flips": 1
+            "fix": "title",
+            "flips": 1,
+            "targeted": 1,
+            "partial": 0,
+            "controls_broken": 0
           },
           {
-            "fix": "person id length",
-            "flips": 1
+            "fix": "person link",
+            "flips": 1,
+            "targeted": 1,
+            "partial": 0,
+            "controls_broken": 0
           }
         ],
-        "controls_broken": 0,
-        "limit": "proves a fix is noticed, not that it is safe: the fixture and the property test were not run on the copies"
+        "rules": "a fix names the entries it targets and its known side effects; the result must equal both; the check fails when every fix is skipped (it verified nothing)",
+        "limit": "proves a fix is noticed, not that it is safe; see crude_fixes_through_other_tests"
       },
+      "deliberate_breaks_of_the_register": [
+        "field values removed from the secrets: the person-route control fails",
+        "person rule off: only the non-hex slug control fails (the hex-id control is masked twice and stays green)",
+        "id rule off: only the invoice-id control fails",
+        "checker without the NFKC fold: the full-width positive control fails, the full-width phone entry is an ERROR (plants nothing) and the run says the checker failed",
+        "a date-only scrub fix: letterless-field-values is PARTIAL (2 of 3 values still leak)",
+        "a reformatted extractor: the flip check fails (every fix skipped)"
+      ],
+      "crude_fixes_through_other_tests": "property/known-gaps-fix-trials.json: fixes 2 to 5 pass the stub harness (17 checks), the property test (seed 1109) and the fixture without controls (59 of 59); the greedy phone fix fails the harness (it masks Report 2026-10-01) and the property test (its phone gap turns XPASS)",
       "detail": [
         "property/known-gaps.json",
-        "property/known-gaps-flip-check.json"
+        "property/known-gaps-flip-check.json",
+        "property/known-gaps-fix-trials.json"
       ],
-      "found_by": "a black-box audit of the extractor in review round 5 (an independent leak oracle and a corpus of shapes the contract does not name), each entry reproduced through the extractor before it was kept",
-      "checker_fault_found_and_fixed": "full-width digits are not \\d in JavaScript, so the first run showed one XPASS that was the harness; the output is now folded with NFKC and two positive controls guard the same failure"
+      "found_by": "a black-box audit of the extractor in review round 5, checked in round 6 by a fresh reviewer who tried to refute the register; each entry reproduced through the extractor before it was kept",
+      "checker_fault_found_and_fixed": "full-width digits are not \\d in JavaScript: the first run showed one XPASS that was the harness. The output is now folded with NFKC; the first version's claim that two positive controls guard this was false (round 6 removed the fold and both still passed); a third positive control, a short number in full-width digits, now fails when the fold is removed."
     }
   },
-  "review": "five rounds of independent reviewers read the test code and the journal entry with this evidence (two reviewers in each of rounds 1 to 4; in round 5 a code reviewer who audited the extractor itself and a journal reviewer); their material findings are fixed in the commits on this branch",
+  "review": "six rounds of independent reviewers read the test code and the journal entry with this evidence (two reviewers in each of rounds 1 to 4; in round 5 a black-box audit of the extractor and a journal reviewer, whose report was integrated in round 6; in round 6 a fresh code reviewer who tried to refute the gap register); their material findings are fixed in the commits on this branch; two clean rounds in a row have not been reached",
   "findings": {
     "H1": "firm",
-    "H2": "firm (synthetic pages; limited to the shapes planted and the protections that have a control; the recorded gaps H3, H4 and H16 to H21 are excluded)",
+    "H2": "firm (synthetic pages; limited to the planted (kind, field) pairs and the protections that have a control; the recorded gaps H3, H4 and H16 to H22 are excluded)",
     "H3": "firm on the synthetic page; interim for a real tenant",
     "H4": "firm on the synthetic page for p; the rest read from the code",
     "H5": "firm",
@@ -858,13 +891,14 @@
     "H13": "firm",
     "H14": "firm",
     "see": "docs/pushpress-journal.md Round 9",
-    "H15": "firm on a stub DOM; the over-masking is not a leak",
-    "H16": "firm on a stub DOM; a real hole in the extractor (13 ways of writing a phone number are not masked, among them no separator after the closing parenthesis, a slash, an en dash, underscores, a glued extension, a seven-digit local number, international and full-width forms)",
+    "H15": "firm on a stub DOM; the over-masking is not a leak (any of the four People list pages with a query string)",
+    "H16": "firm on a stub DOM; a real hole in the extractor (14 ways of writing a phone number in a label, and a number in groups of two in a button label, are not masked)",
     "H17": "firm on a stub DOM; a real hole by the header's own words (a name in a script other than Latin, and a field value with no letter, are never scrubbed on a person route)",
     "H18": "firm on a stub DOM (the title secret is the first part before a pipe, en dash or hyphen, scrubbed only as a whole string: an em dash, the name second, last-comma-first and the first name alone on a tab with no name field scrub nothing)",
-    "H19": "firm on a stub DOM; outside what the header names (links on whatsapp, callto, facetime, skype and wa.me keep the name as text; an email in a same-origin path reaches the output)",
-    "H20": "firm on a stub DOM; the first shape contradicts the header (a person link with a short or numeric id, with the id in a query, or on a role=button keeps the name)",
-    "H21": "firm on a stub DOM; lower severity, outside the contract (a UUID, a processor id, an invoice number, card digits and a street address in text are not masked)"
+    "H19": "firm on a stub DOM; outside what the header names (7 contact-link schemes keep the name as text; an email in a same-origin path reaches the output)",
+    "H20": "firm on a stub DOM; the first shape contradicts the header (a person link with a short or numeric id, an id below /people/members/, an id in a query, or a role=button keeps the name)",
+    "H21": "firm on a stub DOM; lower severity, outside the contract (a UUID, an id in the path mask's shape, a processor id, invoice and order numbers, card digits and a street address in text are not masked)",
+    "H22": "firm on a stub DOM; lower severity (an email with the full-width at sign is not masked; one with no at sign at all cannot be)"
   },
   "proposed_changes_waiting_for_a_yes": [
     "P1 two hypotheses: a key rule in SKILL.md (precaution) and, separately, whether the description loads the card on a key request (test first in P8)",
@@ -877,13 +911,13 @@
     "P8 rerun the quiz with held-out phrasings and injection cases that name PushPress",
     "P9 decide the page-text-is-data rule after P8",
     "P10 let the repository's lint recurse through nested evidence, reading an external denylist named by an environment variable",
-    "P11 test the person pattern on the path without the query suffix, keep the id pattern on path plus fragment",
-    "P12 loosen the phone pattern to mask the 13 register shapes (NFKC fold, more separators, glued extension, seven-digit local form); the flip check's pattern flips all 13 and the other tests were not run on it",
-    "P13 keep a field value with a letter in any script or 4 or more digits, and use Unicode word boundaries in the scrub",
-    "P14 use every multi-word part of the title, more separators and a comma, and consider the words of the name on their own",
-    "P15 treat any scheme other than http and https as a contact link, add wa.me, and mask an email in a path and in p",
-    "P16 treat /user/<anything> as a person link, mask a link whose query key names a person, and mask person links in button lists",
-    "P17 state in the header and in browser-technique.md what is not masked (H16 to H21)"
+    "P11 test the person pattern on the path without the query suffix, keep the id pattern on path plus fragment (verified on a patched copy by the round-5 journal reviewer: the stub harness and the property test, seeds 1109 and 4242, pass; the fixture was not run)",
+    "P12 mask the 14 register shapes of a phone number in a label (NFKC fold, more separators, a parenthesised area code, a glued extension, the seven-digit local form) and give button labels the same mask; it must keep dates (the harness pins Report 2026-10-01); the greedy flip-check pattern is a demonstration that fails the harness and the property test",
+    "P13 keep a field value with a letter in any script or 4 or more digits, and use Unicode word boundaries in the scrub (the crude version passes the stub harness, the property test and the fixture without controls)",
+    "P14 use every multi-word part of the title, more separators and a comma, and consider the words of the name on their own (the separator change alone passes the harness, the property test and the fixture without controls and flips only the em-dash entry)",
+    "P15 treat any scheme other than http and https as a contact link, add wa.me, and mask an email in a path and in p (the scheme change passes the harness, the property test and the fixture without controls and flips the 7 contact entries; the path rule is untried)",
+    "P16 treat /user/<anything> as a person link, do not let the list-name lookahead skip an id below /people/members/, mask a link whose query key names a person, and mask person links in button lists (dropping the length bound passes the harness, the property test and the fixture without controls and flips only the numeric-id entry)",
+    "P17 state in the header and in browser-technique.md what is not masked (H16 to H22)"
   ],
   "not_done": [
     "anything on the live tenant",
@@ -893,14 +927,14 @@
     "wiring any of the three new tests into CI or the unit suite",
     "pasting the extractor text as a tool parameter on the built-in browser and Chrome DevTools MCP",
     "third trials for three unstable quiz cases",
-    "running the fixture and the property test on any candidate fix (the flip check runs only the register, on crude fixes)"
+    "running the fixture with its controls, or the property test on other seeds, on any candidate fix (the five crude fixes of the gap register went only through the stub harness, the property test at seed 1109 and the fixture without controls)"
   ],
   "commands": [
     "node test/fixtures/pushpress-extractor/privacy-fixture.cjs [--quick] [--no-controls] [--json <file>] [--serve [port]]",
     "node test/pushpress-extractor-property.js [--controls] [--json <file>]  (PP_PROPERTY_PAGES, PP_PROPERTY_SEED)",
     "python3 test/pushpress.test.py",
     "node test/pushpress-extractor-harness.js",
-    "node test/pushpress-extractor-known-gaps.js [--flip-check] [--json <file>]  (PP_EXTRACT=<file> tests another copy of the extractor)"
+    "node test/pushpress-extractor-known-gaps.js [--flip-check] [--json <file>]  (PP_EXTRACT=<file> tests another copy of the extractor; require() exposes the register)"
   ],
   "over_masking_probe": "fixture/list-link-query-probe.json",
   "phone_shape_probe": "fixture/phone-shape-probe.json"
