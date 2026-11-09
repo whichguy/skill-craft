@@ -1367,6 +1367,15 @@
       ]
     },
     {
+      "name": "scrub-case-sensitive",
+      "status": "caught",
+      "failing_cases": 1,
+      "run_errors": 0,
+      "kinds": [
+        "leak:owner"
+      ]
+    },
+    {
       "name": "link-id-seg-unmasked",
       "status": "caught",
       "failing_cases": 1,
@@ -1572,5 +1581,5 @@
     "XFAIL": 80,
     "XPASS": 0
   },
-  "seconds": 87.1
+  "seconds": 89.6
 }

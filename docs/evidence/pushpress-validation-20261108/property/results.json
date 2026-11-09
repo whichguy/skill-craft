@@ -4,15 +4,15 @@
     {
       "seed": 1109,
       "pages": 5000,
-      "person_route_pages": 3000,
-      "planted_values_checked": "160,259",
-      "visible_labels_checked": "105,319",
-      "labels_left_of_edge_checked": 14003,
-      "sidebar_values_checked": 39381,
-      "sidebar_links_checked": 12062,
+      "person_route_pages": 2973,
+      "planted_values_checked": "160,405",
+      "visible_labels_checked": "105,499",
+      "labels_left_of_edge_checked": 13996,
+      "sidebar_values_checked": 39374,
+      "sidebar_links_checked": 11986,
       "known_gap": {
-        "exposable_person_pages": 1826,
-        "exposed": 1826
+        "exposable_person_pages": 1804,
+        "exposed": 1804
       },
       "over_masking_audit": {
         "labels_quoted_in_references": 131,
@@ -33,15 +33,15 @@
     {
       "seed": 1,
       "pages": 20000,
-      "person_route_pages": 12065,
-      "planted_values_checked": "643,942",
-      "visible_labels_checked": "423,260",
-      "labels_left_of_edge_checked": 55807,
-      "sidebar_values_checked": "158,329",
-      "sidebar_links_checked": 47987,
+      "person_route_pages": 11975,
+      "planted_values_checked": "641,776",
+      "visible_labels_checked": "422,618",
+      "labels_left_of_edge_checked": 56001,
+      "sidebar_values_checked": "158,032",
+      "sidebar_links_checked": 47938,
       "known_gap": {
-        "exposable_person_pages": 7391,
-        "exposed": 7391
+        "exposable_person_pages": 7315,
+        "exposed": 7315
       },
       "over_masking_audit": {
         "labels_quoted_in_references": 131,
@@ -62,15 +62,15 @@
     {
       "seed": 99,
       "pages": 20000,
-      "person_route_pages": 11894,
-      "planted_values_checked": "642,226",
-      "visible_labels_checked": "422,325",
-      "labels_left_of_edge_checked": 56236,
-      "sidebar_values_checked": "158,028",
-      "sidebar_links_checked": 47902,
+      "person_route_pages": 11958,
+      "planted_values_checked": "640,748",
+      "visible_labels_checked": "422,358",
+      "labels_left_of_edge_checked": 55890,
+      "sidebar_values_checked": "158,278",
+      "sidebar_links_checked": 48025,
       "known_gap": {
-        "exposable_person_pages": 7234,
-        "exposed": 7234
+        "exposable_person_pages": 7226,
+        "exposed": 7226
       },
       "over_masking_audit": {
         "labels_quoted_in_references": 131,
@@ -91,15 +91,15 @@
     {
       "seed": 4242,
       "pages": 20000,
-      "person_route_pages": 12130,
-      "planted_values_checked": "644,701",
-      "visible_labels_checked": "422,189",
-      "labels_left_of_edge_checked": 56003,
-      "sidebar_values_checked": "157,883",
-      "sidebar_links_checked": 48124,
+      "person_route_pages": 12143,
+      "planted_values_checked": "644,372",
+      "visible_labels_checked": "421,466",
+      "labels_left_of_edge_checked": 55801,
+      "sidebar_values_checked": "158,086",
+      "sidebar_links_checked": 48057,
       "known_gap": {
-        "exposable_person_pages": 7447,
-        "exposed": 7447
+        "exposable_person_pages": 7464,
+        "exposed": 7464
       },
       "over_masking_audit": {
         "labels_quoted_in_references": 131,
@@ -129,7 +129,7 @@
     },
     {
       "name": "fixed-290px-edge",
-      "result": "caught (P2 structure, P4 rows, P4 icons, P3 edge)"
+      "result": "caught (P2 structure, P3 edge, P4 icons, P4 rows)"
     },
     {
       "name": "sidebar-not-parked",
@@ -161,6 +161,10 @@
     },
     {
       "name": "scrub-shortest-first",
+      "result": "caught (P1 contract)"
+    },
+    {
+      "name": "scrub-case-sensitive",
       "result": "caught (P1 contract)"
     },
     {
@@ -206,6 +210,74 @@
     {
       "name": "sidebar-id-links-unmasked",
       "result": "caught (P6 sidebar)"
+    },
+    {
+      "name": "h-text-unsafe",
+      "result": "caught (P1 contract)"
+    },
+    {
+      "name": "lbl-text-unsafe",
+      "result": "caught (P1 contract)"
+    },
+    {
+      "name": "region-text-unsafe",
+      "result": "caught (P1 contract)"
+    },
+    {
+      "name": "input-labels-row-mask-off",
+      "result": "caught (P1 contract)"
+    },
+    {
+      "name": "toggle-labels-row-mask-off",
+      "result": "caught (P1 contract)"
+    },
+    {
+      "name": "select-label-mask-off",
+      "result": "caught (P1 contract)"
+    },
+    {
+      "name": "button-verb-mask-off",
+      "result": "caught (P1 contract)"
+    },
+    {
+      "name": "button-for-of-mask-off",
+      "result": "caught (P1 contract)"
+    },
+    {
+      "name": "button-email-or-digits-drop-off",
+      "result": "caught (P1 contract)"
+    },
+    {
+      "name": "email-mask-off",
+      "result": "caught (P1 contract, P6 sidebar)"
+    },
+    {
+      "name": "phone-formatted-alternative-off",
+      "result": "caught (P1 contract)"
+    },
+    {
+      "name": "phone-bare-digits-alternative-off",
+      "result": "caught (P1 contract)"
+    },
+    {
+      "name": "region-recorded-on-person-routes",
+      "result": "caught (P1 region)"
+    },
+    {
+      "name": "input-values-not-scrubbed",
+      "result": "caught (P1 contract)"
+    },
+    {
+      "name": "title-suffix-not-split-off",
+      "result": "caught (P1 contract)"
+    },
+    {
+      "name": "path-field-unmasked",
+      "result": "caught (P5 path)"
+    },
+    {
+      "name": "person-path-not-a-person-route",
+      "result": "caught (P1 contract, P1 region)"
     }
   ]
 }

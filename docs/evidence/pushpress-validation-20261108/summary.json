@@ -128,6 +128,11 @@
           "failing_cases": 1
         },
         {
+          "name": "scrub-case-sensitive",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
           "name": "link-id-seg-unmasked",
           "status": "caught",
           "failing_cases": 1
@@ -290,7 +295,7 @@
           1
         ]
       },
-      "seconds": 87.1,
+      "seconds": 89.6,
       "detail": "fixture/results.json",
       "shapes": "ten name shapes (including a billing tab whose name is only in the title and heading, and a guardian sharing the first name), a lead URL, a query, a fragment, a list page, a table page, a payments page (invoice-id, name-slug, non-hex and contact links, a query holding an address, an address in a header, a number in a tab, an address as plain link text), a plan page whose path holds a record id, and contact, id and plain address links in the left menu",
       "sidebar_expected": {
@@ -310,41 +315,41 @@
         {
           "seed": 1109,
           "pages": 5000,
-          "person_route_pages": 3000,
+          "person_route_pages": 2973,
           "violations": 0,
           "known_gap": {
-            "exposable_person_pages": 1826,
-            "exposed": 1826
+            "exposable_person_pages": 1804,
+            "exposed": 1804
           }
         },
         {
           "seed": 1,
           "pages": 20000,
-          "person_route_pages": 12065,
+          "person_route_pages": 11975,
           "violations": 0,
           "known_gap": {
-            "exposable_person_pages": 7391,
-            "exposed": 7391
+            "exposable_person_pages": 7315,
+            "exposed": 7315
           }
         },
         {
           "seed": 99,
           "pages": 20000,
-          "person_route_pages": 11894,
+          "person_route_pages": 11958,
           "violations": 0,
           "known_gap": {
-            "exposable_person_pages": 7234,
-            "exposed": 7234
+            "exposable_person_pages": 7226,
+            "exposed": 7226
           }
         },
         {
           "seed": 4242,
           "pages": 20000,
-          "person_route_pages": 12130,
+          "person_route_pages": 12143,
           "violations": 0,
           "known_gap": {
-            "exposable_person_pages": 7447,
-            "exposed": 7447
+            "exposable_person_pages": 7464,
+            "exposed": 7464
           }
         }
       ],
@@ -359,7 +364,7 @@
         },
         {
           "name": "fixed-290px-edge",
-          "result": "caught (P2 structure, P4 rows, P4 icons, P3 edge)"
+          "result": "caught (P2 structure, P3 edge, P4 icons, P4 rows)"
         },
         {
           "name": "sidebar-not-parked",
@@ -391,6 +396,10 @@
         },
         {
           "name": "scrub-shortest-first",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "scrub-case-sensitive",
           "result": "caught (P1 contract)"
         },
         {
@@ -436,6 +445,74 @@
         {
           "name": "sidebar-id-links-unmasked",
           "result": "caught (P6 sidebar)"
+        },
+        {
+          "name": "h-text-unsafe",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "lbl-text-unsafe",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "region-text-unsafe",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "input-labels-row-mask-off",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "toggle-labels-row-mask-off",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "select-label-mask-off",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "button-verb-mask-off",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "button-for-of-mask-off",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "button-email-or-digits-drop-off",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "email-mask-off",
+          "result": "caught (P1 contract, P6 sidebar)"
+        },
+        {
+          "name": "phone-formatted-alternative-off",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "phone-bare-digits-alternative-off",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "region-recorded-on-person-routes",
+          "result": "caught (P1 region)"
+        },
+        {
+          "name": "input-values-not-scrubbed",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "title-suffix-not-split-off",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "path-field-unmasked",
+          "result": "caught (P5 path)"
+        },
+        {
+          "name": "person-path-not-a-person-route",
+          "result": "caught (P1 contract, P1 region)"
         }
       ],
       "over_masking_audit": {
@@ -453,7 +530,7 @@
         ]
       },
       "detail": "property/results.json",
-      "without_a_dedicated_control": "the Chrome-button list, the second and third phone-number alternatives, the verbs of the Select/Edit/View/Delete label mask, the '@ or three digits' button drop"
+      "without_a_dedicated_control": "the Chrome-button list and the company-switcher filter (structure noise, noticed by the fixture's structure checks), the input-type filter of the scrub (over-scrubbing only), the '+8 to 15 digits' phone alternative (redundant with the bare-digits one)"
     },
     "quiz": {
       "detail": "quiz/results-summary.json, quiz/quiz-report.md and quiz/failing-safety-answers.md",
@@ -525,6 +602,13 @@
         "Cursor",
         "OpenCode"
       ]
+    },
+    "mutations": {
+      "total": 39,
+      "fixture_tested": 20,
+      "property_tested": 39,
+      "source": "test/fixtures/pushpress-extractor/mutations.cjs",
+      "note": "each break names what it must cause; a run error or crash is never a catch"
     }
   },
   "review": "three rounds of two independent reviewers read the test code and the journal entry with this evidence; their material findings are fixed in the commits on this branch",
