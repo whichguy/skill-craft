@@ -33,7 +33,7 @@ function person(key, first, last) {
 
 const STAFF = person('staff', 'Hortensia', 'Blackwood');
 const PLAN_ID = 'plan_' + hexN(900, 7);                                     // a record id (11 hex) on a page that is not a person's
-const EXT_ID = cat('cus_', 'Nffr', 'FeUfNV', '2Hib');                       // an id in the path of a link to another site (not hex)
+const EXT_ID = cat('cus_', 'FixtureSample', '02');                           // an id in the path of a link to another site (not hex)
 
 // name shapes the extractor has to survive; `style` says how the page renders the heading
 const OWNERS = [

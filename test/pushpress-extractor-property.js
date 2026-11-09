@@ -229,7 +229,7 @@ function generate(R) {
     // link shapes off the person routes: an invoice id, a person path that is a name slug, a person id that is not hex, contact links whose text is a name, a query that holds an address
     if (R.chance(0.4)) { const inv = 'inv' + sep() + idTail(); add('a', { attrs: { href: '/payments/invoices/' + inv }, text: o.full }); contract.push(['sub', o.full], ['sub', inv]); }
     if (R.chance(0.3) && slug(o.full).length >= 8) { add('a', { attrs: { href: '/people/' + slug(o.full) }, text: o.full }); contract.push(['sub', o.full], ['sub', slug(o.full)]); }
-    if (R.chance(0.3)) { const ext = 'cus_Nffr' + String(++idSeq) + 'Hib'; add('a', { attrs: { href: 'https://dashboard.example.invalid/customers/' + ext }, text: 'Open in the payment dashboard' }); contract.push(['sub', ext]); }   // an id in the path of a link to another site (not hex)
+    if (R.chance(0.3)) { const ext = 'cus_FixtureSample' + String(++idSeq); add('a', { attrs: { href: 'https://dashboard.example.invalid/customers/' + ext }, text: 'Open in the payment dashboard' }); contract.push(['sub', ext]); }   // an id in the path of a link to another site (not hex)
     if (R.chance(0.3)) { add('a', { attrs: { href: 'sms:' + o.digits }, text: o.full }); contract.push(['sub', o.full]); }
     // an input label or a toggle label that carries a number or an address: only the row mask's text part protects it
     if (R.chance(0.3)) { add('inp', { attrs: { 'aria-label': 'Call ' + R.pick(o.phones) }, type: 'text', sel: ['input'] }); contract.push(['digits', o.digits]); }

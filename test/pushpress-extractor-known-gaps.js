@@ -12,8 +12,8 @@
 // that are not 2 or more ASCII digits, an unknown onlyIn field, an entry that plants nothing) is an ERROR.
 // Two limits, stated so that nobody reads more into the checks than they do. The coverage rule is per field, not per kind of match (text or
 // digits): a checker fault confined to one kind in one field is not caught. And a planted value must be a string the extractor does not
-// print on its own (part of a mask token, a path or the entry's own text); problem() does not enforce that. A round-8 reviewer checked every
-// planted value against the mask tokens, the paths and its own element text and found none that is.
+// print on its own (part of a mask token, a path or the entry's own text); problem() does not enforce that. A reviewer checked every planted
+// value against the mask tokens, the paths and its own element text and found none that is.
 // Phone numbers, email addresses and the prefixed ids are assembled at run time so that no file holds a complete one. The other planted
 // values (names, a UUID, a date, a postal code, card digits, invoice and order numbers, short numeric ids, a street address) are made-up
 // literals. The report prints ids, fields and counts, never a planted value.
@@ -21,8 +21,8 @@
 //   node test/pushpress-extractor-known-gaps.js [--flip-check] [--json <file>]     PP_EXTRACT=<file> tests another copy of the extractor
 //   require() of this file exposes the register and the stub DOM for probes and reviews and runs nothing.
 //
-// Found by a black-box audit (review round 5) and checked by independent reviewers in the rounds after it; docs/pushpress-journal.md (Round 9) lists them as
-// H3 and H16 to H22 and proposes the fixes as P12 to P16. Not wired into any automatic run yet (P7).
+// Found by a black-box audit of the extractor and checked by independent reviewers; docs/pushpress-journal.md (Round 9) lists them as
+// H3 and H16 to H22 and proposes the fixes as P4 and P12 to P16 and the documentation of P17. Not wired into any automatic run yet (P7).
 'use strict';
 
 const fs = require('fs');
@@ -79,11 +79,11 @@ const GAPS = [
     planted: ['04/10/2012', cat('010', '-', '0123'), '12345'] },
   { id: 'owner-first-name-alone-with-no-fields', sev: 'material', why: 'with no text field that holds the name, the only secret is the part of the title before its separator, taken as a whole string, so a first name on its own is not scrubbed (a secret for each word of the title would catch it)', path: PERSON, title: NAMETEXT + ' | PushPress',
     els: [put('h', NAMETEXT), put('btn', 'Charge ' + NAME.first)], planted: [NAME.first], onlyIn: 'btn' },
-  { id: 'title-with-an-em-dash-separator', sev: 'material', why: 'the title is split only on a pipe, an en dash or a hyphen with a space each side, so with an em dash the whole title is the secret and it never equals the heading', path: PERSON, title: NAMETEXT + ' — PushPress',
+  { id: 'title-with-an-em-dash-separator', sev: 'material', why: 'the title is split only on a pipe, an en dash or a hyphen with a space each side, so with an em dash the whole title is the secret and it never equals the heading (splitting on an em dash, or a secret for each word of the title, catches it)', path: PERSON, title: NAMETEXT + ' — PushPress',
     els: [put('h', NAMETEXT)], planted: [NAME.last] },
-  { id: 'title-with-the-name-second', sev: 'material', why: 'only the part before the first separator is used, and only when it holds a space, so with "Product | Name" no title secret is taken', path: PERSON, title: 'PushPress | ' + NAMETEXT,
+  { id: 'title-with-the-name-second', sev: 'material', why: 'only the part before the first separator is used, and here that part is the product and not the person (taking the last part, or a secret for each word of the title, catches it)', path: PERSON, title: 'PushPress | ' + NAMETEXT,
     els: [put('h', NAMETEXT)], planted: [NAME.last] },
-  { id: 'title-written-last-comma-first', sev: 'material', why: 'a comma is not a separator, the part before it would be one word and a title part must hold a space to be a secret, and "Last, First" never equals the heading "First Last"; only a secret for each word of the title catches it (a comma split alone does not)', path: PERSON, title: NAME.last + ', ' + NAME.first,
+  { id: 'title-written-last-comma-first', sev: 'material', why: 'a comma is not a separator, the part before it would be one word and a title part must hold a space to be a secret, and "Last, First" never equals the heading "First Last"; a comma split together with dropping the space rule, or a secret for each word of the title, catches it (neither change alone does)', path: PERSON, title: NAME.last + ', ' + NAME.first,
     els: [put('h', NAMETEXT)], planted: [NAME.last] },
   { id: 'second-person-plain-text', sev: 'material', why: 'recorded as H3: a second person shown only as text on a person page is not a secret', path: PERSON, title: NAMETEXT,
     els: [input(NAME.first, 'First name'), input(NAME.last, 'Last name'), put('h', 'Guardian Rosalind Tuckerbottom')], planted: ['Tuckerbottom'] },
@@ -162,10 +162,11 @@ const FIELDS = ['p', 'h', 'tabs', 'btn', 'th', 'inp', 'lbl', 'sw', 'a', 'region'
 // a malformed entry would read as a result about the extractor, so it is an ERROR; digit runs are matched after everything that is not a digit
 // is stripped, so a short digits value can also match digits that sit in different words of one string (the positive controls use 42)
 function problem(e) {
-  const vals = (e.planted || []).map(v => String(v).toLowerCase());
+  if (e.planted !== undefined && (!Array.isArray(e.planted) || e.planted.some(v => typeof v !== 'string'))) return 'planted must be an array of strings';
+  const vals = (e.planted || []).map(v => v.toLowerCase());
   if (vals.some(v => v.trim().length < 2)) return 'a planted value is empty or too short';
   if (vals.some((v, i) => vals.some((w, j) => i !== j && w.includes(v)))) return 'a planted value is contained in another';
-  if (e.digits !== undefined && !/^\d{2,}$/.test(e.digits)) return 'digits must be 2 or more ASCII digits';
+  if (e.digits !== undefined && (typeof e.digits !== 'string' || !/^\d{2,}$/.test(e.digits))) return 'digits must be 2 or more ASCII digits';
   if (e.digits !== undefined && vals.some(v => { const d = digitsOf(v); return d.length >= 2 && (d.includes(e.digits) || e.digits.includes(d)); })) return 'digits overlap a planted value';
   if (e.onlyIn && !FIELDS.includes(e.onlyIn)) return 'onlyIn names no output field';
   return '';
@@ -179,7 +180,8 @@ function coverage(rows) {
 function run(src) {
   const rows = [];
   for (const e of [...GAPS.map(g => ({ ...g, kind: 'gap' })), ...CONTROLS.map(c => ({ ...c, kind: c.reads ? 'positive' : 'masked' }))]) {
-    let r = { fields: [], leaked: 0, total: 0 }, error = problem(e) ? 'bad entry: ' + problem(e) : '';
+    let r = { fields: [], leaked: 0, total: 0 }, error = '';
+    try { const bad = problem(e); if (bad) error = 'bad entry: ' + bad; } catch (err) { error = 'bad entry: unreadable'; }
     if (!error) { try { r = leaks(extract(e.els, e.path, e.title || '', src), e); } catch (err) { error = (err && err.name) || 'Error'; } }
     if (!error && r.total === 0) error = 'plants nothing';           // an entry with no value would read as XFAIL (0 of 0) whatever the extractor does
     let status;
