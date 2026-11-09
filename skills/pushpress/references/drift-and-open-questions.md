@@ -32,7 +32,7 @@ Do this when a path 404s, a label is missing, or *Product updates* mentions your
 1. Install the extractor from `scripts/pp-extract.js` on a signed-in tab.
 2. `await __pp.sidebar()` and compare the `LINK … -> path` lines with the table in
    [app-map.md](app-map.md). A missing, renamed or new path is drift. (Query strings and hashes print
-   in brackets; compare paths only.)
+   in brackets; compare paths only. The unlabeled `/` line is the logo, and labels carry their badges.)
 3. Spot-check three or four **canary pages** — e.g. `/people/members`, `/plans/list`, `/payments`,
    `/schedule/class-types` — with `await __pp.wait(); __pp.store('Label')` and compare headings, tabs and
    column headers with the area file.

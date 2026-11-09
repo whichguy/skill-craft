@@ -51,7 +51,7 @@ One long page with an in-page section nav. Sections, with what each contains:
 | **Plans & Appointment Credits** | sub-tabs *All / Current / Credits*; counts "Active N / Inactive N"; buttons `Add Credit`, `Add Plan`; table Plan · Start date · Next charge · Usage · Status. A profile linked to a family shows **Parent Account**; a primary account shows **Sub-accounts** with `Add Sub-account` |
 | **Billing** | *Payment Methods* (`Add Payment Method`, `Request Payment Method`), `Create a Charge`, *Billing History* with tabs *Payments / Invoices N / Pending N*; table Date · Description · Type · Amount |
 | **Schedule** | tabs *Upcoming / Classes / Events / Appointments* |
-| **Communication** | message log: Date & Time · Channel · Subject (· Status) |
+| **Communications** | message log: Date & Time · Channel · Subject (· Status) |
 | **Personal Information** | *Basic Information* (First/Last Name, Nickname, Birthday, Email, Phone, Gender), *Address*, *Emergency Contact* (Name, Relationship, phone), *Gym Details* (Member Since, First Check-in, Custom ID, User Type, Username, Referred By, Assigned To); `Edit`; `Copy email to clipboard` |
 | **Notes** | *Notes and reminders*: `Add Note`; table Created · Note · Remind on · Remind via · Created By |
 | **Documents** | `Sign all unsigned documents`, `Add Document`; tabs *Active / Archived*; table Document · Version |
@@ -115,8 +115,8 @@ Check a plan's quantity before editing anything on it.
 `/discounts?type=…`; reached from **Plans ▸ Discounts** or **Products ▸ Discounts** (same page). Tabs
 **Membership / Product / Event** with counts, `Create Discount`, `Add filter`,
 `Bulk actions`; columns Discount Name · Status · Type · Amount · Duration; 20 per page; row link
-`/discounts/dis_<id>`. Discounts are fixed-amount or percentage, carry a duration in billing cycles or
-months, and are named by the gym. **The API cannot see them** — a
+`/discounts/dis_<id>`. Discounts are fixed-amount or percentage, show a *Duration* of *N billing cycles*
+or *Forever (unlimited)*, and are named by the gym. **The API cannot see them** — a
 discounted enrollment looks full-price through `enrollment-list`.
 
 ## 8. Digital Documents
@@ -138,7 +138,8 @@ treat `Add Document` as **OUTBOUND**.
 
 - People ▸ **Staff** lists staff with a **Role** column (*Admin*, *Coach*; *Asst. Coach* appears on
   class rosters). Role names can be relabelled in Settings ▸ Settings ▸ *Role names* (coach / member).
-- Change a role on the person's profile ▸ *Settings* ▸ *User Role* ▸ `Change Role` (`[not exercised]`).
+- Change a role on the person's profile ▸ *Settings* ▸ *User Role* ▸ `Change Role` (`[not exercised]`; the button was
+  not on the signed-in user's own profile).
 - `[documented]` Roles ascend Member → Front Desk → Coach → Admin; only Admins change roles; an Admin
   cannot demote another Admin (PushPress Support does it); demoting is two steps — set the role to
   Member, **then** switch off the `Staff app & Core access` toggle.

@@ -34,7 +34,7 @@ plans* next 30 days, *Cancellation requests*, *New Leads* last 7 days, *New memb
 
 | Page | Path | What it shows | Controls |
 |---|---|---|---|
-| **Invoices** | `/payments` | tabs *All · Open · Overdue · Paid · Pending · Forgiven*; table Customer · Date Opened · Description · Amount · Status · Payment Method; 25 per page | `Create` → dialog **Create invoice** (*Recipient* Member / Guest, *Member Name*, *Product*…) `[not exercised]`; *Search invoices*; row link `/payments/<id>` |
+| **Invoices** | `/payments` | tabs *All · Open · Overdue · Paid · Pending · Forgiven*; table Customer · Date Opened · Description · Amount · Status · Payment Method; 25 per page | `Create` → dialog **Create invoice** (*Recipient* Member / Guest, *Member Name*, *Product*…) `[not exercised]`; *Search invoices*; rows are clickable but are not links (the extractor lists none), and the detail route `/payments/<id>` was not re-checked |
 | **Transactions** | `/reports/transactions/<from>/<to>` | "Transaction Report" with sections *Transactions · Income · Expense · Payment Types · History*; summary table Category · Amount | `Download`, date-range button, `Add filter`, search "by name or email" |
 | **Payments Forecast** | `/reports/payments` | tabs *This month · Last month · Next month · Overdue · Open invoices* (each with a count); table Date · Name · Receipt · Amount · Method · Item · Payment | `Download CSV`, `Generate Invoice` (per row, **MONEY** `[not exercised]`), an *Overdue $…* total, search by name |
 | **Daily Deposits** | `/reports/deposits/<from>/<to>` | "Deposit Report" — what Stripe paid out | `Download CSV`, date-range button |

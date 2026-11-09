@@ -29,7 +29,7 @@ store, never in a committed file. Setup, the tools that message people and the c
 
 | Host and tools | Status |
 |----------------|--------|
-| Claude Code or desktop with Claude in Chrome (`mcp__claude-in-chrome__*`) | tested 2026-11-08, read-only, one tenant (*Core Pro Monthly*), on the project version this skill was generalized from: every sidebar page, menus and drawers opened and closed, one member profile and the staff profile, sign-in observed once; three fresh-agent runs with that version only. This generalized copy has had tests and a stub page, not a live run |
+| Claude Code or desktop with Claude in Chrome (`mcp__claude-in-chrome__*`) | tested 2026-11-08, read-only, one tenant (*Core Pro Monthly*), on the project version this skill was generalized from: every sidebar page, menus and drawers opened and closed, one member profile and the staff profile, sign-in observed once; three fresh-agent runs with that version only. This generalized copy had its own live read-only pass the same day: the extractor on about twenty pages, the sidebar against the route map and one staff profile (no member profile, no sign-in, no write) |
 | Claude's built-in browser | no approved credential fill there, so the owner would have to sign in by hand; not otherwise tested |
 | Chrome DevTools MCP (`evaluate_script`), Playwright or Puppeteer on a persisted profile | not tested; the script text may need wrapping as a function, and the owner completes the sign-in |
 | Codex, Grok, Cursor, OpenCode | not tested; they need one of the tools above |
@@ -52,8 +52,11 @@ store, never in a committed file. Setup, the tools that message people and the c
 - Page script: `javascript_tool`. Top-level `await` works and an async IIFE returns `{}`; results are cut at about 2.5 K
   characters (write them into a page element and read it with `get_page_text`, as the extractor's `dump` does); output
   containing a URL query string is blocked; a `const` in one call is invisible to the next; a full page load wipes `window`.
-- Page text: `get_page_text`. Never use it on a person page: its header carries the page title and URL, which hold a
-  person's name and ID.
+- Page text: `get_page_text`. It returns the `#pp-dump` element (its first line says `Source element: <article>`) only when that
+  element exists; without it, it returns the whole page (`<main>`), which on the Dashboard shows people's initials and KPI
+  figures, so call `dump()` or `sidebar()` first. Never use it on a person page: its header carries the page title and URL,
+  which hold a person's name and ID. Every Claude in Chrome tool result ends with the tab's title and URL, so while a person
+  page is open every call shows that person's name and ID: open one only when you must, make one call, and navigate away.
 - Tidy up at the end: run `__pp.clear()`, call `release_credentials`, and close the tabs you opened.
 
 ## Recipe: any other tool

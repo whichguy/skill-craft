@@ -65,6 +65,10 @@ holds the current page stays open.
 | Settings ▸ Security & Access | `/settings/security` | API keys | [settings-and-admin](settings-and-admin.md) |
 | Refer and earn $250 | `/referrals` | referral form; do not submit | [settings-and-admin](settings-and-admin.md) |
 
+Labels print with their badges (`Dashboard New`, `Updates New`), and `__pp.sidebar()` also prints one unlabeled link to `/`
+(the logo) ahead of Dashboard; neither is drift. A live pass on 2026-11-08 compared the extractor's output with this table:
+the same 44 labelled links and 8 groups, and no other difference.
+
 ## 2. Pages not in the sidebar
 
 | Path | What | Reach via |

@@ -168,8 +168,9 @@ A control can fall in more than one class: apply the strictest.
 - Many controls are **icon-only** (a class page's pencil and ⋮, the Attendance icons, row ⋮ menus), so text extraction
   cannot name them: find them by role or position, or take a small screenshot of a page with no people on it.
 - A page-script tool's output is usually capped (about 2.5 K characters on the verified host): write results into a page
-  element and read that page's text instead, and keep person pages out of any page-text read, because its header carries
-  the page title, which is a person's name there.
+  element and read that page's text instead, but only after the element exists (without it a page-text read returns the
+  whole page), and keep person pages out of any page-text read, because its header carries the page title, which is a
+  person's name there.
 - `scripts/pp-extract.js` is the structure-only extractor and sidebar reader (see *Binding*). Run
   `__pp.company('<company name>')` once per tab so the company-switcher button is left out of button lists.
 - Details, snippets and the pitfalls list: [browser-technique.md](references/browser-technique.md). Host recipes:
@@ -181,8 +182,10 @@ Verified read-only on 2026-11-08 on one PushPress Core tenant (the *Core Pro Mon
 other hosts are untested. No write flow was exercised (no save, create, charge, send, delete, merge or download): controls
 that would are tagged `[not exercised]`. The sign-in procedure was observed in one session and not re-tested. The project
 version this card was generalized from was checked by three fresh agents with that version only, never against a no-skill
-baseline; this generalized copy, and the extractor's masks in particular, have had tests and a stub page, not a live run.
-Other tiers may differ; Grow, Train and the Staff and Members apps were never surveyed. PushPress changes its UI often: treat every path and label as a
+baseline. This generalized copy had its own live read-only pass the same day: its extractor on about twenty admin pages,
+the sidebar against the route map, and one staff profile (no member profile, no sign-in, no write flow). That pass found
+and fixed defects, among them the extractor leaking a person's name through a profile heading, and the fixes were
+re-checked on the pages they touch. Other tiers may differ; Grow, Train and the Staff and Members apps were never surveyed. PushPress changes its UI often: treat every path and label as a
 strong hint to confirm, and use the drift procedure in
 [drift-and-open-questions.md](references/drift-and-open-questions.md).
 

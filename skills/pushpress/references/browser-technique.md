@@ -50,7 +50,8 @@ session even with a "structure-only" extractor:
 | Leak | Where | Fix |
 |---|---|---|
 | A member's **name and a parent's email** inside a *button label* | profile page, `read` of buttons | drop any label containing `@`; mask `Select/Edit/View… <name>` and `… for <name>` |
-| The person's **name and `usr_` ID** in the *page title and URL* | `get_page_text` header on `/user/<id>` | never `get_page_text` a person page; navigate to a neutral page before dumping results |
+| The person's **name and `usr_` ID** in the *page title and URL* | `get_page_text` header on `/user/<id>`, and the title-and-URL footer that Claude in Chrome adds to every tool result | never `get_page_text` a person page; open one only when you must, make one call, and navigate to a neutral page before anything else |
+| The person's **name as the page heading**, and **selected values** shown as button text (gender, role) | a person page, in `h` and `btn`; found by a live pass on 2026-11-08 | on a person route the extractor removes the page's text-field values and a two-word page title, and records only a combobox's label; the rest is still yours to keep out of the repo |
 | **Client names** in a report | a screenshot of Financial ▸ Upcoming Payments (iframe) | screenshot only when needed, small scale, and treat as member data |
 
 Rules: record **structure only** — labels, paths, column headers, ID **prefixes** (`usr_`, `plan_`),
@@ -63,9 +64,11 @@ context, do not repeat it in any file, journal or message; purge it from `sessio
 
 `scripts/pp-extract.js` installs `window.__pp` (see its header for exact calls):
 
-- `await __pp.sidebar()` — the whole sidebar tree with paths (the drift check).
+- `await __pp.sidebar()` — the whole sidebar tree with paths (the drift check); its lines also go to `#pp-dump`.
 - `await __pp.wait(); __pp.store('Label')` — one page's structure, saved to `sessionStorage`.
-- `__pp.dump([...])` then `get_page_text` — read many pages at once.
+- `__pp.dump([...])` then `get_page_text` — read many pages at once. Read page text only when `#pp-dump` exists: without
+  it the tool returns the whole page, and its first line says which element it read (`<article>` is the dump, `<main>`
+  is the page).
 - `__pp.clear()` — clean up.
 
 Tool quirks it works around:
@@ -104,3 +107,5 @@ Tool quirks it works around:
 | A different page opened than expected | stale or neighbouring ref | re-`find`, verify with a screenshot |
 | A control you can see is missing from the extractor's output | **icon-only** button (no text, no `aria-label`): the class page's pencil and ⋮, Attendance icons, row ⋮ menus — the extractor reports only a count | `find` ("pencil edit icon…") or a small screenshot |
 | A number on a report is missing from the extractor's output | KPI panels are plain text, not headings (e.g. the Membership Change Report's panel) | `find` the labelled values, or read the panel's `complementary` region |
+| A heading or button is missing from the extractor's output on a long page | its caps: 25 headings, 45 buttons, 50 labels, 30 links (a person profile reaches them; its Account Management buttons fall after the 45th) | `find` it |
+| `get_page_text` returned the whole page (on the Dashboard: people's initials and KPI figures) | `#pp-dump` did not exist, so the tool fell back to `<main>`; its first line says `Source element: <main>` | call `dump()` or `sidebar()` first and read page text only when it says `<article>`; stop reading and do not repeat what was shown |

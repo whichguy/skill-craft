@@ -24,13 +24,14 @@ const COMPANY = 'Acme Test Gym LLC';
 function el(p) {
   const e = Object.assign({
     tag: 'DIV', text: '', sel: [], attrs: {}, left: 300, top: 100, width: 100, height: 20,
-    title: '', placeholder: '', name: '', type: '',
+    title: '', placeholder: '', name: '', type: '', value: '', parent: null,
   }, p);
   return {
-    tagName: e.tag, innerText: e.text, title: e.title, placeholder: e.placeholder, name: e.name, type: e.type,
+    tagName: e.tag, innerText: e.text, title: e.title, placeholder: e.placeholder, name: e.name, type: e.type, value: e.value,
+    parentElement: e.parent,
     _sel: e.sel, _clicked: 0,
     getAttribute: k => (k in e.attrs ? e.attrs[k] : null),
-    getBoundingClientRect: () => ({ left: e.left, top: e.top, width: e.width, height: e.height }),
+    getBoundingClientRect: () => ({ left: e.left, top: e.top, width: e.width, height: e.height, right: e.left + e.width }),
     closest: () => null,
     click() { this._clicked++; },
   };
@@ -38,10 +39,11 @@ function el(p) {
 const button = (text, extra) => el(Object.assign({ tag: 'BUTTON', text, sel: ['button', '[role=button]'] }, extra));
 const anchor = (text, href, extra) => el(Object.assign({ tag: 'A', text, sel: ['a[href]'], attrs: { href } }, extra));
 
-function makeEnv(elements, loc) {
+function makeEnv(elements, loc, title) {
   const store = new Map();
   const dumpNodes = [];
   const document = {
+    title: title || '',
     body: { innerText: 'Page 1 of 3', appendChild() {} },
     querySelectorAll(selector) {
       const wanted = selector.split(',').map(s => s.trim());
@@ -62,8 +64,8 @@ function makeEnv(elements, loc) {
   return { sandbox, store, dumpNodes, window };
 }
 
-function install(elements, loc) {
-  const env = makeEnv(elements, loc);
+function install(elements, loc, title) {
+  const env = makeEnv(elements, loc, title);
   const out = vm.runInNewContext(SRC, env.sandbox);
   return { env, out, pp: env.window.__pp };
 }
@@ -93,6 +95,7 @@ const test = async (name, fn) => {
     const elements = [
       button('Save'), button('Close'), button('Select all'),
       button('Search'), button('Toggle Assistant'), button('Product updates'), button('Support and updates'),
+      button('Collapse sidebar'), button('Expand sidebar'),
       button(COMPANY),
       button('Message ' + FAKE_EMAIL),
       button('Call 5551234'),
@@ -245,6 +248,53 @@ const test = async (name, fn) => {
     assert.deepStrictEqual(lines, ['LINK  <item>  ->  /user/<id>', 'LINK  <item>  ->  <contact>', 'LINK  Plans  ->  /plans/list', 'LINK  Call <phone>  ->  /help']);
     const all = JSON.stringify(lines);
     for (const leak of [FAKE_NAME, FAKE_EMAIL, phone, 'a1b2c3d4e5f6a7b8']) assert.ok(!all.includes(leak), 'leaked: ' + leak.length + ' chars');
+  });
+
+  await test('person routes: the heading and the text-field values are removed from everything recorded, a combobox shows no value, other routes are left alone', () => {
+    const person = { origin: 'https://tenant.example.invalid', pathname: FAKE_PERSON_PATH, search: '', hash: '#staff-details' };
+    const SECOND = 'Casey Example';                       // appears only in the page title, never in a field
+    const elements = [
+      el({ tag: 'H1', text: FAKE_NAME, sel: ['h1'] }),
+      el({ tag: 'H2', text: SECOND, sel: ['h2'] }),
+      el({ tag: 'H3', text: 'Billing', sel: ['h3'] }),
+      el({ tag: 'INPUT', sel: ['input'], type: 'text', value: FAKE_NAME, attrs: { 'aria-label': 'Full name' } }),
+      el({ tag: 'INPUT', sel: ['input'], type: 'text', value: 'Elm Street 12', attrs: { 'aria-label': 'Street' } }),
+      el({ tag: 'INPUT', sel: ['input'], type: 'password', value: 'not-read-by-anything', attrs: { 'aria-label': 'Password' } }),
+      button('Prefer not to say', { attrs: { role: 'combobox' } }),
+      button('Add Note'),
+      el({ tag: 'LABEL', text: 'Lives on Elm Street 12 today', sel: ['label'] }),
+    ];
+    const r = plain(install(elements, person, SECOND + ' | Profile').pp.extract());
+    const all = JSON.stringify(r);
+    for (const leak of [FAKE_NAME, SECOND, 'Elm Street 12', 'Prefer not', 'not-read-by-anything']) assert.ok(!all.includes(leak), 'a value reached the output: ' + leak.length + ' chars');
+    assert.deepStrictEqual(r.h, ['<value>', 'Billing']);
+    assert.deepStrictEqual(r.btn, ['<combobox>', 'Add Note']);
+    assert.deepStrictEqual(r.lbl, ['Lives on <value> today']);
+    assert.ok(r.inp.includes('Password') && r.inp.includes('Full name'), 'labels survive');
+    assert.strictEqual(r.p, '/user/<id>#staff-details');
+    // Scrubbing is limited to person routes: elsewhere a field's value is ordinary page text (a search box, a filter).
+    const elsewhere = plain(install(elements, { origin: 'https://tenant.example.invalid', pathname: '/plans/list', search: '', hash: '' }, 'Plans').pp.extract());
+    assert.ok(JSON.stringify(elsewhere).includes('Prefer not') && JSON.stringify(elsewhere).includes('Elm Street 12'), 'nothing is scrubbed off a person route');
+  });
+
+  await test('content that starts just right of a narrow sidebar is recorded: the edge is measured from the sidebar itself', () => {
+    const side = el({ tag: 'DIV', left: 0, width: 255, sel: [] });
+    const people = el({ tag: 'A', text: 'People', sel: ['a[href="/people"]', 'a[href]'], attrs: { href: '/people' }, left: 8, width: 239, parent: side });
+    const header = text => el({ tag: 'TH', text, sel: ['th'], left: 281 });
+    const withSidebar = plain(install([people, header('Name'), el({ tag: 'TH', text: 'Inside the sidebar', sel: ['th'], left: 200 })]).pp.extract());
+    assert.deepStrictEqual(withSidebar.th, ['Name']);
+    assert.strictEqual(withSidebar.a, undefined, 'the sidebar link itself is not page content');
+    const noSidebar = plain(install([header('Name')]).pp.extract());
+    assert.strictEqual(noSidebar.th, undefined, 'with no sidebar link the fixed 290px edge applies');
+  });
+
+  await test('sidebar(): the lines are also parked in #pp-dump, so a page-text read right after it returns them and not the page', async () => {
+    const group = n => button(n, { sel: ['button[aria-expanded]', 'button', '[role=button]'], attrs: { 'aria-expanded': 'false' }, left: 20 });
+    const { pp, env } = install([group('Plans'), anchor('Plans', '/plans/list', { left: 20 })]);
+    const lines = plain(await pp.sidebar());
+    assert.deepStrictEqual(lines, ['GROUP Plans', 'LINK  Plans  ->  /plans/list']);
+    assert.ok(env.dumpNodes[0] && env.dumpNodes[0].textContent.startsWith('### sidebar'), 'the dump element exists');
+    assert.ok(lines.every(l => env.dumpNodes[0].textContent.includes(l)), 'and holds every line');
   });
 
   console.log('pushpress-extractor-harness.js: PASS (' + checks + ' checks)');

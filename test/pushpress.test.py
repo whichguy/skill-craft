@@ -277,6 +277,11 @@ class Extractor(unittest.TestCase):
         ("select-labelled toggles are no longer masked",
          "const safeRow = t => safe(t).replace(/^Select (?!all$|row$).{2,}$/i, 'Select <item>');", "const safeRow = t => safe(t);"),
         ("side-panel text is recorded on person routes other than /user/", " || PERSON.test(location.pathname)", ""),
+        ("the sidebar edge is no longer measured from the sidebar", "return right ? Math.ceil(right) : 290;", "return 290;"),
+        ("a person page's heading and field values are no longer removed", "const ss = secrets();", "const ss = [];"),
+        ("a combobox button's selected value is recorded on person routes", "person && e.getAttribute('role') === 'combobox' ?", "false ?"),
+        ("sidebar() stops parking its lines in the dump element", "dumpEl().textContent = '### sidebar\\n' + out.join('\\n');", ""),
+        ("the sidebar toggle is recorded as page content", "/^(collapse|expand|toggle) sidebar$/i.test(b) || ", ""),
     ]
 
     @staticmethod
