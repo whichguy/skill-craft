@@ -1,0 +1,155 @@
+{
+  "recorded": "2026-11-08",
+  "release": {
+    "commit": "dcc15966ed399cf154468ca282201f0a3e433f24",
+    "tree": "322234bc437e5330eeb3191b16e744eb99c93bb8",
+    "parent_merge_commit": "bf3d85b78ab642c3c6d503a34bffbdc1c781ca5e",
+    "remote_main_before": "7b40757183e025f212b720db483e5f73c2b5f247",
+    "versions": "skill-craft 2.35.6, sport80 0.1.0",
+    "trailer": "Skill-Craft-Release: skill-craft@2.35.6, sport80@0.1.0"
+  },
+  "scoped_quick_tier": {
+    "command": "bash test/run-all.sh --group quick --changed-from <remote main before> --jobs 8",
+    "tested_head": "bf3d85b78ab642c3c6d503a34bffbdc1c781ca5e",
+    "tested_tree": "b52b110e893d7eb66f703032de314e33a905442f",
+    "status": "passed",
+    "suites_completed": 17,
+    "suites_selected": 17,
+    "wall_seconds": 199.8,
+    "suites": [
+      {
+        "id": "test-groups",
+        "seconds": 16.8,
+        "status": "passed"
+      },
+      {
+        "id": "ci-policy",
+        "seconds": 6.4,
+        "status": "passed"
+      },
+      {
+        "id": "skill-frontmatter",
+        "seconds": 0.1,
+        "status": "passed"
+      },
+      {
+        "id": "sport80",
+        "seconds": 2.7,
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-no-model-launch",
+        "seconds": 10.1,
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-navigator-contract",
+        "seconds": 199.8,
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-navigator-v4",
+        "seconds": 4.8,
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-stopped-improve",
+        "seconds": 1.9,
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-packet-bounds",
+        "seconds": 1.8,
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-navigator-dry-run",
+        "seconds": 22.2,
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-status-display",
+        "seconds": 9.7,
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-narrative",
+        "seconds": 1.8,
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-stage-spec",
+        "seconds": 0.4,
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-keepalive",
+        "seconds": 120.3,
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-planning-handoff",
+        "seconds": 1.7,
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-e2e-lifecycle",
+        "seconds": 26.7,
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-mock-replay",
+        "seconds": 6.5,
+        "status": "passed"
+      }
+    ]
+  },
+  "release_checks_run_by_release_push": [
+    [
+      "bash",
+      "scripts/sync-plugin-views.sh",
+      "--check"
+    ],
+    [
+      "python3",
+      "scripts/check-marketplace-packages.py"
+    ],
+    [
+      "python3",
+      "scripts/check-release-boundary.py",
+      "--base",
+      "7b40757183e025f212b720db483e5f73c2b5f247"
+    ],
+    [
+      "python3",
+      "test/test-groups.test.py"
+    ]
+  ],
+  "release_checks_result": "4 of 4 passed before the single non-forced push",
+  "push": {
+    "status": "pushed",
+    "previous_remote_head": "7b40757183e025f212b720db483e5f73c2b5f247",
+    "head": "dcc15966ed399cf154468ca282201f0a3e433f24",
+    "tree": "322234bc437e5330eeb3191b16e744eb99c93bb8"
+  },
+  "packaged_skill_offline_smoke": "plugins/skill-craft/skills/sport80 identical to skills/sport80 (diff -rq); its CLI check: 114 entries, 0 problems",
+  "hosts_after_refresh": {
+    "claude": "skill-craft@whichguy 2.35.5 -> 2.35.6, restart to apply",
+    "grok": "2.35.5 -> 2.35.6",
+    "codex": "2.35.6 installed and enabled",
+    "cursor": "not refreshed here: the owner's, through its app",
+    "installed_sport80_tree_vs_git_archive_of_release": "identical on claude, grok and codex"
+  },
+  "ci": {
+    "workflow": "CI push",
+    "run_id": 42550312446,
+    "status_when_recorded": "in_progress"
+  },
+  "after_push_finding": {
+    "id": "F20",
+    "suite": "test/sport80.test.py",
+    "defect": "asserted that changes/sport80/initial.md exists; release.py consumes the note, so the suite failed on the released tree",
+    "why_unseen_before_the_push": "the scoped quick tier ran on the merge commit where the note existed; the four release checks run test-groups only; a dry run runs no tests",
+    "fix": "assertion removed in the commit that follows the release"
+  }
+}

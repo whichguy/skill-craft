@@ -238,3 +238,39 @@ under the personal account, scoped to the club, for example the meet results of 
   member-tab gap with its gate, and `changes/sport80/initial.md` mentions the club role's view of its athletes' results.
 - **Open, the owner's call.** Reading one club member's tabs through the club role would move G9 from unexercised to verified.
   It needs the owner to name the member and the tab; nothing was read.
+
+## Round 5 - publication (2026-11-08)
+
+The owner said "Merge and publish", then "I would like to make this available in the skill-craft marketplace". That marketplace
+is this repository: `sport80` ships inside the one `skill-craft` plugin (`skill-craft@whichguy`) and is invoked
+`/skill-craft:sport80`. Compact evidence: `docs/evidence/sport80-release-20261108/summary.json`.
+
+- **What landed.** Remote `main` moved from 7b40757183e025f212b720db483e5f73c2b5f247 to dcc15966ed399cf154468ca282201f0a3e433f24
+  ("release: skill-craft 2.35.6, sport80 0.1.0", tree 322234bc437e5330eeb3191b16e744eb99c93bb8) in one guarded push of: the journal
+  and evidence commit c1d40d526c88add4a64095fa02c2e84d2b9a4ef6, the skill c1c1cf5b638e5c1bafe06820163a40951baf794b, the first merge of
+  main b6246d1dbb3f50326075da7e73035f6389cf9578, the card commit 1cd0dd92b9d2ae985e7722dfba8172b2b3166ba2, the second merge
+  bf3d85b78ab642c3c6d503a34bffbdc1c781ca5e (19 upstream commits, two of them releases, no file in common with mine) and the release
+  commit. Main held no other pending note, so the release shipped only this skill.
+- **Checks before the push.** Scoped quick tier on the merge commit: 17 of 17 suites passed in 199.8 s wall (test-groups,
+  ci-policy, skill-frontmatter, sport80 and the fixed ShipLoop baseline). The four release checks that `release-push.py` runs
+  (sync-plugin-views, marketplace packages, release boundary against the old main, test-groups) passed. The packaged
+  `plugins/skill-craft/skills/sport80` equals `skills/sport80`, and its CLI `check` reports 114 entries, 0 problems.
+- **Hosts.** Claude 2.35.5 to 2.35.6 (restart to apply), Grok 2.35.5 to 2.35.6, Codex 2.35.6; on each, the installed `sport80`
+  tree is identical to `git archive` of the release commit. Cursor was not refreshed: it is the owner's, through its app (remove
+  the `whichguy` marketplace, add `https://github.com/whichguy/skill-craft`, click Add).
+- **CI.** The push run for the release commit (`gh run list --branch main`) was in progress when this was recorded and was not
+  waited on; F20 is what it would catch.
+- **F19 interim (apparatus).** A tier started as `nohup bash test/run-all.sh ... &` inside a short-lived background command stalled
+  at "running, 5 of 17" for about eight minutes, longer than a whole run takes, so it had died with its launcher (my process search
+  missed Homebrew's `Python` binary, so the absence of processes is not the evidence). The relaunch as the background command
+  itself finished 17 of 17. The receipt lists suites in catalogue order, so it can sit at "5 of 17" while a later suite runs:
+  `shiploop-navigator-contract` took 199.8 s, the whole wall time.
+- **F20 firm (defect found after the push, fixed in f7b66f577ea5f656dd21971ddf42cfa364463e18).** `test/sport80.test.py` asserted that `changes/sport80/initial.md`
+  exists. `release.py` consumes the note, so on the released tree the suite failed. It was found by running the suite in the
+  release worktree after the push; the same run also rejected the CI run id I had first written into this journal, a long number
+  the lint forbids. Nothing before the push could see it: the scoped quick tier ran on the merge commit, where the note still
+  existed; the four release checks run test-groups only; a dry run runs no tests. CI on `main` would have caught it. The
+  assertion is removed, because a pending note is transient by design. For later releases: run the changed suites on the
+  release tree after the cut and before the push.
+- **Still open, the owner's call.** G9 (a club member's tabs through the club role) is unverified; it needs the owner to name a
+  member and a tab. Gaps G1 to G8 and the scope unknowns stand as recorded.
