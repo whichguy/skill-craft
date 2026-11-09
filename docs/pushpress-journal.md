@@ -245,6 +245,25 @@ frontmatter test passed on it, and the packaged copy equals the source. The only
 
 **Not run:** the real release on the branch; `scripts/release-push.py`; any push, tag or merge; CI; the aggregate or full core group; sign-in, any write flow or any member profile against the live tenant.
 
+## Round 8 - publication (2026-11-08)
+
+The owner answered "Publish" to "Publish pushpress in skill-craft now?" after the live pass. The order followed the `sport80` record (`1db0d579ea7065c2012e5a87a1012e6b1dcbe588`).
+
+1. `git fetch origin`: remote main was `a4c773afb6c6320af4b54bedf801985e097aacd9`, unchanged since the last trial, and held no pending change note but `changes/README.md`, so the cut ships only this skill's note.
+2. Merge of that main into the branch without squashing: `5288ad960de5c0d2884df2a3badb602609fda581` (parents `9b3360f6` and `a4c773af`). One conflict, the count assertions in `test/test-groups.test.py`,
+   resolved as rehearsed (core 60, total 202); `test-groups` ran 64 tests, exit 0, before the merge was committed.
+3. The scoped quick tier on the merge commit (tree `9d359f6d16141dde25a21770e17feec4a94bb1da`): 18 suites in 231.1 s wall (slowest: shiploop-navigator-contract 231.1 s, shiploop-keepalive 144.8 s, shiploop-e2e-lifecycle 29.4 s), exit 0. `check-release-boundary` and `release.py --dry-run` exit 0
+   (pushpress 0.1.0, skill-craft 2.35.9 to 2.35.10).
+4. `scripts/release.py`: release commit `03f68d93a44500aca958db74440c1483e9038e11`, "release: skill-craft 2.35.10, pushpress 0.1.0", tree `8bb3a56aa8688e582f2558e6afd9dc8937f9826e`, parent the merge commit; the pending note was consumed.
+5. `scripts/release-push.py` with the four checks (`bash scripts/sync-plugin-views.sh --check`, `python3 scripts/check-marketplace-packages.py`, `python3 scripts/check-release-boundary.py --base a4c773af`,
+   `python3 test/test-groups.test.py`): 4 of 4 passed, then one non-forced push of the frozen commit. Remote main moved from `a4c773afb6c6320af4b54bedf801985e097aacd9` to `03f68d93a44500aca958db74440c1483e9038e11`.
+6. After the push, the F20 check: `git ls-remote` shows remote main equal to the release commit, and the changed suites ran on the released tree, all exit 0: the pushpress suite (14 tests), the extractor
+   harness (17 checks), the frontmatter test (25 skills), test-groups, the installed-skill test, `sync-plugin-views --check` and the package check; the packaged copy equals `skills/pushpress`, and
+   `release.py --dry-run` now reports nothing to release. The `CI push` workflow on the release commit was in_progress when this was recorded and was not waited on, per the owner's rule to proceed and revert only on failure.
+
+Not done: refreshing the installed copies on the owner's hosts (Claude, Grok, Codex, Cursor); a live pass of a member profile, sign-in or any write flow (G1, G9). Raw results:
+`docs/evidence/pushpress-release-20261108/summary.json`.
+
 ## Still unknown
 
 - **G1 (`superseded` 2026-11-08 by Round 6; it was `firm`).** The generalized skill had not been run against a live tenant after generalization. It has now had one read-only pass
@@ -260,7 +279,7 @@ frontmatter test passed on it, and the packaged copy equals the source. The only
 - **G5 (`exploratory`).** Trigger quality of the re-anchored description is untested.
 - **G6 (`firm`).** Not checked by either reviewer: the Kisi and HybridAF access-integration note, PushPress's published fees against live sources, and the
   SDK figures (44 tools, "8 of 49 methods").
-- **G7 (`firm`).** `origin/main` kept moving while this branch was prepared: ten commits by other sessions by the last look (`d4ff1a47ce89aec5ee546d1601c401850561c58f` is the base), two of
+- **G7 (`superseded` 2026-11-08 by Round 8: the merge was done, its one conflict resolved as rehearsed, and the release is published; it was `firm`).** `origin/main` kept moving while this branch was prepared: ten commits by other sessions by the last look (`d4ff1a47ce89aec5ee546d1601c401850561c58f` is the base), two of
   them releases. Most touch files this branch does not; the last trial found one that matters: main changed the count assertions in `test/test-groups.test.py` that this branch also edits, so a
   merge now conflicts there (resolution in Round 7). A release needs main merged into the branch again just before the cut, as it did for sport80; the version it carries moves with main; and a cut
   ships whatever is pending on main as well. Round 7 records the trials in scratch worktrees; they are rehearsals, not the release.
