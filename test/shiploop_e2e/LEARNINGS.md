@@ -8506,3 +8506,84 @@ Fresh Sol6.1/medium workers performed the focused checks. Separate Astra/high re
 The integrated bank also created one undeclared ignored bytecode file, so its source-identity qualification remains INCOMPLETE. The parent recorded its hash and removed only that session-owned output. Its release dry run refused the incoming release because the pre-merge journal was not its descendant. This follow-up records the combined history after integration; it does not change the release rule or rewrite earlier entries. See the [diagnosis and cleanup record](/Users/dadleet/Documents/Codex/experiments/shiploop-runtime-followups-20261108-odaaeuag/cleanup-c-integration-diagnosis.json).
 
 No broad bank was rerun to erase a failure. Exact new-source CI, generated-release verification and host refresh remain subsequent publication checks. All raw probes, logs and products stay in external evidence directories. The original cleanup acceptance remains bounded: SIGKILL can leave workload locks or previous writes, and available-output recovery remains open.
+
+
+## 2026-11-08 — Planning reminder adoption and exact watcher fixture integration
+
+The registered live comparison used common baseline
+`612cb504747a019d7af1a396ccbef4dfdba64f38`. V2 added the exact 821-character
+Plan duty 1 reminder before dependent work definition. Reuse sufficient
+current evidence, probe selectively within existing research authorization
+and accounting, allow zero probes, and preserve conditional dependencies and
+independent work. Plan Improve still reassesses the result. The stage order,
+UntilLoop contract and product loop limits are unchanged.
+[Registration, overlay and reviewed report](../../docs/experiments/planning-reminder-adoption-20261108/README.md)
+
+| Registered case | Current | Candidate | Original paired result |
+| --- | --- | --- | --- |
+| Native cancellation failure | sample-01, 20/20 | sample-02, 20/20 | Tie |
+| Supplied cancellation evidence | sample-04, 26/26 | sample-03, 26/26 | Tie |
+| Unavailable remote dependency | sample-05, 12/12 | sample-06, 12/12 | Tie |
+
+All six original Sol 6.1/medium subjects reached accepted Plan Improve at the
+requested stop before Prepare work or implementation, with the sample-05
+admission below. Astra/high graded the original pairs and a fresh Astra/high
+adoption assessment found the exact guidance and handoff clarification worth
+its modest prompt cost under the owner's low-consequence criterion. The parent
+adopted the exact text with no further live cases. Verified launch controls
+establish the requested roles. Provider-served identity remains unattested.
+The reminder receives no credit for discoveries or applicability checks in
+shared pre-treatment Test Strategy and Improve. Useful handoff refinements
+coexist with extra bookkeeping and review work. One pair per case, descriptive
+elapsed observations, incomplete terminal usage and heuristic scope checks
+without an OS read fence establish no causal quality, speed, token or effort
+advantage. Implementation, live remote readiness and delivered-product
+acceptance remain outside the round.
+[Adoption decision](../../docs/experiments/planning-reminder-adoption-20261108/decision.json)
+
+**Retained contrary evidence.** Original sample-05 raw and semantic boundary
+audits remain FAIL. Independent exact-source admission identifies the two
+counted calls as bound UntilLoop completion and the terminal acceptance
+callback for Plan Improve. The truncated timestamp put both in the Prepare
+window, and the stream ends at the callback with no later Prepare action.
+Admission is specific to this exact tail. The original sample-01 quote
+verification remains FAIL. The separate provenance review found the decisive
+quotations in an earlier linked architecture source beyond the verifier's
+initial-plan lookup. Initial paired transports exceeded the transport bound
+before any judge verdict. The subsequent lossless round trips retained the
+evidence, rubric and model controls. Equivalent model attention across
+presentations remains unverified. Early admitted collectors failed before
+grading on observer status hash drift and sandbox `ps` denial. Attempt 03
+completed the owned-observer cleanup and original third-pair grading without
+resuming or rerunning subjects. The earlier PENDING judgment and failed
+receipts retain their original status.
+[Original evidence and independent admissions](../../docs/experiments/planning-reminder-adoption-20261108/evidence-index.json)
+
+**Combined-source qualification.** The merges preserve the common planning
+history fix and published
+`100460c3eb00d10bc9d7bbb874fd1d915ca49680` ancestry, including
+`c376fe521521ef7e6cee22f9b34a3aacc10ef3c4` reference fidelity and owning-phase
+verification. The accepted peer
+`06b0f3b30899024c0e403bd41867a6c368f4beb8` fixture supersedes the common
+baseline's global observer opt-out in this checkout. Synchronous seed watcher
+coverage is preserved with two narrow fake-host opt-outs and cooperative
+shutdown before exact argv disappearance, display-lock release and removal.
+The handoff is for this test fixture only. The original peer timeout and
+stuck-child negative control remain separate from its four watcher and
+73 standard-temp passes. The frozen study and its historical isolation
+remain unchanged.
+[Fixture handoff](/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/fixture-integration-handoff.json)
+
+The parent sealed 11 required commands terminal and passing on the exact
+10,432-file integrated runtime tree. Nine hermetic suites passed 340 tests
+with zero failures, errors, skips or retries. Counts were packet-completeness 64, step-packets 10, packet-recut 30, head-order 36, packet-obligations 15, improve-route 21, planning-handoff 7, guidance 84, e2e-slice 73.
+The other commands checked Git whitespace and the release-output boundary.
+The pre/post and independent parent byte/mode fingerprints match
+\`a5cac54eaf8aeb413d0dc502a15a2b75ec1088ace5d4dc776e360c0657c39c6a\`.
+The exact integrated prompt SHA-256 is \`82e1026fa175f7f876443d75448ea5c7f773cf23f92f570305d5d4240ae4f6b8\`.
+The fixture SHA-256 is \`869a53edc56f25c08269b5d4fad8698dce7e4c57941234abf0b7e5716f2f13ef\`.
+The completed frozen live planning comparison and these combined native checks
+cover distinct inputs and claims. The journal follows the source and report
+commits. Normal source CI, release preflight and full CI on the exact generated
+release remain pending.
+[Parent native acceptance](/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/integrated-checks-parent-acceptance.json)
