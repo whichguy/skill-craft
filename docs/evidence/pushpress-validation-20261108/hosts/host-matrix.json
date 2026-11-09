@@ -80,7 +80,7 @@
       },
       {
         "probe": "await __pp.sidebar()",
-        "observed": "the message form (60 lines written to the dump); the lines read back through the script tool: 8 groups and 52 links, as built"
+        "observed": "the message form (60 lines written to the dump); the lines read back through the script tool: 8 groups and 52 links, as the page was built then (it has since grown to 57 links)"
       },
       {
         "probe": "location.search with a 32-character value",
@@ -112,7 +112,7 @@
       },
       {
         "probe": "function format: install via fetch and eval, company, wait, extract, store, dump, sidebar",
-        "observed": "all worked; the sidebar came back as the message form with 61 lines parked"
+        "observed": "all worked; the sidebar came back as the message form with 61 lines parked (the page then)"
       },
       {
         "probe": "format script: await Promise.resolve(2) at top level",
@@ -144,7 +144,7 @@
     "probes": [
       {
         "probe": "the privacy fixture",
-        "observed": "Playwright 1.62 with Chrome 157, headless, a fresh context per run: all 43 runs pass; addScriptTag installs the extractor, evaluate awaits async calls"
+        "observed": "Playwright 1.62 with Chrome 157, headless, a fresh context per run: all runs passed (43 when this was recorded; 59 at the final version of the fixture); addScriptTag installs the extractor, evaluate awaits async calls"
       }
     ]
   },

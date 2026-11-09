@@ -1,0 +1,57 @@
+{
+  "recorded": "2026-11-09",
+  "what": "a label \"Phone <number>\" run through the extractor on a stub DOM; digits are replaced by n in this file; \"masked\" means the last seven digits do not appear in the output",
+  "extractor_blob": "7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b",
+  "probe": [
+    {
+      "shape": "(nnn) nnn-nnnn",
+      "masked": true,
+      "output_shape": "Phone <phone>"
+    },
+    {
+      "shape": "nnn-nnn-nnnn",
+      "masked": true,
+      "output_shape": "Phone <phone>"
+    },
+    {
+      "shape": "nnn.nnn.nnnn",
+      "masked": true,
+      "output_shape": "Phone <phone>"
+    },
+    {
+      "shape": "+n nnn nnn nnnn",
+      "masked": true,
+      "output_shape": "Phone <phone>"
+    },
+    {
+      "shape": "nnnnnnnnnn",
+      "masked": true,
+      "output_shape": "Phone <phone>"
+    },
+    {
+      "shape": "(nnn)nnn-nnnn (no space after the parenthesis)",
+      "masked": false,
+      "output_shape": "Phone (nnn)nnn-nnnn"
+    },
+    {
+      "shape": "nnn nnnnnnn",
+      "masked": false,
+      "output_shape": "Phone nnn nnnnnnn"
+    },
+    {
+      "shape": "nnn/nnn/nnnn",
+      "masked": false,
+      "output_shape": "Phone nnn/nnn/nnnn"
+    },
+    {
+      "shape": "nnn nnn nnnn",
+      "masked": true,
+      "output_shape": "Phone <phone>"
+    },
+    {
+      "shape": "+nn nn nnnn nnnn",
+      "masked": false,
+      "output_shape": "Phone +nn nn nnnn nnnn"
+    }
+  ]
+}

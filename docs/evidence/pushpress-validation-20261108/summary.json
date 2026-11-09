@@ -9,7 +9,7 @@
     "note": "remote main was nineteen commits ahead (releases 2.36.0 and 2.36.1) and none touches a pushpress path"
   },
   "extractor_blob": "7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b",
-  "tests_commits": "81051962850dc49f2767a81f43be138c971eb2cc (first version), 695ad676f13ef71305d4d03be27fb3eb0fc7618a, 9c1930946318f94745672cf708a94fa5310b9620 and d6e21bcc045c4d672b03b0121ee43e03584196df (review fixes); the results below are from the last",
+  "tests_commits": "81051962850dc49f2767a81f43be138c971eb2cc (first version), then the review fixes 695ad676f13ef71305d4d03be27fb3eb0fc7618a, 9c1930946318f94745672cf708a94fa5310b9620, d6e21bcc045c4d672b03b0121ee43e03584196df, cdfd043be38f140cf5cd3516000e9bc7036d585e and cf5f9bea84d689ca46a18c03630c2a4aa93ec5ac; the results below are from the last",
   "read_only_checks": {
     "ci": {
       "commit": "03f68d93a44500aca958db74440c1483e9038e11",
@@ -82,9 +82,9 @@
         "1703-collapsed"
       ],
       "layouts_modelled_not_measured": "sidebar 255, 240 and 200 px (content from 281, 266 and 218 px) and a 64 px rail when collapsed",
-      "runs": 55,
+      "runs": 59,
       "statuses": {
-        "PASS": 55
+        "PASS": 59
       },
       "controls": [
         {
@@ -186,6 +186,86 @@
           "name": "sidebar-id-links-unmasked",
           "status": "caught",
           "failing_cases": 1
+        },
+        {
+          "name": "external-links-not-masked",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "sms-not-a-contact-link",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "button-verbs-cut-to-select-and-edit",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "sidebar-person-routes-unmasked",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "scrub-ignores-textareas",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "id-pattern-needs-12-hex-characters",
+          "status": "caught",
+          "failing_cases": 2
+        },
+        {
+          "name": "path-id-mask-needs-12-hex-characters",
+          "status": "caught",
+          "failing_cases": 2
+        },
+        {
+          "name": "id-prefix-underscore-only",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "scrub-left-boundary-whitespace-only",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "scrub-pattern-unescaped",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "input-and-toggle-labels-text-mask-off",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "path-field-query-values-recorded",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "visibility-filter-off",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "path-mask-person-rule-off",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "chrome-button-list-ignored",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "company-switcher-filter-off",
+          "status": "caught",
+          "failing_cases": 1
         }
       ],
       "control_rule": "caught only when the failure is of the kind that break should cause; a run error is never a catch; caps are tested only by the property test",
@@ -195,7 +275,7 @@
             "dump",
             "h"
           ],
-          "runs": 35
+          "runs": 43
         },
         "guardianB.first": {
           "fields": [
@@ -203,7 +283,14 @@
             "dump",
             "h"
           ],
-          "runs": 35
+          "runs": 43
+        },
+        "guardianB.phone-shape": {
+          "fields": [
+            "dump",
+            "lbl"
+          ],
+          "runs": 43
         },
         "url.query-key": {
           "fields": [
@@ -221,57 +308,57 @@
         }
       },
       "gap_tally": {
-        "XFAIL": 80,
+        "XFAIL": 131,
         "XPASS": 0
       },
       "collateral_value_strings_by_case": {
         "person/plain": [
-          1,
-          1,
-          1,
-          1
-        ],
-        "person/hyphen": [
-          1,
-          1,
-          1,
-          1
-        ],
-        "person/apostrophe": [
-          1,
-          1,
-          1,
-          1
-        ],
-        "person/accent": [
-          1,
-          1,
-          1,
-          1
-        ],
-        "person/short": [
-          1,
-          1,
-          1,
-          1
-        ],
-        "person/common": [
           3,
           3,
           3,
           3
         ],
+        "person/hyphen": [
+          3,
+          3,
+          3,
+          3
+        ],
+        "person/apostrophe": [
+          3,
+          3,
+          3,
+          3
+        ],
+        "person/accent": [
+          3,
+          3,
+          3,
+          3
+        ],
+        "person/short": [
+          3,
+          3,
+          3,
+          3
+        ],
+        "person/common": [
+          5,
+          5,
+          5,
+          5
+        ],
         "person/upper": [
-          1,
-          1,
-          1,
-          1
+          3,
+          3,
+          3,
+          3
         ],
         "person/stacked": [
-          2,
-          2,
-          2,
-          2
+          4,
+          4,
+          4,
+          4
         ],
         "person/titleonly": [
           1,
@@ -280,34 +367,42 @@
           1
         ],
         "person/shared": [
-          1,
-          1,
-          1,
-          1
+          3,
+          3,
+          3,
+          3
+        ],
+        "person/nickname": [
+          3,
+          3,
+          3,
+          3
         ],
         "url/lead-slug": [
-          1
+          3
         ],
         "url/query": [
-          1
+          3
         ],
         "url/fragment": [
-          1
+          3
         ]
       },
-      "seconds": 89.6,
+      "seconds": 134.6,
       "detail": "fixture/results.json",
-      "shapes": "ten name shapes (including a billing tab whose name is only in the title and heading, and a guardian sharing the first name), a lead URL, a query, a fragment, a list page, a table page, a payments page (invoice-id, name-slug, non-hex and contact links, a query holding an address, an address in a header, a number in a tab, an address as plain link text), a plan page whose path holds a record id, and contact, id and plain address links in the left menu",
+      "shapes": "eleven name shapes (including a billing tab whose name is only in the title and heading, a guardian sharing the first name and a name with parentheses), a lead URL, a query, a fragment, a list page, a table page, a payments page (10-hex invoice id, name-slug person link, non-hex person id, mailto, tel and sms links whose text is a name, a link to another site with an id in its path, a query holding an address, an address in a header, a number in a tab, an address as plain link text, an address in an input label, a number in a toggle label, View/Delete/Remove/Open buttons carrying a name), a plan page whose path holds an 11-hex record id, and contact, id, person-slug and plain address links in the left menu",
       "sidebar_expected": {
         "expanded": {
           "groups": 8,
-          "links": 56
+          "links": 57
         },
         "collapsed": {
           "groups": 0,
-          "links": 8
+          "links": 9
         }
-      }
+      },
+      "person_route_runs": 47,
+      "runs_with_a_second_person": 43
     },
     "property_test": {
       "file": "test/pushpress-extractor-property.js",
@@ -315,41 +410,57 @@
         {
           "seed": 1109,
           "pages": 5000,
-          "person_route_pages": 2973,
+          "person_route_pages": 3039,
           "violations": 0,
           "known_gap": {
-            "exposable_person_pages": 1804,
-            "exposed": 1804
+            "exposable_person_pages": 1827,
+            "exposed": 1827
+          },
+          "known_gap_phone_shape": {
+            "pages_showing_one": 2113,
+            "exposed": 2113
           }
         },
         {
           "seed": 1,
           "pages": 20000,
-          "person_route_pages": 11975,
+          "person_route_pages": 12028,
           "violations": 0,
           "known_gap": {
-            "exposable_person_pages": 7315,
-            "exposed": 7315
+            "exposable_person_pages": 7375,
+            "exposed": 7375
+          },
+          "known_gap_phone_shape": {
+            "pages_showing_one": 8407,
+            "exposed": 8407
           }
         },
         {
           "seed": 99,
           "pages": 20000,
-          "person_route_pages": 11958,
+          "person_route_pages": 12049,
           "violations": 0,
           "known_gap": {
-            "exposable_person_pages": 7226,
-            "exposed": 7226
+            "exposable_person_pages": 7395,
+            "exposed": 7395
+          },
+          "known_gap_phone_shape": {
+            "pages_showing_one": 8473,
+            "exposed": 8473
           }
         },
         {
           "seed": 4242,
           "pages": 20000,
-          "person_route_pages": 12143,
+          "person_route_pages": 12027,
           "violations": 0,
           "known_gap": {
-            "exposable_person_pages": 7464,
-            "exposed": 7464
+            "exposable_person_pages": 7378,
+            "exposed": 7378
+          },
+          "known_gap_phone_shape": {
+            "pages_showing_one": 8432,
+            "exposed": 8432
           }
         }
       ],
@@ -364,7 +475,7 @@
         },
         {
           "name": "fixed-290px-edge",
-          "result": "caught (P2 structure, P3 edge, P4 icons, P4 rows)"
+          "result": "caught (P2 structure, P4 rows, P3 edge, P4 icons)"
         },
         {
           "name": "sidebar-not-parked",
@@ -513,6 +624,62 @@
         {
           "name": "person-path-not-a-person-route",
           "result": "caught (P1 contract, P1 region)"
+        },
+        {
+          "name": "external-links-not-masked",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "sms-not-a-contact-link",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "button-verbs-cut-to-select-and-edit",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "sidebar-person-routes-unmasked",
+          "result": "caught (P6 sidebar)"
+        },
+        {
+          "name": "scrub-ignores-textareas",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "id-pattern-needs-12-hex-characters",
+          "result": "caught (P1 contract, P6 sidebar)"
+        },
+        {
+          "name": "path-id-mask-needs-12-hex-characters",
+          "result": "caught (P1 contract, P6 sidebar, P5 path)"
+        },
+        {
+          "name": "id-prefix-underscore-only",
+          "result": "caught (P6 sidebar, P1 contract)"
+        },
+        {
+          "name": "scrub-left-boundary-whitespace-only",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "scrub-pattern-unescaped",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "input-and-toggle-labels-text-mask-off",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "path-field-query-values-recorded",
+          "result": "caught (P5 path)"
+        },
+        {
+          "name": "visibility-filter-off",
+          "result": "caught (P3 edge)"
+        },
+        {
+          "name": "path-mask-person-rule-off",
+          "result": "caught (P1 contract, P6 sidebar, P5 path)"
         }
       ],
       "over_masking_audit": {
@@ -530,7 +697,7 @@
         ]
       },
       "detail": "property/results.json",
-      "without_a_dedicated_control": "the Chrome-button list and the company-switcher filter (structure noise, noticed by the fixture's structure checks), the input-type filter of the scrub (over-scrubbing only), the '+8 to 15 digits' phone alternative (redundant with the bare-digits one)"
+      "without_a_dedicated_control": "the scrub's right word boundary and input-type filter (over-masking and over-scrubbing only), the '+8 to 15 digits' phone alternative (redundant with the bare-digits one), and the order of the length limit and the text mask on link, label and region text (found by a reviewer, not pinned)"
     },
     "quiz": {
       "detail": "quiz/results-summary.json, quiz/quiz-report.md and quiz/failing-safety-answers.md",
@@ -604,17 +771,17 @@
       ]
     },
     "mutations": {
-      "total": 39,
-      "fixture_tested": 20,
-      "property_tested": 39,
+      "total": 55,
+      "fixture_tested": 36,
+      "property_tested": 53,
       "source": "test/fixtures/pushpress-extractor/mutations.cjs",
       "note": "each break names what it must cause; a run error or crash is never a catch"
     }
   },
-  "review": "three rounds of two independent reviewers read the test code and the journal entry with this evidence; their material findings are fixed in the commits on this branch",
+  "review": "four rounds of two independent reviewers read the test code and the journal entry with this evidence; their material findings are fixed in the commits on this branch",
   "findings": {
     "H1": "firm",
-    "H2": "firm (synthetic pages; limited to the shapes planted and the masks that have a control)",
+    "H2": "firm (synthetic pages; limited to the shapes planted and the protections that have a control; the recorded gaps are excluded)",
     "H3": "firm on the synthetic page; interim for a real tenant",
     "H4": "firm on the synthetic page for p; the rest read from the code",
     "H5": "firm",
@@ -628,7 +795,8 @@
     "H13": "firm",
     "H14": "firm",
     "see": "docs/pushpress-journal.md Round 9",
-    "H15": "firm on a stub DOM; the over-masking is not a leak"
+    "H15": "firm on a stub DOM; the over-masking is not a leak",
+    "H16": "firm on a stub DOM; a real hole in the extractor (phone numbers typed without a separator after the closing parenthesis, with a slash, or with international spacing are not masked)"
   },
   "proposed_changes_waiting_for_a_yes": [
     "P1 two hypotheses: a key rule in SKILL.md (precaution) and, separately, whether the description loads the card on a key request (test first in P8)",
@@ -641,7 +809,8 @@
     "P8 rerun the quiz with held-out phrasings and injection cases that name PushPress",
     "P9 decide the page-text-is-data rule after P8",
     "P10 let the repository's lint recurse through nested evidence, reading an external denylist named by an environment variable",
-    "P11 test the person and id patterns on the bare path so list links with a query keep their label"
+    "P11 test the person pattern on the path without the query suffix, keep the id pattern on path plus fragment",
+    "P12 loosen the phone pattern (a closing parenthesis directly followed by the next group, slashes, any spacing, international numbers)"
   ],
   "not_done": [
     "anything on the live tenant",
@@ -658,5 +827,6 @@
     "python3 test/pushpress.test.py",
     "node test/pushpress-extractor-harness.js"
   ],
-  "over_masking_probe": "fixture/list-link-query-probe.json"
+  "over_masking_probe": "fixture/list-link-query-probe.json",
+  "phone_shape_probe": "fixture/phone-shape-probe.json"
 }
