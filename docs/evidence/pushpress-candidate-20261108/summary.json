@@ -1,0 +1,411 @@
+{
+  "recorded": "2026-11-08",
+  "candidate": {
+    "branch": "pushpress",
+    "base_main": "d4ff1a47ce89aec5ee546d1601c401850561c58f",
+    "feature_commit": "4c7b5fc521ce14c9ab930de0c7a9b551c923d74f",
+    "review_fix_commit": "a30c8634000d2623efc9ef1a316dd21a3aad1dc6",
+    "diff_read_fix_commit": "f12acb0dbb795b5e24e0794e1966e0a4e8ed4a76",
+    "tested_head": "f12acb0dbb795b5e24e0794e1966e0a4e8ed4a76",
+    "tested_tree": "2f685e6ed827e8a99688423bfd2bc72a835870b1",
+    "reauthored": {
+      "d33177a13c863a89525e12be85571d7498b6d49d": "4c7b5fc521ce14c9ab930de0c7a9b551c923d74f",
+      "41dd64fe95ff4da2d2142c6b8884f6c74dbba6aa": "a30c8634000d2623efc9ef1a316dd21a3aad1dc6",
+      "note": "author and committer only, plus the second message's mention of the first commit; every tree identical"
+    },
+    "note": "The commit that adds this file changes only docs; the tested tree is its parent's."
+  },
+  "source": {
+    "project_skill_commit": "c20f862420c47cc7fa8d9671357baa1abbe20632",
+    "unpublished_drafting_repository_head": "ce024be517ed79bd51c3a1be64179a5245cad0d8"
+  },
+  "precedent": {
+    "sport80_feature": "c1c1cf5b638e5c1bafe06820163a40951baf794b",
+    "sport80_release": "dcc15966ed399cf154468ca282201f0a3e433f24",
+    "sport80_record": "1db0d579ea7065c2012e5a87a1012e6b1dcbe588"
+  },
+  "checks_on_final_head": [
+    {
+      "check": "pushpress-suite",
+      "exit": 0
+    },
+    {
+      "check": "extractor-harness",
+      "exit": 0
+    },
+    {
+      "check": "extractor-syntax",
+      "exit": 0
+    },
+    {
+      "check": "skill-frontmatter",
+      "exit": 0
+    },
+    {
+      "check": "test-groups",
+      "exit": 0
+    },
+    {
+      "check": "installed-skill-invoke",
+      "exit": 0
+    },
+    {
+      "check": "release-boundary",
+      "exit": 0
+    },
+    {
+      "check": "release-dry-run",
+      "exit": 0
+    },
+    {
+      "check": "build-packages",
+      "exit": 0
+    },
+    {
+      "check": "check-packages",
+      "exit": 0
+    },
+    {
+      "check": "packaged-identical",
+      "exit": 0
+    }
+  ],
+  "release_dry_run": {
+    "command": "python3 scripts/release.py --dry-run",
+    "pushpress": "0.1.0 -> 0.1.0 (1 note)",
+    "skill-craft": "2.35.7 -> 2.35.8"
+  },
+  "scoped_quick_tier": {
+    "command": "bash test/run-all.sh --group quick --changed-from origin/main --jobs 8",
+    "tested_head": "f12acb0dbb795b5e24e0794e1966e0a4e8ed4a76",
+    "tested_tree": "2f685e6ed827e8a99688423bfd2bc72a835870b1",
+    "status": "passed",
+    "suites_completed": 41,
+    "wall_seconds": 467.8,
+    "note": "41 rather than 18 suites because origin/main had moved: the changed set is computed against that local ref; every earlier suite is included",
+    "slowest": [
+      {
+        "id": "shiploop-navigator-contract",
+        "seconds": 467.8
+      },
+      {
+        "id": "shiploop-actual-improve-cli",
+        "seconds": 420.8
+      },
+      {
+        "id": "shiploop-lint",
+        "seconds": 339.0
+      }
+    ],
+    "suites": [
+      {
+        "id": "test-groups",
+        "status": "passed"
+      },
+      {
+        "id": "ci-policy",
+        "status": "passed"
+      },
+      {
+        "id": "skill-frontmatter",
+        "status": "passed"
+      },
+      {
+        "id": "sport80",
+        "status": "passed"
+      },
+      {
+        "id": "pushpress",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-no-model-launch",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-navigator-contract",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-navigator-v4",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-stopped-improve",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-actual-improve-cli",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-packet-bounds",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-packet-completeness",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-step-packets",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-packet-recut",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-head-order",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-reference",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-guidance",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-navigator-dry-run",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-status-display",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-narrative",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-stage-spec",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-delegation",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-lint",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-quality",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-seed-seam",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-store",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-privacy",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-reference-routing",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-domain-words",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-retired-terms",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-keepalive",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-skill-calls",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-trace",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-owner-notes",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-planning-handoff",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-package-integrity",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-e2e-status-card",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-e2e-run-trace",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-e2e-lifecycle",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-packet-obligations",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-mock-replay",
+        "status": "passed"
+      }
+    ]
+  },
+  "earlier_scoped_quick_tiers": [
+    {
+      "commit_now": "4c7b5fc521ce14c9ab930de0c7a9b551c923d74f",
+      "was": "d33177a13c863a89525e12be85571d7498b6d49d",
+      "status": "passed",
+      "suites_completed": 18,
+      "wall_seconds": 208.1
+    },
+    {
+      "commit_now": "a30c8634000d2623efc9ef1a316dd21a3aad1dc6",
+      "was": "41dd64fe95ff4da2d2142c6b8884f6c74dbba6aa",
+      "tested_tree": "a3b5915f678e9836940f33d032cf0462d35b5bc5",
+      "status": "passed",
+      "suites_completed": 18,
+      "wall_seconds": 433.1,
+      "note": "other sessions were using the machine"
+    }
+  ],
+  "release_rehearsal": {
+    "where": "disposable detached worktree, removed afterwards; the release commit is reachable from no branch",
+    "release_commit": "fafbc0d89e9adde0b7e4135e1f319b954ec5b509",
+    "release_tree": "630dcf0ba0c12d1ede803a8d51566c72ac8b8275",
+    "subject": "release: skill-craft 2.35.8, pushpress 0.1.0",
+    "trailer": "Skill-Craft-Release: skill-craft 2.35.8, pushpress 0.1.0",
+    "pending_note_consumed": true,
+    "release_push_checks_same_argv_as_sport80": [
+      {
+        "check": "sync-plugin-views",
+        "exit": 0
+      },
+      {
+        "check": "check-marketplace",
+        "exit": 0
+      },
+      {
+        "check": "release-boundary",
+        "exit": 0
+      },
+      {
+        "check": "test-groups",
+        "exit": 0
+      }
+    ],
+    "changed_suites_on_released_tree": [
+      {
+        "check": "pushpress-suite",
+        "exit": 0
+      },
+      {
+        "check": "extractor-harness",
+        "exit": 0
+      },
+      {
+        "check": "skill-frontmatter",
+        "exit": 0
+      },
+      {
+        "check": "installed-skill-invoke",
+        "exit": 0
+      }
+    ],
+    "packaged_copy_identical": true
+  },
+  "trial_on_moved_main": {
+    "origin_main": "60ba1b70f929294549ceb9d45bf62f33667e3ea7",
+    "merge_conflicts": 0,
+    "merge_commit_in_scratch": "d759df009dbdf19847b85e7879040f2021c2fad8",
+    "dry_run": "release: pushpress 0.1.0 -> 0.1.0 (1 note(s));release: skill-craft 2.35.8 -> 2.35.9;",
+    "release_commit": "4fb4ab5143d3e3aa126d16cec872cb99eab13c46",
+    "subject": "release: skill-craft 2.35.9, pushpress 0.1.0",
+    "trailer": "Skill-Craft-Release: skill-craft 2.35.9, pushpress 0.1.0",
+    "pending_notes": "initial.md",
+    "checks": [
+      {
+        "check": "sync-plugin-views",
+        "exit": 0
+      },
+      {
+        "check": "check-marketplace",
+        "exit": 0
+      },
+      {
+        "check": "release-boundary",
+        "exit": 0
+      },
+      {
+        "check": "test-groups",
+        "exit": 0
+      },
+      {
+        "check": "pushpress-suite",
+        "exit": 0
+      },
+      {
+        "check": "extractor-harness",
+        "exit": 0
+      },
+      {
+        "check": "skill-frontmatter",
+        "exit": 0
+      }
+    ],
+    "packaged_copy_identical": true
+  },
+  "privacy": {
+    "external_denylist_entries": 51,
+    "files_scanned": 19,
+    "lines_read": 5154,
+    "denylist_hits": 0,
+    "controls": [
+      "the denylist grep matches a file that holds an entry",
+      "the shape greps fire on a seeded line"
+    ],
+    "explicit_grep": "no emails, record ids with a tail, phone numbers, key shapes or personal markers; one machine-path match, the lint's own regex literal",
+    "independent_reviews": [
+      {
+        "scope": "unpublished drafting repository",
+        "blockers": 3,
+        "should_fix": 7,
+        "nits": 6,
+        "all_fixed": true
+      },
+      {
+        "scope": "first candidate commit",
+        "blockers": 0,
+        "should_fix": 10,
+        "nits": 8,
+        "all_fixed": true
+      }
+    ],
+    "own_diff_read": {
+      "files_read": 14,
+      "tenant_derived_statements_found": 3,
+      "all_fixed": true,
+      "found_by": "reading the sentences the generalization rewrote against the source; not by the scan, the denylist or either review"
+    }
+  },
+  "not_run": [
+    "the real release on the branch",
+    "scripts/release-push.py and any push, tag or merge",
+    "CI",
+    "the aggregate or the full core group",
+    "any check against a live PushPress tenant"
+  ]
+}
