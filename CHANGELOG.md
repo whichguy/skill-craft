@@ -4,6 +4,14 @@ Written by scripts/release.py.
 
 ## 2026-11-08
 
+### skill-craft 2.35.10
+
+- Skills: pushpress 0.1.0
+
+### pushpress 0.1.0
+
+- New skill: sign in to and navigate PushPress Core, the gym-management system, through the owner's signed-in browser, with a verified route map of the admin app, a door router between the web UI, the PushPress API and MCP tools and the public tenant pages, seven action classes that gate writes, money, outbound messages and downloads, and a page extractor that records structure and masks emails, phone-like numbers, record IDs and "Select or Edit <name>" labels and, on a person's page, removes the field values and the heading's name (a name that stands alone elsewhere cannot be detected, and the skill says so). It carries no tenant facts beyond the one tier named in its verification scope, so a project supplies its own overlay. Verified read-only on one tenant through Claude in Chrome, its extractor also in a live read-only pass; other hosts are untested, and references/hosts.md says what each needs.
+
 ### skill-craft 2.35.9
 
 - Skills: shiploop-e2e-audit 0.7.17
