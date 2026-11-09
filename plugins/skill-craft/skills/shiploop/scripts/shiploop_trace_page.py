@@ -337,7 +337,7 @@ const TRACE = /*TRACE-DATA*/null;
       const [tone, label] = NOTE_STATE[note.state] || ["", note.state];
       const facts = [];
       if (note.quoted_in.length) facts.push("quoted whole in the packet of " + note.quoted_in.map(short).join(", "));
-      if (note.held_in.length) facts.push("printed by a held callback of " + note.held_in.map(short).join(", "));
+      if (note.held_in.length) facts.push("printed by a held callback or check of " + note.held_in.map(short).join(", "));
       if (note.delivered_by) facts.push("delivered by step #" + (note.step || "?") + " (" + short(note.delivered_by) + ")"
         + (note.delivered_at ? " at " + clock(note.delivered_at) : "") + (note.cited ? "; its summary cites " + note.id : "; its summary does not cite " + note.id));
       return el("div", {class: "card note-card"},
@@ -469,6 +469,7 @@ const TRACE = /*TRACE-DATA*/null;
       if (ev.note) body.push(" · ", el("span", {class: "tag violet"}, "wrote owner note " + ev.note));
       if (ev.delivered) body.push(" · ", el("span", {class: "tag green"}, "delivered " + ev.delivered.join(", ")));
       if (held) body.push(" · ", el("span", {class: "tag amber"}, "held once for " + ev.held.join(", ")));
+      if (ev.shown) body.push(" · ", el("span", {class: "tag amber"}, "printed " + ev.shown.join(", ")));
       const rev = ev.rev || [];
       if (rev[0] === null || rev[0] === undefined) { if (ev.stage && ev.stage[1]) body.push(" · at " + ev.stage[1]); }
       else if (rev[0] !== rev[1] && rev[1] !== undefined && rev[1] !== null) body.push(" · r" + rev[0] + "→r" + rev[1]);

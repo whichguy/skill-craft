@@ -372,7 +372,15 @@ _MOCK_REPLAY_SUITE = _suite(
     timeout_seconds=300,
 )
 
-SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, _MOCK_REPLAY_SUITE, _APPARATUS_SUITE)
+# These apparatus IDs stay outside the ShipLoop leaf and legacy aggregate stem matches.
+_PLANNING_APPARATUS_SUITES = (
+    _suite("planning-boundary", "e2e-apparatus", "test/shiploop-e2e-planning-boundary.test.py",
+           "python3", "-B", "test/shiploop-e2e-planning-boundary.test.py"),
+    _suite("planning-comparison", "e2e-apparatus", "test/shiploop-e2e-planning-comparison.test.py",
+           "python3", "-B", "test/shiploop-e2e-planning-comparison.test.py"),
+)
+
+SUITES = (*_CORE_SUITES, *SHIPLOOP_SUITES, _MOCK_REPLAY_SUITE, *_PLANNING_APPARATUS_SUITES, _APPARATUS_SUITE)
 
 GROUPS = (
     "all",
@@ -497,6 +505,15 @@ _PATH_SUITE_IDS = {
     "scripts/release-push.py": ("release-push",),
     "catalog/external-plugins.json": ("marketplace-package", "native-marketplace-adapters"),
     "catalog/skill-craft-plugin.json": ("marketplace-package", "native-marketplace-adapters", "release-flow"),
+    # Comparison loads the boundary suite's fixture. Cataloged suite paths bypass reference lookup.
+    "test/shiploop-e2e-planning-boundary.test.py": ("planning-comparison",),
+    # Names without separators and transitive planning dependencies need exact rows.
+    "test/shiploop_e2e/metrics.py": ("planning-boundary", "planning-comparison"),
+    "test/shiploop_e2e/slice.py": ("planning-comparison",),
+    "test/shiploop_e2e/planning_boundary.py": ("planning-comparison",),
+    "skills/shiploop-e2e-audit/harness/planning_trace.py": ("planning-boundary", "planning-comparison"),
+    "skills/shiploop-e2e-audit/harness/capture.py": ("planning-comparison",),
+    "skills/shiploop-e2e-audit/harness/evidence.py": ("planning-comparison",),
     # The E2E spec has three logical readers; the original harness suite is now three components.
     "test/shiploop_e2e/SPEC.md": (*_E2E_SPLIT_IDS, "shiploop-navigator-contract", "shiploop-run-review"),
     # The packet obligation ledger and its checker; the code that writes the text its anchors live in is in
@@ -740,7 +757,12 @@ def _referencing(path: str) -> set[str]:
     if _stem(path) in _GENERIC_STEMS or not re.search(r"[_.-]", token):
         return set()
     pattern = re.compile(rf"(?<![\w.-]){re.escape(token)}(?![\w-])")
-    return {identifier for identifier, text in _suite_sources().items() if pattern.search(text)}
+    consumers = {identifier for identifier, text in _suite_sources().items() if pattern.search(text)}
+    # The boundary suite writes its own engine timeline. Its basename collides with retained fixtures
+    # whose readers are already at the hub threshold.
+    if re.fullmatch(r"timeline[.]json", token):
+        consumers.discard("planning-boundary")
+    return consumers
 
 
 def targeted(changed: Iterable[str]) -> set[str]:

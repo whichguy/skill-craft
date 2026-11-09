@@ -1,0 +1,29 @@
+{
+  "recorded": "2026-11-08",
+  "subject": "the published skill, installed 2.35.8 copy, used as an agent would (card, CLI and runtime from the plugin cache)",
+  "offline": {
+    "check_require_node": "119 entries, 0 problems",
+    "runtime_identical_to_the_previously_tested_file": true,
+    "refusals_exit_2": ["guided", "owner-only", "unknown id", "unverified entry", "unknown role for the entry", "unknown parameter", "sensitive rows without fields", "club member read without a cid", "sensitive notes rows", "guided archive"],
+    "generated_snippets_parse_under_node": 6,
+    "test_harness_slip": "four parse errors in the first run were zsh word-splitting in the test loop, not the skill"
+  },
+  "live": {
+    "host": "Claude in Chrome, signed-in session, runtime pasted from the installed file",
+    "roles": ["Personal", "Club"],
+    "personal_memberships_total": 1,
+    "club_2026_results": {"meets": 18, "results": 142, "complete": true},
+    "unscoped_2026_events": {"personal": 388, "public": 388, "first_day": 387},
+    "club_transactions_default": {"total": 63, "rows_withheld": true},
+    "failure_codes_seen": ["FILTER_REQUIRED", "UNKNOWN_FILTER", "ROLE_NOT_FOUND"],
+    "smoke_sample_entries_without_error": ["club.profile", "club.memberships", "events.admin.list", "sanction.requests", "admin.reports.queued", "affiliation.affiliations", "results.featured", "results.rankings"]
+  },
+  "findings": {
+    "F25": {"kind": "defect", "what": "rows carry actions [View] and no link, so results.event cannot be given an event_id", "raw_link_shape": "/public/rankings/results/<number>", "results_event_with_that_id": {"rows": 8, "columns": 14}},
+    "F26": {"kind": "defect, same cause", "what": "members.charts tab url prints names only, so members.charts.draw cannot be given addon_id"},
+    "F27": {"kind": "gap", "what": "results.rankings returns 0 rows without a body weight category; weight_class is required and its 1,140 items are not returned by the runtime", "no_data_message": "Please select a body weight category and date range"},
+    "F28": {"kind": "limitation", "what": "members.legacy_list is an HTML outline with no count; no route to the club's member count"},
+    "F29": {"kind": "usability", "what": "each new tab needs the 21 KB runtime pasted"}
+  },
+  "not_tested": ["guided and owner-only flows (by design)", "session expiry", "other hosts", "portal rate limits"]
+}
