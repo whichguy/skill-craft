@@ -431,3 +431,25 @@ What shipped in the patch
 - The runtime grew from 21.7 KB to 28.4 KB, so F29 is a little worse; the card says "about 28 KB".
 
 Open: a minifier or a smaller bundle (F29); the club's personal and club rankings roles were not read; other hosts untested.
+
+## Round 11 - sport80 0.2.0 published (2026-11-08)
+
+Published as `sport80` 0.2.0 in skill-craft 2.36.0. Compact record: the `published` block of
+`docs/evidence/sport80-fix-20261108/summary.json`.
+
+- **What landed.** Remote `main` moved from d0eaf2d28de0fd60f76c8f73a31667443d3b0733 to 67f8bd77989ae0dc1017dea19b613109822e1b98
+  ("release: skill-craft 2.36.0, sport80 0.2.0", tree d3aa7e341eae9772db904ab74159f4c493568afd) in one guarded push of the feature commit
+  (rebased onto the PushPress release 2.35.10 that landed while I worked, no file in common) and the release commit. The release
+  shipped only this skill's note.
+- **Checks before the push.** The scoped quick tier on the rebased feature commit passed 15 of 15 suites (250.3 s wall). On the release
+  tree, with exit codes captured: sport80 32 tests, skill-frontmatter (25 skills), test-groups (64 tests) and ci-policy, then the
+  four release checks. The packaged tree equals the source, its runtime parses (28.9 KB), its CLI reports 120 entries, 0 problems,
+  and its `--options` flag and required-filter refusal behave. `release-push.py` then ran six checks and pushed.
+- **Not covered live.** The last edit to `bound()` (one row that alone exceeds the limit is dropped) was added after the live
+  validation of Round 10 and is covered by a harness scenario only.
+- **Hosts.** Claude 2.35.8 to 2.36.0 (restart to apply), Grok 2.35.8 to 2.36.0, Codex 2.36.0; on each, the installed `sport80` tree is
+  identical to `git archive` of the release commit, and the installed CLI reports 120 entries, 0 problems, runtime 2, with the new
+  flag and refusal behaving. Cursor was not refreshed: it is the owner's, through its app.
+- **CI.** The push run for the release commit was in progress when this was recorded and was not waited on.
+- **Exposure window of F30.** Versions 0.1.0 and 0.1.1 carried the origin-comparison defect from the first release (about three
+  hours earlier the same day) until this one; the owner's three hosts held them. Nothing in the live runs named a lookalike host.
