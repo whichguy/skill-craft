@@ -58,7 +58,7 @@ Use **skill-craft** for portable skill packages and their plugin distribution. U
 | [shiploop-e2e-audit](skills/shiploop-e2e-audit/SKILL.md) | 0.7.17 | Run the ShipLoop test harness and audit its retained graph, review, test, product and incremental-change evidence. Use for ShipLoop mock checks, live one-shot E2E smoke/full… |
 | [shiploop-run-review](skills/shiploop-run-review/SKILL.md) | 0.5.0 | Review a ShipLoop E2E run on the owner's Run Review page: export the run's measured numbers, write findings, advice and options for the owner to tick, check that review file, and… |
 | [skill-interop](skills/skill-interop/SKILL.md) | 0.2.6 | Use when authoring or reviewing a portable multi-host agent skill (Grok, Claude Code, Codex, Hermes): scaffold a prompt-only skill, make a skill host-agnostic, create skill… |
-| [sport80](skills/sport80/SKILL.md) | 0.1.1 | Use for the USA Weightlifting Sport80 portal (usaweightlifting.sport80.com): the owner's personal member account (memberships, certifications, entries, results, orders) and club… |
+| [sport80](skills/sport80/SKILL.md) | 0.2.0 | Use for the USA Weightlifting Sport80 portal (usaweightlifting.sport80.com): the owner's personal member account (memberships, certifications, entries, results, orders) and club… |
 
 <!-- skill-craft:inventory:end -->
 

@@ -63,7 +63,8 @@ a follow-up ping to the roles endpoint also fails. Otherwise the outcomes stay d
 | `FORBIDDEN` | 403: a missing id (event panels without `eid`, discount-code organisations without `id`) or a missing right |
 | `SERVER` | 5xx (Bulk Renewal detail without its add-on id) |
 | `RANKINGS_REFUSED` | the rankings host refused the credentials for this scope |
-| `UNEXPECTED_REDIRECT` | a redirect with a live session (the event finder adds a default date; pass `from_date`) |
+| `UNEXPECTED_REDIRECT` | a redirect with a live session (the event finder adds a default date; pass `from_date`); no call follows a redirect any more, the rankings host included |
+| `UNEXPECTED_ORIGIN` | a descriptor, tab or URL pointed at a host that is neither the portal nor the rankings host (compared exactly): nothing was sent |
 | `NETWORK` | no response with a live session |
 | `CHALLENGE`, `THROTTLED` | bot challenge or 429: stop, no retry |
 | `MISSING_PARAM`, `BAD_PARAM`, `FILTER_REQUIRED`, `UNKNOWN_FILTER`, `FIELDS_REQUIRED` | refused before any request |

@@ -7,7 +7,7 @@ description: >-
   capability the portal exposes per role, runs the reads through the owner's already signed-in browser, and gates
   writes, payments and email behind explicit confirmation. Triggers: "Sport80", "USAW club", "my USAW membership",
   "club roster", "meet results", "club results".
-version: 0.1.1
+version: 0.2.0
 license: MIT
 platforms:
   - linux
@@ -54,8 +54,12 @@ addressed by `body_cid`. `public` needs no login. List with `"$S80" catalog` (ad
 
 The same option reads differently per role. Results under `--role club` lists the meets the club's athletes entered and
 how many results each produced (2026 meets, checked 2026-11-08: 18 meets and 142 results, against 387 events unscoped
-under `personal`). Take a meet's `event_id` from a row's View link and `results.event` returns that meet's public results,
-all lifters. A member's record differs too: through the club role it lists club-only tabs (Notes, Additional Trackings, REPS
+under `personal`). Each meet row carries `refs.event_id` (`refs` is a row key: name it in `--fields`) and `results.event
+--param event_id=<it>` returns that meet's public results, all lifters. Rankings need a body weight category and a date range:
+`--options weight_class --option-search "Open Men's 89"` lists the values, then `--filter weight_class=<value> --filter
+date_range_start=2026-01-01 --filter date_range_end=2026-12-31`; each row carries `refs.athlete_id` for `results.athlete`. The
+club's Valid, Invalid and Action Required memberships come from `members.charts` (its tab's `refs.addon_id`) and then
+`members.statistics --param addon_id=<it>`; they count memberships, not necessarily people. A member's record differs too: through the club role it lists club-only tabs (Notes, Additional Trackings, REPS
 Membership, Background Screening Due Payment, Archive Member) and lacks Entries, Addresses, Communication Preferences and the
 Learning Academy. Checked on two records (2026-11-08): the owner's own, where the tab list and the Memberships and Results totals
 match the personal role's and the four club-only tables were empty, and one competitor the owner named, which listed the identical
@@ -78,7 +82,8 @@ yes.
 1. Classify the request against `"$S80" catalog`. If it is `guided` or `owner-only`, read `show ID`, follow its `confirm`
    text, and stop short of the final action until the owner says yes to that exact target and effect.
 2. Have a tab on `https://usaweightlifting.sport80.com` that is signed in (not needed for public reads). Load the runtime
-   once per tab: run `"$S80" runtime` and execute it in the tab. Reload clears it.
+   once per tab: run `"$S80" runtime` and execute it in the tab (about 28 KB; a tab holding an older runtime is replaced). Reload
+   clears it.
 3. `"$S80" js ID --role personal|club|public|<body_cid> [--param k=v] [--filter k=v] [--rows N] [--fields a,b]`, then execute the
    printed snippet in the tab. Public results and rankings default to `public`; tab-resolved entries need a login.
 4. Read the envelope: `ok`, `role`, `verified`, and for tables `total`, `returned`, `complete`, `next`. Never present a
@@ -94,6 +99,7 @@ yes.
 | `PERMISSION_DENIED`, `FORBIDDEN`, `RANKINGS_REFUSED` | this role lacks the right or needs an id: report it, do not retry |
 | `MISSING_PARAM`, `BAD_PARAM`, `FILTER_REQUIRED`, `UNKNOWN_FILTER`, `FIELDS_REQUIRED` | fix the request; nothing was fetched |
 | `UNEXPECTED_REDIRECT`, `UNEXPECTED_RESPONSE`, `NOT_A_TABLE`, `TAB_NOT_FOUND`, `NETWORK`, `SERVER` | the portal behaved unexpectedly: report, do not loop |
+| `UNEXPECTED_ORIGIN` | a descriptor or tab pointed a request at another host and nothing was sent: report it, never retry or work around it |
 | `CHALLENGE`, `THROTTLED` | stop at once and ask the owner |
 | `NOT_RUNNABLE` | guided or owner-only: use `show ID` |
 

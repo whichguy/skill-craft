@@ -1,0 +1,215 @@
+{
+  "recorded": "2026-11-08",
+  "release": {
+    "commit": "03f68d93a44500aca958db74440c1483e9038e11",
+    "tree": "8bb3a56aa8688e582f2558e6afd9dc8937f9826e",
+    "parent_merge_commit": "5288ad960de5c0d2884df2a3badb602609fda581",
+    "remote_main_before": "a4c773afb6c6320af4b54bedf801985e097aacd9",
+    "versions": "skill-craft 2.35.10, pushpress 0.1.0",
+    "trailer": "Skill-Craft-Release: skill-craft 2.35.10, pushpress 0.1.0 (the real trailer joins name and version with an at sign, which this skill's email lint rejects)"
+  },
+  "merge": {
+    "commit": "5288ad960de5c0d2884df2a3badb602609fda581",
+    "tree": "9d359f6d16141dde25a21770e17feec4a94bb1da",
+    "parents": [
+      "9b3360f641849cbbaa4cb450de445d7f8c62dd50",
+      "a4c773afb6c6320af4b54bedf801985e097aacd9"
+    ],
+    "conflicted_files": [
+      "test/test-groups.test.py"
+    ],
+    "resolution": "keep main's side of the count assertions, add this branch's one core suite to both counts (core 60, total 202), keep both comment lines",
+    "test_groups_before_commit": "64 tests, exit 0"
+  },
+  "scoped_quick_tier": {
+    "command": "bash test/run-all.sh --group quick --changed-from <remote main before> --jobs 8",
+    "tested_head": "5288ad960de5c0d2884df2a3badb602609fda581",
+    "tested_tree": "9d359f6d16141dde25a21770e17feec4a94bb1da",
+    "status": "passed",
+    "suites_completed": 18,
+    "wall_seconds": 231.1,
+    "slowest": [
+      {
+        "id": "shiploop-navigator-contract",
+        "seconds": 231.1
+      },
+      {
+        "id": "shiploop-keepalive",
+        "seconds": 144.8
+      },
+      {
+        "id": "shiploop-e2e-lifecycle",
+        "seconds": 29.4
+      }
+    ],
+    "suites": [
+      {
+        "id": "test-groups",
+        "status": "passed"
+      },
+      {
+        "id": "ci-policy",
+        "status": "passed"
+      },
+      {
+        "id": "skill-frontmatter",
+        "status": "passed"
+      },
+      {
+        "id": "sport80",
+        "status": "passed"
+      },
+      {
+        "id": "pushpress",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-no-model-launch",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-navigator-contract",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-navigator-v4",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-stopped-improve",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-packet-bounds",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-navigator-dry-run",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-status-display",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-narrative",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-stage-spec",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-keepalive",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-planning-handoff",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-e2e-lifecycle",
+        "status": "passed"
+      },
+      {
+        "id": "shiploop-mock-replay",
+        "status": "passed"
+      }
+    ]
+  },
+  "release_checks_run_by_release_push": [
+    [
+      "bash",
+      "scripts/sync-plugin-views.sh",
+      "--check"
+    ],
+    [
+      "python3",
+      "scripts/check-marketplace-packages.py"
+    ],
+    [
+      "python3",
+      "scripts/check-release-boundary.py",
+      "--base",
+      "a4c773afb6c6320af4b54bedf801985e097aacd9"
+    ],
+    [
+      "python3",
+      "test/test-groups.test.py"
+    ]
+  ],
+  "release_checks_result": "4 of 4 passed before the single non-forced push",
+  "push": {
+    "status": "pushed",
+    "previous_remote_head": "a4c773afb6c6320af4b54bedf801985e097aacd9",
+    "head": "03f68d93a44500aca958db74440c1483e9038e11",
+    "tree": "8bb3a56aa8688e582f2558e6afd9dc8937f9826e",
+    "branch": "main"
+  },
+  "after_push": {
+    "remote_main_equals_release_commit": true,
+    "changed_suites_on_released_tree": [
+      {
+        "check": "pushpress-suite",
+        "exit": 0
+      },
+      {
+        "check": "extractor-harness",
+        "exit": 0
+      },
+      {
+        "check": "extractor-syntax",
+        "exit": 0
+      },
+      {
+        "check": "skill-frontmatter",
+        "exit": 0
+      },
+      {
+        "check": "test-groups",
+        "exit": 0
+      },
+      {
+        "check": "installed-skill-invoke",
+        "exit": 0
+      },
+      {
+        "check": "release-boundary",
+        "exit": 0
+      },
+      {
+        "check": "release-dry-run",
+        "exit": 0
+      },
+      {
+        "check": "build-packages",
+        "exit": 0
+      },
+      {
+        "check": "check-packages",
+        "exit": 0
+      },
+      {
+        "check": "packaged-identical",
+        "exit": 0
+      }
+    ],
+    "packaged_copy_identical_to_skills_pushpress": true,
+    "release_dry_run_afterwards": "no pending notes under changes/; nothing to release",
+    "pending_note_consumed_so_no_suite_may_assert_it": true
+  },
+  "ci": {
+    "workflow": "ci",
+    "status_when_recorded": "in_progress",
+    "waited_on": false,
+    "rule": "proceed and revert only on failure, the owner's rule from the sport80 record"
+  },
+  "hosts_after_refresh": "not refreshed here: the installed copies on the owner's hosts (Claude, Grok, Codex, Cursor) were not touched",
+  "not_exercised": [
+    "a live pass of a member profile",
+    "sign-in",
+    "any write flow",
+    "other tiers",
+    "other hosts"
+  ]
+}
