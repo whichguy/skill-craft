@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Seeded property test and over-masking audit for skills/pushpress/scripts/pp-extract.js, on the same kind of stub DOM as
 // test/pushpress-extractor-harness.js (no browser, no PushPress page; the real-browser counterpart is
-// test/fixtures/pushpress-extractor/privacy-fixture.cjs). Every name, address and number is synthetic and assembled at run time.
+// test/fixtures/pushpress-extractor/privacy-fixture.cjs). Every name, address and number is made up; phone numbers and email addresses are
+// assembled at run time so that no file holds a complete one.
 //
 //   node test/pushpress-extractor-property.js            5000 pages from a fixed seed
 //   PP_PROPERTY_PAGES=20000 PP_PROPERTY_SEED=7 node test/pushpress-extractor-property.js
@@ -111,7 +112,7 @@ function person(R, taken) {                                                  // 
   do { first = R.pick(FIRST); last = R.pick(LAST); } while (taken.has((first + ' ' + last).toLowerCase()));
   taken.add((first + ' ' + last).toLowerCase());
   const tail = String(100 + (seq % 900)).padStart(4, '0');
-  const d = cat('555', '010', tail);                                         // the fictional range, assembled
+  const d = cat('555', '010', tail);                                         // made-up digit groups, not a dialable number; assembled
   return {
     first, last, full: first + ' ' + last, id: cat('usr', '_', '9f3c', String(seq).padStart(8, '0')),
     email: cat('p', seq, '.fixture', '@', 'example', '.invalid'), digits: d,
@@ -313,7 +314,7 @@ const DEBUG = process.env.PP_PROPERTY_DEBUG === '1';                          //
 function found(tokens, s) {
   const hits = new Set();
   for (const [mode, value] of tokens) {
-    // a phone number is its ten digits with the separators the page may use between the groups: "(555) 010-0123", "555.010.0123", "+1 555 010 0123", "5550100123"
+    // a phone number is its ten digits with the separators the page may use between the groups: "(nnn) nnn-nnnn", "nnn.nnn.nnnn", "+1 nnn nnn nnnn", "nnnnnnnnnn"
     const digitRe = new RegExp(String(value).slice(0, 3) + '\\)?[\\s.-]?' + String(value).slice(3, 6) + '[\\s.-]?' + String(value).slice(6));
     const has = mode === 'digits' ? t => digitRe.test(t) : mode === 'sub' ? t => t.toLowerCase().includes(value.toLowerCase()) : t => wordRe(value).test(t);
     const where = [...new Set(s.leaves.filter(([, t]) => has(t)).map(([f]) => f))];

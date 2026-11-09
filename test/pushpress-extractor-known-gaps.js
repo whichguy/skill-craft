@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 // Register of inputs that skills/pushpress/scripts/pp-extract.js does NOT protect today, run through the real extractor on a stub DOM.
-// Each gap plants one made-up value (or the parts of one name) and asserts that it still reaches the output (XFAIL: a recorded, expected
-// failure). When the extractor is fixed the gap stops leaking (XPASS), which fails the run so the entry is promoted to a contract and
-// docs/pushpress-journal.md updated. A fix that stops only some of an entry's values is PARTIAL, which also fails the run: split the entry.
+// Each gap plants a made-up value or a few (the parts of a name, a name and the id a link prints, or two or three values of one kind) and
+// asserts that they still reach the output (XFAIL: a recorded, expected failure). When the extractor is fixed the gap stops leaking (XPASS),
+// which fails the run so the entry is promoted to a contract and docs/pushpress-journal.md updated. A fix that stops only some of an
+// entry's values is PARTIAL, which also fails the run: split the entry.
 // Controls keep the checker honest. Masked shapes (the extractor handles them today) must not leak. Positive controls (a plain word in a
 // heading, a button and a link, a short number in a label, a short number written in full-width digits) must be found, so a leak check that
 // reads nothing, or stops reading a field the gaps leak through, or stops folding full-width digits, fails a control instead of passing
 // quietly or being read as an extractor fix; every field in which a gap leaks must have a positive control that is found in it (checked on
 // every run). A malformed entry (an empty or too short value, one value inside another, an unknown onlyIn field) is an ERROR.
+// Two limits, stated so that nobody reads more into the checks than they do. The coverage rule is per field, not per kind of match (text or
+// digits): a checker fault confined to one kind in one field is not caught. And a planted value must be a string the extractor does not
+// print on its own (part of a mask token, a path or the entry's own text); problem() does not enforce that. A round-8 reviewer checked every
+// planted value against the mask tokens, the paths and its own element text and found none that is.
 // Phone numbers, email addresses and the prefixed ids are assembled at run time so that no file holds a complete one. The other planted
 // values (names, a UUID, a date, a postal code, card digits, invoice and order numbers, short numeric ids, a street address) are made-up
 // literals. The report prints ids, fields and counts, never a planted value.
@@ -54,7 +59,7 @@ const cat = (...p) => p.join('');
 const NAME = { first: 'Zephyra', last: 'Quillfeather' };
 const CYR = { first: cat('Зеф', 'ира'), last: cat('Квил', 'фезер') };              // the same made-up name in Cyrillic letters
 const EMAIL = cat('jane.fixture', '@', 'example', '.invalid');
-const N = { a: '555', b: '010', c: '0123' };                                          // the fictional 555-01xx range
+const N = { a: '555', b: '010', c: '0123' };                                          // made-up digit groups, not a dialable number
 const UID = cat('usr', '_', '9f3c', '00001234');
 const LIST = '/people/members', PERSON = '/user/' + UID;
 const digitsOf = s => s.normalize('NFKC').replace(/\D/g, '');         // NFKC folds full-width digits to ASCII, so they count as digits
@@ -99,7 +104,7 @@ const GAPS = [
     { id: 'contact-link-' + h.split(/[:/]/)[0] + (h.includes('wa.me') ? '-wa-me' : ''), sev: 'material', why: 'only mailto, tel and sms links are treated as contact links, so the text (a name) is kept', path: LIST, els: [link(NAMETEXT, h)], planted: [NAME.last] })),
   { id: 'email-in-a-same-origin-path', sev: 'material', why: 'an email in a path segment is not masked (the text mask runs on text, not on paths)', path: LIST, els: [link('History', cat('/members/by-email/', EMAIL))], planted: ['jane.fixture'] },
   { id: 'person-link-with-numeric-id', sev: 'material', why: 'the person-route test for a link, and the path mask that prints it, need 8 or more characters after /user/ or /people/', path: LIST, els: [link(NAMETEXT, '/user/48213')], planted: [NAME.last, '48213'] },
-  { id: 'person-link-under-people-members', sev: 'material', why: 'the person test looks only at the first segment after /people/ (8 or more characters, not a list name), so an id one segment deeper, below a list page, is never seen by it or by the path mask', path: LIST, els: [link(NAMETEXT, '/people/members/12345678')], planted: [NAME.last, '12345678'] },
+  { id: 'person-link-under-people-members', sev: 'material', why: 'the person test looks only at the first segment after /people/ (8 or more characters, not a list name), and the id rule needs 10 or more hex characters, so an 8-digit id one segment below a list page is seen by neither (a 10-character hex id there is masked by the id rule)', path: LIST, els: [link(NAMETEXT, '/people/members/12345678')], planted: [NAME.last, '12345678'] },
   { id: 'person-id-in-a-query', sev: 'material', why: 'only the path is tested for a person id', path: LIST, els: [link(NAMETEXT, '/checkins?user=' + UID)], planted: [NAME.last] },
   { id: 'person-link-that-is-a-role-button', sev: 'material', why: 'the link is masked in the link list but its text is also a button label, which the person-link mask does not see', path: LIST,
     els: [el({ tag: 'A', sel: ['a[href]', '[role=button]'], text: NAMETEXT, attrs: { href: '/user/' + UID, role: 'button' } })], planted: [NAME.last], onlyIn: 'btn' },
@@ -152,7 +157,7 @@ function leaks(out, e) {
   }
   return { fields: [...fields], leaked: leaked.size, total: vals.length };
 }
-const FIELDS = ['p', 'h', 'tabs', 'btn', 'th', 'inp', 'lbl', 'sw', 'a', 'region'];
+const FIELDS = ['p', 'h', 'tabs', 'btn', 'th', 'inp', 'lbl', 'sw', 'a', 'region', 'pg'];
 // a malformed entry would read as a result about the extractor, so it is an ERROR; digit runs are matched after everything that is not a digit
 // is stripped, so a short digits value can also match digits that sit in different words of one string (the positive controls use 42)
 function problem(e) {
@@ -187,7 +192,7 @@ function run(src) {
 const isBad = r => r.status === 'ERROR' || r.status === 'XPASS' || r.status === 'PARTIAL' || r.status === 'FAIL';
 const show = rows => { const t = {}; for (const r of rows) t[r.status] = (t[r.status] || 0) + 1; return Object.entries(t).map(([k, n]) => k + ' ' + n).join(', '); };
 
-// ---- --flip-check: crude one-line fixes, applied to copies held in memory, must flip exactly the entries they target ---------------
+// ---- --flip-check: crude fixes (one or two small edits each), applied to copies held in memory, must flip exactly the entries they target ----
 // This is the control for the XPASS rule: it shows that a fix of each kind is noticed and that no control breaks. The fixes are crude, so
 // this proves the register notices a fix, not that the fix is safe (the other tests are not run on them). A fix whose original text is no
 // longer in the extractor exactly once is a SKIP and FAILS the check: the extractor was reformatted or really changed, that fix is no longer
@@ -204,13 +209,13 @@ const FIXES = [
   { name: 'scrub: keep values with a letter in any script or 4 or more digits, with Unicode word boundaries', flips: ['non-latin-name', 'letterless-field-values'],
     from: String.raw`/[A-Za-z]/.test(v)`, to: String.raw`(/\p{L}/u.test(v) || /\d{4,}/.test(v))`,
     from2: String.raw`new RegExp('(^|[^A-Za-z0-9])' + esc(v) + '(?![A-Za-z0-9])', 'gi')`, to2: String.raw`new RegExp('(^|[^\\p{L}\\p{N}])' + esc(v) + '(?![\\p{L}\\p{N}])', 'giu')` },
-  { name: 'contact links: any scheme other than http and https, and wa.me, count as contact links', flips: ids('contact-link-'),
+  { name: 'contact links: any scheme other than http and https, and the wa.me and api.whatsapp.com hosts, count as contact links', flips: ids('contact-link-'),
     from: String.raw`const isContact = href => /^\s*(?:mailto|tel|sms):/i.test(href);`,
     to: String.raw`const isContact = href => /^\s*(?!https?:)[a-z][a-z0-9+.-]*:|^\s*https?:\/\/(?:wa\.me|api\.whatsapp\.com)\//i.test(href);` },
   { name: 'title: an em dash, a middle dot and a colon also separate the name from the product', flips: ['title-with-an-em-dash-separator'],
     from: String.raw`.split(/\s[|–-]\s/)[0]`, to: String.raw`.split(/\s[|–—·:-]\s/)[0]` },
   { name: 'person link: any id after /user/ or /people/, not only 8 or more characters (in the person test and in the path mask)', flips: ['person-link-with-numeric-id'],
-    from: '[^/?]{8,}/;\n  const onPerson', to: '[^/?]{1,}/;\n  const onPerson',
+    from: '[^/?]{8,}/;', to: '[^/?]{1,}/;',
     from2: String.raw`[^/?]{8,}.*/, '$1/<id>')`, to2: String.raw`[^/?]{1,}.*/, '$1/<id>')` },
 ];
 function replaceOnce(s, a, b) { const i = s.indexOf(a); return i < 0 || s.indexOf(a, i + 1) >= 0 ? null : s.slice(0, i) + b + s.slice(i + a.length); }
