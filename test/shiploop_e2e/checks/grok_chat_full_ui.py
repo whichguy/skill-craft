@@ -192,6 +192,22 @@ def _current_user(shared) -> tuple[str, bool]:
     return user_id, is_admin is True
 
 
+def _is_deploy_start(row: object) -> bool:
+    if (not isinstance(row, dict) or row.get("decision") != "allowed"
+            or row.get("org") != EXPECTED_ORG or row.get("prefix") != PREFIX
+            or not isinstance(row.get("call"), str)):
+        return False
+    argv = row.get("argv")
+    if not isinstance(argv, list) or not all(isinstance(token, str) for token in argv):
+        return False
+    words, rest = sf_guard.command_words(argv)
+    # Corroborated guard help cannot deploy. Keep later real starts in order,
+    # even when unbound, partial, failed, open, or overlapping.
+    return words == ("project", "deploy", "start") and not (
+        row.get("reason") == "help" and any(token in sf_guard.HELP_FLAGS for token in rest)
+    )
+
+
 def _latest_successful_deploy(platform_dir: Path) -> dict | None:
     log = platform_dir / "sf-calls.jsonl"
     if not log.is_file():
@@ -200,12 +216,7 @@ def _latest_successful_deploy(platform_dir: Path) -> dict | None:
         rows = [json.loads(line) for line in log.read_text(errors="replace").splitlines() if line.strip()]
     except (OSError, ValueError):
         return None
-    starts = [row for row in rows if isinstance(row, dict)
-              and isinstance(row.get("argv"), list)
-              and all(isinstance(token, str) for token in row["argv"])
-              and sf_guard.command_words(row["argv"])[0] == ("project", "deploy", "start")
-              and row.get("decision") == "allowed" and row.get("org") == EXPECTED_ORG
-              and row.get("prefix") == PREFIX and isinstance(row.get("call"), str)]
+    starts = [row for row in rows if _is_deploy_start(row)]
     if not starts:
         return None
     row = starts[-1]
