@@ -257,6 +257,7 @@ function generate(R) {
       field(owner.first, 'First name'); field(owner.last, 'Last name'); field(owner.email, 'Email'); field(R.pick(owner.phones), 'Phone'); field(owner.dob, 'Date of birth');
       field(ga.full, 'Guardian name'); field(ga.email, 'Guardian email');
       add('h', { text: owner.full }); add('h', { text: ga.full });
+      if (R.chance(0.4)) add('h', { text: owner.full.toUpperCase() });          // innerText follows CSS text-transform: the scrub has to be case-insensitive
       add('btn', { text: 'Guardian', attrs: { role: 'combobox', 'aria-label': 'Relationship' }, sel: ['button', '[role=button]'] }); add('btn', { text: 'Wombat', attrs: { role: 'combobox' }, sel: ['button', '[role=button]'] });
       contract.push(['sub', 'Wombat']);
       // a second person who appears as plain text only: the recorded gap
