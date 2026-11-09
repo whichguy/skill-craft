@@ -8,12 +8,16 @@
 //   PP_EXTRACT=<file> tests another copy of the extractor.
 //
 // Properties, on every generated page:
-//   P1 contract      a planted value never appears in any returned string or in dump(): emails, phone numbers in four formats, a
+//   P1 contract      a planted value never appears in any returned string or in dump(): emails, phone numbers in five formats, a
 //                    person's name inside "Select/Edit/... <name>" and "... for <name>" labels, person links, contact links, and, on a
 //                    person route, the owner's and a guardian's names (which the page also shows in text fields) and combobox values
 //   P2 structure     a structural label placed at or right of the content edge is returned, in its field, unless it holds a scrubbed word
 //   P3 edge          a label placed left of the edge is not returned
-//   P4 caps          no field is longer than its cap; rows and icons are counted exactly
+//   P4 caps          no field is longer than its cap, and off a person route a field with more distinct entries than its cap holds exactly the cap (headings, buttons);
+//                    rows and icons are counted exactly (a named icon-only button is not an unnamed icon)
+//   P5 path          the path field holds no record id and no query value
+//   P6 sidebar       sidebar() parks its lines, prints every group and ordinary link, and prints no person (the user menu is skipped)
+//   (also P1 region: no side-panel text on a person route)
 // Not a property (a recorded KNOWN GAP): a second person's name shown only as plain text on a person page. The test counts how often
 // that name reaches the output ("gap exposure") and fails if it ever stops, so the case is promoted.
 // The audit then counts how many of the labels the skill's own references quote a person's name would mask, for common words used as names.
@@ -232,7 +236,14 @@ function generate(R) {
     secretWords.push(...ga.full.split(' '));
   }
   const loc = { origin: 'https://tenant.example.invalid', pathname, search: R.chance(0.4) ? '?' + R.pick(['page', 'status', 'q']) + '=' + R.pick(['2', 'active', QUERY_VALUE]) : '', hash: R.chance(0.3) ? '#' + R.pick(['billing', 'notes']) : '' };
-  return { els, loc, title, contract, structural, hidden, onPersonRoute, gapName, gapExposable, edge, owner, others, ga, secretWords, rowCount, iconCount, side };
+  // overflow: on some pages a field gets more distinct visible entries than its cap (added last, so every earlier expectation is unaffected)
+  const overflow = [];
+  if (R.chance(0.04)) for (const f of ['h', 'btn']) {
+    const extra = CAPS[f] + 1 + R.int(5);
+    for (let i = 0; i < extra; i++) add(f, { text: `Overflow ${f} ${i + 1}` });
+    overflow.push(f);
+  }
+  return { els, loc, title, contract, structural, hidden, onPersonRoute, gapName, gapExposable, edge, owner, others, ga, secretWords, rowCount, iconCount, side, overflow };
 }
 
 // ---- running and checking -------------------------------------------------------------------------------------------------
@@ -267,7 +278,7 @@ const record = (i, kind, detail) => { if (failures.length < 10) failures.push({ 
 
 (async () => {
 const R = rng(SEED);
-let stats = { pages: 0, personPages: 0, tokens: 0, structural: 0, hidden: 0, gapShown: 0, gapExposed: 0, sidebarTokens: 0, sidebarLinks: 0 };
+let stats = { pages: 0, personPages: 0, tokens: 0, structural: 0, hidden: 0, gapShown: 0, gapExposed: 0, sidebarTokens: 0, sidebarLinks: 0, overflow: 0 };
 for (let i = 0; i < PAGES; i++) {
   const g = generate(R);
   const { pp, dumpNodes } = install(g.els, g.loc, g.title);
@@ -288,6 +299,12 @@ for (let i = 0; i < PAGES; i++) {
   }
   for (const { field, label } of g.hidden) { stats.hidden++; if ((out[field] || []).includes(label)) record(i, 'P3 edge', `${field} kept a label left of the edge`); }
   for (const [f, cap] of Object.entries(CAPS)) if ((out[f] || []).length > cap) record(i, 'P4 caps', `${f} exceeds ${cap}`);
+  // a field with more distinct entries than its cap holds exactly the cap; on a person route the scrub can merge two entries into one <value> after the cap
+  // is applied, so there only "not more than the cap" is required (which is what removing a cap breaks)
+  for (const f of g.overflow) {
+    stats.overflow++; const n = (out[f] || []).length;
+    if (g.onPersonRoute ? n > CAPS[f] : n !== CAPS[f]) record(i, 'P4 caps', `${f} holds ${n}, cap ${CAPS[f]}${g.onPersonRoute ? '' : ' (exactly the cap expected)'}`);
+  }
   if ((out.rows || 0) !== g.rowCount) record(i, 'P4 rows', `rows ${out.rows || 0} vs ${g.rowCount}`);
   if ((out.icons || 0) !== g.iconCount) record(i, 'P4 icons', `icons ${out.icons || 0} vs ${g.iconCount}`);
   if (g.onPersonRoute && 'region' in out) record(i, 'P1 region', 'region text recorded on a person route');
@@ -325,7 +342,7 @@ const masked = audit.filter(a => a.n > 0);
 
 // ---- report ---------------------------------------------------------------------------------------------------------------
 console.log(`pushpress extractor property test: ${stats.pages} pages (${stats.personPages} on person routes), seed ${SEED}`);
-console.log(`  checked ${stats.tokens} planted values (P1), ${stats.structural} visible labels (P2), ${stats.hidden} labels left of the edge (P3), caps, rows and icons and the path field (P4, P5)`);
+console.log(`  checked ${stats.tokens} planted values (P1), ${stats.structural} visible labels (P2), ${stats.hidden} labels left of the edge (P3), caps (${stats.overflow} overflow fields), rows and icons and the path field (P4, P5)`);
 console.log(`  sidebar reader (P6): ${stats.sidebarTokens} planted values and ${stats.sidebarLinks} ordinary links checked`);
 console.log(`  known gap, second person shown as plain text: reached the output on ${stats.gapExposed} of ${stats.gapShown} person pages where no word of the name is also scrubbed`);
 console.log(`  over-masking audit: ${labels.length} labels quoted in the skill's references; of ${NAME_WORDS.length} words used as names, ${masked.length} would mask at least one`);

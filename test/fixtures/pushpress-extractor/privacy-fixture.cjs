@@ -12,8 +12,11 @@
 //
 // Statuses: PASS (a contract holds); FAIL (a contract is broken: exit 1); XFAIL (a KNOWN GAP leaks, as recorded; exit 0);
 // XPASS (a known gap no longer leaks: exit 1 so the case is promoted to a contract and the journal updated).
-// Controls run the same cases against deliberately broken copies of the extractor; each must produce a FAIL, or the fixture is blind.
-// Nothing here prints a planted value: only its kind, the field it reached and a count.
+// Controls run the same cases against deliberately broken copies of the extractor; each must produce a failure of the kind that break is
+// expected to cause (mutations.cjs `expect`), and a run error is an ERROR, never a catch, or the fixture is blind. Caps are tested only by
+// the property test.
+// Nothing here prints a planted value: only its kind, the field it reached and a count. A run error prints its name and the step that
+// failed; its message can quote page text, so it is shown only with PP_FIXTURE_DEBUG=1.
 //
 // PP_EXTRACT=<file> tests another copy of the extractor. Playwright and Chrome are found the way the other browser fixtures
 // find them (PLAYWRIGHT_MODULE_PATH, BROWSER_EXECUTABLE_PATH, the installed fallbacks).
@@ -184,19 +187,20 @@ const fmt = found => Object.entries(found).map(([label, f]) => `${label}[${Objec
 
 // ---------------------------------------------------------------------------------------------------------------- browser
 async function open(browser, base, c, vp, source) {
+  let stage = 'open';                                                         // the step that was running, for a run error (its message is not printed)
   const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
-  const pg = await ctx.newPage();
   try {
-    await pg.goto(base + c.path, { waitUntil: 'load' });
-    await pg.addScriptTag({ content: source });
-    await pg.evaluate(name => window.__pp.company(name), site.COMPANY);
-    if (vp.collapsed) await pg.evaluate(() => document.getElementById('tog').click());
-    await pg.evaluate(() => window.__pp.wait(3000));
-    const extracted = await pg.evaluate(() => window.__pp.extract());
-    const dumped = await pg.evaluate(() => { window.__pp.store('case'); window.__pp.dump(); return document.getElementById('pp-dump').textContent; });
-    const side = await pg.evaluate(async () => { const ret = await window.__pp.sidebar(); const d = document.getElementById('pp-dump'); return { ret, dump: d ? d.textContent : null }; });
+    const pg = await ctx.newPage();
+    stage = 'goto'; await pg.goto(base + c.path, { waitUntil: 'load' });
+    stage = 'install'; await pg.addScriptTag({ content: source });
+    stage = 'company'; await pg.evaluate(name => window.__pp.company(name), site.COMPANY);
+    if (vp.collapsed) { stage = 'collapse'; await pg.evaluate(() => document.getElementById('tog').click()); }
+    stage = 'wait'; await pg.evaluate(() => window.__pp.wait(3000));
+    stage = 'extract'; const extracted = await pg.evaluate(() => window.__pp.extract());
+    stage = 'dump'; const dumped = await pg.evaluate(() => { window.__pp.store('case'); window.__pp.dump(); return document.getElementById('pp-dump').textContent; });
+    stage = 'sidebar'; const side = await pg.evaluate(async () => { const ret = await window.__pp.sidebar(); const d = document.getElementById('pp-dump'); return { ret, dump: d ? d.textContent : null }; });
     return { extracted, dumped, side };
-  } finally { await ctx.close(); }
+  } catch (e) { e.ppStage = stage; throw e; } finally { await ctx.close(); }
 }
 
 function judge(c, vp, got) {
@@ -232,9 +236,10 @@ async function runAll(browser, base, source, viewports, cases) {
       if (c.only && !c.only.includes(vp.name)) continue;
       try { results.push(judge(c, vp, await open(browser, base, c, vp, source))); }
       catch (e) {
-        // a run error is a failure of the run, never a verdict; its text can quote the URL (which holds planted values), so only the error's name and a URL-free first line are kept
-        const msg = String(e && e.message).split('\n')[0].replace(/https?:\/\/\S+/g, '<url>').slice(0, 80);
-        results.push({ case: c.id, viewport: vp.name, status: 'FAIL', leaks: {}, problems: [`run error: ${(e && e.name) || 'Error'}: ${msg}`], gaps: {}, gapStatus: {}, info: {}, contractTokens: 0, fieldsChecked: 0 });
+        // A run error is a failure of the run, never a verdict. Its message can quote page text (planted values), so only the error's name and
+        // the step that failed are kept; PP_FIXTURE_DEBUG=1 adds a URL-free first line of the message.
+        const detail = process.env.PP_FIXTURE_DEBUG === '1' ? ': ' + String(e && e.message).split('\n')[0].replace(/https?:\/\/\S+/g, '<url>').slice(0, 120) : '';
+        results.push({ case: c.id, viewport: vp.name, status: 'FAIL', leaks: {}, problems: [`run error: ${(e && e.name) || 'Error'} during ${(e && e.ppStage) || 'the run'}${detail}`], gaps: {}, gapStatus: {}, info: {}, contractTokens: 0, fieldsChecked: 0 });
       }
     }
   }));

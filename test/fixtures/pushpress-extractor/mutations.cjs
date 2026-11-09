@@ -20,6 +20,10 @@ const MUTATIONS = [
     from: "person && e.getAttribute('role') === 'combobox'", to: "false && e.getAttribute('role') === 'combobox'" },
   { name: 'user-menu-listed', tests: ['fixture', 'property'], expect: { property: ['P6 sidebar'], fixture: ['leak:staff'] },
     from: "if (el.tagName === 'BUTTON' && !names.includes(clean(el.innerText))) return;", to: '' },
+  { name: 'headings-cap-removed', tests: ['property'], expect: { property: ['P4 caps'] },
+    from: "[role=heading]').map(e => safe(e.innerText))).slice(0, 25),", to: "[role=heading]').map(e => safe(e.innerText)))," },
+  { name: 'buttons-cap-removed', tests: ['property'], expect: { property: ['P4 caps'] },
+    from: '.filter(b => !isChrome(b)).slice(0, 45),', to: '.filter(b => !isChrome(b)),' },
   { name: 'named-icon-buttons-counted-as-unnamed', tests: ['fixture', 'property'], expect: { property: ['P4 icons'], fixture: ['problem:icon-only'] },
     from: "!clean(b.innerText) && !b.getAttribute('aria-label') && !b.title", to: '!clean(b.innerText) && !b.title' },
 ];
