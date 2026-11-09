@@ -3,7 +3,7 @@
   "extractor": "pp-extract.js",
   "tally": {
     "XFAIL": 41,
-    "PASS": 14
+    "PASS": 16
   },
   "entries": [
     {
@@ -416,12 +416,12 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 1,
-      "leaking": 1,
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "a"
       ],
-      "why": "the person-route test for a link needs 8 or more characters after /user/ or /people/",
+      "why": "the person-route test for a link, and the path mask that prints it, need 8 or more characters after /user/ or /people/",
       "error": ""
     },
     {
@@ -429,12 +429,12 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 1,
-      "leaking": 1,
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "a"
       ],
-      "why": "the person test skips /people/members/... so that the list pages stay readable, which also skips a person id below it",
+      "why": "the person test looks only at the first segment after /people/ (8 or more characters, not a list name), so an id one segment deeper, below a list page, is never seen by it or by the path mask",
       "error": ""
     },
     {
@@ -555,6 +555,32 @@
       "error": ""
     },
     {
+      "id": "checker-finds-a-word-in-a-button",
+      "kind": "positive",
+      "severity": "",
+      "status": "PASS",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "btn"
+      ],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "checker-finds-a-word-in-a-link",
+      "kind": "positive",
+      "severity": "",
+      "status": "PASS",
+      "values": 1,
+      "leaking": 1,
+      "fields": [
+        "a"
+      ],
+      "why": "",
+      "error": ""
+    },
+    {
       "id": "checker-finds-a-short-number-in-a-label",
       "kind": "positive",
       "severity": "",
@@ -596,7 +622,7 @@
       "kind": "masked",
       "severity": "",
       "status": "PASS",
-      "values": 1,
+      "values": 2,
       "leaking": 0,
       "fields": [],
       "why": "",
@@ -662,7 +688,7 @@
       "kind": "masked",
       "severity": "",
       "status": "PASS",
-      "values": 2,
+      "values": 1,
       "leaking": 0,
       "fields": [],
       "why": "",

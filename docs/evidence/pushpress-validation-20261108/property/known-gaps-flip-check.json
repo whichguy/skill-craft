@@ -40,7 +40,7 @@
       "controls_broken": 0
     },
     {
-      "name": "person link: any id after /user/ or /people/, not only 8 or more characters",
+      "name": "person link: any id after /user/ or /people/, not only 8 or more characters (in the person test and in the path mask)",
       "status": "OK",
       "flipped": 1,
       "expected": 1,

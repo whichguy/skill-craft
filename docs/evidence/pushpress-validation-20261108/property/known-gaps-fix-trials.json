@@ -1,14 +1,14 @@
 {
   "recorded": "2026-11-09",
-  "what": "the five crude fixes of the gap register's --flip-check, each applied to a copy of the extractor and run through the stub harness, the property test (seed 1109, 5000 pages) and the real-browser fixture without its controls. The fixes are crude: the register notices them, and these runs say what the other tests make of them. None is a proposed final fix.",
+  "what": "the five crude fixes of the gap register's --flip-check, each applied to a copy of the extractor and run through the stub harness, the property test (seed 1109, 5000 pages) and the real-browser fixture without its controls. The fixes are crude: the register notices them, and these runs say what the other tests make of them. None is a proposed final fix. Fix 5 was changed in round 7 (it now drops the bound in both places where it sits) and all its lines were rerun; fix 1 had not been run on the fixture and was in round 7.",
   "extractor_blob": "7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b",
   "fixes": [
     {
       "fix": 1,
       "name": "text mask: NFKC fold, and any run of 7 or more digits with separators or an extension is a phone",
-      "harness": "FAIL: the check \"text outside buttons: emails and phone-like numbers are masked in headings, tabs, columns, labels and inputs\" (the label Report 2026-10-01, which must survive, becomes Report <phone>)",
+      "harness": "FAIL: the check \"text outside buttons: emails and phone-like numbers are masked in headings, tabs, columns, labels and inputs\" (the heading Report 2026-10-01, which must survive, becomes Report <phone>)",
       "property": "FAIL: its phone gap no longer reaches the output on any page (0 of 2113, XPASS, which fails the run by design); no other failure; over-masking audit unchanged (2 of 65 words)",
-      "fixture": "not run"
+      "fixture": "FAIL only through the expected-failure rule: all 59 contract runs PASS, and the phone gap turns XPASS in 43 gap checks (88 XFAIL), which fails the run by design"
     },
     {
       "fix": 2,
@@ -33,7 +33,7 @@
     },
     {
       "fix": 5,
-      "name": "person link: any id after /user/ or /people/, not only 8 or more characters",
+      "name": "person link: any id after /user/ or /people/, not only 8 or more characters (in the person test and in the path mask)",
       "harness": "PASS (17 checks)",
       "property": "PASS; over-masking audit unchanged (2 of 65 words)",
       "fixture": "PASS 59 of 59 (no controls)"
