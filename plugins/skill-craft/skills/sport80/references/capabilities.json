@@ -1,0 +1,6040 @@
+{
+ "schema": 1,
+ "portal": "https://usaweightlifting.sport80.com",
+ "observed_on": "2026-11-08",
+ "legend": {
+  "roles": "personal = the login's own member role (no body_cid); club = a club role addressed with body_cid; public = no login (rankings public key)",
+  "mode": "read = runnable through scripts/sport80 js; guided = the agent walks the owner through the portal's own form and follows confirm; owner-only = the agent never drives it",
+  "verified": "live = descriptor or page and rows exercised; descriptor = descriptor or page loaded, rows not read; page = page shape only; none = seen in a menu or the bundle, never exercised; denied = the role gets 401 or 403",
+  "seen": "menu = in a role menu; props = in shared page props; page = linked from a page; bundle = referenced in the front-end code; tab = a profile tab"
+ },
+ "entries": [
+  {
+   "id": "account.roles",
+   "title": "List this login's roles",
+   "area": "account",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "props",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "props",
+     "verified": "live"
+    }
+   },
+   "path": "/api/account/roles",
+   "scope": "none",
+   "source": [
+    "props:_shared.roles"
+   ],
+   "notes": "One entry per role: the personal role has body_cid null, a club role has body_cid. This is how scope is chosen; names and ids go to the agent only, never into files."
+  },
+  {
+   "id": "account.menu.main",
+   "title": "Role menu (main)",
+   "area": "account",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/api/menu/main",
+   "scope": "body",
+   "source": [
+    "api:/api/menu/main"
+   ],
+   "notes": "The capability inventory for the selected role: {topMenu[], bottomMenu[]}. Differs by role."
+  },
+  {
+   "id": "account.menu.top",
+   "title": "Account menu",
+   "area": "account",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/api/menu/top",
+   "scope": "body",
+   "source": [
+    "api:/api/menu/top"
+   ],
+   "notes": "Profile, Settings, Setup Auto Renewals, Manage 2FA, Change Password, Logout."
+  },
+  {
+   "id": "account.profile",
+   "title": "Login profile form",
+   "area": "account",
+   "kind": "page",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/user/profile",
+   "scope": "none",
+   "source": [
+    "menu:account > Profile"
+   ],
+   "operations": [
+    {
+     "label": "Edit the profile form",
+     "effects": [
+      "write"
+     ],
+     "source": "page props: form"
+    }
+   ],
+   "notes": "Inertia User/UserProfilePage; props: form. Read returns the shape; pass pick=['form'] for values.",
+   "descriptor": {
+    "inertia": {
+     "protocol": "inertia",
+     "component": "User/UserProfilePage",
+     "propKeys": [
+      "breadcrumbs",
+      "form",
+      "live_site",
+      "title"
+     ]
+    }
+   }
+  },
+  {
+   "id": "account.settings.access",
+   "title": "Access management",
+   "area": "account",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "descriptor"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "descriptor"
+    }
+   },
+   "path": "/api/user/settings/access_management/datatable",
+   "pages": [
+    "/user/settings"
+   ],
+   "scope": "none",
+   "source": [
+    "page:/user/settings"
+   ],
+   "row_actions": "unobserved",
+   "notes": "Who manages this account. Columns: contact, other_managers, access_type, action.",
+   "descriptor": {
+    "inertia": {
+     "protocol": "inertia",
+     "component": "Generic/TabViewDatatablePage",
+     "propKeys": [
+      "breadcrumbs",
+      "datatable_url",
+      "links",
+      "links_collapsed_menus",
+      "links_collapsible",
+      "live_site",
+      "title",
+      "toolbar_actions",
+      "top_buttons"
+     ]
+    }
+   }
+  },
+  {
+   "id": "account.settings.pending_requests",
+   "title": "Pending management requests",
+   "area": "account",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "personal": {
+     "seen": "page",
+     "verified": "page"
+    },
+    "club": {
+     "seen": "page",
+     "verified": "page"
+    }
+   },
+   "path": "/api/user/settings/pending_management_requests/datatable",
+   "scope": "none",
+   "source": [
+    "page:/user/settings links"
+   ],
+   "row_actions": "unobserved",
+   "notes": "Linked from the settings page; its descriptor was not fetched."
+  },
+  {
+   "id": "account.settings.sessions",
+   "title": "Signed-in sessions",
+   "area": "account",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "personal": {
+     "seen": "page",
+     "verified": "page"
+    },
+    "club": {
+     "seen": "page",
+     "verified": "page"
+    }
+   },
+   "path": "/api/user/settings/sessions/datatable",
+   "scope": "none",
+   "source": [
+    "page:/user/settings links"
+   ],
+   "row_actions": "unobserved",
+   "notes": "Lists sessions. Ending a session is a security action: owner only."
+  },
+  {
+   "id": "account.settings.comm_prefs",
+   "title": "Platform communication preferences",
+   "area": "account",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "page",
+     "verified": "page"
+    },
+    "club": {
+     "seen": "page",
+     "verified": "page"
+    }
+   },
+   "path": "/api/user/settings/communication_preference/datatable",
+   "scope": "none",
+   "source": [
+    "page:/user/settings links"
+   ],
+   "row_actions": "unobserved",
+   "notes": "Descriptor not fetched."
+  },
+  {
+   "id": "account.auto_renewal",
+   "title": "Set up auto renewals",
+   "area": "account",
+   "kind": "page",
+   "mode": "guided",
+   "effects": [
+    "write",
+    "financial"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "page"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "page"
+    }
+   },
+   "path": "/setup_auto_renewal",
+   "pages": [
+    "/dashboard/setup_auto_renewals"
+   ],
+   "scope": "none",
+   "confirm": "Auto renewal charges the owner's saved payment method on a schedule. Show the exact product and the renewal terms, get an explicit yes for this change, never enter card details, and let the owner complete any billing form.",
+   "source": [
+    "menu:account > Setup Auto Renewals"
+   ],
+   "notes": "Inertia SetupAutoRenewal pages wrap a legacy container, so the current setting is only visible in the page itself.",
+   "descriptor": {
+    "html": {
+     "protocol": "html"
+    }
+   }
+  },
+  {
+   "id": "account.security",
+   "title": "Two-factor and password",
+   "area": "account",
+   "kind": "flow",
+   "mode": "owner-only",
+   "effects": [
+    "security"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "none"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "path": "https://auth.sport80.com/settings",
+   "confirm": "Never automate. Tell the owner where the page is and stop; they change 2FA and passwords themselves.",
+   "source": [
+    "menu:account > Manage 2FA",
+    "menu:account > Change Password"
+   ]
+  },
+  {
+   "id": "account.logout",
+   "title": "Sign out",
+   "area": "account",
+   "kind": "flow",
+   "mode": "owner-only",
+   "effects": [
+    "security"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "none"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "path": "/logout",
+   "confirm": "Never fetch or click. It ends the owner's session and the agent cannot sign back in alone.",
+   "source": [
+    "menu:account > Logout"
+   ]
+  },
+  {
+   "id": "account.support.categories",
+   "title": "Help categories",
+   "area": "account",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "public",
+   "roles": {
+    "personal": {
+     "seen": "props",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "props",
+     "verified": "live"
+    }
+   },
+   "path": "/support/categories",
+   "scope": "none",
+   "source": [
+    "props:_shared.support"
+   ]
+  },
+  {
+   "id": "account.support.articles",
+   "title": "Help articles",
+   "area": "account",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "public",
+   "roles": {
+    "personal": {
+     "seen": "props",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "props",
+     "verified": "live"
+    }
+   },
+   "path": "/support",
+   "scope": "none",
+   "source": [
+    "props:_shared.support"
+   ]
+  },
+  {
+   "id": "account.support.ticket",
+   "title": "Send a support ticket",
+   "area": "account",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "outbound"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "props",
+     "verified": "none"
+    },
+    "club": {
+     "seen": "props",
+     "verified": "none"
+    }
+   },
+   "path": "/api/public/support_ticket",
+   "confirm": "Sends a message to Sport80 on the owner's behalf. Show the exact text and category and send only after an explicit yes.",
+   "source": [
+    "props:_shared.support"
+   ]
+  },
+  {
+   "id": "dashboard.athlete",
+   "title": "Dashboard: my profile completeness",
+   "area": "dashboard",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "props",
+     "verified": "live"
+    }
+   },
+   "path": "/api/dashboard/athlete",
+   "scope": "none",
+   "source": [
+    "bundle:UserDashboardPage"
+   ]
+  },
+  {
+   "id": "dashboard.members",
+   "title": "Dashboard: my members",
+   "area": "dashboard",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "props",
+     "verified": "live"
+    }
+   },
+   "path": "/api/dashboard/athletes",
+   "scope": "none",
+   "source": [
+    "bundle:UserDashboardPage"
+   ]
+  },
+  {
+   "id": "dashboard.event_entries",
+   "title": "Dashboard: my event entries",
+   "area": "dashboard",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "props",
+     "verified": "live"
+    }
+   },
+   "path": "/api/dashboard/event_entries",
+   "scope": "none",
+   "source": [
+    "bundle:UserDashboardPage"
+   ]
+  },
+  {
+   "id": "dashboard.upcoming_events",
+   "title": "Dashboard: upcoming events",
+   "area": "dashboard",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "public",
+   "roles": {
+    "personal": {
+     "seen": "props",
+     "verified": "live"
+    }
+   },
+   "path": "/api/dashboard/upcoming_events",
+   "scope": "none",
+   "source": [
+    "bundle:UserDashboardPage"
+   ]
+  },
+  {
+   "id": "dashboard.promotions",
+   "title": "Dashboard: promotions",
+   "area": "dashboard",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "public",
+   "roles": {
+    "personal": {
+     "seen": "props",
+     "verified": "live"
+    }
+   },
+   "path": "/api/dashboard/promotions",
+   "scope": "none",
+   "source": [
+    "bundle:UserDashboardPage"
+   ]
+  },
+  {
+   "id": "dashboard.home",
+   "title": "Dashboard page",
+   "area": "dashboard",
+   "kind": "page",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/home",
+   "scope": "none",
+   "source": [
+    "menu:top > Home"
+   ],
+   "notes": "Inertia Dashboard/UserDashboardPage; props: dashboard{add_ons,athlete,athletes,event_entries,promotions,upcoming_events,custom_cards,display_profile_complete,order}. A club role has no dashboard; its home is the club account.",
+   "descriptor": {
+    "inertia": {
+     "protocol": "inertia",
+     "component": "Dashboard/UserDashboardPage",
+     "propKeys": [
+      "breadcrumbs",
+      "dashboard",
+      "live_site",
+      "title"
+     ]
+    }
+   }
+  },
+  {
+   "id": "members.cards",
+   "title": "My members (cards)",
+   "area": "members",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/competitor_dashboard/card_data",
+   "query": {
+    "contact_type": "competitor"
+   },
+   "scope": "none",
+   "source": [
+    "menu:top > Members"
+   ],
+   "notes": "The people this login manages. card_data[] keys: cid, name, profileImgUrl, contact_type, icon, email, topText, alert, profileRoute, additionalInfo.",
+   "descriptor": {
+    "json": {
+     "protocol": "json",
+     "keys": [
+      "add_contact_btn_name",
+      "add_contact_icon",
+      "add_contact_url",
+      "allow_new_contact",
+      "card_data",
+      "success"
+     ]
+    }
+   }
+  },
+  {
+   "id": "members.quick_search",
+   "title": "Member quick search",
+   "area": "members",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/api/contact/quick_search/datatable",
+   "query": {
+    "contact_type": "competitor"
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "id_number",
+     "in": "filter",
+     "type": "text"
+    },
+    {
+     "name": "id_type",
+     "in": "filter",
+     "type": "autocomplete"
+    },
+    {
+     "name": "first_name",
+     "in": "filter",
+     "type": "text"
+    },
+    {
+     "name": "last_name",
+     "in": "filter",
+     "type": "text"
+    },
+    {
+     "name": "email",
+     "in": "filter",
+     "type": "text"
+    }
+   ],
+   "requires_filter": [
+    "id_number",
+    "first_name",
+    "last_name",
+    "email"
+   ],
+   "row_actions": "unobserved",
+   "source": [
+    "menu:club top > Members > Quick Search"
+   ],
+   "notes": "Returns no rows without a filter (observed). Columns: contact_id, first_name, last_name, email, id_number, location, action.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "contact_id",
+      "email",
+      "first_name",
+      "id_number",
+      "last_name",
+      "location"
+     ],
+     "filters": [
+      "email:text",
+      "first_name:text",
+      "id_number:text",
+      "id_type:autocomplete",
+      "last_name:text"
+     ]
+    }
+   }
+  },
+  {
+   "id": "members.smart_list.config",
+   "title": "Smart List configuration",
+   "area": "members",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/api/contact/list/config",
+   "query": {
+    "contact_type": "competitor"
+   },
+   "scope": "body",
+   "source": [
+    "menu:club top > Members > Smart List"
+   ],
+   "notes": "Saved views (about 12 seen), 72 column groups, columns_model, and actions Edit Columns, Download Report, Create Subscriber Group, Send Email, Legacy List.",
+   "descriptor": {
+    "json": {
+     "protocol": "json",
+     "keys": [
+      "actions",
+      "columns",
+      "columns_model",
+      "component_name",
+      "component_url",
+      "create_url",
+      "language",
+      "legacy_route",
+      "name",
+      "views"
+     ]
+    }
+   }
+  },
+  {
+   "id": "members.smart_list",
+   "title": "Smart List rows",
+   "area": "members",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "descriptor"
+    }
+   },
+   "path": "/api/contact/list/datatable",
+   "query": {
+    "contact_type": "competitor"
+   },
+   "scope": "body",
+   "row_actions": "unobserved",
+   "source": [
+    "api:members.smart_list.config component_url"
+   ],
+   "notes": "The descriptor lists only the action column: rows need the column model (columns_model entries with in_view true) in the POST body, as the UI sends. Not exercised."
+  },
+  {
+   "id": "members.legacy_list",
+   "title": "Members list (legacy)",
+   "area": "members",
+   "kind": "html",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/competitor_dashboard",
+   "scope": "body",
+   "source": [
+    "menu:club top > Members > List (hidden)"
+   ],
+   "operations": [
+    {
+     "label": "Add New Member",
+     "effects": [
+      "write"
+     ],
+     "source": "button"
+    },
+    {
+     "label": "Advanced Filter",
+     "effects": [
+      "read"
+     ],
+     "source": "button"
+    },
+    {
+     "label": "Saved Reports",
+     "effects": [
+      "read"
+     ],
+     "source": "button"
+    },
+    {
+     "label": "Email Contacts",
+     "effects": [
+      "outbound"
+     ],
+     "source": "button"
+    },
+    {
+     "label": "Download Report",
+     "effects": [
+      "export"
+     ],
+     "source": "button"
+    }
+   ],
+   "notes": "Legacy server-rendered list; structure only. Hidden from the menu in favour of the Smart List.",
+   "descriptor": {
+    "html": {
+     "protocol": "html"
+    }
+   }
+  },
+  {
+   "id": "members.add",
+   "title": "Add a member",
+   "area": "members",
+   "kind": "page",
+   "mode": "guided",
+   "effects": [
+    "write"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "page"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "page"
+    }
+   },
+   "path": "/competitor/add",
+   "scope": "body",
+   "confirm": "Creates a person record, often a minor. Collect only details the owner supplies, show them, and submit only after an explicit yes. Never invent or infer a birth date or contact detail.",
+   "source": [
+    "menu:club top > Members > Add New",
+    "props:members.cards add_contact_url"
+   ],
+   "notes": "Inertia Generic/ActionCardPage presents the options.",
+   "descriptor": {
+    "inertia": {
+     "protocol": "inertia",
+     "component": "Generic/ActionCardPage",
+     "propKeys": [
+      "alert",
+      "breadcrumbs",
+      "description",
+      "footer_actions",
+      "live_site",
+      "options",
+      "title"
+     ]
+    }
+   }
+  },
+  {
+   "id": "members.charts",
+   "title": "Member charts",
+   "area": "members",
+   "kind": "tabs",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/api/contact/statistics",
+   "query": {
+    "contact_type": "competitor"
+   },
+   "scope": "body",
+   "source": [
+    "menu:club top > Members > Member Charts"
+   ],
+   "notes": "One tab per membership product.",
+   "descriptor": {
+    "tabs": {
+     "protocol": "tabs",
+     "tabs": [
+      "Individual Membership"
+     ]
+    }
+   }
+  },
+  {
+   "id": "members.charts.draw",
+   "title": "Member chart",
+   "area": "members",
+   "kind": "html",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "tab",
+     "verified": "live"
+    }
+   },
+   "path": "/api/contact/statistics/draw",
+   "query": {
+    "contact_type": "competitor"
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "addon_id",
+     "in": "query",
+     "required": true,
+     "identity": "membership product id (from the members.charts tab)"
+    }
+   ],
+   "source": [
+    "tab:members.charts"
+   ],
+   "notes": "HTML fragment with the chart.",
+   "descriptor": {
+    "html": {
+     "protocol": "html"
+    }
+   }
+  },
+  {
+   "id": "members.send_email",
+   "title": "Email selected members",
+   "area": "members",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "outbound"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "confirm": "Sends email to people on the owner's behalf. Show recipients (as a count) and the full text; send only after an explicit yes for exactly that audience and message.",
+   "source": [
+    "config:members.smart_list.config actions",
+    "button:members.legacy_list Email Contacts"
+   ]
+  },
+  {
+   "id": "members.create_subscriber_group",
+   "title": "Create a subscriber group",
+   "area": "members",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "write"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "confirm": "Creates a saved group from the current selection. State the filter and member count, and proceed only after an explicit yes.",
+   "source": [
+    "config:members.smart_list.config actions"
+   ]
+  },
+  {
+   "id": "members.download_report",
+   "title": "Download a members report",
+   "area": "members",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "export"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "confirm": "Generates a file of member data in Queued Reports. Name the columns and filter; the owner downloads and keeps the file. Never write its contents into a repository.",
+   "source": [
+    "config:members.smart_list.config actions",
+    "button:members.legacy_list Download Report"
+   ]
+  },
+  {
+   "id": "members.edit_columns",
+   "title": "Edit Smart List columns",
+   "area": "members",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "write"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "confirm": "Changes the saved view's columns for everyone who uses it. Describe the change and proceed only after an explicit yes.",
+   "source": [
+    "config:members.smart_list.config actions"
+   ]
+  },
+  {
+   "id": "member.profile_tabs",
+   "title": "Member profile tabs",
+   "area": "member",
+   "kind": "tabs",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "path": "/competitor_dashboard/profile_tabs",
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id",
+     "default": "role.cid"
+    }
+   ],
+   "source": [
+    "menu:top > Members profile_url"
+   ],
+   "notes": "15 tabs for the owner's own member. Needs cid; without it the endpoint returns only {success}.",
+   "descriptor": {
+    "tabs": {
+     "protocol": "tabs",
+     "tabs": [
+      "Access USAW Learning Academy",
+      "Addresses",
+      "Background Screening",
+      "Center for SafeSport Training",
+      "Certifications",
+      "Coaches Insurance",
+      "Collegiate Eligibility",
+      "Communication Preferences",
+      "Entries",
+      "Memberships",
+      "Partner Memberships",
+      "Profile",
+      "Results & Rankings",
+      "Results & Rankings > Rankings",
+      "Results & Rankings > Results",
+      "Roles",
+      "USAW Learning Academy Results"
+     ]
+    },
+    "json": {
+     "protocol": "json",
+     "keys": [
+      "success"
+     ]
+    }
+   }
+  },
+  {
+   "id": "member.profile",
+   "title": "Member profile",
+   "area": "member",
+   "kind": "page",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "tab",
+     "verified": "none"
+    }
+   },
+   "path": "/profile/competitor",
+   "query": {
+    "id_sport": "56",
+    "contact_type": "competitor"
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id",
+     "default": "role.cid"
+    }
+   ],
+   "source": [
+    "tab:member.profile_tabs Profile"
+   ],
+   "notes": "Inertia Competitor/CompetitorProfilePage; props: competitor_profile. Pass pick=['competitor_profile'] with explicit fields in mind.",
+   "descriptor": {
+    "inertia": {
+     "protocol": "inertia",
+     "component": "Competitor/CompetitorProfilePage",
+     "propKeys": [
+      "breadcrumbs",
+      "competitor_profile",
+      "live_site",
+      "title"
+     ]
+    }
+   }
+  },
+  {
+   "id": "member.roles",
+   "title": "Roles",
+   "area": "member",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "tab",
+     "verified": "none"
+    }
+   },
+   "via": {
+    "tabs": "/competitor_dashboard/profile_tabs",
+    "param": "cid",
+    "match": [
+     "Roles"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id",
+     "default": "role.cid"
+    }
+   ],
+   "row_actions": "unobserved",
+   "operations": [
+    {
+     "label": "Add Role",
+     "effects": [
+      "write",
+      "financial"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "source": [
+    "tab:member.profile_tabs Roles"
+   ],
+   "notes": "Add-on table; the tab's URL (with its category id) is resolved at run time from the profile tabs.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "add_on",
+      "end_date",
+      "organisation",
+      "start_date",
+      "status",
+      "type"
+     ],
+     "buttons": [
+      "Add Role"
+     ]
+    }
+   }
+  },
+  {
+   "id": "member.memberships",
+   "title": "Memberships",
+   "area": "member",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "tab",
+     "verified": "none"
+    }
+   },
+   "via": {
+    "tabs": "/competitor_dashboard/profile_tabs",
+    "param": "cid",
+    "match": [
+     "Memberships"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id",
+     "default": "role.cid"
+    }
+   ],
+   "row_actions": "unobserved",
+   "operations": [
+    {
+     "label": "Add Membership",
+     "effects": [
+      "write",
+      "financial"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "source": [
+    "tab:member.profile_tabs Memberships"
+   ],
+   "notes": "Add-on table; the tab's URL (with its category id) is resolved at run time from the profile tabs.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "add_on",
+      "club",
+      "end_date",
+      "id_number",
+      "start_date",
+      "status",
+      "type"
+     ],
+     "buttons": [
+      "Add Membership"
+     ]
+    }
+   }
+  },
+  {
+   "id": "member.background_screening",
+   "title": "Background screening",
+   "area": "member",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "tab",
+     "verified": "none"
+    }
+   },
+   "via": {
+    "tabs": "/competitor_dashboard/profile_tabs",
+    "param": "cid",
+    "match": [
+     "Background Screening"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id",
+     "default": "role.cid"
+    }
+   ],
+   "row_actions": "unobserved",
+   "operations": [
+    {
+     "label": "Add Background Screening",
+     "effects": [
+      "write",
+      "financial"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "source": [
+    "tab:member.profile_tabs Background Screening"
+   ],
+   "notes": "Add-on table; the tab's URL (with its category id) is resolved at run time from the profile tabs.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "add_on",
+      "end_date",
+      "start_date",
+      "status"
+     ],
+     "buttons": [
+      "Add Background Screening"
+     ]
+    }
+   }
+  },
+  {
+   "id": "member.safesport",
+   "title": "SafeSport training",
+   "area": "member",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "tab",
+     "verified": "none"
+    }
+   },
+   "via": {
+    "tabs": "/competitor_dashboard/profile_tabs",
+    "param": "cid",
+    "match": [
+     "Center for SafeSport Training"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id",
+     "default": "role.cid"
+    }
+   ],
+   "row_actions": "unobserved",
+   "operations": [
+    {
+     "label": "Access Additional Training",
+     "effects": [
+      "write",
+      "financial"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "source": [
+    "tab:member.profile_tabs Center for SafeSport Training"
+   ],
+   "notes": "Add-on table; the tab's URL (with its category id) is resolved at run time from the profile tabs.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "add_on",
+      "end_date",
+      "start_date",
+      "status",
+      "type"
+     ],
+     "buttons": [
+      "Access Additional Training"
+     ]
+    }
+   }
+  },
+  {
+   "id": "member.certifications",
+   "title": "Certifications",
+   "area": "member",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "tab",
+     "verified": "none"
+    }
+   },
+   "via": {
+    "tabs": "/competitor_dashboard/profile_tabs",
+    "param": "cid",
+    "match": [
+     "Certifications"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id",
+     "default": "role.cid"
+    }
+   ],
+   "row_actions": "unobserved",
+   "operations": [
+    {
+     "label": "Add Certification Category",
+     "effects": [
+      "write",
+      "financial"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "source": [
+    "tab:member.profile_tabs Certifications"
+   ],
+   "notes": "Add-on table; the tab's URL (with its category id) is resolved at run time from the profile tabs.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "add_on",
+      "end_date",
+      "start_date",
+      "status",
+      "type"
+     ],
+     "buttons": [
+      "Add Certification Category"
+     ]
+    }
+   }
+  },
+  {
+   "id": "member.collegiate_eligibility",
+   "title": "Collegiate eligibility",
+   "area": "member",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "tab",
+     "verified": "none"
+    }
+   },
+   "via": {
+    "tabs": "/competitor_dashboard/profile_tabs",
+    "param": "cid",
+    "match": [
+     "Collegiate Eligibility"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id",
+     "default": "role.cid"
+    }
+   ],
+   "row_actions": "unobserved",
+   "operations": [
+    {
+     "label": "Add Collegiate Eligibility",
+     "effects": [
+      "write",
+      "financial"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "source": [
+    "tab:member.profile_tabs Collegiate Eligibility"
+   ],
+   "notes": "Add-on table; the tab's URL (with its category id) is resolved at run time from the profile tabs.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "add_on",
+      "end_date",
+      "status",
+      "type"
+     ],
+     "buttons": [
+      "Add Collegiate Eligibility"
+     ]
+    }
+   }
+  },
+  {
+   "id": "member.coaches_insurance",
+   "title": "Coaches insurance",
+   "area": "member",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "tab",
+     "verified": "none"
+    }
+   },
+   "via": {
+    "tabs": "/competitor_dashboard/profile_tabs",
+    "param": "cid",
+    "match": [
+     "Coaches Insurance"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id",
+     "default": "role.cid"
+    }
+   ],
+   "row_actions": "unobserved",
+   "operations": [
+    {
+     "label": "Add Coaches Insurance",
+     "effects": [
+      "write",
+      "financial"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "source": [
+    "tab:member.profile_tabs Coaches Insurance"
+   ],
+   "notes": "Add-on table; the tab's URL (with its category id) is resolved at run time from the profile tabs.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "add_on",
+      "status",
+      "type"
+     ],
+     "buttons": [
+      "Add Coaches Insurance"
+     ]
+    }
+   }
+  },
+  {
+   "id": "member.partner_memberships",
+   "title": "Partner memberships",
+   "area": "member",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "tab",
+     "verified": "none"
+    }
+   },
+   "via": {
+    "tabs": "/competitor_dashboard/profile_tabs",
+    "param": "cid",
+    "match": [
+     "Partner Memberships"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id",
+     "default": "role.cid"
+    }
+   ],
+   "row_actions": "unobserved",
+   "operations": [
+    {
+     "label": "Add Partner Membership",
+     "effects": [
+      "write",
+      "financial"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "source": [
+    "tab:member.profile_tabs Partner Memberships"
+   ],
+   "notes": "Add-on table; the tab's URL (with its category id) is resolved at run time from the profile tabs.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "add_on",
+      "status"
+     ],
+     "buttons": [
+      "Add Partner Membership"
+     ]
+    }
+   }
+  },
+  {
+   "id": "member.learning_academy.results",
+   "title": "Learning Academy results",
+   "area": "member",
+   "kind": "html",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "tab",
+     "verified": "none"
+    }
+   },
+   "via": {
+    "tabs": "/competitor_dashboard/profile_tabs",
+    "param": "cid",
+    "match": [
+     "USAW Learning Academy Results"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id",
+     "default": "role.cid"
+    }
+   ],
+   "source": [
+    "tab:member.profile_tabs USAW Learning Academy Results"
+   ],
+   "notes": "Table headers: Course, Date, Score, Passed/Failed.",
+   "descriptor": {
+    "html": {
+     "protocol": "html",
+     "tableHeaders": [
+      "Course",
+      "Date",
+      "Passed/Failed",
+      "Score"
+     ]
+    }
+   }
+  },
+  {
+   "id": "member.learning_academy.access",
+   "title": "Open the Learning Academy",
+   "area": "member",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "live"
+    }
+   },
+   "path": "/moodle/redirect_to_moodle",
+   "confirm": "Signs the owner in to an external learning site. Say so and open it only after an explicit yes.",
+   "source": [
+    "tab:member.profile_tabs Access USAW Learning Academy"
+   ],
+   "descriptor": {
+    "html": {
+     "protocol": "html"
+    }
+   }
+  },
+  {
+   "id": "member.addresses",
+   "title": "Addresses",
+   "area": "member",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "tab",
+     "verified": "none"
+    }
+   },
+   "path": "/api/contact/addresses/datatable",
+   "query": {
+    "contact_type": "competitor"
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id",
+     "default": "role.cid"
+    },
+    {
+     "name": "primary",
+     "in": "filter",
+     "type": "autocomplete"
+    }
+   ],
+   "row_actions": "unobserved",
+   "operations": [
+    {
+     "label": "Add Home Address",
+     "effects": [
+      "write"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "source": [
+    "tab:member.profile_tabs Addresses"
+   ],
+   "notes": "Columns: type, address, latitude, longitude, primary, action.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "address",
+      "latitude",
+      "longitude",
+      "primary",
+      "type"
+     ],
+     "filters": [
+      "primary:autocomplete"
+     ],
+     "buttons": [
+      "Add Home Address"
+     ]
+    }
+   }
+  },
+  {
+   "id": "member.entries",
+   "title": "Event entries",
+   "area": "member",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "tab",
+     "verified": "none"
+    }
+   },
+   "path": "/competitor/entries_overview",
+   "query": {
+    "contact_type": "competitor",
+    "id_sport": "56"
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id",
+     "default": "role.cid"
+    },
+    {
+     "name": "from_date",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "to_date",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "region",
+     "in": "filter",
+     "type": "autocomplete"
+    },
+    {
+     "name": "event_type",
+     "in": "filter",
+     "type": "autocomplete"
+    },
+    {
+     "name": "event_sub_type",
+     "in": "filter",
+     "type": "autocomplete"
+    }
+   ],
+   "row_actions": "unobserved",
+   "source": [
+    "tab:member.profile_tabs Entries"
+   ],
+   "notes": "Columns: type, sub_type, event, event_date, region, team, items, status.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "event",
+      "event_date",
+      "items",
+      "region",
+      "status",
+      "sub_type",
+      "team",
+      "type"
+     ],
+     "filters": [
+      "event_sub_type:autocomplete",
+      "event_type:autocomplete",
+      "from_date:datepicker",
+      "region:autocomplete",
+      "to_date:datepicker"
+     ]
+    }
+   }
+  },
+  {
+   "id": "member.comm_prefs",
+   "title": "Communication preferences",
+   "area": "member",
+   "kind": "page",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "tab",
+     "verified": "none"
+    }
+   },
+   "path": "/contact_communication_preferences",
+   "query": {
+    "contact_type": "competitor",
+    "id_sport": "56"
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id",
+     "default": "role.cid"
+    }
+   ],
+   "operations": [
+    {
+     "label": "Change preferences",
+     "effects": [
+      "write"
+     ],
+     "source": "page props: form"
+    }
+   ],
+   "source": [
+    "tab:member.profile_tabs Communication Preferences"
+   ],
+   "descriptor": {
+    "inertia": {
+     "protocol": "inertia",
+     "component": "Generic/SymfonyFormPageWithDescription",
+     "propKeys": [
+      "back_url",
+      "breadcrumbs",
+      "description",
+      "form",
+      "live_site",
+      "title"
+     ],
+     "formFields": [
+      "contact_email_preferences[#]",
+      "contact_email_preferences[save]"
+     ]
+    }
+   }
+  },
+  {
+   "id": "member.results",
+   "title": "Member results",
+   "area": "member",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "tab",
+     "verified": "none"
+    },
+    "public": {
+     "seen": "tab",
+     "verified": "live"
+    }
+   },
+   "via": {
+    "tabs": "/competitor_dashboard/profile_tabs",
+    "param": "cid",
+    "match": [
+     "Results & Rankings",
+     "Results"
+    ]
+   },
+   "host": "rankings",
+   "auth": "public",
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id",
+     "default": "role.cid"
+    }
+   ],
+   "row_actions": "unobserved",
+   "source": [
+    "tab:member.profile_tabs Results & Rankings > Results"
+   ],
+   "notes": "The tab holds the rankings-module athlete id, which is not the contact id. Public key access; no login scope needed once the tab is resolved."
+  },
+  {
+   "id": "member.rankings",
+   "title": "Member rankings",
+   "area": "member",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "none"
+    },
+    "club": {
+     "seen": "tab",
+     "verified": "none"
+    }
+   },
+   "via": {
+    "tabs": "/competitor_dashboard/profile_tabs",
+    "param": "cid",
+    "match": [
+     "Results & Rankings",
+     "Rankings"
+    ]
+   },
+   "host": "rankings",
+   "auth": "public",
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "member contact id",
+     "default": "role.cid"
+    }
+   ],
+   "source": [
+    "tab:member.profile_tabs Results & Rankings > Rankings"
+   ],
+   "notes": "Seen as a sub-tab; its descriptor was not fetched."
+  },
+  {
+   "id": "member.edit_profile",
+   "title": "Edit a member profile",
+   "area": "member",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "write"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "bundle",
+     "verified": "none"
+    }
+   },
+   "confirm": "Changes a person's record. Show the exact fields and values, and submit only after an explicit yes. Do not touch birth date, gender or legal name without the owner stating the new value.",
+   "source": [
+    "bundle:Competitor/CompetitorProfileFormPage"
+   ]
+  },
+  {
+   "id": "member.add_on",
+   "title": "Buy, renew or add a membership, role or certification",
+   "area": "member",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "write",
+    "financial"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "tab",
+     "verified": "none"
+    },
+    "club": {
+     "seen": "tab",
+     "verified": "none"
+    }
+   },
+   "confirm": "Starts a purchase or renewal. Name the product, person and total, walk the form with details the owner gave, stop before payment, and never enter card or bank details. The owner completes payment.",
+   "source": [
+    "bundle:AddOnCategory/AddOnCategorySelectPage",
+    "bundle:Contact/AjaxAddOnFormPage",
+    "bundle:AddOn/PostAddOptions",
+    "tab:member.profile_tabs Add buttons"
+   ]
+  },
+  {
+   "id": "club.profile_tabs",
+   "title": "Club account tabs",
+   "area": "club",
+   "kind": "tabs",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/body_dashboard/profile_tabs",
+   "query": {
+    "bt": "5"
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "club contact id (body_cid)",
+     "default": "role.body_cid"
+    }
+   ],
+   "source": [
+    "menu:club top > Account"
+   ],
+   "notes": "Tabs: Profile, Memberships, Coaches Insurance, Addresses, Communication Preferences, Notes.",
+   "descriptor": {
+    "tabs": {
+     "protocol": "tabs",
+     "tabs": [
+      "Addresses",
+      "Coaches Insurance",
+      "Communication Preferences",
+      "Memberships",
+      "Notes",
+      "Profile"
+     ]
+    }
+   }
+  },
+  {
+   "id": "club.profile",
+   "title": "Club profile",
+   "area": "club",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "tab",
+     "verified": "live"
+    }
+   },
+   "via": {
+    "tabs": "/body_dashboard/profile_tabs",
+    "param": "cid",
+    "query": {
+     "bt": "5"
+    },
+    "match": [
+     "Profile"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "club contact id (body_cid)",
+     "default": "role.body_cid"
+    }
+   ],
+   "source": [
+    "tab:club.profile_tabs Profile"
+   ],
+   "notes": "Keys: is_organisation, contact_name, contact_img, contact_role, name, email, phone, mobile, birth_date, address, img, roles, info, form_url, what3words.",
+   "descriptor": {
+    "json": {
+     "protocol": "json",
+     "keys": [
+      "address",
+      "birth_date",
+      "contact_img",
+      "contact_name",
+      "contact_role",
+      "email",
+      "form_url",
+      "img",
+      "info",
+      "is_organisation",
+      "mobile",
+      "name",
+      "phone",
+      "roles",
+      "success",
+      "what3words"
+     ]
+    }
+   }
+  },
+  {
+   "id": "club.memberships",
+   "title": "Club memberships",
+   "area": "club",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "tab",
+     "verified": "live"
+    }
+   },
+   "via": {
+    "tabs": "/body_dashboard/profile_tabs",
+    "param": "cid",
+    "query": {
+     "bt": "5"
+    },
+    "match": [
+     "Memberships"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "club contact id (body_cid)",
+     "default": "role.body_cid"
+    }
+   ],
+   "row_actions": "unobserved",
+   "operations": [
+    {
+     "label": "Add Membership",
+     "effects": [
+      "write",
+      "financial"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "source": [
+    "tab:club.profile_tabs Memberships"
+   ],
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "add_on",
+      "end_date",
+      "id_number",
+      "start_date",
+      "status",
+      "type"
+     ],
+     "buttons": [
+      "Add Membership"
+     ]
+    }
+   }
+  },
+  {
+   "id": "club.coaches_insurance",
+   "title": "Club coaches insurance",
+   "area": "club",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "tab",
+     "verified": "live"
+    }
+   },
+   "via": {
+    "tabs": "/body_dashboard/profile_tabs",
+    "param": "cid",
+    "query": {
+     "bt": "5"
+    },
+    "match": [
+     "Coaches Insurance"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "club contact id (body_cid)",
+     "default": "role.body_cid"
+    }
+   ],
+   "row_actions": "unobserved",
+   "operations": [
+    {
+     "label": "Add Coaches Insurance",
+     "effects": [
+      "write",
+      "financial"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "source": [
+    "tab:club.profile_tabs Coaches Insurance"
+   ],
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "add_on",
+      "status",
+      "type"
+     ],
+     "buttons": [
+      "Add Coaches Insurance"
+     ]
+    }
+   }
+  },
+  {
+   "id": "club.addresses",
+   "title": "Club addresses",
+   "area": "club",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "tab",
+     "verified": "live"
+    }
+   },
+   "via": {
+    "tabs": "/body_dashboard/profile_tabs",
+    "param": "cid",
+    "query": {
+     "bt": "5"
+    },
+    "match": [
+     "Addresses"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "club contact id (body_cid)",
+     "default": "role.body_cid"
+    }
+   ],
+   "row_actions": "unobserved",
+   "operations": [
+    {
+     "label": "Add Venue Address",
+     "effects": [
+      "write"
+     ],
+     "source": "top_button"
+    },
+    {
+     "label": "Add Postal Address",
+     "effects": [
+      "write"
+     ],
+     "source": "top_button"
+    },
+    {
+     "label": "Add Invoice Address",
+     "effects": [
+      "write"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "source": [
+    "tab:club.profile_tabs Addresses"
+   ],
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "address",
+      "latitude",
+      "longitude",
+      "primary",
+      "type"
+     ],
+     "filters": [
+      "primary:autocomplete"
+     ],
+     "buttons": [
+      "Add Invoice Address",
+      "Add Postal Address",
+      "Add Venue Address"
+     ]
+    }
+   }
+  },
+  {
+   "id": "club.comm_prefs",
+   "title": "Club communication preferences",
+   "area": "club",
+   "kind": "page",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "tab",
+     "verified": "live"
+    }
+   },
+   "via": {
+    "tabs": "/body_dashboard/profile_tabs",
+    "param": "cid",
+    "query": {
+     "bt": "5"
+    },
+    "match": [
+     "Communication Preferences"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "club contact id (body_cid)",
+     "default": "role.body_cid"
+    }
+   ],
+   "operations": [
+    {
+     "label": "Change preferences",
+     "effects": [
+      "write"
+     ],
+     "source": "page props: form"
+    }
+   ],
+   "source": [
+    "tab:club.profile_tabs Communication Preferences"
+   ],
+   "descriptor": {
+    "inertia": {
+     "protocol": "inertia",
+     "component": "Generic/SymfonyFormPageWithDescription",
+     "propKeys": [
+      "back_url",
+      "breadcrumbs",
+      "description",
+      "form",
+      "live_site",
+      "title"
+     ],
+     "formFields": [
+      "contact_email_preferences[#]",
+      "contact_email_preferences[save]"
+     ]
+    }
+   }
+  },
+  {
+   "id": "club.notes",
+   "title": "Club notes",
+   "area": "club",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "tab",
+     "verified": "live"
+    }
+   },
+   "via": {
+    "tabs": "/body_dashboard/profile_tabs",
+    "param": "cid",
+    "query": {
+     "bt": "5"
+    },
+    "match": [
+     "Notes"
+    ]
+   },
+   "scope": "body",
+   "params": [
+    {
+     "name": "cid",
+     "in": "query",
+     "required": true,
+     "identity": "club contact id (body_cid)",
+     "default": "role.body_cid"
+    },
+    {
+     "name": "note_type",
+     "in": "filter",
+     "type": "autocomplete"
+    }
+   ],
+   "row_actions": "unobserved",
+   "operations": [
+    {
+     "label": "Add Note",
+     "effects": [
+      "write"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "source": [
+    "tab:club.profile_tabs Notes"
+   ],
+   "notes": "Columns: note, type, date, added_by, action.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "added_by",
+      "date",
+      "note",
+      "type"
+     ],
+     "filters": [
+      "note_type:autocomplete"
+     ],
+     "buttons": [
+      "Add Note"
+     ]
+    }
+   }
+  },
+  {
+   "id": "club.setup",
+   "title": "Set up a new club",
+   "area": "club",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "write"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "path": "/body/setup",
+   "query": {
+    "bt": "5",
+    "id_sport": "56",
+    "noWarn": "1"
+   },
+   "confirm": "Creates a new club organisation. This is one-way: describe it, get an explicit yes naming the club, and never fetch the page as a probe.",
+   "source": [
+    "menu:bottom > Setup Club",
+    "bundle:Body/SetupBodyPage"
+   ]
+  },
+  {
+   "id": "events.find",
+   "title": "Find upcoming events",
+   "area": "events",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "public",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "page"
+    }
+   },
+   "path": "/e_locator/{type}/event_search",
+   "scope": "body",
+   "params": [
+    {
+     "name": "type",
+     "in": "path",
+     "required": true,
+     "values": [
+      "courses",
+      "campsspeakerseries",
+      "meets"
+     ],
+     "identity": "event family"
+    },
+    {
+     "name": "from_date",
+     "in": "query",
+     "type": "date",
+     "default": "today"
+    }
+   ],
+   "source": [
+    "menu:top > Courses | Camps/Speaker Series | Meets",
+    "props:FindEventsPage event_search_url"
+   ],
+   "notes": "Returns {events[], page, total_pages}; events carry id, date, distance, capacity, entry open/close times, entries_on_platform, entry_list_url, full_details_url. Output is large (about 12 KB per page): pass --pick events --fields id,date,full_details_url,entry_close_date to keep it small. Other filter names come from the page's search_model, location_model and sort_model props (sort: recommended, soonest, popular, cheapest, expensive); not exercised."
+  },
+  {
+   "id": "events.find.page",
+   "title": "Event finder page",
+   "area": "events",
+   "kind": "page",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "public",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/e_locator/{type}/find",
+   "scope": "body",
+   "params": [
+    {
+     "name": "type",
+     "in": "path",
+     "required": true,
+     "values": [
+      "courses",
+      "campsspeakerseries",
+      "meets"
+     ],
+     "identity": "event family"
+    },
+    {
+     "name": "from_date",
+     "in": "query",
+     "type": "date",
+     "default": "today"
+    }
+   ],
+   "source": [
+    "menu:top > Courses | Camps/Speaker Series | Meets"
+   ],
+   "notes": "Inertia EventLocator/FindEventsPage; props include result_count, total_pages, sub_filters, event_search_url, location_search_url, save_url."
+  },
+  {
+   "id": "events.save",
+   "title": "Save or follow an event",
+   "area": "events",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "write"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "props",
+     "verified": "none"
+    },
+    "club": {
+     "seen": "props",
+     "verified": "none"
+    }
+   },
+   "path": "/e_locator/{type}/event_save",
+   "params": [
+    {
+     "name": "type",
+     "in": "path",
+     "required": true,
+     "values": [
+      "courses",
+      "campsspeakerseries",
+      "meets"
+     ],
+     "identity": "event family"
+    }
+   ],
+   "confirm": "Saves or follows an event on the owner's account. Name the event and proceed only after an explicit yes.",
+   "source": [
+    "props:FindEventsPage save_url"
+   ]
+  },
+  {
+   "id": "events.public.config",
+   "title": "Public event locator settings",
+   "area": "events",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "public",
+   "roles": {
+    "public": {
+     "seen": "bundle",
+     "verified": "live"
+    }
+   },
+   "path": "/api/public/events/locator",
+   "scope": "none",
+   "source": [
+    "bundle:PublicAllEventsView"
+   ]
+  },
+  {
+   "id": "events.public.search",
+   "title": "Public event search",
+   "area": "events",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "public",
+   "roles": {
+    "public": {
+     "seen": "bundle",
+     "verified": "live"
+    }
+   },
+   "path": "/api/public/events/locator/data",
+   "scope": "none",
+   "params": [
+    {
+     "name": "from_date",
+     "in": "query",
+     "type": "date",
+     "default": "today"
+    }
+   ],
+   "source": [
+    "bundle:PublicAllEventsView"
+   ],
+   "notes": "Returns {total, page, items_per_page, next_page_url, previous_page_url, data[]}."
+  },
+  {
+   "id": "events.public.entries",
+   "title": "Public entry list for an event stage",
+   "area": "events",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "public": {
+     "seen": "bundle",
+     "verified": "none"
+    }
+   },
+   "path": "/api/public/events/datatable/{eid}/entries/{stage_id}",
+   "scope": "none",
+   "params": [
+    {
+     "name": "eid",
+     "in": "path",
+     "required": true,
+     "identity": "event id"
+    },
+    {
+     "name": "stage_id",
+     "in": "path",
+     "required": true,
+     "identity": "entry stage id"
+    }
+   ],
+   "source": [
+    "bundle:EventEntriesView"
+   ],
+   "notes": "Names of entrants for a meet; not exercised."
+  },
+  {
+   "id": "events.admin.list",
+   "title": "Events the club administers",
+   "area": "events",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/events_admin_panel/datatable",
+   "scope": "body",
+   "params": [
+    {
+     "name": "et",
+     "in": "query",
+     "required": true,
+     "values": [
+      "3",
+      "6",
+      "11"
+     ],
+     "identity": "3 courses, 6 camps and speaker series, 11 meets"
+    },
+    {
+     "name": "from_date",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "to_date",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "region",
+     "in": "filter",
+     "type": "autocomplete"
+    },
+    {
+     "name": "status",
+     "in": "filter",
+     "type": "autocomplete"
+    },
+    {
+     "name": "on_platform",
+     "in": "filter",
+     "type": "radio"
+    },
+    {
+     "name": "sanction_approved",
+     "in": "filter",
+     "type": "radio"
+    },
+    {
+     "name": "sanction_paid",
+     "in": "filter",
+     "type": "radio"
+    },
+    {
+     "name": "level",
+     "in": "filter",
+     "type": "autocomplete"
+    }
+   ],
+   "row_actions": "unobserved",
+   "source": [
+    "menu:club bottom > Events Admin > Courses | Camps/Speaker Series | Meets"
+   ],
+   "notes": "Columns: id, name, type, date, region, event_organiser, on_platform, status, info, action. 13 filters (15 for meets: adds category and discipline). The owner's club hosts none, so no row was seen; the date filters default to upcoming.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "date",
+      "event_organiser",
+      "id",
+      "info",
+      "name",
+      "on_platform",
+      "region",
+      "status",
+      "type"
+     ],
+     "filters": [
+      "category:autocomplete",
+      "discipline:autocomplete",
+      "event_builder:autocomplete",
+      "event_sub_type:autocomplete",
+      "from_date:datepicker",
+      "invitational:radio",
+      "level:autocomplete",
+      "on_platform:radio",
+      "region:autocomplete",
+      "sanction_approved:radio",
+      "sanction_option:autocomplete",
+      "sanction_paid:radio",
+      "sanction_submitted:radio",
+      "status:autocomplete",
+      "to_date:datepicker"
+     ]
+    }
+   }
+  },
+  {
+   "id": "events.admin.panel",
+   "title": "Event admin panel",
+   "area": "events",
+   "kind": "tabs",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "path": "/event_admin_panel",
+   "scope": "body",
+   "params": [
+    {
+     "name": "eid",
+     "in": "query",
+     "required": true,
+     "identity": "event id (the id column of events.admin.list)"
+    }
+   ],
+   "source": [
+    "menu:club bottom > Events Admin sub-routes"
+   ],
+   "notes": "403 without eid (observed). Not exercised: the club has no events on the platform."
+  },
+  {
+   "id": "events.admin.merchandise",
+   "title": "Event merchandise categories",
+   "area": "events",
+   "kind": "tabs",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "path": "/merchandise_group_admin_panel/extra_ap_tabs",
+   "scope": "body",
+   "params": [
+    {
+     "name": "eid",
+     "in": "query",
+     "required": true,
+     "identity": "event id (the id column of events.admin.list)"
+    }
+   ],
+   "source": [
+    "menu:club bottom > Events Admin sub-routes"
+   ],
+   "notes": "403 without eid (observed). Not exercised: the club has no events on the platform."
+  },
+  {
+   "id": "events.admin.entry_categories",
+   "title": "Event entry categories",
+   "area": "events",
+   "kind": "tabs",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "path": "/merchandise_group_admin_panel/entry_ap_tabs",
+   "scope": "body",
+   "params": [
+    {
+     "name": "eid",
+     "in": "query",
+     "required": true,
+     "identity": "event id (the id column of events.admin.list)"
+    },
+    {
+     "name": "id_entry",
+     "in": "query",
+     "required": true,
+     "identity": "entry id"
+    }
+   ],
+   "source": [
+    "menu:club bottom > Events Admin sub-routes"
+   ],
+   "notes": "403 without eid (observed). Not exercised: the club has no events on the platform."
+  },
+  {
+   "id": "events.admin.entries",
+   "title": "Event entries",
+   "area": "events",
+   "kind": "tabs",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "path": "/event_admin_panel/entries_tabs",
+   "scope": "body",
+   "params": [
+    {
+     "name": "eid",
+     "in": "query",
+     "required": true,
+     "identity": "event id (the id column of events.admin.list)"
+    }
+   ],
+   "source": [
+    "menu:club bottom > Events Admin sub-routes"
+   ],
+   "notes": "403 without eid (observed). Not exercised: the club has no events on the platform."
+  },
+  {
+   "id": "events.admin.entry_preview",
+   "title": "Preview an event entry form",
+   "area": "events",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "bundle",
+     "verified": "none"
+    }
+   },
+   "path": "/api/event/{event_id}/{stage_id}/entry_form_preview",
+   "scope": "body",
+   "params": [
+    {
+     "name": "event_id",
+     "in": "path",
+     "required": true,
+     "identity": "event id"
+    },
+    {
+     "name": "stage_id",
+     "in": "path",
+     "required": true,
+     "identity": "entry stage id"
+    }
+   ],
+   "source": [
+    "bundle:AdminEventEntryPreviewView"
+   ]
+  },
+  {
+   "id": "events.entry",
+   "title": "An event entry",
+   "area": "events",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "personal": {
+     "seen": "bundle",
+     "verified": "none"
+    },
+    "club": {
+     "seen": "bundle",
+     "verified": "none"
+    }
+   },
+   "path": "/api/event/{event_id}/stage/{stage_id}/entry/{contact_id}",
+   "scope": "body",
+   "params": [
+    {
+     "name": "event_id",
+     "in": "path",
+     "required": true,
+     "identity": "event id"
+    },
+    {
+     "name": "stage_id",
+     "in": "path",
+     "required": true,
+     "identity": "entry stage id"
+    },
+    {
+     "name": "contact_id",
+     "in": "path",
+     "required": true,
+     "identity": "member contact id"
+    }
+   ],
+   "source": [
+    "bundle:EventEntryView"
+   ]
+  },
+  {
+   "id": "events.admin.entry",
+   "title": "An event entry (admin view)",
+   "area": "events",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "bundle",
+     "verified": "none"
+    }
+   },
+   "path": "/api/event/admin/{event_id}/stage/{stage_id}/entry/{contact_id}",
+   "scope": "body",
+   "params": [
+    {
+     "name": "event_id",
+     "in": "path",
+     "required": true,
+     "identity": "event id"
+    },
+    {
+     "name": "stage_id",
+     "in": "path",
+     "required": true,
+     "identity": "entry stage id"
+    },
+    {
+     "name": "contact_id",
+     "in": "path",
+     "required": true,
+     "identity": "member contact id"
+    }
+   ],
+   "source": [
+    "bundle:AdminEventEntryView"
+   ]
+  },
+  {
+   "id": "events.admin.invites",
+   "title": "Invite competitors to an event",
+   "area": "events",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "write",
+    "outbound"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "bundle",
+     "verified": "none"
+    }
+   },
+   "confirm": "Sends invitations to named people. Show the list (as a count) and the message, and send only after an explicit yes.",
+   "source": [
+    "bundle:EventAdmin/AddCompetitorInvitesPage",
+    "bundle:EventAdmin/BodyInviteesPage"
+   ]
+  },
+  {
+   "id": "events.enter",
+   "title": "Enter an event (entry wizard)",
+   "area": "events",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "write",
+    "financial"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "bundle",
+     "verified": "none"
+    },
+    "club": {
+     "seen": "bundle",
+     "verified": "none"
+    },
+    "public": {
+     "seen": "bundle",
+     "verified": "none"
+    }
+   },
+   "confirm": "Enters a named athlete in a named event and charges fees. Show athlete, event, weight class and total, stop before payment, and never enter card details.",
+   "source": [
+    "bundle:Public/EventWizard pages (17)",
+    "bundle:route /public/wizard/:type/:id"
+   ]
+  },
+  {
+   "id": "events.team",
+   "title": "Create an event team",
+   "area": "events",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "write"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "bundle",
+     "verified": "none"
+    },
+    "club": {
+     "seen": "bundle",
+     "verified": "none"
+    }
+   },
+   "confirm": "Creates a team record for an event. Name the team and members and proceed only after an explicit yes.",
+   "source": [
+    "bundle:Team/NewTeamPage"
+   ]
+  },
+  {
+   "id": "sanction.requests",
+   "title": "Sanction requests",
+   "area": "sanction",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/events_sanctioning_admin_panel/{state}_datatable",
+   "scope": "body",
+   "params": [
+    {
+     "name": "state",
+     "in": "path",
+     "required": true,
+     "values": [
+      "pending",
+      "approved",
+      "rejected"
+     ],
+     "identity": "sanction stage; the menu calls rejected Declined"
+    },
+    {
+     "name": "from_date",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "to_date",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "submitted_from_date",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "submitted_to_date",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "event_type",
+     "in": "filter",
+     "type": "autocomplete"
+    },
+    {
+     "name": "sanction_option",
+     "in": "filter",
+     "type": "autocomplete"
+    },
+    {
+     "name": "sanction_approval_option",
+     "in": "filter",
+     "type": "select"
+    },
+    {
+     "name": "sanction_paid",
+     "in": "filter",
+     "type": "radio"
+    }
+   ],
+   "row_actions": "unobserved",
+   "source": [
+    "menu:bottom > Sanctioning > Pending | Approved | Declined Requests"
+   ],
+   "notes": "Columns: licence_id, approval, start_date, end_date, organiser, sanction_type, submitted_by, submitted_date, paid_sanction_fee, info, action. Zero rows for the owner's roles.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "approval",
+      "end_date",
+      "info",
+      "licence_id",
+      "organiser",
+      "paid_sanction_fee",
+      "sanction_type",
+      "start_date",
+      "submitted_by",
+      "submitted_date"
+     ],
+     "filters": [
+      "event_type:autocomplete",
+      "from_date:datepicker",
+      "sanction_approval_option:select",
+      "sanction_option:autocomplete",
+      "sanction_paid:radio",
+      "submitted_from_date:datepicker",
+      "submitted_to_date:datepicker",
+      "to_date:datepicker"
+     ]
+    }
+   }
+  },
+  {
+   "id": "sanction.options",
+   "title": "Sanction a new event: options",
+   "area": "sanction",
+   "kind": "page",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/sanctioning/options/{type_id}",
+   "scope": "body",
+   "params": [
+    {
+     "name": "type_id",
+     "in": "path",
+     "required": true,
+     "values": [
+      "3",
+      "6",
+      "11"
+     ],
+     "identity": "3 course, 6 camp or speaker series, 11 meet; the personal menu offers only 3"
+    }
+   ],
+   "source": [
+    "menu:bottom > Sanctioning > Sanction New Course | Camps/Speaker Series | Meet"
+   ],
+   "notes": "Inertia Sanctioning/Options; props: description, alert, options.",
+   "descriptor": {
+    "inertia": {
+     "protocol": "inertia",
+     "component": "Sanctioning/Options",
+     "propKeys": [
+      "alert",
+      "breadcrumbs",
+      "description",
+      "live_site",
+      "options",
+      "title"
+     ]
+    }
+   }
+  },
+  {
+   "id": "sanction.new",
+   "title": "Submit a sanction request",
+   "area": "sanction",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "write",
+    "financial"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "bundle",
+     "verified": "none"
+    },
+    "club": {
+     "seen": "bundle",
+     "verified": "none"
+    }
+   },
+   "confirm": "Submits a sanction request that may carry a fee. Collect the event details from the owner, show them with any fee, stop before payment, and never enter card details.",
+   "source": [
+    "bundle:Sanctioning/NewSanctioningPage"
+   ]
+  },
+  {
+   "id": "results.events",
+   "title": "Results: events",
+   "area": "results",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "public",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "live",
+     "scope": "unscoped national list"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "live",
+     "scope": "scoped to the club's athletes"
+    },
+    "public": {
+     "seen": "bundle",
+     "verified": "descriptor"
+    }
+   },
+   "path": "/api/events/table",
+   "query": {
+    "platform": "1"
+   },
+   "host": "rankings",
+   "auth": "role",
+   "scope": "none",
+   "params": [
+    {
+     "name": "date_range_start",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "date_range_end",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "level",
+     "in": "filter",
+     "type": "select"
+    }
+   ],
+   "row_actions": [
+    "View"
+   ],
+   "operations": [
+    {
+     "label": "Download",
+     "effects": [
+      "export"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "source": [
+    "menu:top > Results"
+   ],
+   "notes": "Rows: meet, level, date, results (athlete results counted), action. The club token scopes rows to the club's athletes; the personal token returns every event. The View action links to the public event results page."
+  },
+  {
+   "id": "results.rankings",
+   "title": "Rankings",
+   "area": "results",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "descriptor"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "descriptor"
+    },
+    "public": {
+     "seen": "bundle",
+     "verified": "descriptor"
+    }
+   },
+   "path": "/api/categories/rankings/table",
+   "query": {
+    "platform": "1"
+   },
+   "host": "rankings",
+   "auth": "role",
+   "scope": "none",
+   "params": [
+    {
+     "name": "date_range_start",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "date_range_end",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "weight_class",
+     "in": "filter",
+     "type": "autocomplete"
+    },
+    {
+     "name": "minimum_lifter_age",
+     "in": "filter",
+     "type": "integer"
+    },
+    {
+     "name": "maximum_lifter_age",
+     "in": "filter",
+     "type": "integer"
+    },
+    {
+     "name": "level",
+     "in": "filter",
+     "type": "select"
+    },
+    {
+     "name": "wso",
+     "in": "filter",
+     "type": "autocomplete"
+    }
+   ],
+   "operations": [
+    {
+     "label": "Download",
+     "effects": [
+      "export"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "row_actions": "unobserved",
+   "source": [
+    "menu:top > Rankings"
+   ],
+   "notes": "Columns: national_ranking, rank, total, name, gender, lifter_age, club, membership, bodyweight, lift_date, meet_date, level, wso. A 2026 date range alone returned no rows for either role; the public table also has a club filter. Row behaviour not established."
+  },
+  {
+   "id": "results.event",
+   "title": "Results of one event",
+   "area": "results",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "bundle",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "bundle",
+     "verified": "live"
+    },
+    "public": {
+     "seen": "bundle",
+     "verified": "live"
+    }
+   },
+   "path": "/api/events/{event_id}/table",
+   "host": "rankings",
+   "auth": "public",
+   "scope": "none",
+   "params": [
+    {
+     "name": "event_id",
+     "in": "path",
+     "required": true,
+     "identity": "rankings-module event id (the id in a results.events row's View link)"
+    }
+   ],
+   "row_actions": "unobserved",
+   "source": [
+    "bundle:EventResultsView"
+   ],
+   "notes": "Public names of competitors and their lifts: columns meet, date, age_category, lifter, body_weight_(kg), snatch_lift_1..3, c&j_lift_1..3, best_snatch, best_c&j, total."
+  },
+  {
+   "id": "results.athlete",
+   "title": "Results of one athlete",
+   "area": "results",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "public": {
+     "seen": "bundle",
+     "verified": "descriptor"
+    }
+   },
+   "path": "/api/athletes/{athlete_id}/table",
+   "query": {
+    "platform": "1"
+   },
+   "host": "rankings",
+   "auth": "public",
+   "scope": "none",
+   "params": [
+    {
+     "name": "athlete_id",
+     "in": "path",
+     "required": true,
+     "identity": "rankings-module athlete id; not the contact id or membership number (both returned 404)"
+    }
+   ],
+   "row_actions": "unobserved",
+   "source": [
+    "bundle:MemberResultsView"
+   ]
+  },
+  {
+   "id": "results.featured",
+   "title": "Featured rankings",
+   "area": "results",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "public",
+   "roles": {
+    "public": {
+     "seen": "bundle",
+     "verified": "live"
+    }
+   },
+   "path": "/api/categories/featured",
+   "host": "rankings",
+   "auth": "public",
+   "scope": "none",
+   "source": [
+    "bundle:RankingsOverviewView"
+   ],
+   "notes": "Keys: title, avatar_list, ranking_list, cards, top_buttons."
+  },
+  {
+   "id": "results.template",
+   "title": "Meet results template",
+   "area": "results",
+   "kind": "file",
+   "mode": "guided",
+   "effects": [
+    "export"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "path": "/uploads/usawresultstemplate-2024-09-03.xlsx",
+   "confirm": "Downloads a spreadsheet template. Name the file and source, and fetch it only after an explicit yes.",
+   "source": [
+    "menu:club top > Meet Results Template"
+   ]
+  },
+  {
+   "id": "orders.history",
+   "title": "Transaction history",
+   "area": "orders",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/api/purchase_history/admin/datatable",
+   "pages": [
+    "/purchase_history"
+   ],
+   "scope": "body",
+   "params": [
+    {
+     "name": "from_date",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "to_date",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "status_filter",
+     "in": "filter",
+     "type": "autocomplete"
+    }
+   ],
+   "row_actions": "unobserved",
+   "source": [
+    "menu:bottom > Transaction History"
+   ],
+   "notes": "Columns: id, date, amount, amount_paid, status, action. Both roles returned rows (counts only were read).",
+   "descriptor": {
+    "inertia": {
+     "protocol": "inertia",
+     "component": "Generic/DatatablePage",
+     "propKeys": [
+      "breadcrumbs",
+      "datatable_url",
+      "live_site",
+      "title"
+     ]
+    }
+   }
+  },
+  {
+   "id": "orders.cart",
+   "title": "Cart",
+   "area": "orders",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "props",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "props",
+     "verified": "live"
+    }
+   },
+   "path": "/api/account/cart",
+   "scope": "body",
+   "source": [
+    "props:_shared.cart_global"
+   ],
+   "notes": "Keys: items, items_count, subtotal_amount, discount_amount, donation_amount, shipping_amount, fee_amount, total_amount, remove_items_url, cart_url."
+  },
+  {
+   "id": "orders.cart.count",
+   "title": "Cart count",
+   "area": "orders",
+   "kind": "json",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "public",
+   "roles": {
+    "personal": {
+     "seen": "props",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "props",
+     "verified": "live"
+    }
+   },
+   "path": "/api/account/basket_count",
+   "scope": "body",
+   "source": [
+    "props:_shared.basket"
+   ]
+  },
+  {
+   "id": "orders.checkout",
+   "title": "Check out",
+   "area": "orders",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "write",
+    "financial"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "page",
+     "verified": "page"
+    },
+    "club": {
+     "seen": "page",
+     "verified": "page"
+    }
+   },
+   "path": "/cart",
+   "confirm": "Completes a purchase. State item and total, stop before the payment step, never enter card or bank details, and let the owner pay. Do not place an order without an explicit yes naming item and total.",
+   "source": [
+    "bundle:Checkout/CartPage",
+    "bundle:Checkout/AdditionalItemsPage",
+    "bundle:Checkout/ShippingPage",
+    "bundle:Checkout/ProtectionCoverPage",
+    "bundle:Checkout/PaymentPage",
+    "bundle:Checkout/CheckoutPage",
+    "bundle:Checkout/OrderConfirmationPage"
+   ]
+  },
+  {
+   "id": "orders.donation",
+   "title": "Make a donation",
+   "area": "orders",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "financial"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "page"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "page"
+    }
+   },
+   "path": "/donation",
+   "scope": "body",
+   "confirm": "Moves money. State amount and recipient, never enter card details, and let the owner complete payment.",
+   "source": [
+    "props:_shared.donation_url",
+    "bundle:Donation/NewDonationPage"
+   ]
+  },
+  {
+   "id": "admin.bulk_renewal.products",
+   "title": "Bulk renewal: products",
+   "area": "admin",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "live"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/api/bulk_renew_select_addon/datatable",
+   "scope": "body",
+   "row_actions": "unobserved",
+   "source": [
+    "menu:bottom > Admin > Bulk Renewal"
+   ],
+   "notes": "Columns: name, action.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "name"
+     ]
+    }
+   }
+  },
+  {
+   "id": "admin.bulk_renewal.members",
+   "title": "Bulk renewal: members due",
+   "area": "admin",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "none"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "path": "/api/bulk_renew_addon/datatable",
+   "scope": "body",
+   "params": [
+    {
+     "name": "bulk_renew_add_on_id",
+     "in": "query",
+     "required": true,
+     "identity": "membership product id (a bulk renewal products row)"
+    }
+   ],
+   "source": [
+    "menu:bottom > Admin > Bulk Renewal sub-route"
+   ],
+   "notes": "HTTP 500 without the id (observed)."
+  },
+  {
+   "id": "admin.bulk_renewal.renew",
+   "title": "Renew members in bulk",
+   "area": "admin",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "write",
+    "financial"
+   ],
+   "data": "personal",
+   "roles": {
+    "personal": {
+     "seen": "menu",
+     "verified": "none"
+    },
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "confirm": "Renews and charges for a named list of members. Show the count, product and total, stop before payment, and never enter card details.",
+   "source": [
+    "menu:bottom > Admin > Bulk Renewal"
+   ]
+  },
+  {
+   "id": "admin.reports.queued",
+   "title": "Queued reports",
+   "area": "admin",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/reports/async_reports",
+   "scope": "body",
+   "row_actions": "unobserved",
+   "source": [
+    "menu:club bottom > Queued Reports"
+   ],
+   "notes": "Columns: date, status, fileName, download. The report files hold member data: the owner downloads them.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "date",
+      "download",
+      "fileName",
+      "status"
+     ]
+    }
+   }
+  },
+  {
+   "id": "admin.validation",
+   "title": "Membership validation lookup",
+   "area": "admin",
+   "kind": "html",
+   "mode": "guided",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "page"
+    }
+   },
+   "path": "/add_on_look_up",
+   "scope": "body",
+   "confirm": "Looks up a person's membership by number. Use only a number or name the owner gives, report validity and expiry only, and write nothing down.",
+   "source": [
+    "menu:club bottom > Validation"
+   ],
+   "notes": "Legacy fragment; its fields load by script, so it must be driven in the page.",
+   "descriptor": {
+    "html": {
+     "protocol": "html"
+    }
+   }
+  },
+  {
+   "id": "admin.bulk_upload",
+   "title": "Bulk upload history",
+   "area": "admin",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/api/contact/bulk_upload/datatable",
+   "scope": "body",
+   "params": [
+    {
+     "name": "date_before",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "date_after",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "status",
+     "in": "filter",
+     "type": "autocomplete"
+    }
+   ],
+   "row_actions": "unobserved",
+   "source": [
+    "menu:club bottom > Affiliations > Bulk Upload Admin"
+   ],
+   "notes": "Columns: date, status, user, processed_count.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "date",
+      "processed_count",
+      "status",
+      "user"
+     ],
+     "filters": [
+      "date_after:datepicker",
+      "date_before:datepicker",
+      "status:autocomplete"
+     ]
+    }
+   }
+  },
+  {
+   "id": "admin.bulk_upload.upload",
+   "title": "Upload members in bulk",
+   "area": "admin",
+   "kind": "flow",
+   "mode": "guided",
+   "effects": [
+    "write"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "confirm": "Creates or changes many member records from a file. Never read the file into the transcript beyond its row count; get an explicit yes for this file and this action.",
+   "source": [
+    "menu:club bottom > Affiliations > Bulk Upload Admin"
+   ]
+  },
+  {
+   "id": "finance.revenue_report",
+   "title": "Revenue report",
+   "area": "finance",
+   "kind": "page",
+   "mode": "guided",
+   "effects": [
+    "export"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/finance/revenue_report",
+   "scope": "body",
+   "confirm": "Generates a financial report. Name the date range and options, and run it only after an explicit yes; the owner keeps the output.",
+   "source": [
+    "menu:club bottom > Finance Admin > Revenue Report"
+   ],
+   "operations": [
+    {
+     "label": "Run the report form",
+     "effects": [
+      "export"
+     ],
+     "source": "page props: form (xero_from_date, xero_to_date, inline_processing_fees)"
+    }
+   ],
+   "notes": "Inertia Generic/SymfonyFormPage.",
+   "descriptor": {
+    "inertia": {
+     "protocol": "inertia",
+     "component": "Generic/SymfonyFormPage",
+     "propKeys": [
+      "breadcrumbs",
+      "form",
+      "live_site",
+      "title"
+     ],
+     "formFields": [
+      "revenue_report[inline_processing_fees]",
+      "revenue_report[xero_from_date]",
+      "revenue_report[xero_to_date]"
+     ]
+    }
+   }
+  },
+  {
+   "id": "finance.stripe.merchants",
+   "title": "Stripe merchants",
+   "area": "finance",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/stripe_merchant",
+   "scope": "body",
+   "row_actions": "unobserved",
+   "source": [
+    "menu:club bottom > Finance Admin > Stripe"
+   ],
+   "operations": [
+    {
+     "label": "Add Merchant",
+     "effects": [
+      "write",
+      "financial",
+      "security"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "notes": "Columns: id, name, status, account_id, type, primary_events, action. Adding a merchant is owner-only.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "account_id",
+      "action",
+      "id",
+      "name",
+      "primary_events",
+      "status",
+      "type"
+     ],
+     "buttons": [
+      "Add Merchant"
+     ]
+    }
+   }
+  },
+  {
+   "id": "finance.stripe.merchant",
+   "title": "A Stripe merchant",
+   "area": "finance",
+   "kind": "html",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "path": "/stripe_merchant/merchant",
+   "scope": "body",
+   "params": [
+    {
+     "name": "id_merchant",
+     "in": "query",
+     "required": true,
+     "identity": "merchant id"
+    }
+   ],
+   "source": [
+    "menu:club bottom > Finance Admin > Stripe sub-route"
+   ]
+  },
+  {
+   "id": "finance.stripe.disputes",
+   "title": "Stripe disputes",
+   "area": "finance",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/api/stripe/disputes/datatable",
+   "scope": "body",
+   "params": [
+    {
+     "name": "createdBefore",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "createdAfter",
+     "in": "filter",
+     "type": "datepicker"
+    },
+    {
+     "name": "status",
+     "in": "filter",
+     "type": "autocomplete"
+    }
+   ],
+   "row_actions": "unobserved",
+   "source": [
+    "menu:club bottom > Finance Admin > Stripe Disputes"
+   ],
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "amount",
+      "datePaid",
+      "disputeCreated",
+      "hasEvidence",
+      "invoice",
+      "isChargeRefundable",
+      "payee",
+      "reason",
+      "recouped",
+      "status"
+     ],
+     "filters": [
+      "createdAfter:datepicker",
+      "createdBefore:datepicker",
+      "status:autocomplete"
+     ]
+    }
+   }
+  },
+  {
+   "id": "finance.invoice.merchants",
+   "title": "Invoice merchants",
+   "area": "finance",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/invoice_merchant",
+   "scope": "body",
+   "row_actions": "unobserved",
+   "source": [
+    "menu:club bottom > Finance Admin > Invoice"
+   ],
+   "operations": [
+    {
+     "label": "Add Merchant",
+     "effects": [
+      "write",
+      "financial",
+      "security"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "id",
+      "name"
+     ],
+     "buttons": [
+      "Add Merchant"
+     ]
+    }
+   }
+  },
+  {
+   "id": "finance.invoice.merchant",
+   "title": "An invoice merchant",
+   "area": "finance",
+   "kind": "html",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "path": "/invoice_merchant/merchant",
+   "scope": "body",
+   "params": [
+    {
+     "name": "id_merchant",
+     "in": "query",
+     "required": true,
+     "identity": "merchant id"
+    }
+   ],
+   "source": [
+    "menu:club bottom > Finance Admin > Invoice sub-route"
+   ]
+  },
+  {
+   "id": "finance.chart_of_accounts",
+   "title": "Chart of accounts",
+   "area": "finance",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/admin_chart_of_accounts",
+   "scope": "body",
+   "row_actions": "unobserved",
+   "source": [
+    "menu:club bottom > Finance Admin > Chart Of Accounts"
+   ],
+   "operations": [
+    {
+     "label": "New Account Code",
+     "effects": [
+      "write"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "account_code",
+      "action",
+      "is_shipped",
+      "name"
+     ],
+     "buttons": [
+      "New Account Code"
+     ]
+    }
+   }
+  },
+  {
+   "id": "finance.chart_of_accounts.discount_orgs",
+   "title": "Discount-code eligible organisations",
+   "area": "finance",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "none"
+    }
+   },
+   "path": "/admin_chart_of_accounts/discount_body_types",
+   "scope": "body",
+   "params": [
+    {
+     "name": "id",
+     "in": "query",
+     "required": true,
+     "identity": "account code id"
+    }
+   ],
+   "source": [
+    "menu:club bottom > Finance Admin > Chart Of Accounts sub-route"
+   ],
+   "notes": "403 without the id (observed)."
+  },
+  {
+   "id": "finance.class_codes",
+   "title": "Chart of class codes",
+   "area": "finance",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/admin_chart_of_class_codes",
+   "scope": "body",
+   "row_actions": "unobserved",
+   "source": [
+    "menu:club bottom > Finance Admin > Chart Of Class Codes"
+   ],
+   "operations": [
+    {
+     "label": "New Class Code",
+     "effects": [
+      "write"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "account_code",
+      "action",
+      "is_shipped",
+      "name"
+     ],
+     "buttons": [
+      "New Class Code"
+     ]
+    }
+   }
+  },
+  {
+   "id": "finance.discount_codes",
+   "title": "Discount codes",
+   "area": "finance",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "page"
+    }
+   },
+   "path": "/finance/discount_code/datatable",
+   "pages": [
+    "/finance/discount_code"
+   ],
+   "scope": "body",
+   "row_actions": "unobserved",
+   "source": [
+    "menu:club bottom > Finance Admin > Discount Codes"
+   ],
+   "notes": "The menu opens Inertia Generic/DatatablePage whose datatable_url is this path; the descriptor was not fetched.",
+   "descriptor": {
+    "inertia": {
+     "protocol": "inertia",
+     "component": "Generic/DatatablePage",
+     "propKeys": [
+      "breadcrumbs",
+      "datatable_url",
+      "live_site",
+      "title"
+     ]
+    }
+   }
+  },
+  {
+   "id": "finance.discount_code_tags",
+   "title": "Discount code tags",
+   "area": "finance",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/api/discount_code/tag_admin/datatable",
+   "scope": "body",
+   "row_actions": "unobserved",
+   "source": [
+    "menu:club bottom > Finance Admin > Discount Code Tags"
+   ],
+   "operations": [
+    {
+     "label": "ADD",
+     "effects": [
+      "write"
+     ],
+     "source": "top_button"
+    }
+   ],
+   "notes": "Columns: name, last_updated, created_date, count, action.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "action",
+      "count",
+      "created_date",
+      "last_updated",
+      "name"
+     ],
+     "buttons": [
+      "ADD"
+     ]
+    }
+   }
+  },
+  {
+   "id": "affiliation.blocks",
+   "title": "Affiliation blocks",
+   "area": "affiliation",
+   "kind": "html",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/admin_add_on_clubs_blocks",
+   "query": {
+    "bt": "5"
+   },
+   "scope": "body",
+   "source": [
+    "menu:club bottom > Affiliations > Blocks"
+   ],
+   "notes": "Table headers: Membership Number, Membership Type, Action.",
+   "descriptor": {
+    "html": {
+     "protocol": "html",
+     "tableHeaders": [
+      "Action",
+      "Membership Number",
+      "Membership Type"
+     ]
+    }
+   }
+  },
+  {
+   "id": "affiliation.affiliations",
+   "title": "Affiliations",
+   "area": "affiliation",
+   "kind": "html",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/admin_add_on_clubs_affiliations",
+   "query": {
+    "bt": "5"
+   },
+   "scope": "body",
+   "source": [
+    "menu:club bottom > Affiliations > Affiliations"
+   ],
+   "notes": "Table headers include DOB: treat as sensitive, minors included.",
+   "descriptor": {
+    "html": {
+     "protocol": "html",
+     "tableHeaders": [
+      "Action",
+      "DOB",
+      "Membership Number",
+      "Membership Type"
+     ]
+    }
+   }
+  },
+  {
+   "id": "affiliation.transfers",
+   "title": "Membership transfers",
+   "area": "affiliation",
+   "kind": "tabs",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "personal",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "live"
+    }
+   },
+   "path": "/c_add_on_transfers_admin_panel",
+   "scope": "body",
+   "source": [
+    "menu:club bottom > Affiliations > Transfers"
+   ],
+   "notes": "Tabs: Active Transfers, Historic Transfers.",
+   "descriptor": {
+    "tabs": {
+     "protocol": "tabs",
+     "tabs": [
+      "Active Transfers",
+      "Historic Transfers"
+     ]
+    }
+   }
+  },
+  {
+   "id": "affiliation.transfers.active",
+   "title": "Active transfers",
+   "area": "affiliation",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "tab",
+     "verified": "live"
+    }
+   },
+   "via": {
+    "tabs": "/c_add_on_transfers_admin_panel",
+    "match": [
+     "Active Transfers"
+    ]
+   },
+   "scope": "body",
+   "row_actions": "unobserved",
+   "source": [
+    "tab:affiliation.transfers"
+   ],
+   "notes": "Columns: Created Date, Name, From Club, To Club, Status, Info, action.",
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "Created Date",
+      "From Club",
+      "Info",
+      "Name",
+      "Status",
+      "To Club",
+      "action"
+     ]
+    }
+   }
+  },
+  {
+   "id": "affiliation.transfers.historic",
+   "title": "Historic transfers",
+   "area": "affiliation",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "tab",
+     "verified": "live"
+    }
+   },
+   "via": {
+    "tabs": "/c_add_on_transfers_admin_panel",
+    "match": [
+     "Historic Transfers"
+    ]
+   },
+   "scope": "body",
+   "source": [
+    "tab:affiliation.transfers"
+   ],
+   "descriptor": {
+    "datatable": {
+     "protocol": "datatable",
+     "columns": [
+      "Created Date",
+      "From Club",
+      "Info",
+      "Name",
+      "Status",
+      "To Club"
+     ]
+    }
+   }
+  },
+  {
+   "id": "affiliation.pre_screening",
+   "title": "Pre-screening approvals",
+   "area": "affiliation",
+   "kind": "datatable",
+   "mode": "read",
+   "effects": [
+    "read"
+   ],
+   "data": "sensitive",
+   "roles": {
+    "club": {
+     "seen": "menu",
+     "verified": "denied",
+     "scope": "HTTP 401 for the owner's club role"
+    }
+   },
+   "path": "/api/contact_add_on/admin/approvals/datatable",
+   "scope": "body",
+   "source": [
+    "menu:club bottom > Affiliations > Pre-Screening Approvals"
+   ],
+   "notes": "In the club menu but returns 401 for this role (a permission the role lacks)."
+  }
+ ],
+ "coverage": {
+  "menu_nodes": [
+   {
+    "role": "personal",
+    "trail": "top > Home",
+    "entry": "dashboard.home"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members",
+    "entry": "members.cards"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members (list)",
+    "entry": "members.cards"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs]",
+    "entry": "member.profile_tabs"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Courses",
+    "entry": "events.find.page"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Camps/Speaker Series",
+    "entry": "events.find.page"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Meets",
+    "entry": "events.find.page"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Results",
+    "entry": "results.events"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Rankings",
+    "entry": "results.rankings"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Online Store",
+    "skip": "external merchandise store, not Sport80"
+   },
+   {
+    "role": "personal",
+    "trail": "bottom > Transaction History",
+    "entry": "orders.history"
+   },
+   {
+    "role": "personal",
+    "trail": "bottom > Admin > Bulk Renewal",
+    "entry": "admin.bulk_renewal.products"
+   },
+   {
+    "role": "personal",
+    "trail": "bottom > Admin > Bulk Renewal > <Bulk Renewal params:bulk_renew_add_on_id>",
+    "entry": "admin.bulk_renewal.members"
+   },
+   {
+    "role": "personal",
+    "trail": "bottom > Sanctioning > Sanction New Course",
+    "entry": "sanction.options"
+   },
+   {
+    "role": "personal",
+    "trail": "bottom > Sanctioning > Pending Requests",
+    "entry": "sanction.requests"
+   },
+   {
+    "role": "personal",
+    "trail": "bottom > Sanctioning > Approved Requests",
+    "entry": "sanction.requests"
+   },
+   {
+    "role": "personal",
+    "trail": "bottom > Sanctioning > Declined Requests",
+    "entry": "sanction.requests"
+   },
+   {
+    "role": "personal",
+    "trail": "bottom > Setup Club",
+    "entry": "club.setup"
+   },
+   {
+    "role": "personal",
+    "trail": "account > Profile",
+    "entry": "account.profile"
+   },
+   {
+    "role": "personal",
+    "trail": "account > Settings",
+    "entry": "account.settings.access"
+   },
+   {
+    "role": "personal",
+    "trail": "account > Setup Auto Renewals",
+    "entry": "account.auto_renewal"
+   },
+   {
+    "role": "personal",
+    "trail": "account > Manage 2FA",
+    "entry": "account.security"
+   },
+   {
+    "role": "personal",
+    "trail": "account > Change Password",
+    "entry": "account.security"
+   },
+   {
+    "role": "personal",
+    "trail": "account > Logout",
+    "entry": "account.logout"
+   },
+   {
+    "role": "club",
+    "trail": "top > Account [profile tabs]",
+    "entry": "club.profile_tabs"
+   },
+   {
+    "role": "club",
+    "trail": "top > Account [profile tabs] > Profile",
+    "entry": "club.profile"
+   },
+   {
+    "role": "club",
+    "trail": "top > Account [profile tabs] > Memberships",
+    "entry": "club.memberships"
+   },
+   {
+    "role": "club",
+    "trail": "top > Account [profile tabs] > Coaches Insurance",
+    "entry": "club.coaches_insurance"
+   },
+   {
+    "role": "club",
+    "trail": "top > Account [profile tabs] > Addresses",
+    "entry": "club.addresses"
+   },
+   {
+    "role": "club",
+    "trail": "top > Account [profile tabs] > Communication Preferences",
+    "entry": "club.comm_prefs"
+   },
+   {
+    "role": "club",
+    "trail": "top > Account [profile tabs] > Notes",
+    "entry": "club.notes"
+   },
+   {
+    "role": "club",
+    "trail": "top > Members > Quick Search",
+    "entry": "members.quick_search"
+   },
+   {
+    "role": "club",
+    "trail": "top > Members > Smart List",
+    "entry": "members.smart_list.config"
+   },
+   {
+    "role": "club",
+    "trail": "top > Members > Smart List (list)",
+    "entry": "members.smart_list.config"
+   },
+   {
+    "role": "club",
+    "trail": "top > Members > Smart List [profile tabs]",
+    "entry": "member.profile_tabs"
+   },
+   {
+    "role": "club",
+    "trail": "top > Members > List",
+    "entry": "members.legacy_list"
+   },
+   {
+    "role": "club",
+    "trail": "top > Members > Add New",
+    "entry": "members.add"
+   },
+   {
+    "role": "club",
+    "trail": "top > Members > Member Charts",
+    "entry": "members.charts"
+   },
+   {
+    "role": "club",
+    "trail": "top > Members > Member Charts > Individual Membership",
+    "entry": "members.charts.draw"
+   },
+   {
+    "role": "club",
+    "trail": "top > Courses",
+    "entry": "events.find.page"
+   },
+   {
+    "role": "club",
+    "trail": "top > Camps/Speaker Series",
+    "entry": "events.find.page"
+   },
+   {
+    "role": "club",
+    "trail": "top > Meets",
+    "entry": "events.find.page"
+   },
+   {
+    "role": "club",
+    "trail": "top > Results",
+    "entry": "results.events"
+   },
+   {
+    "role": "club",
+    "trail": "top > Rankings",
+    "entry": "results.rankings"
+   },
+   {
+    "role": "club",
+    "trail": "top > Meet Results Template",
+    "entry": "results.template"
+   },
+   {
+    "role": "club",
+    "trail": "top > Online Store",
+    "skip": "external merchandise store, not Sport80"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Transaction History",
+    "entry": "orders.history"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Admin > Bulk Renewal",
+    "entry": "admin.bulk_renewal.products"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Admin > Bulk Renewal > <Bulk Renewal params:bulk_renew_add_on_id>",
+    "entry": "admin.bulk_renewal.members"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Queued Reports",
+    "entry": "admin.reports.queued"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Validation",
+    "entry": "admin.validation"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Sanctioning > Sanction New Course",
+    "entry": "sanction.options"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Sanctioning > Sanction New Camps/Speaker Series",
+    "entry": "sanction.options"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Sanctioning > Sanction New Meet",
+    "entry": "sanction.options"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Sanctioning > Pending Requests",
+    "entry": "sanction.requests"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Sanctioning > Approved Requests",
+    "entry": "sanction.requests"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Sanctioning > Declined Requests",
+    "entry": "sanction.requests"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Events Admin > Courses",
+    "entry": "events.admin.list"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Events Admin > Courses > <Course Admin Panel params:eid>",
+    "entry": "events.admin.panel"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Events Admin > Courses > <Course Merchandise Categories params:eid>",
+    "entry": "events.admin.merchandise"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Events Admin > Courses > <Course Entry Categories params:eid+id_entry>",
+    "entry": "events.admin.entry_categories"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Events Admin > Courses > <Course Entries params:eid>",
+    "entry": "events.admin.entries"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Events Admin > Camps/Speaker Series",
+    "entry": "events.admin.list"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Events Admin > Meets",
+    "entry": "events.admin.list"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Finance Admin > Revenue Report",
+    "entry": "finance.revenue_report"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Finance Admin > Stripe",
+    "entry": "finance.stripe.merchants"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Finance Admin > Stripe > <Stripe params:id_merchant>",
+    "entry": "finance.stripe.merchant"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Finance Admin > Stripe Disputes",
+    "entry": "finance.stripe.disputes"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Finance Admin > Invoice",
+    "entry": "finance.invoice.merchants"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Finance Admin > Invoice > <Invoice params:id_merchant>",
+    "entry": "finance.invoice.merchant"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Finance Admin > Chart Of Accounts",
+    "entry": "finance.chart_of_accounts"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Finance Admin > Chart Of Accounts > <Discount Code Eligible Organisations params:id>",
+    "entry": "finance.chart_of_accounts.discount_orgs"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Finance Admin > Chart Of Class Codes",
+    "entry": "finance.class_codes"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Finance Admin > Discount Codes",
+    "entry": "finance.discount_codes"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Finance Admin > Discount Code Tags",
+    "entry": "finance.discount_code_tags"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Affiliations > Blocks",
+    "entry": "affiliation.blocks"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Affiliations > Affiliations",
+    "entry": "affiliation.affiliations"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Transfers",
+    "entry": "affiliation.transfers"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Transfers > Active Transfers",
+    "entry": "affiliation.transfers.active"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Transfers > Historic Transfers",
+    "entry": "affiliation.transfers.historic"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Pre-Screening Approvals",
+    "entry": "affiliation.pre_screening"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Bulk Upload Admin",
+    "entry": "admin.bulk_upload"
+   },
+   {
+    "role": "club",
+    "trail": "account > Profile",
+    "entry": "account.profile"
+   },
+   {
+    "role": "club",
+    "trail": "account > Settings",
+    "entry": "account.settings.access"
+   },
+   {
+    "role": "club",
+    "trail": "account > Setup Auto Renewals",
+    "entry": "account.auto_renewal"
+   },
+   {
+    "role": "club",
+    "trail": "account > Manage 2FA",
+    "entry": "account.security"
+   },
+   {
+    "role": "club",
+    "trail": "account > Change Password",
+    "entry": "account.security"
+   },
+   {
+    "role": "club",
+    "trail": "account > Logout",
+    "entry": "account.logout"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs] > Profile",
+    "entry": "member.profile"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs] > Results & Rankings > Results",
+    "entry": "member.results"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs] > Results & Rankings > Rankings",
+    "entry": "member.rankings"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs] > Roles",
+    "entry": "member.roles"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs] > Memberships",
+    "entry": "member.memberships"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs] > Background Screening",
+    "entry": "member.background_screening"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs] > Center for SafeSport Training",
+    "entry": "member.safesport"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs] > Certifications",
+    "entry": "member.certifications"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs] > Collegiate Eligibility",
+    "entry": "member.collegiate_eligibility"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs] > Coaches Insurance",
+    "entry": "member.coaches_insurance"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs] > Partner Memberships",
+    "entry": "member.partner_memberships"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs] > Access USAW Learning Academy",
+    "entry": "member.learning_academy.access"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs] > USAW Learning Academy Results",
+    "entry": "member.learning_academy.results"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs] > Addresses",
+    "entry": "member.addresses"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs] > Entries",
+    "entry": "member.entries"
+   },
+   {
+    "role": "personal",
+    "trail": "top > Members [profile tabs] > Communication Preferences",
+    "entry": "member.comm_prefs"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Events Admin > Camps/Speaker Series > <Camps/Speaker Series Admin Panel params:eid>",
+    "entry": "events.admin.panel"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Events Admin > Camps/Speaker Series > <Camps/Speaker Series Merchandise Categories params:eid>",
+    "entry": "events.admin.merchandise"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Events Admin > Camps/Speaker Series > <Camps/Speaker Series Entry Categories params:eid+id_entry>",
+    "entry": "events.admin.entry_categories"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Events Admin > Camps/Speaker Series > <Camps/Speaker Series Entries params:eid>",
+    "entry": "events.admin.entries"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Events Admin > Meets > <Meet Admin Panel params:eid>",
+    "entry": "events.admin.panel"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Events Admin > Meets > <Meet Merchandise Categories params:eid>",
+    "entry": "events.admin.merchandise"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Events Admin > Meets > <Meet Entry Categories params:eid+id_entry>",
+    "entry": "events.admin.entry_categories"
+   },
+   {
+    "role": "club",
+    "trail": "bottom > Events Admin > Meets > <Meet Entries params:eid>",
+    "entry": "events.admin.entries"
+   }
+  ],
+  "pages": [
+   {
+    "component": "AddOn/PostAddOptions",
+    "surface": "flow",
+    "entries": [
+     "member.add_on"
+    ]
+   },
+   {
+    "component": "AddOnCategory/AddOnCategorySelectPage",
+    "surface": "flow",
+    "entries": [
+     "member.add_on"
+    ]
+   },
+   {
+    "component": "Body/SetupBodyPage",
+    "surface": "flow",
+    "entries": [
+     "club.setup"
+    ]
+   },
+   {
+    "component": "Checkout/AdditionalItemsPage",
+    "surface": "flow",
+    "entries": [
+     "orders.checkout"
+    ]
+   },
+   {
+    "component": "Checkout/CartPage",
+    "surface": "flow",
+    "entries": [
+     "orders.checkout"
+    ]
+   },
+   {
+    "component": "Checkout/CheckoutPage",
+    "surface": "flow",
+    "entries": [
+     "orders.checkout"
+    ]
+   },
+   {
+    "component": "Checkout/OrderConfirmationPage",
+    "surface": "flow",
+    "entries": [
+     "orders.checkout"
+    ]
+   },
+   {
+    "component": "Checkout/PaymentPage",
+    "surface": "flow",
+    "entries": [
+     "orders.checkout"
+    ]
+   },
+   {
+    "component": "Checkout/ProtectionCoverPage",
+    "surface": "flow",
+    "entries": [
+     "orders.checkout"
+    ]
+   },
+   {
+    "component": "Checkout/ShippingPage",
+    "surface": "flow",
+    "entries": [
+     "orders.checkout"
+    ]
+   },
+   {
+    "component": "Competitor/CompetitorProfileFormPage",
+    "surface": "flow",
+    "entries": [
+     "member.edit_profile"
+    ]
+   },
+   {
+    "component": "Competitor/CompetitorProfilePage",
+    "surface": "reachable",
+    "entries": [
+     "member.profile"
+    ]
+   },
+   {
+    "component": "Contact/AjaxAddOnFormPage",
+    "surface": "flow",
+    "entries": [
+     "member.add_on"
+    ]
+   },
+   {
+    "component": "Dashboard/UserDashboardPage",
+    "surface": "reachable",
+    "entries": [
+     "dashboard.home"
+    ]
+   },
+   {
+    "component": "Donation/NewDonationPage",
+    "surface": "flow",
+    "entries": [
+     "orders.donation"
+    ]
+   },
+   {
+    "component": "EventAdmin/AddCompetitorInvitesPage",
+    "surface": "flow",
+    "entries": [
+     "events.admin.invites"
+    ]
+   },
+   {
+    "component": "EventAdmin/BodyInviteesPage",
+    "surface": "flow",
+    "entries": [
+     "events.admin.invites"
+    ]
+   },
+   {
+    "component": "EventAdmin/PreviewEntryFormPage",
+    "surface": "flow",
+    "entries": [
+     "events.admin.entry_preview"
+    ]
+   },
+   {
+    "component": "EventLocator/FindEventsPage",
+    "surface": "reachable",
+    "entries": [
+     "events.find.page"
+    ]
+   },
+   {
+    "component": "EventLocator/MyEventsPage",
+    "surface": "unmapped",
+    "reason": "no menu or link found; the route is not known"
+   },
+   {
+    "component": "Generic/ActionCardPage",
+    "surface": "renderer",
+    "entries": [
+     "members.add",
+     "sanction.options"
+    ]
+   },
+   {
+    "component": "Generic/AjaxContainerPage",
+    "surface": "renderer",
+    "reason": "generic container for legacy fragments"
+   },
+   {
+    "component": "Generic/CustomFormPage",
+    "surface": "renderer",
+    "reason": "generic form renderer"
+   },
+   {
+    "component": "Generic/DatatablePage",
+    "surface": "renderer",
+    "entries": [
+     "orders.history",
+     "finance.discount_codes"
+    ]
+   },
+   {
+    "component": "Generic/GenericDatatablePage",
+    "surface": "renderer",
+    "reason": "generic table renderer"
+   },
+   {
+    "component": "Generic/SymfonyFormPage",
+    "surface": "renderer",
+    "entries": [
+     "finance.revenue_report"
+    ]
+   },
+   {
+    "component": "Generic/SymfonyFormPageCopyUrl",
+    "surface": "renderer",
+    "reason": "generic form renderer"
+   },
+   {
+    "component": "Generic/SymfonyFormPageWithDescription",
+    "surface": "renderer",
+    "entries": [
+     "member.comm_prefs",
+     "club.comm_prefs"
+    ]
+   },
+   {
+    "component": "Generic/TabViewAjaxContainerPage",
+    "surface": "renderer",
+    "reason": "generic tab renderer"
+   },
+   {
+    "component": "Generic/TabViewCustomFormPage",
+    "surface": "renderer",
+    "reason": "generic tab renderer"
+   },
+   {
+    "component": "Generic/TabViewDatatablePage",
+    "surface": "renderer",
+    "entries": [
+     "account.settings.access"
+    ]
+   },
+   {
+    "component": "Generic/TabViewMessagePage",
+    "surface": "renderer",
+    "reason": "generic tab renderer"
+   },
+   {
+    "component": "Generic/TabViewSymfonyFormPage",
+    "surface": "renderer",
+    "reason": "generic tab renderer"
+   },
+   {
+    "component": "Internal/ApiToken/Form",
+    "surface": "out-of-scope",
+    "reason": "Sport80 staff page referenced in the bundle; in no role menu; not probed"
+   },
+   {
+    "component": "Internal/ApiToken/Index",
+    "surface": "out-of-scope",
+    "reason": "Sport80 staff page referenced in the bundle; in no role menu; not probed"
+   },
+   {
+    "component": "Internal/CronJobBlock/CronJobBlockList",
+    "surface": "out-of-scope",
+    "reason": "Sport80 staff page referenced in the bundle; in no role menu; not probed"
+   },
+   {
+    "component": "Public/EventLocator/FindEventsPage",
+    "surface": "reachable",
+    "entries": [
+     "events.public.search"
+    ]
+   },
+   {
+    "component": "Public/EventLocator/ViewEventPage",
+    "surface": "unmapped",
+    "reason": "public event detail page; its data endpoint was not exercised"
+   },
+   {
+    "component": "Public/EventWizard/AdditionalItemsPage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/EventWizard/AthleteSelectPage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/EventWizard/CheckoutPage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/EventWizard/CompleteProfilePage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/EventWizard/CreateAthletePage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/EventWizard/EntryDetailsPage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/EventWizard/EntrySummaryPage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/EventWizard/EventProtectionPage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/EventWizard/EventWizardAjaxAddOnFormPage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/EventWizard/FindAthletePage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/EventWizard/FindAthleteResultPage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/EventWizard/HomePage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/EventWizard/OrderConfirmationPage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/EventWizard/OrderSummaryPage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/EventWizard/PaymentMethodPage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/EventWizard/PaymentPage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/EventWizard/ShippingPage",
+    "surface": "flow",
+    "entries": [
+     "events.enter"
+    ]
+   },
+   {
+    "component": "Public/ResultsAndRankings/AthleteLicencePage",
+    "surface": "unmapped",
+    "reason": "public athlete page; data endpoint not exercised"
+   },
+   {
+    "component": "Public/ResultsAndRankings/AthleteProfilePage",
+    "surface": "unmapped",
+    "reason": "public athlete page; data endpoint not exercised"
+   },
+   {
+    "component": "Public/ResultsAndRankings/AthleteRankingAuditPage",
+    "surface": "unmapped",
+    "reason": "public athlete page; data endpoint not exercised"
+   },
+   {
+    "component": "Public/ResultsAndRankings/AthleteResultsPage",
+    "surface": "reachable",
+    "entries": [
+     "results.athlete",
+     "member.results"
+    ]
+   },
+   {
+    "component": "Public/ResultsAndRankings/EventResultsPage",
+    "surface": "reachable",
+    "entries": [
+     "results.event"
+    ]
+   },
+   {
+    "component": "Public/ResultsAndRankings/HeadToHeadPage",
+    "surface": "unmapped",
+    "reason": "public athlete comparison; data endpoint not exercised"
+   },
+   {
+    "component": "Public/ResultsAndRankings/RankingsPage",
+    "surface": "reachable",
+    "entries": [
+     "results.rankings"
+    ]
+   },
+   {
+    "component": "Public/ResultsAndRankings/ResultsPage",
+    "surface": "reachable",
+    "entries": [
+     "results.events"
+    ]
+   },
+   {
+    "component": "Public/ResultsAndRankings/RivalsAndPreyPage",
+    "surface": "unmapped",
+    "reason": "public athlete comparison; data endpoint not exercised"
+   },
+   {
+    "component": "ResourceCenter/ResourceCategoryPage",
+    "surface": "unmapped",
+    "reason": "resource center; no menu or link found; route not known"
+   },
+   {
+    "component": "ResourceCenter/ResourceHomePage",
+    "surface": "unmapped",
+    "reason": "resource center; no menu or link found; route not known"
+   },
+   {
+    "component": "ResourceCenter/ResourcePage",
+    "surface": "unmapped",
+    "reason": "resource center; no menu or link found; route not known"
+   },
+   {
+    "component": "Sanctioning/NewSanctioningPage",
+    "surface": "flow",
+    "entries": [
+     "sanction.new"
+    ]
+   },
+   {
+    "component": "Sanctioning/Options",
+    "surface": "reachable",
+    "entries": [
+     "sanction.options"
+    ]
+   },
+   {
+    "component": "SetupAutoRenewal/BillingDetailsPage",
+    "surface": "flow",
+    "entries": [
+     "account.auto_renewal"
+    ]
+   },
+   {
+    "component": "SetupAutoRenewal/SetupAutoRenewalPage",
+    "surface": "flow",
+    "entries": [
+     "account.auto_renewal"
+    ]
+   },
+   {
+    "component": "Team/NewTeamPage",
+    "surface": "flow",
+    "entries": [
+     "events.team"
+    ]
+   },
+   {
+    "component": "Test",
+    "surface": "out-of-scope",
+    "reason": "development test page"
+   },
+   {
+    "component": "User/TwoFactorRequiredPage",
+    "surface": "flow",
+    "entries": [
+     "account.security"
+    ]
+   },
+   {
+    "component": "User/UserProfilePage",
+    "surface": "reachable",
+    "entries": [
+     "account.profile"
+    ]
+   },
+   {
+    "component": "Zendesk/ZendeskAuthPage",
+    "surface": "out-of-scope",
+    "reason": "support single sign-on hand-off"
+   }
+  ],
+  "gaps": [
+   {
+    "id": "G1",
+    "what": "Per-event admin panels, merchandise and entry categories, entries",
+    "why": "403 without an event id and the club hosts no events on the platform, so there was no id to try",
+    "entries": [
+     "events.admin.panel",
+     "events.admin.merchandise",
+     "events.admin.entry_categories",
+     "events.admin.entries"
+    ]
+   },
+   {
+    "id": "G2",
+    "what": "Smart List rows",
+    "why": "the table needs a column model in the POST body and holds the club roster; not exercised",
+    "entries": [
+     "members.smart_list"
+    ]
+   },
+   {
+    "id": "G3",
+    "what": "Bulk renewal detail, Stripe and invoice merchant detail, discount-code eligible organisations",
+    "why": "each needs a record id from a row; 500 or 403 without one",
+    "entries": [
+     "admin.bulk_renewal.members",
+     "finance.stripe.merchant",
+     "finance.invoice.merchant",
+     "finance.chart_of_accounts.discount_orgs"
+    ]
+   },
+   {
+    "id": "G4",
+    "what": "Pre-Screening Approvals",
+    "why": "HTTP 401 for the owner's club role: a permission the role lacks",
+    "entries": [
+     "affiliation.pre_screening"
+    ]
+   },
+   {
+    "id": "G5",
+    "what": "Row actions on every table except Results events (View)",
+    "why": "no rows were read from most tables, and actions arrive only with rows; none is assumed",
+    "entries": []
+   },
+   {
+    "id": "G6",
+    "what": "Every write, payment, outbound and report-generation flow",
+    "why": "none was exercised; they are guided entries with confirm text",
+    "entries": []
+   },
+   {
+    "id": "G7",
+    "what": "Public athlete profile, licence, ranking audit, head-to-head, rivals and public event detail pages; the resource center; My Events",
+    "why": "no link from any role menu and their data endpoints were not exercised",
+    "entries": []
+   },
+   {
+    "id": "G8",
+    "what": "Settings sub-tables and Rankings tab for a member",
+    "why": "their pages or tabs load but the descriptors were not fetched",
+    "entries": [
+     "account.settings.pending_requests",
+     "account.settings.sessions",
+     "account.settings.comm_prefs",
+     "member.rankings"
+    ]
+   },
+   {
+    "id": "G9",
+    "what": "Club-role member profiles and the club role's event search",
+    "why": "reading a club member would expose a person's record; the event search was loaded for the page only",
+    "entries": [
+     "member.profile_tabs",
+     "events.find"
+    ]
+   }
+  ],
+  "unknowns": [
+   "Flows started from emails and surfaces in a mobile app are not reachable from the web menus and are out of scope until someone observes them.",
+   "Roles other than the owner's personal and club roles (other clubs, a state association, staff) are discovered at run time from the role menu; their entries are candidates, not supported capabilities.",
+   "The portal's rate limits, automation detection, account flags and terms were not tested and cannot be inferred from successful requests.",
+   "The session's real idle timeout and whether the X-Keep-Session header extends it are not known."
+  ]
+ }
+}
