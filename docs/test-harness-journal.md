@@ -26,10 +26,13 @@ the card, runs `scripts/run-harness.sh`), an operator reading `report.html` or `
   exported and shipped file is in the evidence file, so a reader holding the source can check what changed.
 - Base: `origin/main` at `d4ff1a47ce89aec5ee546d1601c401850561c58f` (24 skills; release 2.35.7 and the `sport80` 0.1.1 record).
   Work happened in a new worktree and branch cut from it; the main checkout was not touched.
-- Main moved while this was being built: `a4c773afb6c6320af4b54bedf801985e097aacd9` (releases 2.35.8 and 2.35.9, two new
-  apparatus suites). It was merged into the branch, as the repository does, in `74653f0365f49464ef05f91678e7e5b44a20301b`
-  (the feature commit is `162d8b6e16433329f54a6cd953d5cb42a0891c15`); one conflict, in the suite total, resolved to core 60 and
-  total 202. This journal and the evidence file describe the tree of that merge.
+- Main moved twice while this was being built, and the other candidate landed first. First `a4c773afb6c6320af4b54bedf801985e097aacd9`
+  (releases 2.35.8 and 2.35.9, two new apparatus suites), merged into the branch, as the repository does, in
+  `74653f0365f49464ef05f91678e7e5b44a20301b`; then `03f68d93a44500aca958db74440c1483e9038e11` ("release: skill-craft 2.35.10,
+  pushpress 0.1.0": the other candidate), merged in `09297ba07cbad85b125e32baaf7cf8a2ce00987b`. The feature commit is
+  `162d8b6e16433329f54a6cd953d5cb42a0891c15`. Each merge had one conflict, in the suite counts in `test/test-groups.test.py`,
+  resolved to core 60 and total 202, then core 61 and total 203. This journal and the evidence file describe the tree of the
+  second merge.
 - Rules that bind (AGENTS.md, `changes/README.md`): a new skill's first note is `version: 0.1.0`; the suite is registered in
   `test/suite_catalog.py` and `test/suite_durations.json` and counted in `test/test-groups.test.py` as `sport80` did in
   `c1c1cf5b638e5c1bafe06820163a40951baf794b`; the registration must not assert that the pending note exists, because
@@ -190,17 +193,20 @@ machine load for each self-test run (`self_test_runs`) and every other check (`c
 | Check | Result |
 |---|---|
 | The bundled self-test, run from the worktree with `HOME` and `TMPDIR` in scratch folders, final content | 279 recorded checks, 0 failed, exit 0, 69 s at a 1-minute load of 9 |
+| The same script again from the worktree, on the second merged tree | 279, 0 failed, exit 0, 80 s at a 1-minute load of 14 |
 | The same script in a Debian 13 aarch64 container (bash 5.2, Python 3.13, git 2.47; no network; skill mounted read-only) | 279, 0 failed, exit 0, 58 s |
 | The same script, intermediate content (276 checks), under load (1-minute average 55 to 85) | 276, 0 failed, exit 0, 111 s |
-| `python3 -B test/test-harness.test.py` | 8 tests OK, exit 0, 78 s before the merge; 77 s inside the quick tier on the merged tree |
+| `python3 -B test/test-harness.test.py` | 8 tests OK, exit 0, 78 s before the merges; 77 s inside the quick tier on the first merged tree |
 | `node test/skill-frontmatter.test.js` | PASS 25 skills, exit 0 |
-| `python3 -B test/test-groups.test.py` | 61 tests OK before the merge; 64 OK on the merged tree (core 60, total 202), exit 0 |
-| `scripts/build-packages.py`, then `scripts/check-marketplace-packages.py --root` on its output | exit 0 and 0; the packaged copy of the skill is identical to the source, no symlinks |
-| `python3 -B scripts/release.py --dry-run` | exit 0: `test-harness 0.1.0 -> 0.1.0 (1 note)`; `skill-craft 2.35.7 -> 2.35.8` before the merge, `2.35.9 -> 2.35.10` on the merged tree |
-| `python3 -B scripts/check-release-boundary.py --base origin/main` on the merged tree | exit 0, OK |
-| `bash test/run-all.sh --group quick --changed-from origin/main --jobs 4` on the merged tree | exit 0: 17 suites in 249 s; this suite 77 s |
+| `python3 -B test/test-groups.test.py` | 61 tests OK before the merges; 64 OK on the first merged tree (core 60, total 202) and on the second (core 61, total 203), exit 0 |
+| `scripts/build-packages.py`, then `scripts/check-marketplace-packages.py --root` on its output | exit 0 and 0, on the first and again on the second merged tree; the packaged copy of the skill is identical to the source, no symlinks; the second package holds 26 skills |
+| `python3 -B scripts/release.py --dry-run` | exit 0: `test-harness 0.1.0 -> 0.1.0 (1 note)`; `skill-craft 2.35.7 -> 2.35.8` before the merges, `2.35.9 -> 2.35.10` on the first merged tree, `2.35.10 -> 2.35.11` on the second |
+| `python3 -B scripts/check-release-boundary.py --base origin/main` | exit 0, OK, on the first and on the second merged tree |
+| `bash test/run-all.sh --group quick --changed-from origin/main --jobs 4` on the first merged tree | exit 0: 17 suites in 249 s; this suite 77 s |
+| The same quick tier on the second merged tree | exit 0: 17 suites in 259 s; this suite 73 s |
+| `node test/skill-frontmatter.test.js` on the second merged tree | PASS 26 skills (this skill and the other one side by side), exit 0 |
 | The same quick tier before the merge | exit 1, 46 suites in 408 s, one failure: this suite's tree-unchanged assertion tripped because I deleted a stray bytecode directory while the run was going. The wrapper alone then passed; the assertion now ignores bytecode caches. |
-| Privacy gate: an external scan with a 44-entry denylist kept outside the repository, every path its own argument | 25 files, 447,517 bytes (the skill, the note, the wrapper, this journal and the evidence file; 24 files and 427,327 bytes before the evidence file existed); no email, home path, host home directory, secret shape, URL or denylisted name; two loopback addresses; vendor mentions reviewed (provider hostnames and standard environment-variable names used as redaction and live-call data, one CSS property, one document name) |
+| Privacy gate: an external scan with a 44-entry denylist kept outside the repository, every path its own argument | 25 files, about 451,000 bytes on the last run (the skill, the note, the wrapper, this journal and the evidence file; 24 files and 427,327 bytes before the evidence file existed); no email, home path, host home directory, secret shape or URL; no private name from the denylist (its `pushpress` entry, written while that skill was unreleased, matches two quotations of the public release commit subject on `main`); loopback addresses only; vendor mentions reviewed (provider hostnames and standard environment-variable names used as redaction and live-call data, one CSS property, one document name) |
 | Controls for that scan | seeded leaks in all five categories found (exit 1); an unquoted variable holding two paths in zsh is refused as one non-file argument (exit 2); no paths refused (exit 2); a clean file alone reads and passes (exit 0) |
 | Independent reads | pass 1: 25 items; pass 2: 21 of them fixed, 3 partly open, 10 new; everything real is fixed (Round 3) |
 
@@ -210,14 +216,15 @@ as the skill.
 
 ## Round 6 - the other candidate and the shared files (2026-11-08)
 
-Another candidate skill was prepared in parallel, on its own branch from the same `origin/main` (`d4ff1a47ce89aec5ee546d1601c401850561c58f`,
-still its base). Both edit `test/suite_catalog.py`, `test/suite_durations.json` and `test/test-groups.test.py`. A simulated merge
+Another candidate skill was prepared in parallel, on its own branch from the same `origin/main` (`d4ff1a47ce89aec5ee546d1601c401850561c58f`).
+It was released first (`03f68d93a44500aca958db74440c1483e9038e11`, skill-craft 2.35.10), and the conflict described below happened
+exactly as simulated when its release was merged into this branch. Both edit `test/suite_catalog.py`, `test/suite_durations.json` and `test/test-groups.test.py`. A simulated merge
 of the two (a dangling commit of this tree against the other branch's tip, `git merge-tree`, no ref touched; checked against its
 first tip `d33177a13c863a89525e12be85571d7498b6d49d` and again against its later tip `c5b48560df50c2c97911a3b7c428b5fec5f24cec`)
 merged the first two files cleanly, because the lines were placed apart, and conflicted only in `test/test-groups.test.py`,
-where both change the same two count assertions. On this branch's merged tree the counts are core 60 and total 202; the other
-candidate, once it has merged main and this branch, ends at 61 and 203. Releases are serial and each bumps the one plugin
-version: `release.py --dry-run` here reports `skill-craft 2.35.9 -> 2.35.10`, so the second release is one patch higher.
+where both change the same two count assertions. The counts on the second merged tree are core 61 and total 203. Releases are
+serial and each bumps the one plugin version: with the other candidate on `main`, `release.py --dry-run` here reports
+`skill-craft 2.35.10 -> 2.35.11`.
 
 ## Findings register
 
