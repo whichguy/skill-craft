@@ -9,7 +9,7 @@
     "note": "remote main was nineteen commits ahead (releases 2.36.0 and 2.36.1) and none touches a pushpress path"
   },
   "extractor_blob": "7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b",
-  "tests_commits": "81051962850dc49f2767a81f43be138c971eb2cc (first version), then the review fixes 695ad676f13ef71305d4d03be27fb3eb0fc7618a, 9c1930946318f94745672cf708a94fa5310b9620, d6e21bcc045c4d672b03b0121ee43e03584196df, cdfd043be38f140cf5cd3516000e9bc7036d585e, cf5f9bea84d689ca46a18c03630c2a4aa93ec5ac and, for the gap register, dc9afbad358cda1a2e19830718f62687aee09df2 its round-6 revision b89112b4bbfa340dc15455360a858f37e2e43964 its round-7 revision 5e531b22d860d1f8edc72bf8ca14ba99f5832da2 its round-8 revision 3ba9785b856673a7e362305b6cb008a15e52a48d and its round-9 revision e0719d543ea6ef518fb5d34ca5fcc1680acc7890; the fixture and property results below are from cf5f9bea",
+  "tests_commits": "81051962850dc49f2767a81f43be138c971eb2cc (first version), then the review fixes 695ad676f13ef71305d4d03be27fb3eb0fc7618a, 9c1930946318f94745672cf708a94fa5310b9620, d6e21bcc045c4d672b03b0121ee43e03584196df, cdfd043be38f140cf5cd3516000e9bc7036d585e, cf5f9bea84d689ca46a18c03630c2a4aa93ec5ac and, for the gap register, dc9afbad358cda1a2e19830718f62687aee09df2 its round-6 revision b89112b4bbfa340dc15455360a858f37e2e43964 its round-7 revision 5e531b22d860d1f8edc72bf8ca14ba99f5832da2 its round-8 revision 3ba9785b856673a7e362305b6cb008a15e52a48d its round-9 revision e0719d543ea6ef518fb5d34ca5fcc1680acc7890 and its round-10 revision 7d1ee9b6b59cc774204e93b448bf8e4cbbcb489d; the fixture and property results below are from cf5f9bea",
   "read_only_checks": {
     "ci": {
       "commit": "03f68d93a44500aca958db74440c1483e9038e11",
@@ -697,7 +697,7 @@
         ]
       },
       "detail": "property/results.json",
-      "without_a_dedicated_control": "the scrub's input-type filter (over-scrubbing only) and the order of the length limit and the text mask on label, region and sidebar link text (a number cut at the limit would leak its first digits; confirmed in rounds 7 and 8 that the reorder passes the harness, the property test, the register and the fixture without controls on label text, region text and sidebar link text, while on page link text the harness catches it; and the scrub's right word boundary is caught by the property test as over-masking: 68 violations at seed 1109); and nine single-mask removals that survive the property test (seeds 1109 and 4242), the stub harness and the whole fixture: eight found in round 5 by the journal reviewer's sweep of 38 further breaks (the person scrub skipped for link text, tabs, column headers, input labels or toggle labels (5); the case-insensitive flag removed from the Select/Edit/View/Delete/Remove/Open label mask or from the for/of mask (2); the bare-number alternative cut to exactly 10 digits (1)) and one found in round 7 (the '+8 to 15 digits' alternative of the phone mask, earlier called redundant: without it a plus followed by 8 or 9 digits leaks). The list is not exhaustive.",
+      "without_a_dedicated_control": "the scrub's input-type filter (over-scrubbing only) and the order of the length limit and the text mask on label, region and sidebar link text (a number cut at the limit would leak its first digits; confirmed in rounds 7 and 8 that the reorder passes the harness, the property test, the register and the fixture without controls on label text, region text and sidebar link text, while on page link text the harness catches it; and the scrub's right word boundary is caught by the property test as over-masking: 68 violations at seed 1109); and ten single-mask removals that survive the property test (seeds 1109 and 4242), the stub harness and the whole fixture: eight found in round 5 by the journal reviewer's sweep of 38 further breaks (the person scrub skipped for link text, tabs, column headers, input labels or toggle labels (5); the case-insensitive flag removed from the Select/Edit/View/Delete/Remove/Open label mask or from the for/of mask (2); the bare-number alternative cut to exactly 10 digits (1)) one found in round 7 (the '+8 to 15 digits' alternative of the phone mask, earlier called redundant: without it a plus followed by 8 or 9 digits leaks) and one found in round 10 (the case-insensitive flag of the Select mask in safeRow: an upper-case Select toggle label leaks its name). The list is not exhaustive.",
       "unplanted_kind_field_pairs": "found by the round-5 journal reviewer (instrumented generator, fixture pages read): names in column headers, tabs and label text; phone numbers in headings, column headers and toggle labels; emails in tabs and labels. A mask that matters only there is not pinned; the claim in H2 is limited to the planted (kind, field) pairs.",
       "over_masking_audit_note": "the audit applies the test's own copy of the scrub's word boundary to the labels the references quote; it never calls the extractor, so it is not a result of running a crude fix"
     },
@@ -786,7 +786,8 @@
         "round-6 revision": "b89112b4bbfa340dc15455360a858f37e2e43964",
         "round-7 revision": "5e531b22d860d1f8edc72bf8ca14ba99f5832da2",
         "round-8 revision": "3ba9785b856673a7e362305b6cb008a15e52a48d",
-        "round-9 revision": "e0719d543ea6ef518fb5d34ca5fcc1680acc7890"
+        "round-9 revision": "e0719d543ea6ef518fb5d34ca5fcc1680acc7890",
+        "round-10 revision": "7d1ee9b6b59cc774204e93b448bf8e4cbbcb489d"
       },
       "what": "hermetic, on the property test stub DOM, a fraction of a second; each gap plants a made-up value or a few (the parts of a name, a name and the id a link prints, or two or three values of one kind) and expects them to reach the output",
       "status_rules": "XFAIL: every planted value still reaches the output. XPASS: none does (fails the run: promote the entry). PARTIAL: some do (fails the run: split or promote). ERROR: a crash, or a malformed entry (an empty or one-character value, one value inside another, a digits value that overlaps a planted value, digits that are not 2 or more ASCII digits, an onlyIn that is not an output field, an entry that plants nothing).",
@@ -886,10 +887,10 @@
       ]
     }
   },
-  "review": "nine rounds of independent reviewers read the test code and the journal entry with this evidence (two reviewers in each of rounds 1 to 4; in round 5 a black-box audit of the extractor and a journal reviewer, whose report was integrated in round 6; in round 6 a fresh code reviewer who tried to refute the gap register; in round 7 another fresh code reviewer of the revised register and another journal reviewer; in round 8 a third of each; in round 9 a fourth of each); their material findings are fixed in the commits on this branch; two clean rounds in a row have not been reached",
+  "review": "ten rounds of independent reviewers read the test code and the journal entry with this evidence (two reviewers in each of rounds 1 to 4; in round 5 a black-box audit of the extractor and a journal reviewer, whose report was integrated in round 6; in round 6 a fresh code reviewer who tried to refute the gap register; in round 7 another fresh code reviewer of the revised register and another journal reviewer; in round 8 a third of each; in round 9 a fourth of each; in round 10 a fifth of each); their material findings are fixed in the commits on this branch; two clean rounds in a row have not been reached",
   "findings": {
     "H1": "firm",
-    "H2": "firm (synthetic pages; limited to the planted (kind, field) pairs and shapes and the protections that have a control; nine single-mask removals survive every test; the recorded gaps H3, H4 and H16 to H22 are excluded)",
+    "H2": "firm (synthetic pages; limited to the planted (kind, field) pairs and shapes and the protections that have a control; ten single-mask removals survive every test; the recorded gaps H3, H4 and H16 to H22 are excluded)",
     "H3": "firm on the synthetic page; interim for a real tenant",
     "H4": "firm on the synthetic page for p; the rest read from the code",
     "H5": "firm",
@@ -904,7 +905,7 @@
     "H14": "firm",
     "see": "docs/pushpress-journal.md Round 9",
     "H15": "firm on a stub DOM; the over-masking is not a leak (any of the four People list pages with a query string)",
-    "H16": "firm on a stub DOM; a real hole in the extractor (14 ways of writing a phone number in a label, and a number in groups of two in a button label, are not masked); passing button text through today's mask would not close the button case, only a lower drop rule or an extended mask does",
+    "H16": "firm on a stub DOM; a real hole in the extractor (14 ways of writing a phone number in a label, and a number in groups of two in a button label, are not masked); passing button text through today's mask would not close the button case, only a lower drop rule, or an extended mask together with passing button text through it, does",
     "H17": "firm on a stub DOM; a real hole by the header's own words (a name in a script other than Latin, a field value with no letter and a value of one character are never scrubbed on a person route; a date input that stores an ISO date is not matched even by the proposed fix)",
     "H18": "firm on a stub DOM (the title secret is the first part before a pipe, en dash or hyphen, scrubbed only as a whole string: an em dash, the name second, last-comma-first and the first name alone on a tab with no name field scrub nothing)",
     "H19": "firm on a stub DOM; outside what the header names (7 contact-link shapes (6 schemes and the wa.me host) keep the name as text; an email in a same-origin path reaches the output)",
@@ -915,7 +916,7 @@
   "proposed_changes_waiting_for_a_yes": [
     "P1 two hypotheses: a key rule in SKILL.md (precaution) and, separately, whether the description loads the card on a key request (test first in P8)",
     "P2 member-data decline sentence in Rule 2",
-    "P3 stop recording query keys and the fragment on a person route",
+    "P3 stop recording query keys and the fragment on a person route (cost: p no longer shows #staff-details, and two stub-harness assertions that pin it change)",
     "P4 reword the extractor header's does-not-protect list",
     "P5 hosts.md and browser-technique.md updates (the query-string claim in both files)",
     "P6 ship the counting leak check",
@@ -924,11 +925,11 @@
     "P9 decide the page-text-is-data rule after P8",
     "P10 let the repository's lint recurse through nested evidence, reading an external denylist named by an environment variable",
     "P11 test the person pattern on the path without the query suffix, keep the id pattern on path plus fragment (verified on a patched copy by the round-5 journal reviewer: the stub harness and the property test, seeds 1109 and 4242, pass; the round-9 reviewer also ran a copy through the fixture without controls, 59 of 59)",
-    "P12 mask the 14 register shapes of a phone number in a label (NFKC fold, more separators, a parenthesised area code, a glued extension, the seven-digit local form) and give button labels the same mask; it must keep dates (the harness pins the heading Report 2026-10-01); the greedy flip-check pattern is a demonstration that fails the harness, the property test and, through its expected-failure rule, the fixture",
+    "P12 mask the 14 register shapes of a phone number in a label (NFKC fold, more separators, a parenthesised area code, groups of other sizes than 3-3-4 for the international, UK and French forms, a glued extension, the seven-digit local form) and give button labels the same mask; it must keep dates (the harness pins the heading Report 2026-10-01); the greedy flip-check pattern is a demonstration that fails the harness, the property test and, through its expected-failure rule, the fixture",
     "P13 keep a field value with a letter in any script or 4 or more digits, and leave the scrub's ASCII word boundary as it is (a Unicode boundary stops scrubbing a name that touches a non-ASCII letter); the filter alone flips both entries and passes the harness, the property test and the fixture without controls",
-    "P14 use every multi-word part of the title, more separators and a comma, and consider the words of the name on their own (the separator change alone passes the harness, the property test and the fixture without controls and flips only the em-dash entry; a comma split alone does not catch last-comma-first, only a secret for each word does)",
-    "P15 treat any scheme other than http and https as a contact link, add wa.me and api.whatsapp.com, and mask an email in a path and in p (the scheme change passes the harness, the property test and the fixture without controls and flips the 7 contact entries; the path rule is untried)",
-    "P16 treat /user/<anything> as a person link, let the person test and the path mask look one segment deeper below the four People list pages (an id of 10 or more hex characters there is already masked by the id rule), mask a link whose query key names a person, and mask person links in button lists (dropping the 8-character bound in both places, the person test and the path mask, passes the harness, the property test and the fixture without controls and flips only the numeric-id entry; in the person test alone it is PARTIAL; lowering the id rule bound to 5 hex characters flips it as well)",
+    "P14 take a secret for each word of the page title (3 or more letters) and split the title also on an em dash, a middle dot, a colon and a comma; a secret per word of the whole title flips all four title entries in a register probe (not run through the other tests); narrower changes do less: the separator change flips only the em-dash entry, the last part only the name-second entry, a comma split alone nothing, a comma split with the space rule dropped the last-comma-first entry",
+    "P15 treat any scheme other than http and https as a contact link, add wa.me and api.whatsapp.com, and mask an email in a path and in p with a mask that replaces only the address (the existing one replaces the whole token) (the scheme change passes the harness, the property test and the fixture without controls and flips the 7 contact entries; the path rule is untried)",
+    "P16 treat /user/<anything> as a person link, let the person test and the path mask look one segment deeper below the four People list pages (an id of 10 or more hex characters there is already masked by the id rule), mask a link whose query key names a person, and mask person links in button lists (dropping the 8-character bound in both places, the person test and the path mask, passes the harness, the property test and the fixture without controls and flips only the numeric-id entry; in the person test alone it is PARTIAL; lowering the id rule bound to 5 hex characters in both places where it sits flips it as well)",
     "P17 state in the header and in browser-technique.md what is not masked (H16 to H22), including a number in groups of one or two digits in a button label, a one-character value, an obfuscated or full-width address and a person id below a list page or on a button link"
   ],
   "not_done": [
@@ -939,7 +940,7 @@
     "wiring any of the three new tests into CI or the unit suite",
     "pasting the extractor text as a tool parameter on the built-in browser and Chrome DevTools MCP",
     "third trials for three unstable quiz cases",
-    "running the fixture with its controls, or the property test on other seeds, on any candidate fix (the five crude fixes of the gap register went through the stub harness, the property test at seed 1109 and the fixture without controls only)"
+    "running the fixture with its controls, or the property test on other seeds, on the five crude fixes of the gap register (they went through the stub harness, the property test at seed 1109 and the fixture without controls only; the copy that implements P11 also went through seed 4242)"
   ],
   "commands": [
     "node test/fixtures/pushpress-extractor/privacy-fixture.cjs [--quick] [--no-controls] [--json <file>] [--serve [port]]",

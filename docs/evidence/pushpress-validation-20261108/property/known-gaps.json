@@ -57,7 +57,7 @@
       "fields": [
         "h"
       ],
-      "why": "the title is split only on a pipe, an en dash or a hyphen with a space each side, so with an em dash the whole title is the secret and it never equals the heading",
+      "why": "the title is split only on a pipe, an en dash or a hyphen with a space each side, so with an em dash the whole title is the secret and it never equals the heading (splitting on an em dash, or a secret for each word of the title, catches it)",
       "error": ""
     },
     {
@@ -70,7 +70,7 @@
       "fields": [
         "h"
       ],
-      "why": "only the part before the first separator is used, and only when it holds a space, so with \"Product | Name\" no title secret is taken",
+      "why": "only the part before the first separator is used, and here that part is the product and not the person (taking the last part, or a secret for each word of the title, catches it)",
       "error": ""
     },
     {
@@ -83,7 +83,7 @@
       "fields": [
         "h"
       ],
-      "why": "a comma is not a separator, the part before it would be one word and a title part must hold a space to be a secret, and \"Last, First\" never equals the heading \"First Last\"; only a secret for each word of the title catches it (a comma split alone does not)",
+      "why": "a comma is not a separator, the part before it would be one word and a title part must hold a space to be a secret, and \"Last, First\" never equals the heading \"First Last\"; a comma split together with dropping the space rule, or a secret for each word of the title, catches it (neither change alone does)",
       "error": ""
     },
     {
