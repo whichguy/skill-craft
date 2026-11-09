@@ -483,6 +483,20 @@ class SkillCallGateTests(GateFixture):
         self.complete_current_stage_through_actual_improve(self.parent_evidence_refs, "Second stage evidence.")
         self.assertEqual(len(self.gate_lines()), 1)
 
+    def test_an_improve_stage_is_traced_as_improve_reviewing_its_stage(self) -> None:
+        """The rows the E2E readers draw an Improve span from (run_trace, status_card._timeline): the packet line says
+        stage `improve`, the stage it reviews and the Improve action; the accepted complete moves out of `improve`."""
+        import shiploop_trace
+
+        self.invoke(CLI, "next", "--run-dir", self.run)
+        packet = [row for row in store.read_jsonl(self.run / shiploop_trace.TRACE_FILE) if row.get("kind") == "packet"][-1]
+        self.assertEqual((packet["stage"], packet["reviewed"], packet["action"]), ("improve", self.bound["stage"], self.improve))
+        self.complete()
+        done = [row for row in store.read_jsonl(self.run / shiploop_trace.TRACE_FILE)
+                if row.get("verb") == "complete" and row.get("action") == self.improve][-1]
+        self.assertEqual((done["exit"], done["stage"][0], done["cursor"][0]), (0, "improve", self.improve))
+        self.assertNotEqual(done["stage"][1], "improve")
+
     def test_a_refusal_by_a_later_gate_keeps_its_first_line_and_the_note_waits_for_the_import(self) -> None:
         # The refusal's first line is the fix (parent-return.md says so); the note must not displace it.
         notes = Path(self.completion[self.completion.index("--notes") + 1])

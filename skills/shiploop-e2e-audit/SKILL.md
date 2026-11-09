@@ -8,7 +8,7 @@ description: >-
   Google Apps Script and Salesforce game cases require an authorized test deployment and hosted
   behavior evidence.
   Includes its harness for source and marketplace installs; tests a separately selected ShipLoop.
-version: 0.7.16
+version: 0.7.17
 license: MIT
 platforms:
   - linux
@@ -123,6 +123,26 @@ Read the bundled `HARNESS/README.md`
 section **Run the audit from Grok** and the sections for the requested mode.
 For live or retained-trial review, also read `WORKFLOW-REVIEW.md` and the current
 `workflow-review-template.json`. These bundled files own commands and schemas.
+
+For an initial Plan quote, use the bundled, offline provenance CLI.
+
+```sh
+"$PYTHON" -B "$HARNESS/planning_evidence.py" capture --help
+"$PYTHON" -B "$HARNESS/planning_evidence.py" verify --help
+```
+
+Use caller-registered run, Plan, Improve and seed identities with `--phase initial`.
+Capture also needs the recorded producer revision and Git scope, plus an explicit
+external destination. It retains supported linked text from a proved automatic
+producer bind. Verify one exact locator with the separately retained manifest
+SHA-256, or one named initial `summary` or `headline` field from saved state.
+The CLI reports JSON with distinct matched, not-found, unsupported, unavailable
+and invalid outcomes. A match establishes textual presence.
+
+To include a bundle in an audit archive, place the capture directory at
+`planning-evidence/` directly under a supplied `--artifact-root` and put the
+returned manifest SHA-256 on one line in sibling `planning-evidence.sha256`.
+The walker copies the validated manifest and referenced sidecars as a unit.
 
 ShipLoop and Improve are **separate dependencies**, never private copies inside
 this audit package. For mock/apparatus checks, resolve an explicit `skill-root` or

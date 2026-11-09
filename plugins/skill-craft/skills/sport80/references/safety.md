@@ -45,6 +45,7 @@ request ("sort out the club's renewals") does not authorise a specific purchase 
 - Create or change a person's record, buy, renew, register, sanction, email or export without the owner's yes for that act.
 - Call a write or payment endpoint directly from a script.
 - Read a member's record the owner did not ask about, or widen a lookup to scan a roster.
+- Open the Archive Member tab, press Add Note, or press any other button inside a member's record without the owner's yes for that act.
 
 ## Personal data (including minors)
 

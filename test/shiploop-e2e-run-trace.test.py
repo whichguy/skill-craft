@@ -407,6 +407,15 @@ class TracedRun(unittest.TestCase):
         self.assertEqual(found["crashed"], 1)
         self.assertNotIn("held for N1", [mark["text"] for mark in card["marks"]])
 
+    def test_a_trace_at_its_size_cap_does_not_cover_the_run(self):
+        """A capped trace stopped growing, so whatever came after is missing: the harness keeps its stream source."""
+        size = (self.run_dir / shiploop_trace.TRACE_FILE).stat().st_size
+        with mock.patch.object(shiploop_trace, "TRACE_LIMIT", size):
+            traced = run_trace.read(self.run_dir)
+        self.assertFalse(run_trace.covers(traced))
+        self.assertIn("size cap", run_trace.why_not(traced))
+        self.assertTrue(run_trace.covers(run_trace.read(self.run_dir)))
+
     def test_a_kept_copy_holding_a_carriage_return_matches_its_hash(self):
         with tempfile.TemporaryDirectory(prefix="shiploop-e2e-run-trace-cr-") as temp:
             _out, run = fresh_traced_run(Path(temp))

@@ -332,6 +332,12 @@ def cmd_js(a):
         if k not in allowed:
             say(f"sport80: {a.id} has no parameter {k!r}; it takes: {', '.join(sorted(allowed)) or 'none'}")
             return 2
+    if role == "club":
+        for p in e.get("params", []):
+            if p.get("default") == "role.cid" and p["name"] not in params:
+                say(f"sport80: {a.id} with a club role needs --param {p['name']}=<{p.get('identity', 'record id')}>: its default would be the club's own contact id, not a member's. "
+                    "Find a member's id with members.quick_search, and read a record only after the owner names the member.")
+                return 2
     filters = split_kv(a.filter, "--filter")
     fields = [x for x in (a.fields or "").split(",") if x]
     pick = [x for x in (a.pick or "").split(",") if x]

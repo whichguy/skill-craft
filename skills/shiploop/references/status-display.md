@@ -164,7 +164,7 @@ splits lines at `\n` only) with `v` (1), `ts` (epoch seconds), `at` (UTC) and
 
 | `kind` | Fields |
 |---|---|
-| `command` | `verb`, `action` (its `--action`), `exit`, `ms`, `rev`, `stage` and `cursor` (each `[before, after]`), `status`; `accepted` (`action`, `stage`, `item`, `outcome` per step it accepted), `error` (refusal text, cut at 4,000 characters), `note` (the owner note a `note` command wrote), `held` (notes a held callback printed), `delivered` (notes the step delivered), `crashed` (the exception that ended the command before it answered: `KeyboardInterrupt` for an interrupt, exit 130; any other, exit 1) |
+| `command` | `verb`, `action` (its `--action`), `exit`, `ms`, `rev`, `stage` and `cursor` (each `[before, after]`), `status`; `accepted` (`action`, `stage`, `item`, `outcome` per step it accepted), `error` (refusal text, cut at 4,000 characters), `note` (the owner note a `note` command wrote), `held` (notes a held callback printed), `shown` (notes a `shiploop check` printed in place of that hold), `delivered` (notes the step delivered), `crashed` (the exception that ended the command before it answered: `KeyboardInterrupt` for an interrupt, exit 130; any other, exit 1) |
 | `packet` | `action`, `stage`, `item`, `reviewed` (at an Improve stage, the stage it reviews), `status`, `rev`, `chars`, `printed`, `whole`, `sha`, `file` and `head_file` (the kept copies), `notes` (owner notes it quoted whole) |
 | `hook` | `hook` (`stop` or `session-end`), `host`, `session`, `decision`, `why`, `text` (what a stop decision put into the turn); a session end adds `released` and the host's `reason` |
 

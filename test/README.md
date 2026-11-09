@@ -387,6 +387,94 @@ bash test/run-integration.sh cursor-imports
 
 Do not put secret values in commands, CI configuration, output, or fixtures.
 
+## Recorded Plan comparisons
+
+For a planning-only slice, request `--stop-after plan` and start before Plan,
+for example with `--seed-at test-strategy`. A new slice records
+`planning_boundary` and `planning_evidence` in `slice-result.json`. Its
+legacy grade still checks the accepted-stage history. The comparison adapter
+checks the recorded host and engine boundary separately.
+
+| Recorded boundary | Comparison admission |
+| --- | --- |
+| `established` | Check the specified initial quote for the registered Plan. |
+| `overshoot` | Refuse when later work is observed, even at the same rounded timestamp. |
+| `incomplete` | Refuse when a callback, launch, trace, or other required evidence is missing or ambiguous. |
+
+Exact boundary proof supports the repository's normalized Codex stream and the
+recorded ShipLoop and Until Loop callback forms. The accepting callback can
+emit the Prepare packet. A later tool call counts as overshoot. The receipt
+covers recorded work and gives no OS fence. Corrected tool ownership is a
+repository metric. Wall time, turns, context, and tokens keep their existing
+measurement windows.
+
+Run the adapter after the subject stops. Use the original absolute recording,
+run, and installed CLI paths. Put `run_id`, `plan_action`, `improve_action`,
+`producer_revision` (the revision entering Improve), `seed_sha256`, `repo`,
+`repo_prefix` and `phase: "initial"` in the caller's registration JSON. Use
+the registered run's saved state and trace or the slice's independently derived
+`planning_evidence.expected` record. The repository prefix is relative to the
+Git toplevel, or `.` for the entire checkout. Keep the manifest hash from the
+capture receipt separately.
+
+```sh
+python3 -B test/shiploop_e2e/planning_comparison.py \
+  --recording "$recording" --run-dir "$run_dir" --cli "$installed_shiploop" \
+  --expected "$registration" --output "$new_receipt_dir" \
+  --locator "$declared_locator" --quote "$quote"
+```
+
+This writes `planning-comparison.json` and, for a fresh linked capture, a
+portable bundle. To use a previously captured bundle, add
+`--bundle-dir "$bundle" --manifest-sha256 "$manifest_sha256"`. To check an
+initial result field, use `--field summary` or `--field headline` in place of
+`--locator` and omit the bundle flags. The Python entry point is
+`planning_comparison.evaluate(recording, run_dir, cli, expected=..., output=...,
+quote=..., field=...)` or the same call with `locator=...`. Use a new output
+directory under an existing parent, outside the source recording, run, and
+checkout. Exit 0 means an established stop and a matched quote, 1 means
+refused with a receipt, and 2 means invalid invocation or destination. For a
+historical replay, use this read-only route and keep the original grades.
+
+### Portable audit evidence
+
+Bind `HARNESS` to the selected audit package's bundled `harness/` directory.
+The installed command can collect and verify independently of the repository
+adapter. Set `artifact_root` to a caller-owned directory outside the run and
+Git checkout. The linked receipt retains raw Git blob content from an
+established automatic producer bind. Missing objects, uncertain or replaced
+bindings, and unsupported locators leave explicit evidence gaps.
+
+```sh
+python3 -B "$HARNESS/planning_evidence.py" capture \
+  --run-dir "$run_dir" --output-dir "$artifact_root/planning-evidence" \
+  --run-id "$run_id" --plan-action "$plan_action" --improve-action "$improve_action" \
+  --phase initial --producer-revision "$producer_revision" --seed-sha256 "$seed_sha256" \
+  --repo "$repo" --repo-prefix "$repo_prefix"
+
+# Use manifest_sha256 from the successful capture response, retained by the caller.
+(set -C; printf '%s\n' "$manifest_sha256" > "$artifact_root/planning-evidence.sha256")
+
+python3 -B "$HARNESS/planning_evidence.py" verify \
+  --bundle-dir "$bundle" --manifest-sha256 "$manifest_sha256" \
+  --run-id "$run_id" --plan-action "$plan_action" --improve-action "$improve_action" \
+  --phase initial --producer-revision "$producer_revision" --seed-sha256 "$seed_sha256" \
+  --repo "$repo" --repo-prefix "$repo_prefix" --locator "$declared_locator" --quote "$quote"
+```
+
+Pass the directory holding the bundle and pin as an explicit audit
+`--artifact-root`. The archive's `planning-evidence` row points to
+`planning-evidence/<manifest-sha256>/planning-evidence.json`. Use its parent
+as `bundle` for offline verification after the original run and Git objects
+are gone. Only manifest-referenced sidecars travel with the bundle. The
+sanitizer can refuse a bundle to preserve the captured bytes. A locator
+selects one declared blob, with any anchor or line suffix retained as part of
+its identity. The verifier folds whitespace in the selected text and quote.
+A match establishes textual presence. Use `verify --help` for the named-field
+form, which reads the retained state and needs no Git snapshot. Installed CLI
+exit codes are 0 for captured or matched, 1 for not-found, 2 for invalid, 3
+for unsupported, and 4 for unavailable.
+
 ## Evidence boundaries and CI
 
 Self-contained mocked install tests establish installer behavior only. They
