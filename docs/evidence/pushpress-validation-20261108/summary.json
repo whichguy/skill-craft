@@ -9,7 +9,7 @@
     "note": "remote main was nineteen commits ahead (releases 2.36.0 and 2.36.1) and none touches a pushpress path"
   },
   "extractor_blob": "7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b",
-  "tests_commits": "81051962850dc49f2767a81f43be138c971eb2cc (first version), then the review fixes 695ad676f13ef71305d4d03be27fb3eb0fc7618a, 9c1930946318f94745672cf708a94fa5310b9620, d6e21bcc045c4d672b03b0121ee43e03584196df, cdfd043be38f140cf5cd3516000e9bc7036d585e and cf5f9bea84d689ca46a18c03630c2a4aa93ec5ac; the results below are from the last",
+  "tests_commits": "81051962850dc49f2767a81f43be138c971eb2cc (first version), then the review fixes 695ad676f13ef71305d4d03be27fb3eb0fc7618a, 9c1930946318f94745672cf708a94fa5310b9620, d6e21bcc045c4d672b03b0121ee43e03584196df, cdfd043be38f140cf5cd3516000e9bc7036d585e, cf5f9bea84d689ca46a18c03630c2a4aa93ec5ac and, for the gap register, dc9afbad358cda1a2e19830718f62687aee09df2; the fixture and property results below are from cf5f9bea",
   "read_only_checks": {
     "ci": {
       "commit": "03f68d93a44500aca958db74440c1483e9038e11",
@@ -776,12 +776,75 @@
       "property_tested": 53,
       "source": "test/fixtures/pushpress-extractor/mutations.cjs",
       "note": "each break names what it must cause; a run error or crash is never a catch"
+    },
+    "known_gaps_register": {
+      "file": "test/pushpress-extractor-known-gaps.js",
+      "commit": "dc9afbad358cda1a2e19830718f62687aee09df2",
+      "what": "hermetic, on the property test stub DOM, about a second; each gap plants one made-up value and expects it to reach the output (XFAIL), a gap that stops leaking is XPASS and fails the run",
+      "entries": {
+        "gaps": 34,
+        "by_severity": {
+          "material": 29,
+          "low": 5
+        },
+        "controls": 11,
+        "positive_controls": 2,
+        "masked_shape_controls": 9
+      },
+      "statuses": {
+        "XFAIL": 34,
+        "PASS": 11
+      },
+      "groups": {
+        "phone shapes (H16)": 13,
+        "non-Latin name and letterless field values (H17)": 2,
+        "title shapes and a second person in plain text (H3, H18)": 4,
+        "contact schemes (H19)": 5,
+        "email in a path (H19)": 1,
+        "person links in other shapes (H20)": 3,
+        "identifier-like strings and addresses in text (H21)": 5,
+        "owner first name alone with no fields (H18)": 1
+      },
+      "flip_check": {
+        "mode": "--flip-check",
+        "fixes": 5,
+        "results": [
+          {
+            "fix": "phone pattern",
+            "flips": 13
+          },
+          {
+            "fix": "scrub for any script and digits",
+            "flips": 2
+          },
+          {
+            "fix": "contact schemes",
+            "flips": 5
+          },
+          {
+            "fix": "title separators",
+            "flips": 1
+          },
+          {
+            "fix": "person id length",
+            "flips": 1
+          }
+        ],
+        "controls_broken": 0,
+        "limit": "proves a fix is noticed, not that it is safe: the fixture and the property test were not run on the copies"
+      },
+      "detail": [
+        "property/known-gaps.json",
+        "property/known-gaps-flip-check.json"
+      ],
+      "found_by": "a black-box audit of the extractor in review round 5 (an independent leak oracle and a corpus of shapes the contract does not name), each entry reproduced through the extractor before it was kept",
+      "checker_fault_found_and_fixed": "full-width digits are not \\d in JavaScript, so the first run showed one XPASS that was the harness; the output is now folded with NFKC and two positive controls guard the same failure"
     }
   },
-  "review": "four rounds of two independent reviewers read the test code and the journal entry with this evidence; their material findings are fixed in the commits on this branch",
+  "review": "five rounds of independent reviewers read the test code and the journal entry with this evidence (two reviewers in each of rounds 1 to 4; in round 5 a code reviewer who audited the extractor itself and a journal reviewer); their material findings are fixed in the commits on this branch",
   "findings": {
     "H1": "firm",
-    "H2": "firm (synthetic pages; limited to the shapes planted and the protections that have a control; the recorded gaps are excluded)",
+    "H2": "firm (synthetic pages; limited to the shapes planted and the protections that have a control; the recorded gaps H3, H4 and H16 to H21 are excluded)",
     "H3": "firm on the synthetic page; interim for a real tenant",
     "H4": "firm on the synthetic page for p; the rest read from the code",
     "H5": "firm",
@@ -796,7 +859,12 @@
     "H14": "firm",
     "see": "docs/pushpress-journal.md Round 9",
     "H15": "firm on a stub DOM; the over-masking is not a leak",
-    "H16": "firm on a stub DOM; a real hole in the extractor (phone numbers typed without a separator after the closing parenthesis, with a slash, or with international spacing are not masked)"
+    "H16": "firm on a stub DOM; a real hole in the extractor (13 ways of writing a phone number are not masked, among them no separator after the closing parenthesis, a slash, an en dash, underscores, a glued extension, a seven-digit local number, international and full-width forms)",
+    "H17": "firm on a stub DOM; a real hole by the header's own words (a name in a script other than Latin, and a field value with no letter, are never scrubbed on a person route)",
+    "H18": "firm on a stub DOM (the title secret is the first part before a pipe, en dash or hyphen, scrubbed only as a whole string: an em dash, the name second, last-comma-first and the first name alone on a tab with no name field scrub nothing)",
+    "H19": "firm on a stub DOM; outside what the header names (links on whatsapp, callto, facetime, skype and wa.me keep the name as text; an email in a same-origin path reaches the output)",
+    "H20": "firm on a stub DOM; the first shape contradicts the header (a person link with a short or numeric id, with the id in a query, or on a role=button keeps the name)",
+    "H21": "firm on a stub DOM; lower severity, outside the contract (a UUID, a processor id, an invoice number, card digits and a street address in text are not masked)"
   },
   "proposed_changes_waiting_for_a_yes": [
     "P1 two hypotheses: a key rule in SKILL.md (precaution) and, separately, whether the description loads the card on a key request (test first in P8)",
@@ -810,22 +878,29 @@
     "P9 decide the page-text-is-data rule after P8",
     "P10 let the repository's lint recurse through nested evidence, reading an external denylist named by an environment variable",
     "P11 test the person pattern on the path without the query suffix, keep the id pattern on path plus fragment",
-    "P12 loosen the phone pattern (a closing parenthesis directly followed by the next group, slashes, any spacing, international numbers)"
+    "P12 loosen the phone pattern to mask the 13 register shapes (NFKC fold, more separators, glued extension, seven-digit local form); the flip check's pattern flips all 13 and the other tests were not run on it",
+    "P13 keep a field value with a letter in any script or 4 or more digits, and use Unicode word boundaries in the scrub",
+    "P14 use every multi-word part of the title, more separators and a comma, and consider the words of the name on their own",
+    "P15 treat any scheme other than http and https as a contact link, add wa.me, and mask an email in a path and in p",
+    "P16 treat /user/<anything> as a person link, mask a link whose query key names a person, and mask person links in button lists",
+    "P17 state in the header and in browser-technique.md what is not masked (H16 to H21)"
   ],
   "not_done": [
     "anything on the live tenant",
     "any change to the skill",
     "sign-in and every write flow",
     "Codex, Grok, Cursor and OpenCode",
-    "wiring either new test into CI or the unit suite",
+    "wiring any of the three new tests into CI or the unit suite",
     "pasting the extractor text as a tool parameter on the built-in browser and Chrome DevTools MCP",
-    "third trials for three unstable quiz cases"
+    "third trials for three unstable quiz cases",
+    "running the fixture and the property test on any candidate fix (the flip check runs only the register, on crude fixes)"
   ],
   "commands": [
     "node test/fixtures/pushpress-extractor/privacy-fixture.cjs [--quick] [--no-controls] [--json <file>] [--serve [port]]",
     "node test/pushpress-extractor-property.js [--controls] [--json <file>]  (PP_PROPERTY_PAGES, PP_PROPERTY_SEED)",
     "python3 test/pushpress.test.py",
-    "node test/pushpress-extractor-harness.js"
+    "node test/pushpress-extractor-harness.js",
+    "node test/pushpress-extractor-known-gaps.js [--flip-check] [--json <file>]  (PP_EXTRACT=<file> tests another copy of the extractor)"
   ],
   "over_masking_probe": "fixture/list-link-query-probe.json",
   "phone_shape_probe": "fixture/phone-shape-probe.json"

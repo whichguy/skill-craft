@@ -1,0 +1,489 @@
+{
+  "recorded": "2026-11-09",
+  "extractor": "pp-extract.js",
+  "tally": {
+    "XFAIL": 34,
+    "PASS": 11
+  },
+  "entries": [
+    {
+      "id": "non-latin-name",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "h",
+        "btn"
+      ],
+      "why": "the scrub keeps only values that contain a Latin letter (A-Z)",
+      "error": ""
+    },
+    {
+      "id": "letterless-field-values",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "h",
+        "lbl"
+      ],
+      "why": "a field value with no letter (a date, a short number, a postal code) is not a secret",
+      "error": ""
+    },
+    {
+      "id": "owner-first-name-alone-with-no-fields",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "btn"
+      ],
+      "why": "with no text fields only the whole page title is a secret, so a first name on its own is not scrubbed",
+      "error": ""
+    },
+    {
+      "id": "title-with-an-em-dash-separator",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "h"
+      ],
+      "why": "the title is split only on a pipe, an en dash or a hyphen with a space each side, so with an em dash the whole title is the secret and it never equals the heading",
+      "error": ""
+    },
+    {
+      "id": "title-with-the-name-second",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "h"
+      ],
+      "why": "only the part before the first separator is used, so with \"Product | Name\" the secret is the product name and the person scrubs nothing",
+      "error": ""
+    },
+    {
+      "id": "title-written-last-comma-first",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "h"
+      ],
+      "why": "a comma is not a separator and \"Last, First\" never equals the heading \"First Last\"",
+      "error": ""
+    },
+    {
+      "id": "second-person-plain-text",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "h"
+      ],
+      "why": "recorded as H3: a second person shown only as text on a person page is not a secret",
+      "error": ""
+    },
+    {
+      "id": "phone-no-space-after-parenthesis",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-seven-digits-with-space",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-slashes",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-international-spacing",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-glued-extension",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-glued-ext-word",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-seven-digit-local",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-en-dash",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-spaces-around-dash",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-underscores",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-uk-national",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-french",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "phone-full-width-digits",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "the text mask does not match this way of writing a number",
+      "error": ""
+    },
+    {
+      "id": "contact-link-whatsapp",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "a"
+      ],
+      "why": "only mailto, tel and sms links are treated as contact links, so the text (a name) is kept",
+      "error": ""
+    },
+    {
+      "id": "contact-link-callto",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "a"
+      ],
+      "why": "only mailto, tel and sms links are treated as contact links, so the text (a name) is kept",
+      "error": ""
+    },
+    {
+      "id": "contact-link-facetime",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "a"
+      ],
+      "why": "only mailto, tel and sms links are treated as contact links, so the text (a name) is kept",
+      "error": ""
+    },
+    {
+      "id": "contact-link-skype",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "a"
+      ],
+      "why": "only mailto, tel and sms links are treated as contact links, so the text (a name) is kept",
+      "error": ""
+    },
+    {
+      "id": "contact-link-https-wa-me",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "a"
+      ],
+      "why": "only mailto, tel and sms links are treated as contact links, so the text (a name) is kept",
+      "error": ""
+    },
+    {
+      "id": "email-in-a-same-origin-path",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "a"
+      ],
+      "why": "an email in a path segment is not masked (the text mask runs on text, not on paths)",
+      "error": ""
+    },
+    {
+      "id": "person-link-with-numeric-id",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "a"
+      ],
+      "why": "the person-route test needs 8 or more characters after /user/ or /people/",
+      "error": ""
+    },
+    {
+      "id": "person-id-in-a-query",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "a"
+      ],
+      "why": "only the path is tested for a person id",
+      "error": ""
+    },
+    {
+      "id": "person-link-that-is-a-role-button",
+      "kind": "gap",
+      "severity": "material",
+      "status": "XFAIL",
+      "fields": [
+        "btn"
+      ],
+      "why": "the link is masked in the link list but its text is also a button label, which the person-link mask does not see",
+      "error": ""
+    },
+    {
+      "id": "uuid-in-text",
+      "kind": "gap",
+      "severity": "low",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "ids that are not hex-with-prefix are not masked in text",
+      "error": ""
+    },
+    {
+      "id": "payment-processor-id-in-text",
+      "kind": "gap",
+      "severity": "low",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "a processor customer id in text is not masked",
+      "error": ""
+    },
+    {
+      "id": "invoice-number-in-text",
+      "kind": "gap",
+      "severity": "low",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "invoice and order numbers in text are not masked",
+      "error": ""
+    },
+    {
+      "id": "card-last-four-in-text",
+      "kind": "gap",
+      "severity": "low",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "the last four digits of a card are not masked",
+      "error": ""
+    },
+    {
+      "id": "street-address-in-text",
+      "kind": "gap",
+      "severity": "low",
+      "status": "XFAIL",
+      "fields": [
+        "lbl"
+      ],
+      "why": "a street address is not masked",
+      "error": ""
+    },
+    {
+      "id": "checker-finds-a-word-in-a-heading",
+      "kind": "control",
+      "severity": "",
+      "status": "PASS",
+      "fields": [
+        "h"
+      ],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "checker-finds-a-short-number-in-a-label",
+      "kind": "control",
+      "severity": "",
+      "status": "PASS",
+      "fields": [
+        "lbl"
+      ],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "phone-parenthesis-and-space",
+      "kind": "control",
+      "severity": "",
+      "status": "PASS",
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "phone-international-plus-one",
+      "kind": "control",
+      "severity": "",
+      "status": "PASS",
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "email-in-text",
+      "kind": "control",
+      "severity": "",
+      "status": "PASS",
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "button-edit-name",
+      "kind": "control",
+      "severity": "",
+      "status": "PASS",
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "person-link-hex-id",
+      "kind": "control",
+      "severity": "",
+      "status": "PASS",
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "mailto-link-with-a-name",
+      "kind": "control",
+      "severity": "",
+      "status": "PASS",
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "title-pipe-separator-and-no-fields",
+      "kind": "control",
+      "severity": "",
+      "status": "PASS",
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "title-en-dash-separator-and-no-fields",
+      "kind": "control",
+      "severity": "",
+      "status": "PASS",
+      "fields": [],
+      "why": "",
+      "error": ""
+    },
+    {
+      "id": "input-value-scrubbed-on-a-person-route",
+      "kind": "control",
+      "severity": "",
+      "status": "PASS",
+      "fields": [],
+      "why": "",
+      "error": ""
+    }
+  ]
+}
