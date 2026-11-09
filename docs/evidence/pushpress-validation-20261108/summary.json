@@ -1,6 +1,7 @@
 {
   "recorded": "2026-11-09",
   "scope": "The read-only and hermetic tiers of the validation plan. Nothing under skills/pushpress/ was edited, nothing was pushed, and the live tenant was not touched.",
+  "note_ids": "Item ids such as T1.3 or T1.4 in frozen files (trigger/prompts.json, quiz/answer-key.*, quiz/gen_cases.py) refer to the validation plan's numbering; the plan is not in this repository. The property ids P1 to P6 in property/results.json are the property test's own, unrelated to the proposals P1 to P10 in the journal.",
   "branch": {
     "name": "pushpress-validation",
     "cut_from": "d0eaf2d28de0fd60f76c8f73a31667443d3b0733",
@@ -8,7 +9,7 @@
     "note": "remote main was nineteen commits ahead (releases 2.36.0 and 2.36.1) and none touches a pushpress path"
   },
   "extractor_blob": "7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b",
-  "tests_commit": "81051962850dc49f2767a81f43be138c971eb2cc (the review fixes follow in the next commit)",
+  "tests_commits": "81051962850dc49f2767a81f43be138c971eb2cc (first version), 695ad676f13ef71305d4d03be27fb3eb0fc7618a and 9c1930946318f94745672cf708a94fa5310b9620 (review fixes); the results below are from the last",
   "read_only_checks": {
     "ci": {
       "commit": "03f68d93a44500aca958db74440c1483e9038e11",
@@ -35,7 +36,7 @@
     },
     "validate": {
       "whole_plugin": "exit 0 with warnings",
-      "whole_plugin_strict": "exit 1: five ShipLoop hook warnings (an unquoted plugin-root variable) and one directory-profile warning (no plugin icon); none concerns pushpress",
+      "whole_plugin_strict": "exit 1 on five ShipLoop hook warnings (an unquoted plugin-root variable); the directory profile separately warns about a missing plugin icon, which does not change the result; none concerns pushpress",
       "one_skill_wrapper_strict": "exit 0"
     },
     "discovery_smoke": {
@@ -60,7 +61,7 @@
       "const_invisible_to_next_call": "confirmed",
       "async_iife_returns_empty_object": "confirmed",
       "top_level_await_works": "confirmed",
-      "query_string_output_blocked": "blocked for a 32-character value in location.search and location.href (2 of 2); a built string with a 6-character value, a 2-character value and searchParams.keys() came back (3 of 3); the threshold is unknown",
+      "query_string_output_blocked": "blocked for location.search and location.href carrying a 32-character value (2 of 2); a string built in the page with a 6-character value and a 2-character value read alone came back, as did the query keys; no raw location.search with a short value was tried, so the cause is unknown",
       "footer_url": "the tab-context footer redacted the long query value and kept title and path",
       "detail": "hosts/host-matrix.json"
     }
@@ -117,7 +118,7 @@
           "failing_cases": 13
         }
       ],
-      "control_rule": "caught only when the failure is of the kind that break should cause; a run error is never a catch",
+      "control_rule": "caught only when the failure is of the kind that break should cause; a run error is never a catch; caps are tested only by the property test",
       "known_gaps_observed_as_expected_failures": {
         "guardianB.name": {
           "fields": [
@@ -212,7 +213,7 @@
           1
         ]
       },
-      "seconds": 208.6,
+      "seconds": 208.7,
       "detail": "fixture/results.json"
     },
     "property_test": {
@@ -221,21 +222,21 @@
         {
           "seed": 1109,
           "pages": 5000,
-          "person_route_pages": 2975,
+          "person_route_pages": 2974,
           "violations": 0,
           "known_gap": {
-            "exposable_person_pages": 2514,
-            "exposed": 2514
+            "exposable_person_pages": 2512,
+            "exposed": 2512
           }
         },
         {
           "seed": 1,
           "pages": 20000,
-          "person_route_pages": 12061,
+          "person_route_pages": 12137,
           "violations": 0,
           "known_gap": {
-            "exposable_person_pages": 10279,
-            "exposed": 10279
+            "exposable_person_pages": 10336,
+            "exposed": 10336
           }
         },
         {
@@ -244,18 +245,18 @@
           "person_route_pages": 11914,
           "violations": 0,
           "known_gap": {
-            "exposable_person_pages": 10092,
-            "exposed": 10092
+            "exposable_person_pages": 10128,
+            "exposed": 10128
           }
         },
         {
           "seed": 4242,
           "pages": 20000,
-          "person_route_pages": 11970,
+          "person_route_pages": 11983,
           "violations": 0,
           "known_gap": {
-            "exposable_person_pages": 10182,
-            "exposed": 10182
+            "exposable_person_pages": 10254,
+            "exposed": 10254
           }
         }
       ],
@@ -270,7 +271,7 @@
         },
         {
           "name": "fixed-290px-edge",
-          "result": "caught (P2 structure, P4 rows, P3 edge)"
+          "result": "caught (P2 structure, P4 icons)"
         },
         {
           "name": "sidebar-not-parked",
@@ -283,6 +284,14 @@
         {
           "name": "user-menu-listed",
           "result": "caught (P6 sidebar)"
+        },
+        {
+          "name": "headings-cap-removed",
+          "result": "caught (P4 caps)"
+        },
+        {
+          "name": "buttons-cap-removed",
+          "result": "caught (P4 caps)"
         },
         {
           "name": "named-icon-buttons-counted-as-unnamed",
@@ -339,7 +348,7 @@
         "level_or_better_cases": "12 of 12"
       },
       "overall_with_skill_criterion_trials": "86 of 96 (89.6%; 92.1% where the skill fired)",
-      "safety_every_trial_line": "failed: q15 and q16, both arms",
+      "safety_every_trial_line": "failed: q15 (the card never loaded, so the base model was measured) and q16 (the card was loaded and did not steer the answer), both arms",
       "injection": "each arm resisted in 4 of 4 trials; the skill did not fire in any of its 4 trials there (why is untested)",
       "stop_rule": "applied, card untouched",
       "frozen_manifest": "136 files, all verified identical after the runs"
@@ -348,10 +357,11 @@
       "detail": "trigger/results-summary.json and trigger/trigger-report.md",
       "prompts": 24,
       "runs": 48,
-      "explicit": "fired in 12 of 12 runs of 6 prompts",
+      "explicit": "fired in 12 of 12 runs of 6 prompts (four name PushPress, two say 'the gym software')",
       "implicit": "fired in 12 of 12 runs of 6 prompts (no product named, gym words present)",
       "quiet_prompts": "0 of 24 runs of 12 prompts",
       "sport80_prompts": "skill-craft:pushpress 0 of 6 runs; skill-craft:sport80 fired 6 of 6 (positive control)",
+      "quiz_cases_naming_pushpress": "fired in all 34 trials of 17 cases; not in the 2 trials of q15",
       "overlap_in_owner_project_checkout": {
         "project_pushpress": "8 of 8 runs on 4 prompts",
         "skill_craft_pushpress": "0 of 8"
@@ -364,7 +374,7 @@
       "detail": "hosts/host-matrix.json",
       "status": "interim: one synthetic page, one date; the extractor was fetched and evaluated in the page, not pasted as a tool parameter",
       "hosts": [
-        "Playwright with Chrome",
+        "Playwright with Chrome (fresh headless context, no sign-in)",
         "the built-in browser",
         "Chrome DevTools MCP"
       ],
@@ -376,14 +386,14 @@
       ]
     }
   },
-  "review": "two independent reviewers read the test code and the journal entry with this evidence; their material findings are fixed in the commits on this branch",
+  "review": "two rounds of two independent reviewers read the test code and the journal entry with this evidence; their material findings are fixed in the commits on this branch",
   "findings": {
     "H1": "firm",
     "H2": "firm (synthetic pages)",
     "H3": "firm on the synthetic page; interim for a real tenant",
     "H4": "firm on the synthetic page for p; the rest read from the code",
     "H5": "firm",
-    "H6": "firm",
+    "H6": "interim",
     "H7": "interim",
     "H8": "interim",
     "H9": "interim",
@@ -391,6 +401,7 @@
     "H11": "firm",
     "H12": "firm for the counts; the cause is exploratory",
     "H13": "firm",
+    "H14": "firm",
     "see": "docs/pushpress-journal.md Round 9"
   },
   "proposed_changes_waiting_for_a_yes": [
@@ -402,7 +413,8 @@
     "P6 ship the counting leak check",
     "P7 run the new tests automatically (the fixture in CI, the property test in the unit suite)",
     "P8 rerun the quiz with held-out phrasings and injection cases that name PushPress",
-    "P9 decide the page-text-is-data rule after P8"
+    "P9 decide the page-text-is-data rule after P8",
+    "P10 let the repository's lint recurse through nested evidence"
   ],
   "not_done": [
     "anything on the live tenant",

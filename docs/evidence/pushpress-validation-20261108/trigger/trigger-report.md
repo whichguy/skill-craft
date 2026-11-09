@@ -1,20 +1,20 @@
-# T1.4 trigger test and T0.4 discovery smoke
+# Trigger test and discovery smoke
 
 Recorded 2026-11-09. Prompts frozen before any counting run (`prompts.json`, sha256 `ce269ffaa4c6958a2ffae939b2ba6a8b3a548f5a544c388a2a556bea3fa6fd0b`). Model sonnet, default effort, Claude Code 2.1.319. Every run had one tool (`Skill`), no MCP server, no persisted session; no answer text is stored here, only which skills fired.
 
 ## Step 0: which skills an isolated run can see
 
 - The init event lists skills as well as plugins (48 skills: 26 `skill-craft:*` and 22 bundled ones). `skill-craft:pushpress` is visible, bare `pushpress` is not, and the user's installed skill-craft is not loaded under `--restricted` (plugins: skill-craft 2.36.1 (inline)).
-- Correction to the plan: the installed `skill-craft` is no longer 2.35.8. It is 2.36.1 at commit 85a7cda7 (updated 2026-11-09 08:21 local, user scope, enabled), and its `skills/pushpress` is identical to the payload tested here, so `skill-craft:pushpress` is already installed on this Mac.
+- Correction to an earlier assumption (that the installed copy was 2.35.8): the installed `skill-craft` is no longer 2.35.8. It is 2.36.1 at commit 85a7cda7 (updated 2026-11-09 08:21 local, user scope, enabled), and its `skills/pushpress` is identical to the payload tested here, so `skill-craft:pushpress` is already installed on this Mac.
 - The model's own one-turn list agrees: 26 `skill-craft:*` names plus 17 others, no bare `pushpress`.
 - Isolation held in every counted run: True (same skills hash, tools `Skill` only, 0 MCP servers).
 - Flags: `--max-turns` works although `claude --help` does not list it; stdin must be `/dev/null` or each run waits 3 s.
 
-## T0.4 discovery smoke
+## Discovery smoke
 
 - One question that needs the card. A `Skill` call naming `skill-craft:pushpress` fired: True; result `success`, 3 turns, 0.067 USD. Read by hand, the answer used the door router: yes: sends the price to the admin UI (Plans page) or the landing-page JSON, says the API has no plan list and plans-get returns no price, says it did not browse the account and cites the card's 2026-11-08 check. Pass: True.
 
-## T1.4 main pass: 24 prompts x 2 runs
+## Main pass: 24 prompts x 2 runs
 
 | Measure | Result | Line | Verdict |
 |---|---|---|---|

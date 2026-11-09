@@ -4,15 +4,15 @@
     {
       "seed": 1109,
       "pages": 5000,
-      "person_route_pages": 2975,
-      "planted_values_checked": "116,512",
-      "visible_labels_checked": "105,498",
-      "labels_left_of_edge_checked": 14028,
-      "sidebar_values_checked": 29942,
-      "sidebar_links_checked": 12133,
+      "person_route_pages": 2974,
+      "planted_values_checked": "116,579",
+      "visible_labels_checked": "105,632",
+      "labels_left_of_edge_checked": 13982,
+      "sidebar_values_checked": 29941,
+      "sidebar_links_checked": 11855,
       "known_gap": {
-        "exposable_person_pages": 2514,
-        "exposed": 2514
+        "exposable_person_pages": 2512,
+        "exposed": 2512
       },
       "over_masking_audit": {
         "labels_quoted_in_references": 131,
@@ -33,15 +33,15 @@
     {
       "seed": 1,
       "pages": 20000,
-      "person_route_pages": 12061,
-      "planted_values_checked": "468,705",
-      "visible_labels_checked": "422,552",
-      "labels_left_of_edge_checked": 55914,
-      "sidebar_values_checked": "119,555",
+      "person_route_pages": 12137,
+      "planted_values_checked": "469,753",
+      "visible_labels_checked": "422,686",
+      "labels_left_of_edge_checked": 55903,
+      "sidebar_values_checked": "120,032",
       "sidebar_links_checked": 48062,
       "known_gap": {
-        "exposable_person_pages": 10279,
-        "exposed": 10279
+        "exposable_person_pages": 10336,
+        "exposed": 10336
       },
       "over_masking_audit": {
         "labels_quoted_in_references": 131,
@@ -63,14 +63,14 @@
       "seed": 99,
       "pages": 20000,
       "person_route_pages": 11914,
-      "planted_values_checked": "467,073",
-      "visible_labels_checked": "422,342",
-      "labels_left_of_edge_checked": 56098,
-      "sidebar_values_checked": "120,041",
-      "sidebar_links_checked": 47806,
+      "planted_values_checked": "466,786",
+      "visible_labels_checked": "422,364",
+      "labels_left_of_edge_checked": 56196,
+      "sidebar_values_checked": "120,201",
+      "sidebar_links_checked": 48215,
       "known_gap": {
-        "exposable_person_pages": 10092,
-        "exposed": 10092
+        "exposable_person_pages": 10128,
+        "exposed": 10128
       },
       "over_masking_audit": {
         "labels_quoted_in_references": 131,
@@ -91,15 +91,15 @@
     {
       "seed": 4242,
       "pages": 20000,
-      "person_route_pages": 11970,
-      "planted_values_checked": "467,957",
-      "visible_labels_checked": "422,277",
-      "labels_left_of_edge_checked": 56055,
-      "sidebar_values_checked": "120,086",
-      "sidebar_links_checked": 47688,
+      "person_route_pages": 11983,
+      "planted_values_checked": "467,980",
+      "visible_labels_checked": "422,740",
+      "labels_left_of_edge_checked": 55653,
+      "sidebar_values_checked": "120,088",
+      "sidebar_links_checked": 47997,
       "known_gap": {
-        "exposable_person_pages": 10182,
-        "exposed": 10182
+        "exposable_person_pages": 10254,
+        "exposed": 10254
       },
       "over_masking_audit": {
         "labels_quoted_in_references": 131,
@@ -129,7 +129,7 @@
     },
     {
       "name": "fixed-290px-edge",
-      "result": "caught (P2 structure, P4 rows, P3 edge)"
+      "result": "caught (P2 structure, P4 icons)"
     },
     {
       "name": "sidebar-not-parked",
@@ -142,6 +142,14 @@
     {
       "name": "user-menu-listed",
       "result": "caught (P6 sidebar)"
+    },
+    {
+      "name": "headings-cap-removed",
+      "result": "caught (P4 caps)"
+    },
+    {
+      "name": "buttons-cap-removed",
+      "result": "caught (P4 caps)"
     },
     {
       "name": "named-icon-buttons-counted-as-unnamed",

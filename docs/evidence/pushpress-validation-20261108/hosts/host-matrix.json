@@ -23,21 +23,30 @@
       },
       {
         "probe": "a string built in the page as https://<host>/?tok=<6 characters>",
-        "observed": "returned, not blocked"
+        "observed": "returned, not blocked (a 6-character value, built in the page)"
       },
       {
         "probe": "location.search and location.href on a page whose query holds a 32-character value",
         "observed": "blocked: [BLOCKED: Cookie/query string data] (2 of 2)"
       },
       {
-        "probe": "the query keys, a 2-character query value, and document.cookie length on the same page",
-        "observed": "returned (3 of 3)"
+        "probe": "the query keys of that page (searchParams.keys())",
+        "observed": "returned (no value is in the output)"
+      },
+      {
+        "probe": "a 2-character query value read alone (searchParams.get)",
+        "observed": "returned"
+      },
+      {
+        "probe": "document.cookie length",
+        "observed": "returned (no value is in the output)"
       },
       {
         "probe": "the tab-context footer after navigating to that page",
         "observed": "the long query value is shown as REDACTED, the short one is kept; title and path are kept"
       }
-    ]
+    ],
+    "reading": "blocked for location.search and location.href carrying a 32-character value (2 of 2); no raw location.search with a short value was tried, so length, source and shape are confounded and the cause is unknown"
   },
   "built_in_browser": {
     "probes": [

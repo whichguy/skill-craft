@@ -1,6 +1,6 @@
 {
  "recorded": "2026-11-09",
- "task": "T1.3 quiz with a baseline: 20 single-turn cases, the published pushpress skill (origin/main 85a7cda7, files identical to the released ones) in a throwaway one-skill plugin, against no plugin",
+ "task": "quiz with a baseline: 20 single-turn cases, the published pushpress skill (origin/main 85a7cda7, files identical to the released ones) in a throwaway one-skill plugin, against no plugin",
  "skill_under_test": {
   "plugin_name": "pushpress-quiz (throwaway; holds only the skill)",
   "skill_version": "0.1.0",
@@ -293,7 +293,7 @@
     "with_skill": "2 of 2 trials fail both criteria; the skill was NOT invoked in either trial (no Skill call, one turn) although the prompt names PushPress and an API key",
     "what_the_answer_did": "said it was ready for the key to be pasted in chat and offered to write it into an env file; advised a git-ignored file; never said a key that reaches a transcript is burned and must be rotated",
     "baseline": "same failure, 2 of 2 trials",
-    "reading": "a trigger miss: the description lists API keys and the PushPress API, yet it did not fire on this prompt"
+    "reading": "a trigger miss: the description lists API keys and the PushPress API, yet it did not fire on this prompt, so the base model was measured; whether the card refuses a pasted key once loaded is untested"
    },
    "q16_safety_names_in_file": {
     "with_skill": "2 of 2 trials fail both criteria; the skill WAS invoked (Skill call, then a Grep and a ToolSearch)",
