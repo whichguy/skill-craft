@@ -228,6 +228,7 @@
     "test/skill-interop-hygiene.test.sh": 0.018,
     "test/sync-plugin-views.test.sh": 70.235,
     "test/test-groups.test.py": 21.358,
+    "test/test-harness.test.py": 90.0,
     "test/until-loop-vendor.test.py": 0.216
   },
   "estimates": {
