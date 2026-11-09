@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShipLoop planning follow-up</title>
+<style>
+  :root { color-scheme: light; background: #f6f7f4; color: #222b27; }
+  body { margin: 0; font: 1rem/1.55 system-ui, sans-serif; }
+  main { max-width: 52rem; margin: auto; padding: 2rem 1rem 3rem; }
+  h1, h2 { line-height: 1.16; }
+  h1 { margin: .35rem 0 .75rem; font-size: clamp(2rem, 6vw, 2.9rem); }
+  h2 { margin: 1.9rem 0 .65rem; font-size: 1.45rem; }
+  p { margin: .65rem 0; max-width: 73ch; }
+  a { color: #195941; text-underline-offset: .16em; }
+  .status { display: inline-block; margin: 0; padding: .2rem .55rem;
+    background: #fff2d8; color: #713f12; border-radius: .3rem; font-weight: 700; }
+  .lede { font-size: 1.12rem; }
+  .retained { padding-left: 1.35rem; }
+  .retained li + li { margin-top: .7rem; }
+  figure { margin: .85rem 0; }
+  figcaption, caption { text-align: left; color: #414d46; }
+  .flow { max-width: 34rem; padding: 0; margin: 0 0 .55rem; list-style: none; }
+  .flow li { position: relative; padding: .45rem .7rem; background: #fff;
+    border: 1px solid #b8c7bc; border-radius: .35rem; }
+  .flow li + li { margin-top: .95rem; }
+  .flow li + li::before { position: absolute; content: ""; top: -.98rem;
+    left: 1.1rem; height: .83rem; border-left: 2px solid #4c6e59; }
+  .flow li + li::after { position: absolute; content: ""; top: -.45rem;
+    left: .96rem; width: .27rem; height: .27rem; border: solid #4c6e59;
+    border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  .flow .focus { background: #e4efe7; border-color: #6e917a; }
+  .flow .stop { background: #fff2d8; border-color: #b69258; }
+  .flow span { display: block; }
+  table { width: 100%; border-collapse: collapse; background: #fff; }
+  caption { padding-bottom: .45rem; }
+  th, td { border: 1px solid #b8c7bc; text-align: left; vertical-align: top; padding: .55rem; }
+  thead th { background: #e4efe7; }
+  tbody th { width: 16%; }
+  .score { width: 13%; }
+  .score span { display: block; color: #414d46; font-size: .875rem; white-space: nowrap; }
+  td p { margin: 0; }
+  td p + p { margin-top: .45rem; }
+  .narrow-label { display: none; }
+  code { font-size: .9em; overflow-wrap: anywhere; }
+  details { margin: .6rem 0; padding: .55rem .75rem; background: #fff;
+    border: 1px solid #b8c7bc; border-radius: .35rem; }
+  summary { cursor: pointer; font-weight: 650; }
+  @media (width < 520px) {
+    main { padding-top: 1.35rem; }
+    table, caption, tbody, tr, th, td { display: block; }
+    table { position: relative; background: transparent; }
+    thead { display: none; }
+    tbody tr { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: .65rem;
+      background: #fff; border: 1px solid #b8c7bc; border-radius: .35rem; }
+    tbody th, .score { width: auto; }
+    tbody th, .reading { grid-column: 1 / -1; }
+    tbody th { background: #e4efe7; border-radius: .3rem .3rem 0 0; }
+    tbody th, td { border: 0; }
+    .reading { border-top: 1px solid #b8c7bc; }
+    .narrow-label { display: block; color: #414d46; font-weight: 650; font-size: .875rem; }
+  }
+</style>
+</head>
+<body>
+<main>
+<article>
+<header>
+  <p class="status">Adopted · Publication qualification pending</p>
+  <h1>ShipLoop planning follow-up</h1>
+  <p class="lede">The parent adopted the exact 821-character Plan reminder as a modest guidance improvement. It makes evidence reuse and selective probing explicit before dependent work is defined. All three pairs tied. The candidate plans show small handoff refinements and added work, with no established consequential regression.</p>
+  <p>Integrated source and release qualification remain pending. <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/adoption-decision.json">Parent adoption decision</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/adoption-judgment-02/final.md">Final Astra judgment</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/adoption-judgment-02/completion.json">Judgment completion</a></p>
+</header>
+
+<section aria-labelledby="changes">
+  <h2 id="changes">Three authorized changes</h2>
+  <ol class="retained">
+    <li><strong>History in Improve.</strong> The 181-character clarification preserves the required route, owner, and repository history reads. Reuse other history and green checks only when inputs are unchanged and no finding or binding rule requires a repeat. <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/common-fixes-commit.txt">Common baseline record</a></li>
+    <li><strong>Slice fixture cleanup.</strong> The accepted peer fix supersedes the study baseline’s two-line global observer opt-out. It keeps synchronous seed watcher coverage and uses the public stop path before removing fixtures, waiting within the existing fixture budget for the owned observer process to exit and its display lock to clear. Its local fixture checks covered four watch-mode tests and the 73-test slice suite. <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/fixture-integration-handoff.json">Exact fixture handoff</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-completion-20261108-1y86oc2x/operator/fixture-parent-acceptance.json">Peer acceptance</a></li>
+    <li><strong>Plan producer reminder.</strong> V2 adds exactly 821 characters to current production’s Plan duty 1, about 44% shorter than the earlier 1,474-character proposal. The frozen overlay passed 155 packet checks across five suites with zero skips. <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/source/docs/experiments/planning-reminder-v2-20261108/candidate-overlay.json">Exact reminder</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/candidate-v2-packet-checks-01/receipt/receipt.json">Frozen packet checks</a></li>
+  </ol>
+</section>
+
+<section aria-labelledby="where">
+  <h2 id="where">Where the reminder acts</h2>
+  <figure aria-labelledby="flow-caption">
+    <ol class="flow" role="list">
+      <li><strong>Accepted Spec</strong><span>Both arms start from the registered case.</span></li>
+      <li><strong>Test Strategy and Improve</strong><span>Both arms use the same guidance before the candidate reminder appears.</span></li>
+      <li class="focus"><strong>Plan producer · v2 insertion</strong><span>Before defining dependent work, reuse sufficient current evidence. Probe only when it can distinguish consequential alternatives within existing authorization and bounds. Zero probes is valid.</span></li>
+      <li><strong>Plan Improve</strong><span>Reassess assumptions and dependencies under the existing guidance.</span></li>
+      <li class="stop"><strong>Study stop</strong><span>All six stop after Plan Improve acceptance, before Prepare work or implementation.</span></li>
+    </ol>
+    <figcaption id="flow-caption">The reminder uses the existing stage sequence and research allowance. Unresolved dependencies stay conditional and independent work stays eligible.</figcaption>
+  </figure>
+  <p>Any probe uses existing accounting and owned scratch cleanup. Carry findings and remaining allowance in existing evidence references. Plan Improve guidance stays as written. The change adds no stage, Until Loop, or product loop cap.</p>
+</section>
+
+<section aria-labelledby="cases">
+  <h2 id="cases">What the six plans showed</h2>
+  <table role="table">
+    <caption>Final planning scores by arm, with one pair per case.</caption>
+    <thead role="rowgroup"><tr role="row"><th role="columnheader" scope="col">Case</th><th role="columnheader" scope="col">Current</th><th role="columnheader" scope="col">V2</th><th role="columnheader" scope="col">Why the pair landed there</th></tr></thead>
+    <tbody role="rowgroup">
+      <tr role="row">
+        <th role="rowheader" scope="row">Negative</th>
+        <td role="cell" class="score"><b class="narrow-label">Current</b><strong>20/20</strong><span>sample-01</span></td>
+        <td role="cell" class="score"><b class="narrow-label">V2</b><strong>20/20</strong><span>sample-02</span></td>
+        <td role="cell" class="reading">
+          <p><strong>Tie.</strong> Both found native cancellation could acknowledge while writes continued during Test Strategy and its review. Both planned process containment and left the full 250 ms cancellation requirement due.</p>
+          <p>V2 clarified native-overlap verification, reusable-root ownership, and when publication becomes final, with added copying, storage, and bookkeeping. Current clarified reaping, cleanup ownership, and admission coordination. <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/pairs/negative-1-transport-02/verified-judgment.json">Original paired judgment</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/negative-pair-parent-review.json">Parent review</a></p>
+        </td>
+      </tr>
+      <tr role="row">
+        <th role="rowheader" scope="row">Supplied evidence</th>
+        <td role="cell" class="score"><b class="narrow-label">Current</b><strong>26/26</strong><span>sample-04</span></td>
+        <td role="cell" class="score"><b class="narrow-label">V2</b><strong>26/26</strong><span>sample-03</span></td>
+        <td role="cell" class="reading">
+          <p><strong>Tie.</strong> Both checked applicability during Test Strategy, reused the supplied evidence, and needed zero new mechanism probes. Both kept integrated timing, races, and publication acceptance due.</p>
+          <p>V2 named exceptions, kept <code>cancelling</code> nonterminal, and clarified one absolute deadline and settlement ownership. The initial plan already had a diagnostic state and launch/cancel coordination. Current already covered the essential invariants with fewer work items. V2 added a fixture item and a review pass. <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/pairs/evidence-1-transport-02/verified-judgment.json">Original paired judgment</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/evidence-pair-parent-review.json">Parent review</a></p>
+        </td>
+      </tr>
+      <tr role="row">
+        <th role="rowheader" scope="row">Unavailable</th>
+        <td role="cell" class="score"><b class="narrow-label">Current</b><strong id="unavailable-current">12/12</strong><span>sample-05</span></td>
+        <td role="cell" class="score"><b class="narrow-label">V2</b><strong id="unavailable-v2">12/12</strong><span>sample-06</span></td>
+        <td role="cell" class="reading" id="unavailable-reading">
+          <p><strong>Tie.</strong> Both kept local validation and preview eligible. Current’s <code>REMOTE_READY</code> and v2’s <code>SERVICE_READY</code> gate remote work on an approved sandbox, grants and target, and a verified service contract. Both required same-job stop and partial-output removal before cancellation confirmation.</p>
+          <p>Current clarified the absent-or-complete oracle for a new output path, with some stale fixture wording. V2 clarified the disabled publisher seam and explicit unavailable-output behavior for an earlier lifecycle increment. Each carried publication and live service acceptance forward. <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/pairs/unavailable-1-transport-01/verified-judgment.json">Original paired judgment</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/unavailable-admitted-collection-03-receipt.json">Collection receipt</a></p>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <p>The shared Test Strategy discoveries earn no reminder credit. The study does not establish that the reminder caused the observed refinements. Scores, graph shape, probe counts, and green checks do not establish product gains. Elapsed times are descriptive and terminal usage is incomplete, so the study supports no speed or cost win.</p>
+</section>
+
+<section aria-labelledby="qualification">
+  <h2 id="qualification">Integrated qualification</h2>
+  <p id="qualification-state">The prepared source receipt records the exact reminder, compact history text, peer fixture hash, and preserved upstream Plan duty 3 reference and acceptance guidance. The combined source still needs native qualification on its exact bytes.</p>
+  <p>Check packet and handoff bounds, Improve routing, and owning-stage semantics on the combined source. Publication qualification requires the post-change journal, normal source CI, release preflight, and full CI on the exact generated release. The qualification evidence belongs in a separate source and release record. <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/integration-map/INTEGRATION.md">Integration map</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/integration-build/receipt.json">Prepared source receipt</a></p>
+</section>
+
+<section aria-labelledby="evidence">
+  <h2 id="evidence">Evidence and retained failures</h2>
+  <p>The registered source was frozen at <code>612cb504747a019d7af1a396ccbef4dfdba64f38</code>. Actual launch controls were verified for Sol 6.1 medium subjects and Astra high judgments. Provider-served identity is unattested. The scope audit is heuristic and the harness has no OS read fence. The study covers recorded planning activity on three diagnostic cases. Delivered behavior and implementation acceptance remain untested. <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/source/docs/experiments/planning-reminder-v2-20261108/registration.json">Frozen registration</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/scope-audit.json">Scope audit</a></p>
+  <details>
+    <summary>History, fixture and packet checks</summary>
+    <p>The first history edit exceeded the existing 4,500-character handoff bound in ten variants. The compact repair passed 21 Improve-route and 36 head-order tests. The frozen study’s observer opt-out remains in its historical baseline. The accepted peer fixture commit is <code>06b0f3b30899024c0e403bd41867a6c368f4beb8</code>. The accepted fixture file has SHA-256 <code>869a53edc56f25c08269b5d4fad8698dce7e4c57941234abf0b7e5716f2f13ef</code>. The peer fixture’s original deep-temp full-suite timeout is retained alongside the later 73-test pass under ordinary system temp. The 843-character v1 reminder was rejected before live subjects for announcing a future stage. The first study preflight exposed an unjustified 1,600 ms calibration ceiling and a copied library’s old absolute install name. Both were repaired prospectively before v2 dispatch. <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/common-checks-01/summary.json">Original common checks</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/repair-checks-02/summary.json">Compact repair</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-completion-20261108-1y86oc2x/operator/cleanup-standard-temp-checks/receipt.json">Peer fixture checks</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/candidate-v1-disposition.json">V1 rejection</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/preflight-closeout.json">Preflight record</a></p>
+  </details>
+  <details>
+    <summary>Paired transport and sample-01 quotations</summary>
+    <p>Initial paired payloads over the 1 MB transport bound stopped before any verdict. Lossless encoding round-tripped the original evidence and preserved criteria. Equivalent model attention across the two presentations remains unverified. The sample-01 original quotation check remains <strong>FAIL</strong>. Its verifier looked in initial plan JSON. A separate provenance judgment located the three quotations in the earlier linked architecture text. <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/pairs/negative-1-transport-02/transport-amendment.json">Negative transport</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/planning-reminder-v2-20261108/pairs/evidence-1-transport-02/transport-amendment.json">Evidence transport</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/quote-provenance-judgment/final.md">Quotation provenance</a></p>
+  </details>
+  <details>
+    <summary>Sample-05 boundary and collection</summary>
+    <p>The original raw and semantic audits remain <strong>FAIL</strong>. Separate Astra admission tied both counted calls to the exact planning tail, a bound loop completion and the callback accepting Plan Improve. A truncated timestamp placed both inside the Prepare metric window. The stream ends at that callback with no Prepare action. Collector attempt 01 stopped on observer-status hash drift. Attempt 02 stopped when sandboxed <code>ps</code> returned EPERM. Both stopped before grading, and the older adoption judgment remains <strong>PENDING</strong> on that record. <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/unavailable-collection-receipt.json">Original collection</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/boundary-provenance-judgment/final.md">Exact-tail admission</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/sample05-boundary-evidence.json">Boundary evidence</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/unavailable-admitted-collection-receipt.json">Attempt 01</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/unavailable-admitted-collection-02-receipt.json">Attempt 02</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/adoption-judgment/final.md">Earlier pending judgment</a></p>
+    <p>Attempt 03 used public cleanup receipts for the owned observers, verified frozen inputs, and collected the first judgments on the original individual and paired criteria without resuming either subject. <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/unavailable-admitted-collection-03-receipt.json">Attempt 03</a></p>
+    <p>All owned subject observers were stopped and the evidence was retained. <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/cleanup-sample-05-retry-01.json">Sample-05 cleanup</a> · <a href="/Users/dadleet/Documents/Codex/experiments/shiploop-planning-followups-20261108-uuiubpnc/operator/cleanup-sample-06.json">Sample-06 cleanup</a></p>
+  </details>
+</section>
+</article>
+</main>
+</body>
+</html>

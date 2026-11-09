@@ -23,6 +23,7 @@ import subprocess
 import sys
 import time
 import uuid
+import xml.etree.ElementTree as ET
 
 
 HERE = Path(__file__).resolve().parent
@@ -248,6 +249,24 @@ def _source_is_fresh(root: Path, deploy: dict, metadata_sha256: str) -> bool:
     return (binding.get("root") == resolved_root and binding.get("full_package") is True
             and binding.get("unchanged") is True
             and binding.get("before_sha256") == binding.get("after_sha256") == metadata_sha256)
+
+
+def _validate_app_tab(root: Path) -> None:
+    """Bind the checker’s app host to the full case's declared tab and bundle."""
+    base = root / "force-app" / "main" / "default"
+    ns = "{http://soap.sforce.com/2006/04/metadata}"
+    try:
+        tab = ET.parse(base / "tabs" / "SLGrokChat_Chat.tab-meta.xml").getroot()
+        bundle = ET.parse(base / "lwc" / "slGrokChatApp" / "slGrokChatApp.js-meta.xml").getroot()
+    except (OSError, ET.ParseError) as exc:
+        raise CheckFailure("source", "source-invalid") from exc
+    components = [(node.text or "").strip() for node in tab.findall(ns + "lwcComponent")]
+    targets = [(node.text or "").strip() for node in bundle.findall(f"{ns}targets/{ns}target")]
+    if (tab.tag != ns + "CustomTab" or components != ["slGrokChatApp"]
+            or bundle.tag != ns + "LightningComponentBundle"
+            or bundle.findtext(ns + "isExposed", "").strip() not in {"true", "1"}
+            or "lightning__Tab" not in targets):
+        raise CheckFailure("source", "source-invalid")
 
 
 def _config_rows(shared) -> list[dict]:
@@ -886,6 +905,7 @@ def run_check(mode: str) -> int:
         else:
             login = None
         if mode == "run":
+            _validate_app_tab(Path.cwd())
             cleared_configs = _reset_config(shared, user_id)
         if mode == "observe":
             result = _run_browser(browser_worker, _request(

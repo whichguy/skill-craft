@@ -15,6 +15,8 @@ import os
 import re
 import shlex
 import shutil
+import signal
+import socket
 import subprocess
 import sys
 import tempfile
@@ -2501,6 +2503,137 @@ class TestLoopTests(unittest.TestCase):
         output = self.dispatch(done, check=True)
         self.assertTrue((self.run_dir / test_loop.check_path(action)).is_file())
         return action, done, output
+
+    @unittest.skipUnless(os.name == "posix", "private POSIX process groups and CLI")
+    def test_interrupted_cli_verification_stops_only_the_owned_group_and_can_retry(self):
+        self.assertEqual(Path(git(self.repo, "rev-parse", "--show-toplevel").strip()).resolve(), self.repo)
+        env = {**os.environ, "GIT_CEILING_DIRECTORIES": str(self.run_dir.parent), "SHIPLOOP_PROGRESS": "off"}
+        with mock.patch.dict(os.environ, {"GIT_CEILING_DIRECTORIES": str(self.run_dir.parent)}):
+            discovery = subprocess.run(["git", "-C", str(self.run_dir), "rev-parse", "--show-toplevel"],
+                                       capture_output=True)
+            self.assertNotEqual(discovery.returncode, 0)
+            self.start()
+            focused = dict(COMMANDS[0], command="exec " + COMMANDS[0]["command"])
+            self.drive_to("document", step_plan={"test_commands": [focused, *COMMANDS[1:]], "paths": ["a.py"]})
+            self.run_loop([TRIVIAL])
+        action = self.action()
+        fixture = self.run_dir.parent / "interrupt.py"
+        fixture.write_text("""
+import json, os, signal, socket, subprocess, sys
+role, mode, port, token = sys.argv[1:]
+with socket.create_connection(("127.0.0.1", int(port))) as peer:
+    ignoring = role == "descendant" and mode == "ignore-term"
+    if ignoring:
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    if role != "control":
+        for fd, stream in ((1, "stdout"), (2, "stderr")):
+            os.write(fd, f"{role}-{stream} fixture ready\\n".encode())
+    if ignoring:
+        os.close(1)
+        os.close(2)
+    child = (subprocess.Popen([sys.executable, "-B", __file__, "descendant", mode, port, token],
+                              start_new_session=mode == "escape") if role == "leader" else None)
+    try:
+        pid = os.getpid()
+        peer.sendall((json.dumps([token, role, pid, os.getppid(), os.getpgid(pid), os.getsid(pid)]) + "\\n").encode())
+        while peer.recv(1):
+            peer.sendall(b"p")
+    finally:
+        if child:
+            child.wait()
+""")
+        fixture_cmd = [sys.executable, "-B", str(fixture)]
+        (self.repo / "check.sh").write_text(
+            'if test -n "${SHIPLOOP_FIXTURE_MODE-}"; then exec ' + shlex.join(fixture_cmd)
+            + ' leader "$SHIPLOOP_FIXTURE_MODE" "$SHIPLOOP_FIXTURE_PORT" "$SHIPLOOP_FIXTURE_TOKEN"; fi\n' + CHECK)
+        done = inner.fill(self.state(), "document", dict(DONE, evidence_refs=[str(self.terminal())]), self.run_dir)
+        draft = self.run_dir / "inbox" / (action + ".md")
+        draft.write_text(store.dumps(done, "result"))
+        state_file = self.run_dir / "state.md"
+        before = state_file.read_bytes()
+        answer, check, counted = (self.run_dir / name for name in (
+            shiploop_check.answer_path(action), test_loop.check_path(action), test_loop.verify_path(action, 1)))
+        argv = [sys.executable, "-B", str(PACKAGE / "scripts/shiploop"), "check",
+                "--run-dir", str(self.run_dir), "--action", action, "--result", str(draft)]
+        # Normalize inherited SIGINT in the child before execing the real CLI.
+        launch_argv = [sys.executable, "-B", "-c",
+                       "import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); "
+                       "signal.pthread_sigmask(signal.SIG_UNBLOCK, {signal.SIGINT}); "
+                       "os.execv(sys.argv[1], sys.argv[1:])", *argv]
+        env.pop("SHIPLOOP_FIXTURE_MODE", None)
+
+        def stop_runner(cli):
+            if cli.poll() is None:
+                cli.kill()  # only this directly launched runner
+            cli.wait(timeout=30)
+
+        for mode in ("ordinary", "ignore-term", "escape"):
+            with self.subTest(mode=mode), socket.socket() as listener, contextlib.ExitStack() as cleanup:
+                listener.bind(("127.0.0.1", 0))
+                listener.listen()
+                port = str(listener.getsockname()[1])
+                token = os.urandom(16).hex()
+                control = subprocess.Popen([*fixture_cmd, "control", mode, port, token], start_new_session=True)
+                cleanup.callback(control.wait, timeout=30)  # control exits on socket shutdown
+                cleanup.callback(listener.close)  # release queued connections too, if setup failed
+                cli = cleanup.enter_context(subprocess.Popen(
+                    launch_argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True,
+                    env={**env, "SHIPLOOP_FIXTURE_MODE": mode, "SHIPLOOP_FIXTURE_PORT": port,
+                         "SHIPLOOP_FIXTURE_TOKEN": token}))
+                cleanup.callback(stop_runner, cli)
+                ready = {}
+                deadline = time.monotonic() + 30  # fixture readiness guard
+                while len(ready) < 3:
+                    self.assertIsNone(cli.poll(), "runner exited before fixture readiness")
+                    self.assertIsNone(control.poll(), "control exited before fixture readiness")
+                    remaining = deadline - time.monotonic()
+                    self.assertGreater(remaining, 0, "fixture did not become ready")
+                    listener.settimeout(min(0.1, remaining))
+                    try:
+                        peer, _ = listener.accept()
+                    except socket.timeout:
+                        continue
+                    cleanup.enter_context(peer)
+                    peer.settimeout(remaining)
+                    with peer.makefile("rb") as incoming:
+                        raw = incoming.readline()
+                    self.assertTrue(raw, "fixture closed its readiness socket")
+                    nonce, role, pid, ppid, pgid, sid = json.loads(raw)
+                    self.assertEqual(nonce, token)
+                    self.assertIn(role, ("leader", "descendant", "control"))
+                    self.assertNotIn(role, ready)
+                    self.assertEqual((os.getpgid(pid), os.getsid(pid)), (pgid, sid))
+                    peer.settimeout(30)
+                    ready[role] = (peer, pid, ppid, pgid, sid)
+                _, leader, parent, leader_group, leader_session = ready["leader"]
+                _, descendant, descendant_parent, descendant_group, descendant_session = ready["descendant"]
+                self.assertEqual((parent, leader_group, leader_session), (cli.pid, leader, leader))
+                self.assertEqual((descendant_parent, descendant_group, descendant_session),
+                                 (leader, descendant, descendant) if mode == "escape" else (leader, leader, leader))
+                self.assertEqual(ready["control"][1], control.pid)
+                self.assertEqual(ready["control"][3:], (control.pid, control.pid))
+                self.assertEqual((os.getpgid(cli.pid), os.getsid(cli.pid)), (cli.pid, cli.pid))
+                self.assertEqual(len({os.getpgrp(), cli.pid, control.pid, leader_group}), 4)
+                cli.send_signal(signal.SIGINT)
+                out, err = cli.communicate(timeout=120)
+                self.assertEqual(cli.returncode, -signal.SIGINT, (out, err))
+                self.assertIn(b"KeyboardInterrupt", err)
+                self.assertNotIn(b"fixture ready", out + err)
+                for role in ("control", "descendant") if mode == "escape" else ("control",):
+                    peer = ready[role][0]
+                    peer.sendall(b"p")
+                    self.assertEqual(peer.recv(1), b"p")
+                for role in ("leader",) if mode == "escape" else ("leader", "descendant"):
+                    self.assertEqual(ready[role][0].recv(1), b"")
+                self.assertEqual(state_file.read_bytes(), before)
+                self.assertFalse(any(record.exists() for record in (answer, check, counted)))
+
+        retry = subprocess.run(launch_argv, capture_output=True, env=env, timeout=120)
+        self.assertEqual(retry.returncode, 0, retry.stderr)
+        self.assertEqual(state_file.read_bytes(), before)
+        self.assertTrue(store.read_record(check)["passed"])
+        self.assertTrue(answer.is_file())
+        self.assertFalse(counted.exists())
 
     def test_a_command_recorded_twice_is_one_row_and_runs_once_per_run(self):
         """D-1: the chess step plan copied the Focused and Full-suite fences, so rows 7-9 were rows 1-3 again and every

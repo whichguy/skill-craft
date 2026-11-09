@@ -1,0 +1,115 @@
+{
+  "id": "planning-reminder-v2-20261108",
+  "status": "ready-to-freeze",
+  "baseline": "612cb504747a019d7af1a396ccbef4dfdba64f38",
+  "preflight": {
+    "paths_relative_to_experiment_root": true,
+    "passing_summary": "operator/repair-checks-02/summary.json",
+    "retained_failed_checks": [
+      "operator/common-checks-01/summary.json",
+      "operator/study-preflight-01/"
+    ]
+  },
+  "provenance": {
+    "predecessor": {
+      "registration_id": "planning-reminder-20261108-v1",
+      "registration": "source/docs/experiments/planning-reminder-20261108/registration.json",
+      "freeze_manifest": "operator/planning-reminder-20261108/manifest.json",
+      "candidate_packet_receipt": "operator/candidate-packet-checks-01/receipt/receipt.json",
+      "disposition": "Frozen before subjects. All five candidate packet suites completed, four passed, and packet-recut failed 12 Plan producer variants under NoAdvanceImproveTests. No v1 subject was launched."
+    },
+    "revision": "Fresh prospective v2 registration. The overlay replaces only the last sentence to preserve evidence and shared allowance within the Plan producer duty. V2 packet verification is pending.",
+    "retained_fixture_and_stop_controls": {
+      "fixture_calibration": "fixture-calibration.json",
+      "fixture_baselines_and_repair": "operator/repair-checks-02/summary.json",
+      "semantic_stop_control": "operator/study-preflight-01/04-boundary-calibration.stdout",
+      "applicability": "Retained v1 measurements apply to the identical fixtures, calibration inputs and boundary control. The earlier aggregate failures remain recorded."
+    }
+  },
+  "candidate": "candidate-overlay.json",
+  "hypothesis": "An explicit Plan producer reminder may improve consequential evidence use, conditional planning or handoff clarity at acceptable added cost while retaining independent Plan Improve.",
+  "seed_at": "test-strategy",
+  "stop_after": "plan",
+  "planning_review": "stage",
+  "delegation": "inline",
+  "subject": {
+    "host": "codex",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "judge": {
+    "host": "codex",
+    "model": "gpt-6-astra",
+    "effort": "high"
+  },
+  "cases": [
+    "negative",
+    "evidence",
+    "unavailable"
+  ],
+  "arms": [
+    "current",
+    "candidate"
+  ],
+  "concurrency": 2,
+  "deadline_seconds_per_slice": 3600,
+  "samples": [
+    {
+      "id": "sample-01",
+      "case": "negative",
+      "rep": 1,
+      "arm": "current"
+    },
+    {
+      "id": "sample-02",
+      "case": "negative",
+      "rep": 1,
+      "arm": "candidate"
+    },
+    {
+      "id": "sample-03",
+      "case": "evidence",
+      "rep": 1,
+      "arm": "candidate"
+    },
+    {
+      "id": "sample-04",
+      "case": "evidence",
+      "rep": 1,
+      "arm": "current"
+    },
+    {
+      "id": "sample-05",
+      "case": "unavailable",
+      "rep": 1,
+      "arm": "current"
+    },
+    {
+      "id": "sample-06",
+      "case": "unavailable",
+      "rep": 1,
+      "arm": "candidate"
+    }
+  ],
+  "pair_label_order": {
+    "negative-1": [
+      "sample-02",
+      "sample-01"
+    ],
+    "evidence-1": [
+      "sample-03",
+      "sample-04"
+    ],
+    "unavailable-1": [
+      "sample-05",
+      "sample-06"
+    ]
+  },
+  "failure_policy": "Preserve each attempt. No performance retries or extra pairs. Record verified apparatus failures separately and preregister any separately named correction before dispatch.",
+  "completion": "Accepted Plan Improve with matching terminal receipt and exact final acceptance callback, with no later tool action, later accepted history, or application change.",
+  "decision": "Actual benefit can include low-consequence clarity. Require no observed consequential regression or unacceptable burden in these cases. Quality ties may support a separately identified benefit. No statistical or repeat threshold.",
+  "attribution": "Identical Test Strategy and Improve guidance executed independently. Shared-stage discoveries belong to both flows. Compare initial and accepted plans, evidence timing and applicability, realistic prerequisites, independent work, review repairs, and incremental probe/bookkeeping burden.",
+  "costs": "Retain incomplete usage and raw stage metrics. Treat timing descriptively.",
+  "isolation": "Separate run homes, workspaces and plugins; fresh independent judge homes. Existing subject harness has no OS read fence. Audit command and output scope before interpreting comparisons.",
+  "models_are": "Exact requested launch identities without fallback. Provider-served identity requires independent evidence."
+}

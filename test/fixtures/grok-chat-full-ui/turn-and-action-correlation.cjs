@@ -60,7 +60,8 @@ function installFixtureRuntime() {
 }
 
 async function withPage(browser, markup, handle, scenario, mount = '') {
-  const html = '<!doctype html><meta charset="utf-8">' + markup
+  const html = '<!doctype html><meta charset="utf-8"><c-sl-grok-chat-app style="display:block">' + markup
+    + '</c-sl-grok-chat-app>'
     + `<script>(${installFixtureRuntime})();${mount}</script>`;
   const context = await browser.newContext({ serviceWorkers: 'block' });
   const page = await context.newPage();

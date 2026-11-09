@@ -433,6 +433,9 @@ class HandoffTests(unittest.TestCase):
                         self.assertIn("Implementation step review focus.", body)
                     else:
                         self.assertIn(prompts.PLANNING_REVIEW_FOCUS.strip(), body)
+                        self.assertIn("Follow route and user/repo history rules.", flat(body))
+                        self.assertIn("Reuse other history and green checks only with unchanged inputs "
+                                      "and no finding or rule requiring a repeat.", flat(body))
                     if stage in (STEP_REVIEW_STAGE, "carry-forward"):
                         self.assertIn("## Code craft\n" + prompts.CODE_CRAFT.rstrip(), text)
 
