@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Score the T1.3 quiz from one or more `claude plugin eval --json` results and the frozen answer key.
+"""Score the quiz from one or more `claude plugin eval --json` results and the frozen answer key.
 
 usage: score.py <answer-key.json> <out-summary.json> <result.json> [<result-third-trial.json> ...]
 
-Definitions (from the plan):
+Definitions (from the validation plan):
   trial result   one criterion in one run: pass or fail (scored criteria only: reported-only and the skill-fired indicator are excluded)
   case score     mean over its scored criteria of (passes / trials)         -> mixed trials count 0.5 with two trials
   group score    mean of its case scores

@@ -4,7 +4,7 @@ Counts and shares of criterion results only; no tenant value appears. Raw transc
 
 ## What ran
 
-- **Under test:** the published `pushpress` 0.1.0 skill (origin/main `85a7cda7`; its 11 files and the packaged copy are blob-identical to the tree tested in T0.2), copied unchanged into a
+- **Under test:** the published `pushpress` 0.1.0 skill (origin/main `85a7cda7`; its 11 files and the packaged copy are blob-identical to the tree tested in the published-files check), copied unchanged into a
   throwaway one-skill plugin, against the same runs with no plugin. `claude plugin validate --strict` on that wrapper exits 0; the directory profile adds a README-missing refusal and an icon
   warning that belong to the wrapper, not the skill.
 - **Cases:** 20 single-turn cases: routing 6, action classes 6, safety 4, sign-in and tenant 2, injection 2. 48 scored criteria (17 regex, 31 llm), 7 reported-only criteria, one

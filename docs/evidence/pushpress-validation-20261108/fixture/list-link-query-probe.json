@@ -1,0 +1,32 @@
+{
+  "recorded": "2026-11-09",
+  "what": "a link to a list page, run through the extractor on a stub DOM (the link text is Filter); only links to /people/members and /people/leads with a query string are masked as person links",
+  "extractor_blob": "7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b",
+  "probe": [
+    {
+      "href": "/people/members",
+      "link_text": "Filter",
+      "extractor_a_entry": "Filter -> /people/members"
+    },
+    {
+      "href": "/people/members?status=active",
+      "link_text": "Filter",
+      "extractor_a_entry": "<item> -> /people/<id>"
+    },
+    {
+      "href": "/people/leads?page=2",
+      "link_text": "Filter",
+      "extractor_a_entry": "<item> -> /people/<id>"
+    },
+    {
+      "href": "/reports/members?status=active",
+      "link_text": "Filter",
+      "extractor_a_entry": "Filter -> /reports/members [q:status]"
+    },
+    {
+      "href": "/people/members#top",
+      "link_text": "Filter",
+      "extractor_a_entry": "Filter -> /people/members#top"
+    }
+  ]
+}

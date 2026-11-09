@@ -9,7 +9,7 @@
     "note": "remote main was nineteen commits ahead (releases 2.36.0 and 2.36.1) and none touches a pushpress path"
   },
   "extractor_blob": "7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b",
-  "tests_commits": "81051962850dc49f2767a81f43be138c971eb2cc (first version), 695ad676f13ef71305d4d03be27fb3eb0fc7618a and 9c1930946318f94745672cf708a94fa5310b9620 (review fixes); the results below are from the last",
+  "tests_commits": "81051962850dc49f2767a81f43be138c971eb2cc (first version), 695ad676f13ef71305d4d03be27fb3eb0fc7618a, 9c1930946318f94745672cf708a94fa5310b9620 and d6e21bcc045c4d672b03b0121ee43e03584196df (review fixes); the results below are from the last",
   "read_only_checks": {
     "ci": {
       "commit": "03f68d93a44500aca958db74440c1483e9038e11",
@@ -82,40 +82,105 @@
         "1703-collapsed"
       ],
       "layouts_modelled_not_measured": "sidebar 255, 240 and 200 px (content from 281, 266 and 218 px) and a 64 px rail when collapsed",
-      "runs": 43,
+      "runs": 55,
       "statuses": {
-        "PASS": 43
+        "PASS": 55
       },
       "controls": [
         {
           "name": "no-person-scrub",
           "status": "caught",
-          "failing_cases": 11
+          "failing_cases": 1
         },
         {
           "name": "fixed-290px-edge",
           "status": "caught",
-          "failing_cases": 13
+          "failing_cases": 1
         },
         {
           "name": "sidebar-not-parked",
           "status": "caught",
-          "failing_cases": 13
+          "failing_cases": 1
         },
         {
           "name": "combobox-values-recorded",
           "status": "caught",
-          "failing_cases": 11
+          "failing_cases": 1
         },
         {
           "name": "user-menu-listed",
           "status": "caught",
-          "failing_cases": 13
+          "failing_cases": 1
         },
         {
           "name": "named-icon-buttons-counted-as-unnamed",
           "status": "caught",
-          "failing_cases": 13
+          "failing_cases": 1
+        },
+        {
+          "name": "title-not-scrubbed",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "scrub-shortest-first",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "link-id-seg-unmasked",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "link-person-regex-unmasked",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "maskpath-id-unmasked",
+          "status": "caught",
+          "failing_cases": 2
+        },
+        {
+          "name": "link-query-values-recorded",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "contact-links-unmasked",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "sidebar-contact-unmasked",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "th-text-unsafe",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "tabs-text-unsafe",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "link-text-unsafe",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "sidebar-link-text-unsafe",
+          "status": "caught",
+          "failing_cases": 1
+        },
+        {
+          "name": "sidebar-id-links-unmasked",
+          "status": "caught",
+          "failing_cases": 1
         }
       ],
       "control_rule": "caught only when the failure is of the kind that break should cause; a run error is never a catch; caps are tested only by the property test",
@@ -151,7 +216,7 @@
         }
       },
       "gap_tally": {
-        "XFAIL": 72,
+        "XFAIL": 80,
         "XPASS": 0
       },
       "collateral_value_strings_by_case": {
@@ -203,6 +268,18 @@
           2,
           2
         ],
+        "person/titleonly": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "person/shared": [
+          1,
+          1,
+          1,
+          1
+        ],
         "url/lead-slug": [
           1
         ],
@@ -213,8 +290,19 @@
           1
         ]
       },
-      "seconds": 208.7,
-      "detail": "fixture/results.json"
+      "seconds": 87.1,
+      "detail": "fixture/results.json",
+      "shapes": "ten name shapes (including a billing tab whose name is only in the title and heading, and a guardian sharing the first name), a lead URL, a query, a fragment, a list page, a table page, a payments page (invoice-id, name-slug, non-hex and contact links, a query holding an address, an address in a header, a number in a tab, an address as plain link text), a plan page whose path holds a record id, and contact, id and plain address links in the left menu",
+      "sidebar_expected": {
+        "expanded": {
+          "groups": 8,
+          "links": 56
+        },
+        "collapsed": {
+          "groups": 0,
+          "links": 8
+        }
+      }
     },
     "property_test": {
       "file": "test/pushpress-extractor-property.js",
@@ -222,41 +310,41 @@
         {
           "seed": 1109,
           "pages": 5000,
-          "person_route_pages": 2974,
+          "person_route_pages": 3000,
           "violations": 0,
           "known_gap": {
-            "exposable_person_pages": 2512,
-            "exposed": 2512
+            "exposable_person_pages": 1826,
+            "exposed": 1826
           }
         },
         {
           "seed": 1,
           "pages": 20000,
-          "person_route_pages": 12137,
+          "person_route_pages": 12065,
           "violations": 0,
           "known_gap": {
-            "exposable_person_pages": 10336,
-            "exposed": 10336
+            "exposable_person_pages": 7391,
+            "exposed": 7391
           }
         },
         {
           "seed": 99,
           "pages": 20000,
-          "person_route_pages": 11914,
+          "person_route_pages": 11894,
           "violations": 0,
           "known_gap": {
-            "exposable_person_pages": 10128,
-            "exposed": 10128
+            "exposable_person_pages": 7234,
+            "exposed": 7234
           }
         },
         {
           "seed": 4242,
           "pages": 20000,
-          "person_route_pages": 11983,
+          "person_route_pages": 12130,
           "violations": 0,
           "known_gap": {
-            "exposable_person_pages": 10254,
-            "exposed": 10254
+            "exposable_person_pages": 7447,
+            "exposed": 7447
           }
         }
       ],
@@ -271,7 +359,7 @@
         },
         {
           "name": "fixed-290px-edge",
-          "result": "caught (P2 structure, P4 icons)"
+          "result": "caught (P2 structure, P4 rows, P4 icons, P3 edge)"
         },
         {
           "name": "sidebar-not-parked",
@@ -296,6 +384,58 @@
         {
           "name": "named-icon-buttons-counted-as-unnamed",
           "result": "caught (P4 icons)"
+        },
+        {
+          "name": "title-not-scrubbed",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "scrub-shortest-first",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "link-id-seg-unmasked",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "link-person-regex-unmasked",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "maskpath-id-unmasked",
+          "result": "caught (P1 contract, P6 sidebar, P5 path)"
+        },
+        {
+          "name": "link-query-values-recorded",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "contact-links-unmasked",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "sidebar-contact-unmasked",
+          "result": "caught (P6 sidebar)"
+        },
+        {
+          "name": "th-text-unsafe",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "tabs-text-unsafe",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "link-text-unsafe",
+          "result": "caught (P1 contract)"
+        },
+        {
+          "name": "sidebar-link-text-unsafe",
+          "result": "caught (P6 sidebar)"
+        },
+        {
+          "name": "sidebar-id-links-unmasked",
+          "result": "caught (P6 sidebar)"
         }
       ],
       "over_masking_audit": {
@@ -312,7 +452,8 @@
           }
         ]
       },
-      "detail": "property/results.json"
+      "detail": "property/results.json",
+      "without_a_dedicated_control": "the Chrome-button list, the second and third phone-number alternatives, the verbs of the Select/Edit/View/Delete label mask, the '@ or three digits' button drop"
     },
     "quiz": {
       "detail": "quiz/results-summary.json, quiz/quiz-report.md and quiz/failing-safety-answers.md",
@@ -386,10 +527,10 @@
       ]
     }
   },
-  "review": "two rounds of two independent reviewers read the test code and the journal entry with this evidence; their material findings are fixed in the commits on this branch",
+  "review": "three rounds of two independent reviewers read the test code and the journal entry with this evidence; their material findings are fixed in the commits on this branch",
   "findings": {
     "H1": "firm",
-    "H2": "firm (synthetic pages)",
+    "H2": "firm (synthetic pages; limited to the shapes planted and the masks that have a control)",
     "H3": "firm on the synthetic page; interim for a real tenant",
     "H4": "firm on the synthetic page for p; the rest read from the code",
     "H5": "firm",
@@ -402,19 +543,21 @@
     "H12": "firm for the counts; the cause is exploratory",
     "H13": "firm",
     "H14": "firm",
-    "see": "docs/pushpress-journal.md Round 9"
+    "see": "docs/pushpress-journal.md Round 9",
+    "H15": "firm on a stub DOM; the over-masking is not a leak"
   },
   "proposed_changes_waiting_for_a_yes": [
-    "P1 a key rule in SKILL.md (a description change only after P8)",
+    "P1 two hypotheses: a key rule in SKILL.md (precaution) and, separately, whether the description loads the card on a key request (test first in P8)",
     "P2 member-data decline sentence in Rule 2",
     "P3 stop recording query keys and the fragment on a person route",
     "P4 reword the extractor header's does-not-protect list",
-    "P5 hosts.md and browser-technique.md updates",
+    "P5 hosts.md and browser-technique.md updates (the query-string claim in both files)",
     "P6 ship the counting leak check",
     "P7 run the new tests automatically (the fixture in CI, the property test in the unit suite)",
     "P8 rerun the quiz with held-out phrasings and injection cases that name PushPress",
     "P9 decide the page-text-is-data rule after P8",
-    "P10 let the repository's lint recurse through nested evidence"
+    "P10 let the repository's lint recurse through nested evidence, reading an external denylist named by an environment variable",
+    "P11 test the person and id patterns on the bare path so list links with a query keep their label"
   ],
   "not_done": [
     "anything on the live tenant",
@@ -430,5 +573,6 @@
     "node test/pushpress-extractor-property.js [--controls] [--json <file>]  (PP_PROPERTY_PAGES, PP_PROPERTY_SEED)",
     "python3 test/pushpress.test.py",
     "node test/pushpress-extractor-harness.js"
-  ]
+  ],
+  "over_masking_probe": "fixture/list-link-query-probe.json"
 }
