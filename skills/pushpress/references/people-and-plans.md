@@ -68,8 +68,7 @@ pay rate · Coach check-in pay · Asst. coaching pay rate), `Sync your Google ca
 `Set your working hours`, `My lead gen link`, `Slack Username`, plus *Staff Availability*.
 
 **Family accounts:** profiles link through *Parent Account* (on the linked profile) and *Sub-accounts*
-(on the primary account); which profile is billed was not checked. Family pricing can be set up as a **discount** on the same plan rather than as a separate
-plan; see [§7](#7-discounts).
+(on the primary account); which profile is billed was not checked.
 
 ## 4. Leads
 
@@ -116,8 +115,8 @@ Check a plan's quantity before editing anything on it.
 `/discounts?type=…`; reached from **Plans ▸ Discounts** or **Products ▸ Discounts** (same page). Tabs
 **Membership / Product / Event** with counts, `Create Discount`, `Add filter`,
 `Bulk actions`; columns Discount Name · Status · Type · Amount · Duration; 20 per page; row link
-`/discounts/dis_<id>`. Discounts are fixed-amount or percentage, often for a set number of billing
-cycles ("for 3 cycles", "for 6 months"), and are named by the gym. **The API cannot see them** — a
+`/discounts/dis_<id>`. Discounts are fixed-amount or percentage, carry a duration in billing cycles or
+months, and are named by the gym. **The API cannot see them** — a
 discounted enrollment looks full-price through `enrollment-list`.
 
 ## 8. Digital Documents

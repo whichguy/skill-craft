@@ -148,6 +148,9 @@ const test = async (name, fn) => {
     assert.deepStrictEqual(r.region, ['Reach us at <email> today']);
     const onPerson = plain(install([panel], { origin: 'https://tenant.example.invalid', pathname: FAKE_PERSON_PATH, search: '', hash: '' }).pp.extract());
     assert.strictEqual(onPerson.region, undefined);
+    const peopleRoute = '/people/' + ['usr', 'a1b2c3d4e5f6a7b8'].join('_');
+    const onPeopleRoute = plain(install([panel], { origin: 'https://tenant.example.invalid', pathname: peopleRoute, search: '', hash: '' }).pp.extract());
+    assert.strictEqual(onPeopleRoute.region, undefined, 'a person route other than /user/ records no panel text either');
   });
 
   await test('headings, tabs, columns and the pager are recorded as structure', () => {

@@ -18,7 +18,7 @@ Sidebar ▸ **Settings** had exactly seven children.
 
 | Page | Path | Contents |
 |---|---|---|
-| **Your PushPress Plan** | `/account` | the gym's own PushPress subscription: the current tier (**Core Pro Monthly** on the surveyed tenant), *Upgrade Core* (**Core Max Monthly**), *Add-Ons* (Grow, Train, Branded App, each a *Learn more* link to pushpress.com), buttons `Payment method & invoices`, `Cancel or downgrade plan` (**MONEY / DESTRUCTIVE**), `Upgrade`, `Book a demo` |
+| **Your PushPress Plan** | `/account` | the gym's own PushPress subscription: the current tier, an *Upgrade Core* option, *Add-Ons* (Grow, Train, Branded App, each a *Learn more* link to pushpress.com), buttons `Payment method & invoices`, `Cancel or downgrade plan` (**MONEY / DESTRUCTIVE**), `Upgrade`, `Book a demo` |
 | **Settings** | `/settings/client` | read-only until `Edit` on a section. **Brand**: logos (PNG/JPEG, 52×52 suggested), colour, website, *Role names* (the words for coach and member). **Email Branding**: display information, social links. **Contact Information**: company name, email, phone, address, *Timezone*. **Business Information**: gym type, business license. A "Give support a chat" link |
 | **Billing & Payment** | `/settings/billing-and-payment` | see [money-and-reports.md](money-and-reports.md#5-billing-settings) |
 | **Lead Capture** | `/settings/leads` | builder for the public lead form; saves with `Save changes` (below) |

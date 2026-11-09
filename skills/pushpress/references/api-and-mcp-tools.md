@@ -14,7 +14,7 @@ map onto the card's seven action classes as READ, READ (the response is personal
 WRITE-DATA, OUTBOUND and CONFIG / SECURITY. The two delete tools, `invitations-delete` and `manage-webhooks-delete`,
 are also DESTRUCTIVE, and the strictest class applies.
 
-**Setup** `[documented]`. This plugin does not install or configure the MCP server. The tools come from
+**Setup** `[documented]`. This skill does not install or configure the MCP server. The tools come from
 the official `@pushpress/pushpress` SDK's bundled MCP server (Node 20+), started as `mcp start
 --api-key <key>` (plus `--company-id <id>` only for a multitenant key; a single-company key identifies
 its own company). The key is issued under Settings ▸ Security & Access

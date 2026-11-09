@@ -29,7 +29,7 @@ store, never in a committed file. Setup, the tools that message people and the c
 
 | Host and tools | Status |
 |----------------|--------|
-| Claude Code or desktop with Claude in Chrome (`mcp__claude-in-chrome__*`) | tested 2026-11-08, read-only, one tenant (*Core Pro Monthly*): every sidebar page, menus and drawers opened and closed, one member profile and the staff profile, sign-in observed once; three fresh-agent runs with the skill only |
+| Claude Code or desktop with Claude in Chrome (`mcp__claude-in-chrome__*`) | tested 2026-11-08, read-only, one tenant (*Core Pro Monthly*), on the project version this skill was generalized from: every sidebar page, menus and drawers opened and closed, one member profile and the staff profile, sign-in observed once; three fresh-agent runs with that version only. This generalized copy has had tests and a stub page, not a live run |
 | Claude's built-in browser | no approved credential fill there, so the owner would have to sign in by hand; not otherwise tested |
 | Chrome DevTools MCP (`evaluate_script`), Playwright or Puppeteer on a persisted profile | not tested; the script text may need wrapping as a function, and the owner completes the sign-in |
 | Codex, Grok, Cursor, OpenCode | not tested; they need one of the tools above |

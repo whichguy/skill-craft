@@ -24,8 +24,8 @@ metadata:
 PushPress **Core** is where a gym keeps its roster (members, leads, staff), sells and bills memberships (Stripe
 underneath), runs the class calendar and check-ins, and stores signed waivers. Each gym's admin lives at its own tenant
 host, `https://<tenant>.pushpress.com`. This skill navigates it through the owner's signed-in browser and routes what the
-API can answer to the `pushpress` MCP server's tools. Everything in it was checked read-only on **2026-11-08**, on one
-tenant (the *Core Pro Monthly* tier), unless it is tagged otherwise or says it was reported (legend below). Execution needs a browser tool for the
+API can answer to the `pushpress` MCP server's tools. Its UI claims were checked read-only on **2026-11-08**, on one
+tenant (the *Core Pro Monthly* tier), unless a claim is tagged otherwise or says it was reported (legend below). Execution needs a browser tool for the
 UI and, optionally, the MCP server for the API: [hosts.md](references/hosts.md) lists what each needs and what is tested.
 If one is missing, say so instead of improvising.
 
@@ -42,8 +42,8 @@ EXTRACT="$SKILL_ROOT/scripts/pp-extract.js"    # page-side only, see Operating n
 
 ## Know the tenant first
 
-This skill carries **no tenant facts**: no host, company ID, plan names or prices, class names or revenue figures. Before
-acting, get the tenant host (`<tenant>` in `https://<tenant>.pushpress.com`) and the company name from the user or the
+Apart from the one tier named under *Honest limits*, this skill carries **no tenant facts**: no host, company ID, plan
+names or prices, class names or revenue figures. Before acting, get the tenant host (`<tenant>` in `https://<tenant>.pushpress.com`) and the company name from the user or the
 project's notes (`AGENTS.md`, `CLAUDE.md` or the host's equivalent); never guess them.
 
 A project can supply its own overlay, `references/<tenant>.md`, for what is particular to its gym: host, company ID, plan
@@ -122,7 +122,7 @@ Full route index: [app-map.md](references/app-map.md).
 
 | I want to… | Go to | API instead? |
 |---|---|---|
-| Find a person fast | Top-bar **Search** (palette: "Search for a person or a page"), or People → tab → *Search members* | `customers-list email=…` (**READ-PII**) |
+| Find a person fast | Top-bar **Search** (palette: "Search for a person or a page"), or People → tab → *Search members* | `customers-list email=…` (**READ**, returns personal data) |
 | See a member's plans, next charge, billing history | `/user/<id>` → *Plans & Appointment Credits*, *Billing* | `enrollment-list customerId=…` (no amounts) |
 | List plans, prices, who is on a plan | Plans → Plans (`/plans/list`); "N active" → `/members/by_plan/<id>` | `plans-get` by ID only, **no price** |
 | See discounts | Plans → Discounts (`/discounts`) | none |
@@ -179,9 +179,10 @@ A control can fall in more than one class: apply the strictest.
 
 Verified read-only on 2026-11-08 on one PushPress Core tenant (the *Core Pro Monthly* tier), through Claude in Chrome only;
 other hosts are untested. No write flow was exercised (no save, create, charge, send, delete, merge or download): controls
-that would are tagged `[not exercised]`. The sign-in procedure was observed in one session and not re-tested, and the skill
-was checked by three fresh agents with the skill only, never against a no-skill baseline. Other tiers may differ; Grow,
-Train and the Staff and Members apps were never surveyed. PushPress changes its UI often: treat every path and label as a
+that would are tagged `[not exercised]`. The sign-in procedure was observed in one session and not re-tested. The project
+version this card was generalized from was checked by three fresh agents with that version only, never against a no-skill
+baseline; this generalized copy, and the extractor's masks in particular, have had tests and a stub page, not a live run.
+Other tiers may differ; Grow, Train and the Staff and Members apps were never surveyed. PushPress changes its UI often: treat every path and label as a
 strong hint to confirm, and use the drift procedure in
 [drift-and-open-questions.md](references/drift-and-open-questions.md).
 

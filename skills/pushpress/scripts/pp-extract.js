@@ -17,13 +17,16 @@
  *
  * RECORDS: headings, tabs, buttons, column headers, input labels/placeholders, toggles, link PATTERNS,
  *          `icons` (a COUNT of unnamed icon-only buttons — find those with `find` or a screenshot) and
- *          `region` (text of side panels such as KPI summaries; skipped on /user/ pages).
- * MASKS:   link text for any URL with an ID segment, and every mailto:/tel:/sms: link; IDs in the page path and
- *          in sidebar links; buttons containing "@" or 3+ digits are dropped; emails and phone-like numbers in all
- *          other recorded text become <email> and <phone>; "Select/Edit/View/Delete/Remove/Open <name>" and
- *          "... for/of <name>" button labels, and "Select <name>" toggle and input labels.
+ *          `region` (text of side panels such as KPI summaries; skipped on person routes).
+ * MASKS:   link text for any URL whose path has an ID segment (10 or more lower-case hex characters, optionally
+ *          prefixed, as in plan_ or usr_) or is a person route (/user/<id>, /people/<id>), and every mailto:/tel:/sms:
+ *          link; IDs in the page path and in sidebar links; buttons containing "@" or 3+ digits are dropped; emails and
+ *          phone-like numbers in all other recorded text become <email> and <phone>;
+ *          "Select/Edit/View/Delete/Remove/Open <name>" and "... for/of <name>" button labels, and "Select <name>"
+ *          toggle and input labels.
  * DOES NOT PROTECT: a person's name that stands alone (a heading, label or link text with no "@", no phone-like
- *          number and no Select/Edit/... form), the page <title>, text inside iframes, screenshots. Skip or mask
+ *          number and no Select/Edit/... form), link text on a URL whose ID has another shape (a UUID, a number or a
+ *          short id outside the person routes), the page <title>, text inside iframes, screenshots. Skip or mask
  *          those yourself, and never write what you read there into the repo.
  * READ-ONLY: the only clicks it makes are the sidebar group toggles in sidebar().
  */
@@ -95,7 +98,7 @@
       // icon-only buttons have no text or aria-label, so they cannot be named here: only counted
       icons: q('button,[role=button]').filter(b => !clean(b.innerText) && !b.getAttribute('aria-label') && !b.title).length,
       // side panels (e.g. a KPI summary) are plain text; skipped on person pages, where they could hold names
-      region: /^\/user\//.test(location.pathname) ? '' : uniq(q('[role=complementary],aside')
+      region: (/^\/user\//.test(location.pathname) || PERSON.test(location.pathname)) ? '' : uniq(q('[role=complementary],aside')
         .map(e => safe(e.innerText).slice(0, 200))).slice(0, 4),
     };
     for (const k of Object.keys(r)) if (Array.isArray(r[k]) ? !r[k].length : !r[k]) delete r[k];

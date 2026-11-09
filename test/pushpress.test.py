@@ -276,6 +276,7 @@ class Extractor(unittest.TestCase):
         ("the page path is no longer masked", "p: maskPath(location.pathname)", "p: location.pathname"),
         ("select-labelled toggles are no longer masked",
          "const safeRow = t => safe(t).replace(/^Select (?!all$|row$).{2,}$/i, 'Select <item>');", "const safeRow = t => safe(t);"),
+        ("side-panel text is recorded on person routes other than /user/", " || PERSON.test(location.pathname)", ""),
     ]
 
     @staticmethod
