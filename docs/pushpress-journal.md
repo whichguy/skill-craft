@@ -96,7 +96,7 @@ project's other systems, a privacy-policy follow-up). It is the pattern for what
   and the two webhook reads. Drawn from the source project's notes, so it is `[documented]`, not re-run.
 - **D7. The extractor.** The company-switcher label became `__pp.company('<company name>')`, stored in session storage so it survives a full page
   load; auto-detecting the button was rejected because it cannot be verified without the live DOM. After Round 4 it also masks contact details, record
-  ids and "Select <name>" labels in everything it records, and says in its header what it does not protect. Its header comment and one runtime message
+  ids and "Select <name>" labels in everything it records, and says in its header what it does not protect; after Round 6 it also removes a person page's field values and name heading and measures the sidebar instead of assuming 290px. Its header comment and one runtime message
   no longer name a host's tool.
 - **D8. Sign-in wording independent of one user's setup.** The grant is "the host's approved credential flow", a vault item bound to the tenant host
   is a conditional, there is a manual path when the host has no approved fill, and no password manager is named.
@@ -111,7 +111,7 @@ project's other systems, a privacy-policy follow-up). It is the pattern for what
   its first paragraph. `test/pushpress.test.py` fails if the card names a host tool identifier.
 - **No CLI.** `sport80` has a Python CLI because it constructs requests worth pinning. This skill's only script is injected page JavaScript, so its
   hermetic suite is the card and reference contract, link and anchor resolution, a narrow lint with a seeded-leak proof, and a stub-DOM harness for the
-  extractor with twelve deliberate breaks it must catch (eleven at first; F9 added the twelfth). Nothing asserts the pending note, because `scripts/release.py` consumes it (`f7b66f57`).
+  extractor with seventeen deliberate breaks it must catch (eleven at first; F9 added one and the live pass of Round 6 five more). Nothing asserts the pending note, because `scripts/release.py` consumes it (`f7b66f57`).
 - **D10. Leaf `pushpress`.** It keeps the source skill's name. The plugin namespaces it `skill-craft:pushpress`, so a marketplace install cannot shadow
   a project skill of the same name; `./install.sh --skill pushpress` links it as plain `pushpress`, so a project that already has its own skill by that
   name should use the plugin.
@@ -166,46 +166,89 @@ easy to see in a diff; a fact restated as something general is not.
   found the rest. Do that diff read for any change to this skill and for any port, and write what it finds into the commit and this journal by category, never by
   value. All of it is fixed in `f12acb0dbb795b5e24e0794e1966e0a4e8ed4a76`.
 
-## Round 6 - checks (2026-11-08)
+## Round 6 - a live read-only pass (2026-11-08)
 
-Run on the final candidate head `f12acb0dbb795b5e24e0794e1966e0a4e8ed4a76` (tree `2f685e6ed827e8a99688423bfd2bc72a835870b1`), base `d4ff1a47`, with each exit code captured from the command itself and no pipe between a
+Every check until now ran on text, on a stub DOM or on the source project's version: none had seen the real page through this copy's extractor (G1). The owner asked
+for a live pass ("Live check first") before any publish. Method: Claude in Chrome, one new tab, the signed-in session that already existed (the card's "check first"
+step passed; sign-in was not exercised and nothing was logged out). The extractor text was handed to the page-script tool exactly as the card says, and the SHA-256 of the
+library it stored in the page was compared with the committed file's. An in-page leak counter collected the emails, phone-like numbers, person-link texts, first table cells
+and text-field values of each page and returned only counts and the field they reached, never a value; its own control flags a planted token and passes an absent one.
+No save, send, charge, delete, merge or download; no member profile (F14); the signed-in user's own staff profile only.
+
+What held (`firm`; one tenant, one tier, one browser window):
+- The extractor ran byte-identical to the file, before and after the fixes. The card's restore line, `company()` across a full page load and `clear()` worked.
+- The sidebar matched the route map: 44 labelled links, 8 groups, the query keys. One unlabeled logo link and the badges in two labels are not drift.
+- Column headers, tabs and controls matched the references on the four People tabs, Invoices, Payments Forecast, At Risk, Expiring, Celebrations, Check-ins, Transactions,
+  Plans, Account, Class types, API Keys, Documents, Policies, Automatic Emails (all 17 triggers) and Billing and Payment; the discount, document and product rows are real links.
+- The masks held on the real pages: about 620 contact and name tokens collected from nine list and report pages (175 emails, 443 names or first cells), none in the output except
+  UI words that a link text happens to repeat. The At Risk page printed `Select <item>` and `Actions for <item>`, the two shapes of the original leak.
+- The API half: 14 read-only tools called once each (no `customers-*` tool, no webhook read, no write tool). Ten matched the API file's field names and shapes without change,
+  among them the plan record with no price field, the enrollment date forms and the check-in shapes.
+
+What it found, fixed in `cc90f837c45d91da8496f61560d4a95f97992292` and, for the API file, `c5b48560df50c2c97911a3b7c428b5fec5f24cec`:
+- **F10 (`firm`): the extractor leaked a person's name on every person page.** The heading of a profile is the person's name and `h` records headings; selected values (gender,
+  role) also came through as the text of combobox buttons. The documented "does not protect a standalone name" had been written as a rare case and was the commonest one. On a
+  person route the extractor now removes the page's text-field values and a two-word page title from everything it records, and records only a combobox's label. Checked live on
+  the signed-in user's own profile: the heading comes back as `<value>`, and 0 field values and 0 of the user's own name or email markers remain in any recorded field.
+- **F11 (`firm`): a fixed 290px content edge dropped content.** A table header and the Back buttons start at 281 on one page. The edge is now measured from the sidebar; the top
+  bar's sidebar toggle, which the old edge happened to hide, is treated as chrome.
+- **F12 (`firm`): the documented dump-then-page-text flow can return the whole page.** `sidebar()` returned its lines inline when they fit under 2,000 characters, so no dump
+  element existed and the page-text tool fell back to the page body (on the Dashboard: avatar initials and KPI figures reached my context; nothing was written down). It now always
+  parks its lines in the dump element, checked live; the hosts and browser-technique files say to read page text only when the dump exists.
+- **F13 (`firm`): two doc claims were wrong.** Discount durations are a number of billing cycles or "Forever (unlimited)", never months (the sentence I had rewritten in Round 5);
+  invoice rows are clickable but are not links.
+- **F14 (`firm`): Claude in Chrome ends every tool result with the tab's title and URL,** so while a person page is open every call shows that person's name and ID. That is why no
+  member profile was opened; the hosts file says to open a person page only when you must, make one call and navigate away.
+- **F15 (`firm`): four claims in the API file were a little wrong.** The class-type list holds more fields than `id` and `name` and includes inactive types (`active`); a `Class` record
+  did not carry `company` or `location` and an `Event` carried `isAllDay`; class-type and coach ids come in more shapes than the file said; event check-ins carry `eventId` and `type`.
+  A `[verified live]` tag is a dated observation of one record, not a guarantee.
+- Smaller, all fixed: the profile section is "Communications"; Change Role was not on the user's own profile; the extractor's caps cut a long profile (now documented).
+- **Lesson (`firm`).** Round 5's lesson widens: tests find what was thought of, scans find shapes, reviews find some sentences, and only the real page found the rest, including a
+  leak in the one place the skill most promises to protect. Run a live pass with a counting leak check before publishing any extractor of personal pages, and after any change to one.
+
+## Round 7 - checks (2026-11-08)
+
+Run on the final candidate head `c5b48560df50c2c97911a3b7c428b5fec5f24cec` (tree `5346caf099cdbca4603f273f0649d85e1c6bc5a7`), base `d4ff1a47`, with each exit code captured from the command itself and no pipe between a
 command and its status. Raw results: `docs/evidence/pushpress-candidate-20261108/summary.json`. The commit that adds this journal and that file changes only docs, so the
 tested tree is its parent's; `python3 test/pushpress.test.py` was run again on the commit that adds them, because that suite lints them.
 
 | Check | Result |
 |---|---|
-| `python3 test/pushpress.test.py` | exit 0: 14 tests OK (twelve deliberate extractor breaks, each asserted to apply once and to fail the harness) |
-| `node test/pushpress-extractor-harness.js` | exit 0: PASS, 14 checks |
+| `python3 test/pushpress.test.py` | exit 0: 14 tests OK (seventeen deliberate extractor breaks, each asserted to apply once and to fail the harness) |
+| `node test/pushpress-extractor-harness.js` | exit 0: PASS, 17 checks |
 | `node --check` on the extractor | exit 0 |
 | `node test/skill-frontmatter.test.js` | exit 0: PASS, 25 skills |
 | `python3 test/test-groups.test.py` | exit 0: 61 tests (core suites 60, all suites 200) |
 | `python3 test/installed-skill-invocation.test.py` | exit 0: 12 tests |
-| `python3 scripts/check-release-boundary.py --base origin/main` | exit 0, OK, over the three commits |
+| `python3 scripts/check-release-boundary.py --base origin/main` | exit 0, OK, over the six commits that precede the one adding this journal |
 | `python3 scripts/release.py --dry-run` | exit 0: pushpress 0.1.0 to 0.1.0 (1 note); skill-craft 2.35.7 to 2.35.8 |
 | `python3 scripts/build-packages.py OUT`, then `python3 scripts/check-marketplace-packages.py --root OUT` | exit 0 and 0: 1 of 1; the packaged skill is identical to `skills/pushpress` |
-| `bash test/run-all.sh --group quick --changed-from origin/main --jobs 8` | exit 0, PASS: 41 suites in 467.8 s wall (slowest: shiploop-navigator-contract 467.8 s, shiploop-actual-improve-cli 420.8 s, shiploop-lint 339.0 s), on the final head; 41 rather than the earlier 18 because the changed set is computed against the local `origin/main`, which another session had moved meanwhile, so it also pulled in that session's shiploop and sport80 suites; all 18 earlier suites are among them |
-| privacy: the 51-entry external denylist, then shapes (emails, record ids, phones, keys, paths, personal markers), over the 19 files this branch adds or changes (the 17 changed files, then the journal and the evidence once written) | 0 hits in 5,154 lines read; one control proved the denylist grep matches a file and a second that the shape greps fire on a seeded line; the one shape match was the lint's own regex literal |
+| `bash test/run-all.sh --group quick --changed-from origin/main --jobs 8` | exit 0, PASS: 46 suites in 277.9 s wall (slowest: shiploop-navigator-contract 273.3 s, shiploop-actual-improve-cli 259.6 s, shiploop-lint 171.9 s), on the final head; more than the first tiers' 18 because the changed set is computed against the local `origin/main`, which other sessions kept moving, so it also pulls in their shiploop and sport80 suites; every suite of the first tiers is among them |
+| privacy: the 51-entry external denylist, then shapes (emails, record ids, phones, keys, paths, personal markers), over the 19 files this branch adds or changes | 0 hits in 5,461 lines read; one control proved the denylist grep matches a file and a second that the shape greps fire on a seeded line; the one shape match was the lint's own regex literal |
+| the live pass (Round 6) | the final extractor text ran byte-identical in the page; the fixes were re-checked on the class-types page, the member list and the user's own profile |
 
-Earlier scoped quick tiers on the same trees, before the commits were re-authored: 208.1 s for 18 suites on the first commit's tree and 433.1 s for 18 on the second's
-(tree `a3b5915f678e9836940f33d032cf0462d35b5bc5`); the second ran while other sessions were using the machine, which is why it took twice as long.
+Earlier scoped quick tiers on the same trees, before later commits: 208.1 s for 18 suites on the first commit's tree and 433.1 s for 18 on the second's
+(tree `a3b5915f678e9836940f33d032cf0462d35b5bc5`; other sessions were using the machine, so it took twice as long), 467.8 s for 41 suites on the third commit's tree, and 263.2 s for 46 suites on the extractor-fix commit's tree.
 
 **Release rehearsal (the check `sport80` missed: F20 of `1db0d579ea7065c2012e5a87a1012e6b1dcbe588`).** In a disposable detached worktree, never on the branch, the real
-`scripts/release.py` cut `release: skill-craft 2.35.8, pushpress 0.1.0` (`fafbc0d89e9adde0b7e4135e1f319b954ec5b509`, in the scratch worktree only, reachable from no branch) with the trailer `Skill-Craft-Release: skill-craft 2.35.8, pushpress 0.1.0` (the real one joins name and version with an at sign, which this suite's email lint rejects), and consumed the
+`scripts/release.py` cut `release: skill-craft 2.35.8, pushpress 0.1.0` (`c05e6877176efeefd33d65f02e3692f91530d97e`, in the scratch worktree only, reachable from no branch) with the trailer `Skill-Craft-Release: skill-craft 2.35.8, pushpress 0.1.0` (the real one joins name and version with an at sign, which this suite's email lint rejects), and consumed the
 pending note. Then the four checks that the `sport80` publication handed to `release-push.py`, with the same argv: `bash scripts/sync-plugin-views.sh --check`,
 `python3 scripts/check-marketplace-packages.py`, `python3 scripts/check-release-boundary.py --base d4ff1a47` and `python3 test/test-groups.test.py`, all exit 0; then the changed suites
 on the released tree (the pushpress suite, the harness, the frontmatter test and the installed-skill test), all exit 0; the packaged copy equals the source. Nothing in this
 skill's suite asserts the pending note, which the cut deletes.
 
-**Trial on the moved main (G7).** A second disposable detached worktree at the local `origin/main` (`60ba1b70f929294549ceb9d45bf62f33667e3ea7`), the candidate merged in without squash: exit 0, 0
-conflicts. `release.py --dry-run` there printed `pushpress 0.1.0 -> 0.1.0 (1 note)` and `skill-craft 2.35.8 -> 2.35.9`. The real cut there gave `release: skill-craft 2.35.9, pushpress 0.1.0` (`4fb4ab5143d3e3aa126d16cec872cb99eab13c46`, scratch only); the four release checks, the pushpress suite, the harness and the
+**Trial on the moved main (G7).** A disposable detached worktree at the newest local `origin/main` (`a4c773afb6c6320af4b54bedf801985e097aacd9`), the candidate merged in without squash. An earlier trial, on an earlier main, merged cleanly;
+this one did not: main had meanwhile changed the same count assertions in `test/test-groups.test.py` (two apparatus suites added there, one core suite added here): a textual conflict, the only one (`test/test-groups.test.py`).
+Resolved the way a person would: keep main's side, then add this branch's one suite to its counts (core 60, and main's total plus one); 0 conflicts remained and `test/test-groups.test.py` passed on the merge.
+`release.py --dry-run` there printed `pushpress 0.1.0 -> 0.1.0 (1 note)` and `skill-craft 2.35.9 -> 2.35.10`. The real cut gave `release: skill-craft 2.35.10, pushpress 0.1.0` (`03ae4f6aac0e4ff6e0bba57cbe2ada2d46d31e75`, scratch only); the four release checks, the pushpress suite, the harness and the
 frontmatter test passed on it, and the packaged copy equals the source. The only pending note in that merged tree was this skill's (`initial.md`): the other session's had been consumed by its own release. This is a rehearsal of what a publish would meet now, not the release.
 
-**Not run:** the real release on the branch; `scripts/release-push.py`; any push, tag or merge; CI; the aggregate or full core group; any check against a live tenant.
+**Not run:** the real release on the branch; `scripts/release-push.py`; any push, tag or merge; CI; the aggregate or full core group; sign-in, any write flow or any member profile against the live tenant.
 
 ## Still unknown
 
-- **G1 (`firm`).** The generalized skill has not been run against a live tenant after generalization. Its facts are one read-only survey of one tenant on
-  2026-11-08, and the extractor's new masks are covered by a stub DOM only.
+- **G1 (`superseded` 2026-11-08 by Round 6; it was `firm`).** The generalized skill had not been run against a live tenant after generalization. It has now had one read-only pass
+  (Round 6): the extractor on about twenty pages, the sidebar against the map and one staff profile. Not covered live: sign-in, any write flow, member profiles, other tiers and other hosts.
 - **G2 (`firm`).** No write flow was exercised (no save, create, charge, send, delete, merge or download); the sign-in procedure was observed in one session
   and not re-tested; three fresh-agent checks ran with the source project's version of the skill only, never against a no-skill baseline. The three eval cases have not been run; they stay in
   the unpublished drafting repository.
@@ -217,9 +260,11 @@ frontmatter test passed on it, and the packaged copy equals the source. The only
 - **G5 (`exploratory`).** Trigger quality of the re-anchored description is untested.
 - **G6 (`firm`).** Not checked by either reviewer: the Kisi and HybridAF access-integration note, PushPress's published fees against live sources, and the
   SDK figures (44 tools, "8 of 49 methods").
-- **G7 (`firm`).** `origin/main` kept moving while this branch was prepared: four commits by other sessions since the base (`d4ff1a47ce89aec5ee546d1601c401850561c58f`), one of
-  them a release (skill-craft 2.35.8 with shiploop 1.33.6), all in files this branch does not touch. So a release needs main merged into the branch again just before the cut, as it
-  did for sport80; the version this release carries moves with main (2.35.8 on the base, 2.35.9 on the main of the Round 6 trial); and a cut ships whatever is pending on main as
-  well. Round 6 records a trial of exactly that in a scratch worktree; it is not the release.
+- **G7 (`firm`).** `origin/main` kept moving while this branch was prepared: ten commits by other sessions by the last look (`d4ff1a47ce89aec5ee546d1601c401850561c58f` is the base), two of
+  them releases. Most touch files this branch does not; the last trial found one that matters: main changed the count assertions in `test/test-groups.test.py` that this branch also edits, so a
+  merge now conflicts there (resolution in Round 7). A release needs main merged into the branch again just before the cut, as it did for sport80; the version it carries moves with main; and a cut
+  ships whatever is pending on main as well. Round 7 records the trials in scratch worktrees; they are rehearsals, not the release.
 - **G8 (`firm`).** The three eval cases and the drafting repository's scanner exist only in the unpublished drafting repository. Deleting that repository loses them; nothing
   in this branch depends on it.
+- **G9 (`firm`).** The person-route scrub is checked live on one staff profile only (F14). A member profile also shows family sections and a parent's contact details; the scrub
+  covers them only where they sit in a text field or behind a link with an id.
