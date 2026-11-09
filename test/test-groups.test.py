@@ -132,7 +132,8 @@ class TestGroupTests(unittest.TestCase):
         # It lands beside the planning-score suite, which another session added at the same count (58 and 198), so both together make 59 and 199.
         # The pushpress skill adds one core suite (2026-11-08): card, links, lint and the in-page extractor under Node.
         self.assertEqual(len([suite for suite in suite_catalog.SUITES if suite.family == "core"]), 60)
-        self.assertEqual(len(suite_catalog.SUITES), 200)
+        # The recorded Plan boundary and comparison consumer add two apparatus suites.
+        self.assertEqual(len(suite_catalog.SUITES), 202)
         self.assertTrue(all(suite.hermetic for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.path in suite.argv for suite in suite_catalog.SUITES))
         self.assertTrue(all(suite.argv[0] in {"python3", "node", "bash"} for suite in suite_catalog.SUITES))
@@ -247,6 +248,41 @@ class TestGroupTests(unittest.TestCase):
         for name in ["compare.py", "replay.json", "rubric.md"]:
             selected = {s.id for s in suite_catalog.select(["quick"], ["test/experiments/shiploop_spec_discovery/" + name])}
             self.assertIn("planning-score", selected)
+
+    def test_planning_apparatus_tracks_its_entrypoints_and_dependencies(self) -> None:
+        planning = {"planning-boundary", "planning-comparison"}
+        comparison = {"planning-comparison"}
+        self.assertLessEqual(planning, {suite.id for suite in suite_catalog.select(("e2e-apparatus",))})
+        cases = {
+            "test/shiploop-e2e-planning-boundary.test.py": planning,  # Also the comparison fixture.
+            "test/shiploop-e2e-planning-comparison.test.py": comparison,
+            "test/shiploop_e2e/metrics.py": planning,
+            "test/shiploop_e2e/slice.py": comparison,
+            "test/shiploop_e2e/planning_boundary.py": planning,
+            "test/shiploop_e2e/planning_comparison.py": comparison,
+            "skills/shiploop-e2e-audit/harness/planning_evidence.py": comparison,
+            "skills/shiploop-e2e-audit/harness/planning_trace.py": planning,
+            "skills/shiploop-e2e-audit/harness/capture.py": comparison,
+            "skills/shiploop-e2e-audit/harness/evidence.py": comparison,
+        }
+        for path, expected in cases.items():
+            with self.subTest(path=path):
+                selected = {suite.id for suite in suite_catalog.quick((path,))}
+                self.assertEqual(selected & planning, expected)
+
+    def test_planning_apparatus_is_absent_for_unrelated_shiploop_edits(self) -> None:
+        planning = {"planning-boundary", "planning-comparison"}
+        for path in ("skills/shiploop/scripts/shiploop_workspace.py",
+                     "skills/shiploop/scripts/shiploop_keepalive.py"):
+            with self.subTest(path=path):
+                self.assertTrue(planning.isdisjoint(suite_catalog.targeted((path,))))
+
+    def test_planning_boundary_timeline_does_not_turn_retained_fixtures_into_hubs(self) -> None:
+        fixtures = TEST_DIR / "fixtures/fidelity"
+        timeline = next(fixtures.glob("*/.shiploop-runs/*/run/timeline[.]json"))
+        selected = suite_catalog.targeted((timeline.relative_to(ROOT).as_posix(),))
+        self.assertNotIn("planning-boundary", selected)
+        self.assertTrue(selected.isdisjoint(suite_catalog._HUB_SUITE_IDS))
 
     def test_quick_reaches_the_consumers_of_shared_shiploop_sources(self) -> None:
         # Suites named after nothing in these paths still exercise them; a
