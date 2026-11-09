@@ -1144,6 +1144,7 @@ DUTIES = {
    and the relevant Git history (Git-history investigation guide). Sort open gaps into researchable unknown
    contracts, owner or access gaps and known setup prerequisites, each with its first affected consumer. With one
    boundary blocked, keep independent research and conditional planning eligible on their own prerequisites.
+   Before defining dependent work, reuse sufficient current evidence for consequential uncertainty. Run a small representative probe only when it can settle a decision more usefully than reading or conditional planning; first state the alternatives and distinguishing observation. Follow the existing bounded-research guidance (research-loop.md#recursive-discovery-and-experiments) for authorization, pre-probe bounds and accounting, and owned scratch cleanup. For any probe, add only missing command/output links, setup identity, limits and decision consequences to the existing evidence record. Zero probes is valid. Keep unresolved dependencies conditional and independent work eligible. Carry findings and remaining allowance through the existing evidence references; do not reset the same investigation's allowance.
 2. Plan backward from desired outcomes to their producers (Dependency-planning guidance); return `work_items`
    (item 17). Order readiness, implementation, integration and release so no consumer runs before its
    prerequisites. Each item's `context` gives ready and done conditions, candidate scope, proving check, authority
@@ -2554,8 +2555,8 @@ Planning review focus. This planning result is
 the contract that later stages build on and that no other review sees until the
 end. Look for these conditions and fix them within scope:
 """ + REVIEW_FOCUS_CONDITIONS + """\
-Do not reread history or rerun a check already recorded green at this commit
-unless a finding depends on it. A pass that finds none of these is trivial.
+Follow route and user/repo history rules. Reuse other history and green checks
+only with unchanged inputs and no finding or rule requiring a repeat. A finding-free pass is trivial.
 """
 
 

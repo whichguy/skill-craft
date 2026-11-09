@@ -4,6 +4,15 @@ Written by scripts/release.py.
 
 ## 2026-11-08
 
+### skill-craft 2.35.5
+
+- Skills: shiploop 1.33.5
+
+### shiploop 1.33.5
+
+- The Plan producer reuses sufficient current evidence and runs bounded probes before defining dependent work only when a probe is the best way to settle a consequential decision. Unresolved dependencies stay conditional, independent work stays eligible, and Plan Improve still reassesses the resulting plan.
+- Clarify that planning reviews follow Improve's required history reads and reuse other investigations or passing checks only when their inputs and obligations permit it.
+
 ### skill-craft 2.35.4
 
 - Skills: shiploop 1.33.4
