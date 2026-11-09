@@ -7,7 +7,7 @@ description: >-
   capability the portal exposes per role, runs the reads through the owner's already signed-in browser, and gates
   writes, payments and email behind explicit confirmation. Triggers: "Sport80", "USAW club", "my USAW membership",
   "club roster", "meet results", "club results".
-version: 0.1.0
+version: 0.1.1
 license: MIT
 platforms:
   - linux
