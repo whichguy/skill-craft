@@ -181,13 +181,18 @@ class Card(unittest.TestCase):
         for needle in (
             "**An API key never goes through chat.**",
             "Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere",
-            "stop them before they do and say why: a key or secret pasted into chat is burned",
-            "straight into the MCP server's environment or a secret store (not a file in the project, committed or not)",
-            "If one is pasted anyway, do not save or reuse it",
-            "tell the user to rotate it",
-            "After `Add API Key`, or whenever a key may be on screen, read nothing from the page "
-            "(no screenshot, page text, accessibility tree or page script) until the user says the value is stored "
+            "If the user offers to paste one, stop them before they do and say why: a key or secret pasted into chat is "
+            "burned and has to be rotated",
+            "Have them put it straight into the MCP server's environment or a secret store (not a file in the project, "
+            "committed or not)",
+            "If one is pasted anyway, do not save or reuse it, and tell the user to rotate it themselves",
+            "a rotation done by you, through a tool or the page, would put the new secret in this transcript too",
+            "Once `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more "
+            "in it (no screenshot, page text, accessibility tree or page script) until the user says the value is stored "
             "and the dialog is closed; rule 4's check waits for that",
+            # Rule 6 cites rule 4 by number: pin the rule it points at
+            "4. **Close, don't Save.**",
+            "then confirm no dialog remains open",
         ):
             self.assertIn(needle, rules, needle)
         settings = " ".join((REFS / "settings-and-admin.md").read_text(encoding="utf-8").split())
