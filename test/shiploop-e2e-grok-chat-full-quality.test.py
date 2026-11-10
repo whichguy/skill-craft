@@ -21,7 +21,9 @@ PATH = ROOT / "test/shiploop_e2e/checks/grok_chat_full_quality.py"
 spec = importlib.util.spec_from_file_location("grok_quality", PATH)
 quality = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(quality)
-positive_observation = runpy.run_path(str(ROOT / "test/shiploop-e2e-grok-chat-full-ui.test.py"))["positive_observation"]
+ui_fixtures = runpy.run_path(str(ROOT / "test/shiploop-e2e-grok-chat-full-ui.test.py"))
+positive_observation = ui_fixtures["positive_observation"]
+run_guarded_sf = ui_fixtures["run_guarded_sf"]
 
 BROWSER_BASE_MS = 1794182400000  # 2026-11-09T00:00:00Z
 USER_ID = "005000000000001AAA"
@@ -80,10 +82,17 @@ class QualityGateTest(unittest.TestCase):
                          "source_binding": {"root": str(self.product), "before_sha256": metadata,
                                             "after_sha256": metadata, "full_package": full_package,
                                             "unchanged": True}})
+        self.append_calls(*rows)
+        return quality.ui._latest_successful_deploy(self.platform)
+
+    def append_calls(self, *rows):
         with (self.platform / "sf-calls.jsonl").open("a") as ledger:
             for row in rows:
                 ledger.write(json.dumps(row) + "\n")
-        return quality.ui._latest_successful_deploy(self.platform)
+
+    def start_deploy_help(self, call):
+        self.append_calls({"call": call, "argv": ["project:deploy:start", "-h"], "decision": "allowed",
+                           "org": quality.ui.EXPECTED_ORG, "prefix": quality.ui.PREFIX, "reason": "help"})
 
     def register_ui(self, number, phase="builder"):
         return quality.ui.register_ui_attempt(self.platform, phase, f"{number:032x}")
@@ -254,6 +263,68 @@ class QualityGateTest(unittest.TestCase):
         self.write_ui(self.deploy("cccccccc"), 2)
         self.assertEqual(self.run_quality()[0], 2)
         self.assertEqual(len(self.live_requests()), 1)
+
+    def test_unpinned_deploy_help_preserves_exact_live_request(self):
+        deploy = self.deploy("aaaaaaaa")
+        self.write_ui(deploy, 1)
+        request = quality.live_request(self.product, self.platform, "builder", self.identity)
+        self.assertIsNotNone(request)
+        self.assertEqual(request["identity"]["deployment_call_id"], deploy["call_id"])
+
+        argv = ["project", "deploy", "start", "--help"]
+        run_guarded_sf(self, self.product, self.platform, argv)
+        rows = (self.platform / "sf-calls.jsonl").read_text().splitlines()
+        start, end = map(json.loads, rows[-2:])
+        self.assertEqual(start["argv"], argv)
+        self.assertEqual((start["decision"], start["reason"]), ("allowed", "help"))
+        self.assertEqual(end["call"], start["call"])
+        self.assertIs(end["end"], True)
+        self.assertEqual(end["exit"], 0)
+        self.assertNotIn("source_binding", end)
+        self.assertEqual(quality.live_request(self.product, self.platform, "builder", self.identity), request)
+
+    def test_open_deploy_help_does_not_overlap_real_deployment(self):
+        self.start_deploy_help("aaaaaaaa")
+        self.assertIsNone(quality.ui._latest_successful_deploy(self.platform))
+        deploy = self.deploy("bbbbbbbb")
+        self.write_ui(deploy, 1)
+        self.assertTrue(quality.deploy_started_without_overlap(self.platform, deploy["call_id"]))
+        request = quality.live_request(self.product, self.platform, "builder", self.identity)
+        self.assertIsNotNone(request)
+        self.assertEqual(request["identity"]["deployment_call_id"], "bbbbbbbb")
+
+    def test_deploy_help_preserves_real_overlap_until_a_serial_deployment(self):
+        self.deploy("aaaaaaaa", completed=False)
+        self.start_deploy_help("bbbbbbbb")
+        overlapping = self.deploy("cccccccc")
+        self.write_ui(overlapping, 1)
+        self.append_calls({"call": "bbbbbbbb", "end": True, "exit": 0, "interrupted": False},
+                          {"call": "aaaaaaaa", "end": True, "exit": 0, "interrupted": False})
+        run_guarded_sf(self, self.product, self.platform, ["project", "deploy", "start", "--help"])
+        self.assertFalse(quality.deploy_started_without_overlap(self.platform, "cccccccc"))
+        self.assertIsNone(quality.live_request(self.product, self.platform, "builder", self.identity))
+        selected_after_help = quality.ui._latest_successful_deploy(self.platform)
+
+        serial = self.deploy("dddddddd")
+        self.write_ui(serial, 2)
+        request = quality.live_request(self.product, self.platform, "builder", self.identity)
+        self.assertIsNotNone(request)
+        self.assertEqual(request["identity"]["deployment_call_id"], "dddddddd")
+        self.assertEqual(selected_after_help, overlapping)
+
+    def test_deploy_help_preserves_newest_ui_attempt_invalidation(self):
+        deploy = self.deploy("aaaaaaaa")
+        run_guarded_sf(self, self.product, self.platform, ["project", "deploy", "start", "--help"])
+        for number, changes in enumerate(({"status": "failed"}, {"chat_turns": []}, {"mode": "observe"}), 1):
+            with self.subTest(changes=changes):
+                self.write_ui(deploy, number * 2)
+                self.assertIsNotNone(quality.live_request(self.product, self.platform, "builder", self.identity))
+                self.write_ui(deploy, number * 2 + 1, **changes)
+                self.assertIsNone(quality.live_request(self.product, self.platform, "builder", self.identity))
+        self.write_ui(deploy, 8)
+        self.assertIsNotNone(quality.live_request(self.product, self.platform, "builder", self.identity))
+        self.register_ui(9)
+        self.assertIsNone(quality.live_request(self.product, self.platform, "builder", self.identity))
 
     def test_new_failed_or_incomplete_ui_attempt_cannot_fall_back(self):
         (self.directory / "review.json").write_text(json.dumps(self.valid()))

@@ -785,6 +785,20 @@ async function scenario(kind) {
         self.assertNotIn("Send", missing_buttons)
 
 
+def run_guarded_sf(case, root, platform, argv, *, bind=True, run_real=None, expected_code=0):
+    guard = ui.sf_guard
+    env = {"E2E_PLATFORM_DIR": str(platform)}
+    if bind:
+        env["E2E_BIND_DEPLOY_SOURCE"] = "1"
+    with mock.patch.object(guard.os, "environ", env), \
+         mock.patch.object(guard.os, "getcwd", return_value=str(root)), \
+         mock.patch.object(guard.signal, "signal"), \
+         mock.patch.object(guard, "find_real_sf", return_value="/unused/sf"), \
+         mock.patch.object(guard, "run_real", side_effect=run_real, return_value=("", "", 0)) as real:
+        case.assertEqual(expected_code, guard.main(["--org", ui.EXPECTED_ORG, "--prefix", ui.PREFIX, "--", *argv]))
+        real.assert_called_once()
+
+
 class GrokChatDeploymentBindingTests(unittest.TestCase):
     def setUp(self):
         temp = tempfile.TemporaryDirectory()
@@ -801,19 +815,8 @@ class GrokChatDeploymentBindingTests(unittest.TestCase):
 
     def deploy(self, *flags, bind=True, command=("project", "deploy", "start"),
                run_real=None, expected_code=0):
-        guard = ui.sf_guard
-        env = {"E2E_PLATFORM_DIR": str(self.platform)}
-        if bind:
-            env["E2E_BIND_DEPLOY_SOURCE"] = "1"
-        argv = ["--org", ui.EXPECTED_ORG, "--prefix", ui.PREFIX, "--", *command,
-                "--target-org", ui.EXPECTED_ORG, *flags]
-        with mock.patch.object(guard.os, "environ", env), \
-             mock.patch.object(guard.os, "getcwd", return_value=str(self.root)), \
-             mock.patch.object(guard.signal, "signal"), \
-             mock.patch.object(guard, "find_real_sf", return_value="/unused/sf"), \
-             mock.patch.object(guard, "run_real", side_effect=run_real, return_value=("", "", 0)) as real:
-            self.assertEqual(expected_code, guard.main(argv))
-            real.assert_called_once()
+        run_guarded_sf(self, self.root, self.platform, [*command, "--target-org", ui.EXPECTED_ORG, *flags],
+                       bind=bind, run_real=run_real, expected_code=expected_code)
         return ui._latest_successful_deploy(self.platform)
 
     def candidate_digest(self, head=SOURCE_HEAD):
@@ -846,6 +849,77 @@ class GrokChatDeploymentBindingTests(unittest.TestCase):
         self.assertNotEqual(full["call_id"], partial["call_id"])
         self.assertNotIn("source_binding", partial)
         self.assertFalse(ui._source_is_fresh(self.root, partial, self.candidate_digest()))
+
+    def test_exact_deploy_help_preserves_source_binding_across_spellings_and_exits(self):
+        full = self.deploy("--source-dir", "force-app")
+        for command in (("project", "deploy", "start"), ("project:deploy:start",)):
+            for flag in ("--help", "-h"):
+                for exit_code in (0, 1):
+                    with self.subTest(command=command, flag=flag, exit_code=exit_code):
+                        run_guarded_sf(self, self.root, self.platform, [*command, "--json", flag],
+                                       run_real=lambda *args: ("", "", exit_code), expected_code=exit_code)
+                        self.assertEqual(ui._latest_successful_deploy(self.platform), full)
+                        self.assertTrue(ui._source_is_fresh(self.root, full, self.candidate_digest()))
+
+    def test_help_only_ledger_has_no_deployment(self):
+        for argv in (["--help"], ["help", "project", "deploy", "start"], ["project:deploy", "--help"],
+                     ["project", "deploy", "start", "-h"], ["project:deploy:start", "--help"]):
+            with self.subTest(argv=argv):
+                run_guarded_sf(self, self.root, self.platform, argv)
+                self.assertIsNone(ui._latest_successful_deploy(self.platform))
+
+    def test_help_like_or_inconsistent_deploy_start_stays_current(self):
+        self.deploy("--source-dir", "force-app")
+        for number, (flags, verdict) in enumerate((
+            (["--help"], {}),
+            (["-h"], {"reason": "unknown"}),
+            (["--help"], {"reason": "allowed"}),
+            (["--help"], {"reason": "help for a group of allowed commands"}),
+            (["-h"], {"reason": "no arguments (the CLI's own help)"}),
+            (["--help=false"], {"reason": "help"}),
+            (["-ch"], {"reason": "help"}),
+            (["--source-dir", "force-app/help"], {"reason": "help"}),
+        ), 1):
+            with self.subTest(flags=flags, verdict=verdict):
+                call = f"{number:08x}"
+                with (self.platform / "sf-calls.jsonl").open("a") as ledger:
+                    ledger.write(json.dumps({"call": call, "argv": ["project:deploy:start", *flags],
+                                             "decision": "allowed", "org": ui.EXPECTED_ORG, "prefix": ui.PREFIX,
+                                             **verdict}) + "\n")
+                    ledger.write(json.dumps({"call": call, "end": True, "exit": 0, "interrupted": False}) + "\n")
+                current = ui._latest_successful_deploy(self.platform)
+                self.assertIsNotNone(current)
+                self.assertEqual(current["call_id"], call)
+                self.assertFalse(ui._source_is_fresh(self.root, current, self.candidate_digest()))
+
+    def test_help_cannot_hide_later_real_deploy(self):
+        def interrupt(real, argv, state, env):
+            state["interrupted"] = True
+            return "", "", 143
+
+        ledger = self.platform / "sf-calls.jsonl"
+        for name, flags, options in (
+            ("partial", ("--source-dir", str(self.apex)), {"command": ("project:deploy:start",)}),
+            ("failed", ("--source-dir", "force-app"), {"run_real": lambda *args: ("", "", 1), "expected_code": 1}),
+            ("interrupted", ("--source-dir", "force-app"), {"run_real": interrupt, "expected_code": 143}),
+            ("open", ("--source-dir", "force-app"), {}),
+            ("dry-run", ("--source-dir", "force-app", "--dry-run"), {}),
+            ("alternate-selector", ("--source-dir", "force-app", "--metadata", "ApexClass:SLGrokChatController"), {}),
+        ):
+            with self.subTest(name=name):
+                ledger.unlink(missing_ok=True)
+                original = self.deploy("--source-dir", "force-app")
+                self.assertTrue(ui._source_is_fresh(self.root, original, self.candidate_digest()))
+                if name == "open":
+                    with mock.patch.object(ui.sf_guard, "log_end"):
+                        current = self.deploy(*flags, **options)
+                    self.assertIsNone(current)
+                else:
+                    current = self.deploy(*flags, **options)
+                    self.assertNotEqual(current["call_id"], original["call_id"])
+                    self.assertNotIn("source_binding", current)
+                run_guarded_sf(self, self.root, self.platform, ["project", "deploy", "start", "--help"])
+                self.assertEqual(ui._latest_successful_deploy(self.platform), current)
 
     def test_binding_from_another_root_does_not_count(self):
         deploy = self.deploy("--source-dir", "force-app")
