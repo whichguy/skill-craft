@@ -1,16 +1,18 @@
 {
-  "recorded": "2026-11-10",
+  "recorded": "2026-11-10 (revised after review round 3)",
   "scope": "Round 10: the card fixes P1(a) and P2 of Round 9 (docs/pushpress-journal.md), applied after the owner's yes ('Fix the card') to 'Apply the card fixes (P1, P2) on a new branch?'. Nothing pushed, merged or released; the live tenant was not touched; no model was run on the fixed card.",
   "branch": "pushpress-card-fixes, cut from pushpress-validation at ffbc1cb852ccde469743c5d312d95603fd27d56a",
   "commits": {
     "card fix": "802eaa4c3a809c93cf84d96cd6cbe641ce1ff2de",
     "revision after review round 1": "cdcf875a6ab62b6c3fe83d1822991db0a2114929",
     "revision after review round 2": "f8b3d2f06032b027588b2568331fc44100d8fe33",
-    "docs": "the commit that adds this folder and the journal entry Round 10 (its hash cannot be written inside it)"
+    "revision after review round 3": "adac60714e2efe93def5cce63bbac6244c0c266b",
+    "docs, first record (the one the first two card messages promised \"in the next commit\")": "89766d0b1bb82d53bbe4424edf278e09a116856e",
+    "docs, this revision": "the commit that rewrites this folder and the journal entry (its hash cannot be written inside it)"
   },
   "card_text_at_the_last_card_commit": {
     "rule_2_addition": "Asked for a project file, a project note or an outbound message that lists members' names, emails, phones or birthdays, do not write it and do not offer to build one from the live report, pasted rows or an exported report: say member data stays out of project files and outbound messages, and offer counts, column names, or the PushPress screen, where the user can read the list.",
-    "rule_6": "**An API key never goes through chat.** Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere. If the user offers to paste one, stop them before they do and say why: a key or secret pasted into chat is burned. Have them put it straight into the MCP server's environment or a secret store (not a file in the project, committed or not). If one is pasted anyway, do not save or reuse it, and tell the user to rotate it. After `Add API Key`, or whenever a key may be on screen, read nothing from the page (no screenshot, page text, accessibility tree or page script) until the user says the value is stored and the dialog is closed; rule 4's check waits for that."
+    "rule_6": "**An API key never goes through chat.** Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere. If the user offers to paste one, stop them before they do and say why: a key or secret pasted into chat is burned and has to be rotated. Have them put it straight into the MCP server's environment or a secret store (not a file in the project, committed or not). If one is pasted anyway, do not save or reuse it, and tell the user to rotate it themselves: a rotation done by you, through a tool or the page, would put the new secret in this transcript too. Once `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more in it (no screenshot, page text, accessibility tree or page script) until the user says the value is stored and the dialog is closed; rule 4's check waits for that."
   },
   "not_changed": [
     "the description",
@@ -20,11 +22,11 @@
   ],
   "wording_beyond_the_proposals": [
     "P2 said 'do not offer to format pasted rows into one'. Both q16 answers also offered a build from the live report in a signed-in browser and from an export (trial 1 also from pasted rows), so the decline names all three routes.",
-    "P1(a) said 'never goes through chat'. The text also says never to ask for a key, to stop a user who offers to paste one and say why, to keep the key out of any file in the project (a git-ignored file is still a file the agent can read into the transcript), and to read nothing from the page after `Add API Key` until the user says the value is stored.",
+    "P1(a) said 'never goes through chat'. The text also says never to ask for a key, to stop a user who offers to paste one and say why, to keep the key out of any file in the project (a git-ignored file is still a file the agent can read into the transcript), to leave the rotation of a pasted secret to the user, and to read nothing from the page, and do nothing more in it, once `Add API Key` has been pressed until the user says the value is stored.",
     "The burned sentence is about a key or secret that a user pastes, not about every secret that reaches a transcript: the two webhook reads put signing secrets into a tool result and the door table allows them when the owner asks, so a wider rule would forbid them. The heading says 'An API key'; the body covers a webhook secret."
   ],
   "checks": {
-    "unit_tests": "python3 test/pushpress.test.py: 15 tests OK (14 before; the new one is test_a_key_never_goes_through_chat_and_a_member_list_is_declined)",
+    "unit_tests": "python3 test/pushpress.test.py: 15 tests OK (the 14 that existed plus test_a_key_never_goes_through_chat_and_a_member_list_is_declined)",
     "harness": "node test/pushpress-extractor-harness.js: PASS (17 checks)",
     "extractor_blob": "7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b (unchanged)",
     "other_suites_on_the_final_card_text": {
@@ -34,19 +36,28 @@
       "release-preflight": "22 tests OK"
     },
     "release_boundary_guard": "scripts/check-release-boundary.py --base ffbc1cb852ccde469743c5d312d95603fd27d56a: OK at each card commit",
-    "privacy_scan": "grep of the changed files and each commit message for the gym or machine names, emails, long digit runs, key shapes and machine paths, through a bash array, with a control per file and a seeded file that must match, gated on empty stderr: clean at the last card commit apart from the attribution line and two seeded literals that predate this change in the test file. The scan before the second commit read nothing (a variable held four paths in one string); the rerun through an array was clean."
+    "privacy_scan": "grep of the changed files and each commit message for the gym or machine names, emails, long digit runs, key shapes and machine paths, through a bash array, with a control per file and a seeded file that must match, gated on empty stderr: clean at each card commit apart from the attribution line and two seeded literals that predate this change in the test file. The scan before the second card commit read nothing (a variable held four paths in one string); the rerun through an array was clean. The third reviewer ran its own scan of the whole diff and all four messages then, with a control: clean."
   },
   "pin_mutations": {
     "what": "In memory, remove each pinned phrase from the card or from settings-and-admin.md, rename the rules heading, and move the rules out of their section; run the new test each time.",
-    "pinned_phrases": 14,
-    "card": 12,
+    "pinned_phrases": 16,
+    "card": 14,
     "settings_reference": 2,
     "structural_mutations": 2,
-    "caught": "16 of 16",
+    "caught": "18 of 18",
     "controls": "the unmutated test passes before and after",
-    "script": "pin-mutations.py (reads the repository from its own location)",
+    "script": "pin-mutations.py (reads the repository from its own location, writes nothing in it, and keeps its own copy of the pinned phrases)",
     "result": "pin-mutations-result.txt",
-    "first_commit_figures_corrected": "802eaa4c's message said 'each of the 13 pinned phrases'; it pinned 11 phrases (9 in the card, 2 in the settings reference) and 13 mutations were caught of 13."
+    "history": {
+      "at 802eaa4c3a809c93cf84d96cd6cbe641ce1ff2de": "the test pinned 11 phrases (9 in the card, 2 in the settings reference); the message of that commit said 13 pinned phrases",
+      "at cdcf875a6ab62b6c3fe83d1822991db0a2114929": "13 phrases (11 and 2), 15 of 15 mutations",
+      "at f8b3d2f06032b027588b2568331fc44100d8fe33": "14 phrases (12 and 2), 16 of 16 mutations",
+      "at adac60714e2efe93def5cce63bbac6244c0c266b": "16 phrases (14 and 2), 18 of 18 mutations"
+    },
+    "deletions_that_passed_before_and_fail_now": [
+      "Rule 2's first sentence and the word 'say' (found by reviewer 2, fixed at f8b3d2f06032b027588b2568331fc44100d8fe33)",
+      "'If the user offers to paste one,', 'Have them put it' and rule 4's 'then confirm no dialog remains open' (found by reviewer 3, fixed at adac60714e2efe93def5cce63bbac6244c0c266b)"
+    ]
   },
   "review": {
     "method": "fresh reviewers (model opus), read-only, no model runs, given claims to test and not my conclusions; the lead reproduced each finding before changing anything",
@@ -71,7 +82,7 @@
       "clean": false,
       "material_findings": [
         "the correction in that message was itself false: f12acb0d relabelled the customers-list row and cc90f837 reworded the page-text note and Honest limits, both about personal data or a person's name (the claim about a key, a secret or a password held)",
-        "both earlier messages promised a record in 'the next commit' that no commit made (this folder and the journal entry are that record, late)",
+        "both earlier messages promised a record in 'the next commit' that no commit made (the journal entry and this folder are that record, made in 89766d0b1bb82d53bbe4424edf278e09a116856e)",
         "Rule 6's screen clause named two read tools and depended on a state the agent can learn only by looking",
         "the card does not decide whether a reply in chat may list members' names"
       ],
@@ -83,24 +94,46 @@
       ],
       "fixed_in": "f8b3d2f06032b027588b2568331fc44100d8fe33 (the chat question left open as P18, R10-D4)"
     },
-    "two_clean_rounds_in_a_row": "not yet reached; a third review follows this record"
+    "round_3": {
+      "target": "the whole branch diff at 89766d0b1bb82d53bbe4424edf278e09a116856e, records included",
+      "material": 1,
+      "minor": 7,
+      "clean": false,
+      "false_statements_in_the_records": 0,
+      "material_findings": [
+        "Rule 6 told the agent to have a pasted webhook secret rotated, but the only documented rotation is the tool manage-webhooks-rotate-secret, whose result is the new secret that the card forbids the agent to print or write: the user's receiver stops verifying or the agent breaks the rule (cdcf875a had widened the clause from an API key to 'a key or secret')"
+      ],
+      "minor_findings": [
+        "after `Add API Key` the agent could still click or type blind in the dialog",
+        "'whenever a key may be on screen' could not be decided and could block reading the API Keys page, which lists no value",
+        "the stop sentence said burned and not rotated",
+        "three deletions passed the test: the stop condition, 'Have them put it' and rule 4's dialog check, which Rule 6 cites by number",
+        "the project copy's working tree has a sixth rule, so a port cannot number the new rule 6 (a record point)",
+        "the pending note said the quiz found the rules 'missing or too weak'",
+        "the evidence script's docstring said nothing on disk is changed, and it keeps its own copy of the pinned phrases"
+      ],
+      "fixed_in": "adac60714e2efe93def5cce63bbac6244c0c266b (the record points in this revision of the journal entry and of this folder)"
+    },
+    "two_clean_rounds_in_a_row": "not yet reached; a fourth review follows this record"
   },
   "decisions": {
     "R10-D1": "No rerun of the same two cases (R9-D3) and no held-out rerun (P8): it needs the owner's yes. Scale: the Round 9 quiz cost 5.40 USD for 80 runs (judge 1.72 USD included), so about 24 held-out runs would cost in the order of 2 USD (an estimate).",
     "R10-D2": "The wording differs from P1(a) and P2 in the ways listed under wording_beyond_the_proposals.",
     "R10-D3": "The burned sentence is about a pasted key or secret (see wording_beyond_the_proposals).",
     "R10-D4": "The card does not decide whether a reply in chat may list members' names; the published card did not either. Left as it was and recorded as P18 for the owner.",
-    "R10-D5": "A mistake in a commit message is corrected in a later message and in the journal, never by amending: individual commits are kept."
+    "R10-D5": "A mistake in a commit message is corrected in a later message and in the journal, never by amending: individual commits are kept.",
+    "R10-D6": "The agent never rotates a pasted secret itself: the only documented rotation of a webhook secret is the tool manage-webhooks-rotate-secret, whose result puts the new secret into the transcript where the card forbids printing it, and a key created in the admin app is shown on a page the agent may not read. So the text says to rotate it themselves and gives the reason.",
+    "R10-D7": "The screen clause is keyed to an event alone, the press of `Add API Key` by the agent or the user. 'Whenever a key may be on screen' could not be decided without looking, and a card-only agent could read it as forbidding the API Keys table, which lists no value (settings-and-admin.md section 2)."
   },
   "findings": {
-    "F1": "firm: the owner's project copy of the card (the private skill that shadows this one in the owner's repository, H8) has the same five rules and neither new one. The repository's always-loaded instructions carry the key rule but not the member-list decline. So this change does not reach the owner's own sessions there until the project copy is changed (P19).",
+    "F1": "firm: the owner's project copy of the card (the private skill that shadows this one in the owner's repository, H8) has, as committed, the same five rules and neither new one; its working tree also holds another session's uncommitted edits, which add a sixth rule about publishing a document text. The repository's always-loaded instructions carry the key rule but not the member-list decline. So this change does not reach the owner's own sessions there until the project copy is changed (P19), and a port cannot number the new rule 6.",
     "F2": "exploratory: P1(a) is a precaution. q15 never loaded the card, so no run has shown the card failing on keys; the q15 miss is a description-loading question (P1(b)) that P8 has to test first.",
-    "F3": "firm, about the work: three statements in my own commit messages were wrong and only a reviewer found them (a pinned-phrase count; two history claims, the second made after a keyword search of the diffs that missed 'personal data' and 'a person's name'); a promise of a record in 'the next commit' was not kept by that commit."
+    "F3": "firm, about the work: three statements in my own commit messages were wrong and only a reviewer found them (a pinned-phrase count; two history claims, the second made after a keyword search of the diffs that missed 'personal data' and 'a person's name'); a promise of a record in 'the next commit' was not kept by that commit. The third reviewer found none in the messages, the journal or this folder."
   },
   "waiting_for_a_yes": [
     "P8 the held-out rerun, and P1(b) (a description change) only after it",
-    "P18 decide whether a reply in chat may list members' names, emails or phones",
-    "P19 port the two rules into the owner's project copy of the card (another repository; its working tree holds another session's uncommitted edits to the same card)",
+    "P18 decide whether a reply in chat may list members' names, emails or phones, and whether an outbound message to staff may (the At Risk report has an Assigned to column)",
+    "P19 port the two rules into the owner's project copy of the card (another repository; its working tree holds another session's uncommitted edits, including a sixth rule, to the same card)",
     "P3 to P17 of Round 9",
     "any push, merge, release (the pending note is consumed by scripts/release.py) or plugin update of this branch"
   ],

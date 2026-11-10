@@ -1,4 +1,4 @@
-Output of pin-mutations.py run from this folder at f8b3d2f06032b027588b2568331fc44100d8fe33 (the round-2 revision), 2026-11-10.
+Output of pin-mutations.py run from this folder at adac60714e2efe93def5cce63bbac6244c0c266b (the round-3 revision), 2026-11-10.
 [
  {
   "mutation": "none (control)",
@@ -16,27 +16,37 @@ Output of pin-mutations.py run from this folder at f8b3d2f06032b027588b2568331fc
   "kind": "failure"
  },
  {
-  "mutation": "card without: stop them before they do and say why: a key or secret pasted into chat is burned",
+  "mutation": "card without: If the user offers to paste one, stop them before they do and say why: a key or secret pasted into chat is burned and has to be rotated",
   "test_passes": false,
   "kind": "failure"
  },
  {
-  "mutation": "card without: straight into the MCP server's environment or a secret store (not a file in the project, committed or not)",
+  "mutation": "card without: Have them put it straight into the MCP server's environment or a secret store (not a file in the project, committed or not)",
   "test_passes": false,
   "kind": "failure"
  },
  {
-  "mutation": "card without: If one is pasted anyway, do not save or reuse it",
+  "mutation": "card without: If one is pasted anyway, do not save or reuse it, and tell the user to rotate it themselves",
   "test_passes": false,
   "kind": "failure"
  },
  {
-  "mutation": "card without: tell the user to rotate it",
+  "mutation": "card without: a rotation done by you, through a tool or the page, would put the new secret in this transcript too",
   "test_passes": false,
   "kind": "failure"
  },
  {
-  "mutation": "card without: After `Add API Key`, or whenever a key may be on screen, read nothing from the page (no screenshot, page text, accessibility tree or page script) until the user says the value is stored and the dialog is closed; rule 4's check waits for that",
+  "mutation": "card without: Once `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more in it (no screenshot, page text, accessibility tree or page script) until the user says the value is stored and the dialog is closed; rule 4's check waits for that",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: 4. **Close, don't Save.**",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: then confirm no dialog remains open",
   "test_passes": false,
   "kind": "failure"
  },
@@ -93,5 +103,5 @@ Output of pin-mutations.py run from this folder at f8b3d2f06032b027588b2568331fc
 ]
 mutations that the test did NOT catch: []
 controls pass: True
-pinned phrases: 14 (card 12 + settings 2 ) + 2 structural mutations
-caught: 16 of 16
+pinned phrases: 16 (card 14 + settings 2 ) + 2 structural mutations
+caught: 18 of 18

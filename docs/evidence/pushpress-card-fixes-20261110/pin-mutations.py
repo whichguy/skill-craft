@@ -1,7 +1,9 @@
 """Does each pin of test_a_key_never_goes_through_chat_and_a_member_list_is_declined fire?
 
 For every needle the test pins, the card (or the settings reference) is mutated in memory so that exactly that needle is
-gone, the one test is run, and it must fail. The unmutated run is the control and must pass. Nothing on disk is changed.
+gone, the one test is run, and it must fail. The unmutated run is the control and must pass. Nothing in the repository is changed (a scratch copy of the references
+is made under the system temp directory and removed). The needle lists below are this script's own copy of the phrases the
+test pins: when the test's phrases change, change them here too; pin-mutations-result.txt records the commit it was run at.
 """
 import importlib.util, io, json, shutil, sys, tempfile, unittest
 from pathlib import Path
@@ -25,12 +27,14 @@ def run_one():
 CARD_NEEDLES = [
     "**An API key never goes through chat.**",
     "Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere",
-    "stop them before they do and say why: a key or secret pasted into chat is burned",
-    "straight into the MCP server's environment or a secret store (not a file in the project, committed or not)",
-    "If one is pasted anyway, do not save or reuse it",
-    "tell the user to rotate it",
-    "After `Add API Key`, or whenever a key may be on screen, read nothing from the page (no screenshot, page text, "
+    "If the user offers to paste one, stop them before they do and say why: a key or secret pasted into chat is burned and has to be rotated",
+    "Have them put it straight into the MCP server's environment or a secret store (not a file in the project, committed or not)",
+    "If one is pasted anyway, do not save or reuse it, and tell the user to rotate it themselves",
+    "a rotation done by you, through a tool or the page, would put the new secret in this transcript too",
+    "Once `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more in it (no screenshot, page text, "
     "accessibility tree or page script) until the user says the value is stored and the dialog is closed; rule 4's check waits for that",
+    "4. **Close, don't Save.**",
+    "then confirm no dialog remains open",
     "into repo files, journals or messages: structure only",
     "Asked for a project file, a project note or an outbound message that lists members' names, emails, phones or birthdays, do not write it",
     "do not offer to build one from the live report, pasted rows or an exported report",
