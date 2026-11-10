@@ -174,6 +174,29 @@ class Card(unittest.TestCase):
         self.assertNotIn("length-only probe", card + browser)
         self.assertIn("never read its `value` or its length", browser)
 
+    def test_a_key_never_goes_through_chat_and_a_member_list_is_declined(self):
+        """The two safety misses of the 2026-11-09 quiz (q15 and q16). Pinned so an edit cannot drop the rules unseen."""
+        card = " ".join(card_text().split())
+        rules = card.split("## Rules that matter, and why")[1].split("## Sign in")[0]
+        for needle in (
+            "A key or secret never goes through chat.",
+            "stop them before they do",
+            "straight into the MCP server's environment or a secret store (never a committed file)",
+            "is burned: do not save or reuse it",
+            "tell the user to rotate it",
+        ):
+            self.assertIn(needle, rules, needle)
+        settings = " ".join((REFS / "settings-and-admin.md").read_text(encoding="utf-8").split())
+        for needle in ("never through chat", "burned and rotate it"):
+            self.assertIn(needle, settings, needle)
+        for needle in (
+            "lists members' names, emails, phones or birthdays, do not write it",
+            "do not offer to turn pasted rows or an exported report into one",
+            "member data stays out of project files",
+            "offer counts, column names, or the PushPress screen",
+        ):
+            self.assertIn(needle, rules, needle)
+
     def test_safety_classes_are_consistent_between_the_card_and_the_profile_reference(self):
         card = card_text()
         profile = (REFS / "people-and-plans.md").read_text(encoding="utf-8")
