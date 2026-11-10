@@ -1,4 +1,4 @@
-Output of pin-mutations.py run from this folder at adac60714e2efe93def5cce63bbac6244c0c266b (the round-3 revision), 2026-11-10.
+Output of pin-mutations.py run from this folder at c0460fc7dce7b9c401677d29219bdc53ae004ba8 (the round-4 revision), 2026-11-10.
 [
  {
   "mutation": "none (control)",
@@ -11,7 +11,7 @@ Output of pin-mutations.py run from this folder at adac60714e2efe93def5cce63bbac
   "kind": "failure"
  },
  {
-  "mutation": "card without: Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere",
+  "mutation": "card without: Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere, nor run or read anything that shows one (`ps` or `env` output, a server command line that carries `--api-key`, the launcher's env file)",
   "test_passes": false,
   "kind": "failure"
  },
@@ -26,12 +26,7 @@ Output of pin-mutations.py run from this folder at adac60714e2efe93def5cce63bbac
   "kind": "failure"
  },
  {
-  "mutation": "card without: If one is pasted anyway, do not save or reuse it, and tell the user to rotate it themselves",
-  "test_passes": false,
-  "kind": "failure"
- },
- {
-  "mutation": "card without: a rotation done by you, through a tool or the page, would put the new secret in this transcript too",
+  "mutation": "card without: If one is pasted anyway, do not save or reuse it, and tell the user to rotate it themselves (you could not pass the new secret on without reading or printing it)",
   "test_passes": false,
   "kind": "failure"
  },
@@ -56,7 +51,7 @@ Output of pin-mutations.py run from this folder at adac60714e2efe93def5cce63bbac
   "kind": "failure"
  },
  {
-  "mutation": "card without: Asked for a project file, a project note or an outbound message that lists members' names, emails, phones or birthdays, do not write it",
+  "mutation": "card without: Asked for a project file, a project note or an outbound message that lists members', leads' or parents' names, emails, phones or birthdays, do not write it",
   "test_passes": false,
   "kind": "failure"
  },
@@ -91,7 +86,7 @@ Output of pin-mutations.py run from this folder at adac60714e2efe93def5cce63bbac
   "kind": "failure"
  },
  {
-  "mutation": "settings reference without: burned and rotate it",
+  "mutation": "settings reference without: burned: the user rotates it, not you",
   "test_passes": false,
   "kind": "failure"
  },
@@ -103,5 +98,5 @@ Output of pin-mutations.py run from this folder at adac60714e2efe93def5cce63bbac
 ]
 mutations that the test did NOT catch: []
 controls pass: True
-pinned phrases: 16 (card 14 + settings 2 ) + 2 structural mutations
-caught: 18 of 18
+pinned phrases: 15 (card 13 + settings 2 ) + 2 structural mutations
+caught: 17 of 17

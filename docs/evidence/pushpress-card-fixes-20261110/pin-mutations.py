@@ -1,21 +1,43 @@
 """Does each pin of test_a_key_never_goes_through_chat_and_a_member_list_is_declined fire?
 
-For every needle the test pins, the card (or the settings reference) is mutated in memory so that exactly that needle is
-gone, the one test is run, and it must fail. The unmutated run is the control and must pass. Nothing in the repository is changed (a scratch copy of the references
-is made under the system temp directory and removed). The needle lists below are this script's own copy of the phrases the
-test pins: when the test's phrases change, change them here too; pin-mutations-result.txt records the commit it was run at.
+The pinned phrases are read from the test itself (its syntax tree), so there is no second copy to keep in step with it.
+For every phrase, the card (or the settings reference) is mutated in memory so that exactly that phrase is gone, the one
+test is run, and it must fail. Two structural mutations (the rules heading renamed; the rules moved out of their section)
+are run as well, and the unmutated test is the control, before and after, and must pass. Nothing in the repository is
+changed (a scratch copy of the references is made under the system temp directory and removed).
 """
-import importlib.util, io, json, shutil, sys, tempfile, unittest
+import ast, importlib.util, io, json, shutil, sys, tempfile, unittest
 from pathlib import Path
 
 sys.dont_write_bytecode = True  # importing the test module must not leave a __pycache__ in test/
 ROOT = Path(__file__).resolve().parents[3]  # docs/evidence/<folder>/pin-mutations.py -> the repository root
-spec = importlib.util.spec_from_file_location("pp_unit", ROOT / "test" / "pushpress.test.py")
+TEST = ROOT / "test" / "pushpress.test.py"
+NAME = "test_a_key_never_goes_through_chat_and_a_member_list_is_declined"
+
+spec = importlib.util.spec_from_file_location("pp_unit", TEST)
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
-NAME = "test_a_key_never_goes_through_chat_and_a_member_list_is_declined"
 orig_card = mod.card_text
 orig_refs = mod.REFS
+
+# The phrases the test pins, read from its syntax tree: every `for needle in (...)` loop of the test whose body is
+# self.assertIn(needle, <rules or settings>, needle). Adjacent string literals are already joined by the parser.
+tree = ast.parse(TEST.read_text(encoding="utf-8"))
+fn = next(n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef) and n.name == NAME)
+CARD_NEEDLES, SETTINGS_NEEDLES = [], []
+for node in ast.walk(fn):
+    if not (isinstance(node, ast.For) and isinstance(node.iter, (ast.Tuple, ast.List))):
+        continue
+    target = None
+    for stmt in node.body:
+        call = getattr(stmt, "value", None)
+        if (isinstance(call, ast.Call) and getattr(call.func, "attr", "") == "assertIn"
+                and len(call.args) >= 2 and isinstance(call.args[1], ast.Name)):
+            target = call.args[1].id
+    needles = [e.value for e in node.iter.elts if isinstance(e, ast.Constant) and isinstance(e.value, str)]
+    assert len(needles) == len(node.iter.elts), "a pinned phrase that is not a plain string"
+    {"rules": CARD_NEEDLES, "settings": SETTINGS_NEEDLES}[target].extend(needles)
+assert CARD_NEEDLES and SETTINGS_NEEDLES
 
 
 def run_one():
@@ -23,25 +45,6 @@ def run_one():
     res = unittest.TextTestRunner(stream=out, verbosity=0).run(unittest.TestSuite([mod.Card(NAME)]))
     return res.wasSuccessful(), ("error" if res.errors else "failure" if res.failures else "ok")
 
-
-CARD_NEEDLES = [
-    "**An API key never goes through chat.**",
-    "Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere",
-    "If the user offers to paste one, stop them before they do and say why: a key or secret pasted into chat is burned and has to be rotated",
-    "Have them put it straight into the MCP server's environment or a secret store (not a file in the project, committed or not)",
-    "If one is pasted anyway, do not save or reuse it, and tell the user to rotate it themselves",
-    "a rotation done by you, through a tool or the page, would put the new secret in this transcript too",
-    "Once `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more in it (no screenshot, page text, "
-    "accessibility tree or page script) until the user says the value is stored and the dialog is closed; rule 4's check waits for that",
-    "4. **Close, don't Save.**",
-    "then confirm no dialog remains open",
-    "into repo files, journals or messages: structure only",
-    "Asked for a project file, a project note or an outbound message that lists members' names, emails, phones or birthdays, do not write it",
-    "do not offer to build one from the live report, pasted rows or an exported report",
-    "say member data stays out of project files and outbound messages",
-    "offer counts, column names, or the PushPress screen, where the user can read the list",
-]
-SETTINGS_NEEDLES = ["never through chat", "burned and rotate it"]
 
 results = []
 ok, kind = run_one()
