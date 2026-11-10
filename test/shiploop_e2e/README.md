@@ -1540,7 +1540,10 @@ nothing about any platform; it runs the shell commands the case names, in this o
 preflight recorded (with `model_bin`, `shell_path_pinned` and `model_bin_resolution`) and says whether this invocation was given `--keep-platform` (`keep_platform`). The start of the run prints the manual cleanup command, and so does the failure banner. It reads
 `env E2E_PLATFORM_DIR=<dir> E2E_CHECKS=<dir> sh -c '<the case's cleanup>'`: paste it into any shell, from any directory. (A plain
 `VAR=x command "$VAR"` prefix would not do: the shell expands `$VAR` before the assignment is visible to that same command, so
-`$E2E_CHECKS` in the case's text would be empty.) `<output>/platform/cleanup-record.json` is written by the cleanup itself. A
+`$E2E_CHECKS` in the case's text would be empty.) `<output>/platform/cleanup-record.json` is written by the cleanup itself. Each
+update is written and synced to a temporary file in the same directory, then atomically replaces the destination: a concurrent reader sees
+complete old or new JSON, not a truncated write. Failure before replacement leaves the prior record intact, but that old record does not prove
+the current invocation cleaned up. This is an atomic publication guarantee, not power-loss durability or evidence freshness. A
 regrade of a run whose cleanup succeeded restates the checks made while the work was deployed (`platform.checks_restated`):
 asking a cleaned platform again would find nothing and replace a pass with a fail. The stored checks are in `result.json`: a regrade of a run that
 never wrote one (a crash between the cleanup and the result) cannot restate them, so after a cleanup they are asked of the cleaned platform and fail

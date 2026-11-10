@@ -2384,6 +2384,91 @@ class HardKillTest(PlatformCase):
         return dict(shiploop={"pass": True}, engine={"status": "done"}, process={"status": "exited", "pass": True},
                     stop_seen=False, stop_file=self.tmp / "no-stop", checks=[{"command": "c", "pass": True}], invalid=False)
 
+    def test_cleanup_record_publication_never_exposes_a_partial_write(self):
+        out = self.tmp / "atomic-cleanup"
+        out.mkdir()
+        record = out / "platform" / "cleanup-record.json"
+        old = {"ran": True, "ok": False, "returncode": 3, "output": "old complete record"}
+        new = {"ran": True, "ok": True, "returncode": 0, "output": "new complete record"}
+        run.write_cleanup_record(out, old)
+        reached, release = threading.Event(), threading.Event()
+        original_open, original_replace = Path.open, os.replace
+
+        def pausing_open(path, *args, **kwargs):
+            handle = original_open(path, *args, **kwargs)
+            if Path(path) == record and kwargs.get("mode") == "w":
+                reached.set()
+                self.assertTrue(release.wait(5))
+            return handle
+
+        def pausing_replace(source, target):
+            if Path(target) == record:
+                reached.set()
+                self.assertTrue(release.wait(5))
+            return original_replace(source, target)
+
+        with mock.patch.object(Path, "open", pausing_open), mock.patch.object(run.os, "replace", pausing_replace):
+            writer = threading.Thread(target=run.write_cleanup_record, args=(out, new))
+            try:
+                writer.start()
+                self.assertTrue(reached.wait(5), "the writer must reach its publication boundary")
+                self.assertEqual(json.loads(record.read_text()), old,
+                                 "a reader during publication sees the old complete record")
+            finally:
+                release.set()
+                writer.join(5)
+        self.assertFalse(writer.is_alive())
+        self.assertEqual(json.loads(record.read_text()), new)
+
+    def test_failed_cleanup_record_replacement_preserves_the_previous_record(self):
+        out = self.tmp / "failed-cleanup-replacement"
+        out.mkdir()
+        old = {"ran": True, "ok": True, "output": "retain this complete record"}
+        run.write_cleanup_record(out, old)
+        record = out / "platform" / "cleanup-record.json"
+        with mock.patch.object(run.os, "replace", side_effect=OSError("injected replacement failure")):
+            run.write_cleanup_record(out, run.PENDING_CLEANUP)
+        self.assertEqual(json.loads(record.read_text()), old)
+        self.assertEqual([p.name for p in record.parent.iterdir()], ["cleanup-record.json"])
+
+    def test_failed_cleanup_record_write_stages_preserve_the_previous_record(self):
+        for stage in ("write", "flush", "fsync"):
+            with self.subTest(stage=stage):
+                out = self.tmp / ("failed-cleanup-" + stage)
+                out.mkdir()
+                old = {"ran": True, "ok": True, "output": "complete before " + stage}
+                run.write_cleanup_record(out, old)
+                record = out / "platform" / "cleanup-record.json"
+                original_temporary = run.tempfile.NamedTemporaryFile
+
+                def temporary(*args, original=original_temporary, injected_stage=stage, **kwargs):
+                    handle = original(*args, **kwargs)
+                    if injected_stage in ("write", "flush"):
+                        setattr(handle, injected_stage, mock.Mock(side_effect=OSError("injected " + injected_stage)))
+                    return handle
+
+                patches = [mock.patch.object(run.tempfile, "NamedTemporaryFile", temporary)]
+                if stage == "fsync":
+                    patches.append(mock.patch.object(run.os, "fsync", side_effect=OSError("injected fsync")))
+                for patch in patches:
+                    patch.start()
+                try:
+                    run.write_cleanup_record(out, run.PENDING_CLEANUP)
+                finally:
+                    for patch in reversed(patches):
+                        patch.stop()
+                self.assertEqual(json.loads(record.read_text()), old)
+                self.assertEqual([p.name for p in record.parent.iterdir()], ["cleanup-record.json"])
+
+    def test_failed_first_cleanup_record_publication_leaves_no_partial_file(self):
+        out = self.tmp / "failed-first-cleanup-publication"
+        out.mkdir()
+        record = out / "platform" / "cleanup-record.json"
+        with mock.patch.object(run.os, "replace", side_effect=OSError("injected first publication failure")):
+            run.write_cleanup_record(out, run.PENDING_CLEANUP)
+        self.assertFalse(record.exists())
+        self.assertEqual(list(record.parent.iterdir()), [])
+
     def test_arming_writes_the_pending_record_and_keeping_or_finishing_replaces_it(self):
         spec = {"kind": "test", "cleanup": "true"}
         out = self.tmp / "armed"
