@@ -1,4 +1,4 @@
-Output of pin-mutations.py run from this folder at cbd61ded3dff59a9aa1ef9fb239ddcbd15a83ea1 (the round-5 revision), 2026-11-10.
+Output of pin-mutations.py run from this folder at 3e3a52c22f63150f431f41f8fb7f403826f1cffa (the round-6 revision), 2026-11-10.
 [
  {
   "mutation": "none (control)",
@@ -11,12 +11,12 @@ Output of pin-mutations.py run from this folder at cbd61ded3dff59a9aa1ef9fb239dd
   "kind": "failure"
  },
  {
-  "mutation": "card without: Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere, nor run or read anything that would show one: ask the user to look and tell you what they find, never the key",
+  "mutation": "card without: Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere, nor run or read anything that you know or suspect would show one: ask the user to look and tell you what they find, never the key",
   "test_passes": false,
   "kind": "failure"
  },
  {
-  "mutation": "card without: [settings-and-admin.md \u00a72](references/settings-and-admin.md#2-api-keys-settings--security--access); the two webhook reads in the door table are the one exception (report URLs and event types only)",
+  "mutation": "card without: The routes that show a key, and what is exempt, are in [settings-and-admin.md \u00a72](references/settings-and-admin.md#2-api-keys-settings--security--access); the webhook tools of the API reference are exempt too (follow that file's rules for them)",
   "test_passes": false,
   "kind": "failure"
  },
@@ -36,7 +36,7 @@ Output of pin-mutations.py run from this folder at cbd61ded3dff59a9aa1ef9fb239dd
   "kind": "failure"
  },
  {
-  "mutation": "card without: Once `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more in it (no screenshot, page text, accessibility tree or page script) until the user says the value is stored and the dialog is closed; rule 4's check waits for that",
+  "mutation": "card without: Once `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more in it (no screenshot, page text, accessibility tree or page script) until the user says the dialog is closed (value stored, or cancelled); rule 4's check waits for that",
   "test_passes": false,
   "kind": "failure"
  },
@@ -51,12 +51,12 @@ Output of pin-mutations.py run from this folder at cbd61ded3dff59a9aa1ef9fb239dd
   "kind": "failure"
  },
  {
-  "mutation": "card without: into repo files, journals or messages: structure only",
+  "mutation": "card without: into repo files, journals, your memory or messages: structure only",
   "test_passes": false,
   "kind": "failure"
  },
  {
-  "mutation": "card without: Asked for a project file, a project note, your memory or an outbound message that lists members', leads' or parents' names, emails, phones or birthdays, do not write it",
+  "mutation": "card without: Asked for a project file, a project note, your memory or an outbound message whose text lists members', leads' or parents' names, emails, phones or birthdays, do not write it",
   "test_passes": false,
   "kind": "failure"
  },
@@ -86,6 +86,11 @@ Output of pin-mutations.py run from this folder at cbd61ded3dff59a9aa1ef9fb239dd
   "kind": "failure"
  },
  {
+  "mutation": "settings reference without: Never print, copy into chat or write a key value anywhere.",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
   "mutation": "settings reference without: never through chat",
   "test_passes": false,
   "kind": "failure"
@@ -96,27 +101,37 @@ Output of pin-mutations.py run from this folder at cbd61ded3dff59a9aa1ef9fb239dd
   "kind": "failure"
  },
  {
-  "mutation": "settings reference without: Routes that show a key without a print command:",
+  "mutation": "settings reference without: Routes that show a key without a print command.",
   "test_passes": false,
   "kind": "failure"
  },
  {
-  "mutation": "settings reference without: `ps` or `env` output (the server is started as `mcp start --api-key <key>`, so the key is in its command line)",
+  "mutation": "settings reference without: Do not run or read them: ask the user to look and tell you what they find, never the key",
   "test_passes": false,
   "kind": "failure"
  },
  {
-  "mutation": "settings reference without: a verbose or traced run (`curl -v`, `set -x`)",
+  "mutation": "settings reference without: `ps` or `env` output that shows the server's arguments or environment (the server is started as `mcp start --api-key <key>`, so the key is in its command line; `pgrep -a` shows it too)",
   "test_passes": false,
   "kind": "failure"
  },
  {
-  "mutation": "settings reference without: ask the user to look and tell you what they find, never the key",
+  "mutation": "settings reference without: shell history",
   "test_passes": false,
   "kind": "failure"
  },
  {
-  "mutation": "settings reference without: the API Keys table (it lists no value) and the two webhook reads in the door table (report URLs and event types only)",
+  "mutation": "settings reference without: a file or profile you know or suspect holds the key (`.env`, a shell profile, the PushPress server's entry in an MCP config)",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: a verbose or traced run that sends the key (`curl -v`, `set -x`)",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: Exempt: a process listing without arguments, other servers' config, the API Keys table (it lists no value) and the webhook tools of the API reference (follow that file's rules for them)",
   "test_passes": false,
   "kind": "failure"
  },
@@ -128,5 +143,5 @@ Output of pin-mutations.py run from this folder at cbd61ded3dff59a9aa1ef9fb239dd
 ]
 mutations that the test did NOT catch: []
 controls pass: True
-pinned phrases: 21 (card 14 + settings 7 ) + 2 structural mutations
-caught: 23 of 23
+pinned phrases: 24 (card 14 + settings 10 ) + 2 structural mutations
+caught: 26 of 26

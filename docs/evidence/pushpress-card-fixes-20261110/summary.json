@@ -1,5 +1,5 @@
 {
-  "recorded": "2026-11-10 (revised after review round 5)",
+  "recorded": "2026-11-10 (revised after review round 6)",
   "scope": "Round 10: the card fixes P1(a) and P2 of Round 9 (docs/pushpress-journal.md), applied after the owner's yes ('Fix the card') to 'Apply the card fixes (P1, P2) on a new branch?'. Nothing pushed, merged or released; the live tenant was not touched; no model was run on the fixed card.",
   "branch": "pushpress-card-fixes, cut from pushpress-validation at ffbc1cb852ccde469743c5d312d95603fd27d56a",
   "commits": {
@@ -9,26 +9,28 @@
     "revision after review round 3": "adac60714e2efe93def5cce63bbac6244c0c266b",
     "revision after review round 4": "c0460fc7dce7b9c401677d29219bdc53ae004ba8",
     "revision after review round 5": "cbd61ded3dff59a9aa1ef9fb239ddcbd15a83ea1",
+    "revision after review round 6": "3e3a52c22f63150f431f41f8fb7f403826f1cffa",
     "docs, first record (the one the first two card messages promised \"in the next commit\")": "89766d0b1bb82d53bbe4424edf278e09a116856e",
     "docs, revision after round 3": "2602896d21b72a5723740fc079bd58bef888ff4c",
     "docs, revision after round 4": "0ab55609a517de300391a39fa92cd38aa87b8bc8",
+    "docs, revision after round 5": "7087c813f92aa801a9003e4d9625730a536b755e",
     "docs, this revision": "the commit that rewrites this folder and the journal entry (its hash cannot be written inside it)"
   },
   "card_text_at_the_last_card_commit": {
-    "rule_2_addition": "Asked for a project file, a project note, your memory or an outbound message that lists members', leads' or parents' names, emails, phones or birthdays, do not write it and do not offer to build one from the live report, the API tools, a script, pasted rows or an exported report: say member data stays out of project files, your memory and outbound messages, and offer counts, column names, or the PushPress screen, where the user can read the list.",
-    "rule_6": "**An API key never goes through chat.** Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere, nor run or read anything that would show one: ask the user to look and tell you what they find, never the key. The routes that show a key, and what is exempt, are in [settings-and-admin.md §2](references/settings-and-admin.md#2-api-keys-settings--security--access); the two webhook reads in the door table are the one exception (report URLs and event types only). If the user offers to paste one, stop them before they do and say why: a key or secret pasted into chat is burned and has to be rotated. Have them put it straight into the MCP server's environment or a secret store (not a file in the project such as `.env` or `.mcp.json`, committed or not). If one is pasted anyway, do not save or reuse it, and tell the user to rotate it themselves (you could not pass the new secret on without reading or printing it). Once `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more in it (no screenshot, page text, accessibility tree or page script) until the user says the value is stored and the dialog is closed; rule 4's check waits for that.",
+    "rule_2_addition": "Asked for a project file, a project note, your memory or an outbound message whose text lists members', leads' or parents' names, emails, phones or birthdays, do not write it and do not offer to build one from the live report, the API tools, a script, pasted rows or an exported report: say member data stays out of project files, your memory and outbound messages, and offer counts, column names, or the PushPress screen, where the user can read the list.",
+    "rule_6": "**An API key never goes through chat.** Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere, nor run or read anything that you know or suspect would show one: ask the user to look and tell you what they find, never the key. The routes that show a key, and what is exempt, are in [settings-and-admin.md §2](references/settings-and-admin.md#2-api-keys-settings--security--access); the webhook tools of the API reference are exempt too (follow that file's rules for them). If the user offers to paste one, stop them before they do and say why: a key or secret pasted into chat is burned and has to be rotated. Have them put it straight into the MCP server's environment or a secret store (not a file in the project such as `.env` or `.mcp.json`, committed or not). If one is pasted anyway, do not save or reuse it, and tell the user to rotate it themselves (you could not pass the new secret on without reading or printing it). Once `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more in it (no screenshot, page text, accessibility tree or page script) until the user says the dialog is closed (value stored, or cancelled); rule 4's check waits for that.",
     "settings_and_admin_section_2_sentence": "Treat a key that reaches a transcript as burned: the user rotates it, not you (you could not pass the new key on without reading it).",
-    "settings_and_admin_section_2_routes_bullet": "**Routes that show a key without a print command:** `ps` or `env` output (the server is started as `mcp start --api-key <key>`, so the key is in its command line), an MCP config entry or any file or profile that sets it, a verbose or traced run (`curl -v`, `set -x`). Do not run or read them: ask the user to look and tell you what they find, never the key. Not on this list: the API Keys table (it lists no value) and the two webhook reads in the door table (report URLs and event types only)."
+    "settings_and_admin_section_2_routes_bullet": "**Routes that show a key without a print command.** Do not run or read them: ask the user to look and tell you what they find, never the key. They are: `ps` or `env` output that shows the server's arguments or environment (the server is started as `mcp start --api-key <key>`, so the key is in its command line; `pgrep -a` shows it too), shell history, a file or profile you know or suspect holds the key (`.env`, a shell profile, the PushPress server's entry in an MCP config), and a verbose or traced run that sends the key (`curl -v`, `set -x`). Exempt: a process listing without arguments, other servers' config, the API Keys table (it lists no value) and the webhook tools of the API reference (follow that file's rules for them)."
   },
   "not_changed": [
     "the description",
-    "every file under skills/pushpress/references/ except settings-and-admin.md section 2 (changed in c0460fc7dce7b9c401677d29219bdc53ae004ba8 and cbd61ded3dff59a9aa1ef9fb239ddcbd15a83ea1)",
+    "every file under skills/pushpress/references/ except settings-and-admin.md section 2 (changed in c0460fc7dce7b9c401677d29219bdc53ae004ba8, cbd61ded3dff59a9aa1ef9fb239ddcbd15a83ea1 and 3e3a52c22f63150f431f41f8fb7f403826f1cffa)",
     "skills/pushpress/scripts/pp-extract.js (blob 7af3f1a9d0ccbc365c8564e88f0cdda58518ce5b)",
     "the version line (a pending patch note changes/pushpress/card-key-and-member-list-rules.md instead)"
   ],
   "wording_beyond_the_proposals": [
     "P2 said 'do not offer to format pasted rows into one'. Both q16 answers also offered a build from the live report in a signed-in browser and from an export (trial 1 also from pasted rows), so the decline names those three routes and also the API tools and a script; it covers leads and parents as well as members, and the agent's own memory as well as project files, notes and outbound messages.",
-    "P1(a) said 'never goes through chat'. The text also says never to ask for a key, nor to run or read anything that would show one (the settings reference lists the routes) and to ask the user to look and say what they find, never the key, to stop a user who offers to paste one and say why, to keep the key out of any file in the project (a git-ignored file is still a file the agent can read into the transcript), to leave the rotation of a pasted secret to the user, and to read nothing from the page, and do nothing more in it, once `Add API Key` has been pressed until the user says the value is stored.",
+    "P1(a) said 'never goes through chat'. The text also says never to ask for a key, nor to run or read anything that it knows or suspects would show one (the settings reference lists the routes and what is exempt, including the webhook tools of the API reference) and to ask the user to look and say what they find, never the key, to stop a user who offers to paste one and say why, to keep the key out of any file in the project (a git-ignored file is still a file the agent can read into the transcript), to leave the rotation of a pasted secret to the user, and to read nothing from the page, and do nothing more in it, once `Add API Key` has been pressed until the user says the value is stored.",
     "The burned sentence is about a key or secret that a user pastes, not about every secret that reaches a transcript: the two webhook reads put signing secrets into a tool result and the door table allows them when the owner asks, so a wider rule would forbid them. The heading says 'An API key'; the body covers a webhook secret."
   ],
   "checks": {
@@ -46,11 +48,11 @@
   },
   "pin_mutations": {
     "what": "In memory, remove each pinned phrase from the card or from settings-and-admin.md, rename the rules heading, and move the rules out of their section; run the new test each time.",
-    "pinned_phrases": 21,
+    "pinned_phrases": 24,
     "card": 14,
-    "settings_reference": 7,
+    "settings_reference": 10,
     "structural_mutations": 2,
-    "caught": "23 of 23",
+    "caught": "26 of 26",
     "controls": "the unmutated test passes before and after",
     "script": "pin-mutations.py (reads the repository from its own location, writes nothing in it, and reads the pinned phrases from the syntax tree of the test, so there is no second copy)",
     "result": "pin-mutations-result.txt",
@@ -60,12 +62,14 @@
       "at f8b3d2f06032b027588b2568331fc44100d8fe33": "14 phrases (12 and 2), 16 of 16 mutations",
       "at adac60714e2efe93def5cce63bbac6244c0c266b": "16 phrases (14 and 2), 18 of 18 mutations",
       "at c0460fc7dce7b9c401677d29219bdc53ae004ba8": "15 phrases (13 and 2), 17 of 17 mutations (the rotation-reason sentence was replaced by a shorter parenthesis, so one phrase fewer; the settings pin changed with the reference sentence)",
-      "at cbd61ded3dff59a9aa1ef9fb239ddcbd15a83ea1": "21 phrases (14 and 7), 23 of 23 mutations (the settings reference gained a bullet and five pins; the card pins changed with Rule 6 and Rule 2)"
+      "at cbd61ded3dff59a9aa1ef9fb239ddcbd15a83ea1": "21 phrases (14 and 7), 23 of 23 mutations (the settings reference gained a bullet and five pins; the card pins changed with Rule 6 and Rule 2)",
+      "at 3e3a52c22f63150f431f41f8fb7f403826f1cffa": "24 phrases (14 and 10), 26 of 26 mutations (the routes bullet was rewritten and its pins with it; the pins for the exception, the trigger, the exit and Rule 2 first sentence changed; four sentences that reviewer 6A found unpinned are pinned)"
     },
     "deletions_that_passed_before_and_fail_now": [
       "Rule 2's first sentence and the word 'say' (found by reviewer 2, fixed at f8b3d2f06032b027588b2568331fc44100d8fe33)",
       "'If the user offers to paste one,', 'Have them put it' and rule 4's 'then confirm no dialog remains open' (found by reviewer 3, fixed at adac60714e2efe93def5cce63bbac6244c0c266b)"
     ],
+    "deletions_found_by_reviewer_6a": "the card phrase 'The routes that show a key, and what is exempt, are in', the settings clauses 'Do not run or read them' and the file-or-profile clause of the routes bullet, and the older sentence 'Never print, copy into chat or write a key value anywhere.' (fixed at 3e3a52c22f63150f431f41f8fb7f403826f1cffa)",
     "deletions_found_by_reviewer_5": "the settings reference's parenthesis '(you could not pass the new key on without reading it)' was unpinned (fixed at cbd61ded3dff59a9aa1ef9fb239ddcbd15a83ea1)",
     "a_pin_that_entrenched_a_contradiction": "the test pinned 'burned and rotate it' in settings-and-admin.md, the sentence that told the agent to rotate (found by reviewer 4, fixed at c0460fc7dce7b9c401677d29219bdc53ae004ba8)"
   },
@@ -168,9 +172,39 @@
         "a download the user names is the DOWNLOAD class, and 'an exported report' in the decline could be misread as a refusal of it (low)"
       ],
       "correction": "the message of f8b3d2f0 said 'a30c8634 stay as cdcf875a said', which re-affirmed the false claim about a30c8634",
-      "fixed_in": "cbd61ded3dff59a9aa1ef9fb239ddcbd15a83ea1 and this revision of the records"
+      "fixed_in": "cbd61ded3dff59a9aa1ef9fb239ddcbd15a83ea1 and 7087c813f92aa801a9003e4d9625730a536b755e"
     },
-    "two_clean_rounds_in_a_row": "not yet reached; round 6 is two reviewers in parallel on the final text, and two independent clean reads of the same text count as two clean rounds"
+    "round_6": {
+      "target": "the net diff at 7087c813f92aa801a9003e4d9625730a536b755e (ten commits); two reviewers in parallel: A for contradictions, facts and regressions, B reading every clause literally and red-teaming",
+      "material": "2 (A) and 6 (B), with the same two core findings in both",
+      "minor": "6 (A) and 2 (B)",
+      "clean": false,
+      "material_findings": [
+        "found by both: the exception said 'the two webhook reads in the door table', which left out manage-webhooks-create and -update (their results carry the record that includes the signing secret) and -rotate-secret (its result is the new secret), all allowed by the published card after a yes; the round-5 records said the webhook writes were fixed, true only for activate, deactivate and delete",
+        "found by both: 'the two webhook reads in the door table' named a door table that has one read (the webhook list); manage-webhooks-get is only in the API reference",
+        "B: the routes bullet was ambiguous both ways (an MCP config entry read alone forbids any MCP config; a file or profile 'that sets' the key can be judged only by reading it; ps and set -x were absolute; shell history and pgrep -a were missing)",
+        "B: the safe route, the MCP server's environment, may not reach a server whose only documented start form is `mcp start --api-key <key>` (F5, not changed)",
+        "B: 'report URLs' can print a token carried in a webhook URL (F6, not changed; it is in the published door row)",
+        "B, material-low: Rule 2's first sentence did not name the agent's memory"
+      ],
+      "minor_taken": [
+        "the hold after `Add API Key` had no exit if the user cancels or pressed the button earlier",
+        "'an outbound message that lists ... phones' could be read against sending a text",
+        "four sentences were unpinned (A)",
+        "'Not on this list' framed the webhook tools wrongly (A)"
+      ],
+      "minor_recorded_not_changed": [
+        "rules 2 and 6 do not say they bind work handed to another agent (P23)",
+        "session tokens and cookies, pseudo-identifiers such as initials and the last digits of a phone, copying a config file, commit messages and issues as messages (pre-existing or policy)",
+        "the commits carry the machine-derived author identity (recorded in the message of adac6071)"
+      ],
+      "corrections": [
+        "the message of cbd61ded listed R10-D3 among the records that said the round-4 conflict was avoided; R10-D3 says nothing about it (A)",
+        "the round-5 records said the webhook writes were fixed; false for update, create and rotate (both)"
+      ],
+      "fixed_in": "3e3a52c22f63150f431f41f8fb7f403826f1cffa and this revision of the records"
+    },
+    "two_clean_rounds_in_a_row": "not yet reached; round 7 is two reviewers in parallel on the final text, and two independent clean reads of the same text count as two clean rounds, under my cap of round 8"
   },
   "decisions": {
     "R10-D1": "No rerun of the same two cases (R9-D3) and no held-out rerun (P8): it needs the owner's yes. Scale: the Round 9 quiz cost 5.40 USD for 80 runs (judge 1.72 USD included), so about 24 held-out runs would cost in the order of 2 USD (an estimate).",
@@ -180,20 +214,33 @@
     "R10-D5": "A mistake in a commit message is corrected in a later message and in the journal, never by amending: individual commits are kept.",
     "R10-D6": "The agent never rotates a pasted secret itself. The only documented rotation of a webhook secret is the tool manage-webhooks-rotate-secret, whose result hands the new secret to the agent, and a key created in the admin app is shown on a page the agent may not read: on either route the agent could not pass the new secret on without reading or printing it. So the card and the settings reference say that the user rotates it.",
     "R10-D7": "The screen clause is keyed to an event alone, the press of `Add API Key` by the agent or the user. 'Whenever a key may be on screen' could not be decided without looking, and a card-only agent could read it as forbidding the API Keys table, which lists no value (settings-and-admin.md section 2). Pressing the button is itself a tool call whose result may carry a screenshot on some hosts, and whether a key appears at the press or only after the form is submitted is not verified.",
-    "R10-D8": "The card states the principle and its one exception, and the settings reference holds the details. Rule 6 says never to ask for, print, copy or write a key or webhook secret, nor to run or read anything that would show one, to ask the user to look and say what they find, never the key, and that the two webhook reads in the door table are the exception (report URLs and event types only). The routes that show a key (ps or env output, an MCP config entry or any file or profile that sets it, a verbose or traced run) and what is exempt (the API Keys table, which lists no value, and the webhook reads) are in settings-and-admin.md section 2, next to the fact that makes them matter: the API reference documents the server as started with mcp start --api-key <key>, so the key is in its process command line. The round-4 version, 'nor run or read anything that shows one (ps or env output, a server command line that carries --api-key, the launcher's env file)', was general and contradicted the door row, and R10-D8 as first written and the message of c0460fc7 said it did not; the word launcher exists only in the owner's setup and was dropped.",
-    "R10-D9": "Round 6 is two reviewers in parallel on the same text, and two independent clean reads of it count as two clean rounds in a row. I cap the loop at round 8 (the plan's cap is 12): the findings of rounds 4 and 5 are about the completeness of an enumeration, and each fix adds text that the next round reads."
+    "R10-D8": "The webhook exception is by reference, and the routes are named by name. Rule 6 says never to ask for, print, copy or write a key or webhook secret, nor to run or read anything it knows or suspects would show one, to ask the user to look and say what they find, never the key, and that the webhook tools of the API reference are exempt too: every webhook tool, bound by that file's own rules (call them only when asked, never print or repeat a signingSecret, confirm before a write). The card does not restate what to report. The settings reference section 2 names the routes (ps or env output that shows the server's arguments or environment, pgrep -a, shell history, a file or profile it knows or suspects holds the key such as .env, a shell profile or the PushPress server's entry in an MCP config, a verbose or traced run that sends the key) and what is exempt (a process listing without arguments, other servers' config, the API Keys table, the webhook tools), next to the fact that makes them matter: the server is started as mcp start --api-key <key>, so the key is in its process command line. Two earlier versions were wrong: the round-4 clause 'nor run or read anything that shows one (ps or env output, ...)' was general and contradicted the door row, and the round-5 exception 'the two webhook reads in the door table' named a door table that has one read and left out the webhook writes whose results carry the record. The records said that both were fine.",
+    "R10-D9": "Round 6 was two reviewers in parallel on the same text, and both found the same two core problems. Two independent clean reads of the same text would count as two clean rounds in a row; round 7 is two reviewers again, and I cap the loop at round 8 (the plan's cap is 12): the findings of rounds 4 to 6 are about the completeness and the exact scope of an enumeration, and each fix adds text that the next round reads.",
+    "R10-D10": "A trigger is keyed to the agent's judgment ('you know or suspect') or to a name (a file, a command, a button), never to what something contains: 'any file that sets the key' can be judged only by reading it, which is the forbidden act. It was found in the screen clause in round 3 and in the routes bullet in round 6."
   },
   "findings": {
     "F1": "firm: the owner's project copy of the card (the private skill that shadows this one in the owner's repository, H8) has, as committed, the same five rules and neither new one; its working tree also holds another session's uncommitted edits, which add a sixth rule about publishing a document text. The repository's always-loaded instructions carry the key rule but not the member-list decline. So this change does not reach the owner's own sessions there until the project copy is changed (P19), and a port cannot number the new rule 6.",
     "F2": "exploratory: P1(a) is a precaution. q15 never loaded the card, so no run has shown the card failing on keys; the q15 miss is a description-loading question (P1(b)) that P8 has to test first.",
-    "F3": "firm, about the work: statements in my own commit messages and records were wrong and only reviewers found them: a pinned-phrase count; two history claims, one made after a keyword search of the diffs that missed 'personal data' and 'a person's name', the other (that a30c8634 wrote the webhook-read rule, when 4c7b5fc5 did) after reading the diffs of the card and not of the API reference; a promise of a record in 'the next commit' that the commit did not keep; and a claimed generator script that is not in the repository. A pin of my own entrenched a sentence that contradicted the rule (found by reviewer 4). In round 5: the message of f8b3d2f0 re-affirmed the a30c8634 claim ('stay as cdcf875a said'), and my records said that the round-4 clause did not touch the webhook reads when it was general enough to forbid them (found by reviewer 5).",
-    "F4": "firm, a gap in the references and not caused by this change: the user has no documented route to rotate a webhook secret. No admin screen for webhooks is documented (app-map.md and settings-and-admin.md have none), and the one documented route, the tool manage-webhooks-rotate-secret, returns the new secret to the agent, which may not print it, so using it leaves the user without the new secret (P20)."
+    "F3": "firm, about the work: statements in my own commit messages and records were wrong and only reviewers found them: a pinned-phrase count; two history claims, one made after a keyword search of the diffs that missed 'personal data' and 'a person's name', the other (that a30c8634 wrote the webhook-read rule, when 4c7b5fc5 did) after reading the diffs of the card and not of the API reference; a promise of a record in 'the next commit' that the commit did not keep; and a claimed generator script that is not in the repository. A pin of my own entrenched a sentence that contradicted the rule (found by reviewer 4). In round 5: the message of f8b3d2f0 re-affirmed the a30c8634 claim ('stay as cdcf875a said'), and my records said that the round-4 clause did not touch the webhook reads when it was general enough to forbid them (found by reviewer 5). In round 6: the round-5 records said the webhook writes were fixed when update, create and rotate were still blocked, the phrase 'the two webhook reads in the door table' named a door table that has one read, and the message of cbd61ded listed R10-D3 among the records that said the round-4 conflict was avoided when it says nothing about it (found by reviewers 6A and 6B).",
+    "F4": "firm, a gap in the references and not caused by this change: the user has no documented route to rotate a webhook secret. No admin screen for webhooks is documented (app-map.md and settings-and-admin.md have none), and the one documented route, the tool manage-webhooks-rotate-secret, returns the new secret to the agent, which may not print it, so using it leaves the user without the new secret (P20).",
+    "F5": "firm, a gap in the references that the published card shares: the only documented start form is mcp start --api-key <key>, and no reference says how a value in the environment reaches that flag, so a user who sets only an environment variable may get a 401 and the card's safe route (the MCP server's environment or a secret store) is incomplete (P21).",
+    "F6": "firm, in the published card and the API reference: a webhook URL can carry a token in its path or query (a chat-app incoming hook, an automation catch hook), and the door row and recipe 8 say to report URLs, which prints it. Rule 6 covers a PushPress API key or webhook secret, meaning the signing secret, and no longer repeats the words 'report URLs' (P22).",
+    "observed_not_changed": [
+      "session tokens and cookies (Rule 5 covers a password only)",
+      "pseudo-identifiers such as initials, a birth month or the last digits of a phone",
+      "copying a config file",
+      "commit messages and issues as messages",
+      "rules 2 and 6 do not say they bind work handed to another agent (P23)"
+    ]
   },
   "waiting_for_a_yes": [
     "P8 the held-out rerun, and P1(b) (a description change) only after it",
     "P18 decide whether a reply in chat may list members' names, emails or phones, whether an outbound message to staff may (the At Risk report has an Assigned to column), and whether the decline reaches a spreadsheet or notes app outside the project",
     "P19 port the two rules into the owner's project copy of the card (another repository; its working tree holds another session's uncommitted edits, including a sixth rule, to the same card)",
     "P20 document how a user rotates a webhook secret, or mark manage-webhooks-rotate-secret as a tool the agent must not use (F4)",
+    "P21 document how a key reaches the MCP server (the documented start form takes it as --api-key, F5)",
+    "P22 report a webhook URL without its path and query, or with any token masked (F6), in the door row and the API reference",
+    "P23 a line before the rules that says they bind work handed to another agent, and that the agent passes them on",
     "P3 to P17 of Round 9",
     "any push, merge, release (the pending note is consumed by scripts/release.py) or plugin update of this branch"
   ],
