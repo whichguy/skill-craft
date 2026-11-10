@@ -180,13 +180,15 @@ class Card(unittest.TestCase):
         rules = card.split("## Rules that matter, and why")[1].split("## Sign in")[0]
         for needle in (
             "**An API key never goes through chat.**",
-            "Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere",
+            "Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere, nor run or "
+            "read anything that shows one (`ps` or `env` output, a server command line that carries `--api-key`, the "
+            "launcher's env file)",
             "If the user offers to paste one, stop them before they do and say why: a key or secret pasted into chat is "
             "burned and has to be rotated",
             "Have them put it straight into the MCP server's environment or a secret store (not a file in the project, "
             "committed or not)",
-            "If one is pasted anyway, do not save or reuse it, and tell the user to rotate it themselves",
-            "a rotation done by you, through a tool or the page, would put the new secret in this transcript too",
+            "If one is pasted anyway, do not save or reuse it, and tell the user to rotate it themselves (you could not "
+            "pass the new secret on without reading or printing it)",
             "Once `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more "
             "in it (no screenshot, page text, accessibility tree or page script) until the user says the value is stored "
             "and the dialog is closed; rule 4's check waits for that",
@@ -196,12 +198,12 @@ class Card(unittest.TestCase):
         ):
             self.assertIn(needle, rules, needle)
         settings = " ".join((REFS / "settings-and-admin.md").read_text(encoding="utf-8").split())
-        for needle in ("never through chat", "burned and rotate it"):
+        for needle in ("never through chat", "burned: the user rotates it, not you"):
             self.assertIn(needle, settings, needle)
         for needle in (
             "into repo files, journals or messages: structure only",
-            "Asked for a project file, a project note or an outbound message that lists members' names, emails, phones or "
-            "birthdays, do not write it",
+            "Asked for a project file, a project note or an outbound message that lists members', leads' or parents' "
+            "names, emails, phones or birthdays, do not write it",
             "do not offer to build one from the live report, pasted rows or an exported report",
             "say member data stays out of project files and outbound messages",
             "offer counts, column names, or the PushPress screen, where the user can read the list",

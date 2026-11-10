@@ -68,11 +68,11 @@ own tenant it wins over this skill's maps, and the live page wins over both. An 
 2. **Member data is sensitive.** Many gyms serve minors, and a child's profile often carries a parent's email. Never write
    names, emails, phones, birthdays, addresses, `usr_…` IDs or screenshots of person pages and reports into repo files,
    journals or messages: structure only (labels, paths, column headers, ID *prefixes*). Asked for a project file, a project
-   note or an outbound message that lists members' names, emails, phones or birthdays, do not write it and do not offer to
-   build one from the live report, pasted rows or an exported report: say member data stays out of project files and
-   outbound messages, and offer counts, column names, or the PushPress screen, where the user can read the list. On the
-   surveyed tenant a "structure-only" crawl still leaked a name and an email through a button label and a page title until
-   the extractor was tightened ([browser-technique.md](references/browser-technique.md)).
+   note or an outbound message that lists members', leads' or parents' names, emails, phones or birthdays, do not write it
+   and do not offer to build one from the live report, pasted rows or an exported report: say member data stays out of
+   project files and outbound messages, and offer counts, column names, or the PushPress screen, where the user can read
+   the list. On the surveyed tenant a "structure-only" crawl still leaked a name and an email through a button label and a
+   page title until the extractor was tightened ([browser-technique.md](references/browser-technique.md)).
 3. **Re-verify before asserting.** The UI ships fixes constantly (the top-bar *Product updates* panel is the changelog) and
    help-center articles are older still. Quote labels and paths from the live page, and say plainly when a claim comes from
    documentation only.
@@ -80,10 +80,11 @@ own tenant it wins over this skill's maps, and the live page wins over both. An 
    open.
 5. **Never type, read back or ask for a password.** See *Sign in*.
 6. **An API key never goes through chat.** Never ask for, print, copy into chat or write a PushPress API key or webhook
-   secret anywhere. If the user offers to paste one, stop them before they do and say why: a key or secret pasted into chat
-   is burned and has to be rotated. Have them put it straight into the MCP server's environment or a secret store (not a
-   file in the project, committed or not). If one is pasted anyway, do not save or reuse it, and tell the user to rotate it
-   themselves: a rotation done by you, through a tool or the page, would put the new secret in this transcript too. Once
+   secret anywhere, nor run or read anything that shows one (`ps` or `env` output, a server command line that carries
+   `--api-key`, the launcher's env file). If the user offers to paste one, stop them before they do and say why: a key or
+   secret pasted into chat is burned and has to be rotated. Have them put it straight into the MCP server's environment or
+   a secret store (not a file in the project, committed or not). If one is pasted anyway, do not save or reuse it, and tell
+   the user to rotate it themselves (you could not pass the new secret on without reading or printing it). Once
    `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more in it (no
    screenshot, page text, accessibility tree or page script) until the user says the value is stored and the dialog is
    closed; rule 4's check waits for that.

@@ -43,7 +43,8 @@ Description · Create Date · Last Used Date · Actions** (`Edit`). This is wher
 
 - **Never print, copy into chat or write a key value anywhere.** Creating a key is **CONFIG / SECURITY**:
   ask first, and have the user place the value straight into the MCP server's environment or their secret
-  store, never through chat. Treat a key that reaches a transcript as burned and rotate it.
+  store, never through chat. Treat a key that reaches a transcript as burned: the user rotates it, not you (you could
+  not pass the new key on without reading it).
 - *Last Used Date* is the quick way to see which key is live before revoking one `[not exercised]`.
 
 ## 3. Apps, Marketplace, Insurance
