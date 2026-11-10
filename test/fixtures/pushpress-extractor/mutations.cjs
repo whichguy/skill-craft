@@ -27,7 +27,7 @@ const MUTATIONS = [
     from: '.filter(b => !isChrome(b)).slice(0, 45),', to: '.filter(b => !isChrome(b)),' },
   { name: 'named-icon-buttons-counted-as-unnamed', tests: ['fixture', 'property'], cases: ['table/class-types'], expect: { property: ['P4 icons'], fixture: ['problem:icon-only'] },
     from: "!clean(b.innerText) && !b.getAttribute('aria-label') && !b.title", to: '!clean(b.innerText) && !b.title' },
-  // masks that a third review round showed no generated page exercised: removing each must now be noticed
+  // masks that a later review showed no generated page exercised: removing each must now be noticed
   { name: 'title-not-scrubbed', tests: ['fixture', 'property'], cases: ['person/titleonly'], expect: { property: ['P1 contract'], fixture: ['leak:owner'] },
     from: "/\\s/.test(title) ? title : ''", to: "''" },
   { name: 'scrub-shortest-first', tests: ['fixture', 'property'], cases: ['person/shared'], expect: { property: ['P1 contract'], fixture: ['leak:guardianA'] },
@@ -91,7 +91,7 @@ const MUTATIONS = [
     from: "p: maskPath(location.pathname) +", to: "p: location.pathname +" },
   { name: "person-path-not-a-person-route", tests: ['property'], expect: { property: ['P1 contract', 'P1 region'] },
     from: "const onPerson = () => /^\\/user\\//.test(location.pathname) || PERSON.test(location.pathname);", to: "const onPerson = () => /^\\/user\\//.test(location.pathname);" },
-  // found by a fourth review round (boundary and quantifier mutants): shapes the generators never planted
+  // found by a later review (boundary and quantifier mutants): shapes the generators never planted
   { name: "external-links-not-masked", tests: ['fixture', 'property'], cases: ['list/payments'], expect: { property: ['P1 contract'], fixture: ['leak:pay'] },
     from: "if (u.origin !== location.origin) return 'EXT ' + u.hostname;", to: "" },
   { name: "sms-not-a-contact-link", tests: ['fixture', 'property'], cases: ['list/payments'], expect: { property: ['P1 contract'], fixture: ['leak:pay'] },
@@ -110,7 +110,7 @@ const MUTATIONS = [
     from: "const ID_SEG = /\\/([A-Za-z]*[_-])?[0-9a-f]{10,}/;", to: "const ID_SEG = /\\/([A-Za-z]*_)?[0-9a-f]{10,}/;" },
   { name: "scrub-left-boundary-whitespace-only", tests: ['fixture', 'property'], cases: ['person/plain'], expect: { property: ['P1 contract'], fixture: ['leak:owner', 'leak:guardianA'] },
     from: "'(^|[^A-Za-z0-9])' + esc(v)", to: "'(^|\\\\s)' + esc(v)" },
-  // found by the fourth review round's journal reviewer: masks that were noticed but not pinned, or not noticed
+  // found by a later review's journal reviewer: masks that were noticed but not pinned, or not noticed
   { name: "scrub-pattern-unescaped", tests: ['fixture', 'property'], cases: ['person/nickname'], expect: { property: ['P1 contract'], fixture: ['leak:owner', 'leak:guardianA'] },
     from: "'(^|[^A-Za-z0-9])' + esc(v) + ", to: "'(^|[^A-Za-z0-9])' + v + " },
   { name: "input-and-toggle-labels-text-mask-off", tests: ['fixture', 'property'], cases: ['list/payments'], expect: { property: ['P1 contract'], fixture: ['leak:pay'] },
