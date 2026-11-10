@@ -31,7 +31,7 @@
         "h",
         "lbl"
       ],
-      "why": "a field value with no letter (a date, a short number, a postal code) is not a secret (keeping values with 4 or more digits as secrets flips all three values, and so does a text mask for runs of 4 or more digits)",
+      "why": "a field value with no letter (a date, a short number, a postal code) is not a secret (keeping values with 4 or more digits as secrets flips all three values, and so does a text mask for runs of 4 or more digits placed after the phone mask)",
       "error": ""
     },
     {
@@ -83,7 +83,7 @@
       "fields": [
         "h"
       ],
-      "why": "a comma is not a separator, the part before it would be one word and a title part must hold a space to be a secret, and \"Last, First\" never equals the heading \"First Last\" (a comma split alone changes nothing; a comma split with the space rule dropped scrubs the last name and leaves the first; a secret for each word of the title scrubs both)",
+      "why": "a comma is not a separator, the part before it would be one word and a title part must hold a space to be a secret, and \"Last, First\" never equals the heading \"First Last\" (a comma split alone changes nothing; a comma split with the space rule dropped scrubs the last name and leaves the first; a secret for each word of the title, split on spaces and commas, scrubs both)",
       "error": ""
     },
     {
@@ -91,8 +91,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 1,
-      "leaking": 1,
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "h"
       ],
@@ -312,8 +312,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 1,
-      "leaking": 1,
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "a"
       ],
@@ -325,8 +325,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 1,
-      "leaking": 1,
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "a"
       ],
@@ -338,8 +338,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 1,
-      "leaking": 1,
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "a"
       ],
@@ -351,8 +351,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 1,
-      "leaking": 1,
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "a"
       ],
@@ -364,8 +364,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 1,
-      "leaking": 1,
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "a"
       ],
@@ -377,8 +377,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 1,
-      "leaking": 1,
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "a"
       ],
@@ -390,8 +390,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 1,
-      "leaking": 1,
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "a"
       ],
@@ -416,8 +416,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 2,
-      "leaking": 2,
+      "values": 3,
+      "leaking": 3,
       "fields": [
         "a"
       ],
@@ -429,8 +429,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 2,
-      "leaking": 2,
+      "values": 3,
+      "leaking": 3,
       "fields": [
         "a"
       ],
@@ -442,8 +442,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 1,
-      "leaking": 1,
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "a"
       ],
@@ -644,7 +644,7 @@
       "kind": "masked",
       "severity": "",
       "status": "PASS",
-      "values": 1,
+      "values": 2,
       "leaking": 0,
       "fields": [],
       "why": "",
@@ -655,7 +655,7 @@
       "kind": "masked",
       "severity": "",
       "status": "PASS",
-      "values": 2,
+      "values": 3,
       "leaking": 0,
       "fields": [],
       "why": "",
@@ -666,7 +666,7 @@
       "kind": "masked",
       "severity": "",
       "status": "PASS",
-      "values": 2,
+      "values": 3,
       "leaking": 0,
       "fields": [],
       "why": "",
@@ -677,7 +677,7 @@
       "kind": "masked",
       "severity": "",
       "status": "PASS",
-      "values": 2,
+      "values": 3,
       "leaking": 0,
       "fields": [],
       "why": "",
@@ -688,7 +688,7 @@
       "kind": "masked",
       "severity": "",
       "status": "PASS",
-      "values": 1,
+      "values": 2,
       "leaking": 0,
       "fields": [],
       "why": "",
