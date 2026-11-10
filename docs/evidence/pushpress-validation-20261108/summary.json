@@ -953,5 +953,6 @@
     "node test/pushpress-extractor-known-gaps.js [--flip-check] [--json <file>]  (PP_EXTRACT=<file> tests another copy of the extractor; require() exposes the register)"
   ],
   "over_masking_probe": "fixture/list-link-query-probe.json",
-  "phone_shape_probe": "fixture/phone-shape-probe.json"
+  "phone_shape_probe": "fixture/phone-shape-probe.json",
+  "superseded_2026_11_10": "P1(a) and P2 of proposed_changes_waiting_for_a_yes were applied in Round 10 after the owner's yes; see docs/evidence/pushpress-card-fixes-20261110/summary.json. P1(b), P3 to P17 and P8 still wait."
 }

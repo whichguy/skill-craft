@@ -1,0 +1,97 @@
+Output of pin-mutations.py run from this folder at f8b3d2f06032b027588b2568331fc44100d8fe33 (the round-2 revision), 2026-11-10.
+[
+ {
+  "mutation": "none (control)",
+  "test_passes": true,
+  "kind": "ok"
+ },
+ {
+  "mutation": "card without: **An API key never goes through chat.**",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: stop them before they do and say why: a key or secret pasted into chat is burned",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: straight into the MCP server's environment or a secret store (not a file in the project, committed or not)",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: If one is pasted anyway, do not save or reuse it",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: tell the user to rotate it",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: After `Add API Key`, or whenever a key may be on screen, read nothing from the page (no screenshot, page text, accessibility tree or page script) until the user says the value is stored and the dialog is closed; rule 4's check waits for that",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: into repo files, journals or messages: structure only",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: Asked for a project file, a project note or an outbound message that lists members' names, emails, phones or birthdays, do not write it",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: do not offer to build one from the live report, pasted rows or an exported report",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: say member data stays out of project files and outbound messages",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: offer counts, column names, or the PushPress screen, where the user can read the list",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "heading 'Rules that matter, and why' renamed",
+  "test_passes": false,
+  "kind": "error"
+ },
+ {
+  "mutation": "the rules moved out of their section",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: never through chat",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: burned and rotate it",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "none (control, after)",
+  "test_passes": true,
+  "kind": "ok"
+ }
+]
+mutations that the test did NOT catch: []
+controls pass: True
+pinned phrases: 14 (card 12 + settings 2 ) + 2 structural mutations
+caught: 16 of 16
