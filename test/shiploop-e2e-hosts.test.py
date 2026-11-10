@@ -20,11 +20,11 @@ def load_tests(loader, standard_tests, pattern):
 
 
 class GrokRunTest(HarnessCase):
-    def test_sol_medium_is_the_default_subject_and_explicit_hosts_keep_their_profiles(self):
-        self.assertEqual(run.parser().parse_args([]).host, "codex")
+    def test_grok_xhigh_is_the_default_subject_and_explicit_hosts_keep_their_profiles(self):
+        self.assertEqual(run.parser().parse_args([]).host, "grok")
+        self.assertEqual(hosts.HOST_DEFAULTS["grok"], {"model": "grok-4.6", "effort": "xhigh"})
         self.assertEqual(hosts.HOST_DEFAULTS["codex"], {"model": "gpt-6.1-sol", "effort": "medium"})
         self.assertEqual(hosts.HOST_DEFAULTS["claude"]["model"], "claude-sonnet-5-5")
-        self.assertEqual(hosts.HOST_DEFAULTS["grok"]["effort"], "medium")
 
     def test_done_run_passes_in_an_isolated_profile_from_an_empty_directory(self):
         code, result = self.invoke("grok", "done")
@@ -36,8 +36,8 @@ class GrokRunTest(HarnessCase):
         self.assertEqual(seen["claude_skills"], "false")
         self.assertEqual(Path(seen["home"]), Path(result["output"]) / "home")
         argv = seen["argv"]
-        self.assertEqual(argv[argv.index("--reasoning-effort") + 1], "medium")
-        self.assertEqual(argv[argv.index("--model") + 1], "grok-4.7")
+        self.assertEqual(argv[argv.index("--reasoning-effort") + 1], "xhigh")
+        self.assertEqual(argv[argv.index("--model") + 1], "grok-4.6")
         self.assertTrue(result["plugin"]["pass"], result["plugin"])
         self.assertTrue(result["committed"]["pass"], result["committed"])
         transcript = (Path(result["output"]) / "transcript.md").read_text()
@@ -1478,7 +1478,7 @@ class ResumeCommandTest(PrintedCase):
         self.assertEqual((argv[0], Path(argv[1])), ("python3", Path(run.__file__).resolve()))
         parsed = run.parser().parse_args(argv[2:])
         self.assertEqual(parsed.resume_run, Path(result["output"]))
-        self.assertEqual((parsed.host, parsed.model, parsed.effort), ("grok", "grok-4.7", "medium"))
+        self.assertEqual((parsed.host, parsed.model, parsed.effort), ("grok", "grok-4.6", "xhigh"))
         self.assertEqual((parsed.timeout, parsed.max_resumes, parsed.max_budget_usd, parsed.permission_mode),
                          (900, 0, 12.5, "plan"))  # each non-default, so dropping any flag from the command fails here
         self.assertEqual(parsed.grok_bin, str(self.fakes["grok"]))

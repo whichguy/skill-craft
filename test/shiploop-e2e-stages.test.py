@@ -916,7 +916,7 @@ class LiveDryRun(NoLaunch):
                              "--out", str(out_dir), "--cases-dir", str(self.cases))
         self.assertEqual((code, err), (0, ""))
         for wanted in ("live plan: 1 scenario x samples = 2 samples, 2 at once", "validate-existing/broken: 2 samples, passes when 2 pass",
-                       "driver: codex/gpt-6.1-sol/medium", "timeout: 90 s per sample", f"results root: {out_dir}",
+                       "driver: grok/grok-4.6/xhigh", "timeout: 90 s per sample", f"results root: {out_dir}",
                        "costs money", "dry run: nothing was built and nothing was launched"):
             self.assertIn(wanted, out)
         self.assertFalse(out_dir.exists())
@@ -933,12 +933,12 @@ class LiveDryRun(NoLaunch):
         self.assertNothingStarted()
 
     def test_dry_run_with_the_real_default_host_starts_no_process_and_asks_nothing_of_the_host(self):
-        with mock.patch.object(stages.hosts.CodexHost, "env", side_effect=AssertionError("the host was asked for its environment")), \
+        with mock.patch.object(stages.hosts.GrokHost, "env", side_effect=AssertionError("the host was asked for its environment")), \
              mock.patch.object(stages.hosts, "ollama_ready", side_effect=AssertionError("the network was asked")), \
              mock.patch.object(stages.shutil, "which", side_effect=AssertionError("the binary was looked for")):
             code, out, err = cli("live", "--dry-run")  # the shipped scenarios, the default host and no other option
         self.assertEqual((code, err), (0, ""))
-        self.assertIn("driver: codex/gpt-6.1-sol/medium", out)
+        self.assertIn("driver: grok/grok-4.6/xhigh", out)
         self.assertIn(f"results root: {Path(tempfile.gettempdir())}", out)
         self.assertIn("validate-existing/broken-works-small-fix: 3 samples", out)
         self.assertIn("validate-existing/wrong-check: 3 samples", out)
@@ -955,10 +955,11 @@ class LiveDryRun(NoLaunch):
         self.assertNothingStarted()
 
     def test_the_driver_defaults_are_slices_and_the_options_override_them(self):
-        for argv, wanted in ((("--host", "grok"), "grok/grok-4.7/medium"),
+        for argv, wanted in ((("--host", "grok"), "grok/grok-4.6/xhigh"),
+                             (("--host", "codex"), "codex/gpt-6.1-sol/medium"),
                              (("--host", "claude"), "claude:anthropic/claude-sonnet-5-5/default"),
                              (("--host", "claude", "--backend", "ollama"), "claude:ollama/"),
-                             (("--model", "x", "--effort", "low"), "codex/x/low")):
+                             (("--host", "grok", "--model", "x", "--effort", "low"), "grok/x/low")):
             with self.subTest(argv=argv):
                 code, out, err = cli("live", "--dry-run", *argv, "--cases-dir", str(self.cases))
                 self.assertEqual((code, err), (0, ""))
@@ -1061,18 +1062,20 @@ class LiveRefusals(NoLaunch):
         with mock.patch.dict(os.environ, {stages.TEST_ONLY_ENV: stages.TEST_ONLY_VALUE}):
             code, out, err = cli("live", "validate-existing/broken", "--dry-run", "--cases-dir", str(self.cases))
         self.assertEqual((code, err), (0, ""))
-        self.assertIn("driver: codex/", out)
+        self.assertIn("driver: grok/", out)
         self.assertNotIn("FAKE HOST", out)
 
 
 class HostReadiness(Temp):
     """A missing binary and an unsigned host are refusals, not tracebacks: real child processes, a PATH of our own, and no
-    credential anywhere (CODEX_HOME is an empty folder)."""
+    credential anywhere (CODEX_HOME is an empty folder). These name the Codex host explicitly, because the default driver is
+    now Grok and each case here builds a Codex profile."""
 
     def child(self, bindir: Path, *argv: str, **env: str) -> tuple[subprocess.CompletedProcess, Path]:
         out_dir = self.temp / "results"
         cases = self.one()
-        done = process_env("live", "validate-existing/s", *argv, "--out", str(out_dir), "--cases-dir", str(cases), cwd=self.temp,
+        done = process_env("live", "validate-existing/s", "--host", "codex", *argv, "--out", str(out_dir),
+                           "--cases-dir", str(cases), cwd=self.temp,
                            env=clean_env(PATH=str(bindir), CODEX_HOME=str(self.temp / "codex-home"), **env))
         return done, out_dir
 

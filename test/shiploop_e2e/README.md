@@ -35,24 +35,26 @@ flowchart TD
     V -->|No candidate| N[Record learning and keep the baseline]
 ```
 
-New runs, step slices and experiment invocations default to **Codex / GPT-6.1 Sol / medium** (owner,
-2026-11-08). Subjects and improvers use this execution profile; independent reviewers and judges default to
-**Codex / GPT-6 Astra / high** and remain separate fresh sessions. `iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides;
+New runs, step slices and experiment invocations default to **Grok / Grok 4.6 / extra-high (`xhigh`)** as the driver
+(owner, 2026-11-10), replacing Codex / GPT-6.1 Sol / medium as the subject (owner, 2026-11-08). Independent reviewers
+and judges default to **Codex / GPT-6 Astra / high** and remain separate fresh sessions; the improver stays
+**Codex / GPT-6.1 Sol / medium**. Only the subject moved to Grok. `iterate.py` accepts separate `--reviewer-*`, `--judge-*` and `--improver-*` overrides;
 its `--host`, `--model` and `--effort` select the subject only. With no explicit override, existing runs resume
 their recorded identities. Continue an already registered strict epoch on its original pinned harness checkout;
 its qualification fingerprint binds the specification and launcher bytes as well as the product build.
 `--host claude` selects Claude's own models (Sonnet 5.5, `--backend anthropic`, the default since 2026-11-01); add
 `--backend ollama` to select DeepSeek flash on Ollama.
-`--host grok` selects Grok's existing profile. The separately installed Grok-only audit is retained.
-New Sol/medium results occupy their own host/model/effort baseline cells; frozen registrations and historical results
+`--host codex` selects Codex's existing profile (GPT-6.1 Sol, medium). The separately installed Grok-only audit is retained.
+New Grok 4.6 xhigh results occupy their own host/model/effort baseline cells; frozen registrations and historical results
 keep their original identities. Codex child defaults follow the resolved launch model and effort, including explicit overrides.
 Every stage launches a real
 model and costs money; none of it runs in default CI.
 
 Start a new experiment directory when changing a driver; preserve frozen registrations and historical evidence.
 Recalibrate for the selected driver before using measured comparison tolerances. Historical experiment kits keep
-their explicit pins and are not replications if any of their role identities change. This owner-selected default
-supersedes the earlier all-role Sol/high defaults;
+their explicit pins and are not replications if any of their role identities change. The driver default changed twice —
+this owner-selected Grok driver supersedes the Codex/Sol subject of 2026-11-08, which superseded the earlier all-role
+Sol/high defaults;
 it does not establish a measured improvement.
 
 Each host is one class in `hosts.py` (`HOSTS`); nothing else branches on the
@@ -2470,7 +2472,7 @@ bash test/run-integration.sh shiploop-e2e-iterate --case battleship --iterations
 branch `auto/auto-shiploop-e2e-<rand>` from the current `HEAD` (commit what you
 want tested first), then per iteration: builds that worktree's plugin, runs the
 case, reviews it, and hands independently admitted material findings to an
-improver agent. Subjects and improvers default to Codex / GPT-6.1 Sol / medium. Reviewers and judges default to
+improver agent. Subjects default to Grok / Grok 4.6 / extra-high (`xhigh`); improvers default to Codex / GPT-6.1 Sol / medium. Reviewers and judges default to
 Codex / GPT-6 Astra / high in separate fresh sessions. Subject flags do not silently switch the other roles.
 Use `--reviewer-*`, `--judge-*` and `--improver-*` to override their respective profiles.
 Only supported, material, implementation-eligible ShipLoop findings reach the improver. Design challenges and

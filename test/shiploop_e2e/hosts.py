@@ -55,7 +55,11 @@ OLLAMA_TOOLS = ("Bash", "Read", "Edit", "Write", "Glob", "Grep", "NotebookEdit",
 # The host an E2E run drives when no --host is given. An explicitly selected Claude host runs Claude's own models
 # (Sonnet 5.5, backend "anthropic") like every other Claude caller; `--backend ollama` selects a model the local Ollama
 # server serves (owner, 2026-11-01, replacing the 2026-10-26 default of Ollama's DeepSeek flash).
-RUN_DEFAULT_HOST = "codex"
+# Grok 4.6 at extra-high is the driver profile for new work (owner, 2026-11-10), replacing Codex GPT-6.1 Sol at medium
+# (owner, 2026-11-08) as the subject. The reviewer, judge and improver profiles are unchanged: they stay on Codex.
+RUN_DEFAULT_HOST = "grok"
+GROK_DEFAULT_MODEL = "grok-4.6"
+GROK_DEFAULT_EFFORT = "xhigh"
 CODEX_DEFAULT_MODEL = "gpt-6.1-sol"
 CODEX_DEFAULT_EFFORT = "medium"
 
@@ -298,7 +302,7 @@ class Host:
 
 
 class GrokHost(Host):
-    name, model, effort, skill = "grok", "grok-4.7", "medium", "shiploop"
+    name, model, effort, skill = "grok", GROK_DEFAULT_MODEL, GROK_DEFAULT_EFFORT, "shiploop"
     resumable = keepalive = marketplace = True
 
     def __init__(self, binary: str = "grok"):
@@ -586,7 +590,8 @@ class CodexTranslator:
 
 HOSTS: dict[str, type] = {"grok": GrokHost, "claude": ClaudeHost, "codex": CodexHost}
 HOST_DEFAULTS = {name: {"model": cls.model, "effort": cls.effort} for name, cls in HOSTS.items()}
-# Owner-selected profiles for new work (2026-11-08); recorded and explicit profiles remain authoritative.
+# Owner-selected profiles for new work: the driver is Grok 4.6 at extra-high (2026-11-10); reviewer, judge and improver
+# stay Codex (Astra high, and Sol medium for the improver; 2026-11-08). Recorded and explicit profiles remain authoritative.
 ROLE_DEFAULTS = {
     "subject": {"host": RUN_DEFAULT_HOST, **HOST_DEFAULTS[RUN_DEFAULT_HOST]},
     "reviewer": {"host": "codex", "model": "gpt-6-astra", "effort": "high"},
