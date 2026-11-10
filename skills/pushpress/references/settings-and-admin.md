@@ -45,13 +45,18 @@ Description · Create Date · Last Used Date · Actions** (`Edit`). This is wher
   ask first, and have the user place the value straight into the MCP server's environment or their secret
   store, never through chat. Treat a key that reaches a transcript as burned: the user rotates it, not you (you could
   not pass the new key on without reading it).
-- **Routes that show a key without a print command.** Do not run or read them: ask the user to look and tell you what they
-  find, never the key. They are: `ps` or `env` output that shows the server's arguments or environment (the server is
-  started as `mcp start --api-key <key>`, so the key is in its command line; `pgrep -a` shows it too), shell history, a
-  file or profile you know or suspect holds the key (`.env`, a shell profile, the PushPress server's entry in an MCP
-  config), and a verbose or traced run that sends the key (`curl -v`, `set -x`). Exempt: a process listing without
-  arguments, other servers' config, the API Keys table (it lists no value) and the webhook tools of the API reference
-  (follow that file's rules for them).
+- **Routes that show a key without a print command.** Do not run these commands or read these files: ask the user to look
+  and tell you what they find, never the key. They are: `ps`, `env`, `printenv` or `set` output that shows the server's
+  arguments or any environment that holds the key (the server is started as `mcp start --api-key <key>`, so the key is in
+  its command line; `pgrep -a` shows it too), `claude mcp list` or `claude mcp get` (or the host's equivalent), which
+  print a server's command line and environment, shell history, a search or echo that prints the key's variable or value
+  (`grep -r`, `git log -p -S`, `echo $VAR`), a file or profile you know or suspect holds the key (`.env`, a shell
+  profile, the PushPress server's entry in an MCP config), and a verbose or traced run that sends the key (`curl -v`,
+  `set -x`). Exempt: a process listing without arguments, the API Keys table (it lists no value), the webhook tools of
+  the API reference (follow that file's rules for them, and never print a secret one returns), and another server's
+  entry in an MCP config read on its own (for example `jq '.mcpServers.<name>'`, not the whole file). To add or change
+  another server in a shared MCP config, edit it with a filter such as `jq` (it never prints the whole file) or have the
+  user do it.
 - *Last Used Date* is the quick way to see which key is live before revoking one `[not exercised]`.
 
 ## 3. Apps, Marketplace, Insurance

@@ -184,17 +184,18 @@ class Card(unittest.TestCase):
             "read anything that you know or suspect would show one: ask the user to look and tell you what they find, "
             "never the key",
             "The routes that show a key, and what is exempt, are in "
-            "[settings-and-admin.md §2](references/settings-and-admin.md#2-api-keys-settings--security--access); the "
-            "webhook tools of the API reference are exempt too (follow that file's rules for them)",
+            "[settings-and-admin.md §2](references/settings-and-admin.md#2-api-keys-settings--security--access).",
+            "The webhook tools of [api-and-mcp-tools.md](references/api-and-mcp-tools.md) are exempt from that "
+            "run-or-read clause (follow that file's rules for them, and never print a secret any of them returns)",
             "If the user offers to paste one, stop them before they do and say why: a key or secret pasted into chat is "
             "burned and has to be rotated",
             "Have them put it straight into the MCP server's environment or a secret store (not a file in the project "
             "such as `.env` or `.mcp.json`, committed or not)",
-            "If one is pasted anyway, do not save or reuse it, and tell the user to rotate it themselves (you could not "
-            "pass the new secret on without reading or printing it)",
+            "If one is pasted or shown anyway, do not save or reuse it, and tell the user to rotate it themselves (you "
+            "could not pass the new secret on without reading or printing it)",
             "Once `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more "
             "in it (no screenshot, page text, accessibility tree or page script) until the user says the dialog is "
-            "closed (value stored, or cancelled); rule 4's check waits for that",
+            "closed (after storing the value, or cancelling); rule 4's check waits for that",
             # Rule 6 cites rule 4 by number: pin the rule it points at
             "4. **Close, don't Save.**",
             "then confirm no dialog remains open",
@@ -203,22 +204,33 @@ class Card(unittest.TestCase):
         settings = " ".join((REFS / "settings-and-admin.md").read_text(encoding="utf-8").split())
         for needle in (
             "Never print, copy into chat or write a key value anywhere.",
-            "never through chat",
-            "burned: the user rotates it, not you (you could not pass the new key on without reading it)",
+            "Creating a key is **CONFIG / SECURITY**: ask first, and have the user place the value straight into the "
+            "MCP server's environment or their secret store, never through chat.",
+            "Treat a key that reaches a transcript as burned: the user rotates it, not you (you could not pass the new "
+            "key on without reading it).",
             "Routes that show a key without a print command.",
-            "Do not run or read them: ask the user to look and tell you what they find, never the key",
-            "`ps` or `env` output that shows the server's arguments or environment (the server is started as "
-            "`mcp start --api-key <key>`, so the key is in its command line; `pgrep -a` shows it too)",
+            "Do not run these commands or read these files: ask the user to look and tell you what they find, never the "
+            "key",
+            "`ps`, `env`, `printenv` or `set` output that shows the server's arguments or any environment that holds the "
+            "key (the server is started as `mcp start --api-key <key>`, so the key is in its command line; `pgrep -a` "
+            "shows it too)",
+            "`claude mcp list` or `claude mcp get` (or the host's equivalent), which print a server's command line and "
+            "environment",
             "shell history",
+            "a search or echo that prints the key's variable or value (`grep -r`, `git log -p -S`, `echo $VAR`)",
             "a file or profile you know or suspect holds the key (`.env`, a shell profile, the PushPress server's entry "
             "in an MCP config)",
             "a verbose or traced run that sends the key (`curl -v`, `set -x`)",
-            "Exempt: a process listing without arguments, other servers' config, the API Keys table (it lists no "
-            "value) and the webhook tools of the API reference (follow that file's rules for them)",
+            "Exempt: a process listing without arguments, the API Keys table (it lists no value), the webhook tools of "
+            "the API reference (follow that file's rules for them, and never print a secret one returns), and another "
+            "server's entry in an MCP config read on its own (for example `jq '.mcpServers.<name>'`, not the whole file)",
+            "To add or change another server in a shared MCP config, edit it with a filter such as `jq` (it never "
+            "prints the whole file) or have the user do it",
         ):
             self.assertIn(needle, settings, needle)
         for needle in (
-            "into repo files, journals, your memory or messages: structure only",
+            "Never write names, emails, phones, birthdays, addresses, `usr_…` IDs or screenshots of person pages and "
+            "reports into repo files, journals, your memory or messages: structure only",
             "Asked for a project file, a project note, your memory or an outbound message whose text lists members', "
             "leads' or parents' names, emails, phones or birthdays, do not write it",
             "do not offer to build one from the live report, the API tools, a script, pasted rows or an exported report",
