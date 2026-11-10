@@ -31,7 +31,7 @@
         "h",
         "lbl"
       ],
-      "why": "a field value with no letter (a date, a short number, a postal code) is not a secret",
+      "why": "a field value with no letter (a date, a short number, a postal code) is not a secret (keeping values with 4 or more digits as secrets flips all three values, and so does a text mask for runs of 4 or more digits)",
       "error": ""
     },
     {
@@ -44,7 +44,7 @@
       "fields": [
         "btn"
       ],
-      "why": "with no text field that holds the name, the only secret is the part of the title before its separator, taken as a whole string, so a first name on its own is not scrubbed (a secret for each word of the title would catch it)",
+      "why": "with no text field that holds the name, the only secret is the part of the title before its separator, taken as a whole string, so a first name on its own is not scrubbed (a secret for each word of the title flips it; so does adding the button's verb to the verb mask, which would not generalise)",
       "error": ""
     },
     {
@@ -52,8 +52,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 1,
-      "leaking": 1,
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "h"
       ],
@@ -65,12 +65,12 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 1,
-      "leaking": 1,
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "h"
       ],
-      "why": "only the part before the first separator is used, and here that part is the product and not the person (taking the last part, or a secret for each word of the title, catches it)",
+      "why": "only the part before the first separator is used, and here that part is the product and not the person (a secret for every title part that holds a space flips it, and so does a secret for each word of the title; using only the last part flips it too but stops scrubbing the pipe and en dash titles that are masked today)",
       "error": ""
     },
     {
@@ -78,12 +78,12 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 1,
-      "leaking": 1,
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "h"
       ],
-      "why": "a comma is not a separator, the part before it would be one word and a title part must hold a space to be a secret, and \"Last, First\" never equals the heading \"First Last\"; a comma split together with dropping the space rule, or a secret for each word of the title, catches it (neither change alone does)",
+      "why": "a comma is not a separator, the part before it would be one word and a title part must hold a space to be a secret, and \"Last, First\" never equals the heading \"First Last\" (a comma split alone changes nothing; a comma split with the space rule dropped scrubs the last name and leaves the first; a secret for each word of the title scrubs both)",
       "error": ""
     },
     {
@@ -291,7 +291,7 @@
       "fields": [
         "btn"
       ],
-      "why": "a button label is not passed through the text mask and is dropped only when it holds an @ or a run of 3 digits, so a number written in groups of two survives; today's text mask would not catch it either (phone-french leaks the same way through a label), so only a lower drop rule closes it on its own",
+      "why": "a button label is not passed through the text mask and is dropped only when it holds an @ or a run of 3 digits, so a number written in groups of two survives; today's text mask would not catch it either (phone-french leaks the same way through a label); a lower drop rule flips it, and so does counting the digits after the separators are removed, or adding the label's verb to the verb mask (which would not generalise)",
       "error": ""
     },
     {
@@ -455,8 +455,8 @@
       "kind": "gap",
       "severity": "material",
       "status": "XFAIL",
-      "values": 1,
-      "leaking": 1,
+      "values": 2,
+      "leaking": 2,
       "fields": [
         "btn"
       ],
@@ -473,7 +473,7 @@
       "fields": [
         "lbl"
       ],
-      "why": "the text mask covers emails and phone-like numbers only, so an id in text is never masked",
+      "why": "the text mask covers emails and phone-like numbers and has no id rule, so an id in text is not masked unless a run of digits in it happens to look like a phone number",
       "error": ""
     },
     {
