@@ -45,11 +45,13 @@ Description · Create Date · Last Used Date · Actions** (`Edit`). This is wher
   ask first, and have the user place the value straight into the MCP server's environment or their secret
   store, never through chat. Treat a key that reaches a transcript as burned: the user rotates it, not you (you could
   not pass the new key on without reading it).
-- **Routes that show a key without a print command:** `ps` or `env` output (the server is started as
-  `mcp start --api-key <key>`, so the key is in its command line), an MCP config entry or any file or profile that sets
-  it, a verbose or traced run (`curl -v`, `set -x`). Do not run or read them: ask the user to look and tell you what they
-  find, never the key. Not on this list: the API Keys table (it lists no value) and the two webhook reads in the door
-  table (report URLs and event types only).
+- **Routes that show a key without a print command.** Do not run or read them: ask the user to look and tell you what they
+  find, never the key. They are: `ps` or `env` output that shows the server's arguments or environment (the server is
+  started as `mcp start --api-key <key>`, so the key is in its command line; `pgrep -a` shows it too), shell history, a
+  file or profile you know or suspect holds the key (`.env`, a shell profile, the PushPress server's entry in an MCP
+  config), and a verbose or traced run that sends the key (`curl -v`, `set -x`). Exempt: a process listing without
+  arguments, other servers' config, the API Keys table (it lists no value) and the webhook tools of the API reference
+  (follow that file's rules for them).
 - *Last Used Date* is the quick way to see which key is live before revoking one `[not exercised]`.
 
 ## 3. Apps, Marketplace, Insurance

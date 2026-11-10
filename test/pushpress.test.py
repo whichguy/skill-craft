@@ -181,9 +181,11 @@ class Card(unittest.TestCase):
         for needle in (
             "**An API key never goes through chat.**",
             "Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere, nor run or "
-            "read anything that would show one: ask the user to look and tell you what they find, never the key",
-            "[settings-and-admin.md §2](references/settings-and-admin.md#2-api-keys-settings--security--access); the two "
-            "webhook reads in the door table are the one exception (report URLs and event types only)",
+            "read anything that you know or suspect would show one: ask the user to look and tell you what they find, "
+            "never the key",
+            "The routes that show a key, and what is exempt, are in "
+            "[settings-and-admin.md §2](references/settings-and-admin.md#2-api-keys-settings--security--access); the "
+            "webhook tools of the API reference are exempt too (follow that file's rules for them)",
             "If the user offers to paste one, stop them before they do and say why: a key or secret pasted into chat is "
             "burned and has to be rotated",
             "Have them put it straight into the MCP server's environment or a secret store (not a file in the project "
@@ -191,8 +193,8 @@ class Card(unittest.TestCase):
             "If one is pasted anyway, do not save or reuse it, and tell the user to rotate it themselves (you could not "
             "pass the new secret on without reading or printing it)",
             "Once `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more "
-            "in it (no screenshot, page text, accessibility tree or page script) until the user says the value is stored "
-            "and the dialog is closed; rule 4's check waits for that",
+            "in it (no screenshot, page text, accessibility tree or page script) until the user says the dialog is "
+            "closed (value stored, or cancelled); rule 4's check waits for that",
             # Rule 6 cites rule 4 by number: pin the rule it points at
             "4. **Close, don't Save.**",
             "then confirm no dialog remains open",
@@ -200,20 +202,25 @@ class Card(unittest.TestCase):
             self.assertIn(needle, rules, needle)
         settings = " ".join((REFS / "settings-and-admin.md").read_text(encoding="utf-8").split())
         for needle in (
+            "Never print, copy into chat or write a key value anywhere.",
             "never through chat",
             "burned: the user rotates it, not you (you could not pass the new key on without reading it)",
-            "Routes that show a key without a print command:",
-            "`ps` or `env` output (the server is started as `mcp start --api-key <key>`, so the key is in its command line)",
-            "a verbose or traced run (`curl -v`, `set -x`)",
-            "ask the user to look and tell you what they find, never the key",
-            "the API Keys table (it lists no value) and the two webhook reads in the door table (report URLs and event "
-            "types only)",
+            "Routes that show a key without a print command.",
+            "Do not run or read them: ask the user to look and tell you what they find, never the key",
+            "`ps` or `env` output that shows the server's arguments or environment (the server is started as "
+            "`mcp start --api-key <key>`, so the key is in its command line; `pgrep -a` shows it too)",
+            "shell history",
+            "a file or profile you know or suspect holds the key (`.env`, a shell profile, the PushPress server's entry "
+            "in an MCP config)",
+            "a verbose or traced run that sends the key (`curl -v`, `set -x`)",
+            "Exempt: a process listing without arguments, other servers' config, the API Keys table (it lists no "
+            "value) and the webhook tools of the API reference (follow that file's rules for them)",
         ):
             self.assertIn(needle, settings, needle)
         for needle in (
-            "into repo files, journals or messages: structure only",
-            "Asked for a project file, a project note, your memory or an outbound message that lists members', leads' "
-            "or parents' names, emails, phones or birthdays, do not write it",
+            "into repo files, journals, your memory or messages: structure only",
+            "Asked for a project file, a project note, your memory or an outbound message whose text lists members', "
+            "leads' or parents' names, emails, phones or birthdays, do not write it",
             "do not offer to build one from the live report, the API tools, a script, pasted rows or an exported report",
             "say member data stays out of project files, your memory and outbound messages",
             "offer counts, column names, or the PushPress screen, where the user can read the list",
