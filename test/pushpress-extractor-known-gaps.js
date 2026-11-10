@@ -9,7 +9,7 @@
 // reads nothing, or stops reading a field the gaps leak through, or stops folding full-width digits, fails a control instead of passing
 // quietly or being read as an extractor fix; every field in which a gap leaks must have a positive control that is found in it (checked on
 // every run). A malformed entry (a missing id, a `planted` that is not an array of strings, an empty or too short value, one value inside
-// another, a digits value that overlaps a planted value, digits
+// another, a digits value that contains, or is contained in, the digits of a planted value, digits
 // that are not 2 or more ASCII digits, an unknown onlyIn field, an entry that plants nothing) is an ERROR.
 // Two limits, stated so that nobody reads more into the checks than they do. The coverage rule is per field, not per kind of match (text or
 // digits): a checker fault confined to one kind in one field is not caught. And a planted value must be a string the extractor does not
@@ -17,7 +17,8 @@
 // value against the mask tokens, the paths and its own element text and found none that is.
 // A `why` names the rule behind a leak and the single changes that were probed and flip the entry; it does not claim that no other change
 // would. Where it says that a change alone does not flip an entry, or that a change breaks a masked shape, that was probed.
-// An entry that plants a name plants every part of it, so that a change that scrubs only one part reads PARTIAL and not XPASS.
+// An entry that plants a name plants every part of it, so that a change that scrubs only one part reads PARTIAL and not XPASS (the one
+// exception is owner-first-name-alone-with-no-fields, which plants a first name alone, by design).
 // Phone numbers, email addresses and the prefixed ids are assembled at run time so that no file holds a complete one. The other planted
 // values (names, a UUID, a date, a postal code, card digits, invoice and order numbers, short numeric ids, a street address) are made-up
 // literals. The report prints ids, fields and counts, never a planted value.
@@ -78,7 +79,7 @@ const GAPS = [
   // a person's name or detail on a person route
   { id: 'non-latin-name', sev: 'material', why: 'the scrub keeps only values that contain a Latin letter (A-Z)', path: PERSON, title: CYR.first + ' ' + CYR.last,
     els: [input(CYR.first, 'First name'), input(CYR.last, 'Last name'), put('h', CYR.first + ' ' + CYR.last), put('btn', 'Message ' + CYR.first)], planted: [CYR.last, CYR.first] },
-  { id: 'letterless-field-values', sev: 'material', why: 'a field value with no letter (a date, a short number, a postal code) is not a secret (keeping values with 4 or more digits as secrets flips all three values, and so does a text mask for runs of 4 or more digits)', path: PERSON, title: NAMETEXT,
+  { id: 'letterless-field-values', sev: 'material', why: 'a field value with no letter (a date, a short number, a postal code) is not a secret (keeping values with 4 or more digits as secrets flips all three values, and so does a text mask for runs of 4 or more digits placed after the phone mask)', path: PERSON, title: NAMETEXT,
     els: [input('04/10/2012', 'Date of birth'), input(cat('010', '-', '0123'), 'Phone'), input('12345', 'ZIP'), put('lbl', 'Born 04/10/2012'), put('lbl', cat('Phone 010', '-', '0123')), put('h', 'ZIP 12345')],
     planted: ['04/10/2012', cat('010', '-', '0123'), '12345'] },
   { id: 'owner-first-name-alone-with-no-fields', sev: 'material', why: 'with no text field that holds the name, the only secret is the part of the title before its separator, taken as a whole string, so a first name on its own is not scrubbed (a secret for each word of the title flips it; so does adding the button\'s verb to the verb mask, which would not generalise)', path: PERSON, title: NAMETEXT + ' | PushPress',
@@ -87,10 +88,10 @@ const GAPS = [
     els: [put('h', NAMETEXT)], planted: [NAME.last, NAME.first] },
   { id: 'title-with-the-name-second', sev: 'material', why: 'only the part before the first separator is used, and here that part is the product and not the person (a secret for every title part that holds a space flips it, and so does a secret for each word of the title; using only the last part flips it too but stops scrubbing the pipe and en dash titles that are masked today)', path: PERSON, title: 'PushPress | ' + NAMETEXT,
     els: [put('h', NAMETEXT)], planted: [NAME.last, NAME.first] },
-  { id: 'title-written-last-comma-first', sev: 'material', why: 'a comma is not a separator, the part before it would be one word and a title part must hold a space to be a secret, and "Last, First" never equals the heading "First Last" (a comma split alone changes nothing; a comma split with the space rule dropped scrubs the last name and leaves the first; a secret for each word of the title scrubs both)', path: PERSON, title: NAME.last + ', ' + NAME.first,
+  { id: 'title-written-last-comma-first', sev: 'material', why: 'a comma is not a separator, the part before it would be one word and a title part must hold a space to be a secret, and "Last, First" never equals the heading "First Last" (a comma split alone changes nothing; a comma split with the space rule dropped scrubs the last name and leaves the first; a secret for each word of the title, split on spaces and commas, scrubs both)', path: PERSON, title: NAME.last + ', ' + NAME.first,
     els: [put('h', NAMETEXT)], planted: [NAME.last, NAME.first] },
   { id: 'second-person-plain-text', sev: 'material', why: 'recorded as H3: a second person shown only as text on a person page is not a secret', path: PERSON, title: NAMETEXT,
-    els: [input(NAME.first, 'First name'), input(NAME.last, 'Last name'), put('h', 'Guardian Rosalind Tuckerbottom')], planted: ['Tuckerbottom'] },
+    els: [input(NAME.first, 'First name'), input(NAME.last, 'Last name'), put('h', 'Guardian Rosalind Tuckerbottom')], planted: ['Tuckerbottom', 'Rosalind'] },
   // phone numbers (H16), each in a label off a person route
   ...[
     ['phone-no-space-after-parenthesis', cat('(', N.a, ')', N.b, '-', N.c)], ['phone-seven-digits-with-space', cat(N.a, ' ', N.b, N.c)], ['phone-slashes', [N.a, N.b, N.c].join('/')],
@@ -106,11 +107,11 @@ const GAPS = [
   // links and paths (H19, H20)
   ...[cat('whatsapp://send?phone=1', N.a, N.b, N.c), cat('callto:', N.a, N.b, N.c), cat('facetime:', N.a, N.b, N.c), 'skype:jane.fixture?call', cat('viber://chat?number=%2B1', N.a, N.b, N.c),
     cat('sgnl://signal.me/#p/+1', N.a, N.b, N.c), cat('https://wa.me/1', N.a, N.b, N.c)].map(h => (
-    { id: 'contact-link-' + h.split(/[:/]/)[0] + (h.includes('wa.me') ? '-wa-me' : ''), sev: 'material', why: 'only mailto, tel and sms links are treated as contact links, so the text (a name) is kept', path: LIST, els: [link(NAMETEXT, h)], planted: [NAME.last] })),
+    { id: 'contact-link-' + h.split(/[:/]/)[0] + (h.includes('wa.me') ? '-wa-me' : ''), sev: 'material', why: 'only mailto, tel and sms links are treated as contact links, so the text (a name) is kept', path: LIST, els: [link(NAMETEXT, h)], planted: [NAME.last, NAME.first] })),
   { id: 'email-in-a-same-origin-path', sev: 'material', why: 'an email in a path segment is not masked (the text mask runs on text, not on paths)', path: LIST, els: [link('History', cat('/members/by-email/', EMAIL))], planted: ['jane.fixture'] },
-  { id: 'person-link-with-numeric-id', sev: 'material', why: 'a 5-digit id is caught by neither rule: the person-route test for a link, and the path mask that prints it, need 8 or more characters after /user/ or /people/, and the id rule needs 10 or more hex characters', path: LIST, els: [link(NAMETEXT, '/user/48213')], planted: [NAME.last, '48213'] },
-  { id: 'person-link-under-people-members', sev: 'material', why: 'the person test looks only at the first segment after /people/ (8 or more characters, not a list name), and the id rule needs 10 or more hex characters, so an 8-digit id one segment below a list page is seen by neither (a 10-character hex id there is masked by the id rule)', path: LIST, els: [link(NAMETEXT, '/people/members/12345678')], planted: [NAME.last, '12345678'] },
-  { id: 'person-id-in-a-query', sev: 'material', why: 'only the path is tested for a person id', path: LIST, els: [link(NAMETEXT, '/checkins?user=' + UID)], planted: [NAME.last] },
+  { id: 'person-link-with-numeric-id', sev: 'material', why: 'a 5-digit id is caught by neither rule: the person-route test for a link, and the path mask that prints it, need 8 or more characters after /user/ or /people/, and the id rule needs 10 or more hex characters', path: LIST, els: [link(NAMETEXT, '/user/48213')], planted: [NAME.last, NAME.first, '48213'] },
+  { id: 'person-link-under-people-members', sev: 'material', why: 'the person test looks only at the first segment after /people/ (8 or more characters, not a list name), and the id rule needs 10 or more hex characters, so an 8-digit id one segment below a list page is seen by neither (a 10-character hex id there is masked by the id rule)', path: LIST, els: [link(NAMETEXT, '/people/members/12345678')], planted: [NAME.last, NAME.first, '12345678'] },
+  { id: 'person-id-in-a-query', sev: 'material', why: 'only the path is tested for a person id', path: LIST, els: [link(NAMETEXT, '/checkins?user=' + UID)], planted: [NAME.last, NAME.first] },
   { id: 'person-link-that-is-a-role-button', sev: 'material', why: 'the link is masked in the link list but its text is also a button label, which the person-link mask does not see', path: LIST,
     els: [el({ tag: 'A', sel: ['a[href]', '[role=button]'], text: NAMETEXT, attrs: { href: '/user/' + UID, role: 'button' } })], planted: [NAME.last, NAME.first], onlyIn: 'btn' },
   // identifiers and address-like strings in text (H21; lower severity)
@@ -134,11 +135,11 @@ const CONTROLS = [
   { id: 'phone-parenthesis-and-space', path: LIST, els: [put('lbl', cat('Phone (', N.a, ') ', N.b, '-', N.c))], digits: N.b + N.c },
   { id: 'phone-international-plus-one', path: LIST, els: [put('lbl', cat('Phone +1 ', N.a, ' ', N.b, ' ', N.c))], planted: ['+1'], digits: N.b + N.c },
   { id: 'email-in-text', path: LIST, els: [put('lbl', 'Email ' + EMAIL)], planted: ['jane.fixture'] },
-  { id: 'button-edit-name', path: LIST, els: [put('btn', 'Edit ' + NAMETEXT)], planted: [NAME.last] },
-  { id: 'person-link-hex-id', path: LIST, els: [link(NAMETEXT, '/user/' + UID)], planted: [NAME.last, UID] },
-  { id: 'person-link-non-hex-slug', path: LIST, els: [link(NAMETEXT, cat('/user/slug', '-', 'zzzzzzzz'))], planted: [NAME.last, 'zzzzzzzz'] },
-  { id: 'record-id-link-that-is-not-a-person', path: LIST, els: [link(NAMETEXT, cat('/invoices/inv', '_', '9f3c', '000012'))], planted: [NAME.last, '9f3c000012'] },
-  { id: 'mailto-link-with-a-name', path: LIST, els: [link(NAMETEXT, 'mailto:' + EMAIL)], planted: [NAME.last] },
+  { id: 'button-edit-name', path: LIST, els: [put('btn', 'Edit ' + NAMETEXT)], planted: [NAME.last, NAME.first] },
+  { id: 'person-link-hex-id', path: LIST, els: [link(NAMETEXT, '/user/' + UID)], planted: [NAME.last, NAME.first, UID] },
+  { id: 'person-link-non-hex-slug', path: LIST, els: [link(NAMETEXT, cat('/user/slug', '-', 'zzzzzzzz'))], planted: [NAME.last, NAME.first, 'zzzzzzzz'] },
+  { id: 'record-id-link-that-is-not-a-person', path: LIST, els: [link(NAMETEXT, cat('/invoices/inv', '_', '9f3c', '000012'))], planted: [NAME.last, NAME.first, '9f3c000012'] },
+  { id: 'mailto-link-with-a-name', path: LIST, els: [link(NAMETEXT, 'mailto:' + EMAIL)], planted: [NAME.last, NAME.first] },
   { id: 'title-pipe-separator-and-no-fields', path: PERSON, title: NAMETEXT + ' | PushPress', els: [put('h', NAMETEXT)], planted: [NAME.last, NAME.first] },
   { id: 'title-en-dash-separator-and-no-fields', path: PERSON, title: NAMETEXT + ' – PushPress', els: [put('h', NAMETEXT)], planted: [NAME.last, NAME.first] },
   // no page title here, so only the field values can scrub the heading
@@ -171,7 +172,7 @@ function problem(e) {
   if (vals.some(v => v.trim().length < 2)) return 'a planted value is empty or too short';
   if (vals.some((v, i) => vals.some((w, j) => i !== j && w.includes(v)))) return 'a planted value is contained in another';
   if (e.digits !== undefined && (typeof e.digits !== 'string' || !/^\d{2,}$/.test(e.digits))) return 'digits must be 2 or more ASCII digits';
-  if (e.digits !== undefined && vals.some(v => { const d = digitsOf(v); return d.length >= 2 && (d.includes(e.digits) || e.digits.includes(d)); })) return 'digits overlap a planted value';
+  if (e.digits !== undefined && vals.some(v => { const d = digitsOf(v); return d.length >= 2 && (d.includes(e.digits) || e.digits.includes(d)); })) return 'digits contain, or are contained in, the digits of a planted value';
   if (e.onlyIn !== undefined && !FIELDS.includes(e.onlyIn)) return 'onlyIn names no output field';
   if (typeof e.id !== 'string' || !e.id) return 'id must be a non-empty string';
   return '';
@@ -194,7 +195,7 @@ function run(src) {
     else if (e.kind === 'gap') status = r.leaked === r.total ? 'XFAIL' : r.leaked === 0 ? 'XPASS' : 'PARTIAL';
     else if (e.kind === 'positive') status = r.leaked === r.total ? 'PASS' : 'FAIL';           // a positive control passes only when every planted value is found
     else status = r.leaked === 0 ? 'PASS' : 'FAIL';
-    rows.push({ id: e.id, kind: e.kind, severity: e.sev || '', status, values: r.total, leaking: r.leaked, fields: r.fields, why: e.why || '', error });
+    rows.push({ id: typeof e.id === 'string' && e.id ? e.id : '(no id)', kind: e.kind, severity: e.sev || '', status, values: r.total, leaking: r.leaked, fields: r.fields, why: e.why || '', error });
   }
   return rows;
 }
