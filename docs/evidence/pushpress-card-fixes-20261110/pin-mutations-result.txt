@@ -1,4 +1,4 @@
-Output of pin-mutations.py run from this folder at c0460fc7dce7b9c401677d29219bdc53ae004ba8 (the round-4 revision), 2026-11-10.
+Output of pin-mutations.py run from this folder at cbd61ded3dff59a9aa1ef9fb239ddcbd15a83ea1 (the round-5 revision), 2026-11-10.
 [
  {
   "mutation": "none (control)",
@@ -11,7 +11,12 @@ Output of pin-mutations.py run from this folder at c0460fc7dce7b9c401677d29219bd
   "kind": "failure"
  },
  {
-  "mutation": "card without: Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere, nor run or read anything that shows one (`ps` or `env` output, a server command line that carries `--api-key`, the launcher's env file)",
+  "mutation": "card without: Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere, nor run or read anything that would show one: ask the user to look and tell you what they find, never the key",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "card without: [settings-and-admin.md \u00a72](references/settings-and-admin.md#2-api-keys-settings--security--access); the two webhook reads in the door table are the one exception (report URLs and event types only)",
   "test_passes": false,
   "kind": "failure"
  },
@@ -21,7 +26,7 @@ Output of pin-mutations.py run from this folder at c0460fc7dce7b9c401677d29219bd
   "kind": "failure"
  },
  {
-  "mutation": "card without: Have them put it straight into the MCP server's environment or a secret store (not a file in the project, committed or not)",
+  "mutation": "card without: Have them put it straight into the MCP server's environment or a secret store (not a file in the project such as `.env` or `.mcp.json`, committed or not)",
   "test_passes": false,
   "kind": "failure"
  },
@@ -51,17 +56,17 @@ Output of pin-mutations.py run from this folder at c0460fc7dce7b9c401677d29219bd
   "kind": "failure"
  },
  {
-  "mutation": "card without: Asked for a project file, a project note or an outbound message that lists members', leads' or parents' names, emails, phones or birthdays, do not write it",
+  "mutation": "card without: Asked for a project file, a project note, your memory or an outbound message that lists members', leads' or parents' names, emails, phones or birthdays, do not write it",
   "test_passes": false,
   "kind": "failure"
  },
  {
-  "mutation": "card without: do not offer to build one from the live report, pasted rows or an exported report",
+  "mutation": "card without: do not offer to build one from the live report, the API tools, a script, pasted rows or an exported report",
   "test_passes": false,
   "kind": "failure"
  },
  {
-  "mutation": "card without: say member data stays out of project files and outbound messages",
+  "mutation": "card without: say member data stays out of project files, your memory and outbound messages",
   "test_passes": false,
   "kind": "failure"
  },
@@ -86,7 +91,32 @@ Output of pin-mutations.py run from this folder at c0460fc7dce7b9c401677d29219bd
   "kind": "failure"
  },
  {
-  "mutation": "settings reference without: burned: the user rotates it, not you",
+  "mutation": "settings reference without: burned: the user rotates it, not you (you could not pass the new key on without reading it)",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: Routes that show a key without a print command:",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: `ps` or `env` output (the server is started as `mcp start --api-key <key>`, so the key is in its command line)",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: a verbose or traced run (`curl -v`, `set -x`)",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: ask the user to look and tell you what they find, never the key",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: the API Keys table (it lists no value) and the two webhook reads in the door table (report URLs and event types only)",
   "test_passes": false,
   "kind": "failure"
  },
@@ -98,5 +128,5 @@ Output of pin-mutations.py run from this folder at c0460fc7dce7b9c401677d29219bd
 ]
 mutations that the test did NOT catch: []
 controls pass: True
-pinned phrases: 15 (card 13 + settings 2 ) + 2 structural mutations
-caught: 17 of 17
+pinned phrases: 21 (card 14 + settings 7 ) + 2 structural mutations
+caught: 23 of 23
