@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import fcntl
 import hashlib
 import importlib.util
 import json
@@ -30,6 +31,7 @@ CONFIG_OBJECT = PREFIX + "Config__c"
 MODEL = "grok-4.7"
 NAMED_CREDENTIAL = "Grok_Chat_Model"
 ORACLE = HERE.parent / "fixtures" / "grok-chat-full-oracle"
+ORACLE_ATTEMPT_LEDGER = "attempts.log"
 ORACLE_CLASS_SOURCE = ORACLE / "force-app/main/default/classes" / (ORACLE_CLASS + ".cls")
 ORACLE_CLASS_META = ORACLE / "force-app/main/default/classes" / (ORACLE_CLASS + ".cls-meta.xml")
 ORACLE_RULE_SOURCE = (ORACLE / "force-app/main/default/objects" / ITEM_OBJECT /
@@ -415,10 +417,29 @@ def _write_json(path: Path, value: object) -> None:
     path.write_text(json.dumps(sfc.scrub(value), indent=2) + "\n", encoding="utf-8")
 
 
+def register_oracle_attempt(directory: Path, phase: str, check_id: str) -> Path:
+    """Record start order so a later failed or interrupted oracle supersedes earlier proof."""
+    attempts = directory / "grok-chat-full-oracle" / phase
+    attempts.mkdir(parents=True, mode=0o700, exist_ok=True)
+    artifact = attempts / check_id
+    with (attempts / ORACLE_ATTEMPT_LEDGER).open("a", encoding="ascii") as ledger:
+        fcntl.flock(ledger, fcntl.LOCK_EX)
+        if artifact.exists():
+            raise FileExistsError(artifact)
+        ledger.write(check_id + "\n")
+        ledger.flush()
+        artifact.mkdir(mode=0o700)
+    return artifact
+
+
 def do_rules(directory: Path | None = None, root: Path = Path(".")) -> tuple[bool, str]:
     phase = os.environ.get("E2E_CHECK_PHASE")
     if phase not in {"builder", "final"}:
         return False, "UNKNOWN: the independent Apex oracle runs only in builder or final phase"
+    directory = Path(directory) if directory is not None else sfc.platform_dir()
+    # Register before any source or remote fallible work: a newer failed or
+    # interrupted invocation must supersede an earlier passing receipt.
+    artifact = register_oracle_attempt(directory, phase, uuid.uuid4().hex)
     ok, message = do_project(PREFIX, root)
     if not ok:
         return False, "FAIL/UNKNOWN: candidate source check failed: " + message
@@ -453,9 +474,6 @@ def do_rules(directory: Path | None = None, root: Path = Path(".")) -> tuple[boo
     except (sfc.SfError, OSError, ValueError, TypeError, KeyError) as exc:
         return False, "FAIL/UNKNOWN: pre-validation identity/source/collision check failed: " + sfc.tail(str(exc), 300)
 
-    directory = directory or sfc.platform_dir()
-    artifact = Path(directory) / "grok-chat-full-oracle" / phase / uuid.uuid4().hex
-    artifact.mkdir(parents=True, exist_ok=False, mode=0o700)
     doc = None
     cli_error = None
     with tempfile.TemporaryDirectory(prefix="grok-chat-oracle-") as temporary:

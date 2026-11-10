@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Full-case wiring must retain its ownership boundary and independent checks."""
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
+import tempfile
 import unittest
+from unittest import mock
 
 ROOT=Path(__file__).resolve().parents[1]
 CASES=json.loads((ROOT/"test/shiploop_e2e/cases.json").read_text())
@@ -43,6 +46,38 @@ class FullGrokCaseTest(unittest.TestCase):
             command=case["platform"]["model_bin"][name]
             self.assertTrue(command.startswith("env E2E_CHECK_PHASE=builder python3 "))
             self.assertIn('"$E2E_CHECKS/',command)
+
+    def test_oracle_attempt_ledger_preserves_start_order_and_unfinished_attempts(self):
+        spec=importlib.util.spec_from_file_location("grok_full_oracle_ledger",ROOT/"test/shiploop_e2e/checks/grok_chat_full_salesforce.py")
+        module=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as temporary:
+            root=Path(temporary)
+            first=module.register_oracle_attempt(root,"builder","1"*32)
+            second=module.register_oracle_attempt(root,"builder","2"*32)
+            self.assertEqual((root/"grok-chat-full-oracle/builder/attempts.log").read_text(),"1"*32+"\n"+"2"*32+"\n")
+            self.assertTrue(first.is_dir() and second.is_dir())
+            self.assertFalse((second/"receipt.json").exists(),"an unfinished newer attempt remains visible")
+            with self.assertRaises(FileExistsError):
+                module.register_oracle_attempt(root,"builder","2"*32)
+
+    def test_oracle_prevalidation_failure_is_registered_before_fallible_work(self):
+        spec=importlib.util.spec_from_file_location("grok_full_oracle_order",ROOT/"test/shiploop_e2e/checks/grok_chat_full_salesforce.py")
+        module=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(module.os.environ,{"E2E_CHECK_PHASE":"builder"}), \
+                mock.patch.object(module,"do_project",return_value=(False,"injected prevalidation failure")), \
+                mock.patch.object(module.uuid,"uuid4",return_value=mock.Mock(hex="b"*32)):
+            root=Path(temporary)
+            first=module.register_oracle_attempt(root,"builder","a"*32)
+            (first/"receipt.json").write_text("{}\n")
+            ok,_=module.do_rules(root,root)
+            self.assertFalse(ok)
+            ledger=root/"grok-chat-full-oracle/builder/attempts.log"
+            self.assertEqual(ledger.read_text(),"a"*32+"\n"+"b"*32+"\n")
+            latest=root/"grok-chat-full-oracle/builder"/("b"*32)
+            self.assertTrue(latest.is_dir())
+            self.assertFalse((latest/"receipt.json").exists())
 
     def test_full_prompt_preserves_secret_and_confirmation_boundaries(self):
         prompt=CASES["grok-chat-salesforce-full"]["prompt"]
