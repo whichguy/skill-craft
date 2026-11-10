@@ -179,10 +179,12 @@ class Card(unittest.TestCase):
         card = " ".join(card_text().split())
         rules = card.split("## Rules that matter, and why")[1].split("## Sign in")[0]
         for needle in (
-            "A key or secret never goes through chat.",
-            "stop them before they do",
+            "**An API key never goes through chat.**",
+            "Never ask for, print, copy into chat or write a PushPress API key or webhook secret anywhere",
+            "take no screenshot or page-text read while one is on screen",
+            "stop them before they do and say why: a key or secret pasted into chat is burned",
             "straight into the MCP server's environment or a secret store (never a committed file)",
-            "is burned: do not save or reuse it",
+            "If one is pasted anyway, do not save or reuse it",
             "tell the user to rotate it",
         ):
             self.assertIn(needle, rules, needle)
@@ -190,10 +192,10 @@ class Card(unittest.TestCase):
         for needle in ("never through chat", "burned and rotate it"):
             self.assertIn(needle, settings, needle)
         for needle in (
-            "lists members' names, emails, phones or birthdays, do not write it",
-            "do not offer to turn pasted rows or an exported report into one",
-            "member data stays out of project files",
-            "offer counts, column names, or the PushPress screen",
+            "Asked for a project file, note or outbound message that lists members' names, emails, phones or birthdays, do not write it",
+            "do not offer to build one from the live report, pasted rows or an exported report",
+            "member data stays out of project files and outbound messages",
+            "offer counts, column names, or the PushPress screen, where the user can read the list",
         ):
             self.assertIn(needle, rules, needle)
 
