@@ -191,8 +191,9 @@ class Card(unittest.TestCase):
             "burned and has to be rotated",
             "Have them put it straight into the MCP server's environment or a secret store (not a file in the project "
             "such as `.env` or `.mcp.json`, committed or not)",
-            "If one is pasted or shown anyway, do not save or reuse it, and tell the user to rotate it themselves (you "
-            "could not pass the new secret on without reading or printing it)",
+            "If one is pasted, or shown to you anywhere but in a webhook tool's result, do not save or reuse it, and "
+            "tell the user to rotate it themselves (you could not pass the new secret on without reading or printing "
+            "it)",
             "Once `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more "
             "in it (no screenshot, page text, accessibility tree or page script) until the user says the dialog is "
             "closed (after storing the value, or cancelling); rule 4's check waits for that",
@@ -211,21 +212,25 @@ class Card(unittest.TestCase):
             "Routes that show a key without a print command.",
             "Do not run these commands or read these files: ask the user to look and tell you what they find, never the "
             "key",
-            "`ps`, `env`, `printenv` or `set` output that shows the server's arguments or any environment that holds the "
-            "key (the server is started as `mcp start --api-key <key>`, so the key is in its command line; `pgrep -a` "
-            "shows it too)",
-            "`claude mcp list` or `claude mcp get` (or the host's equivalent), which print a server's command line and "
-            "environment",
+            "`ps`, `env`, `printenv` or `set` output that shows the server's arguments or any environment you know or "
+            "suspect holds the key (the server is started as `mcp start --api-key <key>`, so the key is in its command "
+            "line; `pgrep -a` shows it too)",
+            "`claude mcp list` (each server's command line) or `claude mcp get` (its command line and environment), or "
+            "the host's equivalent",
             "shell history",
-            "a search or echo that prints the key's variable or value (`grep -r`, `git log -p -S`, `echo $VAR`)",
+            "a search or echo that prints the key's value (`grep -r` over files that may hold it, `git log -p -S`, "
+            "`echo $VAR` of the key's variable)",
             "a file or profile you know or suspect holds the key (`.env`, a shell profile, the PushPress server's entry "
             "in an MCP config)",
             "a verbose or traced run that sends the key (`curl -v`, `set -x`)",
-            "Exempt: a process listing without arguments, the API Keys table (it lists no value), the webhook tools of "
-            "the API reference (follow that file's rules for them, and never print a secret one returns), and another "
-            "server's entry in an MCP config read on its own (for example `jq '.mcpServers.<name>'`, not the whole file)",
-            "To add or change another server in a shared MCP config, edit it with a filter such as `jq` (it never "
-            "prints the whole file) or have the user do it",
+            "Exempt: a check that prints no value (`ps -o pid,comm`, `env | cut -d= -f1`, `[ -n \"$VAR\" ]`), the API "
+            "Keys table (it lists no value), the webhook tools of [api-and-mcp-tools.md](api-and-mcp-tools.md) (follow "
+            "that file's rules for them, and never print a secret one returns), and another server's entry in an MCP "
+            "config read on its own (for example `jq '.mcpServers.<name>'`, not the whole file)",
+            "To add or change a server in a shared MCP config, the PushPress one included, write the edit with a filter "
+            "whose output goes straight to a file and never to the screen (for example `jq '…' f > f.new && mv f.new "
+            "f`; rewriting the file this way is not writing the key), or have the user do it",
+            "To test that the key works, call `company-get`.",
         ):
             self.assertIn(needle, settings, needle)
         for needle in (

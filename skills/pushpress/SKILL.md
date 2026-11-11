@@ -88,11 +88,11 @@ own tenant it wins over this skill's maps, and the live page wins over both. An 
    file's rules for them, and never print a secret any of them returns). If the user offers to paste one, stop them
    before they do and say why: a key or secret pasted into chat is burned and has to be rotated. Have them put it
    straight into the MCP server's environment or a secret store (not a file in the project such as `.env` or `.mcp.json`,
-   committed or not). If one is pasted or shown anyway, do not save or reuse it, and tell the user to rotate it themselves
-   (you could not pass the new secret on without reading or printing it). Once `Add API Key` has been pressed, by you or
-   by the user, read nothing from the page and do nothing more in it (no screenshot, page text, accessibility tree or
-   page script) until the user says the dialog is closed (after storing the value, or cancelling); rule 4's check waits
-   for that.
+   committed or not). If one is pasted, or shown to you anywhere but in a webhook tool's result, do not save or reuse it,
+   and tell the user to rotate it themselves (you could not pass the new secret on without reading or printing it). Once
+   `Add API Key` has been pressed, by you or by the user, read nothing from the page and do nothing more in it (no
+   screenshot, page text, accessibility tree or page script) until the user says the dialog is closed (after storing the
+   value, or cancelling); rule 4's check waits for that.
 
 ## Sign in
 
