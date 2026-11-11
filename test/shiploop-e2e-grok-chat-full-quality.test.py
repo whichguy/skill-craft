@@ -4,9 +4,11 @@ from contextlib import redirect_stdout
 from datetime import datetime, timezone
 import hashlib
 import importlib.util
+import inspect
 import io
 import json
 import os
+import re
 from pathlib import Path
 import runpy
 import subprocess
@@ -32,6 +34,28 @@ TRACE_ID = "7tf000000000001AAA"
 
 def stamp(milliseconds):
     return datetime.fromtimestamp(milliseconds // 1000, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+class QualityBudgetTest(unittest.TestCase):
+    def test_full_observation_budget_is_2700_in_helper_catalog_and_guide(self):
+        cases = json.loads((ROOT / "test/shiploop_e2e/cases.json").read_text())
+        guide = (ROOT / "test/shiploop_e2e/GROK_CHAT_FULL.md").read_text()
+        budgets = {
+            "helper": quality.CHECK_SECONDS,
+            "run default": inspect.signature(quality.run).parameters["wait_seconds"].default,
+            "full case": cases["grok-chat-salesforce-full"]["platform"]["check_timeout"],
+            "public guide": [int(value) for value in re.findall(r"(\d+)-second hosted-check budget", guide)],
+        }
+        for location, value in budgets.items():
+            with self.subTest(location=location):
+                self.assertEqual(value, [2700] if location == "public guide" else 2700)
+
+    def test_other_cases_remain_identical_to_owner_budget_change_base(self):
+        cases = json.loads((ROOT / "test/shiploop_e2e/cases.json").read_text())
+        del cases["grok-chat-salesforce-full"]
+        # Canonical catalog excluding only the full case at bb741347a74d170c260bc524379967028ba4d5c6.
+        digest = hashlib.sha256(json.dumps(cases, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        self.assertEqual(digest, "25ae51d25ff04aa420ba36098e7a8e06fe6c832cc797e01c3d8996b86f118796")
 
 
 class QualityGateTest(unittest.TestCase):
@@ -209,6 +233,23 @@ class QualityGateTest(unittest.TestCase):
         self.assertIn(str(self.directory / "live-acceptance/*/request.json"), output)
         request = json.loads((self.directory / "request.json").read_text())
         self.assertEqual(request["source"]["sha256"], self.identity["sha256"])
+
+    def test_default_budget_expires_with_missing_evidence_still_unknown(self):
+        for review_present in (False, True):
+            with self.subTest(review_present=review_present):
+                if review_present:
+                    (self.directory / "review.json").write_text(json.dumps(self.valid()))
+                # Jump near the deadline, then exercise the final bounded poll.
+                with (mock.patch.object(quality.time, "monotonic", side_effect=[0, 2699, 2700]),
+                      mock.patch.object(quality.time, "sleep") as sleep, redirect_stdout(io.StringIO()) as output):
+                    code = quality.run(self.product, self.platform, "builder")
+                self.assertEqual(code, 2, output.getvalue())
+                self.assertIn("live-acceptance-pending", output.getvalue())
+                self.assertEqual("independent-review-pending" in output.getvalue(), not review_present)
+                sleep.assert_called_once_with(1)
+                result = json.loads((self.directory / "check-builder.json").read_text())
+                self.assertEqual(result["status"], "UNKNOWN")
+                self.assertEqual(result["errors"], [])
 
     def test_actionable_findings_are_reported_without_ui_or_deployment(self):
         review = self.valid()

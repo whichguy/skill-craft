@@ -23,11 +23,13 @@ class FullGrokCaseTest(unittest.TestCase):
     def test_full_case_preserves_shared_org_guard_snapshot_and_cleanup(self):
         old=CASES["grok-chat-salesforce"]["platform"]
         new=CASES["grok-chat-salesforce-full"]["platform"]
-        for key in ("kind","org","prefix","preflight","before","cleanup","check_timeout"):
+        for key in ("kind","org","prefix","preflight","before","cleanup"):
             self.assertEqual(old[key],new[key],key)
         for key,value in old["model_bin"].items():
             expected = "env E2E_BIND_DEPLOY_SOURCE=1 " + value if key == "sf" else value
             self.assertEqual(new["model_bin"][key],expected,key)
+        self.assertEqual(old["check_timeout"],900)
+        self.assertEqual(new["check_timeout"],2700)
         self.assertNotIn("existing",new)
 
     def test_full_case_requires_separate_native_ui_and_quality_evidence(self):
