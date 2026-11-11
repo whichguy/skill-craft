@@ -1,0 +1,1483 @@
+{
+  "frozen": {
+    "16": {
+      "counts": {
+        "cosmetic": {
+          "A": 2,
+          "B": 0
+        },
+        "integration-only": {
+          "A": 1,
+          "B": 1
+        },
+        "later-added-work": {
+          "A": 2,
+          "B": 1
+        },
+        "secret-exposure": {
+          "A": 2,
+          "B": 2
+        }
+      },
+      "exact_p": "11/12",
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-completion-20261108-1y86oc2x/experiment/decision.json",
+      "old_subject_totals": "UNKNOWN",
+      "receipt_sha256": "0d629946c56faa5d03e7f38ff86c4a4bd1cd4b72e2ce41e772598ad27bda5303",
+      "registered_judge": "gpt-6-astra / high",
+      "registered_subject": "gpt-6.1-sol / medium",
+      "status": "NO_LOCAL_PROMOTION"
+    },
+    "64": {
+      "counts": {
+        "already-secure": {
+          "A": 0,
+          "B": 0
+        },
+        "authorization": {
+          "A": 4,
+          "B": 4
+        },
+        "cosmetic": {
+          "A": 0,
+          "B": 0
+        },
+        "integrated-secure": {
+          "A": 4,
+          "B": 3
+        },
+        "integration-only": {
+          "A": 4,
+          "B": 3
+        },
+        "later-added-work": {
+          "A": 3,
+          "B": 0
+        },
+        "secret-exposure": {
+          "A": 0,
+          "B": 0
+        },
+        "tenant-isolation": {
+          "A": 4,
+          "B": 4
+        }
+      },
+      "exact_p": "1",
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-retry-20261107-i55ixsye/evidence/grading-v1/statistical-decision.json",
+      "receipt_sha256": "ebe3d631fdf3cfda1afac4f64f2695eb93aca5650a04b85c69f3db67f15f587b",
+      "registered_subject": "gpt-6.1-sol / high",
+      "status": "RETAIN_BASELINE"
+    },
+    "original_findings_html": {
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/report/original-findings.html",
+      "receipt_sha256": "0746a99e73805a7cbf6974b5dce290f448dee07786417d3faa99afa132cf63ce",
+      "status": null
+    },
+    "original_findings_md": {
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-completion-20261108-1y86oc2x/findings.md",
+      "receipt_sha256": "c0d6a77d4bde03a00197cea88ca9970826a05f188b659f222f307a3b31b79d7e",
+      "status": null
+    },
+    "original_report_bundle_byte_and_mode_comparison": {
+      "byte_equal_public_files": 34,
+      "different_directory_modes": 18,
+      "different_file_modes": 34,
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-completion-20261108-1y86oc2x/operator/poststudy-context-checks/result.json",
+      "receipt_sha256": "b6e2f37ea8f28f56ed6425df791d7a89e1d00cc54770afef36b72be9be6f7dbe",
+      "status": "FAIL"
+    }
+  },
+  "historical_closeout": {
+    "child_routing": {
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-completion-20261108-1y86oc2x/operator/child-smoke/receipt.json",
+      "receipt_sha256": "da473fd9cc626504a14fe03a54c22f54909e0d8a6dacb0d1e8726d8e7e16aebb",
+      "status": null
+    },
+    "observer_teardown": {
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-completion-20261108-1y86oc2x/operator/cleanup-standard-temp-checks/receipt.json",
+      "receipt_sha256": "96eb3e7edd0b926cb826743a8cc89b4a4295bd0a2b6eb3f9375d2767906d6d62",
+      "status": null
+    },
+    "original_measurement_controls": {
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-completion-20261108-1y86oc2x/operator/pipeline-final-v2-checks/receipt.json",
+      "receipt_sha256": "c53e4333ea0edefda575663fe18dcce8fefa50536e06cb8d0ae138476b3ebc53",
+      "status": null
+    },
+    "remote_preflight": {
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-completion-20261108-1y86oc2x/operator/apparatus-checks/receipt.json",
+      "receipt_sha256": "e7501083af4a71611a96adc9bb3de19a11eca189f673907bd43679addf87067c",
+      "status": null
+    }
+  },
+  "preserved_and_focused_receipts": {
+    "auth_assembled": {
+      "commands": [
+        {
+          "argv": [
+            "/usr/bin/env",
+            "-u",
+            "NODE_OPTIONS",
+            "-u",
+            "NODE_PATH",
+            "-u",
+            "PYTHONHOME",
+            "-u",
+            "PYTHONPATH",
+            "PATH=/opt/homebrew/bin:/usr/bin:/bin",
+            "LANG=C",
+            "LC_ALL=C",
+            "SHELL=/bin/zsh",
+            "TMPDIR=/private/tmp",
+            "PYTHONDONTWRITEBYTECODE=1",
+            "/opt/homebrew/bin/python3",
+            "-B",
+            "../operator/repair_auth_cleanup/artifacts/assembled-controls.py",
+            "/private/tmp/slv7-auth-dev.NXxmQB/apparatus",
+            "/private/tmp/slv7.L5RRqq/harness",
+            "1db0d579ea7065c2012e5a87a1012e6b1dcbe588",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source/../operator/repair_auth_cleanup/artifacts/fixtures"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 0
+        }
+      ],
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/repair_auth_cleanup/artifacts/assembled-controls.result.json",
+      "methods": [
+        3
+      ],
+      "receipt_sha256": "6d31200421d80fb875bf399f0fb6bc5459f14104cf881f74d98c3355ad3df86c",
+      "status": "PASS"
+    },
+    "auth_unit": {
+      "commands": [
+        {
+          "argv": [
+            "/usr/bin/env",
+            "-u",
+            "NODE_OPTIONS",
+            "-u",
+            "NODE_PATH",
+            "-u",
+            "PYTHONHOME",
+            "-u",
+            "PYTHONPATH",
+            "PATH=/opt/homebrew/bin:/usr/bin:/bin",
+            "LANG=C",
+            "LC_ALL=C",
+            "SHELL=/bin/zsh",
+            "TMPDIR=/private/tmp",
+            "PYTHONDONTWRITEBYTECODE=1",
+            "/opt/homebrew/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "test/experiments/shiploop_security",
+            "-p",
+            "test_v7_auth_cleanup.py",
+            "-v"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 0
+        }
+      ],
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/repair_auth_cleanup/artifacts/focused.result.json",
+      "methods": [
+        7
+      ],
+      "receipt_sha256": "f0e4c460433d1bc75e9db99e60e4314f400bd7206f91764cebe4c7213d7db667",
+      "status": "PASS"
+    },
+    "catalog_bank": {
+      "commands": [
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "test/test-groups.test.py"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 0,
+          "stderr": "command-01.stderr",
+          "stdout": "command-01.stdout"
+        }
+      ],
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/catalog-refutation-01/command-01-result.json",
+      "methods": 61,
+      "receipt_sha256": "464a6886b0774a393997f971670607e75768a184360d955546970c4be0c337e3",
+      "status": "PASS"
+    },
+    "catalog_refutation_01": {
+      "commands": [
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "test/test-groups.test.py"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 0,
+          "stderr": "command-01.stderr",
+          "stdout": "command-01.stdout"
+        },
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "test/run_suites.py",
+            "--group",
+            "core",
+            "--list"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 0,
+          "stderr": "command-02.stderr",
+          "stdout": "command-02.stdout"
+        },
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "test/experiments/shiploop_security/run_tests.py"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 1,
+          "stderr": "command-03.stderr",
+          "stdout": "command-03.stdout"
+        },
+        {
+          "argv": [
+            "bash",
+            "test/run-all.sh",
+            "--group",
+            "quick",
+            "--changed-from",
+            "1db0d579ea7065c2012e5a87a1012e6b1dcbe588",
+            "--list"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 0,
+          "stderr": "command-04.stderr",
+          "stdout": "command-04.stdout"
+        },
+        {
+          "argv": [
+            "git",
+            "-C",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+            "diff",
+            "--check"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 0,
+          "stderr": "command-05.stderr",
+          "stdout": "command-05.stdout"
+        }
+      ],
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/catalog-refutation-01/refutation-final-result.json",
+      "receipt_sha256": "5f0306eaacfd40cb212d6af3ba6ec80bbcd6f3ebae667fe1dbf98c020f08c850",
+      "status": "FAIL"
+    },
+    "collector_setup_failure": {
+      "assertions": [
+        "zero launches",
+        "original exception propagated",
+        "one cleanup",
+        "link removed",
+        "target bytes and metadata unchanged"
+      ],
+      "astra_finding": "F2",
+      "controls": {
+        "initial_auxiliary_assertion": {
+          "argv": [
+            "/opt/homebrew/opt/python@3.15/bin/python3.15",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source/test/experiments/shiploop_security",
+            "-p",
+            "test_v7_collector.py",
+            "-v"
+          ],
+          "exit": 1,
+          "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/collector_regression/artifacts/source/result.json",
+          "python": "3.15.1",
+          "reason": "The first test hash incorrectly expected zero usage where an absent ledger yields None.",
+          "receipt_sha256": "0ac12ac97427a9bdaf58a5368a2f02dca78332fa2f0f843b86edf17bead9c9b7",
+          "status": "UNEXPECTED_RESULT",
+          "test_sha256": "4ee5d3e35a643701629db06188fa3f878655ebb39e4ccbc3237794a10f914ad5"
+        },
+        "python39_mutant": {
+          "argv": [
+            "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/collector_regression/artifacts/verified/mutant-copy/test/experiments/shiploop_security",
+            "-p",
+            "test_v7_collector.py",
+            "-v"
+          ],
+          "exit": 1,
+          "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/collector_regression/artifacts/verified/mutant/result.json",
+          "python": "3.9.6",
+          "reason": "Moving host setup outside the try left the synthetic link in place.",
+          "receipt_sha256": "b3af234a6c24fd3002a468f0147525ed90c46d7ef035d910bb71fe16e530135e",
+          "status": "EXPECTED_FAILURE",
+          "test_sha256": "416bdffec693619175775493913b71d75ad40a3fd28412138e74f476c98106d6"
+        },
+        "python39_source": {
+          "argv": [
+            "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+            "-B",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source/test/experiments/shiploop_security",
+            "-p",
+            "test_v7_collector.py",
+            "-v"
+          ],
+          "exit": 0,
+          "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/collector_regression/artifacts/verified/source/result.json",
+          "python": "3.9.6",
+          "receipt_sha256": "e5401a250f2d6215a43b3b2a4aa4f275a2a5d7b347742fb0cf696b4b14e5121a",
+          "status": "PASS",
+          "test_sha256": "416bdffec693619175775493913b71d75ad40a3fd28412138e74f476c98106d6"
+        }
+      },
+      "exercised": "Actual collector and cleanup helper with synthetic auth link and fake host setup failure.",
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/collector_regression/artifacts/HANDOFF.md",
+      "method": "CollectorV7Test.test_setup_failure_removes_owned_auth_link",
+      "receipt_sha256": "dbbe19a305b29ddb55921955bf4552ff1f0d8aff3d533f831f2a55df0a0f97c7",
+      "status": "PASS"
+    },
+    "first_archive": {
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/native-archive/receipt.json",
+      "receipt_sha256": "3215481bee7040d8a3b68a1e0986a8183b6492279db3072bb91a4a210673dc46",
+      "status": "INCOMPLETE"
+    },
+    "first_seal": {
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/frozen-final-01/final-result.json",
+      "receipt_sha256": "b37683b03bfd2a4b861ad2544372f53c35252d8cee0d2bd3b6c75b4791c7879d",
+      "status": "INCOMPLETE"
+    },
+    "qualification_01": {
+      "commands": [
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "test/experiments/shiploop_security/qualify_v7.py",
+            "--frozen",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-retry-20261107-i55ixsye/evidence",
+            "--reports",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/qualification-01/reports",
+            "--verify-completion-source",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-completion-20261108-1y86oc2x"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 0,
+          "stderr": "command-01.stderr",
+          "stdout": "command-01.stdout"
+        },
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "test/experiments/shiploop_security/test_scope.py",
+            "-v"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 0,
+          "stderr": "command-02.stderr",
+          "stdout": "command-02.stdout"
+        },
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "test/test-groups.test.py"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 1,
+          "stderr": "command-03.stderr",
+          "stdout": "command-03.stdout"
+        },
+        {
+          "argv": [
+            "bash",
+            "test/run-all.sh",
+            "--group",
+            "quick",
+            "--changed-from",
+            "1db0d579ea7065c2012e5a87a1012e6b1dcbe588",
+            "--list"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 1,
+          "stderr": "command-04.stderr",
+          "stdout": "command-04.stdout"
+        },
+        {
+          "argv": [
+            "git",
+            "-C",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+            "diff",
+            "--check"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 0,
+          "stderr": "command-05.stderr",
+          "stdout": "command-05.stdout"
+        }
+      ],
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/qualification-01/qualification-result.json",
+      "receipt_sha256": "b1a04798442b06c0ae8b4b58aa2fde69b045d5c39dbd9e8cbc5aeeb547b4d48e",
+      "status": "FAIL"
+    },
+    "r3_unit": {
+      "commands": [
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "test/experiments/shiploop_security/run_tests.py"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/unit-final-01/command-01.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/unit-final-01/command-01.stdout"
+        },
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "test/run_suites.py",
+            "--group",
+            "core",
+            "--list"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/unit-final-01/command-02.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/unit-final-01/command-02.stdout"
+        },
+        {
+          "argv": [
+            "git",
+            "-C",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+            "diff",
+            "--check"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/unit-final-01/command-03.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/unit-final-01/command-03.stdout"
+        }
+      ],
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/unit-final-01/result.json",
+      "receipt_sha256": "b43c38945e2cddf8222f736953a425711b3064059d4d3e8549ee49165ae3805b",
+      "status": "PASS"
+    },
+    "timeout_budget": {
+      "commands": [
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "../operator/repair_timeout/artifacts/diagnose-budget.py"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 1
+        }
+      ],
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/repair_timeout/artifacts/diagnostic-budget.result.json",
+      "methods": [
+        1
+      ],
+      "receipt_sha256": "9c97d963cc5fab075797ce3a5a26f57c8d803d35ae9efe2c4d40b6b6ec9f7c2e",
+      "status": "EXPECTED DIAGNOSTIC FAILURE"
+    },
+    "timeout_normal": {
+      "commands": [
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "../operator/repair_timeout/artifacts/diagnose.py"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 1
+        }
+      ],
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/repair_timeout/artifacts/diagnostic.result.json",
+      "methods": [
+        1
+      ],
+      "receipt_sha256": "2a621c27910b9b682d8b3200a645e6965518be3d2d8b4dc98b94bbbc616d06b2",
+      "status": "EXPECTED DIAGNOSTIC FAILURE"
+    },
+    "timeout_repair": {
+      "commands": [
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "../operator/repair_timeout/artifacts/check-classification.py"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "exit": 0
+        }
+      ],
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/repair_timeout/artifacts/repair-focused.result.json",
+      "methods": [
+        3
+      ],
+      "receipt_sha256": "1fcd964ca4cce1465a97b0c6220e8b96f1bccb8b2b0df93795155bfb3ba2afab",
+      "status": "PASS"
+    }
+  },
+  "schema": "shiploop-security-harness-v7-evidence-1",
+  "scope": "Named experiment apparatus and local audit locators only. Paths are not hosted assets or execution instructions.",
+  "source": {
+    "accepted_r5": {
+      "canonical_rows_sha256": "a6eb662261090bf4a1de2dab426b5fc86c706c3ed5479a5fd3a9a0a8314ce7b7",
+      "full_source_sha256": "128ca8e2b73e556346b53dd26d971491da07ea0e4f854e7338876beba90c150f",
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/commit_source/artifacts/source-manifest-r5.json",
+      "receipt_sha256": "920fce195a6ae78295ba58b09b4fec0b7ac0b18029d8596a470482c94e5fd759",
+      "status": null
+    },
+    "base": "1db0d579ea7065c2012e5a87a1012e6b1dcbe588",
+    "commit": "a8a391d7c00463f02bd3fc6a534ff4ef07dbef21",
+    "local_integration": {
+      "commit": "746c37af28943012c5239c3321adb41432ce8560",
+      "integrated_tree_tested": false,
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/integrate_source/artifacts/result.json",
+      "parents": [
+        "6cc00a09a4c128ab976e2c13accd9ecba6c9b828",
+        "a4c773afb6c6320af4b54bedf801985e097aacd9"
+      ],
+      "receipt_sha256": "d3ee8839bf341cdad2412cd49144134c3d1101ab78e16836e4280138f0f13a5f",
+      "scope": "The supplemental test is the only addition within the security directory. The shared catalog inherits the planning suite changes.",
+      "source_manifest": {
+        "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/integrate_source/artifacts/source-manifest.json",
+        "receipt_sha256": "39ee90234abc64f34a33ce7a95bdcc551e70ad126f8b96314bdf2c2322ebf23c",
+        "status": null
+      },
+      "status": "PASS",
+      "tree": "b8cc68da900e34497acd6893ad79c752de7d55ae",
+      "unchanged_r5_security_files": 33
+    },
+    "native_assembled_sha256": "f10140a9cd1493ef68371dc6f1c9dfc137f0104b1f1e918c883653ee7d28dfcd",
+    "native_evidence_scope": "Historical 1db0d579 V7 assembly only; no rerun on the local integration or later main.",
+    "native_harness_pin": {
+      "head": "1db0d579ea7065c2012e5a87a1012e6b1dcbe588",
+      "sha256": "22db2bebfd80e02d1d6dddea7c61e6ad71a7c99fcf41fb067a66741116147c11",
+      "tree": "34653a5fd16f76ed55d5e2f3080fb43e1b495b41"
+    },
+    "only_r4_to_r5_difference": "Canonical reports-path README clarification",
+    "qualified_r4": {
+      "canonical_rows_sha256": "d4e0d89e3a45f0b3d128f36598b3b50e5a6c779e22278b024e0f35daf30b9cc1",
+      "full_source_sha256": "d8792e53cb4f9c8fe3cd2bcd2e38b78eba8d4cb19aa20707b2d02552f352ed9b",
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/repair_auth_cleanup/artifacts/source-manifest-r4.json",
+      "receipt_sha256": "f54c74f614da76cf3f769ba404967368099911f081ea75f88c032d16c14df1cc",
+      "status": null
+    },
+    "scoped_rows": 34,
+    "supplemental_collector_test": {
+      "commit": "6cc00a09a4c128ab976e2c13accd9ecba6c9b828",
+      "r6_manifest": {
+        "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/collector_regression/artifacts/source-manifest-r6.json",
+        "receipt_sha256": "4c8f6ebd16c92f0176412de6cd24c2f15884e6f0a723f66499d8c3efd6765f78",
+        "status": null
+      },
+      "runtime_change": false,
+      "test_pin": {
+        "bytes": 4648,
+        "git_blob": "fc6812884cd69cef1464b58f1b1b2b575198a88d",
+        "git_mode": "100644",
+        "identical_to_pre_merge": true,
+        "mode": "0644",
+        "path": "test/experiments/shiploop_security/test_v7_collector.py",
+        "sha256": "416bdffec693619175775493913b71d75ad40a3fd28412138e74f476c98106d6"
+      },
+      "tree": "f351b8cd59e7842ceb54d0333c29592c8e45891d"
+    },
+    "tree": "c074d798249e991e90a1e3169112ae4182631fb8"
+  },
+  "source_review": {
+    "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/review_closure/final.md",
+    "receipt_sha256": "68f95f3fa3129be1a350ec2a7df992028c052073bd5156853552469cc1d32744",
+    "status": "ACCEPT_SOURCE_WITH_LIMITS"
+  },
+  "verification": {
+    "archive": {
+      "local_manifest": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/native-archive-supplement-02/combined-manifest.json",
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/native-archive-supplement-02/combined-receipt.json",
+      "manifest_sha256": "f6b436c0e82e24196aa0e113bdd1d14d4bf629debeecd266d28d50402e79a19f",
+      "objects": 223,
+      "paths": 510,
+      "receipt_sha256": "9350d04b70da2a1cba0de2760785e788b176e924df43096f1a1719ff636fcdda",
+      "scope": "Durable audit archive only; relocation and execution are unverified.",
+      "status": "COMPLETE"
+    },
+    "final_selection": {
+      "directories": 76,
+      "files": 300,
+      "final_seal_command": {
+        "argv": [
+          "/opt/homebrew/bin/python3",
+          "-B",
+          "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/frozen-final-02/verify-final.py"
+        ],
+        "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+        "umask": "077"
+      },
+      "fingerprint_command": {
+        "argv": [
+          "/opt/homebrew/bin/python3",
+          "-B",
+          "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/frozen-baseline-01/fingerprint.py",
+          "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/frozen-final-02/frozen-targets-current.json",
+          "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/frozen-final-02"
+        ],
+        "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+        "umask": "077"
+      },
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/frozen-final-02/final-result.json",
+      "raw_logs": [
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/frozen-final-02/driver.stdout",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/frozen-final-02/driver.stderr"
+      ],
+      "receipt_sha256": "6ecb4e09e9d614572235e3db69933217374fd634a9edc26648e6bb2f96ec780f",
+      "scope": "selected only",
+      "status": "PASS"
+    },
+    "native": {
+      "commands": [
+        {
+          "argv": [
+            "/usr/bin/env",
+            "-u",
+            "NODE_OPTIONS",
+            "-u",
+            "NODE_PATH",
+            "-u",
+            "PYTHONHOME",
+            "-u",
+            "PYTHONPATH",
+            "PATH=/opt/homebrew/bin:/usr/bin:/bin",
+            "LANG=C",
+            "LC_ALL=C",
+            "SHELL=/bin/zsh",
+            "TMPDIR=/private/tmp",
+            "PYTHONDONTWRITEBYTECODE=1",
+            "/opt/homebrew/bin/python3",
+            "-B",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus/coordination/dispatch.py",
+            "--check-only",
+            "--check-draft",
+            "--evidence",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus",
+            "--harness-root",
+            "/private/tmp/slv7.L5RRqq/harness",
+            "--expected-head",
+            "1db0d579ea7065c2012e5a87a1012e6b1dcbe588"
+          ],
+          "cwd": "/private/tmp/slv7-auth.SUsiIl/apparatus",
+          "environment_delta": {
+            "set": {
+              "LANG": "C",
+              "LC_ALL": "C",
+              "PATH": "/opt/homebrew/bin:/usr/bin:/bin",
+              "PYTHONDONTWRITEBYTECODE": "1",
+              "SHELL": "/bin/zsh",
+              "TMPDIR": "/private/tmp"
+            },
+            "unset": [
+              "NODE_OPTIONS",
+              "NODE_PATH",
+              "PYTHONHOME",
+              "PYTHONPATH"
+            ]
+          },
+          "exit": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/01-check-draft.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/01-check-draft.stdout",
+          "umask": "0077"
+        },
+        {
+          "argv": [
+            "/usr/bin/env",
+            "-u",
+            "NODE_OPTIONS",
+            "-u",
+            "NODE_PATH",
+            "-u",
+            "PYTHONHOME",
+            "-u",
+            "PYTHONPATH",
+            "PATH=/opt/homebrew/bin:/usr/bin:/bin",
+            "LANG=C",
+            "LC_ALL=C",
+            "SHELL=/bin/zsh",
+            "TMPDIR=/private/tmp",
+            "PYTHONDONTWRITEBYTECODE=1",
+            "/opt/homebrew/bin/python3",
+            "-B",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus/preflight/make_schedule.py",
+            "freeze",
+            "--draft-sha256",
+            "8c31912c8c087c75775a0518ec78821f294dc021f2a9474bdfe50e94d623fc76",
+            "--authorization",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/native-authorization.json"
+          ],
+          "cwd": "/private/tmp/slv7-auth.SUsiIl/apparatus",
+          "environment_delta": {
+            "set": {
+              "LANG": "C",
+              "LC_ALL": "C",
+              "PATH": "/opt/homebrew/bin:/usr/bin:/bin",
+              "PYTHONDONTWRITEBYTECODE": "1",
+              "SHELL": "/bin/zsh",
+              "TMPDIR": "/private/tmp"
+            },
+            "unset": [
+              "NODE_OPTIONS",
+              "NODE_PATH",
+              "PYTHONHOME",
+              "PYTHONPATH"
+            ]
+          },
+          "exit": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/02-freeze.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/02-freeze.stdout",
+          "umask": "0077"
+        },
+        {
+          "argv": [
+            "/usr/bin/env",
+            "-u",
+            "NODE_OPTIONS",
+            "-u",
+            "NODE_PATH",
+            "-u",
+            "PYTHONHOME",
+            "-u",
+            "PYTHONPATH",
+            "PATH=/opt/homebrew/bin:/usr/bin:/bin",
+            "LANG=C",
+            "LC_ALL=C",
+            "SHELL=/bin/zsh",
+            "TMPDIR=/private/tmp",
+            "PYTHONDONTWRITEBYTECODE=1",
+            "/opt/homebrew/bin/python3",
+            "-B",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus/coordination/dispatch.py",
+            "--check-only",
+            "--evidence",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus",
+            "--harness-root",
+            "/private/tmp/slv7.L5RRqq/harness",
+            "--expected-head",
+            "1db0d579ea7065c2012e5a87a1012e6b1dcbe588"
+          ],
+          "cwd": "/private/tmp/slv7-auth.SUsiIl/apparatus",
+          "environment_delta": {
+            "set": {
+              "LANG": "C",
+              "LC_ALL": "C",
+              "PATH": "/opt/homebrew/bin:/usr/bin:/bin",
+              "PYTHONDONTWRITEBYTECODE": "1",
+              "SHELL": "/bin/zsh",
+              "TMPDIR": "/private/tmp"
+            },
+            "unset": [
+              "NODE_OPTIONS",
+              "NODE_PATH",
+              "PYTHONHOME",
+              "PYTHONPATH"
+            ]
+          },
+          "exit": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/03-check-frozen.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/03-check-frozen.stdout",
+          "umask": "0077"
+        },
+        {
+          "argv": [
+            "/usr/bin/env",
+            "-u",
+            "NODE_OPTIONS",
+            "-u",
+            "NODE_PATH",
+            "-u",
+            "PYTHONHOME",
+            "-u",
+            "PYTHONPATH",
+            "PATH=/opt/homebrew/bin:/usr/bin:/bin",
+            "LANG=C",
+            "LC_ALL=C",
+            "SHELL=/bin/zsh",
+            "TMPDIR=/private/tmp",
+            "PYTHONDONTWRITEBYTECODE=1",
+            "/opt/homebrew/bin/python3",
+            "-B",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus/coordination/dispatch.py",
+            "--authorize-live",
+            "--evidence",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus",
+            "--harness-root",
+            "/private/tmp/slv7.L5RRqq/harness",
+            "--expected-head",
+            "1db0d579ea7065c2012e5a87a1012e6b1dcbe588"
+          ],
+          "cwd": "/private/tmp/slv7-auth.SUsiIl/apparatus",
+          "environment_delta": {
+            "set": {
+              "LANG": "C",
+              "LC_ALL": "C",
+              "PATH": "/opt/homebrew/bin:/usr/bin:/bin",
+              "PYTHONDONTWRITEBYTECODE": "1",
+              "SHELL": "/bin/zsh",
+              "TMPDIR": "/private/tmp"
+            },
+            "unset": [
+              "NODE_OPTIONS",
+              "NODE_PATH",
+              "PYTHONHOME",
+              "PYTHONPATH"
+            ]
+          },
+          "exit": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/04-native-dispatch.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/04-native-dispatch.stdout",
+          "umask": "0077"
+        },
+        {
+          "argv": [
+            "/usr/bin/env",
+            "-u",
+            "NODE_OPTIONS",
+            "-u",
+            "NODE_PATH",
+            "-u",
+            "PYTHONHOME",
+            "-u",
+            "PYTHONPATH",
+            "PATH=/opt/homebrew/bin:/usr/bin:/bin",
+            "LANG=C",
+            "LC_ALL=C",
+            "SHELL=/bin/zsh",
+            "TMPDIR=/private/tmp",
+            "PYTHONDONTWRITEBYTECODE=1",
+            "/opt/homebrew/bin/python3",
+            "-B",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus/analysis/grade.py",
+            "--evidence",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus",
+            "--output",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/grade-01"
+          ],
+          "cwd": "/private/tmp/slv7-auth.SUsiIl/apparatus",
+          "environment_delta": {
+            "set": {
+              "LANG": "C",
+              "LC_ALL": "C",
+              "PATH": "/opt/homebrew/bin:/usr/bin:/bin",
+              "PYTHONDONTWRITEBYTECODE": "1",
+              "SHELL": "/bin/zsh",
+              "TMPDIR": "/private/tmp"
+            },
+            "unset": [
+              "NODE_OPTIONS",
+              "NODE_PATH",
+              "PYTHONHOME",
+              "PYTHONPATH"
+            ]
+          },
+          "exit": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/05-grade-primary.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/05-grade-primary.stdout",
+          "umask": "0077"
+        },
+        {
+          "argv": [
+            "/usr/bin/env",
+            "-u",
+            "NODE_OPTIONS",
+            "-u",
+            "NODE_PATH",
+            "-u",
+            "PYTHONHOME",
+            "-u",
+            "PYTHONPATH",
+            "PATH=/opt/homebrew/bin:/usr/bin:/bin",
+            "LANG=C",
+            "LC_ALL=C",
+            "SHELL=/bin/zsh",
+            "TMPDIR=/private/tmp",
+            "PYTHONDONTWRITEBYTECODE=1",
+            "/opt/homebrew/bin/python3",
+            "-B",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus/analysis/decision.py",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/grade-01/observations.json",
+            "--evidence",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus"
+          ],
+          "cwd": "/private/tmp/slv7-auth.SUsiIl/apparatus",
+          "environment_delta": {
+            "set": {
+              "LANG": "C",
+              "LC_ALL": "C",
+              "PATH": "/opt/homebrew/bin:/usr/bin:/bin",
+              "PYTHONDONTWRITEBYTECODE": "1",
+              "SHELL": "/bin/zsh",
+              "TMPDIR": "/private/tmp"
+            },
+            "unset": [
+              "NODE_OPTIONS",
+              "NODE_PATH",
+              "PYTHONHOME",
+              "PYTHONPATH"
+            ]
+          },
+          "exit": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/06-decision.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/06-decision.stdout",
+          "umask": "0077"
+        },
+        {
+          "argv": [
+            "/usr/bin/env",
+            "-u",
+            "NODE_OPTIONS",
+            "-u",
+            "NODE_PATH",
+            "-u",
+            "PYTHONHOME",
+            "-u",
+            "PYTHONPATH",
+            "PATH=/opt/homebrew/bin:/usr/bin:/bin",
+            "LANG=C",
+            "LC_ALL=C",
+            "SHELL=/bin/zsh",
+            "TMPDIR=/private/tmp",
+            "PYTHONDONTWRITEBYTECODE=1",
+            "/opt/homebrew/bin/python3",
+            "-B",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus/judgment/build.py",
+            "--evidence",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus",
+            "--grades",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/grade-01",
+            "--output",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/masked-01"
+          ],
+          "cwd": "/private/tmp/slv7-auth.SUsiIl/apparatus",
+          "environment_delta": {
+            "set": {
+              "LANG": "C",
+              "LC_ALL": "C",
+              "PATH": "/opt/homebrew/bin:/usr/bin:/bin",
+              "PYTHONDONTWRITEBYTECODE": "1",
+              "SHELL": "/bin/zsh",
+              "TMPDIR": "/private/tmp"
+            },
+            "unset": [
+              "NODE_OPTIONS",
+              "NODE_PATH",
+              "PYTHONHOME",
+              "PYTHONPATH"
+            ]
+          },
+          "exit": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/07-primary-mask.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/07-primary-mask.stdout",
+          "umask": "0077"
+        },
+        {
+          "argv": [
+            "/usr/bin/env",
+            "-u",
+            "NODE_OPTIONS",
+            "-u",
+            "NODE_PATH",
+            "-u",
+            "PYTHONHOME",
+            "-u",
+            "PYTHONPATH",
+            "PATH=/opt/homebrew/bin:/usr/bin:/bin",
+            "LANG=C",
+            "LC_ALL=C",
+            "SHELL=/bin/zsh",
+            "TMPDIR=/private/tmp",
+            "PYTHONDONTWRITEBYTECODE=1",
+            "/opt/homebrew/bin/python3",
+            "-B",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus/analysis/grade.py",
+            "--evidence",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus",
+            "--output",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/grade-02"
+          ],
+          "cwd": "/private/tmp/slv7-auth.SUsiIl/apparatus",
+          "environment_delta": {
+            "set": {
+              "LANG": "C",
+              "LC_ALL": "C",
+              "PATH": "/opt/homebrew/bin:/usr/bin:/bin",
+              "PYTHONDONTWRITEBYTECODE": "1",
+              "SHELL": "/bin/zsh",
+              "TMPDIR": "/private/tmp"
+            },
+            "unset": [
+              "NODE_OPTIONS",
+              "NODE_PATH",
+              "PYTHONHOME",
+              "PYTHONPATH"
+            ]
+          },
+          "exit": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/08-grade-independent.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/08-grade-independent.stdout",
+          "umask": "0077"
+        },
+        {
+          "argv": [
+            "/usr/bin/env",
+            "-u",
+            "NODE_OPTIONS",
+            "-u",
+            "NODE_PATH",
+            "-u",
+            "PYTHONHOME",
+            "-u",
+            "PYTHONPATH",
+            "PATH=/opt/homebrew/bin:/usr/bin:/bin",
+            "LANG=C",
+            "LC_ALL=C",
+            "SHELL=/bin/zsh",
+            "TMPDIR=/private/tmp",
+            "PYTHONDONTWRITEBYTECODE=1",
+            "/opt/homebrew/bin/python3",
+            "-B",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus/v7/collector_smoke.py",
+            "--authorize-live",
+            "--authorization",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/collector-authorization.json",
+            "--output",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/collector-01",
+            "--timeout",
+            "90"
+          ],
+          "cwd": "/private/tmp/slv7-auth.SUsiIl/apparatus",
+          "environment_delta": {
+            "set": {
+              "LANG": "C",
+              "LC_ALL": "C",
+              "PATH": "/opt/homebrew/bin:/usr/bin:/bin",
+              "PYTHONDONTWRITEBYTECODE": "1",
+              "SHELL": "/bin/zsh",
+              "TMPDIR": "/private/tmp"
+            },
+            "unset": [
+              "NODE_OPTIONS",
+              "NODE_PATH",
+              "PYTHONHOME",
+              "PYTHONPATH"
+            ]
+          },
+          "exit": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/09-collector.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/09-collector.stdout",
+          "umask": "0077"
+        }
+      ],
+      "decision": {
+        "adopt": false,
+        "decision": "SMOKE_NONCOMPARATIVE",
+        "dimensions": {
+          "functionality": true,
+          "native_complete": true,
+          "preservation": true,
+          "scope_ok": true,
+          "security": true
+        },
+        "history_coverage": "unmeasured_no_subject_era_canary",
+        "samples": 1,
+        "usage_complete": false
+      },
+      "literal_difference": "Nine Node duration values",
+      "local_grade_directories": [
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/grade-01",
+        "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/grade-02"
+      ],
+      "local_pre_execution_inputs_locator": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-verification-01/verification.json",
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/result.json",
+      "receipt_sha256": "655cfb375a1bc4da486d1d5857d12c973aa91122c2242831f780c90ee7a6b91d",
+      "registration_sha256": "2159feacba9c97dcff3b9e92b999b79e424d50b4d10b224a2bbcf1802c0e5e14",
+      "status": "STRICT REGRADE INCOMPLETE"
+    },
+    "qualification": {
+      "commands": [
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "test/experiments/shiploop_security/qualify_v7.py",
+            "--frozen",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-retry-20261107-i55ixsye/evidence",
+            "--reports",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/qualification-03/reports",
+            "--verify-completion-source",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-completion-20261108-1y86oc2x"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "environment_delta": {
+            "PYTHONDONTWRITEBYTECODE": "1"
+          },
+          "exit": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/qualification-03/qualifier.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/qualification-03/qualifier.stdout",
+          "umask": "0077"
+        }
+      ],
+      "findings": {
+        "checks": {
+          "damaged": true,
+          "focused": true,
+          "inert": true,
+          "legacy": true,
+          "pins": true,
+          "references": true,
+          "terminal_summary": true,
+          "umask": true
+        },
+        "completion_pin_count": 7,
+        "damaged_grade_refusals": {
+          "decision": true,
+          "mask": true
+        },
+        "focused": {
+          "listed_methods": 66,
+          "ok": 66,
+          "ran": [
+            66
+          ],
+          "skips": 0,
+          "summary_ok": true,
+          "v6": 0,
+          "v7": 66
+        },
+        "outcomes": {
+          "bad-lifecycle": {
+            "decision": "INCOMPLETE",
+            "usage_complete": false,
+            "valid": false
+          },
+          "git-pass": {
+            "decision": "SMOKE_NONCOMPARATIVE",
+            "usage_complete": false,
+            "valid": true
+          },
+          "missing-context": {
+            "decision": "INCOMPLETE",
+            "usage_complete": false,
+            "valid": false
+          },
+          "missing-improve": {
+            "decision": "INCOMPLETE",
+            "usage_complete": false,
+            "valid": false
+          },
+          "old-observation": {
+            "decision": "INCOMPLETE",
+            "usage_complete": false,
+            "valid": false
+          },
+          "tampered-context": {
+            "decision": "INCOMPLETE",
+            "usage_complete": false,
+            "valid": false
+          },
+          "unrelated-failure": {
+            "decision": "SMOKE_NONCOMPARATIVE",
+            "usage_complete": false,
+            "valid": true
+          },
+          "wrong-context-binding": {
+            "decision": "INCOMPLETE",
+            "usage_complete": false,
+            "valid": false
+          }
+        },
+        "references": {
+          "added_v7": 10,
+          "exits": {
+            "v6": 0,
+            "v7": 0
+          },
+          "historical_v5": 73,
+          "retained_v5_dispositions": 73,
+          "retained_v6_dispositions": 94,
+          "v6": 94,
+          "v6_disposition_differences": [],
+          "v7": 104,
+          "v7_added_inventory_matches": true
+        },
+        "umask_comparisons": {
+          "git-pass": true,
+          "unrelated-failure": true
+        },
+        "v2_registration_refusals": {
+          "old-decision": true,
+          "old-dispatch": true,
+          "old-grade": true,
+          "old-mask": true
+        },
+        "v5_pins": {
+          "after_sha256": "ddac48d86bfc01954d9fb985cf432f79533832d8aa561c8c45e8ba98518c6ba0",
+          "before_sha256": "ddac48d86bfc01954d9fb985cf432f79533832d8aa561c8c45e8ba98518c6ba0",
+          "source_files": 329
+        }
+      },
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/qualification-03/result.json",
+      "receipt_sha256": "cee216718b57b99107feaced07a7364919af3f7e76308b3d95c43c9a2b019c46",
+      "status": "PASS"
+    },
+    "semantic_replay": {
+      "collector_parent_tokens": {
+        "input": 16410,
+        "output": 9
+      },
+      "commands": [
+        {
+          "argv": [
+            "/usr/bin/env",
+            "-u",
+            "NODE_OPTIONS",
+            "-u",
+            "NODE_PATH",
+            "-u",
+            "PYTHONHOME",
+            "-u",
+            "PYTHONPATH",
+            "PATH=/opt/homebrew/bin:/usr/bin:/bin",
+            "LANG=C",
+            "LC_ALL=C",
+            "SHELL=/bin/zsh",
+            "TMPDIR=/private/tmp",
+            "PYTHONDONTWRITEBYTECODE=1",
+            "/opt/homebrew/bin/python3",
+            "-B",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/smoke_controls_v2/artifacts/verify_smoke.py",
+            "--apparatus",
+            "/private/tmp/slv7-auth.SUsiIl/apparatus",
+            "--expected-assembled-sha256",
+            "f10140a9cd1493ef68371dc6f1c9dfc137f0104b1f1e918c883653ee7d28dfcd",
+            "--expected-harness-head",
+            "1db0d579ea7065c2012e5a87a1012e6b1dcbe588",
+            "--primary-grade",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/grade-01",
+            "--second-grade",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/grade-02",
+            "--masked-output",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/masked-01",
+            "--usage-source",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-01/collector-01",
+            "--output",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-verification-01"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "environment": {
+            "all_other_variables": "inherited",
+            "set": {
+              "LANG": "C",
+              "LC_ALL": "C",
+              "PATH": "/opt/homebrew/bin:/usr/bin:/bin",
+              "PYTHONDONTWRITEBYTECODE": "1",
+              "SHELL": "/bin/zsh",
+              "TMPDIR": "/private/tmp"
+            },
+            "unset": [
+              "NODE_OPTIONS",
+              "NODE_PATH",
+              "PYTHONHOME",
+              "PYTHONPATH"
+            ]
+          },
+          "exit_status": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/replay-01/verify.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/replay-01/verify.stdout",
+          "umask": "0077"
+        }
+      ],
+      "endpoint": {
+        "status": "completed-to-stop",
+        "stop_reached": true,
+        "stop_reason": "carry-forward-accepted"
+      },
+      "grade_comparison": {
+        "exclusions": "Only raw public stdout/stderr: Node emits per-run timings and checkout paths. Compare commands, pass/exit/timeout and TAP/spec counts. No row, oracle, scope, or context fields omitted.",
+        "execution_inputs": "da28ffb7220d3f16a474f4866321372362ae0834d95ba1e5aa8f822942956f07",
+        "freshness": "distinct paths and manifest inodes; invocation freshness comes from the independent executor",
+        "git_context": "2538bfe5e510c51406a14da98d2afd88fce5f9136f42ac38504e2c8698596e4e",
+        "matched": true,
+        "product": {
+          "functionality": true,
+          "preservation": true,
+          "scope_ok": true,
+          "security": true
+        }
+      },
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/replay-01/result.json",
+      "negative_controls": [
+        "removed-session",
+        "truncated-capture",
+        "wrong-bound-thread"
+      ],
+      "receipt_sha256": "d236b4ff2f083ed4e0d823727f33fedc2003fa81ef8ded445752ef29af167625",
+      "semantic_receipt": {
+        "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/native-verification-01/verification.json",
+        "receipt_sha256": "668c37b2f14deb00148f7821838d8aafd61167e5e04aa9fe1e7333cea024f631",
+        "status": "VERIFIED"
+      },
+      "status": "PASS",
+      "subject_totals": "UNKNOWN"
+    },
+    "supplemental_collector_bank": {
+      "argv": [
+        "python3",
+        "-B",
+        "test/experiments/shiploop_security/run_tests.py"
+      ],
+      "bank_checkout_head": "a8a391d7c00463f02bd3fc6a534ff4ef07dbef21",
+      "committed_identical_test": "6cc00a09a4c128ab976e2c13accd9ecba6c9b828",
+      "groups": {
+        "V6": 7,
+        "V7": 67
+      },
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/collector-bank-01/result.json",
+      "methods": 74,
+      "new_collector_method": "CollectorV7Test.test_setup_failure_removes_owned_auth_link",
+      "pre_post_stable": {
+        "all_files": 10488,
+        "all_source_sha256": "a707be89a23955f59658ccd6c9f902f5dc081c34af40c47177d5eb6c7059db38",
+        "r6_scoped_rows": 35,
+        "r6_scoped_sha256": "bb461f78e4950b6309a63fe8f1e7f5d2fbe7d03c2824b2a45089190856f4ebd1"
+      },
+      "receipt_sha256": "9e325ef68b733320de3df8665f66f76f4796d1ccd978f5f8a0149d94bd764928",
+      "retries": 0,
+      "skips": 0,
+      "status": "PASS",
+      "test_sha256": "416bdffec693619175775493913b71d75ad40a3fd28412138e74f476c98106d6"
+    },
+    "unit_bank": {
+      "commands": [
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "test/run_suites.py",
+            "--group",
+            "core",
+            "--list"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "environment_delta": {
+            "PYTHONDONTWRITEBYTECODE": "1"
+          },
+          "exit": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/qualification-02/catalog.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/qualification-02/catalog.stdout",
+          "umask": "0077"
+        },
+        {
+          "argv": [
+            "git",
+            "-C",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+            "diff",
+            "--check"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "environment_delta": {
+            "PYTHONDONTWRITEBYTECODE": "1"
+          },
+          "exit": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/qualification-02/diff.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/qualification-02/diff.stdout",
+          "umask": "0077"
+        },
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "test/experiments/shiploop_security/qualify_v7.py",
+            "--frozen",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-security-retry-20261107-i55ixsye/evidence",
+            "--reports",
+            "../operator/qualification-02/reports",
+            "--verify-completion-source",
+            "/Users/dadleet/Documents/Codex/experiments/shiploop-completion-20261108-1y86oc2x"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "environment_delta": {
+            "PYTHONDONTWRITEBYTECODE": "1"
+          },
+          "exit": 2,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/qualification-02/qualifier.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/qualification-02/qualifier.stdout",
+          "umask": "0077"
+        },
+        {
+          "argv": [
+            "python3",
+            "-B",
+            "test/experiments/shiploop_security/run_tests.py"
+          ],
+          "cwd": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/source",
+          "environment_delta": {
+            "PYTHONDONTWRITEBYTECODE": "1"
+          },
+          "exit": 0,
+          "stderr": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/qualification-02/unit.stderr",
+          "stdout": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/qualification-02/unit.stdout",
+          "umask": "0077"
+        }
+      ],
+      "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/qualification-02/result.json",
+      "qualifier_refusal": [
+        "Use an existing owned reports directory outside frozen and repository inputs."
+      ],
+      "receipt_sha256": "721b0440e1e0ae2df24870111efede172c06d6eb92c0b5e3ec6d8c419ea14c78",
+      "status": "UNIT PASS; QUALIFIER INCOMPLETE",
+      "unit_methods": {
+        "listed_methods": 73,
+        "ok": 73,
+        "ran": [
+          73
+        ],
+        "skips": 0,
+        "summary_ok": true,
+        "v6": 7,
+        "v7": 66
+      }
+    }
+  },
+  "publication_review": {
+    "local_receipt": "/Users/dadleet/Documents/Codex/experiments/shiploop-security-gaps-20261108-_6zv2845/operator/review_publication/final.md",
+    "receipt_sha256": "1f14abdf73ba6489c268ebcdae0228d4f770d5e66721278cb1b3d39825457775",
+    "status": "ACCEPT_FOR_PUBLICATION_WITH_LIMITS"
+  }
+}

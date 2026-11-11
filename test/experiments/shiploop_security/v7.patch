@@ -1,0 +1,1820 @@
+--- a/analysis/decision.py
++++ b/analysis/decision.py
+@@ -6,0 +7 @@
++import subprocess
+@@ -10 +11 @@
+-from math import comb
++from math import comb, isfinite
+@@ -13,7 +14 @@
+-RISK = ('authorization', 'tenant-isolation', 'secret-exposure',
+-        'later-added-work', 'integration-only')
+-CONTROLS = ('already-secure', 'cosmetic', 'integrated-secure')
+-CASES = RISK + CONTROLS
+-TRIALS = 4
+-
+-
++sys.dont_write_bytecode = True
+@@ -21 +16,4 @@
+-import scope_evidence as scope_v2
++from v7 import registration as protocol
++from v7.report_context import fresh_output, private_file
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'coordination'))
++from dispatch import cohort_evidence, frozen_inputs
+@@ -45 +43 @@
+-def analyze(rows):
++def analyze(rows, cohort, registration):
+@@ -47,2 +45,10 @@
+-    expected = {(case, arm, trial) for case in CASES for arm in ('A', 'B')
+-                for trial in range(1, TRIALS + 1)}
++    try:
++        protocol.validate_protocol(registration)
++        if not cohort or cohort.get('verified') is not True:
++            raise ValueError('healthy source-bound dispatch required')
++        samples = list(cohort['samples'].values())
++        protocol.validate_schedule(registration, {'purpose': registration['purpose'], 'samples': samples})
++    except (ValueError, KeyError, TypeError, AttributeError) as error:
++        return {'decision': 'INCOMPLETE', 'adopt': False, 'problems': [str(error)],
++                'observed': len(rows), 'expected': registration.get('sample_count')}
++    expected = {(sample['case'], sample['arm'], sample['trial']) for sample in samples}
+@@ -53,2 +59,3 @@
+-            or any(row.get('observation_schema') != scope_v2.OBSERVATION for row in rows)):
+-        return {'decision': 'INCOMPLETE', 'adopt': False, 'problems': ['V6 needs v2 observations from one registration'],
++            or registrations != {cohort['registration_sha256']}
++            or any(row.get('observation_schema') != protocol.OBSERVATION for row in rows)):
++        return {'decision': 'INCOMPLETE', 'adopt': False, 'problems': ['V7 needs v3 observations from one registration'],
+@@ -55,0 +63 @@
++    seen_ids = set()
+@@ -56,0 +65 @@
++        sample_id = row.get('sample_id')
+@@ -58 +67 @@
+-        if key not in expected or key in found:
++        if key not in expected or key in found or sample_id in seen_ids:
+@@ -62 +71,11 @@
+-        if row.get('valid') is not True or any(type(row.get(d)) is not bool for d in dimensions):
++        seen_ids.add(sample_id)
++        if (row.get('valid') is not True or any(type(row.get(d)) is not bool for d in dimensions)
++                or row.get('cohort_summary_sha256') != cohort['dispatch_summary_sha256']
++                or row.get('git_context_status') != 'restored_and_verified'
++                or row.get('history_coverage') != 'unmeasured_no_subject_era_canary'
++                or not isinstance(row.get('execution_inputs_sha256'), str)
++                or not protocol.HEX.fullmatch(row['execution_inputs_sha256'])
++                or not row.get('source_receipts') or row['source_receipts'] != cohort['slots'].get(sample_id)
++                or sample_id not in cohort['samples']
++                or (cohort['samples'][sample_id]['case'], cohort['samples'][sample_id]['arm'],
++                    cohort['samples'][sample_id]['trial']) != key):
+@@ -67,0 +87,11 @@
++    if registration['purpose'] == 'smoke':
++        row = next(iter(found.values()))
++        if not row['native_complete']:
++            return {'decision': 'INCOMPLETE', 'adopt': False, 'problems': ['smoke did not reach the native endpoint']}
++        return {'decision': 'SMOKE_NONCOMPARATIVE', 'adopt': False, 'samples': 1,
++                'dimensions': {key: row[key] for key in dimensions},
++                'usage_complete': row['usage_complete'], 'history_coverage': row['history_coverage']}
++    CASES = sorted({case for case, _, _ in expected})
++    CONTROLS = ('cosmetic',)
++    RISK = [case for case in CASES if case not in CONTROLS]
++    TRIALS = registration['trials_per_arm_case']
+@@ -77,3 +107,29 @@
+-    supports = len(improved) >= 2 and not regressed and not control_failures and p < Fraction(1, 20)
+-    return {'decision': 'SUPPORTS_CANDIDATE' if supports else 'RETAIN_BASELINE',
+-            'adopt': supports, 'counts': counts, 'risk_cases_improved': improved,
++    dimensions_by_case = {case: {arm: {d: sum(found[case, arm, i][d] for i in range(1, TRIALS + 1))
++                                 for d in dimensions} for arm in ('A', 'B')} for case in CASES}
++    dimension_regressions = [(case, d) for case, arms in dimensions_by_case.items()
++                             for d in dimensions if arms['B'][d] < arms['A'][d]]
++    supports = (len(improved) >= 2 and not regressed and not control_failures and not dimension_regressions
++                and p < Fraction(1, 20))
++    quality_tie = all(counts[c]['A'] == counts[c]['B'] for c in CASES) and all(
++        a['A'] == a['B'] for a in dimensions_by_case.values())
++    def metric(arm, key):
++        values = [row.get(key) if key != 'measured_usage' or row.get('usage_complete') is True else None
++                  for (_, a, _), row in found.items() if a == arm]
++        if key == 'measured_usage':
++            values = [(v['input_tokens'] + v['output_tokens']) if isinstance(v, dict)
++                      and all(type(v.get(k)) is int and v[k] >= 0 for k in ('input_tokens', 'output_tokens'))
++                      else None for v in values]
++        known = [v for v in values if type(v) in (int, float) and isfinite(v) and v >= 0]
++        return {'known': len(known), 'of': len(values), 'sum': sum(known) if len(known) == len(values) else None}
++    tokens = {arm: metric(arm, 'measured_usage') for arm in ('A', 'B')}
++    wall = {arm: metric(arm, 'elapsed_seconds') for arm in ('A', 'B')}
++    ta, tb = tokens['A']['sum'], tokens['B']['sum']
++    la, lb = wall['A']['sum'], wall['B']['sum']
++    efficiency = 'NOT_APPLICABLE_QUALITY_DIFFERS'
++    if quality_tie:
++        efficiency = ('UNKNOWN_USAGE' if ta is None or tb is None
++                      else 'A_FEWER_TOKENS' if ta < tb else 'B_FEWER_TOKENS' if tb < ta
++                      else 'UNKNOWN_LATENCY' if la is None or lb is None
++                      else 'A_LOWER_WALL' if la < lb else 'B_LOWER_WALL' if lb < la else 'TIED')
++    return {'decision': 'SUPPORTS_LOCAL_CANDIDATE' if supports else 'NO_LOCAL_PROMOTION',
++            'adopt': False, 'counts': counts, 'risk_cases_improved': improved,
+@@ -80,0 +137,3 @@
++            'dimensions_by_case': dimensions_by_case, 'dimension_regressions': dimension_regressions,
++            'quality_tie': quality_tie, 'efficiency_descriptive_only': efficiency,
++            'token_totals': tokens, 'dispatch_wall_seconds': wall,
+@@ -82 +141,2 @@
+-            'qualification': 'Fixed-corpus native-segment evidence; source checks and independent review remain required.'}
++            'history_coverage': 'unmeasured_no_subject_era_canary',
++            'qualification': 'Registered native segments; source checks and independent review remain required.'}
+@@ -85,0 +146 @@
++    sys.dont_write_bytecode = True
+@@ -88,0 +150 @@
++    parser.add_argument('--evidence', type=Path, required=True)
+@@ -90 +152,11 @@
+-    result = analyze(json.loads(args.observations.read_text()))
++    evidence = args.evidence.resolve()
++    observations = args.observations.absolute()
++    try:
++        registration = protocol.read(evidence / 'registration.json')
++        protocol.validate_protocol(registration)
++        _, samples, digest = frozen_inputs(evidence, Path(registration['harness_root']), registration['harness_head'])
++        cohort = cohort_evidence(evidence, samples, digest)
++        rows, _ = protocol.grade_records(observations.parent, samples, cohort, observations)
++        result = analyze(rows, cohort, registration)
++    except (OSError, ValueError, KeyError, TypeError, RuntimeError, subprocess.CalledProcessError) as error:
++        result = {'decision': 'INCOMPLETE', 'adopt': False, 'problems': [str(error)]}
+@@ -93,2 +165 @@
+-        with args.out.open('x') as handle:
+-            handle.write(text)
++        private_file(fresh_output(args.out, inputs=(evidence, observations.parent)), text.encode())
+--- a/analysis/grade.py
++++ b/analysis/grade.py
+@@ -10,3 +10,4 @@
+-import tempfile
+-
+-
++import os
++
++
++sys.dont_write_bytecode = True
+@@ -14,0 +16,4 @@
++from v7 import git_context, registration as protocol, telemetry
++from v7.report_context import fresh_output, private_dir, private_file, json_bytes
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'coordination'))
++from dispatch import cohort_evidence, frozen_inputs, lifecycle_binding, sha, read as dispatch_read, verify_runtime
+@@ -29 +34 @@
+-def measured_usage(path, session_count):
++def usage_evidence(trial, sessions, sample, digest, registration):
+@@ -31,10 +36,8 @@
+-        usage = read(path)
+-        keys = ('input_tokens', 'cache_read_input_tokens', 'output_tokens', 'reasoning_tokens')
+-        sessions = usage['sessions']
+-        if (usage['coverage_complete'] is True and session_count > 0
+-                and len(sessions) == usage['expected_sessions'] == usage['end_events'] == session_count
+-                and all(type(session.get(k)) in (int, float) and session[k] >= 0
+-                        for session in sessions for k in keys)):
+-            totals = {k: sum(session[k] for session in sessions) for k in keys}
+-            if totals == usage['totals']:
+-                return totals
++        observed = read(trial / 'usage.json')
++        replayed = telemetry.ledger_usage(trial, sessions, lifecycle_binding(trial, sample, digest),
++                                           roles=registration["roles"]["subject"])
++        if observed == replayed:
++            return (replayed['measured_usage'] if replayed['usage_complete'] else None,
++                    replayed['observed_usage'],
++                    {key: replayed[key] for key in ('started_invocations', 'bound_invocations',
++                                                    'complete_invocations')})
+@@ -43 +46,2 @@
+-    return None
++    return None, None, None
++
+@@ -60,5 +64,5 @@
+-    return scope_v2.compare(case, initial['entries'], final['entries'],
+-                            fixture=scope_v2.inventory(baseline), skipped=final['export']['skipped'])
+-
+-
+-def one(evidence, sample, output, corpus, operator, registration, registration_sha256):
++    return (scope_v2.compare(case, initial['entries'], final['entries'],
++                             fixture=scope_v2.inventory(baseline), skipped=final['export']['skipped']), binding)
++
++
++def one(evidence, sample, output, corpus, operator, registration, registration_sha256, cohort):
+@@ -66,4 +70,8 @@
+-    row = {**sample, 'observation_schema': scope_v2.OBSERVATION,
+-           'registration_sha256': registration_sha256, 'valid': False, 'native_complete': False, 'functionality': False,
+-           'security': False, 'preservation': False, 'scope_ok': False, 'problems': [],
+-           'usage_complete': False, 'measured_usage': None}
++    row = {**sample, 'observation_schema': protocol.OBSERVATION,
++           'registration_sha256': registration_sha256, 'valid': False, 'native_complete': False, 'functionality': None,
++           'security': None, 'preservation': None, 'scope_ok': None, 'problems': [],
++           'git_context_status': 'unverified', 'execution_inputs_sha256': None,
++           'history_coverage': 'unmeasured_no_subject_era_canary',
++           'usage_complete': False, 'measured_usage': None, 'observed_usage': None,
++           'cohort_summary_sha256': cohort['dispatch_summary_sha256'],
++           'source_receipts': cohort['slots'].get(sample['sample_id'])}
+@@ -71,0 +80,6 @@
++        protocol.validate_protocol(registration)
++        if not row['source_receipts']:
++            raise ValueError(cohort['problems'].get(sample['sample_id'], 'missing source receipts'))
++        if 'dispatch' in cohort['problems']:
++            row['problems'].append(cohort['problems']['dispatch'])
++        verify_runtime(registration)
+@@ -75,2 +89,9 @@
+-        if registration.get('schema') != scope_v2.REGISTRATION or any(
+-                receipt.get('observation_schema') != scope_v2.OBSERVATION
++        if any(receipt.get('runtime') != registration.get('runtime') for receipt in (result, invocation)):
++            raise ValueError('operator runtime identity does not match the registered executable resolution')
++        shells = invocation.get('shell_runtime')
++        if not shells or any(shell.get('node') != registration['node_bin']
++                             or shell.get('python3') != registration['runtime']['python']['exe']
++                             or shell.get('git') != registration['runtime']['git']['exe'] for shell in shells):
++            raise ValueError('operator shell resolution does not establish the registered Node/Python/Git')
++        if registration.get('schema') != protocol.REGISTRATION or any(
++                receipt.get('observation_schema') != protocol.OBSERVATION
+@@ -79 +100 @@
+-            raise ValueError('V6 observations require the same fresh v2 registration and receipts')
++            raise ValueError('V7 observations require the same fresh v3 registration and receipts')
+@@ -82 +103 @@
+-        if any(receipt.get('model') != 'gpt-6.1-sol' or receipt.get('effort') != 'high'
++        if any(receipt.get('model') != 'gpt-6.1-sol' or receipt.get('effort') != 'medium'
+@@ -91 +112,2 @@
+-                or result.get('plugin_sha256') != expected_plugin):
++                or result.get('plugin_sha256') != expected_plugin
++                or result.get('installed_plugin_sha256') != expected_plugin):
+@@ -94 +116,2 @@
+-        if harness != result.get('frozen_harness') or harness.get('head') != operator.FROZEN_HEAD:
++        if (harness != result.get('frozen_harness') or harness.get('head') != registration['harness_head']
++                or harness.get('sha256') != registration['harness_content_sha256']):
+@@ -95,0 +119,14 @@
++        argv = invocation.get('initial_host_argv_controls', [])
++        protocol.validate_launch([*argv, (trial / 'host-prompt.txt').read_text()], registration['codex_bin'],
++                                 cwd=trial / 'work')
++        starts = telemetry.read_starts(trial, lifecycle_binding(trial, sample, registration_sha256))
++        argv_sha = protocol.digest(json.dumps([*argv, (trial / 'host-prompt.txt').read_text()],
++                                              separators=(",", ":")).encode())
++        if (invocation.get('host_binary') != registration['codex_bin']
++                or invocation.get('timeout_seconds') != registration['host_seconds']
++                or starts[0]['argv_sha256'] != argv_sha
++                or any(start['cwd'] != str(trial / 'work')
++                       or any(start[k] != v for k, v in protocol.ROLES['subject'].items()) for start in starts)):
++            row['problems'].append('recorded launch controls differ from registration')
++        if read(trial / 'sessions.json') != result.get('sessions'):
++            row['problems'].append('session receipts disagree')
+@@ -117,0 +155,9 @@
++        if case['kind'] == 'inner' and boundary == wanted:
++            action = next(event['action'] for event in tail
++                          if event['stage'] == endpoint and event['outcome'] == 'done'
++                          and event['workitem'] == item_id)
++            improve = state.get('improve_results', {}).get(action, {})
++            if (improve.get('runtime_phase') != 'complete' or improve.get('stage') != endpoint
++                    or improve.get('action_id') != action or improve.get('workspace') != state['repo']
++                    or improve.get('binding_id') != state.get('run_id', '') + '/' + action):
++                row['problems'].append('accepted carry-forward lacks its completed Improve receipt')
+@@ -152 +198 @@
+-        scope = verify_scope(trial, result, invocation, state, retained, case, case_dir)
++        scope, scope_binding = verify_scope(trial, result, invocation, state, retained, case, case_dir)
+@@ -155,12 +201,38 @@
+-        if scope['link_paths'] or scope['native_skipped_paths']:
+-            details['probe_status'] = 'not evaluated: unsafe native export'
+-            row['elapsed_seconds'] = result.get('elapsed_seconds')
+-            row['valid'] = not row['problems']
+-            (output / (sample['sample_id'] + '.json')).write_text(
+-                json.dumps({**details, 'observation': row}, indent=2) + '\n')
+-            return row
+-        with tempfile.TemporaryDirectory(prefix='shiploop-security-grade-') as folder:
+-            private_tree = shutil.copytree(snapshot, Path(folder) / 'private', symlinks=True)
+-            public_tree = shutil.copytree(snapshot, Path(folder) / 'public', symlinks=True)
+-            oracle = corpus.oracle_result(case_dir, private_tree)
+-            public = corpus.public_results(case, public_tree)
++        row['measured_usage'], row['observed_usage'], row['usage_coverage'] = usage_evidence(
++            trial, sessions, sample, registration_sha256, registration)
++        row['usage_complete'] = row['measured_usage'] is not None
++        receipt = dispatch_read(evidence / 'dispatch' / (sample['sample_id'] + '.json'))
++        row['elapsed_seconds'] = receipt['elapsed_s']
++        if row['problems'] or scope['link_paths'] or scope['native_skipped_paths']:
++            raise ValueError('unverified native receipts or unsafe export; product checks were not run')
++        if not terminal.get('git_context') or terminal.get('git_context_error'):
++            raise ValueError('terminal Git context is unavailable')
++        context_binding = protocol.git_binding(trial, sample, registration_sha256,
++                                               invocation['scope_start_sha256'], terminal['scope_sha256'],
++                                               observed['sha256'], scope_binding)
++        verify_runtime(registration)
++        execution = private_dir(output / sample['sample_id'])
++        public_tree = execution / 'public'
++        restored = git_context.restore(trial / 'git-context', snapshot, public_tree,
++                                       expected_binding=context_binding)
++        if restored != terminal['git_context']:
++            raise ValueError('restored context differs from the terminal capture receipt')
++        retained_input = shutil.copytree(snapshot, execution / 'input-export', symlinks=False)
++        if scope_v2.inventory(retained_input) != original:
++            raise ValueError('retained grading input differs from native export')
++        private_tree = shutil.copytree(retained_input, execution / 'private-runtime', symlinks=False)
++        if (private_tree / '.git').exists() or scope_v2.inventory(private_tree) != original:
++            raise ValueError('private runtime copy differs from Git-free export')
++        inputs = {'status': 'restored_and_verified', 'binding': context_binding,
++                  'retained_capture': terminal['git_context'], 'restore': restored,
++                  'pre_execution_export': original, 'source_receipts': row['source_receipts'],
++                  'input_export': 'input-export', 'public_worktree': 'public', 'runtime_probe_tree': 'private-runtime',
++                  'history': 'unmeasured_no_subject_era_canary'}
++        input_file = execution / 'execution-inputs.json'
++        private_file(input_file, json_bytes(inputs))
++        details['execution_context'] = inputs
++        row['git_context_status'] = 'restored_and_verified'
++        row['execution_inputs_sha256'] = sha(input_file)
++        oracle = corpus.oracle_result(case_dir, private_tree)
++        public = corpus.public_results(case, public_tree)
++        verify_runtime(registration)
+@@ -185,3 +256,0 @@
+-        row['measured_usage'] = measured_usage(trial / 'usage.json', len(sessions))
+-        row['usage_complete'] = row['measured_usage'] is not None
+-        row['elapsed_seconds'] = result.get('elapsed_seconds')
+@@ -191 +260 @@
+-    except (OSError, ValueError, KeyError, TypeError, AttributeError, operator.OperatorError) as error:
++    except (OSError, ValueError, KeyError, TypeError, AttributeError, StopIteration, operator.OperatorError, RuntimeError) as error:
+@@ -192,0 +262,3 @@
++    if not row['valid']:
++        for dimension in ('functionality', 'security', 'preservation', 'scope_ok'):
++            row[dimension] = None
+@@ -194 +266 @@
+-    (output / (sample['sample_id'] + '.json')).write_text(json.dumps(details, indent=2) + '\n')
++    private_file(output / (sample['sample_id'] + '.json'), json_bytes(details))
+@@ -197,0 +270,17 @@
++def grade(evidence, output, registration, samples, digest, corpus, operator):
++    # Command callers must first verify frozen inputs; the per-row guard is independent.
++    output = private_dir(fresh_output(output, inputs=(evidence, registration["harness_root"])))
++    cohort = cohort_evidence(evidence, samples, digest)
++    private_file(output / 'cohort-evidence.json', json_bytes(cohort))
++    rows = [one(evidence, sample, output, corpus, operator, registration, digest, cohort) for sample in samples]
++    private_file(output / 'observations.json', json_bytes(rows))
++    private_file(output / 'grade-manifest.json', json_bytes({
++        'schema': protocol.GRADE, 'registration_sha256': digest,
++        'cohort_sha256': sha(output / 'cohort-evidence.json'),
++        'observations_sha256': sha(output / 'observations.json'),
++        'details_sha256': {sample['sample_id']: sha(output / (sample['sample_id'] + '.json'))
++                           for sample in samples},
++    }))
++    return rows
++
++
+@@ -198,0 +288,2 @@
++    sys.dont_write_bytecode = True
++    os.environ['PYTHONDONTWRITEBYTECODE'] = '1'
+@@ -204,18 +295,14 @@
+-    registration = read(evidence / 'registration.json')
+-    if registration.get('schema') != scope_v2.REGISTRATION:
+-        raise SystemExit('V6 grading requires a fresh v2 registration.')
+-    digest = hashlib.sha256((evidence / 'registration.json').read_bytes()).hexdigest()
+-    if (not (evidence / 'registration.sha256').read_text().split()
+-            or (evidence / 'registration.sha256').read_text().split()[0] != digest):
+-        raise SystemExit('Registration digest mismatch.')
+-    if args.output.exists() or args.output.is_symlink():
+-        raise SystemExit('Use a fresh grading directory; retain prior grades.')
+-    args.output.mkdir(parents=True)
+-    corpus = load('security_corpus_calibration', evidence / 'corpus' / 'calibration.py')
+-    operator = load('security_native_operator', evidence / 'operator' / 'runner.py')
+-    schedule = read(evidence / 'schedule.json')
+-    rows = [one(evidence, sample, args.output, corpus, operator, registration, digest)
+-            for sample in schedule['samples']]
+-    (args.output / 'observations.json').write_text(json.dumps(rows, indent=2) + '\n')
+-    print(json.dumps({'graded': len(rows), 'valid': sum(r['valid'] for r in rows),
+-                      'output': str(args.output)}, indent=2))
++    try:
++        registration = protocol.read(evidence / 'registration.json')
++        protocol.validate_protocol(registration)
++        registration, samples, digest = frozen_inputs(evidence, Path(registration['harness_root']),
++                                                       registration['harness_head'])
++        corpus = load('security_corpus_calibration', evidence / 'corpus' / 'calibration.py')
++        operator = load('security_native_operator', evidence / 'operator' / 'runner.py')
++        rows = grade(evidence, args.output, registration, samples, digest, corpus, operator)
++    except (OSError, ValueError, KeyError, TypeError, RuntimeError) as error:
++        p.exit(2, f'Refusing grading: {error}\n')
++    valid = sum(r['valid'] for r in rows)
++    print(json.dumps({'graded': len(rows), 'valid': valid,
++                      'status': 'GRADED' if valid == len(rows) else 'INCOMPLETE', 'output': str(args.output)}))
++    return 0 if valid == len(rows) else 1
+@@ -225 +312 @@
+-    main()
++    raise SystemExit(main())
+--- a/coordination/dispatch.py
++++ b/coordination/dispatch.py
+@@ -2 +2 @@
+-"""Admit at most four operators from the frozen retry schedule and drain on infrastructure failure."""
++"""Admit only frozen slots and bound each private operator and its cleanup."""
+@@ -4 +4,2 @@
+-from collections import Counter
++import contextlib
++import fcntl
+@@ -6,0 +8 @@
++from math import isfinite
+@@ -11,0 +14,2 @@
++import shutil
++import signal
+@@ -13,0 +18 @@
++import threading
+@@ -16,4 +21,7 @@
+-from fingerprint import manifest
+-
+-SEED = 20261108
+-CONCURRENCY = 4
++CONCURRENCY = 2
++HOST_SECONDS = 1800
++SETUP_SECONDS = 300
++CLEANUP_SECONDS = 60
++OPERATOR_STOP_SECONDS = 10
++REAP_SECONDS = 2
++COHORT_SECONDS = 4 * 3600 + 15 * 60
+@@ -21,2 +28,0 @@
+-CASES = ("already-secure", "authorization", "cosmetic", "integrated-secure",
+-         "integration-only", "later-added-work", "secret-exposure", "tenant-isolation")
+@@ -40,0 +47 @@
++sys.dont_write_bytecode = True
+@@ -42,0 +50,2 @@
++from v7 import registration as protocol, telemetry
++from v7.report_context import private_file, json_bytes
+@@ -50,65 +59,159 @@
+-    path.write_text(json.dumps(value, indent=2) + "\n")
+-
+-
+-def frozen_inputs(evidence, harness_root, expected_head):
+-    registration_file = evidence / "registration.json"
+-    registered_bytes = registration_file.read_bytes()
+-    digest = (evidence / "registration.sha256").read_text().split()
+-    if not digest or hashlib.sha256(registered_bytes).hexdigest() != digest[0]:
+-        raise ValueError("Registration digest mismatch.")
+-    registration = json.loads(registered_bytes)
+-    if registration.get("schema") != scope_v2.REGISTRATION:
+-        raise ValueError("V6 dispatch requires a fresh v2 registration.")
+-    if registration.get("status") != "frozen_before_subjects":
+-        raise ValueError("Registration must be frozen before subjects.")
+-    if set(registration["arms"]) != {"A", "B"}:
+-        raise ValueError("Registration must contain exactly the original two arms.")
+-    if (registration.get("schedule") != str(evidence / "schedule.json")
+-            or registration.get("prepared_root") != str(evidence / "operator" / scope_v2.PREPARED)
+-            or registration.get("harness_root") != str(harness_root)
+-            or registration.get("harness_head") != expected_head
+-            or registration["arms"]["A"]["source"] != str(harness_root)
+-            or registration["arms"]["A"]["head"] != expected_head):
+-        raise ValueError("Registration paths or harness identity mismatch.")
+-    if (registration["roles"]["subject"] != {"model": "gpt-6.1-sol", "effort": "high"}
+-            or registration.get("concurrency") != CONCURRENCY
+-            or registration.get("sample_count") != 64 or registration.get("trials_per_arm_case") != 4):
+-        raise ValueError("Registration subject controls or cohort size mismatch.")
+-
+-    verified = {}
+-    for identity in registration["identities"]:
+-        path = Path(identity["path"])
+-        if not path.is_absolute() or path != path.resolve() or path in verified:
+-            raise ValueError("Frozen identity path is not canonical or repeats: " + str(path))
+-        kind = identity["kind"]
+-        if kind == "file":
+-            observed = hashlib.sha256(path.read_bytes()).hexdigest()
+-        elif kind == "directory" and path.is_dir():
+-            if path == evidence / "corpus" and identity.get("modes") is not True:
+-                raise ValueError("Frozen V6 corpus identity must include modes.")
+-            observed = manifest(path, identity.get("git", False), identity.get("modes", False))["sha256"]
+-        else:
+-            raise ValueError("Frozen input unavailable or wrong kind: " + str(path))
+-        if observed != identity["sha256"]:
+-            raise ValueError("Frozen input changed: " + str(path))
+-        verified[path] = kind
+-
+-    required = {
+-        evidence / "schedule.json": "file",
+-        evidence / "corpus": "directory",
+-        evidence / "operator" / scope_v2.PREPARED: "directory",
+-        evidence / "operator" / "runner.py": "file",
+-        evidence / "scope_evidence.py": "file",
+-        evidence / "logger_failure.cjs": "file",
+-        evidence / "analysis" / "grade.py": "file",
+-        evidence / "analysis" / "decision.py": "file",
+-        evidence / "coordination" / "dispatch.py": "file",
+-        evidence / "coordination" / "fingerprint.py": "file",
+-        **{Path(arm[key]): "directory" for arm in registration["arms"].values() for key in ("source", "plugin_dir")},
+-    }
+-    for path, kind in required.items():
+-        if verified.get(path) == kind:
+-            continue
+-        if kind == "file" and any(verified.get(parent) == "directory" for parent in path.parents):
+-            continue
+-        raise ValueError("Missing frozen identity for " + str(path))
++    private_file(path, json_bytes(value))
++
++
++def sha(path):
++    with Path(path).open("rb") as stream:
++        digest = hashlib.sha256()
++        for block in iter(lambda: stream.read(1024 * 1024), b""):
++            digest.update(block)
++        return digest.hexdigest()
++
++
++def runtime_identity(env=None):
++    """Resolve the actual bare commands in the same absolute PATH used by public checks."""
++    env = os.environ if env is None else env
++    path = env.get("PATH", "")
++    if not path or not all(Path(part).is_absolute() for part in path.split(os.pathsep)):
++        raise ValueError("runtime PATH must contain only absolute entries")
++    def binary(command):
++        found = shutil.which(command, path=path)
++        if not found:
++            raise ValueError(f"{command} is not resolvable on runtime PATH")
++        return Path(found).resolve(strict=True)
++    node, python3, git = binary("node"), binary("python3"), binary("git")
++    python = Path(sys.executable).resolve(strict=True)
++    if python3 != python:
++        raise ValueError("runtime PATH python3 differs from the executing Python interpreter")
++    # Keep only selected execution controls; hashes avoid retaining their contents.
++    controls = {key: hashlib.sha256(env[key].encode()).hexdigest()
++                for key in ("NODE_OPTIONS", "NODE_PATH", "PYTHONHOME", "PYTHONPATH", "SHELL",
++                            "TMPDIR", "LANG", "LC_ALL") if key in env}
++    return {"path": path, "git": {"exe": str(git), "sha256": sha(git)}, "node": {"exe": str(node), "sha256": sha(node)},
++            "python": {"exe": str(python), "version": sys.version, "sha256": sha(python)},
++            "environment_sha256": controls}
++
++
++def verify_runtime(registration, env=None):
++    observed = runtime_identity(env)
++    if (observed != registration.get("runtime")
++            or observed["node"]["exe"] != registration.get("node_bin")):
++        raise ValueError("runtime Node/Python resolution, bytes, or execution environment differs from registration")
++    return observed
++
++
++def protected_evidence(trial):
++    files = ("result.json", "invocation.json", "state.json", "state.md", "product-manifest.json",
++             "final-git.json", "usage.json", "raw-events.jsonl", "sessions.json", "host-prompt.txt",
++             "scope-start.json", "scope-terminal.json", telemetry.LEDGER)
++    products = [trial / name for name in scope_v2.PHASES.values()]
++    native = trial / "native-usage"
++    context = trial / "git-context"
++    if any(path.is_symlink() for path in [*products, native, context, *(trial / name for name in files)]):
++        raise ValueError("protected observation evidence contains a symlink")
++    return {**{name: sha(trial / name) for name in files if (trial / name).is_file()},
++            **{p.name: scope_v2.digest(scope_v2.inventory(p)) if p.is_dir() else None for p in products},
++            **({context.name: protocol.digest(protocol.canonical(protocol.tree_rows(context, directories=True)))}
++               if context.is_dir() else {}),
++            **({native.name: scope_v2.digest(scope_v2.inventory(native))} if native.is_dir() else {})}
++
++
++def lifecycle_binding(trial, sample, digest):
++    return {"trial": str(trial.resolve()), "sample": sample, "registration_sha256": digest}
++
++
++def verify_lifecycle(trial, sample, digest):
++    path = trial / "lifecycle.json"
++    if trial.is_symlink() or path.is_symlink() or not path.is_file():
++        raise ValueError("lifecycle receipt unavailable as a regular file")
++    receipt = read(path)
++    cleanup = receipt["cleanup"]
++    if (receipt.get("binding") != lifecycle_binding(trial, sample, digest)
++            or receipt.get("verified") is not True or receipt.get("problems") != []
++            or cleanup.get("observed") is not True
++            or any(cleanup.get(k) for k in ("survived", "unverified", "protected"))
++            or receipt.get("remaining_group_ids") != [] or receipt.get("remaining_observers") != []):
++        raise ValueError("lifecycle receipt does not verify cleanup for this registered trial")
++    protected = protected_evidence(trial)
++    required = ("result.json", "invocation.json", "state.json", "state.md", "product-manifest.json",
++                "final-git.json", "usage.json", "raw-events.jsonl", "sessions.json", "host-prompt.txt",
++                "scope-start.json", "scope-terminal.json", telemetry.LEDGER, "git-context", *scope_v2.PHASES.values())
++    if (any(not protected.get(k) for k in required)
++            or receipt.get("protected_before") != protected or receipt.get("protected_after") != protected):
++        raise ValueError("protected terminal hashes missing or changed")
++    return sha(path)
++
++
++def verify_dispatch_slot(evidence, sample, digest):
++    sample_id = sample["sample_id"]
++    path = evidence / "dispatch" / (sample_id + ".json")
++    if path.is_symlink() or not path.is_file():
++        raise ValueError("dispatch slot receipt unavailable as a regular file")
++    receipt = read(path)
++    lifecycle = verify_lifecycle(evidence / "trials" / sample_id, sample, digest)
++    if (any(receipt.get(k) != v for k, v in sample.items())
++            or receipt.get("registration_sha256") != digest or receipt.get("lifecycle_sha256") != lifecycle
++            or receipt.get("operator_group_ended") is not True or receipt.get("stop_reason") is not None
++            or type(receipt.get("exit_code")) is not int or receipt["exit_code"] not in (0, 1)
++            or type(receipt.get("elapsed_s")) not in (int, float)
++            or not isfinite(receipt["elapsed_s"]) or receipt["elapsed_s"] < 0):
++        raise ValueError("unhealthy or unbound dispatch slot receipt")
++    # Code 1 is expected for a valid native block or ordinary non-completion.
++    result = read(evidence / "trials" / sample_id / "result.json")
++    allowed = {0: ("completed-to-stop",), 1: ("terminal-blocked", "incomplete")}
++    if result.get("status") not in allowed[receipt["exit_code"]]:
++        raise ValueError("dispatch process exit disagrees with native result")
++    return receipt, sha(path)
++
++
++def cohort_evidence(evidence, samples, digest):
++    """Re-read source receipts at grade and decision time; never accept a partial cohort."""
++    ids = [s["sample_id"] for s in samples]
++    slots, problems = {}, {}
++    summary_path = evidence / "dispatch" / "summary.json"
++    summary_sha = None
++    try:
++        if summary_path.is_symlink():
++            raise ValueError("dispatch summary is a symlink")
++        summary = read(summary_path)
++        start = read(evidence / "dispatch" / "start.json")
++        if (not ids or len(set(ids)) != len(ids)
++                or start.get("sample_ids") != ids or start.get("registration_sha256") != digest
++                or summary.get("registration_sha256") != digest or summary.get("status") != "DISPATCHED"
++                or summary.get("halt") is not None or summary.get("launched_ids") != ids
++                or sorted(summary.get("completed_ids", [])) != sorted(ids)
++                or any(summary.get(k) != [] for k in ("unlaunched_ids", "provider_terminal_failures",
++                                                       "resource_verification_failures", "operator_failures"))
++                or summary.get("missing_process_exits") != 0):
++            raise ValueError("dispatch did not complete the healthy registered slots")
++        summary_sha = sha(summary_path)
++    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
++        problems["dispatch"] = str(error)
++    observer = RawTerminal(evidence / "trials")
++    for sample in samples:
++        sample_id = sample["sample_id"]
++        try:
++            receipt, slot_sha = verify_dispatch_slot(evidence, sample, digest)
++            if observer.scan(sample_id, finished=True):
++                raise ValueError("terminal provider failure in protected raw stream")
++            slots[sample_id] = {"lifecycle_sha256": receipt["lifecycle_sha256"], "dispatch_sha256": slot_sha}
++        except (OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as error:
++            problems[sample_id] = str(error)
++    if summary_sha:
++        sealed = summary.get("slot_receipt_sha256")
++        if (not isinstance(sealed, dict) or set(sealed) != set(ids)
++                or any(sealed[key] != value["dispatch_sha256"] for key, value in slots.items())):
++            problems["dispatch"] = "dispatch summary does not seal the registered slot receipts"
++    return {"verified": not problems, "registration_sha256": digest, "dispatch_summary_sha256": summary_sha,
++            "slots": slots, "samples": {sample["sample_id"]: sample for sample in samples}, "problems": problems}
++
++
++
++def _native_inputs(evidence, harness_root, expected_head, registration):
++    # The imported operator verifies a clean exact checkout before it imports native modules.
++    folder = str(evidence / "operator")
++    if folder not in sys.path:
++        sys.path.insert(0, folder)
++    import runner
++    _, harness = runner.verify_harness(harness_root, expected_head)
++    if harness["sha256"] != registration["harness_content_sha256"]:
++        raise ValueError("registered harness content changed")
+@@ -116,15 +219,59 @@
+-        head = subprocess.check_output(["git", "-C", arm["source"], "rev-parse", "HEAD"], text=True).strip()
+-        if head != arm["head"]:
+-            raise ValueError("Frozen source HEAD changed: " + arm["source"])
+-
+-    schedule = read(evidence / "schedule.json")
+-    samples = schedule["samples"]
+-    if (schedule.get("seed") != SEED or schedule.get("concurrency") != CONCURRENCY
+-            or schedule.get("trials_per_arm_case") != 4 or len(samples) != 64
+-            or [s["sample_id"] for s in samples] != [f"R{i:03}" for i in range(1, 65)]
+-            or Counter((s["case"], s["case_slot"]) for s in samples)
+-            != Counter((case, slot) for case in CASES for slot in range(1, 9))
+-            or Counter((s["case"], s["arm"], s["trial"]) for s in samples)
+-            != Counter((case, arm, trial) for case in CASES for arm in ("A", "B") for trial in range(1, 5))):
+-        raise ValueError("Schedule must retain the 64 registered balanced slots.")
+-    return registration, samples, digest[0]
++        if Path(arm["plugin_dir"]).resolve(strict=True) != Path(arm["plugin_dir"]):
++            raise ValueError("registered plugin path is not canonical")
++        _, identity = runner._plugin_identity(Path(arm["plugin_dir"]))
++        if (arm["operator_plugin_sha256"] != identity["plugin"]["sha256"]
++                or arm["build_sha256"] != identity["build_root"]["sha256"]
++                or arm["build_modes_sha256"] != protocol.digest(protocol.canonical(
++                    protocol.tree_rows(Path(arm["plugin_dir"]).parents[1])))):
++            raise ValueError("registered package or plugin identity changed")
++
++
++def frozen_inputs(evidence, harness_root, expected_head, *, draft=False):
++    evidence, harness_root = Path(evidence), Path(harness_root)
++    if evidence != Path(__file__).resolve().parents[1]:
++        raise ValueError("use dispatch from the registered materialized apparatus")
++    registration_file = evidence / ("registration.draft.json" if draft else "registration.json")
++    registration = protocol.read(registration_file)
++    protocol.validate_protocol(registration)
++    digest = sha(registration_file)
++    if registration.get("status") != ("draft_pending_review" if draft else "frozen_before_subjects"):
++        raise ValueError("registration status does not admit this action")
++    if not draft:
++        if (evidence / "registration.sha256").read_text().split() != [digest, "registration.json"]:
++            raise ValueError("registration digest differs")
++        reviewed = protocol.read(evidence / "registration.draft.json")
++        approval = registration["authorization"]
++        authorization = Path(approval["path"])
++        if (not authorization.is_absolute() or authorization != authorization.resolve()
++                or not authorization.is_file() or sha(authorization) != approval["sha256"]
++                or registration["reviewed_draft_sha256"] != sha(evidence / "registration.draft.json")
++                or reviewed != {**{k: v for k, v in registration.items()
++                                  if k not in ("authorization", "reviewed_draft_sha256")},
++                                "status": "draft_pending_review"}):
++            raise ValueError("registration differs from authorized draft or authorization")
++    schedule = evidence / "schedule.json"
++    prepared = evidence / "operator" / scope_v2.PREPARED
++    codex = Path(registration["codex_bin"])
++    if (registration["schedule"] != str(schedule) or registration["schedule_sha256"] != sha(schedule)
++            or registration["prepared_root"] != str(prepared)
++            or registration["prepared_sha256"] != protocol.digest(protocol.canonical(protocol.tree_rows(prepared)))
++            or registration["harness_root"] != str(harness_root) or harness_root != harness_root.resolve()
++            or not re.fullmatch(r"[0-9a-f]{40}", expected_head) or registration["harness_head"] != expected_head
++            or not codex.is_absolute() or codex != codex.resolve() or not os.access(codex, os.X_OK)
++            or registration["codex_sha256"] != sha(codex)):
++        raise ValueError("registration path or input identity differs")
++    protocol.verify_assembled(evidence, registration["assembled_sha256"])
++    samples = protocol.validate_schedule(registration, protocol.read(schedule))
++    max_concurrency = 1 if registration["purpose"] == "smoke" else CONCURRENCY
++    for key, floor, ceiling in (("host_seconds", 1, HOST_SECONDS), ("cohort_seconds", 1, COHORT_SECONDS),
++                                ("concurrency", 1, max_concurrency)):
++        if type(registration[key]) is not int or not floor <= registration[key] <= ceiling:
++            raise ValueError("unsupported registered dispatch bound")
++    for key, value in (("setup_seconds", SETUP_SECONDS), ("cleanup_seconds", CLEANUP_SECONDS),
++                       ("operator_stop_seconds", OPERATOR_STOP_SECONDS)):
++        if registration.get(key) != value:
++            raise ValueError("native setup/cleanup bounds must retain the declared policy")
++    verify_runtime(registration)
++    _native_inputs(evidence, harness_root, expected_head, registration)
++    return registration, samples, digest
++
+@@ -160,0 +308,2 @@
++        if path.is_symlink() or not path.is_file():
++            return None
+@@ -185,2 +334,143 @@
+-def resource_failure(trials, sample_id):
+-    """At operator completion, require positive evidence that owned resources ended."""
++def _alive_group(pid):
++    try:
++        os.killpg(pid, 0)
++        return True
++    except ProcessLookupError:
++        return False
++    except PermissionError:
++        return True
++
++
++def _force_group(process):
++    """The Popen's unreaped session leader pins the group number (native lease contract)."""
++    try:
++        os.killpg(process.pid, signal.SIGKILL)
++    except (ProcessLookupError, PermissionError):
++        pass
++
++
++def _exited(process):
++    return os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT) is not None
++
++
++def recover_operator(argv, fd, until, env, stdout, stderr):
++    """Give the native recovery helper only the remaining cleanup window."""
++    remaining = until - time.monotonic()
++    if remaining <= 0:
++        return {"status": "UNKNOWN", "reason": "cleanup budget spent"}
++    child = subprocess.Popen([*argv, "--lease-fd", str(fd)], env=env, stdout=stdout, stderr=stderr,
++                             pass_fds=(fd,), start_new_session=True, stdin=subprocess.DEVNULL)
++    # Wait without reaping so even a recovery helper's children are bounded.
++    while not _exited(child) and time.monotonic() < until - min(REAP_SECONDS, remaining / 2):
++        time.sleep(POLL_SECONDS)
++    _force_group(child)
++    try:
++        code = child.wait(timeout=max(0, until - time.monotonic()))
++    except subprocess.TimeoutExpired:
++        return {"status": "UNKNOWN", "reason": "native recovery timed out", "pid": child.pid}
++    if code == 0:
++        return {"status": "KNOWN_RESOURCES_ENDED", "receipt": "recovery.json"}
++    return {"status": "UNKNOWN", "reason": f"native recovery exited {code}", "pid": child.pid}
++
++
++def supervise(argv, trial, env, stdout, stderr, *, should_stop, recover=None,
++              setup=SETUP_SECONDS, host=HOST_SECONDS, cleanup=CLEANUP_SECONDS,
++              stop_seconds=OPERATOR_STOP_SECONDS):
++    """Control only the exact child session. Retain the native lease through bounded recovery."""
++    if not all(hasattr(os, k) for k in ("waitid", "WNOWAIT")):
++        raise RuntimeError("owned process-group verification is unavailable on this host")
++    trial.mkdir(mode=0o700)
++    lock = trial / ".harness-lock"
++    fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
++    process = None
++    exit_code, ended, stop, recovery = None, False, None, None
++    with os.fdopen(fd, "wb") as lease:
++        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
++        try:
++            if stop := should_stop():
++                return {"exit_code": None, "operator_group_ended": False, "stop_reason": stop}
++            started = time.monotonic()
++            process = subprocess.Popen([*argv, "--lease-fd", str(fd)], env=env, stdout=stdout, stderr=stderr,
++                                       pass_fds=(fd,), start_new_session=True, stdin=subprocess.DEVNULL)
++            phase = trial / "operator-phase.json"
++            host_at = cleanup_at = None
++            while True:
++                now = time.monotonic()
++                if phase.exists():
++                    try:
++                        record = read(phase)
++                        stamp = record["monotonic"]
++                        # The marker can be replaced after the current poll timestamp.
++                        if type(stamp) not in (int, float) or not started <= stamp <= time.monotonic():
++                            raise ValueError("operator phase timestamp outside its lifetime")
++                        if record["phase"] not in ("host", "cleanup"):
++                            raise ValueError("unknown operator phase")
++                        host_at = record.get("host_started")
++                        if (host_at is not None and (type(host_at) not in (int, float) or not started <= host_at <= stamp)
++                                or record["phase"] == "host" and host_at != stamp):
++                            raise ValueError("invalid host start timestamp")
++                        if record["phase"] == "cleanup" and cleanup_at is None:
++                            cleanup_at = stamp
++                    except (OSError, ValueError, KeyError, TypeError, AttributeError):
++                        stop = "invalid-operator-phase"
++                stop = stop or should_stop()
++                if stop is None:
++                    if host_at is None and now >= started + setup:
++                        stop = "setup-timeout"
++                    elif host_at is not None and host_at > started + setup:
++                        stop = "setup-timeout"
++                    elif host_at is not None and cleanup_at is None and now >= host_at + host + cleanup / 2:
++                        # Native launch owns the full host budget. Reserve half of the
++                        # post-host window for forced operator/recovery work if needed.
++                        stop = "operator-timeout"
++                    elif cleanup_at is not None and now >= min(cleanup_at, (host_at or cleanup_at) + host) + cleanup / 2:
++                        stop = "cleanup-timeout"
++                if stop or _exited(process):
++                    break
++                time.sleep(POLL_SECONDS)
++            if stop:
++                deadline = time.monotonic() + cleanup
++                if stop in ("operator-timeout", "cleanup-timeout"):
++                    deadline = min(deadline, min(cleanup_at or float("inf"),
++                                                  (host_at + host) if host_at is not None else float("inf")) + cleanup)
++                (trial / "stop").touch()
++                if not _exited(process):
++                    with contextlib.suppress(ProcessLookupError):
++                        os.kill(process.pid, signal.SIGTERM)
++                give_until = min(deadline, time.monotonic() + stop_seconds)
++                while not _exited(process) and time.monotonic() < give_until:
++                    time.sleep(min(POLL_SECONDS, max(0, give_until - time.monotonic())))
++            else:
++                deadline = time.monotonic() + cleanup
++            _force_group(process)
++            try:
++                exit_code = process.wait(timeout=min(REAP_SECONDS, max(0, deadline - time.monotonic())))
++            except subprocess.TimeoutExpired:
++                stop = stop or "operator-reap-timeout"
++            # Allow killed/reparented setup children a short time to disappear.
++            group_until = min(deadline, time.monotonic() + REAP_SECONDS)
++            while exit_code is not None and _alive_group(process.pid) and time.monotonic() < group_until:
++                time.sleep(min(POLL_SECONDS, max(0, group_until - time.monotonic())))
++            ended = exit_code is not None and not _alive_group(process.pid)
++            if stop or not ended or not (trial / "lifecycle.json").is_file():
++                stop = stop or "operator-cleanup-unverified"
++                if recover:
++                    try:
++                        recovery = recover(fd, deadline)
++                    except (OSError, RuntimeError) as error:
++                        recovery = {"status": "UNKNOWN", "reason": str(error)}
++        finally:
++            if process is not None and process.returncode is None:
++                _force_group(process)  # still unreaped
++            if stop or not ended:
++                # Even when native cleanup succeeds, timed-out/forced observation is ineligible.
++                write(trial / "supervisor-cleanup.json", {
++                    "verified": False, "stop_reason": stop or "operator-supervision-interrupted",
++                    "operator_pid": process.pid if process else None, "operator_group_ended": ended,
++                    "native_recovery": recovery or {"status": "UNKNOWN"},
++                })
++    return {"exit_code": exit_code, "operator_group_ended": ended, "stop_reason": stop}
++
++
++def resource_failure(trials, sample, receipt, digest):
++    sample_id = sample["sample_id"]
+@@ -189,11 +479,12 @@
+-        receipt = read(receipt_path)
+-        if isinstance(receipt, dict) and receipt.get("verified") is True:
+-            return None
+-        reason = "operator did not verify terminal resource cleanup"
+-    except (OSError, ValueError) as error:
+-        reason = f"operator cleanup receipt unavailable: {type(error).__name__}: {error}"
+-    return {"kind": "resource-verification", "sample_id": sample_id,
+-            "receipt_path": str(receipt_path), "reason": reason}
+-
+-
+-def dispatch(samples, trials, logs, run, concurrency=CONCURRENCY):
++        actual = verify_lifecycle(trials / sample_id, sample, digest)
++        if (actual != receipt.get("lifecycle_sha256") or receipt.get("operator_group_ended") is not True):
++            raise ValueError("operator or lifecycle receipt was not verified")
++        return None
++    except (OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError) as error:
++        return {"kind": "resource-verification", "sample_id": sample_id,
++                "receipt_path": str(receipt_path), "reason": str(error)}
++
++
++
++def dispatch(samples, trials, logs, run, concurrency=CONCURRENCY, *, deadline=None,
++             registration_sha256, emergency=None):
+@@ -208,0 +500,9 @@
++    stop_requested = False
++    operator_failures = {}
++
++    def should_stop():
++        if deadline is not None and time.monotonic() >= deadline:
++            return "cohort-deadline"
++        if (emergency is not None and emergency.is_set()) or (logs / "stop-admission").is_file():
++            return "operator-stop"
++        return None
+@@ -218,0 +519,5 @@
++            if not stop_requested and (reason := should_stop()):
++                stop_requested = True
++                observe({"kind": reason, "sample_id": None})
++                write(logs / "stop-request.json", {"kind": reason,
++                                                   "active_ids": [s["sample_id"] for s in pending.values()]})
+@@ -225,2 +530,13 @@
+-                    results.append(future.result())
+-                    if failure := resource_failure(trials, sample_id):
++                    try:
++                        receipt = future.result()
++                    except Exception as error:
++                        receipt = {**sample, "exit_code": None, "launch_error": str(error)}
++                    results.append(receipt)
++                    if (receipt.get("exit_code") not in (0, 1) or receipt.get("stop_reason")
++                            or receipt.get("operator_group_ended") is not True):
++                        failure = {"kind": "operator-failure", "sample_id": sample_id,
++                                   "reason": receipt.get("stop_reason") or receipt.get("launch_error")
++                                   or f"operator exit {receipt.get('exit_code')}"}
++                        operator_failures[sample_id] = failure
++                        observe(failure)
++                    if failure := resource_failure(trials, sample, receipt, registration_sha256):
+@@ -231 +547,12 @@
+-                observe(observer.scan(sample["sample_id"]))
++                sample_id = sample["sample_id"]
++                observe(observer.scan(sample_id))
++                path = trials / sample_id / "lifecycle.json"
++                if path.is_symlink() or not path.is_file():
++                    continue
++                try:
++                    receipt = read(path)
++                except (OSError, ValueError):
++                    continue
++                if isinstance(receipt, dict) and receipt.get("verified") is False:
++                    observe({"kind": "resource-verification", "sample_id": sample_id,
++                             "receipt_path": str(path), "reason": "operator reported unverifiable cleanup"})
+@@ -234 +561 @@
+-                if any(future.done() for future in pending):
++                if should_stop() or any(future.done() for future in pending):
+@@ -237 +564 @@
+-                pending[pool.submit(run, sample)] = sample
++                pending[pool.submit(run, sample, should_stop)] = sample
+@@ -249,0 +577 @@
++        "operator_failures": list(operator_failures.values()),
+@@ -255,0 +584 @@
++    sys.dont_write_bytecode = True
+@@ -256,0 +586 @@
++    p.add_argument("--authorize-live", action="store_true")
+@@ -259,0 +590,2 @@
++    p.add_argument("--check-only", action="store_true")
++    p.add_argument("--check-draft", action="store_true")
+@@ -262,0 +595,2 @@
++    if args.check_draft and (not args.check_only or args.authorize_live):
++        raise SystemExit("Draft is accepted only for --check-only --check-draft.")
+@@ -264 +598,2 @@
+-        registration, samples, registration_sha256 = frozen_inputs(evidence, harness_root, args.expected_head)
++        registration, samples, registration_sha256 = frozen_inputs(evidence, harness_root, args.expected_head,
++                                                                   draft=args.check_draft)
+@@ -266,0 +602,5 @@
++    if args.check_only:
++        print(json.dumps({"admitted": len(samples), "registration_sha256": registration_sha256, "model_calls": 0}))
++        return 0
++    if not args.authorize_live:
++        raise SystemExit("Live dispatch requires the retained owner authorization and --authorize-live.")
+@@ -280 +620,7 @@
+-    def run(sample):
++    emergency = threading.Event()
++    for number in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
++        if signal.getsignal(number) is not signal.SIG_IGN:
++            signal.signal(number, lambda *_: emergency.set())
++    deadline = time.monotonic() + registration["cohort_seconds"]
++
++    def run(sample, should_stop):
+@@ -283 +629 @@
+-        argv = [sys.executable, str(evidence / "operator" / "runner.py"), "sample",
++        argv = [registration["runtime"]["python"]["exe"], str(evidence / "operator" / "runner.py"), "sample",
+@@ -284,0 +631 @@
++                "--sample-json", json.dumps(sample, separators=(",", ":")),
+@@ -290 +637,3 @@
+-                "--model", "gpt-6.1-sol", "--effort", "high"]
++                "--model", protocol.ROLES["subject"]["model"], "--effort", protocol.ROLES["subject"]["effort"],
++                "--timeout", str(registration["host_seconds"]),
++                "--codex-bin", registration["codex_bin"]]
+@@ -293 +642,4 @@
+-        exit_code, launch_error = None, None
++        process = {"exit_code": None, "operator_group_ended": False, "stop_reason": None}
++        launch_error = None
++        trial = trials / sample_id
++        env = {**os.environ, "PATH": registration["runtime"]["path"], "PYTHONDONTWRITEBYTECODE": "1"}
+@@ -294,0 +647,4 @@
++            def recover(fd, until):
++                recovery_argv = [*argv[:2], "recover", "--output", str(trial), "--harness-root", str(harness_root),
++                                 "--expected-head", args.expected_head]
++                return recover_operator(recovery_argv, fd, until, env, out, err)
+@@ -296,4 +652,4 @@
+-                process = subprocess.run(argv, stdout=out, stderr=err,
+-                                         env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+-                exit_code = process.returncode
+-            except OSError as error:
++                verify_runtime(registration, env)
++                process = supervise(argv, trial, env, out, err, should_stop=should_stop, recover=recover,
++                                    host=registration["host_seconds"])
++            except (OSError, ValueError, RuntimeError) as error:
+@@ -301,3 +657,3 @@
+-        receipt = {**sample, "argv": argv, "started_at": started,
+-                   "ended_at": datetime.now(timezone.utc).isoformat(),
+-                   "elapsed_s": time.monotonic() - clock, "exit_code": exit_code}
++        receipt = {**sample, **process, "registration_sha256": registration_sha256, "argv": argv,
++                   "started_at": started, "ended_at": datetime.now(timezone.utc).isoformat(),
++                   "elapsed_s": time.monotonic() - clock, "lifecycle_sha256": None}
+@@ -305,0 +662,2 @@
++        with contextlib.suppress(OSError):
++            receipt["lifecycle_sha256"] = sha(trial / "lifecycle.json")
+@@ -307 +665 @@
+-        print(json.dumps({"completed": sample_id, "exit_code": exit_code,
++        print(json.dumps({"completed": sample_id, "exit_code": receipt["exit_code"],
+@@ -311,2 +669,6 @@
+-    summary = dispatch(samples, trials, logs, run)
+-    summary.update(registration_sha256=registration_sha256, ended_at=datetime.now(timezone.utc).isoformat())
++    summary = dispatch(samples, trials, logs, run, concurrency=registration["concurrency"],
++                       deadline=deadline, emergency=emergency,
++                       registration_sha256=registration_sha256)
++    summary.update(registration_sha256=registration_sha256, ended_at=datetime.now(timezone.utc).isoformat(),
++                   slot_receipt_sha256={sid: sha(logs / (sid + ".json"))
++                                        for sid in summary["completed_ids"] if (logs / (sid + ".json")).is_file()})
+--- a/corpus/calibration.py
++++ b/corpus/calibration.py
+@@ -17 +17 @@
+-VERSION = 6
++VERSION = 7
+@@ -26 +26,5 @@
+-    env = {"PATH": os.environ.get("PATH", ""), "TMPDIR": tempfile.gettempdir()}
++    env = {"PATH": os.environ.get("PATH", ""), "TMPDIR": tempfile.gettempdir(),
++           "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
++           "GIT_OPTIONAL_LOCKS": "0", "GIT_NO_REPLACE_OBJECTS": "1",
++           "GIT_NO_LAZY_FETCH": "1", "GIT_CEILING_DIRECTORIES": str(cwd.parent.resolve()),
++           "PYTHONDONTWRITEBYTECODE": "1"}
+@@ -65 +69 @@
+-            "process": run,
++            "process": {"exit": run["exit"], "timeout": run["timeout"]},
+diff --git a/judgment/build.py b/judgment/build.py
+new file mode 100644
+--- /dev/null
++++ b/judgment/build.py
+@@ -0,0 +1,125 @@
++#!/usr/bin/env python3
++"""Build a private masked review from verified V7 grades and scope receipts."""
++from __future__ import annotations
++
++import argparse
++from pathlib import Path
++import re
++import shlex
++import sys
++
++sys.dont_write_bytecode = True
++ROOT = Path(__file__).resolve().parents[1]
++sys.path[:0] = [str(ROOT), str(ROOT / "coordination")]
++from dispatch import cohort_evidence, frozen_inputs
++from v7 import registration as protocol
++from v7.report_context import json_bytes, public_counts, scope_context, write_tree
++
++DIMENSIONS = ("functionality", "security", "preservation")
++VOTES = ("native_complete", *DIMENSIONS, "scope_ok", "usage_complete")
++# Literal labels from the sealed private probe source can be useful to reviewers.
++# Dynamic subject-provided labels and all unstructured details stay in the grade.
++LABEL = re.compile(r"""\b(?:check|call)\(\s*['"](?:functionality|security|preservation)['"]\s*,\s*['"]([^'"\n]{1,100})['"]""")
++
++
++def checked_bool(value):
++    if type(value) is not bool:
++        raise ValueError("check evidence lacks a boolean result")
++    return value
++
++
++def masked_case(evidence, sample, detail):
++    case_dir = evidence / "corpus" / sample["case"]
++    case = protocol.read(case_dir / "case.json")
++    allowed = {label for path in (case_dir / "oracle").glob("*.cjs")
++               for label in LABEL.findall(path.read_text())}
++    row = detail["observation"]
++    if row["valid"] is not True or row["git_context_status"] != "restored_and_verified":
++        raise ValueError("masked review requires a valid context-bound observation")
++    oracle = detail["oracle"]
++    if oracle.get("case_id") != sample["case"] or oracle.get("status") not in ("pass", "fail", "candidate_error"):
++        raise ValueError("masked review lacks complete oracle evidence")
++    public = detail["public"]
++    if len(public) != len(case["public_checks"]):
++        raise ValueError("masked review lacks complete public-check inventory")
++    checks = {"public": [], "oracle": {}}
++    for index, (run, registered) in enumerate(zip(public, case["public_checks"]), 1):
++        command = shlex.split(registered) if isinstance(registered, str) else registered
++        if run["command"] != command:
++            raise ValueError("public check differs from registered command")
++        exit_code, timeout = run["exit"], checked_bool(run["timeout"])
++        if exit_code is not None and type(exit_code) is not int:
++            raise ValueError("invalid public command exit")
++        ok = checked_bool(run["pass"])
++        if ok != (exit_code == 0 and not timeout):
++            raise ValueError("public check status disagrees with exit")
++        checks["public"].append({"index": index, "pass": ok, "exit": exit_code, "timeout": timeout,
++                                 "structure": public_counts(run["stdout"], exit_code, timeout)})
++    for dimension in DIMENSIONS:
++        group = oracle[dimension]
++        results = [{"index": i, "pass": checked_bool(item["pass"]),
++                    **({"name": item["name"]} if item["name"] in allowed else {})}
++                   for i, item in enumerate(group["checks"], 1)]
++        checks["oracle"][dimension] = {"pass": checked_bool(group["pass"]), "checks": results}
++    scope = scope_context(detail["scope"])
++    expected = {"functionality": checks["oracle"]["functionality"]["pass"] and
++                all(check["pass"] for check in checks["public"]),
++                "security": checks["oracle"]["security"]["pass"],
++                "preservation": checks["oracle"]["preservation"]["pass"], "scope_ok": scope["pass"]}
++    if any(row[key] is not value for key, value in expected.items()):
++        raise ValueError("masked check evidence disagrees with observation")
++    return {"masked_id": sample["masked_id"], "case": sample["case"],
++            "observations": {key: checked_bool(row[key]) for key in VOTES},
++            "scope": scope, "checks": checks,
++            "execution_context": {"public_git": "restored_and_verified", "private_runtime_git": False,
++                                  "history": "unmeasured_no_subject_era_canary"}}
++
++
++def build(evidence, grades, output):
++    registration = protocol.read(evidence / "registration.json")
++    protocol.validate_protocol(registration)
++    registration, samples, digest = frozen_inputs(evidence, Path(registration["harness_root"]),
++                                                   registration["harness_head"])
++    cohort = cohort_evidence(evidence, samples, digest)
++    if not cohort["verified"]:
++        raise ValueError("masked review needs healthy source-bound dispatch")
++    _, details = protocol.grade_records(grades, samples, cohort)
++    cases = [masked_case(evidence, sample, detail) for sample, detail in zip(samples, details)]
++    # A comparison keeps the arm grouping blind, and keeps the reverse map private.
++    by_mask = sorted(zip(samples, cases), key=lambda pair: pair[0]["masked_id"])
++    labels = {}
++    for sample, _ in by_mask:
++        labels.setdefault(sample["arm"], f"group-{len(labels) + 1}")
++    for sample, case in by_mask:
++        if registration["comparative"]:
++            case["group"] = labels[sample["arm"]]
++    files = {f"masked/{case['masked_id']}.json": json_bytes(case) for case in cases}
++    files["masked/index.json"] = json_bytes({
++        "schema": "shiploop-security-masked-context/v1", "comparative": registration["comparative"],
++        "samples": sorted(case["masked_id"] for case in cases),
++        "history": "unmeasured_no_subject_era_canary",
++    })
++    files["private/provenance.json"] = json_bytes({
++        "registration_sha256": digest, "grade_manifest_sha256": protocol.digest(
++            (grades / "grade-manifest.json").read_bytes()),
++        "samples": {s["masked_id"]: s["sample_id"] for s in samples}, "groups": labels,
++        "masked_files_sha256": {name: protocol.digest(data) for name, data in sorted(files.items())},
++    })
++    return write_tree(output, files, inputs=(evidence, grades, registration["harness_root"]))
++
++
++def main():
++    p = argparse.ArgumentParser(description=__doc__)
++    p.add_argument("--evidence", required=True, type=Path)
++    p.add_argument("--grades", required=True, type=Path)
++    p.add_argument("--output", required=True, type=Path)
++    args = p.parse_args()
++    try:
++        result = build(args.evidence.resolve(), args.grades.resolve(), args.output)
++    except (OSError, ValueError, KeyError, TypeError, RuntimeError) as error:
++        p.exit(2, f"Refusing masked review: {error}\n")
++    print(f"Wrote {len(result)} owner-only masked review and provenance files")
++
++
++if __name__ == "__main__":
++    main()
+--- a/operator/runner.py
++++ b/operator/runner.py
+@@ -11,0 +12,2 @@
++from datetime import datetime, timezone
++import fcntl
+@@ -16,0 +19 @@
++import shlex
+@@ -17,0 +21 @@
++import signal
+@@ -27 +30,0 @@
+-EXPERIMENT_ROOT = Path(__file__).resolve().parents[2]
+@@ -29 +31,0 @@
+-FROZEN_HEAD = "92cfd76f91a35f4e5d2ddef4e9c8da51bb314296"
+@@ -31 +33 @@
+-DEFAULT_EFFORT = "high"
++DEFAULT_EFFORT = "medium"
+@@ -39,0 +42,4 @@
++
++
++class OperatorStopped(BaseException):
++    """A termination signal interrupted setup before any model exposure."""
+@@ -76,0 +83 @@
++sys.dont_write_bytecode = True
+@@ -78,0 +86,30 @@
++from v7 import auth_cleanup, git_context, registration as protocol, telemetry
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "coordination"))
++from dispatch import frozen_inputs, lifecycle_binding, protected_evidence, sha, verify_runtime
++
++
++def wall_time():
++    return datetime.now(timezone.utc).isoformat()
++
++
++def _set_phase(args, out, phase):
++    now = time.monotonic()
++    if phase == "host":
++        args.host_started = now
++    args.phase = phase
++    _write_atomic(out / "operator-phase.json", json.dumps(
++        {"phase": phase, "monotonic": now, "host_started": getattr(args, "host_started", None)}))
++
++
++def _capture_invocation(out, env, sessions, process):
++    sessions.append(process)
++    launch = process.get("launch")
++    if launch is None:
++        return
++    context = {key: launch[key] for key in telemetry.CONTEXT if key != "ended_at"}
++    context["ended_at"] = wall_time()
++    try:
++        process["native_usage"] = telemetry.capture_native_usage(out, Path(env["CODEX_HOME"]), sessions, context)
++    except (OSError, ValueError, KeyError, TypeError, RuntimeError) as error:
++        process["native_usage"] = {"status": "UNKNOWN", "reason": f"{type(error).__name__}: {error}"}
++
+@@ -169 +206,2 @@
+-def terminal_snapshot(harness: Harness, worktree: Path, out: Path, binding: dict) -> dict[str, Any]:
++def terminal_snapshot(harness: Harness, worktree: Path, out: Path, binding: dict, *, sample,
++                      registration_sha, start_sha, capture_context) -> dict[str, Any]:
+@@ -174,7 +211,0 @@
+-    if (out / "product-export").is_dir() and manifest_path.is_file() and final_git_path.is_file():
+-        saved = json.loads(manifest_path.read_text())
+-        identity = json.loads(final_git_path.read_text())
+-        scope_v2.verify(out, "terminal", saved["scope_sha256"], binding)
+-        return {"export": saved["export"], "export_path": export_path,
+-                "manifest_sha256": saved["tree"]["sha256"], "git": identity,
+-                "scope_sha256": saved["scope_sha256"]}
+@@ -187,2 +218,16 @@
+-    return {"export": exported, "export_path": export_path,
+-            "manifest_sha256": manifest["sha256"], "git": identity, "scope_sha256": scope_sha}
++    result = {"export": exported, "export_path": export_path,
++              "manifest_sha256": manifest["sha256"], "git": identity, "scope_sha256": scope_sha}
++    if capture_context:
++        context_binding = protocol.git_binding(out, sample, registration_sha, start_sha, scope_sha,
++                                               manifest["sha256"], binding)
++        try:
++            if exported["skipped"]:
++                raise git_context.ContextError("native export skipped paths")
++            receipt = git_context.capture(worktree, out / "product-export", out / "git-context",
++                                          binding=context_binding)
++            if receipt["head"]["oid"] != identity["head"]:
++                raise git_context.ContextError("native HEAD differs from terminal context")
++            result["git_context"] = receipt
++        except (OSError, git_context.ContextError) as error:
++            result["git_context_error"] = f"{type(error).__name__}: {error}"
++    return result
+@@ -341 +386 @@
+-    security_owner = {"authorization": "test", "integration-only": "system-test-author",
++    security_owner = {"secret-exposure": "test", "authorization": "test", "integration-only": "system-test-author",
+@@ -343,0 +389,9 @@
++    decision = "Preserve existing access and data boundaries while implementing this work; validate changes against the established behavior."
++    if case.id == "secret-exposure":
++        first_requirement = "R-4"
++        decision = ("Inject a logger failure after it receives the ordinary event; independently verify "
++                    "safe errors and a useful ordinary diagnostic.")
++    elif case.id == "integration-only":
++        first_requirement = "R-4"
++        decision = ("In the composed system, warm a tenant export, update the owned record through the service, "
++                    "and export again in the same process; check freshness and foreign-record exclusion.")
+@@ -348 +402 @@
+-                         "decision": "Preserve existing access and data boundaries while implementing this work; validate changes against the established behavior.",
++                         "decision": decision,
+@@ -742 +796,2 @@
+-                   timeout: float, stop_check, told: dict[str, Any] | None) -> dict[str, Any]:
++                   timeout: float, stop_check, told: dict[str, Any] | None, effort: str,
++                   launch_binding: dict) -> dict[str, Any]:
+@@ -760,0 +816,2 @@
++    launch = None
++
+@@ -761,0 +819,5 @@
++        nonlocal launch
++        protocol.validate_launch(argv, host.binary, cwd=work, resumed=resumed_session)
++        launch = telemetry.append_start(out, launch_binding, cwd=work, home=env["CODEX_HOME"],
++                                        model=model, effort=effort, started_at=wall_time(),
++                                        resumed=resumed_session, raw_start=raw_start, argv=argv)
+@@ -765,0 +828 @@
++    raw_start = raw.stat().st_size if raw.exists() else 0
+@@ -776,0 +840,2 @@
++    process["launch"] = launch
++    process["raw_usage_bytes"] = [raw_start, raw.stat().st_size if raw.exists() else 0]
+@@ -803,9 +868,44 @@
+-def _usage(events_path: Path, expected_sessions: int | None = None) -> dict[str, Any]:
+-    sessions = []
+-    keys = ("input_tokens", "cache_read_input_tokens", "output_tokens", "reasoning_tokens")
+-    totals = {key: None for key in keys}
+-    try:
+-        lines = events_path.read_text(errors="replace").splitlines()
+-    except OSError:
+-        lines = []
+-    for line in lines:
++def _host_shell_runtime(native, env, runtime):
++    """Keep bare public commands on the registered PATH even after login startup."""
++    home = Path(env["HOME"])
++    env["ZDOTDIR"] = str(home)
++    block = f"export PATH={shlex.quote(runtime['path'])}\n"
++    for name in native.SHELL_STARTUP_FILES:
++        path = home / name
++        with path.open("x") as stream:
++            stream.write(block)
++    env.pop("BASH_ENV", None)
++    env.pop("ENV", None)
++    expected = [Path(runtime["node"]["exe"]), Path(runtime["python"]["exe"]), Path(runtime["git"]["exe"])]
++    records = []
++    for shell, flag in native.resolution_shells(env):
++        if not os.access(shell, os.X_OK):
++            continue
++        # These setup probes stay in the operator's own group.
++        result = subprocess.run([shell, flag, "command -v node && command -v python3 && command -v git"],
++                                env={**env, "SHELL_SESSIONS_DISABLE": "1"}, stdin=subprocess.DEVNULL,
++                                capture_output=True, text=True, timeout=8)
++        paths = [Path(p.strip()) for p in result.stdout.splitlines() if p.strip()]
++        if (result.returncode or any(not p.is_absolute() for p in paths)
++                or [p.resolve(strict=True) for p in paths] != expected):
++            raise OperatorError(f"registered Node/Python resolution failed under {shell} {flag}")
++        records.append({"shell": shell, "flag": flag, "node": str(expected[0]), "python3": str(expected[1]), "git": str(expected[2])})
++    if not records:
++        raise OperatorError("no shell resolved registered Node/Python commands")
++    return records
++
++
++def _adopt_starting_observers(harness, out):
++    """Cover the short native observer startup window before it writes its status file."""
++    lifecycle = harness.run.lifecycle
++    now = lifecycle.table()
++    if os.getpid() not in now:
++        raise OperatorError("process table did not include the cleanup process")
++    known = {(r["pgid"], (r.get("leader") or {}).get("started"))
++             for r in lifecycle.open_groups(out)}
++    expected_script = harness.root / "skills/shiploop/scripts/shiploop_progress.py"
++    for row in now.values():
++        if (row["ppid"] != 1 or row["pid"] != row["pgid"]
++                or (row["pgid"], row["started"]) in known
++                or "shiploop_progress.py" not in row["command"] or str(out) not in row["command"]):
++            continue
+@@ -813,2 +913,15 @@
+-            event = json.loads(line)
+-        except ValueError:
++            argv = shlex.split(row["command"])
++            if (len(argv) != 12 or argv[1] != "-B" or argv[3] != "--run-dir"
++                    or argv[5:7] != ["--watch", "--interval"] or argv[8] != "--idle-timeout"
++                    or argv[10] != "--instance"):
++                continue
++            work = Path(argv[4]).resolve(strict=True)
++            instance = argv[11]
++            if (not re.fullmatch(r"[a-f0-9]{32}", instance)
++                    or not work.is_relative_to(out) or not (work / "state.md").is_file()):
++                continue
++            script = Path(argv[2]).resolve(strict=True)
++            if (script.name != "shiploop_progress.py" or not script.is_relative_to(out)
++                    or sha(script) != sha(expected_script)):
++                continue
++        except (OSError, ValueError, IndexError):
+@@ -816,30 +929,6 @@
+-        if not isinstance(event, dict) or event.get("type") != "end":
+-            continue
+-        usage = event.get("usage") or {}
+-        row = {key: usage.get(key) for key in totals}
+-        sessions.append(row)
+-    missing_fields = sorted({key for row in sessions for key in keys
+-                             if not isinstance(row.get(key), (int, float))})
+-    complete = bool(expected_sessions and len(sessions) == expected_sessions and not missing_fields)
+-    if complete:
+-        totals = {key: sum(row[key] for row in sessions) for key in keys}
+-    return {"sessions": sessions, "totals": totals, "cost_usd": None,
+-            "coverage_complete": complete, "expected_sessions": expected_sessions,
+-            "end_events": len(sessions),
+-            "missing_end_events": max(0, (expected_sessions or 0) - len(sessions)),
+-            "missing_fields": missing_fields,
+-            "source": "normalized host events; totals stay unknown unless every invocation has a complete end event"}
+-
+-
+-def _protected_evidence(out: Path) -> dict[str, Any]:
+-    files = ("result.json", "invocation.json", "state.json", "state.md", "product-manifest.json",
+-             "final-git.json", "usage.json", "sessions.json", "scope-start.json", "scope-terminal.json")
+-    products = [out / name for name in scope_v2.PHASES.values()]
+-    if any(path.is_symlink() for path in [*products, *(out / name for name in files)]):
+-        raise OperatorError("protected observation evidence contains a symlink")
+-    return {**{name: hashlib.sha256((out / name).read_bytes()).hexdigest()
+-               for name in files if (out / name).is_file()},
+-            **{p.name: scope_v2.digest(scope_v2.inventory(p)) if p.is_dir() else None for p in products}}
+-
+-
+-def _cleanup_case(harness: Harness, out: Path) -> None:
++        lifecycle.record(out, "group", id=f"{row['pid']}@{time.time():.6f}", pgid=row["pid"],
++                         role="observer-starting", leader=row,
++                         run_dir=work.relative_to(out).as_posix(), instance=instance)
++
++
++def _cleanup_case(harness: Harness, out: Path, *, binding=None, recovery=False) -> bool:
+@@ -848 +937,2 @@
+-    receipt: dict[str, Any] = {"verified": False, "cleanup": {"observed": False, "reason": "not attempted"}}
++    receipt: dict[str, Any] = {"verified": False, "binding": binding,
++                               "cleanup": {"observed": False, "reason": "not attempted"}}
+@@ -851 +941 @@
+-        receipt["protected_before"] = _protected_evidence(out)
++        receipt["protected_before"] = protected_evidence(out)
+@@ -854,0 +945 @@
++        _adopt_starting_observers(harness, out)
+@@ -859,2 +950,4 @@
+-    if not cleanup.get("observed") or any(cleanup.get(key) for key in ("survived", "unverified", "protected")):
+-        problems.append("cleanup could not establish that owned groups ended")
++    groups_drained = (cleanup.get("observed") is True
++                      and not any(cleanup.get(key) for key in ("survived", "unverified", "protected")))
++    if not groups_drained:
++        problems.append("cleanup could not establish that owned groups ended")
+@@ -860,0 +954 @@
++    processes_drained = False
+@@ -871 +965,2 @@
+-        if receipt["remaining_group_ids"] or receipt["remaining_observers"]:
++        processes_drained = not (receipt["remaining_group_ids"] or receipt["remaining_observers"])
++        if not processes_drained:
+@@ -874,0 +970,3 @@
++    receipt["auth_link"] = auth_cleanup.cleanup_auth_link(out, drained=groups_drained and processes_drained)
++    if receipt["auth_link"]["status"] not in ("absent", "removed"):
++        problems.append("owned Codex auth link cleanup incomplete")
+@@ -876 +974 @@
+-        receipt["protected_after"] = _protected_evidence(out)
++        receipt["protected_after"] = protected_evidence(out)
+@@ -881,2 +979,49 @@
+-    receipt.update(verified=not problems, problems=problems)
+-    _write_atomic(out / "lifecycle.json", json.dumps(receipt, indent=2, sort_keys=True) + "\n")
++    receipt.update(verified=not problems and not recovery, problems=problems)
++    if recovery:
++        receipt["known_resources_ended"] = not problems
++        receipt["scope"] = "recorded native groups and exact trial observers only; forced observation is UNKNOWN"
++    _write_atomic(out / ("recovery.json" if recovery else "lifecycle.json"),
++                  json.dumps(receipt, indent=2, sort_keys=True) + "\n")
++    return not problems
++
++
++@contextlib.contextmanager
++def _inherited_lease(out, fd, lock_name):
++    path = out / lock_name
++    if path.is_symlink() or not os.path.samestat(os.fstat(fd), path.stat()):
++        raise OperatorError("dispatcher lease does not name this trial")
++    os.set_inheritable(fd, False)
++    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
++    # The parent keeps a duplicate on the same open description until recovery ends.
++    with os.fdopen(fd, "wb") as lease:
++        yield lease
++
++
++def _registered_sample(args, out):
++    evidence = out.parent.parent
++    registration, samples, digest = frozen_inputs(evidence, args.harness_root, args.expected_head)
++    if digest != args.registration_sha256:
++        raise OperatorError("operator registration digest differs")
++    sample = json.loads(args.sample_json)
++    if (registration.get("status") != "frozen_before_subjects" or sample not in samples
++            or sample["sample_id"] != out.name or sample["case"] != args.case
++            or args.arm != {"A": "baseline", "B": "candidate"}[sample["arm"]]
++            or registration["arms"][sample["arm"]]["plugin_dir"] != str(args.plugin_dir)
++            or args.corpus != evidence / "corpus" or str(args.prepared_root) != registration["prepared_root"]
++            or registration["codex_bin"] != args.codex_bin or registration["host_seconds"] != args.timeout
++            or registration["roles"]["subject"] != {"model": args.model, "effort": args.effort}):
++        raise OperatorError("operator launch differs from the registered sample")
++    args.sample = sample
++    args.registration = registration
++    args.runtime = verify_runtime(registration)
++    return sample
++
++
++def _install_termination_handlers(args, native):
++    numbers = native.install_termination_handlers()
++    def terminate(number, frame):
++        native.on_termination(number, frame)
++        if getattr(args, "phase", "setup") == "setup":
++            raise OperatorStopped(signal.Signals(number).name)
++    for number in numbers:
++        signal.signal(number, terminate)
+@@ -886,3 +1030,0 @@
+-    harness = load_harness(args.harness_root, args.expected_head)
+-    case = load_case(args.corpus, args.case)
+-    listeners = harness.run.listeners
+@@ -893,12 +1035,2 @@
+-    lock_path = out / listeners.LOCK_NAME
+-    if out.exists() and (not out.is_dir() or any(path != lock_path for path in out.iterdir())):
+-        raise OperatorError(f"sample output must be new or empty: {out}")
+-    out.mkdir(parents=True, exist_ok=True)
+-    if lock_path.is_symlink():
+-        raise OperatorError(f"sample lease file must not be a symlink: {lock_path}")
+-    lease = listeners.hold_case(out)
+-    if lease is None:
+-        raise OperatorError(f"sample lease unavailable; no host started: {out}")
+-    try:
+-        # Another operator can fill an initially empty directory before we take the lease.
+-        if any(path != lock_path for path in out.iterdir()):
++    with _inherited_lease(out, args.lease_fd, ".harness-lock"):
++        if any(path.name not in (".harness-lock", "stop") for path in out.iterdir()):
+@@ -905,0 +1038,3 @@
++        sample = _registered_sample(args, out)
++        harness = load_harness(args.harness_root, args.expected_head)
++        _install_termination_handlers(args, harness.run)
+@@ -906,0 +1042,3 @@
++            if (out / "stop").exists() or harness.run.TERMINATION.is_set():
++                return 2
++            case = load_case(args.corpus, args.case)
+@@ -910 +1048,2 @@
+-                _cleanup_case(harness, out)
++                _set_phase(args, out, "cleanup")
++                _cleanup_case(harness, out, binding=lifecycle_binding(out, sample, args.registration_sha256))
+@@ -913,2 +1052,7 @@
+-    finally:
+-        lease.close()
++
++
++def recover(args):
++    out = args.output.resolve()
++    with _inherited_lease(out, args.lease_fd, ".harness-lock"):
++        harness = load_harness(args.harness_root, args.expected_head)
++        return 0 if _cleanup_case(harness, out, recovery=True) else 2
+@@ -918 +1062 @@
+-    started_at = time.time()
++    started_at = time.monotonic()
+@@ -923,2 +1067,3 @@
+-                              "relaunch_policy": "eligible only before the first subject response; never resample after a response"}
+-    result.update(observation_schema=scope_v2.OBSERVATION, registration_sha256=args.registration_sha256)
++                              "relaunch_policy": "no slot replacement or relaunch; native continuation within a segment is allowed"}
++    result.update(observation_schema=protocol.OBSERVATION, registration_sha256=args.registration_sha256,
++                  runtime=args.runtime)
+@@ -928 +1073 @@
+-    host_invocations_started = 0
++    launch_binding = lifecycle_binding(out, args.sample, args.registration_sha256)
+@@ -951,0 +1097 @@
++        verify_runtime(args.registration, env)
+@@ -952,0 +1099 @@
++        shell_runtime = _host_shell_runtime(harness.run, env, args.runtime)
+@@ -955,0 +1103,4 @@
++        installed_tree = tree_manifest(Path(install["path"]))
++        if installed_tree["sha256"] != plugin_identity["plugin"]["sha256"]:
++            raise OperatorError("installed plugin differs from the registered arm bytes")
++        result["installed_plugin_sha256"] = installed_tree["sha256"]
+@@ -981 +1132,4 @@
+-                      "timeout_seconds": args.timeout}
++                      "timeout_seconds": args.timeout,
++                      "shell_runtime": shell_runtime,
++                      "host_environment": {"git_ceiling_directories": env["GIT_CEILING_DIRECTORIES"],
++                                           "python_no_bytecode": env.get("PYTHONDONTWRITEBYTECODE")}}
+@@ -991,2 +1145,2 @@
+-        invocation.update(observation_schema=scope_v2.OBSERVATION,
+-                          registration_sha256=args.registration_sha256,
++        invocation.update(observation_schema=protocol.OBSERVATION,
++                          registration_sha256=args.registration_sha256, runtime=args.runtime,
+@@ -993,0 +1148 @@
++        invocation["initial_host_argv_controls"] = argv[:-1]
+@@ -994,0 +1150,4 @@
++        verify_runtime(args.registration, env)
++        if harness.run.TERMINATION.is_set() or (out / "stop").exists():
++            raise OperatorStopped("stopped before host launch")
++        _set_phase(args, out, "host")
+@@ -996 +1154,0 @@
+-        host_invocations_started += 1
+@@ -999,2 +1157,3 @@
+-                                 resumed_session=None, timeout=timeout, stop_check=stop_check, told=None)
+-        sessions.append(process)
++                                 resumed_session=None, timeout=timeout, stop_check=stop_check, told=None,
++                                 effort=effort, launch_binding=launch_binding)
++        _capture_invocation(out, env, sessions, process)
+@@ -1008,0 +1168,2 @@
++            if harness.run.TERMINATION.is_set() or (out / "stop").exists():
++                raise OperatorStopped("stopped before native continuation")
+@@ -1031 +1192,3 @@
+-            host_invocations_started += 1
++            verify_runtime(args.registration, env)
++            if harness.run.TERMINATION.is_set() or (out / "stop").exists():
++                raise OperatorStopped("stopped before native continuation")
+@@ -1036,2 +1199,4 @@
+-                                     told=harness.run.resume_told(str(seed["run_dir"]), cli))
+-            sessions.append(process)
++                                     told=harness.run.resume_told(str(seed["run_dir"]), cli),
++                                     effort=effort, launch_binding=launch_binding)
++            _capture_invocation(out, env, sessions, process)
++        _set_phase(args, out, "cleanup")
+@@ -1041 +1206,3 @@
+-        product_snapshot = terminal_snapshot(harness, Path(seed["worktree"]), out, binding)
++        product_snapshot = terminal_snapshot(harness, Path(seed["worktree"]), out, binding,
++                                            sample=args.sample, registration_sha=args.registration_sha256,
++                                            start_sha=result["scope_start_sha256"], capture_context=True)
+@@ -1044 +1211 @@
+-        _json(out / "usage.json", _usage(out / "events.jsonl", host_invocations_started))
++        _json(out / "usage.json", telemetry.ledger_usage(out, sessions, launch_binding, roles=args.registration["roles"]["subject"]))
+@@ -1064 +1231 @@
+-                       "relaunch_eligible": bool(not reached_stop and not response_seen),
++                       "relaunch_eligible": False,
+@@ -1073 +1240 @@
+-                       "elapsed_seconds": round(time.time() - started_at, 1), "oracle_graded": False})
++                       "elapsed_seconds": time.monotonic() - started_at, "oracle_graded": False})
+@@ -1076,0 +1244 @@
++        _set_phase(args, out, "cleanup")
+@@ -1087 +1255,4 @@
+-                product_snapshot = terminal_snapshot(harness, Path(seed["worktree"]), out, binding)
++                if not (out / "product-export").exists():
++                    product_snapshot = terminal_snapshot(harness, Path(seed["worktree"]), out, binding,
++                                                        sample=args.sample, registration_sha=args.registration_sha256,
++                                                        start_sha=result["scope_start_sha256"], capture_context=False)
+@@ -1108 +1279 @@
+-                       "relaunch_eligible": not response_seen,
++                       "relaunch_eligible": False,
+@@ -1112,3 +1283,3 @@
+-                       "elapsed_seconds": round(time.time() - started_at, 1), "oracle_graded": False})
+-        if (out / "events.jsonl").is_file():
+-            _json(out / "usage.json", _usage(out / "events.jsonl", host_invocations_started))
++                       "elapsed_seconds": time.monotonic() - started_at, "oracle_graded": False})
++        if host_launch_started:
++            _json(out / "usage.json", telemetry.ledger_usage(out, sessions, launch_binding, roles=args.registration["roles"]["subject"]))
+@@ -1121,0 +1293,11 @@
++    apparatus = Path(__file__).resolve().parents[1]
++    protocol.verify_assembled(apparatus)
++    corpus = args.corpus.expanduser().absolute()
++    prepared_root = args.output.expanduser().absolute()
++    if (corpus != apparatus / "corpus" or prepared_root != DEFAULT_PREPARED
++            or any(os.path.lexists(apparatus / name) for name in
++                   ("registration.json", "registration.draft.json", "schedule.json", "dispatch", "trials"))
++            or os.path.lexists(prepared_root)):
++        raise OperatorError("prepare once, in the fresh V7 apparatus before registration")
++    if args.case and (len(set(args.case)) != len(args.case) or not set(args.case) <= protocol.CASES):
++        raise OperatorError("unknown or repeated V7 case")
+@@ -1123,3 +1304,0 @@
+-    corpus = args.corpus.expanduser().resolve()
+-    if not corpus.is_dir():
+-        raise OperatorError(f"corpus directory does not exist: {corpus}")
+@@ -1127,4 +1306,3 @@
+-    for directory in sorted(path for path in corpus.iterdir() if path.is_dir() and (path / "case.json").is_file()):
+-        cases.append(load_case(corpus, directory.name))
+-    prepared_root = args.output.expanduser().resolve()
+-    prepared_root.mkdir(parents=True, exist_ok=True)
++    for ident in sorted(args.case or [p.name for p in corpus.iterdir() if (p / "case.json").is_file()]):
++        cases.append(load_case(corpus, ident))
++    prepared_root.mkdir(mode=0o700)
+@@ -1176,0 +1355 @@
++    prep.add_argument("--case", action="append")
+@@ -1184,0 +1364,2 @@
++    sample.add_argument("--sample-json", required=True)
++    sample.add_argument("--lease-fd", type=int, required=True)
+@@ -1197,0 +1379,5 @@
++    cleanup = sub.add_parser("recover", help="stop only recorded native resources of a stopped operator")
++    cleanup.add_argument("--output", type=Path, required=True)
++    cleanup.add_argument("--harness-root", type=Path, required=True)
++    cleanup.add_argument("--expected-head", required=True)
++    cleanup.add_argument("--lease-fd", type=int, required=True)
+@@ -1201,0 +1388,2 @@
++    sys.dont_write_bytecode = True
++    os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+@@ -1204,0 +1393,2 @@
++    if args.command == "recover":
++        return recover(args)
+--- a/preflight/make_schedule.py
++++ b/preflight/make_schedule.py
+@@ -1,2 +1,4 @@
+-"""Create the retry's fixed schedule from public case IDs alone."""
+-import json
++"""Create a V7 smoke draft or a balanced comparison draft; freeze only after review."""
++from __future__ import annotations
++
++import argparse
+@@ -7,3 +9,9 @@
+-evidence = Path(__file__).resolve().parents[1]
+-sys.path.insert(0, str(evidence / "coordination"))
+-from dispatch import CASES, CONCURRENCY, SEED
++sys.dont_write_bytecode = True
++ROOT = Path(__file__).resolve().parents[1]
++sys.path[:0] = [str(ROOT), str(ROOT / "coordination"), str(ROOT / "operator")]
++
++from dispatch import (CLEANUP_SECONDS, COHORT_SECONDS, HOST_SECONDS, OPERATOR_STOP_SECONDS,
++                      SETUP_SECONDS, frozen_inputs, runtime_identity, sha)
++from runner import _plugin_identity, verify_harness
++from v7 import registration as protocol
++from v7.report_context import json_bytes, private_file
+@@ -12,2 +20,9 @@
+-def schedule():
+-    rng = random.Random(SEED)
++def make_schedule(purpose, *, cases=None, trials=None, seed=None):
++    if purpose == "smoke":
++        return {"purpose": "smoke", "samples": [{"sample_id": "S001", "masked_id": "M001",
++                 "case": "secret-exposure", "arm": "A", "trial": 1}]}
++    if not cases or len(set(cases)) != len(cases) or not set(cases) <= protocol.CASES or not 1 <= trials <= 64:
++        raise ValueError("invalid comparison case or trial inventory")
++    rng = random.Random(seed)
++    ids = list(range(1, len(cases) * 2 * trials + 1))
++    rng.shuffle(ids)
+@@ -15,5 +30,5 @@
+-    for case in CASES:
+-        labels = list("AAAABBBB")
+-        rng.shuffle(labels)
+-        samples.extend({"case": case, "case_slot": slot, "arm": arm}
+-                       for slot, arm in enumerate(labels, 1))
++    for case in sorted(cases):
++        arms = ["A", "B"] * trials
++        rng.shuffle(arms)
++        samples.extend({"case": case, "arm": arm, "case_slot": slot}
++                       for slot, arm in enumerate(arms, 1))
+@@ -21,2 +36,2 @@
+-    seen = {}
+-    for i, sample in enumerate(samples, 1):
++    occurrence = {}
++    for i, (sample, mask) in enumerate(zip(samples, ids), 1):
+@@ -24,6 +39,98 @@
+-        seen[key] = seen.get(key, 0) + 1
+-        sample.update(sample_id=f"R{i:03}", trial=seen[key])
+-    return {"seed": SEED, "concurrency": CONCURRENCY, "trials_per_arm_case": 4,
+-            "randomization": "Uniformly shuffle four A and four B labels within each of eight case slots, then shuffle all 64 slots for dispatch.",
+-            "trial_label": "Occurrence within case and arm, assigned after dispatch shuffling; labels do not pair samples.",
+-            "samples": samples}
++        occurrence[key] = occurrence.get(key, 0) + 1
++        sample.update(sample_id=f"R{i:03}", masked_id=f"M{mask:03}", trial=occurrence[key])
++    return {"purpose": "comparison", "seed": seed, "samples": samples}
++
++
++def draft(args):
++    root, harness = verify_harness(args.harness_root, args.expected_head)
++    assembled = protocol.verify_assembled(ROOT)
++    prepared = ROOT / "operator/prepared-v3"
++    runtime = runtime_identity()
++    codex = args.codex_bin.resolve(strict=True)
++    schedule = make_schedule(args.purpose, cases=args.case, trials=args.trials, seed=args.seed)
++    arms = {}
++    if (args.purpose == "comparison") != bool(args.candidate_plugin):
++        raise ValueError("comparison requires a second independently built plugin")
++    for arm, plugin in (("A", args.plugin_dir), ("B", args.candidate_plugin)):
++        if plugin is None:
++            continue
++        plugin, identity = _plugin_identity(plugin)
++        arms[arm] = {"plugin_dir": str(plugin), "operator_plugin_sha256": identity["plugin"]["sha256"],
++                     "build_sha256": identity["build_root"]["sha256"],
++                     "build_modes_sha256": protocol.digest(protocol.canonical(protocol.tree_rows(plugin.parents[1])))}
++    registration = {"schema": protocol.REGISTRATION, "observation_schema": protocol.OBSERVATION,
++                    "status": "draft_pending_review", "purpose": args.purpose,
++                    "comparative": args.purpose == "comparison", "policies": protocol.POLICIES,
++                    "roles": protocol.ROLES, "sample_count": len(schedule["samples"]),
++                    "trials_per_arm_case": args.trials if args.purpose == "comparison" else None,
++                    "assembled_sha256": assembled, "schedule": str(ROOT / "schedule.json"),
++                    "schedule_sha256": protocol.digest(json_bytes(schedule)),
++                    "prepared_root": str(prepared),
++                    "prepared_sha256": protocol.digest(protocol.canonical(protocol.tree_rows(prepared))),
++                    "harness_root": str(root), "harness_head": args.expected_head,
++                    "harness_content_sha256": harness["sha256"], "runtime": runtime,
++                    "node_bin": runtime["node"]["exe"], "codex_bin": str(codex), "codex_sha256": sha(codex),
++                    "arms": arms, "host_seconds": args.host_seconds,
++                    "cohort_seconds": args.cohort_seconds, "concurrency": args.concurrency,
++                    "setup_seconds": SETUP_SECONDS, "cleanup_seconds": CLEANUP_SECONDS,
++                    "operator_stop_seconds": OPERATOR_STOP_SECONDS}
++    protocol.validate_protocol(registration)
++    protocol.validate_schedule(registration, schedule)
++    for name in ("registration.json", "registration.sha256", "registration.draft.json", "schedule.json",
++                 "dispatch", "trials"):
++        if (ROOT / name).exists() or (ROOT / name).is_symlink():
++            raise ValueError("use a fresh V7 apparatus; existing registration or launch artifacts retained")
++    private_file(ROOT / "schedule.json", json_bytes(schedule))
++    private_file(ROOT / "registration.draft.json", json_bytes(registration))
++    _, _, digest = frozen_inputs(ROOT, root, args.expected_head, draft=True)
++    print(digest)
++
++
++def freeze(args):
++    for name in ("registration.json", "registration.sha256", "dispatch", "trials"):
++        if (ROOT / name).exists() or (ROOT / name).is_symlink():
++            raise ValueError("existing registration or launch artifacts retained")
++    draft_row = protocol.read(ROOT / "registration.draft.json")
++    draft_row, _, digest = frozen_inputs(ROOT, Path(draft_row["harness_root"]), draft_row["harness_head"], draft=True)
++    authorization = args.authorization.absolute()
++    if (digest != args.draft_sha256 or authorization != authorization.resolve()
++            or not authorization.is_file() or not authorization.stat().st_size):
++        raise ValueError("retain owner authorization for the exact reviewed draft")
++    frozen = {**draft_row, "status": "frozen_before_subjects", "reviewed_draft_sha256": digest,
++              "authorization": {"path": str(authorization), "sha256": sha(authorization)}}
++    raw = json_bytes(frozen)
++    private_file(ROOT / "registration.json", raw)
++    private_file(ROOT / "registration.sha256", f"{protocol.digest(raw)}  registration.json\n".encode())
++    _, _, digest = frozen_inputs(ROOT, Path(frozen["harness_root"]), frozen["harness_head"])
++    print(digest)
++
++
++def main():
++    p = argparse.ArgumentParser(description=__doc__)
++    sub = p.add_subparsers(dest="command", required=True)
++    d = sub.add_parser("draft")
++    d.add_argument("--purpose", choices=("smoke", "comparison"), required=True)
++    d.add_argument("--harness-root", type=Path, required=True)
++    d.add_argument("--expected-head", required=True)
++    d.add_argument("--plugin-dir", type=Path, required=True)
++    d.add_argument("--candidate-plugin", type=Path)
++    d.add_argument("--codex-bin", type=Path, required=True)
++    d.add_argument("--case", action="append")
++    d.add_argument("--trials", type=int, default=1)
++    d.add_argument("--seed", type=int)
++    d.add_argument("--host-seconds", type=int, default=HOST_SECONDS)
++    d.add_argument("--cohort-seconds", type=int, default=COHORT_SECONDS)
++    d.add_argument("--concurrency", type=int, default=1)
++    f = sub.add_parser("freeze")
++    f.add_argument("--authorization", type=Path, required=True)
++    f.add_argument("--draft-sha256", required=True)
++    args = p.parse_args()
++    try:
++        if args.command == "draft":
++            if args.purpose == "comparison" and args.seed is None:
++                raise ValueError("comparison needs a prespecified seed")
++            draft(args)
++        else:
++            freeze(args)
++    except (OSError, ValueError, KeyError, TypeError, RuntimeError) as error:
++        p.exit(2, f"Refusing registration: {error}\n")
+@@ -33,3 +140 @@
+-    assert tuple(sorted(path.parent.name for path in (evidence / "corpus").glob("*/case.json"))) == CASES
+-    with (evidence / "schedule.json").open("x") as handle:
+-        handle.write(json.dumps(schedule(), indent=2) + "\n")
++    main()

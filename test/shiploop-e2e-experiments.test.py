@@ -32,6 +32,7 @@ E2E = ROOT / "test" / "shiploop_e2e"
 sys.path.insert(0, str(E2E))
 sys.path.insert(0, str(E2E / "evaluators"))
 import experiment  # noqa: E402
+import hosts  # noqa: E402
 import overlay  # noqa: E402
 import run  # noqa: E402
 import slice as step_slice  # noqa: E402
@@ -49,11 +50,21 @@ sg2_pool = importlib.util.module_from_spec(_pool_spec)
 _pool_spec.loader.exec_module(sg2_pool)
 
 
-def _write_invocation(sample: Path, *, host="grok", model="grok-4.7", effort="medium", **fields) -> Path:
+_UNSET = object()
+
+
+def _write_invocation(sample: Path, *, host="grok", model=_UNSET, effort=_UNSET, **fields) -> Path:
+    """A sample's slice launch record. Unset fields take the Grok host's own profile (what a run started on the default
+    driver records), so a retained sample matches the profile a new launch would request; an explicit None is kept, as
+    it is for the Claude host, which has no effort of its own."""
     folder = sample / "slice"
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / "invocation.json"
-    path.write_text(json.dumps({"host": host, "model": model, "effort": effort, **fields}))
+    record = {"host": host,
+              "model": hosts.GrokHost.model if model is _UNSET else model,
+              "effort": hosts.GrokHost.effort if effort is _UNSET else effort,
+              **fields}
+    path.write_text(json.dumps(record))
     return path
 
 
@@ -578,9 +589,9 @@ class LaunchProfiles(unittest.TestCase):
         loaded.start()
         self.addCleanup(loaded.stop)
 
-    def _sample(self, arm, *, model="gpt-6.1-terra", effort="xhigh", finished=True, n=1):
+    def _sample(self, arm, *, host="codex", model="gpt-6.1-terra", effort="xhigh", finished=True, n=1):
         sample = self.out / "Q" / arm / str(n)
-        folder = _write_invocation(sample, host="codex", model=model, effort=effort, backend=None).parent
+        folder = _write_invocation(sample, host=host, model=model, effort=effort, backend=None).parent
         if finished:
             (folder / "slice-result.json").write_text('{"pass": true}')
         return sample
@@ -612,15 +623,15 @@ class LaunchProfiles(unittest.TestCase):
 
     def test_run_pins_the_new_default_on_an_empty_output(self):
         def complete(argv):
-            self.assertEqual(argv[argv.index("--host") + 1], "codex")
-            self.assertIn("--model=gpt-6.1-sol", argv)
-            self.assertIn("--effort=medium", argv)
-            self._sample("B", model="gpt-6.1-sol", effort="medium")
+            self.assertEqual(argv[argv.index("--host") + 1], "grok")
+            self.assertIn("--model=grok-4.6", argv)
+            self.assertIn("--effort=xhigh", argv)
+            self._sample("B", host="grok", model="grok-4.6", effort="xhigh")
             return subprocess.CompletedProcess(argv, 0)
 
         with mock.patch.object(experiment.subprocess, "run", side_effect=complete) as launched, \
                 contextlib.redirect_stdout(io.StringIO()):
-            self.assertEqual(experiment.run("Q", "B", 1, "codex", self.out, []), 0)
+            self.assertEqual(experiment.run("Q", "B", 1, "grok", self.out, []), 0)
             launched.assert_called_once()
 
     def test_queue_refuses_a_profile_change_before_any_dispatch_even_without_early_stop(self):
@@ -1111,7 +1122,7 @@ class RoundSpeedups(unittest.TestCase):
         launched = []
         with mock.patch.object(experiment, "queue", side_effect=lambda *a, **k: launched.append(a) or 0):
             experiment.main(["queue", "E6D2-K2", "E6D2-K4", "--arms", "T,Cg", "--out", str(self.tmp)])
-            self.assertEqual(launched[0][4], "codex")  # New runs use the owner-selected Sol/medium subject profile.
+            self.assertEqual(launched[0][4], "grok")  # New runs use the owner-selected Grok 4.6 xhigh subject profile.
 
     def test_a_slice_option_written_as_two_words_is_refused_with_the_one_word_form(self):
         """R3's first launch (2026-10-26): `--timeout 10800` made "10800" an experiment id and the queue ran nothing."""

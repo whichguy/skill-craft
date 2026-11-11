@@ -48,7 +48,7 @@ metrics.json only, at most five printed lines, never a verdict). The run's Run R
 documents go to <output>/review-export/ (skills/shiploop-run-review/);
 an export problem is printed and never changes a verdict.
 
-The default host is Codex (gpt-6.1-sol, medium). By default the run tests what
+The default host is Grok (grok-4.6, xhigh). By default the run tests what
 the whichguy marketplace publishes now (--source marketplace, gated on local
 HEAD == origin/main and matching versions); --source checkout builds this
 checkout instead. The host is isolated from the user's configuration:
@@ -2617,9 +2617,9 @@ def parser() -> argparse.ArgumentParser:
                         f"Ollama server serves, default {hosts.OLLAMA_MODEL}, with the user's Anthropic credentials scrubbed "
                         "(SPEC \"The Claude host can run on Ollama\"). A resume keeps its run's backend")
     p.add_argument("--model", help=f"default: {hosts.CodexHost.model} (codex), claude-sonnet-5-5 (claude), "
-                                   f"{hosts.OLLAMA_MODEL} (claude --backend ollama), grok-4.7 (grok)")
+                                   f"{hosts.OLLAMA_MODEL} (claude --backend ollama), {hosts.GrokHost.model} (grok)")
     p.add_argument("--effort", help=f"reasoning effort; default: {hosts.CodexHost.effort} (codex), "
-                                    "host default (claude), medium (grok)")
+                                    f"host default (claude), {hosts.GrokHost.effort} (grok)")
     p.add_argument("--skill", help="command that invokes ShipLoop; default: skill-craft:shiploop (claude, codex), shiploop (grok)")
     p.add_argument("--source", choices=("marketplace", "checkout"), default="marketplace",
                    help="marketplace (default): test what the whichguy marketplace publishes now, gated on "

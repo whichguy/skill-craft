@@ -641,6 +641,55 @@
     ],
     "hosts": "none refreshed by this work (release checklist step 5 is for installers); the owner's installed copies stay at the previous plugin version until refreshed",
     "ci": "the push run for the release commit had passed its release-boundary, plan and browser-fixtures jobs and had six jobs still running (core, python-floor, three shiploop shards, e2e-apparatus) when this was recorded; not waited on",
-    "not_covered": "no host installed or ran the published version; the published copy equals the source byte for byte and passed the offline package checks only"
+    "not_covered": "no host installed or ran the published version; the published copy equals the source byte for byte and passed the offline package checks only",
+    "host_refresh_20261109": {
+      "recorded": "2026-11-09",
+      "instruction": "the owner answered \"Refresh hosts\" to the question that closed the publication round",
+      "cli_versions": {
+        "claude_code": "2.1.319",
+        "codex": "0.167.0",
+        "grok": "1.0.77",
+        "cursor_agent": "2026.09.23"
+      },
+      "before": {
+        "claude_code": "skill-craft 2.36.0",
+        "grok": "skill-craft 2.36.0, no test-harness in its marketplace cache",
+        "codex": "skill-craft 2.36.1 (marketplace clone 3dddea1b, which contains the release)",
+        "cursor": "whichguy registered at ff0ba755, its cache holds 2.36.1"
+      },
+      "run": {
+        "claude_code": [
+          "claude plugin marketplace update whichguy",
+          "claude plugin update skill-craft@whichguy --scope user"
+        ],
+        "grok": [
+          "grok plugin marketplace update whichguy",
+          "grok plugin update skill-craft"
+        ],
+        "codex": [],
+        "cursor": []
+      },
+      "after": {
+        "claude_code": "2.36.1, enabled; the update command says to restart",
+        "grok": "2.36.1",
+        "codex": "2.36.1, unchanged",
+        "cursor": "2.36.1, unchanged"
+      },
+      "two_commands_needed": "after the marketplace refresh alone, claude plugin update reported 'updated from 2.36.0 to 2.36.1' and grok plugin details skill-craft still reported v2.36.0 until grok plugin update reported '2.36.0 -> 2.36.1'",
+      "grok_marketplace_update_argument": "takes the marketplace name; the URL that grok plugin marketplace list prints answered 'not found'",
+      "installed_copies_equal_release": {
+        "reference": "plugins/skill-craft/skills/test-harness at origin/main 85a7cda7, 21 files",
+        "claude_code": "byte-identical",
+        "codex": "byte-identical",
+        "grok": "byte-identical",
+        "cursor": "byte-identical",
+        "identical_control": "the reference compared with itself: byte-identical",
+        "must_differ_control": "an older private copy of the skill, 26 files: differed on 20 diff lines"
+      },
+      "marketplace_payload_unchanged_since_record_commit": "git diff --stat 404dcb0c origin/main over plugins/skill-craft, the four host catalogs and catalog/skill-craft-plugin.json printed nothing; the seven later commits are tests and docs",
+      "invalid_first_comparison": "in zsh a loop variable named path replaces PATH, so diff was not found and every row printed DIFFERS; rerun with another variable name, an identical-pair control and a must-differ control",
+      "ci": "the push runs for ff0ba755 and 404dcb0c finished success",
+      "not_covered": "no host has run the skill; Claude Code sessions already running keep the previous copy until it is restarted"
+    }
   }
 }

@@ -604,12 +604,13 @@ class IterateConvergenceTest(unittest.TestCase):
             receipt.update(json.loads((tmp / "out" / "iteration-result.json").read_text()))
         return (tmp / "out" / "LEARNINGS.md").read_text()
 
-    def test_the_default_subject_is_codex_with_separate_review_roles(self):
+    def test_the_default_subject_is_the_shared_driver_default_with_separate_review_roles(self):
         launched: list = []
         self.iterate([("exited", VALID_EMPTY_REVIEW)] * 2, 2, host=(), launched=launched)
         self.assertTrue(launched)
         for argv in launched:
-            self.assertEqual(argv[argv.index("--host") + 1], "codex")
+            self.assertEqual(argv[argv.index("--host") + 1], hosts.RUN_DEFAULT_HOST,
+                             "no --host must reach the host the shared default names, not a copy of it")
             self.assertNotIn("--backend", argv)
 
     def test_unusable_reviews_of_passing_runs_never_converge(self):
@@ -2626,6 +2627,28 @@ class FanoutGradeTest(unittest.TestCase):
         self.assertFalse(result["complete"])
 
 
+class FanoutParserTest(unittest.TestCase):
+    """fanout.py follows the one shared driver default instead of naming its own (f810a78f predated the constant)."""
+
+    def test_the_host_default_is_the_shared_driver_default(self):
+        self.assertEqual(fanout.parser().parse_args([]).host, hosts.RUN_DEFAULT_HOST)
+
+    def test_an_explicit_host_still_overrides_the_default(self):
+        for name in sorted(hosts.HOSTS):
+            with self.subTest(host=name):
+                self.assertEqual(fanout.parser().parse_args(["--host", name]).host, name)
+
+    def test_the_docstring_shows_the_bare_default_invocation_and_an_explicit_other_host(self):
+        usage = [line for line in fanout.__doc__.splitlines() if "fanout.py" in line]
+        self.assertTrue(usage, fanout.__doc__)
+        bare = [line for line in usage if "--host" not in line]
+        self.assertTrue(bare, "a usage line must show the bare invocation that takes the shared default")
+        self.assertIn("RUN_DEFAULT_HOST", " ".join(bare),
+                      "the bare invocation's comment must point at the shared default constant")
+        self.assertTrue([line for line in usage if "--host codex" in line],
+                        "a usage line must still show --host selecting another host")
+
+
 class HostCoverageTest(unittest.TestCase):
     """A counter the host's events cannot show is unmeasured, never a zero that passes a comparison."""
 
@@ -2956,12 +2979,12 @@ class RegradeRecordTest(PrintedCase):
     def test_a_regrade_keeps_the_host_model_and_effort_the_run_recorded_whatever_the_command_line_says(self):
         code, first, _ = self.invoke_printed("grok", "done")
         result, printed = self.regrade(Path(first["output"]), "--host", "codex", "--codex-bin", str(self.fakes["codex"]),
-                                       "--model", "gpt-6-sol", "--effort", "xhigh")
+                                       "--model", "gpt-6-sol", "--effort", "minimal")
         self.assertEqual((result["host"], result["model"], result["effort"]),
                          (first["host"], first["model"], first["effort"]))
-        self.assertEqual((first["host"], first["effort"]), ("grok", "medium"))
+        self.assertEqual((first["host"], first["effort"]), ("grok", hosts.HOST_DEFAULTS["grok"]["effort"]))
         self.assertTrue(result["pass"], {k: result[k] for k in ("invoked", "plugin", "process")})
-        self.assertIn("ignoring --host codex, --model gpt-6-sol, --effort xhigh", printed)
+        self.assertIn("ignoring --host codex, --model gpt-6-sol, --effort minimal", printed)
 
     def test_a_run_resumed_on_another_host_is_regraded_as_that_host_with_its_plugin_and_versions(self):
         code, stopped, _ = self.invoke_printed("grok", "stuck", "--max-resumes", "0")

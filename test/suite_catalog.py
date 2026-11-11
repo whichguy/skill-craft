@@ -333,8 +333,8 @@ _CORE_SUITES = (
     _suite("native-setup-pilot", "core", "test/native-setup-pilot.test.py", "python3", "-B", "test/native-setup-pilot.test.py"),
     _suite("planning-score", "core", "test/experiments/shiploop_spec_discovery/test_scoring.py",
            "python3", "-B", "test/experiments/shiploop_spec_discovery/test_scoring.py"),
-    _suite("security-harness", "core", "test/experiments/shiploop_security/test_scope.py",
-           "python3", "-B", "test/experiments/shiploop_security/test_scope.py"),
+    _suite("security-harness", "core", "test/experiments/shiploop_security/run_tests.py",
+           "python3", "-B", "test/experiments/shiploop_security/run_tests.py"),
 )
 
 SHIPLOOP_SUITES = tuple(_shiploop(path) for path in _SHIPLOOP_PATHS)
