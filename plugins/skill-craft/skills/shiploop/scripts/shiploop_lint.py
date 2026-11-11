@@ -67,9 +67,11 @@ import time
 import uuid
 from collections import Counter
 from datetime import datetime, timezone
+from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set, Tuple
 
+import shiploop_capture as capture_io
 import shiploop_privacy as privacy
 import shiploop_stage_spec as stage_spec
 import shiploop_store as store
@@ -149,23 +151,26 @@ def _bytes(value: object) -> bytes:
     return str(value).encode("utf-8", "replace")
 
 
-def _terminate_timed_out_process(process: "subprocess.Popen[bytes]") -> Tuple[bytes, bytes]:
+def _terminate_timed_out_process(process: "subprocess.Popen[bytes]",
+                                 capture: Optional[Callable[..., Tuple[bytes, bytes]]] = None
+                                 ) -> Tuple[bytes, bytes]:
     """Stop a timed-out tool, including its POSIX process group when available."""
+    receive = process.communicate if capture is None else capture
     if os.name == "posix":
         try:
             os.killpg(process.pid, signal.SIGTERM)
         except ProcessLookupError:
             pass
         try:
-            return process.communicate(timeout=0.2)
+            return receive(timeout=0.2)
         except subprocess.TimeoutExpired:
             try:
                 os.killpg(process.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
-            return process.communicate()
+            return receive()
     process.kill()
-    return process.communicate()
+    return receive()
 
 
 def _stop_aborted_process(process: "subprocess.Popen[bytes]") -> None:
@@ -185,8 +190,9 @@ def _stop_aborted_process(process: "subprocess.Popen[bytes]") -> None:
             process.returncode = os.waitstatus_to_exitcode(status)
 
 
-def run_argv(argv: List[str], cwd: Path, timeout: float, *, input_bytes: Optional[bytes] = None,
-             env: Optional[Mapping[str, str]] = None) -> Tuple[str, Optional[int], bytes, bytes]:
+def run_argv(argv: List[str], cwd: Path, timeout: Optional[float], *, input_bytes: Optional[bytes] = None,
+             env: Optional[Mapping[str, str]] = None, recovery: Optional[capture_io.Recovery] = None
+             ) -> Tuple[str, Optional[int], bytes, bytes]:
     """Run argv without a shell and return status, exit code, stdout, stderr.
 
     ``input_bytes`` is written to stdin (then closed); ``None`` inherits stdin.
@@ -194,6 +200,10 @@ def run_argv(argv: List[str], cwd: Path, timeout: float, *, input_bytes: Optiona
     ``timeout``; a timed-out tool's whole process group is killed, so a child
     it spawned cannot outlive the pass, and its partial output is kept.
     """
+    if input_bytes:
+        # Keep the runtime's communicate behavior for data-bearing stdin,
+        # including how it handles unfinished input during timeout teardown.
+        recovery = None
     popen_kwargs: Dict[str, Any] = {
         "cwd": os.fspath(cwd),
         "stdout": subprocess.PIPE,
@@ -206,20 +216,54 @@ def run_argv(argv: List[str], cwd: Path, timeout: float, *, input_bytes: Optiona
     if os.name == "posix":
         # A fresh session gives the tool a private process group.
         popen_kwargs["start_new_session"] = True
+        if recovery is not None:
+            popen_kwargs["bufsize"] = 0
+    else:
+        recovery = None
     process = subprocess.Popen(argv, **popen_kwargs)
+    capture = None
     try:
         try:
-            stdout, stderr = process.communicate(input=input_bytes, timeout=timeout)
+            if recovery is None:
+                stdout, stderr = process.communicate(input=input_bytes, timeout=timeout)
+            else:
+                capture = capture_io.PipeCapture(process)
+                stdout, stderr = capture.capture(timeout=timeout)
         except subprocess.TimeoutExpired:
-            stdout, stderr = _terminate_timed_out_process(process)
+            if capture is None:
+                stdout, stderr = _terminate_timed_out_process(process)
+            else:
+                stdout, stderr = _terminate_timed_out_process(process, capture.capture)
             return "timeout", None, _bytes(stdout), _bytes(stderr)
     except BaseException:
         try:
             _stop_aborted_process(process)
         except BaseException:
             pass  # Preserve the original capture or teardown exception.
+        if recovery is not None:
+            try:
+                capture_io.close_aborted(process, capture)
+            except BaseException:
+                pass
+            if capture is not None:
+                try:
+                    capture_io.publish(recovery, capture)
+                except BaseException:
+                    pass  # Best effort; never report a storage error over the original.
         raise
     return ("passed" if process.returncode == 0 else "failed"), process.returncode, _bytes(stdout), _bytes(stderr)
+
+
+def recovery_runner(run_dir: Path, action: str, operation: str) -> Runner:
+    """Bind only the default workload runner; helpers and injected runners are separate."""
+    if os.name == "posix":
+        # Resolve the authorized run root now. Publication still opens each
+        # component without following symlinks, including command-recovery.
+        try:
+            run_dir = run_dir.resolve(strict=True)
+        except (OSError, RuntimeError):
+            pass  # Best-effort recovery must not prevent the workload from running.
+    return partial(run_argv, recovery=capture_io.Recovery(run_dir, action, operation))
 
 
 # ---------------------------------------------------------------- small helpers
@@ -914,9 +958,10 @@ def lint_pass(repo: Path, run_dir: Path, *, action: str, work_item: str, stage: 
     prefix = scope_prefix(top, Path(repo))
     roots = repo_roots(top, timeout=GIT_TIMEOUT_SECONDS)
     base_env = dict(os.environ if env is None else env)
+    if runner is None:
+        runner = recovery_runner(run_dir, action, "lint")
     invoker = _Invoker(top, _lint_dir(run_dir) / "logs", record_name, _tool_env(base_env, run_dir, roots),
-                       tool_timeout=tool_timeout, clock=clock,
-                       runner=runner or run_argv)
+                       tool_timeout=tool_timeout, clock=clock, runner=runner)
     journal_notes = _adopt_journals(run_dir)
     fixing = mode == "fix" and allow_fix and base is not None
     notes: List[str] = []

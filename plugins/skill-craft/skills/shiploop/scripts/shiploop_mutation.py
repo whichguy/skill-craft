@@ -294,7 +294,7 @@ def _run_focused(runner: Any, commands: Sequence[Mapping[str, Any]], cwd: Path, 
     return "survived", "", clock() - started
 
 
-def _check(root: Path, state: Mapping[str, Any], work_item: str, *, base_commit: Optional[str],
+def _check(root: Path, state: Mapping[str, Any], work_item: str, action: str, *, base_commit: Optional[str],
            runner: Any, env: Optional[Mapping[str, str]], clock: Optional[Callable[[], float]]) -> Dict[str, Any]:
     """Make, run and judge the mutants; return the record (without attempt or counted)."""
     import shiploop_item_scope as item_scope  # imports shiploop_test_loop: resolved at call time
@@ -346,7 +346,7 @@ def _check(root: Path, state: Mapping[str, Any], work_item: str, *, base_commit:
     if not chosen:
         record["skipped"] = "no mutants: no changed product line matched an operator"
         return record
-    runner = runner or lint.run_argv
+    runner = lint.recovery_runner(root, action, "mutation") if runner is None else runner
     clock = clock or time.monotonic
     environment = dict(os.environ if env is None else env)
     tree = test_loop._BaseTree(root, {**base, "tree": current, "commit": ""}, [])
@@ -484,7 +484,7 @@ def mutation_check(root: Path, state: Mapping[str, Any], work_item: str, action_
     refused = test_loop.refused_runs(root, action_id)
     started = time.monotonic()
     previous = _reusable(root, state, work_item, action_id, base_commit) if runner is None else None
-    record = previous if previous is not None else _check(root, state, work_item, base_commit=base_commit,
+    record = previous if previous is not None else _check(root, state, work_item, action_id, base_commit=base_commit,
                                                           runner=runner, env=env, clock=clock)
     record["action"] = action_id
     record["seconds"] = round(time.monotonic() - started, 3)
