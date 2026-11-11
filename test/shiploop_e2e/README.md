@@ -95,7 +95,8 @@ ended, and whether A and B overlapped as native workers. It takes about 10
 minutes:
 
 ```sh
-python3 test/shiploop_e2e/fanout.py --host codex
+python3 test/shiploop_e2e/fanout.py               # the shared default driver (the one named above)
+python3 test/shiploop_e2e/fanout.py --host codex  # explicitly another host, with that host's own model and effort
 ```
 
 A run that stops while ShipLoop is still active, for example because a host ran

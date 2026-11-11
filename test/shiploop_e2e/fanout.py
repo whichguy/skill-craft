@@ -14,7 +14,8 @@ Graded by script, never by the model:
 - native:    whether A and B ran as native workers (a launch handle) or in the
              parent conversation (a main-context executor).
 
-  python3 test/shiploop_e2e/fanout.py --host codex    # use the shared Codex model and effort defaults
+  python3 test/shiploop_e2e/fanout.py              # the shared default host (hosts.RUN_DEFAULT_HOST), model and effort
+  python3 test/shiploop_e2e/fanout.py --host codex # select another host explicitly; its own model and effort apply
 """
 
 from __future__ import annotations
@@ -107,9 +108,10 @@ def grade(dispatch: Path, run_dir: Path, stamps: Path) -> dict:
     }
 
 
-def main(argv: list[str] | None = None) -> int:
+def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    p.add_argument("--host", choices=sorted(hosts.HOSTS), default="codex")
+    p.add_argument("--host", choices=sorted(hosts.HOSTS), default=hosts.RUN_DEFAULT_HOST,
+                   help=f"host that drives the dispatcher (default: {hosts.RUN_DEFAULT_HOST})")
     p.add_argument("--model")
     p.add_argument("--effort")
     p.add_argument("--output", type=Path)
@@ -117,7 +119,11 @@ def main(argv: list[str] | None = None) -> int:
     for name in hosts.HOSTS:
         p.add_argument(f"--{name}-bin", default=name)
     p.add_argument("--source", default="marketplace", help=argparse.SUPPRESS)
-    args = p.parse_args(argv)
+    return p
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parser().parse_args(argv)
     host = hosts.host(args.host, getattr(args, args.host + "_bin"))
     out = run.new_output_dir(args.output, "fanout-" + args.host)
     work = out / "work"
