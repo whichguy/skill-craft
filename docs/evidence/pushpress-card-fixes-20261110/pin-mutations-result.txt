@@ -1,4 +1,4 @@
-Output of pin-mutations.py run from this folder at 4760e465b2834d68e1459f756af7e47ecee4ad4c (the round-7 revision), 2026-11-10.
+Output of pin-mutations.py run from this folder at e385f8124f50501bdbf4da1be7380da58ac09248 (the round-8 revision), 2026-11-10.
 [
  {
   "mutation": "none (control)",
@@ -36,7 +36,7 @@ Output of pin-mutations.py run from this folder at 4760e465b2834d68e1459f756af7e
   "kind": "failure"
  },
  {
-  "mutation": "card without: If one is pasted or shown anyway, do not save or reuse it, and tell the user to rotate it themselves (you could not pass the new secret on without reading or printing it)",
+  "mutation": "card without: If one is pasted, or shown to you anywhere but in a webhook tool's result, do not save or reuse it, and tell the user to rotate it themselves (you could not pass the new secret on without reading or printing it)",
   "test_passes": false,
   "kind": "failure"
  },
@@ -116,12 +116,12 @@ Output of pin-mutations.py run from this folder at 4760e465b2834d68e1459f756af7e
   "kind": "failure"
  },
  {
-  "mutation": "settings reference without: `ps`, `env`, `printenv` or `set` output that shows the server's arguments or any environment that holds the key (the server is started as `mcp start --api-key <key>`, so the key is in its command line; `pgrep -a` shows it too)",
+  "mutation": "settings reference without: `ps`, `env`, `printenv` or `set` output that shows the server's arguments or any environment you know or suspect holds the key (the server is started as `mcp start --api-key <key>`, so the key is in its command line; `pgrep -a` shows it too)",
   "test_passes": false,
   "kind": "failure"
  },
  {
-  "mutation": "settings reference without: `claude mcp list` or `claude mcp get` (or the host's equivalent), which print a server's command line and environment",
+  "mutation": "settings reference without: `claude mcp list` (each server's command line) or `claude mcp get` (its command line and environment), or the host's equivalent",
   "test_passes": false,
   "kind": "failure"
  },
@@ -131,7 +131,7 @@ Output of pin-mutations.py run from this folder at 4760e465b2834d68e1459f756af7e
   "kind": "failure"
  },
  {
-  "mutation": "settings reference without: a search or echo that prints the key's variable or value (`grep -r`, `git log -p -S`, `echo $VAR`)",
+  "mutation": "settings reference without: a search or echo that prints the key's value (`grep -r` over files that may hold it, `git log -p -S`, `echo $VAR` of the key's variable)",
   "test_passes": false,
   "kind": "failure"
  },
@@ -146,12 +146,17 @@ Output of pin-mutations.py run from this folder at 4760e465b2834d68e1459f756af7e
   "kind": "failure"
  },
  {
-  "mutation": "settings reference without: Exempt: a process listing without arguments, the API Keys table (it lists no value), the webhook tools of the API reference (follow that file's rules for them, and never print a secret one returns), and another server's entry in an MCP config read on its own (for example `jq '.mcpServers.<name>'`, not the whole file)",
+  "mutation": "settings reference without: Exempt: a check that prints no value (`ps -o pid,comm`, `env | cut -d= -f1`, `[ -n \"$VAR\" ]`), the API Keys table (it lists no value), the webhook tools of [api-and-mcp-tools.md](api-and-mcp-tools.md) (follow that file's rules for them, and never print a secret one returns), and another server's entry in an MCP config read on its own (for example `jq '.mcpServers.<name>'`, not the whole file)",
   "test_passes": false,
   "kind": "failure"
  },
  {
-  "mutation": "settings reference without: To add or change another server in a shared MCP config, edit it with a filter such as `jq` (it never prints the whole file) or have the user do it",
+  "mutation": "settings reference without: To add or change a server in a shared MCP config, the PushPress one included, write the edit with a filter whose output goes straight to a file and never to the screen (for example `jq '\u2026' f > f.new && mv f.new f`; rewriting the file this way is not writing the key), or have the user do it",
+  "test_passes": false,
+  "kind": "failure"
+ },
+ {
+  "mutation": "settings reference without: To test that the key works, call `company-get`.",
   "test_passes": false,
   "kind": "failure"
  },
@@ -163,5 +168,5 @@ Output of pin-mutations.py run from this folder at 4760e465b2834d68e1459f756af7e
 ]
 mutations that the test did NOT catch: []
 controls pass: True
-pinned phrases: 28 (card 15 + settings 13 ) + 2 structural mutations
-caught: 30 of 30
+pinned phrases: 29 (card 15 + settings 14 ) + 2 structural mutations
+caught: 31 of 31
