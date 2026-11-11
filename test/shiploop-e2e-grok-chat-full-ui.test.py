@@ -110,6 +110,7 @@ def positive_observation(*, duplicate_create: bool = True, split_steps: tuple = 
                 add("confirmAction", status="rejected", operation="create", action_id=action_id, correlated=True)
 
     return {
+        "synthetic_fixture_reset": {**ui._reset_evidence(), "status": "complete"},
         "schema": "shiploop-grok-chat-full-ui-observation/1",
         "mode": "run",
         "phase": "builder",
@@ -181,6 +182,31 @@ class GrokChatFullUiValidatorTests(unittest.TestCase):
     def test_accepts_server_deduplicated_double_click_and_disabled_duplicate(self):
         self.assertEqual([], self.validate(positive_observation(duplicate_create=True)))
         self.assertEqual([], self.validate(positive_observation(duplicate_create=False)))
+
+    def test_reset_success_receipt_is_closed_typed_and_bounded(self):
+        valid = {**ui._reset_evidence(), "status": "complete"}
+        for count in (0, 1, 500):
+            digest = ui.EMPTY_IDS_SHA256 if count == 0 else sha("selected ids")
+            value = positive_observation()
+            value["synthetic_fixture_reset"] = {**valid, "selected_count": count, "deleted_count": count,
+                "selected_ids_sha256": digest, "deleted_ids_sha256": digest}
+            self.assertEqual([], self.validate(value))
+        changes = [{"status": state} for state in ("not_run", "incomplete", None, [])]
+        changes += [{"scope": scope} for scope in ("foreign records", None, [])]
+        for key in ("selected_count", "deleted_count"):
+            changes += [{key: count} for count in (-1, 501, True, 0.0, "0", None, [], {})]
+        for key in ("selected_ids_sha256", "deleted_ids_sha256"):
+            changes += [{key: digest} for digest in (None, 1, [], {}, b"a" * 64, "bad", "A" * 64, sha("wrong"))]
+        changes += [{"selected_count": 1}, {"extra": True},
+                    {"selected_ids_sha256": sha("nonempty"), "deleted_ids_sha256": sha("nonempty")}]
+        invalid = [{**valid, **change} for change in changes]
+        invalid += [None, [], "complete"]
+        invalid += [{key: val for key, val in valid.items() if key != missing} for missing in valid]
+        for reset in invalid:
+            with self.subTest(reset=reset):
+                value = positive_observation()
+                value["synthetic_fixture_reset"] = reset
+                self.assertIn("seed-invalid", self.validate(value))
 
     def test_name_fallback_uses_normalized_database_names_and_selected_id(self):
         selected_id = "a02000000000001AAA"
@@ -460,6 +486,7 @@ class GrokChatFullUiValidatorTests(unittest.TestCase):
                     "_run_browser": {"side_effect": browser_step},
                     "_validate_app_tab": {"return_value": None},
                     "_reset_config": {"return_value": 0},
+                    "_reset_synthetic_items": {"side_effect": lambda shared, user, evidence: evidence.update(status="complete")},
                     "_verify_config": {"return_value": True},
                 }
                 with contextlib.ExitStack() as stack:
@@ -996,6 +1023,166 @@ class GrokChatDeploymentBindingTests(unittest.TestCase):
         interrupted = self.deploy("--source-dir", "force-app", expected_code=143, run_real=interrupt)
         self.assertIs(interrupted["interrupted"], True)
         self.assertNotIn("source_binding", interrupted)
+
+
+class SyntheticFixtureResetTest(unittest.TestCase):
+    class Shared:
+        def __init__(self, rows, fail=False):
+            self.rows = list(rows)
+            self.fail = fail
+            self.deleted = []
+        def sf_json(self, argv):
+            if argv[:2] == ["data", "query"]:
+                query = argv[argv.index("--query") + 1]
+                if "CreatedById = '" in query:
+                    user = query.split("CreatedById = '", 1)[1].split("'", 1)[0]
+                    rows = [row for row in self.rows if row["CreatedById"] == user]
+                else:
+                    rows = list(self.rows)
+                return {"status": 0, "result": {"records": rows, "done": True, "totalSize": len(rows)}}
+            record_id = argv[argv.index("--record-id") + 1]
+            if self.fail:
+                raise RuntimeError("injected delete failure")
+            self.deleted.append(record_id)
+            self.rows = [row for row in self.rows if row["Id"] != record_id]
+            return {"status": 0}
+
+    def row(self, suffix, name, created_by="005aj00000eLa6HAAS"):
+        return {"Id": "a03" + f"{int(suffix):015d}", "Name": name, "CreatedById": created_by,
+                "Status__c": "Done", "Notes__c": "synthetic"}
+
+    def test_deletes_only_current_user_demo_rows_and_reads_back(self):
+        owned = self.row("0000001", "Grok Demo A")
+        done = self.row("0000002", "Grok Demo B")
+        foreign = self.row("0000003", "Grok Demo Foreign", "005aj00000eLa6HAZZ")
+        other = self.row("0000004", "Unrelated record")
+        shared = self.Shared([owned, done, foreign, other])
+        result = ui._reset_synthetic_items(shared, "005aj00000eLa6HAAS", ui._reset_evidence())
+        self.assertEqual(result["selected_count"], 2)
+        self.assertEqual(result["deleted_count"], 2)
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["selected_ids_sha256"], ui._ids_digest(shared.deleted))
+        self.assertEqual(result["deleted_ids_sha256"], ui._ids_digest(shared.deleted))
+        self.assertEqual(shared.deleted, sorted([owned["Id"], done["Id"]]))
+        self.assertEqual(shared.rows, [foreign, other])
+
+    def test_saturated_selection_or_failed_first_delete_never_claims_reset(self):
+        rows = [self.row(f"{index:07d}", "Grok Demo saturated") for index in range(501)]
+        saturated = self.Shared(rows)
+        evidence = ui._reset_evidence()
+        with self.assertRaises(ui.CheckFailure):
+            ui._reset_synthetic_items(saturated, "005aj00000eLa6HAAS", evidence)
+        self.assertEqual([], saturated.deleted)
+        self.assertEqual("incomplete", evidence["status"])
+        self.assertEqual(0, evidence["selected_count"])
+        failed = self.Shared([self.row("0000005", "Grok Demo Failure")], fail=True)
+        evidence = ui._reset_evidence()
+        with self.assertRaises(ui.CheckFailure):
+            ui._reset_synthetic_items(failed, "005aj00000eLa6HAAS", evidence)
+        self.assertEqual(failed.deleted, [])
+        self.assertEqual("incomplete", evidence["status"])
+        self.assertEqual(1, evidence["selected_count"])
+        self.assertEqual(0, evidence["deleted_count"])
+        self.assertEqual(ui.EMPTY_IDS_SHA256, evidence["deleted_ids_sha256"])
+
+    def test_empty_reset_completes_with_empty_digests(self):
+        evidence = ui._reset_evidence()
+        self.assertIs(evidence, ui._reset_synthetic_items(self.Shared([]), "005aj00000eLa6HAAS", evidence))
+        self.assertTrue(ui._valid_reset_evidence(evidence))
+
+    def test_saturated_readback_is_rejected_before_filtering(self):
+        evidence = ui._reset_evidence()
+        rows = [self.row(str(index), "Unrelated record") for index in range(501)]
+        with mock.patch.object(ui, "_items", side_effect=[[], rows]), self.assertRaises(ui.CheckFailure):
+            ui._reset_synthetic_items(self.Shared([]), "005aj00000eLa6HAAS", evidence)
+        self.assertEqual("incomplete", evidence["status"])
+        self.assertEqual(0, evidence["selected_count"])
+
+    def test_successful_delete_noop_does_not_complete(self):
+        row = self.row("7", "Grok Demo Noop")
+        evidence = ui._reset_evidence()
+        shared = mock.Mock()
+        shared.sf_json.return_value = {"status": 0}
+        with mock.patch.object(ui, "_items", side_effect=[[row], [row]]), self.assertRaises(ui.CheckFailure):
+            ui._reset_synthetic_items(shared, "005aj00000eLa6HAAS", evidence)
+        self.assertEqual("incomplete", evidence["status"])
+        self.assertEqual(1, evidence["deleted_count"])
+
+    def test_readback_exception_retains_successful_delete_evidence(self):
+        row = self.row("7", "Grok Demo Readback failure")
+        evidence = ui._reset_evidence()
+        shared = self.Shared([row])
+        with mock.patch.object(ui, "_items", side_effect=[[row], ui.CheckFailure("database", "seed-invalid")]):
+            with self.assertRaises(ui.CheckFailure):
+                ui._reset_synthetic_items(shared, "005aj00000eLa6HAAS", evidence)
+        self.assertEqual("incomplete", evidence["status"])
+        self.assertEqual(1, evidence["selected_count"])
+        self.assertEqual(1, evidence["deleted_count"])
+        self.assertEqual(ui._ids_digest([row["Id"]]), evidence["deleted_ids_sha256"])
+
+    def test_invalid_selected_scope_or_id_refuses_before_deletion(self):
+        for change in ({"CreatedById": "005aj00000eLa6HAZZ"}, {"Id": "invalid"}):
+            evidence = ui._reset_evidence()
+            shared = self.Shared([])
+            with mock.patch.object(ui, "_items", return_value=[{**self.row("8", "Grok Demo Invalid"), **change}]):
+                with self.assertRaises(ui.CheckFailure):
+                    ui._reset_synthetic_items(shared, "005aj00000eLa6HAAS", evidence)
+            self.assertEqual([], shared.deleted)
+            self.assertEqual("incomplete", evidence["status"])
+
+    def test_partial_delete_evidence_survives_exception_or_nonzero_status(self):
+        rows = [self.row("1", "Grok Demo First"), self.row("2", "Grok Demo Second")]
+        for failure in (RuntimeError("failed"), {"status": 1}):
+            evidence = ui._reset_evidence()
+            shared = mock.Mock()
+            shared.sf_json.side_effect = [{"status": 0}, failure]
+            with mock.patch.object(ui, "_items", return_value=rows), self.assertRaises(ui.CheckFailure):
+                ui._reset_synthetic_items(shared, "005aj00000eLa6HAAS", evidence)
+            self.assertEqual({"status": "incomplete", "scope": ui.RESET_SCOPE,
+                "selected_count": 2, "selected_ids_sha256": ui._ids_digest([row["Id"] for row in rows]),
+                "deleted_count": 1, "deleted_ids_sha256": ui._ids_digest([rows[0]["Id"]])}, evidence)
+
+    def test_failure_receipt_retains_complete_partial_and_not_run_reset(self):
+        for stage in ("browser", "delete", "source"):
+            with self.subTest(stage=stage), tempfile.TemporaryDirectory() as folder:
+                platform = Path(folder)
+                rows = [self.row("1", "Grok Demo First"), self.row("2", "Grok Demo Second")]
+                shared = self.Shared(rows)
+                shared.org_identity = lambda org: {"org_id": ui.EXPECTED_ORG_ID, "lightning_host": EXPECTED_HOST}
+                original = shared.sf_json
+                def sf_json(argv):
+                    if stage == "delete" and len(shared.deleted) == 1:
+                        raise RuntimeError("second delete failed")
+                    return original(argv)
+                shared.sf_json = sf_json
+                with contextlib.ExitStack() as stack:
+                    stack.enter_context(mock.patch.dict(os.environ, {"E2E_PLATFORM_DIR": folder,
+                                                                    "E2E_CHECK_PHASE": "builder"}))
+                    patches = {
+                        "load_shared_ui": {"return_value": shared},
+                        "_current_user": {"return_value": ("005aj00000eLa6HAAS", True)},
+                        "_candidate_identity": {"return_value": (SOURCE_HEAD, METADATA_SHA256)},
+                        "_latest_successful_deploy": {"return_value": {"exit": 0, "interrupted": False}},
+                        "_source_is_fresh": {"return_value": stage != "source"},
+                        "_validate_before_snapshot": {"return_value": "baseline"},
+                        "_start_browser": {"side_effect": RuntimeError("later browser failure")},
+                    }
+                    for name, behavior in patches.items():
+                        stack.enter_context(mock.patch.object(ui, name, **behavior))
+                    stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+                    stack.enter_context(contextlib.redirect_stderr(io.StringIO()))
+                    self.assertEqual(1, ui.run_check("run"))
+                receipt = json.loads(next(platform.rglob("observation.json")).read_text())
+                evidence = receipt["synthetic_fixture_reset"]
+                self.assertEqual({"browser": "complete", "delete": "incomplete", "source": "not_run"}[stage],
+                                 evidence["status"])
+                self.assertEqual(0 if stage == "source" else 2, evidence["selected_count"])
+                self.assertEqual(len(shared.deleted), evidence["deleted_count"])
+                self.assertEqual(ui._ids_digest(shared.deleted), evidence["deleted_ids_sha256"])
+                self.assertEqual(ui._ids_digest([] if stage == "source" else [row["Id"] for row in rows]),
+                                 evidence["selected_ids_sha256"])
+                self.assertEqual(ui.RESET_SCOPE, evidence["scope"])
+                self.assertEqual("failed", receipt["status"])
 
 
 if __name__ == "__main__":

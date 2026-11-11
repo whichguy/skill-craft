@@ -327,6 +327,70 @@ def _reset_config(shared, user_id: str) -> int:
     return len(rows)
 
 
+RESET_SCOPE = "current-user-created Grok Demo records only"
+EMPTY_IDS_SHA256 = hashlib.sha256(b"").hexdigest()
+
+
+def _reset_evidence() -> dict:
+    return {"status": "not_run", "scope": RESET_SCOPE,
+            "selected_count": 0, "selected_ids_sha256": EMPTY_IDS_SHA256,
+            "deleted_count": 0, "deleted_ids_sha256": EMPTY_IDS_SHA256}
+
+
+def _ids_digest(ids: list[str]) -> str:
+    return hashlib.sha256("\n".join(sorted(ids)).encode()).hexdigest()
+
+
+def _reset_synthetic_items(shared, user_id: str, evidence: dict) -> dict:
+    """Retain bounded progress even if deletion or subsequent browser work fails."""
+    evidence["status"] = "incomplete"
+    rows = _items(shared, created_by=user_id)
+    if len(rows) >= 501:
+        raise CheckFailure("database", "seed-invalid")
+    owned = []
+    for row in rows:
+        if not isinstance(row.get("Name"), str) or not row["Name"].startswith("Grok Demo "):
+            continue
+        if (not isinstance(row.get("Id"), str) or not SF_ID_RE.fullmatch(row["Id"])
+                or row.get("CreatedById") != user_id):
+            raise CheckFailure("database", "seed-invalid")
+        owned.append(row)
+    ids = sorted(row["Id"] for row in owned)
+    evidence.update(selected_count=len(ids), selected_ids_sha256=_ids_digest(ids))
+    deleted = []
+    for record_id in ids:
+        try:
+            result = shared.sf_json(["data", "delete", "record", "--sobject", ITEM_OBJECT,
+                                     "--record-id", record_id, "--target-org", EXPECTED_ORG, "--json"])
+            if not isinstance(result, dict) or type(result.get("status")) is not int or result["status"] != 0:
+                raise CheckFailure("database", "seed-invalid")
+        except Exception as exc:
+            raise CheckFailure("database", "seed-invalid") from exc
+        deleted.append(record_id)
+        evidence.update(deleted_count=len(deleted), deleted_ids_sha256=_ids_digest(deleted))
+    readback = _items(shared, created_by=user_id)
+    if len(readback) >= 501:
+        raise CheckFailure("database", "seed-invalid")
+    if any(isinstance(row.get("Name"), str) and row["Name"].startswith("Grok Demo ") for row in readback):
+        raise CheckFailure("database", "seed-invalid")
+    evidence["status"] = "complete"
+    return evidence
+
+
+def _valid_reset_evidence(reset: object) -> bool:
+    if not isinstance(reset, dict) or set(reset) != set(_reset_evidence()):
+        return False
+    selected, deleted = reset["selected_count"], reset["deleted_count"]
+    selected_digest, deleted_digest = reset["selected_ids_sha256"], reset["deleted_ids_sha256"]
+    return (reset["status"] == "complete" and reset["scope"] == RESET_SCOPE
+            and type(selected) is int and type(deleted) is int
+            and 0 <= selected <= 500 and selected == deleted
+            and isinstance(selected_digest, str) and isinstance(deleted_digest, str)
+            and bool(SHA256_RE.fullmatch(selected_digest)) and bool(SHA256_RE.fullmatch(deleted_digest))
+            and selected_digest == deleted_digest
+            and (selected != 0 or selected_digest == EMPTY_IDS_SHA256))
+
+
 def _verify_config(shared) -> bool:
     rows = _config_rows(shared)
     return len(rows) == 1 and rows[0].get("NamedCredential__c") == NAMED_CREDENTIAL \
@@ -626,6 +690,8 @@ def validate_observation(value: object, *, mode: str, phase: str, expected_host:
     method_names = {call["method"] for call in calls if _valid_call(call)}
     if not needed_methods.issubset(method_names):
         errors.append("controller-proof-missing")
+    if not _valid_reset_evidence(value.get("synthetic_fixture_reset")):
+        errors.append("seed-invalid")
     mutation_calls = [call for call in calls if isinstance(call, dict)
                       and call.get("method") in ("confirmAction", "cancelAction")]
     if any(call.get("ui_correlated") is not True or call.get("card_action_id") != call.get("action_id")
@@ -864,6 +930,7 @@ def run_check(mode: str) -> int:
     auth_used = False
     identity = None
     browser_worker = None
+    item_reset = _reset_evidence()
     try:
         shared = load_shared_ui()
         identity = shared.org_identity(EXPECTED_ORG)
@@ -888,6 +955,7 @@ def run_check(mode: str) -> int:
             if not _source_is_fresh(Path.cwd(), deployment, metadata_sha256):
                 raise CheckFailure("source", "source-stale")
             _validate_before_snapshot(platform_dir, shared)
+            _reset_synthetic_items(shared, user_id, item_reset)
             # Capture before opening the app: setup and connection must not silently
             # seed business data, even when later explicit seeding succeeds.
             pre_setup_items = _items(shared)
@@ -1131,6 +1199,7 @@ def run_check(mode: str) -> int:
                         "user_id": user_id},
                 "source_head": source_head, "candidate_metadata_sha256": metadata_sha256,
                 "deployment": deployment, "cleared_config_rows": cleared_configs,
+                "synthetic_fixture_reset": item_reset,
                 "conversation_id": conversation_id,
                 "selected_item_id": selected_id, "created_item_id": create_id,
                 "observed_setup_status": "missing", "route_host": setup.get("route_host"),
@@ -1209,6 +1278,7 @@ def run_check(mode: str) -> int:
         "checked_at": started, "phase": phase, "mode": mode, "status": "failed",
         "source_head": source_head, "candidate_metadata_sha256": metadata_sha256,
         "deployment": deployment,
+        "synthetic_fixture_reset": item_reset,
         "failure": {"stage": failure.stage if failure else "browser",
                     "reason_code": failure.reason if failure else "evaluation-failed"},
         "chat_turns": [_safe_chat_turn_projection(result) for result in browser_results if "chat_turn" in result],
