@@ -13,6 +13,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -1183,6 +1184,326 @@ class SyntheticFixtureResetTest(unittest.TestCase):
                                  evidence["selected_ids_sha256"])
                 self.assertEqual(ui.RESET_SCOPE, evidence["scope"])
                 self.assertEqual("failed", receipt["status"])
+
+
+class FailureEvidenceTest(unittest.TestCase):
+    def test_sticky_failure_reaches_reply_while_another_body_is_unresolved(self):
+        program = r'''const h=require(process.argv[1]);const {EventEmitter}=require('node:events');
+(async()=>{const p=new EventEmitter(),o=new h.ApexObserver(p,'example.test');o.attach();
+ const req={url:()=> 'https://example.test/aura',method:()=> 'POST',postData:()=>JSON.stringify({actions:[
+ {id:'one;a',descriptor:'apex://SLGrokChatController/ACTION$getSetup',params:{}}]})};
+ p.emit('request',req);p.emit('response',{url:req.url,request:()=>req,status:()=>200,text:()=>new Promise(()=>{})});
+ const settled=o.settle().then(()=>({accepted:true}),error=>h.failureReply(o,{step:'setup'},error,'setup',Date.now()+40));
+ setTimeout(()=>o.retainFailure({stage:'controller',reason:'controller-response-id-mismatch'},'response-pairing'),5);
+ const reply=await Promise.race([settled,new Promise(resolve=>setTimeout(()=>resolve({hung:true}),200))]);
+ process.stdout.write(JSON.stringify(reply));})().catch(()=>{process.exitCode=1;});'''
+        result = subprocess.run(["node", "-e", program, str(BROWSER)], text=True, capture_output=True, timeout=5)
+        self.assertEqual(0, result.returncode, result.stderr)
+        reply = json.loads(result.stdout)
+        self.assertEqual("failed", reply.get("status"), reply)
+        self.assertEqual("controller-response-id-mismatch", reply["reason"])
+        self.assertEqual("response-pairing", reply["browser_failure"]["branch"])
+        self.assertEqual("incomplete", reply["browser_failure"]["drain_state"])
+
+    def test_bounded_dynamic_failure_drain(self):
+        program = r'''const h=require(process.argv[1]);const {EventEmitter}=require('node:events');
+(async()=>{const out={};for(const kind of ['unresolved','expired','dynamic','lifecycle']) {
+ const p=new EventEmitter(),o=new h.ApexObserver(p,'example.test');o.attach();
+ const req=id=>({url:()=> 'https://example.test/aura',method:()=> 'POST',postData:()=>JSON.stringify({actions:[
+ {id,descriptor:'apex://SLGrokChatController/ACTION$getSetup',params:{}}]})});
+ const body=id=>JSON.stringify({actions:[{id,state:'SUCCESS',returnValue:JSON.stringify({
+ status:'ready',canConfigure:true,namedCredential:'x',model:'x'})}]});
+ const first=req('one;a'),second=req('two;a');p.emit('request',first);
+ if(kind==='dynamic')p.emit('request',second);
+ let release;const waiting=new Promise(resolve=>{release=resolve;});
+ p.emit('response',{url:first.url,request:()=>first,status:()=>200,text:()=>waiting});
+ const start=Date.now();
+ const reply=h.failureReply(o,{step:'setup',ipc_id:'2'},
+ {stage:'keyboard',reason:'keyboard-inaccessible'},'setup',Date.now()+(kind==='expired'?0:70));
+ if(!['unresolved','expired'].includes(kind))setTimeout(()=>{
+  release(body('one;a'));
+  if(kind==='dynamic') {
+   p.emit('requestfinished',first);
+   setTimeout(()=>{
+    p.emit('response',{url:second.url,request:()=>second,status:()=>200,
+     text:async()=>{await new Promise(r=>setTimeout(r,10));return body('two;a');}});
+    setTimeout(()=>p.emit('requestfinished',second),20);
+   },10);
+  }
+ },5);
+ out[kind]=await Promise.race([reply.then(value=>({value,elapsed:Date.now()-start})),
+ new Promise(resolve=>setTimeout(()=>resolve({hung:true}),250))]);
+}process.stdout.write(JSON.stringify(out));})().catch(()=>{process.exitCode=1;});'''
+        result = subprocess.run(["node", "-e", program, str(BROWSER)], text=True, capture_output=True, timeout=5)
+        self.assertEqual(0, result.returncode, result.stderr)
+        data = json.loads(result.stdout)
+        for kind, entry in data.items():
+            with self.subTest(kind=kind):
+                self.assertNotIn("hung", entry)
+                self.assertLess(entry["elapsed"], 220)
+                reply = entry["value"]
+                self.assertEqual("failed", reply["status"])
+                self.assertEqual("keyboard-inaccessible", reply["reason"])
+                self.assertEqual("step-failure", reply["browser_failure"]["branch"])
+                if kind == "dynamic":
+                    self.assertEqual(["SUCCESS", "SUCCESS"],
+                                     [row["response_state"] for row in reply["controller_calls"]])
+                    self.assertEqual(["finished", "finished"],
+                                     [row["request_lifecycle"] for row in reply["controller_calls"]])
+                else:
+                    self.assertEqual(1, reply["browser_failure"]["unresolved_requests"])
+                    self.assertEqual(1 if kind in {"unresolved", "expired"} else 0,
+                                     reply["browser_failure"]["pending_jobs"])
+                self.assertEqual("complete" if kind == "dynamic" else "incomplete",
+                                 reply["browser_failure"]["drain_state"])
+                if kind == "expired":
+                    self.assertLess(entry["elapsed"], 40)
+
+    def test_untrusted_rejections_and_shared_lifecycle_are_batch_attributed(self):
+        program = r'''const h=require(process.argv[1]);const {EventEmitter}=require('node:events');
+(async()=>{const out={};for(const kind of ['forged','null','primitive','hostile','finished','timing','timing-getter','finished-value','timing-invalid','headers']) {
+ const p=new EventEmitter(),o=new h.ApexObserver(p,'example.test',{trackSplit:kind==='headers'});o.attach();
+ const hostile=new Proxy({}, {get(){throw Error('synthetic-secret');}});
+ const rejected=kind==='null'?null:kind==='primitive'?'synthetic-secret':kind==='hostile'?hostile:
+ Object.assign(Error('synthetic-secret'),{recordIndex:1});
+ const req={url:()=> 'https://example.test/aura',method:()=> 'POST',postData:()=>JSON.stringify({actions:[
+ {id:'one;a',descriptor:'apex://SLGrokChatController/ACTION$getSetup',params:{}},
+ {id:'two;a',descriptor:'apex://SLGrokChatController/ACTION$saveSetup',params:{model:'grok-4.7',namedCredential:'Grok_Chat_Model'}}]}),
+ timing:()=>{if(kind==='timing')throw rejected;
+ if(kind==='timing-getter')return hostile;return {startTime:1,responseEnd:kind==='timing-invalid'?-1:1};}};
+ p.emit('request',req);p.emit('response',{url:req.url,request:()=>req,status:()=>200,
+ allHeaders:async()=>{throw hostile;},finished:async()=>{if(kind==='finished')throw rejected;return kind==='finished-value'?'synthetic-secret':null;},
+ text:async()=>{if(['forged','null','primitive','hostile'].includes(kind))throw rejected;
+ return JSON.stringify({actions:['one;a','two;a'].map(id=>({id,state:'SUCCESS',returnValue:JSON.stringify({
+ status:'ready',canConfigure:true,namedCredential:'x',model:'x'})}))});}});
+ p.emit('requestfinished',req);await Promise.all([...o.pending]);
+ out[kind]=await h.failureReply(o,{step:'setup',ipc_id:'2'},o.failure,'setup',Date.now()+30);
+}process.stdout.write(JSON.stringify(out));})().catch(()=>{process.exitCode=1;});'''
+        result = subprocess.run(["node", "-e", program, str(BROWSER)], text=True, capture_output=True, timeout=5)
+        self.assertEqual(0, result.returncode, result.stderr)
+        data = json.loads(result.stdout)
+        for kind, reply in data.items():
+            with self.subTest(kind=kind):
+                self.assertEqual("failed", reply["status"])
+                self.assertEqual("controller-response-invalid", reply["reason"])
+                diagnostic = reply["browser_failure"]
+                self.assertEqual("response-body-read" if kind in {"forged", "null", "primitive", "hostile"}
+                                 else "response-server-id" if kind == "headers" else "response-lifecycle",
+                                 diagnostic["branch"])
+                self.assertEqual(2, diagnostic["request_count"])
+                self.assertNotIn("request_id", diagnostic)
+                self.assertNotIn("method", diagnostic)
+        self.assertNotIn("synthetic-secret", result.stdout)
+
+    def test_safe_drain_diagnostic_and_ipc_deadline(self):
+        diagnostic = {"step": "setup", "branch": "step-failure", "drain_state": "incomplete",
+                      "pending_jobs": 1, "unresolved_requests": 2}
+        failure = ui.CheckFailure("keyboard", "keyboard-inaccessible", {"browser_failure": diagnostic})
+        self.assertEqual(diagnostic, failure.browser_result["browser_failure"])
+        hostile = {"drain_state": "synthetic-secret", "pending_jobs": -1, "unresolved_requests": 10001}
+        self.assertEqual({}, ui.CheckFailure("browser", "evaluation-failed",
+                         {"browser_failure": hostile}).browser_result["browser_failure"])
+        worker = ui.BrowserWorker.__new__(ui.BrowserWorker)
+        worker.closed, worker.sequence = False, 0
+        worker.process = mock.Mock(stdin=io.StringIO(), stdout=io.StringIO('{"ipc_id":"1","status":"ok"}\n'))
+        worker.process.poll.return_value = None
+        with mock.patch.object(ui.select, "select", return_value=([worker.process.stdout], [], [])):
+            before = time.time()
+            worker.run({"step": "setup"}, timeout=2)
+            sent = json.loads(worker.process.stdin.getvalue())
+            self.assertGreater(sent["ipc_deadline_ms"], before * 1000)
+            self.assertLessEqual(sent["ipc_deadline_ms"], (before + 2) * 1000)
+
+    def test_observer_terminal_failure_calibration(self):
+        program = r'''const h=require(process.argv[1]);
+const {EventEmitter}=require('node:events');
+(async()=>{
+const out={};
+for(const kind of ['valid','non2xx','body','decode','pairing','wrapper','state','value','schema','requestfailed','network']) {
+ const page=new EventEmitter(), o=new h.ApexObserver(page,'example.test');
+ o.step='setup'; o.ipcId='2'; o.attach();
+ const req={url:()=> 'https://example.test/aura',method:()=> 'POST',
+ postData:()=>JSON.stringify({actions:[{id:'568;a',descriptor:'apex://SLGrokChatController/ACTION$getSetup',params:{}}]}),
+ failure:()=>({errorText:kind==='requestfailed'?'net::ERR_ABORTED':'Bearer synthetic-secret https://secret.test'})};
+ page.emit('request',req);
+ const early=o.projection();
+ const action={id:kind==='pairing'?'other;a':'568;a',state:kind==='state'?'ERROR':'SUCCESS',
+ returnValue:JSON.stringify(kind==='schema'?{status:'ready'}:{status:'ready',canConfigure:true,namedCredential:'x',model:'x'})};
+ if(kind==='value') action.returnValue={secret:'synthetic-secret'};
+ if(kind==='wrapper') { o.records[0].transport='lwc'; action.returnValue={returnValue:action.returnValue,cacheable:'secret'}; }
+ if(['requestfailed','network'].includes(kind)) page.emit('requestfailed',req);
+ else {
+  page.emit('response',{url:req.url,request:()=>req,status:()=>kind==='non2xx'?503:200,
+   text:async()=>{if(kind==='body') throw Object.assign(Error('Bearer synthetic-secret'),{branch:'https://secret.test'});if(kind==='decode')return 'Bearer synthetic-secret';return JSON.stringify({actions:[action]});}});
+  page.emit('requestfinished',req);
+ }
+ await Promise.all([...o.pending]);
+ if(kind==='valid') { await o.settle(); out[kind]={early,terminal:o.projection()}; }
+ else {
+  let reason;try{await o.settle();}catch(e){reason=e.reason;}
+  const first=JSON.stringify(o.firstFailure);
+  // A subsequent error cannot erase the first cause.
+  o.retainFailure(new Error('synthetic-secret'),'request-network-failure');
+  const reply=await h.failureReply(o,{step:'setup',ipc_id:'2'},o.failure,'setup');
+  out[kind]={reason,first_sticky:first===JSON.stringify(o.firstFailure),reply};
+ }
+}
+process.stdout.write(JSON.stringify(out));
+})().catch(e=>{process.stderr.write(String(e));process.exitCode=1;});'''
+        result = subprocess.run(["node", "-e", program, str(BROWSER)], text=True, capture_output=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertEqual("PENDING", data["valid"]["early"][0]["response_state"])
+        self.assertEqual("SUCCESS", data["valid"]["terminal"][0]["response_state"])
+        branches = {"non2xx": "http-non-2xx", "body": "response-body-read", "decode": "response-body-decode",
+                    "pairing": "response-pairing", "value": "response-value-type",
+                    "wrapper": "response-wrapper", "state": "response-state", "schema": "response-schema",
+                    "requestfailed": "request-cancelled", "network": "request-network-failure"}
+        for kind, branch in branches.items():
+            with self.subTest(kind=kind):
+                entry = data[kind]
+                self.assertTrue(entry["first_sticky"])
+                reply = entry["reply"]
+                self.assertEqual("failed", reply["status"])
+                diagnostic = reply["browser_failure"]
+                self.assertEqual(branch, diagnostic["branch"])
+                self.assertEqual("setup", diagnostic["step"])
+                self.assertEqual("2", diagnostic["ipc_id"])
+                self.assertEqual("getSetup", diagnostic["method"])
+                self.assertEqual(1, diagnostic["request_sequence"])
+                self.assertEqual("568;a", diagnostic["request_id"])
+                self.assertEqual(1, len(reply["controller_calls"]))
+                self.assertFalse(reply["controller_calls"][0]["http_ok"])
+                self.assertEqual("failed" if kind in {"requestfailed", "network"} else "finished",
+                                 reply["controller_calls"][0]["request_lifecycle"])
+                if kind == "non2xx":
+                    self.assertEqual(503, diagnostic["http_status"])
+                self.assertEqual("controller-response-id-mismatch" if kind == "pairing"
+                                 else "controller-response-invalid", entry["reason"])
+        self.assertNotIn("synthetic-secret", result.stdout)
+        self.assertNotIn("secret.test", result.stdout)
+
+    def test_batch_failure_attributes_only_known_action(self):
+        program = r'''const h=require(process.argv[1]);const {EventEmitter}=require('node:events');
+(async()=>{const out={};for(const kind of ['http','schema']) {
+ const p=new EventEmitter(),o=new h.ApexObserver(p,'example.test');o.step='setup';o.attach();
+ const req={url:()=> 'https://example.test/aura',method:()=> 'POST',postData:()=>JSON.stringify({actions:
+ ['one;a','two;a'].map(id=>({id,descriptor:'apex://SLGrokChatController/ACTION$getSetup',params:{}}))})};
+ p.emit('request',req);p.emit('response',{url:req.url,request:()=>req,status:()=>kind==='http'?503:200,
+ text:async()=>JSON.stringify({actions:[{id:'one;a',state:'SUCCESS',returnValue:JSON.stringify({
+ status:'ready',canConfigure:true,namedCredential:'x',model:'x'})},
+ {id:'two;a',state:'SUCCESS',returnValue:'Bearer synthetic-secret'}]})});
+ await Promise.all([...o.pending]);
+ out[kind]=await h.failureReply(o,{step:'setup',ipc_id:'2'},o.failure,'setup');
+}process.stdout.write(JSON.stringify(out));})().catch(e=>{process.stderr.write(String(e));process.exitCode=1;});'''
+        result = subprocess.run(["node", "-e", program, str(BROWSER)], text=True, capture_output=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        data = json.loads(result.stdout)
+        for reply in data.values():
+            self.assertEqual("failed", reply["status"])
+            self.assertEqual(2, len(reply["controller_calls"]))
+            self.assertEqual(1, reply["browser_failure"]["batch"])
+            self.assertEqual(2, reply["browser_failure"]["request_count"])
+        self.assertNotIn("request_id", data["http"]["browser_failure"])
+        self.assertEqual("two;a", data["schema"]["browser_failure"]["request_id"])
+        self.assertEqual(2, data["schema"]["browser_failure"]["request_sequence"])
+        self.assertNotIn("synthetic-secret", result.stdout)
+
+    def test_failure_receipt_merges_terminal_step_evidence(self):
+        terminal = positive_observation()["controller_calls"][0]
+        pending = {**terminal, "response_state": "PENDING", "response_id": None, "http_ok": False,
+                   "json_string_decoded_once": False}
+        failed_call = {"method": "testConnection", "request_sequence": 2, "request_id": "569;a",
+                       "response_id": None, "response_state": "PENDING", "http_ok": False,
+                       "params_valid": True, "http_status": 503, "request_lifecycle": "finished"}
+        diagnostic = {"step": "setup", "ipc_id": "2", "branch": "http-non-2xx",
+                      "method": "testConnection", "request_sequence": 2, "request_id": "569;a", "http_status": 503}
+        failure = ui.CheckFailure("controller", "controller-response-invalid", {
+            "controller_calls": [terminal, failed_call], "browser_failure": diagnostic,
+            "body": "Bearer synthetic-secret"})
+        with tempfile.TemporaryDirectory() as folder, contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch.dict(os.environ, {"E2E_PLATFORM_DIR": folder,
+                                                            "E2E_CHECK_PHASE": "builder"}))
+            shared = mock.Mock()
+            shared.org_identity.return_value = {"org_id": ui.EXPECTED_ORG_ID, "lightning_host": EXPECTED_HOST}
+            patches = {
+                "load_shared_ui": {"return_value": shared},
+                "_current_user": {"return_value": ("005aj00000eLa6HAAS", True)},
+                "_candidate_identity": {"return_value": (SOURCE_HEAD, METADATA_SHA256)},
+                "_latest_successful_deploy": {"return_value": {"exit": 0, "interrupted": False}},
+                "_source_is_fresh": {"return_value": True},
+                "_validate_before_snapshot": {"return_value": "baseline"},
+                "_reset_synthetic_items": {"return_value": None},
+                "_items": {"return_value": []}, "_start_browser": {"return_value": mock.Mock()},
+                "_run_browser": {"side_effect": [
+                    {"ui_attempted_first": True, "auth_required": False, "controller_calls": [pending]}, failure]},
+                "_validate_app_tab": {"return_value": None}, "_reset_config": {"return_value": 0},
+            }
+            for name, behavior in patches.items():
+                stack.enter_context(mock.patch.object(ui, name, **behavior))
+            stack.enter_context(contextlib.redirect_stdout(io.StringIO()))
+            stack.enter_context(contextlib.redirect_stderr(io.StringIO()))
+            self.assertEqual(1, ui.run_check("run"))
+            raw = next(Path(folder).rglob("observation.json")).read_text()
+            receipt = json.loads(raw)
+            self.assertEqual("failed", receipt["status"])
+            self.assertEqual({"stage": "controller", "reason_code": "controller-response-invalid"}, receipt["failure"])
+            self.assertEqual([terminal, failed_call], receipt["controller_calls"])
+            self.assertEqual(diagnostic, receipt["browser_failure"])
+            self.assertNotIn("synthetic-secret", raw)
+
+    def test_failure_snapshot_drains_registered_response_before_teardown(self):
+        program = r'''const h=require(process.argv[1]);
+const {EventEmitter}=require('node:events');
+(async()=>{
+ const page=new EventEmitter(),o=new h.ApexObserver(page,'example.test');o.attach();
+ const req={url:()=> 'https://example.test/aura',method:()=> 'POST',postData:()=>JSON.stringify({actions:[
+ {id:'one;a',descriptor:'apex://SLGrokChatController/ACTION$getSetup',params:{}}]})};
+ page.emit('request',req);const early=o.projection();
+ let release;const body=new Promise(resolve=>{release=resolve;});
+ page.emit('response',{url:req.url,request:()=>req,status:()=>200,text:()=>body});
+ const reply=h.failureReply(o,{step:'setup',ipc_id:'2'},{stage:'keyboard',reason:'keyboard-inaccessible'},'setup');
+ release(JSON.stringify({actions:[{id:'one;a',state:'SUCCESS',returnValue:JSON.stringify({
+ status:'ready',canConfigure:true,namedCredential:'x',model:'x'})}]}));
+ process.stdout.write(JSON.stringify({early,reply:await reply}));
+})().catch(e=>{process.stderr.write(String(e));process.exitCode=1;});'''
+        result = subprocess.run(["node", "-e", program, str(BROWSER)], text=True, capture_output=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        data = json.loads(result.stdout)
+        self.assertEqual("PENDING", data["early"][0]["response_state"])
+        self.assertEqual("SUCCESS", data["reply"]["controller_calls"][0]["response_state"])
+        self.assertEqual("keyboard-inaccessible", data["reply"]["reason"])
+        self.assertEqual("step-failure", data["reply"]["browser_failure"]["branch"])
+
+    def test_failed_ipc_preserves_only_safe_evidence_and_merges_pending(self):
+        terminal = positive_observation()["controller_calls"][0]
+        pending = {**terminal, "response_state": "PENDING", "response_id": None, "http_ok": False,
+                   "json_string_decoded_once": False}
+        diagnostic = {"step": "setup", "branch": "http-non-2xx", "method": terminal["method"],
+                      "request_sequence": 1, "request_id": terminal["request_id"], "http_status": 503,
+                      "headers": "Bearer synthetic-secret", "body": "synthetic-secret"}
+        reply = {"ipc_id": "1", "status": "failed", "stage": "controller",
+                 "reason": "controller-response-invalid", "controller_calls": [terminal],
+                 "browser_failure": diagnostic, "login_url": "synthetic-secret"}
+        worker = ui.BrowserWorker.__new__(ui.BrowserWorker)
+        worker.closed, worker.sequence = False, 0
+        worker.process = mock.Mock(stdin=io.StringIO(), stdout=io.StringIO(json.dumps(reply)+"\n"))
+        worker.process.poll.return_value = None
+        with mock.patch.object(ui.select, "select", return_value=([worker.process.stdout], [], [])):
+            with self.assertRaises(ui.CheckFailure) as caught:
+                worker.run({"step": "setup"})
+        failure = caught.exception
+        self.assertEqual("controller-response-invalid", failure.reason)
+        evidence = failure.browser_result
+        self.assertEqual(503, evidence["browser_failure"]["http_status"])
+        merged = ui._safe_controller_projection([{"controller_calls": [pending]}, evidence])
+        self.assertEqual([terminal], merged)
+        self.assertNotIn("synthetic-secret", json.dumps(evidence))
+        hostile = {"controller_calls": [{**terminal, "method": "Bearer synthetic-secret",
+                    "request_id": "https://secret.test?sid=secret", "result_status": "synthetic-secret"}],
+                   "browser_failure": {key: "https://secret.test?sid=secret" for key in diagnostic}}
+        safe = ui.CheckFailure("controller", "controller-response-invalid", hostile).browser_result
+        self.assertNotIn("secret", json.dumps(safe))
 
 
 if __name__ == "__main__":

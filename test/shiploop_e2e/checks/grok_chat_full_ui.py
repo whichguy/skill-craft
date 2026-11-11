@@ -85,11 +85,12 @@ INVISIBLE_NAME_CHARS = str.maketrans("", "", "\u200b\u00ad")
 
 
 class CheckFailure(RuntimeError):
-    """Failure with only bounded stage/reason identifiers safe to print."""
+    """Bounded public failure identifiers and a sanitized browser snapshot."""
 
-    def __init__(self, stage: str, reason: str):
+    def __init__(self, stage: str, reason: str, browser_result: dict | None = None):
         self.stage = stage if stage in SAFE_STAGES else "browser"
         self.reason = reason if reason in SAFE_REASONS else "evaluation-failed"
+        self.browser_result = _safe_browser_failure_result(browser_result or {})
         super().__init__(self.reason)
 
 
@@ -465,7 +466,9 @@ class BrowserWorker:
             raise CheckFailure("browser", "browser-result-invalid")
         self.sequence += 1
         ipc_id = str(self.sequence)
-        request = {**request, "ipc_id": ipc_id}
+        # Give failure diagnostics the same deadline, with headroom for IPC delivery.
+        request = {**request, "ipc_id": ipc_id,
+                   "ipc_deadline_ms": int((time.time() + timeout) * 1000) - 250}
         try:
             self.process.stdin.write(json.dumps(request, separators=(",", ":")) + "\n")
             self.process.stdin.flush()
@@ -487,7 +490,7 @@ class BrowserWorker:
         if result.get("status") != "ok":
             stage, reason = result.get("stage"), result.get("reason")
             raise CheckFailure(stage if stage in SAFE_STAGES else "browser",
-                               reason if reason in SAFE_REASONS else "evaluation-failed")
+                               reason if reason in SAFE_REASONS else "evaluation-failed", result)
         return result
 
     def terminate(self) -> None:
@@ -790,12 +793,90 @@ def _screen_receipts(paths: dict[str, Path], platform_dir: Path) -> dict:
     return result
 
 
+DIAGNOSTIC_BRANCHES = frozenset({
+    "step-failure", "request-validation", "request-host", "request-cancelled", "request-network-failure",
+    "response-host", "http-non-2xx", "response-body-read", "response-body-decode", "response-pairing",
+    "response-wrapper", "response-state", "response-value-type", "response-schema", "response-identity",
+    "response-server-id", "response-lifecycle",
+})
+BROWSER_STEPS = frozenset({"attempt", "authenticate", "observe", "setup", "seed", *TURN_STEPS,
+                           "create-confirm", "update-confirm", "cancel-confirm", "stale-confirm"})
+
+
+def _safe_browser_failure_result(result: dict) -> dict:
+    # Failed IPC is evidence, not trusted free-form error output. Whitelist both
+    # keys and values before attaching it to an exception or durable receipt.
+    diagnostic = result.get("browser_failure")
+    safe = {}
+    if isinstance(diagnostic, dict):
+        for key, allowed in (("step", BROWSER_STEPS), ("branch", DIAGNOSTIC_BRANCHES),
+                             ("method", OBSERVED_METHODS), ("drain_state", {"complete", "incomplete"})):
+            value = diagnostic.get(key)
+            if isinstance(value, str) and value in allowed:
+                safe[key] = value
+        for key, upper in (("request_sequence", 1000000), ("batch", 1000000),
+                           ("request_count", 10000), ("http_status", 599)):
+            value = diagnostic.get(key)
+            if type(value) is int and (100 if key == "http_status" else 1) <= value <= upper:
+                safe[key] = value
+        for key in ("pending_jobs", "unresolved_requests"):
+            value = diagnostic.get(key)
+            if type(value) is int and 0 <= value <= 10000:
+                safe[key] = value
+        ipc_id = diagnostic.get("ipc_id")
+        if isinstance(ipc_id, str) and re.fullmatch(r"[0-9]{1,8}", ipc_id):
+            safe["ipc_id"] = ipc_id
+        value = diagnostic.get("request_id")
+        if isinstance(value, str) and ACTION_ID_RE.fullmatch(value):
+            safe["request_id"] = value
+    return {"controller_calls": _safe_controller_projection([result]), "browser_failure": safe}
+
+
+def _safe_call_fields(call: dict) -> dict:
+    enums = {
+        "method": OBSERVED_METHODS, "response_state": {"PENDING", "SUCCESS", "ERROR", "CONFLICT"},
+        "result_status": {"missing", "ready", "error", "ok", "working", "applied", "stale",
+                          "rejected", "failed", "cancelled"},
+        "result_operation": {"create", "update"},
+        "request_lifecycle": {"dispatched", "response", "finished", "failed"},
+    }
+    safe = {}
+    for key, value in call.items():
+        if key in enums:
+            if isinstance(value, str) and value in enums[key]:
+                safe[key] = value
+        elif key in {"request_id", "response_id", "action_id", "request_action_id", "card_action_id"}:
+            if value is None or isinstance(value, str) and ACTION_ID_RE.fullmatch(value):
+                safe[key] = value
+        elif key in {"result_record_id", "result_conversation_id", "request_conversation_id"}:
+            if isinstance(value, str) and SF_ID_RE.fullmatch(value):
+                safe[key] = value
+        elif key in {"params_valid", "http_ok", "json_string_decoded_once", "ui_correlated"}:
+            if type(value) is bool:
+                safe[key] = value
+        elif key in {"request_sequence", "http_status"}:
+            if type(value) is int and 1 <= value <= (599 if key == "http_status" else 1000000):
+                safe[key] = value
+        elif key in {"request_started_at", "response_completed_at"}:
+            if type(value) in (float, int) and 0 < value < 1e15:
+                safe[key] = value
+        elif key in TURN_DIGEST_FIELDS and _valid_digest(value):
+            safe[key] = value
+        elif key == "server_request_id" and isinstance(value, str) and SERVER_REQUEST_ID_RE.fullmatch(value):
+            safe[key] = value
+    return safe
+
+
 def _safe_controller_projection(results: list[dict]) -> list[dict]:
     calls = {}
     for result in results:
-        for call in result.get("controller_calls", []):
+        rows = result.get("controller_calls", [])
+        if not isinstance(rows, list):
+            continue
+        for call in rows:
             if not isinstance(call, dict):
                 continue
+            call = _safe_call_fields(call)
             sequence = call.get("request_sequence")
             sequence = sequence if type(sequence) is int and sequence > 0 else None
             key = ("sequence", sequence) if sequence is not None else (
@@ -805,6 +886,7 @@ def _safe_controller_projection(results: list[dict]) -> list[dict]:
                 "http_ok", "json_string_decoded_once", "result_status", "result_operation", "result_record_id",
                 "result_conversation_id", "request_conversation_id", "action_id", "request_action_id",
                 "card_action_id", "ui_correlated", "request_started_at", "response_completed_at",
+                "http_status", "request_lifecycle",
             ) if name in call}
             projected.update({name: call[name] for name in TURN_DIGEST_FIELDS
                               if _valid_digest(call.get(name))})
@@ -816,7 +898,7 @@ def _safe_controller_projection(results: list[dict]) -> list[dict]:
                 # Cumulative snapshots may add UI correlation, but must not revise
                 # a completed response. Retain a conflict as non-passing evidence.
                 stable = lambda value: {k: v for k, v in value.items()
-                                        if k not in {"ui_correlated", "card_action_id"}}
+                                        if k not in {"ui_correlated", "card_action_id", "request_lifecycle"}}
                 changed_request = any(previous.get(k) != projected.get(k) for k in (
                     "method", "request_id", "request_sequence", "params_valid", "request_conversation_id",
                     "request_action_id", "message_sha256", "client_request_id_sha256", "submitted_turn_token_sha256"))
@@ -1267,6 +1349,9 @@ def run_check(mode: str) -> int:
         return 0
     except CheckFailure as exc:
         failure = exc
+        # The failed step never returns normally to append its terminal snapshot.
+        # Merge it after earlier snapshots so PENDING can become completed.
+        browser_results.append(exc.browser_result)
     except Exception:
         failure = CheckFailure("browser", "evaluation-failed")
     finally:
@@ -1279,6 +1364,7 @@ def run_check(mode: str) -> int:
         "source_head": source_head, "candidate_metadata_sha256": metadata_sha256,
         "deployment": deployment,
         "synthetic_fixture_reset": item_reset,
+        "browser_failure": failure.browser_result.get("browser_failure", {}) if failure else {},
         "failure": {"stage": failure.stage if failure else "browser",
                     "reason_code": failure.reason if failure else "evaluation-failed"},
         "chat_turns": [_safe_chat_turn_projection(result) for result in browser_results if "chat_turn" in result],

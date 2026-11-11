@@ -350,34 +350,62 @@ function assertNoChatBeforeSetup(observer, cursor) {
   }
 }
 
+// Only checker-created errors may contribute a diagnostic code. Provider or
+// browser Error properties are untrusted text, just like their messages.
+const DIAGNOSTIC_METADATA = new WeakMap();
+
+function safeErrorCode(error, key, allowed, fallback) {
+  try {
+    const value = error == null ? undefined : error[key];
+    return allowed.has(value) ? value : fallback;
+  } catch (_) { return fallback; }
+}
+
+function diagnosticError(reason, branch) {
+  const error = stageError('controller', reason);
+  DIAGNOSTIC_METADATA.set(error, { branch });
+  return error;
+}
+
 function pairAuraActions(requests, responseBody) {
-  const responses = decodeAura(responseBody, 'controller-response-invalid');
-  return requests.map(request => {
-    const matches = responses.filter(action => isRecord(action) && action.id === request.id);
-    if (matches.length !== 1) throw stageError('controller', 'controller-response-id-mismatch');
-    const response = matches[0];
-    let rawValue = response.returnValue;
-    if (request.transport === 'lwc') {
-      // Salesforce wraps LWC ApexActionController results once at the transport
-      // layer. The application still returns one JSON String, never an object.
-      if (!isRecord(rawValue) || !exactKeys(rawValue, ['returnValue', 'cacheable'])
-          || typeof rawValue.cacheable !== 'boolean') {
-        throw stageError('controller', 'controller-response-invalid');
+  let responses;
+  try { responses = decodeAura(responseBody, 'controller-response-invalid'); }
+  catch (_) { throw diagnosticError('controller-response-invalid', 'response-body-decode'); }
+  return requests.map((request, index) => {
+    try {
+      const matches = responses.filter(action => isRecord(action) && action.id === request.id);
+      if (matches.length !== 1) throw diagnosticError('controller-response-id-mismatch', 'response-pairing');
+      const response = matches[0];
+      let rawValue = response.returnValue;
+      if (request.transport === 'lwc') {
+        // Salesforce wraps LWC ApexActionController results once at the transport
+        // layer. The application still returns one JSON String, never an object.
+        if (!isRecord(rawValue) || !exactKeys(rawValue, ['returnValue', 'cacheable'])
+            || typeof rawValue.cacheable !== 'boolean') {
+          throw diagnosticError('controller-response-invalid', 'response-wrapper');
+        }
+        rawValue = rawValue.returnValue;
       }
-      rawValue = rawValue.returnValue;
+      if (response.state !== 'SUCCESS') throw diagnosticError('controller-response-invalid', 'response-state');
+      if (typeof rawValue !== 'string') throw diagnosticError('controller-response-invalid', 'response-value-type');
+      let result;
+      try { result = normalizeResult(request.method, rawValue); }
+      catch (_) { throw diagnosticError('controller-response-invalid', 'response-schema'); }
+      if ((result.conversationId && request.params.conversationId
+            && result.conversationId !== request.params.conversationId)
+          || (result.actionId && request.params.actionId
+            && result.actionId !== request.params.actionId)) {
+        throw diagnosticError('controller-response-invalid', 'response-identity');
+      }
+      return { request_id: request.id, response_id: response.id,
+        response_state: response.state, result, json_string_decoded_once: true };
+    } catch (error) {
+      // Only our pairing predicates prove an action index. Never read provider
+      // error properties, including getters or a forged recordIndex.
+      const metadata = DIAGNOSTIC_METADATA.get(error);
+      if (metadata) metadata.recordIndex = index;
+      throw error;
     }
-    if (response.state !== 'SUCCESS' || typeof rawValue !== 'string') {
-      throw stageError('controller', 'controller-response-invalid');
-    }
-    const result = normalizeResult(request.method, rawValue);
-    if ((result.conversationId && request.params.conversationId
-          && result.conversationId !== request.params.conversationId)
-        || (result.actionId && request.params.actionId
-          && result.actionId !== request.params.actionId)) {
-      throw stageError('controller', 'controller-response-invalid');
-    }
-    return { request_id: request.id, response_id: response.id,
-      response_state: response.state, result, json_string_decoded_once: true };
   });
 }
 
@@ -392,21 +420,60 @@ class ApexObserver {
     this.chatRequests = [];
     this.requestActions = new WeakMap();
     this.pending = new Set();
+    this.unresolvedRequests = new Set();
+    this.responseCompleted = new WeakSet();
     this.failure = null;
+    this.firstFailure = null;
+    this.step = 'attempt';
     this.sequence = 0;
     this.batch = 0;
   }
 
   attach() {
     this.page.on('request', request => this.onRequest(request));
+    this.page.on('requestfinished', request => this.onLifecycle(request, false));
+    this.page.on('requestfailed', request => this.onLifecycle(request, true));
     this.page.on('response', response => {
       const job = this.onResponse(response).catch(error => {
-        this.failure = this.failure || (error && error.stage
-          ? error : stageError('controller', 'controller-response-invalid'));
+        this.retainFailure(error, 'response-lifecycle');
       });
       this.pending.add(job);
       job.finally(() => this.pending.delete(job));
     });
+  }
+
+  retainFailure(error, branch, record, records = []) {
+    // The first rejection owns attribution, even if another batch fails while
+    // pending response jobs drain. Never replace the sticky acceptance failure.
+    this.failure = this.failure || stageError(
+      safeErrorCode(error, 'stage', SAFE_STAGES, 'controller'),
+      safeErrorCode(error, 'reason', SAFE_REASONS, 'controller-response-invalid'));
+    if (this.firstFailure) return;
+    this.firstFailure = { step: this.step, branch: DIAGNOSTIC_METADATA.get(error)?.branch || branch };
+    if (this.ipcId) this.firstFailure.ipc_id = this.ipcId;
+    if (records.length) Object.assign(this.firstFailure, {
+      batch: records[0].batch, request_count: records.length,
+      ...(records[0].http_status ? { http_status: records[0].http_status } : {}),
+    });
+    if (record) Object.assign(this.firstFailure, {
+      method: record.method, request_sequence: record.sequence, request_id: record.request_id,
+      ...(record.http_status ? { http_status: record.http_status } : {}),
+    });
+  }
+
+  onLifecycle(request, failed) {
+    const records = this.requestActions.get(request);
+    if (!records) return;
+    for (const record of records) record.request_lifecycle = failed ? 'failed' : 'finished';
+    if (failed || this.responseCompleted.has(request)) this.unresolvedRequests.delete(request);
+    if (failed) {
+      // Match only a known cancellation code. Arbitrary network error text may
+      // contain URLs or credentials and must never enter a receipt.
+      const cancelled = request.failure()?.errorText === 'net::ERR_ABORTED';
+      this.retainFailure(stageError('controller', 'controller-response-invalid'),
+        cancelled ? 'request-cancelled' : 'request-network-failure',
+        records.length === 1 ? records[0] : null, records);
+    }
   }
 
   onRequest(request) {
@@ -423,10 +490,10 @@ class ApexObserver {
       })));
       actions = parseAuraRequest(body, CONTROLLER, this.trackSplit);
     }
-    catch (error) { this.failure = this.failure || error; return; }
+    catch (error) { this.retainFailure(error, 'request-validation'); return; }
     if (!actions.length) return;
     if (url.protocol !== 'https:' || url.hostname.toLowerCase() !== this.expectedHost || url.port) {
-      this.failure = this.failure || stageError('controller', 'host-mismatch');
+      this.retainFailure(stageError('controller', 'host-mismatch'), 'request-host');
       return;
     }
     const batch = ++this.batch;
@@ -436,13 +503,14 @@ class ApexObserver {
         sequence: ++this.sequence, method: action.method, request_id: action.id,
         params, transport: action.transport, params_valid: true, response_id: null,
         response_state: 'PENDING', result: null, json_string_decoded_once: false,
-        batch,
+        batch, request_lifecycle: 'dispatched',
       };
       if (action.method === 'executePendingMessage') record.submittedTokenDigest = digest(turnToken);
       this.records.push(record);
       return record;
     });
     this.requestActions.set(request, records);
+    this.unresolvedRequests.add(request);
   }
 
   async onResponse(response) {
@@ -453,38 +521,67 @@ class ApexObserver {
     try { request = response.request(); } catch (_) { return; }
     const records = this.requestActions.get(request);
     if (!records) return;
-    if (url.protocol !== 'https:' || url.hostname.toLowerCase() !== this.expectedHost || url.port) {
-      throw stageError('controller', 'host-mismatch');
-    }
-    if (response.status() < 200 || response.status() >= 300) {
-      this.failure = this.failure || stageError('controller', 'controller-response-invalid');
-      return;
-    }
-    const pairs = pairAuraActions(records.map(record => ({ id: record.request_id,
-      method: record.method, params: record.params, transport: record.transport })), await response.text());
-    const serverId = this.trackSplit ? serverRequestId(await response.allHeaders()) : null;
-    for (let index = 0; index < records.length; index += 1) {
-      const record = records[index];
-      const pair = pairs[index];
-      record.response_id = pair.response_id;
-      record.http_ok = true;
-      record.json_string_decoded_once = pair.json_string_decoded_once;
-      record.result = pair.result;
-      if (serverId) record.server_request_id = serverId;
-      if (record.method === 'saveSetup' || this.trackSplit && (TURN_METHODS.has(record.method)
-          || ['testConnection', 'getConversation', 'confirmAction', 'cancelAction'].includes(record.method))) {
-        // Compare browser network times, not asynchronous Node callback order:
-        // the page can issue its next request before this observer reads the body.
-        if (await response.finished()) throw stageError('controller', 'controller-response-invalid');
-        const timing = request.timing();
-        if (!Number.isFinite(timing.startTime) || timing.startTime <= 0
-            || !Number.isFinite(timing.responseEnd) || timing.responseEnd < 0) {
-          throw stageError('controller', 'controller-response-invalid');
-        }
-        record.request_started_at = timing.startTime;
-        record.response_completed_at = timing.startTime + timing.responseEnd;
+    let branch = 'response-host';
+    try {
+      if (url.protocol !== 'https:' || url.hostname.toLowerCase() !== this.expectedHost || url.port) {
+        throw stageError('controller', 'host-mismatch');
       }
-      record.response_state = pair.response_state;
+      const status = response.status();
+      for (const record of records) {
+        record.http_status = status;
+        if (record.request_lifecycle === 'dispatched') record.request_lifecycle = 'response';
+      }
+      branch = 'http-non-2xx';
+      if (status < 200 || status >= 300) {
+        throw stageError('controller', 'controller-response-invalid');
+      }
+      branch = 'response-body-read';
+      const body = await response.text();
+      branch = 'response-body-decode';
+      const pairs = pairAuraActions(records.map(record => ({ id: record.request_id,
+        method: record.method, params: record.params, transport: record.transport })), body);
+      // Native execution/provider HTTP success is not a browser receipt. Only
+      // the paired browser response and its validation can supply this proof.
+      branch = 'response-server-id';
+      const serverId = this.trackSplit ? serverRequestId(await response.allHeaders()) : null;
+      for (let index = 0; index < records.length; index += 1) {
+        const record = records[index];
+        const pair = pairs[index];
+        record.response_id = pair.response_id;
+        branch = 'response-lifecycle';
+        record.json_string_decoded_once = pair.json_string_decoded_once;
+        record.result = pair.result;
+        if (serverId) record.server_request_id = serverId;
+        if (record.method === 'saveSetup' || this.trackSplit && (TURN_METHODS.has(record.method)
+            || ['testConnection', 'getConversation', 'confirmAction', 'cancelAction'].includes(record.method))) {
+          // Compare browser network times, not asynchronous Node callback order:
+          // the page can issue its next request before this observer reads the body.
+          if (await response.finished()) throw stageError('controller', 'controller-response-invalid');
+          const timing = request.timing();
+          if (!Number.isFinite(timing.startTime) || timing.startTime <= 0
+              || !Number.isFinite(timing.responseEnd) || timing.responseEnd < 0) {
+            throw stageError('controller', 'controller-response-invalid');
+          }
+          record.request_started_at = timing.startTime;
+          record.response_completed_at = timing.startTime + timing.responseEnd;
+        }
+        record.http_ok = true;
+        record.response_state = pair.response_state;
+      }
+    } catch (error) {
+      // Transport, headers, finished() and timing concern the shared request.
+      // Only checker-owned pairing predicates identify an action; otherwise
+      // identify a singleton or the batch, without inventing a culprit.
+      const index = DIAGNOSTIC_METADATA.get(error)?.recordIndex;
+      const record = Number.isInteger(index) && index >= 0 && index < records.length ? records[index]
+        : (records.length === 1 ? records[0] : null);
+      this.retainFailure(error, branch, record, records);
+      throw error;
+    } finally {
+      this.responseCompleted.add(request);
+      if (records.every(record => ['finished', 'failed'].includes(record.request_lifecycle))) {
+        this.unresolvedRequests.delete(request);
+      }
     }
   }
 
@@ -503,7 +600,11 @@ class ApexObserver {
   }
 
   async settle() {
-    await Promise.all([...this.pending]);
+    // A known failure must reach bounded failure reporting even if a different
+    // response body never resolves. Successful settling still waits for jobs.
+    while (this.pending.size && !this.failure) {
+      await new Promise(resolve => setTimeout(resolve, 5));
+    }
     if (this.failure) throw this.failure;
   }
 
@@ -529,6 +630,8 @@ class ApexObserver {
         response_state: record.response_state, params_valid: record.params_valid,
         json_string_decoded_once: record.json_string_decoded_once, http_ok: record.http_ok === true,
         ui_correlated: record.ui_correlated === true,
+        request_lifecycle: record.request_lifecycle,
+        ...(record.http_status ? { http_status: record.http_status } : {}),
       };
       if (result.status) output.result_status = result.status;
       if (result.operation) output.result_operation = result.operation;
@@ -2101,6 +2204,30 @@ function validateRequest(request) {
   return request;
 }
 
+async function failureReply(observer, request, error, stage, ipcDeadline = Date.now() + 1000) {
+  // Reserve IPC write time and cap diagnostic work at one second. Recheck the
+  // live sets: responses can register while earlier bodies drain, and dispatched
+  // requests still need both response processing and a terminal lifecycle event.
+  const deadline = Math.min(Date.now() + 1000, ipcDeadline - 25);
+  while (observer && (observer.pending.size || observer.unresolvedRequests.size) && Date.now() < deadline) {
+    await new Promise(resolve => setTimeout(resolve, Math.min(5, Math.max(1, deadline - Date.now()))));
+  }
+  const pendingJobs = observer?.pending.size || 0;
+  const unresolvedRequests = observer?.unresolvedRequests.size || 0;
+  return {
+    status: 'failed', ipc_id: request && request.ipc_id,
+    stage: safeErrorCode(error, 'stage', SAFE_STAGES, stage),
+    reason: safeErrorCode(error, 'reason', SAFE_REASONS, 'evaluation-failed'),
+    controller_calls: observer ? observer.projection() : [],
+    browser_failure: { ...(observer?.firstFailure || { step: request?.step, branch: 'step-failure',
+      ipc_id: request?.ipc_id }),
+      // Counts describe missing evidence, never a retry or an acceptance gate.
+      drain_state: pendingJobs || unresolvedRequests ? 'incomplete' : 'complete',
+      pending_jobs: Math.min(10000, pendingJobs),
+      unresolved_requests: Math.min(10000, unresolvedRequests) },
+  };
+}
+
 async function main() {
   let session;
   let observer;
@@ -2110,13 +2237,18 @@ async function main() {
       if (!line.trim()) continue;
       let request;
       let stage = 'browser';
+      let ipcDeadline = Date.now() + 1000;
       try {
         const parsed = JSON.parse(line);
+        if (Number.isSafeInteger(parsed?.ipc_deadline_ms)) ipcDeadline = parsed.ipc_deadline_ms;
         if (isRecord(parsed) && parsed.close === true) break;
         request = validateRequest(parsed);
+        if (observer) { observer.step = request.step; observer.ipcId = request.ipc_id; }
         if (!session) {
           if (request.step !== 'attempt') throw stageError('browser', 'invalid-options');
           observer = new ApexObserver(null, request.expected_lightning_host, { trackSplit: request.mode === 'run' });
+          observer.step = request.step;
+          observer.ipcId = request.ipc_id;
           stage = 'route';
           session = await createSession(request, observer);
           session.uiAttemptedFirst = true;
@@ -2156,11 +2288,7 @@ async function main() {
         }
         process.stdout.write(JSON.stringify({ ...result, ipc_id: request.ipc_id }) + '\n');
       } catch (error) {
-        process.stdout.write(JSON.stringify({
-          status: 'failed', ipc_id: request && request.ipc_id,
-          stage: SAFE_STAGES.has(error && error.stage) ? error.stage : stage,
-          reason: SAFE_REASONS.has(error && error.reason) ? error.reason : 'evaluation-failed',
-        }) + '\n');
+        process.stdout.write(JSON.stringify(await failureReply(observer, request, error, stage, ipcDeadline)) + '\n');
         process.exitCode = 1;
         break;
       }
@@ -2214,7 +2342,7 @@ module.exports = {
   METHODS, SAFE_STAGES, SAFE_REASONS, decodeAura, parseAuraRequest, pairAuraActions, parseOnceJsonString,
   normalizeResult, normalizeConversation, ApexObserver, validateRequest, inspectFixture,
   chatAttempts, assertNoChatBeforeSetup, click, enabledButton, runStep, matchTurn, writeMessage, performAction,
-  serverRequestId, testConnection, keyboardCheck,
+  serverRequestId, testConnection, keyboardCheck, failureReply,
 };
 
 if (require.main === module) main();
