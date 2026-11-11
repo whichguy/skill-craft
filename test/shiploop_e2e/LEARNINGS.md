@@ -8641,3 +8641,97 @@ The evidence supports distinct scopes; counts overlap and must not be added as u
 | [Combined validation](/Users/dadleet/Documents/Codex/experiments/shiploop-output-recovery-20261109T025552Z-b1e26615/combined-validation-03/receipt.json) | At `0e4d5621db2746e7a7a2368db3e27dbfc395f49c`: 22 suites PASS, 583 methods, zero skips; 441 plugin files, 429 skill plus 12 metadata, 26 skills. | Earlier dfe validation separately passed 23 suites with 420 files. Today's integration and journal await parent checks. |
 
 Preserve the original 199-suite attempt as 181 PASS/18 FAIL and overall INCOMPLETE; the separate corrected 18 passed on unchanged candidate1. Hello01 remains prelaunch-allowlist INCOMPLETE. No new E2E round occurred, and source509's justified `No-E2E-Round` remains literal. The two append-only ledger events accept this implementation, then defer only broader nonempty-stdin recovery and stronger durability. Reopen excluded-input work only with new contrary evidence or owner direction. Release and installed global-host refresh remain pending validation and parent publication.
+
+## 2026-11-11 — Cold additive Grok pilot: timeout, partial preservation, two evidence defects
+
+**Scope and frozen inputs.** One registered `ticket-escalation` follow-on used the passed
+`A1-ticket-assignment` predecessor at product HEAD
+`42180cb17bf98f5d527a214c98f3a2b5896766f1`, current source/release
+`e898dece9f90afb28aad600da94898b9acce4b01`, marketplace skill-craft 2.36.2 /
+ShipLoop 1.33.7, plugin `0fb97b42601d`, literal prompt SHA-256
+`d5421672cdce8dce7d9cdd9d93fc79bb7e654c6691bb35bccd3f0dd2220aa7ee`, and the owner-selected
+Grok 4.6/xhigh E2E driver from `db47982bcd9faf553041c26958abecd402002963`.
+The source harness was `test/shiploop_e2e/run.py`; planning review stayed `stage`.
+Registration SHA-256 is
+`b669ca0b7cb183d53d825e3fab221e0fb1920e3b2a1bd43eea4f48eafedfc763`.
+The predecessor remained untouched. The copied product contained no previous run directory;
+`shiploop-run.json` recorded an empty preexisting map and one new run,
+`nav-02e858b5731c4462b785be43c75490f2`. No predecessor-run dependency was observed,
+but the copy was not an OS access barrier.
+
+**Calibrated baseline.** In a disposable predecessor copy, the configured suite passed 122
+and the pristine base passed 117/117. Both new case checks failed before the run (exit 4),
+providing negative controls. Baseline-checks SHA-256 is
+`99c2abf3ace972346238bcb91f2469c0c5f439d152b8fe2d90c713e45da3f191`.
+The marketplace/freshness preflight passed with zero unreleased notes and green main CI.
+No deployment, account, browser or external service was involved.
+
+**Observed workflow.** Discovery ran the unchanged baseline in the execution worktree and
+wrote `notes/current-system-baseline.md`; Research used a discriminating persistence probe;
+Spec retained R-1–R-5 and added R-6–R-9; the accepted plan reused the Node HTTP/store/
+outbox/worker seams and divided reassignment and escalation into two serial items. No old
+feature rewrite was observed. Four inline planning Improve children used ten passes. They
+corrected replay start/isolation, independent fixtures, notifier/oracle assertions, empty
+change behavior and explicit-zero/default handling. These were inline same-host reviews,
+not independent external reviewers.
+
+**Stop and product evidence.** The host timed out with return code -9 at 7,201.3 seconds.
+ShipLoop remained active at W1/S1 document; W1/S2 HTTP reassignment and W2 escalation were
+not completed, and no source return, final product grade or release occurred. The planning
+window closed at 107.6 engine / 108.2 host minutes, including 57.5 Improve minutes; 11
+compactions and 318 main-thread calls (a lower bound) were recorded. Cleanup retained no
+surviving listener/process. These measurements describe this cell, not a general model or
+stage ranking.
+
+Run Review's candidate-at-stop observation, distinct from source-side checks, passed 125
+configured tests, 117/117 pristine base tests, existing assignment HTTP, file/dependency
+preservation and requirement retention/addition. Six of nine checks passed overall. The
+three failures were the unfinished HTTP reassignment, unfinished escalation and the absence
+of an escalation test line. Existing tests were unchanged. The partial execution worktree
+held three knowledge-document edits, `src/store.js`, and new `test/reassign.test.js`; it was
+not a delivered or accepted final tree. Result SHA-256 is
+`efd7b6e338ca20d4437ba5b474b9276b8f7bd98327afc3673a7d3ed4bc15a1ff`.
+
+**Two narrow evidence defects.** First, `active_commands` narrowed the focused execution to
+TC_7–TC_9 but retained C1–C6 in the receipt; C4–C6 belong to S2. The accepted test result
+truthfully says the S1 stimulus was `service.store.reassign` because HTTP belongs to S2, so
+this is not a hidden substitution or a failed product test. It is inaccurate criterion
+attribution. A direct no-model probe reproduced the mapping defect, and the independent
+Astra/high reviewer located the cause in `shiploop_iteration.py`: IDs are filtered without
+criteria. Preserve the store-level RED/GREEN/mutation evidence while leaving HTTP obligations
+open; a two-step hermetic regression can qualify the fix without another live run.
+
+Second, source-side `base_tests.py pristine` reported `0 of 117, rc None` and "no failing
+test named" after its node subprocess timed out. `node_test` retains an explicit timeout
+string, but `pristine` discards it. This is a harness diagnostic defect, not evidence of 117
+behavioral failures; the separate candidate-at-stop pristine run passed 117/117. A mocked
+`TimeoutExpired` regression can preserve the explanation. The hang's cause remains unknown.
+
+**Decision and contrary evidence.** Keep the current stages, fresh-run model, planning-review
+default, driver and loop limits unchanged on this evidence. The timeout is not a reason to
+remove reviews that caught real defects, and historical Codex Terra passes are a different
+host/model/build cell (`ba45b9d2ada380d6f2aafe4e628f62eef5b29356`). The broad continuity
+candidate remains dropped under
+`300ae9b0c5db8fcdded102d0ad7622f31be509bd`; nothing from it was revived. No comparative
+improvement, generic ShipLoop failure, completed additive delivery or source-side regression
+is claimed. No retry/resume or budget/default change is authorized by this record.
+
+The final workflow review has three findings and 21 selected-test/control rows. Its validator
+status is `supported-gap`, with zero errors: substituted TC_7–TC_9 observations, unrun later
+cases, incomplete delivery and unverified reviewer independence remain explicit. Review SHA-256
+is `e323f96312954ba03c5321896920c1faf26b974ff99278493645226b315c239a`; assessment SHA-256
+is `1e1efb1e8622ba0f0680492735ccca9d2026da18d892e3e03e91ed41f3622442`.
+The fresh read-only Astra review recorded requested `gpt-6-astra`, high effort and no fallback;
+provider-served identity is not exposed. Its JSON SHA-256 is
+`07d59b5e01f7e982a396db1d3905f6854696d8f08cd5d801f7dd4f1e7be7ebb1`.
+The Run Review bundle passed `export.py --check` with nine documents, zero failures and zero
+warnings. Artifact tools were unavailable, so the shared Run Review page was not updated;
+`review-export/run-review.html` is the retained local page.
+
+Raw evidence root:
+`/Users/dadleet/Documents/Codex/experiments/shiploop-stage-analysis-20261110.f9nJbg/cold-additive-20261111`.
+See `registration.json`, `baseline-checks.json`, `criterion-attribution-probe.json`,
+`ticket-escalation-grok/{result.json,metrics.json,mismatch.md,shiploop-run.json}`,
+`ticket-escalation-grok/review-export/`, `ticket-escalation-grok/audit-final/`, and
+`astra-review.json`. The initial review and validator-root correction remain retained under
+`ticket-escalation-grok/audit/`; they are not a second experiment.
