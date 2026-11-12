@@ -4064,7 +4064,7 @@ def handoff_sources(root: Path, state: Mapping[str, Any], stage: str) -> list[So
     - spec_diff: ``knowledge_home.spec_diff`` (None without a run baseline or outside a checkout).
     Applicable plan concerns follow the fixed CONSUMES fields when the stage owns them or acceptance needs them.
     At an inline implement step, follows, criteria and test_cases are cut to ``step_scope`` when it is not None.
-    A key with nothing recorded is a Source whose value is None.  Reads state and files; spec_diff runs one git diff.
+    A key with nothing recorded is a Source whose value is None. Reads state and files; spec_diff uses Git diffs.
     An unknown stage raises ValueError.
     """
     if stage not in CONSUMES:
@@ -6938,13 +6938,15 @@ def _source_lines(root: Path, state: Mapping[str, Any], source: Any, listed: Col
     if source.key == "spec_diff":
         head = "Spec and architecture changes since the run began"
         if source.value is None:
-            return [head + ": not computed: " + str(repo) + " is not a Git checkout, or the run has no baseline"]
+            return [head + ": not computed: " + str(repo) + " is not a Git checkout, or baseline/diff evidence is unavailable"]
         if source.value == "":
             return [head + ": none since the run began"]
         try:
             baseline = (Path(root) / knowledge.RUN_BASELINE).read_text(encoding="utf-8").strip()[:12] or "none"
-        except OSError:
+        except (OSError, UnicodeError):
             baseline = "none"
+        if (Path(root) / knowledge.RUN_STARTING_KNOWLEDGE).exists():
+            baseline = "starting bytes; HEAD " + baseline
         return [head + " (baseline " + baseline + "), " + SPEC_DIFF_NOTE + ":", *_spec_diff_lines(source.value, listed)]
     if source.key == "assumptions":
         label = "open items" + (" for " + str(source.workitem) if source.workitem else "")
@@ -8513,16 +8515,19 @@ def _spec_diff_section(state: Mapping[str, Any], root: Path | None) -> list[str]
     found = knowledge.spec_diff(root, state)
     try:
         baseline = (Path(root) / knowledge.RUN_BASELINE).read_text(encoding="utf-8").strip()
-    except OSError:
+    except (OSError, UnicodeError):
         baseline = ""
+    baseline = baseline[:12]
+    if (Path(root) / knowledge.RUN_STARTING_KNOWLEDGE).exists():
+        baseline = "starting bytes; HEAD " + baseline
     lines = ["<h2>Spec and architecture changes</h2>"]
     if found is None:
-        lines.append("<p>not computed: " + _e(state["repo"]) + " is not a Git checkout, or the run has no baseline.</p>")
+        lines.append("<p>not computed: " + _e(state["repo"]) + " is not a Git checkout, or baseline/diff evidence is unavailable.</p>")
     elif not found:
-        lines.append("<p>none since the run began (baseline " + _e(baseline[:12]) + ").</p>")
+        lines.append("<p>none since the run began (baseline " + _e(baseline) + ").</p>")
     else:
         lines += ["<p>The uncut diff of docs/shiploop/spec.md and architecture.md since the run began (baseline "
-                  + _e(baseline[:12]) + "):</p>", "<pre>" + _e(found) + "</pre>"]
+                  + _e(baseline) + "):</p>", "<pre>" + _e(found) + "</pre>"]
     return lines
 
 
