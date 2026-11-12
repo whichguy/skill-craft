@@ -140,13 +140,16 @@ def timestamp_ms(value: object) -> float:
         raise ValueError("invalid evidence timestamp") from exc
 
 
-def latest_ui_path(platform: Path, phase: str) -> Path | None:
+def latest_ui_path(platform: Path, phase: str, *, nonblocking: bool = False) -> Path | None:
     attempts = platform / "grok-chat-ui" / phase
     ledger_path = attempts / ui.UI_ATTEMPT_LEDGER
     if not ledger_path.is_file() or ledger_path.is_symlink():
         return None
     with ledger_path.open(encoding="ascii", newline="") as ledger:
-        fcntl.flock(ledger, fcntl.LOCK_SH)
+        try:
+            fcntl.flock(ledger, fcntl.LOCK_SH | (fcntl.LOCK_NB if nonblocking else 0))
+        except BlockingIOError as exc:
+            raise EvidenceBusy("ui-evidence-busy") from exc
         rows = ledger.readlines()
         if not rows or any(not row.endswith("\n") or not ui.UI_ATTEMPT_ID_RE.fullmatch(row[:-1])
                            for row in rows):
@@ -180,9 +183,9 @@ def deploy_started_without_overlap(platform: Path, call_id: str) -> bool:
     return latest == call_id and serial and not active
 
 
-def live_request(root: Path, platform: Path, phase: str, source: dict) -> dict | None:
+def live_request(root: Path, platform: Path, phase: str, source: dict, *, nonblocking: bool = False) -> dict | None:
     try:
-        path = latest_ui_path(platform, phase)
+        path = latest_ui_path(platform, phase, nonblocking=True) if nonblocking else latest_ui_path(platform, phase)
         if path is None or path.resolve() != path:
             return None
         raw = path.read_bytes()
@@ -250,7 +253,9 @@ def live_request(root: Path, platform: Path, phase: str, source: dict) -> dict |
                 "The method index, beginMessage, terminal replays, app ok flags, local nonce reads and separate "
                 "preflights cannot supply joins. Exclude raw bodies, headers and secrets."),
         }
-    except (OSError, ValueError, KeyError, RuntimeError):
+    except EvidenceBusy:
+        raise
+    except (OSError, ValueError, KeyError, TypeError, RuntimeError):
         return None
 
 
@@ -362,6 +367,7 @@ def write_request(path: Path, request: dict) -> None:
 def request_source_review(platform: Path, phase: str, source: dict) -> Path:
     directory = platform / "grok-chat-quality" / source["sha256"]
     request_path = directory / "request.json"
+    safe_request(request_path)
     write_request(request_path, {
         "schema": "shiploop-grok-chat-quality-request/1",
         "requested_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -375,8 +381,176 @@ def request_source_review(platform: Path, phase: str, source: dict) -> Path:
             "Inspect the full test map; missing required observations or generic unsupported review prose are non-pass. "
             "Attended provider callout joins are handled by the separate live acceptance request."),
     })
-    print("grok-chat-quality: independent review requested; " + str(request_path), flush=True)
+    read_source_request(request_path, source)
+    print("grok-chat-quality: independent review requested; " + str(request_path), flush=True, file=sys.stderr)
     return directory
+
+
+class InvalidRequest(ValueError):
+    """An existing immutable request is unsafe or does not bind this content."""
+
+
+class EvidenceBusy(RuntimeError):
+    """The latest UI ledger cannot be read without waiting."""
+
+
+def safe_request(path: Path) -> None:
+    if path.resolve() != path or path.is_symlink() or (path.exists() and not path.is_file()):
+        raise InvalidRequest("unsafe-request-path")
+
+
+def read_source_request(path: Path, source: dict) -> dict:
+    safe_request(path)
+    try:
+        value = json.loads(path.read_bytes())
+        historical = value["source"]
+        if (not isinstance(value, dict) or value.get("schema") != "shiploop-grok-chat-quality-request/1"
+                or value.get("phase") not in PHASES or value.get("dimensions") != list(DIMENSIONS)
+                or not isinstance(value.get("instructions"), str) or not value["instructions"].strip()
+                or not isinstance(historical, dict) or set(historical) != {"repo", "head", "sha256", "files"}
+                or historical["sha256"] != source["sha256"] or historical["files"] != source["files"]
+                or not isinstance(historical["head"], str) or not re.fullmatch(r"[a-f0-9]{40,64}", historical["head"])
+                or not isinstance(historical["repo"], str) or not Path(historical["repo"]).is_absolute()
+                or str(Path(historical["repo"])) != historical["repo"]
+                or ".." in Path(historical["repo"]).parts):
+            raise InvalidRequest("invalid-source-request")
+        timestamp_ms(value.get("requested_at"))
+        return value
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise InvalidRequest("invalid-source-request") from exc
+
+
+def live_request_path(directory: Path, live: dict) -> Path:
+    key = hashlib.sha256(json.dumps(live["identity"], sort_keys=True,
+                                   separators=(",", ":")).encode()).hexdigest()
+    return directory / "live-acceptance" / key / "request.json"
+
+
+def published_live_request(directory: Path, live: dict, *, publish: bool) -> Path | None:
+    path = live_request_path(directory, live)
+    safe_request(path)
+    if publish:
+        write_request(path, live)
+    if not path.exists():
+        return None
+    safe_request(path)
+    try:
+        if json.loads(path.read_bytes()) != live:
+            raise InvalidRequest("invalid-live-request")
+    except (OSError, ValueError, TypeError) as exc:
+        raise InvalidRequest("invalid-live-request") from exc
+    return path
+
+
+def request_context(root: Path, platform: Path, phase: str, source: dict, *, publish: bool,
+                    nonblocking: bool) -> dict:
+    directory = platform / "grok-chat-quality" / source["sha256"]
+    source_path = directory / "request.json"
+    safe_request(source_path)
+    if publish:
+        request_source_review(platform, phase, source)
+    published = read_source_request(source_path, source) if source_path.exists() else None
+    historical = published["source"] if published else None
+    pending = [] if historical else ["source-request-not-prepared"]
+    try:
+        live = live_request(root, platform, phase, source, nonblocking=True) if nonblocking else live_request(
+            root, platform, phase, source)
+    except EvidenceBusy:
+        live = None
+        pending.append("ui-evidence-busy")
+    path = published_live_request(directory, live, publish=publish) if live is not None else None
+    if live is None:
+        pending.append("current-live-evidence-unavailable")
+    elif path is None:
+        pending.append("live-request-not-prepared")
+    return {"schema": "shiploop-grok-chat-quality-preparation/1", "phase": phase,
+            "status": "pending" if pending else "prepared", "current_source": source,
+            "historical_source": historical, "historical_phase": published["phase"] if published else None,
+            "scope": "request-preparation-only", "source_request": str(source_path) if historical else None,
+            "live_request": str(path) if path else None, "live_identity": live["identity"] if path else None,
+            "pending": pending}
+
+
+def _operation_inputs(root: Path, platform: Path, phase: str) -> tuple[Path, Path]:
+    if phase not in PHASES:
+        raise ValueError("unsupported phase")
+    root, platform = root.resolve(), platform.resolve()
+    if not root.is_relative_to(platform.parent) or root.is_relative_to(platform):
+        raise ValueError("candidate outside run")
+    return root, platform
+
+
+def prepare_requests(root: Path, platform: Path, phase: str) -> dict:
+    """Publish missing immutable requests once, without waiting or judging them."""
+    root, platform = _operation_inputs(root, platform, phase)
+    source = snapshot(root)
+    result = request_context(root, platform, phase, source, publish=True, nonblocking=True)
+    # A concurrently superseded source or selector must not leave a stale current pointer.
+    current = snapshot(root)
+    try:
+        live = live_request(root, platform, phase, current, nonblocking=True)
+    except EvidenceBusy:
+        live = None
+        result["pending"].append("ui-evidence-busy")
+    if current != source or (live["identity"] if live else None) != result["live_identity"]:
+        result.update(status="pending", live_request=None, live_identity=None)
+        result["pending"].append("source-or-live-evidence-changed")
+        if current != source:
+            result.update(current_source=current, source_request=None, historical_source=None, historical_phase=None)
+    return result
+
+
+def assess_current(root: Path, platform: Path, phase: str) -> dict:
+    """Assess only current quality/live obligations once; write no evidence."""
+    root, platform = _operation_inputs(root, platform, phase)
+    source = snapshot(root)
+    context = request_context(root, platform, phase, source, publish=False, nonblocking=True)
+    directory = platform / "grok-chat-quality" / source["sha256"]
+    errors, pending = [], list(context["pending"])
+    review_path = directory / "review.json"
+    receipt_path = Path(context["live_request"]).with_name("receipt.json") if context["live_request"] else None
+    review_raw = receipt_raw = None
+    if review_path.exists() or review_path.is_symlink():
+        try:
+            safe_request(review_path)
+            review_raw = review_path.read_bytes()
+            errors.extend(validate_review(json.loads(review_raw), source, directory))
+        except (OSError, ValueError, TypeError):
+            errors.append("source-review-unreadable")
+    else:
+        pending.append("independent-review-pending")
+    if receipt_path and (receipt_path.exists() or receipt_path.is_symlink()):
+        try:
+            safe_request(receipt_path)
+            receipt_raw = receipt_path.read_bytes()
+            live = json.loads(Path(context["live_request"]).read_bytes())
+            errors.extend(validate_live_receipt(json.loads(receipt_raw), live))
+        except (OSError, ValueError, KeyError, TypeError):
+            errors.append("live-acceptance-receipt-unreadable")
+    else:
+        pending.append("live-acceptance-pending")
+    current = snapshot(root)
+    if current != source:
+        errors.append("candidate-changed-during-review")
+    # Re-run the same selectors and request validation; no publication on this path.
+    try:
+        after = request_context(root, platform, phase, current, publish=False, nonblocking=True)
+        if after != context:
+            errors.append("live-acceptance-evidence-changed")
+            context.update(live_request=None, live_identity=None)
+        if review_raw is not None:
+            if review_path.read_bytes() != review_raw:
+                errors.append("source-review-changed")
+            errors.extend(validate_review(json.loads(review_raw), source, directory))
+        if receipt_raw is not None and receipt_path.read_bytes() != receipt_raw:
+            errors.append("live-acceptance-receipt-changed")
+    except (OSError, ValueError, TypeError):
+        errors.append("evidence-changed-during-assessment")
+        context.update(live_request=None, live_identity=None)
+    return {**context, "schema": "shiploop-grok-chat-quality-assessment/1",
+            "scope": "current-source-quality-and-live-evidence",
+            "status": "FAIL" if errors else "UNKNOWN" if pending else "PASS",
+            "errors": sorted(set(errors)), "pending": sorted(set(pending))}
 
 
 def run(root: Path, platform: Path, phase: str, *, wait_seconds: float = CHECK_SECONDS) -> int:
@@ -417,11 +591,8 @@ def run(root: Path, platform: Path, phase: str, *, wait_seconds: float = CHECK_S
                 live_request_path = live_directory / "*" / "request.json"
                 receipt_path = None
                 if live is not None:
-                    key = hashlib.sha256(json.dumps(live["identity"], sort_keys=True,
-                                                   separators=(",", ":")).encode()).hexdigest()
-                    live_request_path = live_directory / key / "request.json"
+                    live_request_path = published_live_request(directory, live, publish=True)
                     receipt_path = live_request_path.with_name("receipt.json")
-                    write_request(live_request_path, live)
                     print("grok-chat-quality: live acceptance requested; " + str(live_request_path), flush=True)
             review_superseded = False
             if not reviewed and review_path.exists():
@@ -491,8 +662,36 @@ def run(root: Path, platform: Path, phase: str, *, wait_seconds: float = CHECK_S
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, default=Path.cwd())
+    operations = parser.add_mutually_exclusive_group()
+    operations.add_argument("--prepare-only", action="store_true")
+    operations.add_argument("--assess-only", action="store_true")
+    parser.add_argument("--json", action="store_true", help="one JSON document for prepare/assess")
     args = parser.parse_args(argv)
     platform = os.environ.get("E2E_PLATFORM_DIR")
+    if args.prepare_only or args.assess_only:
+        try:
+            if not platform:
+                raise ValueError("run-scoped platform unavailable")
+            result = (prepare_requests if args.prepare_only else assess_current)(
+                args.repo, Path(platform), os.environ.get("E2E_CHECK_PHASE", "unknown"))
+        except InvalidRequest:
+            result = {"schema": "shiploop-grok-chat-quality-preparation/1" if args.prepare_only else
+                      "shiploop-grok-chat-quality-assessment/1",
+                      "status": "invalid" if args.prepare_only else "FAIL",
+                      "scope": "current-source-quality-and-live-evidence" if args.assess_only else "request-preparation-only",
+                      "errors": ["invalid-published-request"], "live_request": None}
+        except (OSError, ValueError, KeyError, TypeError, RuntimeError, subprocess.SubprocessError):
+            result = {"schema": "shiploop-grok-chat-quality-preparation/1" if args.prepare_only else
+                      "shiploop-grok-chat-quality-assessment/1",
+                      "status": "invalid" if args.prepare_only else "UNKNOWN",
+                      "scope": "current-source-quality-and-live-evidence" if args.assess_only else "request-preparation-only",
+                      "errors": ["candidate-or-evidence-unreadable"], "live_request": None}
+        print(json.dumps(result, indent=2) if args.json else
+              "grok-chat-quality: " + result["status"] + " " + json.dumps(result))
+        return (1 if result["status"] == "invalid" else 0) if args.prepare_only else {
+            "PASS": 0, "FAIL": 1, "UNKNOWN": 2}[result["status"]]
+    if args.json:
+        parser.error("--json requires --prepare-only or --assess-only")
     if not platform:
         print("grok-chat-quality: UNKNOWN (run-scoped platform directory unavailable)")
         return 2

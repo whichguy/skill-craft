@@ -141,6 +141,7 @@
     "test/shiploop-e2e-predecessor.test.py": 2.446,
     "test/shiploop-e2e-qualification.test.py": 11.149,
     "test/shiploop-e2e-quality.test.py": 62.691,
+    "test/shiploop-e2e-recovery.test.py": 24,
     "test/shiploop-e2e-release-slice.test.py": 98.156,
     "test/shiploop-e2e-render-diff.test.py": 3.041,
     "test/shiploop-e2e-reorientation.test.py": 12.972,
@@ -297,6 +298,15 @@
       "source_snapshot": "source-before-quick-03.json under the evidence root recorded in 45b55e8483ee7dee83a2c8940b06ce2c81a2104f",
       "receipt_sha256": "dc5c23c3cd80e8ccc4ce87691bcdabeb5657f48a7de3bc9f36fe56736f3ec4eb",
       "evidence": "quick-03/receipt.json under the same external evidence root"
+    },
+    "test/shiploop-e2e-recovery.test.py": {
+      "method": "One local macOS command observation, rounded up for initial scheduling; concurrent hermetic checks were running. Not observed Linux CI time.",
+      "local_seconds": 23.18822024995461,
+      "profile_tests": 8,
+      "base_commit": "a270e5bf0a3c12641ef27cfcfdb70d647837957a",
+      "source_snapshot": "/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/reusable-recovery-20261112T2205/improve-sol-high-01/recovery-green-1/result.json",
+      "receipt_sha256": "5a10d80d9dec0b70991f2dbe0db388c7f86b71f021acc18f5291b1aba409c99d",
+      "evidence": "/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/reusable-recovery-20261112T2205/improve-sol-high-01/recovery-green-1"
     }
   }
 }

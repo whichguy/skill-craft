@@ -2674,7 +2674,10 @@ def parser() -> argparse.ArgumentParser:
                         "planning minutes. Starts no host and writes nothing; exits 0")
     p.add_argument("--runs", type=Path, nargs="+",
                    help="with --baseline-report: run folders (or folders of run folders) to read beside the baseline file")
-    p.add_argument("--json", action="store_true", help="with --baseline-report: print JSON instead of text")
+    p.add_argument("--inspect-recovery", type=Path, metavar="RUN_OUT",
+                   help="inspect the selected run checkout without writes or launch")
+    p.add_argument("--recovery-phase", choices=("builder", "final"), default="builder")
+    p.add_argument("--json", action="store_true", help="with --baseline-report or --inspect-recovery: print JSON instead of text")
     p.add_argument("--release-gate", action="store_true",
                    help="with --baseline-report: also print, per case style, the last pass a marketplace run recorded and how "
                         "many ShipLoop releases origin/main made since (the local ref; nothing is fetched)")
@@ -3941,6 +3944,12 @@ def _main(argv: list[str] | None, held: list, guard: "PlatformGuard | None" = No
     guard = guard or PlatformGuard()
     argv = list(sys.argv[1:] if argv is None else argv)
     args = parser().parse_args(argv)
+    if args.inspect_recovery:
+        import recovery
+        context = recovery.inspect_context(args.inspect_recovery, args.recovery_phase)
+        print(json.dumps(context, indent=2) if args.json else
+              f"recovery context: {context['status']} ({context.get('reason') or context['source']['repo']})")
+        return 0 if context["status"] == "resolved" else 2
     if args.predecessor_registration or args.predecessor_registration_sha256:
         if args.baseline_report or args.preflight_only:
             raise SystemExit("registered predecessor is a new-run input, not a report or preflight override")

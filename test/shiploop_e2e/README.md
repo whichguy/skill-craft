@@ -17,6 +17,34 @@ Package builds exclude `test/`, so merging changes here makes them available fro
 checkout, without changing the installed skill. A plugin release is needed when its
 packaged source changes, not merely because this harness changed.
 
+## Inspect and repair retained evidence
+
+Identify the current owned checkout without starting a host or changing a saved run:
+
+```sh
+python3 -B test/shiploop_e2e/run.py --inspect-recovery "$RUN_OUT" --recovery-phase builder --json
+python3 -B test/shiploop_e2e/run.py --inspect-recovery "$RUN_OUT" --recovery-phase final --json
+```
+
+`RUN_OUT` is the harness output directory, not the selected ShipLoop `run_dir`.
+Builder inspection permits dirty active work. Final inspection requires a current,
+verified workspace return. The `shiploop-e2e-recovery-context/1` document separates
+`source` (current repo and HEAD), exact `binding`, `selected_run`, recorded `launches`
+and the current `inspector` implementation. Exit 0 / `resolved` means checkout
+ownership only; exit 2 / `UNKNOWN` includes a `reason`. It never records a new run
+choice. Missing or busy workspace locks, pending transactions, unreadable launches,
+ambiguous runs and invalid bindings remain unresolved. Returning after removal of
+the execution worktree is unsupported. Inspection does not recover transactions.
+
+Use the returned source with the case's existing checks. The full Grok quality
+adapter supports [request preparation and scoped reassessment](GROK_CHAT_FULL.md#nonblocking-recovery-operations).
+An operator still conducts independent review, executes missing tests and live
+observations, submits their actual proof, then reassesses the failed obligations.
+Retain separate evidence for every required command and covered cleanup; a quality
+PASS alone does not establish recovery completion. Keep the original failed run,
+result and receipts intact. `--grade-only` retains its existing regrade behavior
+and can rewrite `result.json`; it is not an append-only recovery assessment.
+
 The [standing specification](SPEC.md) governs adoption. Review findings and passing
 tests do not establish a measured winner. The delivery path below is coordinated
 separately from a one-shot run or exploratory `iterate.py` invocation:

@@ -208,6 +208,7 @@ _SHIPLOOP_PATHS = (
     "test/shiploop-e2e-ticket-sla.test.py",
     "test/shiploop-e2e-user-chain.test.py",
     "test/shiploop-e2e-user-directory.test.py",
+    "test/shiploop-e2e-recovery.test.py",
     "test/shiploop-e2e-lifecycle.test.py",
     "test/shiploop-packet-obligations.test.py",
     "test/shiploop-efficiency-journal.test.py",

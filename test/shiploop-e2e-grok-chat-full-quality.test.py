@@ -12,6 +12,7 @@ import re
 from pathlib import Path
 import runpy
 import subprocess
+import sys
 import tempfile
 import time
 from types import SimpleNamespace
@@ -169,6 +170,210 @@ class QualityGateTest(unittest.TestCase):
         with redirect_stdout(output):
             code = quality.run(self.product, self.platform, phase, wait_seconds=wait_seconds)
         return code, output.getvalue()
+
+    def public(self, operation, *, code=0, phase="builder"):
+        def inventory():
+            return {str(p.relative_to(self.base)): (p.lstat().st_mode, p.lstat().st_mtime_ns,
+                    os.readlink(p) if p.is_symlink() else p.read_bytes())
+                    for p in self.base.rglob("*") if p.is_symlink() or p.is_file()}
+        before = inventory()
+        result = subprocess.run([sys.executable, "-B", str(PATH), "--repo", str(self.product),
+                                 operation, "--json"], capture_output=True, text=True, timeout=10,
+                                env={**os.environ, "E2E_PLATFORM_DIR": str(self.platform),
+                                     "E2E_CHECK_PHASE": phase})
+        after = inventory()
+        self.assertEqual([key for key in before if before[key] != after.get(key)], [])
+        added = after.keys() - before.keys()
+        if operation == "--assess-only":
+            self.assertEqual(added, set(), "assessment wrote evidence")
+        else:
+            self.assertTrue(all(name.startswith("platform/grok-chat-quality/") and name.endswith("/request.json")
+                                for name in added), added)
+        self.assertEqual(result.returncode, code, result.stdout + result.stderr)
+        return json.loads(result.stdout)
+
+    def platform_bytes(self):
+        return {str(p.relative_to(self.platform)): p.read_bytes()
+                for p in self.platform.rglob("*") if p.is_file()}
+
+    def test_public_prepare_empty_commit_then_scoped_reassessment_preserves_failure(self):
+        original = self.base / "result.json"
+        original.write_bytes(b'{"pass":false,"failed":"quality"}\n')
+        frozen = original.read_bytes()
+        a = self.public("--prepare-only")
+        request = Path(a["source_request"])
+        historical = request.read_bytes()
+        self.assertEqual(a["status"], "pending")
+        deploy = self.deploy("12345678")
+        self.write_ui(deploy, 1)
+        subprocess.run(["git", "-C", str(self.product), "-c", "user.name=Fixture",
+                        "-c", "user.email=fixture@example.invalid", "commit", "--allow-empty",
+                        "-qm", "empty knowledge commit"], check=True)
+        b = self.public("--prepare-only")
+        self.assertEqual(request.read_bytes(), historical)
+        self.assertNotEqual(b["current_source"]["head"], b["historical_source"]["head"])
+        self.assertIsNone(b["live_request"])
+        self.identity = quality.snapshot(self.product)
+        self.write_ui(deploy, 2)
+        b = self.public("--prepare-only")
+        self.assertIsNotNone(b["live_request"])
+        live_path = Path(b["live_request"])
+        live = json.loads(live_path.read_bytes())
+        live_path.with_name("receipt.json").write_text(json.dumps(self.live_receipt(live)))
+        review = self.valid()
+        review["status"] = "FAIL"
+        (self.directory / "review.json").write_text(json.dumps(review))
+        before = self.platform_bytes()
+        failed = self.public("--assess-only", code=1)
+        self.assertEqual(failed["status"], "FAIL")
+        self.assertEqual(self.platform_bytes(), before)
+        review["status"] = "PASS"
+        (self.directory / "review.json").write_text(json.dumps(review))
+        before = self.platform_bytes()
+        passed = self.public("--assess-only")
+        self.assertEqual(passed["status"], "PASS")
+        self.assertEqual(passed["scope"], "current-source-quality-and-live-evidence")
+        self.assertEqual(self.platform_bytes(), before)
+        self.assertEqual(original.read_bytes(), frozen)
+        self.assertEqual(request.read_bytes(), historical)
+
+    def test_public_changed_tracked_untracked_and_ignored_deployable_need_review(self):
+        self.public("--prepare-only")
+        (self.directory / "review.json").write_text(json.dumps(self.valid()))
+        self.deploy("12345678")
+        self.write_ui(quality.ui._latest_successful_deploy(self.platform), 1)
+        prepared = self.public("--prepare-only")
+        path = Path(prepared["live_request"])
+        path.with_name("receipt.json").write_text(json.dumps(self.live_receipt(json.loads(path.read_bytes()))))
+        self.public("--assess-only")
+        subprocess.run(["git", "-C", str(self.product), "add", "sfdx-project.json", "force-app"], check=True)
+        for name in ("force-app/Example.cls", "extra.txt", "force-app/ignored.cls"):
+            if name.endswith("ignored.cls"):
+                (self.product / ".git/info/exclude").write_text("ignored.cls\n")
+            target = self.product / name
+            previous = target.read_bytes() if target.exists() else None
+            target.write_text("changed deployable content\n")
+            result = self.public("--prepare-only")
+            self.assertNotEqual(result["current_source"]["sha256"], self.identity["sha256"])
+            assessment = self.public("--assess-only", code=2)
+            self.assertIn("independent-review-pending", assessment["pending"])
+            if previous is None:
+                target.unlink()
+            else:
+                target.write_bytes(previous)
+
+    def test_public_malformed_or_unsafe_request_is_preserved_and_invalid(self):
+        self.public("--prepare-only")
+        path = self.directory / "request.json"
+        valid = json.loads(path.read_bytes())
+        for value in ("{", json.dumps({**valid, "schema": "wrong"}),
+                      json.dumps({**valid, "source": {**valid["source"], "sha256": "0" * 64}})):
+            path.write_text(value)
+            result = self.public("--prepare-only", code=1)
+            self.assertEqual(result["status"], "invalid")
+            self.assertEqual(path.read_text(), value)
+        path.unlink()
+        path.symlink_to(self.product / "sfdx-project.json")
+        self.public("--prepare-only", code=1)
+
+    def test_public_newer_failed_incomplete_late_and_overlapping_evidence_withhold_old_credit(self):
+        (self.directory / "review.json").write_text(json.dumps(self.valid()))
+        deploy = self.deploy("12345678")
+        old = self.write_ui(deploy, 1)
+        prepared = self.public("--prepare-only")
+        path = Path(prepared["live_request"])
+        path.with_name("receipt.json").write_text(json.dumps(self.live_receipt(json.loads(path.read_bytes()))))
+        self.public("--assess-only")
+        self.register_ui(2)
+        for changes in (None, {"status": "failed"}):
+            if changes:
+                self.write_ui(deploy, 2, directory=self.platform / "grok-chat-ui/builder" / f"{2:032x}", **changes)
+            # Rewriting old completion does not change latest start order.
+            old.write_bytes(old.read_bytes())
+            self.assertIsNone(self.public("--prepare-only")["live_request"])
+            self.public("--assess-only", code=2)
+        self.write_ui(deploy, 3)
+        current = self.public("--prepare-only")
+        current_path = Path(current["live_request"])
+        current_path.with_name("receipt.json").write_text(json.dumps(
+            self.live_receipt(json.loads(current_path.read_bytes()))))
+        self.public("--assess-only")
+        self.deploy("bbbbbbbb", completed=False)
+        self.assertIsNone(self.public("--prepare-only")["live_request"])
+        self.public("--assess-only", code=2)
+        self.deploy("cccccccc")  # B still active: C cannot establish serial remote order.
+        self.write_ui(quality.ui._latest_successful_deploy(self.platform), 4)
+        self.assertIsNone(self.public("--prepare-only")["live_request"])
+        self.public("--assess-only", code=2)
+
+    def test_public_busy_ui_ledger_is_nonblocking(self):
+        import fcntl
+        self.write_ui(self.deploy("12345678"), 1)
+        ledger = self.platform / "grok-chat-ui/builder" / quality.ui.UI_ATTEMPT_LEDGER
+        with ledger.open() as held:
+            fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            result = self.public("--prepare-only")
+        self.assertIsNone(result["live_request"])
+        self.assertIn("ui-evidence-busy", result["pending"])
+
+    def test_public_assessment_clears_current_pointer_when_evidence_changes_during_validation(self):
+        (self.directory / "review.json").write_text(json.dumps(self.valid()))
+        self.write_ui(self.deploy("12345678"), 1)
+        prepared = self.public("--prepare-only")
+        path = Path(prepared["live_request"])
+        path.with_name("receipt.json").write_text(json.dumps(self.live_receipt(json.loads(path.read_bytes()))))
+        validator = quality.validate_live_receipt
+        def supersede(receipt, request):
+            self.register_ui(2)
+            return validator(receipt, request)
+        with mock.patch.object(quality, "validate_live_receipt", side_effect=supersede):
+            with mock.patch.dict(os.environ, {"E2E_PLATFORM_DIR": str(self.platform), "E2E_CHECK_PHASE": "builder"}):
+                with redirect_stdout(io.StringIO()) as output:
+                    code = quality.main(["--repo", str(self.product), "--assess-only", "--json"])
+        self.assertEqual(code, 1)
+        result = json.loads(output.getvalue())
+        self.assertIn("live-acceptance-evidence-changed", result["errors"])
+        self.assertIsNone(result["live_request"])
+
+    def test_publication_race_validates_winner_not_proposed_request(self):
+        def competing(path, request):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('{"schema":"wrong"}')
+        with mock.patch.object(quality, "write_request", side_effect=competing):
+            with mock.patch.dict(os.environ, {"E2E_PLATFORM_DIR": str(self.platform), "E2E_CHECK_PHASE": "builder"}):
+                with redirect_stdout(io.StringIO()) as output:
+                    code = quality.main(["--repo", str(self.product), "--prepare-only", "--json"])
+        self.assertEqual(code, 1)
+        self.assertEqual(json.loads(output.getvalue())["status"], "invalid")
+
+    def test_assessment_clears_both_current_pointers_when_request_becomes_malformed(self):
+        original = self.base / "result.json"
+        original.write_bytes(b'{"pass":false,"failed":"original"}\n')
+        frozen = original.read_bytes()
+        (self.directory / "review.json").write_text(json.dumps(self.valid()))
+        self.write_ui(self.deploy("12345678"), 1)
+        prepared = self.public("--prepare-only")
+        path = Path(prepared["live_request"])
+        path.with_name("receipt.json").write_text(json.dumps(self.live_receipt(json.loads(path.read_bytes()))))
+        self.assertEqual(self.public("--assess-only")["status"], "PASS")
+        before = self.platform_bytes()
+        validator = quality.validate_live_receipt
+
+        def corrupt_after_validation(receipt, request):
+            errors = validator(receipt, request)
+            self.assertEqual(errors, [], 'race must start with valid live proof')
+            path.write_bytes(b'{')
+            return errors
+
+        with mock.patch.object(quality, "validate_live_receipt", side_effect=corrupt_after_validation) as validate:
+            result = quality.assess_current(self.product, self.platform, "builder")
+        validate.assert_called_once()
+        after = self.platform_bytes()
+        self.assertEqual(after, {**before, path.relative_to(self.platform).as_posix(): b'{'})
+        self.assertEqual(original.read_bytes(), frozen)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertIn("evidence-changed-during-assessment", result["errors"])
+        self.assertEqual((result["live_request"], result["live_identity"]), (None, None))
 
     def test_accepts_exact_current_joins_and_reuses_review_across_phases(self):
         (self.directory / "review.json").write_text(json.dumps(self.valid()))

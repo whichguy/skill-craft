@@ -104,6 +104,62 @@ Rendered history proof compares the complete message body owned by its message c
 
 After confirmation or cancellation, the checker reads authoritative conversation history before the next Send. It can use the app's own read, a visible Reload history control, or a page reload. The read must preserve earlier messages and immutable proposal fields; it may include bookkeeping from the validated action.
 
+## Nonblocking recovery operations
+
+After [inspecting the exact checkout binding](README.md#inspect-and-repair-retained-evidence),
+prepare requests against that current repo and phase:
+
+```sh
+E2E_PLATFORM_DIR="$RUN_OUT/platform" E2E_CHECK_PHASE=final \
+  python3 -B test/shiploop_e2e/checks/grok_chat_full_quality.py \
+  --repo "$CURRENT_REPO" --prepare-only --json
+```
+
+Preparation publishes only missing write-once request files through the existing
+request producers. It validates the actual file after publication, including when
+another publisher won. Malformed, wrong-content or symbolic request paths are
+`invalid` (exit 1) and remain untouched. `prepared` and `pending` both exit 0:
+neither accepts a review or live callback. The preparation schema is
+`shiploop-grok-chat-quality-preparation/1`; `pending` lists prerequisites and a busy
+UI ledger is reported as `ui-evidence-busy`, without waiting for its lock.
+`live_request` is null whenever current selectors cannot establish qualifying
+UI/deployment evidence, even when older request files remain on disk.
+
+`current_source` and `phase` describe today's execution. `historical_source` and
+`historical_phase` describe the immutable content-bound source request. An empty
+Git commit can retain that request's old HEAD and bytes while current live evidence
+must bind the new HEAD. Changed tracked, untracked or ignored deployable content
+requires a new source review. The whole-source, deployment and oracle hashes have
+different scopes.
+
+The operator then independently reviews the source and executes any missing actual
+tests, guarded deployment and attended UI/provider observations. Publish the source
+review to the indicated request's sibling `review.json`, and the six closed native
+joins to the current live request's sibling `receipt.json`, using the contracts
+above. Preparation performs none of those actions. Assess their current evidence
+once, saving stdout to a fresh external evidence path if a durable record is needed:
+
+```sh
+E2E_PLATFORM_DIR="$RUN_OUT/platform" E2E_CHECK_PHASE=final \
+  python3 -B test/shiploop_e2e/checks/grok_chat_full_quality.py \
+  --repo "$CURRENT_REPO" --assess-only --json
+```
+
+The `shiploop-grok-chat-quality-assessment/1` document reports PASS (exit 0), FAIL
+(exit 1) or UNKNOWN (exit 2), with `errors` and `pending`. Its explicit scope is
+`current-source-quality-and-live-evidence`. It reuses the existing review/live
+validators and rechecks source and current evidence. It writes no requests,
+callbacks, check records or results, and never waits, retries, launches models or
+calls services. Both operations print one JSON document with `--json`; request
+progress goes to stderr. The ordinary blocking quality check shares the request
+producers and validators and retains its deadline and supersession rules.
+
+A failed scoped obligation can be corrected and reassessed through this command;
+retain the failed assessment as well. Before claiming completed recovery, account
+separately for actual required native/oracle/local test executions, independent
+review, delivery and covered application/provider cleanup. These APIs neither
+certify the whole campaign nor alter historical failures or cleanup policy.
+
 ## Cleanup and retry
 
 Let the harness finish its default app cleanup before removing operator-owned credential resources. Use resource identities and the ownership ledger, preserve unrelated configuration, and verify the org baseline again. If cleanup fails or a deployment is still running, retain the failure and resolve it before a fresh attempt. Use a new output directory; never overwrite a failed attempt or erase its measurements.
