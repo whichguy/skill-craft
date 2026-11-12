@@ -24,9 +24,14 @@ level-2 heading that matches no named section or repeats one (``placement_notice
 
 from __future__ import annotations
 
+import base64
+import binascii
 import difflib
+import json
+import os
 import re
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, NamedTuple, Optional, Sequence, Tuple
 
@@ -937,46 +942,183 @@ def lessons_lines(repo: Path, window: Sequence[str] = ()) -> List[str]:
 
 # --- the run baseline and the spec diff (owner decision D3, X9) -------------------------------------------------------
 
-# Run-relative record: the commit HEAD of the execution checkout held when the run was created (``init``, before any
-# commit of the run).  ``spec_diff`` reads it; nothing else does.
+# HEAD is retained for older readers/runs. New runs publish the complete starting working bytes first, so pre-init
+# owner edits (including untracked files) do not become changes attributed to this run. Only the HEAD pointer can be
+# repaired, from the immutable snapshot binding; starting bytes are never recaptured.
 RUN_BASELINE = "run-baseline.txt"
+RUN_STARTING_KNOWLEDGE = "run-starting-knowledge.json"
 _SPEC_DIFF_FILES = (HOME + "/spec.md", HOME + "/" + ARCHITECTURE)
 
 
+def _starting_bytes(path: Path) -> Optional[bytes]:
+    """Absence is different from an empty file and from a read error (which propagates)."""
+    try:
+        return path.read_bytes()
+    except FileNotFoundError:
+        if any(part.is_symlink() and not part.exists() for part in (path, *path.parents)):
+            raise  # a dangling link cannot supply starting/current file bytes
+        return None
+
+
+def repair_baseline_pointer(root: Path) -> Optional[str]:
+    """Repair only HEAD from an existing validated snapshot; never capture working bytes.
+
+    Caller holds the run lock. Missing snapshots leave both artifacts untouched, including legacy HEAD-only runs.
+    Malformed evidence, valid conflicts and publication failures return a note rather than refusing the run.
+    """
+    import shiploop_store as store
+
+    record = Path(root) / RUN_BASELINE
+    snapshot = Path(root) / RUN_STARTING_KNOWLEDGE
+    if not os.path.lexists(snapshot):
+        return None
+    try:
+        head, _ = _read_snapshot(snapshot)
+        try:
+            pointer = record.read_text(encoding="utf-8").strip()
+        except (OSError, UnicodeError):
+            pointer = ""
+        if re.fullmatch(r"[0-9a-f]{40,64}", pointer):
+            if pointer != head:
+                return "run baseline HEAD conflict in " + str(root) + ": snapshot and pointer differ"
+            return None
+        store.atomic_write_text(record, head + "\n")
+    except (OSError, store.StorageError, ValueError, TypeError, binascii.Error) as exc:
+        return "cannot record run baseline in " + str(root) + ": snapshot/pointer evidence unavailable: " + str(exc)
+    return None
+
+
 def record_baseline(root: Path, state: Mapping[str, Any]) -> Optional[str]:
-    """Write ``RUN_BASELINE`` once, when absent, in a checkout; returns why it failed, or None.
+    """Publish starting bytes atomically, then HEAD, once in a checkout; return why it failed, or None.
 
     ``init`` calls this right after it saves the new run; a failure is one note on stderr, never a refusal (``spec_diff``
-    then answers None, which a packet prints as not recorded).  Outside a checkout nothing is written and nothing is said.
+    then answers None). Existing snapshots block recapture; a valid snapshot can repair a missing/malformed HEAD pointer
+    using its bound HEAD. A valid conflicting pointer is never overwritten. HEAD-only legacy baselines remain unchanged.
+    Outside a checkout nothing is written and nothing is said. Unborn checkouts retain no baseline.
     """
+    import shiploop_store as store
+
     record = Path(root) / RUN_BASELINE
+    snapshot = Path(root) / RUN_STARTING_KNOWLEDGE
     repo = Path(str(state["repo"]))
-    if record.exists() or not (repo / ".git").exists():
+    if not (repo / ".git").exists():
         return None
+    if os.path.lexists(snapshot):
+        return repair_baseline_pointer(root)
+    if os.path.lexists(record):
+        return None  # legacy HEAD-only runs must not acquire a newly captured snapshot
     shown = _git(repo, "rev-parse", "--verify", "-q", "HEAD^{commit}")
     head = shown.stdout.strip()
     if shown.returncode or not re.fullmatch(r"[0-9a-f]{40,64}", head):
         return "HEAD of " + str(repo) + " names no commit"
     try:
-        import shiploop_store as store
+        files = {name: _starting_bytes(repo / name) for name in _SPEC_DIFF_FILES}
+        payload = {"version": 1, "head": head, "files": {
+            name: None if data is None else base64.b64encode(data).decode("ascii") for name, data in files.items()}}
+        store.atomic_write_text(snapshot, json.dumps(payload, sort_keys=True) + "\n")
         store.atomic_write_text(record, head + "\n")
-    except OSError as exc:
-        return "cannot write " + str(record) + ": " + str(exc)
+    except (OSError, store.StorageError) as exc:
+        return "cannot record run baseline in " + str(root) + ": " + str(exc)
     return None
 
 
-def spec_diff(root: Path, state: Mapping[str, Any]) -> Optional[str]:
-    """``git diff <baseline> -- docs/shiploop/spec.md docs/shiploop/architecture.md`` against the working tree, uncut.
+def _snapshot_object(pairs: Sequence[Tuple[str, Any]]) -> Dict[str, Any]:
+    """JSON objects with repeated keys are ambiguous evidence, not a last-value-wins baseline."""
+    result: Dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate snapshot key: " + key)
+        result[key] = value
+    return result
 
-    "" when neither changed since the run began; None when the run recorded no baseline or the repository is no checkout.
+
+def _read_snapshot(snapshot: Path) -> Tuple[str, Dict[str, Optional[bytes]]]:
+    """Validate all immutable evidence before trusting its HEAD binding or any starting bytes."""
+    payload = json.loads(snapshot.read_text(encoding="utf-8"), object_pairs_hook=_snapshot_object)
+    if (not isinstance(payload, dict) or set(payload) != {"version", "head", "files"}
+            or type(payload["version"]) is not int or payload["version"] != 1
+            or not isinstance(payload["head"], str) or not re.fullmatch(r"[0-9a-f]{40,64}", payload["head"])
+            or not isinstance(payload["files"], dict) or set(payload["files"]) != set(_SPEC_DIFF_FILES)):
+        raise ValueError("invalid starting-knowledge snapshot")
+    starting = {}
+    for name, value in payload["files"].items():
+        if value is not None and not isinstance(value, str):
+            raise ValueError("invalid starting bytes for " + name)
+        starting[name] = None if value is None else base64.b64decode(value, validate=True)
+    return payload["head"], starting
+
+
+def _snapshot_diff(repo: Path, snapshot: Path, baseline: str) -> Optional[str]:
+    """Require matching bound HEAD and complete evidence; never fall back from invalid evidence to HEAD."""
+    try:
+        head, starting = _read_snapshot(snapshot)
+        if head != baseline:
+            return None
+        current = {name: _starting_bytes(repo / name) for name in _SPEC_DIFF_FILES}
+        chunks = []
+        # Git operates only on disposable copies, never the product index/tree. Separate invocations prevent renames
+        # across the two files; explicit options also override user diff drivers, textconv and rename preferences.
+        with tempfile.TemporaryDirectory(prefix="shiploop-knowledge-diff-") as directory:
+            scratch = Path(directory)
+            for number, name in enumerate(_SPEC_DIFF_FILES):
+                before, after = starting[name], current[name]
+                if before == after:
+                    continue
+                paths = []
+                for side, data in (("before", before), ("after", after)):
+                    path = scratch / (str(number) + "-" + side)
+                    if data is None:
+                        paths.append(os.devnull)
+                    else:
+                        path.write_bytes(data)
+                        paths.append(str(path))
+                shown = subprocess.run(["git", "diff", "--no-index", "--no-color", "--no-ext-diff",
+                                        "--no-textconv", "--no-renames", "--", *paths],
+                                       cwd=scratch, capture_output=True, check=False)
+                if shown.returncode not in (0, 1):
+                    return None
+                # Only rewrite metadata, stopping at the first hunk. In particular, content resembling ---/+++ is
+                # never a path header. Split on LF alone to retain CRLF content and missing-final-newline markers.
+                # The snapshot stays byte-exact; rendered diff text must also support ordinary UTF-8 writes/print.
+                lines = shown.stdout.decode("utf-8", errors="replace").split("\n")
+                metadata = True
+                for index, line in enumerate(lines):
+                    if line.startswith("@@"):
+                        metadata = False
+                    if not metadata:
+                        continue
+                    if line.startswith("diff --git "):
+                        lines[index] = "diff --git a/" + name + " b/" + name
+                    elif line.startswith("--- ") and before is not None:
+                        lines[index] = "--- a/" + name
+                    elif line.startswith("+++ ") and after is not None:
+                        lines[index] = "+++ b/" + name
+                    elif line.startswith("Binary files "):
+                        lines[index] = ("Binary files " + ("a/" + name if before is not None else os.devnull)
+                                        + " and " + ("b/" + name if after is not None else os.devnull) + " differ")
+                chunks.append("\n".join(lines))
+        return "".join(chunks)
+    except (OSError, ValueError, TypeError, binascii.Error):
+        return None
+
+
+def spec_diff(root: Path, state: Mapping[str, Any]) -> Optional[str]:
+    """Uncut starting-content diff for new runs; legacy HEAD-relative diff for HEAD-only runs.
+
+    "" when unchanged; None outside Git, without a baseline, or with unreadable/partial/malformed snapshot evidence.
     """
     repo = Path(str(state["repo"]))
     try:
         baseline = (Path(root) / RUN_BASELINE).read_text(encoding="utf-8").strip()
-    except OSError:
+    except (OSError, UnicodeError):
         return None
     if not baseline or not (repo / ".git").exists():
         return None
+    snapshot = Path(root) / RUN_STARTING_KNOWLEDGE
+    if os.path.lexists(snapshot):
+        if not re.fullmatch(r"[0-9a-f]{40,64}", baseline):
+            return None
+        return _snapshot_diff(repo, snapshot, baseline)
     shown = _git(repo, "diff", "--no-color", "--no-ext-diff", baseline, "--", *_SPEC_DIFF_FILES)
     return None if shown.returncode else shown.stdout
 
@@ -1029,6 +1171,8 @@ __all__ = ("ARCHITECTURE",
            "Quote",
            "READS",
            "RUN_BASELINE",
+           "repair_baseline_pointer",
+           "RUN_STARTING_KNOWLEDGE",
            "SECTIONS",
            "STAGE_FILES",
            "Section",
