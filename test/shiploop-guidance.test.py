@@ -7,6 +7,7 @@ claim that an LLM interpreted a locator correctly or that Improve executed.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -381,6 +382,56 @@ class GuidanceTests(unittest.TestCase):
                     headings.update(re.findall(r"<a id=\"([^\"]+)\"></a>", text))
                     self.assertIn(anchor, headings, locator)
 
+    def test_discovery_selects_a_reopenable_baseline_and_consumers_follow_it(self) -> None:
+        discovery = normalized(prompts.DUTIES["discovery"])
+        for phrase in ("selected baseline", "`evidence_refs`", "immutable revision",
+                       "RUN/notes/current-system-baseline.md", "newly synthesized", "interaction baseline"):
+            self.assertIn(phrase, discovery)
+        baseline_duty = discovery.split("10. ", 1)[1].split("11. ", 1)[0]
+        self.assertIn("Name the selected baseline's locator and new/existing classification in `summary`", baseline_duty)
+        self.assertIn("cite its exact section/source in `evidence_refs`", baseline_duty)
+        for stage in ("research", "spec", "test-strategy", "plan"):
+            with self.subTest(stage=stage):
+                duty = normalized(prompts.DUTIES[stage])
+                self.assertIn("Discovery's `evidence_refs`", duty)
+                self.assertIn("selected baseline", duty)
+                self.assertNotIn("RUN/notes/current-system-baseline.md", duty)
+                self.assertNotIn("current-system-baseline}.md", duty)
+
+    def test_test_strategy_scope_survives_an_empty_textual_diff(self) -> None:
+        duty = normalized(prompts.DUTIES["test-strategy"])
+        for phrase in ("from accepted intake and the current requirements in KNOWLEDGE/spec.md that the request adds, changes or touches",
+                       "pending requirement already present at init if named by the current request",
+                       "and the preservation set touched", "The quoted diff is supporting evidence",
+                       "an empty diff does not empty scope", "Existing suites cover the rest"):
+            self.assertIn(phrase, duty)
+
+    def test_test_strategy_done_when_keeps_requested_scope_with_no_spec_diff(self) -> None:
+        spec_path = self.repo / "docs" / "shiploop" / "spec.md"
+        spec_path.parent.mkdir(parents=True)
+        starting_spec = "# Specification\n\n## R-1 Pending capability\nImplement the pending capability.\n"
+        spec_path.write_text(starting_spec, encoding="utf-8")
+        state = self.state()
+        state["prompt"] = "Implement R-1, the pending requirement already present at init."
+        while navigator.current_stage(state) != "test-strategy":
+            state, _ = self.complete_stage(state)
+        intake_action = next(row["action"] for row in state["history"]
+                             if row["stage"] == "intake" and row["outcome"] == "done")
+        self.assertEqual(spec_path.read_text(encoding="utf-8"), starting_spec)
+        # Supply an explicitly empty diff at the renderer's existing evidence seam.
+        with patch.object(knowledge_home, "spec_diff", return_value="") as diff:
+            _recovered, packet = self.cold_packet(state)
+        diff.assert_called()
+        self.assertIn("intake stage result: RUN/results/" + intake_action + ".md", packet)
+        # Assert the rendered completion condition, not the more permissive duty.
+        done = normalized(packet.split("Done when (", 1)[1].split("\n\n", 1)[0])
+        for phrase in ("every acceptance line the current request adds, changes or touches",
+                       "including named pending requirements unchanged since init",
+                       "and each preserved behaviour they touch, maps to a check, its surface and the stage it is due",
+                       "an empty textual diff does not remove requested scope",
+                       "the existing suite covers the rest"):
+            self.assertIn(phrase, done)
+
     def test_current_system_baseline_stage_routes_are_exact_and_selective(self) -> None:
         """Keep the guide's graph projection independent of the prompt catalog."""
         observed: list[str] = []
@@ -505,12 +556,12 @@ class GuidanceTests(unittest.TestCase):
         routes = tuple(dict.fromkeys(CURRENT_SYSTEM_BASELINE_ROUTES.values()))
         notes = self.run / "notes"
         notes.mkdir()
-        prior_baseline = notes / "prior-baseline.md"
+        baseline_bytes = b"# Prior product baseline\n\n## Accepted baseline\n\nFixture baseline.\n"
+        # A content-addressed snapshot supplies a real locator and exact content identity.
+        prior_baseline = notes / ("sha256-" + hashlib.sha256(baseline_bytes).hexdigest()) / "prior-baseline.md"
+        prior_baseline.parent.mkdir()
+        prior_baseline.write_bytes(baseline_bytes)
         incoming_spec = notes / "incoming-spec.md"
-        prior_baseline.write_text(
-            "# Prior product baseline\n\n## Accepted baseline\n\nFixture baseline.\n",
-            encoding="utf-8",
-        )
         incoming_spec.write_text(
             "# Incoming specification\n\n## Requested delta\n\nFixture delta.\n",
             encoding="utf-8",
@@ -518,6 +569,7 @@ class GuidanceTests(unittest.TestCase):
         prior_baseline_ref = str(prior_baseline) + "#accepted-baseline"
         incoming_delta_ref = str(incoming_spec) + "#requested-delta"
         product_refs = [prior_baseline_ref, incoming_delta_ref]
+        discovery_selection = "Discovery selected existing baseline: " + prior_baseline_ref
         item_context = (
             "W1 host-authored current-system handoff: reopen prior baseline "
             + prior_baseline_ref
@@ -527,6 +579,8 @@ class GuidanceTests(unittest.TestCase):
         )
         observed: list[str] = []
         state = self.state()
+        discovery_action = ""
+        intervening_actions: dict[str, str] = {}
 
         def assert_packet(stage: str, packet: str) -> None:
             expected = CURRENT_SYSTEM_BASELINE_ROUTES.get(stage)
@@ -539,11 +593,32 @@ class GuidanceTests(unittest.TestCase):
             recovered, producer_packet = self.cold_packet(state)
             self.assertEqual(navigator.current_stage(recovered), stage)
             assert_packet(stage, producer_packet)
-            if stage == "plan":
-                # The preceding host-authored test-strategy result explicitly
-                # carries these locators; the navigator did not discover them.
-                self.assertIn(prior_baseline_ref, symbols.expanded(producer_packet))
+            if stage in {"research", "spec", "test-strategy", "plan"}:
+                self.assertIn("selected baseline", producer_packet)
+                self.assertIn("Discovery's `evidence_refs`", producer_packet)
+                # Only accepted Discovery identifies the baseline. Research and
+                # Spec have unrelated evidence and do not repeat its selection.
+                self.assertIn("discovery stage result: RUN/results/" + discovery_action + ".md", producer_packet)
+                discovery_record = (self.run / "results" / (discovery_action + ".md")).read_text(encoding="utf-8")
+                self.assertIn(discovery_selection, discovery_record)
+                self.assertIn(prior_baseline_ref, discovery_record)
+                if stage == "test-strategy":
+                    for earlier in ("research", "spec"):
+                        entry = recovered["accepted"][intervening_actions[earlier]]
+                        self.assertNotIn(prior_baseline_ref, json.dumps(entry))
+                        self.assertIn("synthetic://unrelated/" + earlier, entry["evidence_refs"])
                 self.assertIn(incoming_delta_ref, symbols.expanded(producer_packet))
+            if stage == "discovery":
+                for phrase in ("Name the selected baseline's locator and new/existing classification in `summary`",
+                               "cite its exact section/source in `evidence_refs`", "immutable revision",
+                               "Use RUN/notes/current-system-baseline.md for a newly synthesized account"):
+                    self.assertIn(phrase, normalized(producer_packet))
+            if stage == "test-strategy":
+                for phrase in ("from accepted intake and the current requirements in KNOWLEDGE/spec.md that the request adds, changes or touches",
+                               "pending requirement already present at init if named by the current request",
+                               "and the preservation set touched", "The quoted diff is supporting evidence",
+                               "an empty diff does not empty scope", "Existing suites cover the rest"):
+                    self.assertIn(phrase, normalized(producer_packet))
             if stage == "step-plan":
                 self.assertEqual(navigator._current_work_item(recovered), "W1")
                 self.assertIn("Work item context: " + item_context, producer_packet)
@@ -551,7 +626,12 @@ class GuidanceTests(unittest.TestCase):
                 self.assertIn(incoming_delta_ref, symbols.expanded(producer_packet))
 
             extra: dict[str, object] = {}
-            if stage in {"discovery", "test-strategy", "plan", "step-plan"}:
+            if stage == "discovery":
+                extra["summary"] = discovery_selection
+                extra["evidence_refs"] = product_refs
+            if stage in {"research", "spec"}:
+                extra["evidence_refs"] = [incoming_delta_ref, "synthetic://unrelated/" + stage]
+            if stage in {"test-strategy", "plan", "step-plan"}:
                 # These are synthetic host-authored handoffs in ordinary result
                 # fields, never inferred by the navigator from the fixture files.
                 extra["evidence_refs"] = product_refs
@@ -564,6 +644,10 @@ class GuidanceTests(unittest.TestCase):
                     }
                 ]
             waiting, action = self.produce(recovered, **extra)
+            if stage == "discovery":
+                discovery_action = action["id"]
+            if stage in {"research", "spec"}:
+                intervening_actions[stage] = action["id"]
             if waiting["active_improve"] is None:
                 state = waiting
                 continue

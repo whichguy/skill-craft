@@ -935,9 +935,11 @@ DUTIES = {
    and conflicting claims with provenance, access and coverage gaps, and safe locators in RUN/notes/discovery.md.
    Keep private queries and content off public surfaces; a reader is no runtime dependency.
 10. Establish the current-system account (Current-system baseline guide): read README first, reuse and revalidate an
-    adequate account or recover one from docs, code, tests and authorized read-only observation. Write
-    RUN/notes/current-system-baseline.md with as-of identity, coverage, conflicts, locators and durable home; cite it
-    in `evidence_refs`. A repository without ShipLoop knowledge is not a new system. Keep the incoming change
+    adequate account at a retrievable immutable revision or recover one from docs, code, tests and authorized
+    read-only observation. Name the selected baseline's locator and new/existing classification in `summary`;
+    cite its exact section/source in `evidence_refs`, with as-of identity, coverage, conflicts and durable home.
+    Use RUN/notes/current-system-baseline.md for a newly synthesized account.
+    A repository without ShipLoop knowledge is not a new system. Keep the incoming change
     separate; consequential gaps leave dependent work unready.
 11. For affected flows apply Service discovery guidance; record in RUN/notes/discovery.md:
     - observability: event owners and sinks to reuse;
@@ -955,8 +957,9 @@ DUTIES = {
 12. Establish the current target and effective identity; use it for dependent remote reads. Distinguish discovery
     operator, deployed runtime and end user. Record each unknown role or authority and its consumer under
     ## Access and accounts.
-13. Record the interaction baseline (Interaction design guide) in RUN/notes/current-system-baseline.md: actors,
-    channels, events, connection lifecycle, state ownership, what the runtime and project layers offer. Affected UI:
+13. Include the interaction baseline (Interaction design guide) in the selected baseline: actors, channels, events,
+    connection lifecycle, state ownership, runtime and project-layer offers; synthesize missing parts in
+    RUN/notes/current-system-baseline.md and cite them in `evidence_refs`. Affected UI:
     the design guidance and its identity, version or digest, or the repository fallback. No UI still has machine
     interactions.
 14. Answer each intake open question in `summary` with a source, or keep it unknown with an owner.
@@ -988,8 +991,8 @@ DUTIES = {
    private context out of public searches.
 7. Research quality-target and feasibility unknowns from existing contracts and evidence; a measured baseline does
    not choose user policy.
-8. Reopen RUN/notes/current-system-baseline.md and resolve its consequential gaps (Current-system baseline guide):
-   keep the prior as-of account, append corrections as a dated section. An observation or synthetic fixture cannot
+8. Reopen the selected baseline in Discovery's `evidence_refs` and resolve consequential gaps (Current-system baseline guide):
+   keep the prior as-of account; cite dated corrections separately. An observation or synthetic fixture cannot
    choose product intent.
 9. For affected service choices, resolve with discriminating evidence (Service discovery guidance): current state,
    zero-copy and cache tradeoffs, permission-aware invalidation, async recovery, observability. Reuse native
@@ -1004,7 +1007,7 @@ DUTIES = {
     section locator, reopen it as a fresh reader; also every file written and source used.
 """,
     "spec": """\
-1. Start from KNOWLEDGE/spec.md (read it whole), the research and discovery results and RUN/notes/current-system-baseline.md
+1. Read KNOWLEDGE/spec.md whole, the research and discovery results; reopen the selected baseline in Discovery's `evidence_refs`
    (Current-system baseline guide). Keep every R-<n>: change one in place, move a dropped one under ## Retired with
    its reason. Current explicit user instructions supersede older clauses; never relax a requirement to fit the code
    or tests.
@@ -1063,15 +1066,17 @@ DUTIES = {
     requirement section and source used.
 """,
     "test-strategy": """\
-1. Build a risk-based strategy from KNOWLEDGE/spec.md for the spec changes since the run began (quoted below) and
-   the preservation set they touch, before any code; the existing suite, run as is, covers the rest. Under
+1. Build a risk-based strategy from accepted intake and the current requirements in KNOWLEDGE/spec.md that the
+   request adds, changes or touches, before code. Include a pending requirement already present at init if named by
+   the current request, and the preservation set touched. The quoted diff is supporting evidence; an empty diff
+   does not empty scope. Existing suites cover the rest. Under
    KNOWLEDGE/environment.md ## Harnesses and suites plan, per requirement in that scope: its layers (unit, component,
    e2e, as in `test_layers`) and any consumer check, negative cases, fixtures and data, environment and authorization
    needs, required surface, due stage, owner, prerequisites; for a state or data change, its before and after checks
    (State and data assessment). Mark every check planned (planned is not a pass). Name an expected-failure control
    where test-first applies.
-2. The preservation set: each existing behaviour a spec change touches, from those changes and
-   RUN/notes/current-system-baseline.md; plan a check that it still holds. An unknown existing behaviour needs
+2. Reopen the selected baseline in Discovery's `evidence_refs`. The preservation set: each existing behaviour the
+   scoped requirements touch; plan a check that it still holds. An unknown existing behaviour needs
    discovery before a preservation target; an old pass is not a current pass.
 3. Map each applicable non-functional criterion to a check with its environment and workload prerequisites. Missing
    evidence or access is not N/A.
@@ -1139,8 +1144,8 @@ DUTIES = {
 14. `evidence_refs`: KNOWLEDGE/environment.md, KNOWLEDGE/architecture.md, each probe output and source used.
 """,
     "plan": """\
-1. Reopen the accepted intake, discovery, research, spec and test-strategy results, RUN/notes/{discovery,research,
-   current-system-baseline}.md, the spec changes since the run began, KNOWLEDGE/environment.md ## Harnesses and suites, KNOWLEDGE/architecture.md
+1. Reopen accepted intake, discovery, research, spec and test-strategy results, RUN/notes/{discovery,research}.md,
+   the selected baseline in Discovery's `evidence_refs`, the spec diff, KNOWLEDGE/environment.md ## Harnesses and suites, KNOWLEDGE/architecture.md
    and the relevant Git history (Git-history investigation guide). Sort open gaps into researchable unknown
    contracts, owner or access gaps and known setup prerequisites, each with its first affected consumer. With one
    boundary blocked, keep independent research and conditional planning eligible on their own prerequisites.
@@ -1223,8 +1228,8 @@ DUTIES = {
       observation; later items reread the index);
     - test strategy: the ## Harnesses and suites locator and the item's compact test decisions (execution and target
       location, fixture and suite choices, what to recheck);
-    - baseline and spec: exact sections, gaps and revalidation conditions of RUN/notes/current-system-baseline.md and
-      KNOWLEDGE/spec.md;
+    - baseline and spec: selected baseline sections from Discovery's `evidence_refs`, KNOWLEDGE/spec.md sections,
+      gaps and revalidation conditions;
     - service decisions: note locators and revalidation conditions;
     - readiness checks of the item's prerequisites.
     A later packet replays no earlier stage's references, so the item carries them. Copy no transcript, invent no
