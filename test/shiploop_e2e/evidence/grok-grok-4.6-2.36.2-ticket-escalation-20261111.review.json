@@ -121,12 +121,13 @@
         "kind": "fix-shiploop",
         "effort": "S",
         "recommended": true,
-        "status": "open",
+        "status": "built",
         "findings": [
           "narrowed-criteria-overstated-20261111"
         ],
         "goal": "Do: when active_commands narrows a focused command IDs list, derive its criteria from the retained cases due at that step instead of carrying later-step criteria. Files and symbols: active_commands in skills/shiploop/scripts/shiploop_iteration.py and its contract in test/shiploop-iteration.test.py. Test: add a fail-first two-step fixture matching TC_7\u2013TC_9 and C1\u2013C6, then replay the retained verify record. Done when: S1 reports TC_7\u2013TC_9 with C1\u2013C3, S2 retains its own obligations, minimum/full regression behavior is unchanged, and the focused suites pass.",
-        "why": "For: removes a demonstrated overstatement with a small local change. Against: criteria can span steps, so the projection must use the existing due rule rather than list position. Verdict: worth a focused repair; no live run is needed to establish the mapping."
+        "why": "For: removes a demonstrated overstatement with a small local change. Against: criteria can span steps, so the projection must use the existing due rule rather than list position. Verdict: worth a focused repair; no live run is needed to establish the mapping.",
+        "ref": "66ca45252b5990d6d34503c15d5b2abe607ffc86"
       },
       "fix-pristine-timeout-diagnostic-20261111": {
         "title": "Preserve the pristine subprocess timeout explanation",
@@ -134,12 +135,13 @@
         "kind": "fix-harness",
         "effort": "S",
         "recommended": true,
-        "status": "open",
+        "status": "built",
         "findings": [
           "pristine-timeout-diagnostic-20261111"
         ],
         "goal": "Do: include the output returned by node_test when pristine rejects a run, including its explicit timeout text when return code is None. Files and symbols: pristine and failing_names in test/shiploop_e2e/checks/base_tests.py and its harness tests. Test: simulate subprocess.TimeoutExpired and verify the failure names the elapsed allowance instead of only no failing test named. Done when: that regression passes and an ordinary pristine pass remains unchanged.",
-        "why": "For: preserves the actual diagnostic needed to investigate a hang. Against: this changes reporting only and does not diagnose or fix the hang. Verdict: retain as a small harness repair."
+        "why": "For: preserves the actual diagnostic needed to investigate a hang. Against: this changes reporting only and does not diagnose or fix the hang. Verdict: retain as a small harness repair.",
+        "ref": "b3f57d13b30b55c7c0bb6f4553abdb6bfa5dd289"
       },
       "accept-pristine-cause-unknown-20261111": {
         "title": "Keep the source-side pristine hang unresolved",
