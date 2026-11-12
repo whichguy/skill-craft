@@ -5728,8 +5728,8 @@ class StageCardLogicTests(unittest.TestCase):
         self.assertIn("reads no earlier result", items["inputs"]["tip"])
         self.assertFalse(items["purpose"]["na"])
         self.assertEqual(self.lines(card(CARD_RUN, 0)["written"]["lines"])["Read by (declared by the stage spec)"],
-                         readers_text("intake"))
-        self.assertEqual(readers_text("intake"), "discovery, research, spec, plan, product-acceptance, handoff")
+                         readers_text("intake", model_of(CARD_RUN)))
+        self.assertEqual(readers_text("intake"), "discovery, research, spec, test-strategy, plan, product-acceptance, handoff")
 
     def test_a_skipped_and_a_seeded_visit_say_so_and_claim_neither_a_packet_nor_a_reader_list(self):
         skipped, seeded = card(CARD_RUN, 3), card(CARD_RUN, 7)
