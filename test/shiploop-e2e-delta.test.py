@@ -565,6 +565,181 @@ STATE = {
 }
 
 
+class RegressionTest(unittest.TestCase):
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.root = Path(tmp.name)
+        (self.root / "tests").mkdir()
+        self.state = {"history": [], "accepted": {}}
+
+    def plan(self, action="p1", item="W1", commands=None, outcome="done"):
+        self.state["history"].append({"action": action, "workitem": item, "stage": "step-plan", "outcome": outcome})
+        self.state["accepted"][action] = {"test_commands": commands if commands is not None else [
+            {"command": "node --test", "suite": "regression", "minimum": True, "min_tests": 7, "target": "local"}]}
+        (self.root / "state.md").write_text("```shiploop-state\n" + json.dumps(self.state) + "\n```\n")
+
+    def record(self, name="v1", **fields):
+        record = {"schema": "shiploop-test-loop/v1", "action": "a1", "work_item": "W1", "stage": "test",
+                  "attempt": 1, "trees": ["before", "after"], "runs": [
+                      {"command": "node --test", "suite": "regression", "status": "passed", "counts": {"ran": 7, "passed": 7},
+                       "stdout": "PRIVATE OUTPUT", "stderr": "PRIVATE ERROR"}], **fields}
+        (self.root / "tests" / (name + ".md")).write_text("```shiploop-state\n" + json.dumps(record) + "\n```\n")
+
+    def block(self):
+        return delta.regression_block(self.root)
+
+    def test_matched_rows_preserve_plan_and_receipt_provenance(self):
+        self.plan(); self.record()
+        b = self.block()
+        self.assertEqual(b["correspondence"], [{"command": "node --test", "planned": [0], "observations": [0]}])
+        p, o = b["planned"][0], b["observations"][0]
+        self.assertEqual((p["action"], p["work_item"], p["minimum"], p["min_tests"]), ("p1", "W1", True, 7))
+        self.assertEqual(p["result_locator"], "results/p1.md")
+        self.assertEqual((o["record"], o["action"], o["work_item"], o["stage"], o["attempt"]),
+                         ("tests/v1.md", "a1", "W1", "test", 1))
+        self.assertEqual(o["counts"], {"ran": 7, "passed": 7})
+        self.assertEqual(o["trees"], ["before", "after"])
+        self.assertEqual(o["locator"], "tests/v1.md#/runs/0")
+        self.assertNotIn("raw", o)
+        self.assertNotIn("PRIVATE", json.dumps(b))
+
+    def test_reused_counted_receipts_are_observations_not_new_executions(self):
+        self.plan(); self.record("check", counted=False)
+        reused = {"path": "tests/check.md", "answer": "yes", "created_at": "yesterday"}
+        self.record("receipt", reused=reused, kind="step-proof", attempt=2)
+        rows = self.block()["observations"]
+        self.assertEqual(len(rows), 2)
+        self.assertIs(rows[0]["counted"], False)
+        self.assertIsNone(rows[1]["counted"])  # absent on take_check's numbered receipt
+        self.assertEqual(rows[1]["reused"], reused)
+        self.assertEqual(rows[1]["source_locator"], "tests/check.md")
+        self.assertEqual(rows[1]["kind"], "step-proof")
+        self.assertFalse(any("execution" in key for row in rows for key in row))
+
+    def test_folded_and_repeated_commands_keep_each_plan_and_observation(self):
+        self.plan(commands=[{"command": "node --test", "suite": "focused", "regression": True, "minimum": True},
+                            {"command": "focused only", "suite": "focused"}])
+        self.plan("p2", "W2")
+        self.plan("blocked", outcome="blocked")
+        self.record("v1"); self.record("v2", work_item="W2", trees=["different-target"])
+        b = self.block()
+        self.assertEqual(len(b["planned"]), 2)
+        self.assertEqual(len(b["observations"]), 2)
+        self.assertEqual(b["correspondence"][0]["planned"], [0, 1])
+        self.assertEqual(b["correspondence"][0]["observations"], [0, 1])
+        self.assertEqual(b["planned"][1]["target"], "local")
+        self.assertNotIn("satisfied", b)
+
+    def test_failed_unknown_missing_and_unmatched_evidence_remains_visible(self):
+        self.plan(commands=[{"command": "missing", "suite": "regression"},
+                            {"command": "node --test", "suite": "regression"}])
+        self.record(runs=[{"command": "node --test", "suite": "regression", "status": "failed"},
+                          {"command": "extra", "suite": "regression"}], trees=None)
+        b = self.block()
+        self.assertEqual(b["correspondence"], [
+            {"command": "missing", "planned": [0], "observations": []},
+            {"command": "node --test", "planned": [1], "observations": [0]},
+            {"command": "extra", "planned": [], "observations": [1]}])
+        self.assertEqual(b["observations"][0]["status"], "failed")
+        self.assertIsNone(b["observations"][0]["counts"])
+        self.assertIsNone(b["observations"][0]["trees"])
+        self.assertIsNone(b["observations"][1]["status"])
+
+    def test_malformed_and_mutation_records_without_runs_are_retained(self):
+        self.plan()
+        (self.root / "tests/bad.md").write_text("```shiploop-state\n{bad\n```\n")
+        self.record("mutation", schema="shiploop-test-mutation/v1", kind="mutation", runs=None,
+                    command="mutation only", stdout="PRIVATE RECORD OUTPUT", stderr="PRIVATE RECORD ERROR")
+        self.record("broken-runs", runs=[None, {"status": "error"}])
+        b = self.block()
+        self.assertEqual(len(b["observations"]), 2)
+        self.assertTrue(b["issues"])
+        mutation = next(o for o in b["observations"] if o["kind"] == "mutation")
+        self.assertIsNone(mutation["command"])
+        self.assertEqual(mutation["record"], "tests/mutation.md")
+        self.assertTrue(any(o["locator"] == "tests/bad.md" for o in b["observations"]))
+        self.assertEqual({i["locator"] for i in b["issues"]}, {
+            "tests/bad.md", "tests/mutation.md", "tests/broken-runs.md#/runs/0", "tests/broken-runs.md#/runs/1"})
+        self.assertTrue(all("raw" not in o for o in b["observations"]))
+        self.assertNotIn("{bad", json.dumps(b))
+        self.assertNotIn("PRIVATE", json.dumps(b))
+        self.assertEqual(b["correspondence"], [{"command": "node --test", "planned": [0], "observations": []}])
+
+    def test_missing_unreadable_state_and_receipt_are_unknown_independently(self):
+        self.record()
+        self.assertIsNone(self.block()["planned"])
+        self.assertEqual(len(self.block()["observations"]), 1)
+        self.plan()
+        original = Path.read_text
+        def read(path, *args, **kwargs):
+            if path.name in ("state.md", "v1.md"):
+                raise PermissionError("unreadable fixture")
+            return original(path, *args, **kwargs)
+        with mock.patch.object(Path, "read_text", read):
+            b = self.block()
+        self.assertIsNone(b["planned"])
+        self.assertIsNone(b["observations"][0]["command"])
+        self.assertEqual(len(b["issues"]), 2)
+        self.assertTrue(all("raw" not in o for o in b["observations"]))
+        self.assertIsNone(delta.regression_block(None)["observations"])
+
+    def test_exact_text_matching_does_not_normalize_commands_or_targets(self):
+        self.plan()
+        self.record(runs=[{"command": "node  --test", "suite": "regression", "status": "passed"},
+                          {"command": "node --test ", "suite": "regression", "status": "passed"}], counted=True)
+        b = self.block()
+        self.assertEqual(b["correspondence"][0]["observations"], [])
+        self.assertEqual([o["command"] for o in b["observations"]], ["node  --test", "node --test "])
+        self.assertTrue(all(o["counted"] is True for o in b["observations"]))
+        self.assertTrue(all(o["counts"] is None for o in b["observations"]))
+
+    def test_only_regression_runs_correspond_and_invalid_suites_have_issues(self):
+        self.plan()
+        self.record(runs=[
+            {"command": "node --test", "suite": "focused"},
+            {"command": "node --test", "suite": "focused", "regression": True},
+            {"command": "extra", "suite": "regression"},
+            {"command": "missing suite"},
+            {"command": "invalid suite", "suite": ["regression"]},
+            {"command": "not folded", "suite": "focused", "regression": "true"},
+            {"command": "lint", "suite": "check"},
+        ])
+        b = self.block()
+        self.assertEqual([o["command"] for o in b["observations"]], ["node --test", "extra"])
+        self.assertIs(b["observations"][0]["regression"], True)
+        self.assertEqual(b["observations"][0]["locator"], "tests/v1.md#/runs/1")
+        self.assertEqual(b["correspondence"], [
+            {"command": "node --test", "planned": [0], "observations": [0]},
+            {"command": "extra", "planned": [], "observations": [1]}])
+        self.assertEqual({i["locator"] for i in b["issues"]}, {
+            "tests/v1.md#/runs/3", "tests/v1.md#/runs/4"})
+
+    def test_missing_record_directory_and_malformed_state_remain_unknown(self):
+        self.plan()
+        (self.root / "state.md").write_text("```shiploop-state\n{broken\n```\n")
+        (self.root / "tests").rmdir()
+        b = self.block()
+        self.assertIsNone(b["planned"])
+        self.assertIsNone(b["observations"])
+        self.assertEqual(len(b["issues"]), 2)
+        with mock.patch.object(Path, "iterdir", side_effect=PermissionError("denied")):
+            self.assertIsNone(self.block()["observations"])
+
+    def test_build_adds_only_regression_without_changing_one_line_or_old_blocks(self):
+        out, _ = synthetic_run(self.root)
+        self.plan(); self.record()
+        built = delta.build(out, self.root, Tools())
+        self.assertIsInstance(built["delta"]["regression"], dict)
+        with mock.patch.object(delta, "regression_block", return_value=None):
+            without_observations = delta.build(out, self.root, Tools())
+        without_observations["delta"]["regression"] = built["delta"]["regression"]
+        self.assertEqual(built, without_observations)
+        before = delta.line("run", built)
+        del built["delta"]["regression"]
+        self.assertEqual(delta.line("run", built), before)
+
+
 class PlanTest(unittest.TestCase):
     def run_dir(self, state: dict | str) -> Path:
         tmp = tempfile.TemporaryDirectory()

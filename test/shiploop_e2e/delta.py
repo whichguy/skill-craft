@@ -29,6 +29,9 @@ other half of what a follow-on is for: that the run built on what the first run 
                redirect or ``tee -a``: the way a decision lands after the last heading) and ``other_writes``. Heuristic.
     plan       the run's own records read against the IDs it added or changed (``delta``) and the IDs it kept as they were
                (``preserved``): the ``follows`` of its step plans, the ``requirement`` of its test cases and its ``primary`` set.
+    regression additive planned regression rows and test-receipt observations, joined by exact command for correspondence
+               only (never satisfaction or distinct execution counts). Includes reused/counted provenance, unknowns and
+               malformed records; see REGRESSION_LIMITS. Existing plan metrics and one-line output stay unchanged.
     handoff    what the next run finds: the release-verify lessons commit and the size of its three fields, the named sections
                each living file still lacks, and whether the files are tracked at the head.
 
@@ -358,6 +361,131 @@ def handoff_block(work: Path, start: str | None, head: str, finals: dict[str, st
             "tracked": {name: f"{knowledge.HOME}/{name}" in tracked.splitlines() for name in FILES}}
 
 
+# --- regression observations --------------------------------------------------------------------------------------------
+
+REGRESSION_LIMITS = (
+    "Receipt observations, not distinct executions: reused may name an earlier check copied without running again. "
+    "counted is retained verbatim (null when absent); absence alone does not establish whether a receipt counted. "
+    "Exact-command correspondence only: no satisfaction across work items, targets, plans or checked trees, "
+    "no pass-to-pass classification and no verdict. Repeated rows and superseded accepted plans remain visible. "
+    "Missing counts, status and trees stay null; correspondence with no observations is missing evidence, not zero tests. "
+    "Lists may be partial when issues are present; empty correspondence never proves absence of regressions. "
+    "Locators are run-relative; source_locator names reused.path without assuming that source is still readable."
+)
+
+
+def regression_block(run_dir: Path | None) -> dict:
+    """Additive planned regression rows and retained test-receipt observations, with exact-text correspondence.
+
+    Neither runs tests nor judges whether a plan was met. Only regression run rows (including folded focused
+    rows) enter correspondence. Mutation records without runs, malformed data and unreadable files remain visible
+    through issues and metadata/locators, without raw payloads. Correspondence retains duplicates rather than aggregating them.
+    A null list is unavailable; an empty list is a measured none in the readable state or tests directory.
+    """
+    block = {"planned": None, "observations": None, "correspondence": [], "issues": [], "limits": REGRESSION_LIMITS}
+    issues = block["issues"]
+
+    def issue(locator, reason):
+        issues.append({"locator": locator, "reason": reason})
+
+    state = _state(run_dir)
+    if state is None:
+        issue("state.md", "state is unavailable or malformed; planned regressions are unknown")
+    else:
+        accepted = state.get("accepted")
+        if not isinstance(accepted, dict):
+            issue("state.md#/accepted", "accepted results are unavailable or malformed")
+        else:
+            block["planned"] = []
+            for index, history in enumerate(state["history"]):
+                if not isinstance(history, dict):
+                    issue(f"state.md#/history/{index}", "malformed history row")
+                    continue
+                if history.get("stage") != "step-plan" or history.get("outcome") != "done":
+                    continue
+                action = history.get("action")
+                result = accepted.get(action) if isinstance(action, str) else None
+                locator = f"state.md#/accepted/{action}"
+                if not isinstance(result, dict) or not isinstance(result.get("test_commands"), list):
+                    issue(locator, "accepted step-plan test_commands are unavailable or malformed")
+                    continue
+                for number, row in enumerate(result["test_commands"]):
+                    source = f"{locator}/test_commands/{number}"
+                    if not isinstance(row, dict):
+                        issue(source, "malformed planned command")
+                        continue
+                    if row.get("suite") != "regression" and not (row.get("suite") == "focused" and row.get("regression") is True):
+                        continue
+                    if not isinstance(row.get("command"), str) or not row["command"].strip():
+                        issue(source, "missing or malformed regression command")
+                    block["planned"].append({**row, "action": action, "work_item": history.get("workitem"),
+                                             "minimum": row.get("minimum"), "min_tests": row.get("min_tests"),
+                                             "target": row.get("target"), "locator": source,
+                                             "result_locator": f"results/{action}.md"})
+
+    if run_dir is not None:
+        folder = Path(run_dir) / "tests"
+        try:
+            # iterdir rather than glob: permission errors must not look like an empty measured directory.
+            paths = sorted(path for path in folder.iterdir() if path.suffix == ".md")
+        except OSError as exc:
+            issue("tests/", f"test records unavailable: {type(exc).__name__}: {exc}")
+        else:
+            block["observations"] = []
+            for path in paths:
+                relative = "tests/" + path.name
+                try:
+                    text = path.read_text()
+                    found = metrics.RECORD_BLOCK.search(text)
+                    record = json.loads(found.group(1)) if found else None
+                    if not isinstance(record, dict):
+                        raise ValueError("missing record block or non-object record")
+                except (OSError, ValueError) as exc:
+                    issue(relative, f"record unavailable or malformed: {type(exc).__name__}: {exc}")
+                    block["observations"].append({"record": relative, "locator": relative, "command": None,
+                                                  "kind": None, "status": None, "counts": None, "trees": None})
+                    continue
+                reused = record.get("reused")
+                metadata = {key: record.get(key) for key in (
+                    "schema", "kind", "action", "work_item", "stage", "attempt", "counted", "reused", "trees",
+                    "cwd", "observed", "created_at", "disposition", "passed", "base_tree", "base_head", "base_commit")}
+                metadata.update(record=relative, source_locator=reused.get("path") if isinstance(reused, dict) else None)
+                runs = record.get("runs")
+                if not isinstance(runs, list) or not runs:
+                    issue(relative, "no run rows; record retained without inferring any execution")
+                    block["observations"].append({**metadata, "locator": relative, "command": None,
+                                                  "status": None, "counts": None})
+                    continue
+                for number, run in enumerate(runs):
+                    locator = f"{relative}#/runs/{number}"
+                    if not isinstance(run, dict):
+                        issue(locator, "malformed run row")
+                        continue
+                    suite = run.get("suite")
+                    if not isinstance(suite, str) or suite not in ("focused", "regression", "check"):
+                        issue(locator, "missing or malformed observed suite; regression attribution is unknown")
+                        continue
+                    if suite != "regression" and run.get("regression") is not True:
+                        continue
+                    if not isinstance(run.get("command"), str) or not run["command"].strip():
+                        issue(locator, "missing or malformed observed command")
+                    block["observations"].append({**metadata, "locator": locator,
+                                                  **{key: run.get(key) for key in (
+                                                      "command", "status", "counts", "suite", "regression", "target", "exit")}})
+    else:
+        issue("tests/", "no run directory; test observations are unknown")
+
+    correspondence = {}
+    for key in ("planned", "observations"):
+        for index, row in enumerate(block[key] or []):
+            command = row.get("command")
+            if isinstance(command, str) and command.strip():
+                group = correspondence.setdefault(command, {"command": command, "planned": [], "observations": []})
+                group[key].append(index)
+    block["correspondence"] = list(correspondence.values())
+    return block
+
+
 # --- the block ----------------------------------------------------------------------------------------------------------
 
 def _kind(out: Path) -> tuple[str, str | None]:
@@ -421,7 +549,8 @@ def build(out: Path, run_dir: Path | None, tools) -> dict:
              "ids": ids,
              "placement": {name: placement_block(name, priors[name], finals[name]) for name in FILES},
              "footprint": foot, "writes": writes_block(tools), "plan": plan,
-             "handoff": handoff_block(work, start, head, finals), "heuristics": HEURISTIC}
+             "handoff": handoff_block(work, start, head, finals), "heuristics": HEURISTIC,
+             "regression": regression_block(run_dir)}
     return {"delta": block, "delta_unmeasured": unmeasured}
 
 

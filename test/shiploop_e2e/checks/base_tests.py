@@ -101,7 +101,7 @@ def pristine(base: Path) -> None:
         code, passed, failed, output = node_test(copy, files)
     if code != 0 or failed or passed != expected:
         fail(f"the base's pristine tests against the delivered source: {passed} of {expected} pass, {failed} fail (rc {code}); "
-             f"failing: {failing_names(output)}")
+             f"failing: {failing_names(output)[-400:]}; output tail: {output[-1500:]}")
     print(f"the base's {len(files)} pristine test files pass against the delivered source: {passed} of {expected} tests")
 
 
