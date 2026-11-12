@@ -4,6 +4,16 @@ Written by scripts/release.py.
 
 ## 2026-11-11
 
+### skill-craft 2.36.4
+
+- Skills: shiploop-run-review 0.5.1
+
+### shiploop-run-review 0.5.1
+
+- Regenerate the Run Review stage catalog after ShipLoop's Test Strategy read-set changed. The committed catalog now
+  includes accepted Intake and Discovery alongside Spec and Research, matching the engine and preventing the generated
+  catalog validation from failing. No runtime stage behavior or Run Review schema changed.
+
 ### skill-craft 2.36.3
 
 - Skills: shiploop 1.33.8
