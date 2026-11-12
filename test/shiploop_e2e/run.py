@@ -2347,10 +2347,25 @@ PENDING_CLEANUP = {"ran": False, "ok": False, "pending": True, "reason": "this i
 
 
 def write_cleanup_record(out: Path, record: dict) -> None:
-    """Write <output>/platform/cleanup-record.json, the file earlier_cleanup_record reads; a write that fails leaves what the file held."""
+    """Publish complete cleanup JSON atomically; a failed write leaves the prior record untouched."""
     with contextlib.suppress(OSError):
-        (out / "platform").mkdir(exist_ok=True)
-        (out / "platform" / "cleanup-record.json").write_text(json.dumps(record, indent=2) + "\n")
+        platform = out / "platform"
+        platform.mkdir(exist_ok=True)
+        temporary = None
+        try:
+            # Reviewers and resumed harnesses may read while cleanup finishes. Replace only a closed,
+            # synced same-directory file so they see complete old or new JSON, never a truncated target.
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=platform,
+                                             prefix=".cleanup-record-", suffix=".tmp", delete=False) as handle:
+                temporary = Path(handle.name)
+                handle.write(json.dumps(record, indent=2) + "\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, platform / "cleanup-record.json")
+            temporary = None
+        finally:
+            if temporary is not None:
+                temporary.unlink()
 
 
 def earlier_cleanup_record(out: Path) -> dict | None:

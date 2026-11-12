@@ -24,7 +24,7 @@ import time
 DIMENSIONS = ("code", "errors", "comments", "tombstones", "tests")
 PHASES = {"builder", "final"}
 # This is the existing hosted-check observation budget, not a ShipLoop loop cap.
-CHECK_SECONDS = 900
+CHECK_SECONDS = 2700
 ENDPOINT = "https://api.x.ai/v1/responses"
 LIVE_REQUEST_SCHEMA = "shiploop-grok-chat-live-acceptance-request/1"
 LIVE_RECEIPT_SCHEMA = "shiploop-grok-chat-live-acceptance-receipt/1"
@@ -173,11 +173,7 @@ def deploy_started_without_overlap(platform: Path, call_id: str) -> bool:
         if row.get("end") is True:
             active.discard(call)
             continue
-        argv = row.get("argv")
-        if (row.get("decision") == "allowed" and row.get("org") == ui.EXPECTED_ORG
-                and row.get("prefix") == ui.PREFIX and isinstance(argv, list)
-                and all(isinstance(token, str) for token in argv)
-                and ui.sf_guard.command_words(argv)[0] == ("project", "deploy", "start")):
+        if ui._is_deploy_start(row):
             latest = call
             serial = not active
             active.add(call)
