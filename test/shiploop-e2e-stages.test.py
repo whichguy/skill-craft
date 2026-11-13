@@ -772,8 +772,9 @@ class Shipped(unittest.TestCase):
         self.assertEqual(sorted(row["id"] for row in document["scenarios"]),
                          ["step-plan/proof-runs-focused-suite", "validate-existing/broken-works-small-fix",
                           "validate-existing/wrong-check"])
-        # and an exclude that selects nothing is the usage error the guide says it is
-        done = process("verify", "step-plan/proof-runs-focused-suite", "-step-plan/proof-runs-focused-suite",
+        # and an exclude that selects nothing is the usage error the guide says it is (a name no scenario has: an exclude
+        # that removes everything selected is "nothing selected", exit 3, a different case)
+        done = process("verify", "step-plan/proof-runs-focused-suite", "-step-plan/no-such-scenario",
                        cwd=Path(tempfile.gettempdir()))
         self.assertEqual(done.returncode, 2)
         self.assertIn("selects no scenario", done.stderr)
