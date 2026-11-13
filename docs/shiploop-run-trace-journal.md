@@ -765,7 +765,7 @@ absent in all three readers; a non-integer `callback-attempts` reads as 0; a dam
   branches. 224 citations in 30 journal and results documents name evidence outside the repository (99 in LEARNINGS); all
   but one of the paths exist on this machine today. Both are the "keep evidence in the repo" rule, not format defects;
   exporting the evidence is a large job.
-- The 162 remaining missing-path citations (occurrences) are not defects: 52 name the subject product's `docs/shiploop/`
+- The 162 remaining missing-path citations (occurrences, counted before this entry quoted some of them) are not defects: 52 name the subject product's `docs/shiploop/`
   files, 36 name pending change notes a release consumed, 29 are skill-relative `scripts/` shorthand, 27 name the E2E
   subject's own tests or placeholders, 8 name run ids and old plugin directories, and 8 name three files once in this
   repository and later removed (`test/shiploop-revise.test.py`, `test/shiploop-retire.test.py`,
@@ -783,6 +783,16 @@ F,E9`) is clean on the changed Python; the wider rule set adds only E501 lines t
 them. The E2E family reads `SPEC.md` (one escaped pipe) and runs in CI's quick tier.
 
 **Commits**: `709b1f015c25ff379523a3a574faf8563c2ec4a3` holds the shipped files (the catalog, `note`, the two tests, two change notes); the commit that holds this entry holds the journal repairs and the evidence.
+
+**Published** (2026-11-13) as skill-craft 2.37.2 / shiploop 1.34.2, release commit `e6e9d1f90bf7e61c348b4a5d937ace69e47bcf5e`, cut in a
+detached worktree from the fetched `origin/main` (`358a462a6b5dc21af0b15e04949260b285bb7beb`); `release-push.py` ran its four checks
+(`sync-plugin-views --check`, `check-marketplace-packages`, `check-release-boundary --base 358a462a6b5dc21af0b15e04949260b285bb7beb`,
+`test-groups` 64 OK) and pushed it as a fast-forward. CI on `358a462a6b5dc21af0b15e04949260b285bb7beb` had passed every job before
+the push (release-boundary, plan, browser-fixtures, quick and hermetic); its quick tier included the E2E family that the `SPEC.md`
+edit selects, which no local run covered. Hosts refreshed: Claude 2.37.1 to 2.37.2 (a restart applies it), Codex marketplace upgraded
+with the plugin at 2.37.2, Grok 2.37.1 to 2.37.2; each installed copy was read for both changes (`_SURROGATE` in
+`shiploop_owner_notes.py` and the `transaction.md` catalog row) and has them. Cursor refreshes only from its own app and was not
+refreshed. CI on the release commit was still running when this was written and is not claimed here.
 
 ## Open (exploratory)
 

@@ -125,7 +125,7 @@
       "never committed": "docs/e2e-salesforce-chess-journal.md cites docs/e2e-salesforce-chess-evidence/review-1-findings.md, which no commit ever held: annotated"
     },
     "remaining_missing_paths_classified": {
-      "occurrences_total": 162,
+      "occurrences_total": "162 (counted before the journal entry that quotes some of them was written)",
       "subject product docs/shiploop (and docs/api)": {
         "occurrences": 52,
         "distinct": 11
