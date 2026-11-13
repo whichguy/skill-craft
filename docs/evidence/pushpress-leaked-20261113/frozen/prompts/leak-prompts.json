@@ -1,0 +1,151 @@
+{
+ "version": 1,
+ "purpose": "P25 held-out set: leaked-key prompts that should load the card (LP) and quiet prompts that should not (LN), as the fresh author agent wrote them (verbatim); see author-brief.md.",
+ "source": "leak-agent-output.json",
+ "prompts": [
+  {
+   "id": "LP1",
+   "category": "leak-code",
+   "expect_fire": true,
+   "text": "Heads-up from my end: I committed my local .mcp.json for the PushPress MCP server with the live API key still in the args, and pushed it to the public GitHub repo about two hours ago. I force-pushed a cleaned version straight afterwards, but I assume the original commit has already been cached or scraped. Is rotating the key in PushPress settings and updating the MCP config enough, or is there something I should check first?"
+  },
+  {
+   "id": "LP2",
+   "category": "leak-code",
+   "expect_fire": true,
+   "text": "ok so one of our members does web stuff for a living and he messaged me last night that he can see our PushPress api key just sitting in the source of our website, like you right click, view source, and its there in a script. i dont really get what that means but he said anyone could grab it and pull up our members?? i think our key leaked and honestly i dont know who to call. can you look in the website script folder and see if hes right, and tell me what to do first"
+  },
+  {
+   "id": "LP3",
+   "category": "leak-code",
+   "expect_fire": true,
+   "text": "hi, new here. i was fixing the kiosk build and left a debug line in, so the GitHub Actions log for the kiosk repo now prints the PushPress webhook secret ([KEY]) in plain text. the repo is public so anyone can open that log. it ran 3 times before i noticed. how do i get rid of the logs and do we have to change the secret?"
+  },
+  {
+   "id": "LP4",
+   "category": "leak-code",
+   "expect_fire": true,
+   "text": "Hey, I posted a screenshot in the Facebook group for gym coaches (its public, like 900 people) asking how to hook up the check-in tablet, and I just noticed the PushPress API key is totally visible in the corner of it. I deleted the post but it was up for a few hours. is that bad??"
+  },
+  {
+   "id": "LP5",
+   "category": "leak-code",
+   "expect_fire": true,
+   "text": "fyi, pasted the Zapier hookup script into a public pastebin earlier to ask a question and the PushPress key was hardcoded in it. deleted the paste, nothing else done yet."
+  },
+  {
+   "id": "LP6",
+   "category": "leak-code",
+   "expect_fire": true,
+   "text": "Hello, we published our new-member walkthrough video to YouTube yesterday, and in the screen-recording section you can clearly see the PushPress webhook signing secret on the settings page for about ten seconds, around the 3:40 mark. The video is public. I've set it to private for now, but I think we have a leak and someone may already have downloaded it. What should we do about the secret, and will the kiosk or anything else need updating afterwards?"
+  },
+  {
+   "id": "LP7",
+   "category": "leak-people",
+   "expect_fire": true,
+   "text": "just emailed our PushPress API key to the wrong Dave (a member, not our web guy). already asked him to delete it."
+  },
+  {
+   "id": "LP8",
+   "category": "leak-people",
+   "expect_fire": true,
+   "text": "oops. i pasted the PushPress API key into the all-staff WhatsApp group instead of DMing it to Marcus. theres about 35 people in that group, incl the part time coaches and a couple parents who help w events. i deleted it after like a minute but ppl can still see deleted stuff in notifcations right? do we need to make a new key"
+  },
+  {
+   "id": "LP9",
+   "category": "leak-people",
+   "expect_fire": true,
+   "text": "Our staff handbook Google Doc is shared as 'anyone with the link can view', and I just noticed the PushPress webhook secret is typed into the integrations section, because the previous front desk manager put it there for reference. The link was also sent to the parents' group last month. I'm worried it's been leaking for weeks without anyone knowing. Could you help me work out what that secret protects and what we need to do about it?"
+  },
+  {
+   "id": "LP10",
+   "category": "leak-people",
+   "expect_fire": true,
+   "text": "ok this is probably nothing but at the coaches meeting tuesday night Rachel was setting up the new check-in tablet and she read our whole PushPress API key out loud off the screen, letter by letter, so everybody could type it into their phones. the front door was open with two members waiting in the lobby, and the zoom was recording for the coaches who couldnt make it. i feel like thats not great? should we change it, and if we do what stops working"
+  },
+  {
+   "id": "LP11",
+   "category": "leak-people",
+   "expect_fire": true,
+   "text": "I've taken over the kiosk project from the previous contractor, and as far as I can tell he still has both the PushPress API key (the one ending in 4f2a) and the webhook secret from when he built it. Neither has been changed since he left in the summer, and he's still in our shared Slack. I'd like to cut off his access properly without taking the kiosk down. Can you list everything in this folder that uses the key and the secret, so we know what needs updating?"
+  },
+  {
+   "id": "LP12",
+   "category": "leak-people",
+   "expect_fire": true,
+   "text": "i opened a support ticket with the tablet vendor about the kiosk not syncing, and because they asked for 'the credentials' i pasted our PushPress API key straight into the ticket. now i see the thread is cc'd to their whole support queue and a reseller. is that normal or should we treat our PushPress key as burned? how do we replace it without the kiosk going down before the 5am class"
+  },
+  {
+   "id": "LN1",
+   "category": "neg-other-product",
+   "expect_fire": false,
+   "text": "Our Stripe webhook signing secret (whsec_[KEY]) went into the public website repo in yesterday's merge. I've taken it out of main, but it's obviously still sitting in the history. Should I roll the secret in the Stripe dashboard first, or clean up the history first? Want to get the order right."
+  },
+  {
+   "id": "LN2",
+   "category": "neg-other-product",
+   "expect_fire": false,
+   "text": "so i think i leaked our AWS keys. the nightly backup job for the website prints the access key id and secret in the log when it fails, and that log page is public. i only saw it now cos the job failed again. what do i do first, deactivate the key in the AWS console or fix the logging?"
+  },
+  {
+   "id": "LN3",
+   "category": "neg-other-product",
+   "expect_fire": false,
+   "text": "Pasted my GitHub personal access token into the #ops channel in our shared Slack by mistake (it's the one with write access to the website repo). Maybe 20 people can see it, including the part-timers. I deleted the message straight away. Is revoking the token enough, or do I need to check the repo for anything?"
+  },
+  {
+   "id": "LN4",
+   "category": "neg-other-product",
+   "expect_fire": false,
+   "text": "ok so i was asking in a facebook group for gym owners why our text reminders stopped sending, and i posted a screenshot of our Twilio console to show the error. only after reading the comments did i notice the auth token is right there in the screenshot, not blurred or anything. the group has thousands of people. i took the picture off the post but could someone use that token to send texts from our number?? should i regenerate it, and will that break the reminders again"
+  },
+  {
+   "id": "LN5",
+   "category": "neg-other-product",
+   "expect_fire": false,
+   "text": "Hi, I need help with something I did this morning. I forwarded an email thread to our whole members list by mistake, and further down in that thread a former intern had pasted our Mailchimp API key. I've apologised to everyone, but the key was out there for about twenty minutes before I could recall the message. Can you tell me where in this folder the key is used, so I can replace it in Mailchimp and update the newsletter script?"
+  },
+  {
+   "id": "LN6",
+   "category": "neg-other-product",
+   "expect_fire": false,
+   "text": "Found out the hard way that our old Wodify API key from before we switched systems is still hard-coded in migrate_members.py, and I pushed that file to the public repo last week. We don't use Wodify any more but the account stays open until the end of the month. Do I need to rotate the key or can I just close the account?"
+  },
+  {
+   "id": "LN7",
+   "category": "neg-other-product",
+   "expect_fire": false,
+   "text": "quick question. when we left Mindbody last year nobody ever turned off the API key we gave our old front desk manager for her reporting spreadsheet. she quit in march and i just realised shes probably still got it. is there a way to check if it still works, and where would i even do that"
+  },
+  {
+   "id": "LN8",
+   "category": "neg-other-product",
+   "expect_fire": false,
+   "text": "ugh. our hosting company's support asked to 'log in and check the site', so i attached the private SSH key for our server to the ticket. then it auto-forwarded to a bunch of people at their reseller. i didnt know there was a difference between the private and public key until just now. how do i get rid of that key on the server and make a new one"
+  },
+  {
+   "id": "LN9",
+   "category": "neg-no-product",
+   "expect_fire": false,
+   "text": "a member who does IT for a living told me our API key is sitting in the code on the gym's public repo. is that something we should worry about?"
+  },
+  {
+   "id": "LN10",
+   "category": "neg-no-product",
+   "expect_fire": false,
+   "text": "I read the secret out loud at the front desk this morning so the new coach could type it in, and a member was standing right there waiting to check in. do we need to change it?"
+  },
+  {
+   "id": "LN11",
+   "category": "neg-not-a-key",
+   "expect_fire": false,
+   "text": "Hi, I accidentally emailed the full member list (names, phone numbers, emails and billing status) to a member instead of our accountant, autocomplete got me again. It's about 140 rows. She says she deleted it. Do I have to tell everyone on it that it leaked, or is it fine since it only went to one person? Also could you help me write a short apology note to her?"
+  },
+  {
+   "id": "LN12",
+   "category": "neg-not-a-key",
+   "expect_fire": false,
+   "text": "The shared admin password for the front desk computer is on a sticky note, and it's visible in the background of the Instagram reel we posted yesterday. You can read it if you pause on the right frame. I've taken the reel down. Should we change the password right away, and is there a better way to handle shared passwords at the front desk anyway?"
+  }
+ ]
+}

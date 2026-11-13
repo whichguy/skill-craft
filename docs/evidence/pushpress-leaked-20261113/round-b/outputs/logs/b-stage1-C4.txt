@@ -1,0 +1,13 @@
+b-leak-pos-C4: 12 runs, cost $0.380, partial=False, errors=0, distinct init skill lists: [(48, '67260e599d83c13c')]
+  LS1   expect=fire  fired 1/1  others=-  | i committed our PushPress api key in a config file and pushed it to a 
+  LS10  expect=fire  fired 1/1  others=-  | i read the PushPress webhook secret out loud on a zoom call that was b
+  LS11  expect=fire  fired 1/1  others=-  | Just realized our old front desk guy quit in March and still has the P
+  LS12  expect=fire  fired 1/1  others=-  | pasted the PushPress webhook signing secret into a support ticket with
+  LS2   expect=fire  fired 1/1  others=-  | im new here and i accidently posted a screenshot in a public facebook 
+  LS3   expect=fire  fired 1/1  others=-  | pretty sure our PushPress API key leaked into a public CI build log. i
+  LS4   expect=fire  fired 1/1  others=-  | my nephew pasted our PushPress api key into a public pastbin to ask fo
+  LS5   expect=fire  fired 1/1  others=-  | A stranger emailed to say our PushPress API key is visible on a public
+  LS6   expect=fire  fired 1/1  others=-  | i posted an instagram reel of my 6am class and you can read our PushPr
+  LS7   expect=fire  fired 0/1  others=-  | I forwared an email with our PushPress API key in it to a member inste
+  LS8   expect=fire  fired 1/1  others=-  | Somebody pasted the PushPress webhook secret in our staff WhatsApp gro
+  LS9   expect=fire  fired 1/1  others=-  | just found out the PushPress API key is typed into a goolge doc that a

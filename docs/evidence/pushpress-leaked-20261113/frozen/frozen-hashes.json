@@ -1,0 +1,6 @@
+{
+ "frozen": "2026-11-13T15:36:10-08:00, after the dev stage (C5a chosen) and the held-out batch, before any confirmation run",
+ "n_files": 15,
+ "sha256_over_manifest_lines": "31ce7f98e49e653dcc20b695ac461d210fd0f7e932736606d43f9d2b7e842819",
+ "note": "manifest = sha256 of every file under this folder except the frozen-* files; overall = sha256 of the manifest lines joined by newlines, with no trailing newline. frozen-dev-manifest.txt (11 files) was taken before the first run of any kind."
+}

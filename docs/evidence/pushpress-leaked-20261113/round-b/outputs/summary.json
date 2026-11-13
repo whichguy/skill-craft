@@ -1,0 +1,100 @@
+{
+ "files": {
+  "leak_pos_c5": "round-b/outputs/leak-pos-C5.json",
+  "leak_pos_c4": "round-b/outputs/leak-pos-C4.json"
+ },
+ "completeness": {
+  "leak_pos_c5": {
+   "runs": 12,
+   "expected": 12,
+   "invalid": 0
+  },
+  "leak_pos_c4": {
+   "runs": 12,
+   "expected": 12,
+   "invalid": 0
+  }
+ },
+ "gates": {
+  "L1_leak_recall": {
+   "fired": 12,
+   "runs": 12,
+   "line": ">= 10 of 12",
+   "passed": true
+  },
+  "L1a_code_class_recall": {
+   "fired": 6,
+   "runs": 6,
+   "line": ">= 4 of 6",
+   "passed": true
+  },
+  "L3_gain_over_c4": {
+   "c5": 12,
+   "c4": 11,
+   "gain": 1,
+   "line": ">= 4 more",
+   "passed": false
+  },
+  "L2_leak_false_fires": {
+   "line": "<= 1 of 12",
+   "passed": null
+  },
+  "R1_explicit_recall": {
+   "line": ">= 5 of 6",
+   "passed": null
+  },
+  "R3_quiet_false_fires": {
+   "line": "<= 1 of 12",
+   "passed": null
+  },
+  "R4_sport80": {
+   "line": "0 of 3",
+   "passed": null
+  },
+  "A1_announcements_kept": {
+   "line": ">= 9 of 11",
+   "passed": null
+  }
+ },
+ "measurements": {
+  "leak_by_class_c5": {
+   "leak-code": {
+    "fired": 6,
+    "runs": 6
+   },
+   "leak-people": {
+    "fired": 6,
+    "runs": 6
+   }
+  },
+  "leak_prompts_missed_c5": [],
+  "leak_by_class_c4": {
+   "leak-code": {
+    "fired": 6,
+    "runs": 6
+   },
+   "leak-people": {
+    "fired": 5,
+    "runs": 6
+   }
+  },
+  "leak_prompts_missed_c4": [
+   "LS7"
+  ]
+ },
+ "cost_usd": {
+  "leak_pos_c5": 0.3794,
+  "leak_pos_c4": 0.3803
+ },
+ "claude": [
+  "2.1.323 (Claude Code)"
+ ],
+ "decision": {
+  "complete": true,
+  "stage1_decided": true,
+  "stage1_pass": false,
+  "all_gates_run": false,
+  "all_gates_passed": false,
+  "description_change_allowed": false
+ }
+}

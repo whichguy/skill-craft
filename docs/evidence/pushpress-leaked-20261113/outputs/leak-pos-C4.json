@@ -1,0 +1,278 @@
+{
+ "label": "leak-pos-C4",
+ "started": "2026-11-13T15:36:46-08:00",
+ "model": "sonnet",
+ "max_turns": 1,
+ "runs_per_prompt": 1,
+ "payload_pushpress_skill_sha256": "19717fca6f7b674ef395718fb8c5d1e162c5d9495ed0e5c7ecde573c2c2f1b1b",
+ "prompts_sha256": "928a9d2a5b73c91a2602e0bcb4dec418cbe81d0b5529a37cc7ba592246c6cd20",
+ "claude": "2.1.323 (Claude Code)",
+ "partial": false,
+ "total_cost_usd": 0.3746,
+ "records": [
+  {
+   "id": "LP1",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03054,
+   "seconds": 3.6,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "LP10",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.0312,
+   "seconds": 3.5,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "LP11",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03326,
+   "seconds": 5.0,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "LP12",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03044,
+   "seconds": 3.1,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "LP2",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03055,
+   "seconds": 3.6,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "LP3",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03137,
+   "seconds": 3.6,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "LP4",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03213,
+   "seconds": 4.5,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "LP5",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03024,
+   "seconds": 3.4,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "LP6",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03206,
+   "seconds": 4.7,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "LP7",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03114,
+   "seconds": 3.6,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "LP8",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03083,
+   "seconds": 3.2,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "LP9",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.0308,
+   "seconds": 3.2,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_model": "claude-sonnet-5-5",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  }
+ ]
+}

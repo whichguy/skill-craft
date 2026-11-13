@@ -1,0 +1,28 @@
+{"positives":[
+{"id":"LS1","class":"code","text":"i committed our PushPress api key in a config file and pushed it to a public github repo yesterday. is deleting the file enough?"},
+{"id":"LS2","class":"code","text":"im new here and i accidently posted a screenshot in a public facebook group with the whole PushPress API key showing, what do i do first?"},
+{"id":"LS3","class":"code","text":"pretty sure our PushPress API key leaked into a public CI build log. is that bad enough that i have to rotate it?"},
+{"id":"LS4","class":"code","text":"my nephew pasted our PushPress api key into a public pastbin to ask for help and i only just saw it. is that a big deal?"},
+{"id":"LS5","class":"code","text":"A stranger emailed to say our PushPress API key is visible on a public web page. What do I do first?"},
+{"id":"LS6","class":"code","text":"i posted an instagram reel of my 6am class and you can read our PushPress API key in the background for a couple seconds, is deleting the reel enough?"},
+{"id":"LS7","class":"people","text":"I forwared an email with our PushPress API key in it to a member instead of our bookkeeper. Think I leaked it, what should I do first?"},
+{"id":"LS8","class":"people","text":"Somebody pasted the PushPress webhook secret in our staff WhatsApp group and 14 people can see it. Is that actually a problem?"},
+{"id":"LS9","class":"people","text":"just found out the PushPress API key is typed into a goolge doc that anyone with the link can open. do we have to change it?"},
+{"id":"LS10","class":"people","text":"i read the PushPress webhook secret out loud on a zoom call that was being recorded with six people on it, is that bad?"},
+{"id":"LS11","class":"people","text":"Just realized our old front desk guy quit in March and still has the PushPress API key. Do we need a new key?"},
+{"id":"LS12","class":"people","text":"pasted the PushPress webhook signing secret into a support ticket with another vendor by mistake, so their whole team can see it. should i change it right now?"}
+],
+"negatives":[
+{"id":"LSN1","kind":"other-product","text":"just noticed the Stripe webhook signing secret is sitting in a public github repo. do i need to roll it, or is deleting the commit enough?"},
+{"id":"LSN2","kind":"other-product","text":"I accidentaly emailed our Wodify API key to the wrong person this morning. What should I do first?"},
+{"id":"LSN3","kind":"other-product","text":"my AWS access key was in a public github gist for about a day before i noticed. is deleting the gist enough?"},
+{"id":"LSN4","kind":"other-product","text":"Our Mindbody API key was never changed after our last manager left and he still has it. Do we need to change it now?"},
+{"id":"LSN5","kind":"other-product","text":"oops i pasted the Twilio auth token in the staff group chat instead of a dm, is that bad?"},
+{"id":"LSN6","kind":"other-product","text":"posted a screenshot on redit and my OpenAI api key is visible in it. do i need a new key?"},
+{"id":"LSN7","kind":"other-product","text":"The Mailchimp API key has been sitting in a shared spreadsheet that every coach and a few parents can open. Is that a problem?"},
+{"id":"LSN8","kind":"other-product","text":"my MySQL database password is printed in a deploy log anyone can read. what do i do first?"},
+{"id":"LSN9","kind":"no-product","text":"a developer friend told me our API key got committed to a public repo. what should i do first?"},
+{"id":"LSN10","kind":"no-product","text":"texted the signing secret to the wrong number, some guy i dont know, do i need to change it?"},
+{"id":"LSN11","kind":"not-a-key","text":"I emailed the member list spreadsheet to the wrong person and it has names, emails and phone numbers. Do I have to tell the people on it?"},
+{"id":"LSN12","kind":"not-a-key","text":"just found out the shared admin pasword has been sitting on a public notion page for weeks, should i change it right now?"}
+]}

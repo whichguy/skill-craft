@@ -1,0 +1,6 @@
+{
+ "frozen": "2026-11-13T15:47:50-08:00, after the second author agent's batch and before any run of round b",
+ "n_files": 5,
+ "sha256_over_manifest_lines": "92f20a356cbac68a1d99f56f8d6fd3368b3e61c91f3a9b5be448a46b37f6a6bd",
+ "note": "manifest = sha256 of every file under this folder except the frozen-* files; overall = sha256 of the manifest lines joined by newlines, with no trailing newline. frozen-b1-manifest.txt (3 files) was taken before the second agent was asked. Round a's files are in ../../frozen/frozen-manifest.txt."
+}
