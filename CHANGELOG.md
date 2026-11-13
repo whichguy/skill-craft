@@ -4,6 +4,24 @@ Written by scripts/release.py.
 
 ## 2026-11-12
 
+### skill-craft 2.36.6
+
+- Skills: shiploop 1.33.10
+
+### shiploop 1.33.10
+
+- Step-plan's proof-order refusal also reads the test files named inside a Proof's inline code (`node -e`, `python3 -c`): a Proof
+  whose code runs a test the item base lacks and no earlier step declares is refused with rule A's words, as the same path in
+  the command's own words already was. Such a Proof cannot pass at its implement's done, because the test stage writes the test
+  afterwards. Absolute and home paths, URLs (a local server's port included) and scratch scripts inside the code are not read
+  as repository files; a quoted command string's relative test path is.
+- Step-plan's proof bullet now says ShipLoop reruns a step's Proof at the step's done, so the Proof must be safe to repeat. The
+  tests-are-not-a-step line drops the clause its refusal already states ("a step changing only test files is refused"), which keeps
+  the step-plan head inside its print bound.
+- Test-spec now says what ShipLoop's base run already accepts: a case may be RED on the item's base because the code the item
+  adds does not load yet (a new module on an empty base). Its RED placeholder no longer reads "not because a file is", which led
+  test-spec to send plans back for a new module's honest load failure; a guard that only checks a file is still not RED.
+
 ### skill-craft 2.36.5
 
 - Skills: shiploop 1.33.9

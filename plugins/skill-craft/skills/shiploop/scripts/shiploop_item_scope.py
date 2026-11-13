@@ -94,6 +94,52 @@ def command_paths(command: str) -> List[str]:
 
 _CONFIRM_BY = re.compile(r"confirm by:\s*(.+?)(?:;\s*pass when|;|$)", re.I | re.S)
 _INLINE_CODE = frozenset(("-e", "-c", "--eval", "-p"))
+# A relative path inside inline code: not preceded by a path character, so the tail of an absolute path is not one.
+_INLINE_PATH = re.compile(r"(?<![\w./@+-])[\w.@+-]+(?:/[\w.@+-]+)+")
+# Text removed before _INLINE_PATH reads the code, because a space or the colon of a port inside it would otherwise start
+# a "relative" path in its tail: a quoted literal that starts with an absolute, home or drive-letter path or a URL (up to
+# its own closing quote), a URL anywhere, and an absolute or home word with its escaped spaces.  A quoted literal with an
+# option word in it is a command (``'/usr/local/bin/node --test test/new.test.js'``): only its absolute words and URLs go.
+_QUOTED_ELSEWHERE = re.compile(r"([\"'`])((?:/|~|[A-Za-z]:[/\\]|[A-Za-z][\w+.-]*://)(?:(?!\1).)*)\1", re.S)
+_URL = re.compile(r"[A-Za-z][\w+.-]*://[^\s\"'`]*|(?<![\w.-])[\w.-]+:\d+/[^\s\"'`]*")
+_ABSOLUTE_WORD = re.compile(r"(?<![\w.@+-])[/~](?:\\.|[^\s\"'`;,()\[\]{}])*")
+_OPTION_WORD = re.compile(r"(?:^|\s)-{1,2}\w")
+
+
+def _without_paths_elsewhere(code: str) -> str:
+    def literal(match: re.Match[str]) -> str:
+        body = match.group(2)
+        return " " + _ABSOLUTE_WORD.sub(" ", _URL.sub(" ", body)) + " " if _OPTION_WORD.search(body) else " "
+
+    return _ABSOLUTE_WORD.sub(" ", _URL.sub(" ", _QUOTED_ELSEWHERE.sub(literal, code)))
+
+
+def inline_code_paths(command: str) -> List[str]:
+    """The repository-relative file paths inside a command's inline code (the word after ``-e``, ``-c``, ``--eval`` or
+    ``-p``), in order and without repeats.
+
+    ``command_paths`` skips that word whole, so a Proof whose code runs ``node --test`` on a test file named inside it
+    (a live run's S1: ``node -e '...execFileSync(process.execPath,["--test","test/service.test.js"])...'``) hid the
+    path from rule A.  A path needs a slash and a file extension; an absolute path (a run's scratch script), a URL and
+    one that leaves the repository (``../``) are skipped, as ``command_paths`` skips them.  Quoted absolute paths, URLs
+    and escaped spaces are removed first (``_without_paths_elsewhere``), so a space or a port inside one cannot leave a
+    tail behind; a quoted command string keeps its relative words.  A quoted absolute path that holds a space and no
+    option word reads as a path, so a command string such as ``'/bin/sh test/run.test.sh'`` is not read: the two
+    cannot be told apart, and a missed refusal costs one send-back where a false one blocks a sound plan.
+    """
+    try:
+        words = shlex.split(command)
+    except ValueError:
+        words = command.split()
+    paths = []
+    for flag, code in zip(words, words[1:]):  # not itertools.pairwise: the floor is Python 3.9
+        if flag not in _INLINE_CODE:
+            continue
+        for match in _INLINE_PATH.findall(_without_paths_elsewhere(code)):
+            path = match.removeprefix("./")
+            if not path.startswith("../") and "/../" not in path and _EXTENSION.search(path):
+                paths.append(path)
+    return list(dict.fromkeys(paths))
 
 
 def confirm_by_command(text: Any) -> str:
@@ -120,6 +166,15 @@ def generic_command(command: str) -> bool:
                    for word in words if not word.startswith("-"))
 
 
+def _unwritten_test_refusal(name: str, path: str) -> str:
+    """Rule A's refusal of step ``name``, whose Proof runs the test ``path`` that no earlier step's test stage writes."""
+    return ("step " + name + "'s Proof runs " + path + ", which the item base does not have and no earlier step "
+            "declares: implement writes no tests, and " + name + "'s test stage writes its tests only after its "
+            "implement, so this Proof cannot pass when " + name + "'s implement reports done. Prove " + name + " with a "
+            "command that runs its behaviour directly (a short script with assertions, an existing test or a recorded "
+            "command), keep " + path + " in the focused command for the test stage, then run the same callback again.")
+
+
 def proof_order_refusal(plan: Mapping[str, Any], exists: Callable[[str], bool]) -> str:
     """Why a step plan has a step whose Proof cannot pass when that step's implement reports done, or "" (SDLC gates D6,
     docs/shiploop-sdlc-gates-proposal-2026-10-30.md §5 SG1; replay evidence docs/experiments/question-record-20261031).
@@ -130,6 +185,11 @@ def proof_order_refusal(plan: Mapping[str, Any], exists: Callable[[str], bool]) 
     then), or the whole item is tests.  Rule B: a Proof that names a path the base lacks which only a later step declares
     needs that later step.  Paths are read from the Proof by ``command_paths``.  In the saved runs of 2026-10-03 to 10-31,
     9 of the 12 implement send-backs were this fault (8 on Codex Terra xhigh, 1 on DeepSeek flash).
+
+    Rule A also reads the test-class paths inside a Proof's inline code (``inline_code_paths``; step-plan round 2,
+    docs/experiments/step-plan-round2-20261101): replayed on 363 saved plans (352 at the commit each was accepted on,
+    11 at their item's last lint tree), it flagged 2 steps, both a Proof that needed an unwritten test (one sent back, one in a run sent back for that Proof),
+    and no Proof that passed implement.  Rule B is not extended to inline code: no replay supports it.
 
     Rule C: a Proof that is a generic suite command (``generic_command``, such as ``npm test``) cannot confirm an
     executed criterion of its step whose Confirm by (``confirm_by_command``) names a test-class path the base lacks and no
@@ -158,17 +218,15 @@ def proof_order_refusal(plan: Mapping[str, Any], exists: Callable[[str], bool]) 
                 continue
             owners = declared.get(path, [])
             if classify(path) == "test" and not earlier.intersection(owners):
-                return ("step " + name + "'s Proof runs " + path + ", which the item base does not have and no earlier "
-                        "step declares: implement writes no tests, and " + name + "'s test stage writes its tests only "
-                        "after its implement, so this Proof cannot pass when " + name + "'s implement reports done. "
-                        "Prove " + name + " with a command that runs its behaviour directly (a short script with "
-                        "assertions, an existing test or a recorded command), keep " + path + " in the focused command "
-                        "for the test stage, then run the same callback again.")
+                return _unwritten_test_refusal(name, path)
             if later.intersection(owners) and name not in owners and not earlier.intersection(owners):
                 return ("step " + name + "'s Proof reads " + path + ", which the item base does not have and only a "
                         "later step (" + ", ".join(owner for owner in owners if owner in later) + ") declares: the "
                         "Proof needs that later step's work. Move that work into " + name + " or an earlier step, or "
                         "prove " + name + " without it, then run the same callback again.")
+        for path in inline_code_paths(proof):
+            if not exists(path) and classify(path) == "test" and not earlier.intersection(declared.get(path, [])):
+                return _unwritten_test_refusal(name, path)
         if not generic_command(proof):
             continue
         for ident in step.get("criteria") or ():
