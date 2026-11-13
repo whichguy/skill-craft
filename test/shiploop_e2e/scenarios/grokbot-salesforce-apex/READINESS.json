@@ -1,0 +1,103 @@
+{
+  "schema": "grokbot-salesforce-apex-readiness/1",
+  "scenario": "grokbot-salesforce-apex",
+  "source_head": "dcb7efcb4c6a79314aa4a23c37d296184b699c1d",
+  "registered": false,
+  "selectable_root_case": false,
+  "packaged_audit_feature": false,
+  "absence_policy": "No evidence means no ready default; unknown or missing fields block dependent action.",
+  "preparation": {
+    "status": "PREPARED",
+    "reasons": [
+      "Five-file scenario packet prepared; offline structure, JSON, local file/heading links and source-hygiene checks passed.",
+      "The operator diagrams were actually rendered and inspected at desktop and narrow widths. These checks validate the preparation document only.",
+      "No application, evaluator implementation, catalog registration, live org/provider/UI test or cleanup execution is supplied. Final independent packet judgment is retained separately."
+    ],
+    "evidence": [
+      "BUILDER_PROMPT.md",
+      "ACCEPTANCE.json",
+      "REFERENCE.md",
+      "README.md"
+    ]
+  },
+  "live_launch": {
+    "status": "BLOCKED",
+    "reasons": [
+      "Every live launch, including exploratory, requires canonical target/user authority and job-aware containment/cleanup established before launch.",
+      "Pre-builder current org/API/queue capacity, trusted authentication, required operator provider-reference/setup route and grants as appropriate, and restricted-user observation readiness are unverified. New-app Save/readback/connection is evaluated post-build under SETUP-01, not required before the builder exists.",
+      "Fresh prefixes, clean target baseline and exact owned-resource/grant/job/deployment ledger are unbound.",
+      "Current gym cleanup excludes jobs and late deployments and is insufficient.",
+      "Independent native worker/callout/provider correlation without secrets is not established.",
+      "Complete frozen invocation, installed subject/evaluator identities and current deployment authority not bound.",
+      "Mandatory pre-builder create reset has not run: no canonical case/run inventory across older owned prefixes, independent absence/covered-restoration receipt or observed empty-target no-op receipt.",
+      "Unknown ownership, active/conflicting work/jobs, in-flight/late deployments, failed/unknown/incomplete cleanup block launch/reuse; a new prefix cannot bypass them.",
+      "Post-success/failure/interruption cleanup and separately proven temporary provider ownership remain unestablished; unrelated resources, User accounts, existing owner keys and evidence must be preserved.",
+      "Current published ShipLoop/package selection must be resolved and verified at future launch; historical versions are not a current selection."
+    ],
+    "evidence": []
+  },
+  "evaluator_qualification": {
+    "status": "UNQUALIFIED",
+    "reasons": [
+      "Evidence matrix is a contract, not an implemented or calibrated evaluator.",
+      "Positive/adverse background, permission, write-race, latest-attempt and cleanup controls have not run.",
+      "Historical synchronous six-browser-join evaluator cannot prove multi-transaction browser-away orchestration.",
+      "No established independent native correlation or qualified lifecycle/job-containment tooling."
+    ],
+    "evidence": []
+  },
+  "acceptance": {
+    "status": "NOT_RUN",
+    "reasons": [
+      "No product source, deployment, native tests, real-provider execution, browser journey or cleanup observation exists for this scenario.",
+      "ShipLoop completion and scenario acceptance cannot be inferred from preparation.",
+      "Post-build SETUP-01 still requires real app Save, independent persisted configuration readback and app-initiated actual connection; blocked provider outcomes remain UNKNOWN and cannot pass dependent UI/provider acceptance."
+    ],
+    "evidence": []
+  },
+  "unbound_inputs": {
+    "attempt_id": null,
+    "canonical_org_id": null,
+    "effective_user_id": null,
+    "alias": null,
+    "metadata_prefix": null,
+    "lwc_prefix": null,
+    "provider_reference": null,
+    "provider_model": null,
+    "target_api_version": null,
+    "job_containment_procedure": null,
+    "ownership_ledger": null,
+    "native_correlation_procedure": null,
+    "observation_deadline": null,
+    "canonical_case_run_inventory": null,
+    "startup_reset_receipt": null,
+    "independent_reset_verification": null,
+    "post_attempt_cleanup_procedure": null,
+    "current_published_selection": null
+  },
+  "scope": "Unregistered preparation only; parent owns validation, commits and delivery. No live authorization implied.",
+  "run_kind": "create",
+  "startup_cleanup_required": true,
+  "startup_cleanup_policy": "Before every independent full-case create builder attempt, including the first; discover prior declared TEST-OWNED resources by canonical org/case/run inventory across prior prefixes. Observed no-op receipt required for known empty target. Preserve candidate during repeated checks/Proofs/Until Loop cycles; only declared synthetic fixture resets inside attempt.",
+  "canonical_main_context": {
+    "observed_head": "7ceaecf441448c1c394340ec2c98f848cd685b27",
+    "observed_skill_craft_version": "2.36.6",
+    "observed_shiploop_version": "1.33.10",
+    "observed_at": "2026-11-13 UTC preparation snapshot",
+    "observation_source": "Coordinator Git read; not a newly stated owner version preference.",
+    "policy": "Dated preparation context only; preparation/reference source_head is not an installed subject binding. No pull/merge or release edit here. Resolve and verify current published bytes at future launch, not historical 1.33.9. This preparation is no frozen/live trial or model comparison."
+  },
+  "future_role_controls": {
+    "subject_builder_test_author_routine_execution": {
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "medium"
+    },
+    "independent_reviewer_and_judge": {
+      "model": "gpt-6-astra",
+      "reasoning_effort": "high",
+      "session_policy": "Separate fresh sessions for independent reviewer and judge."
+    },
+    "application_inference": "Grok/xAI configured separately through provider reference/model.",
+    "launch_policy": "Apply actual launch controls at future run, preserving requested versus independently verified served identity. No ready live command; no global defaults, installed packages or historical identities changed."
+  }
+}
