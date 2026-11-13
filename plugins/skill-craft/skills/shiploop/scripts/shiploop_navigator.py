@@ -796,9 +796,12 @@ def _sent_back_results(state: Mapping[str, Any], stage: str, workitem: str | Non
 
 
 def _id_changes(before: Any, after: Any, key: str = "id") -> tuple[list[str], list[str], list[str]]:
-    """(added, removed, changed) identities of two lists of rows, each row named by ``key``."""
+    """(added, removed, changed) identities of two lists of rows, each row named by ``key``.  A step's ``done`` mark is
+    no change: fix forward adds it to a done step's row, which stays as written."""
     def rows(value: Any) -> dict[str, str]:
-        return {str(row.get(key)): json.dumps(row, sort_keys=True) for row in value or () if isinstance(row, Mapping)}
+        return {str(row.get(key)): json.dumps({name: field for name, field in row.items() if name != "done"},
+                                              sort_keys=True)
+                for row in value or () if isinstance(row, Mapping)}
     old, new = rows(before), rows(after)
     return ([ident for ident in new if ident not in old], [ident for ident in old if ident not in new],
             [ident for ident in new if ident in old and new[ident] != old[ident]])
@@ -855,7 +858,9 @@ def _previous_step_results(state: Mapping[str, Any], workitem: str) -> dict[str,
         if row["workitem"] != workitem or row["outcome"] != "done":
             continue
         if row["stage"] == stage_spec.SEND_BACK_TO:
-            steps = [str(step.get("id")) for step in state["accepted"][row["action"]].get("steps") or ()]
+            # A step an amendment kept as done (fix forward) is built once, before the amendment: it has no row here.
+            steps = [str(step.get("id")) for step in state["accepted"][row["action"]].get("steps") or ()
+                     if step.get("done") is not True]
         elif row["stage"] == "implement" and steps:
             found[steps.pop(0)] = row["action"]
     return found
@@ -916,7 +921,40 @@ def _revisit_lines(state: Mapping[str, Any], stage: str, workitem: str | None, r
         "Keep unchanged rows with their IDs: carry over as written every row the send-back result and the changes above do "
         "not touch; change or add only what they require."
         + (" Submit the whole amended plan: it replaces the previous one." if stage == stage_spec.SEND_BACK_TO else ""),
+        *_fix_forward_lines(state, stage, workitem),
     ]
+
+
+def _fix_forward_lines(state: Mapping[str, Any], stage: str, workitem: str | None) -> list[str]:
+    """What a revisited step plan or test spec keeps fixed (fix forward, docs/shiploop-fix-forward-design-2026-11-12.md):
+    the done steps' rows to copy, or the cases due at them.  [] when no step was done at the send-back."""
+    if stage == stage_spec.SEND_BACK_TO:
+        rows = fix_forward_rows(state, workitem)
+        if not rows:
+            return []
+        ids = ", ".join(row["id"] for row in rows)
+        return ["Fix forward: " + ids + (" is" if len(rows) == 1 else " are") + " done (reviewed and committed) and "
+                "never runs again. Start steps with these rows exactly as written, then the steps still to run. Change "
+                "only those: a fix to what a done step built is a new step with new criterion IDs. Expectations describe "
+                "the base the next step begins from, which holds the done steps' changes, so restate theirs (absent "
+                "becomes works):",
+                *(_done_row_text(row) for row in rows)]
+    if stage != "test-spec" or workitem is None:
+        return []
+    _action, plan = test_loop._step_plan(state, workitem)
+    done = planning_revision.done_rows(plan)
+    sent = _sent_back_results(state, stage, workitem) if done else None
+    if sent is None or sent.spec_before is None:
+        return []
+    steps = plan.get("steps") or []
+    done_ids = {str(row.get("id")) for row in steps[:done]}
+    frozen = [str(case.get("id")) for case in state["accepted"][sent.spec_before].get("test_cases") or ()
+              if isinstance(case, Mapping) and iteration.case_step(str(case.get("criterion")), steps) in done_ids]
+    if not frozen:
+        return []
+    return ["Fix forward: " + ", ".join(frozen) + (" is" if len(frozen) == 1 else " are") + " due at done steps ("
+            + ", ".join(sorted(done_ids)) + ") and stay exactly as in your previous result; a new check of that "
+            "behaviour is a new case, with a new criterion, for a step still to run."]
 
 
 def _outer_revisit_lines(state: Mapping[str, Any], stage: str) -> list[str]:
@@ -2680,10 +2718,11 @@ def _normalise_steps(value: Any) -> list[dict[str, Any]]:
     rows = []
     for entry in value:
         _need(isinstance(entry, Mapping)
-              and {"id", "task"} <= set(entry) <= {"id", "task", "deps", "criteria", "proof", "paths", "skills"},
+              and {"id", "task"} <= set(entry) <= {"id", "task", "deps", "criteria", "proof", "paths", "skills", "done"},
               "each step is {\"id\": \"S1\", \"task\": \"...\", \"deps\": [], \"criteria\": [\"C1\"], "
               "\"proof\": \"<command that proves the step's criteria>\", \"skills\": [{\"name\": \"...\", "
-              "\"why\": \"...\"}]}, and optionally \"paths\" (the files it changes)")
+              "\"why\": \"...\"}]}, and optionally \"paths\" (the files it changes) and, on a step an amendment keeps "
+              "as done, \"done\": true")
         step_id = _text(entry["id"], "step id")
         _need(not any(character.isspace() for character in step_id), "a step id has no spaces")
         row = {"id": step_id, "task": _text(entry["task"], "step task")}
@@ -2715,6 +2754,10 @@ def _normalise_steps(value: Any) -> list[dict[str, Any]]:
                 row["paths"] = item_scope.normalise_paths(entry["paths"])
             except item_scope.ItemScopeError as exc:
                 raise NavigatorError("step " + step_id + ": " + str(exc)) from exc
+        if "done" in entry:
+            # A done step an amendment after a send-back keeps (fix forward); only the gate decides which rows carry it.
+            _need(entry["done"] is True, "step " + step_id + "'s done is true or absent")
+            row["done"] = True
         # Preserve omission: saved results must retain their exact canonical
         # payload, and missing dependencies do not mean independent steps.
         rows.append(row)
@@ -2738,12 +2781,7 @@ def implement_progress(state: Mapping[str, Any], work_item: str | None) -> tuple
         return 0, []
     action, plan = test_loop._step_plan(state, work_item)
     steps = list(plan.get("steps") or ()) if action else []
-    history = list(state.get("history", ()))
-    start = max((position for position, row in enumerate(history) if row.get("action") == action), default=-1)
-    done = sum(1 for row in history[start + 1:]
-               if row.get("stage") == "implement" and row.get("workitem") == work_item
-               and row.get("outcome") == "done")
-    return done, steps
+    return (planning_revision.built_steps(state, work_item) if action else 0), steps
 
 
 def _check_submitted_test_commands(stage: str, result: Any) -> None:
@@ -2946,6 +2984,127 @@ def _check_proof_inputs(repo: str | Path, stage: str, result: Any) -> None:
     _need(not refusal, refusal or "")
 
 
+def _without_mark(row: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in row.items() if key != "done"}
+
+
+def _done_row_text(row: Mapping[str, Any]) -> str:
+    return json.dumps({**_without_mark(row), "done": True}, ensure_ascii=False)
+
+
+def fix_forward_rows(state: Mapping[str, Any], workitem: Any) -> list[dict[str, Any]]:
+    """The done steps an amended step plan must start with, as rows (fix forward): after an INNER send-back, the steps
+    of the plan in force whose document was accepted, each marked ``"done": true``.  [] when none is done or the item
+    was not sent back."""
+    done = planning_revision.done_steps(state, workitem)
+    sent = _sent_back_results(state, stage_spec.SEND_BACK_TO, workitem) if workitem else None
+    if not done or sent is None or sent.plan_before is None:
+        return []
+    rows = state["accepted"][sent.plan_before].get("steps") or []
+    return [{**_without_mark(row), "done": True} for row in rows[:done]]
+
+
+def _fix_forward_refusal(state: Mapping[str, Any], workitem: Any, result: Mapping[str, Any]) -> str | None:
+    """Why a done step plan breaks fix forward (docs/shiploop-fix-forward-design-2026-11-12.md rules 2, 3 and 5), or
+    None: it starts with every done step exactly as written and marked done, marks no other step, keeps the done steps'
+    criteria as defined and listed by no unfinished step, and leaves a step to run."""
+    try:
+        steps = _normalise_steps(result.get("steps"))
+    except NavigatorError:
+        return None                       # the shape gate refuses it with its own reason
+    kept = fix_forward_rows(state, workitem)
+    marked = [row["id"] for row in steps if row.get("done") is True]
+    if not kept:
+        if marked:
+            return ("no step of " + str(workitem) + " is done, so no step carries \"done\": true (found it on "
+                    + ", ".join(marked) + "): remove it")
+        return None
+    ids = [row["id"] for row in kept]
+    copy = ("Start steps with the done steps exactly as below, each with \"done\": true, then the steps still to run:\n"
+            + "\n".join(_done_row_text(row) for row in kept))
+    if marked != ids or [row["id"] for row in steps[:len(kept)]] != ids:
+        return ("steps " + ", ".join(ids) + " are done (reviewed and committed) and stay as they are: fix forward never "
+                "reruns a done step. " + copy)
+    for row, done in zip(steps, kept):
+        if _without_mark(row) != _without_mark(done):
+            changed = sorted(key for key in set(row) | set(done) if row.get(key) != done.get(key))
+            return ("done step " + row["id"] + " differs from its accepted row in " + ", ".join(changed) + ": a done "
+                    "step stays as written; a fix to what it built is a new step with new criterion IDs. " + copy)
+    if len(steps) == len(kept):
+        return ("every step is done: an amendment keeps at least one step to run (the step that was interrupted, "
+                "changed, or a new one), so the item's last-step checks run")
+    sent = _sent_back_results(state, stage_spec.SEND_BACK_TO, workitem)
+    plan_before = state["accepted"][sent.plan_before]
+    owned = list(dict.fromkeys(criterion for row in kept for criterion in row.get("criteria") or ()))
+    for criterion in owned:
+        # A criterion's cases are due at the last step that lists it (iteration.case_step).  Those due at a done step
+        # were built and checked there and stay there; those a later step still owes stay with a step still to run.
+        was = iteration.case_step(criterion, plan_before.get("steps") or [])
+        now = iteration.case_step(criterion, steps)
+        if was in ids and now != was:
+            return ("step " + now + " lists " + criterion + ", whose cases are due at done step " + was + ": listing it "
+                    "would move them to " + now + ". Give the new work a new criterion ID (it may follow the same "
+                    "requirement)")
+        if was not in ids and now in ids:
+            return ("no step still to run lists " + criterion + ", whose cases " + was + " still owes: keep it on a "
+                    "step still to run")
+    before = {str(row.get("id")): row for row in plan_before.get("criteria") or ()
+              if isinstance(row, Mapping)}
+    after = {str(row.get("id")): row for row in result.get("criteria") or () if isinstance(row, Mapping)}
+    for criterion in owned:
+        if criterion in before and after.get(criterion) != before[criterion]:
+            return ("criterion " + criterion + " belongs to a done step and stays as accepted: "
+                    + json.dumps(before[criterion], ensure_ascii=False))
+    return None
+
+
+def _frozen_case_refusal(state: Mapping[str, Any], workitem: Any, result: Mapping[str, Any]) -> str | None:
+    """Why a done test spec after a fix-forward amendment changes a done step's case (design rule 4), or None."""
+    _action, plan = test_loop._step_plan(state, workitem)
+    done = planning_revision.done_rows(plan)
+    sent = _sent_back_results(state, "test-spec", workitem) if done else None
+    if sent is None or sent.spec_before is None:
+        return None
+    steps = plan.get("steps") or []
+    done_ids = {str(row.get("id")) for row in steps[:done]}
+
+    def at_done_step(criterion: Any) -> bool:
+        return iteration.case_step(str(criterion), steps) in done_ids
+
+    supplied = result.get("test_cases")
+    try:
+        # An omitted list (legal when no focused command lists an ID) keeps no case, so it is compared as empty.
+        cases = ({} if supplied is None else
+                 {row["id"]: row for row in expectations.normalise_test_cases(supplied)})
+    except expectations.ExpectationError:
+        return None                       # the shape gate refuses a malformed list with its own reason
+    frozen = [case for case in state["accepted"][sent.spec_before].get("test_cases") or ()
+              if isinstance(case, Mapping) and at_done_step(case.get("criterion"))]
+    for case in frozen:
+        if cases.get(case.get("id")) != case:
+            return ("test case " + str(case.get("id")) + " is due at a done step (criterion " + str(case.get("criterion"))
+                    + ") and stays exactly as accepted: " + json.dumps(case, ensure_ascii=False)
+                    + ". A new or changed check of that behaviour is a new case, with a new criterion, for a step still "
+                    "to run")
+    known = {case.get("id") for case in frozen}
+    for ident, case in cases.items():
+        if ident not in known and at_done_step(case.get("criterion")):
+            return ("test case " + ident + "'s criterion " + str(case.get("criterion")) + " is due at a done step, so "
+                    "nothing would run it as new: give it a new criterion that a step still to run lists")
+    return None
+
+
+def _check_fix_forward(state: Mapping[str, Any], stage: str, result: Any) -> None:
+    """Refuse a step plan or test spec that reopens a done step (fix forward, owner 2026-11-12)."""
+    if stage not in (stage_spec.SEND_BACK_TO, "test-spec") or not isinstance(result, Mapping) \
+            or result.get("outcome") != "done":
+        return
+    workitem = _current_work_item(state)
+    refusal = (_fix_forward_refusal(state, workitem, result) if stage == stage_spec.SEND_BACK_TO
+               else _frozen_case_refusal(state, workitem, result))
+    _need(not refusal, refusal or "")
+
+
 def _check_step_sizing(result: Mapping[str, Any]) -> None:
     """Refuse a done step plan whose steps are not sized as behaviour-level changes (owner, 2026-10-10).
 
@@ -2965,7 +3124,9 @@ def _check_step_sizing(result: Mapping[str, Any]) -> None:
         _need(step.get("proof"), "step " + name + " must record its proof: the one command, run from the repository "
               "root, that proves the criteria it satisfies using only this step and accepted earlier steps (ShipLoop "
               "runs it when the step reports done). Steps are " + shape)
-        if known:
+        # A done step (fix forward) keeps its accepted row, which _fix_forward_refusal checks: an amendment that gains
+        # criteria cannot add one to a step that is done (Sol's review, 2026-11-12).
+        if known and step.get("done") is not True:
             _need(step.get("criteria"), "step " + name + " must list criteria: the IDs of the criteria it satisfies ("
                   + ", ".join(known) + "). A step no check can confirm on its own belongs in the step it serves.")
             unknown = [c for c in step["criteria"] if c not in known]
@@ -4333,6 +4494,9 @@ def finish_improve(state: Mapping[str, Any], action_id: str, record: Mapping[str
                                delivery_contract="delivery_contract_version" in state)
     _need(result["outcome"] != "reconcile",
           "reconcile requires improve-reconcile, never finish_improve")
+    # A review's final result is the stage's result, so it may not reopen a done step either: checked here, on every
+    # route that imports one (Sol's review of fix forward, 2026-11-12: a review that dropped the marks reran S1).
+    _check_fix_forward(state, child["stage"], result)
     receipt = dict(record, seed_result=deepcopy(child["seed_result"]))
     return _apply_result(state, action_id, result, receipt)
 
@@ -7541,9 +7705,8 @@ def step_view(state: Mapping[str, Any], work_item: str | None) -> StepView | Non
     index = done - 1 if stage in AFTER_BUILD and done else done
     if index >= len(steps):
         return None
-    history = [row for row in state["history"]
-               if row.get("stage") == "implement" and row.get("workitem") == work_item
-               and row.get("outcome") == "done"][-done:] if done else []
+    rows = {row.get("action"): row for row in state["history"]}
+    history = [rows[action] for action in planning_revision.step_actions(state, work_item, "implement")]
     return StepView(steps[index], index + 1, steps, plan_action, plan, list(zip(steps[:index], history[:index])))
 
 
@@ -9860,6 +10023,7 @@ def _evaluate(core: Any, root: Path, state: Mapping[str, Any], action_id: str, s
     _check_focused_guards(current, submitted)
     _check_focused_criteria_ids(current, submitted)
     _check_proof_inputs(state["repo"], current, submitted)
+    _check_fix_forward(state, current, submitted)
     _check_intake_questions(current, submitted)
     _check_added_tests(state, current, submitted)
     _check_submitted_consumer_entry(state["repo"], current, submitted)

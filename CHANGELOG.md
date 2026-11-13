@@ -4,6 +4,23 @@ Written by scripts/release.py.
 
 ## 2026-11-12
 
+### skill-craft 2.37.0
+
+- Skills: shiploop 1.34.0
+
+### shiploop 1.34.0
+
+- Fix forward: a send-back no longer reruns finished steps. A step whose document was accepted (reviewed and committed)
+  stays done: its commit, review and test counts stand, and nothing rebuilds it. The amended step plan starts with the
+  done steps' rows exactly as written, each marked `"done": true`, which the step-plan packet prints to copy, then at
+  least one step still to run. A fix to finished work is a new step with new criterion IDs, and test cases due at a
+  finished step stay as accepted. ShipLoop refuses an amendment or test spec that reopens a done step.
+- Step-plan refuses a test command recorded `focused` that only searches text (`grep`, `rg` and their kin). A focused
+  command must print test IDs and counts for the test stage, which a search cannot, so it used to fail only later. Record
+  such a command with suite `check`.
+- A step Proof that fails in ShipLoop's run now says what a repeat failure means: if it passed when you ran it, it is not
+  safe to repeat. Make it safe to repeat, or send the item back to amend the Proof; finished steps stay done.
+
 ### skill-craft 2.36.6
 
 - Skills: shiploop 1.33.10

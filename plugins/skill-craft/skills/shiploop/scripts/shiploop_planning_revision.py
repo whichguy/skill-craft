@@ -100,6 +100,53 @@ def _history_and_accepted(state: Mapping[str, Any]) -> tuple[list[Any], Mapping[
     return history, accepted
 
 
+# The stages each step of an item's iteration runs once (design T §9 row 6): one accepted action per step.
+PER_STEP_STAGES = ("implement", "test", "document")
+
+
+def done_rows(plan: Any) -> int:
+    """How many leading steps of an accepted step plan carry ``"done": true``: the steps an amendment after a
+    send-back keeps as done (fix forward, docs/shiploop-fix-forward-design-2026-11-12.md).  0 for any other plan."""
+    steps = plan.get("steps") if isinstance(plan, Mapping) else None
+    count = 0
+    for row in steps if isinstance(steps, list) else ():
+        if not (isinstance(row, Mapping) and row.get("done") is True):
+            break
+        count += 1
+    return count
+
+
+class _StepLists:
+    """One item's per-step actions under its current step plan, as history adds them (fix forward).
+
+    A send-back keeps the steps whose document was accepted (each one reviewed and committed) and drops the
+    interrupted step's results; the next accepted step plan keeps the steps it marks done, and a plan that marks none
+    starts afresh, as every plan before fix forward did."""
+
+    def __init__(self) -> None:
+        self.lists: dict[str, list[str]] = {stage: [] for stage in PER_STEP_STAGES}
+        self.kept: int | None = None   # the done steps the latest send-back left, until the next plan
+
+    def send_back(self) -> None:
+        self.kept = len(self.lists["document"])
+        for stage in PER_STEP_STAGES:
+            del self.lists[stage][self.kept:]
+
+    def plan(self, plan: Any) -> int:
+        """Apply an accepted step plan; return how many done steps it keeps."""
+        marked = done_rows(plan)
+        if not (marked and self.kept is not None and marked <= self.kept):
+            marked = 0
+        for stage in PER_STEP_STAGES:
+            del self.lists[stage][marked:]
+        self.kept = None
+        return marked
+
+    def add(self, stage: str, action: str) -> None:
+        if stage in self.lists:
+            self.lists[stage].append(action)
+
+
 def current_actions(state: Mapping[str, Any]) -> dict[tuple[str | None, str], str]:
     """Return the current accepted ``done`` action for each stage.
 
@@ -108,6 +155,8 @@ def current_actions(state: Mapping[str, Any]) -> dict[tuple[str | None, str], st
     It keeps the latest done result per (workitem, stage); a chronological
     reconcile row removes the root planning suffix beginning at its target,
     and a send-back row removes its work item's results from the step plan on.
+    The amended step plan that marks done steps (fix forward) restores the latest
+    of their per-step results.
     """
     if not isinstance(state, Mapping):
         return {}
@@ -116,6 +165,7 @@ def current_actions(state: Mapping[str, Any]) -> dict[tuple[str | None, str], st
     if not isinstance(history, list) or not isinstance(accepted, Mapping):
         return {}
     result: dict[tuple[str | None, str], str] = {}
+    steps: dict[str | None, _StepLists] = {}
     for entry in history:
         if not isinstance(entry, Mapping):
             continue
@@ -126,10 +176,19 @@ def current_actions(state: Mapping[str, Any]) -> dict[tuple[str | None, str], st
             continue
         if outcome == "done" and action in accepted:
             workitem = entry.get("workitem")
-            result[(workitem if isinstance(workitem, str) else None, stage)] = action
+            key_item = workitem if isinstance(workitem, str) else None
+            result[(key_item, stage)] = action
+            lists = steps.setdefault(key_item, _StepLists())
+            if stage == stage_spec.SEND_BACK_TO and lists.plan(accepted[action]):
+                for per_step in PER_STEP_STAGES:
+                    if lists.lists[per_step]:
+                        result[(key_item, per_step)] = lists.lists[per_step][-1]
+            else:
+                lists.add(stage, action)
             continue
         if outcome == "send-back":
             workitem = entry.get("workitem")
+            steps.setdefault(workitem if isinstance(workitem, str) else None, _StepLists()).send_back()
             reopened = frozenset(stage_spec.INNER[stage_spec.INNER.index(stage_spec.SEND_BACK_TO):])
             for key in tuple(result):
                 if key[0] == workitem and key[1] in reopened:
@@ -151,24 +210,43 @@ def current_actions(state: Mapping[str, Any]) -> dict[tuple[str | None, str], st
     return result
 
 
+def _item_steps(state: Mapping[str, Any], workitem: Any) -> _StepLists:
+    lists = _StepLists()
+    if not isinstance(state, Mapping):
+        return lists
+    accepted = state.get("accepted") or {}
+    for entry in state.get("history") or ():
+        if not isinstance(entry, Mapping) or entry.get("workitem") != workitem:
+            continue
+        if entry.get("outcome") == "send-back":
+            lists.send_back()
+        elif entry.get("outcome") == "done" and entry.get("action") in accepted:
+            if entry.get("stage") == stage_spec.SEND_BACK_TO:
+                lists.plan(accepted[entry["action"]])
+            else:
+                lists.add(str(entry.get("stage")), str(entry["action"]))
+    return lists
+
+
 def step_actions(state: Mapping[str, Any], workitem: Any, stage: str) -> list[str]:
     """Every accepted done ``stage`` action of ``workitem`` under its current step plan, in history order: one per step
     for a stage each step's iteration runs (implement, test, document; design T §9 row 6), where ``current_actions``
     keeps only the latest.  Current means after the item's latest accepted done step plan and its latest send-back,
-    which replans it (``current_actions`` drops the same results)."""
-    if not isinstance(state, Mapping):
-        return []
-    accepted = state.get("accepted") or {}
-    found: list[str] = []
-    for entry in state.get("history") or ():
-        if not isinstance(entry, Mapping) or entry.get("workitem") != workitem:
-            continue
-        done = entry.get("outcome") == "done" and entry.get("action") in accepted
-        if entry.get("outcome") == "send-back" or (done and entry.get("stage") == "step-plan"):
-            found = []
-        elif done and entry.get("stage") == stage:
-            found.append(str(entry["action"]))
-    return found
+    except the done steps an amended plan keeps (fix forward): their actions stay first, in step order."""
+    return list(_item_steps(state, workitem).lists.get(stage, ()))
+
+
+def built_steps(state: Mapping[str, Any], workitem: Any) -> int:
+    """How many steps of ``workitem``'s current step plan are built: an accepted implement done each, the done steps
+    an amended plan keeps included.  The one count every step cursor reads."""
+    return len(_item_steps(state, workitem).lists["implement"])
+
+
+def done_steps(state: Mapping[str, Any], workitem: Any) -> int:
+    """How many steps of ``workitem``'s current step plan are done (document accepted: reviewed and committed), or,
+    right after a send-back and until the next plan, how many that plan must keep."""
+    lists = _item_steps(state, workitem)
+    return lists.kept if lists.kept is not None else len(lists.lists["document"])
 
 
 def validate(state: Mapping[str, Any]) -> None:
