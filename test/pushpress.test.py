@@ -142,6 +142,21 @@ class Card(unittest.TestCase):
         self.assertLessEqual(len(description(text)), 1024)
         self.assertRegex(text, r"(?m)^    kind: (mixed|script-backed)$")
 
+    def test_description_loads_the_card_before_a_key_is_pasted(self):
+        """P1(b), journal Round 12: a user who only announces that they will paste a key did not load the card with the published
+        description (k1 0 of 4, q15 0 of 2), so Rule 6 never applied. Pinned so an edit cannot drop the trigger or the older ones."""
+        desc = description(card_text())
+        for needle in (
+            "Use whenever the user mentions PushPress",
+            "Also load it BEFORE a PushPress API key or webhook secret is pasted, saved, created or tested, even if the user "
+            "only says they are about to paste one",
+            "it says where a key may go and what to say if one reaches the chat",
+            "sign-in through the host's approved credential flow (never a typed password)",
+            "safety rules for member data, money and outbound messages",
+        ):
+            self.assertIn(needle, desc, needle)
+        self.assertLessEqual(len(desc), 1024)
+
     def test_references_are_exactly_the_generic_set_with_no_tenant_overlay(self):
         found = {p.stem for p in REFS.iterdir() if p.is_file()}
         self.assertEqual(found, EXPECTED_REFERENCES)
