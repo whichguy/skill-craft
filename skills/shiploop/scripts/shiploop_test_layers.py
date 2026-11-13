@@ -156,9 +156,9 @@ def check_confirms(criteria: Sequence[Mapping[str, Any]], rows: Optional[Sequenc
           "text, which runs no behaviour. Name a command that runs the code and observes the result; a criterion "
           "about text the item writes (documentation, a docstring) is confirm searched.")
     # A focused command runs tests and prints their IDs and counts, which the test stage's gate reads; a search prints
-    # neither, so a search recorded as focused can never pass there.  Live: p0-terra's late send-back (16 minutes of
-    # replayed steps), csv-report s2 in step-plan round 2's release round, R3 once (docs/experiments/
-    # step-boundary-replan-20261112/README.md E2; docs/experiments/step-plan-round2-20261101/README.md).
+    # neither, so a search recorded as focused can never pass there.  Recorded runs show it three times, one of them a late
+    # send-back that replayed done steps for 16 minutes (docs/experiments/step-boundary-replan-20261112/README.md E2;
+    # docs/experiments/step-plan-round2-20261101/README.md).
     focused_search = [str(command.get("command") or "") for command in commands
                       if command.get("suite") == "focused" and search_only(str(command.get("command") or ""))]
     _need(not focused_search, "test command `" + "`, `".join(focused_search) + "` is recorded suite focused but only "
