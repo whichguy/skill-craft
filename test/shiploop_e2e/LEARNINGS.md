@@ -8842,3 +8842,35 @@ No live round ran these, which are covered by hermetic checks only:
 
 The quick tier passed on the merged tree (98 suites, 746.8 s, `--changed-from` 3d42222e). A line-by-line render of
 offline node-fix-bug against main changes step-plan by -20 characters (A2a) and test-spec by +54 (D), and nothing else.
+
+## 2026-11-12 — Fix forward and two step-plan refusals: two smoke deliveries on the release tree
+
+The tree is 601f49130247fdb1ce4edfae421ed844e89a057c on branch `feat/fix-forward-5308ed`:
+- 636a02e2: fix forward. A send-back keeps every done step, and the amended plan carries its row marked done.
+- be98fb8e: the Proof refusal's repeat-safety line.
+- 34937ec7: the focused-search refusal.
+- 41f0b5ce: Sol's four fixes.
+- 601f4913: the done mark is no change in the revisit diff.
+
+The owner said "Merge to main and publish" before the six-delivery round I had planned. This is the smoke route instead:
+two whole deliveries on the exact tree, on the runner round 2 used (Codex gpt-6.1-terra at xhigh, `--source checkout`).
+
+| Case | Result | Hidden checks | Minutes | Steps |
+| --- | --- | --- | --- | --- |
+| csv-report s1 | pass | 5 of 5 | 18.1 | one: S1 |
+| shared-expenses s1 | pass | 6 of 6 | 25.4 | two: S1, then S2 (implement, test and document each), then carry-forward |
+
+Neither run had a refusal or a send-back, and neither session log holds a `Traceback`. The shared step cursor
+(`planning_revision.built_steps`) carried a real two-step item from S1 to S2 to carry-forward. Evidence:
+`~/e2e-runs-sp/20261112/fix-forward-smoke/*/result.json` and `*.log`.
+
+What this round does not show:
+- No late send-back occurred, so the amendment route ran only in the hermetic tests: the done rows, the frozen cases
+  and the packet's "Fix forward:" lines.
+- Neither new refusal fired live.
+- Whether a model copies the done rows exactly from the packet is open. The boundary replay the owner chose to run
+  next is where to measure it.
+
+Hermetic evidence on the same tree: the quick tier passed 46 of 46 (484.9 s, `--changed-from` 7ceaecf4). Fail-first
+records are in `docs/experiments/step-boundary-replan-20261112/`: `fix-forward-failfirst.txt` and
+`sol-fixes-failfirst.txt`. Sol's first review found four defects, fixed in 41f0b5ce. Its second found none material.
