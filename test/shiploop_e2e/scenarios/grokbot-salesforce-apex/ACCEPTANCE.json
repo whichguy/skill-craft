@@ -1,0 +1,457 @@
+{
+  "schema": "grokbot-salesforce-apex-acceptance/1",
+  "scenario": "grokbot-salesforce-apex",
+  "status": "NOT_RUN",
+  "registered": false,
+  "purpose": "Predeclared evidence obligations; no checker implementation or app acceptance supplied.",
+  "decision_rules": {
+    "row_statuses": [
+      "NOT_RUN",
+      "PASS",
+      "FAIL",
+      "UNKNOWN"
+    ],
+    "pass": "All required observations for the row exist on the latest registered observation of the frozen attempt and match current source/deployment/org/user identities. Missing actual observations cannot pass.",
+    "fail": "A bound actual observation demonstrates a stated falsifier; retain raw evidence and attribution.",
+    "unknown": "Required evidence unavailable, incomplete, ambiguous or outside the frozen observation deadline. Queue delay alone is UNKNOWN, not product failure.",
+    "overall": "All rows required. Native mocks cannot replace live org, real-provider, browser or independent review evidence. Apparatus qualification and workflow judgment remain separate from app acceptance.",
+    "supersession": "Register each observation before fallible work; latest unique registered observation supersedes earlier credit even if incomplete. Preserve earlier receipts; never backfill a newer failure from older success.",
+    "calibration": "Qualify evaluators with controlled positive and falsifier fixtures independently. Application-authored logs and declarative independent flags alone do not establish independence.",
+    "intake_boundary": "INTAKE rows are outer evaluator/operator controls, not deployed Apex behavior or per-chat questions. This declared create needs no mode-choice question. Future unspecified mode requires clean-create versus feature/additive choice before destructive reset; feature preserves its verified predecessor.",
+    "setup_boundary": "Before builder launch require canonical target/user and deployment/setup authority, verified startup reset, exact job/deployment containment, operator credential-reference/setup route and grants as appropriate, and actual observation capability/contract. Do not require a nonexistent new app. Post-build SETUP-01 supplies real app Save, independent persisted config readback and app-initiated actual connection before dependent UI/provider acceptance; blocked provider outcomes remain UNKNOWN. No live deployment without authority, reset or containment."
+  },
+  "required_attempt_binding": [
+    "attempt_id",
+    "literal_complete_invocation_hash",
+    "installed_shiploop_identity",
+    "evaluator_revision_and_contract_hash",
+    "reference_revision",
+    "requested_and_verified_subject_model_effort",
+    "provider_reference_endpoint_requested_and_verified_model",
+    "actual_role_launch_controls_and_requested_vs_verified_served_identities",
+    "canonical_org_id",
+    "effective_user_id",
+    "fresh_metadata_prefix",
+    "fresh_lwc_prefix",
+    "product_source_head_and_full_deployable_hash",
+    "deployment_ids_and_native_readback_hashes",
+    "observation_id_and_registration_order",
+    "frozen_deadline_and_trace_window",
+    "ownership_ledger_and_cleanup_contract",
+    "run_kind",
+    "canonical_org_case_run_inventory_including_prior_prefixes",
+    "startup_reset_receipt_and_independent_verification",
+    "post_attempt_cleanup_receipt"
+  ],
+  "rows": [
+    {
+      "id": "INTAKE-01",
+      "control_scope": "outer-test-intake",
+      "outcome": "Declared run_kind=create gates every independent full-case builder attempt, including the first, on completed startup reset and verification.",
+      "independent_evidence": "Canonical org/case/run ownership inventory covering prior declared TEST-OWNED resources and all inventory-linked prefixes; exact job/deployment accounting, stop/invalidate/quiesce/teardown receipts and independent covered absence/restoration before builder start. Known empty target has observed empty-inventory/no-op reset receipt.",
+      "falsifier": "Builder starts with old owned app/job leftovers despite a new prefix, folder or browser; failed/unknown cleanup is accepted; first attempt skips reset; an existence check alone or assumed empty target passes; unrelated apps/data/User accounts, other work, owner keys or evidence are deleted.",
+      "unknown_condition": "Unknown ownership, conflicting active work/jobs, in-flight or late deployment risk, missing inventory, no-op receipt or incomplete/failed independent cleanup blocks launch/reuse.",
+      "evidence_kinds": [
+        "live-org",
+        "operator-provider-lifecycle"
+      ],
+      "mocked_vs_live": "Calibration fixtures do not establish actual live reset; live launch requires independently observed target receipts.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "INTAKE-02",
+      "control_scope": "outer-test-intake",
+      "outcome": "Outer intake asks clean-create versus feature/additive for future unspecified scenarios before destructive reset; feature preserves its explicitly verified predecessor. This declared create does not ask again.",
+      "independent_evidence": "Independently calibrated intake controls for declared create, unspecified mode, existing app with no declared mode, and feature with verified predecessor/declared synthetic fixture reset.",
+      "falsifier": "Unknown mode silently resets or infers feature from app presence; feature reset deletes predecessor app/evidence; mode choice is exposed in finished bot or each chat; declared create asks redundantly.",
+      "unknown_condition": "Unresolved future mode or unverified feature predecessor blocks dependent reset/launch.",
+      "evidence_kinds": [
+        "evaluator-calibration"
+      ],
+      "mocked_vs_live": "Calibration fixtures do not establish actual live reset; live launch requires independently observed target receipts.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "INTAKE-03",
+      "control_scope": "outer-test-intake",
+      "outcome": "Repeated native/UI checks, step Proofs and Until Loop repair/test cycles preserve the candidate inside an attempt; startup reset repeats only for a new independent full-case create attempt.",
+      "independent_evidence": "Independent candidate identity/state observations across repeated checks and repairs; separately declared owned synthetic fixture reset scope and receipts; distinct attempt boundaries.",
+      "falsifier": "A proof/test/repair rerun destroys the deployed candidate, repeats whole-case teardown, or mutates undeclared fixtures; a new full-case create attempt skips startup cleanup.",
+      "unknown_condition": "Attempt boundary, candidate preservation or fixture ownership is unverified.",
+      "evidence_kinds": [
+        "evaluator-calibration",
+        "live-org"
+      ],
+      "mocked_vs_live": "Calibration fixtures do not establish actual live reset; live launch requires independently observed target receipts.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "BIND-01",
+      "outcome": "Source/deployed Apex, schema, API versions and user-owned objects match the frozen candidate.",
+      "independent_evidence": "Independent full deployable-tree hash and deployment receipt; native Apex body/schema readback and per-user record snapshots.",
+      "falsifier": "Partial/late deployment, ignored source omission or undeclared object receives credit.",
+      "unknown_condition": "Current complete deployment, canonical org/user or full source inventory missing.",
+      "evidence_kinds": [
+        "source",
+        "live-org"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "SETUP-01",
+      "outcome": "Post-build: missing setup works without provider success; real app Save persists exact nonsecret configuration, independently read back; app-initiated actual connection succeeds separately before dependent UI/provider acceptance.",
+      "independent_evidence": "After construction, actual browser empty/setup/error and Save journeys; independent persisted config readback; native app-initiated callout and real provider response join. Before builder start require only authority/reset/containment, operator credential-reference/setup route with grants as appropriate, and actual observation capability/contract, not new-app observations.",
+      "falsifier": "Mock, old preflight, unsaved form or returned ok flag supplies connection proof; dependent UI/provider acceptance passes without actual app connection evidence; new-app Save/readback/connection is demanded before empty-repo builder starts.",
+      "unknown_condition": "After construction, auth, key/principal/admin/model setup, Save/readback or app connection unobserved or provider blocked; dependent acceptance remains UNKNOWN and cannot pass.",
+      "evidence_kinds": [
+        "live-browser",
+        "live-org",
+        "real-provider"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "BOT-01",
+      "outcome": "Named roster, conversations, saved instruction/task versions and user isolation survive reload.",
+      "independent_evidence": "Independent persisted user-object queries and browser create/select/rename/reload/new-conversation journeys.",
+      "falsifier": "Browser-only roster or another user can read/edit bot state.",
+      "unknown_condition": "Persisted state or second identity not observable.",
+      "evidence_kinds": [
+        "native-mock",
+        "live-org",
+        "live-browser"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "PROMPT-01",
+      "outcome": "A real execution receives the snapshotted saved instruction/task version; edits affect subsequent runs.",
+      "independent_evidence": "Independent saved-version reads and secret-free outbound request projection bound to native worker and provider response.",
+      "falsifier": "Stored settings exist but active execution ignores them or silently changes version.",
+      "unknown_condition": "Actual request content/version/native join unavailable.",
+      "evidence_kinds": [
+        "native-mock",
+        "real-provider",
+        "live-org"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "ASYNC-01",
+      "outcome": "At least two distinct Apex worker transactions advance one run before any app tab reopens.",
+      "independent_evidence": "Timestamped all-tabs-closed and builder/browser-stop evidence; read-only org observations during away interval; exact job IDs, native transactions and committed checkpoints. No app browser, external agent or continuation caller drives work; independent observers perform only declared read-only observations.",
+      "falsifier": "UI-only spinner, progress on reopen, observer continuation call or one endless transaction is accepted. External agent/continuation-driven work receives browser-away credit.",
+      "unknown_condition": "Queue delay exceeds frozen deadline, away interval incomplete or distinct native workers cannot be correlated.",
+      "evidence_kinds": [
+        "live-org",
+        "real-provider",
+        "browser-away"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "ASYNC-02",
+      "outcome": "Apex owns causal provider/tool/checkpoint continuation.",
+      "independent_evidence": "Independent native enqueue/job/transaction/callout evidence joined to source/deployment, run/checkpoint, provider response, actual tool result and successor request.",
+      "falsifier": "Dummy Queueable hides browser/external orchestration or application-authored log supplies sole proof.",
+      "unknown_condition": "Native correlation unavailable, ambiguous or missing required edges.",
+      "evidence_kinds": [
+        "live-org",
+        "real-provider"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "TOOL-01",
+      "outcome": "Unpredictable allowed-record value read by Apex reaches a subsequent real provider request.",
+      "independent_evidence": "Independent observer introduces a fresh synthetic nonce after inputs freeze; database snapshot, native read and safe next-request projection show causal transfer. The later actual real-provider request contains the selected structured read result, including the challenge value; app logs alone are insufficient.",
+      "falsifier": "Nonce is echoed from prompt/UI, tool-shaped prose is accepted, or no executed read exists. Result appears only in an app log or is absent from the later real-provider request.",
+      "unknown_condition": "No unpredictable fixture, safe request projection or next actual provider request.",
+      "evidence_kinds": [
+        "live-org",
+        "real-provider"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "TOOL-02",
+      "outcome": "Allowlisted context/schema/read/propose tools reject malformed, foreign, arbitrary-query/admin and injected authority requests. Runtime tools exclude cleanup, admin, deployment, authentication and User-account edits; memory/instructions cannot grant those powers.",
+      "independent_evidence": "Independent native assertions and registry/source review; live readback of protected records and outbound disclosure boundaries. Any isolated rollback-only native test User fixtures are labelled native evidence separately from deployed-app behavior.",
+      "falsifier": "Unknown tool executes, saved text expands authority or provider-hosted tool performs excluded work.",
+      "unknown_condition": "Independent registry/denial evidence unavailable.",
+      "evidence_kinds": [
+        "native-mock",
+        "live-org"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "WRITE-01",
+      "outcome": "No business mutation occurs during setup, connection, proposal creation or before confirmation.",
+      "independent_evidence": "Independent business baseline and snapshots at each boundary; proposal/history UI and native traces.",
+      "falsifier": "Silent seeding or proposal DML changes business data before human approval.",
+      "unknown_condition": "Baseline, observation coverage or authoritative snapshots missing.",
+      "evidence_kinds": [
+        "live-org",
+        "live-browser",
+        "real-provider"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "WRITE-02",
+      "outcome": "One exact confirmed create and one exact confirmed update match server proposals.",
+      "independent_evidence": "Independent before/after IDs, counts, exact field values and proposal bindings; native transaction evidence and browser actions.",
+      "falsifier": "Client fields change intent, wrong target changes or mutation differs from approved values.",
+      "unknown_condition": "Create or update lacks independent readback or current proposal binding.",
+      "evidence_kinds": [
+        "native-mock",
+        "live-org",
+        "live-browser",
+        "real-provider"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "WRITE-03",
+      "outcome": "Stale, expired, duplicate, tampered and concurrent confirmations cannot cause extra/unauthorized writes; consumption and write are atomic.",
+      "independent_evidence": "Independent adverse native tests and live duplicate/overlap requests with database snapshots; DML-failure rollback assertions.",
+      "falsifier": "Two confirmations mutate twice, stale/expired intent executes or failed write leaves a consumed success.",
+      "unknown_condition": "Any required adverse test or live race/readback absent.",
+      "evidence_kinds": [
+        "native-mock",
+        "live-org",
+        "live-browser"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "CANCEL-01",
+      "outcome": "Cancellation serializes with mutation: cancellation winner forbids later writes; committed write winner remains reported.",
+      "independent_evidence": "Controlled overlapping native/live confirmation-cancel evidence with committed-order observations and independent business/run snapshots.",
+      "falsifier": "Late mutation after cancellation wins, hidden committed write or provider recall/exactly-once claim.",
+      "unknown_condition": "Winner cannot be established independently or race not exercised.",
+      "evidence_kinds": [
+        "native-mock",
+        "live-org"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "CANCEL-02",
+      "outcome": "Obsolete queued/running workers cannot publish current output, overwrite newer/paused/terminal state or enqueue successors.",
+      "independent_evidence": "Adverse native worker-generation tests; exact live job lineage and state observations after cancel/pause/recovery.",
+      "falsifier": "Late worker revives cancelled state or enqueues after invalidation.",
+      "unknown_condition": "No observed late-worker control or incomplete owned-job lineage.",
+      "evidence_kinds": [
+        "native-mock",
+        "live-org"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "AUTH-01",
+      "outcome": "Queued permission revocation is honored by every worker and recovery path under explicit effective principal.",
+      "independent_evidence": "Independent permission before/after snapshots, queued job identity, native execution and protected read/write/provider-disclosure assertions.",
+      "falsifier": "Persisted user ID/cached grants/admin recovery restores revoked authority.",
+      "unknown_condition": "No restricted principal, queued revocation window or principal correlation.",
+      "evidence_kinds": [
+        "native-mock",
+        "live-org"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "AUTH-02",
+      "outcome": "Cross-user run/history/memory/proposal denial, field-only denial and record-sharing denial each hold.",
+      "independent_evidence": "Separate independent native cases with controlled permissions and live org readback; inspect all captured outbound request projections for protected nonces.",
+      "falsifier": "Object denial alone stands in for field-only denial, foreign approval succeeds or protected data reaches provider.",
+      "unknown_condition": "Distinct denial fixtures/principals/readbacks unavailable.",
+      "evidence_kinds": [
+        "native-mock",
+        "live-org"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "RECOVER-01",
+      "outcome": "Interrupted/failed work resumes from committed checkpoints without replaying writes; uncertain provider outcomes remain labelled.",
+      "independent_evidence": "Independent native faults and recovery assertions; live interrupted/reopened/resumed run and database/job/provider correlations.",
+      "falsifier": "Resume repeats committed mutation, silently retries uncertain request as exactly once or falsely completes lost work.",
+      "unknown_condition": "No interruption/recovery observation or ambiguity cannot be reconciled.",
+      "evidence_kinds": [
+        "native-mock",
+        "live-org",
+        "live-browser",
+        "real-provider"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "STEER-01",
+      "outcome": "Steering receipt and consumption sequences are durable, ordered and visible; follow-up uses retained permitted context.",
+      "independent_evidence": "Independent event/checkpoint queries, overlapping submissions and browser reload/follow-up; request sequence/version projections.",
+      "falsifier": "Lost/reordered/duplicate steering, browser-only acknowledgement or stale context accepted.",
+      "unknown_condition": "No active-run steering, consumption proof or subsequent real request.",
+      "evidence_kinds": [
+        "native-mock",
+        "live-org",
+        "live-browser",
+        "real-provider"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "MEMORY-01",
+      "outcome": "Explicit memory survives new conversation with declared bot/user scope; corrections and forgetting affect next checkpoint.",
+      "independent_evidence": "Independent memory/revision reads and subsequent request projections, new conversation and active-run correction/forget journeys.",
+      "falsifier": "Transcript storage alone passes, forgotten data is reused as current memory or another bot/user inherits it.",
+      "unknown_condition": "Missing current revision or request observation; historical transmission cannot be recalled.",
+      "evidence_kinds": [
+        "native-mock",
+        "live-org",
+        "live-browser",
+        "real-provider"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "OVERFLOW-01",
+      "outcome": "Context overflow compacts eligible history with provenance or pauses; operative constraints/results are preserved.",
+      "independent_evidence": "Independent oversized-context tests plus live app state/request projection under frozen model limit and documented compaction/pause path.",
+      "falsifier": "Silent truncation removes approvals/steering/tool results or omitted content is claimed consumed.",
+      "unknown_condition": "Model limit, overflow stimulus or protected-content preservation unobserved.",
+      "evidence_kinds": [
+        "native-mock",
+        "live-org",
+        "real-provider"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "UI-01",
+      "outcome": "Desktop and narrow layouts support keyboard/focus, empty/error/running/approval/history/reload states and safe text rendering.",
+      "independent_evidence": "Independent rendered observations at frozen viewport sizes, keyboard journey and accessible ownership-scoped controls; source/deployment binding.",
+      "falsifier": "Shell controls satisfy app checks, clipped/hidden text stands in for visible history or script-like record content executes.",
+      "unknown_condition": "Any required width/state/keyboard observation missing.",
+      "evidence_kinds": [
+        "live-browser"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "ERROR-01",
+      "outcome": "Access/setup/queue/provider/malformed-output/DML/limit failures yield truthful safe state and bounded supported recovery.",
+      "independent_evidence": "Independent native adverse tests including 401/429/5xx/timeouts and callout/DML ordering; live error/recovery UI; actual target API/limit review.",
+      "falsifier": "Mock provider errors relabelled real, uncommitted-work failure hidden, or stuck work called completed.",
+      "unknown_condition": "Target API/limits or required failure evidence unavailable.",
+      "evidence_kinds": [
+        "native-mock",
+        "live-org",
+        "live-browser"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "QUALITY-01",
+      "outcome": "Independent review accepts code, error checks, useful comments, warranted tombstones and meaningful test adequacy for exact source.",
+      "independent_evidence": "Independent reviewer identity, source hash/locations, findings/disposition; method-to-assertion-to-executed-result mapping and native coverage.",
+      "falsifier": "Builder self-report/comment counts substitute for judgment, unwarranted tombstones required or skipped assertions counted passed.",
+      "unknown_condition": "Independent judgment, source match or executed test mapping missing.",
+      "evidence_kinds": [
+        "independent-review",
+        "native-mock"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "WORKFLOW-01",
+      "outcome": "Fresh installed ShipLoop builder follows actual action packets/callbacks and delivery contract.",
+      "independent_evidence": "Independent frozen launch/package identities, actual packet/callback trace, accepted criteria and returned product identity.",
+      "falsifier": "Prompt prose/model label proves launch controls or app success alone proves workflow conformance.",
+      "unknown_condition": "Missing actual packet/callback/installed identity or returned-source binding.",
+      "evidence_kinds": [
+        "workflow-trace"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": []
+    },
+    {
+      "id": "CLEANUP-01",
+      "outcome": "After success, failure or interruption: stop new work, invalidate continuations, account for exact owned jobs/in-flight and late deployments, quiesce, teardown only verified owned resources and independently verify covered absence/restoration.",
+      "independent_evidence": "Independent ownership ledger and before/after job/deployment/app/data/schema/permission/provider inventories; operator grant/credential disposition and retained evidence. Canonical org/case/run inventory includes older owned prefixes. Separate ownership proof for new temporary provider resources; retain startup, post-attempt and failed receipts with original results/history.",
+      "falsifier": "Empty job query alone passes, late deployment escapes accounting, unowned job/resource is deleted or kept app permits reuse. Cleanup removes unrelated apps/data/User accounts, other active work, preexisting referenced credentials/keys or run/evidence history; new prefix hides prior owned resources; temporary provider ownership is assumed.",
+      "unknown_condition": "Unknown ownership, running/late work, missing baseline or incomplete app/provider/diagnostic scope; blocks reuse.",
+      "evidence_kinds": [
+        "live-org",
+        "operator-provider-lifecycle"
+      ],
+      "mocked_vs_live": "Native mocks are deterministic test evidence only; each listed live/real/browser evidence kind requires actual independent observations.",
+      "status": "NOT_RUN",
+      "evidence": [],
+      "control_scope": "outer-post-attempt-lifecycle"
+    }
+  ],
+  "run_kind": "create",
+  "future_role_controls": {
+    "subject_builder_test_author_routine_execution": {
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "medium"
+    },
+    "independent_reviewer_and_judge": {
+      "model": "gpt-6-astra",
+      "reasoning_effort": "high",
+      "session_policy": "Separate fresh sessions for independent reviewer and judge."
+    },
+    "application_inference": "Grok/xAI provider model configured separately.",
+    "identity_policy": "Apply actual launch controls at future run; record requested model/effort and controls separately from independently verified served identity. Do not infer served identity from prose or launch request. No global default, installed package or historical identity change."
+  }
+}
