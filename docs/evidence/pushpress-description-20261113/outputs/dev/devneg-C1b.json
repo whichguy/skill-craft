@@ -1,0 +1,246 @@
+{
+ "label": "devneg-C1b",
+ "started": "2026-11-13T10:31:08-08:00",
+ "model": "sonnet",
+ "max_turns": 1,
+ "runs_per_prompt": 2,
+ "payload_pushpress_skill_sha256": "33e6432bdacc7972ea8dd6eecec572225cebc0570944422c09f1d331335db6e4",
+ "prompts_sha256": "8945203443c12b0bc6c862ed37b081a0ef1c41970a4bd28d956e7646d20f4152",
+ "claude": "2.1.323 (Claude Code)",
+ "partial": false,
+ "total_cost_usd": 0.3994,
+ "records": [
+  {
+   "id": "DN1",
+   "run": 1,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03211,
+   "seconds": 6.0,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN1",
+   "run": 2,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03231,
+   "seconds": 5.8,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN2",
+   "run": 1,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03177,
+   "seconds": 5.2,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN2",
+   "run": 2,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03256,
+   "seconds": 5.8,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN3",
+   "run": 1,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "init"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03197,
+   "seconds": 3.1,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN3",
+   "run": 2,
+   "attempts": 1,
+   "rc": 1,
+   "called": [
+    "skill-craft:pushpress"
+   ],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": true,
+   "result_subtype": "error_max_turns",
+   "turns": 2,
+   "cost_usd": 0.03051,
+   "seconds": 2.7,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN4",
+   "run": 1,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03448,
+   "seconds": 7.9,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN4",
+   "run": 2,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03544,
+   "seconds": 5.8,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN5",
+   "run": 1,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03794,
+   "seconds": 10.1,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN5",
+   "run": 2,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03713,
+   "seconds": 8.2,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN6",
+   "run": 1,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03231,
+   "seconds": 5.2,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  },
+  {
+   "id": "DN6",
+   "run": 2,
+   "attempts": 1,
+   "rc": 0,
+   "called": [],
+   "init_has_pushpress_skill": true,
+   "pushpress_fired": false,
+   "result_subtype": "success",
+   "turns": 1,
+   "cost_usd": 0.03086,
+   "seconds": 5.2,
+   "init_skills_sha": "67260e599d83c13c",
+   "init_n_skills": 48,
+   "init_tools": [
+    "Skill"
+   ],
+   "init_mcp": 0
+  }
+ ]
+}

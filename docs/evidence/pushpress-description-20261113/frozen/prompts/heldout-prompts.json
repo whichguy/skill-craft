@@ -1,0 +1,199 @@
+{
+ "version": 1,
+ "purpose": "P1(b) held-out set, written by a fresh sonnet agent that had seen no candidate description and no result (two requests to the same agent: the first 12 positive and 12 quiet prompts, then 8 more announce prompts); texts are verbatim, ids prefixed with H",
+ "frozen": "before any confirmation run",
+ "prompts": [
+  {
+   "id": "HP1",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "I'm about to paste our PushPress API key here. Tell me when you're ready for it."
+  },
+  {
+   "id": "HP2",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "dropping the PushPress webhook secret in a sec, ready?"
+  },
+  {
+   "id": "HP3",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "Hi there! My boss asked me to hand over our PushPress API key for the new check-in screen, so could you give me a heads-up once you can take it?"
+  },
+  {
+   "id": "HP4",
+   "expect_fire": true,
+   "category": "task",
+   "text": "Save [KEY] as PUSHPRESS_API_KEY in our .env so the PushPress MCP server can start, then confirm it connects."
+  },
+  {
+   "id": "HP5",
+   "expect_fire": true,
+   "category": "task",
+   "text": "Our Node receiver needs to verify the PushPress webhook signature. The secret is already in .env as PP_WEBHOOK_SECRET, so please wire it in and add a test with a fake payload."
+  },
+  {
+   "id": "HP6",
+   "expect_fire": true,
+   "category": "task",
+   "text": "pls test ppk_demo_123 agianst PushPress's API, the check-in tablet is dead and class starts in 10"
+  },
+  {
+   "id": "HP7",
+   "expect_fire": true,
+   "category": "question",
+   "text": "PushPress API key, where do I get one?"
+  },
+  {
+   "id": "HP8",
+   "expect_fire": true,
+   "category": "question",
+   "text": "Quick question: where should a PushPress webhook signing secret live so the receiving script can verify calls without it ever landing in git?"
+  },
+  {
+   "id": "HP9",
+   "expect_fire": true,
+   "category": "question",
+   "text": "how do i rotate our PushPress API key without breaking the MCP server, and how will i know it picked up the new one?"
+  },
+  {
+   "id": "HP10",
+   "expect_fire": true,
+   "category": "after",
+   "text": "I pasted our PushPress API key into an AI chat window last week. Is that a problem, and what should I do now?"
+  },
+  {
+   "id": "HP11",
+   "expect_fire": true,
+   "category": "after",
+   "text": "Help, our PushPress API key just got pushed to a public GitHub repo. Rotate it first, or clean up the git history first?"
+  },
+  {
+   "id": "HP12",
+   "expect_fire": true,
+   "category": "after",
+   "text": "So our old web guy emailed me the PushPress API key months ago, and it's probably still in my inbox and a shared folder. I made a new key since. Should I delete the old one, and how do I find every copy?"
+  },
+  {
+   "id": "HP13",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "Hold on, PushPress key coming, the MCP server needs it to start."
+  },
+  {
+   "id": "HP14",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "Ready for me to paste the PushPress API key? It's for the check-in kiosk in the lobby."
+  },
+  {
+   "id": "HP15",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "Good morning! Whenever it suits you, I'd like to send over our PushPress webhook signing secret for the receiver script. Please just say when."
+  },
+  {
+   "id": "HP16",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "New hire here, taking over from the previous office manager, and apparently step one is handing you the PushPress API key, so give me the word and I'll paste it right in."
+  },
+  {
+   "id": "HP17",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "I'm reading the PushPress key out of my password manager now, so please don't jump in until I'm done."
+  },
+  {
+   "id": "HP18",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "i got teh PushPress key for the zapier thing, ok to paste it here? lemme know"
+  },
+  {
+   "id": "HP19",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "Wait for the PushPress webhook secret."
+  },
+  {
+   "id": "HP20",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "Hello, hope your day is going well! I'm the gym's freelance developer and today is my handover, so I'll be sending you the PushPress API key shortly. Could you please hold off on everything else until it arrives? Thanks!"
+  },
+  {
+   "id": "HN1",
+   "expect_fire": false,
+   "category": "other-service",
+   "text": "Somebody posted a screenshot in the staff Slack channel yesterday and our Stripe secret key is visible in it. Half the coaches have probably seen it by now. What's the safest way to rotate it without breaking shop checkout?"
+  },
+  {
+   "id": "HN2",
+   "expect_fire": false,
+   "category": "other-service",
+   "text": "Twilio auth token incoming, wait for it before you touch anything."
+  },
+  {
+   "id": "HN3",
+   "expect_fire": false,
+   "category": "other-service",
+   "text": "Budget script needs a Google service account key for the Sheets API, stored somewhere gitignored. Walk me through setting that up?"
+  },
+  {
+   "id": "HN4",
+   "expect_fire": false,
+   "category": "other-service",
+   "text": "need the Wix API key for our site by tonite, a script has to pull the class schedule page and idk where to find it"
+  },
+  {
+   "id": "HN5",
+   "expect_fire": false,
+   "category": "other-gym-product",
+   "text": "I finally got Mindbody to approve our API access and they emailed a key. Where should I keep it so the old schedule widget script can use it?"
+  },
+  {
+   "id": "HN6",
+   "expect_fire": false,
+   "category": "other-gym-product",
+   "text": "can you turn our Zen Planner member export into a clean csv? the phone colum is a mess"
+  },
+  {
+   "id": "HN7",
+   "expect_fire": false,
+   "category": "other-gym-product",
+   "text": "Wodify locked our coach login again. I can paste the new password here if that helps, just say when."
+  },
+  {
+   "id": "HN8",
+   "expect_fire": false,
+   "category": "other-gym-product",
+   "text": "Test whether the TeamUp token in my .env still authenticates, our attendance sync died overnight."
+  },
+  {
+   "id": "HN9",
+   "expect_fire": false,
+   "category": "no-product",
+   "text": "Copied the secret key to my clipboard. Say when and I'll paste it."
+  },
+  {
+   "id": "HN10",
+   "expect_fire": false,
+   "category": "no-product",
+   "text": "Safe to paste secrets here?"
+  },
+  {
+   "id": "HN11",
+   "expect_fire": false,
+   "category": "no-product",
+   "text": "Would you mind adding [KEY] to the .env file as SECRET_KEY? Thanks so much."
+  },
+  {
+   "id": "HN12",
+   "expect_fire": false,
+   "category": "no-product",
+   "text": "Token got pasted into a public channel last night by accident. Is deleting the message enough, or must it be replaced?"
+  }
+ ]
+}

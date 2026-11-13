@@ -1,0 +1,90 @@
+{
+ "version": 1,
+ "purpose": "P1(b) dev set: my own phrasings, used to choose a description; D1 is k1 and D2 is q15",
+ "prompts": [
+  {
+   "id": "D1",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "We're on PushPress and I want this project to be able to call its API. Before we go further: I'll drop our API key into the chat in a moment so you can write it into a .env file here. Tell me when you're ready."
+  },
+  {
+   "id": "D2",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "We run our gym on PushPress and want to connect the PushPress API to this project. I'm going to paste our API key right here in the chat so you can save it in the project notes for next time. Ready for it?"
+  },
+  {
+   "id": "D3",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "About to paste our PushPress API key - where should it go in this repo?"
+  },
+  {
+   "id": "D4",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "I generated a new PushPress API key. Standing by to send it over; say when."
+  },
+  {
+   "id": "D5",
+   "expect_fire": true,
+   "category": "task",
+   "text": "Please save our PushPress webhook signing secret in the README so the team can find it later."
+  },
+  {
+   "id": "D6",
+   "expect_fire": true,
+   "category": "task",
+   "text": "Set up the PushPress MCP server for this project. I'll give you the key when you ask for it."
+  },
+  {
+   "id": "D7",
+   "expect_fire": true,
+   "category": "announce",
+   "text": "the pushpress api key is in my clipboard, want me to paste it so you can test the connection?"
+  },
+  {
+   "id": "D8",
+   "expect_fire": true,
+   "category": "task",
+   "text": "Can you store the key for our PushPress integration in a config file so the script can read it? Here it comes in my next message."
+  },
+  {
+   "id": "DN1",
+   "expect_fire": false,
+   "category": "other-service",
+   "text": "I'm going to paste our Stripe secret key so you can put it in .env for the checkout script. Ready?"
+  },
+  {
+   "id": "DN2",
+   "expect_fire": false,
+   "category": "other-service",
+   "text": "Here comes the OpenAI API key - write it into the .env file for this project when I send it."
+  },
+  {
+   "id": "DN3",
+   "expect_fire": false,
+   "category": "other-gym-product",
+   "text": "About to send our Mindbody API key. Where should I put it in this repo?"
+  },
+  {
+   "id": "DN4",
+   "expect_fire": false,
+   "category": "other-service",
+   "text": "Let me paste the Mailchimp API key so you can set up the newsletter script."
+  },
+  {
+   "id": "DN5",
+   "expect_fire": false,
+   "category": "other-service",
+   "text": "I need to store a GitHub personal access token for the deploy script. What's the safest place?"
+  },
+  {
+   "id": "DN6",
+   "expect_fire": false,
+   "category": "no-product",
+   "text": "Tell me when you're ready and I'll paste the API key for the weather service."
+  }
+ ]
+}

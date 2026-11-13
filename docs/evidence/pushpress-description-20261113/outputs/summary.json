@@ -1,0 +1,129 @@
+{
+ "files": {
+  "regression": "outputs/regression-C4.json",
+  "c4_pos": "outputs/heldout-C4-pos.json",
+  "c4_neg": "outputs/heldout-C4-neg.json",
+  "pub_announce": "outputs/heldout-published-announce.json",
+  "pub_neg": null
+ },
+ "completeness": {
+  "regression": {
+   "runs": 48,
+   "expected": 48,
+   "invalid": 0
+  },
+  "c4_positive": {
+   "runs": 40,
+   "expected": 40,
+   "invalid": 0
+  },
+  "c4_quiet": {
+   "runs": 24,
+   "expected": 24,
+   "invalid": 0
+  },
+  "published_announce": {
+   "runs": 22,
+   "expected": 22,
+   "invalid": 0
+  }
+ },
+ "gates": {
+  "R1_explicit_recall": {
+   "fired": 12,
+   "runs": 12,
+   "line": ">= 11 of 12",
+   "passed": true
+  },
+  "R3_false_fires": {
+   "fired": 0,
+   "runs": 24,
+   "line": "<= 1 of 24",
+   "passed": true
+  },
+  "R4_sport80": {
+   "fired": 0,
+   "runs": 6,
+   "line": "0 of 6",
+   "passed": true
+  },
+  "H1_announce_recall": {
+   "fired": 22,
+   "runs": 22,
+   "line": ">= 18 of 22",
+   "passed": true
+  },
+  "H3_gain_over_published": {
+   "c4": 22,
+   "published": 0,
+   "gain": 22,
+   "line": ">= 10 more",
+   "passed": true
+  },
+  "H4_quiet_false_fires": {
+   "fired": 0,
+   "runs": 24,
+   "line": "<= 1 of 24",
+   "passed": true
+  }
+ },
+ "measurements": {
+  "R2_implicit_recall": {
+   "fired": 10,
+   "runs": 12,
+   "line_of_round_9": ">= 8 of 12",
+   "misses": [
+    "I4",
+    "I6"
+   ]
+  },
+  "H2_all_positive": {
+   "fired": 38,
+   "runs": 40,
+   "good_if": ">= 34 of 40"
+  },
+  "H2_by_type": {
+   "announce": {
+    "fired": 22,
+    "runs": 22
+   },
+   "task": {
+    "fired": 6,
+    "runs": 6
+   },
+   "question": {
+    "fired": 6,
+    "runs": 6
+   },
+   "after": {
+    "fired": 4,
+    "runs": 6
+   }
+  },
+  "positive_prompts_missed_in_any_run": [
+   "HP11"
+  ],
+  "positive_prompts_missed_in_both_runs": [
+   "HP11"
+  ],
+  "false_fires_listed": [],
+  "regression_false_fires_listed": [],
+  "published_on_quiet": null,
+  "other_skills_called_in_quiet_runs": []
+ },
+ "cost_usd": {
+  "regression": 1.6498,
+  "c4_positive": 1.275,
+  "c4_quiet": 0.8422,
+  "published_announce": 0.6911,
+  "published_quiet": null
+ },
+ "claude": [
+  "2.1.323 (Claude Code)"
+ ],
+ "decision": {
+  "complete": true,
+  "all_gates_passed": true,
+  "description_change_allowed": true
+ }
+}

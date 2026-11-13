@@ -1,0 +1,10 @@
+{"P":[
+{"id":"P13","type":"announce","text":"Hold on, PushPress key coming, the MCP server needs it to start."},
+{"id":"P14","type":"announce","text":"Ready for me to paste the PushPress API key? It's for the check-in kiosk in the lobby."},
+{"id":"P15","type":"announce","text":"Good morning! Whenever it suits you, I'd like to send over our PushPress webhook signing secret for the receiver script. Please just say when."},
+{"id":"P16","type":"announce","text":"New hire here, taking over from the previous office manager, and apparently step one is handing you the PushPress API key, so give me the word and I'll paste it right in."},
+{"id":"P17","type":"announce","text":"I'm reading the PushPress key out of my password manager now, so please don't jump in until I'm done."},
+{"id":"P18","type":"announce","text":"i got teh PushPress key for the zapier thing, ok to paste it here? lemme know"},
+{"id":"P19","type":"announce","text":"Wait for the PushPress webhook secret."},
+{"id":"P20","type":"announce","text":"Hello, hope your day is going well! I'm the gym's freelance developer and today is my handover, so I'll be sending you the PushPress API key shortly. Could you please hold off on everything else until it arrives? Thanks!"}
+]}

@@ -1,0 +1,13 @@
+R1_explicit_recall         PASS  (line >= 11 of 12; fired=12, runs=12)
+R3_false_fires             PASS  (line <= 1 of 24; fired=0, runs=24)
+R4_sport80                 PASS  (line 0 of 6; fired=0, runs=6)
+H1_announce_recall         PASS  (line >= 18 of 22; fired=22, runs=22)
+H3_gain_over_published     PASS  (line >= 10 more; c4=22, published=0, gain=22)
+H4_quiet_false_fires       PASS  (line <= 1 of 24; fired=0, runs=24)
+R2 implicit recall (measure): {'fired': 10, 'runs': 12, 'line_of_round_9': '>= 8 of 12', 'misses': ['I4', 'I6']}
+H2 all positive (measure): {'fired': 38, 'runs': 40, 'good_if': '>= 34 of 40'} | by type: {'announce': {'fired': 22, 'runs': 22}, 'task': {'fired': 6, 'runs': 6}, 'question': {'fired': 6, 'runs': 6}, 'after': {'fired': 4, 'runs': 6}}
+positive prompts missed in any run: ['HP11'] | in both runs: ['HP11']
+false fires on held-out quiet prompts: [] | Round 9 quiet prompts: []
+completeness: {'regression': {'runs': 48, 'expected': 48, 'invalid': 0}, 'c4_positive': {'runs': 40, 'expected': 40, 'invalid': 0}, 'c4_quiet': {'runs': 24, 'expected': 24, 'invalid': 0}, 'published_announce': {'runs': 22, 'expected': 22, 'invalid': 0}}
+cost: {'regression': 1.6498, 'c4_positive': 1.275, 'c4_quiet': 0.8422, 'published_announce': 0.6911, 'published_quiet': None} | claude: ['2.1.323 (Claude Code)']
+DECISION: {'complete': True, 'all_gates_passed': True, 'description_change_allowed': True}
