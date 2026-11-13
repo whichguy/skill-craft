@@ -1,0 +1,33 @@
+send-backs before any step committed: 74  after >=1 step committed: 8
+
+ e2e-runs-hostonly/20261031/ui-live-2/battleship-run W1 stage implement steps 2 done-steps 1 
+    The UI and named metadata are deployed, the permission set was assigned successfully, and direct battleship-ui passed with 91 shots, five sinks, victory and reset. The planned UI proof unconditionally reassigns that permission set; repeated runs fail with Dupl 
+    /Users/dadleet/e2e-runs-hostonly/20261031/ui-live-2/battleship-run/results/nav-347203ce27974f74a40245e11dc71222.md
+
+ e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/run W1 stage implement steps 3 done-steps 1 
+    C2 proof is unachievable: shell quoting turns expected string author into the assert function and body into a variable. Correct response is a JSON string and cannot equal the function; revise the S2 proof quoting while preserving the assertions. S2 implementat 
+    /Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/run/results/nav-37e3a6af50d7406392de042dea721e45.md
+
+ e2e-runs-hostonly/20261031/ui-live-3/.shiploop-runs/work-20261101-030945-ceb81c/run W1 stage implement steps 3 done-steps 2 
+    S3 proof is not repeatable: `sf org assign permset --name SLNvHo5c20_Access --target-org de` succeeded once but repeat returns Duplicate PermissionSetAssignment and prevents battleship-ui from running. The user-requested assignment is already in place and the  
+    /Users/dadleet/e2e-runs-hostonly/20261031/ui-live-3/.shiploop-runs/work-20261101-030945-ceb81c/run/results/nav-9027d03845454665a8b6f5c08168b485.md
+
+ e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-01/.shiploop-runs/work-20261031-104327-2692a2/run W1 stage implement steps 2 done-steps 1 
+    S2 gym-ui proof repeatedly reports controller-response-invalid after a successful self-save; sequential refresh and UI readiness fixes did not resolve it. The bounded receipt gives no finer failing action. Replan a safe diagnostic route before further changes; 
+    /Users/dadleet/e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-01/.shiploop-runs/work-20261031-104327-2692a2/run/results/nav-480d3c8855144765b978d1bc9a2133d7.md
+
+ e2e-runs/2026-10-30/shiploop-salesforce-battleship-zbcb4i5d/run/.shiploop-runs/work-20261030-134151-bce807/run W1 stage implement steps 3 done-steps 2 
+    S3 proof assigns the permission set on every execution. The first deploy and assignment succeeded, but repeating the proof fails with Duplicate PermissionSetAssignment, so it cannot pass ShipLoop’s mandatory repeat. Replan to keep the existing authorized assig 
+    /Users/dadleet/e2e-runs/2026-10-30/shiploop-salesforce-battleship-zbcb4i5d/run/.shiploop-runs/work-20261030-134151-bce807/run/results/nav-25862a65e41947e9b34fc6ea7ce4e80f.md
+
+ e2e-runs/20261030/p0-terra-ask-agent-55bfcd/.shiploop-runs/seed/run W1 stage test steps 2 done-steps 1 
+    The accepted step plan records the command rg -F -n '/** Parse a string into records; throws TypeError or line-numbered SyntaxError. */' src/records.js && rg -F -n '/** Select matching records in input order; throws TypeError for non-arrays. */' src/records.js 
+    /Users/dadleet/e2e-runs/20261030/p0-terra-ask-agent-55bfcd/.shiploop-runs/seed/run/results/nav-3edccee39d32489c88ecf0d4f6cac0c3.md
+
+ e2e-runs/2026-11-05/chess-improvement/rerun-02/.shiploop-runs/work-20261105-172612-9d935d/run W2 stage implement steps 4 done-steps 3 
+    C4 deployment and XML checks passed. C5 and the navigation proof require osascript, which this run guard denies entirely; no desktop browser automation is available. The user requested deployed Apex tests and functional board, not an automated Chrome test. Rep 
+    /Users/dadleet/e2e-runs/2026-11-05/chess-improvement/rerun-02/.shiploop-runs/work-20261105-172612-9d935d/run/results/nav-c7f102d3cddd42b6b0194759171e3456.md
+
+ e2e-runs/2026-11-05/chess-improvement/baseline-01/.shiploop-runs/work-20261105-151048-d3f4f1/run W1 stage implement steps 4 done-steps 3 
+    S4 tab and app were successfully deployed, but planned TC_NAV uses a deploy wrapper with no supported test-run summary. Replan it as a named, read-only org metadata check with a supported runner, keeping deployment proof and all required metadata unchanged. Th 
+    /Users/dadleet/e2e-runs/2026-11-05/chess-improvement/baseline-01/.shiploop-runs/work-20261105-151048-d3f4f1/run/results/nav-b052bfe9f8b14687b44f60d0a93b223f.md

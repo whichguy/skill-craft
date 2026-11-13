@@ -1,0 +1,10 @@
+step boundaries (a later step remains): 147
+carry-forwards with a later item: 10  of which replaced the queue: 4
+('e2e-runs-hostonly/20261031/ui-live-2/battleship-run', 'W1', 1, 2.9, 16.4)
+('e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/run', 'W1', 1, 1.6, 10.9)
+('e2e-runs-hostonly/20261031/ui-live-3/.shiploop-runs/work-20261101-030945-ceb81c/run', 'W1', 2, 3.4, 18.8)
+('e2e-runs/2026-10-31/shiploop-gym-salesforce-91y7tnl1/gym-published-baseline-01/.shiploop-runs/work-20261031-104327-2692a2/run', 'W1', 1, None, 17.2)
+('e2e-runs/2026-10-30/shiploop-salesforce-battleship-zbcb4i5d/run/.shiploop-runs/work-20261030-134151-bce807/run', 'W1', 2, 3.7, 20.5)
+('e2e-runs/20261030/p0-terra-ask-agent-55bfcd/.shiploop-runs/seed/run', 'W1', 1, 14.6, 33.8)
+('e2e-runs/2026-11-05/chess-improvement/rerun-02/.shiploop-runs/work-20261105-172612-9d935d/run', 'W2', 3, 6.3, 43.4)
+('e2e-runs/2026-11-05/chess-improvement/baseline-01/.shiploop-runs/work-20261105-151048-d3f4f1/run', 'W1', 3, 9.8, 48.6)
