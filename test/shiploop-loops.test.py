@@ -251,9 +251,13 @@ class ContractTests(Synthetic):
                       "src/b.py, src/c.py)", value["context"]["scope"])
         self.assertNotIn("only its paths", value["context"]["scope"])
         state = self.state_for("implement")
+        # A built step is an accepted implement done (every history row has its accepted result): the one count every
+        # step cursor reads (planning_revision.built_steps).
         state["history"].append({"stage": "implement", "workitem": "W1", "action": "A-i1", "outcome": "done"})
+        state["accepted"]["A-i1"] = {"outcome": "done", "summary": "Built S1."}
         self.assertIn("step S2", loops.contract(self.root, state, "A-implement")["work"])
         state["history"].append({"stage": "implement", "workitem": "W1", "action": "A-i2", "outcome": "done"})
+        state["accepted"]["A-i2"] = {"outcome": "done", "summary": "Built S2."}
         with self.assertRaisesRegex(loops.LoopError, "no implement step left"):
             loops.contract(self.root, state, "A-implement")
 

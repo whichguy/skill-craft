@@ -2130,12 +2130,21 @@ class ConsumesTests(RepoCase):
         cf = row("cf1", "carry-forward", "W1", {"assumptions": []})
         settled = dict(state, history=state["history"] + [cf[0]], accepted=dict(state["accepted"], cf1=cf[1]))
         self.assertEqual(found(settled), [])
-        # A send-back replans the item: the steps documented before it are gone, and a later document is the only one.
+        # Fix forward (owner 2026-11-12): a send-back keeps the done steps, so their open items stay through the amended
+        # plan that marks them done, until the item's carry-forward.  A plan that marks none starts again (every plan
+        # before fix forward; ShipLoop now refuses one after a send-back that left a done step).
         back = row("im3", "implement", "W1", {}, outcome="send-back")
-        again = row("dc3", "document", "W1", {"assumptions": [open_row("S1-F2", "carry-forward")]})
-        replanned = dict(state, history=state["history"] + [back[0], again[0]],
-                         accepted=dict(state["accepted"], im3=back[1], dc3=again[1]))
-        self.assertEqual(found(replanned), [("document", "dc3", "S1-F2")])
+        amended = row("sp2", "step-plan", "W1", {"follows": [], "steps": [
+            {"id": "S1", "task": "t", "done": True}, {"id": "S2", "task": "t", "done": True}, {"id": "S3", "task": "t"}]})
+        again = row("dc3", "document", "W1", {"assumptions": [open_row("S3-F1", "carry-forward")]})
+        kept = dict(state, history=state["history"] + [back[0], amended[0], again[0]],
+                    accepted=dict(state["accepted"], im3=back[1], sp2=amended[1], dc3=again[1]))
+        self.assertEqual(found(kept), [("document", "dc1", "S1-F1"), ("document", "dc2", "S2-F1"),
+                                       ("document", "dc3", "S3-F1")])
+        fresh = row("sp3", "step-plan", "W1", {"follows": [], "steps": [{"id": "S1", "task": "t"}]})
+        restarted = dict(state, history=state["history"] + [back[0], fresh[0], again[0]],
+                         accepted=dict(state["accepted"], im3=back[1], sp3=fresh[1], dc3=again[1]))
+        self.assertEqual(found(restarted), [("document", "dc3", "S3-F1")])
         # Another item's document rows are its own.
         other = row("dc9", "document", "W2", {"assumptions": [open_row("W2-F1", "carry-forward")]})
         both = dict(state, history=state["history"] + [other[0]], accepted=dict(state["accepted"], dc9=other[1]))
@@ -3619,10 +3628,13 @@ class StepAggregateTests(RepoCase):
         self.assertEqual([planning_revision.step_actions(state, "W1", stage) for stage in ("implement", "test", "document")],
                          [["im1", "im2"], ["te1", "te2"], ["dc1", "dc2"]])
 
-    def test_a_send_back_or_a_new_step_plan_starts_the_aggregate_again(self) -> None:
+    def test_a_send_back_keeps_the_done_steps_and_a_plan_without_marks_starts_the_aggregate_again(self) -> None:
+        # Fix forward: the two documented steps stay done across the send-back (planning_revision._StepLists), with
+        # done_steps naming how many the next plan must keep; a step plan that marks none starts the aggregate again.
         import shiploop_planning_revision as planning_revision
         state = self.two_step_item("step-plan", row("dc3", "document", "W1", {}, outcome="send-back"))
-        self.assertEqual(planning_revision.step_actions(state, "W1", "test"), [])
+        self.assertEqual(planning_revision.step_actions(state, "W1", "test"), ["te1", "te2"])
+        self.assertEqual(planning_revision.done_steps(state, "W1"), 2)
         state = self.two_step_item("test", row("sp2", "step-plan", "W1", {"steps": [{"id": "S1"}]}),
                                    row("im3", "implement", "W1", {}), row("te3", "test", "W1", {}))
         self.assertEqual(planning_revision.step_actions(state, "W1", "test"), ["te3"])

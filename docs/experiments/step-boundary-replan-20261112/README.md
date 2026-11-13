@@ -173,6 +173,35 @@ Build order 1-7 is in the review.
 Effect on the replay decision: fix-forward changes what a boundary finding costs. The frozen-boundary replay still tests
 whether a forward-impact question catches anything; it is not started.
 
+## Owner answers, later (2026-11-12)
+
+- Fix-forward: "Build, replay after (Recommended)".
+- After "Do we need to rework any of these with the scripts to make the purpose and functionality more clear?": I read
+  it as asking whether prompt-only rules should be script-enforced. A1 and D already rest on script rules. A2a (Proof
+  safe to repeat) was wording only, so the Proof-failure refusal now says it (routine, a message). The searched-command
+  refusal got an explicit answer: "Add it (Recommended)".
+
+## E7 — the build (interim until the live round)
+
+Round 2 shipped first: skill-craft 2.36.6 / shiploop 1.33.10 (release 7ceaecf441448c1c394340ec2c98f848cd685b27). Then,
+on branch `feat/fix-forward-5308ed`:
+- Projection: `planning_revision._StepLists` feeds `current_actions`, `step_actions`, `built_steps` and `done_steps`.
+  `implement_progress`, `test_loop.step_number`, `loops.current_step`, `step_view` and `_previous_step_results` read
+  it, instead of each counting implement rows after the latest plan.
+- Data: a step row may carry `"done": true`. Only the amendment gate decides which rows carry it, and a plan without
+  marks reads as before.
+- Gates: `_fix_forward_refusal` (step-plan) and `_frozen_case_refusal` (test-spec), both in `_check_fix_forward`.
+  Case ownership follows `iteration.case_step`. A spanning criterion still owed by a later step stays with a step still
+  to run.
+- Packets: `_fix_forward_lines` prints the done rows to copy, and the cases due at done steps.
+- Found while building: the item's lint base already moves to the last done step's tree when the next step begins,
+  and a send-back keeps it. So Astra's amendment base was already in place, and the amendment restates a done step's
+  expectation (absent becomes works). This corrected the first design draft.
+- Also: `test_loop.REPEAT_LINE` on the Proof-failure refusal; `layers.check_confirms` refuses a focused command that
+  `search_only` classifies as a search.
+- Fail-first on the released tree 7ceaecf4: 5 new step-edge tests fail (4 errors, 1 failure), the Proof-refusal test
+  errors, and the focused-search test fails (`fix-forward-failfirst.txt`). On the branch all pass.
+
 ## Open (owner)
 
-1. Whether to build the fix-forward pilot (a ShipLoop behaviour change), and whether the replay waits for it.
+1. The live round that has to precede the release, and then the boundary-question replay.

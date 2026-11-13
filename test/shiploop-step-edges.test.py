@@ -95,35 +95,113 @@ class SendBackMidItemTests(unittest.TestCase):
         self.assertEqual(nav.current_stage(self.state()), "implement")
         return base, s1
 
-    def test_a_send_back_after_a_committed_step_keeps_its_commit_and_the_new_plan_builds_on_it(self) -> None:
-        # Design T §9 row 5 and shiploop_iteration.after_send_back: a send-back to planning ends the iteration, commits
-        # nothing, and the next plan revision starts its first iteration from the last commit.  A redone step that has
-        # nothing left to change makes no commit and starts no review.
+    def amended(self, plan: dict) -> dict:
+        """``plan`` with its first steps replaced by the done steps ShipLoop keeps (fix forward)."""
+        rows = nav.fix_forward_rows(self.state(), "W1")
+        return dict(plan, steps=[*rows, *plan["steps"][len(rows):]])
+
+    def refused(self, plan: dict, pattern: str) -> None:
+        done = self.submit(plan)
+        self.assertNotEqual(done.returncode, 0, "the plan was accepted")
+        self.assertRegex(done.stdout + done.stderr, pattern)
+
+    def test_a_send_back_after_a_committed_step_keeps_it_done_and_the_amended_plan_resumes_at_the_next_step(self) -> None:
+        # Fix forward (owner 2026-11-12; docs/shiploop-fix-forward-design-2026-11-12.md): a send-back keeps every step
+        # whose document was accepted, with its commit, and the amended plan resumes at the step that was interrupted.
+        # Before it, the redone plan rebuilt S1 as a no-op (design T §9 row 5); in 7 of 8 late send-backs of 300 runs
+        # the redone plan left every done step's row unchanged.
         _base, s1 = self.to_second_step()
         first_plan = self.plan_action()
+        (self.repo / "todo.md").write_text("# todo.md, first draft\n")      # S2's edit before the send-back
         self.accept(NC.result(outcome="send-back", summary="S2's todo format is not settled; the step plan decides it."))
         self.assertEqual(nav.current_stage(self.state()), "step-plan")
         self.assertEqual(self.head(), s1, "a send-back commits nothing")
-        self.accept(self.two_step_plan(notes_works=True))
+        rows = nav.fix_forward_rows(self.state(), "W1")
+        self.assertEqual([(row["id"], row["done"]) for row in rows], [("S1", True)])
+        packet = self.cli("next", "--run-dir", str(self.run_dir)).stdout
+        self.assertIn("Fix forward: S1 is done (reviewed and committed) and never runs again.", packet)
+        self.assertIn(nav._done_row_text(rows[0]), packet, "the packet prints the row to copy")
+        self.assertEqual(nav.planning_revision.done_steps(self.state(), "W1"), 1)
+        self.accept(self.amended(self.two_step_plan(notes_works=True)))
         self.assertEqual(self.settle(), "test-spec")
         self.accept(NC.result())
+        state = self.state()
         second_plan = self.plan_action()
         self.assertNotEqual(second_plan, first_plan)
-        # The redone S1: notes.md is already in its base, so it changes nothing.
-        self.accept(NC.result(summary="notes.md is already committed by the earlier plan's S1: nothing to change."))
-        state = self.state()
-        self.assertIsNone(state["active_improve"], "a step that changed nothing starts no review")
-        self.assertEqual(self.head(), s1, "and makes no commit")
+        # Every step cursor names S2: the packet's step, the loop contract's step and the built count.
+        self.assertEqual(nav.current_stage(state), "implement")
+        self.assertEqual(nav.step_view(state, "W1").step["id"], "S2")
+        self.assertEqual(nav.loops.current_step(state, "W1")["id"], "S2")
+        self.assertEqual(nav.implement_progress(state, "W1")[0], 1)
+        self.assertEqual(len(nav.planning_revision.step_actions(state, "W1", "document")), 1, "S1's document is kept")
         (self.repo / "todo.md").write_text("# todo.md\n")
         self.accept(NC.result(summary="Wrote todo.md."))
         self.settle()
         s2 = self.head()
-        self.assertEqual(self.git("rev-parse", s2 + "^").strip(), s1, "the new plan's S2 builds on the old S1's commit")
-        self.assertEqual(self.git("show", "--name-only", "--format=", s2).split(), ["todo.md"])
+        self.assertEqual(self.git("rev-parse", s2 + "^").strip(), s1, "S2 builds on S1's commit")
+        self.assertEqual(self.git("show", "--name-only", "--format=", s2).split(), ["todo.md"],
+                         "S2's edit from before the send-back is S2's change")
+        implements = [row for row in self.state()["history"]
+                      if row["stage"] == "implement" and row["workitem"] == "W1" and row["outcome"] == "done"]
+        self.assertEqual(len(implements), 2, "S1 is built once and S2 once: no step is rebuilt")
         plans = self.ledger()
-        self.assertEqual(plans[first_plan]["S1"]["commit"], s1, "the earlier plan's rows stay in the ledger")
-        self.assertEqual(plans[second_plan]["S1"], {"number": 1, "base": s1, "commit": None})
+        self.assertEqual(plans[first_plan]["S1"]["commit"], s1, "the done step's row stays in the ledger")
+        self.assertNotIn("S1", plans[second_plan], "the amended plan starts no iteration for a done step")
         self.assertEqual(plans[second_plan]["S2"], {"number": 2, "base": s1, "commit": s2})
+
+    def test_an_amendment_that_reopens_a_done_step_is_refused(self) -> None:
+        # Fix forward's step-plan gate (_fix_forward_refusal): each refusal names what to do, and the last plan passes.
+        self.to_second_step()
+        self.accept(NC.result(outcome="send-back", summary="S2 needs another file."))
+        plan = self.two_step_plan(notes_works=True)
+        self.refused(plan, r"steps S1 are done .* each with \"done\": true")
+        changed = self.amended(plan)
+        changed["steps"][0] = dict(changed["steps"][0], task="Write notes.md again.")
+        self.refused(changed, r"done step S1 differs from its accepted row in task")
+        marked = self.amended(plan)
+        marked["steps"][1] = dict(marked["steps"][1], done=True)
+        self.refused(marked, r"steps S1 are done")
+        only_done = self.amended(plan)
+        only_done["steps"] = only_done["steps"][:1]
+        only_done["paths"] = ["notes.md"]
+        only_done["expectations"] = only_done["expectations"][:1]
+        self.refused(only_done, r"every step is done: an amendment keeps at least one step to run")
+        self.accept(self.amended(plan))
+        self.assertEqual(self.settle(), "test-spec")
+
+    def test_two_amendments_keep_the_first_done_step_and_the_second_keeps_both(self) -> None:
+        # Astra's ancestry control (p0-terra's second amendment strengthened a documented S1): S1 survives a second
+        # send-back, and the second amendment keeps S1 and the S2 the first amendment built.
+        _base, s1 = self.to_second_step()
+        self.accept(NC.result(outcome="send-back", summary="S2 needs a third step for the archive."))
+        plan = self.amended(self.two_step_plan(notes_works=True))
+        plan["paths"] = [*plan["paths"], "archive.md"]
+        plan["steps"].append({"id": "S3", "task": "Write archive.md.", "deps": [], "criteria": [], "paths": ["archive.md"],
+                              "proof": "test -f archive.md", "skills": []})
+        plan["expectations"].append({"id": "E3", "state": "absent", "statement": "archive.md does not exist",
+                                     "steps": ["S3"], "paths": ["archive.md"], "check": "test ! -e archive.md"})
+        self.accept(plan)
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(NC.result())
+        (self.repo / "todo.md").write_text("# todo.md\n")
+        self.accept(NC.result(summary="Wrote todo.md."))
+        self.settle()
+        s2 = self.head()
+        self.accept(NC.result(outcome="send-back", summary="S3's archive layout is not settled."))
+        rows = nav.fix_forward_rows(self.state(), "W1")
+        self.assertEqual([row["id"] for row in rows], ["S1", "S2"])
+        # todo.md now exists on the base S3 began from, so E2 says works too.
+        plan["expectations"][1] = {"id": "E2", "state": "works", "statement": "todo.md exists", "steps": ["S2"],
+                                   "paths": ["todo.md"], "check": "test -f todo.md"}
+        reopened = dict(plan, steps=[rows[0], {**plan["steps"][1]}, plan["steps"][2]])
+        self.refused(reopened, r"steps S1, S2 are done")
+        self.accept(dict(plan, steps=[*rows, plan["steps"][2]]))
+        self.assertEqual(self.settle(), "test-spec")
+        self.accept(NC.result())
+        state = self.state()
+        self.assertEqual(nav.step_view(state, "W1").step["id"], "S3")
+        self.assertEqual(self.head(), s2)
+        self.assertEqual(self.git("rev-parse", s2 + "^").strip(), s1)
 
     def test_a_step_review_that_sends_the_item_back_commits_nothing_and_its_change_stays_for_the_next_plan(self) -> None:
         # The review's final result is the reviewed stage's result (design T §8: document owns the step's review), so a
@@ -302,26 +380,48 @@ class CrossStepCaseTests(unittest.TestCase):
             test_loop.check_result_fields(state, "W1", {"retired_tests": [{"id": "TC-1", "reason": "x"}]})
         test_loop.check_result_fields(state, "W1", {"red_na": [{"id": "TC-2", "reason": "x"}]})
 
-    def test_a_case_committed_before_a_send_back_is_new_again_in_the_redone_plan_and_red_na_names_it(self) -> None:
-        # The redone plan counts steps afresh, so S1's committed TC-1 is new at its S1 and passes on that base (the
-        # iteration's base is S1's commit).  The refusal names the way through, and red_na takes it (design T §9 row 5).
+    def amended_plan(self) -> dict:
+        rows = nav.fix_forward_rows(self.state(), "W1")
+        return dict(self.PLAN, steps=[*rows, *self.PLAN["steps"][len(rows):]])
+
+    def test_after_an_amendment_a_done_steps_case_stays_done_and_the_next_step_judges_only_its_own(self) -> None:
+        # Fix forward: S1 is done when S2 is sent back, so the amended plan keeps it and TC-1 stays S1's.  At S2 only
+        # TC-2 is new: TC-1 is an earlier case, so it needs no red_na.  Before fix forward the redone plan counted steps
+        # afresh, TC-1 was new again at a rebuilt S1, and the base run refused it until red_na named it.
         self.to_first_test()
         self.pass_test_stage()
         self.drive_to("implement", step_plan=self.PLAN)
         self.complete({"outcome": "send-back", "summary": "S2 is not settled; the step plan decides it."})
-        self.drive_to("test-spec", step_plan=self.PLAN)
+        self.drive_to("test-spec", step_plan=self.amended_plan())
+        self.assertIn("Fix forward: TC-1 is due at done steps (S1) and stay exactly as in your previous result",
+                      self.packet())
+        changed = [dict(self.CASES[0], oracle="a different oracle"), self.CASES[1]]
+        self.assert_refused(dict(LOOP.DONE, test_cases=changed), r"test case TC-1 is due at a done step", loop=True)
+        added = [*self.CASES, dict(self.CASES[0], id="TC-3")]
+        self.assert_refused(dict(LOOP.DONE, test_cases=added), r"test case TC-3's criterion C1 is due at a done step", loop=True)
         self.complete(dict(LOOP.DONE, test_cases=self.CASES))
-        self.drive_to("test", step_plan=self.PLAN)               # the redone S1 changes nothing: a.py is in its base
-        self.assertEqual(test_loop.new_ids(self.state(), "W1"), ["TC-1"])
-        for name in ("fixed.txt", "retained.txt"):
-            (self.repo / name).write_text(name + "\n")
+        self.drive_to("test", step_plan=self.amended_plan(), each=self.write_a("import os\nimport sys\n"))
+        self.assertEqual(test_loop.step_number(self.state(), "W1"), 2)
+        self.assertEqual(test_loop.new_ids(self.state(), "W1"), ["TC-2"])
+        self.write_s2_inputs()
         self.run_loop([LOOP.TRIVIAL])
-        done = dict(LOOP.DONE, evidence_refs=[str(self.terminal())])
-        self.assert_refused(done, r"(?s)passed TC-1 on the item's base.*a case a step committed before a send-back")
-        self.run_loop([LOOP.TRIVIAL])
-        self.complete(dict(done, evidence_refs=[str(self.terminal())],
-                           red_na=[{"id": "TC-1", "reason": "The earlier plan's S1 committed it."}]))
+        self.complete(dict(LOOP.DONE, evidence_refs=[str(self.terminal())]))
         self.assertNotEqual(nav.current_stage(self.settle()), "test")
+
+    def test_a_spanning_criterion_stays_with_a_step_still_to_run(self) -> None:
+        # C2 is listed by done S1 and by S2, so its case TC-2 is still owed by S2.  An amendment that drops C2 from every
+        # step still to run would leave TC-2 due at done S1, where nothing runs it as new.
+        self.to_first_test()
+        self.pass_test_stage()
+        self.drive_to("implement", step_plan=self.PLAN)
+        self.complete({"outcome": "send-back", "summary": "S2 is not settled; the step plan decides it."})
+        self.drive_to("step-plan", step_plan=self.PLAN)
+        plan = self.amended_plan()
+        plan["criteria"] = [*plan["criteria"], {"id": "C3", "text": "The second half writes c3.txt."}]
+        plan["test_commands"] = [*plan["test_commands"], {"command": "test -f c3.txt", "suite": "check",
+                                                          "criteria": ["C3"]}]
+        plan["steps"][1] = dict(plan["steps"][1], criteria=["C3"])
+        self.assert_refused(dict(LOOP.DONE, **plan), r"no step still to run lists C2, whose cases S2 still owes", loop=True)
 
 
 class EarlierCommandTests(unittest.TestCase):

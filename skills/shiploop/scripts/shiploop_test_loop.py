@@ -496,10 +496,7 @@ def step_number(state: Mapping[str, Any], work_item: str) -> Optional[int]:
     built."""
     action, plan = _step_plan(state, work_item)
     steps = _plan_steps(plan) if action else []
-    history = list(state.get("history", ()))
-    start = max((i for i, row in enumerate(history) if row.get("action") == action), default=-1)
-    built = sum(1 for row in history[start + 1:]
-                if row.get("stage") == "implement" and row.get("workitem") == work_item and row.get("outcome") == "done")
+    built = planning_revision.built_steps(state, work_item) if action else 0
     return built if steps and 1 <= built <= len(steps) else None
 
 
