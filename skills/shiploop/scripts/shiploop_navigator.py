@@ -796,9 +796,12 @@ def _sent_back_results(state: Mapping[str, Any], stage: str, workitem: str | Non
 
 
 def _id_changes(before: Any, after: Any, key: str = "id") -> tuple[list[str], list[str], list[str]]:
-    """(added, removed, changed) identities of two lists of rows, each row named by ``key``."""
+    """(added, removed, changed) identities of two lists of rows, each row named by ``key``.  A step's ``done`` mark is
+    no change: fix forward adds it to a done step's row, which stays as written."""
     def rows(value: Any) -> dict[str, str]:
-        return {str(row.get(key)): json.dumps(row, sort_keys=True) for row in value or () if isinstance(row, Mapping)}
+        return {str(row.get(key)): json.dumps({name: field for name, field in row.items() if name != "done"},
+                                              sort_keys=True)
+                for row in value or () if isinstance(row, Mapping)}
     old, new = rows(before), rows(after)
     return ([ident for ident in new if ident not in old], [ident for ident in old if ident not in new],
             [ident for ident in new if ident in old and new[ident] != old[ident]])

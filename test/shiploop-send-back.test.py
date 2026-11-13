@@ -312,9 +312,11 @@ class SendBackTests(unittest.TestCase):
         self.assertIn("Step S2 (2 of 2)", head_of(state))
         self.assertNotIn("Revisit: ", head_of(state))
 
-    def test_each_redone_step_names_its_own_previous_result_not_the_last_steps(self) -> None:
+    def test_the_interrupted_step_names_its_own_previous_result_and_a_done_step_is_not_redone(self) -> None:
         """Build plan S3.4: after a send-back from test, the redone S1's head named the item's last implement result (S2's),
-        so a fresh context amended the wrong step's work.  Each redone step now names its own previous result."""
+        so a fresh context amended the wrong step's work.  Since fix forward (owner 2026-11-12) S1, documented before the
+        send-back, is done and is not redone: the amended plan keeps it marked done, and the interrupted S2 is built next,
+        naming its own previous result and not S1's."""
         head_of = lambda state: nav.packet_head(dry_run.CORE, dry_run.RUN, state, dry_run.RUN / "packets" / "x.md")
         rows = dry_run.activity()
         produced = next(row["result"] for row in rows if row["at"] == "step-plan")
@@ -326,8 +328,8 @@ class SendBackTests(unittest.TestCase):
         self.assertEqual([row["at"] for row in iteration], ["implement", "test", "document", nav.IMPROVE_STAGE])
         build = iteration[:1]
 
-        def plan_to_implement(state: dict) -> dict:
-            state = submit(state, two_steps)
+        def plan_to_implement(state: dict, plan: dict = two_steps) -> dict:
+            state = submit(state, plan)
             state = nav.finish_improve(state, nav.current_action(state)["id"], dry_run._improve_receipt("step-plan"), None)
             return walk(state, rows[test_spec:until])
 
@@ -337,17 +339,19 @@ class SendBackTests(unittest.TestCase):
         state = walk(state, build)
         second = last_action(state, "implement", "done")
         self.assertEqual(nav.current_stage(state), "test")
-        state = plan_to_implement(submit(state, SEND_BACK))
+        sent = submit(state, SEND_BACK)
+        kept = nav.fix_forward_rows(sent, nav._current_work_item(sent))
+        self.assertEqual([row["id"] for row in kept], ["S1"])
+        with self.assertRaisesRegex(nav.NavigatorError, "steps S1 are done"):
+            plan_to_implement(sent)                                   # the plan as first written reopens S1
+        state = plan_to_implement(sent, dict(two_steps, steps=[*kept, two_steps["steps"][1]]))
 
-        head = head_of(state)
-        self.assertIn("Step S1 (1 of 2)", head)
-        self.assertIn("Step S1's previous accepted result, before the send-back: " + result_path(first), head)
-        self.assertNotIn(result_path(second), head)
-        state = walk(state, iteration)
         head = head_of(state)
         self.assertIn("Step S2 (2 of 2)", head)
         self.assertIn("Step S2's previous accepted result, before the send-back: " + result_path(second), head)
-        self.assertNotIn(result_path(first), head)
+        self.assertNotIn("previous accepted result, before the send-back: " + result_path(first), head)
+        self.assertIn("Depends on: S1 (accepted: " + result_path(first) + ")", head, "S1's one build stays its result")
+        self.assertNotIn("steps changed S1", head, "the done mark is no change to S1's row")
 
     def test_an_amended_step_plan_is_accepted_through_the_gate(self) -> None:
         state = submit(drive_to("implement"), SEND_BACK)
