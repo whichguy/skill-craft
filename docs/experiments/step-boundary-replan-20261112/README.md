@@ -217,6 +217,18 @@ Sol (gpt-6.1-sol, high, read-only; `sol-review.md`, brief `sol-review-brief.md`)
 Clean quick tier before the fixes: 46 of 46 suites passed. A second Sol pass on 41f0b5ce alone and the quick tier on
 it run before the live round.
 
-## Open (owner)
+## E9 — released (firm)
 
-1. The live round that has to precede the release, and then the boundary-question replay.
+The owner said "Merge to main and publish" before the planned six-delivery round, so the release took the smoke route.
+Two deliveries on the exact tree 601f4913, Codex gpt-6.1-terra xhigh, both passed: csv-report s1, 5 of 5 hidden
+checks, 18.1 minutes, one step; shared-expenses s1, 6 of 6, 25.4 minutes, two steps. Neither had a refusal or a
+send-back. Journaled in test/shiploop_e2e/LEARNINGS.md (503dffce), with what the round does not cover: the amendment
+route and the two refusals did not run live. Released as skill-craft 2.37.0 / shiploop 1.34.0
+(f7a1b450b205ae854a60e149328126252bb44005), with release-push's 4 of 4 checks passing. It went over another session's
+two commits (a new E2E scenario folder, merged at ec09e67b). Claude, Codex and Grok were refreshed.
+
+## Open
+
+1. The boundary-question replay (owner: "Replay first", then "Build, replay after"). It is the measurement of whether a
+   model copies the done rows exactly and whether a forward-impact question in document catches anything.
+2. Deferred design: a document that is done and also asks to amend later steps (Astra's boundary route).
