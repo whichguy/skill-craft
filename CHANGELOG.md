@@ -4,6 +4,15 @@ Written by scripts/release.py.
 
 ## 2026-11-13
 
+### skill-craft 2.37.2
+
+- Skills: shiploop 1.34.2
+
+### shiploop 1.34.2
+
+- `shiploop note --text` with a byte that is not UTF-8 is now refused with a plain message (exit 2, nothing written) instead of ending in a Python traceback; a `--file` already was.
+- The run-file catalog (`references/state-files.md`) now lists every file ShipLoop writes into a run directory: the run lock and the save journal `transaction.md`, `context-index.md`, `reference.md`, `scratch/`, `backchain/`, the run baseline pair, the Improve bind result and notes files, and the send-back marker. Its `timeline.json`, `callback-attempts` and lint pending-journal rows now state the real file formats.
+
 ### skill-craft 2.37.1
 
 - Skills: shiploop 1.34.1
