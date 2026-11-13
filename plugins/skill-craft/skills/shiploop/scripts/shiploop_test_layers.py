@@ -29,6 +29,7 @@ which names, in ``code`` and ``layer``, a ``test_layers`` row whose status is ``
 from __future__ import annotations
 
 import re
+import shlex
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 import shiploop_test_counts as counts
@@ -120,11 +121,34 @@ def canonical_targets(value: Any) -> List[Dict[str, str]]:
     return rows
 
 
+def _segments(command: str) -> list:
+    """The words of each simple command in ``command``, split at ``;``, ``&``, ``|`` and newlines outside quotes, as the
+    shell splits them; None when the quoting does not close."""
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|\n")
+    lexer.whitespace = " \t\r"
+    lexer.whitespace_split = True
+    segments, words = [], []
+    try:
+        for token in lexer:
+            if token and all(character in ";&|\n" for character in token):
+                segments.append(words)
+                words = []
+            else:
+                words.append(token)
+    except ValueError:
+        return None
+    return [*segments, words]
+
+
 def search_only(command: str) -> bool:
-    """Whether every program ``command`` runs only searches text (``grep`` and its kin, besides ``cd``)."""
+    """Whether every program ``command`` runs only searches text (``grep`` and its kin, besides ``cd``).  Quoted text is
+    one word: a search for "a; b" runs one program (the step-boundary replay found p0's docstring search, whose
+    semicolons split it into a program named `throws`).  A command whose quoting does not close is not a search."""
+    segments = _segments(command)
+    if segments is None:
+        return False
     programs = []
-    for segment in re.split(r"&&|\|\||[;|\n]", command):
-        words = segment.split()
+    for words in segments:
         while words and (words[0] in ("!", "env", "command", "exec", "time") or re.match(r"^\w+=", words[0])):
             words = words[1:]
         if words and words[0] != "cd":
@@ -156,9 +180,9 @@ def check_confirms(criteria: Sequence[Mapping[str, Any]], rows: Optional[Sequenc
           "text, which runs no behaviour. Name a command that runs the code and observes the result; a criterion "
           "about text the item writes (documentation, a docstring) is confirm searched.")
     # A focused command runs tests and prints their IDs and counts, which the test stage's gate reads; a search prints
-    # neither, so a search recorded as focused can never pass there.  Live: p0-terra's late send-back (16 minutes of
-    # replayed steps), csv-report s2 in step-plan round 2's release round, R3 once (docs/experiments/
-    # step-boundary-replan-20261112/README.md E2; docs/experiments/step-plan-round2-20261101/README.md).
+    # neither, so a search recorded as focused can never pass there.  Recorded runs show it three times, one of them a late
+    # send-back that replayed done steps for 16 minutes (docs/experiments/step-boundary-replan-20261112/README.md E2;
+    # docs/experiments/step-plan-round2-20261101/README.md).
     focused_search = [str(command.get("command") or "") for command in commands
                       if command.get("suite") == "focused" and search_only(str(command.get("command") or ""))]
     _need(not focused_search, "test command `" + "`, `".join(focused_search) + "` is recorded suite focused but only "

@@ -2,6 +2,18 @@
 
 Written by scripts/release.py.
 
+## 2026-11-13
+
+### skill-craft 2.37.1
+
+- Skills: shiploop 1.34.1
+
+### shiploop 1.34.1
+
+- The text-search classifier behind the focused-search refusal and the executed-criterion check now reads quoting as the
+  shell does. A search whose quoted pattern holds `;` or `|` is one command, so the refusal now catches it; it used to
+  read the text after the `;` as a second program. A command whose quotes do not close is no longer treated as a search.
+
 ## 2026-11-12
 
 ### skill-craft 2.37.0
