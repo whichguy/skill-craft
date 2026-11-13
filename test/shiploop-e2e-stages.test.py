@@ -43,6 +43,7 @@ import copy
 import io
 import json
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -766,9 +767,40 @@ class Shipped(unittest.TestCase):
 
     def test_the_selectors_of_the_guides_example_select_something_today(self):
         document = self.run_json("verify", "validate-existing/all-match", "validate-existing/broken-works-small-fix",
-                                 "validate-existing/wrong-check", "-validate-existing/all-match", "+catch")
+                                 "validate-existing/wrong-check", "step-plan/proof-runs-focused-suite",
+                                 "-validate-existing/all-match", "+catch")
         self.assertEqual(sorted(row["id"] for row in document["scenarios"]),
-                         ["validate-existing/broken-works-small-fix", "validate-existing/wrong-check"])
+                         ["step-plan/proof-runs-focused-suite", "validate-existing/broken-works-small-fix",
+                          "validate-existing/wrong-check"])
+        # and an exclude that selects nothing is the usage error the guide says it is
+        done = process("verify", "step-plan/proof-runs-focused-suite", "-step-plan/proof-runs-focused-suite",
+                       cwd=Path(tempfile.gettempdir()))
+        self.assertEqual(done.returncode, 2)
+        self.assertIn("selects no scenario", done.stderr)
+
+    def test_the_focused_suite_scenarios_proof_check_reads_whole_commands(self):
+        """step-plan/proof-runs-focused-suite's P1 pattern, over the Proof shapes the round met. Its scenario holds one good
+        reference, so the scratch-file forms are pinned here. The second review found that a '|' inside a quoted name filter
+        ended the scratch-file exemption early, and that a runner pointed at the repository's own test by absolute path was
+        exempt."""
+        scenario = ROOT / "test/shiploop_e2e/stage_cases/step-plan/proof-runs-focused-suite/scenario.json"
+        pattern = re.compile(next(row["matches"] for row in json.loads(scenario.read_text())["oracle"]
+                                  if row.get("proves") == "P1"))
+        scratch = "/tmp/stage-run/1/.shiploop-runs/seed/run/scratch/proof.cjs"
+        cases = {
+            f"node --test --test-name-pattern='TC_1|TC_2' {scratch}": True,
+            f"node --test --test-name-pattern=\"TC_1|TC_2\" {scratch} && rg -q 'Server contract:' server.js": True,
+            f"node --test --test-name-pattern='TC_2' {scratch}": True,
+            "node -e \"require('fs').statSync('built.txt')\"": True,
+            "node --test /tmp/stage-run/1/test/service.test.js": False,
+            "node --test --test-name-pattern='TC_1|TC_2'": False,
+            "node --test": False,
+            "npm test": False,
+            "node -e \"c.execFileSync(process.execPath,['--test','test/service.test.js'])\"": False,
+        }
+        for proof, passes in cases.items():
+            with self.subTest(proof):
+                self.assertEqual(bool(pattern.match(proof)), passes)
 
 
 # ------------------------------------------------------------------------------------------------------------------ the live tier

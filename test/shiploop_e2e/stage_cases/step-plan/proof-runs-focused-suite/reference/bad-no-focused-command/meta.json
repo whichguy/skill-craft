@@ -1,0 +1,1 @@
+{"fails": ["C1"], "why": "Avoids the fault by dropping the focused command: the test stage has nothing to run."}

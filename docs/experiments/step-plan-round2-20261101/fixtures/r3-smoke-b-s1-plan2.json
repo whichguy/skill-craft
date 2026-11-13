@@ -1,0 +1,99 @@
+{
+ "source": "~/e2e-runs-r3/20261101/smoke-b-s1/.shiploop-runs/work-20261101-173501-a45a37/run/results/nav-89bae99afe2c4209a20be55065414136.md",
+ "action": "nav-89bae99afe2c4209a20be55065414136",
+ "base_files": [
+  "docs/shiploop/architecture.md",
+  "docs/shiploop/environment.md",
+  "docs/shiploop/spec.md"
+ ],
+ "base_texts": {
+  "docs/shiploop/architecture.md": "# Architecture\n\n## Decisions\nAD-1: One Node process serves HTTP and owns JSON file, serializes mutation and persists atomically before success. No npm dependencies. Group member order governs remainder and settlement ties. Runtime and test implementation pending.\n\n## Real-boundary checks\nPlanned local HTTP integration tests spawn actual server against isolated data file, exercise requests, stop and restart it, and assert state. TC_1 through TC_4 cover R-1 through R-6. No remote target, cache, authentication or async processor requested. Clean fixture ensures tests fail against missing baseline.\n",
+  "docs/shiploop/environment.md": "# Environment\n\n## Targets and runtimes\nLocal Node v26.12.1; no dependencies. Source checkout was empty; return to local checkout, no CI or deployment configured. No remote consumer requested.\n\n## Commands\n`node --test` (baseline: exit 0, zero tests; missing coverage).\n\n## Platform facts\nNo existing code, conventions, documentation or reusable libraries. Use Node built-ins.\n\n## Skills\nNo repository-local skill links: empty starting tree.\n\n## Access and accounts\nLocal filesystem and HTTP server only; no remote identity or access required.\n\n## Harnesses and suites\nPlanned: Node built-in node:test and HTTP client, spawned server process, isolated temporary data directory and ephemeral port per case; stop child and remove fixtures on teardown. No dependencies or remote target. R-1: concurrent posts, restart and read-back (TC_4). R-2: creation, duplicate and invalid members (TC_1). R-3: equal remainder, exact and invalid shares, payer, amounts and sequence (TC_2). R-4: balances, greedy ties and applying settlements (TC_3). R-5: missing group routes (TC_1). R-6: node --test executes all cases. These are planned checks, due implementation/test. Empty baseline has no preservation suite. Tests first should fail on absent server.js.\n\n## ID convention\nTC_1 groups and missing groups\nTC_2 expenses and validation\nTC_3 balances and settlements\nTC_4 concurrency and restart\n\n## Commands\nFull suite, all IDs; local Node and isolated fixtures, expected seconds:\n```sh\nnode --test\n```\nFocused/smoke suite uses same full command for this small service. Baseline exit 0 with zero tests; not behavioral coverage.\n\nAdditional planned failure checks: malformed JSON, non-integer or negative shares, unknown member, and persistence failure must not produce 201 or mutate committed state. Concurrent TC_4 must check all unique sequence numbers and post-restart totals, not only response count. Test runner owns child cleanup even on assertion failure.\n\n## Preparation readiness\nNode --help exited 0; node:test started during baseline. No installation, accounts or remote target required. Tests will allocate isolated files and local ports, and tear down the child process. Source return is local and has no configured CI or deployment.\n",
+  "docs/shiploop/spec.md": "# Specification\n\n## Requirements\n\n### R-1: Runtime and persistence\nBasis S1-S2, S11. Run server.js with built-in Node modules, PORT and DATA_FILE. Store groups and expenses in JSON; preserve them through restart. Serialize concurrent requests so no accepted expense is lost. One process owns the file; no deletion endpoint is requested. Confirm by starting a child server, issuing concurrent requests, restarting and reading balances and sequence numbers. No existing behavior to preserve.\n\n### R-2: Groups\nBasis S3. POST /groups accepts an id and at least two distinct non-empty member names; return 201, 409 on duplicate id and 400 on invalid members. Confirm HTTP success and invalid and duplicate cases. Names remain ordered and are exact strings; malformed IDs and JSON are rejected. State belongs to local server JSON file; no identity or access policy was requested.\n\n### R-3: Expenses\nBasis S4-S7. POST group expenses accepts known payer and positive whole cents. Equal split distributes remainder to earliest members. Exact shares contain only known members and nonnegative whole cents summing to amount; omitted members owe zero. Return 201 with per-group sequential expense number; invalid payer, amount, split or shares returns 400. Confirm by HTTP examples, invalid boundaries and sequence assertions. Use safe integers to avoid inaccurate cents.\n\n### R-4: Balances and settlements\nBasis S8-S9. GET balances returns paid less owed for every member, summing to zero. GET settlements repeatedly matches largest debtor and creditor, breaking ties by member order, with payment equal to the smaller outstanding amount. Confirm exact HTTP outputs and apply payments to verify zero balances.\n\n### R-5: Unknown groups\nBasis S10. Every route under an unknown group returns 404. Confirm known endpoints and arbitrary nested path for a missing group.\n\n### R-6: Verification\nBasis S12. Tests under test/ use node:test and run with node --test, covering API, invalid cases, restart and concurrent requests. Confirm command exit and executed cases.\n\n## Non-functional requirements\nNo npm dependencies; confirm source and run tests without installation. Single process concurrent updates must be retained (R-1). No numeric latency or availability targets specified. No UI, remote service, authentication, cache or async job requested. Filesystem errors must not report a successful write.\n\n## Concrete acceptance example\nCreate g with members A, B, C (R-2). Record A paying 5 equal (R-3): shares are 2, 2, 1, so balances are A=3, B=-2, C=-1 (R-4). Settlements are B to A 2, then C to A 1. This follows the ordered member remainder and largest balances; all payments zero the balances. These are planned assertions, not observed execution.\n"
+ },
+ "plan": {
+  "criteria": [
+   {
+    "confirm": "executed",
+    "id": "C1",
+    "text": "R-2, R-3 and R-5: group and expense endpoints validate input and produce specified status and numbering. Confirm by: TC_1 and TC_2 HTTP tests; pass when all expected outcomes match."
+   },
+   {
+    "confirm": "executed",
+    "id": "C2",
+    "text": "R-3 and R-4: splits, balances and greedy settlements obey member order and zero sums. Confirm by: TC_2 and TC_3 HTTP tests; pass when exact values and settlement application match."
+   },
+   {
+    "confirm": "executed",
+    "from": "A2",
+    "id": "C3",
+    "text": "R-1: concurrent requests to one process persist without loss across restart. Confirm by: TC_4 HTTP test; pass when all numbers and persisted totals match."
+   },
+   {
+    "confirm": "searched",
+    "id": "C4",
+    "text": "R-1: public server entry has a concise contract comment. Confirm by: search for the contract marker in server.js; pass when found."
+   }
+  ],
+  "steps": [
+   {
+    "criteria": [
+     "C1",
+     "C2",
+     "C3",
+     "C4"
+    ],
+    "deps": [],
+    "id": "S1",
+    "paths": [
+     "server.js",
+     "test/service.test.js",
+     "README.md"
+    ],
+    "proof": "node /Users/dadleet/e2e-runs-r3/20261101/smoke-b-s1/.shiploop-runs/work-20261101-173501-a45a37/run/scratch/proof.js",
+    "skills": [],
+    "task": "Implement C1-C4 in server.js; run the existing scratch proof before the later durable test stage."
+   }
+  ],
+  "test_commands": [
+   {
+    "command": "node --test",
+    "criteria": [
+     "C1",
+     "C2",
+     "C3"
+    ],
+    "ids": [
+     "TC_1",
+     "TC_2",
+     "TC_3",
+     "TC_4"
+    ],
+    "min_tests": 4,
+    "minimum": true,
+    "regression": true,
+    "suite": "focused"
+   },
+   {
+    "command": "rg \"Service contract:\" server.js && printf \"TC_5 passed\\n\"",
+    "criteria": [
+     "C4"
+    ],
+    "ids": [
+     "TC_5"
+    ],
+    "suite": "focused"
+   },
+   {
+    "command": "node --check server.js",
+    "suite": "check"
+   }
+  ],
+  "paths": [
+   "server.js",
+   "test/service.test.js",
+   "README.md"
+  ]
+ },
+ "base_commit": "b772f7e6f59d5fea428b31fb5895a8f0c44796a5"
+}

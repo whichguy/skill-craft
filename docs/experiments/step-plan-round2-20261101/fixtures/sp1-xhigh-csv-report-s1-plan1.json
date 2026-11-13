@@ -1,0 +1,92 @@
+{
+ "source": "~/e2e-runs-sp/20261101/sp1-xhigh/csv-report-s1/.shiploop-runs/work-20261101-154826-5d586c/run/results/nav-6a6484bb673a415cbef17326f74c4d54.md",
+ "action": "nav-6a6484bb673a415cbef17326f74c4d54",
+ "base_files": [
+  "docs/shiploop/architecture.md",
+  "docs/shiploop/environment.md",
+  "docs/shiploop/spec.md"
+ ],
+ "base_texts": {
+  "docs/shiploop/architecture.md": "# Architecture\n\n## Stack and structure\nA standalone Python 3 CLI in report.py with standard-library CSV and exact decimal aggregation, and subprocess unittest in test_report.py. No external runtime dependencies.\n\n## Decisions\nAD-1: Aggregate exact decimal values before rounding to cents using half-even; preserve JSON numeric types.\nAD-2: Buffer result until all files have been read, so a read failure suppresses stdout.\n\n## Real-boundary checks\nPlanned local CLI subprocess cases cover R-1 through R-3, using fresh temporary files, real stdout, stderr and exit status. `python3 -m unittest` covers R-4 and executes all cases. No network, device or browser applies. Tests are due during implementation and system verification.\n\n## Structure\nAD-3: report.py owns CLI parsing and process lifetime; test_report.py owns unittest subprocess cases. Both live at repository root and import only the standard library. There is no persistent database or remote runtime. CSV inputs are user-owned and never modified.\n\n## Conventions\nNo prior house style exists; use readable standard Python names and small functions.\n\n## Interfaces and boundaries\nCLI files are inputs; stdout carries one JSON object, stderr diagnostics, and the process exit status communicates success or failure. No API, service or migration.\n\n## Superseded\nNone.\n",
+  "docs/shiploop/environment.md": "# Environment\n\n## Targets and runtimes\nBinding: Python 3 standard library; observed Python 3.9.6 locally. Local execution checkout and original checkout are the only targets. Deliver by guarded local return; no CI, deployment or publication configuration exists in the initially empty checkout. No consumer check depends on a hosted release. No platform guide applies.\n\n## Commands\nBinding: `python3 -m unittest`. Baseline ran 0 tests, so coverage is missing.\n\n## Platform facts\nEmpty initial repository has no code conventions, examples or libraries to reuse. Proposal: standard library csv, json, decimal, unittest and subprocess.\n\n## Skills\nNo repository-local skills, README, AGENTS or index existed at baseline.\n\n## Access and accounts\nNo remote access or account is required. Local file reads are performed by the invoking process.\n\n## Harnesses and suites\nPlanned: standard library unittest invokes the actual CLI via subprocess with fresh TemporaryDirectory per test, cleaned automatically. R-1: multi-file aggregation, quotes, zero and header-only; R-2: each bad field and count, line numbers, multiple files; R-3: missing file before and after valid or invalid rows and no stdout; R-4: discovery of all tests. Due: implement/test. No remote host tools. Test first: missing report.py makes subprocess cases fail on base. Fixtures are isolated and disposable. Revalidate using Python 3.\n\n## ID convention\nTest methods named test_aggregation, test_invalid_rows, test_unreadable, test_header_only and related methods, printed by unittest -v.\n\n## Suite commands\nFull and smoke (small suite; all cases included):\n```sh\npython3 -m unittest\n```\nPlanned, no fixtures beyond per-test temporary directories; baseline ran zero cases and is not a pass of product behavior.\n\n## Readiness\nPython 3.9.6 and unittest --help started successfully in the isolated worktree. TemporaryDirectory fixtures require no setup. The only consumer is the local invoking user with ordinary filesystem access. Source return triggers no configured CI or deployment; no post-return check requires early return. Python bytecode caches are ignored. No install or external setup is required.\n",
+  "docs/shiploop/spec.md": "# Specification\n\n## Requirements\n\n### R-1 CLI and valid aggregation\nBasis: request S1-S4, S7. Python 3 standard library `python3 report.py FILE [FILE ...]` reads CSV with the specified header and emits one JSON object on stdout with rows, revenue, by_region and by_product. Revenue and each region total round only after aggregation to two decimal places. Units are non-negative integers; prices are finite non-negative decimals. Header-only input contributes zero. Confirm by subprocess unittest with multiple files, quoted CSV, zeros, decimals and a header-only file. Baseline had no behavior to preserve. Input data and sums live only for the invocation; user controls file access and output; no persistent state or shared service exists. Ties default to half-even. Exact invalid-header behavior is unspecified.\n\n### R-2 Invalid rows\nBasis: request S5. Wrong field count or invalid or negative units or price skips that row, writes `FILE:LINE: reason` on stderr using its physical start line, continues with valid rows, and exits 2. With no invalid rows, exit 0. Confirm each category, multiline line numbers and mixed files via subprocess unittest. Negative zero is numerically non-negative.\n\n### R-3 Unreadable files\nBasis: request S6. A read failure prints an error on stderr without traceback, prints no stdout and exits 1 even if other inputs were valid or invalid. Confirm with absent input before and after a valid file.\n\n### R-4 Tests\nBasis: request S8. `python3 -m unittest` discovers and runs end-to-end cases for all stated behaviors using only the standard library. Confirm by executing the command in the checkout.\n\n## Non-functional requirements\nNo performance threshold is supplied. Input must be parsed without external dependencies and without tracebacks for read errors (R-1, R-3). Output is a machine-readable JSON interface, so visual themes, motion and interactive focus are inapplicable and would conflict with the specified stdout contract. No remote service, retained state, concurrent mutation protocol, or deployment is requested.\n\n## Retired\nNone.\n"
+ },
+ "plan": {
+  "criteria": [
+   {
+    "confirm": "executed",
+    "from": "A2",
+    "id": "C1",
+    "text": "R-1 and R-4: valid inputs aggregate across files and round exact totals, including ties and header-only files. Confirm by: unittest subprocess cases TC_1; pass when expected JSON and status 0 match."
+   },
+   {
+    "confirm": "executed",
+    "id": "C2",
+    "text": "R-2: malformed, negative or nonnumeric rows are skipped with line diagnostics and status 2. Confirm by: unittest subprocess cases TC_2; pass when exact valid totals and all error locations match."
+   },
+   {
+    "confirm": "executed",
+    "id": "C3",
+    "text": "R-3 and R-4: unreadable inputs suppress stdout and exit 1; missing arguments are rejected. Confirm by: unittest subprocess cases TC_3; pass when errors and statuses match with no traceback."
+   },
+   {
+    "confirm": "searched",
+    "id": "C4",
+    "text": "The public entry point carries a contract docstring. Confirm by: search report.py for its module docstring; pass when it describes CSV reporting."
+   }
+  ],
+  "steps": [
+   {
+    "criteria": [
+     "C1",
+     "C2",
+     "C3",
+     "C4"
+    ],
+    "deps": [],
+    "id": "S1",
+    "paths": [
+     "report.py"
+    ],
+    "proof": "python3 -m unittest -v && rg -n \"CSV\" report.py",
+    "skills": [],
+    "task": "Implement C1, C2, C3 and C4 in the local reporter."
+   }
+  ],
+  "test_commands": [
+   {
+    "command": "python3 -m unittest -v",
+    "criteria": [
+     "C1",
+     "C2",
+     "C3"
+    ],
+    "ids": [
+     "TC_1",
+     "TC_2",
+     "TC_3"
+    ],
+    "min_tests": 3,
+    "minimum": true,
+    "regression": true,
+    "suite": "focused"
+   },
+   {
+    "command": "python3 -m py_compile report.py test_report.py",
+    "suite": "check"
+   },
+   {
+    "command": "rg -n \"CSV\" report.py",
+    "criteria": [
+     "C4"
+    ],
+    "suite": "check"
+   }
+  ],
+  "paths": [
+   "report.py",
+   "test_report.py"
+  ]
+ },
+ "base_commit": "73d07d7d9621e468b6f0e859b902aa0a75674687"
+}

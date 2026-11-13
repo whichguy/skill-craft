@@ -1,0 +1,82 @@
+{
+  "outcome": "done",
+  "summary": "One step; its Proof starts server.js on a temporary data file and checks a group POST, so it runs at S1's done before the test stage writes test/service.test.js.",
+  "criteria": [
+    {
+      "id": "C1",
+      "confirm": "executed",
+      "from": "A2",
+      "text": "R-1: concurrent expense writes to one process persist across restart without loss. Confirm by: TC_1 HTTP test; pass when every expense number and the restarted balances match."
+    },
+    {
+      "id": "C2",
+      "confirm": "executed",
+      "text": "R-2 and R-5: groups are created and rejected with the specified statuses. Confirm by: TC_2 HTTP test; pass when 201, 409 and 400 cases match."
+    },
+    {
+      "id": "C3",
+      "confirm": "executed",
+      "text": "R-3 and R-4: expenses split and settle as specified. Confirm by: TC_3 HTTP test; pass when shares, balances and settlements match."
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "task": "Build server.js for C1-C3.",
+      "deps": [],
+      "criteria": [
+        "C1",
+        "C2",
+        "C3"
+      ],
+      "paths": [
+        "server.js"
+      ],
+      "proof": "node --test",
+      "skills": []
+    }
+  ],
+  "test_commands": [
+    {
+      "command": "node --test",
+      "suite": "focused",
+      "ids": [
+        "TC_1",
+        "TC_2",
+        "TC_3"
+      ],
+      "criteria": [
+        "C1",
+        "C2",
+        "C3"
+      ]
+    },
+    {
+      "command": "node --check server.js",
+      "suite": "check"
+    }
+  ],
+  "expectations": [
+    {
+      "id": "E1",
+      "state": "absent",
+      "statement": "No server exists yet",
+      "steps": [
+        "S1"
+      ],
+      "paths": [
+        "server.js"
+      ],
+      "check": "test ! -e server.js"
+    }
+  ],
+  "paths": [
+    "server.js",
+    "test/service.test.js"
+  ],
+  "follows": [
+    "R-1",
+    "R-2",
+    "R-3"
+  ]
+}

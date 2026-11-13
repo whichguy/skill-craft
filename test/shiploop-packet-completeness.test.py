@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "skills/shiploop/scripts"))
 sys.path.insert(0, str(ROOT / "test"))
 import shiploop_assumptions as assumptions  # noqa: E402
+import shiploop_expectations as expectations  # noqa: E402
 import shiploop_knowledge_home as knowledge  # noqa: E402
 import shiploop_loop_contract as loop_contract  # noqa: E402
 import shiploop_loops as loops  # noqa: E402
@@ -365,6 +366,24 @@ class ObservedHarmPacketTests(unittest.TestCase):
         self.assertIn("Remote-only target: the recorded test route only; steps share one proof script.", text)
         self.assertNotIn("too large for one review", text)
         self.assertFalse(hasattr(prompts, "STEP_SIZING"))  # the older copy of the rule no packet printed
+
+    # Step-plan round 2 (2026-11-01; docs/experiments/step-plan-round2-20261101), the step-plan review's section 8 item 3: a
+    # Proof ShipLoop runs again at done must pass again. Three `sf org assign permset` Proofs failed their rerun with
+    # Duplicate PermissionSetAssignment and sent their plans back (step-plan review section 3.3).
+    def test_the_step_plan_proof_bullet_asks_for_a_proof_that_is_safe_to_repeat(self) -> None:
+        text = flat(self.found[("step-plan", "producer")])
+        self.assertIn("ShipLoop reruns it at the step's done, so make it safe to repeat.", text)
+        self.assertIn("Tests are not a step (the test stage writes them) unless the item is all tests.", text)
+
+    # Step-plan round 2, D: the base run accepts a new test that fails to load the code this item adds
+    # (shiploop_test_loop.BASE_RULE), and 4 of the 30 send-backs on ShipLoop 1.27.0 and later were test-spec refusing exactly
+    # that on an empty base; the template's RED placeholder said "not because a file is".
+    def test_test_spec_says_a_new_module_that_does_not_load_yet_is_red(self) -> None:
+        text = flat(self.found[("test-spec", "producer")])
+        self.assertIn("or because the code this item adds does not load yet", text)
+        self.assertIn("a guard that only checks a file is not RED", text)
+        self.assertNotIn("not because a file is", flat(expectations.CASE_PLACEHOLDERS["red"]))
+        self.assertIn("does not load yet", expectations.CASE_PLACEHOLDERS["red"])
 
     # row 7: the step plan declares the ids; test-spec titles its cases with them; check is a suite.
     def test_the_step_plan_declares_ids_it_will_title_and_names_every_suite(self) -> None:

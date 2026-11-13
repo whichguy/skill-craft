@@ -1,0 +1,124 @@
+{
+ "source": "~/e2e-runs-r3/20261101/A-shared-expenses-s1/.shiploop-runs/work-20261101-180847-e3ab32/run/results/nav-180fb03acdaf4995aa6ff8d133652b75.md",
+ "action": "nav-180fb03acdaf4995aa6ff8d133652b75",
+ "base_files": [
+  "docs/shiploop/architecture.md",
+  "docs/shiploop/environment.md",
+  "docs/shiploop/spec.md"
+ ],
+ "base_texts": {
+  "docs/shiploop/architecture.md": "# Architecture\n\n## Decisions\nAD-1: A single Node process owns JSON state. Serialize mutations and persist before acknowledgement, atomically replacing the file; avoid npm dependencies. HTTP requests are the consumer boundary.\n\n## Real-boundary checks\nPlanned TC_1-TC_4 use local HTTP against a child server with a private file and cleanup. TC_1 restarts the process and checks all successful concurrent writes and sequence numbers; TC_2 covers group validation and unknown groups; TC_3 checks splitting, validation and expense numbering; TC_4 checks zero-sum balances and deterministic settlement replay. No external service, browser, account, cache, async processor or deployment target applies. The test runner uses a separate temporary directory per test, so it does not retain target state. R-4 worked example: group g, members A B C, A pays 5; shares 2 2 1, balances 3 -2 -1, settlements B\u2192A 2 then C\u2192A 1. This follows R-2 and R-3 and is observable via GET; not yet executed.\n\n## Stack\nNode.js CommonJS, built-in HTTP, filesystem and node:test. No npm dependencies.\n\n## Structure\nAD-2: server.js is the process entry and HTTP boundary, using private functions for validation, split calculation, balances and settlements. test/ owns node:test HTTP fixtures. No preexisting namespace. DATA_FILE contains one JSON object with groups, each carrying ordered members and expenses; each expense retains payer, amount and member shares. One process owns this schema; a missing file initializes an empty store. No migration exists. Writes use a temporary sibling file and rename, with a serialized transaction queue. File is retained until manually removed. No external environment or identity is required.\n\n## Conventions\nNo preexisting conventions; use Node built-ins and readable CommonJS.\n\n## Interfaces and boundaries\nHTTP JSON request/response, PORT and DATA_FILE configuration. No UI, messaging or remote services. Errors before durable replacement must not publish a successful mutation. Restart reads authoritative file.\n",
+  "docs/shiploop/environment.md": "# Environment\n\n## Targets and runtimes\nLocal Node v26.12.1; Node built-ins only (request). Source checkout is delivery target, with guarded return. No existing CI, deploy or publication route exists in the empty repository. No platform-specific guide.\n\n## Commands\n`node --test` is the requested test command; baseline has zero tests.\n\n## Platform facts\nNo existing code, style, libraries, configuration or examples. Use straightforward Node built-ins and HTTP.\n\n## Access and accounts\nNo remote accounts are required. Local unauthenticated HTTP consumers share server state.\n\n## Skills\nNo repository-local skills or instructions exist.\n\n## Harnesses and suites\nPlanned: node:test with isolated temporary directories, child server processes on ephemeral ports, HTTP requests, and cleanup after each case. No npm dependencies or remote services. Owner: implementation and test stages. Each test starts with a missing file, except restart tests reuse their own file.\n- R-1: TC_1 concurrency, unique numbers and restart; failed write and safe-integer boundary; component HTTP; test stage.\n- R-2: TC_2 valid groups, duplicates, invalid names and unknown routes; component HTTP; test stage.\n- R-3: TC_3 equal remainder and exact zero/omitted shares, invalid payer/member/amount/split/sums and numbering; component HTTP; test stage.\n- R-4: TC_4 balances, ties and replay settlements; component HTTP; test stage.\nNo preserved behavior exists; baseline has zero tests. Future test-first run against empty baseline must fail due to missing server.\n\n## ID convention\nTests will be titled TC_1, TC_2, TC_3 and TC_4 as standalone words.\n\n## Commands\nFull suite, all TC cases, fresh local filesystem fixtures; expected low cost:\n```sh\nnode --test\n```\nFocused case (TC_1), same setup:\n```sh\nnode --test --test-name-pattern=TC_1\n```\nSmoke: same full suite until there is a reason to split it. These commands are planned; baseline ran only the full command with zero tests.\n\nPreparation: Node test runner help started successfully; no installation or external access needed. HTTP fixture is planned for W1. The original checkout has no CI or deployment hooks; return does not precede a required hosted check.\n",
+  "docs/shiploop/spec.md": "# Specification\n\n## Requirements\n\n### R-1 Runtime and persistence\nRequest S1-S2, S11-S12. A Node built-in-only server.js listens on PORT, persists group and expense data in DATA_FILE, and survives restart. Concurrent requests to one process must retain every successful expense. Confirm by HTTP concurrent requests, process restart and `node --test`. A missing file starts empty; failure to write must not produce a successful response. No existing behavior to preserve. File state remains until operator removes it; clients can read group balances and settlements, with no authentication requested. Multi-process access is an open assumption, outside the tested scope.\n\n### R-2 Groups\nRequest S3 and S10. POST /groups creates a group with a nonempty id and at least two distinct nonempty member names, responding 201; duplicate ID returns 409 and invalid members 400. Unknown group routes return 404. Confirm by HTTP tests, including duplicate and malformed inputs. Names and ID are stored as supplied; whitespace-only names are invalid. No previous behavior.\n\n### R-3 Expenses\nRequest S4-S7. A valid member pays a positive whole-cent amount. Equal splits allocate quotient to all and one remainder cent to each earliest member. Exact shares map known members to nonnegative whole cents, omitted members owe zero, and total equals amount. Invalid payer, member, amount, split or shares returns 400. Successful response is 201 with expense number starting at 1 per group. Confirm by HTTP tests for both splits, remainders, validation and sequencing. Amounts and resulting balances must remain safe integers to retain cent accuracy; reject a mutation that would exceed that bound without changing state. Confirm with boundary HTTP tests. No previous behavior.\n\n### R-4 Balances and settlements\nRequest S8-S9. Balances show every member's total paid less owed and sum to zero. Settlements repeatedly match the largest debtor and creditor, tie-breaking by group order and paying the lesser absolute amount, until zero. Confirm with HTTP tests including ties and replay of payments. Empty group expense history yields zero balances and no settlements. No previous behavior.\n\n## Non-functional requirements\nNo npm dependencies; test through `node --test`. Successful changes persist before response, checked by restart and concurrency tests. Local single-process ownership is assumed; no security, availability, performance, accessibility or UI bounds were requested. JSON file access errors must fail safely. No external services, revocation, async processing or event coverage apply.\n\n### Worked acceptance example\nCreate group g with members A, B, C (R-2); A pays 5 equally (R-3), so shares are 2, 2, 1 and balances are A: 3, B: -2, C: -1 (R-4). Settlement order is B pays A 2, then C pays A 1. These actions are permitted by R-2 and R-3; the HTTP observer can read both results. Confirm with an end-to-end test.\n"
+ },
+ "plan": {
+  "criteria": [
+   {
+    "confirm": "executed",
+    "id": "C1",
+    "text": "R-2 group creation and rejection work. Confirm by: TC_2 HTTP cases; pass when valid, duplicate and invalid groups and unknown paths yield specified statuses."
+   },
+   {
+    "confirm": "executed",
+    "id": "C2",
+    "text": "R-3 equal and exact expenses validate and allocate correctly. Confirm by: TC_3 HTTP cases; pass when numbering, splits and rejection cases match the contract."
+   },
+   {
+    "confirm": "executed",
+    "from": "A2",
+    "id": "C3",
+    "text": "R-1 and R-4 persistent state and settlement behavior work. Confirm by: TC_1 and TC_4 HTTP cases; pass when concurrent writes, restart, balances and settlement replay match the contract."
+   },
+   {
+    "confirm": "searched",
+    "id": "C4",
+    "text": "The server entry contract documents configuration and persistence ownership. Confirm by: searching server.js; pass when PORT, DATA_FILE and single-process ownership are documented."
+   }
+  ],
+  "steps": [
+   {
+    "criteria": [
+     "C1",
+     "C4"
+    ],
+    "deps": [],
+    "id": "S1",
+    "paths": [
+     "server.js",
+     "test/service.test.js"
+    ],
+    "proof": "node -e 'const c=require('\"'\"'node:child_process'\"'\"');const s=c.execFileSync(process.execPath,['\"'\"'--test'\"'\"','\"'\"'--test-reporter=tap'\"'\"','\"'\"'--test-name-pattern='\"'\"'+process.argv[1],'\"'\"'test/service.test.js'\"'\"'],{encoding:'\"'\"'utf8'\"'\"'});for(const id of process.argv[2].split('\"'\"','\"'\"')){if(!s.split('\"'\"'\\n'\"'\"').some(l=>l.startsWith('\"'\"'ok '\"'\"') && l.includes('\"'\"' - '\"'\"'+id) && !l.includes('\"'\"'# SKIP'\"'\"')))throw Error('\"'\"'missing '\"'\"'+id)}console.log(s)' TC_2 TC_2 && rg 'PORT.*DATA_FILE.*single.process' server.js",
+    "skills": [],
+    "task": "Implement C1 and C4, including their proof fixture and test cases."
+   },
+   {
+    "criteria": [
+     "C2"
+    ],
+    "deps": [
+     "S1"
+    ],
+    "id": "S2",
+    "paths": [
+     "server.js",
+     "test/service.test.js"
+    ],
+    "proof": "node -e 'const c=require('\"'\"'node:child_process'\"'\"');const s=c.execFileSync(process.execPath,['\"'\"'--test'\"'\"','\"'\"'--test-reporter=tap'\"'\"','\"'\"'--test-name-pattern='\"'\"'+process.argv[1],'\"'\"'test/service.test.js'\"'\"'],{encoding:'\"'\"'utf8'\"'\"'});for(const id of process.argv[2].split('\"'\"','\"'\"')){if(!s.split('\"'\"'\\n'\"'\"').some(l=>l.startsWith('\"'\"'ok '\"'\"') && l.includes('\"'\"' - '\"'\"'+id) && !l.includes('\"'\"'# SKIP'\"'\"')))throw Error('\"'\"'missing '\"'\"'+id)}console.log(s)' TC_3 TC_3",
+    "skills": [],
+    "task": "Implement C2 with its proof cases."
+   },
+   {
+    "criteria": [
+     "C3"
+    ],
+    "deps": [
+     "S2"
+    ],
+    "id": "S3",
+    "paths": [
+     "server.js",
+     "test/service.test.js"
+    ],
+    "proof": "node -e 'const c=require('\"'\"'node:child_process'\"'\"');const s=c.execFileSync(process.execPath,['\"'\"'--test'\"'\"','\"'\"'--test-reporter=tap'\"'\"','\"'\"'--test-name-pattern='\"'\"'+process.argv[1],'\"'\"'test/service.test.js'\"'\"'],{encoding:'\"'\"'utf8'\"'\"'});for(const id of process.argv[2].split('\"'\"','\"'\"')){if(!s.split('\"'\"'\\n'\"'\"').some(l=>l.startsWith('\"'\"'ok '\"'\"') && l.includes('\"'\"' - '\"'\"'+id) && !l.includes('\"'\"'# SKIP'\"'\"')))throw Error('\"'\"'missing '\"'\"'+id)}console.log(s)' 'TC_1|TC_4' TC_1,TC_4",
+    "skills": [],
+    "task": "Implement C3 with its proof cases."
+   }
+  ],
+  "test_commands": [
+   {
+    "command": "node --test",
+    "criteria": [
+     "C1",
+     "C2",
+     "C3"
+    ],
+    "ids": [
+     "TC_1",
+     "TC_2",
+     "TC_3",
+     "TC_4"
+    ],
+    "min_tests": 4,
+    "minimum": true,
+    "regression": true,
+    "suite": "focused"
+   },
+   {
+    "command": "node --check server.js && node --check test/service.test.js",
+    "suite": "check"
+   },
+   {
+    "command": "rg 'PORT.*DATA_FILE.*single.process' server.js",
+    "criteria": [
+     "C4"
+    ],
+    "suite": "check"
+   }
+  ],
+  "paths": [
+   "server.js",
+   "test/service.test.js"
+  ]
+ },
+ "base_commit": "983e2a36a40a3a04766a1c5014f5d187e1ea4012"
+}

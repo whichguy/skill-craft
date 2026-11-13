@@ -1329,16 +1329,15 @@ Change no product file in this stage.
      or layer (interface first, then each side), two separately confirmable behaviours or two outcomes joined with
      "and" make another step. Fold a step no proof confirms alone (half a rename, scaffolding) into the
      first step that uses it. A single bug fix or mechanical rename is one step.
-   - Tests are not a step (the test stage writes them); a step changing only test files is refused unless the item
-     is all tests.
+   - Tests are not a step (the test stage writes them) unless the item is all tests.
    - Each step declares `deps` (earlier step IDs it truly needs, else []; list order is no dependency), the
      `criteria` it satisfies and its `proof`; its `task` cites IDs, not their text. Every criterion is satisfied by
      some step. Its `paths` (inside the item's) name every file it changes.
    - `proof`: the one command, from the repository root, that proves the step's criteria with only this step and
-     accepted earlier ones; ShipLoop runs it at the step's done. It needs no later step, unwritten test or release
-     artifact (reuse a recorded command that proves them); skipping a missing file, or asserting only that a file
-     exists where behaviour is asked, proves nothing. Remote-only target: the recorded test route only; steps share
-     one proof script. None runs now: change the step boundary.
+     accepted earlier ones; ShipLoop reruns it at the step's done, so make it safe to repeat. It needs no later step,
+     unwritten test or release artifact (reuse a recorded command that proves them); skipping a missing file, or
+     asserting only that a file exists where behaviour is asked, proves nothing. Remote-only target: the recorded test
+     route only; steps share one proof script. None runs now: change the step boundary.
    - `skills`: reread the host's skills and the repository's skill index (an earlier item may have added one). List
      `{"name", "why", "locator", "stages"}` for each with a concrete use in the step, else []. Prefer a
      repository-local skill reused unchanged. `locator`: an existing SKILL.md or card; `stages`: implement (default),
@@ -1401,9 +1400,9 @@ Write no test code in this stage.
 3. Oracle from the requirement's text, never the code; check any golden, fixture or snapshot against it. It is an
    observation, never only that a page loads. Pair each absence assertion with a presence or count assertion; drop
    one that cannot fail (a bound above any reachable value). RED: how it fails on the item's base because the
-   behaviour is missing, given what earlier items and stages left deployed (the Test targets below say which target
-   keeps state and how its base state is produced); a guard that only checks a file is not RED. "characterisation" if
-   it already passes.
+   behaviour is missing, or because the code this item adds does not load yet, given what earlier items and stages left
+   deployed (the Test targets below say which target keeps state and how its base state is produced); a guard that only
+   checks a file is not RED. "characterisation" if it already passes.
 """ + _TEST_SPEC_PROCEDURE + """\
 5. Cover positive, failure and boundary. Each new or changed public entry point: one rejection case per constraint
    (missing, wrong type or shape, out of range), asserting the error type, the argument named and unchanged state,

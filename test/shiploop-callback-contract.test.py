@@ -1307,6 +1307,86 @@ class StepSizingRouteTests(RealCliCase):
                 self.assertEqual([step["id"] for step in self.recorded(run, action)["steps"]],
                                  [step["id"] for step in change["steps"]])
 
+    def test_a_proof_whose_inline_code_runs_an_unwritten_test_is_refused_then_a_direct_one_accepted(self) -> None:
+        """Rule A reads the test paths inside a Proof's inline code too (step-plan round 2, the owner's "Reopen the class",
+        2026-11-01; evidence docs/experiments/step-plan-round2-20261101, A1's replay). R3's A-shared-expenses-s1 proved S1
+        with `node -e` code that ran `node --test` on test/service.test.js, which the test stage writes after S1's
+        implement; `command_paths` skips inline code, so no rule saw the path and implement sent the plan back.
+
+        The route: refused with rule A's words, then the same callback accepts a direct Proof. Inline code that runs a test
+        file an earlier step declares is accepted, as rule A accepts that path in a Proof's own words."""
+        new_test = "test/built.test.js"
+        wrapper = ("node -e 'require(\"node:child_process\").execFileSync(process.execPath,[\"--test\",\""
+                   + new_test + "\"],{stdio:\"inherit\"})'")
+        direct = "node -e \"require('fs').statSync('built.txt')\""
+        absent = {"id": "E2", "state": "absent", "statement": new_test + " does not exist yet.", "steps": ["S1"],
+                  "paths": [new_test], "check": "test ! -e " + new_test}
+
+        def plan(*proofs: str) -> dict:
+            return {"paths": ["built.txt", new_test],
+                    "minimum_na": "The fixture's one regression command is its whole suite.",
+                    "steps": [{"id": f"S{n}", "task": "Build part " + str(n), "deps": [f"S{m}" for m in range(1, n)],
+                               "criteria": ["C1"], "proof": proof, "skills": [],
+                               "paths": ["built.txt", new_test] if n == 1 else ["built.txt"]}
+                              for n, proof in enumerate(proofs, 1)],
+                    "expectations": [*STEP_PLAN["expectations"], absent]}
+
+        run, head = self.new_run("step-plan")
+        command, path, action = printed_callback(head)
+        write_block(path, {**self.fill_done(head), **plan(wrapper)})
+        refusal = self.refused(command, run)
+        self.assertIn("step S1's Proof runs test/built.test.js, which the item base does not have and no earlier step "
+                      "declares", refusal)
+        self.assertIn("then run the same callback again", refusal)
+        write_block(path, {**self.fill_done(head), **plan(direct)})      # the refusal's own exit, same callback
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["steps"][0]["proof"], direct)
+
+        run, head = self.new_run("step-plan")
+        command, path, action = printed_callback(head)
+        write_block(path, {**self.fill_done(head), **plan(direct, wrapper)})   # S1 declares the test: S2 may run it
+        self.accepted(command)
+        self.assertEqual(self.recorded(run, action)["steps"][1]["proof"], wrapper)
+
+    def test_inline_code_paths_reads_the_relative_files_inside_inline_code(self) -> None:
+        """The reader A1 adds: relative file paths inside the word after -e, -c, --eval or -p, and nothing else. An
+        absolute path (a run's scratch script) and a path that leaves the repository are not repository files; a path in
+        the command's own words is command_paths', not this reader's."""
+        cases = [
+            ("node -e 'c.execFileSync(n,[\"--test\",\"test/service.test.js\"])'", ["test/service.test.js"]),
+            ("python3 -c \"import runpy; runpy.run_path('tests/test_report.py')\"", ["tests/test_report.py"]),
+            ("node --eval \"require('./src/a.js'); require('./test/a.test.js')\"", ["src/a.js", "test/a.test.js"]),
+            ("python3 -c \"open('/tmp/run/scratch/test/x.test.js')\"", []),
+            ("node -e \"require('../run/scratch/check.js')\"", []),
+            ("node --test test/a.test.js", []),
+            ("node -e \"process.exit(0)\" && node --test test/b.test.js", []),
+            # A quoted absolute path or URL is not a repository path, whatever it holds (round 2's review: a space in the
+            # path, or the colon before a port, made its tail read as one, and rule A refused a Proof that ran an
+            # existing test or fetched a local server).
+            ("node -e \"require('child_process').execFileSync(process.execPath,['--test','/Users/me/My Projects/app/"
+             "test/existing.test.js'])\"", []),
+            ("python3 -c \"import runpy; runpy.run_path('/Users/me/My Projects/app/tests/test_existing.py')\"", []),
+            ("node -e \"fetch('http://127.0.0.1:3000/spec/openapi.json').then(r=>process.exit(r.ok?0:1))\"", []),
+            ("python3 -c \"import urllib.request as u; u.urlopen('http://localhost:8000/tests/1.json')\"", []),
+            ("node -e \"require(`~/work/test/helper.test.js`)\"", []),
+            # The second review: a quoted command string that starts with an absolute program path is a command, not a
+            # path, so the relative test file it runs is still read; a URL is removed wherever it stands, quoted or not;
+            # a quoted path ends at its own closing quote, and an escaped space does not end an absolute path.
+            ("node -e \"require('child_process').execSync('/usr/local/bin/node --test test/new.test.js',"
+             "{stdio:'inherit'})\"", ["test/new.test.js"]),
+            ("python3 -c \"import subprocess; subprocess.run('/usr/bin/env python3 -m pytest tests/test_new.py', "
+             "shell=True, check=True)\"", ["tests/test_new.py"]),
+            ("node -e \"require('child_process').execSync('curl -sf http://localhost:3000/spec/openapi.json')\"", []),
+            ("sh -c \"curl -sf http://127.0.0.1:8080/api/v1/items.json | grep -q id\"", []),
+            ("sh -c \"curl -sf localhost:8080/api/v1/items.json\"", []),
+            ("python3 -c \"import runpy; runpy.run_path(\\\"/Users/me/Jim's Files/app/tests/test_existing.py\\\")\"", []),
+            ("sh -c \"node --test /Users/me/My\\\\ Projects/app/test/existing.test.js\"", []),
+            ("python3 -c \"import runpy; runpy.run_path('C:/Users/me/My Projects/app/tests/test_existing.py')\"", []),
+        ]
+        for command, paths in cases:
+            with self.subTest(command):
+                self.assertEqual(scope.inline_code_paths(command), paths)
+
     def test_a_plain_suite_proof_for_a_criterion_an_unwritten_test_confirms_is_refused_then_a_direct_one_accepted(
             self) -> None:
         """Rule C of the proof-order refusal (2026-11-01; owner: "Do we need to do the second proof check? Propose and
