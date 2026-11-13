@@ -223,6 +223,23 @@ class RefusalTests(CliRun):
         self.assertEqual(missing.returncode, 2)
         self.assertFalse((self.base / "absent").exists())
 
+    def test_text_with_a_byte_that_is_not_utf8_is_refused_and_writes_nothing(self) -> None:
+        # An undecodable byte in --text reaches the writer as a lone surrogate, which cannot be encoded: the verb used to
+        # end in a traceback (exit 1) while the same bytes in a --file were refused cleanly.
+        before = snapshot(self.run)
+        refused = self.cli("note", "--text", os.fsdecode(b"caf\xe9 is one byte"))
+        self.assertEqual(refused.returncode, 2, refused.stdout + refused.stderr)
+        self.assertIn("ShipLoop note: the note holds a byte that is not UTF-8 text", refused.stderr)
+        self.assertIn("nothing was written", refused.stderr)
+        self.assertNotIn("Traceback", refused.stderr)
+        self.assertEqual(snapshot(self.run), before)
+        bad_file = self.base / "note.txt"
+        bad_file.write_bytes(b"caf\xe9 is one byte")
+        from_file = self.cli("note", "--file", str(bad_file))
+        self.assertEqual(from_file.returncode, 2, from_file.stdout + from_file.stderr)
+        self.assertIn("the file is not UTF-8 text", from_file.stderr)
+        self.assertEqual(snapshot(self.run), before)
+
     def test_a_run_without_notes_writes_no_note_file(self) -> None:
         self.ok("next")
         self.assertFalse((self.run / owner_notes.DIR).exists())
