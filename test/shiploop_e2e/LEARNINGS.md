@@ -8814,3 +8814,31 @@ A fresh final **Astra/high review passed code, errors, comments, tombstones and 
 Scheduling preserves all existing coverage and 204 suite commands/groups. The recovery estimate uses the existing duration/provenance store: 24 seconds from one 23.188-second concurrent local observation, not observed Linux CI time or claimed pipeline acceleration. No new workflow stage, blanket retry, cleanup-timing theory, prompt adoption, universal recovery orchestrator or generic delivery-performance improvement follows. Removed execution-worktree recovery remains unsupported. Package generation, exact-head CI and main publication are pending at this journal commit.
 
 Evidence root: `/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/reusable-recovery-20261112T2205`. See [parent local verification](/Users/dadleet/.codex/visualizations/2026/11/05/01a1ac0a-fb4a-7e03-a067-8e3fb25da50e/reusable-recovery-20261112T2205/local-validation-parent.json). Retain `adversarial-astra-02`, both Improve directories, `final-review-astra-01`, `final-bank-sol-medium-01` and `environment-correction-sol-medium-01`, including failed attempts, baseline-control setup and raw execution logs.
+
+## 2026-11-12 — Step-plan round 2 (A1, A2a, D): its two live rounds, journaled when it shipped
+
+The round 2 session (branch `stepplan2-cf7d87`, 2026-11-01) ran two live rounds. It planned this entry ("The LEARNINGS
+entry follows once the review workflow's findings are dealt with", ed81084c6be0fcfdb51b3616bb0a841083ef0b60) and never
+wrote it, and the branch never reached main. On 2026-11-12 the owner answered "Rebase and ship". It landed by merge
+01c307a98e52a0e7062048cc695997b173700a6c, so the round's cited hashes stay valid.
+
+| Round | Tree | Result | Evidence |
+| --- | --- | --- | --- |
+| Release round | branch head 2651317f (A1 with `itertools.pairwise`, A2a, D) | 6 of 6 pass, 33 of 33 hidden checks; A1 never fired; no RED send-back; 5 of 6 crashed once on A1's 3.10-only call and retried on a newer Python | `docs/experiments/step-plan-round2-20261101/` "Release round results", `release_scores.jsonl`; `~/e2e-runs-sp/20261101/round2-release` |
+| Verification round | built at 56670dca (`skills/` equals fd6aaf19's: A1 with the Python 3.9 and false-refusal fixes, A2a, D) | 6 of 6 pass, 33 of 33 hidden checks (csv-report 5 × 3, shared-expenses 6 × 3); no `Traceback` in any session log; minutes csv-report 19.2, 13.6, 13.7, shared-expenses 30.3, 23.6, 16.7 | `~/e2e-runs-sp/20261101/round2-verify/*/result.json` and `*.log` |
+
+Both rounds ran Codex gpt-6.1-terra at xhigh with `--source checkout`, on shared-expenses s1 to s3 and csv-report s1 to s3.
+The verification round's registered predictions held: no CLI traceback, no form-1 implement send-back, no test-spec send-back
+for RED, and 33 of 33 hidden checks. Its two send-backs were counted, not ruled:
+- csv-report s3, test-spec: S1's Proof was the focused `python3 -m unittest -v test_report`. That is form 2, which reverted
+  A2b targeted, written as a module name that `item_scope.proof_order_refusal` does not read.
+- shared-expenses s1, test: TC_1 needs the HTTP server a later step builds.
+
+No live round ran these, which are covered by hermetic checks only:
+- 87913a53 (A1 reads a relative test path inside a quoted command string): its replay over 489 saved Proofs read 0
+  differently.
+- 59db1f10 (scenario oracle) and b6fcfa46 (write-ups).
+- The 2026-11-12 merge onto main, and its selector-test fix e76663ec.
+
+The quick tier passed on the merged tree (98 suites, 746.8 s, `--changed-from` 3d42222e). A line-by-line render of
+offline node-fix-bug against main changes step-plan by -20 characters (A2a) and test-spec by +54 (D), and nothing else.
