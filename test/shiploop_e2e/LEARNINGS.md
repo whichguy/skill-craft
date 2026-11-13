@@ -8874,3 +8874,43 @@ What this round does not show:
 Hermetic evidence on the same tree: the quick tier passed 46 of 46 (484.9 s, `--changed-from` 7ceaecf4). Fail-first
 records are in `docs/experiments/step-boundary-replan-20261112/`: `fix-forward-failfirst.txt` and
 `sol-fixes-failfirst.txt`. Sol's first review found four defects, fixed in 41f0b5ce. Its second found none material.
+
+## 2026-11-13 — Step-boundary replay, Q1 pilot: models keep the done steps exactly after a late send-back
+
+This is the open question the 2026-11-12 smoke round could not answer: no send-back happened there. The question is
+whether a model given the shipped fix-forward step-plan packet copies the done rows exactly and corrects the fault.
+
+Apparatus (E2E only): the stage suite's builder takes `seed_route` (f2df31f3). Two late send-backs were reconstructed
+from retained runs: p0 (stand-in-parser) and ticket-comments. Each carries:
+- the tree when S1 began;
+- the real planning fields and accepted results;
+- S1's committed change, split by kind;
+- the interrupted step's draft left uncommitted;
+- the recorded send-back.
+A script oracle is calibrated against the historical amendment and wrong variants (`docs/experiments/step-boundary-
+replay-20261113/calibration.txt`).
+
+| Measure (registered before any sample, d778b50a) | p0 | ticket-comments |
+| --- | --- | --- |
+| accepted done, stage-complete | 4 of 4 | 4 of 4 |
+| no fix-forward refusal before acceptance | 4 of 4 | 4 of 4 |
+| done rows exactly (oracle) | 4 of 4 | 4 of 4 |
+| fault corrected (oracle) | 4 of 4 | 4 of 4 |
+
+The runner was Codex gpt-6.1-terra at xhigh, `stages.py live --ref d778b50a`, about a minute a sample. 3 of the 4 p0
+samples met one unrelated refusal (`check_na` beside a new check row) and fixed it. A continuation of each sample's
+amendment through the route kept S1's commit, named S2 and accepted the frozen cases.
+
+What this round covers:
+- The build under test holds 67f0a329: the text-search classifier now honours quoting. That defect was found by Astra's
+  review of this design, on p0's exact command.
+- Step-plan ran live 8 times on that build. The classifier's refusal itself did not fire live: every p0 model moved the
+  search to `check` before submitting.
+- The fix is covered by fail-first tests and by calibration, where the original p0 plan is refused in the reconstructed
+  state.
+- The runner graded every sample "overshoot", an apparatus false positive from `seed_route`: the seed's own later-stage
+  rows. Fixed in the replay's results commit; the registered measures do not use it.
+
+Limits: two local cases with one done step each; the longer-prefix Salesforce cases are not run. Q2, the boundary
+question, is deferred. Evidence: `docs/experiments/step-boundary-replay-20261113/` (README results, scores,
+pilot-samples/, continuation output) and `~/e2e-runs-sp/20261113/replay-q1-pilot`.
