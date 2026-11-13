@@ -2956,6 +2956,7 @@ with socket.create_connection(("127.0.0.1", int(port))) as peer:
         self.assertIn("step S1's Proof did not pass", refusal)
         self.assertIn(self.PROOF + " -> exit 1", refusal)
         self.assertIn("    | FAILED (failures=1)", refusal)
+        self.assertIn(test_loop.REPEAT_LINE, refusal, "the refusal says what a repeat failure means (A2a)")
         first = store.read_record(self.run_dir / test_loop.step_proof_path(action, 1))
         self.assertEqual((first["passed"], first["action"], first["step"], first["command"], first["stage"]),
                          (False, action, "S1", self.PROOF, "implement"))

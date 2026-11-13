@@ -1696,8 +1696,18 @@ def step_proof(root: Path, state: Mapping[str, Any], work_item: str, action: str
     lines = ["ShipLoop step proof: " + headline + ". ShipLoop ran it from " + str(repo) + ":",
              "- " + row["command"] + " -> " + _explain(run, STEP_PROOF_STAGES[0]),
              *("    | " + line for line in tail),
-             "Full output: " + str(root / relative) + "."]
+             "Full output: " + str(root / relative) + ".",
+             *([REPEAT_LINE] if phase == "complete" else [])]
     return writes, "\n".join(lines), summary
+
+
+# The Proof-failure line for a Proof that passed in the model's own run (step-plan review §8 item 3, A2a: the step-plan
+# packet asks for a Proof safe to repeat; this says so where a repeat fails).  Fix forward keeps the done steps, so a
+# send-back that amends the Proof costs only this step (docs/shiploop-fix-forward-design-2026-11-12.md).
+REPEAT_LINE = ("If it passed when you ran it and fails in ShipLoop's run, it is not safe to repeat: it changes state that "
+               "its next run then finds (a create, assign or insert the target refuses twice). Make the work or the "
+               "Proof's own setup safe to repeat, or report send-back so the step plan amends this step's Proof; the "
+               "done steps stay done.")
 
 
 # ---------------------------------------------------------------- the base run (test stage, before the candidate run)
