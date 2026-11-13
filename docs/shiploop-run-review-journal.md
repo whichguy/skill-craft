@@ -907,7 +907,7 @@ Status: firm for the code, the review file and their tests. Local commits on bra
 no release, no E2E run, and no Artifact or ArtifactData call (the live page and its database are untouched; uploading
 the review and running the upgrade are the next publish). The template was not edited (R14 owns it).
 
-**The review** (`test/shiploop_e2e/evidence/codex-gpt-6-luna-1.16.1-battleship-20261003.review.json`, 69 documents,
+**The review** (`test/shiploop_e2e/evidence/luna1.review.json`, which this entry first cited as `codex-gpt-6-luna-1.16.1-battleship-20261003.review.json` until the file was renamed to the page's run key in 381190145c7fbf4d12f2d25921d39c19417e92a9; 69 documents,
 `--check` exit 0 with 7 warnings). It keeps the page's 39 saved findings and 16 saved options (titles, expectations and
 criteria unchanged; observed text only appended to, except o37, restated) and adds 4 findings and 9 options.
 

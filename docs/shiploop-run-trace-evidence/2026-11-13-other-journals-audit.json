@@ -1,0 +1,221 @@
+{
+  "date": "2026-11-13",
+  "question": "Owner, 'Yes, audit them': the journals other than trace.jsonl and skill-calls.jsonl, which the 2026-11-01 audit did not cover: the write-ahead save journal transaction.md, lint's pending-*.patch journal, the stored formats of timeline.json, progress-observer.json and callback-attempts, and the structure of the research journals under docs/.",
+  "method": "One session, direct reading of every writer and reader, two read-only scripts over real data, reproduction of each finding (a negative control for the catalog test), and git history for every citation judged missing. No multi-agent workflow and no independent adversarial review this time.",
+  "scripts": [
+    "2026-11-13-run-dir-survey.py",
+    "2026-11-13-journal-docs-check.py"
+  ],
+  "run_directory_survey": {
+    "state_md_files_found": 2636,
+    "runs_by_navigator_protocol": {
+      "1": 222,
+      "2": 117,
+      "3": 638,
+      "4": 1403
+    },
+    "protocol_4_runs_walked": 1403,
+    "files_walked": 345890,
+    "records_parsed_with_exactly_one_shiploop_state_fence": {
+      "state.md": 1403,
+      "results/": 10705,
+      "checks/": 1865,
+      "tests/*-verify": 2107,
+      "tests/*-base": 523,
+      "tests/*-step-proof": 721,
+      "tests/*-mutation": 521,
+      "lint/*.gate": 2522,
+      "lint/<action>.<n>": 1721,
+      "lint/<action>": 213,
+      "improve/*-bind.md": 3013,
+      "improve/*/receipt.md": 3015,
+      "expectations/": 467,
+      "decisions/": 5,
+      "owner-notes/N*.md": 1
+    },
+    "json_files_parsed": {
+      "timeline.json": 1228,
+      "progress-observer.json": 1179,
+      "loops/*-contract.json": 3057,
+      "loops/*-terminal.json": 2973,
+      "improve/*-bind-result.json": 2190,
+      "improve/*/terminal.json": 3015,
+      "run-starting-knowledge.json": 6,
+      "owner-notes/shown.json": 1
+    },
+    "callback_attempts_integer_files": 456,
+    "failures_in_engine_records": 0,
+    "leftovers": {
+      "transaction.md": 0,
+      "pending-*.patch": 0,
+      "atomic-write temp files": 0
+    },
+    "shape_checks": "every timeline.json is an object with exactly started (string) and accepted (object of strings); every progress-observer.json names schema shiploop-progress-observer/v1",
+    "not_failures": "packets (34 files) and one improve checks file quote the fence text without being records; lint logs (1,538) are byte-exact tool output by design; parent-recovery.json (8) belongs to an E2E experiment, not the engine",
+    "files_the_code_no_longer_writes_seen_in_old_runs": [
+      "chains/ (retired in ad30aa1c)",
+      "tests/*-contract.json",
+      "tests/*-terminal.json",
+      "tests/*-latest.json",
+      "lint/*-inventory.md",
+      "scope-start.json",
+      "current-spec.md"
+    ]
+  },
+  "catalog_gaps": {
+    "before": [
+      ".lock",
+      "transaction.md",
+      "context-index.md",
+      "reference.md",
+      "scratch/",
+      "backchain/",
+      "run-baseline.txt",
+      "run-starting-knowledge.json",
+      "follow-on-request.md",
+      "improve/<action>-bind-result.json",
+      "loops/<action>-send-back-open",
+      "inbox/<action>-improve-notes.md"
+    ],
+    "after": [],
+    "test": "test/shiploop-rehydration.test.py: the hard-coded list that excused the first seven names is gone, and an assertion fails when an entry of a populated run is not in references/state-files.md. Negative control: against the old catalog it fails naming ['.lock', 'context-index.md', 'reference.md', 'scratch/'], against the new one it passes (17 OK)."
+  },
+  "failure_probes": {
+    "setup": "scratch run made by `shiploop init`, then each file damaged and a verb run",
+    "unparsable transaction.md": "next refuses (exit 2) with the fence error naming the file; the message is the generic record text, and the recovery command it prints refuses the same way",
+    "transaction.md with another schema version": "next refuses (exit 2): 'transaction journal has an unsupported schema'",
+    "damaged timeline.json": "readers treat it as absent (navigator and trace read {}; progress view warns 'Timeline is missing usable timestamps'); the next save recreates it and stamps every accepted action at that moment",
+    "non-integer callback-attempts": "read as 0 (hook-status progress '0.0.0')",
+    "damaged progress-observer.json": "`view --status` prints 'ShipLoop progress unavailable' and exits 2; the automatic start prints 'observer unavailable' and the run is unaffected",
+    "note --text with a non-UTF-8 byte": "traceback, exit 1 (fixed: refused, exit 2); init --prompt and halt --reason already refused with exit 2 and the encoder's message"
+  },
+  "lint_pending_journal": {
+    "checked": "unified() output reverts with `git apply -R --check` for plain text, a missing final newline, CRLF, a form feed and U+2028 in the text, and a path with a space; lines are split on newline only; consumed and adopted journals match references/lint-catalog.md",
+    "not_changed": "_write_private truncates then writes (no temp file, no fsync); a kill between the two leaves an empty journal that the next pass reports as interrupted, before any product file was touched. No run hit it."
+  },
+  "journal_docs": {
+    "files_checked": 70,
+    "before": {
+      "broken-link": 24,
+      "table-column-mismatch": 3,
+      "h1-count": 1,
+      "missing-path": 165,
+      "missing-glob": 5,
+      "pathline-missing-file": 3,
+      "pathline-out-of-range": 3
+    },
+    "after": {
+      "broken-link": 0,
+      "table-column-mismatch": 0,
+      "h1-count": 0,
+      "missing-path": 162,
+      "missing-glob": 5,
+      "pathline-missing-file": 3,
+      "pathline-out-of-range": 3
+    },
+    "fixed": {
+      "unescaped pipes inside code spans split a table cell": [
+        "docs/record-register-2026-10-07.md row 'Loop progress'",
+        "docs/shiploop-batch-1011n-g2-reorientation-journal-2026-10-09.md correction 14",
+        "test/shiploop_e2e/SPEC.md the `packets` row"
+      ],
+      "seven H1 headings and fragments nested under the wrong level": "docs/shiploop-efficiency-journal-2026-10-16.md: 41 headings re-levelled under their unit headings",
+      "machine-specific absolute links": "docs/ask-agent-managed-worktrees-results-2026-09-20.md (6 relative links, 6 code spans for evidence outside the repository), docs/shiploop-platform-guidance-research-and-results-2026-09-18.md (11 relative links, 1 code span for a removed file)",
+      "stale rename": "docs/shiploop-run-review-journal.md cited ...battleship-20261003.review.json, renamed to luna1.review.json in 381190145c7fbf4d12f2d25921d39c19417e92a9",
+      "never committed": "docs/e2e-salesforce-chess-journal.md cites docs/e2e-salesforce-chess-evidence/review-1-findings.md, which no commit ever held: annotated"
+    },
+    "remaining_missing_paths_classified": {
+      "occurrences_total": 162,
+      "subject product docs/shiploop (and docs/api)": {
+        "occurrences": 52,
+        "distinct": 11
+      },
+      "pending change notes the release consumed (changes/...)": {
+        "occurrences": 36,
+        "distinct": 33
+      },
+      "skill-relative scripts/ shorthand": {
+        "occurrences": 29,
+        "distinct": 18
+      },
+      "E2E subject tests, placeholders and similar": {
+        "occurrences": 27,
+        "distinct": 19
+      },
+      "run ids and old plugin directories": {
+        "occurrences": 8,
+        "distinct": 7
+      },
+      "once in this repository, since removed or renamed": {
+        "occurrences": 8,
+        "distinct": 3,
+        "paths": [
+          "test/shiploop-revise.test.py (c6c82b16)",
+          "test/shiploop-retire.test.py (589bc03e)",
+          "skills/shiploop/scripts/shiploop_navigator_v3_prompts.py (d0b2b0be)"
+        ]
+      },
+      "evidence no commit ever held": [
+        "docs/e2e-salesforce-chess-evidence/review-1-findings.md (annotated)",
+        "docs/experiments/batch-1007-live-20261007/records-single-source.json (its entry says the script was not kept)"
+      ],
+      "stale path citations inside recorded judge output (LEARNINGS.md)": "left: they quote what a judge recorded about an earlier file"
+    },
+    "hash_citations": {
+      "distinct_tokens_on_origin_main": 1343,
+      "other_git_objects": 41,
+      "only_on_a_local_ref": 23,
+      "not_in_repository": 229,
+      "note": "not_in_repository includes action-id and sha256 fragments that are not commits; the 23 are the durability risk (the SPEC cites two: 42bfd829302d7844dca81a1112f201744df3ac01 and 2736d7cf063a8c876cb317e26a852ff2ac6f3548, both only on local codex branches, as reported 2026-10-31)"
+    },
+    "out_of_repository_evidence": {
+      "documents": 30,
+      "citations": 224,
+      "missing_on_this_machine": "1 distinct path (an old installed copy, skill-craft-latest/skills/ask-agent)",
+      "largest": [
+        "test/shiploop_e2e/LEARNINGS.md 99",
+        "docs/shiploop-template-experiments-journal.md 43"
+      ]
+    }
+  },
+  "not_changed": [
+    "a lone surrogate in a record other than a note (init --prompt, halt --reason, a model's unpaired \\ud83d): store.dumps succeeds and the write raises UnicodeEncodeError; the protocol prints a refusal naming a position in the record and leaves no partial file; a StorageError (a RuntimeError) would escape the except-ValueError sites; no real run had one",
+    "shiploop_knowledge_home keeps a HEAD-only 'legacy' baseline path (47dab8fc51ec96db76503fd719b4eddd74751564): against the one-supported-version rule; the owner decides",
+    "callback-attempts is written with write_text and read without the lock: a torn read gives 0, which only changes the progress string",
+    "the 23 uncommitted-to-main hashes and the out-of-repository evidence: other sessions' branches and a large export job; reported, not acted on"
+  ],
+  "code_fixes": [
+    {
+      "file": "skills/shiploop/scripts/shiploop_owner_notes.py",
+      "what": "clean() refuses a lone surrogate (an undecodable command-line byte) with a plain message; `shiploop note --text $'caf\\xe9'` ended in a UnicodeEncodeError traceback, exit 1, before",
+      "test": "test/shiploop-owner-notes.test.py RefusalTests.test_text_with_a_byte_that_is_not_utf8_is_refused_and_writes_nothing (fails with the traceback before the change, passes after; suite 17 OK)"
+    },
+    {
+      "file": "test/shiploop-rehydration.test.py",
+      "what": "the hard-coded list that excused catalog gaps is removed; an assertion fails when an entry of a populated run is not in references/state-files.md; an unused import removed"
+    }
+  ],
+  "checks": {
+    "suites_run_alone": {
+      "shiploop-rehydration": 17,
+      "shiploop-owner-notes": 17,
+      "shiploop-efficiency-journal": 12,
+      "shiploop-navigator-contract": 149,
+      "shiploop-e2e-analysis": 298,
+      "shiploop-e2e-resources": 111,
+      "shiploop-e2e-stage-build": 54,
+      "shiploop-e2e-run-trace": 28,
+      "shiploop-e2e-status-card": 20,
+      "shiploop-keepalive": 86,
+      "shiploop-skill-calls": 35,
+      "shiploop-trace": 29,
+      "shiploop-status-display": 16,
+      "shiploop-progress": 26,
+      "shiploop-packet-bounds": 21,
+      "shiploop-domain-words": 5,
+      "shiploop-retired-terms": 6
+    },
+    "all_ok": true,
+    "not_run_locally": "the quick tier and the E2E family: another session's live Codex run was on the machine; CI runs them"
+  }
+}

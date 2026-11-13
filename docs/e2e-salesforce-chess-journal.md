@@ -126,7 +126,7 @@ detector that compares the transcript's `sf` commands with the guard's log. Evid
 
 ### F5. The four-lens review (firm as a record; dispositions are in the evidence folder)
 
-42 findings: 27 confirmed, 12 contested, 3 refuted (89 agents; result summarised in `docs/e2e-salesforce-chess-evidence/review-1-findings.md`).
+42 findings: 27 confirmed, 12 contested, 3 refuted (89 agents; result summarised in `docs/e2e-salesforce-chess-evidence/review-1-findings.md`). (Audit, 2026-11-13: that summary file was never committed and is not on this machine, so these counts stand only as recorded here.)
 Beyond F4 the confirmed ones that matter: `--flags-dir` lets flag values reach the real CLI after the policy ran; deploy contents and the
 prefix were never enforced; cleanup and its "verified" message covered only two metadata types and names only; the printed by-hand cleanup
 command expanded `$E2E_CHECKS` empty; a Ctrl-C path could clean while the host was alive; `--grade-only` on a running trial could clean it;

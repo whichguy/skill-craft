@@ -106,7 +106,7 @@ Live round still owed: whether a Claude model refused by the gate follows the na
 
 ### U1
 
-# Journal row: U1 base and tranche-1 landing (2026-10-17)
+#### Journal row: U1 base and tranche-1 landing (2026-10-17)
 
 **Consumer.** The integrator who folds this row into `docs/shiploop-efficiency-journal-2026-10-16.md`, and every later unit that needs the
 landed base (U2 merges the stop branch onto it; U7 tightens the head table; U5 reads the evidence copy). **Status.** firm for the counts, the
@@ -115,7 +115,7 @@ merge and the green suites; interim for the head table (one offline case, `node-
 **Fixture.** offline `node-fix-bug` (`test/shiploop_e2e/step_cases.json`), routes inline and ask-agent. **Run-dir length.** 83 (reference) and 163.
 **Unit.** U1. **Evidence.** `docs/experiments/shiploop-eff-evidence-20261017/` (README there maps every `SP/` input; `u1/` holds this unit's numbers).
 
-## What landed on INT (all local; nothing pushed, released or tagged)
+##### What landed on INT (all local; nothing pushed, released or tagged)
 
 | Step | Commit | Note |
 |---|---|---|
@@ -130,7 +130,7 @@ merge and the green suites; interim for the head table (one offline case, `node-
 The run-2 folder `SP/sfchess/live2` was copied with `rsync -a` to `/Users/dadleet/src-archive/2026-10-17/shiploop-live2-run2/`
 (`du -sk` 173,172 source, 173,128 copy: 0.03% apart; `diff -rq` empty).
 
-## The unreconciled merge (measured on INT before the reconciliation)
+##### The unreconciled merge (measured on INT before the reconciliation)
 
 | Suite | Failures | Cause |
 |---|---|---|
@@ -141,7 +141,7 @@ The run-2 folder `SP/sfchess/live2` was copied with `rsync -a` to `/Users/dadlee
 
 These are the plan's counts (2, 68, 1, 1) reproduced on a fresh merge. Raw outputs: `u1/unreconciled-summary.txt` in the evidence copy.
 
-## The reconciliation (no obligation lowered)
+##### The reconciliation (no obligation lowered)
 
 | Change | Why | Fail-first |
 |---|---|---|
@@ -160,7 +160,7 @@ rewrites the skill root (to 63) and the bare `shiploop` (to 96 characters) by ar
 characters with a 19-character temp dir; under an unpinnable 235-character temp dir the values are lower (the ceiling still holds) and the existing
 Improve packet ceiling (3,000, raw) fails by 150 to 320 characters, a path dependence that was there before (`IMPROVE_CEILING` in `shiploop-packet-recut`).
 
-## Head table: printed head and whole text per stage, reference install (root 63, CLI 96)
+##### Head table: printed head and whole text per stage, reference install (root 63, CLI 96)
 
 The first four columns are the table's values (`head_table.json` carries 83). The last two are `fv_heads.py` on the INT tree (raw: bare CLI, root path 72 characters,
 so each is below the reference by about 260 for a head that carries the CLI three times); at 163 `fv_heads.py` pads the temp dir to 128 characters.
@@ -197,7 +197,7 @@ ask-agent `step-plan` 23,760 and ask-agent `carry-forward` 19,520 (within 480 of
 `validate-existing` inline at 163 is a head of 11,756 on main and prints whole (15,886 raw) on this tree, because its whole text fell under `PRINT_LIMIT`; `test-spec` (15,445 raw at 163,
 inline) and `document` (14,816) sit under the same cliff, 555 and 1,184 characters below it.
 
-## Exit items
+##### Exit items
 
 | # | Item | Result |
 |---|---|---|
@@ -206,7 +206,7 @@ inline) and `document` (14,816) sit under the same cliff, 555 and 1,184 characte
 | 3 | bundle verifies; live2 copy within 1%; `git worktree list` shows neither `packet-order-255e57` nor `m16/m`; evidence directory committed and under 3,072 KB | live2: 173,128 vs 173,172 KB; both worktrees removed after `git status --porcelain` was empty and `git merge-base --is-ancestor <head> INT` exited 0 (the branch ref `feat/packet-essentials-first-255e57` is kept); evidence 2.4 MB; bundle `/Users/dadleet/src-archive/2026-10-17/shiploop-eff-int-c5f79b.bundle`, made from the commit after this row (INT, the three feature branches, the docs branch) and checked with `git bundle verify` (result in the unit report) |
 | 4 | the grep finds nothing; the head table is journaled at both lengths, inline and ask-agent | grep exit 1 (no match); tables above |
 
-## G-SUITES on INT (`SHIPLOOP_PROGRESS=off python3 -B test/shiploop-<t>.test.py`, one run each)
+##### G-SUITES on INT (`SHIPLOOP_PROGRESS=off python3 -B test/shiploop-<t>.test.py`, one run each)
 
 | suite | tests | result |
 |---|---|---|
@@ -244,7 +244,7 @@ Also run (footprint, not in G-SUITES): `shiploop-stage-spec` 10, `shiploop-plann
 `installed-skill-invocation`, `improve-runtime` and `until-loop-vendor` (nothing under `skills/improve/runtime/**` changed; U2 runs them); any live host (offline unit).
 No suite was run on unchanged main (memory testing-scope-to-change).
 
-## Key learning
+##### Key learning
 
 1. Merging the three tranche-1 branches is textually trivial; the cost is four pinned assertions that encoded a layout (an indent, a line number, a constant). Each was fixed by
    naming the thing the assertion meant (the argument block by its markers, the callback by its label, a head by its journaled value), not by loosening it.
@@ -253,7 +253,7 @@ No suite was run on unchanged main (memory testing-scope-to-change).
 
 ### U20
 
-# Journal row: U20, OpenCode marker and host table test
+#### Journal row: U20, OpenCode marker and host table test
 
 Consumer: the integrator, who folds this row into `docs/shiploop-efficiency-journal-2026-10-16.md` when U20 merges into INT.
 
@@ -267,14 +267,14 @@ Consumer: the integrator, who folds this row into `docs/shiploop-efficiency-jour
 | Run-dir length | not applicable (no packet, no render) |
 | Finding acted on | D-24 (R6) in the plan; open item in `docs/shiploop-skill-call-hook-journal-2026-10-16.md` ("an OpenCode marker is not known ... (open)") |
 
-## What changed
+##### What changed
 
 - `skills/shiploop/scripts/shiploop_keepalive.py`: `NESTED_NON_CLAUDE` gains `"OPENCODE"`; the comment names Grok's pair (`SESSION_ENV`, read first) and the OpenCode fact.
 - `test/shiploop-skill-calls.test.py`: the marker loop of `test_codex_or_cursor_started_from_a_bound_claude_shell_is_not_gated` gains `OPENCODE`; a table `NESTED_HOST_MARKERS` plus `test_every_non_claude_host_has_a_nested_marker_that_beats_an_inherited_claude_session`, which derives the host list from `keepalive.HOSTS`, requires the table to cover exactly the non-Claude hosts, and requires `skill_gate` to refuse to enforce for each marker over an inherited Claude session (control: the inherited Claude environment alone enforces).
 - `changes/shiploop/opencode-nested-marker.md` (`bump: patch`; base `main` has no pending note, so no kind to match).
 - `docs/shiploop-skill-call-hook-journal-2026-10-16.md`: the "(open)" OpenCode claim marked superseded, dated, with the reason (edited, not deleted).
 
-## Exit items
+##### Exit items
 
 | # | Item | Result |
 |---|---|---|
@@ -282,7 +282,7 @@ Consumer: the integrator, who folds this row into `docs/shiploop-efficiency-jour
 | 2 | with `OPENCODE=1` and the element removed the test fails (recorded on main) | met: source unchanged from main with the new tests, exit 1, 2 failures (`marker='OPENCODE'` in the existing loop; `host='opencode'` in the new test), both `AssertionError: True is not false` |
 | 3 | G-NOTE | met: change note present; this row; the superseded claim marked in the skill-call hook journal |
 
-## Evidence
+##### Evidence
 
 - Fail-first (tests added, source untouched): `Ran 31 tests`, `FAILED (failures=2)`.
 - Mutations of the finished source (each restored byte for byte, `cmp` clean): dropping `CURSOR_PLUGIN_ROOT` from the tuple fails both tests (`marker='CURSOR_PLUGIN_ROOT'`, `host='cursor'`); adding a sixth host `newhost` to `keepalive.HOSTS` fails the new test at the table comparison (`['codex', 'cursor', 'grok', 'newhost', 'opencode'] != [...]`); removing the Grok row from `SESSION_ENV` fails the new test at `host='grok'`.
@@ -290,14 +290,14 @@ Consumer: the integrator, who folds this row into `docs/shiploop-efficiency-jour
 - Suites run: `bash test/run_suites.py --group quick --changed-from main` (the selection for `shiploop_keepalive.py` and the doc edit: 18 suites, including `shiploop-keepalive`, `shiploop-skill-calls`, `shiploop-stage-spec`, `shiploop-status-display`, `shiploop-navigator-contract`, `skill-frontmatter`, `test-groups`, `ci-policy`) exit 0; `shiploop-actual-improve-cli` (a caller of the gate through `complete`) 68 tests OK, run alone.
 - Suites skipped, with reason: G-SUITES whole (only U1, U2 and U30 run it); the pin suites for packet text (no packet text or order changed); `shiploop-packet-obligations` and the efficiency-journal test (added by U5, not in this base); full tier (never locally).
 
-## Learning
+##### Learning
 
 The gate keys on environment markers, so every host the installer knows needs one that wins over the inherited Claude session; the table was open for OpenCode because nothing tied the host list to the markers. The structural test ties them: adding a host to `keepalive.HOSTS` now fails until its nested marker is recorded and read.
 Risk accepted, same direction as Codex and Cursor: a Claude Code session started from an OpenCode shell inherits `OPENCODE=1` and is not gated (no enforcement, never a refusal).
 
 ### U27
 
-# Journal row: U27 keep-on-cap rule and the resume line
+#### Journal row: U27 keep-on-cap rule and the resume line
 
 Consumer: the integrator, who folds this row into `docs/shiploop-efficiency-journal-2026-10-16.md` when U27 merges into INT; the owner
 reads the result in the journal and in `test/shiploop_e2e/README.md` ("Keeping what a run made").
@@ -312,7 +312,7 @@ reads the result in the journal and in `test/shiploop_e2e/README.md` ("Keeping w
 | Run-dir length | not applicable (no packet text, no render) |
 | Evidence | `SP/eff2/u27-*.txt` (fail-first and green runs), `SP/eff2/u27-source.patch` (the source diff used for the fail-first), `SP/eff2/u27-receipts/quick/receipt.json` (G-QUICK receipt); counts below |
 
-## What changed
+##### What changed
 
 - `test/shiploop_e2e/run.py`: `keep_refusal` split into `keep_blocker` (a person's stop, stop file, signal, `process.status` stopped,
   an invalid trial, a failed earlier cleanup: never kept) and the finished-delivery refusals; new `keep_decision` returns
@@ -330,7 +330,7 @@ reads the result in the journal and in `test/shiploop_e2e/README.md` ("Keeping w
   bullet and the statement that a kept app makes the case's preflight refuse the next run until the printed removal command runs or
   another prefix is used.
 
-## Exit items
+##### Exit items
 
 | # | Item | Result |
 |---|---|---|
@@ -349,14 +349,14 @@ Fail-first (source diff of `run.py` and `cases.json` reverted, tests kept): 12 f
 old README. The tests that pass without the change are regression pins of the unchanged behaviour (a finished keep, no flag cleans, a
 stop or an invalid trial cleans, a crash cleans, a resume after a cleaned ending runs the preflight).
 
-## Suites run and skipped
+##### Suites run and skipped
 
 - Run: the three named suites (inside the quick group), `bash test/run-all.sh --group quick --changed-from main` (29 suites), under
   `env -i HOME=<empty dir> PATH=<python>:/usr/bin:/bin:/usr/sbin:/sbin` so no real `sf` resolves.
 - Skipped: the packet pin suites of G-FOOT (packet-recut, step-packets, packet-completeness, reference, navigator-contract,
   delegation, loops, test-loop): no packet text, order or generator file changed. The release suites: no `skills/` change.
 
-## Key learning
+##### Key learning
 
 The default contract kept only a finished delivery, so a run that hit its session cap with a working app removed the app: run 2
 had `deployed`, `tests` and `rules` passing at the 7,200 s cap and its cleanup reset the org. The fix has to cover two places, not
@@ -366,7 +366,7 @@ it is refused at load.
 
 ### U28
 
-## 2026-10-17 U28 Salesforce follow-ups (parts 1 to 3, offline)
+#### 2026-10-17 U28 Salesforce follow-ups (parts 1 to 3, offline)
 
 - Status: firm for parts 1 and 2 (tests only, one guard line); interim for part 3 (the card's `--result-format tap` claim is
   unverified until part 4 reads one real TAP output; the human-table half is measured from the recorded live run).
@@ -380,7 +380,7 @@ it is refused at load.
 - Evidence: this branch; fail-first outputs in the session scratchpad (`u28-cr1-failfirst.txt`, `u28-gitkeep-failfirst.txt`,
   `u28-ff-counts.txt`, `u28-ff-guid.txt`, `u28-mut-tap.txt`).
 
-### Exit items
+##### Exit items
 
 | Exit item | Result |
 |---|---|
@@ -391,7 +391,7 @@ it is refused at load.
 | `shiploop-reference-routing` exits 0 | met (4 tests OK). |
 | G-STD | G-FOOT met (suites below), G-NOTE met (`changes/shiploop/salesforce-reporter-card.md`, bump patch); G-LEDGER and G-REVIEW do not apply (U5 not built; the unit does not name G-REVIEW). |
 
-### Suites
+##### Suites
 
 Run, all exit 0, under `env -i`, an empty HOME and a PATH with no `sf` or `sfdx`: `shiploop-e2e-sf-guard` 92, `shiploop-test-counts` 43,
 `shiploop-guidance` 63, `shiploop-test-loop` 123, `shiploop-actual-improve-cli` 70, `shiploop-reference-routing` 4, `shiploop-reference` 4,
@@ -400,7 +400,7 @@ Run, all exit 0, under `env -i`, an empty HOME and a PATH with no `sf` or `sfdx`
 full tier (the footprint is a guard line, a refusal sentence, a card paragraph and tests; G-QUICK is U27's exit); G-RENDER (no packet
 text or order changed).
 
-### Key learning
+##### Key learning
 
 - Part 3 is grounded in a real sample. In the recorded Salesforce run the model followed the case prompt and ran
   `sf apex run test ... --result-format human`; every row names the test and puts `Pass` after the name, which no pass mark of
@@ -421,7 +421,7 @@ fixes), da9e2e75 (base).
 
 ### U3
 
-# Journal row: U3, seeded slices run the real gates (2026-10-17)
+#### Journal row: U3, seeded slices run the real gates (2026-10-17)
 
 Consumer: the integrator, who folds this row into `docs/shiploop-efficiency-journal-2026-10-16.md`, and the session that re-takes the slice baselines (U6 part 2). Read it before the A/A pair.
 
@@ -435,20 +435,20 @@ Consumer: the integrator, who folds this row into `docs/shiploop-efficiency-jour
 | Unit | U3 (plan rev 6, section 5.1; findings X-2, TD-5, SP-7a) |
 | Evidence | `docs/experiments/shiploop-eff-journal-rows/U3-evidence/` (`failfirst.txt`, `ab-synthetic.txt`, `ab-node-fix-bug.txt`), the tests named below |
 
-## What changed
+##### What changed
 
 - `test/shiploop_e2e/run.py` `SEED_SCRIPT`: when the plan's item enters its inner loop the seed writes `lint/items/<item>.md` with `shiploop_lint.capture_base`, in the same `nav.save` transaction as the state (what `lint.on_transition` does on a real run). `seeded.item_bases` names the items.
 - `run.seed_run` (`seed_home`): commits a neutral `docs/shiploop/spec.md` (`R-1` = the request) and `environment.md` (`## Commands` = the case's checks) into the seed repository before the baseline commit, so the worktree starts clean and the base already holds them. `--seed-without-home` (slice.py, and run.py with `--seed-at`) is the flagged no-home variant; the item base is recorded either way. `seeded.home` names the files written.
 - `fidelity.gates_not_exercised` and `packets.gates_line`: the test stage's base-run and mutation-check records that say `skipped` are named in the fidelity validation line (only when there are some, so the five-line cap and the pinned lines hold) and in the packet report (always: `none`, the skipped gates, or `not measured` when the test stage was not reached).
 
-## Exit items (all met; the commands and counts)
+##### Exit items (all met; the commands and counts)
 
 1. `python3 -B test/shiploop-e2e-slice.test.py` exits 0 with new tests: after seeding, `lint/items/W1.md` exists and `docs/shiploop/spec.md` holds `R-1` (`SeedTests`); it fails when the write is removed (`failfirst.txt` section 1: 6 failures of 12 tests; section 2, the home write removed: 2 failures).
 2. `shiploop-e2e-fidelity` and the e2e family (packet-anatomy included) exit 0; the line is asserted in `ValidationTest` (fidelity) and `GatesNotExercisedLineTests` (packet report). They fail on the base source (`failfirst.txt` section 3: 4 and 4). `packet_anatomy.py` measures packet text, not run records, so the packets.py report is where the line is asserted.
 3. G-QUICK: `bash test/run-all.sh --group quick --changed-from main` exit 0 (29 suites, 1,996 tests, the whole e2e family included: `shiploop-e2e-slice` 41 tests, 13 new; `shiploop-e2e-fidelity` 133, 4 new; `shiploop-e2e-packet-anatomy` 18) and `--group shiploop-composition` exit 0 (16 suites, 371 tests), both on the committed tree `608ceb6c`, under `env -i` with a PATH that has no `sf`.
 4. `No-Change-Note:` trailer: no `skills/` or `agents/` file changed.
 
-## The measurement behind it (offline, no model)
+##### The measurement behind it (offline, no model)
 
 One drive of a harness-seeded item through the real `complete` to carry-forward, once as main's seed left it and once with this unit's seed (`ab-synthetic.txt`, and the permanent test `SeededRunsRunTheGatesTests`):
 
@@ -461,18 +461,18 @@ One drive of a harness-seeded item through the real `complete` to carry-forward,
 
 The real case on its own fixture (`ab-node-fix-bug.txt`, and the test `SeededCaseFixtureRunsTheGatesTests`): a correct `paginate()` fix is accepted by the real gates; the base run is red for the new test and counted for the suite; the mutation check says `no mutants: no changed product line matched an operator` (`Math.ceil(items.length / size)` has no operator candidate: the TD-4 gap, now visible in the line instead of hidden behind a skip); `feat: W1 Fix paginate() dropping the last partial page` is committed. The stop condition "the real gates refuse the fixtures" did not occur, so no fixture was changed.
 
-## Key learning
+##### Key learning
 
 - Every earlier slice baseline (`baselines.jsonl`, the A/A inputs, run 2's Salesforce row if it was seeded) covers four gates fewer than it claims; U6 part 2 re-takes them (plan N2). Offline `packets.py --offline` still renders without a base or a home, so its packet sizes differ from a live seeded slice by what the quoted `spec.md` and `environment.md` add (a few hundred characters at test-spec and later stages: not measured).
 - **A latent false refusal in the mutation check, found while testing (not fixed here).** The check writes each mutant into a temporary copy of the candidate right after the unmutated run in the same copy. When the test command writes bytecode, a same-size one-token mutant (`2` to `3`) written within the same second as the compiled file's recorded source time loads the stale `.pyc`, so every mutant "survives" and the gate refuses "the tests catch none of these changes". Measured: the same synthetic Python item, driven through the real `complete`, passes with `PYTHONDONTWRITEBYTECODE=1` (3 of 3 mutants killed) and is refused under `env -i` without it (3 of 3 survive); with `python3 -B` and an ignored `__pycache__` in the fixture it passes either way. It did not show on this machine's runs because the owner's environment sets `PYTHONDONTWRITEBYTECODE=1` (also noted in `docs/experiments/batch-1008-design-audit-20261008/design-audit.json`); on a machine without it, a Python item whose repository does not ignore `__pycache__` is wrongly refused until the item goes back to its step plan. Per KISS it is recorded, not fixed in this unit (U3 only makes seeded slices reach the gate); a fix is one line in `shiploop_mutation._check` (`PYTHONDONTWRITEBYTECODE=1` in the `environment` of the mutant runs) and the integrator decides.
 - The test that ties the unit to the engine borrows `TestLoopTests` from `test/shiploop-test-loop.test.py` (as `WorktreeItemCommitTests` already does in that file): a change to that driver's helper names will break `RealCompleteDriver` in the slice suite.
 
-## Suites run and skipped
+##### Suites run and skipped
 
 Run (all under `env -i HOME=<empty dir> PATH=<dir with only python3 and node>:/usr/bin:/bin:/usr/sbin:/sbin`, so no real `sf` resolves, `SHIPLOOP_PROGRESS=off`): the 29 suites `--group quick --changed-from main` selects (the 13 e2e suites, `test-groups`, `ci-policy`, `skill-frontmatter`, and the ShipLoop suites that match the changed paths) and the 16 of `--group shiploop-composition`; the seed, fidelity and slice suites alone while iterating; the fail-first runs in `U3-evidence/failfirst.txt`.
 Skipped: G-SUITES whole (U1/U2/U30 only), the packet pin suites by name (`packet-recut`, `step-packets`, `packet-completeness`, `reference`, `delegation`, `loops`, `test-loop` are not selected: no packet text, order or `skills/` file changed; `delegation` ran inside the composition group; `test-loop` did not run, the slice suite only loads its driver), the full tier. The first quick run had one failure, my own end-to-end test on a machine without `PYTHONDONTWRITEBYTECODE` (the bytecode finding above); the test was fixed, not the gate, and the whole group re-run.
 
-## Results of the final G-QUICK run (commit `608ceb6c`)
+##### Results of the final G-QUICK run (commit `608ceb6c`)
 
 | Command | Result |
 |---|---|
@@ -483,7 +483,7 @@ Not measured: a live slice (no model ran); the size effect of the seeded `spec.m
 
 ### u4
 
-# U4 journal row: several clears per slice, and the resume-prompt condition
+#### U4 journal row: several clears per slice, and the resume-prompt condition
 
 Consumer: the integrator, who folds this row into `docs/shiploop-efficiency-journal-2026-10-16.md`, and U5/U6/U31, which read `clear.json` and `slice-result.json` for the S-6 battery.
 
@@ -497,14 +497,14 @@ Consumer: the integrator, who folds this row into `docs/shiploop-efficiency-jour
 | Run-dir length | not applicable: no packet text, order or head changed (G-RENDER not applicable) |
 | Evidence | `test/shiploop-e2e-slice.test.py` (45 tests; new classes `ClearSpecTests`, `ResumePromptTests`, `ClearRecordTests`, `ClearThroughMainTests`, plus new cases in `ClearMetricTests`, `ClearTriggerTests`, `ClearProbeTests`); the README section "The clear probe (S-6)" in `test/shiploop_e2e/README.md` |
 
-## What changed (all under `test/`)
+##### What changed (all under `test/`)
 
 - `clear.py`: `parse_spec` takes the repeated flag and returns a list (`label` names a position); `trigger` gets the Improve position (`improve`, `improve:inside`) and `since` (an inside position counts only the packet and calls after the earlier clear's stop line); `redone` gets `until_line`, so a redo is counted against the clear it follows and not the earlier ones; `point` reports stage `improve` with the Improve stage's own action while a review runs.
 - `slice.py`: `--clear-at` repeats; `drive()` ends each session at the next position not yet cleared and appends to `clear.json`, which is a list; `clear_facts` returns one entry per clear with `redone` from its own stop line; `--resume-prompt {names-next,withheld}` (`continue_prompt`: today's `run.resume_prompt`, or "Continue the ShipLoop work for the repository in this directory."); `invocation.json` records `clear_at` and `resume_prompt`; `sessions.jsonl` `told` records what each resume prompt named (null for withheld); `slice-result.json` gains `clear_unfired`; `main` runs one loop in which a clear is not a resume (it does not use `--max-resumes`) and a resumed Grok or Codex session still has the remaining positions in force.
 - `flow.py` and `flow_viewer.html`: `clear` is a list; the page shows each clear and one divider per clear at the first event after its stop line (before, every later phase repeated the one divider).
 - `README.md`: the probe, its positions, the two prompt conditions and the records. `suite_catalog.py`: the slice suite's duration estimate (33 s to 81 s, 45 tests).
 
-## Exit items
+##### Exit items
 
 | # | Item | Result |
 |---|---|---|
@@ -517,15 +517,15 @@ Consumer: the integrator, who folds this row into `docs/shiploop-efficiency-jour
 | 7 | G-QUICK (e2e family) | met: `run-all.sh --group quick --changed-from main` exit 0 (29 suites, the whole e2e family included) and `--group shiploop-composition` exit 0 (16 suites), both under `env -i` with a PATH holding only python3 and node (no `sf`); also `ci-policy`, `test-groups` and `scripts/check-release-boundary.py --base main` OK |
 | 8 | `No-Change-Note:` | met: the commit carries the trailer (no `skills/` or `agents/` file changed) |
 
-## Fail-first (source diff reverted, tests kept)
+##### Fail-first (source diff reverted, tests kept)
 
 17 of the 28 selected clear tests failed (14 errors, 3 failures; 20 failure records counting the four sub-cases of the parse test): every new behaviour test failed on `main`'s `clear.py`, `slice.py`, `flow.py` and `flow_viewer.html`, most with `AttributeError` or `TypeError` because the API they pin did not exist (`label`, `continue_prompt`, `clear_records`, `since`, `until_line`, the list form). Three failed on an assertion: `ClearTriggerTests.test_inside_an_improve_stage_waits_for_its_packet_and_a_completed_call_that_is_not_shiploops`, `ResumePromptTests.test_the_command_line_collects_every_position_and_offers_the_two_conditions` (the flag kept only the last value) and `ClearThroughMainTests.test_the_default_condition_names_next_and_the_record_says_what_it_named`. Held before the change (guards, not counted): the non-Claude `:inside` test and the existing boundary and inside trigger test.
 
-## Suites
+##### Suites
 
 Run: `shiploop-e2e-slice` (45), `shiploop-e2e-reorientation` (120), the quick group `--changed-from main` (29 suites: core, the e2e family, `shiploop-mock-replay`), `shiploop-composition` (16; none of them reads the files changed here, so it can only confirm), `ci-policy`, `test-groups`. Callers found by `git grep` of `parse_spec`, `clear_facts`, `CLEAR_RECORD`, `clear.trigger`, `clear.redone`, `clear.point`, `--clear-at`, `resume-after-clear`, `slice-result`: `slice.py`, `flow.py`, `flow_viewer.html`, the slice suite; the Run Review exporter reads only `verdicts`. Skipped: the full tier (owner rule), packet pin suites (no packet text changed).
 
-## Key learning
+##### Key learning
 
 - A repeated flag needs an order and a window, or the metric lies: with positions firing in the order given, each clear is measured from its own stop to the next clear's, so a redo after clear 2 of an op done before clear 1 fails clear 2 only; unbounded, it would also fail clear 1.
 - Strict order means a position that cannot fire blocks the later ones. The result says so (`clear_unfired`, printed after the slice) so a probe that stopped less often than asked is visible; `no_redo` stays "every clear that fired passed" (absent with none).
@@ -536,7 +536,7 @@ Run: `shiploop-e2e-slice` (45), `shiploop-e2e-reorientation` (120), the quick gr
 
 ### U5a
 
-# U5 part A: render tooling (packets.py text render, render_diff.py, packet_anatomy.py)
+#### U5 part A: render tooling (packets.py text render, render_diff.py, packet_anatomy.py)
 
 Consumer: the integrator, who folds this row into `docs/shiploop-efficiency-journal-2026-10-16.md`, and every unit worker that
 runs G-RENDER (`packets.py --offline ... --text-dir`, then `render_diff.py OLD NEW --unit Un`).
@@ -551,7 +551,7 @@ runs G-RENDER (`packets.py --offline ... --text-dir`, then `render_diff.py OLD N
 | Unit | U5 part A (part B: `metrics.py`, `arms.py`, `clear.py`, `step_cases.json`, obligation and journal tests, fixtures, N5) |
 | Evidence | `docs/experiments/shiploop-eff-journal-rows/U5a-evidence/` (anatomy before and after on the live packets, the four head-table renders, the `render_diff.py` exit demonstration); `test/shiploop_e2e/packet_head_table.json` |
 
-## What was built
+##### What was built
 
 - `packets.py --offline CASE --text-dir DIR [--delegation ...] [--run-dir-length N] [--cli-path-length N]`: each packet as
   `<NN>-<stage>.printed.txt` and `.whole.txt` plus `manifest.json` (case, route, lengths, `text_format`, sizes, commit). The
@@ -572,7 +572,7 @@ runs G-RENDER (`packets.py --offline ... --text-dir`, then `render_diff.py OLD N
   branch top lines (index pointer, owner rule, `GUIDES/` paths) and the final layout (pointer lines, style line, loop block that
   ends at "Call an exit condition satisfied only when", `HEAD_END`); `--glob` (read a text-dir) and `--max-unclassified` (exit 1).
 
-## Exit items (part A)
+##### Exit items (part A)
 
 | Item | Result |
 |---|---|
@@ -581,7 +581,7 @@ runs G-RENDER (`packets.py --offline ... --text-dir`, then `render_diff.py OLD N
 | 5 (render_diff): non-zero on a planted extra line, zero on an allowlisted change | met: planted line in a real implement head, empty allowlist: exit 1, line and size named; the same line with an approval entry: exit 0 with `--no-head-table`, exit 1 with the table (it passes the implement ceiling by 50); a shortened line with an offset entry and the shipped table: exit 0 (`render-diff-exit-demonstration.txt`) |
 | 3, audit probes at `2686b427` (375,278 / 276,270 / 79,647) | not part A |
 
-## Head table seeded from main (printed characters, CLI 96)
+##### Head table seeded from main (printed characters, CLI 96)
 
 | Key | step-plan | implement | test | verify | carry-forward | largest |
 |---|--:|--:|--:|--:|--:|--:|
@@ -594,7 +594,7 @@ These are measured with the CLI padded to 96 and the install root fixed at 63 ch
 numbers (`fv_heads.py`: step-plan 19,395 / 21,077 at 83): about +300 on step-plan from the CLI path and the fixed root. Main
 already has step-plan over the 20,000 host cut for ask-agent at 83 and for both routes at 163.
 
-## Suites
+##### Suites
 
 Run once each from the worktree (`SHIPLOOP_PROGRESS=off python3 -B test/<name>.test.py`), all exit 0: `shiploop-e2e-packet-anatomy`
 (27 tests, 9 new), `shiploop-e2e-render-diff` (43 tests, new), `test-groups` (29; the pins moved from 87 to 88 ShipLoop suites,
@@ -617,7 +617,7 @@ mutations of `render_diff.py` (nothing unallowlisted, table never exceeded, miss
 removed line pays twice, other-option renders compared, every unit applies, offset and approval both, short prefix, offset need
 not name a removed line, blank lines listed) and 8 of `packet_anatomy.py` rules are each caught by 1 to 7 tests.
 
-## Key learning
+##### Key learning
 
 1. A packet render is not comparable across checkouts as it stands: the temporary directory name, the ids, the checkout root
    (reference paths, the red-check script, the loop runtime) and the interpreter all print into it, so head sizes depend on the
