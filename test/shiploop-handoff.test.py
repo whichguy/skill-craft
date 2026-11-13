@@ -1359,6 +1359,23 @@ class TestLayerGateTests(RepoCase):
             with self.subTest(command=command):
                 self.assertEqual(layers.search_only(command), only)
 
+    def test_a_search_recorded_as_a_focused_command_is_refused_and_a_check_passes(self) -> None:
+        # A focused command prints test IDs and counts for the test stage; a search prints neither, so it can only fail
+        # there (p0-terra's late send-back and its 16 minutes of replayed steps; csv-report s2 in step-plan round 2).
+        state = self.strategy_state([self.UNIT])
+        search = {"command": "rg -F -n 'Parse a string into records' src/records.js", "suite": "focused",
+                  "ids": ["TC-3"], "criteria": ["C3"]}
+        plan = {"outcome": "done", "summary": "s", "criteria": [{"id": "C3", "text": "x", "confirm": "searched"}],
+                "test_commands": [search]}
+        message = self.refused(state, "step-plan", plan)
+        self.assertIn("is recorded suite focused but only searches text", message)
+        self.assertIn("Record it with suite check and no ids or min_tests", message)
+        check = {"command": search["command"], "suite": "check", "criteria": ["C3"]}
+        navigator._check_submitted_layers(state, "step-plan", dict(plan, test_commands=[check]))
+        runs = dict(search, command="node --test test/records.test.js && rg -q 'Parse' src/records.js")
+        navigator._check_submitted_layers(state, "step-plan", dict(
+            plan, criteria=[{"id": "C3", "text": "x", "confirm": "executed"}], test_commands=[runs]))
+
     def test_a_step_plan_with_code_lists_its_own_rows_when_the_run_recorded_none(self) -> None:
         state = self.strategy_state(None, test_layers_na="The run planned documents only.")
         command = {"command": "node --test", "suite": "focused", "ids": ["TC-1"], "criteria": ["C1"]}
