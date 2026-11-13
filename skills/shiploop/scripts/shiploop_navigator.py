@@ -3068,10 +3068,13 @@ def _frozen_case_refusal(state: Mapping[str, Any], workitem: Any, result: Mappin
     def at_done_step(criterion: Any) -> bool:
         return iteration.case_step(str(criterion), steps) in done_ids
 
+    supplied = result.get("test_cases")
     try:
-        cases = {row["id"]: row for row in expectations.normalise_test_cases(result.get("test_cases"))}
+        # An omitted list (legal when no focused command lists an ID) keeps no case, so it is compared as empty.
+        cases = ({} if supplied is None else
+                 {row["id"]: row for row in expectations.normalise_test_cases(supplied)})
     except expectations.ExpectationError:
-        return None                       # the shape gate refuses it with its own reason
+        return None                       # the shape gate refuses a malformed list with its own reason
     frozen = [case for case in state["accepted"][sent.spec_before].get("test_cases") or ()
               if isinstance(case, Mapping) and at_done_step(case.get("criterion"))]
     for case in frozen:
@@ -3118,7 +3121,9 @@ def _check_step_sizing(result: Mapping[str, Any]) -> None:
         _need(step.get("proof"), "step " + name + " must record its proof: the one command, run from the repository "
               "root, that proves the criteria it satisfies using only this step and accepted earlier steps (ShipLoop "
               "runs it when the step reports done). Steps are " + shape)
-        if known:
+        # A done step (fix forward) keeps its accepted row, which _fix_forward_refusal checks: an amendment that gains
+        # criteria cannot add one to a step that is done (Sol's review, 2026-11-12).
+        if known and step.get("done") is not True:
             _need(step.get("criteria"), "step " + name + " must list criteria: the IDs of the criteria it satisfies ("
                   + ", ".join(known) + "). A step no check can confirm on its own belongs in the step it serves.")
             unknown = [c for c in step["criteria"] if c not in known]
@@ -4486,6 +4491,9 @@ def finish_improve(state: Mapping[str, Any], action_id: str, record: Mapping[str
                                delivery_contract="delivery_contract_version" in state)
     _need(result["outcome"] != "reconcile",
           "reconcile requires improve-reconcile, never finish_improve")
+    # A review's final result is the stage's result, so it may not reopen a done step either: checked here, on every
+    # route that imports one (Sol's review of fix forward, 2026-11-12: a review that dropped the marks reran S1).
+    _check_fix_forward(state, child["stage"], result)
     receipt = dict(record, seed_result=deepcopy(child["seed_result"]))
     return _apply_result(state, action_id, result, receipt)
 

@@ -169,6 +169,35 @@ class SendBackMidItemTests(unittest.TestCase):
         self.accept(self.amended(plan))
         self.assertEqual(self.settle(), "test-spec")
 
+    def test_a_review_of_the_amendment_may_not_reopen_a_done_step(self) -> None:
+        # Sol's review (2026-11-12, P1): the amended plan is reviewed (_first_item_review: the item was sent back), and the
+        # review's final result is the stage's result.  The import checks it in finish_improve, on every route.
+        self.to_second_step()
+        self.accept(NC.result(outcome="send-back", summary="S2 needs another file."))
+        self.accept(self.amended(self.two_step_plan(notes_works=True)))
+        state = self.state()
+        child = state["active_improve"]
+        self.assertEqual(child["stage"], "step-plan", "the amended plan is reviewed")
+        reopened = dict(child["seed_result"], steps=[dict(self.two_step_plan()["steps"][0], task="Rewrite notes.md."),
+                                                     child["seed_result"]["steps"][1]])
+        with self.assertRaisesRegex(nav.NavigatorError, r"steps S1 are done"):
+            nav.finish_improve(state, child["action_id"], NC.receipt("step-plan"), reopened)
+        self.assertEqual(self.settle(), "test-spec", "the reviewed amendment as submitted imports")
+
+    def test_a_done_step_without_criteria_stays_valid_when_the_amendment_gains_one(self) -> None:
+        # Sol's review (P2): sizing asks every step for criteria once the plan has any; a done step keeps its accepted row,
+        # which had none, so an amendment that adds C2 for S2 must still pass.
+        self.to_second_step()
+        self.accept(NC.result(outcome="send-back", summary="S2's todo format needs a check."))
+        plan = self.amended(self.two_step_plan(notes_works=True))
+        plan.pop("test_commands_na", None)
+        plan["criteria"] = [{"id": "C2", "text": "todo.md states its format.", "confirm": "searched"}]
+        plan["test_commands"] = [{"command": "grep -q 'format' todo.md", "suite": "check", "criteria": ["C2"]}]
+        plan["minimum_na"] = "A documentation-only item has no regression suite."
+        plan["steps"][1] = dict(plan["steps"][1], criteria=["C2"])
+        self.accept(plan)
+        self.assertEqual(self.settle(), "test-spec")
+
     def test_two_amendments_keep_the_first_done_step_and_the_second_keeps_both(self) -> None:
         # Astra's ancestry control (p0-terra's second amendment strengthened a documented S1): S1 survives a second
         # send-back, and the second amendment keeps S1 and the S2 the first amendment built.
@@ -407,6 +436,25 @@ class CrossStepCaseTests(unittest.TestCase):
         self.run_loop([LOOP.TRIVIAL])
         self.complete(dict(LOOP.DONE, evidence_refs=[str(self.terminal())]))
         self.assertNotEqual(nav.current_stage(self.settle()), "test")
+
+    def test_after_an_amendment_the_done_steps_counts_and_cases_still_bind(self) -> None:
+        # Sol's review (P2 x2): the cumulative floor read only the runs after the newest plan, so S1's counts vanished at
+        # the resumed S2 (design T §9.1 step 3, b55909179b89bfc63bba67d4cdbb833c700df147); and a test spec that omits
+        # test_cases skipped the frozen-case comparison.
+        self.to_first_test()
+        self.pass_test_stage()
+        counted = test_loop.accepted_counts(self.run_dir, self.state(), "W1")
+        self.assertTrue(counted, "S1's test stage counted its runs")
+        self.drive_to("implement", step_plan=self.PLAN)
+        self.complete({"outcome": "send-back", "summary": "S2 is not settled; the step plan decides it."})
+        self.drive_to("test-spec", step_plan=self.amended_plan())
+        omitted = {"outcome": "done", "summary": "No cases.", "assumptions": []}
+        self.assertRegex(nav._frozen_case_refusal(self.state(), "W1", omitted) or "",
+                         r"test case TC-1 is due at a done step")
+        self.complete(dict(LOOP.DONE, test_cases=self.CASES))
+        self.drive_to("test", step_plan=self.amended_plan(), each=self.write_a("import os\nimport sys\n"))
+        self.assertEqual(test_loop.accepted_counts(self.run_dir, self.state(), "W1"), counted)
+        self.assertEqual(test_loop.accepted_counts(self.run_dir, self.state(), "W1", earlier_steps=True), counted)
 
     def test_a_spanning_criterion_stays_with_a_step_still_to_run(self) -> None:
         # C2 is listed by done S1 and by S2, so its case TC-2 is still owed by S2.  An amendment that drops C2 from every

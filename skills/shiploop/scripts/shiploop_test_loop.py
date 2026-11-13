@@ -1068,11 +1068,12 @@ def accepted_counts(root: Path, state: Mapping[str, Any], work_item: str, *,
     """Per command, the most tests any run ShipLoop accepted for this work item has run since its latest step plan.
 
     Read from the item's ``tests/<action>-verify<N>.md`` records, so no state key holds it: the passed records of the
-    actions accepted after the item's latest accepted step plan (the history is append-only, so a revised step plan
-    starts the count again), and in them the runs ShipLoop accepted whose output it could count.  Empty for the outer
-    stages and the end-of-work review (``work_item`` is empty).  An action ShipLoop has not accepted yet is not in the
-    history, so its record sets no floor here (``action_counts`` reads it).  ``earlier_steps`` keeps only the runs of
-    the steps before the inline step being tested: the actions accepted before its build (design T §9.1 step 3).
+    actions accepted after the item's latest accepted step plan, and of the done steps that plan keeps (fix forward:
+    an amendment keeps their counts; a plan that marks none starts the count again), and in them the runs ShipLoop
+    accepted whose output it could count.  Empty for the outer stages and the end-of-work review (``work_item`` is
+    empty).  An action ShipLoop has not accepted yet is not in the history, so its record sets no floor here
+    (``action_counts`` reads it).  ``earlier_steps`` keeps only the runs of the steps before the inline step being
+    tested: the done steps kept and the actions accepted before its build (design T §9.1 step 3).
     """
     plan, _result = _step_plan(state, work_item)
     if not work_item or plan is None:
@@ -1084,8 +1085,12 @@ def accepted_counts(root: Path, state: Mapping[str, Any], work_item: str, *,
         builds = [i for i, row in enumerate(history[first:], first) if row.get("stage") == "implement"
                   and row.get("workitem") == work_item and row.get("outcome") == "done"]
         last = builds[-1] if builds else first
+    position = {row.get("action"): index for index, row in enumerate(history)}
+    kept = [action for stage in planning_revision.PER_STEP_STAGES
+            for action in planning_revision.step_actions(state, work_item, stage) if position.get(action, first) < first]
     most: Dict[str, int] = {}
-    for action in dict.fromkeys(row.get("action") for row in history[first:last] if row.get("workitem") == work_item):
+    for action in dict.fromkeys([*kept, *(row.get("action") for row in history[first:last]
+                                          if row.get("workitem") == work_item)]):
         for number in range(1, _verify_count(root, str(action)) + 1):
             record = store.read_record(Path(root) / verify_path(str(action), number))
             if not isinstance(record, Mapping) or not record.get("passed"):
