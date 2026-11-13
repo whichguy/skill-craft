@@ -32,6 +32,7 @@ from __future__ import annotations
 import copy
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -543,6 +544,28 @@ def records(*expectations) -> dict:
     return {"step-plan": {"expectations": list(expectations)}}
 
 
+# A two-step plan whose S1 is built, tested, documented and committed, then S2 is sent back (fix forward's late send-back).
+ROUTE_PLAN = {
+    "paths": ["src/notes.js", "src/todo.js"], "test_commands": [], "test_commands_na": "Synthetic: no test command.",
+    "follows": [],
+    "steps": [{"id": "S1", "task": "Add src/notes.js.", "deps": [], "criteria": [], "proof": "test -f src/notes.js",
+               "paths": ["src/notes.js"], "skills": []},
+              {"id": "S2", "task": "Add src/todo.js.", "deps": ["S1"], "criteria": [], "proof": "test -f src/todo.js",
+               "paths": ["src/todo.js"], "skills": []}],
+    "expectations": [{"id": "E1", "state": "absent", "statement": "src/notes.js is new", "steps": ["S1"],
+                      "paths": ["src/notes.js"], "check": "test ! -e src/notes.js"},
+                     {"id": "E2", "state": "absent", "statement": "src/todo.js is new", "steps": ["S2"],
+                      "paths": ["src/todo.js"], "check": "test ! -e src/todo.js"}]}
+KNOWLEDGE = {"spec": "Unchanged: synthetic.", "architecture": "Unchanged: synthetic.", "environment": "Unchanged: synthetic."}
+ROUTE = [{"stage": "step-plan", "result": ROUTE_PLAN},
+         {"stage": "test-spec", "result": {"test_cases": [], "assumptions": []}},
+         {"stage": "implement", "overlay": "route/s1"},
+         {"stage": "test"},
+         {"stage": "document", "result": {"assumptions": [], "knowledge": KNOWLEDGE}},
+         {"stage": "implement", "overlay": "route/s2",
+          "result": {"outcome": "send-back", "summary": "S2's todo format is not settled; the step plan decides it."}}]
+
+
 class Builds(unittest.TestCase):
     """Real runs, built once for the class (about a second each)."""
 
@@ -572,6 +595,10 @@ class Builds(unittest.TestCase):
                  seed_records=records(E2))
         scenario(cls.cases, "carry-forward", "step-committed", base, {"worktree/src/added.js": "module.exports = 2;\n"},
                  seed_records=records(E2), options={"delegation": "ask-agent"})
+        scenario(cls.cases, "step-plan", "after-a-late-send-back",
+                 dict(base, render=[{"proves": "P1", "packet_contains": "Fix forward: S1 is done (reviewed and committed)"}]),
+                 {"route/s1/src/notes.js": "module.exports = 'notes';\n",
+                  "route/s2/src/todo.js": "module.exports = 'todo, first draft';\n"}, seed_route=ROUTE)
         scenario(cls.cases, "improve@spec", "later", base, {})
         scenario(cls.cases, "release", "later", base, {})
         cls.box = cls.temp / "box"
@@ -582,6 +609,41 @@ class Builds(unittest.TestCase):
         for sid in ("validate-existing/broken", "validate-existing/repaired", "document/after-implement"):
             cls.built[sid] = sb.render(sb.load(sid, cls.cases), cls.box / sid.replace("/", "-"))
         cls.carried = sb.build(sb.load("carry-forward/step-committed", cls.cases), cls.box / "carry-forward")
+        cls.routed = sb.render(sb.load("step-plan/after-a-late-send-back", cls.cases), cls.box / "routed")
+
+    def test_a_route_reaches_the_step_plan_after_a_late_send_back_with_its_done_step_kept(self):
+        import shiploop_planning_revision as planning_revision
+        bundle = self.routed
+        self.assertTrue(bundle.issued)
+        state = store.read_record(bundle.run_dir / "state.md")
+        item = navigator._current_work_item(state)
+        self.assertEqual(navigator.current_stage(state), "step-plan")
+        self.assertEqual(planning_revision.done_steps(state, item), 1, "S1's document was accepted before the send-back")
+        self.assertEqual([row["id"] for row in navigator.fix_forward_rows(state, item)], ["S1"])
+        self.assertIn("Fix forward: S1 is done (reviewed and committed)", bundle.packet_head)
+        worktree = Path(state["repo"])
+        self.assertIn("src/notes.js", git(worktree, "show", "--name-only", "--format=", "HEAD").split(),
+                      "S1's change is its step commit")
+        self.assertIn("src/todo.js", git(worktree, "status", "--porcelain"), "S2's draft stays uncommitted")
+
+    def test_a_route_that_does_not_match_the_run_is_refused_by_name(self):
+        wrong = [dict(ROUTE[0]), {"stage": "implement"}]
+        own = Path(tempfile.mkdtemp(prefix="stage-route-", dir=self.temp))   # not the class's watched cases or box
+        data = json.loads((self.cases / "step-plan" / "after-a-late-send-back" / "scenario.json").read_text())
+        scenario(own / "cases", "step-plan", "wrong-route", dict(data, seed_route=wrong), {})
+        with self.assertRaisesRegex(SystemExit, r"seed_route\[1\] expects implement, but the run is at test-spec"):
+            sb.build(sb.load("step-plan/wrong-route", own / "cases"), own / "out")
+
+    def test_a_route_entry_is_validated(self):
+        data = json.loads((self.cases / "step-plan" / "after-a-late-send-back" / "scenario.json").read_text())
+        for entry, problem in (({"stage": "release"}, "must be an inner stage"), ({"stage": "test", "x": 1}, "unknown key"),
+                               ({"stage": "test", "overlay": "../out"}, "must be a folder of the scenario"),
+                               ({"stage": "test", "result": []}, "result must be an object")):
+            with self.subTest(entry=entry):
+                folder = self.temp / ("v-" + str(abs(hash(json.dumps(entry)))))
+                scenario(folder, "step-plan", "v", dict(data, seed_route=[entry]), {})
+                with self.assertRaisesRegex(sb.ScenarioError, re.escape(problem)):
+                    sb.load("step-plan/v", folder)
 
     def out(self, sid: str) -> Path:
         return self.box / sid.replace("/", "-")
@@ -856,11 +918,12 @@ class Builds(unittest.TestCase):
 
     def test_a_build_writes_only_below_its_out_folder(self):
         self.assertEqual(sorted(path.name for path in self.box.iterdir()),
-                         ["carry-forward", "document-after-implement", "validate-existing-broken", "validate-existing-repaired"])
+                         ["carry-forward", "document-after-implement", "routed", "validate-existing-broken",
+                      "validate-existing-repaired"])
         for name, folder in (("cases", self.cases), ("fixtures", HARNESS / "fixtures"), ("home", self.home)):
             self.assertEqual(snapshot(folder), self.watched[name], f"{name} was written by a build")
         self.assertEqual(sorted(path.name for path in self.cases.iterdir()),
-                         ["carry-forward", "document", "improve@spec", "release", "validate-existing"])
+                         ["carry-forward", "document", "improve@spec", "release", "step-plan", "validate-existing"])
 
     def test_a_build_does_not_reuse_a_folder_that_holds_a_run(self):
         sc = sb.load("validate-existing/broken", self.cases)

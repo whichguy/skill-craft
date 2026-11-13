@@ -19,8 +19,12 @@ scenario.json keys (unknown keys are rejected): stage (a stage_spec stage, or ``
 does not build yet), about, tags, tiers (verify, render, live; default all three), fixture (a folder of test/shiploop_e2e/
 fixtures/), request_from (a key of step_cases.json: prompt, work_item and checks), optional request_text (a nonblank prompt
 override), or inline request {prompt, work_item, checks} (mutually exclusive with both), options {delegation, seed_home},
-seed_records, worktree_mode, planted [{id P<n>, what, signature}], controls [{id C<n>, what}], render [check], oracle [check],
-live {samples, pass}.
+seed_records, seed_route [{stage, result, overlay}], worktree_mode, planted [{id P<n>, what, signature}], controls
+[{id C<n>, what}], render [check], oracle [check], live {samples, pass}.
+``seed_route`` lets a scenario stand past a done step: the default seed stops at the first entry's stage, then each entry's
+``overlay`` (a folder of the scenario) is laid into the execution checkout and its stage recorded with ``result`` merged over
+the synthetic one, in order, through the same seam; the run must then stand at ``stage``. An entry that does not match the
+run's stage stops the build, naming both.
 ``about`` and ``fixture`` are required; ``request_from`` or an inline ``request`` is required once the render or live tier is
 on (the verify tier reads no request). Every other key has its default.
 
@@ -87,7 +91,7 @@ DELEGATIONS = ("inline", "ask-agent")
 WORKTREE_MODES = ("committed", "uncommitted")
 NEXT_SECONDS = 120  # a `shiploop next` that takes longer is stuck
 KEYS = ("stage", "about", "tags", "tiers", "fixture", "request", "request_from", "request_text", "options", "seed_records",
-        "worktree_mode", "planted", "controls", "render", "oracle", "live")
+        "seed_route", "worktree_mode", "planted", "controls", "render", "oracle", "live")
 PLANTED_ID = re.compile(r"^P[1-9][0-9]*$")
 CONTROL_ID = re.compile(r"^C[1-9][0-9]*$")
 TAG = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
@@ -95,6 +99,8 @@ REFERENCE_BAD = "bad-"
 REFERENCE_GOOD = "good-"
 NO_WORKTREE_UP_TO = "validate-existing"  # a scenario of this stage or an earlier one may not have a worktree/
 WORKTREE_ENV = "STAGE_SUITE_WORKTREE"  # the folder SEAM_SEED_SCRIPT lays into the execution checkout
+ROUTE_ENV = "STAGE_SUITE_ROUTE"  # the JSON file of seed_route entries SEAM_SEED_SCRIPT applies after the default seed
+ROUTE_KEYS = ("stage", "result", "overlay")
 SEEDING = threading.RLock()  # seam_seed substitutes process-wide state (a module global, the environment): one at a time
 
 
@@ -381,6 +387,24 @@ def validate(data: Any, scenario_dir: Path) -> list[str]:
                 problems.append(f"seed_records: {stage!r} is not a stage")
             elif not isinstance(fields, dict):
                 problems.append(f"seed_records.{stage} must be an object")
+    route = data.get("seed_route", [])
+    if not isinstance(route, list):
+        problems.append("seed_route must be a list of {stage, result, overlay}")
+    else:
+        for index, entry in enumerate(route):
+            where = f"seed_route[{index}]"
+            if not isinstance(entry, dict):
+                problems.append(f"{where} must be an object")
+                continue
+            problems += [f"{where}: unknown key {key!r}" for key in entry if key not in ROUTE_KEYS]
+            if entry.get("stage") not in stage_spec.INNER:
+                problems.append(f"{where}.stage must be an inner stage")
+            if "result" in entry and not isinstance(entry["result"], dict):
+                problems.append(f"{where}.result must be an object")
+            overlay = entry.get("overlay")
+            if overlay is not None and (not isinstance(overlay, str) or _safe_path(overlay)
+                                        or not (scenario_dir / overlay).is_dir()):
+                problems.append(f"{where}.overlay must be a folder of the scenario")
     if data.get("worktree_mode", "uncommitted") not in WORKTREE_MODES:
         problems.append(f"worktree_mode must be one of {', '.join(WORKTREE_MODES)}")
     ids: dict = {}
@@ -603,6 +627,9 @@ run_dir, stop = Path(sys.argv[2]), sys.argv[3]
 item = json.loads(sys.argv[4]) if len(sys.argv) > 4 else {"id": "seeded-request", "title": "The whole request"}
 records = json.loads(sys.argv[5]) if len(sys.argv) > 5 else {}  # {stage: fields merged into that stage's synthetic result}
 overlay = os.environ.get("STAGE_SUITE_WORKTREE")  # a folder laid into the execution checkout (what earlier stages left)
+route_file = os.environ.get("STAGE_SUITE_ROUTE")  # seed_route: entries applied in order after the default seed
+route = json.loads(Path(route_file).read_text())["entries"] if route_file else []
+target = route[0]["stage"] if route else stop  # where the default seed stops
 core = types.SimpleNamespace(PACKAGE_ROOT=Path(sys.argv[1]).parent)  # read only for the names an Improve stage's files carry
 state = store.read_record(run_dir / "state.md")
 skipped, settled, laid = [], False, False
@@ -615,14 +642,13 @@ def lay():
         shutil.copytree(overlay, state["repo"], symlinks=True, dirs_exist_ok=True)
 
 
-for _ in range(60):
-    stage = nav.current_stage(state)
-    if stage == stop:
-        break
+def record(stage, extra):  # record the current stage with a synthetic result, `extra` merged over it
+    global state
     action = str(nav.current_action(state)["id"])
     result = {"outcome": "done", "summary": "Synthetic: recorded by the stage suite's seed without doing it; "
               "the request is the specification."}
     result.update(records.get(stage) or {})
+    result.update(extra or {})
     if stage == "plan":
         result["work_items"] = [item]
     if stage == "step-plan":  # one step over the paths and no test commands, unless the scenario's records say otherwise
@@ -633,8 +659,6 @@ for _ in range(60):
         result.setdefault("follows", [])
         result.setdefault("steps", [{"id": "S1", "task": "Make the planned change.", "paths": list(result["paths"]),
                                      "skills": [], "proof": "true"}])
-    if stage == "implement" and not laid:
-        lay()
     before = state
     state = nav.apply(before, action, result)
     if state["active_improve"] is not None:
@@ -642,11 +666,32 @@ for _ in range(60):
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):  # what the effects print
         state = nav.accept_effects(core, run_dir, before, state, action_id=action)
     skipped.append(stage)
-    if stop in [row["stage"] for row in state["history"][len(before["history"]):]]:
+    return before
+
+
+for _ in range(60):
+    stage = nav.current_stage(state)
+    if stage == target:
+        break
+    if stage == "implement" and not laid and not route:
+        lay()
+    before = record(stage, None)
+    if target in [row["stage"] for row in state["history"][len(before["history"]):]]:
         settled = True
         break
 else:
-    raise SystemExit("the seed did not reach " + stop)
+    raise SystemExit("the seed did not reach " + target)
+for index, entry in enumerate(route):  # a seed_route entry: its overlay laid first, then its stage recorded
+    if settled:
+        raise SystemExit("the seed settled " + target + " by script, so seed_route cannot start there")
+    stage = nav.current_stage(state)
+    if stage != entry["stage"]:
+        raise SystemExit("seed_route[" + str(index) + "] expects " + entry["stage"] + ", but the run is at " + stage)
+    if entry.get("overlay"):
+        shutil.copytree(entry["overlay"], state["repo"], symlinks=True, dirs_exist_ok=True)
+    record(stage, entry.get("result"))
+if route and nav.current_stage(state) != stop:
+    raise SystemExit("seed_route ends at " + nav.current_stage(state) + ", not at " + stop)
 if not laid:
     lay()
 bases = [ident for ident in sorted(state.get("inner_loops") or {}) if lint.read_base(run_dir, ident) is not None]
@@ -656,12 +701,12 @@ print(json.dumps({"skipped": skipped, "stage": nav.current_stage(state), "action
 
 
 @contextlib.contextmanager
-def seam_seed(overlay: Path | None = None) -> Iterator[None]:
+def seam_seed(overlay: Path | None = None, route: Path | None = None) -> Iterator[None]:
     """For the duration of the block ``run.seed_run`` seeds through the seam: the module global ``run.SEED_SCRIPT`` is
     SEAM_SEED_SCRIPT, `overlay` is the folder it lays into the execution checkout, the progress observer a printed packet would
     start is off, and the seed child does not put its working directory on its import path. All are restored when the block
     ends, also when it raises. They are the process's, so the block holds SEEDING: a second thread waits for the first."""
-    keys = (WORKTREE_ENV, "SHIPLOOP_PROGRESS", "PYTHONSAFEPATH")
+    keys = (WORKTREE_ENV, ROUTE_ENV, "SHIPLOOP_PROGRESS", "PYTHONSAFEPATH")
     with SEEDING:
         saved_script = run.SEED_SCRIPT
         saved_env = {key: os.environ.get(key) for key in keys}
@@ -672,6 +717,10 @@ def seam_seed(overlay: Path | None = None) -> Iterator[None]:
             os.environ[WORKTREE_ENV] = str(overlay)
         else:
             os.environ.pop(WORKTREE_ENV, None)
+        if route is not None:
+            os.environ[ROUTE_ENV] = str(route)
+        else:
+            os.environ.pop(ROUTE_ENV, None)
         try:
             yield
         finally:
@@ -720,7 +769,14 @@ def build(sc: Scenario, out: Path, *, cli: Path | None = None) -> Built:
     fixture = _compose(sc, material / "fixture", ("repo",))
     overlay = sc.dir / "worktree"
     options = sc.data.get("options") or {}
-    with seam_seed(overlay if overlay.is_dir() else None):
+    route = None
+    if sc.data.get("seed_route"):
+        route = material / "route.json"
+        entries = [{"stage": entry["stage"], "result": entry.get("result") or {},
+                    "overlay": str((sc.dir / entry["overlay"]).resolve()) if entry.get("overlay") else None}
+                   for entry in sc.data["seed_route"]]
+        route.write_text(json.dumps({"entries": entries}), encoding="utf-8")
+    with seam_seed(overlay if overlay.is_dir() else None, route):
         seeded = run.seed_run(cli, work, out, case["prompt"], sc.stage, fixture=fixture, work_item=case["work_item"],
                               delegation=options.get("delegation", "inline"), checks=case["checks"],
                               home=options.get("seed_home", True),
