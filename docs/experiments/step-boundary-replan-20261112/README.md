@@ -202,6 +202,21 @@ on branch `feat/fix-forward-5308ed`:
 - Fail-first on the released tree 7ceaecf4: 5 new step-edge tests fail (4 errors, 1 failure), the Proof-refusal test
   errors, and the focused-search test fails (`fix-forward-failfirst.txt`). On the branch all pass.
 
+## E8 — Sol's adversarial review and its fixes (firm for what the tests cover)
+
+Sol (gpt-6.1-sol, high, read-only; `sol-review.md`, brief `sol-review-brief.md`) reviewed 636a02e2, be98fb8e and
+34937ec7. It found one P1 and three P2s, each verified in the code before the fix (41f0b5ce):
+
+| Finding | Failing history | Fix | Test (fails first on 34937ec7) |
+| --- | --- | --- | --- |
+| P1: the Improve import skipped the fix-forward gates | a review of the amended plan drops the marks; the run resumes at S1 | `_check_fix_forward` in `finish_improve`, on every import route | `test_a_review_of_the_amendment_may_not_reopen_a_done_step` |
+| P2: an omitted `test_cases` skipped the frozen-case check | a test spec with no list drops TC-1 | an omitted list is compared as empty | `test_after_an_amendment_the_done_steps_counts_and_cases_still_bind` |
+| P2: `accepted_counts` dropped the done steps' runs | the earlier-steps floor is lost at the resumed step (`{}` vs `{'sh spans.sh': 1}` in isolation) | it also reads the kept per-step actions | the same test |
+| P2: sizing re-sized a done row without criteria | an amendment that gains criteria cannot pass | a row marked done is not re-sized; the fix-forward gate checks it | `test_a_done_step_without_criteria_stays_valid_when_the_amendment_gains_one` |
+
+Clean quick tier before the fixes: 46 of 46 suites passed. A second Sol pass on 41f0b5ce alone and the quick tier on
+it run before the live round.
+
 ## Open (owner)
 
 1. The live round that has to precede the release, and then the boundary-question replay.
