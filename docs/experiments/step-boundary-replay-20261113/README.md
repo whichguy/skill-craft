@@ -51,3 +51,66 @@ Q2, two arms, B (shipped document packet) and T (B plus one forward-impact duty 
   request". A document send-back comes before the step commits, so as things stand it still redoes the current step.
 
 No rescoring after the data. A better reading is its own line.
+
+## Revision 1, after Astra's review and before any sample (frozen 2026-11-13)
+
+Astra max (`astra-review.md`): run a revised Q1 pilot; defer Q2. Changes adopted:
+
+- **Q2 is deferred.** Its late faults are planning mistakes, so a hit would show another chance to catch them, not
+  that learning from a done step improves the plan. Its clean controls would need new-information cases and validated
+  fault-free boundaries. Even a positive result could only justify piloting the deferred route "document done plus an
+  amendment request".
+- **Defect found and fixed first.** The shipped focused-search refusal missed p0's exact command: the classifier split
+  at `;` inside quotes. Fixed in 67f0a329, which is the ShipLoop under test here.
+- **Cases, both local, one done step each, contrasting correction types:**
+  - `step-plan/replay-p0-late-send-back`: the correction is an item-wide command, focused to check;
+  - `step-plan/replay-ticket-comments-late-send-back`: the correction is the failing step's own Proof.
+  The longer-prefix late cases are all Salesforce; they are a stated gap.
+- **Reconstruction (`reconstruct.py`, manifests in `manifests/`):**
+  - the tree when S1 began, knowledge home included (not the neutral seed home);
+  - the real planning fields (`seed_from`);
+  - the real accepted results through S1, with S1's committed change split by kind and laid at the stage that wrote
+    it;
+  - the interrupted step's draft left uncommitted, and the recorded send-back.
+  `evidence_refs` are emptied so the old run's paths cannot leak.
+- **Calibration** on fresh builds (`calibration.txt`). For each case, the real gate (`shiploop check`) and the oracle
+  (`q1_oracle.py`) were run on the historical amendment with S1 marked done, and on wrong variants. Every verdict
+  went the intended way. The gate accepts a ticket amendment that keeps S2's broken Proof, and only the oracle's
+  executable predicate catches it.
+
+Runner: `stages.py live`, Codex gpt-6.1-terra at xhigh, `--ref` the commit that adds this revision, 4 samples a case,
+2 at once, fresh sessions. The endpoint is the producer's step-plan result accepted by `complete`. The amendment's
+Improve review comes after it and is out of scope here; `finish_improve` rechecks fix forward, as tested in
+shiploop-step-edges.
+
+Script measures per sample, every sample reported per case and pooled:
+- **M1, accepted:** the producer's result accepted with outcome done (stage-complete), against blocked, timeout or
+  crash.
+- **M2, first-attempt copy:** no fix-forward refusal text in the sample's events or transcript before acceptance.
+  Counted: "are done (reviewed and committed)", "done step ... differs", "no step of ... is done", "every step is
+  done". Other gates' refusals are counted separately.
+- **M3, fidelity:** `q1_oracle.py fidelity` on the accepted result.
+- **M4, correction:** `q1_oracle.py correction`. For p0, no focused command only searches. For ticket-comments, the
+  amended S2 Proof differs from the recorded one and exits 0 in the sample's tree.
+
+Predictions over 8 samples:
+- M1: at least 7.
+- M2: at least 6 (the registered 70%).
+- M3: equals M1, since the gate enforces it.
+- M4: at least 6.
+
+Decisions:
+- M2 at 3 or fewer (below 50%): pilot a prefilled done prefix as a separate arm, prepared before submission, as
+  Astra suggested.
+- M2 of 4 or 5 keeps the packet despite the missed prediction. A copy slip costs one refusal that prints the rows to
+  copy, not a replay.
+- M1 below 7: diagnose the cause (copying, another gate, environment) before any change.
+
+Retry policy: a sample that ends for an apparatus reason (host crash, harness timeout, authentication) is rerun once
+under a new number and reported. Failures the model causes count. These are development screens, not reliability
+estimates: 8 of 8 is a one-sided 95% lower bound near 69%.
+
+Continuation (Astra): after the pilot, one accepted amendment per case is continued through the real CLI with
+synthetic later results: test-spec, implement, test, document and commit. The continuation asserts that the done
+commit is kept, the cursor names S2, the frozen cases hold, the floors carry and the last step runs the full
+regression. Its claim is limited to the route, not a model's continuation.

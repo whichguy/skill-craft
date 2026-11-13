@@ -1,0 +1,18 @@
+{
+ "id": "replay-p0-late-send-back",
+ "about": "Replay of the 2026-10-30 stand-in-parser run (p0) at its late send-back: S1 is done (built, tested, documented, reviewed, committed); S2 was built, and its test stage sent the item back because the plan records a text search (rg over the docstrings) as a focused command, which prints no test IDs or counts. The amendment must keep S1 exactly and record that search as a check.",
+ "request_from": "stand-in-parser",
+ "fixture": "node-records",
+ "run": "/Users/dadleet/e2e-runs/20261030/p0-terra-ask-agent-55bfcd/.shiploop-runs/seed/run",
+ "worktree": "/Users/dadleet/e2e-runs/20261030/p0-terra-ask-agent-55bfcd/.shiploop-runs/seed/worktree",
+ "start_commit": "6c2c7a5",
+ "plan": "nav-49a22f541c1b4ca4af8b7e062965166d",
+ "test_spec": "nav-ecaf70da40bf4b13b72f153ed125af08",
+ "done_steps": [{"implement": "nav-a12ab3effc694d6ab42daeeb71958ca5", "test": "nav-562904e8d92f41b59c5c9523870b32eb",
+                 "document": "nav-d714aa0cceeb406a9e9fa7bcb4160b2a", "commit": "ae6774d"}],
+ "interrupted": {"draft": {"commit": "d2d205a", "paths": ["src/records.js"]},
+                 "entries": [{"stage": "implement", "action": "nav-a93389c6a8794f89b9887875c2a1eb36", "draft": true},
+                             {"stage": "test", "action": "nav-3edccee39d32489c88ecf0d4f6cac0c3"}]},
+ "correction": {"kind": "no_focused_search"},
+ "fault": "The plan records an rg search of the docstrings as a focused command; a search prints no test IDs or counts, so a test stage can never pass it."
+}

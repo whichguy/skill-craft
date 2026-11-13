@@ -1,0 +1,23 @@
+{
+ "done_rows": [
+  {
+   "criteria": [
+    "C1",
+    "C2",
+    "C3"
+   ],
+   "deps": [],
+   "id": "S1",
+   "paths": [
+    "src/records.js"
+   ],
+   "proof": "node -e \"const a=require('node:assert/strict');const {parseRecords:p}=require('./src/records');a.deepEqual(p('name=ada;team=x\\n\\nname=bob;team=y'),[{name:'ada',team:'x'},{name:'bob',team:'y'}]);a.deepEqual(p('a=  x  \\n  \\nb_2= y'),[{a:'x'},{b_2:'y'}]);for(const x of ['bad','=x','A=x','a=1;a=2'])a.throws(()=>p('ok=1\\n'+x),e=>e instanceof SyntaxError&&/line 2\\b/.test(e.message));a.deepEqual(p('constructor=ok;z=1=2'),[{constructor:'ok',z:'1=2'}]);a.deepEqual(p('  \\n\\n'),[]);a.throws(()=>p(1),TypeError)\" && rg -F -q '/** Parse a string into records; throws TypeError or line-numbered SyntaxError. */' src/records.js",
+   "skills": [],
+   "task": "Implement C1, C2 and C3 following R-1 and AD-1.",
+   "done": true
+  }
+ ],
+ "correction": {
+  "kind": "no_focused_search"
+ }
+}

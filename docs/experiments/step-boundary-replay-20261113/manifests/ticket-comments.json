@@ -1,0 +1,63 @@
+{
+ "id": "replay-ticket-comments-late-send-back",
+ "about": "Replay of the 2026-11-01 ticket-comments run at its late send-back: S1 is done (built, tested, documented, reviewed, committed); S2 was being built when its implement stage sent the item back, because S2's Proof quoting makes its assertions unachievable (the expected author string becomes the assert function). The amendment must keep S1 exactly and give S2 a Proof that runs.",
+ "request": {
+  "prompt": "Extend the ticket service with comments on tickets. `POST /tickets/:id/comments` with a JSON body `{\"author\": \"<name>\", \"body\": \"<text>\"}` adds a comment to the ticket and answers 201 with the comment, which has an `id`, the `author`, the `body` and when it was `created`. An author is a non-empty name of at most 64 characters and a body a non-empty text of at most 2000 characters. A ticket in any status except `closed` takes comments; a closed one answers 409. `GET /tickets/:id` shows the ticket's `comments`, oldest first, an empty list when it has none. When someone other than the agent a ticket is assigned to comments on it, that agent is notified of the comment. Comments are kept like the rest of a ticket's state: they survive a restart of the service, and a data file written before this change keeps loading. Everything the service already does keeps working, and its existing tests must still pass as they are. Add node:test tests under test/ for the new behaviour; `npm test` runs them with the existing ones.",
+  "work_item": {
+   "context": "Ready: unchanged baseline npm test passed 124 cases, /Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/run/scratch/baseline.log. Implement R-8 and AD-4 in one coherent CommonJS item: add node:test tests first against existing createService seam in test/helpers.js; validate HTTP, state boundaries, audit, notifications, persistence, legacy loading; then implement and run focused and full suite. Follow CONTRIBUTING.md, docs/api.md, /Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree/docs/shiploop/environment.md and /Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/run/notes/research.md. Store owns changes, outbox and audit; compare normalized agent names exactly; body may contain line breaks. Check that resolved accepts and closed rejects, duplicate timestamps preserve order, each pending notification is distinct and rendered, and copies cannot mutate state. Persist version 1 records with defaults for absent comments. No extra dependencies or remote writes. Delivery is guarded local return. Done when tests and documentation pass and R-8 is observed. Dependency audit: /Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/run/notes/plan-dependencies.md.",
+   "follows": [
+    "R-8",
+    "AD-4"
+   ],
+   "id": "W1",
+   "title": "Implement and verify ticket comments"
+  },
+  "checks": [
+   "python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check comments',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const first=await call('POST','/tickets/'+id+'/comments',{author:'check.author',body:'first note'});const c=first.body;if(first.status!==201||!c||c.author!=='check.author'||c.body!=='first note'||!c.id||!c.created) process.exit(3);const second=await call('POST','/tickets/'+id+'/comments',{author:'check.author',body:'second note'});if(second.status!==201) process.exit(4);const shown=(await call('GET','/tickets/'+id)).body;if(!shown||!Array.isArray(shown.comments)||shown.comments.length!==2||shown.comments[0].body!=='first note'||shown.comments[1].body!=='second note') process.exit(5);const bad=await call('POST','/tickets/'+id+'/comments',{author:'',body:'x'});if(bad.status!==400) process.exit(6);const missing=await call('POST','/tickets/T-9999/comments',{author:'a',body:'b'});if(missing.status!==404) process.exit(7);for(const to of ['in_progress','resolved','closed']){const moved=await call('POST','/tickets/'+id+'/transition',{to});if(moved.status!==200) process.exit(8);}const closed=await call('POST','/tickets/'+id+'/comments',{author:'a',body:'b'});process.exit(closed.status===409?0:9);})().catch(()=>process.exit(10))\"",
+   "WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const made=await call('POST','/tickets',{title:'Check comment notices',requester:'check@example.com'});const id=made.body&&made.body.id;if(made.status!==201||!id) process.exit(2);const put=await call('PUT','/tickets/'+id+'/assignee',{assignee:'check.agent'});if(put.status<200||put.status>299) process.exit(3);const told=async()=>{const box=(await call('GET','/admin/outbox')).body||{};return [...(box.pending||[]),...(box.sent||[]),...(box.dead||[])].filter(e=>e&&e.to==='check.agent').length;};const before=await told();for(const note of ['one','two']){const r=await call('POST','/tickets/'+id+'/comments',{author:'someone.else',body:note});if(r.status!==201) process.exit(4);}if(await told()!==before+2) process.exit(5);const own=await call('POST','/tickets/'+id+'/comments',{author:'check.agent',body:'mine'});if(own.status!==201) process.exit(6);process.exit(await told()===before+2?0:7);})().catch(()=>process.exit(10))\"",
+   "f=\"${TMPDIR:-/tmp}/e2e-comments-$$.json\"; printf '%s' '{\"version\":1,\"savedAt\":\"2025-01-01T00:00:00.000Z\",\"nextNumber\":2,\"tickets\":[{\"id\":\"T-0001\",\"title\":\"Old ticket\",\"priority\":\"normal\",\"requester\":\"old@example.com\",\"status\":\"open\",\"assignee\":null,\"created\":\"2025-01-01T00:00:00.000Z\",\"updated\":\"2025-01-01T00:00:00.000Z\"}],\"audit\":[{\"seq\":1,\"ticket\":\"T-0001\",\"action\":\"ticket.created\",\"actor\":\"system\",\"at\":\"2025-01-01T00:00:00.000Z\",\"changes\":{\"title\":{\"from\":null,\"to\":\"Old ticket\"}}}],\"outbox\":{\"nextId\":1,\"events\":[]}}' > \"$f\" && DATA_FILE=\"$f\" WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const got=await call('GET','/tickets/T-0001');if(got.status!==200||!got.body||got.body.id!=='T-0001') process.exit(2);if(!Array.isArray(got.body.comments)||got.body.comments.length!==0) process.exit(3);const made=await call('POST','/tickets/T-0001/comments',{author:'check.author',body:'kept across a restart'});if(made.status!==201) process.exit(4);})().catch(()=>process.exit(10))\" && DATA_FILE=\"$f\" WORKER_INTERVAL_MS=0 python3 \"$E2E_CHECKS/serve.py\" --start \"node src/server.js\" -- node -e \"const base=process.env.BASE;const call=(m,p,b)=>fetch(base+p,{method:m,headers:{'content-type':'application/json'},body:b===undefined?undefined:JSON.stringify(b)}).then(async r=>({status:r.status,body:await r.json().catch(()=>null)}));(async()=>{const got=await call('GET','/tickets/T-0001');const c=got.body&&got.body.comments;process.exit(got.status===200&&Array.isArray(c)&&c.length===1&&c[0].author==='check.author'&&c[0].body==='kept across a restart'?0:2);})().catch(()=>process.exit(10))\"; rc=$?; rm -f \"$f\" \"$f\".*.tmp; exit $rc"
+  ]
+ },
+ "fixture": "node-tickets",
+ "run": "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/run",
+ "worktree": "/Users/dadleet/e2e-runs-multipass/20261031/mp-codex-ticket-comments/.shiploop-runs/work-20261101-001451-3d3a85/worktree",
+ "start_commit": "d3f5c8e",
+ "seed_from": {
+  "intake": "nav-29a8664fb74443f697b2b28441228520",
+  "spec": "nav-24b8d24c197f4504a68bab44c5a18b3a",
+  "test-strategy": "nav-f8424a4603ed4035b628be282e4e5c48",
+  "plan": "nav-74e056e50d3245199ca95a06f95d99ec"
+ },
+ "plan": "nav-46e38d04fca4408e9f7dd85a398ed697",
+ "test_spec": "nav-5ee5d8b52947488bad2dcf9cd345264c",
+ "done_steps": [
+  {
+   "implement": "nav-be27af23ef7a43598c5e4c710369a434",
+   "test": "nav-ccb0377aef0342d6a9a9986a9244288d",
+   "document": "nav-06882864281a415db6315290d7a6f714",
+   "commit": "9f67c07"
+  }
+ ],
+ "interrupted": {
+  "draft": {
+   "commit": "65840c3",
+   "paths": [
+    "src/app.js",
+    "src/tickets/validate.js"
+   ]
+  },
+  "entries": [
+   {
+    "stage": "implement",
+    "action": "nav-37e3a6af50d7406392de042dea721e45",
+    "draft": true
+   }
+  ]
+ },
+ "correction": {
+  "kind": "step_proof_runs",
+  "step": "S2",
+  "recorded_proof": "node -e 'const a=require('\"'\"'node:assert/strict'\"'\"'),v=require('\"'\"'./src/tickets/validate'\"'\"'),{withService,ticketBody}=require('\"'\"'./test/helpers'\"'\"');for(const b of [{author:'\"'\"''\"'\"',body:'\"'\"'x'\"'\"'},{author:'\"'\"'a'\"'\"',body:'\"'\"''\"'\"'},{author:'\"'\"'a'\"'\"'.repeat(65),body:'\"'\"'x'\"'\"'},{author:'\"'\"'a'\"'\"',body:'\"'\"'x'\"'\"'.repeat(2001)},{author:3,body:'\"'\"'x'\"'\"'},{author:'\"'\"'a'\"'\"',body:'\"'\"'x'\"'\"',extra:1}])a.throws(()=>v.comment(b));a.equal(v.comment({author:'\"'\"'a'\"'\"'.repeat(64),body:'\"'\"'x'\"'\"'.repeat(2000)}).body.length,2000);withService({},async api=>{const t=await api.post('\"'\"'/tickets'\"'\"',ticketBody());a.deepEqual((await api.get('\"'\"'/tickets/'\"'\"'+t.body.id)).body.comments,[]);const c=await api.post('\"'\"'/tickets/'\"'\"'+t.body.id+'\"'\"'/comments'\"'\"',{author:'\"'\"'a'\"'\"',body:'\"'\"'hello'\"'\"'});a.equal(c.status,201);a.ok(c.body.id);a.equal(c.body.author,'a');a.equal(c.body.body,'hello');a.ok(!Number.isNaN(Date.parse(c.body.created)));a.equal((await api.get('\"'\"'/tickets/'\"'\"'+t.body.id)).body.comments[0].body,'\"'\"'hello'\"'\"');a.equal((await api.post('\"'\"'/tickets/missing/comments'\"'\"',{author:'\"'\"'a'\"'\"',body:'\"'\"'x'\"'\"'})).status,404)}).catch(e=>{console.error(e);process.exitCode=1});' && rg 'POST /tickets/:id/comments' src/tickets/validate.js"
+ },
+ "fault": "S2's recorded Proof quotes its JavaScript so that the expected author string becomes the assert function and the body a variable: it cannot pass whatever S2 builds."
+}
